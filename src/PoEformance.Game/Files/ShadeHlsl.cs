@@ -52,6 +52,7 @@ public static class ShadeHlsl
             bool dropped;
             float3 specular;
             float gloss;
+            float3 waves;
         };
 
         // ShadeProgram.Read's: an sRGB sheet's colour linearised by the table, its alpha as it is.
@@ -269,15 +270,20 @@ public static class ShadeHlsl
         """;
 
     /// <summary>
+    /// ShadeProgram.Ripples and Ripple, line for line, for a program with a <c>Waves</c> step - their turns written in as the processor's numbers, to the bit.
+    /// </summary>
+    public static readonly string WavesLibrary = Waves();
+
+    /// <summary>
     /// The program as HLSL: its sheets, <see cref="Library"/>, and <c>ShadeOut ShadeRun(...)</c> - the colour as ShadeProgram.Colour returns it.
     /// </summary>
     /// <param name="program">The program.</param>
     /// <param name="firstSheet">The texture slot its first sheet is read from; the rest follow.</param>
     /// <remarks>
-    /// <c>ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust)</c>:
+    /// <c>ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow)</c>:
     /// the coordinates, the place and the interpolated normal in the model's space, the vertex
     /// colour, the solid depth behind (<see cref="Nothing"/> where none), the clock, the way into
-    /// the picture and the area's dust colour - ShadeProgram's fixed registers, in its order.
+    /// the picture, the area's dust colour and its water - ShadeProgram's fixed registers, in its order.
     /// </remarks>
     public static string Of(ShadeProgram program, int firstSheet)
     {
@@ -293,7 +299,17 @@ public static class ShadeHlsl
         hlsl.Append("static const bool ShadeHasSpecular = ").Append(Truth(program.HasSpecular)).AppendLine(";");
         hlsl.Append("static const bool ShadeHasGloss = ").Append(Truth(program.HasGloss)).AppendLine(";");
         hlsl.Append("static const bool ShadeUsesDepth = ").Append(Truth(program.UsesDepth)).AppendLine(";");
+        hlsl.Append("static const bool ShadeHasWaves = ").Append(Truth(program.HasWaves)).AppendLine(";");
         hlsl.AppendLine(Library);
+        foreach (ShadeProgram.Step step in program.Steps)
+        {
+            if (step.Op == ShadeProgram.Op.Waves)
+            {
+                hlsl.AppendLine(WavesLibrary);
+                break;
+            }
+        }
+
         hlsl.AppendLine("ShadeOut ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow)");
         hlsl.AppendLine("{");
 
@@ -364,9 +380,121 @@ public static class ShadeHlsl
         hlsl.AppendLine(program.GlossRegister >= 0
             ? string.Create(CultureInfo.InvariantCulture, $"    said.gloss = r{program.GlossRegister}.x;")
             : "    said.gloss = 0.0;");
+        hlsl.AppendLine(program.WavesRegister >= 0
+            ? string.Create(CultureInfo.InvariantCulture, $"    said.waves = r{program.WavesRegister}.xyz;")
+            : "    said.waves = float3(0.0, 0.0, 0.0);");
         hlsl.AppendLine("    return said;");
         hlsl.AppendLine("}");
         return hlsl.ToString();
+    }
+
+    /// <summary>
+    /// <see cref="WavesLibrary"/>: the noise standing for the engine's ripple texture, and its eight octaves.
+    /// </summary>
+    private static string Waves()
+    {
+        string ratio = string.Join(", ", new[] { 0f, 1f / 3.001f, 2f / 3.001f, 3f / 3.001f }.Select(Number));
+        string cos = string.Join(", ", ShadeProgram.OctaveCos.Select(Number));
+        string sin = string.Join(", ", ShadeProgram.OctaveSin.Select(Number));
+        string texels = Number(4f / ShadeProgram.RippleCell);
+        string range = Number(0.70710677f);
+        string turnCos = Number(ShadeProgram.TurnCos);
+        string turnSin = Number(ShadeProgram.TurnSin);
+        return $$"""
+            float2 ShadeRippleGradient(int cx, int cy)
+            {
+                uint3 h = ShadePcg(asuint(int3(cx, cy, 0)));
+                float2 grad = float2(ShadeHashUnit(h.x) - 0.5, ShadeHashUnit(h.y) - 0.5);
+                return grad / sqrt(max(dot(grad, grad), 1e-12));
+            }
+
+            float ShadeRipple(float qx, float qy, out float gx, out float gy)
+            {
+                float sx = qx * {{texels}};
+                float sy = qy * {{texels}};
+                float fx0 = floor(sx);
+                float fy0 = floor(sy);
+                int ix = (int)fx0;
+                int iy = (int)fy0;
+                float fx = sx - fx0;
+                float fy = sy - fy0;
+                float2 ga = ShadeRippleGradient(ix, iy);
+                float2 gb = ShadeRippleGradient(ix + 1, iy);
+                float2 gc = ShadeRippleGradient(ix, iy + 1);
+                float2 gd = ShadeRippleGradient(ix + 1, iy + 1);
+                float a = (ga.x * fx) + (ga.y * fy);
+                float b = (gb.x * (fx - 1.0)) + (gb.y * fy);
+                float c = (gc.x * fx) + (gc.y * (fy - 1.0));
+                float d = (gd.x * (fx - 1.0)) + (gd.y * (fy - 1.0));
+                float u = fx * fx * (3.0 - (2.0 * fx));
+                float v = fy * fy * (3.0 - (2.0 * fy));
+                float du = 6.0 * fx * (1.0 - fx);
+                float dv = 6.0 * fy * (1.0 - fy);
+                float k1 = b - a;
+                float k2 = c - a;
+                float k3 = a - b - c + d;
+                float noise = a + (u * k1) + (v * k2) + (u * v * k3);
+                float nx = ga.x + (u * (gb.x - ga.x)) + (v * (gc.x - ga.x)) + (u * v * (ga.x - gb.x - gc.x + gd.x)) + (du * (k1 + (v * k3)));
+                float ny = ga.y + (u * (gb.y - ga.y)) + (v * (gc.y - ga.y)) + (u * v * (ga.y - gb.y - gc.y + gd.y)) + (dv * (k2 + (u * k3)));
+                float rise = 3.0 * 0.5 / {{range}};
+                gx = nx * rise * {{texels}};
+                gy = ny * rise * {{texels}};
+                return ((0.5 + (0.5 * noise / {{range}})) - 0.4) * 3.0;
+            }
+
+            static const float ShadeOctaveRatio[4] = { {{ratio}} };
+            static const float ShadeOctaveCos[4] = { {{cos}} };
+            static const float ShadeOctaveSin[4] = { {{sin}} };
+
+            float4 ShadeWaves(float2 place, float2 drift, float clock)
+            {
+                float speed = length(drift);
+                float amplitude = 0.3 * (speed + 3.0);
+                float drop = 0.2 + (0.7 * saturate(speed / 300.0));
+                float m00 = 0.01;
+                float m01 = 0.0;
+                float m10 = 0.0;
+                float m11 = 0.01;
+                float quickness = 1.0;
+                float height = 0.0;
+                float2 slope = float2(0.0, 0.0);
+                [unroll] for (int octave = 0; octave < 8; octave++)
+                {
+                    float period = 3.0 / quickness;
+                    int pair = octave / 2;
+                    float phase = (clock / period) + ShadeOctaveRatio[pair] + ((octave % 2) * 0.5);
+                    phase -= floor(phase);
+                    float opacity = phase * (1.0 - phase) * 4.0;
+                    float c = ShadeOctaveCos[pair];
+                    float s = ShadeOctaveSin[pair];
+                    float along = phase * quickness * period;
+                    float px = place.x + (((-drift.x * c) + (drift.y * s)) * along);
+                    float py = place.y + (((-drift.x * s) - (drift.y * c)) * along);
+                    float gx;
+                    float gy;
+                    float value = ShadeRipple((px * m00) + (py * m10), (px * m01) + (py * m11), gx, gy);
+                    float weight = amplitude * opacity;
+                    height += value * weight;
+                    slope += float2((gx * m00) + (gy * m01), (gx * m10) + (gy * m11)) * weight;
+                    float grow = octave % 2 == 1 ? 2.0 : 1.0;
+                    float n00 = ((m00 * {{turnCos}}) - (m01 * {{turnSin}})) * grow;
+                    float n01 = ((m00 * {{turnSin}}) + (m01 * {{turnCos}})) * grow;
+                    float n10 = ((m10 * {{turnCos}}) - (m11 * {{turnSin}})) * grow;
+                    float n11 = ((m10 * {{turnSin}}) + (m11 * {{turnCos}})) * grow;
+                    m00 = n00;
+                    m01 = n01;
+                    m10 = n10;
+                    m11 = n11;
+                    if (octave % 2 == 1)
+                    {
+                        amplitude *= drop;
+                        quickness *= 1.3;
+                    }
+                }
+
+                return float4(normalize(float3(-slope.x, -slope.y, -1.0)), height);
+            }
+            """;
     }
 
     /// <summary>The registers the mesh and the drawing set before the program's own - ShadeProgram's Fixed.</summary>
@@ -429,6 +557,7 @@ public static class ShadeHlsl
 
             // A LEVEL THAT IS NOT A NUMBER READS THE TOP ONE, and max gives the number where one is not.
             ShadeProgram.Op.SampleLod => Read(program, step.Extra, $"ShadeSheet{Invariant(step.Extra)}.SampleLevel(wrap, {a}.xy, max({b}.x, 0.0))"),
+            ShadeProgram.Op.Waves => $"ShadeWaves({a}.xy, {b}.xy, {c}.x)",
             _ => null,
         };
 

@@ -57,6 +57,16 @@ public sealed class SceneLightPanel : IMovableSun
     /// <summary>How far the player may move before the light follows, so walking does not redraw a room every frame.</summary>
     private const float PlayerStep = 25f;
 
+    /// <summary>
+    /// The most texels a face of the specular cube is read across, for the water's reflection - CHOSEN: its level of 128 of the file's 512.
+    /// </summary>
+    /// <remarks>
+    /// THE ENGINE READS IT BY THE GLOSS, nearly its top level at the water's 0.99; the reflection is three
+    /// parts in a hundred of the light the way the book's camera looks, and the top level is sixteen
+    /// times the texels to decode and send to the card.
+    /// </remarks>
+    private const int MirrorFace = 128;
+
     /// <summary>Most environments the picker lists for a filter.</summary>
     private const int MostListed = 200;
 
@@ -97,6 +107,8 @@ public sealed class SceneLightPanel : IMovableSun
     private bool _playerLight = true;
     private bool _exposure = true;
     private bool _grade = true;
+    private bool _glints = true;
+    private bool _reflection = true;
     private int _ambient = (int)SceneAmbient.Cube;
     private int _cubeReading;
     private int _pointShape;
@@ -123,6 +135,8 @@ public sealed class SceneLightPanel : IMovableSun
     private EnvironmentSettings _environment = EnvironmentSettings.None;
     private CubeMap? _cube;
     private string _cubeSaid = string.Empty;
+    private CubeMap? _mirror;
+    private string _mirrorSaid = string.Empty;
     private ColourGrade? _gradeTable;
     private string _gradeSaid = string.Empty;
 
@@ -225,6 +239,9 @@ public sealed class SceneLightPanel : IMovableSun
             Ambient = (SceneAmbient)_ambient,
             FlatAmbient = _flat,
             Cube = _cube,
+            Mirror = _mirror,
+            WaterGlints = _glints,
+            WaterReflection = _reflection,
             CubeTurn = SceneLight.CubeTurnFrom(env.HorAngle ?? 0f, env.VertAngle ?? 0f, (SceneLight.CubeReading)_cubeReading),
             CubeBrightness = env.EnvBrightness ?? 1f,
             DirectLightEnvRatio = env.DirectLightEnvRatio ?? 0f,
@@ -276,6 +293,16 @@ public sealed class SceneLightPanel : IMovableSun
         Switch("exposure##scene-exposure", ref _exposure, "camera.exposure: the colour times max(1, exposure), the game's own tone mapping for PoE2.", row, "colour grade");
         Switch("colour grade##scene-grade", ref _grade, "post_transform: the environment's 3D colour table, applied after the exposure the way the game's post process applies it"
             + " - looked up by the colour with a gamma of 2.2 taken off, giving back linear light.", row, null);
+
+        start = Label("water", column);
+        row = new Row(right, start);
+        Switch("glints##scene-glints", ref _glints,
+            "The waves' glints: every light's GGX lobe on the water, with the waves' own normal - the engine's gloss of 0.99 and the area's reflectiveness"
+            + " (water.reflectiveness, 0.03 where the file sets none) as the specular colour. The waves are the engine's eight octaves over a noise of this"
+            + " tool's own: the engine's ripple texture is not read.", row, "reflection");
+        Switch("reflection##scene-reflection", ref _reflection,
+            "The waves' reflection: the environment's specular cube (environment_mapping.specular_cube, its level of 128) along the view turned about"
+            + " the waves' normal, lit as the cube ambient is and weighed by the gloss's Fresnel. With the flat ambient it reflects the flat ambient.", row, null);
 
         start = Label("ambient", column);
         ImGui.SetNextItemWidth(ComboWidth("cube ambient"));
@@ -800,6 +827,7 @@ public sealed class SceneLightPanel : IMovableSun
         if (_ambient == (int)SceneAmbient.Cube)
         {
             lines.Add(_cubeSaid);
+            lines.Add(_mirrorSaid);
             if (env.GiEnvOcclusion is > 0f)
             {
                 lines.Add(string.Create(CultureInfo.InvariantCulture,
@@ -897,6 +925,8 @@ public sealed class SceneLightPanel : IMovableSun
         _loadedPath = path;
         _cube = null;
         _cubeSaid = string.Empty;
+        _mirror = null;
+        _mirrorSaid = string.Empty;
         _gradeTable = null;
         _gradeSaid = string.Empty;
         _version++;
@@ -917,6 +947,19 @@ public sealed class SceneLightPanel : IMovableSun
             _gradeSaid = _gradeTable is null
                 ? $"colour grade not applied: {_environment.PostTransform} not read - {gradeWhy}"
                 : $"colour grade {_environment.PostTransform}: {_gradeTable.Format}";
+        }
+
+        // THE WATER'S REFLECTION reads the specular cube, at its level of 128 - see CubeMap.Read.
+        if (_environment.SpecularCube.Length == 0)
+        {
+            _mirrorSaid = "reflection: the environment names no specular cube - the diffuse cube stands in";
+        }
+        else
+        {
+            _mirror = CubeMap.Read(GameArt.ReadRaw(_read, _environment.SpecularCube), out string mirrorWhy, MirrorFace);
+            _mirrorSaid = _mirror is null
+                ? $"reflection: {_environment.SpecularCube} not read: {mirrorWhy} - the diffuse cube stands in"
+                : string.Create(CultureInfo.InvariantCulture, $"reflection {_environment.SpecularCube}: {_mirror.Format}, average {Say(_mirror.Average())}");
         }
 
         if (_environment.DiffuseCube.Length == 0)

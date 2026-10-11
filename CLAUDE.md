@@ -252,10 +252,20 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   covers whole, so the harbour comes out one dark teal - as the formula says, the engine's too. TAKEN FROM THE PASS'S
   SOURCE (v0.1.219): the shore. WaterComputeRefraction thins the density by `saturate(gap * 0.03)` (`ShadeProgram.ShoreFade`)
   and discards the water at the floor; the thirtyfold its formula keeps for terrain water is nought on this path
-  (`GetFlowingWaterPlanarStateWorld`). NOT DONE: the height offset (water.ffx adds it to the surface's displacement), the
-  terrain water colour, reflections (Fresnel by the reflectiveness, 0.03 in Port, the sun's highlight, the environment's
-  cube, screen-space), the refraction's bend, foam and the waves' normals - the last being what makes the engine's
-  surface glint; a flat plane would show one highlight at most.
+  (`GetFlowingWaterPlanarStateWorld`). THE WAVES (v0.1.221, asked for from the live client): the water's glossy twin
+  (`ShadeProgram.HasWaves`) hands the game light a normal of its own - GetFlowSurfaceField's eight octaves as written
+  (`ShadeProgram.Ripples`: each turned half a radian, every pair twice as fine, fading over three seconds and sliding along
+  the drift as it fades), its slope worked out exactly - and the light glints it (every light's GGX lobe, gloss 0.99, specular
+  the area's `water.reflectiveness`, 0.03 where unset) and reflects the environment along it (the env's `specular_cube`,
+  never loaded before, its level of 128 - `CubeMap.Read`'s `largest`), each by a switch in the light panel's "water" row;
+  the colour and the diffuse light keep the mesh's normal, and the lamp draws the water as before. TAKEN FROM THE SOURCE:
+  the octaves, the gloss, the specular. CHOSEN, and said under the picture: the ripple texture the octaves read
+  (`surface_tex_sampler`, a pass texture the engine binds, named nowhere) stands as gradient noise read as the engine
+  reads its texture, a cell every 16 texels (`ShadeProgram.RippleCell`) - `Ripple` alone changes when it is found; the
+  drift (the engine's flow map is made at run time) is the colour pattern's, (18, 12) a unit of flow. At Port's flow they
+  lean 2.7 degrees at the median, 8.7 at most, so the sun glints only where its mirror image falls near - real glitter.
+  NOT DONE: the height offset (water.ffx adds it to the surface's displacement), the waves lifting the surface, the
+  terrain water colour, screen-space reflections, the refraction's bend, foam.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

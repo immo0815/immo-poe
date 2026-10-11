@@ -48,6 +48,50 @@ public class SceneLightTests
         Assert.True(cube.Sample(new Vector3(0.99f, 1f, 0f)).X > cube.Sample(new Vector3(-0.99f, 1f, 0f)).X);
     }
 
+    /// <summary>A smaller level is read where it is asked for and the file stores it - each face's own, past the levels before it - and the top one otherwise.</summary>
+    [Fact]
+    public void ACUBEIsReadAtTheLevelAskedForWhereTheFileStoresIt()
+    {
+        // EIGHT ACROSS ON TOP, four blocks a face, and four across below it, one block: the top level of
+        // each face reads a hundred times its number, the second a thousand.
+        const int faceBytes = (4 + 1) * 16;
+        var dds = new byte[128 + 20 + (6 * faceBytes)];
+        Header(dds, 8, levels: 2);
+        BitConverter.TryWriteBytes(dds.AsSpan(80), 0x4u);
+        Encoding.ASCII.GetBytes("DX10").CopyTo(dds, 84);
+        BitConverter.TryWriteBytes(dds.AsSpan(128), 95);
+        BitConverter.TryWriteBytes(dds.AsSpan(132), 3);
+        BitConverter.TryWriteBytes(dds.AsSpan(136), 0x4u);
+        BitConverter.TryWriteBytes(dds.AsSpan(140), 1);
+        for (var face = 0; face < 6; face++)
+        {
+            int at = 148 + (face * faceBytes);
+            for (var block = 0; block < 4; block++)
+            {
+                Constant(100 * (face + 1), 0, 0).CopyTo(dds, at + (block * 16));
+            }
+
+            Constant(1000 + face, 0, 0).CopyTo(dds, at + (4 * 16));
+        }
+
+        CubeMap? top = CubeMap.Read(dds, out string why);
+        Assert.True(top is not null, why);
+        Assert.Equal(8, top.Size);
+        Assert.Equal(Decoded(Constant(300, 0, 0), 0), top.Sample(Vector3.UnitY));
+
+        CubeMap? small = CubeMap.Read(dds, out why, largest: 4);
+        Assert.True(small is not null, why);
+        Assert.Equal(4, small.Size);
+        for (var face = 0; face < 6; face++)
+        {
+            Vector3 way = face switch { 0 => Vector3.UnitX, 1 => -Vector3.UnitX, 2 => Vector3.UnitY, 3 => -Vector3.UnitY, 4 => Vector3.UnitZ, _ => -Vector3.UnitZ };
+            Assert.Equal(Decoded(Constant(1000 + face, 0, 0), 0), small.Sample(way));
+        }
+
+        // SMALLER THAN THE FILE STORES: its smallest.
+        Assert.Equal(4, CubeMap.Read(dds, out _, largest: 1)!.Size);
+    }
+
     /// <summary>The one cube that is not BC6H - 32-bit colour by the old header's masks - is read too, and a file that is no cube says why.</summary>
     [Fact]
     public void THEOLDHEADERSThirtyTwoBitCubeIsReadAndNotACubeSaysWhy()
