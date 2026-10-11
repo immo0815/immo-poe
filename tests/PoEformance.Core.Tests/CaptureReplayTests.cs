@@ -1031,6 +1031,173 @@ public class CaptureReplayTests
         return said.ToString();
     }
 
+    /// <summary>Holds every laid tile whose list line carries words against the way the game laid it; writes the table beside the capture's files.</summary>
+    [Fact]
+    public void THEWORDSAreHeldAgainstTheLaidTilesFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder)
+        {
+            return;
+        }
+
+        string replay = WordsReplay(folder);
+        File.WriteAllText(Path.Combine(folder, "words-replay.txt"), replay);
+        Assert.StartsWith("words:", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// words-replay.txt: every tile a tile list or fill list writes words after (I, R90, R180, R270 in Marrow's), and every
+    /// time the area laid it - the placement in the area, and where a placed room holds it, the way it lies in the room.
+    /// </summary>
+    /// <remarks>
+    /// WHY MEASURE FIRST. poe_data_tools reads the words as strings it calls rotations and says nothing of what they do;
+    /// Marrow lists its cave entrance once with I and once with R180 and its boss arena with I. Whether a word fixes the
+    /// tile's way in the AREA or in its ROOM, or only picks which file stands for which turn, the two placements side by
+    /// side say - which is why both halves are printed and nothing is concluded here. The build obeys the words once a
+    /// capture with a worded tile laid shows which.
+    /// </remarks>
+    public static string WordsReplay(string folder)
+    {
+        var said = new StringBuilder();
+        var words = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        void Word(string tile, IReadOnlyList<string> written, string from)
+        {
+            if (written.Count > 0)
+            {
+                (words.TryGetValue(tile, out List<string>? known) ? known : words[tile] = []).Add($"{string.Join(' ', written)} ({from})");
+            }
+        }
+
+        string lists = Path.Combine(folder, CaptureReport.TilesetListsFile);
+        if (File.Exists(lists))
+        {
+            foreach (TileListEntry entry in TileList.Parse(File.ReadAllText(lists)).Entries)
+            {
+                Word(entry.Tile, entry.Words, "tile list");
+            }
+        }
+
+        foreach (FillListEntry entry in FillEntries(folder))
+        {
+            Word(entry.Path, entry.Words, $"fill list, section {entry.Section}");
+        }
+
+        TerrainGrid? grid = Terrain(folder, out string how);
+        said.AppendLine(CultureInfo.InvariantCulture, $"words: {words.Count} tile files carry words in the area's lists; {how}");
+        if (words.Count == 0 || grid?.Tiles is not { } laid)
+        {
+            said.AppendLine(words.Count == 0 ? "no tile line carries a word" : "nothing to hold them against without the terrain's tiles");
+            return said.ToString();
+        }
+
+        // EVERY LAID TILE ONCE, at its first piece: the placement the area gives it.
+        var inArea = new Dictionary<string, List<(int X, int Y, int Placement)>>(StringComparer.OrdinalIgnoreCase);
+        for (var y = 0; y < laid.Height; y++)
+        {
+            for (var x = 0; x < laid.Width; x++)
+            {
+                string path = laid.PathAt(x, y);
+                if (path.Length > 0 && words.ContainsKey(path) && laid.SubAt(x, y) is (0, 0))
+                {
+                    (inArea.TryGetValue(path, out List<(int, int, int)>? found) ? found : inArea[path] = []).Add((x, y, laid.PlacementAt(x, y)));
+                }
+            }
+        }
+
+        // AND WHERE A PLACED ROOM HOLDS IT: the room's turn and the way the tile lies in the room, as the build replay reads it.
+        var inRoom = new Dictionary<(int X, int Y), List<string>>();
+        Placing placing = Place(folder);
+        for (var one = 0; one < placing.Rooms.Count; one++)
+        {
+            (string room, RoomLayout layout) = placing.Rooms[one];
+            foreach (RoomDoodadPlace place in placing.Placed[one].Places.Places)
+            {
+                RoomCandidate at = place.Where;
+                for (var line = 0; line < layout.Height; line++)
+                {
+                    for (var column = 0; column < layout.Width; column++)
+                    {
+                        RoomSlot slot = layout.SlotAt(column, line);
+                        if (!slot.IsTile)
+                        {
+                            continue;
+                        }
+
+                        (int left, int top) = slot.Corner(column, line);
+                        (int cellX, int cellY) = RoomFinder.CornerOf(left, top, slot.Width, slot.Height, layout.Width, layout.Height, at.Turn);
+                        (int x, int y) = (at.X + cellX, at.Y + cellY);
+                        if (!words.ContainsKey(laid.PathAt(x, y)) || laid.SubAt(x, y) is not (0, 0))
+                        {
+                            continue;
+                        }
+
+                        int placement = laid.PlacementAt(x, y);
+                        int way = Enumerable.Range(0, 8).FirstOrDefault(candidate => Composed(at.Turn, candidate) == placement, -1);
+                        (inRoom.TryGetValue((x, y), out List<string>? rooms) ? rooms : inRoom[(x, y)] = [])
+                            .Add(string.Create(CultureInfo.InvariantCulture, $"{Short(room)} slot {column}, {line}, room {RoomFinder.Said(at.Turn)}: in the room {way}"));
+                    }
+                }
+            }
+        }
+
+        int laidFiles = inArea.Count, instances = inArea.Values.Sum(found => found.Count);
+        said.AppendLine(CultureInfo.InvariantCulture, $"{laidFiles} of them laid, {instances} times; {inRoom.Count} of those inside a room the doodads placed");
+        said.AppendLine();
+        foreach ((string tile, List<string> written) in words.OrderBy(one => one.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            said.AppendLine(CultureInfo.InvariantCulture, $"{tile}: {string.Join("; ", written)}");
+            if (!inArea.TryGetValue(tile, out List<(int X, int Y, int Placement)>? found))
+            {
+                said.AppendLine("  not laid");
+                continue;
+            }
+
+            said.AppendLine(CultureInfo.InvariantCulture, $"  laid {found.Count}x, placements in the area: {string.Join(", ", found.GroupBy(one => one.Placement).OrderBy(group => group.Key).Select(group => $"{group.Key} x{group.Count()}"))}");
+            foreach ((int x, int y, int placement) in found)
+            {
+                string rooms = inRoom.TryGetValue((x, y), out List<string>? held) ? string.Join("; ", held) : "no placed room holds it";
+                said.AppendLine(CultureInfo.InvariantCulture, $"    tile {x}, {y}: placement {placement} - {rooms}");
+            }
+        }
+
+        return said.ToString();
+    }
+
+    /// <summary>Every line of the fill lists area-masters.txt carries, read back with FillList - none where the capture has no such file.</summary>
+    private static List<FillListEntry> FillEntries(string folder)
+    {
+        var entries = new List<FillListEntry>();
+        string path = Path.Combine(folder, CaptureReport.MastersFile);
+        if (!File.Exists(path))
+        {
+            return entries;
+        }
+
+        string current = string.Empty;
+        var text = new StringBuilder();
+        foreach (string raw in File.ReadLines(path).Append("##### "))
+        {
+            string line = raw.TrimEnd('\r');
+            if (line.StartsWith("##### ", StringComparison.Ordinal))
+            {
+                if (current.EndsWith(FillList.Extension, StringComparison.OrdinalIgnoreCase))
+                {
+                    entries.AddRange(FillList.Parse(text.ToString()).Entries);
+                }
+
+                int named = line.IndexOf("  (", StringComparison.Ordinal);
+                current = named > 6 ? line[6..named] : line[6..];
+                text.Clear();
+            }
+            else if (line.StartsWith("  | ", StringComparison.Ordinal))
+            {
+                text.AppendLine(line[4..]);
+            }
+        }
+
+        return entries;
+    }
+
     /// <summary>The fill lists of area-masters.txt read back with FillList, each with how many of its tiles the area laid.</summary>
     private static void FillLists(StringBuilder said, string folder, HashSet<string> laid)
     {

@@ -109,6 +109,20 @@ public partial class CaptureFixtureTests
         Assert.Contains("Cavepassage_blacknessNoFog_v01_01: shares a template with Metadata/Terrain/Desert/CavePath/Features/Cavepassage_blacknessNoFog_v01_01_feature.tdt", replay, StringComparison.Ordinal);
     }
 
+    /// <summary>Marrow's words are read off its tile list - four files, the cave entrance twice - and none of those files was laid in that instance.</summary>
+    /// <remarks>
+    /// THE OPEN HALF AGAIN: what a word does to a tile's placement needs a laid worded tile, which Marrow's instance did not
+    /// have. The first capture that has one is a fixture worth adding, and this count is what it will move.
+    /// </remarks>
+    [Fact]
+    public void THEWORDSOfMarrowAreReadButNotLaid()
+    {
+        string replay = CaptureReplayTests.WordsReplay(Capture("marrow"));
+        Assert.StartsWith("words: 4 tile files carry words in the area's lists", replay, StringComparison.Ordinal);
+        Assert.Contains("0 of them laid, 0 times", replay, StringComparison.Ordinal);
+        Assert.Contains("Metadata/Terrain/Desert/CavePath/Features/cave_entrance_01.tdt: I (tile list); R180 (tile list)", replay, StringComparison.Ordinal);
+    }
+
     [GeneratedRegex(@"room way (\d), tile way (\d): edges (\d+) agree, (\d+) disagree")]
     private static partial Regex Pair();
 

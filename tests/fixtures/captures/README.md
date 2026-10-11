@@ -17,16 +17,17 @@ The first four were taken with v0.1.179 and carry neither `tile-files.txt` nor `
 (v0.1.184); a capture from that build on is what says whether a master's fill list is where the
 unlisted tiles come from.
 
-Run every replay over one of them:
+Run every replay over one of them, from the repository's root - the path has to be absolute, since the
+tests run in their own bin folder:
 
 ```
-POEF_CAPTURE="tests/fixtures/captures/oasis" dotnet test tests/PoEformance.Core.Tests --filter "FullyQualifiedName~CaptureReplay"
+POEF_CAPTURE="$PWD/tests/fixtures/captures/oasis" dotnet test tests/PoEformance.Core.Tests --filter "FullyQualifiedName~CaptureReplay"
 ```
 
 and the weight estimate over several at once (the platform's path separator between):
 
 ```
-POEF_CAPTURES="tests/fixtures/captures/oasis:tests/fixtures/captures/steaming-springs" dotnet test tests/PoEformance.Core.Tests --filter "FullyQualifiedName~THEWEIGHT"
+POEF_CAPTURES="$PWD/tests/fixtures/captures/oasis:$PWD/tests/fixtures/captures/steaming-springs" dotnet test tests/PoEformance.Core.Tests --filter "FullyQualifiedName~THEWEIGHT"
 ```
 
 The replays write their `*-replay.txt` beside the capture; `.gitignore` keeps them out of the repository.
