@@ -1,6 +1,7 @@
 using System.Text;
 using PoEformance.Features;
 using PoEformance.Game.Files;
+using PoEformance.Game.World;
 
 namespace PoEformance.Core.Tests;
 
@@ -327,5 +328,28 @@ public class TilesetFilesTests
         Assert.Equal(-328f, light.Height);
         Assert.True(light.IsProp);
         Assert.Same(TileDoodadList.None, TileDoodadList.Parse(" "));
+    }
+
+    /// <summary>
+    /// A wall top is put down only where it faces the camera's side once its tile is laid; every other line always is.
+    /// </summary>
+    /// <remarks>
+    /// THE CASES ARE MARROW'S (v0.1.186), each line and placement with what the game had there: the concave piece's two tops
+    /// both there turned 270, only the first mirrored and turned 90; of the large convex piece's three, mirrored and turned
+    /// 90, only the one at 135 degrees.
+    /// </remarks>
+    [Theory]
+    [InlineData(1.5708f, 5, true)]
+    [InlineData(0f, 5, true)]
+    [InlineData(1.5708f, 4, true)]
+    [InlineData(0f, 4, false)]
+    [InlineData(0.785398f, 4, false)]
+    [InlineData(-0.785398f, 4, false)]
+    [InlineData(2.35619f, 4, true)]
+    public void AWallTopIsShownWhereItFacesTheCamerasSide(float turn, int placement, bool shown)
+    {
+        var top = new RoomDoodad(11, 11, turn, 1f, "Metadata/Terrain/Desert/CavePath/TallWalls/Abysswall_Upper_Cc_1_a.ao", TileDoodadList.WallTop);
+        Assert.Equal(shown, TileDoodadList.Shown(top, TileOrientation.OfPlacement(placement)));
+        Assert.True(TileDoodadList.Shown(top with { Stub = "Metadata/MiscellaneousObjects/DoodadNoBlocking" }, TileOrientation.OfPlacement(placement)));
     }
 }

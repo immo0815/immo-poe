@@ -15,7 +15,8 @@ namespace PoEformance.Core.Tests;
 /// THE CAPTURES (v0.1.179, pictures left out): Oasis, where the orientation and origin rules were first
 /// read; Steppe, the forced_blank question and the weights 1, 20 and 300; Sulphuric Caverns, whose boss
 /// room lays tile files no list names (see CaptureReport.TileFiles); Steaming Springs, the most weight
-/// samples and fifteen placed rooms. tests/fixtures/captures/README.md says more.
+/// samples and fifteen placed rooms; and Marrow (v0.1.186), the fill lists, the words and the tile doodads.
+/// tests/fixtures/captures/README.md says more.
 /// </remarks>
 public partial class CaptureFixtureTests
 {
@@ -93,20 +94,21 @@ public partial class CaptureFixtureTests
     }
 
     /// <summary>
-    /// Marrow's laid files no tile list names: none inherited, the plain Cavepassage tile sharing its template with the listed
-    /// _feature one, and the four mine_abyss_fill tiles explained by nothing a v0.1.183 capture carries.
+    /// Marrow's laid files no tile list names all come from its master's fill list: the plain Cavepassage tile and the four
+    /// mine_abyss_fill tiles of its Rooms/Fills folder, every one in random_fill_tiles.gft.
     /// </summary>
     /// <remarks>
-    /// THE COUNT OF THE UNEXPLAINED IS PINNED ON PURPOSE: it is the open question. When the replay learns where they come
-    /// from - a master's fill list is the next place to look, and Marrow's capture predates area-masters.txt - this is the
-    /// line that has to change, and it should change with a reason.
+    /// THE COUNT USED TO BE THE OPEN QUESTION: the v0.1.183 capture this one replaced left four of the five unexplained,
+    /// for want of area-masters.txt (v0.1.184). Read through the master's FillTiles, none is - and the fill list is a road
+    /// the build has to take as well as the tile lists.
     /// </remarks>
     [Fact]
-    public void THETILEFILESOfMarrowLeaveOnlyTheFillsUnexplained()
+    public void THETILEFILESOfMarrowComeFromItsFillList()
     {
         string replay = CaptureReplayTests.TileFilesReplay(Capture("marrow"));
-        Assert.StartsWith("tile files: 5 laid files no tile list names: 0 reached by inheriting, 0 in a fill list, 1 sharing a template with a listed file, 4 not explained", replay, StringComparison.Ordinal);
-        Assert.Contains("Cavepassage_blacknessNoFog_v01_01: shares a template with Metadata/Terrain/Desert/CavePath/Features/Cavepassage_blacknessNoFog_v01_01_feature.tdt", replay, StringComparison.Ordinal);
+        Assert.StartsWith("tile files: 5 laid files no tile list names: 0 reached by inheriting, 5 in a fill list, 0 sharing a template with a listed file, 0 not explained", replay, StringComparison.Ordinal);
+        Assert.Contains("fill list metadata/terrain/maps/marrow/random_fill_tiles.gft: version 2, 4 sections, 7 tiles (6 laid), 0 rooms", replay, StringComparison.Ordinal);
+        Assert.Contains("mine_abyss_fill_v01_01: in a fill list - Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_01.tdt", replay, StringComparison.Ordinal);
     }
 
     /// <summary>Marrow's words are read off its tile list - four files, the cave entrance twice - and none of those files was laid in that instance.</summary>
@@ -124,21 +126,43 @@ public partial class CaptureFixtureTests
     }
 
     /// <summary>
-    /// Every doodad list Marrow's capture carries reads whole - 171 lines of 35 lists, none refused - and the recording's own
-    /// TileUpperDoodad entities are there to hold them against once a capture carries the lists beside the templates.
+    /// How a tile's doodads reach the world, held against Marrow's entities: the tile's frame as authored, then the game's
+    /// placement; a wall top only where it faces the camera's side (TileDoodadList.Shown), without one exception; and a
+    /// line's z the entity's own ground, exactly.
     /// </summary>
     /// <remarks>
-    /// THE MEASUREMENT ITSELF WAITS: the only doodads of Marrow's lists that meet an entity stand in the middle of a three by
-    /// three tile, where every way a tile can lie puts them - so all sixteen readings find the same three. The wall tops
-    /// (TileUpperDoodad, off the middle) that would tell the readings apart sit in lists beside the templates, which v0.1.183
-    /// did not look for.
+    /// THE WALL TOPS ARE WHAT TELL THE READINGS APART: a doodad in a tile's middle lands there under every way the tile can
+    /// lie, while a top stands in the middle of one PIECE of a big tile, so only the right reading finds it. Way 3 is the
+    /// tile as authored, the same matrix whichever side of the game's turn it is put, so its two readings tie by construction.
+    ///
+    /// THE HEIGHT IS THE ENTITY'S GROUND (Render's TerrainHeight), NOT ITS Z: a top's z is its ground less something of its
+    /// model, a different amount for each model at one place. Every tile under a found doodad is at level nought in Marrow,
+    /// so whether a line's z counts from the tile's level or from the area's nought this capture cannot say.
     /// </remarks>
     [Fact]
-    public void THETILEDOODADSOfMarrowReadWholeAndWaitForTheWallTops()
+    public void THETILEDOODADSOfMarrowStandAsAuthoredAndFaceTheCamera()
     {
         string replay = CaptureReplayTests.TileDoodadsReplay(Capture("marrow"));
-        Assert.StartsWith("tile doodads: 35 tile files with a doodad list, 171 doodad lines - 35 doodad lists read, 0 with lines refused", replay, StringComparison.Ordinal);
-        Assert.Contains("Metadata/MiscellaneousObjects/TileUpperDoodad x238", replay, StringComparison.Ordinal);
+        Assert.StartsWith("tile doodads: 152 tile files with a doodad list, 833 doodad lines", replay, StringComparison.Ordinal);
+
+        var tops = new Dictionary<(int Way, string Turn), int>();
+        foreach (Match reading in WallTops().Matches(replay))
+        {
+            tops[(int.Parse(reading.Groups[1].Value, CultureInfo.InvariantCulture), reading.Groups[2].Value)] = int.Parse(reading.Groups[3].Value, CultureInfo.InvariantCulture);
+        }
+
+        Assert.Equal(16, tops.Count);
+        Assert.Equal(tops[(3, "after")], tops[(3, "before")]);
+        Assert.All(tops.Where(one => one.Key.Way != 3), one => Assert.True(one.Value < tops[(3, "after")], $"way {one.Key.Way}, turn {one.Key.Turn} finds {one.Value} wall tops"));
+
+        Match rule = Rule().Match(replay);
+        Assert.True(rule.Success);
+        Assert.True(int.Parse(rule.Groups[2].Value, CultureInfo.InvariantCulture) > 400);
+        Assert.Equal(rule.Groups[2].Value, rule.Groups[1].Value);
+
+        MatchCollection grounds = Ground().Matches(replay);
+        Assert.True(grounds.Count >= 2);
+        Assert.All(grounds, ground => Assert.True(ground.Groups[1].Value.Length == 0, "a line's z is not its entity's ground: " + ground.Value));
     }
 
     [GeneratedRegex(@"room way (\d), tile way (\d): edges (\d+) agree, (\d+) disagree")]
@@ -149,4 +173,13 @@ public partial class CaptureFixtureTests
 
     [GeneratedRegex(@"(\d+) settled by one tile \((\d+) the game's file\)")]
     private static partial Regex Settled();
+
+    [GeneratedRegex(@"way (\d) \([^)]*\), the game's turn (after|before): [^\n]*TileUpperDoodad (\d+)/\d+")]
+    private static partial Regex WallTops();
+
+    [GeneratedRegex(@"the rule \(TileDoodadList\.Shown\): (\d+) of (\d+) wall-top lines")]
+    private static partial Regex Rule();
+
+    [GeneratedRegex(@"entity ground - line z: -?0 x\d+([^\r\n]*)")]
+    private static partial Regex Ground();
 }

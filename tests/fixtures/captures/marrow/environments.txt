@@ -1,5 +1,5 @@
 === environments
-1457 files the area loaded, 0 of them tilesets
+843 files the area loaded, 0 of them tilesets
 
 === .env Metadata/EnvironmentSettings/Maps/Marrow.env  (the area's own: its WorldAreas row's Environments row)
 {

@@ -1,0 +1,254 @@
+1 master of the area and 12 files they name or the area loaded, each whole - a tile list by name only, being whole in tileset-lists.txt
+
+##### metadata/terrain/maps/marrow/master.tsi  (master)
+  | version 3
+  | RoomUnitSize            9
+  | StoreyHeight            32
+  | OuterBufferSize         10
+  | RoomOverlap             1
+  | MergeInsideWalls        1
+  | OuterGroundType         "Metadata/Terrain/Desert/CavePath/cavern_abyss.gt"
+  | FillTiles               "random_fill_tiles.gft"
+  | TileSet                 "tiles.tst"
+  | MaterialsList           "materials.mtd"
+  | RoomSet                 "generate.rs"
+  | Overlays                "overlays.toy"
+  | Decals                  "decals.dct"
+  | Doodads                 "doodads.ddt"
+  | ChestData               "chests.cht"
+  | EdgeCombination         "combination.ecf"
+  | Critters                "critters.clt"
+  | TileMaterialOverrides   "material_overrides.tmo"
+  | DungeonFillRoomHeightOverride 0
+  | OuterFillHeightOverride 0
+  | DefaultKillZone	9
+  | 
+##### Metadata/Terrain/Desert/CavePath/cavern_abyss.gt  (OuterGroundType of metadata/terrain/maps/marrow/master.tsi)
+  | CavernAbyss
+  | 0 1 0 0
+##### metadata/terrain/maps/marrow/random_fill_tiles.gft  (FillTiles of metadata/terrain/maps/marrow/master.tsi)
+  fill list: version 2, 4 sections, 7 tiles, 0 rooms
+  | version 2
+  | "default"
+  | 1 "Metadata/Terrain/Desert/CavePath/Blank_01_01.tdt"
+  | 
+  | "CavernAbyss"
+  | 1 "Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_01.tdt"
+  | 6 "Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_02.tdt"
+  | 6 "Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_03.tdt"
+  | 1 "Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_04.tdt"
+  | 
+  | "BlackInsideWall"
+  | 1 "Metadata/Terrain/Desert/CavePath/Cavepassage_blacknessNoFog_v01_01.tdt"
+  | 
+  | "ImpassableGround"
+  | 1 "Metadata/Terrain/Blank_impassable.tdt"
+##### metadata/terrain/maps/marrow/tiles.tst  (TileSet of metadata/terrain/maps/marrow/master.tsi)
+  (a tile list - whole in tileset-lists.txt)
+##### metadata/terrain/maps/marrow/materials.mtd  (MaterialsList of metadata/terrain/maps/marrow/master.tsi)
+  | version 5
+  | 3 0 
+  | "Art/Textures/Environment/desert/Oasis/GroundMaterials/G_Rock_Dusty.mat"
+  | "Art/Textures/Environment/desert/Oasis/GroundMaterials/G_FossilisedGround.mat"
+  | "Art/Textures/Environment/desert/Oasis/GroundMaterials/G_PlateuMud.mat"
+  | 50 30 30 30
+  | 
+  | "CavernAbyss" 1 0 
+  | "Art/Textures/Environment/desert/Oasis/GroundMaterials/G_FossilisedGround.mat"
+  | 
+  | "BlackInsideWall" 1 0 
+  | "Art/Textures/Environment/desert/Oasis/GroundMaterials/G_FossilisedGround.mat"
+##### metadata/terrain/maps/marrow/generate.rs  (RoomSet of metadata/terrain/maps/marrow/master.tsi)
+  | version 2
+  | 35 "Metadata/Terrain/Maps/Marrow/Rooms/Fills/cavern_gapfill_1.arm"
+  | 100 "Metadata/Terrain/Maps/Marrow/Rooms/Fills/cavern_gapfill_2.arm"
+  | 100 "Metadata/Terrain/Maps/Marrow/Rooms/Fills/cavern_gapfill_3.arm"
+  | 
+  | "Metadata/Terrain/Maps/Marrow/Rooms/Unique/boss_01.arm"
+  | //"Metadata/Terrain/Maps/Marrow/Rooms/Unique/noboss_01.arm"
+  | "Metadata/Terrain/Maps/Marrow/Rooms/Unique/checkpoint_01.arm"
+  | "Metadata/Terrain/Maps/Marrow/Rooms/Unique/checkpoint_02.arm"
+  | "Metadata/Terrain/Maps/Marrow/Rooms/Unique/entrance_01.arm"
+  | //"Metadata/Terrain/Maps/Marrow/Rooms/Unique/forced_rare_01.arm"
+  | "Metadata/Terrain/Maps/Marrow/Rooms/Unique/mission_01.arm"
+  | "Metadata/Terrain/Maps/Marrow/Rooms/Unique/mission_02.arm"
+  | 
+  | 2 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/4open_01.arm"
+  | 2 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/4open_02.arm"
+  | 2 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/4open_03.arm"
+  | 2 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/4open_04.arm"
+  | 2 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/4open_05.arm"
+  | 2 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/3open_01.arm"
+  | 2 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/3open_02.arm"
+  | 2 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/3open_03.arm"
+  | 2 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/3open_04.arm"
+  | 2 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/3open_05.arm"
+  | 200 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/2open_corner_01.arm"
+  | 200 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/2open_corner_02.arm"
+  | 200 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/2open_corner_03.arm"
+  | //200 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/2open_corner_04.arm"
+  | //200 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/2open_corner_05.arm"
+  | //2 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/2open_straight_01.arm"
+  | //2 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/2open_straight_02.arm"
+  | //2 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/2open_straight_03.arm"
+  | //2 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/2open_straight_04.arm"
+  | //2 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/2open_straight_05.arm"
+  | //1000 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/1open_01.arm"
+  | 2000 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/1open_02.arm"
+  | //1000 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/1open_03.arm"
+  | 2000 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/1open_04.arm"
+  | //1000 "Metadata/Terrain/Maps/Marrow/Rooms/1x1/1open_05.arm"
+  | 
+  | //4 "Metadata/Terrain/Maps/Marrow/Rooms/2x2/2open_corner_01.arm"
+  | //4 "Metadata/Terrain/Maps/Marrow/Rooms/2x2/3open_corner_01.arm"
+  | //4 "Metadata/Terrain/Maps/Marrow/Rooms/2x2/3open_corner_02.arm"
+  | //4 "Metadata/Terrain/Maps/Marrow/Rooms/2x2/4open_diagonal_01.arm"
+  | //4 "Metadata/Terrain/Maps/Marrow/Rooms/2x2/4open_side_01.arm"
+  | //4 "Metadata/Terrain/Maps/Marrow/Rooms/2x2/4open_side_02.arm"
+  | //4 "Metadata/Terrain/Maps/Marrow/Rooms/2x2/4open_side_03.arm"
+  | //4 "Metadata/Terrain/Maps/Marrow/Rooms/2x2/6open_corner_01.arm"
+  | //4 "Metadata/Terrain/Maps/Marrow/Rooms/2x2/6open_corner_02.arm"
+  | //4 "Metadata/Terrain/Maps/Marrow/Rooms/2x2/6open_corner_03.arm"
+  | //400 "Metadata/Terrain/Maps/Marrow/Rooms/2x2/8open_01.arm"
+  | //400 "Metadata/Terrain/Maps/Marrow/Rooms/2x2/8open_02.arm"
+##### metadata/terrain/maps/marrow/overlays.toy  (Overlays of metadata/terrain/maps/marrow/master.tsi)
+  | version 1
+  | 1 1
+  | 100 "Metadata/Terrain/Maps/Marrow/Rooms/Overlays/overlay_abyssedge_2x1_st_01.arm"
+  | 100 "Metadata/Terrain/Maps/Marrow/Rooms/Overlays/overlay_abysswall_2x1_st_01.arm"
+  | 100 "Metadata/Terrain/Maps/Marrow/Rooms/Overlays/overlay_thickwall_2x1_st_01.arm"
+  | 
+##### metadata/terrain/maps/marrow/decals.dct  (Decals of metadata/terrain/maps/marrow/master.tsi)
+  | version 2
+  | 0.6
+  | Default
+  | 
+##### metadata/terrain/maps/marrow/doodads.ddt  (Doodads of metadata/terrain/maps/marrow/master.tsi)
+  | version 3
+  | 0.25
+  | Default
+  | 4 "Metadata/Terrain/Doodads/Desert/Badlands/SmallMiscBones01.ao"
+  | 4 "Metadata/Terrain/Doodads/Desert/Badlands/SmallMiscBones02.ao"
+  | 4 "Metadata/Terrain/Doodads/Desert/Badlands/SmallMiscBones03.ao"
+  | 4 "Metadata/Terrain/Doodads/Desert/Badlands/SingleBones/FemurBone_set.ao"
+##### metadata/terrain/maps/marrow/chests.cht  (ChestData of metadata/terrain/maps/marrow/master.tsi)
+  | version 2
+  | 0.25 0.75 2 25
+  | 15 "TraitorsPassageChest_01, TraitorsPassageChest_02, TraitorsPassageChest_03, TraitorsPassageSmallChest_01, TraitorsPassageSmallChest_02, RedvaleChest15_MagicAndRare, RedvaleChest16_MagicAndRare, RedvaleChest18_MagicAndRare, RedvaleChest22_MagicAndRare"
+  | 
+  | 4 "CavePassagePots"
+##### metadata/terrain/maps/marrow/combination.ecf  (EdgeCombination of metadata/terrain/maps/marrow/master.tsi)
+  | version 1
+  | "Metadata/Terrain/Desert/Maraketh/ThickWall/MarakethRuin_thick_wall.et" "Metadata/Terrain/Desert/Maraketh/ThickWall/MarakethRuin_thick_wall.et" "Metadata/Terrain/Desert/Maraketh/Floor/MarakethRuin_floortrim.et"
+  | "Metadata/Terrain/Desert/CavePath/cavern_thickwall.et" "Metadata/Terrain/Desert/CavePath/cavern_abyss_wall.et" "Metadata/Terrain/Desert/CavePath/cavern_abyss_edge.et"
+  | "Metadata/Terrain/Desert/CavePath/cavern_abyss_edge.et" "Metadata/Terrain/Desert/CavePath/cavern_thickwall.et" "Metadata/Terrain/Desert/CavePath/cavern_abyss_wall.et"
+  | "Metadata/Terrain/Desert/CavePath/cavern_abyss_edge.et" "Metadata/Terrain/Desert/CavePath/cavern_abyss_wall.et" "Metadata/Terrain/Desert/CavePath/cavern_thickwall.et"
+  | "Metadata/Terrain/Desert/CavePath/cavern_abyss_edge.et" "Metadata/Terrain/Desert/CavePath/cavern_abyss_edge.et" "Metadata/Terrain/Desert/CavePath/cavern_ledge.et" 1
+##### metadata/terrain/maps/marrow/critters.clt  (Critters of metadata/terrain/maps/marrow/master.tsi)
+  | version 4
+  | 0.2
+  | Default
+  | 2 "Metadata/Critters/Weta/Basic" "Metadata/Critters/Weta/Basic.ao" 0.0 0.0 1 1
+  | 2 "Metadata/Critters/Scorpion/Yellow" "Metadata/Critters/Scorpion/Yellow.ao" 0.0 0.0 1 1
+  | 1 "Metadata/Critters/Spider/RedGreenWebSpider" "Metadata/Critters/Spider/RedGreenWebSpider.ao" 0.0 0.0 1 1
+##### metadata/terrain/maps/marrow/material_overrides.tmo  (TileMaterialOverrides of metadata/terrain/maps/marrow/master.tsi)
+  | version 1
+  | 
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | // HIDE [REMOVE]
+  | // ----------------------------
+  | // "Art/Textures/Environment/desert/Passage/BasicSkeletonDustc.mat" "Art/Textures/masks/transparentobjectsc.mat"
+  | "Art/Textures/Environment/desert/Passage/Cavedebrisc.mat" "Art/Textures/masks/transparentobjectsc.mat"
+  | // "Art/Textures/Environment/desert/Oasis/Cacti/DriedCacti01_dustc.mat" "Art/Textures/masks/transparentobjectsc.mat"
+  | 
+  | // "Art/Textures/Environment/desert/Oasis/Cacti/DriedCactusCoarse02_dustc.mat" "Art/Textures/masks/transparentobjectsc.mat"
+  | // "Art/Textures/Environment/desert/Oasis/Cacti/DriedCactusLarge01_dustc.mat" "Art/Textures/masks/transparentobjectsc.mat"
+  | // "Art/Textures/Environment/desert/Oasis/Cacti/DriedCactusLarge02_dustc.mat" "Art/Textures/masks/transparentobjectsc.mat"
+  | // "Art/Textures/Environment/desert/Oasis/Cacti/DriedCactusThick01_dustc.mat" "Art/Textures/masks/transparentobjectsc.mat"
+  | // "Art/Textures/Environment/desert/Oasis/Cacti/DriedCactusThick02_dustc.mat" "Art/Textures/masks/transparentobjectsc.mat"
+  | // "Art/Textures/Environment/desert/Oasis/Cacti/DriedCactusThin01_dustc.mat" "Art/Textures/masks/transparentobjectsc.mat"
+  | 
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | // DESERT CLIFFS [GATES]
+  | // ----------------------------
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff01c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Cliff01c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff02c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Cliff02c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff03c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Cliff03c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff04c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Cliff04c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff05c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Cliff05c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff06c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Cliff06c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff07c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Cliff07c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff08c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Cliff08c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff09c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Cliff09c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff10c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Cliff10c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff11c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Cliff11c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff12c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Cliff12c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff13c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Cliff13c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff14c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Cliff14c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff15c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Cliff15c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff16c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Cliff16c.mat"
+  | 
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Cliff17c.mat" "Art/Textures/Environment/desert/Gates/Ground/AGT_PackedDirtPlatau01c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Rubble01c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Rubble01c.mat"
+  | 
+  | //DESERT ROCKS [GATES]
+  | // ----------------------------
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Rock01c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Rock01c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Rock02c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Rock02c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Rock03c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Rock03c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Rock04c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Rock04c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Rock05c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Rock05c.mat"
+  | "Art/Textures/Environment/desert/DesertCliffs/DESERT_Rock06c.mat" "Art/Textures/Environment/desert/DesertCliffs/Gates/AGT_Rock06c.mat"
+  | 
+  | "Art/Textures/Environment/desert/GroundMaterials/TallDune1c.mat" "Art/Textures/Environment/desert/Gates/Ground/AGT_SweptSandEdge01c.mat"
+  | 
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | // BONES ================================================================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | 
+  | "Art/Textures/Environment/desert/Badlands/AnimalSkullsDecor01c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_AnimalSkullsDecor01c.mat"
+  | "Art/Textures/Environment/desert/Badlands/BoneCarcuss01c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_BoneCarcuss01c.mat"
+  | "Art/Textures/Environment/desert/Badlands/BoneCarcuss02c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_BoneCarcuss02c.mat"
+  | "Art/Textures/Environment/desert/Badlands/BoneSkullMisc01c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_BoneSkullMisc01c.mat"
+  | "Art/Textures/Environment/desert/Badlands/BoneSkullMisc02c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_BoneSkullMisc02c.mat"
+  | "Art/Textures/Environment/desert/Badlands/DinoSkull01c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_DinoSkull01c.mat"
+  | "Art/Textures/Environment/desert/Badlands/DinoSkull02c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_DinoSkull02c.mat"
+  | "Art/Textures/Environment/desert/Badlands/DinoSkull03c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_DinoSkull03c.mat"
+  | "Art/Textures/Environment/desert/Badlands/DinoSkulls04c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_DinoSkulls04c.mat"
+  | "Art/Textures/Environment/desert/Badlands/DriedBonesMisc01c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_DriedBonesMisc01c.mat"
+  | "Art/Textures/Environment/desert/Badlands/DriedBonesMisc02c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_DriedBonesMisc02c.mat"
+  | "Art/Textures/Environment/desert/Badlands/DriedBonesMisc03c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_DriedBonesMisc03c.mat"
+  | "Art/Textures/Environment/desert/Badlands/FemurDecor01c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_FemurDecor01c.mat"
+  | "Art/Textures/Environment/desert/Badlands/MiscBoneProps01c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_MiscBoneProps01c.mat"
+  | 
+  | "Art/Textures/Environment/desert/Badlands/BoneWhale01c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_BoneWhale01c.mat"
+  | "Art/Textures/Environment/desert/Badlands/BoneWhale02c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_BoneWhale02c.mat"
+  | "Art/Textures/Environment/desert/Badlands/BoneBison01c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_BoneBison01c.mat"
+  | "Art/Textures/Environment/desert/Badlands/BoneSpine01c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_BoneSpine01c.mat"
+  | "Art/Textures/Environment/desert/Badlands/BoneSpine02c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_BoneSpine02c.mat"
+  | "Art/Textures/Environment/desert/Badlands/BoneWhale01c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_BoneWhale01c.mat"
+  | "Art/Textures/Environment/desert/Badlands/BoneWhale02c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_BoneWhale02c.mat"
+  | "Art/Textures/Environment/desert/Badlands/SpineDecor01c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_SpineDecor01c.mat"
+  | "Art/Textures/Environment/desert/Badlands/SpineDecor02c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_SpineDecor02c.mat"
+  | "Art/Textures/Environment/desert/Badlands/BoneCroc01c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_BoneCroc01c.mat"
+  | "Art/Textures/Environment/desert/Badlands/MamothSkull04c.mat" "Art/Models/Terrain/Maps/SulphuricCaverns/Bones/MSCA_MammothSkull04c.mat"
+  | 
+  | // CLIFFS ===============================================================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "Art\Textures\Environment\desert\Passage\cliff_siEoZc.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliff01c.mat"
+  | "Art\Textures\Environment\desert\Passage\Cliff_sjjnRc.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliff02c.mat"
+  | "Art\Textures\Environment\desert\Passage\Cliff_ubhubhydac.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliff03c.mat"
+  | 
+  | "Art\Textures\Environment\desert\Passage\RubbleGroundc.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_RubbleGround01c.mat"
+  | 
+  | "Art\Textures\Environment\desert\Passage\M_RED_ROCK_1c.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveRock01c.mat"
+  | "Art\Textures\Environment\desert\Passage\M_RED_ROCK_2c.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveRock02c.mat"
+  | "Art\Textures\Environment\desert\Passage\M_RED_ROCK_3c.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveRock03c.mat"

@@ -1,7 +1,7 @@
 5 entities, 0 of them remembered rather than listed this read; distance and position in world units
 distance	kind	id	address	x	y	z	terrain	bounds z	remembered	path	name
-0	Player	641	0x55E4F5B6A00	3353.261	15744.56	-87.825	0	87.466	no	Metadata/Characters/Int/IntFourb	Sorceress
-912.332	Object	8	0x55F0B032900	4233.696	15983.7	-113.962	0	109.822	no	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame	Checkpoint
-1612.547	Chest	126	0x55F0B034C00	4951.087	15961.96	-31.659	0	31.659	no	Metadata/Chests/TraitorsPassagePot_03	Pot
-1681.729	Chest	125	0x55F8C661E80	5016.304	15994.56	-31.659	0	31.659	no	Metadata/Chests/TraitorsPassagePot_03	Pot
-17247.59	Monster	179	0x55F8C66F300	15625	3625	-182.813	54.688	237.5	no	Metadata/Monsters/GiantSnakeSkeletonBoss/GiantSkeletonSnakeBossMap@70	Zar Wali, the Bone Tyrant
+0	Player	1333	0x55F3FDDBC80	15288.04	3222.826	-87.825	0	87.466	no	Metadata/Characters/Int/IntFourb	Sorceress
+504.352	Effect	587	0x55F3FDDEC00	15592.39	2820.652	0	0	0	no	Metadata/Effects/Spells/ground_effects/VisibleServerGroundEffect	
+918.784	Effect	578	0x55E2B706280	14885.87	4048.913	0	0	0	no	Metadata/Effects/Spells/ground_effects/VisibleServerGroundEffect	
+1281.78	Effect	567	0x55E2B706C80	16277.17	4038.043	0	0	0	no	Metadata/Effects/Spells/ground_effects/VisibleServerGroundEffect	
+1437.169	Object	23	0x55E2B707400	15603.26	4625	-181.639	0	181.639	no	Metadata/MiscellaneousObjects/BossForceFieldDoorVisuals	
