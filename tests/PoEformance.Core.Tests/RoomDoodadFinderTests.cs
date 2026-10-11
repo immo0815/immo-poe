@@ -60,6 +60,35 @@ public class RoomDoodadFinderTests
             found.Places.Select(place => (place.Where.X, place.Where.Y, place.Where.Turn, place.Where.Width, place.Where.Height)).OrderBy(place => place.Turn));
     }
 
+    /// <summary>
+    /// A room of the area's module is laid on its lattice alone - see RoomLattice: of the same two standings, the one off it collects no vote, and the room's places say which lattice held them.
+    /// </summary>
+    [Fact]
+    public void AROOMOfTheAreasModuleIsFoundOnItsLatticeAlone()
+    {
+        var sightings = new List<DoodadSighting>();
+        uint id = 1;
+        foreach (RoomDoodad line in Lines[..5])
+        {
+            sightings.Add(At(line, 5, 7, turn: 1, id++));
+            sightings.Add(At(line, 20, 3, turn: 0, id++));
+        }
+
+        // Every two tiles from one: 5, 7 lies on it, 20, 3 does not.
+        var lattice = new RoomLattice(3, 1, 1);
+        RoomDoodadPlaces found = RoomDoodadFinder.Find(Lines, Width, Height, sightings, 60, 60, lattice);
+
+        RoomDoodadPlace place = Assert.Single(found.Places);
+        Assert.Equal((5, 7, 1), (place.Where.X, place.Where.Y, place.Where.Turn));
+        Assert.Equal(lattice, found.Lattice);
+        Assert.Null(RoomDoodadFinder.Find(Lines, Width, Height, sightings, 60, 60).Lattice);
+
+        // Off it everywhere, the room has no place, and says where it looked.
+        RoomDoodadPlaces nowhere = RoomDoodadFinder.Find(Lines, Width, Height, sightings, 60, 60, new RoomLattice(10, 1, 0));
+        Assert.Empty(nowhere.Places);
+        Assert.StartsWith("no tile on its lattice collects two thirds", nowhere.Why, StringComparison.Ordinal);
+    }
+
     /// <summary>An entity whose model chain did not read matches by its path alone, and a line without its entity is marked where it would stand.</summary>
     [Fact]
     public void ANEntityWithoutAModelMatchesByPathAndAMissingLineIsMarked()

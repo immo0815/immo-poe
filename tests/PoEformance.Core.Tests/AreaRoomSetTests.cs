@@ -1,5 +1,6 @@
 using System.Text;
 using PoEformance.Features;
+using PoEformance.Game.World;
 
 namespace PoEformance.Core.Tests;
 
@@ -160,6 +161,45 @@ public class AreaRoomSetTests
         Assert.Equal(3, AreaRoomSet.Files(["Metadata/Terrain/Maps/Test/generate.rs"], Read, install).Count);
         Assert.Equal(1, asked.Count(path => path == "Metadata/Terrain/Maps/Test/generate.rs"));
         Assert.Equal(1, asked.Count(path => path == "Metadata/Terrain/Maps/Test/holodeck_generate.rs"));
+    }
+
+    /// <summary>
+    /// The overlay rooms, which no set names: read off the overlay list a master names - Augury's two, as its overlays.toy writes them - and off a loaded list, once where both reach it.
+    /// </summary>
+    [Fact]
+    public void THEOVERLAYSAreReadFromTheMastersListAndFromALoadedOne()
+    {
+        const string Toy = "version 1\n0 1\n"
+            + "100 \"Metadata/Terrain/Maps/Test/Rooms/Overlays/boss_entrance_blank.arm\" limit=1 !door_boss +OverlayFeatureRooms +OverlayFeatureTiles +SuppressUnderlyingDoodads\n"
+            + "100 \"Metadata/Terrain/Maps/Test/Rooms/Overlays/ledge_intersection_1.arm\" +SuppressUnderlyingDoodads\n";
+        var asked = new List<string>();
+        byte[]? Read(string path)
+        {
+            asked.Add(path);
+            return path switch
+            {
+                "Metadata/Terrain/Maps/Test/master.tsi" => Encoding.UTF8.GetBytes("RoomSet \"generate.rs\"\nOverlays\t\t\"overlays.toy\"\nRoomUnitSize 5\nRoomOverlap 1\nOuterBufferSize 4\n"),
+                "Metadata/Terrain/Maps/Test/generate.rs" => Encoding.UTF8.GetBytes("version 2\n\"Metadata/Terrain/Maps/Test/Rooms/Unique/boss_01.arm\"\n"),
+                "Metadata/Terrain/Maps/Test/overlays.toy" => Encoding.UTF8.GetBytes(Toy),
+                _ => null,
+            };
+        }
+
+        List<string> files = AreaRoomSet.Files(["Metadata/Terrain/Maps/Test/master.tsi"], Read);
+        Assert.Equal(
+            [
+                "Metadata/Terrain/Maps/Test/Rooms/Overlays/boss_entrance_blank.arm",
+                "Metadata/Terrain/Maps/Test/Rooms/Overlays/ledge_intersection_1.arm",
+                "Metadata/Terrain/Maps/Test/Rooms/Unique/boss_01.arm",
+            ],
+            files);
+
+        asked.Clear();
+        Assert.Equal(3, AreaRoomSet.Files(["Metadata/Terrain/Maps/Test/overlays.toy", "Metadata/Terrain/Maps/Test/master.tsi"], Read).Count);
+        Assert.Equal(1, asked.Count(path => path == "Metadata/Terrain/Maps/Test/overlays.toy"));
+
+        RoomLattice lattice = Assert.Single(AreaRoomSet.Lattices(["Metadata/Terrain/Maps/Test/master.tsi"], Read).All);
+        Assert.Equal(new RoomLattice(5, 1, 4), lattice);
     }
 
     /// <summary>A list with no room and no set is no rooms, and nothing is read for it.</summary>

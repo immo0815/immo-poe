@@ -87,6 +87,9 @@ public sealed record RoomDoodadPlaces(IReadOnlyList<RoomDoodadPlace> Places, int
 
     /// <summary>The places given up to another room that stands on the same tiles with more of its doodads, each with that room - see <see cref="RoomDoodadFinder.Settle"/>.</summary>
     public IReadOnlyList<(RoomDoodadPlace Place, string To)> Yielded { get; init; } = [];
+
+    /// <summary>The lattice the places were held to, or null where the room was free to stand anywhere - see RoomLattice.</summary>
+    public RoomLattice? Lattice { get; init; }
 }
 
 /// <summary>
@@ -176,14 +179,15 @@ public static class RoomDoodadFinder
     /// <param name="sightings">The area's doodad entities, with their path, model and place.</param>
     /// <param name="tilesX">The area's tiles across.</param>
     /// <param name="tilesY">The area's tiles down.</param>
+    /// <param name="lattice">The lattice a room of the area's module lies on, or null for a room free to lie anywhere - see RoomLattice. A tile off it collects no vote.</param>
     public static RoomDoodadPlaces Find(
-        IReadOnlyList<RoomDoodad> doodads, int width, int height, IReadOnlyList<DoodadSighting> sightings, int tilesX, int tilesY)
+        IReadOnlyList<RoomDoodad> doodads, int width, int height, IReadOnlyList<DoodadSighting> sightings, int tilesX, int tilesY, RoomLattice? lattice = null)
     {
         ArgumentNullException.ThrowIfNull(doodads);
         ArgumentNullException.ThrowIfNull(sightings);
         if (width <= 0 || height <= 0 || tilesX <= 0 || tilesY <= 0)
         {
-            return RoomDoodadPlaces.Not(0, 0, "no grid to lay it on");
+            return RoomDoodadPlaces.Not(0, 0, "no grid to lay it on") with { Lattice = lattice };
         }
 
         // THE ENTITIES BY PATH, once; the model is checked per line below.
@@ -251,7 +255,7 @@ public static class RoomDoodadFinder
         {
             return RoomDoodadPlaces.Not(lines, matchable, matchable == 0
                 ? (lines == 0 ? "its doodad lines name no stub" : "none of its doodads stands in the area")
-                : $"only {matchable} of its doodads stand in the area - fewer than {FewestLines} say nothing") with { Props = props };
+                : $"only {matchable} of its doodads stand in the area - fewer than {FewestLines} say nothing") with { Props = props, Lattice = lattice };
         }
 
         // THE PROPS DECIDE where there are enough of them - see the class remarks.
@@ -277,7 +281,8 @@ public static class RoomDoodadFinder
                 {
                     var x = (int)MathF.Round((sightings[one].X / side) - at.X);
                     var y = (int)MathF.Round((sightings[one].Y / side) - at.Y);
-                    if (x < 0 || y < 0 || x + wide > tilesX || y + tall > tilesY)
+                    // OFF THE LATTICE, NO VOTE: a room of the area's module is laid on it - see RoomLattice.
+                    if (x < 0 || y < 0 || x + wide > tilesX || y + tall > tilesY || (lattice is { } grid && !grid.Holds(x, y)))
                     {
                         continue;
                     }
@@ -404,12 +409,13 @@ public static class RoomDoodadFinder
             }
         }
 
+        string tile = lattice is null ? "tile" : "tile on its lattice";
         string why = kept.Count > 0 ? string.Empty
-            : best.Counted < 0 ? "no tile collects two thirds of its " + (byProps ? "props" : "doodads")
+            : best.Counted < 0 ? $"no {tile} collects two thirds of its " + (byProps ? "props" : "doodads")
             : string.Create(
                 CultureInfo.InvariantCulture,
-                $"no tile collects two thirds of its {(byProps ? "props" : "doodads")} - the most, {best.Counted} of {needed} needed, at tile {best.X}, {best.Y}, {RoomFinder.Said(best.Turn)}");
-        return new RoomDoodadPlaces(kept, lines, matchable, byModel, why) { Props = props };
+                $"no {tile} collects two thirds of its {(byProps ? "props" : "doodads")} - the most, {best.Counted} of {needed} needed, at tile {best.X}, {best.Y}, {RoomFinder.Said(best.Turn)}");
+        return new RoomDoodadPlaces(kept, lines, matchable, byModel, why) { Props = props, Lattice = lattice };
     }
 
     /// <summary>The lines voting for one tile, and how many of them are props.</summary>

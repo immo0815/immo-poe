@@ -93,6 +93,9 @@ public static class CaptureReport
     /// <summary>What the water is drawn from - see CaptureWater.</summary>
     public const string WaterFile = "water.txt";
 
+    /// <summary>The terrain's second cell grid against the walkable one - see CaptureLandscape.</summary>
+    public const string LandscapeFile = "landscape.txt";
+
     /// <summary>The light and water hunt run at the press - see LightHunt.</summary>
     public const string LightHuntFile = "light-hunt.txt";
 
@@ -520,18 +523,21 @@ public static class CaptureReport
                 continue;
             }
 
+            // THE LATTICE IT WAS HELD TO, where it was - see RoomLattice. No dash in it: the line's first dash
+            // is where the places begin, for whoever reads the file back.
+            string lattice = found.Lattice is { } on ? ", on its room lattice " + on.Said : string.Empty;
             if (tiled)
             {
                 byTiles++;
                 tilePlaces += found.Places.Count;
-                lines.Add(string.Create(CultureInfo.InvariantCulture, $"{name}: {found.Places.Count} place{(found.Places.Count == 1 ? string.Empty : "s")} by its tiles - ") + string.Join("; ", said));
+                lines.Add(string.Create(CultureInfo.InvariantCulture, $"{name}: {found.Places.Count} place{(found.Places.Count == 1 ? string.Empty : "s")} by its tiles{lattice} - ") + string.Join("; ", said));
                 continue;
             }
 
             byDoodads++;
             doodadPlaces += found.Places.Count;
             lines.Add(string.Create(CultureInfo.InvariantCulture,
-                $"{name}: {found.Places.Count} place{(found.Places.Count == 1 ? string.Empty : "s")}, {found.ByModel} of {found.Matchable} doodads told by their model - ")
+                $"{name}: {found.Places.Count} place{(found.Places.Count == 1 ? string.Empty : "s")}, {found.ByModel} of {found.Matchable} doodads told by their model{lattice} - ")
                 + string.Join("; ", said));
         }
 
@@ -662,7 +668,7 @@ public static class CaptureReport
         ArgumentNullException.ThrowIfNull(loaded);
         var said = new StringBuilder();
         List<string> rooms = AreaRoomSet.Files(loaded, read, masters);
-        said.Append(Say(rooms.Count)).AppendLine(" room files the area may lay - the loaded list's and every room of the sets its files and the install's masters name");
+        said.Append(Say(rooms.Count)).AppendLine(" room files the area may lay - the loaded list's and every room of the sets and overlay lists its files and the install's masters name");
         said.AppendLine();
         foreach (string path in rooms)
         {

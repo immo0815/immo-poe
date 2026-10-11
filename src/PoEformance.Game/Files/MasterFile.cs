@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace PoEformance.Game.Files;
 
 /// <summary>
@@ -35,6 +37,21 @@ public sealed class MasterFile
 
     /// <summary>The room set the master names - <c>generate.rs</c> for VaalFactory - or empty where it names none. See <see cref="Candidates"/> for where to read it.</summary>
     public string RoomSet => Values.GetValueOrDefault("RoomSet", string.Empty);
+
+    /// <summary>The overlay list (<c>.toy</c>) the master names - <c>overlays.toy</c> for Augury - or empty. See OverlayList.</summary>
+    public string Overlays => Values.GetValueOrDefault("Overlays", string.Empty);
+
+    /// <summary>The edge combinations (<c>.ecf</c>) the master names - <c>combination.ecf</c> for Augury - or empty. See EdgeCombinations.</summary>
+    public string EdgeCombination => Values.GetValueOrDefault("EdgeCombination", string.Empty);
+
+    /// <summary>The side of the area's room module in tiles, or null where the master names none - see RoomLattice.</summary>
+    public int? RoomUnitSize => Number("RoomUnitSize");
+
+    /// <summary>How many tiles two neighbouring modules share, or null - see RoomLattice.</summary>
+    public int? RoomOverlap => Number("RoomOverlap");
+
+    /// <summary>How many tiles of outer ground lie round the rooms, or null - see RoomLattice.</summary>
+    public int? OuterBufferSize => Number("OuterBufferSize");
 
     /// <summary>Reads the file's bytes. Never throws.</summary>
     public static MasterFile Read(byte[]? content)
@@ -94,6 +111,12 @@ public sealed class MasterFile
         string beside = Normalised(folder + name);
         return string.Equals(beside, name, StringComparison.OrdinalIgnoreCase) ? [name] : [name, beside];
     }
+
+    /// <summary>A key's value as a whole number, or null where it is missing or not one.</summary>
+    private int? Number(string key)
+        => Values.TryGetValue(key, out string? value) && int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number)
+            ? number
+            : null;
 
     /// <summary>A path with forward slashes, no doubled ones and no blanks at its ends - RePoE's normalize, with the backslashes GGG's files carry turned over too.</summary>
     private static string Normalised(string path)

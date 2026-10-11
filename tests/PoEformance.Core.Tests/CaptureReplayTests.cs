@@ -92,6 +92,7 @@ public partial class CaptureReplayTests
         }
 
         Placing placing = Place(folder);
+        RoomLattices lattices = Lattices(folder);
         Dictionary<string, TileIdentity>? identities = Identities(folder);
         Func<string, TileIdentity?>? identity = identities is null ? null : file => identities.GetValueOrDefault(file);
         said.AppendLine(identities is null
@@ -254,7 +255,7 @@ public partial class CaptureReplayTests
             // THE TILE PLACING ITSELF, as the tool now runs it for a room the doodads could not place.
             if (grid.Tiles is { } tilesLaid && identity is not null)
             {
-                RoomTilePlaces byTiles = RoomTileFinder.Find(layout, tilesLaid, identity);
+                RoomTilePlaces byTiles = RoomTileFinder.Find(layout, tilesLaid, identity, lattices.For(layout));
                 said.Append(CultureInfo.InvariantCulture, $"  tiles: {byTiles.Places.Count} places on its {byTiles.Anchor} slot, {byTiles.Anchors} anchor cells, {byTiles.Tried} candidates tried");
                 said.AppendLine(byTiles.Why.Length > 0 ? " - " + byTiles.Why : string.Empty);
                 foreach (RoomTilePlace place in byTiles.Places)
@@ -297,7 +298,7 @@ public partial class CaptureReplayTests
                 }
             }
 
-            RoomSearch search = RoomFinder.Find(layout, ground, grid.TilesX, grid.TilesY, grid.Tiles, identity, walkable: walkable);
+            RoomSearch search = RoomFinder.Find(layout, ground, grid.TilesX, grid.TilesY, grid.Tiles, identity, walkable: walkable, lattice: lattices.For(layout));
             if (search.Why.Length > 0)
             {
                 said.Append("  no search - ").AppendLine(search.Why);
@@ -388,7 +389,7 @@ public partial class CaptureReplayTests
             var tilePlaces = new Dictionary<string, RoomTilePlaces>(StringComparer.OrdinalIgnoreCase);
             List<(string Room, RoomLayout Layout, RoomDoodadPlaces Places)> settled = RoomTileFinder.Settled(
                 placing.Placed,
-                (room, layout) => tilePlaces.TryGetValue(room, out RoomTilePlaces? had) ? had : tilePlaces[room] = RoomTileFinder.Find(layout, laidAll, identity),
+                (room, layout) => tilePlaces.TryGetValue(room, out RoomTilePlaces? had) ? had : tilePlaces[room] = RoomTileFinder.Find(layout, laidAll, identity, lattices.For(layout)),
                 placing.Survey.Found);
             said.AppendLine();
             said.AppendLine("=== rooms-placed.txt as the tool would now write it, the tiles' places settled in");
@@ -2510,17 +2511,18 @@ public partial class CaptureReplayTests
         int TilesY,
         List<(string Room, RoomLayout Layout, RoomDoodadPlaces Places)> Placed);
 
-    /// <summary>Every room of the capture placed by its doodads over the capture's sightings.</summary>
-    private static Placing Place(string folder)
+    /// <summary>Every room of the capture placed by its doodads over the capture's sightings - each room of the area's module on its lattice, as the tool places it, unless <paramref name="onLattice"/> says otherwise (see RoomLattice).</summary>
+    private static Placing Place(string folder, bool onLattice = true)
     {
         List<(string Room, RoomLayout Layout)> rooms = Rooms(File.ReadAllText(Path.Combine(folder, CaptureReport.RoomFilesFile)));
         DoodadSurvey survey = Survey(File.ReadAllText(Path.Combine(folder, CaptureReport.DoodadsFile)));
         (int tilesX, int tilesY) = Tiles(File.ReadAllText(Path.Combine(folder, CaptureReport.SummaryFile)), survey);
+        RoomLattices lattices = onLattice ? Lattices(folder) : RoomLattices.None;
 
         var found = new List<(string Room, RoomDoodadPlaces Places)>(rooms.Count);
         foreach ((string room, RoomLayout layout) in rooms)
         {
-            found.Add((room, RoomDoodadFinder.Find(layout.Doodads, layout.Width, layout.Height, survey.Found, tilesX, tilesY)));
+            found.Add((room, RoomDoodadFinder.Find(layout.Doodads, layout.Width, layout.Height, survey.Found, tilesX, tilesY, lattices.For(layout))));
         }
 
         List<(string Room, RoomDoodadPlaces Places)> settled = RoomDoodadFinder.Settle(found, tilesX, tilesY);

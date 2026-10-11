@@ -30,6 +30,9 @@ public enum CaptureReads
 
     /// <summary>Every monster's mods off its ObjectMagicProperties, with the world read that lists the monsters - see CaptureMonsters.</summary>
     Monsters = 16,
+
+    /// <summary>The terrain's two cell grids whole, with the world read whose ground types they are held against - see CaptureLandscape.</summary>
+    Landscape = 32,
 }
 
 /// <summary>One thing a capture can write, as the catalogue lists it - see <see cref="CaptureParts"/>.</summary>
@@ -128,6 +131,9 @@ public static class CaptureParts
     /// <summary>Every room placed by its doodads.</summary>
     public const string RoomsPlaced = "rooms-placed";
 
+    /// <summary>The terrain's second cell grid against the walkable one and the ground under it.</summary>
+    public const string Landscape = "landscape";
+
     /// <summary>The active routes.</summary>
     public const string Routes = "routes";
 
@@ -201,6 +207,12 @@ public static class CaptureParts
         new(TileIdentities, "Rooms by ground and tiles", "the laid tiles' definitions", CaptureReport.TileIdentitiesFile,
             "Every distinct tile file the area laid, with what a room's slot is checked against - size, tag, edge and corner ground "
             + "types. With the recording's terrain and room-files.txt it is what the ground-and-tile search runs again from without the game."),
+        new(Landscape, "Rooms by ground and tiles", "the terrain's second grid", CaptureReport.LandscapeFile,
+            "Inside the recording: the terrain's two cell grids whole - the walkable one, and GridLandscapeData beside it, whose "
+            + "meaning is not settled - counted against each other, against the ground under every cell, and along the edge of "
+            + "where anybody can stand, with both grids round you one character a cell. Whether the second is the grid a "
+            + "projectile asks - walls blocking, chasms not - is what it answers. Needs the recording.",
+            CaptureReads.Landscape),
         new(SlotCandidates, "Rooms by ground and tiles", "the rooms' slots against the tilesets", CaptureReport.SlotCandidatesFile,
             "Every room of the area's set, each kind of its slots with the tiles the area's tilesets OFFER that answer it, by the search's rule - "
             + "one tile settles the kind by the files alone, several is the generator's choice - with a summary over the rooms and the arena rooms, "
@@ -284,7 +296,7 @@ public static class CaptureParts
     /// The Keys page greys these while the recording's box is unticked, so what they would add
     /// stays readable and a tick that would write nothing is not offered.
     /// </remarks>
-    public static bool NeedsRecording(string key) => key is RawSweep or Monsters;
+    public static bool NeedsRecording(string key) => key is RawSweep or Monsters or Landscape;
 
     /// <summary>Whether a part is written, given the keys that are off.</summary>
     public static bool IsOn(string key, IReadOnlySet<string> off)

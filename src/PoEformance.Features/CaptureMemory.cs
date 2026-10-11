@@ -65,7 +65,7 @@ public static class CaptureMemory
     public const long MaxTotalBytes = 96L * 1024 * 1024;
 
     /// <summary>Whether the pass reads the world for these asks - asked for itself, or by the sweep and the monsters, which follow the entities the world read lists.</summary>
-    public static bool ReadsWorld(CaptureReads reads) => (reads & (CaptureReads.World | CaptureReads.Sweep | CaptureReads.Monsters)) != 0;
+    public static bool ReadsWorld(CaptureReads reads) => (reads & (CaptureReads.World | CaptureReads.Sweep | CaptureReads.Monsters | CaptureReads.Landscape)) != 0;
 
     /// <summary>What the pass reads, in a few words - for the line that says what the recording holds.</summary>
     public static string Said(CaptureReads reads)
@@ -94,6 +94,11 @@ public static class CaptureMemory
         if ((reads & CaptureReads.Monsters) != 0)
         {
             parts.Add("every monster's mods");
+        }
+
+        if ((reads & CaptureReads.Landscape) != 0)
+        {
+            parts.Add("the terrain's two cell grids whole");
         }
 
         if ((reads & CaptureReads.Sweep) != 0)
@@ -224,6 +229,19 @@ public static class CaptureMemory
             written[CaptureReport.MonstersFile] = report;
             said.AppendLine().Append("=== every monster's mods, buffs and targetable byte, and the marked places beside them: ").AppendLine(Ms(monstersFrom));
             said.Append(CaptureReport.MonstersFile).Append(": ").AppendLine(report[..Math.Max(0, report.IndexOf('\n'))]);
+        }
+
+        if ((reads & CaptureReads.Landscape) != 0)
+        {
+            // BOTH GRIDS IN ONE READ EACH, inside the recording, so the replay reads them back (CaptureReplayTests); the
+            // ground types are the world read's, a moment before.
+            long landscapeFrom = Environment.TickCount64;
+            GameChainAddresses chain = GameChain.Resolve(reader, schema, gameStatesStatic);
+            TerrainLayers layers = TerrainLayers.Read(reader, schema, chain.AreaInstance);
+            string report = CaptureLandscape.Report(layers, snapshot?.Terrain, snapshot?.Player?.WorldX, snapshot?.Player?.WorldY);
+            written[CaptureReport.LandscapeFile] = report;
+            said.AppendLine().Append("=== the terrain's two cell grids: ").AppendLine(Ms(landscapeFrom));
+            said.Append(CaptureReport.LandscapeFile).Append(": ").AppendLine(report[..Math.Max(0, report.IndexOf('\n'))]);
         }
 
         if ((reads & CaptureReads.Sweep) != 0 && snapshot is not null)

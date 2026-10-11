@@ -91,6 +91,22 @@ public class RoomLayoutTests
         Assert.Null(rock.Exact);
     }
 
+    /// <summary>
+    /// The dimension line's module: the side, then the overlap from version 22 - the side written twice below 31, as poe_data_tools reads it. An older file's is in RoomGenerationFilesTests.
+    /// </summary>
+    [Fact]
+    public void THEDIMENSIONLineNamesTheRoomsModule()
+    {
+        RoomLayout augury = RoomLayout.Parse(Version36.Replace("\n5 3\n", "\n5 1\n", StringComparison.Ordinal));
+        Assert.True(augury.Ready, augury.Why);
+        Assert.Equal((5, 1), (augury.ModuleSide, augury.ModuleOverlap));
+
+        RoomLayout doubled = RoomLayout.Parse(Version31.Replace("version 31", "version 30", StringComparison.Ordinal).Replace("\n5 3\n", "\n9 9 1\n", StringComparison.Ordinal));
+        Assert.True(doubled.Ready, doubled.Why);
+        Assert.Equal((9, 1), (doubled.ModuleSide, doubled.ModuleOverlap));
+
+    }
+
     /// <summary>A pot's line from seepage's 2x2_offices_01 as the game wrote it: its exact place, its turn, and the height it carries.</summary>
     [Fact]
     public void ADOODADLineCarriesItsExactPlaceAndAHeight()

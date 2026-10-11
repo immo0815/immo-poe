@@ -95,7 +95,8 @@ public static class RoomTileFinder
     /// <param name="room">The room, read with its slots.</param>
     /// <param name="tiles">The tiles the area laid, with the piece of its file each cell carries.</param>
     /// <param name="identity">A tile file's identity, or null where it does not read.</param>
-    public static RoomTilePlaces Find(RoomLayout room, TerrainTiles tiles, Func<string, TileIdentity?> identity)
+    /// <param name="lattice">The lattice a room of the area's module lies on, or null for a room free to lie anywhere - see RoomLattice. A candidate off it is not tried.</param>
+    public static RoomTilePlaces Find(RoomLayout room, TerrainTiles tiles, Func<string, TileIdentity?> identity, RoomLattice? lattice = null)
     {
         ArgumentNullException.ThrowIfNull(room);
         ArgumentNullException.ThrowIfNull(tiles);
@@ -289,7 +290,8 @@ public static class RoomTileFinder
                     int x = cx - dx;
                     int y = cy - dy;
                     (int wide, int tall) = (turn & 1) == 0 ? (room.Width, room.Height) : (room.Height, room.Width);
-                    if (x < 0 || y < 0 || x + wide > tiles.Width || y + tall > tiles.Height || !tried.Add((x, y, turn)))
+                    if (x < 0 || y < 0 || x + wide > tiles.Width || y + tall > tiles.Height
+                        || (lattice is { } grid && !grid.Holds(x, y)) || !tried.Add((x, y, turn)))
                     {
                         continue;
                     }
