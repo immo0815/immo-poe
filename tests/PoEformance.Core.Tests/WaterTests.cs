@@ -1,0 +1,159 @@
+using System.Numerics;
+using System.Text;
+using PoEformance.Features;
+using PoEformance.Game.Files;
+
+namespace PoEformance.Core.Tests;
+
+/// <summary>
+/// The engine's water - an Ocean material - drawn as the area's open water: the values each area's file sets over the engine's measured defaults, and a medium the floor shows through by how much water lies over it.
+/// </summary>
+public class WaterTests
+{
+    private const int Size = 96;
+
+    /// <summary>Looking straight down.</summary>
+    private const float Down = MathF.PI / 2f;
+
+    /// <summary>nvidian_Ocean.mat as Port's capture wrote it whole.</summary>
+    private const string Ocean =
+        """{"version":4,"graphinstances":[{"parent":"Metadata/Art/Textures/Environment/forest/nvidian_Ocean.fxgraph"},{"parent":"Metadata/Effects/Graphs/General/BasicColourNormalSpec.fxgraph","custom_parameters":[{"name":"base_normalspec_texture","parameters":[{"path":"Art/Textures/Environment/forest/nvidia_normal_masked.dds","srgb":false},{}]}]}],"shadertype":"Ocean","minimapcolourmultiplier":0.7799999713897705,"splashywater":true}""";
+
+    /// <summary>An Ocean material says so, and the engine's water pass is drawn mixed whatever its graph's mode.</summary>
+    [Fact]
+    public void ANOCEANMaterialSaysItsShaderTypeAndIsMixed()
+    {
+        MaterialFile paint = MaterialFile.Parse(Ocean);
+        Assert.Equal(ShadeProgram.OceanShader, paint.ShaderType);
+        Assert.Equal(2, paint.Parents.Count);
+        Assert.True(MonsterModels.Paints.IsWater(paint));
+        Assert.Equal(MaterialBlend.Alpha, MaterialBlends.Of("water"));
+        Assert.Equal(string.Empty, MaterialFile.Parse("""{"version":4,"graphinstances":[{"parent":"a.fxgraph"}]}""").ShaderType);
+    }
+
+    /// <summary>Port's file sets its flow and height offset and no colour, so its water is the engine's colour; The Red Vale's sets its own.</summary>
+    [Fact]
+    public void ANAREASWaterIsItsFilesValuesOverTheEnginesDefaults()
+    {
+        WaterLook port = WaterLook.Of(EnvironmentSettings.Read("port.env", Encoding.UTF8.GetBytes(
+            """{ "water": { "flow_intensity": 1.5, "flow_turbulence": 1.0, "flow_resolution": 7, "flow_wait_init": true, "height_offset": -15.0 } }""")));
+        Assert.Equal(WaterLook.DefaultOpenColour, port.OpenColour);
+        Assert.Equal(WaterLook.DefaultMurkiness, port.Murkiness);
+        Assert.Equal(1.5f, port.FlowIntensity);
+        Assert.Equal(-15f, port.HeightOffset);
+        Assert.Equal("flow, height offset from the file, the rest the engine's default", port.Said);
+
+        WaterLook vale = WaterLook.Of(EnvironmentSettings.Read("vale.env", Encoding.UTF8.GetBytes(
+            """{ "water": { "open_water_color": [ 0.19043, 0.02095, 0.0017 ], "open_water_murkiness": 0.035 } }""")));
+        Assert.Equal(new Vector3(0.19043f, 0.02095f, 0.0017f), vale.OpenColour);
+        Assert.Equal(0.035f, vale.Murkiness);
+        Assert.Equal(WaterLook.NoFlow, vale.FlowIntensity);
+
+        // LINEAR AS water.ffx MAKES IT, pow 2.2 and not the sRGB curve, the density in w.
+        Assert.Equal(MathF.Pow(0.19043f, 2.2f), vale.ColourRegister.X, 5);
+        Assert.Equal(0.035f, vale.ColourRegister.W);
+        Assert.Equal(WaterLook.EngineDefault, WaterLook.Of(null));
+    }
+
+    /// <summary>The water program reads the depth behind and the clock, covers by its own alpha, and carries no texture.</summary>
+    [Fact]
+    public void THEWATERProgramIsAMediumNotAPicture()
+    {
+        ShadeProgram water = ShadeProgram.Water();
+        Assert.True(water.HasAlpha);
+        Assert.True(water.UsesDepth);
+        Assert.True(water.UsesTime);
+        Assert.Empty(water.Textures);
+        Assert.Equal([ShadeProgram.WaterGraph], water.Graphs);
+
+        string hlsl = ShadeHlsl.Of(water, 8);
+        Assert.Contains("float4 r12 = water;", hlsl, StringComparison.Ordinal);
+        Assert.Contains("float4 r13 = flow;", hlsl, StringComparison.Ordinal);
+        Assert.Contains("static const bool ShadeHasAlpha = true;", hlsl, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The floor shows through shallow water and not through deep: a red floor under a water layer in two halves, ten units over it and three hundred, at the engine's density.
+    /// </summary>
+    /// <remarks>
+    /// exp(-10 * 0.01) lets nine tenths of the floor through; exp(-300 * 0.01) a twentieth - and the
+    /// water's own colour is dark, so the deep half is dark where the shallow one is still red.
+    /// </remarks>
+    [Fact]
+    public void THEFLOORShowsThroughShallowWaterAndNotThroughDeep()
+    {
+        SkinnedMesh scene = Scene(10f, 300f);
+        var canvas = new MeshPicture.Canvas(Size) { Water = WaterLook.EngineDefault };
+        GamePicture picture = MeshPicture.Of(
+            scene, canvas, tilt: Down,
+            skins: [Sheet(220, 30, 30), null],
+            blends: [MaterialBlend.Opaque, MaterialBlend.Alpha],
+            shades: [null, ShadeProgram.Water()]);
+
+        byte shallow = RedAt(picture, scene, new Vector3(-5f, 0f, -10f));
+        byte deep = RedAt(picture, scene, new Vector3(5f, 0f, -300f));
+        Assert.True(shallow > 150, $"the floor under ten units of water reads {shallow} red");
+        Assert.True(deep < 60, $"the floor under three hundred units of water reads {deep} red");
+    }
+
+    /// <summary>A Monster Book build draws an Ocean material with the water program, mixed, and says so in its report.</summary>
+    [Fact]
+    public void THEPAINTSDrawAnOceanMaterialAsTheWater()
+    {
+        byte[]? Read(string path) => path.EndsWith("ocean.mat", StringComparison.OrdinalIgnoreCase) ? Encoding.UTF8.GetBytes(Ocean) : null;
+        var paints = new MonsterModels.Paints();
+
+        Assert.Equal(("water", "water"), paints.Modes(Read, "Art/ocean.mat"));
+        ShadeCompile compiled = paints.Compiled(Read, "Art/ocean.mat").Compiled;
+        Assert.NotNull(compiled.Program);
+        Assert.Equal([ShadeProgram.WaterGraph], compiled.Program.Graphs);
+        Assert.Contains("drawn as the area's water", Assert.Single(compiled.Skipped), StringComparison.Ordinal);
+        Assert.NotNull(paints.Shade(Read, "Art/ocean.mat").Program);
+    }
+
+    /// <summary>The red where a point of the scene lands.</summary>
+    private static byte RedAt(GamePicture picture, SkinnedMesh scene, Vector3 point)
+    {
+        Vector3 placed = MeshPicture.Camera.Of(scene, 0f, Down, 1f, Vector2.Zero).Place(point);
+        int x = Math.Clamp((int)(placed.X * Size), 0, Size - 1);
+        int y = Math.Clamp((int)(placed.Y * Size), 0, Size - 1);
+        int at = ((y * Size) + x) * 4;
+        Assert.True(picture.Rgba[at + 3] > 0, $"nothing drawn at {point}");
+        return picture.Rgba[at];
+    }
+
+    /// <summary>A floor twenty across at height nought, and water over it in two halves: the one over negative x <paramref name="low"/> above it, the other <paramref name="high"/>. Up is minus z.</summary>
+    private static SkinnedMesh Scene(float low, float high)
+    {
+        Vector3[] places =
+        [
+            new(-10f, -10f, 0f), new(10f, -10f, 0f), new(10f, 10f, 0f), new(-10f, 10f, 0f),
+            new(-10f, -10f, -low), new(0f, -10f, -low), new(0f, 10f, -low), new(-10f, 10f, -low),
+            new(0f, -10f, -high), new(10f, -10f, -high), new(10f, 10f, -high), new(0f, 10f, -high),
+        ];
+        var normals = new Vector3[places.Length];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+        Vector2[] spots = [.. places.Select(one => new Vector2((one.X + 10f) / 20f, (one.Y + 10f) / 20f))];
+        int[] indices = [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11];
+        return SkinnedMesh.Of(
+            places, normals, indices, new Vector3(-10f, -10f, -Math.Max(low, high)), new Vector3(10f, 10f, 0f),
+            spots, [new MeshShape("Floor", 0, 6), new MeshShape("Water", 6, 12)]);
+    }
+
+    /// <summary>A texture of one colour.</summary>
+    private static Mipmaps Sheet(byte red, byte green, byte blue)
+    {
+        var pixels = new byte[8 * 8 * 4];
+        for (var one = 0; one < 8 * 8; one++)
+        {
+            pixels[one * 4] = red;
+            pixels[(one * 4) + 1] = green;
+            pixels[(one * 4) + 2] = blue;
+            pixels[(one * 4) + 3] = 255;
+        }
+
+        Mipmaps? levels = Mipmaps.Of(new GamePicture(8, 8, pixels));
+        Assert.NotNull(levels);
+        return levels;
+    }
+}

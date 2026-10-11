@@ -530,6 +530,14 @@ public sealed class MonsterPortrait
 
     /// <summary>A room stage's own lines, or empty - see MonsterModel.StageMove.</summary>
     private string _stageMove = string.Empty;
+
+    /// <summary>Whether the model wears the engine's water anywhere - see ShadeProgram.Water - so the picture says what water it is drawn with.</summary>
+    private bool _wearsWater;
+
+    /// <summary>The water line under the picture and the water it was written for - rewritten only when that changes.</summary>
+    private string _waterSaid = string.Empty;
+
+    private WaterLook _waterSaidFor;
     private Vector3[] _posed = [];
     private Vector3[] _posedNormals = [];
 
@@ -780,6 +788,16 @@ public sealed class MonsterPortrait
     private Vector3 Dusted() => SceneDust?.Invoke() ?? EnvironmentSettings.AssumedDust;
 
     private Vector3 _drawnDust = EnvironmentSettings.AssumedDust;
+
+    /// <summary>
+    /// The area's open water the water program reads, or null for the engine's default - asked whether the game's light is on or not, like the dust.
+    /// </summary>
+    /// <remarks>See ShadeProgram.Water: an Ocean material is drawn as the area's water, whose file sets it or leaves the engine's default.</remarks>
+    public Func<WaterLook>? SceneWater { get; set; }
+
+    private WaterLook Watered() => SceneWater?.Invoke() ?? WaterLook.EngineDefault;
+
+    private WaterLook _drawnWater = WaterLook.EngineDefault;
 
     /// <summary>
     /// Which tilesets place which tile, for a tile's dump to find the areas that use it - see ModelDump.OfTile.
@@ -2095,6 +2113,19 @@ public sealed class MonsterPortrait
             _status.Add(_stageMove);
         }
 
+        if (_wearsWater)
+        {
+            WaterLook water = Watered();
+            if (_waterSaid.Length == 0 || water != _waterSaidFor)
+            {
+                _waterSaidFor = water;
+                _waterSaid = ImGuiText.Escape(water.Line() + " (its pattern a moving noise, not the engine's waves"
+                    + (water.HeightOffset != 0f ? "; its height offset not applied - the planes stand where the tile puts them)" : ")"));
+            }
+
+            _status.Add(_waterSaid);
+        }
+
         // WHERE THE FILES WENT, and it stays up until the next export rather than flashing: the
         // whole point of the button is that somebody then goes and finds what it wrote.
         if (_exported.Length > 0)
@@ -2655,6 +2686,7 @@ public sealed class MonsterPortrait
 
         _stage = _model.StageSaid.Length > 0 ? ImGuiText.Escape(_model.StageSaid) : string.Empty;
         _stageMove = _model.StageMove.Length > 0 ? "the stage's own lines: " + ImGuiText.Escape(_model.StageMove) : string.Empty;
+        _wearsWater = _model.Shades.Any(one => one is not null && one.Graphs.Contains(ShadeProgram.WaterGraph));
 
         _shaders = ShowShaders && _model.Shaders.Count > 0
             ? "shaders: " + ImGuiText.Escape(string.Join(", ", _model.Shaders.Select(Tail)))
@@ -2929,6 +2961,7 @@ public sealed class MonsterPortrait
             || !ReferenceEquals(_drawnBlends, Blends())
             || !ReferenceEquals(_drawnLight, Lit())
             || _drawnDust != Dusted()
+            || _drawnWater != Watered()
             || (posed && (_drawnFrame != _frame || _drawnAnimation != _chosen))
             || _drawnCardOn != (Card?.On ?? false)
             || _drawnSharp != (Card?.Sharp ?? false)
@@ -3212,6 +3245,7 @@ public sealed class MonsterPortrait
 
         canvas.Time = _clock;
         canvas.Dust = _drawnDust;
+        canvas.Water = _drawnWater;
         _drawnClock = _clock;
         MonsterModel model = _model;
         float turn = _turn;
@@ -3313,6 +3347,7 @@ public sealed class MonsterPortrait
         _drawnBlends = Blends();
         _drawnLight = Lit();
         _drawnDust = Dusted();
+        _drawnWater = Watered();
         _drawnCardOn = Card?.On ?? false;
         _drawnSharp = Card?.Sharp ?? false;
         _drawing++;
@@ -3412,7 +3447,7 @@ public sealed class MonsterPortrait
 
         var scene = new ModelScene(
             _model.Mesh, _turn, _tilt, Ink, _model.Skin, _zoom, _pan, _model.Skins, Blends(),
-            moving ? _posed : null, moving ? _posedNormals : null, _drawnLight, ShadesOf(_model), _clock, _drawnDust, card.Sharp);
+            moving ? _posed : null, moving ? _posedNormals : null, _drawnLight, ShadesOf(_model), _clock, _drawnDust, card.Sharp, _drawnWater);
         if (!gpu.Can(scene, out string why))
         {
             // A MATERIAL'S SHADER STILL COMPILING is the usual no: the picture is the processor's until
@@ -4102,6 +4137,7 @@ public sealed class MonsterPortrait
     {
         canvas.Time = _clock;
         canvas.Dust = _drawnDust;
+        canvas.Water = _drawnWater;
         return canvas;
     }
 

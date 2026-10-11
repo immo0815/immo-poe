@@ -294,7 +294,7 @@ public static class ShadeHlsl
         hlsl.Append("static const bool ShadeHasGloss = ").Append(Truth(program.HasGloss)).AppendLine(";");
         hlsl.Append("static const bool ShadeUsesDepth = ").Append(Truth(program.UsesDepth)).AppendLine(";");
         hlsl.AppendLine(Library);
-        hlsl.AppendLine("ShadeOut ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust)");
+        hlsl.AppendLine("ShadeOut ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow)");
         hlsl.AppendLine("{");
 
         // THE FIXED REGISTERS, as Colour and Preset set them.
@@ -327,6 +327,8 @@ public static class ShadeHlsl
 
         hlsl.AppendLine("    float4 r10 = float4(0.0, 0.0, 0.0, 0.0);");
         hlsl.AppendLine("    float4 r11 = float4(dust, 0.0);");
+        hlsl.AppendLine("    float4 r12 = water;");
+        hlsl.AppendLine("    float4 r13 = flow;");
 
         // EVERY OTHER REGISTER STARTS AT NOUGHT, as the processor's zeroed scratch does - a swizzle
         // writes part of one and leaves the rest as it found it.
@@ -368,7 +370,7 @@ public static class ShadeHlsl
     }
 
     /// <summary>The registers the mesh and the drawing set before the program's own - ShadeProgram's Fixed.</summary>
-    private const int FixedRegisters = ShadeProgram.Dust + 1;
+    private const int FixedRegisters = ShadeProgram.WaterFlow + 1;
 
     /// <summary>One step as one statement - ShadeProgram.Run's case for its op.</summary>
     private static void Step(StringBuilder hlsl, ShadeProgram program, ShadeProgram.Step step, ref int parallax)

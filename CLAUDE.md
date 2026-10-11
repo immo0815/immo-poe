@@ -239,6 +239,14 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   default (`ParsedEnvironment.WaterOpenColor`). The Red Vale named its density (v0.1.212): open_water_murkiness at +0x228,
   Port's default 0.01, with reflectiveness 0.03 (+0x230), refraction_index 1.33 (+0x238) and subsurface_scattering 1
   (+0x240) beside it. That water_color_open.a IS the murkiness is what the names say, not a measurement of the uniform.
+  SO AN OCEAN MATERIAL IS NOW DRAWN AS THE AREA'S WATER (`ShadeProgram.Water`, `WaterLook`): a medium over the solid
+  surface behind, covering by `1 - exp(-depth * murkiness)` along the view, its colour `pow(open_water_color, 2.2)` lit
+  as any colour is - the area's file's values where it sets them, the measured defaults where it does not, handed in
+  per drawing like the dust (two fixed registers, `WaterColour` and `WaterFlow`). MEASURED: the colour and the density.
+  CHOSEN, and said under the picture: the moving pattern (value noise, a cell every 120 units, 0.85 to 1.15 of the
+  colour, drifting at the flow) standing for the engine's waves; still water where a file sets no flow, the engine's
+  flow default never having stood in a capture. NOT DONE: the height offset (water.ffx adds it to the surface's
+  displacement), the terrain water colour, reflections.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

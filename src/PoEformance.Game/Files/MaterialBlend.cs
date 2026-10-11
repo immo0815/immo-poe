@@ -63,6 +63,15 @@ public static class MaterialBlends
             return MaterialBlend.ShadowOnly;
         }
 
+        // WATER IS MIXED, whatever its graph's mode: the engine draws an Ocean material in its own water
+        // pass over the scene, a medium the solid surface behind shows through - and the graph under
+        // nvidian_Ocean.mat says BackgroundGBufferSurfaces, which this rule would take for opaque. The
+        // word is MonsterModels.Paints's, given a material whose shadertype is Ocean.
+        if (mode.Contains("water", StringComparison.OrdinalIgnoreCase))
+        {
+            return MaterialBlend.Alpha;
+        }
+
         // ADDITIVE IS ASKED FIRST, because the game could well spell it "AdditiveBlend" - and that
         // carries "blend" too, which the mixed rule would otherwise take.
         if (mode.Contains("add", StringComparison.OrdinalIgnoreCase))

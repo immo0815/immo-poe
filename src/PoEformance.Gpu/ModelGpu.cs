@@ -28,6 +28,7 @@ namespace PoEformance.Gpu;
 /// <param name="Shades">One shade program per shape, or null - see MeshPicture.Of.</param>
 /// <param name="Time">The clock a program reads - MeshPicture.Canvas.Time.</param>
 /// <param name="Dust">The area's dust colour a program reads, or null for the assumed one - MeshPicture.Canvas.Dust.</param>
+/// <param name="Water">The area's open water a program reads, or null for the engine's default - MeshPicture.Canvas.Water.</param>
 /// <param name="Sharp">Whether textures are read anisotropically - the one way the card is let draw a picture the processor does not; see <see cref="ModelGpu"/>.</param>
 public readonly record struct ModelScene(
     SkinnedMesh Mesh,
@@ -45,7 +46,8 @@ public readonly record struct ModelScene(
     IReadOnlyList<ShadeProgram?>? Shades = null,
     float Time = 0f,
     Vector3? Dust = null,
-    bool Sharp = false);
+    bool Sharp = false,
+    WaterLook? Water = null);
 
 /// <summary>
 /// Pictures of models drawn on the graphics card - MeshPicture's pictures, at the card's speed.
@@ -441,6 +443,8 @@ public sealed partial class ModelGpu : IDisposable
             Eye = new Vector4(view.M13, view.M23, view.M33, view.M43),
             Depth = new Vector4(reach, 0f, 0f, 0f),
             Dust = new Vector4(scene.Dust ?? EnvironmentSettings.AssumedDust, 0f),
+            Water = (scene.Water ?? WaterLook.EngineDefault).ColourRegister,
+            Flow = (scene.Water ?? WaterLook.EngineDefault).FlowRegister,
         });
 
         context.RSSetState(_raster);
@@ -809,6 +813,8 @@ public sealed partial class ModelGpu : IDisposable
         public Vector4 Eye;
         public Vector4 Depth;
         public Vector4 Dust;
+        public Vector4 Water;
+        public Vector4 Flow;
     }
 
     private sealed record Compiled(
