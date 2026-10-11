@@ -11,7 +11,8 @@ namespace PoEformance.Core.Diagnostics;
 /// <param name="Values">The floats in order; a NaN is a place left unchecked - padding in a matrix row, say.</param>
 /// <param name="Tolerance">How far each float may be from its value; nought asks for the exact value.</param>
 /// <param name="Around">How many bytes either side of its first few places to read back with the result - nought for none. See <see cref="FloatDump"/>.</param>
-public sealed record FloatNeedle(string Name, float[] Values, float Tolerance, int Around = 0);
+/// <param name="Dumps">How many of its places to read back - nought for <see cref="FloatHunt.MostDumps"/>.</param>
+public sealed record FloatNeedle(string Name, float[] Values, float Tolerance, int Around = 0, int Dumps = 0);
 
 /// <summary>The bytes read round a place a needle was found, for a person to see what the game keeps beside it.</summary>
 /// <param name="At">Where the needle was found.</param>
@@ -231,7 +232,8 @@ public static class FloatHunt
         foreach (FloatSighting one in sightings.OrderBy(sighting => Math.Clamp(needles[sighting.Needle].Around, 0, MostAround)).ThenBy(sighting => sighting.At))
         {
             int around = Math.Clamp(needles[one.Needle].Around, 0, MostAround);
-            if (around == 0 || taken[one.Needle] >= MostDumps)
+            int most = needles[one.Needle].Dumps > 0 ? Math.Min(needles[one.Needle].Dumps, MostPerNeedle) : MostDumps;
+            if (around == 0 || taken[one.Needle] >= most)
             {
                 continue;
             }

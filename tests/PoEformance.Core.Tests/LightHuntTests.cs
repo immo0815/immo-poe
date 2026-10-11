@@ -396,6 +396,38 @@ public class LightHuntTests
             "in the struct's order");
     }
 
+    /// <summary>
+    /// The parsed copy is found wherever it lies among phi's places: Clearfell's phi stood in eleven, and the copy was not among the
+    /// first four in address order, which was all that was read round any needle.
+    /// </summary>
+    [Fact]
+    public void THEPARSEDCOPYIsReadPastPhisFirstFourPlaces()
+    {
+        EnvironmentSettings env = EnvironmentSettings.Read("town.env", Encoding.UTF8.GetBytes(
+            """{ "directional_light": { "phi": 2.19911, "theta": 1.64058 }, "water": { "flow_foam": 0.5, "open_water_color": [ 0.17441, 0.17994, 0.19043 ] } }"""));
+        LightHunt hunt = LightHunt.For("town.env", env, one => $"reading {one + 1}", out string why)!;
+        Assert.True(why.Length == 0, why);
+
+        // SIX DECOYS low, 0x2000 apart so no window holds another; the parsed copy above them.
+        var bytes = new byte[0x10000];
+        for (var decoy = 0; decoy < 6; decoy++)
+        {
+            Floats(bytes, 0x1000 + (decoy * 0x2000), 2.19911f);
+        }
+
+        const int copyAt = 0xE000;
+        Floats(bytes, copyAt, 2.19911f);
+        Floats(bytes, copyAt + 0x338, 1.64058f);
+        Floats(bytes, copyAt + 0x390, 0.17441f, 0.17994f, 0.19043f);
+        (FakeMemoryReader memory, Space space) = Memory(bytes);
+
+        LightHuntVerdict verdict = hunt.Read(FloatHunt.Run(memory, space, hunt.Needles));
+
+        Assert.Contains($"the parsed environment round phi at 0x{Base + copyAt:X}: ", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains("  +0x390  water.open_water_color 0.17441 0.17994 0.19043", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains("7 windows read, the 4 holding most", verdict.Report, StringComparison.Ordinal);
+    }
+
     /// <summary>And an environment whose only finding would be its dust colour is still worth a hunt.</summary>
     [Fact]
     public void ADUSTCOLOURAloneIsSomethingToLookFor()

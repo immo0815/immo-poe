@@ -152,9 +152,14 @@ public sealed class LightHunt
             // AND THE PARSED ENVIRONMENT'S WINDOW: phi again, read as far either side as the hunt reads anything, so the
             // file's own values can be found in it - a map of the parsed copy - and what stands beside them read. See
             // Layout, and WaterWindow for the water's own lines.
+            //
+            // ROUND EVERY PLACE PHI IS FOUND, not the first four: Clearfell's phi stood in eleven places, the first four in
+            // address order were pairs of some other object's, and the parsed copies - hor_angle 0xD0 and theta 0x338 after
+            // them - were among the seven never read. Window picks the copy holding most of the file's values.
             if (environment.All.Count > 0)
             {
-                entries.Add(new Entry(What.Water, -1, false, false, new FloatNeedle("phi, for the parsed environment", [phi], 0f, FloatHunt.MostAround)));
+                entries.Add(new Entry(What.Water, -1, false, false,
+                    new FloatNeedle("phi, for the parsed environment", [phi], 0f, FloatHunt.MostAround, FloatHunt.MostPerNeedle)));
             }
         }
 
@@ -582,7 +587,7 @@ public sealed class LightHunt
             return;
         }
 
-        report.Append(CultureInfo.InvariantCulture, $"  beside phi, within 0x{FloatHunt.MostAround:X} bytes either side - where each of the file's values lies, as a float and a whole number as an int too:").AppendLine();
+        var lines = new List<(int Found, string Line)>();
         foreach (FloatDump dump in windows)
         {
             long origin = (long)(dump.At - dump.From);
@@ -595,9 +600,19 @@ public sealed class LightHunt
                 line.Append("; ").Append(one.Key).Append(' ').Append(places.Count == 0 ? "-" : string.Join(" ", places.Take(8).Select(Offset)));
             }
 
-            report.Append(CultureInfo.InvariantCulture, $"    phi at 0x{dump.At:X}: {found} of {water.Count} found").AppendLine(line.ToString());
+            lines.Add((found, string.Create(CultureInfo.InvariantCulture, $"    phi at 0x{dump.At:X}: {found} of {water.Count} found{line}")));
+        }
+
+        report.Append(CultureInfo.InvariantCulture,
+            $"  beside phi, within 0x{FloatHunt.MostAround:X} bytes either side, {windows.Count} windows read, the {Math.Min(windows.Count, MostWaterWindowsSaid)} holding most of the file's water values - where each lies, as a float and a whole number as an int too:").AppendLine();
+        foreach ((_, string line) in lines.OrderByDescending(one => one.Found).Take(MostWaterWindowsSaid))
+        {
+            report.AppendLine(line);
         }
     }
+
+    /// <summary>Most windows round phi the water's lines are printed for.</summary>
+    private const int MostWaterWindowsSaid = 4;
 
     /// <summary>The window round phi holding the most of the file's values - the parsed environment's own, of the copies found - or null.</summary>
     private FloatDump? Window(FloatHuntResult result)
