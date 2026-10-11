@@ -224,7 +224,8 @@ public static class CaptureParts
             + "between the rooms' white ground and a painted one."),
         new(Water, "Area files", "the water's makings", CaptureReport.WaterFile,
             "What the water is drawn from, as the files say: every key the install's environments write in their water "
-            + "sections, how many files carry it and what values, and the shader sources of the engine's water pass whole - "
+            + "sections, how many files carry it and what values, every environment's water section file by file - to pick an "
+            + "area by what its file sets - and the shader sources of the engine's water pass whole - "
             + "the colours, the waves, the refraction. Water materials are no ordinary ones (\"shadertype\": \"Ocean\"), and "
             + "this is what stands between a white water plane and one drawn as the game does."),
 
@@ -260,7 +261,8 @@ public static class CaptureParts
             "The Tile Book light panel's search of the game's memory, run at the press for the area's own environment: "
             + "where the game keeps the sun, the sky's turn and the dust colour, and the water - the water pass's uniform "
             + "block as common.ffx declares it, read out by name, its colours among them, and the file's water values in the "
-            + "window round the parsed environment, printed whole. What the engine draws an area's water with where its file "
+            + "window round the parsed environment, printed whole, with every value the area's file sets mapped to its slot there. "
+            + "What the engine draws an area's water with where its file "
             + "sets no colour. It looks through up to sixteen gigabytes on every core: the capture's window shows how far it is "
             + "and where its time goes, and stops it on a click - what it found until then is written, as it is at five minutes."),
         new(Memory, "Memory", "a memory recording", CaptureReport.MemoryFile,

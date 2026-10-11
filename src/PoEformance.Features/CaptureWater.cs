@@ -72,6 +72,7 @@ public static class CaptureWater
         }
 
         var keys = new SortedDictionary<string, Key>(StringComparer.Ordinal);
+        var files = new SortedDictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         int carrying = 0, failed = 0;
         foreach (string path in environments)
         {
@@ -107,6 +108,13 @@ public static class CaptureWater
                         }
 
                         key.Add(entry.Value.GetRawText(), path);
+                        if (!files.TryGetValue(path, out List<string>? set))
+                        {
+                            set = [];
+                            files[path] = set;
+                        }
+
+                        set.Add(name + " " + Compact(entry.Value.GetRawText()));
                     }
                 }
 
@@ -124,8 +132,19 @@ public static class CaptureWater
             said.Append(CultureInfo.InvariantCulture, $"  {name}  in {key.Files} files: ").AppendLine(string.Join("  |  ", key.Examples));
         }
 
+        // EVERY FILE WHOLE, so an area can be picked by what its file sets: the light hunt finds each key the area's file sets at
+        // its slot in the parsed copy, so a capture where the water's colours are set says which of the defaults Port's holds is which.
+        said.AppendLine().AppendLine("=== every environment's water section, file by file - an area whose file sets a key shows that key's slot in light-hunt.txt");
+        foreach ((string path, List<string> set) in files)
+        {
+            said.Append("  ").Append(path).Append(": ").AppendLine(string.Join("; ", set));
+        }
+
         return string.Create(CultureInfo.InvariantCulture, $"{carrying} of {environments.Count} environments carry a water section, {keys.Count} keys");
     }
+
+    /// <summary>A value's JSON on one line.</summary>
+    private static string Compact(string value) => string.Join(' ', value.Split((char[])['\n', '\r', '\t', ' '], StringSplitOptions.RemoveEmptyEntries));
 
     /// <summary>One key: in how many files, and its first distinct values, each with the first file that wrote it.</summary>
     private sealed class Key
@@ -139,7 +158,7 @@ public static class CaptureWater
         public void Add(string value, string path)
         {
             Files++;
-            string compact = string.Join(' ', value.Split((char[])['\n', '\r', '\t', ' '], StringSplitOptions.RemoveEmptyEntries));
+            string compact = Compact(value);
             if (compact.Length > MostExampleChars)
             {
                 compact = compact[..MostExampleChars] + "...";

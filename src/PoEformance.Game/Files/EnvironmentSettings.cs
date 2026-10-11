@@ -74,6 +74,17 @@ public sealed record EnvironmentSettings(
     /// </remarks>
     public IReadOnlyList<EnvironmentValue> Water { get; init; } = [];
 
+    /// <summary>
+    /// Every section's numbers as the file writes them, each keyed <c>section.key</c>, in the file's order - empty where it has none.
+    /// </summary>
+    /// <remarks>
+    /// THE MAP OF THE PARSED ENVIRONMENT (LightHunt.Layout): each value a file sets is in the game's parsed copy beside phi with a
+    /// one after it, a value it leaves to the engine with a nought. Port's (v0.1.208) holds two colours the file does not set, between
+    /// dust_color and ssf_color - (0.1, 0.19, 0.22) and (0.1015, 0.09106, 0.05037) - and which of them is the open water's is what a
+    /// capture in an area whose file sets the water's colours says: there the key is found at its slot.
+    /// </remarks>
+    public IReadOnlyList<EnvironmentValue> All { get; init; } = [];
+
     /// <summary>Nothing read.</summary>
     public static EnvironmentSettings None { get; } = new(
         string.Empty, null, null, null, null, null, null, null, string.Empty, string.Empty, null, null, null, null, null, null, null, string.Empty, null, "no environment");
@@ -181,6 +192,7 @@ public sealed record EnvironmentSettings(
                 Colour(Section(root, "area"), "dust_color"))
             {
                 Water = Values(Section(root, "water")),
+                All = Every(root),
             };
         }
         catch (JsonException fault)
@@ -206,6 +218,21 @@ public sealed record EnvironmentSettings(
 
     private static JsonElement Section(JsonElement root, string name)
         => root.TryGetProperty(name, out JsonElement section) && section.ValueKind == JsonValueKind.Object ? section : default;
+
+    /// <summary>Every section's numbers, keyed by section and key.</summary>
+    private static List<EnvironmentValue> Every(JsonElement root)
+    {
+        var all = new List<EnvironmentValue>();
+        foreach (JsonProperty section in root.EnumerateObject())
+        {
+            if (section.Value.ValueKind == JsonValueKind.Object)
+            {
+                all.AddRange(Values(section.Value).Select(one => one with { Key = section.Name + "." + one.Key }));
+            }
+        }
+
+        return all;
+    }
 
     /// <summary>A section's numbers key by key, in the file's order: a number, a flag as one or nought, an array of numbers whole; anything else left out.</summary>
     private static List<EnvironmentValue> Values(JsonElement section)
