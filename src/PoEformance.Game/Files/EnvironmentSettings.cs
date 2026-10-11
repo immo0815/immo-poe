@@ -63,6 +63,17 @@ public sealed record EnvironmentSettings(
     Vector3? Dust,
     string Why = "")
 {
+    /// <summary>
+    /// The water section's numbers as the file writes them, key by key - a number as one value, a colour as three, a flag as one or nought - in the file's order; empty where it has none.
+    /// </summary>
+    /// <remarks>
+    /// FOR THE LIGHT HUNT'S WATER WINDOW (LightHunt): Port.env sets flow_intensity 1.5, flow_turbulence 1.0, flow_resolution 7
+    /// and height_offset -15 but no colour, and the colour the engine draws its open water with (water.ffx: water_color_open, its
+    /// alpha the density) is written in no file. Found beside phi, the file's own values say where the parsed water section lies,
+    /// and what stands beside them is the engine's default.
+    /// </remarks>
+    public IReadOnlyList<EnvironmentValue> Water { get; init; } = [];
+
     /// <summary>Nothing read.</summary>
     public static EnvironmentSettings None { get; } = new(
         string.Empty, null, null, null, null, null, null, null, string.Empty, string.Empty, null, null, null, null, null, null, null, string.Empty, null, "no environment");
@@ -167,7 +178,10 @@ public sealed record EnvironmentSettings(
                 Number(Section(root, "global_illumination"), "gi_env_occlusion"),
                 Number(Section(root, "camera"), "exposure"),
                 Text(Section(root, "post_transform"), "texture"),
-                Colour(Section(root, "area"), "dust_color"));
+                Colour(Section(root, "area"), "dust_color"))
+            {
+                Water = Values(Section(root, "water")),
+            };
         }
         catch (JsonException fault)
         {
@@ -192,6 +206,35 @@ public sealed record EnvironmentSettings(
 
     private static JsonElement Section(JsonElement root, string name)
         => root.TryGetProperty(name, out JsonElement section) && section.ValueKind == JsonValueKind.Object ? section : default;
+
+    /// <summary>A section's numbers key by key, in the file's order: a number, a flag as one or nought, an array of numbers whole; anything else left out.</summary>
+    private static List<EnvironmentValue> Values(JsonElement section)
+    {
+        var values = new List<EnvironmentValue>();
+        if (section.ValueKind != JsonValueKind.Object)
+        {
+            return values;
+        }
+
+        foreach (JsonProperty entry in section.EnumerateObject())
+        {
+            JsonElement value = entry.Value;
+            switch (value.ValueKind)
+            {
+                case JsonValueKind.Number:
+                    values.Add(new EnvironmentValue(entry.Name, [(float)value.GetDouble()]));
+                    break;
+                case JsonValueKind.True or JsonValueKind.False:
+                    values.Add(new EnvironmentValue(entry.Name, [value.GetBoolean() ? 1f : 0f], Flag: true));
+                    break;
+                case JsonValueKind.Array when value.EnumerateArray().All(one => one.ValueKind == JsonValueKind.Number):
+                    values.Add(new EnvironmentValue(entry.Name, [.. value.EnumerateArray().Select(one => (float)one.GetDouble())]));
+                    break;
+            }
+        }
+
+        return values;
+    }
 
     private static float? Number(JsonElement section, string key)
         => section.ValueKind == JsonValueKind.Object && section.TryGetProperty(key, out JsonElement value) && value.ValueKind == JsonValueKind.Number
@@ -235,3 +278,9 @@ public sealed record EnvironmentSettings(
 
     private static string Say(Vector3 value) => string.Create(CultureInfo.InvariantCulture, $"{value.X:0.###} {value.Y:0.###} {value.Z:0.###}");
 }
+
+/// <summary>One key of an environment's section with its numbers as the file writes them - see EnvironmentSettings.Water.</summary>
+/// <param name="Key">The key, as written.</param>
+/// <param name="Values">Its number, or its array's numbers; a flag as one or nought.</param>
+/// <param name="Flag">Whether the file wrote it as true or false rather than as a number.</param>
+public sealed record EnvironmentValue(string Key, IReadOnlyList<float> Values, bool Flag = false);

@@ -226,11 +226,12 @@ public class LightHuntTests
         LightHuntVerdict verdict = hunt.Read(FloatHunt.Run(memory, space, hunt.Needles));
 
         Assert.Contains(fileSetsIt ? "the file's is 0.4936 0.32918 0.21288" : "the file sets none, so this is the engine's own", verdict.Report, StringComparison.Ordinal);
-        // READ BESIDE HOR_ANGLE, whose window is the narrower and so is read first - and covers phi,
-        // whose own is then not read again.
+        // READ BESIDE BOTH ANGLES: hor_angle's window is the narrower and read first, and phi's wider one,
+        // which hor_angle's does not hold whole, is read too.
         const int horAt = phiAt + 0xD0;
-        Assert.Contains(
-            $"beside hor_angle at 0x{Base + horAt:X}: 0.5 0.45 0.4{(fileSetsIt ? " - NOT the file's" : string.Empty)}", verdict.Report, StringComparison.Ordinal);
+        string said = $"0.5 0.45 0.4{(fileSetsIt ? " - NOT the file's" : string.Empty)}";
+        Assert.Contains($"beside hor_angle at 0x{Base + horAt:X}: {said}", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains($"beside phi at 0x{Base + phiAt:X}: {said}", verdict.Report, StringComparison.Ordinal);
 
         // THE ANGLES' WINDOWS ARE NOT PRINTED WHOLE - they are only there for the dust.
         Assert.DoesNotContain($"beside hor_angle at 0x{Base + horAt:X}:{Environment.NewLine}", verdict.Report, StringComparison.Ordinal);
@@ -253,6 +254,48 @@ public class LightHuntTests
 
         (FakeMemoryReader memory, Space space) = Memory(new byte[0x100]);
         Assert.Contains("dust beside the angles: not read", hunt.Read(FloatHunt.Run(memory, space, hunt.Needles)).Report, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The water: the uniform block found where the file's values sit in their common.ffx slots, read out by name with the
+    /// engine's colours before them; and the file's values found in the window round phi, which is printed whole.
+    /// </summary>
+    [Fact]
+    public void THEWATERIsFoundAsTheUniformBlockAndBesidePhi()
+    {
+        EnvironmentSettings env = EnvironmentSettings.Read("port.env", Encoding.UTF8.GetBytes(
+            """{ "directional_light": { "multiplier": 1.0, "phi": 2.14668, "theta": 2.1642 }, "water": { "flow_intensity": 1.5, "flow_turbulence": 1.0, "flow_resolution": 7, "flow_wait_init": true, "height_offset": -15.0 } }"""));
+        Assert.Equal(["flow_intensity", "flow_turbulence", "flow_resolution", "flow_wait_init", "height_offset"], env.Water.Select(one => one.Key));
+        Assert.True(env.Water[3].Flag);
+        LightHunt hunt = LightHunt.For("port.env", env, one => $"reading {one + 1}", out string why)!;
+        Assert.True(why.Length == 0, why);
+
+        // THE BLOCK: colours first, flow_intensity in slot 23 and height_offset in 27 - the slots between left unchecked.
+        var bytes = new byte[0x4000];
+        const int blockAt = 0x3000;
+        Floats(bytes, blockAt, 0.1f, 0.2f, 0.3f, 0.4f, 0.05f, 0.06f, 0.13f, 0.02f);
+        Floats(bytes, blockAt + (23 * 4), 1.5f, 0.25f, 0.5f, 0.75f, -15f);
+
+        // AND PHI, with the file's values laid after it as a parsed section might keep them - flow_resolution as an int.
+        const int phiAt = 0x1000;
+        Floats(bytes, phiAt, 2.14668f);
+        Floats(bytes, phiAt + 0x400, 1.5f, 1f);
+        BitConverter.GetBytes(7).CopyTo(bytes, phiAt + 0x408);
+        Floats(bytes, phiAt + 0x410, -15f);
+        (FakeMemoryReader memory, Space space) = Memory(bytes);
+
+        LightHuntVerdict verdict = hunt.Read(FloatHunt.Run(memory, space, hunt.Needles));
+
+        Assert.Contains("water - the file's water section: flow_intensity 1.5, flow_turbulence 1, flow_resolution 7, flow_wait_init true, height_offset -15", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains($"  the block at 0x{Base + blockAt:X}, read as declared:", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains("    water_color_open 0.05 0.06 0.13 0.02", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains("    water_clarity 0.75", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains("    water_height_offset -15", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains($"    phi at 0x{Base + phiAt:X}: 5 of 5 found; flow_intensity +0x400", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains("; flow_resolution +0x408; ", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains("; height_offset +0x410", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains($"  the window round phi at 0x{Base + phiAt:X} whole, eight floats a row, phi in brackets:", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains("[2.14668]", verdict.Report, StringComparison.Ordinal);
     }
 
     /// <summary>And an environment whose only finding would be its dust colour is still worth a hunt.</summary>

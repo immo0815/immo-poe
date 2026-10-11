@@ -2413,6 +2413,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         // panes and one part, and the books arrive in any order.
         _capture.Offer(CaptureParts.ModelProbe, ProbeReports);
         _capture.OfferPanes(PaneReports);
+        _capture.HuntLight = CaptureLightHunt;
 
         // The entry card takes its plates from the same cache the markers use, so a picture
         // that cannot be loaded is reported in one place and given up on once.
@@ -2530,6 +2531,42 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     {
         get => _capture.RecordMemory;
         set => _capture.RecordMemory = value;
+    }
+
+    /// <summary>
+    /// The light hunt for the area's own environment, started for the capture's light-hunt part: its verdict's line, then the whole report - or null where nothing can search.
+    /// </summary>
+    /// <remarks>
+    /// IN THE CAPTURE, NOT ONLY BEHIND THE LIGHT PANEL'S BUTTON (asked for from the live client): a measurement the tool can
+    /// make is one key's work. The same hunt the panel runs - the same needles, the anchor the player's own entity - and the
+    /// water's two lines of evidence with it, see LightHunt.
+    /// </remarks>
+    private Task<string>? CaptureLightHunt()
+    {
+        Func<IReadOnlyList<FloatNeedle>, ulong, FloatHuntProgress, Task<FloatHuntResult>?>? search = HuntFloats;
+        Func<string, byte[]?>? read = _capture.Read;
+        string path = _snapshot.Area.Environment;
+        if (search is null)
+        {
+            return null;
+        }
+
+        if (read is null || path.Length == 0)
+        {
+            return Task.FromResult(read is null ? "no install to read the area's environment from" : "the area's environment is not known");
+        }
+
+        EnvironmentSettings env = EnvironmentSettings.Read(path, read(path.Replace('\\', '/').Trim()));
+        if (LightHunt.For(path, env, reading => string.Create(System.Globalization.CultureInfo.InvariantCulture, $"reading {reading + 1}"), out string why, EnvironmentDust) is not { } hunt)
+        {
+            return Task.FromResult($"nothing to hunt for in {path}: {why}");
+        }
+
+        return search(hunt.Needles, _snapshot.Player?.Address ?? 0, new FloatHuntProgress())?.ContinueWith(
+            done => done.IsCompletedSuccessfully
+                ? hunt.Read(done.Result) is { } verdict ? verdict.Summary + Environment.NewLine + Environment.NewLine + verdict.Report : string.Empty
+                : "the hunt failed: " + (done.Exception?.GetBaseException().Message ?? "cancelled"),
+            CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
     }
 
     /// <summary>Every model pane showing a model - the capture's model-panes part; see CapturePanes.</summary>
