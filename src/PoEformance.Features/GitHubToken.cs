@@ -8,14 +8,19 @@ using System.Text.Json.Serialization;
 namespace PoEformance.Features;
 
 /// <summary>
-/// The GitHub token the boss-icon upload writes to the repository with, kept encrypted.
+/// The GitHub token the boss-icon upload writes to the repository with and the update check
+/// reads its releases with, kept encrypted.
 /// </summary>
 /// <remarks>
 /// THE FIRST SECRET THIS TOOL HAS EVER HELD, which is worth saying because everything else was
 /// built to avoid holding one: the trade lookup signs in inside a WebView2 profile so that no
-/// cookie ever reaches this code, and the update check asks GitHub anonymously. Uploading
-/// exports cannot work that way - writing to a repository takes a credential - so this keeps
-/// exactly one, as narrowly as it can.
+/// cookie ever reaches this code. Uploading exports cannot work that way - writing to a
+/// repository takes a credential - so this keeps exactly one, as narrowly as it can.
+///
+/// THE UPDATE CHECK USES IT TOO since the repository went private (2026-10-11): a private
+/// repository's releases are "not found" to anybody without a credential. One token for both
+/// rather than two, because both are the same repository - Contents: read is enough for the
+/// update, read and write for the upload, and somebody who only updates never needs the second.
 ///
 /// ENCRYPTED WITH DPAPI, bound to the Windows user. config/ is plaintext JSON throughout and
 /// gets copied around - into backups, onto a second machine, into a zip somebody sends while
@@ -32,8 +37,19 @@ public static class GitHubTokenStore
     /// <summary>Where the encrypted token is kept.</summary>
     public static string DefaultPath => Path.Combine(AppContext.BaseDirectory, "config", "github.json");
 
+    private static int _generation;
+
     /// <summary>Whether a token has been saved. Reads nothing but the file's existence.</summary>
     public static bool Has(string? path = null) => File.Exists(path ?? DefaultPath);
+
+    /// <summary>Moves on with every save and every forget.</summary>
+    /// <remarks>
+    /// So a surface drawn every frame can keep its own copy of <see cref="Has"/> and ask the disk
+    /// only when this has moved. Its own copy, not one shared here: the overlay and the config
+    /// window run on different threads, and one cached pair written from both could end up
+    /// holding one thread's answer under the other's generation.
+    /// </remarks>
+    public static int Generation => Volatile.Read(ref _generation);
 
     /// <summary>Encrypts and saves a token, and says whether it worked.</summary>
     public static bool Save(string token, Func<byte[], byte[]> protect, string? path = null)
@@ -57,6 +73,7 @@ public static class GitHubTokenStore
             string temporary = file + ".writing";
             File.WriteAllText(temporary, JsonSerializer.Serialize(stored, GitHubTokenJson.Default.GitHubTokenFile));
             File.Move(temporary, file, overwrite: true);
+            Interlocked.Increment(ref _generation);
             return true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
@@ -106,6 +123,7 @@ public static class GitHubTokenStore
         try
         {
             File.Delete(path ?? DefaultPath);
+            Interlocked.Increment(ref _generation);
             return true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)

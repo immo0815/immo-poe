@@ -48,10 +48,11 @@ public sealed class UpdateCheckTests
 
     private static string Asset(string name, string tag, string uploaded, long size)
         => "{"
+            + $"\"url\":\"https://example.invalid/releases/assets/{tag}/{name}\","
             + $"\"name\":\"{name}\","
             + $"\"size\":{size},"
             + $"\"updated_at\":\"{uploaded}\","
-            + $"\"browser_download_url\":\"https://example.invalid/{tag}/{name}\""
+            + $"\"browser_download_url\":\"https://example.invalid/download/{tag}/{name}\""
             + "}";
 
     private static string StampJson(string commit, string built)
@@ -72,10 +73,60 @@ public sealed class UpdateCheckTests
 
         ReleaseInfo release = Assert.Single(found);
         Assert.Equal("latest-dev", release.Tag);
-        Assert.Equal($"https://example.invalid/latest-dev/{Zip}", release.DownloadUrl);
-        Assert.Equal($"https://example.invalid/latest-dev/{Stamp}", release.StampUrl);
+
+        // The API addresses, not the browser ones: the repository is private, and outside a
+        // browser an asset is fetched from its API address as application/octet-stream.
+        Assert.Equal($"https://example.invalid/releases/assets/latest-dev/{Zip}", release.DownloadUrl);
+        Assert.Equal($"https://example.invalid/releases/assets/latest-dev/{Stamp}", release.StampUrl);
         Assert.Equal(1234, release.DownloadSize);
         Assert.Contains("did a thing", release.Notes, StringComparison.Ordinal);
+    }
+
+    // ── The requests ───────────────────────────────────────────────────────
+
+    private const string Listing = "https://api.github.com/repos/o/r/releases?per_page=10";
+    private const string AssetAddress = "https://api.github.com/repos/o/r/releases/assets/123";
+
+    [Fact]
+    public void TheTokenGoesOnTheRequestWhenThereIsOne()
+    {
+        using HttpRequestMessage with = UpdateCheck.Request(Listing, "github_pat_x");
+        Assert.Equal("Bearer", with.Headers.Authorization?.Scheme);
+        Assert.Equal("github_pat_x", with.Headers.Authorization?.Parameter);
+
+        // No token, no header - an empty "Bearer" is a credential GitHub has to judge, where
+        // no header at all is plainly an anonymous request.
+        using HttpRequestMessage without = UpdateCheck.Request(Listing, string.Empty);
+        Assert.Null(without.Headers.Authorization);
+    }
+
+    [Fact]
+    public void AnAssetIsAskedForAsBytesAndTheListingAsJson()
+    {
+        // An asset's API address answers with its JSON description unless asked for the bytes.
+        // Asked as JSON, the stamp would parse as nothing and every check would read "cannot
+        // compare"; the zip would download as a few hundred bytes of JSON.
+        Assert.True(GitHubReleases.IsAsset(AssetAddress));
+        using HttpRequestMessage asset = UpdateCheck.Request(AssetAddress, "t");
+        Assert.Equal("application/octet-stream", Assert.Single(asset.Headers.Accept).MediaType);
+
+        // The listing sets no Accept of its own, so the client's API default applies.
+        Assert.False(GitHubReleases.IsAsset(Listing));
+        using HttpRequestMessage listing = UpdateCheck.Request(Listing, "t");
+        Assert.Empty(listing.Headers.Accept);
+    }
+
+    [Fact]
+    public void ARefusalSaysWhatToDoAboutIt()
+    {
+        // A private repository is "not found" to anybody not let in. Without a token that is
+        // a fresh install; with one, the token is for the wrong repository or permission.
+        Assert.Contains("is private", UpdateCheck.Refusal(404, token: false), StringComparison.Ordinal);
+        Assert.Contains("may not read", UpdateCheck.Refusal(404, token: true), StringComparison.Ordinal);
+        Assert.Contains("may not read", UpdateCheck.Refusal(403, token: true), StringComparison.Ordinal);
+        Assert.Contains("forget it", UpdateCheck.Refusal(401, token: true), StringComparison.Ordinal);
+        Assert.Contains("did not answer", UpdateCheck.Refusal(0, token: true), StringComparison.Ordinal);
+        Assert.Contains("500", UpdateCheck.Refusal(500, token: false), StringComparison.Ordinal);
     }
 
     [Fact]

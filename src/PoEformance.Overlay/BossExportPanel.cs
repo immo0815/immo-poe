@@ -18,27 +18,26 @@ namespace PoEformance.Overlay;
 /// exports and some of them get redone, and one press at the end is one commit and one bake.
 ///
 /// THE TOKEN IS ASKED FOR HERE, ONCE, masked, and never shown again - see GitHubTokenStore,
-/// which keeps it encrypted to the Windows user. Everything that touches the disk or the
-/// network runs on a task; the frame only reads a string.
+/// which keeps it encrypted to the Windows user, and GitHubTokenField, which the Update page
+/// shares. Everything that touches the network runs on a task; the frame only reads a string.
 /// </remarks>
 /// <param name="entries">The boss-icons.json the tool writes, or empty - BossIcons.Source.</param>
 internal sealed class BossExportPanel(Func<string> entries)
 {
-    /// <summary>Longest token the field takes. Fine-grained tokens are about a hundred characters.</summary>
-    private const uint TokenLength = 256;
-
     private const string TokenSaid =
         "a GitHub token that may write this repository, saved encrypted to your Windows user.\n"
         + "make one at github.com -> settings -> developer settings -> fine-grained tokens:\n"
-        + $"repository {UpdateCheck.Owner}/{UpdateCheck.Repository}, permission Contents: read and write.";
+        + $"repository {UpdateCheck.Owner}/{UpdateCheck.Repository}, permission Contents: read and write.\n"
+        + "the update check reads the releases with the same token.";
 
     private const string SendSaid =
         "sends every exported 64 px cell and data/boss-icons.json to the boss-icons branch,\n"
         + "only what the branch does not have yet, in one commit. a workflow on GitHub then bakes\n"
         + "them into assets/icons.png and opens a pull request for you to merge.";
 
-    private string _token = string.Empty;
-    private bool _has = GitHubTokenStore.Has();
+    private readonly GitHubTokenField _field = new(
+        "github-token", "GitHub token (Contents: read and write)", TokenSaid);
+
     private Task? _sending;
     private volatile string _said = string.Empty;
 
@@ -47,9 +46,12 @@ internal sealed class BossExportPanel(Func<string> entries)
     {
         ImGui.TextDisabled("bake into the repository");
 
-        if (!_has)
+        if (!_field.Has)
         {
-            Ask();
+            if (_field.Ask() is string saved)
+            {
+                _said = saved;
+            }
         }
         else
         {
@@ -60,33 +62,6 @@ internal sealed class BossExportPanel(Func<string> entries)
         if (said.Length > 0)
         {
             PathLink.Line(OverlayInk.Quiet, said);
-        }
-    }
-
-    /// <summary>The masked token field and its save button.</summary>
-    private void Ask()
-    {
-        ImGui.SetNextItemWidth(280f);
-        ImGui.InputTextWithHint(
-            "##github-token", "GitHub token (Contents: read and write)", ref _token, TokenLength,
-            ImGuiInputTextFlags.Password);
-        if (ImGui.IsItemHovered())
-        {
-            ImGui.SetTooltip(TokenSaid);
-        }
-
-        ImGui.SameLine();
-        ImGui.BeginDisabled(_token.Trim().Length == 0);
-        bool save = ImGui.Button("save token##github-token-save");
-        ImGui.EndDisabled();
-
-        if (save)
-        {
-            _has = GitHubTokenStore.Save(_token, Dpapi.Protect);
-            _said = _has ? "token saved, encrypted to this Windows user" : "the token could not be saved";
-
-            // Out of memory the moment it is written down - nothing keeps the plain text around.
-            _token = string.Empty;
         }
     }
 
@@ -103,19 +78,16 @@ internal sealed class BossExportPanel(Func<string> entries)
         }
 
         ImGui.SameLine();
-        ImGui.BeginDisabled(busy);
-        bool forget = ImGui.SmallButton("forget token##github-token-forget");
-        ImGui.EndDisabled();
+        string? forgot = _field.Forget(busy);
 
         if (send)
         {
             Send();
         }
 
-        if (forget)
+        if (forgot is not null)
         {
-            _has = !GitHubTokenStore.Forget();
-            _said = _has ? "the token could not be deleted" : "token forgotten";
+            _said = forgot;
         }
     }
 

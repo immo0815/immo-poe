@@ -10,11 +10,13 @@ permissions:
 jobs:
   publish:
     # UBUNTU, for a Windows build. This started as a billing decision - private-repository
-    # minutes are metered with a 2x multiplier on Windows, and this was the one workflow that
-    # had to survive an exhausted quota - and that reason is now HISTORY: the repository is
-    # public, so runners are free and unmetered either way.
+    # minutes are metered, Windows ones dearer, and this was the one workflow that had to
+    # survive an exhausted quota - and that reason is CURRENT AGAIN: the repository went
+    # private once more when it moved to immo0815/immo-poe (2026-10-11), and a run here costs
+    # about a minute and a half of Linux time.
     #
-    # It stays on Linux because the reason it worked is not about money. A non-AOT
+    # It would stay on Linux even if it were free, because the reason it works is not about
+    # money. A non-AOT
     # self-contained publish is a cross-compile the SDK supports: it restores the win-x64
     # runtime pack and lays it out, rather than invoking a native toolchain. Verified rather
     # than assumed - this exact command on Linux produces "PE32+ executable (console)
@@ -161,7 +163,8 @@ jobs:
             echo "(\`--watch\`). No .NET install required."
             echo
             echo "Already running it? The tool checks this release on its own and can install"
-            echo "the update itself - config window, Update tab."
+            echo "the update itself - config window, Update tab. The repository is private, so"
+            echo "the check needs a GitHub token that may read it (Contents: read), entered once there."
           } > notes.md
 
           # version.json goes up BESIDE the zip, as its own asset. It is a couple of hundred
