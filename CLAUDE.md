@@ -182,7 +182,9 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   capped, unseen), its box, where its first line puts it and its materials; a file that did not draw is
   written whole with what it extends. Built when Port's harbour stood without its water - 31
   `WaterPlane3x3.ao` lines in its `.tmd`, the probe over the water finding only the ocean's floor - and the
-  stage said nothing of why.
+  stage said nothing of why. Its first capture answered at once: the planes loaded fine and all 48 were
+  left out by the cap - the room comes to 2.25 million triangles, the ship alone 355,726 of the usual
+  500,000 - so a Monster Book stage now lays every doodad and tile piece (`RoomModels.EveryDoodad`).
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

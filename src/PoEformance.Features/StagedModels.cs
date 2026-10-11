@@ -124,6 +124,9 @@ public static class StagedModels
     /// stage, where the monster is looked at from every side. The doodad heights line against the area's
     /// entities is left out for the same reason - this is a stage, not a survey.
     ///
+    /// AND WHOLE WHATEVER THE KEY'S CAP: every doodad and tile piece is placed (RoomModels.EveryDoodad). The
+    /// usual cap left Port's harbour without its 48 water planes and six of its tile pieces.
+    ///
     /// TWO ROADS TO A FLOOR: the area the player stands in (the key names the place and the grid), or the
     /// map's own tileset, the room built from it without the area (the key names the tileset; see
     /// BuiltRoomModels) - the second is what a map boss's arena is stood on from anywhere.
@@ -140,7 +143,7 @@ public static class StagedModels
         {
             if (room.Built.Length > 0)
             {
-                return BuiltRoomModels.Of(read, room.Path, room.Built, shaded: true, doodads: room.Doodads, tools: room.Tools, progress: progress, heights: room.Heights);
+                return BuiltRoomModels.Of(read, room.Path, room.Built, shaded: true, doodads: RoomModels.EveryDoodad, tools: room.Tools, progress: progress, heights: room.Heights);
             }
 
             return MonsterModel.None with { Why = "a room is a stage only as the area laid it or built from its tileset - its file alone is doodads over nothing" };
@@ -153,7 +156,7 @@ public static class StagedModels
         }
 
         return LaidRoomModels.Of(
-            read, room.Path, grid, x, y, turn, shaded: true, doodads: room.Doodads, tools: room.Tools, atLevel: room.AtLevel,
+            read, room.Path, grid, x, y, turn, shaded: true, doodads: RoomModels.EveryDoodad, tools: room.Tools, atLevel: room.AtLevel,
             progress: progress, heights: room.Heights, cut: room.Cut);
     }
 

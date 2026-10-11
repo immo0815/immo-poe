@@ -246,6 +246,13 @@ public class LaidRoomModelsTests
 
         Assert.True(room.Ready, room.Why);
         Assert.Contains("1 pieces of 1 tile files", room.Move, StringComparison.Ordinal);
+
+        // AND AS A STAGE, whatever cap its key names: every piece laid, the pieces' triangles measured against no cap at all.
+        string key = new RoomKey(RoomPath, RoomModels.LeastDoodads, Laid: RoomKey.LaidAt(1, 1, 0, RoomKey.Stamp(grid))).ToString();
+        MonsterModel stage = StagedModels.LaidRoom(Files().GetValueOrDefault, key, () => grid);
+        Assert.True(stage.Ready, stage.Why);
+        Assert.Contains("1 pieces of 1 tile files", stage.Move, StringComparison.Ordinal);
+        Assert.DoesNotContain("left out to keep it turnable", stage.Move, StringComparison.Ordinal);
         Assert.Contains("sub-tiles: of 1 pieces several tiles across, 0 have every tile where the area's own index puts it counting the file's rows from the top, 1 counting them from the bottom", room.Move, StringComparison.Ordinal);
     }
 
