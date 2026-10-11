@@ -236,8 +236,9 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   sets to its slot (`LightHunt.Layout`), and `water.txt` lists every environment's water section file by file, so one
   capture in an area whose file sets the water's colours names the slots. Clearfell Encampment named it (v0.1.211):
   its file sets open_water_color, found at +0x390 with a one - so PORT'S OPEN WATER IS (0.1, 0.19, 0.22), the engine's
-  default (`ParsedEnvironment.WaterOpenColor`). Its density - water_color_open.a, likely open_water_murkiness - is one of
-  the water floats' defaults not yet named; The Riverbank's file sets open_water_murkiness 0.02999.
+  default (`ParsedEnvironment.WaterOpenColor`). The Red Vale named its density (v0.1.212): open_water_murkiness at +0x228,
+  Port's default 0.01, with reflectiveness 0.03 (+0x230), refraction_index 1.33 (+0x238) and subsurface_scattering 1
+  (+0x240) beside it. That water_color_open.a IS the murkiness is what the names say, not a measurement of the uniform.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
