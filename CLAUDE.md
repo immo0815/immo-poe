@@ -265,7 +265,14 @@ in the Monster Book - draws each piece's doodads so (`LaidRoomModels.TileDoodads
 not hung on the tile's mesh, whose sub-tile rows run down -y while the cells run down +y; turned, not
 mirrored, since an entity carries an angle only; the height above the piece's own lift (the level, as
 measured, or the fit to the ground where the piece is drawn fitted); and the `.tdt`'s list taken where
-there are two - DECIDED, not measured, and the line under the picture says so. Six captures are committed under
+there are two - DECIDED, not measured, and the line under the picture says so. A ROOM NAMES ITS BOSS'S
+PLACE: its `.arm` carries point-of-interest groups (poe_data_tools' `poi`: `x y turn "tag"`, read as
+`RoomLayout.Points`), and the game stands a map's boss on the one tagged `mapboss`, `force:mapboss` or
+`mapbossN`, at its cell's MIDDLE - `boss-points-replay.txt` found Marrow's, Steaming Springs' and Sulphuric's
+second boss 0 units from it (8 at the cell's corner). So a stage sets the monster there, turned the
+point's way, on the floor round it rather than at it, a throne's seat being at it (`LaidRoomModels.BossSpotOf`,
+`StagedModels`). Which of a room's several boss places belongs to which boss is not read; the first is taken.
+Six captures are committed under
 `tests/fixtures/captures/` (its README says why each), and `CaptureFixtureTests` holds the orientation
 rule, the origin rule, the settled slots, the fill rule, the tile doodads' frame and height and the one
 laid word against them on every build. Two captures of one area forty

@@ -346,6 +346,7 @@ public static class LaidRoomModels
             Lights = lights.Lights,
             LightsSaid = lights.Said(),
             AreaOrigin = origin,
+            BossSpot = BossSpotOf(room, laying),
         };
 
         return shaded ? MonsterModels.Shaded(Counted, model, paints) : model;
@@ -697,6 +698,55 @@ public static class LaidRoomModels
         }
 
         return away;
+    }
+
+    /// <summary>
+    /// Where the room names its boss's place, in the picture's frame - the room's corner its origin, as every piece and doodad has
+    /// it - or null where it names none.
+    /// </summary>
+    /// <remarks>
+    /// MEASURED (boss-points-replay.txt): the game stands a map's boss on the point of interest its room tags for him - Marrow's
+    /// "force:mapboss", Steaming Springs' "mapboss", Sulphuric Caverns' "mapboss2" each 8 units from the boss the recording holds,
+    /// which is the distance from a cell's corner to its middle; so the point is taken at its cell's middle. A room naming
+    /// several - Sulphuric's boss room names a "mapboss1" and a "mapboss2", one a boss each - is taken by its first: "mapboss",
+    /// then "force:mapboss", then the lowest number; the others are counted, for the line under the picture.
+    ///
+    /// TURNED, NOT MIRRORED, as a tile's doodads are: the point's angle read as a doodad line's (the room pictures turn their
+    /// doodads by it and draw right), through the room's laying as a direction, so a mirrored room turns its boss to face the
+    /// way the mirror sends him without turning his model inside out.
+    /// </remarks>
+    internal static RoomSpot? BossSpotOf(RoomLayout room, Matrix3x2 laying)
+    {
+        RoomPoint[] marks = [.. room.Points.Where(point => Rank(point.Tag) >= 0).OrderBy(point => Rank(point.Tag))];
+        if (marks.Length == 0)
+        {
+            return null;
+        }
+
+        RoomPoint mark = marks[0];
+        Vector2 at = Vector2.Transform(new Vector2(mark.X + 0.5f, mark.Y + 0.5f) / RoomModels.CellsPerTile, laying) * TileModels.Side;
+        (float sin, float cos) = MathF.SinCos(mark.Turn);
+        Vector2 facing = Vector2.TransformNormal(new Vector2(sin, -cos), laying);
+        return new RoomSpot(at, MathF.Atan2(facing.X, -facing.Y), mark.Tag, marks.Length - 1);
+
+        // "mapboss" first, "force:mapboss" next, then "mapboss1", "mapboss2" by their number; anything else is no boss's place.
+        static int Rank(string tag)
+        {
+            if (tag.Equals("mapboss", StringComparison.OrdinalIgnoreCase))
+            {
+                return 0;
+            }
+
+            if (tag.Equals("force:mapboss", StringComparison.OrdinalIgnoreCase))
+            {
+                return 1;
+            }
+
+            return tag.StartsWith("mapboss", StringComparison.OrdinalIgnoreCase)
+                && int.TryParse(tag.AsSpan(7), NumberStyles.None, CultureInfo.InvariantCulture, out int number) && number < 1000
+                ? 2 + number
+                : -1;
+        }
     }
 
     private static Matrix4x4 Spatial(Matrix3x2 flat) => new(

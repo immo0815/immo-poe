@@ -456,6 +456,35 @@ public class LaidRoomModelsTests
     }
 
     /// <summary>
+    /// A laid room hands its stage the place it names for its boss - "mapboss" before the numbered ones - at the middle of its cell,
+    /// in the picture's frame, facing the point's way.
+    /// </summary>
+    [Fact]
+    public void ALAIDRoomNamesItsBossPlaceAtTheMiddleOfItsCell()
+    {
+        // INTO THE FIRST POINT GROUP, which the root slot's line is followed by - the grid's line is followed by the doodads'.
+        string text = RoomText.ReplaceLineEndings("\n");
+        const string Root = "k 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n";
+        int first = text.IndexOf(Root, StringComparison.Ordinal) + Root.Length;
+        string withPoints = text[..first] + "9 2 0 \"mapboss2\"\n5 7 1.5708 \"mapboss\"\n12 3 0 \"checkpoint\"\n" + text[first..];
+        RoomLayout layout = RoomLayout.Parse(withPoints);
+        Assert.True(layout.Ready, layout.Why);
+        Assert.Equal(3, layout.Points.Count);
+        Assert.Equal(new RoomPoint(0, 5, 7, 1.5708f, "mapboss"), layout.Points[1]);
+
+        MonsterModel room = Laid(placement: 3, selector: 0, lies: 3, flat: true, texts: new Dictionary<string, string> { [RoomPath] = withPoints });
+        RoomSpot spot = Assert.IsType<RoomSpot>(room.BossSpot);
+        Assert.Equal("mapboss", spot.Tag);
+        Assert.Equal(1, spot.Others);
+        Assert.Equal(5.5f * TileModels.Side / RoomModels.CellsPerTile, spot.At.X, 3);
+        Assert.Equal(7.5f * TileModels.Side / RoomModels.CellsPerTile, spot.At.Y, 3);
+        Assert.Equal(1.5708f, spot.Turn, 3);
+
+        // A room naming none hands none.
+        Assert.Null(Laid(placement: 3, selector: 0, lies: 3, flat: true).BossSpot);
+    }
+
+    /// <summary>
     /// How far above its tile's level the line says a fitted piece sits - within a height step of the truth, the area's heights being whole steps of HeightScale.
     /// </summary>
     private static int Above(MonsterModel room)

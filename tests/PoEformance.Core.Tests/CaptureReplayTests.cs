@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Numerics;
 using System.Text;
+using System.Text.RegularExpressions;
 using PoEformance.Core.Diagnostics;
 using PoEformance.Core.Memory;
 using PoEformance.Core.Schema;
@@ -30,7 +31,7 @@ namespace PoEformance.Core.Tests;
 /// slot in a room asks and which laid files answer it by RoomPlacements' own rule, and the search's best
 /// places beside each place the doodads found, scored by the same yardstick and ranked.
 /// </remarks>
-public class CaptureReplayTests
+public partial class CaptureReplayTests
 {
     /// <summary>How many of the rarest laid files are listed.</summary>
     private const int RarestListed = 40;
@@ -1263,6 +1264,87 @@ public class CaptureReplayTests
         return said.ToString();
     }
 
+    /// <summary>Holds every placed room's boss points against the bosses the recording holds; writes the table beside the capture's files.</summary>
+    [Fact]
+    public void THEBOSSPointsAreHeldAgainstTheBossesFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder)
+        {
+            return;
+        }
+
+        string replay = BossPointsReplay(folder);
+        File.WriteAllText(Path.Combine(folder, "boss-points-replay.txt"), replay);
+        Assert.StartsWith("boss points:", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// boss-points-replay.txt: every point of interest whose tag names a boss ("mapboss", "force:mapboss", "mapboss1"...), in every
+    /// room rooms-placed.txt places - by its doodads or its tiles - put into the area as the room lies, beside every boss monster the
+    /// recording holds and how far the nearest stands.
+    /// </summary>
+    /// <remarks>
+    /// WHAT IS MEASURED: whether the game stands a map's boss at the point its room names - which a stage would set him on. Both
+    /// halves are printed: the point (its cell, its turn, where it lands) and every boss entity (its path, where it stands). A boss
+    /// that has been fought walks; one that has not stands where it was put, and only the second settles anything.
+    /// </remarks>
+    public static string BossPointsReplay(string folder)
+    {
+        var said = new StringBuilder();
+        Dictionary<string, RoomLayout> rooms = Rooms(File.ReadAllText(Path.Combine(folder, CaptureReport.RoomFilesFile)))
+            .GroupBy(one => Short(one.Room), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(one => one.Key, one => one.First().Layout, StringComparer.OrdinalIgnoreCase);
+        (List<DoodadSighting> entities, string entitiesHow) = Entities(folder);
+        List<DoodadSighting> bosses = [.. entities.Where(one => one.Path.Contains("/Monsters/", StringComparison.OrdinalIgnoreCase)
+            && one.Path.Contains("Boss", StringComparison.OrdinalIgnoreCase))];
+        said.AppendLine(CultureInfo.InvariantCulture, $"boss points: {entitiesHow}; {bosses.Count} boss monsters among them");
+        foreach (DoodadSighting boss in bosses.OrderBy(one => one.Path, StringComparer.Ordinal))
+        {
+            said.AppendLine(CultureInfo.InvariantCulture, $"  boss {boss.Path} at {boss.X:0}, {boss.Y:0}, z {boss.Z:0}");
+        }
+
+        // THE PLACES, as rooms-placed.txt says them: "room: ... - tile x, y, turned ...:" by doodads and by tiles alike.
+        string placed = Path.Combine(folder, "rooms-placed.txt");
+        foreach (Match place in (File.Exists(placed) ? File.ReadLines(placed) : []).Select(line => PlacedAt().Match(line)).Where(match => match.Success))
+        {
+            string name = place.Groups[1].Value;
+            if (!rooms.TryGetValue(name, out RoomLayout? room))
+            {
+                continue;
+            }
+
+            RoomPoint[] marks = [.. room.Points.Where(point => point.Tag.Contains("boss", StringComparison.OrdinalIgnoreCase))];
+            if (marks.Length == 0)
+            {
+                continue;
+            }
+
+            int x = int.Parse(place.Groups[2].Value, CultureInfo.InvariantCulture), y = int.Parse(place.Groups[3].Value, CultureInfo.InvariantCulture);
+            int turn = Enumerable.Range(0, 8).FirstOrDefault(one => RoomFinder.Said(one) == place.Groups[4].Value.Trim(), -1);
+            if (turn < 0)
+            {
+                said.AppendLine(CultureInfo.InvariantCulture, $"{name} at tile {x}, {y}: the way round \"{place.Groups[4].Value}\" is not one of the eight");
+                continue;
+            }
+
+            Matrix3x2 laying = RoomFinder.Laying(room.Width, room.Height, turn);
+            said.AppendLine(CultureInfo.InvariantCulture, $"{name} at tile {x}, {y}, {RoomFinder.Said(turn)} ({room.Width} x {room.Height} tiles):");
+            foreach (RoomPoint mark in marks)
+            {
+                // AT THE CELL'S MIDDLE, as LaidRoomModels.BossSpotOf takes it: at its corner every boss stood 8 units off.
+                Vector2 inArea = (new Vector2(x, y) + Vector2.Transform(new Vector2(mark.X + 0.5f, mark.Y + 0.5f) / RoomModels.CellsPerTile, laying)) * TileModels.Side;
+                string nearest = bosses.Count == 0
+                    ? "no boss monster in the recording"
+                    : string.Join("; ", bosses.OrderBy(boss => Vector2.Distance(inArea, new Vector2(boss.X, boss.Y))).Take(2)
+                        .Select(boss => string.Create(CultureInfo.InvariantCulture, $"{Short(boss.Path)} {Vector2.Distance(inArea, new Vector2(boss.X, boss.Y)):0} off")));
+                said.AppendLine(CultureInfo.InvariantCulture,
+                    $"  \"{mark.Tag}\" (group {mark.Group}) cell {mark.X}, {mark.Y} turn {mark.Turn * 180f / MathF.PI:0} -> {inArea.X:0}, {inArea.Y:0}; nearest: {nearest}");
+            }
+        }
+
+        return said.ToString();
+    }
+
     /// <summary>Holds every laid tile's own doodads against the entities the recording holds, under every way a tile can lie; writes the table beside the capture's files.</summary>
     [Fact]
     public void THETILEDOODADSAreHeldAgainstTheEntitiesFromACapture()
@@ -2476,4 +2558,7 @@ public class CaptureReplayTests
 
         return ((int)(farX / RoomDoodadFinder.WithinUnits) + 10, (int)(farY / RoomDoodadFinder.WithinUnits) + 10);
     }
+
+    [GeneratedRegex(@"^(\S+): [^-\r\n]*?- tile (\d+), (\d+), ([^:]+):")]
+    private static partial Regex PlacedAt();
 }

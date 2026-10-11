@@ -240,6 +240,31 @@ public partial class CaptureFixtureTests
     }
 
     /// <summary>
+    /// A map's boss stands on the point of interest his room tags for him, at the middle of its cell - what a stage sets him on
+    /// (LaidRoomModels.BossSpotOf).
+    /// </summary>
+    /// <remarks>
+    /// THREE BOSSES NOT YET FOUGHT, each where the recording holds him: Marrow's on "force:mapboss", Steaming Springs' on
+    /// "mapboss", and Sulphuric Caverns' second boss on "mapboss2" - its first, on "mapboss1", 58 units off, had moved. At the
+    /// cell's corner every one was 8 units off, the distance to its middle.
+    /// </remarks>
+    [Theory]
+    [InlineData("marrow", "force:mapboss")]
+    [InlineData("steaming-springs", "mapboss")]
+    [InlineData("sulphuric-caverns", "mapboss2")]
+    public void THEBOSSStandsWhereHisRoomNamesHisPlace(string name, string tag)
+    {
+        string replay = CaptureReplayTests.BossPointsReplay(Capture(name));
+        string? line = replay.Split('\n').Select(one => one.TrimEnd('\r')).FirstOrDefault(one => one.StartsWith("  \"" + tag + "\"", StringComparison.Ordinal));
+        Assert.NotNull(line);
+        int nearest = line.IndexOf("nearest: ", StringComparison.Ordinal);
+        Assert.True(nearest > 0, line);
+        string[] words = line[(nearest + 9)..].Split(' ');
+        Assert.True(words.Length > 2 && words[2].StartsWith("off", StringComparison.Ordinal), line);
+        Assert.True(int.Parse(words[1], CultureInfo.InvariantCulture) <= 2, line);
+    }
+
+    /// <summary>
     /// A tile doodad's z counts from its tile's level: Sulphuric Caverns lays tiles at -203, and every doodad found there
     /// stands at its line's z plus that level - as every one on a tile at nought stands at its line's z - while the tile's
     /// frame, as authored then the game's placement, finds every doodad it puts down.

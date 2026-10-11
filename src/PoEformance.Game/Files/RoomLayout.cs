@@ -67,6 +67,41 @@ public readonly record struct RoomDoodad(int X, int Y, float Turn, float Scale, 
     }
 }
 
+/// <summary>A point of interest a room names: where, which way, and what for - "mapboss", "checkpoint", "rare" and the like.</summary>
+/// <remarks>
+/// poe_data_tools' <c>poi</c>, field for field: two whole numbers, a float and a quoted tag, in groups the version counts (9, 10, 5 or
+/// 6) between the numbers before the tag and the grid. x and y count the room's cells, as a doodad line's do; the turn is in radians.
+/// What a tag means the game says nowhere a reference reads - a room names its boss's place "mapboss", "force:mapboss" or
+/// "mapboss1" - so the tag is kept as written. A line not of that shape is passed over, not read shifted.
+/// </remarks>
+/// <param name="Group">Which of the file's point groups it is in, from nought.</param>
+/// <param name="X">Its cell across the room.</param>
+/// <param name="Y">Its cell down the room.</param>
+/// <param name="Turn">Its angle, in radians.</param>
+/// <param name="Tag">Its tag, unquoted - often empty.</param>
+public readonly record struct RoomPoint(int Group, int X, int Y, float Turn, string Tag)
+{
+    /// <summary>One line, or null where it is not three numbers and a quoted tag.</summary>
+    public static RoomPoint? Parse(int group, string line)
+    {
+        ArgumentNullException.ThrowIfNull(line);
+        int open = line.IndexOf('"', StringComparison.Ordinal);
+        int close = line.LastIndexOf('"');
+        if (open < 0 || close <= open)
+        {
+            return null;
+        }
+
+        string[] numbers = line[..open].Split((char[])[' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
+        return numbers.Length == 3
+            && int.TryParse(numbers[0], NumberStyles.None, CultureInfo.InvariantCulture, out int x)
+            && int.TryParse(numbers[1], NumberStyles.None, CultureInfo.InvariantCulture, out int y)
+            && float.TryParse(numbers[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float turn)
+            ? new RoomPoint(group, x, y, turn, line[(open + 1)..close])
+            : null;
+    }
+}
+
 /// <summary>
 /// One slot of a room's grid: what kind it is and, for a <c>k</c> slot, the tile it asks for.
 /// </summary>
@@ -224,6 +259,9 @@ public sealed class RoomLayout
     /// <summary>Why the slot grid did not read, or empty. A grid that will not read leaves the doodads standing.</summary>
     public string SlotsWhy { get; private init; } = string.Empty;
 
+    /// <summary>The points of interest, every group's in the file's order - see <see cref="RoomPoint"/>.</summary>
+    public IReadOnlyList<RoomPoint> Points { get; private init; } = [];
+
     /// <summary>
     /// The ground types the file names at the grid's inner corners, line by line, <see cref="Width"/> - 1 to a line, as string indices from one - empty where the file has no such line; see the class remarks.
     /// </summary>
@@ -326,6 +364,7 @@ public sealed class RoomLayout
 
         Skip(lines, ref at, thingies * 2, "the numbers before the tag, doubled");
 
+        var points = new List<RoomPoint>();
         int groups = version switch
         {
             < 20 => 9,
@@ -336,7 +375,13 @@ public sealed class RoomLayout
 
         for (var one = 0; one < groups; one++)
         {
-            Group(lines, ref at, version);
+            foreach (string line in Group(lines, ref at, version))
+            {
+                if (RoomPoint.Parse(one, line) is { } point)
+                {
+                    points.Add(point);
+                }
+            }
         }
 
         if (version >= 35)
@@ -376,6 +421,7 @@ public sealed class RoomLayout
             SlotsWhy = slotsWhy,
             GroundOverrides = overrides,
             OverridesWhy = overridesWhy,
+            Points = points,
         };
     }
 
