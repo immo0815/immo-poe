@@ -1,0 +1,3027 @@
+using System.Numerics;
+using PoEformance.Game.Entities;
+using PoEformance.Game.Files;
+
+namespace PoEformance.Features;
+
+/// <summary>What a model was read from, which decides what the line under its picture calls its pieces.</summary>
+public enum ModelKind : byte
+{
+    /// <summary>An .ao walk - a monster, an item, an effect. Its pieces are what it wears.</summary>
+    Ao,
+
+    /// <summary>A terrain tile. Its pieces are sub-tiles, and its unnamed shapes are ground.</summary>
+    Tile,
+
+    /// <summary>A room. Its pieces are the doodads placed in it.</summary>
+    Room,
+}
+
+/// <summary>
+/// A monster's model, gathered from the five files it takes to draw one.
+/// </summary>
+/// <param name="Mesh">The geometry, or <see cref="SkinnedMesh.None"/> where none was found.</param>
+/// <param name="Skin">The colour texture with its halved levels, or null to draw the mesh plain.</param>
+/// <param name="Mesh_">The <c>.sm</c> that named the geometry, for the report.</param>
+/// <param name="Material">The <c>.mat</c> path that was used, for the report.</param>
+/// <param name="Why">Where the walk stopped, or empty where it did not.</param>
+/// <param name="Paint">
+/// Why the monster is drawn in plain ink, or empty where its own texture is on it. A separate
+/// answer from <paramref name="Why"/>: a model can be found in full and still have no colour.
+/// </param>
+/// <summary>One mesh file behind a model, with what its headers said. See <see cref="MonsterModel.Meshes"/>.</summary>
+public readonly record struct MeshNamed(string Path, MeshFacts Facts);
+
+public sealed record MonsterModel(
+    SkinnedMesh Mesh,
+    Mipmaps? Skin,
+    string Mesh_,
+    string Material,
+    string Why,
+    string Paint = "")
+{
+    /// <summary>Nothing found.</summary>
+    public static MonsterModel None { get; }
+        = new(SkinnedMesh.None, null, string.Empty, string.Empty, "nothing was looked for");
+
+    /// <summary>Whether there is a model to draw.</summary>
+    public bool Ready => Mesh.Ready;
+
+    /// <summary>Whether the monster is wearing its own texture rather than plain ink.</summary>
+    public bool Painted => Paint.Length == 0 && Skin is not null;
+
+    /// <summary>
+    /// One texture per shape of the mesh, in its order - what the renderer paints each part with.
+    /// </summary>
+    /// <remarks>
+    /// A MONSTER IS BUILT OF PARTS AND THEY DO NOT SHARE A SHEET. Body, cloak, wings: the .ao
+    /// names a material per shape and each shape's coordinates address ITS OWN texture, so one
+    /// texture over the whole mesh puts the body's pixels on the wings. Reported from the live
+    /// client by Bahlak the Sky Seer, who came out black with red patches against a game that
+    /// draws him in feathers.
+    ///
+    /// A SHAPE WITH NO MATERIAL OF ITS OWN GETS <see cref="Skin"/>, which is what the whole mesh
+    /// used to get. That keeps every monster whose .ao names one material exactly as it was, and
+    /// confines the change to the ones that name several - where the old answer was wrong.
+    ///
+    /// Empty where there is nothing to paint with, and then the renderer draws in ink.
+    /// </remarks>
+    public IReadOnlyList<Mipmaps?> Skins { get; init; } = [];
+
+    /// <summary>The distinct materials the pictures came out of, for the report.</summary>
+    public IReadOnlyList<string> Materials { get; init; } = [];
+
+    /// <summary>
+    /// What became of each attachment: where it was put, and how much of it found a bone.
+    /// </summary>
+    /// <remarks>
+    /// THE WALK'S OWN ACCOUNT OF ITSELF, kept because every piece that came out in the wrong
+    /// place this month was diagnosed from exactly these numbers and they were reconstructed by
+    /// hand each time. It is gathered by the walk that places the pieces, which is the point: a
+    /// second walk beside it would answer about itself - the trap the dump fell into when it read
+    /// four lines of Gulzal's hammer and reported no rig, no pairing and no materials.
+    ///
+    /// CHEAP ENOUGH TO ALWAYS KEEP. It is one small record per piece and a monster wears at most
+    /// <c>MostParts</c> of them, against a walk that reads tens of megabytes of mesh.
+    /// </remarks>
+    public IReadOnlyList<PartFit> Fitted { get; init; } = [];
+
+    /// <summary>
+    /// The monster's own box, before anything he wears is joined onto him.
+    /// </summary>
+    /// <remarks>
+    /// BECAUSE <see cref="Mesh"/>'s BOX IS NO LONGER HIS ONCE THE PIECES ARE IN IT. The joined
+    /// box is the union of the body and every piece, so a piece held up against it is inside it
+    /// by construction and "is this piece anywhere near him" is a question that answers itself.
+    ///
+    /// That is not a hypothetical: the sweep's first run over 2792 monsters flagged NOTHING as
+    /// far from its body, which is what a check that cannot fail looks like from the outside. It
+    /// took a run over the whole table to notice, which is the argument for the sweep in one
+    /// sentence.
+    ///
+    /// SECTIONS COUNT AS BODY. A section is not an accessory - see <c>Sections</c>.
+    /// </remarks>
+    public Vector3 BodyLeast { get; init; }
+
+    /// <inheritdoc cref="BodyLeast"/>
+    public Vector3 BodyMost { get; init; }
+
+    /// <summary>
+    /// What the body's own mesh file said of itself, kept from before anything was joined onto it.
+    /// </summary>
+    /// <remarks>
+    /// A JOINED MESH HAS NO FACTS - it is several files' geometry in one buffer - and a room is
+    /// nothing but joins. The question a room's dump has to answer is about the FILES: which
+    /// vertex format each doodad's mesh carries, and what is in the fields of it this reader
+    /// steps over. See <see cref="Meshes"/>.
+    /// </remarks>
+    public MeshFacts BodyFacts { get; init; }
+
+    /// <summary>
+    /// The mesh files behind a model built from several, each with its facts - a room's doodads.
+    /// </summary>
+    /// <remarks>
+    /// FOR THE DUMP, which otherwise sees one joined mesh and cannot say which doodad's file holds
+    /// a vertex colour and which does not. Empty on a model read from one file, whose
+    /// <see cref="Mesh"/> carries its own facts.
+    /// </remarks>
+    public IReadOnlyList<MeshNamed> Meshes { get; init; } = [];
+
+    /// <summary>
+    /// How many materials the files NAMED: the .ao's own, and the mesh manifest's.
+    /// </summary>
+    /// <remarks>
+    /// THE DIFFERENCE BETWEEN "ONE SHEET IS THE TRUTH" AND "WE FOUND ONE". A monster reported
+    /// as thirty-five shapes from one texture is either painted from one atlas - which is
+    /// ordinary and right - or is a monster whose per-shape materials this walk did not match,
+    /// and the picture looks the same either way. The counts tell those apart: one named in the
+    /// .ao and none in the .sm is a monster with one material; thirty-five named and one used
+    /// is a bug in the matching.
+    /// </remarks>
+    public int NamedInAo { get; init; }
+
+    /// <inheritdoc cref="NamedInAo"/>
+    public int NamedInMesh { get; init; }
+
+    /// <summary>
+    /// Whether the manifest's per-material numbers added up and were used to spread its short
+    /// material list over the mesh's shapes.
+    /// </summary>
+    /// <remarks>
+    /// SHOWN BECAUSE THE READING IS NOT PROVEN, only tested: the number after each material path
+    /// is unidentified - see <see cref="MeshManifest.Spread"/> - and this says, per monster,
+    /// whether the file passed the test and the picture depends on it. A line that says so is
+    /// what turns "the boss looks right" into evidence about the format.
+    /// </remarks>
+    public bool Runs { get; init; }
+
+    /// <summary>The distinct colour textures actually put on the mesh, for the report.</summary>
+    /// <remarks>
+    /// NAMED BECAUSE A WRONG ONE LOOKS LIKE A MISSING ONE. A mask or an occlusion map drawn as
+    /// colour is a monster in greyscale, which reads as "no texture" - and the file name says
+    /// in a word which of the two it is. See <see cref="Guessed"/>.
+    /// </remarks>
+    public IReadOnlyList<string> Textures { get; init; } = [];
+
+    /// <summary>
+    /// Whether any of those textures was chosen without a slot name saying it is the colour map.
+    /// </summary>
+    /// <remarks>
+    /// The fallback is "the first texture that is not a normal map", which is a guess this
+    /// project has always marked as one in its comments and never on screen. Where it is in
+    /// force the pane says so, because it is the difference between a monster the game paints
+    /// dark and a monster painted from the wrong map.
+    /// </remarks>
+    public bool Guessed { get; init; }
+
+    /// <summary>The skeleton the monster's .ao names, or <see cref="AnimationSkeleton.None"/>.</summary>
+    public AnimationSkeleton Rig { get; init; } = AnimationSkeleton.None;
+
+    /// <summary>The <c>.ast</c> path that was used, for the report.</summary>
+    public string Rig_ { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Why the monster cannot be animated, or empty where it can.
+    /// </summary>
+    /// <remarks>
+    /// A THIRD ANSWER BESIDE <see cref="Why"/> AND <see cref="Paint"/>, for the same reason those
+    /// two are apart: a model can be found and coloured and still have no skeleton to move it, and
+    /// a picture that holds still looks the same whichever of four files was the missing one.
+    /// </remarks>
+    public string Move { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The point lights a room's doodads carry, in the model's own space - see RoomLights. Empty for anything but a room.
+    /// </summary>
+    public IReadOnlyList<PointLight> Lights { get; init; } = [];
+
+    /// <summary>What reading those lights came to, for the line under a lit picture - see RoomLights.Gathered.</summary>
+    public string LightsSaid { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Where the model's origin is in the area, in world units, where the model is drawn as the area laid it - else null.
+    /// </summary>
+    /// <remarks>
+    /// A LAID ROOM'S CORNER IS THE PICTURE'S ORIGIN (LaidRoomModels), its x and y the area's own and its
+    /// heights the area's terrain heights - so a point the area names, the player's feet, lands in the
+    /// picture by taking this off. A room drawn as its file has it has no place in any area.
+    /// </remarks>
+    public Vector2? AreaOrigin { get; init; }
+
+    /// <summary>Whether there is a skeleton with animations on it that fits this mesh.</summary>
+    public bool Moves => Move.Length == 0 && Rig.Ready && Rig.Animations.Count > 0;
+
+    /// <summary>How many bytes the walk read out of the install for this monster, over every file it touched.</summary>
+    /// <remarks>
+    /// COUNTED, NOT ESTIMATED: every file goes through one function and it adds up what came back.
+    /// The .ao files and what they extend, the manifest, the geometry, the material, the texture and
+    /// the signpost it may sit behind, the skeleton - and nothing that was asked for and not there.
+    /// It is what one click in the book costs, and the pane says so under the picture.
+    /// </remarks>
+    public long Bytes { get; init; }
+
+    /// <summary>How many files those bytes came out of.</summary>
+    public int Files { get; init; }
+
+    /// <summary>
+    /// How many pieces the monster wears that were joined onto the body.
+    /// </summary>
+    /// <remarks>
+    /// SHOWN UNDER THE PICTURE because a monster with none and a monster whose attachments were
+    /// switched off look the same, and so does one whose pieces all failed to read. See
+    /// MonsterModels.Dressing.
+    /// </remarks>
+    public int Parts { get; init; }
+
+    /// <summary>
+    /// The shader graphs the materials that were read name as their parent, distinct, in the order met.
+    /// </summary>
+    /// <remarks>
+    /// THE EVIDENCE FOR BLENDING, collected and not yet acted on: whether an additive or a
+    /// transparent material is told apart by its graph is what the first real effect shows - see
+    /// MaterialFile.Parents.
+    /// </remarks>
+    public IReadOnlyList<string> Shaders { get; init; } = [];
+
+    /// <summary>
+    /// Each shape's blend mode as its material spells it, in shape order - empty where it says none.
+    /// </summary>
+    /// <remarks>
+    /// THE RAW WORD, kept beside <see cref="Blends"/>, because what it is taken to mean is a rule on
+    /// words that the first real effect may prove wrong - see MaterialBlends.
+    ///
+    /// WHERE TWO GRAPHS NAME ONE, THE LAST STANDS - see Paints.Modes for why.
+    /// </remarks>
+    public IReadOnlyList<string> Modes { get; init; } = [];
+
+    /// <summary>How each shape is drawn over what is behind it, from <see cref="Modes"/>.</summary>
+    public IReadOnlyList<MaterialBlend> Blends => _blends ??= [.. Modes.Select(MaterialBlends.Of)];
+
+    private MaterialBlend[]? _blends;
+
+    /// <summary>
+    /// How many <c>.sm</c> files the body itself is, before anything worn over it.
+    /// </summary>
+    /// <remarks>
+    /// ONE IS ORDINARY AND SEVEN IS THE CASE THAT WAS BEING LOST. A SkinMesh block may name
+    /// several manifests, each a section of the same body on the same rig: Zar Wali, the Bone
+    /// Tyrant is arms, chest, head, neck and tail in seven files, and while only the first was
+    /// read the pane drew two floating arms. Shown under the picture because a monster drawn in
+    /// pieces and a monster that really IS two arms look the same.
+    /// </remarks>
+    public int Sections { get; init; } = 1;
+
+    /// <summary>
+    /// What the model was read from. See <see cref="ModelKind"/>.
+    /// </summary>
+    /// <remarks>
+    /// THE LINE UNDER THE PICTURE WAS WRITTEN FOR MONSTERS: a tile reported "named: 45 in the .ao,
+    /// 0 in the .sm" and "wearing 9 parts" when it has neither file and its parts are sub-tiles.
+    /// </remarks>
+    public ModelKind Kind { get; init; }
+
+    /// <summary>
+    /// Each shape's material as its source names it, graph number and all - empty where it names none.
+    /// </summary>
+    /// <remarks>
+    /// FOR EVERY SHAPE OF THE JOINED MESH, a monster's worn pieces included, in the order the join
+    /// lays them down. For the dump, for a tile leaving out the shapes a texture marks - see
+    /// TileModels - and for reading each shape's shader graphs - see MonsterModels.Shaded.
+    /// </remarks>
+    public IReadOnlyList<string> ShapeMaterials { get; init; } = [];
+
+    /// <summary>Each shape's colour texture, by path - empty where none was found. See <see cref="ShapeMaterials"/>.</summary>
+    public IReadOnlyList<string> ShapeTextures { get; init; } = [];
+
+    /// <summary>
+    /// What each shape of a room came from - a doodad's <c>.ao</c>, a tile piece's file, the ground under it - or empty where the model is not a room.
+    /// </summary>
+    /// <remarks>
+    /// FOR THE PROBE, which names what is under a pixel: a material says what a surface is painted
+    /// with, and the same mud is worn by a tile, a doodad and a pile of rubble. See MeshPicture's PixelProbe.
+    /// </remarks>
+    public IReadOnlyList<string> ShapeSources { get; init; } = [];
+
+    /// <summary>How many of a tile's black-wall shapes were left out. See TileModels.BlackWall.</summary>
+    public int Walls { get; init; }
+
+    /// <summary>How many of a tile's own materials its tileset swapped for others. See TileModels.Of.</summary>
+    public int Swapped { get; init; }
+
+    /// <summary>The tileset a tile was drawn as, or empty for the tile's own materials.</summary>
+    public string Tileset { get; init; } = string.Empty;
+
+    /// <summary>How a tile was turned to match the way the current area laid it, in words, or empty for the file's own orientation.</summary>
+    public string Laid { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Each shape's colour as its material's shader graphs compute it, or null where the plain texture stands.
+    /// </summary>
+    /// <remarks>
+    /// EMPTY UNLESS ASKED FOR - see MonsterModels.Shaded. A program carries its textures with it, so
+    /// a shape with one is drawn from those and not from <see cref="Skins"/>.
+    /// </remarks>
+    public IReadOnlyList<ShadeProgram?> Shades { get; init; } = [];
+
+    /// <summary>
+    /// Each shape's program lit the game's way, with its glossiness worked out - or null where the shape has none; empty where no material has one.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Shades"/> LIT FLAT, THESE LIT BY THE GAME'S GGX - see ShadeProgram.Glossy. A shape
+    /// drawn from a plain texture under <see cref="Shades"/> has a program here all the same where
+    /// its graphs give a gloss: the texture is its colour, not its shine. Where a material gives no
+    /// gloss its entry is its flat program, so either list draws every shape.
+    /// </remarks>
+    public IReadOnlyList<ShadeProgram?> GlossShades { get; init; } = [];
+
+    /// <summary>How many distinct materials are drawn from their graphs rather than from one texture.</summary>
+    public int ShadedBy { get; init; }
+
+    /// <summary>
+    /// Every graph whose colour was left out, as "node in graph", distinct - for the line under the picture.
+    /// </summary>
+    /// <remarks>
+    /// THE OTHER HALF OF NOT GUESSING. A node this does not understand costs that graph's colour and
+    /// nothing else; saying which node, in which graph, is what makes the picture's gap a question
+    /// with an address rather than a wrong colour nobody can explain.
+    /// </remarks>
+    public IReadOnlyList<string> Unshaded { get; init; } = [];
+
+    /// <summary>
+    /// The materials whose shader graphs read the game's clock, by file - drawn running, as an animation is. See ShadeProgram.UsesTime.
+    /// </summary>
+    public IReadOnlyList<string> Clocked { get; init; } = [];
+
+    /// <summary>
+    /// The monster alone, where this model is that monster standing on a stage - else null. See StagedModels.
+    /// </summary>
+    /// <remarks>
+    /// KEPT WHOLE, because it is what the pose moves: the skeleton skins the monster's own mesh, and the
+    /// result goes over his slice of <see cref="Mesh"/> - from <see cref="ActorFirst"/> on, through
+    /// <see cref="ActorPlace"/> - while the stage's vertices stay where its file put them.
+    /// </remarks>
+    public MonsterModel? Actor { get; init; }
+
+    /// <summary>Where the actor's vertices begin in <see cref="Mesh"/>. See <see cref="Actor"/>.</summary>
+    public int ActorFirst { get; init; }
+
+    /// <summary>Where the actor was put on the stage: its scale and its place. See <see cref="Actor"/>.</summary>
+    public Matrix4x4 ActorPlace { get; init; } = Matrix4x4.Identity;
+
+    /// <summary>The stage's tile, by path, or empty where the model stands on nothing.</summary>
+    public string Stage { get; init; } = string.Empty;
+
+    /// <summary>What became of the stage asked for: where the monster stands on it, or why there is none.</summary>
+    public string StageSaid { get; init; } = string.Empty;
+
+    /// <summary>Whether this is a monster standing on a stage. See <see cref="Actor"/>.</summary>
+    public bool Staged => Actor is not null;
+}
+
+/// <summary>
+/// Walks a monster from its table row to the triangles and the texture that clothe it.
+/// </summary>
+/// <remarks>
+/// FIVE FILES AND FOUR FORMATS, which is why this exists rather than the window doing it:
+///
+///     MonsterVarieties.AOFiles   a path, out of the install's own table
+///       -> .ao                   text, keyword = value, names a .sm under SkinMesh
+///         -> .sm                 text, its own format, names a .smd and a .mat
+///           -> .smd              binary, the triangles
+///           -> .mat              JSON, names a .dds
+///             -> .dds            BC1 or BC3, which GameArt already decodes
+///
+/// THE EXTENDS CHAIN IS NOT OPTIONAL. Nine of ten monsters checked carry their own SkinMesh and
+/// the tenth - BoneRabbleJaguar - carries none at all: its skin is in the file it extends. A
+/// walker that read only the monster's own .ao would report that one as having no model, which
+/// looks like a gap in the game rather than a gap in the walk.
+///
+/// THE CHILD WINS. ExpeditionBasicSkeleton carries a skin AND a remove_skin naming the one its
+/// base provides, so the nearer file replaces rather than adds. Taking the first skin found while
+/// walking from the monster outwards gets that right without reading remove_skin at all.
+///
+/// READ THROUGH A FUNCTION RATHER THAN AN INSTALL, which is what makes the whole chain testable:
+/// the same walk runs over a dictionary of files here and over the game's bundles there. It is
+/// also the shape InstalledArt already uses for exactly this reason.
+///
+/// THE BODY ONLY, FOR NOW. A monster's armour and weapons are attached_object entries naming
+/// their own .ao files, each with a mesh of its own - a skeleton warrior without its shield is
+/// still a skeleton warrior, and drawing the attachments is a refinement rather than a missing
+/// half.
+/// </remarks>
+public static class MonsterModels
+{
+    /// <summary>How far the extends chain is followed before giving up.</summary>
+    /// <remarks>A file that extends itself is a loop; the visited set catches that, this caps depth.</remarks>
+    public const int MostHops = 8;
+
+    /// <summary>The struct that names a monster's mesh, and the entry inside it.</summary>
+    private const string Block = "SkinMesh";
+    private const string Entry = "skin";
+
+    /// <summary>The struct that names a monster's skeleton, and the entry inside it.</summary>
+    /// <remarks>
+    /// INSIDE THE FILE'S client BLOCK, which AnimatedObject folds into the same list of structs
+    /// with a flag. Over a whole install this is the one key that ever names an .ast - 2581 times,
+    /// and nothing else once - so a second spelling is not looked for.
+    /// </remarks>
+    private const string RigBlock = "ClientAnimationController";
+    private const string RigEntry = "skeleton";
+
+    /// <summary>
+    /// Gathers the model for one monster, or says where the walk stopped.
+    /// </summary>
+    /// <param name="read">How to get a file out of the install, by path.</param>
+    /// <param name="one">The monster. Its AoFiles come from the install's own table.</param>
+    /// <param name="wearing">
+    /// Whether the pieces the monster hangs off itself are read and joined on. Off gives exactly
+    /// the body this returned before there was a choice - see <see cref="Dressing"/> for what it
+    /// costs, which is the reason there is one.
+    /// </param>
+    /// <param name="shaded">
+    /// Whether each shape's material's shader graphs are read and compiled - see <see cref="Shaded"/>.
+    /// Off gives exactly the model this returned before graphs were read.
+    /// </param>
+    /// <param name="progress">Where the build says how far it has got, or null - see <see cref="ModelProgress"/>.</param>
+    public static MonsterModel Of(Func<string, byte[]?>? read, MonsterVariety? one, bool wearing = true, bool shaded = false, ModelProgress? progress = null)
+    {
+        if (read is null)
+        {
+            return MonsterModel.None with { Why = "no install to read" };
+        }
+
+        if (one?.AoFiles is not { Count: > 0 } named)
+        {
+            return MonsterModel.None with
+            {
+                Why = "the monster names no .ao file - the shipped export does not carry that column",
+            };
+        }
+
+        var paints = new Paints { Progress = progress };
+        MonsterModel model = OfFiles(read, named, wearing, paints);
+        return shaded ? Shaded(read, model, paints) : model;
+    }
+
+    /// <summary>
+    /// The model with each shape's colour worked out from its material's shader graphs, where they say more than a texture.
+    /// </summary>
+    /// <remarks>
+    /// AFTER THE WALK, OVER WHAT IT FOUND: every shape's material is in
+    /// <see cref="MonsterModel.ShapeMaterials"/>, so this is one pass over a list, whichever walk
+    /// made the model - a monster, an item, a tile, a room. Through the walk's own cache, so a
+    /// texture the graphs read and a skin already decoded are one decode.
+    ///
+    /// THREE OUTCOMES PER MATERIAL. Its colour is one plain texture read - the ordinary material -
+    /// and that texture is the shape's skin, which is what it was already in every case looked at.
+    /// Its colour is anything more and could be compiled, and the shape gets the program. Or no
+    /// graph's colour could be evaluated, and the shape is drawn exactly as before. Whatever was left
+    /// out is named in <see cref="MonsterModel.Unshaded"/>. A material named with a graph number -
+    /// <c>Boss.mat:1</c> - is left as it is: what the number selects among graphs is established
+    /// for the colour slot and nothing more.
+    /// </remarks>
+    internal static MonsterModel Shaded(Func<string, byte[]?> read, MonsterModel model, Paints paints)
+    {
+        int count = model.Mesh.Shapes.Count;
+        IReadOnlyList<string> wearing = model.ShapeMaterials;
+        if (!model.Ready || count == 0 || wearing.Count != count)
+        {
+            return model;
+        }
+
+        long bytes = 0;
+        var files = 0;
+        byte[]? Counted(string one)
+        {
+            byte[]? got = read(one);
+            if (got is not null)
+            {
+                bytes += got.Length;
+                files++;
+            }
+
+            return got;
+        }
+
+        var shades = new ShadeProgram?[count];
+        var glossy = new ShadeProgram?[count];
+        var shines = false;
+        Mipmaps?[]? skins = null;
+        var drawn = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var clocked = new List<string>();
+        var unshaded = new List<string>();
+        using ModelProgress.Step step = ModelProgress.Begin(paints.Progress, "compiling the shader graphs", count);
+        for (var shape = 0; shape < count; shape++)
+        {
+            step.Advance();
+            string material = wearing[shape];
+
+            // A SHAPE LEFT WITH NOTHING - every triangle of it hidden from the game's camera, see
+            // LaidRoomModels - is not compiled for: nothing of it is drawn.
+            if (material.Length == 0 || MaterialFile.SelectorOf(material) >= 0 || model.Mesh.Shapes[shape].Count == 0)
+            {
+                continue;
+            }
+
+            Shade shade = paints.Shade(Counted, material);
+            foreach (string why in shade.Skipped)
+            {
+                if (!unshaded.Contains(why, StringComparer.Ordinal))
+                {
+                    unshaded.Add(why);
+                }
+            }
+
+            // THE GLOSSY PROGRAM WHERE THERE IS ONE, else whatever the flat list draws.
+            glossy[shape] = shade.Glossy ?? shade.Program;
+            shines |= shade.Glossy is not null;
+            if (shade.Program is { } program)
+            {
+                shades[shape] = program;
+                drawn.Add(MaterialFile.Bare(material));
+                if (program.UsesTime && !clocked.Contains(MaterialFile.Bare(material), StringComparer.OrdinalIgnoreCase))
+                {
+                    clocked.Add(MaterialFile.Bare(material));
+                }
+                continue;
+            }
+
+            Mipmaps? had = shape < model.Skins.Count ? model.Skins[shape] : model.Skin;
+            if (shade.Plain is { } plain && !ReferenceEquals(plain, had))
+            {
+                skins ??= [.. Enumerable.Range(0, count).Select(one => one < model.Skins.Count ? model.Skins[one] : model.Skin)];
+                skins[shape] = plain;
+            }
+        }
+
+        return model with
+        {
+            Shades = shades,
+            GlossShades = shines ? glossy : shades,
+            Skins = skins ?? model.Skins,
+            ShadedBy = drawn.Count,
+            Unshaded = unshaded,
+            Clocked = clocked,
+            Bytes = model.Bytes + bytes,
+            Files = model.Files + files,
+        };
+    }
+
+    /// <summary>What one material's graphs came to: a program, a plain texture, or neither - and what was left out.</summary>
+    /// <param name="Program">The program the shape is drawn with lit flat, or null.</param>
+    /// <param name="Plain">The texture the shape is drawn from in its place, or null.</param>
+    /// <param name="Skipped">What was left out.</param>
+    /// <param name="Glossy">The program lit the game's way, or null where it is <paramref name="Program"/> - see ShadeProgram.Glossy.</param>
+    internal readonly record struct Shade(ShadeProgram? Program, Mipmaps? Plain, IReadOnlyList<string> Skipped, ShadeProgram? Glossy = null);
+
+    /// <summary>
+    /// Gathers the model an <c>.ao</c> describes, whoever named it, or says where the walk stopped.
+    /// </summary>
+    /// <remarks>
+    /// THE WALK NEVER NEEDED A MONSTER, only the .ao files one names - which is what lets the item
+    /// book draw a sword through exactly the reads that draw a boss. An item's art row names its
+    /// .ao the way MonsterVarieties.AOFiles does, and from there every hop is the same file format.
+    ///
+    /// A FIXED MESH CAN BE THE WHOLE MODEL, which a monster never is. See <see cref="Fixed"/>.
+    /// </remarks>
+    /// <param name="read">How to get a file out of the install, by path.</param>
+    /// <param name="named">The .ao files to start from, nearest first.</param>
+    /// <param name="wearing">Whether attached pieces are read and joined on - see the other overload.</param>
+    public static MonsterModel OfFiles(Func<string, byte[]?>? read, IReadOnlyList<string>? named, bool wearing = true)
+        => OfFiles(read, named, wearing, null);
+
+    /// <summary>
+    /// The same walk, with a material and texture cache that outlives it.
+    /// </summary>
+    /// <remarks>
+    /// FOR A ROOM, which loads one model per distinct doodad file and places each many times: two
+    /// doodads - a rock and a stump - that share a .mat and its .dds would otherwise decode that
+    /// sheet once each and hand the renderer two copies of one texture. The cache is per call by
+    /// default and nothing else changes.
+    /// </remarks>
+    internal static MonsterModel OfFiles(
+        Func<string, byte[]?>? read, IReadOnlyList<string>? named, bool wearing, Paints? shared)
+    {
+        if (read is null)
+        {
+            return MonsterModel.None with { Why = "no install to read" };
+        }
+
+        if (named is not { Count: > 0 })
+        {
+            return MonsterModel.None with { Why = "no .ao file to read" };
+        }
+
+        // COUNTED AS THEY ARE READ, through the one function everything below reads with, so a
+        // file the walk asks for is a file the count saw - the signpost a texture may sit behind
+        // included, which GameArt follows on its own. A file that was not there comes back null
+        // and counts for nothing.
+        var tally = new Tally(read);
+        Func<string, byte[]?> counted = tally.Read;
+
+        // A .fmt NAMED OUTRIGHT is the whole model, with no .ao in front of it: an item's AOFile2
+        // may be one - the Lumen Mace's is WoodenClub.fmt - and reading it as an .ao found nothing.
+        if (named[0].EndsWith(".fmt", StringComparison.OrdinalIgnoreCase))
+        {
+            return Prop(counted, named[0].Trim(), tally, shared);
+        }
+
+        if (Skinned(counted, named) is not { } found)
+        {
+            return Fixed(counted, named, tally, shared)
+                ?? tally.Failed("no SkinMesh or FixedMesh anywhere in the .ao files or what they extend");
+        }
+
+        MeshManifest manifest = Read(counted, found.Meshes[0], MeshManifest.Read);
+        if (!manifest.Ready)
+        {
+            return tally.Failed($"the mesh manifest did not read: {found.Meshes[0]}", found.Meshes[0]);
+        }
+
+        SkinnedMesh mesh = Read(counted, manifest.Geometry, SkinnedMesh.Read);
+        if (!mesh.Ready)
+        {
+            // THE FILE IS NAMED FIRST AND THE READER'S REASON SECOND. A reader answers about the
+            // bytes it was handed and says things like "nothing to read", which is true and
+            // useless one layer up: a picture that does not appear looks the same whichever file
+            // was missing, so the message has to say which.
+            return tally.Failed(
+                $"the geometry did not read: {manifest.Geometry}"
+                    + (mesh.Why.Length > 0 ? $" - {mesh.Why}" : string.Empty),
+                manifest.Geometry);
+        }
+
+        // THE .ao's MATERIALS WIN WHERE THERE ARE ANY. The manifest names a default for the mesh
+        // and the monster's own file overrides it per shape - which is how one skeleton mesh
+        // serves an expedition skeleton and a bone rabble, in different colours.
+        //
+        // ALL OF THEM, IN ORDER, AND NOT THE FIRST. A monster built out of parts names a
+        // material per shape and they are not all the same file: the first can perfectly well
+        // be a cloth or a glow with no colour map in it while the body's skin is the second.
+        // Taking the first was measured on monsters cut from one sheet and reported wrong from
+        // the live client by Veynar the Frostbane, who is plainly painted in the game and came
+        // out here in plain ink. The renderer puts ONE texture on the mesh, so the first
+        // material that actually carries a colour map is the one it gets.
+        List<string> materials =
+        [
+            .. found.Materials.Select(one => one.Material),
+            .. manifest.Materials.Where(one => one.Path.Length > 0).Select(one => one.Path),
+        ];
+
+        // ONE CACHE FOR THE WHOLE WALK, keyed by FILE rather than by what named it: a material
+        // is read once however many shapes point at it, and a texture is decoded once however
+        // many materials name it. Without it the model's own skin and the shape wearing the
+        // same material were two decodes of one 2048-square sheet - and two objects, which is
+        // also two uploads to the renderer.
+        Paints paints = shared ?? new Paints();
+        (Mipmaps? skin, string paint, string material) = Painted(counted, mesh, materials, paints);
+
+        // AND ONE PER SHAPE, over the same reads: the walk above already decoded every material
+        // that has a colour in it, so this is a lookup rather than a second pass over the
+        // bundles. See MonsterModel.Skins for why a monster needs more than one.
+        Dress dress = Dressed(counted, mesh, found.Materials, manifest, skin, material, paints);
+
+        (AnimationSkeleton rig, string move) = Rigged(counted, found.Skeleton, mesh);
+
+        // AND WHAT THE MONSTER WEARS. Doryani's skirt, belt, necklace and six more pieces are
+        // attached_object entries naming their own .ao, mesh and rig - see Dressing. Joined into
+        // one mesh so the renderer, the per-shape palette and the pose go on working unchanged.
+        // THE BODY ITSELF CAN BE SEVERAL FILES, before anything is worn over it. Joined the same
+        // way, and always - a section is not an accessory and switching the parts off must not
+        // take half the monster with it. See Sections.
+        List<Part> parts = Sections(counted, found.Meshes, found.Materials, paints, skin);
+        int sections = parts.Count;
+
+        var told = new List<PartFit>();
+        if (wearing)
+        {
+            parts.AddRange(Dressing(counted, found.Files, rig, paints, skin, told));
+        }
+
+        // THE MONSTER WITHOUT WHAT HE IS WEARING, taken BEFORE the join and kept - see
+        // MonsterModel.BodyLeast. Afterwards there is no way back to it: the joined box is the
+        // union of the body and every piece, so a piece measured against it is inside it by
+        // construction and any question of the form "is this piece anywhere near him" answers
+        // itself. Sections count as body, because a section is not an accessory.
+        Vector3 bare = mesh.Least, worn_ = mesh.Most;
+        MeshFacts facts = mesh.Facts;
+        for (var section = 0; section < sections; section++)
+        {
+            bare = Vector3.Min(bare, parts[section].Mesh.Least);
+            worn_ = Vector3.Max(worn_, parts[section].Mesh.Most);
+        }
+
+        if (parts.Count > 0)
+        {
+            List<MeshJoin> join =
+            [
+                new MeshJoin(mesh),
+                .. parts.Select(one => new MeshJoin(one.Mesh, one.Bones, one.Weights, one.Place)),
+            ];
+            List<Mipmaps?> worn = [.. dress.Skins, .. parts.SelectMany(one => one.Skins)];
+
+            // THE MODES RIDE WITH THE SKINS, padded to each piece's own shape count so the two lists
+            // stay aligned however short a piece's came back.
+            List<string> modes = [.. Padded(dress.Modes, dress.Skins.Count), .. parts.SelectMany(one => Padded(one.Modes, one.Skins.Count))];
+            List<string> wears = [.. Padded(dress.ShapeMaterials, dress.Skins.Count), .. parts.SelectMany(one => Padded(one.Wearing, one.Skins.Count))];
+            mesh = SkinnedMesh.Joined(join);
+            dress = dress with { Skins = worn, Modes = modes, ShapeMaterials = wears };
+        }
+
+        return new MonsterModel(mesh, skin, manifest.Geometry, material, string.Empty, paint)
+        {
+            Parts = parts.Count - sections,
+            Sections = found.Meshes.Count,
+            Fitted = told,
+            BodyLeast = bare,
+            BodyMost = worn_,
+            BodyFacts = facts,
+            Skins = dress.Skins,
+            Modes = dress.Modes,
+            Materials = dress.Materials,
+            NamedInAo = found.Materials.Count,
+            NamedInMesh = manifest.Materials.Count,
+            Runs = dress.Runs,
+            Textures = dress.Textures,
+            Guessed = dress.Guessed,
+            Rig = rig,
+            Rig_ = found.Skeleton,
+            Move = move,
+            Bytes = tally.Bytes,
+            Files = tally.Files,
+            Shaders = paints.Shaders,
+            ShapeMaterials = dress.ShapeMaterials,
+        };
+    }
+
+    /// <summary>
+    /// The model as a rigid prop, where the .ao chain names a <c>FixedMesh</c> and no skin at all.
+    /// </summary>
+    /// <remarks>
+    /// THE SHAPE A MONSTER NEVER HAS AND AN ITEM MAY. Every monster is a skin on a rig, so the walk
+    /// only ever asked for a SkinMesh and treated a FixedMesh as something hung off one - Malgor's
+    /// cannon. An item's .ao can be nothing but the prop, and asking only for a skin would report
+    /// every such item as having no model when its whole geometry is one .fmt away.
+    ///
+    /// ASKED ONLY AFTER THE SKIN WALK FOUND NOTHING, so a monster draws exactly as it did: the skin
+    /// is still the body wherever there is one, and this cannot change a single monster.
+    ///
+    /// NOT ANIMATED, AND SAID SO. A .fmt has no bones and no weights, and as the body there is no
+    /// socket to pin it to either - binding it to some bone of a skeleton the chain happens to name
+    /// would be choosing a bone nobody measured. It is drawn where the file puts it, and
+    /// <see cref="MonsterModel.Move"/> carries the reason it does not move.
+    /// </remarks>
+    private static MonsterModel? Fixed(
+        Func<string, byte[]?> read, IReadOnlyList<string> named, Tally tally, Paints? shared)
+    {
+        string path = string.Empty;
+        foreach (string one in named)
+        {
+            AnimatedObject ao = Object(read, one);
+            if (ao.Ready && Entryed(Whole(read, ao), PropBlock, PropEntry) is { Length: > 0 } found)
+            {
+                path = found;
+                break;
+            }
+        }
+
+        return path.Length == 0 ? null : Prop(read, path, tally, shared);
+    }
+
+    /// <summary>A <c>.fmt</c> as the whole model, dressed in its own materials - see <see cref="Fixed"/>.</summary>
+    private static MonsterModel Prop(Func<string, byte[]?> read, string path, Tally tally, Paints? shared)
+    {
+        FixedMesh prop = Read(read, path, FixedMesh.Read);
+        if (!prop.Ready)
+        {
+            return tally.Failed(
+                $"the fixed mesh did not read: {path}" + (prop.Why.Length > 0 ? $" - {prop.Why}" : string.Empty),
+                path);
+        }
+
+        // THE .fmt's OWN MATERIALS, one per shape, are the only ones there are: there is no
+        // manifest, and the same list Propped hands to the dressing serves the whole model here.
+        return Worn(read, prop.Mesh, prop.Named, paintTheRest: true, path,
+            "a fixed mesh is rigid - it has no bones to animate", shared) with
+        {
+            Bytes = tally.Bytes,
+            Files = tally.Files,
+        };
+    }
+
+    /// <summary>
+    /// A rigid mesh dressed in the materials a list gives its shapes - no rig, no pieces.
+    /// </summary>
+    /// <remarks>
+    /// THE PART OF THE WALK THAT NEVER NEEDED AN .ao: given a mesh and which material each shape
+    /// wears, the textures are found, decoded once each and handed out per shape. A fixed-mesh item
+    /// and a terrain tile both arrive here with that and nothing else.
+    /// </remarks>
+    /// <param name="read">How to get a file out of the install, by path.</param>
+    /// <param name="mesh">The geometry, its shapes named the way <paramref name="named"/> names them.</param>
+    /// <param name="named">Each shape's material, by the shape's name.</param>
+    /// <param name="paintTheRest">
+    /// Whether a shape with no material of its own wears the first colour found. Right for a prop,
+    /// whose unnamed shapes are part of the same object; wrong for a tile, whose unnamed shapes are
+    /// its ground and would come out in a wall's texture.
+    /// </param>
+    /// <param name="source">The file the model is read from, for the line under the picture.</param>
+    /// <param name="move">Why it does not move - see <see cref="MonsterModel.Move"/>.</param>
+    /// <param name="shared">A cache that outlives this model, or null for one of its own - see the internal OfFiles.</param>
+    internal static MonsterModel Worn(
+        Func<string, byte[]?> read,
+        SkinnedMesh mesh,
+        IReadOnlyList<(string Shape, string Material)> named,
+        bool paintTheRest,
+        string source,
+        string move,
+        Paints? shared = null)
+    {
+        List<string> materials = [.. named.Select(one => one.Material).Where(one => one.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase)];
+        Paints paints = shared ?? new Paints();
+        (Mipmaps? skin, string paint, string material) = Painted(read, mesh, materials, paints);
+        Dress dress = Dressed(
+            read, mesh, named, MeshManifest.None, paintTheRest ? skin : null, material, paints);
+
+        return new MonsterModel(mesh, skin, source, material, string.Empty, paint)
+        {
+            BodyLeast = mesh.Least,
+            BodyMost = mesh.Most,
+            BodyFacts = mesh.Facts,
+            Skins = dress.Skins,
+            Modes = dress.Modes,
+            Materials = dress.Materials,
+            NamedInAo = named.Count,
+            Runs = dress.Runs,
+            Textures = dress.Textures,
+            Guessed = dress.Guessed,
+            Move = move,
+            Shaders = paints.Shaders,
+            ShapeMaterials = dress.ShapeMaterials,
+            ShapeTextures = dress.ShapeTextures,
+        };
+    }
+
+    /// <summary>One piece a monster hangs off itself, ready to be joined onto the body.</summary>
+    /// <param name="Mesh">Its geometry.</param>
+    /// <param name="Bones">Its vertex bones, remapped onto the PARENT's rig, or null where they could not be.</param>
+    /// <param name="Skins">One texture per shape of it, in its order - the same rule the body follows.</param>
+    private readonly record struct Part(
+        SkinnedMesh Mesh,
+        byte[]? Bones,
+        byte[]? Weights,
+        Matrix4x4? Place,
+        IReadOnlyList<Mipmaps?> Skins,
+        IReadOnlyList<string> Modes)
+    {
+        /// <summary>Each of its shapes' materials as written - see MonsterModel.ShapeMaterials.</summary>
+        public IReadOnlyList<string> Wearing { get; init; } = [];
+    }
+
+    /// <summary>The entry keys whose value is another .ao. From the format diagram; see AoSurvey.</summary>
+    private static readonly string[] Hangs =
+        ["ao", "fixed_ao", "attached_object", "attached_slaved_animation_object"];
+
+    /// <summary>How deep the attachment chain is followed. Doryani's belt hangs a dagger; that is two.</summary>
+    private const int MostDeep = 4;
+
+    /// <summary>
+    /// Most pieces joined onto one monster. A guard on a walk whose shape nobody has measured.
+    /// </summary>
+    /// <remarks>
+    /// EFFECTS ATTACH EFFECTS, which is the failure this is against: an .ao chain followed without
+    /// a cap is how a click in the book becomes a minute. Doryani wears nine with four more under
+    /// his belt, so this is well clear of what a dressed monster needs.
+    /// </remarks>
+    private const int MostParts = 48;
+
+    /// <summary>
+    /// The body's other sections, where its SkinMesh block names more than one manifest.
+    /// </summary>
+    /// <remarks>
+    /// A SKIN BLOCK IS A LIST, NOT A FIELD, and reading it as a field cost a boss his whole body.
+    /// Reported from the live client: Zar Wali, the Bone Tyrant came out as two arms floating in
+    /// the air, painted from <c>GiantSnakeSkeletonBossArm_colour.dds</c> - and his .ao says why
+    /// in seven consecutive lines, <c>GSSBArmA</c> through <c>GSSBTail</c>, of which this walk
+    /// read the first.
+    ///
+    /// THEY ARE SECTIONS OF ONE BODY ON ONE RIG, which is what makes them cheap to join: each
+    /// carries its own vertex bones and they already index the SAME skeleton, so unlike a worn
+    /// piece there is nothing to remap and nowhere to put it. Its own manifest names its own
+    /// materials, so each section is dressed on its own and the palette comes out per shape as
+    /// before.
+    ///
+    /// NOT UNDER THE PARTS SWITCH. Turning attachments off is meant to undress a monster, not
+    /// to behead one.
+    /// </remarks>
+    private static List<Part> Sections(
+        Func<string, byte[]?> read,
+        IReadOnlyList<string> skins,
+        IReadOnlyList<(string Shape, string Material)> named,
+        Paints paints,
+        Mipmaps? fallback)
+    {
+        var parts = new List<Part>();
+        for (var one = 1; one < skins.Count && parts.Count < MostParts; one++)
+        {
+            MeshManifest manifest = Read(read, skins[one], MeshManifest.Read);
+            if (!manifest.Ready)
+            {
+                continue;
+            }
+
+            SkinnedMesh mesh = Read(read, manifest.Geometry, SkinnedMesh.Read);
+            if (!mesh.Ready)
+            {
+                continue;
+            }
+
+            Dress dress = Dressed(read, mesh, named, manifest, fallback, string.Empty, paints);
+
+            // NO BONES AND NO PLACE: the section's own vertex bones index the body's rig
+            // already, so handing null keeps them and the join leaves the geometry where it is.
+            parts.Add(new Part(mesh, null, null, null, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials });
+        }
+
+        return parts;
+    }
+
+    /// <summary>
+    /// Everything the monster wears, read from the attachments its own files name.
+    /// </summary>
+    /// <remarks>
+    /// WHAT THIS IS FOR. Reported from the live client: Doryani stands in the game in a skirt and
+    /// the pane drew him bare-legged. The paint was never the problem - his runs add up and every
+    /// shape has its sheet - the geometry simply was not there, because a skirt is not part of the
+    /// body mesh. It is <c>attached_object = "hip_jntBnd …/attachments/Skirt.ao"</c>, with a mesh,
+    /// a rig and an idle animation of its own, and the body's files say nothing else about it.
+    ///
+    /// A PIECE IS EITHER A PROP OR A SKIN, and its own rig says which - see
+    /// <see cref="Retargeted"/>. A prop shares only <c>root_jntBnd</c> with the parent, is
+    /// modelled around its own origin, and goes rigidly at its socket. A skin carries the body's
+    /// own bone names, is already in the monster's space, and wants its bone NUMBERS translated
+    /// and no transform at all.
+    ///
+    /// GETTING THAT WRONG IS INVISIBLE AT REST, which is what made it expensive: a piece bound
+    /// rigidly to one bone stands in the right place until something moves, and then follows that
+    /// one bone while the body deforms around it.
+    ///
+    /// WHAT IT COSTS is the reason the pane has a switch for it. Doryani's body is 32 MB across
+    /// 15 files; his nine pieces bring their own meshes, rigs and sheets, and the belt hangs three
+    /// more under itself. That is the price of a monster that looks like itself, and it is paid on
+    /// every click in a list somebody scrolls.
+    /// </remarks>
+    private static List<Part> Dressing(
+        Func<string, byte[]?> read,
+        IReadOnlyList<string> files,
+        AnimationSkeleton parent,
+        Paints paints,
+        Mipmaps? fallback,
+        List<PartFit> told)
+    {
+        var parts = new List<Part>();
+        if (SkeletonPose.Of(parent) is not { } rest)
+        {
+            // Without the parent's rest pose there is nowhere to put a piece, and a pile of
+            // clothing at the monster's feet is worse than a monster in its underwear.
+            return parts;
+        }
+
+        var where = new Dictionary<string, int>(parent.Bones.Count, StringComparer.OrdinalIgnoreCase);
+        for (var one = 0; one < parent.Bones.Count; one++)
+        {
+            where.TryAdd(parent.Bones[one].Name, one);
+        }
+
+        // THE MONSTER'S OWN RIG IS THE OUTERMOST FIT: every bone stands for itself and needs no
+        // transform to reach model space. Everything below is expressed against it - see Fit.
+        var body = new Fit(where, rest, Itself(parent.Bones.Count), []) { Plain = true };
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var queue = new Queue<Hangs_>();
+
+        // THE MONSTER ITSELF IS THE OUTERMOST CARRIER, at the identity: a piece socketed to
+        // "<root>" at the top level is already in the monster's own space and wants no transform
+        // at all. Bone 0 is the rig's root, so the piece still follows the monster.
+        foreach (string one in files)
+        {
+            foreach ((string socket, string path, Matrix4x4 local) in Hung(Object(read, one)))
+            {
+                if (Socketed(socket, body, Matrix4x4.Identity, 0, Matrix4x4.Identity, top: true, local) is { } put)
+                {
+                    queue.Enqueue(new Hangs_(
+                        path, put.Place, put.Bone, put.Put, put.Socket, socket, 1, Rooted(socket), body));
+                }
+                else
+                {
+                    // THE ONE ANSWER THAT LOSES A PIECE OUTRIGHT, and the walk is otherwise silent
+                    // about it: a socket the monster's own rig has no bone for at the top level.
+                    // Counted here because nothing downstream will ever see this piece again.
+                    told.Add(new PartFit(
+                        path, socket, PartPlace.Dropped, 1, PartKind.None, 0, 0, 0, 0, false, 0, false,
+                        string.Empty, Vector3.Zero, Vector3.Zero));
+                }
+            }
+        }
+
+        while (queue.Count > 0 && parts.Count < MostParts)
+        {
+            Hangs_ one_ = queue.Dequeue();
+            if (one_.Path.Length == 0 || !seen.Add(one_.Path))
+            {
+                continue;
+            }
+
+            AnimatedObject ao = Object(read, one_.Path);
+            if (!ao.Ready)
+            {
+                continue;
+            }
+
+            // THE PIECE IS READ BEFORE ITS CHILDREN ARE QUEUED, because what it turns into IS the
+            // rig they are authored against - see Fit. The order parts come out in is the order
+            // they are dequeued, which this does not change.
+            (Part? part, Fit inner_, PartFit fit) = Worn(read, ao, one_, paints, fallback, body);
+            told.Add(fit);
+            if (part is { } worn)
+            {
+                parts.Add(worn);
+            }
+
+            if (one_.Depth < MostDeep)
+            {
+                foreach ((string inner, string path_, Matrix4x4 local) in Hung(ao))
+                {
+                    if (Socketed(inner, inner_, one_.Place, one_.Bone, one_.Put, top: false, local) is { } where_)
+                    {
+                        queue.Enqueue(new Hangs_(
+                            path_,
+                            where_.Place,
+                            where_.Bone,
+                            where_.Put,
+                            where_.Socket,
+                            inner,
+                            one_.Depth + 1,
+                            Rooted(inner),
+                            inner_));
+                    }
+                }
+            }
+        }
+
+        return parts;
+    }
+
+    /// <summary>One piece waiting to be read: where its carrier puts it, and the rig it belongs to.</summary>
+    /// <param name="Place">Its transform into model space, for a piece that goes rigidly.</param>
+    /// <param name="Bone">The MONSTER's bone it follows, for the same.</param>
+    /// <param name="Put">Its socket's bind, in model space, without the attachment line's own turn.</param>
+    /// <param name="Socket">That socket's number in the CARRIER's rig, or -1 where it named none.</param>
+    /// <param name="Named">The socket as the line WROTE it, which is what a report has to say.</param>
+    /// <param name="Under">The rig the piece is authored against - see <see cref="Fit"/>.</param>
+    private readonly record struct Hangs_(
+        string Path,
+        Matrix4x4 Place,
+        int Bone,
+        Matrix4x4 Put,
+        int Socket,
+        string Named,
+        int Depth,
+        bool Rooted,
+        Fit Under);
+
+    /// <summary>
+    /// The rig a piece is authored against, and what that rig's bones are in the MONSTER's.
+    /// </summary>
+    /// <remarks>
+    /// A PIECE HANGS OFF WHATEVER CARRIES IT, AND NOT OFF THE MONSTER. Reported from the live
+    /// client: Tycho's skirt sits on him and the layers under it lay on the floor - and the two
+    /// are not siblings. <c>SkirtLayers.ao</c> is an attached_object of <c>Skirt.ao</c>, its rig
+    /// lives in the skirt's own folder, and it rests <c>root_jntBnd</c> at (0,0,0) and
+    /// <c>spine_2_jntBnd</c> at (0,0,-12.8) - which is exactly where the SKIRT rests them. The
+    /// body rests its spine_2 at (0,2,-132.3).
+    ///
+    /// SO MATCHING A NESTED PIECE'S BONES AGAINST THE BODY IS MATCHING THE WRONG RIG. Its two
+    /// shared names found the body's bones, were corrected out of a bind pose they were never in,
+    /// and every bone the body does not have - the whole simulated cloth - fell to the body's
+    /// root, which is the floor between his feet.
+    ///
+    /// WHAT THIS CARRIES is the answer for one rig: <see cref="Where"/> and <see cref="Rest"/>
+    /// are that rig, <see cref="Onto"/> says which of the MONSTER's bones each of its bones ends
+    /// up following, and <see cref="Into"/> is the transform from that rig's bind pose into the
+    /// monster's. Composing the two is what lets a piece be fitted to its carrier and still come
+    /// out in model space, however deep it hangs.
+    ///
+    /// FOR THE BODY ITSELF both are the identity, so every case that was already right stays
+    /// bit-for-bit what it was.
+    /// </remarks>
+    private readonly record struct Fit(
+        IReadOnlyDictionary<string, int> Where,
+        SkeletonPose Rest,
+        byte[] Onto,
+        Matrix4x4[] Into)
+    {
+        /// <summary>
+        /// Whether this IS the monster's own rig, so every bone stands for itself.
+        /// </summary>
+        /// <remarks>
+        /// The common case by far, and worth knowing about rather than proving per bone: it
+        /// makes the composition below a no-op instead of a matrix multiply and a copy of the
+        /// geometry per piece.
+        /// </remarks>
+        public bool Plain { get; init; }
+    }
+
+    /// <summary>The bone table of a rig that stands for itself: nought is nought, one is one.</summary>
+    private static byte[] Itself(int bones)
+    {
+        var said = new byte[bones];
+        for (var one = 0; one < bones && one <= byte.MaxValue; one++)
+        {
+            said[one] = (byte)one;
+        }
+
+        return said;
+    }
+
+    /// <summary>A transform per bone, all of them the identity.</summary>
+    private static Matrix4x4[] Flat(int bones)
+    {
+        var said = new Matrix4x4[bones];
+        Array.Fill(said, Matrix4x4.Identity);
+        return said;
+    }
+
+    /// <summary>Which of the monster's bones a carrier's bone is, and the transform to get there.</summary>
+    private static (int Bone, Matrix4x4 Into) Through(Fit fit, int at)
+    {
+        if (fit.Plain)
+        {
+            return (at >= 0 ? at : 0, Matrix4x4.Identity);
+        }
+
+        return at >= 0 && at < fit.Onto.Length && at < fit.Into.Length
+            ? (fit.Onto[at], fit.Into[at])
+            : (0, Matrix4x4.Identity);
+    }
+
+    /// <summary>Vertex bones of a mesh already numbered by the carrier's rig, put into the monster's.</summary>
+    private static byte[] Passed(Fit fit, byte[] bones)
+    {
+        var said = new byte[bones.Length];
+        for (var one = 0; one < bones.Length; one++)
+        {
+            said[one] = (byte)Through(fit, bones[one]).Bone;
+        }
+
+        return said;
+    }
+
+    /// <summary>
+    /// The bone a name means in the rig it is being fitted to, a MERGED rig's path included.
+    /// </summary>
+    /// <remarks>
+    /// A RIG BUILT OUT OF SEVERAL WRITES THE PATH WHERE A NAME WOULD COLLIDE. Brughor's corpse
+    /// armour is a monster's skeleton with a heap of corpses merged into it, and its bones read
+    /// <c>root_jntBnd|spine_2_jntBnd</c>, <c>root_jntBnd|spine_2_jntBnd|chest_jntBnd</c>,
+    /// <c>…|neck_jntBnd</c> - the bone's whole path from the root, because the corpses carry a
+    /// spine and a chest of their own.
+    ///
+    /// THE PATH IS THE PROOF, not a guess at one: the piece rests <c>L_clavicle_jntBnd</c> at
+    /// exactly (27.7,-37.7,-464.2), which is where the BODY rests it, and that bone hangs off
+    /// <c>root_jntBnd|spine_2_jntBnd|chest_jntBnd</c> here and off <c>chest_jntBnd</c> there. Read
+    /// as a plain name none of the three matched anything, so his chest, spine and neck - and the
+    /// corpses hanging off them - fell to the rig root, which is the ground.
+    ///
+    /// THE FULL NAME IS TRIED FIRST, so a rig that really has a bone called that is unaffected.
+    /// </remarks>
+    private static bool Meant(IReadOnlyDictionary<string, int> where, string name, out int found)
+    {
+        if (where.TryGetValue(name, out found))
+        {
+            return true;
+        }
+
+        int bar = name.LastIndexOf('|');
+        return bar >= 0 && where.TryGetValue(name[(bar + 1)..], out found);
+    }
+
+    /// <summary>
+    /// The bone a SOCKET means, including the mount a rig spells out in full.
+    /// </summary>
+    /// <remarks>
+    /// MEASURED OVER THE WHOLE TABLE, and it is the largest thing the first sweep found: 451
+    /// attachments name a socket their monster's rig has no bone for, so they are dropped
+    /// outright, and 220 of those name a mount the rig plainly HAS under a longer spelling.
+    /// Unanimously, with no exception in 220:
+    ///
+    ///     the line says        the rig carries               how many
+    ///     Head_Attachment      aux_Head_attachment                115
+    ///     R_Weapon             aux_R_Weapon_attachment             81
+    ///     L_Weapon             aux_L_Weapon_attachment             12
+    ///     Back                 aux_Back_attachment                 12
+    ///
+    /// One transformation covers both shapes: put <c>aux_</c> in front, and add
+    /// <c>_attachment</c> where the socket does not already end in it. What was being thrown
+    /// away is not decoration - it is VaalGuard02HeaddressLivingLow, VaalLivingSpear,
+    /// TwilightOrderSorcererStaff, BlackJawSuperuniqueWeaponHeld, Olroth_SwordHeld: helmets,
+    /// headdresses and held weapons, on something close to a hundred and eighty monsters.
+    ///
+    /// THE OTHER 185 ARE RIGHT TO BE DROPPED and are what makes this checkable rather than a
+    /// guess: halo_01, core_light, aux_facelight, eye_L, FX_eye, spore_r_1..5. Those name
+    /// nothing of the sort on their own rigs, they are lights and effect points, and this leaves
+    /// every one of them exactly where it was.
+    ///
+    /// A FALLBACK AND ONLY A FALLBACK. The literal name is tried first, so this cannot move a
+    /// piece that already resolves; the only pieces it can reach are ones currently drawn
+    /// nowhere at all. That is what makes it a different animal from the bone-matching rules
+    /// that broke two monsters apiece earlier - those chose among candidates for a piece already
+    /// on screen.
+    ///
+    /// NO OPEN REFERENCE ANSWERS THIS. poe_data_tools has no .ao parser and its FORMATS.md is
+    /// diagrams; the game does answer it, in the bone names its own rigs carry, which is what
+    /// the 220 above are counted from.
+    /// </remarks>
+    private static bool Mounts(IReadOnlyDictionary<string, int> where, string socket, out int at)
+    {
+        if (where.TryGetValue(socket, out at))
+        {
+            return true;
+        }
+
+        string aux = Aux + socket;
+        return where.TryGetValue(aux, out at)
+            || (!socket.EndsWith(Mount, StringComparison.OrdinalIgnoreCase)
+                && where.TryGetValue(aux + Mount, out at));
+    }
+
+    /// <summary>What a rig calls an attachment point, around the name a socket writes.</summary>
+    private const string Aux = "aux_";
+
+    /// <inheritdoc cref="Aux"/>
+    private const string Mount = "_attachment";
+
+    /// <summary>
+    /// Where a socket puts a piece: the transform to model space, and the bone it then follows.
+    /// </summary>
+    /// <remarks>
+    /// THREE CASES, AND THE GAME'S OWN SPELLING SEPARATES THEM.
+    ///
+    /// "&lt;root&gt;" IS NOT A BONE NAME. It is how the game says "at my carrier's own origin", so
+    /// the piece is already in whatever space its carrier is in and wants that carrier's
+    /// transform unchanged - which at the top level is the identity. Reported from the live
+    /// client: Bahlak the Sky Seer wears one piece, socketed "&lt;root&gt;", and treating that as an
+    /// unknown bone put the parent rig's ROOT transform on a piece already in model space. The
+    /// root carries the rig's own orientation, so his feathers were tipped over and laid out
+    /// flat on the floor at his feet.
+    ///
+    /// A NAME THE PARENT RIG HAS is the ordinary case: the bone's rest transform places the
+    /// piece, and binding to that bone is what makes it follow an arm that lifts.
+    ///
+    /// A NAME IT DOES NOT HAVE means different things inside and outside. On a piece hung off
+    /// another piece it is a bone of the CARRIER's rig - Doryani's dagger and mirror name
+    /// phys_skinned_L_1_jntBnd and _2_, which belong to his belt - and THAT is the rig looked in,
+    /// so the strand is found rather than fallen back from. Where it is in neither, the carrier's
+    /// own place is the nearest thing the body knows. At the TOP level there is no carrier to
+    /// fall back to, and bone 0 is not an answer, it is the floor: the piece is left out, on the
+    /// same rule that leaves a monster with no rig undressed.
+    ///
+    /// THREE VALUES COME BACK AND THEY ARE NOT THE SAME THING. <c>Place</c> and <c>Bone</c> put a
+    /// rigid piece in model space. <c>Put</c> is the socket's bind alone, WITHOUT the attachment
+    /// line's own turn and shift, because that is what a skinned socketed piece has always been
+    /// corrected by - see <see cref="Correcting"/>. Folding the two together would move the
+    /// Frostborn Fiend's block of ice twice.
+    /// </remarks>
+    private static (Matrix4x4 Place, int Bone, Matrix4x4 Put, int Socket)? Socketed(
+        string socket,
+        Fit fit,
+        Matrix4x4 carrier,
+        int bone,
+        Matrix4x4 put,
+        bool top,
+        Matrix4x4 local)
+    {
+        if (socket.Length == 0 || socket.StartsWith('<'))
+        {
+            return (local * carrier, bone, put, -1);
+        }
+
+        if (Mounts(fit.Where, socket, out int at) && at < fit.Rest.BindModel.Count)
+        {
+            (int onto, Matrix4x4 into) = Through(fit, at);
+            Matrix4x4 there = fit.Rest.BindModel[at] * into;
+            return (local * there, onto, there, at);
+        }
+
+        return top ? null : (local * carrier, bone, put, -1);
+    }
+
+    /// <summary>
+    /// The turn and the shift an attachment line asks for on top of its socket.
+    /// </summary>
+    /// <remarks>
+    /// TWO LINES THAT WERE BEING THROWN AWAY. An attached_object entry can carry children, and
+    /// the Frostborn Fiend's block of ice carries both:
+    ///
+    ///     attached_object = "R_Weapon …/QuadrillaArcticIceHeld.ao"
+    ///         attached_object_translation = "0 0 -55"
+    ///         attached_object_rotation = "-3.141 -0 0"
+    ///
+    /// That is half a turn about x and a shift of fifty-five, and without it the ice he is
+    /// holding stands upright on the floor beside him - which is what the pane drew.
+    ///
+    /// THE AXIS ORDER IS NOT SETTLED. The one sample in hand turns about a single axis, where
+    /// order cannot matter, and no open reader of this format reads these lines at all - so x
+    /// then y then z is what this applies and what the dump prints, and a monster that turns
+    /// about two axes at once is what would settle it. Radians, as written.
+    /// </remarks>
+    private static Matrix4x4 Local(AoEntry entry)
+    {
+        Matrix4x4 said = Matrix4x4.Identity;
+        foreach (AoEntry child in entry.Children)
+        {
+            if (string.Equals(child.Key, Turn, StringComparison.Ordinal) && Three(child.Value) is { } turn)
+            {
+                said *= Matrix4x4.CreateRotationX(turn.X)
+                    * Matrix4x4.CreateRotationY(turn.Y)
+                    * Matrix4x4.CreateRotationZ(turn.Z);
+            }
+            else if (string.Equals(child.Key, Shift, StringComparison.Ordinal) && Three(child.Value) is { } shift)
+            {
+                said *= Matrix4x4.CreateTranslation(shift);
+            }
+        }
+
+        return said;
+    }
+
+    /// <summary>Three numbers separated by spaces, or null where the line is not that.</summary>
+    private static Vector3? Three(string said)
+    {
+        string[] parts = said.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length == 3
+            && float.TryParse(parts[0], System.Globalization.NumberStyles.Float, Invariant, out float x)
+            && float.TryParse(parts[1], System.Globalization.NumberStyles.Float, Invariant, out float y)
+            && float.TryParse(parts[2], System.Globalization.NumberStyles.Float, Invariant, out float z)
+                ? new Vector3(x, y, z)
+                : null;
+    }
+
+    private static System.Globalization.CultureInfo Invariant
+        => System.Globalization.CultureInfo.InvariantCulture;
+
+    /// <summary>The children of an attachment line that move it off its socket.</summary>
+    private const string Turn = "attached_object_rotation";
+
+    /// <inheritdoc cref="Turn"/>
+    private const string Shift = "attached_object_translation";
+
+    /// <summary>
+    /// What each of a piece's bones does to a vertex to put it in the PARENT's bind pose.
+    /// </summary>
+    /// <remarks>
+    /// THE TWO RIGS DO NOT CARRY THE SAME REST POSE, which is the thing three fixes in a row
+    /// assumed and Bahlak's dump finally showed. His feathers and his body both name spine_1,
+    /// chest and M_head, and rest them nowhere near each other:
+    ///
+    ///     spine_1_jntBnd   the piece (0,0,-29.1)      the body (0,-1.9,-179.7)
+    ///     chest_jntBnd     the piece (0,0,-87.4)      the body (0,-42.4,-221.6)
+    ///     M_head_jntBnd    the piece (0,-67,-197.6)   the body (0,-167.2,-254.2)
+    ///
+    /// Not even a constant offset. The piece's rig is straight - its spine steps a regular 29
+    /// units down z with no y at all - and the body's is the crouched owl. So renumbering the
+    /// bones and drawing leaves the feathers standing in the PIECE's bind pose while the body
+    /// stands in its own, which is a bundle hanging off him rather than on him.
+    ///
+    /// THE CORRECTION IS THE ONE EVERY SKINNING PIPELINE USES: undo the bind the vertex was
+    /// authored in, then apply the bind of the bone it is moving to. It is derived rather than
+    /// guessed, and it cannot break what already worked, because it REDUCES to what those cases
+    /// already did:
+    ///
+    ///   - where the two rigs agree, as Malgor's seaweed does, it is the identity;
+    ///   - where the piece's rig is the parent's subtree re-rooted on the socket, as the Fallen
+    ///     Knight's are, the parent's bind is the piece's bind times the socket's - so it
+    ///     cancels down to the socket's transform, which is exactly the old placement.
+    ///
+    /// A BONE WITH NO MATCH ANYWHERE UP ITS CHAIN keeps the old answer too: its piece-space is
+    /// taken as local to whatever it fell back to, which for a socketed piece is the socket and
+    /// for a "&lt;root&gt;" piece is the monster's root.
+    /// </remarks>
+    private static Matrix4x4[] Correcting(
+        SkeletonPose mine,
+        Fit fit,
+        int bones,
+        int[] onto,
+        int[] anchor,
+        bool rooted,
+        Matrix4x4 put,
+        int spare)
+    {
+        var into = new Matrix4x4[bones];
+
+        // A SOCKETED PIECE GOES TO ITS SOCKET AND NOWHERE ELSE. Where its rig really is the
+        // parent's subtree the arithmetic below gives exactly that anyway - the piece's own bind
+        // cancels against the parent's, leaving the socket's - so forcing it costs those pieces
+        // nothing and protects the ones whose rig only LOOKS like the parent's. The Frostborn
+        // Fiend's block of ice is three bones all resting at the origin, one of them called
+        // aux_position, which the parent also has somewhere up his body; corrected by name it
+        // would leave his fist for that bone, which is the 0.1.13 regression in a new shape.
+        if (!rooted)
+        {
+            Array.Fill(into, put);
+            return into;
+        }
+
+        for (var one = 0; one < bones; one++)
+        {
+            // THE CARRIER'S BIND, AND THEN THE CARRIER'S OWN WAY INTO MODEL SPACE. For a piece on
+            // the monster himself the second half is the identity and this is what it always was;
+            // for one hung off another piece it is what carries Tycho's skirt layers up onto his
+            // skirt instead of leaving them where the body's rig happens to put the same names.
+            int said = onto[one] >= 0 ? onto[one] : spare;
+            int at = said >= 0 && said < fit.Rest.BindModel.Count ? said : 0;
+            (int _, Matrix4x4 over) = Through(fit, at);
+            Matrix4x4 there = at < fit.Rest.BindModel.Count
+                ? fit.Rest.BindModel[at] * over
+                : Matrix4x4.Identity;
+
+            into[one] = anchor[one] >= 0
+                && anchor[one] < mine.BindModel.Count
+                && Matrix4x4.Invert(mine.BindModel[anchor[one]], out Matrix4x4 back)
+                    ? back * there
+                    : there;
+        }
+
+        return into;
+    }
+
+    /// <summary>
+    /// A piece's geometry moved out of its own bind pose and into the parent's.
+    /// </summary>
+    /// <remarks>
+    /// BAKED ONCE, HERE, rather than handed to the renderer: the correction is per BONE and the
+    /// join takes one transform per piece, so the vertices are moved now and everything
+    /// downstream goes on working on a mesh that is already in the monster's space.
+    ///
+    /// BLENDED BY THE VERTEX'S OWN WEIGHTS, the same way a pose is - a vertex held half by the
+    /// chest and half by the neck is corrected half by each, and a seam between two bones stays
+    /// a seam rather than tearing.
+    /// </remarks>
+    private static SkinnedMesh Corrected(SkinnedMesh mesh, IReadOnlyList<Matrix4x4> into)
+    {
+        int count = mesh.Positions.Length;
+        if (into.Count == 0 || mesh.Bones.Length != count * 4 || mesh.Weights.Length != count * 4)
+        {
+            return mesh;
+        }
+
+        var positions = new Vector3[count];
+        var normals = new Vector3[count];
+        Vector3 least = new(float.MaxValue), most = new(float.MinValue);
+
+        for (var one = 0; one < count; one++)
+        {
+            Matrix4x4 sum = default;
+            var total = 0f;
+            for (var slot = 0; slot < 4; slot++)
+            {
+                byte weight = mesh.Weights[(one * 4) + slot];
+                byte bone = mesh.Bones[(one * 4) + slot];
+                if (weight == 0 || bone >= into.Count)
+                {
+                    continue;
+                }
+
+                sum += into[bone] * (weight / 255f);
+                total += weight / 255f;
+            }
+
+            Matrix4x4 put = total > 0.0001f ? sum * (1f / total) : Matrix4x4.Identity;
+            positions[one] = Vector3.Transform(mesh.Positions[one], put);
+            normals[one] = Vector3.Normalize(Vector3.TransformNormal(mesh.Normals[one], put));
+            least = Vector3.Min(least, positions[one]);
+            most = Vector3.Max(most, positions[one]);
+        }
+
+        return SkinnedMesh.Of(
+            positions, normals, mesh.Indices, least, most, mesh.Coordinates, mesh.Shapes, mesh.Facts, mesh.Colours, mesh.Coloured);
+    }
+
+    /// <summary>
+    /// Whether an attachment line names no socket at all - <c>&lt;root&gt;</c>, or nothing.
+    /// </summary>
+    /// <remarks>
+    /// THE GAME'S OWN SPELLING DECIDES, which is worth more than any threshold this could invent.
+    /// A line that names a bone is PLACING the piece there: the anchor at aux_anchor_jntBnd, the
+    /// beard at head_jntBnd, the Frostborn Fiend's block of ice at R_Weapon. A line that says
+    /// "&lt;root&gt;" places nothing, so the piece has to carry its own placement - and the only
+    /// thing it can carry it in is a rig of the parent's bones.
+    ///
+    /// WHAT THIS REPLACED, and why: two goes at reading the piece's rig INSTEAD of the line, and
+    /// each broke a monster the other fixed. Counting shared bone names made the ice - three
+    /// bones, of which the parent has two - into a skinned cloak and stood it upright on the
+    /// floor. Requiring the shared bones to rest in the same place as the parent's then rejected
+    /// Bahlak's feathers, which are the clearest skinned piece there is, and dropped them on the
+    /// floor in three flat clumps. The line was carrying the answer the whole time.
+    /// </remarks>
+    private static bool Rooted(string socket)
+        => socket.Length == 0 || socket.StartsWith('<');
+
+    /// <summary>The socket and file of every .ao this one hangs off itself.</summary>
+    /// <remarks>
+    /// A SOCKET AND THEN A PATH INSIDE ONE PAIR OF QUOTES, which taken whole is a path no install
+    /// has - the trap that cost AoSurvey 2289 of its 3262 files. Split on the first space; the
+    /// socket is a bone name of the parent's rig, or <c>&lt;root&gt;</c> for the piece's own.
+    /// </remarks>
+    private static IEnumerable<(string Socket, string Path, Matrix4x4 Local)> Hung(AnimatedObject ao)
+    {
+        foreach (AoStruct block in ao.Structs)
+        {
+            foreach (AoEntry entry in block.Entries)
+            {
+                if (Array.IndexOf(Hangs, entry.Key) < 0 || entry.Kind != AoValueKind.Quoted)
+                {
+                    continue;
+                }
+
+                string said = entry.Value.Trim();
+                int space = said.IndexOf(' ', StringComparison.Ordinal);
+                string path = space < 0 ? said : said[(space + 1)..].Trim();
+                if (path.EndsWith(AnimatedObject.Suffix, StringComparison.OrdinalIgnoreCase))
+                {
+                    yield return (space < 0 ? string.Empty : said[..space], path, Local(entry));
+                }
+            }
+        }
+    }
+
+    /// <summary>One attachment read whole: its mesh, its textures, and where on the body it goes.</summary>
+    /// <remarks>
+    /// RIGID AT ITS SOCKET, which is what the boxes said to do. Every one of Doryani's thirteen
+    /// pieces has a box a few tens of units across sitting on the origin - the left and right
+    /// shoulder pieces mirrored in x rather than standing apart - so each is modelled in its own
+    /// space and means nothing in the monster's until the socket bone's rest transform is on it.
+    ///
+    /// WHY NOT POSE IT WITH ITS OWN RIG. A piece has one, and in the game it is simulated - the
+    /// .ao carries bend stiffness, viscosity and an enclosure angle. At rest that rig puts the
+    /// vertices exactly where the file already has them, so the rest pose IS the mesh, and
+    /// hanging it rigidly off the bone is the same answer with none of the work. What it gives
+    /// up is cloth that swings while the monster moves, which a turning picture does not miss.
+    /// </remarks>
+    private static (Part? Part, Fit Under, PartFit Told) Worn(
+        Func<string, byte[]?> read,
+        AnimatedObject ao,
+        Hangs_ hung,
+        Paints paints,
+        Mipmaps? fallback,
+        Fit body)
+    {
+        (_, Matrix4x4 place, int bone, Matrix4x4 put, int socket, _, _, bool rooted, Fit fit) = hung;
+
+        // WHERE THE SOCKET LANDED, in the walk's own terms - see PartPlace. Astray is the nested
+        // piece whose socket neither rig has; Dropped cannot appear here, because such a piece
+        // was never queued.
+        PartPlace where = rooted ? PartPlace.Root : socket >= 0 ? PartPlace.Bone : PartPlace.Astray;
+
+        // THE PIECE AND EVERYTHING IT EXTENDS - see Whole. Gulzal's hammer is four lines and a
+        // parent, and reading the four lines alone left it on the floor.
+        List<AnimatedObject> chain = Whole(read, ao);
+
+        string skin = Skin(chain);
+        if (skin.Length == 0)
+        {
+            Part? prop = Propped(read, chain, place, bone, paints, fallback);
+            return (
+                prop,
+                body,
+                Told(hung, where, prop is null ? PartKind.None : PartKind.Prop, default, prop));
+        }
+
+        MeshManifest manifest = Read(read, skin, MeshManifest.Read);
+        if (!manifest.Ready)
+        {
+            return (null, body, Told(hung, where, PartKind.Unread, default, null, "the manifest: " + skin));
+        }
+
+        SkinnedMesh mesh = Read(read, manifest.Geometry, SkinnedMesh.Read);
+        if (!mesh.Ready)
+        {
+            // THE READER'S OWN REASON, not just that it failed. "version 1 puts its geometry
+            // outside a ..." names a format gap; a missing file names an install. A corpus that
+            // cannot tell those apart cannot say whether 113 monsters are 113 problems or one.
+            return (null, body, Told(
+                hung, where, PartKind.Unread, default, null,
+                mesh.Why.Length > 0 ? mesh.Why : "the geometry: " + manifest.Geometry));
+        }
+
+        Dress dress = Dressed(read, mesh, [], manifest, fallback, string.Empty, paints);
+
+        // EITHER WAY THE PIECE'S OWN RIG SAYS WHICH OF THE PARENT'S BONES EACH VERTEX BELONGS
+        // TO - see Retargeted. What the attachment line decides is where the piece SITS: a
+        // "<root>" piece is already in the monster's space and wants no transform, a socketed
+        // one is in its socket's space and wants that bone's rest transform on it.
+        Retarget? said = Retargeted(read, chain, fit, mesh, rooted, put, socket, bone, out Retold counted);
+        if (said is { } map)
+        {
+            // NO PLACE: the correction already carries wherever the piece belongs, because a
+            // socketed piece's own bind cancels down to exactly its socket's transform.
+            var worn = new Part(Corrected(mesh, map.Into), map.Bones, mesh.Weights, null, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
+            return (worn, map.Under, Told(hung, where, PartKind.Skin, counted, worn));
+        }
+
+        (byte[] bones, byte[] weights) = Bound(mesh.Positions.Length, bone);
+        var rigid = new Part(mesh, bones, weights, place, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
+        return (rigid, body, Told(hung, where, PartKind.Rigid, counted, rigid));
+    }
+
+    /// <summary>One line of the walk's account of itself - see <see cref="PartFit"/>.</summary>
+    /// <remarks>
+    /// THE BOX IS TAKEN AFTER THE CORRECTION and through the piece's own <see cref="Part.Place"/>
+    /// where it has one, so what it says is where the piece ends up in MODEL space. That is the
+    /// number a sweep can compare against the body's own box without a picture - a piece whose
+    /// box sits at the origin under a monster who does not is the shape of every report this
+    /// month.
+    /// </remarks>
+    private static PartFit Told(
+        Hangs_ hung, PartPlace where, PartKind kind, Retold counted, Part? part, string why = "")
+    {
+        (Vector3 least, Vector3 most) = part is { } made
+            ? made.Place is { } put
+                ? (Vector3.Transform(made.Mesh.Least, put), Vector3.Transform(made.Mesh.Most, put))
+                : (made.Mesh.Least, made.Mesh.Most)
+            : (Vector3.Zero, Vector3.Zero);
+
+        return new PartFit(
+            hung.Path,
+            hung.Named,
+            where,
+            hung.Depth,
+            kind,
+            counted.Bones,
+            counted.Matched,
+            counted.Strays,
+            counted.Paired,
+            counted.Malformed,
+            counted.Paths,
+            counted.Past,
+            why,
+            Vector3.Min(least, most),
+            Vector3.Max(least, most));
+    }
+
+    /// <summary>
+    /// A piece's vertex bones moved onto the PARENT's rig, or null where it is a rigid prop.
+    /// </summary>
+    /// <remarks>
+    /// TWO KINDS OF ATTACHMENT WEAR THE SAME SPELLING, and the piece's own skeleton is what tells
+    /// them apart. Measured, on five pieces across two bosses:
+    ///
+    ///     Malgor's anchor    12 bones, one shared with the parent - root_jntBnd
+    ///     Malgor's beard      8 bones, one shared - root_jntBnd
+    ///     Malgor's ship wheel 10 bones, one shared - root_jntBnd
+    ///     Malgor's seaweed   23 bones, TWELVE shared - hip, spine_1, spine_2, chest, clavicles…
+    ///     Bahlak's feathers  31 bones, ELEVEN shared - spine_1, spine_2, chest, neck, head…
+    ///
+    /// A PROP SHARES ONLY THE ROOT, which every rig has and which therefore means nothing. Its
+    /// bones are its own - phys_tri_chain, jaw_jntBnd_1..8 - it is modelled around its own origin,
+    /// and it belongs rigidly at its socket. That is the case <see cref="Bound"/> handles and it
+    /// has been right all along.
+    ///
+    /// A SKINNED PIECE SHARES THE BODY'S OWN BONES, and its rig rests them where the body's rest:
+    /// the seaweed's hip_jntBnd at (0,18.7,-97.6), its chest at (0,26.3,-171.6). Its vertices are
+    /// ALREADY in the monster's space - the seaweed's box is y 40..131, draped over a spine that
+    /// sits at y 19..26 - so it wants no transform at all. What it wants is its bone NUMBERS
+    /// translated, because bone 9 in the piece's file is the parent's bone 47.
+    ///
+    /// WHY THAT WAS THE WHOLE BUG. Binding every vertex to one bone is harmless at rest and wrong
+    /// the moment anything moves: the body deforms and the piece rigidly follows a single bone.
+    /// For a socketed piece that bone is an arm or a head and it looks right; for a "&lt;root&gt;"
+    /// piece it is the RIG ROOT, which is the one bone that does not follow the body at all. So
+    /// Bahlak's feathers stayed on the floor while he rose, and Malgor's seaweed hung in the air
+    /// behind him - and only the "&lt;root&gt;" pieces ever did, which is exactly what was reported.
+    ///
+    /// A BONE THE PARENT DOES NOT HAVE goes to its nearest ancestor that the parent does have.
+    /// The unshared ones are all simulated - phys_skinned_M_skirt_2, phys_tri_seaweed_belt - so
+    /// their nearest real ancestor is the spine or chest they hang off, which is where a tool
+    /// that does not simulate cloth should hold them.
+    ///
+    /// ONLY EVER FOR A PIECE THAT NAMES NO SOCKET - see <see cref="Rooted"/>. The rig's shared
+    /// names alone are NOT enough, and two goes at making them enough each broke a monster the
+    /// other fixed: counting them turned the Frostborn Fiend's block of ice, three bones of which
+    /// the parent has two, into a cloak and stood it on the floor; requiring the shared bones to
+    /// rest where the parent's rest then rejected Bahlak's feathers and dropped them in three
+    /// flat clumps. The attachment line was carrying the answer the whole time.
+    ///
+    /// WHAT IS STILL ASKED OF THE RIG is only the other half: a "&lt;root&gt;" piece that shares
+    /// nothing but the root has no bones to be moved onto and stays where it is. Malgor's ship's
+    /// wheel is that piece, and it is the one thing here still not settled.
+    /// </remarks>
+    private readonly record struct Retarget(byte[] Bones, Matrix4x4[] Into, Fit Under);
+
+    /// <summary>
+    /// What the retarget found, whether or not it could use it - see <see cref="PartFit"/>.
+    /// </summary>
+    /// <remarks>
+    /// SEPARATE FROM <see cref="Retarget"/> ON PURPOSE. The cases that return no retarget at all
+    /// are the ones a sweep over the whole table is hunting for - a piece with a rig of its own
+    /// and not one bone in common is Malgor's ship's wheel, left at the origin - and a report
+    /// carried on the return value would be silent about exactly those.
+    /// </remarks>
+    private readonly record struct Retold(
+        int Bones, int Matched, int Strays, int Paired, bool Malformed, int Paths, bool Past);
+
+    private static Retarget? Retargeted(
+        Func<string, byte[]?> read,
+        IReadOnlyList<AnimatedObject> chain,
+        Fit fit,
+        SkinnedMesh mesh,
+        bool rooted,
+        Matrix4x4 put,
+        int socket,
+        int fall,
+        out Retold told)
+    {
+        told = default;
+
+        string path = Entryed(chain, RigBlock, RigEntry);
+        if (path.Length == 0 || mesh.Bones.Length != mesh.Positions.Length * 4)
+        {
+            return null;
+        }
+
+        AnimationSkeleton own = Read(read, path, AnimationSkeleton.Read);
+        if (!own.Ready || SkeletonPose.Of(own) is not { } mine)
+        {
+            return null;
+        }
+
+        // COUNTED WHATEVER THIS RETURNS, because the cases that return nothing are exactly the
+        // ones a sweep is looking for: a piece left at the origin says so by having a rig and no
+        // matches at all. See PartFit.
+        var paths = 0;
+        foreach (SkeletonBone bone in own.Bones)
+        {
+            if (bone.Name.Contains('|', StringComparison.Ordinal))
+            {
+                paths++;
+            }
+        }
+
+        told = told with { Bones = own.Bones.Count, Paths = paths };
+
+        // A MESH THAT REACHES PAST ITS OWN RIG WAS NOT RIGGED TO IT, and putting its numbers
+        // through a table that short is how the last of Bahlak's feathers stayed on the floor:
+        // every bone the table did not cover fell to entry nought, the rig root, while the rest
+        // of the piece followed his chest - so the bundle came out stretched between the two.
+        //
+        // THE ONLY OTHER RIG IN PLAY IS THE PARENT'S, and a piece socketed "<root>" is already in
+        // the parent's space, so a mesh indexed past its own rig is a mesh indexed by the
+        // parent's: its numbers are already the right ones and want passing through untouched.
+        // Mapping them to nought is the one answer that is certainly wrong.
+        if (SkeletonPose.Highest(mesh) >= own.Bones.Count)
+        {
+            // A MESH INDEXED PAST ITS OWN RIG WAS NOT RIGGED TO IT, so the only rig its numbers
+            // can mean is the parent's - and then they are already right and want no correction.
+            // A socketed piece is moved by its socket as well, so there the old rigid binding
+            // stays: applying both would move it twice.
+            //
+            // "THE PARENT'S" IS THE CARRIER'S, which on the monster himself is the monster's and
+            // is where this stops: the numbers pass through fit.Onto, which is the identity there.
+            told = told with { Past = true, Matched = own.Bones.Count, Strays = 0 };
+            return rooted
+                ? new Retarget(fit.Plain ? mesh.Bones : Passed(fit, mesh.Bones), fit.Into, fit)
+                : null;
+        }
+
+        // THE FILE'S OWN PAIRING FIRST, where it wrote one down - see Attaching.
+        Dictionary<string, string> named = Attaching(chain, out bool malformed);
+        told = told with { Paired = named.Count, Malformed = malformed };
+
+        // NUMBERS OF THE CARRIER'S RIG, not the monster's: what this walk matches against is the
+        // rig the piece was authored beside, and the step into model space is Fit's - see there.
+        // Minus one means nothing up the chain matched, which is a different answer from "the
+        // root matched" and was told apart by neither array before.
+        var onto = new int[own.Bones.Count];
+        var anchor = new int[own.Bones.Count];
+        var shared = 0;
+        for (var one = 0; one < own.Bones.Count; one++)
+        {
+            // UP THE CHAIN BY NAME, NOT BY NUMBER. A first attempt read the parent's answer out
+            // of the array on the reasoning that a parent is always earlier in the list, and it
+            // is not: SkeletonPose walks the child-and-sibling tree with a stack, so a bone's
+            // parent can perfectly well carry a HIGHER number. Bahlak's feathers are the case -
+            // phys_skinned_head_feathers_1 is bone 19 and hangs off M_head_jntBnd, bone 22 - and
+            // every bone that lost that race fell to the root instead. The root is the one bone
+            // that does not follow the body, so the piece came out stretched between the monster
+            // and the origin: a long black spike from his chest to the floor.
+            // THE PIECE'S OWN ROOT IS THE SOCKET, on a socketed piece, whatever it is called.
+            // Measured: the Fallen Knight's bicep fingers carry root_jntBnd AND L_shoulder_jntBnd
+            // and both rest at (0,0,0) - the piece's origin - while the parent rests its shoulder
+            // at (22.3,7,-157.9). Matching that root by NAME would send every vertex weighted to
+            // it across to the monster's own root, which is the far end of him.
+            onto[one] = -1;
+            anchor[one] = -1;
+
+            int at = one;
+            for (var hops = 0; at >= 0 && hops <= own.Bones.Count; hops++)
+            {
+                // A BONE THE FILE PAIRED IS ANSWERED WHATEVER ELSE IS TRUE OF IT, the piece's
+                // own rig root included - which is the one the pairing usually renames.
+                bool paired = named.TryGetValue(own.Bones[at].Name, out string? theirs);
+                bool grown = paired || (at < mine.Parents.Count && mine.Parents[at] >= 0);
+                if (grown
+                    && Meant(fit.Where, theirs ?? own.Bones[at].Name, out int found)
+                    && found <= byte.MaxValue)
+                {
+                    onto[one] = found;
+                    anchor[one] = at;
+                    shared++;
+                    break;
+                }
+
+                at = at < mine.Parents.Count ? mine.Parents[at] : -1;
+            }
+        }
+
+        // A "<root>" PIECE WITH NOTHING SHARED HAS NOWHERE TO GO, so it is left where it is -
+        // Malgor's ship's wheel, and the one case here still unsettled. A SOCKETED piece always
+        // has somewhere: its socket, which is where it used to go wholesale, so the map can only
+        // improve on that and is always worth returning.
+        // A BONE THAT MATCHED NOTHING AND IS NOT A ROOT OF ITS OWN RIG - see PartFit.Strays.
+        // The rig root is left out because it never matches by design: a socketed piece's own
+        // root IS its socket, whatever it is called, and counting it would make "some of this
+        // piece fell back" true of very nearly every piece there is.
+        var strays = 0;
+        for (var one = 0; one < onto.Length; one++)
+        {
+            if (onto[one] < 0 && one < mine.Parents.Count && mine.Parents[one] >= 0)
+            {
+                strays++;
+            }
+        }
+
+        told = told with { Matched = shared, Strays = strays };
+        if (rooted && shared == 0)
+        {
+            return null;
+        }
+
+        // WHERE A BONE MATCHED NOTHING it keeps the answer it always had: the piece's socket on a
+        // socketed piece, and the carrier's own root on a "<root>" one. Both are then read as
+        // bones of the CARRIER's rig and stepped into the monster's, which on the monster himself
+        // leaves them exactly as they were.
+        int spare = rooted ? 0 : socket;
+        var over = new byte[own.Bones.Count];
+        for (var one = 0; one < over.Length; one++)
+        {
+            over[one] = onto[one] >= 0 || spare >= 0
+                ? (byte)Through(fit, onto[one] >= 0 ? onto[one] : spare).Bone
+                : (byte)fall;
+        }
+
+        var bones = new byte[mesh.Bones.Length];
+        for (var one = 0; one < bones.Length; one++)
+        {
+            byte said = mesh.Bones[one];
+            bones[one] = said < over.Length ? over[said] : (byte)0;
+        }
+
+        Matrix4x4[] into = Correcting(mine, fit, own.Bones.Count, onto, anchor, rooted, put, spare);
+        return new Retarget(bones, into, new Fit(Where(own), mine, over, into));
+    }
+
+    /// <summary>A rig's bones by name, first number wins - the table every fit is looked up in.</summary>
+    private static Dictionary<string, int> Where(AnimationSkeleton rig)
+    {
+        var said = new Dictionary<string, int>(rig.Bones.Count, StringComparer.OrdinalIgnoreCase);
+        for (var one = 0; one < rig.Bones.Count; one++)
+        {
+            said.TryAdd(rig.Bones[one].Name, one);
+        }
+
+        return said;
+    }
+
+    /// <summary>
+    /// A piece that is a rigid prop rather than a skin: a <c>FixedMesh</c> naming a <c>.fmt</c>.
+    /// </summary>
+    /// <remarks>
+    /// THE OTHER KIND OF ATTACHMENT, and the one the walk used to throw away. An .ao hangs either
+    /// a SkinMesh - a .sm and then a .smd - or a FixedMesh, which names a .fmt and nothing else;
+    /// asking only for the first meant every prop came back as "no SkinMesh" and was skipped.
+    /// Reported from the live client: Malgor, the Nautilord carries a cannon the pane never drew,
+    /// and his attachment's whole .ao is four lines with <c>fixed_mesh</c> in the middle of them.
+    ///
+    /// NO MANIFEST, BECAUSE A .fmt CARRIES ITS OWN MATERIALS - one .mat per shape, by name. That
+    /// is the same list the .ao's own material lines take, so it goes down the path that is
+    /// already there: <see cref="Dressed"/> matches a shape to a material by name first, and an
+    /// empty manifest simply has nothing to add underneath it.
+    /// </remarks>
+    private static Part? Propped(
+        Func<string, byte[]?> read,
+        IReadOnlyList<AnimatedObject> chain,
+        Matrix4x4 place,
+        int bone,
+        Paints paints,
+        Mipmaps? fallback)
+    {
+        string path = Entryed(chain, PropBlock, PropEntry);
+        if (path.Length == 0)
+        {
+            // An effect pack or a sound emitter. Ordinary, and nothing to draw.
+            return null;
+        }
+
+        FixedMesh prop = Read(read, path, FixedMesh.Read);
+        if (!prop.Ready)
+        {
+            return null;
+        }
+
+        Dress dress = Dressed(
+            read, prop.Mesh, prop.Named, MeshManifest.None, fallback, string.Empty, paints);
+        (byte[] bones, byte[] weights) = Bound(prop.Mesh.Positions.Length, bone);
+        return new Part(prop.Mesh, bones, weights, place, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
+    }
+
+    /// <summary>
+    /// One bone, all the weight - the skin a rigid piece gets.
+    /// </summary>
+    /// <remarks>
+    /// The piece moves with its socket and nothing else, so every vertex names that bone four
+    /// times over with the whole 255 on the first, which is what SkeletonPose.Move expects and
+    /// what makes the piece follow an arm that lifts.
+    /// </remarks>
+    private static (byte[] Bones, byte[] Weights) Bound(int count, int bone)
+    {
+        var bones = new byte[count * 4];
+        var weights = new byte[count * 4];
+        var at = bone is >= 0 and <= byte.MaxValue ? (byte)bone : (byte)0;
+        for (var one = 0; one < count; one++)
+        {
+            bones[one * 4] = at;
+            bones[(one * 4) + 1] = at;
+            bones[(one * 4) + 2] = at;
+            bones[(one * 4) + 3] = at;
+            weights[one * 4] = 255;
+        }
+
+        return (bones, weights);
+    }
+
+    /// <summary>
+    /// A piece and everything it extends, nearest first.
+    /// </summary>
+    /// <remarks>
+    /// AN ATTACHMENT'S .ao EXTENDS ANOTHER JUST AS A MONSTER'S DOES, and reading only the file
+    /// the attachment line named is how Gulzal's hammer came to lie on the floor. Its whole file
+    /// is four lines - it extends the axe and swaps one skin for another - while the rig, the
+    /// bone pairing and everything else that says where it goes are in the axe's.
+    ///
+    /// The body's walk has followed extends from the start; the pieces' did not, which is the
+    /// kind of gap that only shows on the one monster built that way.
+    /// </remarks>
+    private static List<AnimatedObject> Whole(Func<string, byte[]?> read, AnimatedObject ao)
+    {
+        var chain = new List<AnimatedObject> { ao };
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var queue = new Queue<string>(ao.Extends);
+
+        while (queue.Count > 0 && chain.Count <= MostDeep * 2)
+        {
+            string path = queue.Dequeue();
+            if (path.Length == 0 || !seen.Add(path))
+            {
+                continue;
+            }
+
+            AnimatedObject over = Object(read, path);
+            if (!over.Ready)
+            {
+                continue;
+            }
+
+            chain.Add(over);
+            foreach (string up in over.Extends)
+            {
+                queue.Enqueue(up);
+            }
+        }
+
+        return chain;
+    }
+
+    /// <summary>
+    /// The skin a piece really wears, once what it inherits and what it drops are both counted.
+    /// </summary>
+    /// <remarks>
+    /// remove_skin IS WHY THE CHAIN CANNOT JUST BE UNIONED. Gulzal's hammer extends his axe and
+    /// says, in the same block, to take the axe's mesh away and put the hammer's on - so a walk
+    /// that added every skin it found would hang an axe off him as well.
+    /// </remarks>
+    private static string Skin(IReadOnlyList<AnimatedObject> chain)
+    {
+        var gone = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var kept = new List<string>();
+
+        foreach (AnimatedObject one in chain)
+        {
+            foreach (AoStruct block in one.Named(Block))
+            {
+                foreach (AoEntry entry in block.Entries)
+                {
+                    if (entry.Value.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    if (string.Equals(entry.Key, Dropped, StringComparison.Ordinal))
+                    {
+                        gone.Add(entry.Value);
+                    }
+                    else if (string.Equals(entry.Key, Entry, StringComparison.Ordinal))
+                    {
+                        kept.Add(entry.Value);
+                    }
+                }
+            }
+        }
+
+        foreach (string one in kept)
+        {
+            if (!gone.Contains(one))
+            {
+                return one;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>What a piece says to stop wearing out of whatever it extends.</summary>
+    private const string Dropped = "remove_skin";
+
+    /// <summary>One entry's value, taken from the nearest file in the chain that has it.</summary>
+    private static string Entryed(IReadOnlyList<AnimatedObject> chain, string block, string key)
+    {
+        foreach (AnimatedObject one in chain)
+        {
+            if (Entryed(one, block, key) is { Length: > 0 } said)
+            {
+                return said;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>The <c>skin</c> a SkinMesh block names, or empty where the file has none.</summary>
+    private static string Skin(AnimatedObject ao) => Entryed(ao, Block, Entry);
+
+    /// <summary>
+    /// Which of the PARENT's bones each of a piece's own bones is, where the file says so outright.
+    /// </summary>
+    /// <remarks>
+    /// THE GAME WRITES THE MAPPING DOWN, and matching by name was a workaround for not having
+    /// read it. Bahlak's feathers carry both halves of it:
+    ///
+    ///     attachment_bones = "hip_jntBnd   L_thigh_jntBnd … M_jaw_jntBnd child_attach"
+    ///     bone_group = "child_attach false root_jntBnd L_thigh_jntBnd … M_jaw_jntBnd"
+    ///
+    /// The lists are PARALLEL: attachment_bones names the parent's bones, the bone group it ends
+    /// with names the piece's, and the two run in step. Everything in the middle agrees - which
+    /// is why matching by name got most of the piece right - and the FIRST entry does not. The
+    /// piece's root_jntBnd is the parent's hip_jntBnd.
+    ///
+    /// WHICH IS THE WHOLE OF THE REMAINING BUG. The piece's phys_skinned_*_skirt_* chain hangs
+    /// off that root and off nothing else, so matched by name it went to the monster's root -
+    /// the ground between his feet - while the rest of the piece was corrected onto his body,
+    /// and the train came out as a beam between the two.
+    ///
+    /// MEASURED, TOO: the parent rests L_thigh_jntBnd at (23.6,18.4,-158.8) and the piece rests
+    /// it at (23.6,0,0), which is exactly its offset from a hip - not from the ground.
+    ///
+    /// Empty where the file says nothing, and then the names are all there is to go on.
+    /// </remarks>
+    private static Dictionary<string, string> Attaching(
+        IReadOnlyList<AnimatedObject> chain, out bool malformed)
+    {
+        malformed = false;
+
+        var said = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        string[] theirs = Entryed(chain, RigBlock, Attachment)
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (theirs.Length < 2)
+        {
+            return said;
+        }
+
+        // The last name is the BONE GROUP that carries the piece's own side of the pairing,
+        // and it may sit in a file further up the chain than the line that named it.
+        string group = theirs[^1];
+        foreach (AoStruct block in chain.SelectMany(one => one.Named(GroupBlock)))
+        {
+            foreach (AoEntry entry in block.Entries)
+            {
+                if (!string.Equals(entry.Key, GroupEntry, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                // "<name> <a flag nothing here reads> <bone> <bone> …"
+                string[] mine = entry.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (mine.Length < 3 || !string.Equals(mine[0], group, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                for (var one = 0; one + 2 < mine.Length && one < theirs.Length - 1; one++)
+                {
+                    said.TryAdd(mine[one + 2], theirs[one]);
+                }
+
+                return said;
+            }
+        }
+
+        // THE LINE IS THERE AND NAMES A GROUP NOBODY DECLARES, which is a file the game shipped
+        // wrong rather than a format nobody has read. Tycho's SkirtLayers.ao is the case: its
+        // attachment_bones is a verbatim copy of the bone_group line beneath it, so its last name
+        // is a BONE. Said out loud rather than swallowed, because every such line found so far
+        // has been worth looking at - and matching by name is what happens instead.
+        malformed = true;
+        return said;
+    }
+
+    /// <summary>Where a piece names the parent's bones its own stand for, and its side of it.</summary>
+    private const string Attachment = "attachment_bones";
+
+    /// <inheritdoc cref="Attachment"/>
+    private const string GroupBlock = "BoneGroups";
+
+    /// <inheritdoc cref="Attachment"/>
+    private const string GroupEntry = "bone_group";
+
+    /// <summary>One entry's value out of one kind of block, or empty where the file has none.</summary>
+    private static string Entryed(AnimatedObject ao, string block, string key)
+    {
+        foreach (AoStruct one in ao.Named(block))
+        {
+            foreach (AoEntry entry in one.Entries)
+            {
+                if (string.Equals(entry.Key, key, StringComparison.Ordinal) && entry.Value.Length > 0)
+                {
+                    return entry.Value;
+                }
+            }
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>The block a rigid prop's file is named in, and the entry inside it.</summary>
+    private const string PropBlock = "FixedMesh";
+
+    /// <summary>The entry inside <see cref="PropBlock"/> that names the <c>.fmt</c>.</summary>
+    private const string PropEntry = "fixed_mesh";
+
+    /// <summary>Reads through another function and adds up what comes back.</summary>
+    private sealed class Tally
+    {
+        private readonly Func<string, byte[]?> _read;
+
+        public Tally(Func<string, byte[]?> read) => _read = read;
+
+        public long Bytes { get; private set; }
+
+        public int Files { get; private set; }
+
+        public byte[]? Read(string path)
+        {
+            byte[]? said = _read(path);
+            if (said is not null)
+            {
+                Bytes += said.Length;
+                Files++;
+            }
+
+            return said;
+        }
+
+        /// <summary>A model that was not found, still carrying what was read looking for it.</summary>
+        public MonsterModel Failed(string why, string mesh = "")
+            => MonsterModel.None with { Mesh_ = mesh, Why = why, Bytes = Bytes, Files = Files };
+    }
+
+    /// <summary>
+    /// The monster's skeleton, and - when it cannot be animated - which of the ways that is.
+    /// </summary>
+    /// <remarks>
+    /// THE LAST CHECK IS THE ONE THAT NEEDS THE GAME. A vertex names its bones by index and the
+    /// only bone list in the whole chain is the skeleton's, so the indices must be into it - but
+    /// that is an argument from there being nothing else, and this is where it is tested against
+    /// every real mesh somebody opens: a highest weighted bone at or past the rig's count means
+    /// the argument was wrong, and the model says so instead of skinning garbage.
+    /// </remarks>
+    private static (AnimationSkeleton Rig, string Why) Rigged(
+        Func<string, byte[]?> read, string skeleton, SkinnedMesh mesh)
+    {
+        if (skeleton.Length == 0)
+        {
+            return (AnimationSkeleton.None, "no .ao names a skeleton under ClientAnimationController");
+        }
+
+        AnimationSkeleton rig = Read(read, skeleton, AnimationSkeleton.Read);
+        if (!rig.Ready)
+        {
+            return (rig, $"the skeleton did not read: {skeleton}"
+                + (rig.Why.Length > 0 ? $" - {rig.Why}" : string.Empty));
+        }
+
+        if (rig.Animations.Count == 0)
+        {
+            return (rig, $"the skeleton carries no animations: {skeleton}"
+                + (rig.Why.Length > 0 ? $" - {rig.Why}" : string.Empty));
+        }
+
+        int highest = SkeletonPose.Highest(mesh);
+        if (highest >= rig.Bones.Count)
+        {
+            return (rig, $"the mesh weights bone {highest} and the skeleton has only {rig.Bones.Count}");
+        }
+
+        return (rig, string.Empty);
+    }
+
+    /// <summary>
+    /// The monster's colour texture, and - when there is none - which of the ways it can be
+    /// missing this one is.
+    /// </summary>
+    /// <remarks>
+    /// THE REASON IS THE POINT, not a nicety. A monster drawn without its texture comes out in a
+    /// pale warm grey that is all but indistinguishable from bare skin, so "is this monster
+    /// untextured or is it just pale" is a question a picture CANNOT answer - it was asked from
+    /// the live client and could only be settled by reading code. Everything needed to answer it
+    /// passes through here and used to be thrown away.
+    ///
+    /// THE COORDINATES ARE CHECKED LAST AND SEPARATELY, because a mesh can have a perfectly good
+    /// texture and no way to look it up. That is the expected state of a bare body whose clothes
+    /// are attached objects, and it is a different answer from "the file would not read".
+    /// </remarks>
+    /// <param name="named">
+    /// Every material the files name, best first: the .ao's own, per shape, then the mesh's
+    /// default. Tried in order until one carries a colour map - see the remark in Of.
+    /// </param>
+    private static (Mipmaps? Skin, string Why, string Material) Painted(
+        Func<string, byte[]?> read, SkinnedMesh mesh, IReadOnlyList<string> named, Paints paints)
+    {
+        var tried = new List<string>();
+        var reasons = new List<string>();
+
+        foreach (string one in named)
+        {
+            string bare = MaterialFile.Bare(one);
+            if (bare.Length == 0 || tried.Contains(bare, StringComparer.OrdinalIgnoreCase))
+            {
+                // The same file with a different :n selector is the same file. Reading it twice
+                // would only report the same answer twice in a line somebody has to read.
+                continue;
+            }
+
+            tried.Add(bare);
+            (Mipmaps? skin, string why, _, _) = Colour(read, mesh, bare, paints);
+            if (skin is not null)
+            {
+                return (skin, why, bare);
+            }
+
+            reasons.Add(why);
+        }
+
+        return tried.Count switch
+        {
+            0 => (null, "neither the .ao nor the .sm names a material", string.Empty),
+            1 => (null, reasons[0], tried[0]),
+
+            // SEVERAL, AND EACH ONE'S REASON, because "none of the three had a colour map" and
+            // "the one material there is has none" are different findings and only the first
+            // says the shape-by-shape walk was tried and came back empty.
+            _ => (null, $"none of the {tried.Count} materials has a colour texture - {string.Join(" | ", reasons.Take(Some))}", tried[0]),
+        };
+    }
+
+    /// <summary>
+    /// Which texture each shape of the mesh wears, and the materials they came out of.
+    /// </summary>
+    /// <remarks>
+    /// THE SHAPE'S NAME IS THE JOIN, and it was already being read - the .ao's SkinMesh block
+    /// holds one child per shape, keyed by the shape's own name and valued with its material
+    /// (<c>HipsShape = ".../Body.mat:0"</c>), and SkinnedMesh.Shapes carries the same names with
+    /// the range of indices each covers. Nothing new has to be parsed to paint a monster part by
+    /// part; the two sides simply were never put next to each other.
+    ///
+    /// THE MANIFEST IS THE SECOND SOURCE and only where the counts agree. A .sm lists materials
+    /// in what looks like shape order, which is worth using and not worth trusting blind: a list
+    /// of a different length is a list this does not understand, and indexing into it anyway
+    /// would paint parts from whatever happened to line up.
+    ///
+    /// WHAT IS NOT NAMED KEEPS THE OLD ANSWER. A shape with no material of its own gets the
+    /// single skin the whole mesh used to wear, so every monster whose .ao names one material
+    /// draws exactly as it did and only the ones that name several change.
+    ///
+    /// READ ONCE PER MATERIAL, through a cache: nine shapes over two sheets is two decodes, not
+    /// nine, and a boss's sheet is 2048 square.
+    /// </remarks>
+    private static Dress Dressed(
+        Func<string, byte[]?> read,
+        SkinnedMesh mesh,
+        IReadOnlyList<(string Shape, string Material)> named,
+        MeshManifest manifest,
+        Mipmaps? fallback,
+        string material,
+        Paints paints)
+    {
+        if (mesh.Shapes.Count == 0)
+        {
+            return new Dress([], fallback is null ? [] : [material], [], false);
+        }
+
+        // ONCE, NOT PER SHAPE. The runs are walked to prove they add up before any of them is
+        // used, so asking inside the loop would re-prove the same thing for every shape.
+        IReadOnlyList<string> spread = manifest.Spread(mesh.Shapes.Count);
+        IReadOnlyList<string> paths = [.. manifest.Materials.Select(one => one.Path)];
+
+        // AND THE NAMES ONCE TOO. Matching each shape against the named list by scanning it is
+        // quadratic in the shapes, which a monster never notices and a terrain tile does: its
+        // list holds one entry per prop shape over up to 256 sub-tiles. First spelling wins, as
+        // the scan's first match did.
+        var byName = new Dictionary<string, string>(named.Count, StringComparer.OrdinalIgnoreCase);
+        foreach ((string called, string wears) in named)
+        {
+            byName.TryAdd(called, wears);
+        }
+
+        var textures = new List<string>();
+        var guessed = false;
+
+        var skins = new Mipmaps?[mesh.Shapes.Count];
+        var modes = new string[mesh.Shapes.Count];
+        var wearing = new string[mesh.Shapes.Count];
+        var painted = new string[mesh.Shapes.Count];
+        var used = new List<string>();
+        using ModelProgress.Step step = ModelProgress.Begin(paints.Progress, "painting the shapes", mesh.Shapes.Count);
+        for (var shape = 0; shape < mesh.Shapes.Count; shape++)
+        {
+            step.Advance();
+            // AS WRITTEN, colon and all. The number picks a graph INSIDE the material, one
+            // per shape - see MaterialFile.Graphs - so two shapes naming the same file are
+            // two different textures and the cache has to tell them apart by the whole
+            // string rather than by the file.
+            string wants = Wanted(mesh.Shapes[shape].Name, shape, mesh.Shapes.Count, named, byName, spread, paths);
+            wearing[shape] = wants;
+            painted[shape] = string.Empty;
+            if (wants.Length == 0)
+            {
+                skins[shape] = fallback;
+                modes[shape] = string.Empty;
+                continue;
+            }
+
+            modes[shape] = paints.Modes(read, wants).Last;
+
+            (Mipmaps? worn, _, string texture, bool said) = Colour(read, mesh, wants, paints);
+            painted[shape] = worn is not null ? texture : string.Empty;
+            if (worn is not null)
+            {
+                guessed |= !said;
+                if (!textures.Contains(texture, StringComparer.OrdinalIgnoreCase))
+                {
+                    textures.Add(texture);
+                }
+            }
+
+            skins[shape] = worn ?? fallback;
+            string file = MaterialFile.Bare(wants);
+            if (worn is not null && !used.Contains(file, StringComparer.OrdinalIgnoreCase))
+            {
+                used.Add(file);
+            }
+        }
+
+        if (fallback is not null && used.Count == 0 && material.Length > 0)
+        {
+            used.Add(material);
+        }
+
+        return new Dress(skins, used, textures, guessed)
+        {
+            Runs = spread.Count > 0,
+            Modes = modes,
+            ShapeMaterials = wearing,
+            ShapeTextures = painted,
+        };
+    }
+
+    /// <summary>What the shapes ended up wearing, and how sure the walk is about it.</summary>
+    /// <param name="Skins">One texture per shape, in the mesh's order.</param>
+    /// <param name="Materials">The distinct materials they came out of.</param>
+    /// <param name="Textures">The distinct colour textures, by path.</param>
+    /// <param name="Guessed">Whether any was chosen with no slot name saying it is the colour map.</param>
+    private readonly record struct Dress(
+        IReadOnlyList<Mipmaps?> Skins,
+        IReadOnlyList<string> Materials,
+        IReadOnlyList<string> Textures,
+        bool Guessed)
+    {
+        /// <summary>Whether the manifest's numbers added up and were used as runs of shapes.</summary>
+        public bool Runs { get; init; }
+
+        /// <summary>Each shape's material blend mode, raw - see MonsterModel.Modes.</summary>
+        public IReadOnlyList<string> Modes { get; init; } = [];
+
+        /// <summary>Each shape's material as written - see MonsterModel.ShapeMaterials.</summary>
+        public IReadOnlyList<string> ShapeMaterials { get; init; } = [];
+
+        /// <summary>Each shape's colour texture - see MonsterModel.ShapeTextures.</summary>
+        public IReadOnlyList<string> ShapeTextures { get; init; } = [];
+    }
+
+    /// <summary>
+    /// The material a shape asks for: its own by name, else the manifest's by position.
+    /// </summary>
+    /// <remarks>
+    /// BY NAME FIRST, because that is the join the files really make - the .ao's child is keyed
+    /// by the shape's own name - and it is the only one that survives a mesh whose shapes are
+    /// listed in another order.
+    ///
+    /// THEN BY POSITION, AND ONLY WHERE THERE IS EXACTLY ONE ENTRY PER SHAPE. Reported from the
+    /// live client: Count Geonor's human form is fifteen shapes that came back painted from one
+    /// texture and visibly in pieces, while his wolf form - whose materials this matched by
+    /// name - was right. A list as long as the shape list is a list in shape order; a list of
+    /// any other length is one whose order is not established here, and indexing into it anyway
+    /// would paint parts from whatever happened to line up.
+    ///
+    /// THEN THE MANIFEST'S RUNS, which is the case the three above cannot reach: a monster whose
+    /// .ao names nothing and whose manifest names FEWER materials than the mesh has shapes. That
+    /// is not a rare shape - measured from the live client, it is Veynar (35 shapes, 3 materials),
+    /// Connal (11 and 2) and Count Geonor's human form (15 and 7), all three of which came back
+    /// painted from a single sheet and visibly wrong. The number on each material line is what
+    /// spreads the short list over the long one, and <see cref="MeshManifest.Spread"/> only hands
+    /// one back when the numbers add up to exactly the shape count.
+    ///
+    /// The manifest's bare list is the last of the four, on the same terms as the second.
+    /// </remarks>
+    private static string Wanted(
+        string shape,
+        int at,
+        int shapes,
+        IReadOnlyList<(string Shape, string Material)> named,
+        IReadOnlyDictionary<string, string> byName,
+        IReadOnlyList<string> spread,
+        IReadOnlyList<string> manifest)
+    {
+        if (byName.TryGetValue(shape, out string? material))
+        {
+            return material;
+        }
+
+        if (named.Count == shapes && at < named.Count)
+        {
+            return named[at].Material;
+        }
+
+        if (spread.Count == shapes && at < spread.Count)
+        {
+            return spread[at];
+        }
+
+        return manifest.Count == shapes && at < manifest.Count ? manifest[at] : string.Empty;
+    }
+
+    /// <summary>One material: its colour texture, or which way this one is missing it.</summary>
+    private static (Mipmaps? Skin, string Why, string Texture, bool Named) Colour(
+        Func<string, byte[]?> read, SkinnedMesh mesh, string material, Paints paints)
+    {
+        if (material.Length == 0)
+        {
+            return (null, "neither the .ao nor the .sm names a material", string.Empty, true);
+        }
+
+        string file = MaterialFile.Bare(material);
+        if (!paints.Files.TryGetValue(file, out MaterialFile? paint))
+        {
+            paint = Read(read, file, MaterialFile.Read);
+            paints.Files[file] = paint;
+        }
+
+        if (!paint.Ready)
+        {
+            return (null, $"the material did not read: {MaterialFile.Bare(material)}", string.Empty, true);
+        }
+
+        // THE NUMBER AFTER THE FILE PICKS THE GRAPH, which this file's own remark said all
+        // along and nothing acted on: a monster built of parts names one material per shape
+        // as Boss.mat:0, Boss.mat:1, and the colour map is per graph. Taking the first one
+        // for every shape paints the head's sheet onto the cloak - patches of the wrong
+        // colour, which is how Bahlak, Connal and Count Geonor were reported.
+        (string texture, bool named) = paint.AlbedoOf(MaterialFile.SelectorOf(material));
+        if (texture.Length == 0)
+        {
+            // WHAT IT DOES NAME, because this is the one reason here that is a QUESTION rather
+            // than an answer. Every other line says what went wrong and where; this one said
+            // only that the rule found nothing, and the rule - a slot whose name carries
+            // Albedo, Colour or Color, or the first texture that is not a normal map - was
+            // measured on the materials that happened to be looked at. A boss drawn in plain
+            // ink is then indistinguishable from a boss whose slot is called something this
+            // has never seen, and the only way to tell was to read the file with other tools.
+            // So it prints the material and what is in it, which is exactly what deciding
+            // between those two needs.
+            return (
+                null,
+                $"the material names no colour texture - {Listed(MaterialFile.Bare(material), paint)}",
+                string.Empty,
+                true);
+        }
+
+        if (paints.Skins.TryGetValue(texture, out Mipmaps? kept))
+        {
+            // DECODED ONCE PER TEXTURE, not once per shape that points at it: two shapes of
+            // one material name the same sheet through different graphs, and a boss's sheet
+            // is sixteen megabytes of pixels before its levels are built.
+            return kept is null
+                ? (null, $"the texture did not read: {texture}", texture, named)
+                : Fitted(kept, mesh, texture, named);
+        }
+
+        // THROUGH ReadRaw AND NOT A BARE READ. A texture in this game is one of three things and
+        // only the third is a .dds as it stands: it may be a SIGNPOST - a star and the path of the
+        // file that really holds it - or it may sit behind a compressed header. Decoding a plain
+        // read handles the third and silently fails the other two, which shows as a monster with a
+        // mesh and no colour and says nothing about why.
+        if (GameArt.ReadRaw(read, texture) is not { Length: > 0 } bytes)
+        {
+            paints.Skins[texture] = null;
+            return (null, $"the texture did not read: {texture}", texture, named);
+        }
+
+        // THE LEVELS ARE BUILT HERE, ON THE LOAD'S TASK, and not where the picture is drawn: a
+        // boss's skin is 2048 square, and halving it down is a pass over sixteen megabytes that
+        // belongs beside the bundle reads it follows rather than on the frame that first draws it.
+        if (Mipmaps.Of(GameArt.Decode(bytes)) is not { } skin)
+        {
+            paints.Skins[texture] = null;
+            return (null, $"the texture did not decode: {texture}", texture, named);
+        }
+
+        paints.Skins[texture] = skin;
+        return Fitted(skin, mesh, texture, named);
+    }
+
+    /// <summary>A decoded texture with the one thing that can still be wrong about it.</summary>
+    /// <remarks>
+    /// THE COORDINATES ARE CHECKED SEPARATELY AND LAST, because a mesh can have a perfectly
+    /// good texture and no way to look it up - the expected state of a bare body whose clothes
+    /// are attached objects, and a different answer from "the file would not read".
+    /// </remarks>
+    private static (Mipmaps? Skin, string Why, string Texture, bool Named) Fitted(
+        Mipmaps skin, SkinnedMesh mesh, string texture, bool named)
+        => mesh.Coordinated
+            ? (skin, string.Empty, texture, named)
+            : (skin,
+                "the mesh carries no texture coordinates, so the texture cannot be applied",
+                texture,
+                named);
+
+    /// <summary>What has already been read, so nothing is read or decoded twice.</summary>
+    internal sealed class Paints
+    {
+        /// <summary>Where the build this cache serves says how far it has got, or null - see <see cref="ModelProgress"/>.</summary>
+        /// <remarks>ON THE CACHE because the cache is the one thing every step of a build is handed already.</remarks>
+        public ModelProgress? Progress { get; init; }
+
+        /// <summary>Material file by its path, with the selector taken off.</summary>
+        public Dictionary<string, MaterialFile> Files { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Blend modes by material file, the first graph's and the last's, worked out once. See <see cref="Modes"/>.</summary>
+        private readonly Dictionary<string, (string First, string Last)> _modes = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>A shader graph's own blend mode by its path, read once however many materials name it.</summary>
+        private readonly Dictionary<string, string> _graphs = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// The blend mode a material asks for, as it spells it, or empty: where the first graph to name one wins, and where the last does.
+        /// </summary>
+        /// <remarks>
+        /// THE MATERIAL'S OWN WORD FIRST - its defaultgraph's overriden_blend_mode - in both readings,
+        /// and the graphs it is an instance of after it: zao's reader puts the member on both, and the
+        /// nearer file is the one that overrides, as everywhere else in this walk.
+        ///
+        /// THE PICTURE DRAWS THE LAST. Which of two graphs naming a mode stands is written down
+        /// nowhere, and for a while both were drawable behind a switch. What decided it is the files:
+        /// every ground layer of seepage's offices names AlphaBlend in its contact-fade graph and then
+        /// ForceNoZWriteAlphaBlend AFTER it, and the deserted room's walk blocker names Opaque and then
+        /// ForceAlphaBlendNoGI. Under "the first stands" every one of those Force graphs would be dead
+        /// weight. That is a reading of how the files are written, not the engine's code, so the first
+        /// is still worked out: the graph survey counts where the two differ (3,459 of 112,255
+        /// materials the first time it ran, nearly all effects and microtransactions, terrain almost
+        /// never - which is why switching never changed a tile). Every graph is read for the second,
+        /// once each through the cache.
+        /// </remarks>
+        public (string First, string Last) Modes(Func<string, byte[]?> read, string material)
+        {
+            string file = MaterialFile.Bare(material);
+            if (_modes.TryGetValue(file, out (string, string) known))
+            {
+                return known;
+            }
+
+            if (!Files.TryGetValue(file, out MaterialFile? paint))
+            {
+                paint = MaterialFile.Read(read(file.Replace('\\', '/').Trim()));
+                Files[file] = paint;
+            }
+
+            string first = paint.Blend;
+            string last = paint.Blend;
+            if (paint.Blend.Length == 0)
+            {
+                foreach (string parent in paint.Parents)
+                {
+                    if (parent.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    if (!_graphs.TryGetValue(parent, out string? graph))
+                    {
+                        graph = MaterialFile.GraphBlend(read(parent.Replace('\\', '/').Trim()));
+                        _graphs[parent] = graph;
+                    }
+
+                    if (graph.Length > 0)
+                    {
+                        first = first.Length > 0 ? first : graph;
+                        last = graph;
+                    }
+                }
+            }
+
+            _modes[file] = (first, last);
+            return (first, last);
+        }
+
+        /// <summary>Every parent graph the read materials name, distinct. See MonsterModel.Shaders.</summary>
+        public IReadOnlyList<string> Shaders
+        {
+            get
+            {
+                var said = new List<string>();
+                foreach (MaterialFile file in Files.Values)
+                {
+                    foreach (string parent in file.Parents)
+                    {
+                        if (parent.Length > 0 && !said.Contains(parent, StringComparer.OrdinalIgnoreCase))
+                        {
+                            said.Add(parent);
+                        }
+                    }
+                }
+
+                return said;
+            }
+        }
+
+        /// <summary>Decoded texture by its path, with null for one that would not read.</summary>
+        public Dictionary<string, Mipmaps?> Skins { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>A shader graph by its path, read once however many materials are instances of it.</summary>
+        private readonly Dictionary<string, ShaderGraph> _graphFiles = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>What each material's graphs came to, by material file.</summary>
+        private readonly Dictionary<string, Shade> _shades = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>What compiling each material's graphs came to, by material file - before any texture is read.</summary>
+        private readonly Dictionary<string, (ShadeCompile Compiled, IReadOnlyList<string> Inputs)> _compiled = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// One material's graphs compiled, with the Input nodes they name - the textures not yet read.
+        /// </summary>
+        /// <remarks>
+        /// THE INPUTS ARE FOR THE DUMP, which asks of a ground material where its coordinates come
+        /// from: a ground mesh carries none, so whether its graphs read <c>InputUV</c> or
+        /// <c>InputWorldPos</c> is the question. Named in the order the graphs list them.
+        /// </remarks>
+        public (ShadeCompile Compiled, IReadOnlyList<string> Inputs) Compiled(Func<string, byte[]?> read, string material)
+        {
+            string file = MaterialFile.Bare(material);
+            if (_compiled.TryGetValue(file, out (ShadeCompile, IReadOnlyList<string>) known))
+            {
+                return known;
+            }
+
+            var chain = new List<(ShaderInstance, ShaderGraph)>();
+            var inputs = new List<string>();
+            foreach (ShaderInstance instance in ShaderGraph.Instances(read(file.Replace('\\', '/').Trim())))
+            {
+                if (instance.Parent.Length == 0)
+                {
+                    continue;
+                }
+
+                string parent = instance.Parent.Replace('\\', '/').Trim();
+                if (!_graphFiles.TryGetValue(parent, out ShaderGraph? graph))
+                {
+                    graph = ShaderGraph.Read(read(parent));
+                    _graphFiles[parent] = graph;
+                }
+
+                // A GRAPH WITH NO NODES - ForceAlpha is a blend mode and nothing else - has nothing
+                // to compile, and is not missing.
+                chain.Add((instance, graph));
+                foreach (ShaderNode node in graph.Nodes)
+                {
+                    if (node.Type.StartsWith("Input", StringComparison.Ordinal) && !inputs.Contains(node.Type, StringComparer.Ordinal))
+                    {
+                        inputs.Add(node.Type);
+                    }
+                }
+            }
+
+            (ShadeCompile, IReadOnlyList<string>) compiled = (ShadeProgram.Compile(chain), inputs);
+            _compiled[file] = compiled;
+            return compiled;
+        }
+
+        /// <summary>
+        /// What one material's graphs compute for its colour - see MonsterModels.Shaded.
+        /// </summary>
+        public Shade Shade(Func<string, byte[]?> read, string material)
+        {
+            string file = MaterialFile.Bare(material);
+            if (_shades.TryGetValue(file, out Shade known))
+            {
+                return known;
+            }
+
+            ShadeCompile compiled = Compiled(read, material).Compiled;
+            var skipped = new List<string>(compiled.Skipped);
+
+            Shade shade;
+            if (compiled.Program is not { } program)
+            {
+                shade = new Shade(null, null, skipped);
+            }
+            else
+            {
+                var sheets = new Mipmaps?[program.Textures.Count];
+                for (var one = 0; one < sheets.Length; one++)
+                {
+                    sheets[one] = Sheet(read, program.Textures[one].Path);
+                    if (sheets[one] is null)
+                    {
+                        skipped.Add($"a texture that did not read: {program.Textures[one].Path}");
+                    }
+                }
+
+                if (Array.Exists(sheets, one => one is null))
+                {
+                    shade = new Shade(null, null, skipped);
+                }
+                else
+                {
+                    // THE GLOSSY PROGRAM READS ONE MORE TEXTURE - the gloss's - which is fetched here
+                    // and handed over beside the rest; one that does not read leaves it out.
+                    ShadeProgram bound = program.With(sheets);
+                    ShadeProgram? shine = null;
+                    if (program.Glossy is { } glossy)
+                    {
+                        var more = new Mipmaps?[glossy.Textures.Count];
+                        for (var one = 0; one < more.Length; one++)
+                        {
+                            more[one] = Sheet(read, glossy.Textures[one].Path);
+                        }
+
+                        shine = glossy.With(more) is { Bound: true } lit ? lit : null;
+                    }
+
+                    shade = program.Plain >= 0
+                        ? new Shade(null, sheets[program.Plain], skipped, shine)
+                        : new Shade(bound, null, skipped, shine);
+                }
+            }
+
+            _shades[file] = shade;
+            return shade;
+        }
+
+        /// <summary>A texture decoded with its levels, through the same cache as the skins.</summary>
+        private Mipmaps? Sheet(Func<string, byte[]?> read, string texture)
+        {
+            if (Skins.TryGetValue(texture, out Mipmaps? kept))
+            {
+                return kept;
+            }
+
+            Mipmaps? sheet = GameArt.ReadRaw(read, texture) is { Length: > 0 } bytes
+                ? Mipmaps.Of(GameArt.Decode(bytes))
+                : null;
+            Skins[texture] = sheet;
+            return sheet;
+        }
+    }
+
+    /// <summary>
+    /// A material named, with the slots and textures it holds - the evidence for "no colour".
+    /// </summary>
+    /// <remarks>
+    /// SHORT ON PURPOSE. This goes in a line under the picture, so it carries the material's own
+    /// file name rather than its path, the slot names as written, and the textures by file name
+    /// only - enough to recognise a colour map filed under a slot nobody taught this about, and
+    /// not so much that the line stops being readable. Three of each, because a material with
+    /// more than three of either has already made the point.
+    /// </remarks>
+    private static string Listed(string material, MaterialFile paint)
+    {
+        string Few(IEnumerable<string> names)
+        {
+            string[] some = [.. names.Take(Some)];
+            return some.Length == 0 ? "none" : string.Join(", ", some);
+        }
+
+        static string Named(string path) => path[(path.LastIndexOf('/') + 1)..];
+
+        string file = material.Length > 0 ? Named(material) : "?";
+        string slots = Few(paint.Slots.Select(one => $"{one.Key}={Named(one.Value)}"));
+        string textures = Few(paint.Textures.Select(one => Named(one.Path)));
+
+        return $"{file} names slots: {slots}; textures: {textures}";
+    }
+
+    /// <summary>How many slots and textures the line above names before it stops.</summary>
+    private const int Some = 3;
+
+    /// <summary>
+    /// The first SkinMesh found, walking from the monster's own files outwards through extends.
+    /// </summary>
+    /// <remarks>
+    /// BREADTH FIRST, so the monster's own files are all looked at before anything they extend.
+    /// A depth-first walk would reach a base file before the monster's second .ao, and the nearer
+    /// file is the one whose answer counts.
+    /// </remarks>
+    private static (IReadOnlyList<string> Meshes, IReadOnlyList<(string Shape, string Material)> Materials,
+        string Skeleton, IReadOnlyList<string> Files)? Skinned(
+        Func<string, byte[]?> read, IReadOnlyList<string> named)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var queue = new Queue<(string Path, int Depth)>();
+        var materials = new List<(string Shape, string Material)>();
+
+        // EVERY .ao THE WALK ACTUALLY READ, kept so the dressing can look for attachments in the
+        // same files rather than walking them a second time. The walk stops once it has the skin
+        // and the rig, so this is the monster's own files and whatever they extend up to there -
+        // which is where attached_object entries live.
+        var walked = new List<string>();
+
+        foreach (string one in named)
+        {
+            queue.Enqueue((one, 0));
+        }
+
+        // THE SKIN AND THE SKELETON ARE FOUND SEPARATELY, each by the nearest file that names it,
+        // and the walk carries on past the first until it has both or runs out of files. They are
+        // usually in the same .ao; a monster whose base supplies the rig and whose own file only
+        // swaps the skin is the case that stopping at the skin would leave unable to move.
+        var meshes = new List<string>();
+        string? skeleton = null;
+
+        while (queue.Count > 0 && (meshes.Count == 0 || skeleton is null))
+        {
+            (string path, int depth) = queue.Dequeue();
+            if (path.Length == 0 || !seen.Add(path))
+            {
+                continue;
+            }
+
+            AnimatedObject ao = Object(read, path);
+            if (!ao.Ready)
+            {
+                continue;
+            }
+
+            walked.Add(path);
+
+            if (meshes.Count == 0)
+            {
+                foreach (AoStruct block in ao.Named(Block))
+                {
+                    foreach (AoEntry entry in block.Entries)
+                    {
+                        if (!string.Equals(entry.Key, Entry, StringComparison.Ordinal)
+                            || entry.Value.Length == 0)
+                        {
+                            continue;
+                        }
+
+                        // THE MATERIAL SITS UNDER THE SKIN, ONE CHILD PER SHAPE, and this used
+                        // to take the first on the reasoning that they name the same file with
+                        // different indices. That holds for a monster cut from one sheet and
+                        // NOT for one built out of parts: reported from the live client, Veynar
+                        // the Frostbane draws in plain ink here and is plainly painted in the
+                        // game, which is what a shape-0 material with no colour map in it looks
+                        // like. All of them are kept now and tried in order - see Painted.
+                        // KEY AND VALUE BOTH: the child's key is the SHAPE's own name, which
+                        // is what joins a material to the part of the mesh it belongs on -
+                        // SkinnedMesh.Shapes carries the same names. See Dressed.
+                        foreach (AoEntry child in entry.Children)
+                        {
+                            if (child.Value.Contains(".mat", StringComparison.OrdinalIgnoreCase))
+                            {
+                                materials.Add((child.Key, child.Value));
+                            }
+                        }
+
+                        // EVERY SKIN THE BLOCK NAMES, not the first. Reported from the live
+                        // client: Zar Wali, the Bone Tyrant is a giant snake skeleton and the
+                        // pane drew two floating arms, because his SkinMesh block names SEVEN
+                        // manifests - GSSBArmA, ArmB, ArmC, Chest, Head, Neck, Tail - and this
+                        // took the first and stopped. They are sections of one body on one rig,
+                        // so they are read and joined rather than chosen between.
+                        meshes.Add(entry.Value);
+                    }
+
+                    if (meshes.Count > 0)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (skeleton is null)
+            {
+                foreach (AoStruct block in ao.Named(RigBlock))
+                {
+                    foreach (AoEntry entry in block.Entries)
+                    {
+                        if (string.Equals(entry.Key, RigEntry, StringComparison.Ordinal)
+                            && entry.Value.Length > 0)
+                        {
+                            skeleton = entry.Value;
+                            break;
+                        }
+                    }
+
+                    if (skeleton is not null)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (depth >= MostHops)
+            {
+                continue;
+            }
+
+            foreach (string parent in ao.Extends)
+            {
+                queue.Enqueue((parent, depth + 1));
+            }
+        }
+
+        return meshes.Count == 0 ? null : (meshes, materials, skeleton ?? string.Empty, walked);
+    }
+
+    /// <summary>
+    /// Reads an .ao, adding the extension where the game left it off.
+    /// </summary>
+    /// <remarks>
+    /// AN EXTENDS LINE CARRIES NO EXTENSION - "extends Metadata/Parent" - while an attached object
+    /// carries its .ao in full. The same rule AnimatedObject.Read applies against an install, kept
+    /// here too because this reads through a function rather than one.
+    /// </remarks>
+    private static AnimatedObject Object(Func<string, byte[]?> read, string path)
+    {
+        string said = path.Replace('\\', '/').Trim();
+        if (read(said) is { Length: > 0 } content)
+        {
+            return AnimatedObject.Read(content);
+        }
+
+        int slash = said.LastIndexOf('/');
+        return said.IndexOf('.', slash + 1) < 0
+            ? AnimatedObject.Read(read(said + AnimatedObject.Suffix))
+            : AnimatedObject.None;
+    }
+
+    /// <summary>A shape list cut or padded with empty entries to exactly <paramref name="count"/>.</summary>
+    private static IEnumerable<string> Padded(IReadOnlyList<string> modes, int count)
+    {
+        for (var one = 0; one < count; one++)
+        {
+            yield return one < modes.Count ? modes[one] : string.Empty;
+        }
+    }
+
+    private static T Read<T>(Func<string, byte[]?> read, string path, Func<byte[]?, T> into)
+        => into(path.Length == 0 ? null : read(path.Replace('\\', '/').Trim()));
+}

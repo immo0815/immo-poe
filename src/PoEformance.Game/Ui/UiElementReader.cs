@@ -1,0 +1,550 @@
+using System.Numerics;
+using PoEformance.Core.Memory;
+using PoEformance.Core.Schema;
+
+namespace PoEformance.Game.Ui;
+
+/// <summary>
+/// Converts the game's UI coordinate space into window pixels.
+/// </summary>
+/// <remarks>
+/// The game lays its interface out in a fixed 2560x1600 space and scales that to whatever
+/// window it is running in, so every position and size read off a UiElement is in the FIXED
+/// space and means nothing until converted.
+///
+/// Two scale factors exist because the game does not scale both axes the same way. Width
+/// uses the window MINUS the letterbox bars on either side; height uses the full window.
+/// Each element then picks which pair applies via its ScaleIndex - so an element can be
+/// scaled by width on one axis and height on the other. Getting this wrong is invisible at
+/// 16:10 (where the two factors are equal) and obvious on an ultrawide, which is exactly the
+/// kind of bug that only shows up on someone else's monitor.
+/// </remarks>
+public readonly record struct UiScale(int WindowWidth, int WindowHeight, int Cull)
+{
+    /// <summary>The interface's design resolution; all UI coordinates are in this space.</summary>
+    public const float BaseWidth = 2560f;
+    public const float BaseHeight = 1600f;
+
+    /// <summary>Width factor: the window minus the letterbox bars on both sides.</summary>
+    public float WidthFactor => (WindowWidth - (2f * Cull)) / BaseWidth;
+
+    /// <summary>Height factor: the full window height.</summary>
+    public float HeightFactor => WindowHeight / BaseHeight;
+
+    /// <summary>
+    /// The scale pair an element uses, per its ScaleIndex and own multiplier.
+    /// </summary>
+    /// <remarks>
+    /// Index 3 mixing the two axes is the case worth noticing - and an UNKNOWN index means
+    /// no scaling at all rather than a guess, matching the reference, so a misread byte
+    /// leaves the element unscaled instead of wildly misplaced.
+    /// </remarks>
+    public (float Width, float Height) For(byte scaleIndex, float localMultiplier)
+    {
+        float multiplier = float.IsFinite(localMultiplier) && localMultiplier != 0 ? localMultiplier : 1f;
+        return scaleIndex switch
+        {
+            1 => (WidthFactor * multiplier, WidthFactor * multiplier),
+            2 => (HeightFactor * multiplier, HeightFactor * multiplier),
+            3 => (WidthFactor * multiplier, HeightFactor * multiplier),
+            _ => (multiplier, multiplier),
+        };
+    }
+}
+
+/// <summary>One UI element, resolved to window pixels.</summary>
+public sealed record UiElement(
+    ulong Address,
+    Vector2 Position,
+    Vector2 Size,
+    bool Visible,
+    string StringId)
+{
+    public float Left => Position.X;
+    public float Top => Position.Y;
+    public float Right => Position.X + Size.X;
+    public float Bottom => Position.Y + Size.Y;
+    public Vector2 Centre => Position + (Size / 2f);
+
+    public bool Contains(float x, float y)
+        => x >= Left && x <= Right && y >= Top && y <= Bottom;
+}
+
+/// <summary>
+/// Reads the game's UI element tree: position, size, visibility and children.
+/// </summary>
+/// <remarks>
+/// An element only knows where it sits RELATIVE to its parent, so an absolute position means
+/// walking up the chain and accumulating - which is why this exists as its own reader rather
+/// than a field read. Two subtleties in that walk are easy to miss and both come straight
+/// from the reference implementation:
+///
+/// - the parent's PositionModifier is added only when the CHILD asks for it via its own
+///   flag, not when the parent has one;
+/// - when parent and child sit in different scale spaces, the accumulated position must be
+///   CONVERTED between them before the child's own offset is added.
+///
+/// Visibility is likewise not a single flag: an element is visible only if every ancestor is
+/// too, so a panel being closed hides its whole subtree without touching their flags.
+/// </remarks>
+/// <summary>Where one child of a panel is, and whether the game is drawing it.</summary>
+/// <remarks>
+/// A RECORD RATHER THAN THE PAIR IT USED TO BE, and the third field is why: the flags word is
+/// read anyway, to decide whether the child takes its parent's position modifier, and the visible
+/// bit was being read and thrown away in the same breath. Anything wanting to know whether the
+/// game draws a thing had to read the same word again.
+///
+/// The atlas is what wanted it: an overlay's own icon on a node the game is already drawing is a
+/// duplicate of the game's, in a worse place - what is worth drawing is the node the game is NOT
+/// drawing, out in the fog, where nothing else says what is there.
+/// </remarks>
+/// <param name="Position">Top-left in window pixels.</param>
+/// <param name="Size">Width and height in window pixels.</param>
+/// <param name="Shown">
+/// Whether the element's own visible bit is set - the game paints it. FALSE is the interesting
+/// one: the element exists and is placed, and the game is choosing not to show it.
+/// </param>
+/// <param name="Unscaled">
+/// The same top-left in the element's OWN UI space, before its scale pair turned it into
+/// pixels. What a caller hands back to <see cref="UiElementReader.ReadUnder"/> to place this
+/// element's children without walking the chain above it a second time.
+/// </param>
+public readonly record struct Placed(Vector2 Position, Vector2 Size, bool Shown, Vector2 Unscaled);
+
+public sealed class UiElementReader
+{
+    private readonly IMemoryReader _reader;
+    private readonly int _self;
+    private readonly int _childrenFirst;
+    private readonly int _childrenLast;
+    private readonly int _stringId;
+    private readonly int _parent;
+    private readonly int _positionModifier;
+    private readonly int _relativePosition;
+    private readonly int _localScaleMultiplier;
+    private readonly int _flags;
+    private readonly int _scaleIndex;
+    private readonly int _unscaledSize;
+    private readonly int _itemPtr;
+    private readonly uint _flagShouldModifyPos;
+    private readonly uint _flagIsVisible;
+    private readonly int _maxDepth;
+
+    public UiElementReader(IMemoryReader reader, OffsetSchema schema)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(schema);
+        _reader = reader;
+
+        StructDef ui = schema.Structs["UiElementBase"];
+        _self = ui.OffsetOf("Self");
+        _childrenFirst = ui.OffsetOf("ChildrenFirst");
+        _childrenLast = ui.OffsetOf("ChildrenLast");
+        _stringId = ui.OffsetOf("StringIdPtr");
+        _parent = ui.OffsetOf("ParentPtr");
+        _positionModifier = ui.OffsetOf("PositionModifier");
+        _relativePosition = ui.OffsetOf("RelativePosition");
+        _localScaleMultiplier = ui.OffsetOf("LocalScaleMultiplier");
+        _flags = ui.OffsetOf("Flags");
+        _scaleIndex = ui.OffsetOf("ScaleIndex");
+        _unscaledSize = ui.OffsetOf("UnscaledSize");
+        _itemPtr = ui.OffsetOf("ItemPtr");
+        _flagShouldModifyPos = (uint)ui.Constants["FlagShouldModifyPos"];
+        _flagIsVisible = (uint)ui.Constants["FlagIsVisible"];
+        _maxDepth = (int)ui.Constants["MaxParentChainDepth"];
+    }
+
+    /// <summary>
+    /// True when this address really is a UiElement.
+    /// </summary>
+    /// <remarks>
+    /// Every element stores a pointer to itself, so a stale or wrong pointer is caught before
+    /// its other fields are trusted - much cheaper than discovering it through nonsense
+    /// coordinates later.
+    /// </remarks>
+    public bool IsUiElement(ulong address)
+        => MemoryReaderExtensions.IsPlausiblePointer(address)
+           && _reader.ReadPointer(address + (ulong)_self) == address;
+
+    /// <summary>
+    /// Where a set of one parent's children are drawn, without re-walking the chain per child.
+    /// </summary>
+    /// <remarks>
+    /// The same answer as <see cref="Read"/> for each of them, arrived at once instead of
+    /// hundreds of times. Every child of one parent shares the ENTIRE chain above that parent,
+    /// and <see cref="UnscaledPosition"/> re-walks it from scratch every call - so reading five
+    /// hundred siblings costs five hundred walks of the same ten elements, all returning the
+    /// same number.
+    ///
+    /// That is the difference between a panel that can be read every tick and one that cannot.
+    /// The atlas is the case that made it worth having: several hundred nodes under one panel,
+    /// re-read as somebody drags it about.
+    ///
+    /// Everything constant across the siblings - the parent's accumulated position, its
+    /// modifier, its scale space - is read once here. What remains per child is its own
+    /// relative position, flags, scale and size.
+    /// </remarks>
+    /// <param name="nudge">
+    /// A translation to add to the parent's accumulated position, in the parent's own UI space,
+    /// before the children are placed. For a container the game moves without telling the
+    /// children - a scrolled list, whose rows keep the relative positions they were laid out at
+    /// while the viewport above slides the whole content under its clip. Zero for everything
+    /// else, which is every other caller.
+    /// </param>
+    /// <returns>Where each child is and whether it is drawn, by address. Missing for a bad one.</returns>
+    public Dictionary<ulong, Placed> ReadSiblings(
+        ulong parent, IReadOnlyList<ulong> children, UiScale scale, Vector2 nudge = default)
+    {
+        ArgumentNullException.ThrowIfNull(children);
+
+        var placed = new Dictionary<ulong, Placed>(children.Count);
+        if (!IsUiElement(parent))
+        {
+            return placed;
+        }
+
+        Frame frame = FrameOf(parent, UnscaledPosition(parent, scale) + nudge, scale);
+        foreach (ulong child in children)
+        {
+            if (IsUiElement(child))
+            {
+                placed[child] = PlaceUnder(in frame, child, scale);
+            }
+        }
+
+        return placed;
+    }
+
+    /// <summary>
+    /// Where one child of an element that was itself just placed is - without reading anything
+    /// above that element again.
+    /// </summary>
+    /// <remarks>
+    /// The chaining step <see cref="ReadSiblings"/> stops short of: a row placed by it carries
+    /// its own unscaled position, and that is everything a child's placement needs from above.
+    /// The recipe panel is the caller - each row's text sits in a child of its own, and where
+    /// that child starts is where a price goes - and a walk up from every row to the root for
+    /// one child each would cost more than placing all the rows did.
+    /// </remarks>
+    /// <param name="parent">The element the child hangs off, placed by a call above.</param>
+    /// <param name="parentUnscaled">That element's <see cref="Placed.Unscaled"/>.</param>
+    /// <param name="child">The child to place.</param>
+    /// <returns>The child's place, or null when either address is not an element.</returns>
+    public Placed? ReadUnder(ulong parent, Vector2 parentUnscaled, ulong child, UiScale scale)
+    {
+        if (!IsUiElement(parent) || !IsUiElement(child))
+        {
+            return null;
+        }
+
+        Frame frame = FrameOf(parent, parentUnscaled, scale);
+        return PlaceUnder(in frame, child, scale);
+    }
+
+    /// <summary>What every child of one parent shares: its position, its modifier and its scale space.</summary>
+    private readonly record struct Frame(Vector2 Position, Vector2 Modifier, byte Index, float Multiplier, float Width, float Height);
+
+    private Frame FrameOf(ulong parent, Vector2 position, UiScale scale)
+    {
+        Vector2 modifier = ReadVector2(parent + (ulong)_positionModifier);
+        byte index = _reader.Read<byte>(parent + (ulong)_scaleIndex);
+        float multiplier = _reader.Read<float>(parent + (ulong)_localScaleMultiplier);
+        (float width, float height) = scale.For(index, multiplier);
+        return new Frame(position, modifier, index, multiplier, width, height);
+    }
+
+    /// <summary>One child's place under a frame: its own relative position, flags, scale and size.</summary>
+    private Placed PlaceUnder(in Frame frame, ulong child, UiScale scale)
+    {
+        Vector2 relative = ReadVector2(child + (ulong)_relativePosition);
+
+        // The modifier belongs to the parent but is applied only when the CHILD opts in, so it
+        // is read once into the frame and chosen per child here.
+        uint flags = _reader.Read<uint>(child + (ulong)_flags);
+        Vector2 above = (flags & _flagShouldModifyPos) != 0 ? frame.Position + frame.Modifier : frame.Position;
+
+        byte index = _reader.Read<byte>(child + (ulong)_scaleIndex);
+        float multiplier = _reader.Read<float>(child + (ulong)_localScaleMultiplier);
+        (float childW, float childH) = scale.For(index, multiplier);
+
+        Vector2 unscaled = index == frame.Index && multiplier.Equals(frame.Multiplier)
+            ? above + relative
+            : new Vector2(
+                childW != 0 ? (above.X * frame.Width / childW) + relative.X : relative.X,
+                childH != 0 ? (above.Y * frame.Height / childH) + relative.Y : relative.Y);
+
+        Vector2 size = ReadVector2(child + (ulong)_unscaledSize);
+
+        return new Placed(
+            new Vector2((unscaled.X * childW) + scale.Cull, unscaled.Y * childH),
+            new Vector2(size.X * childW, size.Y * childH),
+            (flags & _flagIsVisible) != 0,
+            unscaled);
+    }
+
+    /// <summary>Reads one element resolved to window pixels, or null if it is not one.</summary>
+    public UiElement? Read(ulong address, UiScale scale, bool withStringId = true)
+    {
+        if (!IsUiElement(address))
+        {
+            return null;
+        }
+
+        byte scaleIndex = _reader.Read<byte>(address + (ulong)_scaleIndex);
+        float multiplier = _reader.Read<float>(address + (ulong)_localScaleMultiplier);
+        (float scaleW, float scaleH) = scale.For(scaleIndex, multiplier);
+
+        Vector2 unscaled = UnscaledPosition(address, scale);
+        var position = new Vector2((unscaled.X * scaleW) + scale.Cull, unscaled.Y * scaleH);
+
+        Vector2 size = ReadVector2(address + (ulong)_unscaledSize);
+        size = new Vector2(size.X * scaleW, size.Y * scaleH);
+
+        string stringId = withStringId
+            ? _reader.ReadStdWString(address + (ulong)_stringId)
+            : string.Empty;
+
+        return new UiElement(address, position, size, IsVisible(address), stringId);
+    }
+
+    /// <summary>
+    /// Accumulates this element's position in UI space by walking up the parent chain.
+    /// </summary>
+    public Vector2 UnscaledPosition(ulong address, UiScale scale)
+        => UnscaledPosition(address, scale, 0);
+
+    private Vector2 UnscaledPosition(ulong address, UiScale scale, int depth)
+    {
+        Vector2 relative = ReadVector2(address + (ulong)_relativePosition);
+
+        ulong parent = _reader.ReadPointer(address + (ulong)_parent);
+        if (depth >= _maxDepth || !IsUiElement(parent))
+        {
+            return relative;
+        }
+
+        Vector2 parentPosition = UnscaledPosition(parent, scale, depth + 1);
+
+        // The modifier belongs to the parent but is applied only when the CHILD opts in.
+        uint flags = _reader.Read<uint>(address + (ulong)_flags);
+        if ((flags & _flagShouldModifyPos) != 0)
+        {
+            parentPosition += ReadVector2(parent + (ulong)_positionModifier);
+        }
+
+        byte myIndex = _reader.Read<byte>(address + (ulong)_scaleIndex);
+        float myMultiplier = _reader.Read<float>(address + (ulong)_localScaleMultiplier);
+        byte parentIndex = _reader.Read<byte>(parent + (ulong)_scaleIndex);
+        float parentMultiplier = _reader.Read<float>(parent + (ulong)_localScaleMultiplier);
+
+        if (myIndex == parentIndex && myMultiplier.Equals(parentMultiplier))
+        {
+            return parentPosition + relative;
+        }
+
+        // Different scale spaces: bring the parent's position into this element's space
+        // before adding the child's own offset, or the offset means something else.
+        (float parentW, float parentH) = scale.For(parentIndex, parentMultiplier);
+        (float myW, float myH) = scale.For(myIndex, myMultiplier);
+        return new Vector2(
+            myW != 0 ? (parentPosition.X * parentW / myW) + relative.X : relative.X,
+            myH != 0 ? (parentPosition.Y * parentH / myH) + relative.Y : relative.Y);
+    }
+
+    /// <summary>
+    /// True when this element AND every ancestor is visible.
+    /// </summary>
+    /// <remarks>
+    /// The whole chain matters: a closed panel leaves its children's own flags set, so
+    /// checking only the element itself reports hidden UI as visible.
+    /// </remarks>
+    public bool IsVisible(ulong address)
+    {
+        for (int depth = 0; depth <= _maxDepth; depth++)
+        {
+            if (!IsUiElement(address))
+            {
+                return false;
+            }
+
+            if ((_reader.Read<uint>(address + (ulong)_flags) & _flagIsVisible) == 0)
+            {
+                return false;
+            }
+
+            ulong parent = _reader.ReadPointer(address + (ulong)_parent);
+            if (!IsUiElement(parent))
+            {
+                return true; // reached the root
+            }
+
+            address = parent;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// This element's OWN visible bit, without asking about its ancestors.
+    /// </summary>
+    /// <remarks>
+    /// NOT A CHEAPER <see cref="IsVisible"/> and not a substitute for it: on its own this says
+    /// nothing about whether the element is on screen, because a closed panel leaves every flag
+    /// in its subtree set. It is only an answer for a caller that has ALREADY established the
+    /// chain above - measuring the children of a panel whose own visibility was just checked,
+    /// which is <c>PanelReader</c>'s case and would otherwise re-walk the same ancestors once
+    /// per child.
+    /// </remarks>
+    public bool IsShowingItself(ulong address)
+        => IsUiElement(address)
+           && (_reader.Read<uint>(address + (ulong)_flags) & _flagIsVisible) != 0;
+
+    /// <summary>Adds this element and every ancestor of it to <paramref name="into"/>.</summary>
+    /// <remarks>
+    /// The cheap way to ask "is this element inside that one" for a handful of elements whose
+    /// identity matters: the chain is a pointer each element already holds, so walking UP is a
+    /// few reads, while searching down from the candidate is the whole subtree. What it is for
+    /// is <c>InterfaceReader</c>, which must never report an element the maps live under as part of
+    /// the interface - that would take the minimap out of the region it is drawn on.
+    /// </remarks>
+    /// <param name="order">
+    /// Optionally, the same addresses in the order they were walked - LEAF FIRST, so the last
+    /// entry is the outermost element the chain reached. That order is the answer to "which
+    /// container is this element two levels inside", which is how the atlas's own screen is
+    /// found without naming it or trusting an index.
+    /// </param>
+    public void AndAncestors(ulong address, ISet<ulong> into, List<ulong>? order = null)
+    {
+        ArgumentNullException.ThrowIfNull(into);
+
+        for (int depth = 0; depth <= _maxDepth && IsUiElement(address) && into.Add(address); depth++)
+        {
+            order?.Add(address);
+            address = _reader.ReadPointer(address + (ulong)_parent);
+        }
+    }
+
+    /// <summary>The item entity a slot element holds, or 0 for none.</summary>
+    /// <remarks>
+    /// Zero is the ordinary answer: most elements are not slots, and a slot can be empty. What
+    /// makes it worth a method is what a non-zero answer identifies - an inventory slot, a belt
+    /// slot - without a name or an index: a slot IS whatever points at an item. A value that is
+    /// not a plausible pointer counts as none rather than being handed on to be read through.
+    /// </remarks>
+    public ulong ItemOf(ulong address)
+    {
+        if (!IsUiElement(address))
+        {
+            return 0;
+        }
+
+        ulong item = _reader.ReadPointer(address + (ulong)_itemPtr);
+        return MemoryReaderExtensions.IsPlausiblePointer(item) ? item : 0;
+    }
+
+    /// <summary>Reads the element's child pointers.</summary>
+    /// <remarks>
+    /// THE POINTER ARRAY IN ONE READ, and one per child only when that fails. The array is
+    /// contiguous, so a container of three hundred rows is one kernel transition rather than
+    /// three hundred - which is the difference between a list that can be re-read every tick
+    /// and one that cannot. The per-pointer walk stays as the fallback because a recording made
+    /// before this read existed holds the pointers one at a time and nothing wider, and a
+    /// replay must keep answering; it costs that replay one refused read and nothing else.
+    /// </remarks>
+    public List<ulong> Children(ulong address, int max = 512)
+    {
+        var children = new List<ulong>();
+        if (!IsUiElement(address))
+        {
+            return children;
+        }
+
+        ulong first = _reader.ReadPointer(address + (ulong)_childrenFirst);
+        ulong last = _reader.ReadPointer(address + (ulong)_childrenLast);
+        if (!MemoryReaderExtensions.IsPlausiblePointer(first) || last <= first)
+        {
+            return children;
+        }
+
+        long count = (long)(last - first) / 8;
+        if (count is < 0 or > 4096)
+        {
+            return children; // a torn read mid-resize, not a real child list
+        }
+
+        int take = (int)Math.Min(count, max);
+        Span<byte> block = take * 8 <= 2048 ? stackalloc byte[take * 8] : new byte[take * 8];
+        if (_reader.TryRead(first, block))
+        {
+            ReadOnlySpan<ulong> pointers = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, ulong>(block);
+            children.Capacity = take;
+            foreach (ulong child in pointers)
+            {
+                if (MemoryReaderExtensions.IsPlausiblePointer(child))
+                {
+                    children.Add(child);
+                }
+            }
+
+            return children;
+        }
+
+        for (long i = 0; i < count && children.Count < max; i++)
+        {
+            ulong child = _reader.ReadPointer(first + (ulong)(i * 8));
+            if (MemoryReaderExtensions.IsPlausiblePointer(child))
+            {
+                children.Add(child);
+            }
+        }
+
+        return children;
+    }
+
+    /// <summary>The parent's PositionModifier - for a scroll viewport, how far its content has slid.</summary>
+    public Vector2 PositionModifierOf(ulong address)
+        => IsUiElement(address) ? ReadVector2(address + (ulong)_positionModifier) : Vector2.Zero;
+
+    /// <summary>Whether an element takes its parent's PositionModifier on its own account.</summary>
+    /// <remarks>
+    /// The one flag the position arithmetic turns on, exposed so a reader that has to add a
+    /// parent's modifier BY HAND can tell when the ordinary walk has already done it - adding
+    /// it twice would scroll a list at twice its speed.
+    /// </remarks>
+    public bool TakesParentModifier(ulong address)
+        => IsUiElement(address) && (_reader.Read<uint>(address + (ulong)_flags) & _flagShouldModifyPos) != 0;
+
+    /// <summary>An element's scale space, for converting a translation between two of them.</summary>
+    public (byte Index, float Multiplier) ScaleSpaceOf(ulong address)
+        => IsUiElement(address)
+            ? (_reader.Read<byte>(address + (ulong)_scaleIndex), _reader.Read<float>(address + (ulong)_localScaleMultiplier))
+            : ((byte)0, 1f);
+
+    /// <summary>Reads the nth child directly, without materialising the whole list.</summary>
+    public ulong Child(ulong address, int index)
+    {
+        if (index < 0 || !IsUiElement(address))
+        {
+            return 0;
+        }
+
+        ulong first = _reader.ReadPointer(address + (ulong)_childrenFirst);
+        ulong last = _reader.ReadPointer(address + (ulong)_childrenLast);
+        if (!MemoryReaderExtensions.IsPlausiblePointer(first) || last <= first)
+        {
+            return 0;
+        }
+
+        return (ulong)((index + 1) * 8) > last - first
+            ? 0
+            : _reader.ReadPointer(first + (ulong)(index * 8));
+    }
+
+    private Vector2 ReadVector2(ulong address)
+    {
+        Span<float> pair = stackalloc float[2];
+        return _reader.TryRead(address, System.Runtime.InteropServices.MemoryMarshal.AsBytes(pair))
+            ? new Vector2(pair[0], pair[1])
+            : Vector2.Zero;
+    }
+}

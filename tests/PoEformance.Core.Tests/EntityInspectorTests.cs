@@ -1,0 +1,735 @@
+using PoEformance.Core.Schema;
+using PoEformance.Features;
+
+namespace PoEformance.Core.Tests;
+
+/// <summary>
+/// Taking an entity apart, and saying which parts nothing understands.
+/// </summary>
+/// <remarks>
+/// The claim being tested is the one the whole feature rests on: "the schema does not
+/// describe this". It has to be right in both directions. Calling a described component
+/// unknown sends someone off to reverse-engineer what is already done; calling an unknown one
+/// described hides the only thing worth looking at.
+///
+/// The fixtures build a real entity in fake memory - component vector, hash bucket, name
+/// strings - because the layout being read is exactly what could be got wrong.
+/// </remarks>
+public class EntityInspectorTests
+{
+    private const ulong EntityAt = 0x2000_0000_0000;
+    private const ulong DetailsAt = 0x2000_0001_0000;
+    private const ulong LookupAt = 0x2000_0002_0000;
+    private const ulong BucketAt = 0x2000_0003_0000;
+    private const ulong ComponentsAt = 0x2000_0004_0000;
+    private const ulong NamesAt = 0x2000_0005_0000;
+
+    private static OffsetSchema Schema()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "schema", "poe2.offsets.json")))
+        {
+            dir = dir.Parent;
+        }
+
+        Assert.NotNull(dir);
+        return SchemaJson.Load(Path.Combine(dir.FullName, "schema", "poe2.offsets.json"));
+    }
+
+    /// <summary>
+    /// Builds one entity carrying the named components, laid out as the game lays them out.
+    /// </summary>
+    private static FakeMemoryReader Entity(
+        OffsetSchema schema, string path, ulong at, ulong details, ulong bucket, ulong components, ulong names,
+        params string[] carried)
+        => Entity(new FakeMemoryReader(), schema, path, at, details, bucket, components, names, carried);
+
+    /// <summary>Adds another entity to a reader, so a survey has more than one to count.</summary>
+    private static FakeMemoryReader Entity(
+        FakeMemoryReader reader, OffsetSchema schema, string path,
+        ulong at, ulong details, ulong bucket, ulong components, ulong names,
+        params string[] carried)
+    {
+        StructDef entity = schema.Structs["Entity"];
+        StructDef detail = schema.Structs["EntityDetails"];
+        StructDef lookup = schema.Structs["ComponentLookup"];
+        StructDef bucketDef = schema.Structs["StdBucket"];
+        StructDef entry = schema.Structs["ComponentLookupEntry"];
+        int entrySize = (int)entry.Constants["Size"];
+
+        ulong lookupAt = details + 0x400;
+        reader.Place(at, new byte[0x200]);
+        reader.Place(details, new byte[0x600]);
+
+        reader.Place(at + (ulong)entity.OffsetOf("Id"), 4242u);
+        reader.Place(at + (ulong)entity.OffsetOf("EntityDetailsPtr"), details);
+        reader.Place(at + (ulong)entity.OffsetOf("ComponentsVec"), components);
+        reader.Place(at + (ulong)entity.OffsetOf("ComponentsVecLast"), components + ((ulong)carried.Length * 8));
+        reader.PlaceStdWString(details + (ulong)detail.OffsetOf("Path"), path, at + 0x180);
+        reader.Place(details + (ulong)detail.OffsetOf("ComponentLookupPtr"), lookupAt);
+
+        // The bucket is INLINE at lookup+0x28 rather than a pointer to one - its fields sit
+        // right there. Placing a pointer instead reads the bucket out of whatever the pointer
+        // happens to be made of, and every component quietly disappears.
+        ulong bucketAt = lookupAt + (ulong)lookup.OffsetOf("Bucket");
+        reader.Place(bucket, new byte[0x200 + (entrySize * carried.Length)]);
+        reader.Place(bucketAt + (ulong)bucketDef.OffsetOf("Data"), bucket + 0x100);
+        reader.Place(bucketAt + (ulong)bucketDef.OffsetOf("DataLast"), bucket + 0x100 + ((ulong)carried.Length * (ulong)entrySize));
+        reader.Place(bucketAt + (ulong)bucketDef.OffsetOf("Capacity"), carried.Length);
+
+        reader.Place(components, new byte[8 * Math.Max(carried.Length, 1)]);
+        reader.Place(names, new byte[0x100 * Math.Max(carried.Length, 1)]);
+
+        for (int i = 0; i < carried.Length; i++)
+        {
+            ulong componentAddress = components + 0x10_0000 + ((ulong)i * 0x1000);
+            ulong nameAddress = names + ((ulong)i * 0x100);
+            ulong entryAt = bucket + 0x100 + ((ulong)i * (ulong)entrySize);
+
+            reader.Place(components + ((ulong)i * 8), componentAddress);
+            reader.Place(componentAddress, new byte[0x100]);
+            reader.PlaceUtf8(nameAddress, carried[i]);
+            reader.Place(entryAt + (ulong)entry.OffsetOf("NamePtr"), nameAddress);
+            reader.Place(entryAt + (ulong)entry.OffsetOf("Index"), i);
+        }
+
+        return reader;
+    }
+
+    private static EntityView Look(EntityInspector inspector, EntityRequest request)
+    {
+        inspector.Request(request);
+        inspector.Service();
+        return inspector.View;
+    }
+
+    [Fact]
+    public void AnEntityIsTakenApartIntoItsComponents()
+    {
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Skeleton", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "Life", "Positioned");
+
+        EntityView view = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+
+        Assert.Equal("Metadata/Monsters/Skeleton", view.Path);
+        Assert.Equal(4242u, view.Id);
+        Assert.Equal(3, view.Components.Count);
+        Assert.Contains(view.Components, component => component.Name == "Life" && component.Address != 0);
+    }
+
+    [Fact]
+    public void AnOpenedComponentIsReadFieldByFieldAndAShutOneIsNot()
+    {
+        // Both halves matter. The values are the point of unfolding a component at all, and
+        // NOT reading the others is what keeps it affordable: this is a read per field, and
+        // an entity carrying twenty components would otherwise pay for all of them every tick
+        // to show the one somebody opened.
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Skeleton", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "Positioned");
+
+        // Positioned is the second component the fixture lays out, and its Reaction byte sits
+        // further in than the fixture's own block reaches.
+        ulong positioned = ComponentsAt + 0x10_0000 + 0x1000;
+        reader.Place(positioned + (ulong)schema.Structs["Positioned"].OffsetOf("Reaction"), (byte)1);
+
+        EntityView view = Look(
+            new EntityInspector(reader, schema),
+            new EntityRequest(true, EntityAt, Expand: ["Positioned"]));
+
+        ComponentEntry open = view.Components.Single(component => component.Name == "Positioned");
+        Assert.NotNull(open.Values);
+
+        // Named rather than numbered, because the schema says what a 1 means here. That is
+        // the whole difference between a value somebody has to look up and one they can read.
+        Assert.Contains(open.Values!, field => field.Name == "Reaction" && field.Text == "friendly (1)");
+
+        Assert.Null(view.Components.Single(component => component.Name == "Render").Values);
+    }
+
+    [Fact]
+    public void ComponentsTheSchemaDoesNotDescribeAreMarkedAsSUCH()
+    {
+        // The claim the whole feature rests on, and it has to be right both ways round. The
+        // undescribed one is a made-up name on purpose: this used to name a real component the
+        // schema happened not to cover, and then somebody covered it and the test went red for
+        // the one reason that is not a bug.
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Skeleton", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "NoSuchComponentWillEverBeAdded");
+
+        EntityView view = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+
+        Assert.True(view.Components.Single(c => c.Name == "Render").Described);
+        Assert.False(view.Components.Single(c => c.Name == "NoSuchComponentWillEverBeAdded").Described);
+        Assert.Equal(1, view.Undescribed);
+    }
+
+    [Fact]
+    public void AStructWithNoFieldsInItDoesNotCountAsDescribed()
+    {
+        // The reason this counts fields instead of asking whether a struct of that name exists.
+        // Several components are declared here as a bare name with nothing in them, and under
+        // the old test they counted as understood - so the one number whose job is to point at
+        // what is unknown pointed too low.
+        OffsetSchema schema = Schema();
+        string empty = schema.Structs.First(entry => entry.Value.Fields.Count == 0).Key;
+
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Skeleton", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", empty);
+
+        EntityView view = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+
+        Assert.Equal(0, view.Components.Single(c => c.Name == empty).Fields);
+        Assert.False(view.Components.Single(c => c.Name == empty).Described);
+        Assert.True(view.Components.Single(c => c.Name == "Render").Fields > 0);
+        Assert.Equal(1, view.Undescribed);
+    }
+
+    [Fact]
+    public void TheUndescribedOnesComeFirstBecauseTheyAreThePoint()
+    {
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Skeleton", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "SomethingNobodyHasRead", "Life");
+
+        EntityView view = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+
+        Assert.Equal("SomethingNobodyHasRead", view.Components[0].Name);
+    }
+
+    /// <summary>What is on an entity with a clock running, and what has no clock at all.</summary>
+    /// <remarks>
+    /// The question this exists to answer: a flame wall obviously has a duration - the game
+    /// prints it in the tooltip - and it carries no DiesAfterTime component whatsoever, so the
+    /// classification cannot see it expire. If the duration is anywhere on the entity it is
+    /// here, on the Buffs component, which is where the reference reads every other duration
+    /// from. Reading it for the SELECTED entity only is what makes the vector walk affordable.
+    ///
+    /// The permanent case is the one worth building: a buff that never ends does not report a
+    /// duration of zero, it reports INFINITY, and formatted naively that reads as a number
+    /// somebody could act on. The reference's buff bar tells the two apart by exactly this
+    /// test, and so does the browser.
+    /// </remarks>
+    [Fact]
+    public void TimedEffectsOnAnEntityAreReadWithTheirClocks()
+    {
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Firewall", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "Buffs");
+
+        StructDef buffs = schema.Structs["Buffs"];
+        StructDef effect = schema.Structs["StatusEffect"];
+        StructDef definition = schema.Structs["BuffDefinition"];
+        int pointerSize = (int)buffs.Constants["StatusEffectPointerSize"];
+
+        // The Buffs component the entity builder placed, and a two-entry vector after it. The
+        // vector holds POINTERS to StatusEffects that live elsewhere - it is not an array of
+        // inline structs, which is what this was built as until a recording said otherwise.
+        EntityView placed = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+        ulong component = placed.Components.Single(c => c.Name == "Buffs").Address;
+
+        const ulong VectorAt = 0x3000_0000_0000;
+        const ulong TimedDefAt = 0x3000_0001_0000;
+        const ulong ForeverDefAt = 0x3000_0002_0000;
+        const ulong TimedNameAt = 0x3000_0003_0000;
+        const ulong ForeverNameAt = 0x3000_0004_0000;
+        const ulong TimedEffectAt = 0x3000_0005_0000;
+        const ulong ForeverEffectAt = 0x3000_0006_0000;
+
+        reader.Place(component + (ulong)buffs.OffsetOf("StatusEffectFirst"), VectorAt);
+        reader.Place(component + (ulong)buffs.OffsetOf("StatusEffectLast"), VectorAt + (ulong)(2 * pointerSize));
+
+        reader.Place(VectorAt, TimedEffectAt);
+        reader.Place(TimedEffectAt + (ulong)effect.OffsetOf("BuffDefinitionPtr"), TimedDefAt);
+        reader.Place(TimedEffectAt + (ulong)effect.OffsetOf("TimeLeft"), 4.5f);
+        reader.Place(TimedEffectAt + (ulong)effect.OffsetOf("TotalTime"), 10.3f);
+        reader.Place(TimedDefAt + (ulong)definition.OffsetOf("Name"), TimedNameAt);
+        reader.PlaceUtf16(TimedNameAt, "wall_of_fire");
+
+        reader.Place(VectorAt + (ulong)pointerSize, ForeverEffectAt);
+        reader.Place(ForeverEffectAt + (ulong)effect.OffsetOf("BuffDefinitionPtr"), ForeverDefAt);
+        reader.Place(ForeverEffectAt + (ulong)effect.OffsetOf("TimeLeft"), float.PositiveInfinity);
+        reader.Place(ForeverEffectAt + (ulong)effect.OffsetOf("TotalTime"), float.PositiveInfinity);
+        reader.Place(ForeverDefAt + (ulong)definition.OffsetOf("Name"), ForeverNameAt);
+        reader.PlaceUtf16(ForeverNameAt, "something_permanent");
+
+        EntityView view = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+
+        Assert.Equal(2, view.Timed.Count);
+
+        TimedEffect timed = view.Timed.Single(e => e.Name == "wall_of_fire");
+        Assert.Equal(4.5f, timed.TimeLeft, 3);
+        Assert.Equal(10.3f, timed.TotalTime, 3);
+
+        // Infinity, not zero. A duration of zero would read as "about to expire", which is
+        // the opposite of what a permanent effect means.
+        TimedEffect forever = view.Timed.Single(e => e.Name == "something_permanent");
+        Assert.False(float.IsFinite(forever.TimeLeft));
+    }
+
+    /// <summary>
+    /// The mods on an entity come off its ObjectMagicProperties by the game's own ids.
+    /// </summary>
+    /// <remarks>
+    /// The question this answers in the game: what tells an essence-imprisoned monster from a
+    /// free one. Its component list says nothing - a rare with a full bar and a targetable
+    /// byte - so if the game says so on the monster at all, it is as a mod or a buff. The one
+    /// candidate the data files hold, EncasedMonsterNoActionSpeed, has no display name, which
+    /// is why the id is what is listed and a name is only ever added beside it.
+    /// </remarks>
+    [Fact]
+    public void TheModsOnAnEntityAreReadByTheirIds()
+    {
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/KaruiTuatara/KaruiTuatara_", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "ObjectMagicProperties");
+
+        EntityView placed = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+        ulong magic = placed.Components.Single(c => c.Name == "ObjectMagicProperties").Address;
+
+        // Two mods in the first list, one in the third, the others empty - the shape a real
+        // rare reads in. Entries point at Mods.dat rows whose first field is the id string.
+        const ulong EntriesAt = 0x3000_0010_0000;
+        const ulong RowsAt = 0x3000_0011_0000;
+        const ulong StringsAt = 0x3000_0012_0000;
+        string[] ids = ["MonsterLesserEssenceModCold1", "EncasedMonsterNoActionSpeed", "MonsterEvasive1"];
+
+        int allMods = schema.Structs["ObjectMagicProperties"].OffsetOf("AllMods");
+        int vectorSize = (int)schema.Structs["StdVector"].Constants["StructSize"];
+        StructDef mod = schema.Structs["ModArray"];
+        int entrySize = (int)mod.Constants["EntrySize"];
+
+        reader.Place(magic, new byte[0x220]);
+        reader.Place(EntriesAt, new byte[entrySize * ids.Length]);
+        for (int i = 0; i < ids.Length; i++)
+        {
+            ulong row = RowsAt + (ulong)(i * 0x100);
+            ulong text = StringsAt + (ulong)(i * 0x100);
+            reader.Place<ulong>(EntriesAt + (ulong)(i * entrySize) + (ulong)mod.OffsetOf("ModsPtr"), row);
+            reader.Place<ulong>(row, text);
+            reader.Place(text, new byte[0x100]);
+            reader.PlaceUtf16(text, ids[i]);
+        }
+
+        reader.Place<ulong>(magic + (ulong)allMods, EntriesAt);
+        reader.Place<ulong>(magic + (ulong)allMods + 8, EntriesAt + (ulong)(entrySize * 2));
+        reader.Place<ulong>(magic + (ulong)allMods + (ulong)(2 * vectorSize), EntriesAt + (ulong)(entrySize * 2));
+        reader.Place<ulong>(magic + (ulong)allMods + (ulong)(2 * vectorSize) + 8, EntriesAt + (ulong)(entrySize * 3));
+
+        EntityView view = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+
+        Assert.Equal(ids, view.Affixes.Select(m => m.Id));
+        Assert.Equal("3 mods on this entity:", view.ModsNote);
+
+        // With no name table wired up a mod keeps its id and nothing else - the id is the half
+        // that answers the question, and an invented name beside it would be a guess.
+        Assert.All(view.Affixes, m => Assert.Equal(string.Empty, m.Name));
+    }
+
+    /// <summary>Carrying ObjectMagicProperties with nothing on it does not look like carrying none.</summary>
+    [Fact]
+    public void CarryingMagicPropertiesWithNoModsSaysSo()
+    {
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Skeleton", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "ObjectMagicProperties");
+
+        EntityView placed = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+        reader.Place(placed.Components.Single(c => c.Name == "ObjectMagicProperties").Address, new byte[0x220]);
+
+        EntityView view = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+        Assert.Empty(view.Affixes);
+        Assert.Equal("carries ObjectMagicProperties, with no mods on it", view.ModsNote);
+
+        // And an entity without the component says nothing at all, rather than "no mods".
+        FakeMemoryReader bare = Entity(
+            schema, "Metadata/Monsters/Skeleton", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "Life");
+        Assert.Equal(string.Empty, Look(new EntityInspector(bare, schema), new EntityRequest(true, EntityAt)).ModsNote);
+    }
+
+    /// <summary>An entity with no Buffs component reports no effects rather than null.</summary>
+    [Fact]
+    public void AnEntityWithoutBuffsHasNoEffectsAndDoesNotThrow()
+    {
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Skeleton", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "Life");
+
+        EntityView view = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+
+        Assert.Empty(view.Timed);
+        Assert.Equal(string.Empty, view.EffectsNote);
+    }
+
+    /// <summary>Carrying Buffs with nothing on it does not look like carrying no Buffs.</summary>
+    /// <remarks>
+    /// The first version of this drew nothing at all when there was nothing to draw, and a
+    /// screenshot of that answered no question: "no Buffs component", "nothing on it", "could
+    /// not be read" and "you are running a build without the feature" were one blank space.
+    /// The whole reason the read was added was to settle a question by looking.
+    /// </remarks>
+    [Fact]
+    public void CarryingBuffsWithNothingOnItSaysSo()
+    {
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Anomalies/Firewall", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "Buffs");
+
+        StructDef buffs = schema.Structs["Buffs"];
+        EntityView placed = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+        ulong component = placed.Components.Single(c => c.Name == "Buffs").Address;
+
+        // An empty vector: both ends readable, and equal.
+        const ulong VectorAt = 0x3100_0000_0000;
+        reader.Place(component + (ulong)buffs.OffsetOf("StatusEffectFirst"), VectorAt);
+        reader.Place(component + (ulong)buffs.OffsetOf("StatusEffectLast"), VectorAt);
+
+        EntityView view = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+
+        Assert.Empty(view.Timed);
+        Assert.Contains("nothing on it", view.EffectsNote, StringComparison.Ordinal);
+    }
+
+    /// <summary>The pairs come from the StatsInternal the component points at, not the component.</summary>
+    /// <remarks>
+    /// The layout invited exactly one wrong reading and got it. The Stats COMPONENT holds no
+    /// pairs; it holds pointers to StatsInternal structures, and the vector is inside those.
+    /// Read straight off the component, 0xF8 is a zeroed field on every entity, which reads
+    /// back as "this thing has no stats" - checked against a recorded flame wall, where
+    /// Stats+0xF8 and Stats+0x100 are both 0x0 while the entity plainly has stats.
+    ///
+    /// So this builds the two levels the way the game does, and would fail against a reader
+    /// that skipped one of them.
+    /// </remarks>
+    [Fact]
+    public void TheStatPairsAreReadThroughTheStatsInternalPointers()
+    {
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Anomalies/Firewall", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "Stats");
+
+        StructDef component = schema.Structs["Stats"];
+        StructDef internals = schema.Structs["StatsInternal"];
+        EntityView placed = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+        ulong stats = placed.Components.Single(c => c.Name == "Stats").Address;
+
+        const ulong InternalAt = 0x3200_0000_0000;
+        const ulong PairsAt = 0x3200_0001_0000;
+
+        reader.Place(stats + (ulong)component.OffsetOf("StatsByBuffAndActions"), InternalAt);
+        reader.Place(InternalAt + (ulong)internals.OffsetOf("StatsVector"), PairsAt);
+        reader.Place(InternalAt + (ulong)internals.OffsetOf("StatsVectorLast"), PairsAt + 16);
+
+        var block = new byte[16];
+        BitConverter.TryWriteBytes(block.AsSpan(0, 4), 351u);          // skill_effect_duration
+        BitConverter.TryWriteBytes(block.AsSpan(4, 4), 10300);         // milliseconds
+        BitConverter.TryWriteBytes(block.AsSpan(8, 4), 347u);          // base_skill_effect_duration
+        BitConverter.TryWriteBytes(block.AsSpan(12, 4), 10000);
+        reader.Place(PairsAt, block);
+
+        EntityView view = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+
+        Assert.Equal(2, view.Numbers.Count);
+        Assert.Equal(10300, view.Numbers.Single(s => s.Id == 351).Value);
+        Assert.Contains("2 from StatsByBuffAndActions", view.StatsNote, StringComparison.Ordinal);
+    }
+
+    /// <summary>A bag longer than the read is cut, and the cut is both said AND flagged.</summary>
+    /// <remarks>
+    /// THIS IS THE ONE THAT WAS NEARLY MISSED. A real character's StatsByBuffAndActions bag
+    /// measured 392 pairs against a cap of 256, so the list stopped 136 short - and a search
+    /// over what was read then answered "that stat is not on this entity" about a stat that
+    /// may simply have been off the end. The note said "(of 392)" the whole time; being told
+    /// in prose is not the same as the code knowing, which is why StatsCutShort exists.
+    ///
+    /// The cap is 1024 now, well past what a player carries, so this builds a bag past THAT
+    /// to prove the reporting still holds rather than that the number happens to be enough.
+    /// </remarks>
+    [Fact]
+    public void ABagLongerThanTheReadIsReportedAsCutShort()
+    {
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Characters/Int/IntFourb", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "Stats");
+
+        StructDef component = schema.Structs["Stats"];
+        StructDef internals = schema.Structs["StatsInternal"];
+        EntityView placed = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+        ulong stats = placed.Components.Single(c => c.Name == "Stats").Address;
+
+        const ulong InternalAt = 0x3600_0000_0000;
+        const ulong PairsAt = 0x3600_0001_0000;
+        const int Pairs = 1500;
+
+        reader.Place(stats + (ulong)component.OffsetOf("StatsByBuffAndActions"), InternalAt);
+        reader.Place(InternalAt + (ulong)internals.OffsetOf("StatsVector"), PairsAt);
+        reader.Place(InternalAt + (ulong)internals.OffsetOf("StatsVectorLast"), PairsAt + (ulong)(Pairs * 8));
+
+        var block = new byte[Pairs * 8];
+        for (int i = 0; i < Pairs; i++)
+        {
+            BitConverter.TryWriteBytes(block.AsSpan(i * 8, 4), (uint)(1000 + i));
+            BitConverter.TryWriteBytes(block.AsSpan((i * 8) + 4, 4), i);
+        }
+
+        reader.Place(PairsAt, block);
+
+        EntityView view = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+
+        Assert.Equal(1024, view.Numbers.Count);
+        Assert.Contains("(of 1500)", view.StatsNote, StringComparison.Ordinal);
+        Assert.True(view.StatsCutShort, "a bag past the cap must say so where code can see it");
+    }
+
+    /// <summary>A bag the read covers is NOT flagged, or the warning becomes noise.</summary>
+    /// <remarks>
+    /// The half that keeps the flag worth having. A warning that shows on every entity is one
+    /// nobody reads by the time it matters - and it matters exactly once.
+    /// </remarks>
+    [Fact]
+    public void ABagThatFitsIsNotFlagged()
+    {
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Characters/Int/IntFourb", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "Stats");
+
+        StructDef component = schema.Structs["Stats"];
+        StructDef internals = schema.Structs["StatsInternal"];
+        EntityView placed = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+        ulong stats = placed.Components.Single(c => c.Name == "Stats").Address;
+
+        const ulong InternalAt = 0x3700_0000_0000;
+        const ulong PairsAt = 0x3700_0001_0000;
+
+        // 392 - the size of the bag that started this, and now comfortably inside the read.
+        const int Pairs = 392;
+
+        reader.Place(stats + (ulong)component.OffsetOf("StatsByBuffAndActions"), InternalAt);
+        reader.Place(InternalAt + (ulong)internals.OffsetOf("StatsVector"), PairsAt);
+        reader.Place(InternalAt + (ulong)internals.OffsetOf("StatsVectorLast"), PairsAt + (ulong)(Pairs * 8));
+        reader.Place(PairsAt, new byte[Pairs * 8]);
+
+        EntityView view = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+
+        Assert.Equal(Pairs, view.Numbers.Count);
+        Assert.DoesNotContain("(of ", view.StatsNote, StringComparison.Ordinal);
+        Assert.False(view.StatsCutShort);
+    }
+
+    /// <summary>One bag reached through two pointers is listed once, and said to be one.</summary>
+    /// <remarks>
+    /// A flame wall's two Stats pointers are the same address. Listed under both headings its
+    /// single stat appears twice, which reads as two independent sightings of a number that
+    /// was only ever read once - and this tool exists to stop exactly that kind of thing.
+    /// </remarks>
+    [Fact]
+    public void TheSameBagReachedTwiceIsOnlyListedOnce()
+    {
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Anomalies/Firewall", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "Stats");
+
+        StructDef component = schema.Structs["Stats"];
+        StructDef internals = schema.Structs["StatsInternal"];
+        EntityView placed = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+        ulong stats = placed.Components.Single(c => c.Name == "Stats").Address;
+
+        const ulong SharedAt = 0x3400_0000_0000;
+        const ulong PairsAt = 0x3400_0001_0000;
+
+        // BOTH pointers at the same StatsInternal, as the game has them on a flame wall.
+        reader.Place(stats + (ulong)component.OffsetOf("StatsByBuffAndActions"), SharedAt);
+        reader.Place(stats + (ulong)component.OffsetOf("StatsByItems"), SharedAt);
+        reader.Place(SharedAt + (ulong)internals.OffsetOf("StatsVector"), PairsAt);
+        reader.Place(SharedAt + (ulong)internals.OffsetOf("StatsVectorLast"), PairsAt + 8);
+
+        var block = new byte[8];
+        BitConverter.TryWriteBytes(block.AsSpan(0, 4), 13189u);
+        BitConverter.TryWriteBytes(block.AsSpan(4, 4), 1);
+        reader.Place(PairsAt, block);
+
+        EntityView view = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+
+        Assert.Single(view.Numbers);
+        Assert.Contains("same bag", view.StatsNote, StringComparison.Ordinal);
+    }
+
+    /// <summary>An empty stat vector is not reported as an unreadable one.</summary>
+    /// <remarks>
+    /// begin == end == null is what an entity with no stats from that source looks like, and
+    /// it is a different claim from "nobody could read this". Both used to print the same
+    /// sentence, which is how a zeroed field got reported as a reading failure.
+    /// </remarks>
+    [Fact]
+    public void AnEmptyStatVectorSaysEmptyAndAMissingOneSaysMissing()
+    {
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Anomalies/Firewall", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "Stats");
+
+        StructDef component = schema.Structs["Stats"];
+        StructDef internals = schema.Structs["StatsInternal"];
+        EntityView placed = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+        ulong stats = placed.Components.Single(c => c.Name == "Stats").Address;
+
+        const ulong InternalAt = 0x3300_0000_0000;
+        reader.Place(stats + (ulong)component.OffsetOf("StatsByBuffAndActions"), InternalAt);
+        reader.Place(InternalAt + (ulong)internals.OffsetOf("StatsVector"), 0UL);
+        reader.Place(InternalAt + (ulong)internals.OffsetOf("StatsVectorLast"), 0UL);
+
+        // StatsByItems is left unplaced, so its pointer read fails outright.
+        EntityView view = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+
+        Assert.Empty(view.Numbers);
+        Assert.Contains("(empty)", view.StatsNote, StringComparison.Ordinal);
+        Assert.Contains("StatsByItems could not be read", view.StatsNote, StringComparison.Ordinal);
+    }
+
+    /// <summary>A Buffs component nobody could read says THAT, rather than "nothing on it".</summary>
+    [Fact]
+    public void ABuffsComponentThatCannotBeReadIsNotReportedAsEmpty()
+    {
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Anomalies/Firewall", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "Buffs");
+
+        // Nothing placed at the component's vector at all, which is what a replay of a
+        // session that never read it looks like.
+        EntityView view = Look(new EntityInspector(reader, schema), new EntityRequest(true, EntityAt));
+
+        Assert.Empty(view.Timed);
+        Assert.Contains("could not be read", view.EffectsNote, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnAddressThatIsNotAnEntityIsReportedRatherThanThrown()
+    {
+        OffsetSchema schema = Schema();
+
+        EntityView view = Look(
+            new EntityInspector(new FakeMemoryReader(), schema), new EntityRequest(true, EntityAt));
+
+        Assert.Empty(view.Components);
+        Assert.Contains("did not read as an entity", view.Status, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NothingIsReadUntilTheWindowIsOpen()
+    {
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Skeleton", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt, "Render");
+
+        EntityView view = Look(new EntityInspector(reader, schema), new EntityRequest(false, EntityAt));
+
+        Assert.Empty(view.Components);
+    }
+
+    [Fact]
+    public void ASurveyCountsHowManyEntitiesCarryEachComponent()
+    {
+        // The question that cannot be asked one entity at a time.
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Skeleton", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "RareUnreadThing");
+
+        EntityView view = Look(
+            new EntityInspector(reader, schema),
+            new EntityRequest(true, 0, Survey: [EntityAt], SurveySequence: 1));
+
+        Assert.Equal(1, view.SurveyedEntities);
+        Assert.Equal(1, view.Survey.Single(entry => entry.Name == "Render").Count);
+        Assert.False(view.Survey.Single(entry => entry.Name == "RareUnreadThing").Described);
+    }
+
+    [Fact]
+    public void TheSurveyPutsTheRAREUndescribedOnesFirst()
+    {
+        // A component two entities in an area carry is a far better lead than one everything
+        // has - and that difference is invisible until they are counted together. So among the
+        // undescribed ones the RARE one has to come first; sorting them by count the usual way
+        // round buries the interesting one under the ubiquitous one.
+        OffsetSchema schema = Schema();
+        const ulong SecondAt = EntityAt + 0x10_0000;
+
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/A", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt,
+            "Render", "SeenEverywhere", "SeenOnce");
+
+        Entity(
+            reader, schema, "Metadata/Monsters/B",
+            SecondAt, DetailsAt + 0x10_0000, BucketAt + 0x10_0000, ComponentsAt + 0x10_0000, NamesAt + 0x10_0000,
+            "Render", "SeenEverywhere");
+
+        var inspector = new EntityInspector(reader, schema);
+        EntityView view = Look(
+            inspector, new EntityRequest(true, 0, Survey: [EntityAt, SecondAt], SurveySequence: 1));
+
+        Assert.Equal(2, view.SurveyedEntities);
+        Assert.Equal(2, view.Survey.Single(entry => entry.Name == "SeenEverywhere").Count);
+        Assert.Equal(1, view.Survey.Single(entry => entry.Name == "SeenOnce").Count);
+
+        // Rarest undescribed first, then the common undescribed one, and only then the ones
+        // the schema already describes.
+        Assert.Equal("SeenOnce", view.Survey[0].Name);
+        Assert.Equal("SeenEverywhere", view.Survey[1].Name);
+        Assert.True(view.Survey[2].Described);
+    }
+
+    [Fact]
+    public void TheSurveyIsTakenONCERatherThanEveryTick()
+    {
+        // It reads every entity in the area. Doing that thirty times a second would put the
+        // reader thread - which also drives auto-flask - permanently behind.
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Skeleton", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt, "Render");
+
+        var inspector = new EntityInspector(reader, schema);
+        Look(inspector, new EntityRequest(true, 0, Survey: [EntityAt], SurveySequence: 1));
+
+        // Asking again with the SAME sequence must not re-read; an empty list would wipe the
+        // tally if it did.
+        EntityView again = Look(inspector, new EntityRequest(true, 0, Survey: [], SurveySequence: 1));
+
+        Assert.Equal(1, again.SurveyedEntities);
+        Assert.NotEmpty(again.Survey);
+    }
+
+    [Fact]
+    public void ASurveySurvivesPickingAnEntityAfterwards()
+    {
+        // They are shown in the same window, and re-counting on every selection would make
+        // the expensive half of the tool fire on an ordinary click.
+        OffsetSchema schema = Schema();
+        FakeMemoryReader reader = Entity(
+            schema, "Metadata/Monsters/Skeleton", EntityAt, DetailsAt, BucketAt, ComponentsAt, NamesAt, "Render");
+
+        var inspector = new EntityInspector(reader, schema);
+        Look(inspector, new EntityRequest(true, 0, Survey: [EntityAt], SurveySequence: 1));
+        EntityView picked = Look(inspector, new EntityRequest(true, EntityAt, Survey: [EntityAt], SurveySequence: 1));
+
+        Assert.NotEmpty(picked.Components);
+        Assert.NotEmpty(picked.Survey);
+    }
+}

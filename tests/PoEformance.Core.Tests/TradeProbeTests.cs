@@ -1,0 +1,165 @@
+using PoEformance.Features;
+
+namespace PoEformance.Core.Tests;
+
+/// <summary>
+/// The one thing about the exchange probe that is not JavaScript: a probe that did not get an
+/// answer must not look like one that did.
+/// </summary>
+/// <remarks>
+/// The stash page quotes the rate only when it is above zero, and that gate is the whole
+/// protection against printing "1 div costs 0 ex" - or worse, dividing poe.ninja's rate by it -
+/// on a probe that never reached the site. So the zero has to be a promise rather than a
+/// coincidence of how the record happens to be built today.
+/// </remarks>
+public sealed class TradeProbeTests
+{
+    [Fact]
+    public void AProbeThatCouldNotRunQuotesNoRate()
+    {
+        TradeProbe never = TradeProbe.Not("the trade window was closed");
+
+        Assert.False(never.Ok);
+        Assert.Equal(0, never.Rate);
+        Assert.Equal("the trade window was closed", never.Error);
+    }
+
+    [Fact]
+    public void AProbeThatCouldNotRunClaimsNothingAboutTheSite()
+    {
+        TradeProbe never = TradeProbe.Not("the trade page has not finished loading");
+
+        // Nothing came back, so nothing may read as having come back: no listings, no ids, and
+        // no status that a reader could mistake for one the site chose.
+        Assert.Equal(0, never.Status);
+        Assert.Equal(0, never.Got);
+        Assert.Empty(never.Tags);
+        Assert.Empty(never.Raw);
+    }
+
+    [Fact]
+    public void AProbeThatCouldNotRunNamesNoLeagueToCompareAgainst()
+    {
+        TradeProbe never = TradeProbe.Not("the trade window was closed");
+
+        // The stash page decides whether to print poe.ninja's rate beside the probe's by
+        // comparing the two leagues. An empty league must therefore never equal a real one -
+        // if it did, a probe that reached nobody would be compared against the price book as
+        // though it had.
+        Assert.Empty(never.League);
+        Assert.False(never.League.Equals("Standard", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void ARateFromAnotherLeagueIsNotTheLeagueBeingPlayed()
+    {
+        // The shape the live probe actually returned: Standard had no listings at all, so the
+        // rate came from the challenge league instead. Printing "240 ex (poe.ninja: 367 ex,
+        // 0.65x)" off that pair divides two unrelated markets by each other, and the guard
+        // against it is this comparison - so pin that it distinguishes them.
+        var elsewhere = new TradeProbe(
+            Ok: true, Status: 200, Limits: string.Empty, Tags: [], Asked: 1, Got: 3,
+            Rate: 240, League: "Runes of Aldur", Listed: 0, ListedRate: 0, ListedStatus: 200, ListedLeague: "Standard",
+            Raw: string.Empty, Error: string.Empty);
+
+        Assert.False(elsewhere.League.Equals("Standard", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal("runes of aldur", elsewhere.League, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AnEmptyExchangeSaysNothingAboutTheSearch()
+    {
+        // The shape that reading the exchange alone got wrong: no exchange listings in the
+        // played league, and plenty on the other api serving the same league. The page decides
+        // which of the two may be compared against poe.ninja from exactly these fields, so pin
+        // that they stay independent - an empty Got must not drag ListedRate down with it.
+        var mixed = new TradeProbe(
+            Ok: true, Status: 200, Limits: string.Empty, Tags: [], Asked: 1, Got: 0,
+            Rate: 240, League: "Runes of Aldur", Listed: 118, ListedRate: 367, ListedStatus: 200, ListedLeague: "Standard",
+            Raw: string.Empty, Error: string.Empty);
+
+        Assert.Equal(0, mixed.Got);
+        Assert.True(mixed.Listed > 0);
+        Assert.Equal(367, mixed.ListedRate);
+        Assert.NotEqual(mixed.Rate, mixed.ListedRate);
+    }
+
+    [Fact]
+    public void ARefusedSearchIsTellableFromAnEmptyOne()
+    {
+        // Both of these count zero listings, and for three runs the page called both of them
+        // "nothing listed in Standard". One of them was the site answering
+        // 400 "Unknown item name" - a question it refused, which says nothing at all about the
+        // market. The status is the only thing that separates them, so pin that it does.
+        var refused = new TradeProbe(
+            Ok: true, Status: 200, Limits: string.Empty, Tags: [], Asked: 1, Got: 0,
+            Rate: 240, League: "Runes of Aldur", Listed: 0, ListedRate: 0, ListedStatus: 400, ListedLeague: "Standard",
+            Raw: string.Empty, Error: "Unknown item name");
+
+        var empty = refused with { ListedStatus = 200, Error = string.Empty };
+
+        Assert.Equal(refused.Listed, empty.Listed);
+        Assert.NotEqual(refused.ListedStatus, empty.ListedStatus);
+        Assert.True(refused.ListedStatus is > 0 and not 200);
+        Assert.False(empty.ListedStatus is > 0 and not 200);
+    }
+
+    [Fact]
+    public void AControlAnswerIsNotTheLeagueBeingPlayed()
+    {
+        // The ladder's last rung puts the same query to a DIFFERENT league on purpose, so a
+        // search rate can arrive from somewhere the price book does not cover. Setting those two
+        // beside each other is the mistake that produced "0.65x" out of two unrelated markets,
+        // and ListedLeague is the only thing standing between here and repeating it.
+        var control = new TradeProbe(
+            Ok: true, Status: 200, Limits: string.Empty, Tags: [], Asked: 1, Got: 4,
+            Rate: 240, League: "Runes of Aldur",
+            Listed: 61, ListedRate: 238, ListedStatus: 200, ListedLeague: "Runes of Aldur",
+            Raw: string.Empty, Error: string.Empty);
+
+        Assert.False(control.ListedLeague.Equals("Standard", StringComparison.OrdinalIgnoreCase));
+
+        var ours = control with { ListedLeague = "Standard", ListedRate = 367 };
+        Assert.Equal("standard", ours.ListedLeague, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TheCheapestListingIsNotThePrice()
+    {
+        // WHAT THE PROBE PRINTED BEFORE THIS RULE REACHED IT: "1 div = 0.1 ex" out of 675 real
+        // listings, and "1 div = 10 ex" out of an order book that had said 240 an hour earlier.
+        // Both apis sort ascending, so taking the first result finds the scam, the typo or the
+        // bait - reliably, because that is exactly what sorting ascending is for.
+        //
+        // The probe now hands its listings to the same rule as the uniques, and these two
+        // constants are handed to the page rather than spelled there, so this test covers both.
+        // An empty book is enough: Quoted("exalted") is 1.0 by definition, so nothing
+        // here depends on a fetched economy.
+        var book = new PriceBook();
+        TradeListing[] withABaitListing =
+        [
+            new(0.1, "exalted"),
+            new(330, "exalted"), new(335, "exalted"), new(338, "exalted"),
+            new(340, "exalted"), new(342, "exalted"), new(345, "exalted"),
+            new(350, "exalted"),
+        ];
+
+        double? asked = TradePrices.Robust(withABaitListing, book);
+
+        Assert.NotNull(asked);
+        Assert.InRange(asked.Value, 300, 360);
+        Assert.NotEqual(0.1, asked.Value);
+    }
+
+    [Fact]
+    public void TooFewListingsAreNotAMarket()
+    {
+        // The other half of the rule, and the reason the exchange - which answered with two
+        // listings - must report no rate at all rather than the mean of two strangers.
+        var book = new PriceBook();
+        TradeListing[] two = [new(10, "exalted"), new(338, "exalted")];
+
+        Assert.True(two.Length < TradePrices.Enough);
+        Assert.Null(TradePrices.Robust(two, book));
+    }
+}

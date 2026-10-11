@@ -1,0 +1,302 @@
+using PoEformance.Core.Schema;
+using PoEformance.Game.Components;
+
+namespace PoEformance.Core.Tests;
+
+/// <summary>The player's granted-skill table, as a set of skill objects with lasting keys and names.</summary>
+public class PlayerSkillsTests
+{
+    private const ulong Actor = 0x0000_0500_0000_0000;
+    private const ulong Spark = 0x0000_0500_2000_0000;
+    private const ulong Orb = 0x0000_0500_2001_0000;
+    private const ulong Nameless = 0x0000_0500_2002_0000;
+
+    private static OffsetSchema Schema() => RealSessionTests.LiveSchema();
+
+    private static string Hex(int offset) => $"+0x{offset:X}";
+
+    private static PlayerSkills Read(OffsetSchema schema, params SkillTableFixture.Skill[] skills)
+    {
+        var fake = new FakeMemoryReader();
+        SkillTableFixture.Place(fake, schema, Actor, skills);
+        var read = new PlayerSkills(fake, schema);
+        read.Refresh(Actor, 0);
+        return read;
+    }
+
+    [Fact]
+    public void TheTableIsReadAsASet_KeyedByDatRowWhereItReaches()
+    {
+        // Three skills: two whose dat row is reachable, and so are keyed by it and named, and
+        // one whose object leads nowhere, which keeps the object as its key and no name.
+        OffsetSchema schema = Schema();
+        PlayerSkills skills = Read(
+            schema,
+            new SkillTableFixture.Skill(Spark, "spark", "Spark"),
+            new SkillTableFixture.Skill(Orb, "orb_of_storms", "Orb of Storms"),
+            new SkillTableFixture.Skill(Nameless, string.Empty));
+
+        Assert.Equal(3, skills.Count);
+        Assert.Equal(2, skills.Keyed);
+        Assert.Equal(2, skills.Named);
+        Assert.True(skills.Contains(Spark));
+        Assert.False(skills.Contains(0x0000_0500_2003_0000));
+
+        Assert.Equal("spark", skills.IdentityOf(Spark).Id);
+        Assert.Equal("Spark", skills.IdentityOf(Spark).Name);
+        Assert.NotEqual(Spark, skills.KeyOf(Spark));           // the row, not the object
+        Assert.NotEqual(skills.KeyOf(Spark), skills.KeyOf(Orb));
+        Assert.Equal(Nameless, skills.KeyOf(Nameless));         // the object, for want of a row
+        Assert.Equal(0UL, skills.KeyOf(0x1234));
+
+        Assert.Equal(Orb, skills.ByName("Orb of Storms"));
+        Assert.Equal(0UL, skills.ByName("Flame Wall"));
+
+        int direct = schema.Structs["ActiveSkillDetails"].OffsetOf("ActiveSkillsDatPtr");
+        Assert.Equal($"{Hex(direct)} row", skills.RouteNote);
+    }
+
+    [Fact]
+    public void TheRowIsReachedThroughGrantedEffectsWhenTheDirectPointerIsNot()
+    {
+        // Nothing at the direct field, and the row at the end of the chain both references
+        // resolve a name through - at the column dat-schema's widths compute.
+        OffsetSchema schema = Schema();
+        PlayerSkills skills = Read(
+            schema,
+            new SkillTableFixture.Skill(Spark, "spark", "Spark", SkillTableFixture.Route.ThroughGrantedEffects));
+
+        Assert.Equal(1, skills.Named);
+        Assert.Equal("Spark", skills.IdentityOf(Spark).Name);
+        Assert.Equal(Spark, skills.ByName("Spark"));
+
+        int perLevel = schema.Structs["ActiveSkillDetails"].OffsetOf("GrantedEffectsPerLevelDatRow");
+        int column = schema.Structs["GrantedEffectsDat"].OffsetOf("ActiveSkill");
+        Assert.Equal($"{Hex(perLevel)} per-level row then {Hex(column)}", skills.RouteNote);
+    }
+
+    [Fact]
+    public void TheReferencesColumnIsTriedToo()
+    {
+        // The two witnesses disagree on the column by eight bytes; whichever reaches a row wins.
+        OffsetSchema schema = Schema();
+        PlayerSkills skills = Read(
+            schema,
+            new SkillTableFixture.Skill(
+                Spark, "spark", "Spark", SkillTableFixture.Route.ThroughGrantedEffectsPerReference));
+
+        Assert.Equal("Spark", skills.IdentityOf(Spark).Name);
+        int column = (int)schema.Structs["GrantedEffectsDat"].Constants["ActiveSkillPerGameHelper2"];
+        Assert.EndsWith($"then {Hex(column)}", skills.RouteNote, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AGrantedEffectsRowWhereThePerLevelRowWasSaidToBeIsReadAsOne()
+    {
+        // What the second run in game was read as: the pointer at the per-level field leads to
+        // a row that begins with an id, which a per-level row does not. Read as a GrantedEffects
+        // row, its ActiveSkill column reaches the name - rather than its id passing for the
+        // skill's and its second column for a name.
+        OffsetSchema schema = Schema();
+        PlayerSkills skills = Read(
+            schema,
+            new SkillTableFixture.Skill(
+                Spark, "spark", "Spark", SkillTableFixture.Route.GrantedEffectsRowInPlaceOfPerLevel));
+
+        Assert.Equal(1, skills.Named);
+        Assert.Equal("spark", skills.IdentityOf(Spark).Id);      // the ActiveSkills id, not "sparkPlayer"
+        Assert.Equal("Spark", skills.IdentityOf(Spark).Name);
+
+        int perLevel = schema.Structs["ActiveSkillDetails"].OffsetOf("GrantedEffectsPerLevelDatRow");
+        int column = schema.Structs["GrantedEffectsDat"].OffsetOf("ActiveSkill");
+        Assert.Equal($"{Hex(perLevel)} granted row then {Hex(column)}", skills.RouteNote);
+    }
+
+    [Fact]
+    public void AGrantedEffectsRowIsSearchedForItsReference_AndASecondIdInItIsNotAName()
+    {
+        // What the third run in game was read as: the row at the per-level field begins with an
+        // id, its ActiveSkill reference sits at neither column the witnesses name, and further
+        // in there is a second id-shaped string ("StormCloud" as "QuakeSlam"). The reference is
+        // found byte by byte, and the name it reaches - where the schema puts it - beats the
+        // string a hunt for a name would have settled for.
+        OffsetSchema schema = Schema();
+        PlayerSkills skills = Read(
+            schema,
+            new SkillTableFixture.Skill(
+                Spark, "spark", "Spark", SkillTableFixture.Route.GrantedEffectsRowWithColumnElsewhere));
+
+        Assert.Equal(1, skills.Named);
+        Assert.Equal("spark", skills.IdentityOf(Spark).Id);
+        Assert.Equal("Spark", skills.IdentityOf(Spark).Name);
+        Assert.Equal(Spark, skills.ByName("Spark"));
+
+        int perLevel = schema.Structs["ActiveSkillDetails"].OffsetOf("GrantedEffectsPerLevelDatRow");
+        Assert.Equal(
+            $"{Hex(perLevel)} granted row then {Hex(SkillTableFixture.ColumnElsewhereAt)}", skills.RouteNote);
+    }
+
+    [Fact]
+    public void TheSurveyQuotesWhatTheObjectAndItsRowLeadTo()
+    {
+        // The layout read off the screen: which of the object's pointers reach a row and what
+        // id it carries, then the strings in that row and the rows it refers to, each with its
+        // name where the schema puts it.
+        OffsetSchema schema = Schema();
+        PlayerSkills skills = Read(
+            schema,
+            new SkillTableFixture.Skill(
+                Spark, "spark", "Spark", SkillTableFixture.Route.GrantedEffectsRowWithColumnElsewhere));
+
+        string survey = skills.SurveyOf(Spark);
+
+        int perLevel = schema.Structs["ActiveSkillDetails"].OffsetOf("GrantedEffectsPerLevelDatRow");
+        Assert.StartsWith($"object: {Hex(perLevel)}→\"sparkPlayer\"", survey, StringComparison.Ordinal);
+        Assert.Contains($"row@{Hex(perLevel)}: str +0x0 \"sparkPlayer\" {Hex(SkillTableFixture.DecoyAt)} \"QuakeSlam\"", survey, StringComparison.Ordinal);
+        Assert.Contains($"ref {Hex(SkillTableFixture.ColumnElsewhereAt)}→\"spark\"(\"Spark\")", survey, StringComparison.Ordinal);
+
+        Assert.Same(survey, skills.SurveyOf(Spark));           // asked every tick, answered once
+        Assert.Equal(string.Empty, skills.SurveyOf(0));
+    }
+
+    [Fact]
+    public void TheRowIsHuntedForWhenNeitherKnownPlaceHoldsIt()
+    {
+        // A row's fingerprint - a first field that reaches a plain id - is what a search of
+        // the object looks for, so a layout the references have not caught up with still names
+        // the skill, and the readout says where it was.
+        OffsetSchema schema = Schema();
+        PlayerSkills skills = Read(
+            schema,
+            new SkillTableFixture.Skill(Spark, "spark", "Spark", SkillTableFixture.Route.Hunted));
+
+        Assert.Equal(1, skills.Named);
+        Assert.Equal("Spark", skills.IdentityOf(Spark).Name);
+        Assert.Equal($"hunted {Hex(SkillTableFixture.HuntedAt)} row", skills.RouteNote);
+    }
+
+    [Fact]
+    public void ADecoyAtTheKnownPlaceDoesNotEndTheHunt()
+    {
+        // What the fourth run in game showed, and what the ranking is for: the field the schema
+        // names holds a pointer to an id-first row of something else, with a second id further
+        // in and no reference to an ActiveSkills row anywhere - a provisional reading - while
+        // the per-level row sits where nothing names it. The search goes on past the decoy, the
+        // certain reading wins, and neither the decoy's id nor its second id is the skill's.
+        OffsetSchema schema = Schema();
+        PlayerSkills skills = Read(
+            schema,
+            new SkillTableFixture.Skill(
+                Spark, "spark", "Spark", SkillTableFixture.Route.PerLevelRowHuntedPastADecoy));
+
+        Assert.Equal(1, skills.Named);
+        Assert.Equal("spark", skills.IdentityOf(Spark).Id);
+        Assert.Equal("Spark", skills.IdentityOf(Spark).Name);
+        Assert.Equal(Spark, skills.ByName("Spark"));
+        Assert.Equal(0UL, skills.ByName("QuakeSlam"));
+
+        int column = schema.Structs["GrantedEffectsDat"].OffsetOf("ActiveSkill");
+        Assert.Equal(
+            $"hunted {Hex(SkillTableFixture.HuntedAt)} per-level row then {Hex(column)}", skills.RouteNote);
+
+        // The survey shows the decoy for what it is - the object's one id-first row, holding a
+        // second id and no reference - which is how the game's layout was read off the screen.
+        int perLevel = schema.Structs["ActiveSkillDetails"].OffsetOf("GrantedEffectsPerLevelDatRow");
+        string survey = skills.SurveyOf(Spark);
+        Assert.StartsWith($"object: {Hex(perLevel)}→\"StormCloud\"", survey, StringComparison.Ordinal);
+        Assert.EndsWith(
+            $"row@{Hex(perLevel)}: str +0x0 \"StormCloud\" {Hex(SkillTableFixture.DecoyAt)} \"QuakeSlam\"; ref",
+            survey,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheNameIsLookedForInTheRowWhenItIsNotWhereTheSchemaSays()
+    {
+        OffsetSchema schema = Schema();
+        PlayerSkills skills = Read(
+            schema,
+            new SkillTableFixture.Skill(Spark, "spark", "Spark", SkillTableFixture.Route.NameElsewhere));
+
+        Assert.Equal("Spark", skills.IdentityOf(Spark).Name);
+        Assert.Equal(Spark, skills.ByName("Spark"));
+
+        int direct = schema.Structs["ActiveSkillDetails"].OffsetOf("ActiveSkillsDatPtr");
+        Assert.Equal($"{Hex(direct)} row, name at {Hex(SkillTableFixture.NameElsewhereAt)}", skills.RouteNote);
+    }
+
+    [Fact]
+    public void ARowWithoutANameIsStillAKey_AndSaysSo()
+    {
+        OffsetSchema schema = Schema();
+        PlayerSkills skills = Read(schema, new SkillTableFixture.Skill(Spark, "spark"));
+
+        Assert.Equal(1, skills.Keyed);
+        Assert.Equal(0, skills.Named);
+        Assert.NotEqual(Spark, skills.KeyOf(Spark));
+        Assert.EndsWith("row (no name)", skills.RouteNote, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnIdThatDoesNotLookLikeOneIsRefused()
+    {
+        // A pointer that happens to reach text is not a row: one character outside a dat id's
+        // alphabet is enough to keep the object as the key.
+        OffsetSchema schema = Schema();
+        PlayerSkills skills = Read(schema, new SkillTableFixture.Skill(Spark, "sp@rk!", "Spark"));
+
+        Assert.Equal(1, skills.Count);
+        Assert.Equal(0, skills.Keyed);
+        Assert.Equal(Spark, skills.KeyOf(Spark));
+        Assert.Equal(0UL, skills.ByName("Spark"));
+    }
+
+    [Fact]
+    public void ReadOnTheClock_AndTheIdentitiesAreKept()
+    {
+        OffsetSchema schema = Schema();
+        var fake = new FakeMemoryReader();
+        SkillTableFixture.Place(fake, schema, Actor, new SkillTableFixture.Skill(Spark, "spark", "Spark"));
+
+        var skills = new PlayerSkills(fake, schema);
+        skills.Refresh(Actor, 0);
+        int version = skills.Version;
+
+        long before = fake.Reads;
+        skills.Refresh(Actor, PlayerSkills.RefreshMs - 1);
+        Assert.Equal(before, fake.Reads);                       // within the pause, nothing is read
+
+        skills.Refresh(Actor, PlayerSkills.RefreshMs);
+        long reread = fake.Reads - before;
+
+        // The vector's two pointers and the table itself: the identity's hops and its strings
+        // were paid the first time and are not paid again.
+        Assert.Equal(3, reread);
+        Assert.Equal(version, skills.Version);                  // the same set is not a change
+        Assert.Equal("Spark", skills.IdentityOf(Spark).Name);
+    }
+
+    [Fact]
+    public void AnotherActorIsAnotherTable()
+    {
+        const ulong other = 0x0000_0500_0100_0000;
+        OffsetSchema schema = Schema();
+        var fake = new FakeMemoryReader();
+        SkillTableFixture.Place(fake, schema, Actor, new SkillTableFixture.Skill(Spark, "spark", "Spark"));
+        SkillTableFixture.Place(fake, schema, other);
+
+        var skills = new PlayerSkills(fake, schema);
+        skills.Refresh(Actor, 0);
+        int version = skills.Version;
+
+        skills.Refresh(other, 1);
+
+        Assert.Equal(0, skills.Count);
+        Assert.False(skills.Contains(Spark));
+        Assert.Equal(0UL, skills.ByName("Spark"));
+        Assert.NotEqual(version, skills.Version);
+
+        skills.Refresh(0, 2);
+        Assert.Equal(0, skills.Count);
+    }
+}

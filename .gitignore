@@ -1,0 +1,38 @@
+# Build output
+bin/
+obj/
+artifacts/
+*.user
+*.suo
+
+# Runtime output
+logs/
+recordings/
+config/*.local.json
+
+# What the updater downloads and unpacks, next to whichever executable is running. Also
+# where the publish workflow drops the build stamp before uploading it.
+update/
+/version.json
+
+# IDE
+.vs/
+.idea/
+*.DotSettings.user
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Memory-session recordings can be huge - never commit them by accident.
+*.rec
+
+# Runtime recordings are ignored, but committed test fixtures are kept.
+recordings/
+*.rec
+!tests/fixtures/*.rec
+
+# Somebody else's game art. scripts\fetch-minimap-icons.ps1 rebuilds this folder
+# from data/minimap-icons.urls.txt, so the recipe is committed and the 2.6 MB of
+# icons are not.
+/assets/minimap-icons/

@@ -1,0 +1,102 @@
+name: CI
+
+# Back on automatic triggers. This was briefly manual-only: the repository was private, so
+# Actions minutes were metered, and the account ran out of them - which is worth recording
+# because the symptom looks nothing like a billing problem. Jobs fail in about three seconds
+# with `runner_id: 0`, no runner name and NO STEP LIST AT ALL: never dispatched to a machine,
+# so nothing is checked out and nothing is built. That is indistinguishable at a glance from
+# a transient Actions outage, and the only thing that tells them apart is that an outage
+# recovers on its own. Making the repository public settled it - public repositories run on
+# GitHub-hosted runners for free, with no minute metering and no Windows multiplier.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  # Kept from the parked version: useful for re-running a suspected-flaky job without
+  # pushing an empty commit.
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      # EnableWindowsTargeting in Directory.Build.props lets the net10.0-windows
+      # projects compile here too, so the whole solution is checked on every push.
+      - run: dotnet build --nologo
+      - run: dotnet test --nologo --no-build
+
+  # THE GRAPHICS CARD'S PICTURES held against the processor's (src/PoEformance.Gpu against
+  # MeshPicture), on WARP - Windows' own Direct3D 11 run on the processor, which every Windows
+  # runner has and which draws exactly what the rules say a card must. The only place the card's
+  # shaders are compiled and run before they reach somebody's machine: the Linux job builds the
+  # code, but Direct3D and its shader compiler are Windows'. Its own job, after test, for the
+  # reasons the AOT job below gives.
+  gpu-test:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - run: dotnet test tests/PoEformance.Gpu.Tests --nologo
+
+  # THE Native AOT gate - the deployment risk this project carries, measured on every
+  # push instead of discovered at ship time. Publishing with PublishAot compiles the
+  # whole dependency graph through ILC: the overlay stack (ClickableTransparentOverlay,
+  # ImGui.NET, Vortice), the WebView2 config window (source-generated COM), and our own
+  # code. A failure here is real information about exactly which dependency breaks AOT;
+  # green here means the ONLY remaining AOT question is runtime behaviour, which needs a
+  # live Windows run. Cross-OS AOT publishing is unsupported, hence the Windows runner.
+  #
+  # Waits for test, which is what the question needs anyway: "does this compile through
+  # ILC" is not worth asking about code that does not compile through Roslyn, and a broken
+  # build otherwise fails here too and reports it as an AOT problem. Starting after test
+  # also stops the two jobs racing each other through GitHub's action-resolution service,
+  # which is where CI #95 and #96 both died - "Failed to resolve action download info,
+  # Service Unavailable", before checkout, while the ubuntu job resolved the same two
+  # actions in the same minute. That is GitHub's infrastructure and not something a
+  # workflow can fix, so this is not offered as the cure; it just removes one way to
+  # collide, and it is the right shape regardless.
+  aot-publish:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - run: dotnet publish src/PoEformance.App -c Release -r win-x64 -p:PublishAot=true
+      - name: Show what AOT produced
+        shell: pwsh
+        run: |
+          $out = "src/PoEformance.App/bin/Release/net10.0-windows/win-x64/publish"
+          Get-ChildItem $out -Recurse -File | Select-Object @{n='file';e={$_.FullName.Substring($out.Length+1)}}, @{n='KB';e={[math]::Round($_.Length/1KB)}} | Format-Table -AutoSize
+          if (-not (Test-Path "$out/PoEformance.App.exe")) { throw "no exe produced" }
+
+      # KEEP THE BINARY. This job already builds a complete, runnable tool and then throws
+      # it away, so the only way to get one has been to build it on a Windows machine with
+      # the SDK installed - which is exactly the machine somebody asking for a build tends
+      # not to have. Publishing the whole directory rather than the exe alone, because the
+      # exe alone does not run: it needs cimgui.dll, WebView2Loader.dll and oo2core.dll
+      # beside it, the data tables, the ui pages, and above all schema/poe2.offsets.json,
+      # which is where this project keeps the offsets it reads the game through.
+      #
+      # The .pdb files come along deliberately. They are the bulk of the download, and they
+      # are also the difference between a crash report naming a line and one naming a bare
+      # address - which, in a Native AOT binary reading another process's memory, is the
+      # difference between a diagnosable report and an unusable one.
+      #
+      # Named by run number so two builds downloaded on the same day cannot be confused.
+      # Running yesterday's exe while believing it is today's is the kind of mistake that
+      # costs an afternoon here, because the symptom is a wrong offset, not a wrong version.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PoEformance-win-x64-${{ github.run_number }}
+          path: src/PoEformance.App/bin/Release/net10.0-windows/win-x64/publish
+          if-no-files-found: error
+          retention-days: 14

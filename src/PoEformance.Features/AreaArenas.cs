@@ -1,0 +1,151 @@
+using PoEformance.Game.Files;
+using PoEformance.Game.World;
+
+namespace PoEformance.Features;
+
+/// <summary>
+/// The boss arena tiles of an area, found in the install without the area being loaded: from the area's terrain folders, by name.
+/// </summary>
+/// <remarks>
+/// TWO ROADS FROM A FOLDER, both taken. The install's own tile index, filtered to the folder: a
+/// map's arena sits under its folder as often as not (<c>Maps/VaalFactory/.../BossArena_01.tdt</c>).
+/// And the folder's masters (<c>.tsi</c>, directly in it, as AreaRoomSet takes them), each naming a
+/// tileset whose list - includes followed - names every tile the generator may lay, an arena filed
+/// under a shared folder among them. A tile is an arena by the same rule the map's markers use
+/// (TerrainLandmarks.LooksLikeArena): its file is named for an arena or a boss.
+///
+/// TILES ONLY, NEVER ROOMS. The install's index carries the rooms (<c>.arm</c>) beside the tiles,
+/// and a campaign boss's arena is as often a room named for it - Gallows/Act1/1_7/arena.arm,
+/// boss_entrance_01.arm - as a tile. A room is not a stage: its grid names slot TYPES and the tiles
+/// that fill them are chosen when the area is generated (RoomLayout), so what the install holds of it
+/// is its doodads alone, and a monster set on those stood on nothing. Offered anyway, the list filled
+/// with rooms that loaded no floor, and the live client read them as tiles that failed.
+///
+/// WHAT IT DOES NOT KNOW is which of several arena-looking tiles is THE arena, where a map's
+/// tileset names a few; it offers all of them, distinct, the folder's own first. The live area, where
+/// the game is running in it, says exactly - see the pane's ArenasIn - and the two lists are joined
+/// by whoever offers them.
+/// </remarks>
+public static class AreaArenas
+{
+    /// <summary>
+    /// What a search found, and what it searched - so an empty answer says which step was empty.
+    /// </summary>
+    /// <param name="Folders">The folders searched.</param>
+    /// <param name="Tiles">The arena tiles found, distinct and in the order found.</param>
+    /// <param name="TilesIndexed">How many tiles the install's index held - nought before its walk, which is the usual reason for nothing found.</param>
+    /// <param name="MastersIndexed">How many masters the install's index held.</param>
+    /// <param name="MastersRead">How many masters sat in the folders and named a tileset.</param>
+    /// <param name="Listed">How many tiles those tilesets listed, includes followed.</param>
+    public readonly record struct Search(
+        IReadOnlyList<string> Folders,
+        IReadOnlyList<string> Tiles,
+        int TilesIndexed,
+        int MastersIndexed,
+        int MastersRead,
+        int Listed)
+    {
+        /// <summary>The search in a line, for under the book's combo.</summary>
+        public string Said
+            => TilesIndexed == 0 && MastersIndexed == 0
+                ? "the install's tile index is not walked yet - open the combo again in a moment"
+                : string.Create(
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    $"{Tiles.Count} arena tile{(Tiles.Count == 1 ? string.Empty : "s")} in {Folders.Count} folder{(Folders.Count == 1 ? string.Empty : "s")} ({string.Join(", ", Folders.Select(Shortened))}) · {MastersRead} master{(MastersRead == 1 ? string.Empty : "s")} listing {Listed} tiles · index: {TilesIndexed} tiles, {MastersIndexed} tilesets");
+
+        private static string Shortened(string folder)
+            => folder.StartsWith("Metadata/Terrain/", StringComparison.OrdinalIgnoreCase) ? folder["Metadata/Terrain/".Length..] : folder;
+    }
+
+    /// <summary>The arena tiles under the folders, distinct and in the order found. Never throws. See <see cref="Find"/>.</summary>
+    public static IReadOnlyList<string> Of(
+        Func<string, byte[]?>? read,
+        IReadOnlyList<string> folders,
+        IReadOnlyList<string> tiles,
+        IReadOnlyList<string> masters)
+        => Find(read, folders, tiles, masters).Tiles;
+
+    /// <summary>
+    /// The arena tiles under the folders, with what was searched to find them. Never throws.
+    /// </summary>
+    /// <param name="read">How to get a file out of the install, by path - or null, and only the tile index is searched.</param>
+    /// <param name="folders">The area's terrain folders, each with its trailing slash - see AreaGraphs.FoldersOf.</param>
+    /// <param name="tiles">Every <c>.tdt</c> the install has, or empty before its walk.</param>
+    /// <param name="masters">Every <c>.tsi</c> the install has, or empty before its walk.</param>
+    public static Search Find(
+        Func<string, byte[]?>? read,
+        IReadOnlyList<string> folders,
+        IReadOnlyList<string> tiles,
+        IReadOnlyList<string> masters)
+    {
+        ArgumentNullException.ThrowIfNull(folders);
+        ArgumentNullException.ThrowIfNull(tiles);
+        ArgumentNullException.ThrowIfNull(masters);
+        if (folders.Count == 0)
+        {
+            return new Search([], [], tiles.Count, masters.Count, 0, 0);
+        }
+
+        var found = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (string folder in folders)
+        {
+            foreach (string tile in tiles)
+            {
+                if (tile.StartsWith(folder, StringComparison.OrdinalIgnoreCase) && IsArenaTile(tile) && seen.Add(tile))
+                {
+                    found.Add(tile);
+                }
+            }
+        }
+
+        if (read is null)
+        {
+            return new Search(folders, found, tiles.Count, masters.Count, 0, 0);
+        }
+
+        var lists = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        var mastersRead = 0;
+        var listed = 0;
+        foreach (string folder in folders)
+        {
+            foreach (string master in masters)
+            {
+                // DIRECTLY IN THE FOLDER and not deeper: a map's graphs sit a folder down, and nothing
+                // there names a tileset.
+                if (!master.StartsWith(folder, StringComparison.OrdinalIgnoreCase) || master.IndexOf('/', folder.Length) >= 0)
+                {
+                    continue;
+                }
+
+                string? set = TilesetFile.Value(Text(read, master), "TileSet");
+                if (set is not { Length: > 0 })
+                {
+                    continue;
+                }
+
+                mastersRead++;
+                foreach (string tile in TilesetIndex.TilesOf(read, TilesetFile.Beside(master, set), lists))
+                {
+                    listed++;
+                    if (IsArenaTile(tile) && seen.Add(tile))
+                    {
+                        found.Add(tile);
+                    }
+                }
+            }
+        }
+
+        return new Search(folders, found, tiles.Count, masters.Count, mastersRead, listed);
+    }
+
+    /// <summary>Whether a path is a tile (<c>.tdt</c>) named for an arena - a room is left out, see the remarks.</summary>
+    private static bool IsArenaTile(string path)
+        => path.EndsWith(".tdt", StringComparison.OrdinalIgnoreCase) && TerrainLandmarks.LooksLikeArena(path);
+
+    private static string? Text(Func<string, byte[]?> read, string path)
+        => read(Slashed(path)) is { Length: > 0 } bytes ? StatDescriptionFiles.Decode(bytes) : null;
+
+    private static string Slashed(string path) => path.Replace('\\', '/').Trim();
+}

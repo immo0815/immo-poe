@@ -1,0 +1,692 @@
+// The node editor: a rule's condition as boxes and wires.
+//
+// Boxes are absolutely positioned DOM, wires are one SVG behind them. Not a <canvas>: a box
+// carries real <select> and <input> controls, and a canvas would mean reimplementing a
+// dropdown - which is how the reference plugin's ImGui editor ends up with 900 lines of
+// hit-testing that this file does not need.
+//
+// The model is exactly what the host stores: { nodes: [{id, kind, x, y, ...}], links:
+// [{from, to}] }. Nothing is derived here and nothing is cached - every edit rewrites the
+// model and calls back, and the host is what turns it into a condition.
+
+const FACT_KIND = "Fact";
+const OUTPUT_KIND = "Output";
+
+/** The joins, in the order the toolbar offers them. */
+const JOINS = [
+  ["All", "AND", "every wire in must hold"],
+  ["Any", "OR", "one wire in is enough"],
+  ["ExactlyOne", "XOR", "exactly one wire in must hold"],
+  ["Not", "NOT", "inverts the one wire in"],
+];
+
+const COMPARE_LABELS = {
+  AtLeast: "≥",
+  AtMost: "≤",
+  Above: ">",
+  Below: "<",
+  Is: "=",
+  IsNot: "≠",
+};
+
+/** Where a box's ports sit, as a share of its height. Kept here so wires and dots agree. */
+const PORT_Y = 0.5;
+
+/** The widths the stylesheet gives a box, for the moment before one has been laid out. */
+const GuessedWidth = (node) =>
+  node.kind === "Output" || node.kind === "Not" ? 130 : 200;
+
+/** And a height. Only ever a stand-in - the observer redraws with the real one. */
+const GuessedHeight = 74;
+
+export class GraphEditor {
+  /**
+   * @param {HTMLElement} host      where to build the editor
+   * @param {object} catalogue      what the engine will accept - facts, comparisons
+   * @param {(graph: object) => void} onChange  called after every edit
+   * @param {() => void} onBusy     called whenever an interaction STARTS, before any edit
+   * @param {(input: HTMLInputElement, fact: string) => void} onField
+   *        called for each text field a fact box builds, so the panel can decorate it - the
+   *        buff list attaches its completions and learns which field a click should fill
+   *
+   * onBusy is not a nicety. The page polls the host once a second and rebuilds this editor
+   * from the answer; a drag is one edit that takes several seconds, and without something to
+   * say "in use" the poll lands mid-drag and puts the box back where it started. The symptom
+   * is that only quick flicks move a box - slow, careful positioning always snaps back.
+   */
+  constructor(host, catalogue, onChange, onBusy = () => {}, onField = () => {}) {
+    this.host = host;
+    this.catalogue = catalogue;
+    this.onChange = onChange;
+    this.onBusy = onBusy;
+    this.onField = onField;
+    this.graph = { nodes: [], links: [] };
+    this.selected = null;
+
+    // The output port a click armed, waiting for an input port. Null when nothing is pending.
+    this.linking = null;
+
+    this.build();
+  }
+
+  build() {
+    this.host.replaceChildren();
+    this.host.className = "graph";
+
+    const bar = document.createElement("div");
+    bar.className = "graph-bar";
+
+    bar.appendChild(this.button("Add condition", () => this.add(FACT_KIND)));
+    for (const [kind, label, title] of JOINS) {
+      bar.appendChild(this.button(label, () => this.add(kind), title));
+    }
+
+    bar.appendChild(this.spacer());
+    bar.appendChild(this.button("Tidy up", () => this.tidy(),
+      "Drop the boxes that reach no output, and lay the rest out"));
+
+    this.hint = document.createElement("span");
+    this.hint.className = "graph-hint dim";
+    bar.appendChild(this.hint);
+
+    this.host.appendChild(bar);
+
+    // Two elements, not one, and the split is what keeps the wires straight. The SURFACE is
+    // the window: a fixed size that scrolls. The CONTENT is as large as the boxes reach, and
+    // everything - wires included - is positioned inside it. Drawing into the surface instead
+    // means the wire layer is the size of the visible strip while the graph is taller, and an
+    // SVG asked to fit a smaller box than its viewBox SQUASHES it: every wire lands in the
+    // right place for a canvas nobody is looking at, and drifts as the graph grows.
+    this.surface = document.createElement("div");
+    this.surface.className = "graph-surface";
+
+    this.content = document.createElement("div");
+    this.content.className = "graph-content";
+    this.surface.appendChild(this.content);
+
+    this.wires = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    this.wires.setAttribute("class", "graph-wires");
+    this.content.appendChild(this.wires);
+
+    // Clicking empty space cancels a half-made wire. Without this an armed port stays armed
+    // across every other interaction, and the next click anywhere makes a link nobody meant.
+    this.surface.addEventListener("pointerdown", (event) => {
+      if (event.target === this.surface || event.target === this.content || event.target === this.wires) {
+        this.linking = null;
+        this.selected = null;
+        this.render();
+      }
+    });
+
+    // Redraws the wires when a box's SIZE changes, which happens in two places that both
+    // produced wires ending nowhere near their dots. The detail pane is built detached and
+    // appended afterwards, so every box measures zero at the moment render() runs; and picking
+    // a different fact grows or shrinks a box, which moves the dot on its edge. Watching the
+    // sizes covers both without either one having to remember to ask.
+    if (typeof ResizeObserver === "function") {
+      this.sizes = new ResizeObserver(() => this.drawWires());
+      this.sizes.observe(this.content);
+    }
+
+    this.host.appendChild(this.surface);
+  }
+
+  /** Watches every box, so one changing height redraws the wires that end on it. */
+  watch() {
+    if (!this.sizes) return;
+    for (const box of this.content.querySelectorAll(".graph-node")) {
+      this.sizes.observe(box);
+    }
+  }
+
+  button(label, onClick, title) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    if (title) button.title = title;
+    button.addEventListener("click", onClick);
+    return button;
+  }
+
+  spacer() {
+    const span = document.createElement("span");
+    span.className = "grow";
+    return span;
+  }
+
+  /** Replaces the graph shown. Does NOT call back - this is the host's copy arriving. */
+  set(graph) {
+    this.graph = graph && graph.nodes?.length ? structuredClone(graph) : blank();
+    this.linking = null;
+    this.selected = null;
+    this.render();
+  }
+
+  get() {
+    return structuredClone(this.graph);
+  }
+
+  changed() {
+    this.render();
+    this.onChange(this.get());
+  }
+
+  add(kind) {
+    // Dropped where there is room rather than at a fixed point, so adding three in a row does
+    // not stack them on top of each other and look like one box.
+    const id = "n" + Math.random().toString(36).slice(2, 10);
+    const row = this.graph.nodes.filter((n) => n.kind === kind).length;
+    this.graph.nodes.push({
+      id,
+      kind,
+      x: kind === FACT_KIND ? 20 : 260,
+      y: 20 + (row % 6) * 96,
+      fact: this.catalogue.facts[0]?.name ?? "InGame",
+      compare: "AtMost",
+      value: 0,
+      argument: 0,
+      text: "",
+      negate: false,
+    });
+    this.selected = id;
+    this.changed();
+  }
+
+  remove(id) {
+    this.graph.nodes = this.graph.nodes.filter((node) => node.id !== id);
+    this.graph.links = this.graph.links.filter((link) => link.from !== id && link.to !== id);
+    if (this.selected === id) this.selected = null;
+    this.changed();
+  }
+
+  /**
+   * Makes a wire, if it is one the model allows.
+   *
+   * Refused rather than corrected: a Not with two inputs and a self-link are both things the
+   * host reads as "says nothing", so allowing them here would let somebody draw a graph that
+   * looks wired and fires nothing.
+   */
+  link(from, to) {
+    if (from === to) return this.say("A box cannot feed itself.");
+
+    const target = this.node(to);
+    if (!target || target.kind === FACT_KIND) return this.say("A condition takes no input.");
+    if (this.node(from)?.kind === OUTPUT_KIND) return this.say("The output feeds nothing.");
+
+    if (this.graph.links.some((link) => link.from === from && link.to === to)) {
+      return this.say("That wire is already there.");
+    }
+
+    // One input each, for the two kinds where a second would change the meaning rather than
+    // add to it. Everything else joins as many as it is given.
+    const single = target.kind === "Not" || target.kind === OUTPUT_KIND;
+    if (single && this.graph.links.some((link) => link.to === to)) {
+      this.graph.links = this.graph.links.filter((link) => link.to !== to);
+    }
+
+    if (this.reaches(to, from)) return this.say("That would make a loop.");
+
+    this.graph.links.push({ from, to });
+    this.say("");
+    this.changed();
+  }
+
+  /** Whether `from` already feeds `to`, directly or through others. */
+  reaches(from, to, seen = new Set()) {
+    if (from === to) return true;
+    if (seen.has(from)) return false;
+    seen.add(from);
+    return this.graph.links
+      .filter((link) => link.from === from)
+      .some((link) => this.reaches(link.to, to, seen));
+  }
+
+  say(message) {
+    this.hint.textContent = message;
+  }
+
+  node(id) {
+    return this.graph.nodes.find((node) => node.id === id) ?? null;
+  }
+
+  /** Drops what reaches no output and lays the rest out in columns. */
+  tidy() {
+    const output = this.graph.nodes.find((node) => node.kind === OUTPUT_KIND);
+    if (!output) return;
+
+    const keep = new Set([output.id]);
+    const walk = (id) => {
+      for (const link of this.graph.links) {
+        if (link.to === id && !keep.has(link.from)) {
+          keep.add(link.from);
+          walk(link.from);
+        }
+      }
+    };
+    walk(output.id);
+
+    this.graph.nodes = this.graph.nodes.filter((node) => keep.has(node.id));
+    this.graph.links = this.graph.links.filter((l) => keep.has(l.from) && keep.has(l.to));
+
+    // Depth from the output, taking the LONGEST path so a box feeding two branches sits left
+    // of both rather than on top of a wire that passes it.
+    const depth = new Map();
+    const measure = (id, at) => {
+      if ((depth.get(id) ?? -1) >= at) return;
+      depth.set(id, at);
+      for (const link of this.graph.links) {
+        if (link.to === id) measure(link.from, at + 1);
+      }
+    };
+    measure(output.id, 0);
+
+    const deepest = Math.max(0, ...depth.values());
+    const used = new Map();
+    for (const node of this.graph.nodes) {
+      const column = deepest - (depth.get(node.id) ?? deepest);
+      const row = used.get(column) ?? 0;
+      used.set(column, row + 1);
+      node.x = 20 + column * 230;
+      node.y = 20 + row * 96;
+    }
+
+    this.changed();
+  }
+
+  render() {
+    // Reentrancy guard, because releasing the focus below can land right back here: the
+    // change handler a blur fires calls changed(), and changed() renders. The outer call
+    // finishes the job with current data; the nested one only needs to not fight it.
+    if (this.rendering) return;
+    this.rendering = true;
+    try {
+      this.paint();
+    } finally {
+      this.rendering = false;
+    }
+  }
+
+  paint() {
+    // The focus is released BEFORE any box is removed. Removing a box whose input is still
+    // focused fires blur - and change, when the value was edited - SYNCHRONOUSLY, in the
+    // middle of the removal; the handler saves and re-renders, and by the time the original
+    // removal resumes its box has been replaced. Chromium answers with the NotFoundError
+    // that names exactly this trap ("moved in a 'blur' event handler"), and the way in was
+    // ordinary: edit a field, then click the empty canvas - pointerdown renders before the
+    // browser has moved the focus. Blurring first lets those handlers run to completion,
+    // and the boxes are queried AFTER, so the list removed is the list that exists.
+    const focused = document.activeElement;
+    if (focused instanceof HTMLElement && this.content.contains(focused)) {
+      focused.blur();
+    }
+
+    for (const box of [...this.content.querySelectorAll(".graph-node")]) box.remove();
+
+    for (const node of this.graph.nodes) {
+      this.content.appendChild(this.box(node));
+    }
+
+    const { width, height } = this.extent();
+    this.resize(width, height);
+    this.drawWires();
+    this.watch();
+  }
+
+  /**
+   * Sizes the content and the wire layer to what the boxes reach.
+   *
+   * The two must agree EXACTLY, in CSS pixels as well as in the viewBox, so the mapping is one
+   * to one and a wire drawn at (400, 600) is painted at (400, 600).
+   */
+  resize(width, height) {
+    this.content.style.width = `${width}px`;
+    this.content.style.height = `${height}px`;
+    this.wires.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    this.wires.setAttribute("width", width);
+    this.wires.setAttribute("height", height);
+  }
+
+  /** The size the content needs, so a dragged box grows the canvas rather than being clipped. */
+  extent() {
+    let width = 480;
+    let height = 240;
+    for (const node of this.graph.nodes) {
+      width = Math.max(width, node.x + 260);
+      height = Math.max(height, node.y + 140);
+    }
+    return { width, height };
+  }
+
+  drawWires() {
+    this.wires.replaceChildren();
+
+    for (const link of this.graph.links) {
+      const from = this.node(link.from);
+      const to = this.node(link.to);
+      if (!from || !to) continue;
+
+      const a = this.port(from, true);
+      const b = this.port(to, false);
+
+      // A curve rather than a straight line: two boxes in the same column produce a horizontal
+      // segment that vanishes behind them, and a bend is what makes crossing wires readable.
+      const bend = Math.max(30, Math.abs(b.x - a.x) / 2);
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", `M ${a.x} ${a.y} C ${a.x + bend} ${a.y}, ${b.x - bend} ${b.y}, ${b.x} ${b.y}`);
+      path.setAttribute("class", "graph-wire");
+      path.addEventListener("click", () => {
+        this.graph.links = this.graph.links.filter((l) => l !== link);
+        this.changed();
+      });
+      this.wires.appendChild(path);
+    }
+  }
+
+  /**
+   * Where a box's port sits, in canvas coordinates.
+   *
+   * A box that has not been LAID OUT yet measures zero, and zero is a number rather than a
+   * missing value - so `offsetWidth ?? 200` never fires and every wire is drawn to the box's
+   * top-left CORNER instead of to its dot. That is not a corner case: the detail pane is built
+   * detached and appended afterwards, so this is the state on every re-render, and the wires
+   * only look right until the next one. Falling back is half the answer; the other half is
+   * the observer in build(), which redraws once the sizes are real.
+   */
+  port(node, out) {
+    const box = this.content.querySelector(`[data-node="${node.id}"]`);
+    const w = box?.offsetWidth || GuessedWidth(node);
+    const h = box?.offsetHeight || GuessedHeight;
+    return { x: node.x + (out ? w : 0), y: node.y + (h * PORT_Y) };
+  }
+
+  box(node) {
+    const box = document.createElement("div");
+    box.className = `graph-node kind-${node.kind.toLowerCase()}`;
+    if (this.selected === node.id) box.classList.add("selected");
+    box.dataset.node = node.id;
+    box.style.left = `${node.x}px`;
+    box.style.top = `${node.y}px`;
+
+    const head = document.createElement("div");
+    head.className = "graph-head";
+    head.appendChild(document.createTextNode(this.title(node)));
+
+    if (node.kind !== OUTPUT_KIND) {
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "graph-remove";
+      remove.textContent = "×";
+      remove.title = "Remove this box";
+      remove.addEventListener("click", (event) => {
+        event.stopPropagation();
+        this.remove(node.id);
+      });
+      head.appendChild(remove);
+    }
+
+    this.draggable(head, node);
+    box.appendChild(head);
+
+    if (node.kind === FACT_KIND) box.appendChild(this.factBody(node));
+    if (node.kind !== FACT_KIND && node.kind !== OUTPUT_KIND) box.appendChild(this.joinBody(node));
+
+    if (node.kind !== FACT_KIND) box.appendChild(this.portDot(node, false));
+    if (node.kind !== OUTPUT_KIND) box.appendChild(this.portDot(node, true));
+
+    box.addEventListener("pointerdown", () => {
+      this.selected = node.id;
+    });
+
+    return box;
+  }
+
+  title(node) {
+    if (node.kind === FACT_KIND) return node.negate ? "not …" : "condition";
+    if (node.kind === OUTPUT_KIND) return "Rule fires";
+    const found = JOINS.find(([kind]) => kind === node.kind);
+    return found ? found[1] : node.kind;
+  }
+
+  portDot(node, out) {
+    const dot = document.createElement("button");
+    dot.type = "button";
+    dot.className = `graph-port ${out ? "out" : "in"}`;
+    dot.title = out ? "Drag a wire from here" : "Wire into here";
+    dot.addEventListener("pointerdown", (event) => event.stopPropagation());
+    dot.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (out) {
+        this.linking = node.id;
+        this.say("Now click the box this should feed.");
+        return;
+      }
+
+      if (!this.linking) {
+        this.say("Click an output dot first - the one on the right of a box.");
+        return;
+      }
+
+      const from = this.linking;
+      this.linking = null;
+      this.link(from, node.id);
+    });
+    return dot;
+  }
+
+  draggable(handle, node) {
+    handle.addEventListener("pointerdown", (event) => {
+      if (event.target.closest("button")) return;
+
+      // Claimed at the START, not on release. A drag takes seconds and the poll arrives every
+      // one of them; claiming only at the end means the box is put back before it ever gets
+      // there. Re-claimed on every move, so the claim outlives a long, careful drag.
+      this.onBusy();
+
+      // Pointer capture rather than listeners on the document: a drag that leaves the window
+      // otherwise never gets its release and the box follows the cursor forever.
+      handle.setPointerCapture(event.pointerId);
+
+      // Measured against the CONTENT's own rectangle each time rather than against a fixed
+      // client offset taken at the start. The surface scrolls, so a drag that reaches its edge
+      // moves the content under the pointer - and a fixed offset would then place the box by
+      // however far it had scrolled.
+      const grabX = event.clientX - this.content.getBoundingClientRect().left - node.x;
+      const grabY = event.clientY - this.content.getBoundingClientRect().top - node.y;
+
+      const move = (moved) => {
+        this.onBusy();
+        const rect = this.content.getBoundingClientRect();
+        node.x = Math.max(0, moved.clientX - rect.left - grabX);
+        node.y = Math.max(0, moved.clientY - rect.top - grabY);
+        const box = this.content.querySelector(`[data-node="${node.id}"]`);
+        if (box) {
+          box.style.left = `${node.x}px`;
+          box.style.top = `${node.y}px`;
+        }
+
+        // Grown as the box travels, so dragging one to the edge scrolls the canvas out rather
+        // than clipping it against a size measured before the drag.
+        const { width, height } = this.extent();
+        this.resize(width, height);
+        this.drawWires();
+      };
+
+      const up = () => {
+        handle.removeEventListener("pointermove", move);
+        handle.removeEventListener("pointerup", up);
+        handle.removeEventListener("pointercancel", up);
+
+        // Saved on release, not per pixel: a drag is one edit, and sending per frame would
+        // post a settings write for every mouse movement.
+        this.changed();
+      };
+
+      handle.addEventListener("pointermove", move);
+      handle.addEventListener("pointerup", up);
+      handle.addEventListener("pointercancel", up);
+    });
+  }
+
+  joinBody(node) {
+    const body = document.createElement("div");
+    body.className = "graph-body";
+    body.appendChild(this.negateBox(node));
+    return body;
+  }
+
+  factBody(node) {
+    const body = document.createElement("div");
+    body.className = "graph-body";
+
+    const info = () => this.catalogue.facts.find((f) => f.name === node.fact) ?? null;
+
+    const picker = document.createElement("select");
+    for (const fact of this.catalogue.facts) {
+      const option = document.createElement("option");
+      option.value = fact.name;
+      option.textContent = fact.name;
+      option.title = fact.help;
+      option.selected = fact.name === node.fact;
+      picker.appendChild(option);
+    }
+    picker.addEventListener("change", () => {
+      node.fact = picker.value;
+      this.changed();
+    });
+    body.appendChild(picker);
+
+    const chosen = info();
+    if (chosen) {
+      picker.title = chosen.help;
+
+      if (chosen.argument !== "None") {
+        body.appendChild(this.argumentField(node, chosen));
+      }
+
+      if (chosen.shape === "Number") {
+        body.appendChild(this.comparison(node, chosen));
+      }
+    }
+
+    body.appendChild(this.negateBox(node));
+    return body;
+  }
+
+  argumentField(node, info) {
+    const row = document.createElement("div");
+    row.className = "graph-row";
+
+    if (info.argument === "Text") {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = info.name === "AreaContains" ? "part of an area name" : "part of a buff name";
+      input.value = node.text ?? "";
+      // On "change", not "input": every keystroke would otherwise be a settings write, and a
+      // half-typed buff name is not a rule anybody meant to save.
+      input.addEventListener("change", () => {
+        node.text = input.value;
+        this.changed();
+      });
+
+      // Handed to whoever built this editor before it goes in, so the buff list can attach its
+      // completions - the box itself has no idea what a buff is.
+      this.onField(input, info.name);
+
+      row.appendChild(input);
+      return row;
+    }
+
+    const LEAD = { Slot: "slot", Seconds: "every", Distance: "within" };
+    const UNIT = { Seconds: "s", Distance: "u" };
+
+    const label = document.createElement("span");
+    label.className = "dim";
+    label.textContent = LEAD[info.argument] ?? "within";
+    row.appendChild(label);
+
+    const number = document.createElement("input");
+    number.type = "number";
+    number.value = node.argument ?? 0;
+    if (info.argument === "Slot") {
+      number.min = 1;
+      number.max = 5;
+      number.step = 1;
+    } else {
+      number.min = 0;
+      number.step = info.argument === "Seconds" ? 0.1 : 1;
+    }
+    number.addEventListener("change", () => {
+      node.argument = Number(number.value);
+      this.changed();
+    });
+    row.appendChild(number);
+
+    if (UNIT[info.argument]) row.appendChild(unit(UNIT[info.argument]));
+    return row;
+  }
+
+  comparison(node, info) {
+    const row = document.createElement("div");
+    row.className = "graph-row";
+
+    const picker = document.createElement("select");
+    for (const name of this.catalogue.comparisons) {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = COMPARE_LABELS[name] ?? name;
+      option.selected = name === node.compare;
+      picker.appendChild(option);
+    }
+    picker.addEventListener("change", () => {
+      node.compare = picker.value;
+      this.changed();
+    });
+    row.appendChild(picker);
+
+    const number = document.createElement("input");
+    number.type = "number";
+    number.value = node.value ?? 0;
+    number.step = "any";
+    number.addEventListener("change", () => {
+      node.value = Number(number.value);
+      this.changed();
+    });
+    row.appendChild(number);
+
+    if (info.unit) row.appendChild(unit(info.unit));
+    return row;
+  }
+
+  negateBox(node) {
+    const label = document.createElement("label");
+    label.className = "graph-negate";
+
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = !!node.negate;
+    box.addEventListener("change", () => {
+      node.negate = box.checked;
+      this.changed();
+    });
+
+    label.appendChild(box);
+    label.appendChild(document.createTextNode("not"));
+    label.title = "Invert this box's own answer";
+    return label;
+  }
+}
+
+function unit(text) {
+  const span = document.createElement("span");
+  span.className = "dim";
+  span.textContent = text;
+  return span;
+}
+
+/** A graph with nothing in it but somewhere for the answer to go. */
+function blank() {
+  return {
+    nodes: [{ id: "out", kind: OUTPUT_KIND, x: 320, y: 40 }],
+    links: [],
+  };
+}

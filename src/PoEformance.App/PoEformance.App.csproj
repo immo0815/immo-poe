@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Layer 5 - the composition root. This is the ONLY project allowed to know about
+    every other one. If you want to know what the program does, read Program.cs here:
+    everything is wired by hand, in order, with no container and no reflection.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>PoEformance.App</RootNamespace>
+    <PublishAot>true</PublishAot>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+
+    <!-- Required, not cosmetic: without a comctl32 v6 dependency the process gets v5,
+         which has no TaskDialogIndirect export, so the UI library's own error reporting
+         fails with "Entry point was not found" instead of showing the actual error.
+         Also declares per-monitor DPI, which the overlay's pixel coordinates depend on. -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- IL2104/IL3053 are ILC's PER-ASSEMBLY ROLLUPS: "assembly X produced trim/AOT
+         warnings", raised for EXTERNAL assemblies we cannot edit (first offender:
+         DirectN.Extensions, whose author nonetheless ships working AOT builds of the same
+         stack). With TreatWarningsAsErrors they killed an otherwise clean publish - the
+         first AOT CI run failed on exactly these two lines while every assembly compiled.
+         Exempting ONLY the rollups keeps every individually-coded IL2xxx/IL3xxx warning in
+         OUR projects a hard error; what it accepts is that a dependency's reflective
+         corners are proven at runtime (the config-window smoke run) instead of at build time. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);IL2104;IL3053</WarningsNotAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PoEformance.Overlay\PoEformance.Overlay.csproj" />
+    <ProjectReference Include="..\PoEformance.Config\PoEformance.Config.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The offset schema ships next to the exe so it stays hot-editable after deploy. -->
+    <None Include="..\..\schema\poe2.offsets.json" Link="schema\poe2.offsets.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The config page ships the same way, for the same reason: edit, reload, no rebuild. -->
+    <None Include="..\..\ui\**" Link="ui\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!--
+      The game-knowledge files: landmark names, atlas contents, atlas map names. They were
+      NOT here, and the release zip is the publish output, so every download so far has run
+      without them - silently, because each one degrades to "nothing known" by design and the
+      lookup walks up to the repository from a dev build, where it always found them.
+    -->
+    <None Include="..\..\data\*.json" Link="data\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- .tsv too: the unique-name table is not JSON, and a glob that misses it ships a
+         release where every unique is nameless - the same way data\ was missed once before.
+
+         THE GLOB STAYS BROAD AND THE RULE IS ON THE DIRECTORY: data\ holds what the tool
+         LOADS, and nothing else. It did not for a while - six generated name maps sat there
+         read by nothing at all and rode along in every download, 1.5 MB of it - and the fix
+         was to move them rather than to narrow this, because a list of names here is a list
+         somebody forgets to add to, which is the very bug the line above remembers. They are
+         in tools\extracted\ now; DataFilesTests holds the rule both ways round. -->
+    <None Include="..\..\data\*.tsv" Link="data\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!--
+      And the Oodle library, which is the one thing here that goes BESIDE THE EXE rather than
+      into data\ - it is not read as a file, it is LOADED as one, and beside the executable is
+      where a native library belongs and where this looks for it. Kept in data\ in the source
+      tree because that is where the shipped-with-the-tool things live; Link decides where it
+      lands, and the two do not have to agree.
+
+      Without it the item pictures come from poe2db instead: Path of Exile 2 packs its bundles
+      with Leviathan, the managed decoder only speaks Mermaid, and Path of Exile 2 ships no
+      Oodle of its own to borrow.
+    -->
+    <None Include="..\..\data\oo2core*.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!--
+      item-stats.json is the big one - 27,000 stat rows, because what memory holds is a ROW
+      INDEX into the game's stat table and a reader cannot know in advance which rows an item
+      will use. It is what turns "1043: 79" into "+79 to maximum Life".
+    -->
+  </ItemGroup>
+</Project>

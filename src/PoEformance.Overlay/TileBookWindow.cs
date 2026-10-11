@@ -1,0 +1,1566 @@
+using System.Collections.Concurrent;
+using System.Globalization;
+using System.Numerics;
+using System.Runtime.Versioning;
+using ImGuiNET;
+using PoEformance.Features;
+using PoEformance.Game.Entities;
+using PoEformance.Game.Files;
+using PoEformance.Game.World;
+
+namespace PoEformance.Overlay;
+
+/// <summary>
+/// The tile reference book: every terrain tile and room the install has, a tile's geometry and a room's doodads.
+/// </summary>
+/// <remarks>
+/// THE ITEM BOOK'S PARTS, with a tile in the pane instead of an item, and the picture is a
+/// <see cref="MonsterPortrait"/> of its own whose load is <see cref="Load"/> rather than the .ao
+/// walk: <see cref="TileModels.Of"/> for a tile, <see cref="RoomModels.Of"/> for a room.
+///
+/// "ONLY THIS AREA" IS A TERM IN THE QUERY - <c>here:yes</c> - written and read back by the
+/// checkbox above the list, so the rail, the count and the text all agree on what is shown.
+/// </remarks>
+[SupportedOSPlatform("windows")]
+public sealed class TileBookWindow : BookWindow<TileBook>
+{
+    /// <summary>
+    /// The fields the rail offers, and what it calls them.
+    /// </summary>
+    /// <remarks>
+    /// THE SET - Woods, Maps, Act4 - is the handful of answers a click is for; names and folders
+    /// have thousands and are typed. "Here" is the same as the checkbox, counted.
+    /// </remarks>
+    private static readonly (string Label, string Field)[] Offered =
+    [
+        ("Kind", "kind"),
+        ("Sets", "set"),
+        ("This area", "here"),
+        ("With the clock", "clock"),
+    ];
+
+    /// <summary>The query term the "only this area" checkbox writes.</summary>
+    private const string HereField = "here";
+
+    /// <summary>The colour the unpainted ground is drawn in: a dark, flat grey that stays behind the props.</summary>
+    public static readonly Vector3 GroundInk = new(0.34f, 0.34f, 0.35f);
+
+    private readonly Func<IReadOnlyList<string>> _install;
+    private readonly Func<IReadOnlyDictionary<string, int>> _placed;
+
+    /// <summary>Whether a tile is drawn with its ground block. See TileModels.Of.</summary>
+    private bool _ground = true;
+
+    /// <summary>Whether a tile is drawn with its black walls. See TileModels.BlackWall.</summary>
+    private bool _walls = true;
+
+    /// <summary>
+    /// The tileset a tile is drawn as, or empty for the tile's own materials.
+    /// </summary>
+    /// <remarks>
+    /// KEPT ACROSS TILES, and used only where the chosen tile is one the tileset places - so a look
+    /// through one area's tiles stays in that area, and a tile it does not place is drawn as itself.
+    /// </remarks>
+    private string _tileset = string.Empty;
+
+    /// <summary>
+    /// The placement a tile is turned to, or -1 for the file's own orientation - see TileOrientation.Placement.
+    /// </summary>
+    /// <remarks>
+    /// KEPT ACROSS TILES like the tileset, and used only where the chosen tile was laid that way here.
+    /// </remarks>
+    private int _laid = -1;
+
+    /// <summary>Whether a room places the level editor's tools - see RoomModels.IsTool. Kept in the settings; see <see cref="Tools"/>.</summary>
+    private bool _tools;
+
+    /// <summary>Most doodads a room places - see RoomModels.UsualDoodads. Kept in the settings; see <see cref="Doodads"/>.</summary>
+    private int _doodads = RoomModels.UsualDoodads;
+
+    /// <summary>
+    /// The slider's value while it is being dragged, apart from <see cref="_doodads"/>.
+    /// </summary>
+    /// <remarks>
+    /// A ROOM IS RELOADED WHEN THE SLIDER IS LET GO, not at every step of the drag: the ship in Port's
+    /// boss room is 179 MB of files, and a reload per step would read it dozens of times over.
+    /// </remarks>
+    private int _dragging = RoomModels.UsualDoodads;
+
+    /// <summary>The lists the book was built from, compared by reference to notice a new one.</summary>
+    private IReadOnlyList<string>? _installed;
+    private IReadOnlyDictionary<string, int>? _placedOf;
+    private IReadOnlyDictionary<string, string>? _needsOf;
+    private IReadOnlySet<string>? _clocksOf;
+    private TileBook _page = TileBook.Empty;
+
+    /// <summary>What the portrait is handed - a name to show and the tile's path as the key - made once per choice.</summary>
+    private MonsterVariety? _subject;
+    private string _subjectKey = string.Empty;
+
+    public TileBookWindow(Func<IReadOnlyList<string>> install, Func<IReadOnlyDictionary<string, int>> placed)
+        : base("tile", TileBook.Empty, 0.18f, 0.45f)
+    {
+        ArgumentNullException.ThrowIfNull(install);
+        ArgumentNullException.ThrowIfNull(placed);
+        _install = install;
+        _placed = placed;
+    }
+
+    /// <summary>Which tilesets place which tile, for the "drawn as" choice. Null leaves the choice out.</summary>
+    public TilesetCatalog? Tilesets { get; init; }
+
+    /// <summary>What each placed tile needs that the compiler has not got, read off the frame for the "needs" column. Null leaves the column empty.</summary>
+    public AreaNeeds? Needs { get; init; }
+
+    /// <summary>Which tiles of the whole install run with the clock, read in the background for clock:yes. Null leaves the install out of it.</summary>
+    public TileClockCatalog? Clocks { get; init; }
+
+    /// <summary>
+    /// The ways each tile was laid in the current area, by path, one bit per TileOrientation.Placement. Null leaves the choice out.
+    /// </summary>
+    public Func<IReadOnlyDictionary<string, byte>>? Laid { get; init; }
+
+    /// <summary>
+    /// Most doodads a room places, as the slider has it - what the settings keep.
+    /// </summary>
+    /// <remarks>Out-of-range values come back at the slider's nearest end; zero, "not set", is the usual.</remarks>
+    public int Doodads
+    {
+        get => _doodads;
+        set
+        {
+            _doodads = value <= 0 ? RoomModels.UsualDoodads : Math.Clamp(value, RoomModels.LeastDoodads, RoomModels.MostDoodads);
+            _dragging = _doodads;
+        }
+    }
+
+    /// <summary>The current area's terrain, for finding where a room it loaded was laid. Null leaves the search out.</summary>
+    public Func<TerrainGrid?>? Terrain { get; init; }
+
+    /// <summary>How to read a file out of the install - the room's own, for the search.</summary>
+    public Func<string, byte[]?>? Read { get; init; }
+
+    /// <summary>Told which candidate the large map should outline, or null for none.</summary>
+    public Action<RoomGhost?>? Ghost { get; init; }
+
+    /// <summary>The tile the player stands on, for the "around you" row. Null leaves the row out.</summary>
+    public Func<(int X, int Y)?>? Here { get; init; }
+
+    /// <summary>The switches that light the picture the game's way, or null for none - see SceneLightPanel.</summary>
+    public SceneLightPanel? Lighting { get; init; }
+
+    /// <summary>The search running or run for <see cref="_searchedFor"/> in <see cref="_searchedIn"/>.</summary>
+    private Task<RoomSearch>? _searching;
+    private RoomSearch? _found;
+
+    /// <summary>The rows of <see cref="_found"/> in words, made once per search rather than once per frame.</summary>
+    private string[] _rows = [];
+    private string _searchedFor = string.Empty;
+    private TerrainGrid? _searchedIn;
+
+    /// <summary>Which row the map outlines: a candidate's index, <see cref="GhostAround"/>, or -1 for none.</summary>
+    private int _ghosted = -1;
+
+    /// <summary>The "around you" row's value of <see cref="_ghosted"/>.</summary>
+    private const int GhostAround = -2;
+
+    /// <summary>Whether a room whose place is outlined is drawn as the area laid it - see LaidRoomModels.</summary>
+    private bool _asLaid = true;
+
+    /// <summary>Whether a laid room's pieces are set at their tiles' own levels rather than fitted to the area's ground - see LaidRoomModels.</summary>
+    private bool _atLevel;
+
+    /// <summary>How high doodads with a height in their line are set - see DoodadHeight. Nought is the usual, at the line's height.</summary>
+    private DoodadHeight _heights;
+
+    /// <summary>Whether a laid room leaves out what the game's camera cannot see - see LaidRoomModels. Kept in the settings; see <see cref="Sight"/>.</summary>
+    private bool _sight = true;
+
+    /// <summary>How far under the area's ground a laid room leaves everything out; nought for nothing. Kept in the settings; see <see cref="Cut"/>.</summary>
+    private int _cut;
+
+    /// <summary>The cut's slider while it is dragged - applied when it is let go, as the doodads slider is.</summary>
+    private int _cutting;
+
+    /// <summary>Every tile file's identity read for the area in <see cref="_identitiesOf"/> - one read per file across every room searched there.</summary>
+    private ConcurrentDictionary<string, TileIdentity?> _identities = new(StringComparer.OrdinalIgnoreCase);
+    private TerrainGrid? _identitiesOf;
+
+    /// <summary>The "around you" probe running, and the search it belongs to - one at a time.</summary>
+    private (Task<RoomPlace?> Task, RoomSearch For)? _probing;
+    private RoomPlace? _around;
+    private string _aroundRow = string.Empty;
+
+    /// <summary>The outlined candidate's misses in words, made once per pick - see <see cref="Parting"/>.</summary>
+    private string[] _partLines = [];
+    private string _partsHeader = "##roomparts";
+    private RoomSearch? _partsOf;
+    private RoomCandidate? _partsFor;
+    private RoomSearch? _probedIn;
+    private (int X, int Y) _probedAt = (-1, -1);
+
+    /// <summary>Whether the room search lists places covering no walkable ground too, and whether the search in hand did.</summary>
+    private bool _anywhere;
+    private bool _searchedAnywhere;
+
+    /// <summary>Whether a room places the level editor's tools, as the box has it - what the settings keep.</summary>
+    public bool Tools
+    {
+        get => _tools;
+        set => _tools = value;
+    }
+
+    /// <summary>Whether the room search lists places covering no walkable ground too, as the box has it - what the settings keep.</summary>
+    public bool Anywhere
+    {
+        get => _anywhere;
+        set => _anywhere = value;
+    }
+
+    /// <summary>Whether a laid room leaves out what the game's camera cannot see, as the box has it - what the settings keep.</summary>
+    public bool Sight
+    {
+        get => _sight;
+        set => _sight = value;
+    }
+
+    /// <summary>How far under the area's ground a laid room leaves everything out, as the slider has it - what the settings keep. Out of range is nought.</summary>
+    public int Cut
+    {
+        get => _cut;
+        set
+        {
+            _cut = value is > 0 and <= RoomKey.MostCut ? value : 0;
+            _cutting = _cut;
+        }
+    }
+
+    /// <summary>Whether every room the area loaded is outlined on the large map at once, as the box has it - what the settings keep. See AreaRooms.</summary>
+    public bool RoomsOnMap
+    {
+        get => _roomsOnMap;
+        set => _roomsOnMap = value;
+    }
+
+    private bool _roomsOnMap;
+
+    /// <summary>
+    /// Which tiles two rooms on the map may both hold, as the "rims shared" box has it - for this session only, like the doodad heights; see RoomArrangement.
+    /// </summary>
+    public RoomOverlap RoomsOverlap { get; private set; } = RoomOverlap.Rims;
+
+    /// <summary>The area's rooms searched and arranged, for the header's line - the overlay asks it every frame while the box is ticked. Null leaves the box out.</summary>
+    public AreaRooms? AllRooms { get; init; }
+
+    /// <summary>The survey's line and its hover, made once per survey.</summary>
+    private DoodadSurvey? _doodadsSaidOf;
+    private string _doodadsSaid = string.Empty;
+    private string _doodadsDetail = string.Empty;
+
+    /// <summary>The line about the rooms placed by their doodads and its hover, made once per survey.</summary>
+    private IReadOnlyList<(string Room, RoomLayout Layout, RoomDoodadPlaces Places)>? _placedSaidOf;
+    private string _placedSaid = string.Empty;
+    private string _placedDetail = string.Empty;
+
+    /// <summary>The header's line about the arrangement and its hover, made once per arrangement.</summary>
+    private RoomArrangement? _roomsSaidOf;
+    private string _roomsSaid = string.Empty;
+    private string _roomsDetail = string.Empty;
+
+    /// <summary>The outlined row held against the rooms on the map, made once per arrangement and pick.</summary>
+    private RoomArrangement? _sharedOf;
+    private RoomCandidate? _sharedFor;
+    private string? _sharedRoom;
+    private string _sharedHeader = string.Empty;
+    private string[] _sharedLines = [];
+
+    /// <inheritdoc/>
+    protected override string Caption => "Search for any terrain tile or room";
+
+    /// <inheritdoc/>
+    protected override string Grammar => "arena  ·  kind:room  ·  set:woods  ·  here:yes  ·  clock:yes  ·  needs:InputVertexColor  ·  folder:areatransitions";
+
+    /// <inheritdoc/>
+    protected override string Noun => "tiles";
+
+    /// <inheritdoc/>
+    protected override IReadOnlyList<(string Label, string Field)> Rails => Offered;
+
+    /// <summary>
+    /// Works the two lists into columns, once per pair.
+    /// </summary>
+    /// <remarks>
+    /// COMPARED BY REFERENCE: the install's list arrives once from a background walk, and the area's
+    /// placements are a new dictionary whenever the area changes - and only then.
+    /// </remarks>
+    protected override TileBook Current()
+    {
+        IReadOnlyList<string> installed = _install();
+        IReadOnlyDictionary<string, int> placings = _placed();
+
+        // THE NEEDS ARRIVE LATER THAN THE LISTS, read off the frame as the tileset is chosen, and the
+        // book is built again when they do - a reference compare per frame until then.
+        AreaReading? reading = Needs?.Ready(placings, _tileset);
+        IReadOnlyDictionary<string, string>? needs = reading?.Needs;
+        IReadOnlySet<string>? clocks = Clocks?.Ready;
+        if (!ReferenceEquals(_installed, installed) || !ReferenceEquals(_placedOf, placings) || !ReferenceEquals(_needsOf, needs)
+            || !ReferenceEquals(_clocksOf, clocks))
+        {
+            _installed = installed;
+            _placedOf = placings;
+            _needsOf = needs;
+            _clocksOf = clocks;
+            _page = TileBook.Of(installed, placings, needs, reading?.Clocked, clocks);
+        }
+
+        return _page;
+    }
+
+    /// <inheritdoc/>
+    protected override string WhyEmpty()
+        => "No tiles yet - the install's list is read shortly after start-up, and an area's tiles once one is loaded.";
+
+    /// <inheritdoc/>
+    protected override Vector4? Ink(int row) => Page.HereRows[row] ? OverlayInk.Name : null;
+
+    /// <summary>The "only this area" checkbox, read back out of the query so editing the text by hand moves the tick.</summary>
+    protected override void HeaderExtras()
+    {
+        ImGui.SameLine();
+        bool only = Holds(HereField, TileBook.Here);
+        if (ImGui.Checkbox("Only this area", ref only))
+        {
+            Toggle(HereField, TileBook.Here);
+        }
+
+        RoomsOnMapBox();
+
+        if (Clocks is { Reading: true } clocking)
+        {
+            (int done, int of) = clocking.Progress;
+            ImGui.SameLine();
+            ImGui.TextDisabled(string.Create(CultureInfo.InvariantCulture, $"clock: {done} of {of} read"));
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip("Reading every tile of the install - its templates' materials and their shader graphs, no geometry -"
+                    + " to fill the \"clock\" column for all of them: clock:yes finds the tiles whose picture runs with the game's clock."
+                    + " Rooms are answered only where the current area places them.");
+            }
+        }
+
+        if (Needs is { Reading: true } reading)
+        {
+            (int done, int of) = reading.Progress;
+            ImGui.SameLine();
+            ImGui.TextDisabled(string.Create(CultureInfo.InvariantCulture, $"needs: {done} of {of} read"));
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip("Reading every tile and room of this area the way the pane does, to fill the \"needs\" column:"
+                    + " what each one's shader graphs leave out. Search it with needs:InputVertexColor.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// The "rooms on map" box, and while it is ticked how far the search is or what it drew.
+    /// </summary>
+    private void RoomsOnMapBox()
+    {
+        if (AllRooms is not { } rooms)
+        {
+            return;
+        }
+
+        // THE RIGHT EDGE, taken while the cursor still starts a line: the words after the boxes wrap
+        // there instead of running past the pane - "with no free place" was cut off.
+        float right = ImGui.GetCursorScreenPos().X + ImGui.GetContentRegionAvail().X;
+        ImGui.SameLine();
+        if (ImGui.Checkbox("rooms on map##roomsonmap", ref _roomsOnMap))
+        {
+            Changed?.Invoke();
+        }
+
+        float end = ImGui.GetItemRectMax().X;
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Every room this area loaded, outlined on the large map with its name, at every place its doodads stand:"
+                + " each doodad line of a room is an entity standing where the line put it, and the places where two thirds of them"
+                + " do are the room's - a wall module the area lays four times is outlined four times. A ring marks a doodad line"
+                + " whose entity is not where the place puts it.\n"
+                + "Where nothing can read the area's entities the rooms are placed by their ground and tiles instead, each where its"
+                + " search ranks it first unless a surer room holds one of its tiles, with the three marks a picked row gets.\n"
+                + "Searched off the frame, one room at a time, whenever the area or its rooms change; the doodads read once after.\n"
+                + "Ctrl + click a room's name on the large map to route there - the route goes once you stand in the room;"
+                + " ctrl + shift + click anywhere on the map puts a stop on the newest route.");
+        }
+
+        if (!_roomsOnMap)
+        {
+            return;
+        }
+
+        OverlayLayout.Flow(end, OverlayLayout.CheckboxWidth("rims shared"), right, 0f);
+        bool rims = RoomsOverlap == RoomOverlap.Rims;
+        if (ImGui.Checkbox("rims shared##roomsrims", ref rims))
+        {
+            RoomsOverlap = rims ? RoomOverlap.Rims : RoomOverlap.None;
+        }
+
+        end = ImGui.GetItemRectMax().X;
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("On: two rooms may both hold a tile on the outermost row or column of their footprints - where rooms join -"
+                + " but a tile inside a footprint is one room's alone.\n"
+                + "Off: no tile is two rooms', the first rule, which pushed rooms that join off their first place. Kept to compare;"
+                + " switching arranges the rooms again without searching.\n"
+                + "Pick a row of a room's list to see the tiles it shares with each room on the map.");
+        }
+
+        if (rooms.Running)
+        {
+            (int done, int of) = rooms.Progress;
+            string searched = string.Create(CultureInfo.InvariantCulture, $"rooms: {done} of {of} {(rooms.ReadDoodads is null ? "searched" : "read")}");
+            OverlayLayout.Flow(end, ImGui.CalcTextSize(searched).X, right, 0f);
+            ImGui.TextDisabled(searched);
+            return;
+        }
+
+        // BY THEIR DOODADS where the entities can be read - what the map draws - else by the arrangement.
+        if (rooms.ReadDoodads is not null ? rooms.Rooms is null : rooms.Last is null)
+        {
+            OverlayLayout.Flow(end, ImGui.CalcTextSize("rooms: open a map to start").X, right, 0f);
+            ImGui.TextDisabled("rooms: open a map to start");
+            return;
+        }
+
+        if (rooms.ReadDoodads is not null)
+        {
+            end = PlacedSaid(rooms, end, right);
+            DoodadsBox(rooms, end, right);
+            return;
+        }
+
+        RoomArrangement arranged = rooms.Last!;
+
+        // THE LINE AND ITS HOVER ARE THE CAPTURE'S TEXT - see CaptureReport.Arranged - so what a
+        // capture writes is what the window showed, word for word.
+        if (!ReferenceEquals(arranged, _roomsSaidOf))
+        {
+            _roomsSaidOf = arranged;
+            (_roomsSaid, _roomsDetail) = CaptureReport.Arranged(arranged);
+        }
+
+        OverlayLayout.Flow(end, ImGui.CalcTextSize(_roomsSaid).X, right, 0f);
+        ImGuiText.Wrapped(OverlayInk.Quiet, ImGuiText.Escape(_roomsSaid));
+        end = ImGui.GetItemRectMax().X;
+        if (ImGui.IsItemHovered() && _roomsDetail.Length > 0)
+        {
+            ImGui.SetTooltip(ImGuiText.Escape(_roomsDetail));
+        }
+
+        DoodadsBox(rooms, end, right);
+    }
+
+    /// <summary>
+    /// The "rooms:" line where the map draws the rooms by their doodads, and its hover - every room's places, or why it has none - made once per survey. Returns where the line ended.
+    /// </summary>
+    private float PlacedSaid(AreaRooms rooms, float end, float right)
+    {
+        if (rooms.Placed is not { } placed)
+        {
+            string waiting = rooms.Surveying
+                ? "rooms: read - placing them by the area's doodads..."
+                : "rooms: read - the area's doodads are not read";
+            OverlayLayout.Flow(end, ImGui.CalcTextSize(waiting).X, right, 0f);
+            ImGui.TextDisabled(waiting);
+            return ImGui.GetItemRectMax().X;
+        }
+
+        if (!ReferenceEquals(placed, _placedSaidOf))
+        {
+            _placedSaidOf = placed;
+            (_placedSaid, _placedDetail) = CaptureReport.Placed(placed);
+        }
+
+        OverlayLayout.Flow(end, ImGui.CalcTextSize(_placedSaid).X, right, 0f);
+        ImGuiText.Wrapped(OverlayInk.Quiet, ImGuiText.Escape(_placedSaid));
+        end = ImGui.GetItemRectMax().X;
+        if (ImGui.IsItemHovered() && _placedDetail.Length > 0)
+        {
+            ImGui.SetTooltip(ImGuiText.Escape(_placedDetail));
+        }
+
+        return end;
+    }
+
+    /// <summary>
+    /// The last survey's line and its hover - see SleepingDoodads for what it measures and why.
+    /// </summary>
+    /// <remarks>
+    /// A MEASUREMENT, NOT A FEATURE: whether the game keeps the rooms' doodads for the whole area and
+    /// what one read of them costs, read off three numbers before anything is built on them. The
+    /// survey runs itself once the rooms are read (AreaRooms); the capture key writes its line, its
+    /// detail and every sighting to doodads.txt, which is how the numbers get sent.
+    /// </remarks>
+    private void DoodadsBox(AreaRooms rooms, float end, float right)
+    {
+        if (rooms.ReadDoodads is null)
+        {
+            return;
+        }
+
+        if (rooms.Surveying)
+        {
+            const string reading = "doodads: reading the area's entity maps...";
+            OverlayLayout.Flow(end, ImGui.CalcTextSize(reading).X, right, 0f);
+            ImGui.TextDisabled(reading);
+            return;
+        }
+
+        if (rooms.Doodads is not { } done)
+        {
+            return;
+        }
+
+        if (!ReferenceEquals(done, _doodadsSaidOf))
+        {
+            _doodadsSaidOf = done;
+            (_doodadsSaid, _doodadsDetail) = CaptureReport.Doodads(done, rooms.Rooms);
+        }
+
+        OverlayLayout.Flow(end, ImGui.CalcTextSize(_doodadsSaid).X, right, 0f);
+        ImGuiText.Wrapped(OverlayInk.Quiet, ImGuiText.Escape(_doodadsSaid));
+        if (ImGui.IsItemHovered() && _doodadsDetail.Length > 0)
+        {
+            ImGui.SetTooltip(ImGuiText.Escape(_doodadsDetail));
+        }
+    }
+
+    /// <summary>
+    /// The picked row's two folds as one text - against the rooms on the map, and where it parts with the area - for the capture key; null while no row is picked.
+    /// </summary>
+    /// <remarks>As the folds have it, headers included, so what is sent is what was read - see CaptureParts.RoomPick.</remarks>
+    public string? PickedReport()
+    {
+        // ONLY WHAT IS ON SCREEN: the folds keep their last text after the row is unpicked or the
+        // book closed, and a capture must not send a row nobody is looking at as the one in question.
+        int frame = ImGui.GetFrameCount();
+        bool shared = _sharedFor is not null && frame - _sharedFrame <= 1;
+        bool parts = _partsFor is not null && frame - _partsFrame <= 1;
+        if (!shared && !parts)
+        {
+            return null;
+        }
+
+        var lines = new List<string>(_sharedLines.Length + _partLines.Length + 3);
+        if (shared)
+        {
+            lines.Add(Headed(_sharedHeader));
+            lines.AddRange(_sharedLines);
+        }
+
+        if (parts)
+        {
+            if (lines.Count > 0)
+            {
+                lines.Add(string.Empty);
+            }
+
+            lines.Add(Headed(_partsHeader));
+            lines.AddRange(_partLines);
+        }
+
+        return string.Join('\n', lines);
+    }
+
+    /// <summary>The frame each fold was last drawn on - see <see cref="PickedReport"/>.</summary>
+    private int _sharedFrame = -2;
+    private int _partsFrame = -2;
+
+    /// <summary>A fold's header without the id ImGui keeps it apart by.</summary>
+    private static string Headed(string header)
+    {
+        int id = header.IndexOf("##", StringComparison.Ordinal);
+        return id >= 0 ? header[..id] : header;
+    }
+
+    /// <summary>
+    /// What the portrait loads for a key: a tile's geometry, or a room's doodads up to the chosen cap.
+    /// </summary>
+    /// <remarks>
+    /// THE CAP RIDES IN THE KEY - see <see cref="RoomKey"/> - so changing it is a different key and the
+    /// portrait reloads, the same way the item book's drop or held choice does, without the portrait
+    /// knowing about rooms. A tile's choices ride the same way - see <see cref="TileKey"/> - and the load reads the
+    /// named tileset's overrides itself, so the key is the whole of what is drawn and two tilesets
+    /// are two keys.
+    /// </remarks>
+    /// <param name="read">How to read a file out of the install.</param>
+    /// <param name="key">What to load - see <see cref="TileKey"/> and <see cref="RoomKey"/>.</param>
+    /// <param name="terrain">The current area, for a room laid from its tiles; null leaves such a room out.</param>
+    /// <param name="progress">Where the build says how far it has got, for the pane's bar, or null.</param>
+    /// <param name="entities">The area's entities in memory, for a laid room's doodad heights line, or null.</param>
+    /// <param name="camera">The game's camera as last read, for what a laid room may leave out unseen, or null.</param>
+    public static MonsterModel Load(
+        Func<string, byte[]?> read,
+        string key,
+        Func<TerrainGrid?>? terrain = null,
+        ModelProgress? progress = null,
+        Func<IReadOnlyList<WorldEntity>?>? entities = null,
+        Func<CameraShot?>? camera = null)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+
+        // THE PATH BEFORE THE MARK says which it is: a room's key carries words after it too.
+        int mark = key.IndexOf(TileKey.Mark, StringComparison.Ordinal);
+        if (!TileBook.IsRoom(mark >= 0 ? key[..mark] : key))
+        {
+            TileKey tile = TileKey.Read(key);
+            return TileModels.Of(
+                read,
+                tile.Path,
+                ground: tile.Ground,
+                walls: tile.Walls,
+                shaded: true,
+                swaps: tile.Tileset.Length > 0 ? TilesetIndex.Overrides(read, tile.Tileset) : null,
+                tileset: tile.Tileset.Length > 0 ? TilesetIndex.Short(tile.Tileset) : string.Empty,
+                laid: TileOrientation.OfPlacement(tile.Laid),
+                progress: progress);
+        }
+
+        RoomKey room = RoomKey.Read(key);
+        if (!room.TryLaid(out int x, out int y, out int turn, out int area))
+        {
+            // BUILT FROM ITS TILESET where the key names one, else the file alone - see BuiltRoomModels.
+            return room.Built.Length > 0
+                ? BuiltRoomModels.Of(read, room.Path, room.Built, shaded: true, doodads: room.Doodads, tools: room.Tools, progress: progress, heights: room.Heights)
+                : RoomModels.Of(read, room.Path, shaded: true, doodads: room.Doodads, tools: room.Tools, progress: progress, heights: room.Heights);
+        }
+
+        // ONLY IN THE AREA THE PLACE WAS FOUND IN: a place is a tile of one area's grid, and the key
+        // names that grid so a new area cannot lay the room over somebody else's tiles.
+        TerrainGrid? grid = terrain?.Invoke();
+        return grid is not null && Stamp(grid) == area
+            ? LaidRoomModels.Of(
+                read, room.Path, grid, x, y, turn, shaded: true, doodads: room.Doodads, tools: room.Tools, atLevel: room.AtLevel,
+                progress: progress, heights: room.Heights, entities: entities?.Invoke(),
+                camera: room.Hidden ? null : camera?.Invoke(), sight: !room.Hidden, cut: room.Cut)
+            : MonsterModel.None with { Why = "the area this place was found in is gone - pick the room's place again" };
+    }
+
+    /// <summary>The tile chosen in this book, by path, or empty where nothing or a room is - what the monster book may stand a monster on.</summary>
+    public string ChosenTile => Chosen.Length > 0 && !TileBook.IsRoom(Chosen) ? Chosen : string.Empty;
+
+    /// <summary>The mark a key carries for the area a room's place was found in - the grid's own, for this session.</summary>
+    public static int Stamp(TerrainGrid grid) => RoomKey.Stamp(grid);
+
+    /// <summary>
+    /// What the tile or room is, then its switches in folds - the model itself has a window of its own.
+    /// </summary>
+    /// <remarks>
+    /// IN FOLDS, ASKED FOR FROM THE LIVE CLIENT: the pane stacked the name, the tile's or room's
+    /// switches, the room search, the light, the model's export row, its files and the picture, and
+    /// what was left for the picture was a corner. The picture went to a window
+    /// (MonsterPortrait.DrawWindow) and the rest falls into five folds, each opened or closed by a
+    /// click on its header and kept that way in the settings - see <see cref="Sections"/>.
+    /// </remarks>
+    protected override void Pane()
+    {
+        string chosen = Chosen;
+        int row = Page.Row(chosen);
+        if (row < 0)
+        {
+            ImGui.TextDisabled("Choose a tile or a room on the left.");
+            return;
+        }
+
+        bool room = TileBook.IsRoom(chosen);
+        (string set, string folder, string name) = TileBook.Split(chosen);
+        int placed = Page.Placed[row];
+        Heading(chosen, room, set, folder, name, placed);
+
+        string key = room
+            ? LaidKey(chosen)
+            : new TileKey(chosen, _ground, _walls, Placing(chosen), Laying(chosen)).ToString();
+        if (!string.Equals(key, _subjectKey, StringComparison.Ordinal))
+        {
+            _subjectKey = key;
+            _subject = new MonsterVariety(Name: name);
+        }
+
+        if (Model is { } shown)
+        {
+            shown.Show(_subject, _subjectKey, name);
+            shown.DrawOpener();
+        }
+        else
+        {
+            ImGui.TextDisabled("No model viewer attached.");
+        }
+
+        ImGui.Spacing();
+        if (Section(DrawingFold, "Drawing"))
+        {
+            if (room)
+            {
+                DoodadCap();
+            }
+            else
+            {
+                TileDrawing(chosen);
+            }
+        }
+
+        if (room && placed > 0 && Section(WhereFold, "Where it lies in this area"))
+        {
+            Whereabouts(chosen);
+        }
+
+        if (Lighting is { } lighting && Section(LightFold, "Light"))
+        {
+            lighting.Draw(Model?.Showing);
+        }
+
+        if (Model is { } model)
+        {
+            if (Section(ExportFold, "View & export"))
+            {
+                model.DrawExport();
+            }
+
+            if (Section(FilesFold, "Files & surveys"))
+            {
+                model.DrawFiles();
+            }
+
+            model.DrawWindow();
+        }
+    }
+
+    /// <summary>The name large, what it is beside it, where it is from and whether this area uses it, and its path - which a click copies.</summary>
+    private static void Heading(string chosen, bool room, string set, string folder, string name, int placed)
+    {
+        OverlayFonts.PushHeading();
+        try
+        {
+            ImGui.TextUnformatted(name);
+        }
+        finally
+        {
+            OverlayFonts.PopHeading();
+        }
+
+        ImGui.SameLine();
+        ImGui.TextDisabled(room ? "room" : "tile");
+
+        string used = room
+            ? placed > 0 ? "loaded for this area" : "not loaded for this area"
+            : placed > 0
+                ? string.Create(CultureInfo.InvariantCulture, $"placed {placed} times in this area")
+                : "not placed in this area";
+        ImGui.TextDisabled(ImGuiText.Escape((folder.Length > 0 ? $"{set}  ·  {folder}" : set) + "  ·  " + used));
+
+        ImGui.TextDisabled(ImGuiText.Escape(chosen));
+        if (ImGui.IsItemClicked())
+        {
+            ImGui.SetClipboardText(chosen);
+        }
+
+        OverlayLayout.Hint("The file's path. A click copies it.");
+    }
+
+    /// <summary>A tile's switches: its ground, its black walls, the tileset it is drawn as and the way it is laid.</summary>
+    private void TileDrawing(string chosen)
+    {
+        ImGui.Checkbox("ground", ref _ground);
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("The tile's ground block, drawn plain. A tileset's MaterialsList names the ground textures - the dump lists them -"
+                + " but the ground has no texture coordinates, and how the engine makes them is not yet known."
+                + " Off shows the props alone, where the ground rises around them.");
+        }
+
+        ImGui.SameLine();
+        ImGui.Checkbox("black walls", ref _walls);
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("The shapes painted with blacknofog.dds: walls hanging from a cliff's edge to close the gap under it."
+                + " The game's camera never looks behind them; off leaves them out.");
+        }
+
+        DrawnAs(chosen);
+        LaidAs(chosen);
+    }
+
+    /// <summary>The folds' ids - what the settings file keeps, so a fold renamed on screen keeps its state.</summary>
+    private const string DrawingFold = "drawing";
+    private const string WhereFold = "where";
+    private const string LightFold = "light";
+    private const string ExportFold = "export";
+    private const string FilesFold = "files";
+
+    private static readonly string[] Folds = [DrawingFold, WhereFold, LightFold, ExportFold, FilesFold];
+
+    /// <summary>Each fold's state where somebody set it; the rest stand as <see cref="Usual"/> says.</summary>
+    private readonly Dictionary<string, bool> _folds = new(StringComparer.Ordinal);
+
+    /// <summary>Open until closed: what a tile or room IS drawn as, and where it lies. The rest are asked for.</summary>
+    private static bool Usual(string fold) => fold is DrawingFold or WhereFold;
+
+    /// <summary>Which folds are open, by id, for the settings file.</summary>
+    public IReadOnlyList<string> SectionsOpen => [.. Folds.Where(Opened)];
+
+    /// <summary>Puts back which folds were open, or leaves the usual ones where the file says nothing.</summary>
+    public void Sections(IReadOnlyList<string>? open)
+    {
+        if (open is null)
+        {
+            return;
+        }
+
+        foreach (string fold in Folds)
+        {
+            _folds[fold] = open.Contains(fold, StringComparer.Ordinal);
+        }
+    }
+
+    private bool Opened(string fold) => _folds.TryGetValue(fold, out bool open) ? open : Usual(fold);
+
+    /// <summary>One fold's header, as wide as the pane; a click opens or closes it and the choice is written down.</summary>
+    private bool Section(string fold, string label)
+    {
+        bool open = Opened(fold);
+        ImGui.SetNextItemOpen(open, ImGuiCond.Always);
+        bool now = ImGui.CollapsingHeader(label + "###tile-fold-" + fold);
+        if (now != open)
+        {
+            _folds[fold] = now;
+            Changed?.Invoke();
+        }
+
+        return now;
+    }
+
+    /// <summary>The chosen tileset where it places this tile, or empty - see <see cref="_tileset"/>.</summary>
+    private string Placing(string tile)
+    {
+        if (_tileset.Length == 0 || Tilesets?.Ready is not { } index)
+        {
+            return string.Empty;
+        }
+
+        foreach (string one in index.Of(tile))
+        {
+            if (string.Equals(one, _tileset, StringComparison.OrdinalIgnoreCase))
+            {
+                return one;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>What the doodads slider is for.</summary>
+    private static readonly string DoodadsSaid = string.Create(CultureInfo.InvariantCulture,
+        $"How many doodads a room places before the rest are left out, and {RoomModels.TrianglesPerDoodad} triangles for each. The picture is drawn on the processor, so more turns more slowly. Usually {RoomModels.UsualDoodads}; the room reloads when the slider is let go. Ctrl+click types a number.");
+
+    /// <summary>
+    /// The slider for how many doodads a room places, applied when it is let go.
+    /// </summary>
+    private void DoodadCap()
+    {
+        ImGui.SetNextItemWidth(Math.Min(ImGui.GetContentRegionAvail().X, 260f));
+        ImGui.SliderInt("doodads at most##roomcap", ref _dragging, RoomModels.LeastDoodads, RoomModels.MostDoodads,
+            "%d", ImGuiSliderFlags.Logarithmic | ImGuiSliderFlags.AlwaysClamp);
+        if (ImGui.IsItemDeactivatedAfterEdit() && _dragging != _doodads)
+        {
+            _doodads = Math.Clamp(_dragging, RoomModels.LeastDoodads, RoomModels.MostDoodads);
+            Changed?.Invoke();
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip(DoodadsSaid);
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Checkbox("tools##roomtools", ref _tools))
+        {
+            Changed?.Invoke();
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("The level editor's own pieces: walk blockers and markers. The game places them and does not draw them -"
+                + " the room names DoodadInvisible beside a blocker - so they are hidden unless this is on."
+                + " Everything from Metadata/Terrain/Doodads/Tools/ counts, which is a rule on the folder's name.");
+        }
+
+        // A SECOND ROW FOR WHERE THINGS GO: the first says how much is drawn, this one where it stands.
+        if (ImGui.SmallButton(_heights switch
+        {
+            DoodadHeight.Ground => "doodad z: ground##roomheights",
+            DoodadHeight.Added => "doodad z: ground + line##roomheights",
+            _ => "doodad z: line##roomheights",
+        }))
+        {
+            _heights = _heights switch
+            {
+                DoodadHeight.File => DoodadHeight.Ground,
+                DoodadHeight.Ground => DoodadHeight.Added,
+                _ => DoodadHeight.File,
+            };
+            Changed?.Invoke();
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("How high a doodad is set whose line in the room carries a height - a value neither reference names.\n"
+                + "line: at the value itself - the usual, and what the game does: seepage's offices came out right with it.\n"
+                + "ground: on the ground under it, the value ignored, as before.\n"
+                + "ground + line: at the ground plus the value.\n"
+                + "Doodads whose line carries none stay on the ground. See also the \"doodad heights:\" line under a laid room.");
+        }
+
+        ImGui.SameLine();
+        ImGui.Checkbox("as laid##roomlaid", ref _asLaid);
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("With a place picked below, the room as the area laid it there: the tiles the game actually put down -"
+                + " the joins to the map included - each turned the way the game laid it, and the room's doodads set on them.\n"
+                + "Off, or with no place picked: the room's doodads as its file has them.");
+        }
+
+        if (_asLaid)
+        {
+            ImGui.SameLine();
+            ImGui.Checkbox("tile level##roomlevel", ref _atLevel);
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip("Each piece set at its tiles' own level - the height the area's ground is measured from - rather than"
+                    + " raised until its ground meets the area's on average.\n"
+                    + "Which of the two the game does is not settled: compare both with the game, and see the \"level:\" line under the picture.");
+            }
+
+            Hiding();
+        }
+    }
+
+    /// <summary>What the cut's slider says at nought.</summary>
+    private const string CutOff = "no cut";
+
+    /// <summary>
+    /// A laid room's row for what is left out unseen: the camera's switch and the cut under the ground, each reloading the room.
+    /// </summary>
+    private void Hiding()
+    {
+        if (ImGui.Checkbox("leave out the hidden##roomsight", ref _sight))
+        {
+            Changed?.Invoke();
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Leaves out what the game's camera cannot see from anywhere the player can stand near the room - under the ground,"
+                + " inside rock, behind cliffs - before it is loaded where it can be, and from the picture, its light and its shadows.\n"
+                + "The camera is the game's own, read now and moved over every walkable place within its reach, so it needs the game running"
+                + " and the room drawn as laid. Turn the picture to look from below and the holes show; off draws everything.\n"
+                + "The line under the picture says how much was left out and how long it took.");
+        }
+
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(Math.Min(ImGui.GetContentRegionAvail().X, 220f));
+        ImGui.SliderInt("##roomcut", ref _cutting, 0, RoomKey.MostCut, _cutting == 0 ? CutOff : "cut %d under ground", ImGuiSliderFlags.AlwaysClamp);
+        if (ImGui.IsItemDeactivatedAfterEdit() && _cutting != _cut)
+        {
+            _cut = Math.Clamp(_cutting, 0, RoomKey.MostCut);
+            Changed?.Invoke();
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Leaves out everything further under the area's own ground than this many world units - a triangle whose three corners"
+                + " all lie deeper, and a doodad before it is loaded where all of it would. Nought cuts nothing.\n"
+                + "Counted from the ground under each point, so a slope is cut along the slope. The room reloads when the slider is let go;"
+                + " Ctrl+click types a number.");
+        }
+    }
+
+    /// <summary>The key a room loads under: laid where picked, at the tiles' levels where asked.</summary>
+    private string LaidKey(string chosen)
+    {
+        string laid = LaidPlace();
+        return new RoomKey(
+            chosen, _doodads, _tools, laid, AtLevel: laid.Length > 0 && _atLevel, Heights: _heights,
+            Hidden: laid.Length > 0 && !_sight, Cut: laid.Length > 0 ? _cut : 0).ToString();
+    }
+
+    /// <summary>The place the room is drawn laid at, as the key writes it - or empty for the room as its file has it.</summary>
+    private string LaidPlace()
+    {
+        if (!_asLaid || _searchedIn is not { } grid || _found is not { } found)
+        {
+            return string.Empty;
+        }
+
+        RoomCandidate? picked = _ghosted >= 0 && _ghosted < found.Candidates.Count
+            ? found.Candidates[_ghosted]
+            : _ghosted == GhostAround ? _around?.Where : null;
+        return picked is { } place ? RoomKey.LaidAt(place.X, place.Y, place.Turn, Stamp(grid)) : string.Empty;
+    }
+
+    /// <summary>
+    /// Where in the current area a room it loaded was laid: found by its tiles and ground, listed, and outlined on the large map when picked.
+    /// </summary>
+    /// <remarks>
+    /// OFF THE FRAME, once per room, area and choice of ground: the search tries the room eight ways
+    /// round at every tile corner of the area, which is cheap per try and not per frame. The list is
+    /// best first, with what each place agrees on - the map is where a person tells them apart. See
+    /// RoomFinder.
+    /// </remarks>
+    private void Whereabouts(string room)
+    {
+        TerrainGrid? grid = Terrain?.Invoke();
+        if (grid?.Ground is not { } ground || Read is not { } read)
+        {
+            ImGui.TextDisabled("where it lies: the area's ground types are not read");
+            return;
+        }
+
+        if (!ReferenceEquals(grid, _identitiesOf))
+        {
+            _identitiesOf = grid;
+            _identities = new ConcurrentDictionary<string, TileIdentity?>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        if (ImGui.Checkbox("anywhere##roomanywhere", ref _anywhere))
+        {
+            Changed?.Invoke();
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Off, the usual: only places whose footprint covers ground somebody can stand on are listed -"
+                + " the void past the map's edge fits a room's rim hundreds of times over.\n"
+                + "On: every place, for a room of pure scenery that covers no walkable ground.");
+        }
+
+        ImGui.SameLine();
+
+        if (!ReferenceEquals(grid, _searchedIn) || !string.Equals(room, _searchedFor, StringComparison.Ordinal) || _anywhere != _searchedAnywhere)
+        {
+            _searchedIn = grid;
+            _searchedFor = room;
+            _searchedAnywhere = _anywhere;
+            _found = null;
+            _ghosted = -1;
+            _around = null;
+            _probedIn = null;
+            _probedAt = (-1, -1);
+            Ghost?.Invoke(null);
+            int wide = grid.TilesX;
+            int tall = grid.TilesY;
+            TerrainTiles? laid = grid.Tiles;
+
+            // EACH TILE FILE ONCE PER AREA, its inheritance followed, whichever room's search reads it first.
+            ConcurrentDictionary<string, TileIdentity?> known = _identities;
+            TileIdentity? Identity(string path) => known.GetOrAdd(path, one => TileIdentity.Of(TileModels.Defined(read, one).Definition));
+            bool anywhere = _anywhere;
+            _searching = Task.Run(() => RoomFinder.Find(
+                RoomLayout.Read(read(room)), ground, wide, tall, laid, Identity, walkable: grid.WalkableTileMask(), anywhere: anywhere));
+        }
+
+        if (_found is null && _searching is { IsCompleted: true } done)
+        {
+            _found = done.IsCompletedSuccessfully ? done.Result : RoomSearch.Not($"the search failed: {done.Exception?.GetBaseException().Message}");
+            _rows = new string[_found.Candidates.Count];
+            for (var one = 0; one < _rows.Length; one++)
+            {
+                RoomMisses? misses = one < _found.Misses.Count ? _found.Misses[one] : null;
+                _rows[one] = Said(_found.Candidates[one], _found.TileChecked, misses) + string.Create(CultureInfo.InvariantCulture, $"##where{one}");
+            }
+        }
+
+        if (_found is not { } found)
+        {
+            ImGuiText.Wrapped(OverlayInk.Quiet, "where it lies: looking for it in this area...");
+            return;
+        }
+
+        if (found.Why.Length > 0)
+        {
+            ImGuiText.Wrapped(OverlayInk.Quiet, ImGuiText.Escape("where it lies: " + found.Why));
+            return;
+        }
+
+        string standing = found.Standing ? " over walkable ground" : string.Empty;
+
+        // THE BEST SHARE SAID OUTRIGHT where nothing fits: a "nearest" agreeing on under half its
+        // corners is no place at all, and the outline would otherwise read as a claim.
+        int best = found.Candidates.Count > 0 ? Share(found.Candidates[0]) : 0;
+        ImGuiText.Wrapped(OverlayInk.Quiet, ImGuiText.Escape(found.TileChecked
+            ? string.Create(CultureInfo.InvariantCulture,
+                $"where it lies: places{standing} ranked by the tiles laid, then the corners - {found.Fits} fit all {found.Corners} corners; pick one to outline it on the large map")
+            : found.Found
+                ? string.Create(CultureInfo.InvariantCulture,
+                    $"where it lies: {found.Fits} place{(found.Fits == 1 ? string.Empty : "s")}{standing} fit all {found.Corners} corners - pick one to outline it on the large map")
+                : string.Create(CultureInfo.InvariantCulture,
+                    $"where it lies: nowhere{standing} fits all {found.Corners} corners; the nearest agrees on {best}% - pick one to see where it parts:")));
+
+        // WHAT THE ROOM'S FILE GAVE THE SEARCH, on a line of its own and wrapped: at the end of the
+        // line above it was cut off by the pane's edge, the overrides with it.
+        var facts = new List<string>(3);
+        if (found.Free > 0)
+        {
+            facts.Add(string.Create(CultureInfo.InvariantCulture, $"{found.Free} corners the room leaves unnamed are free"));
+        }
+
+        if (found.Left > 0)
+        {
+            facts.Add(string.Create(CultureInfo.InvariantCulture, $"{found.Left} slots bigger than a tile left out of the ground"));
+        }
+
+        facts.Add(found.Overrides
+            ? string.Create(CultureInfo.InvariantCulture, $"{found.Overridden} inner corners named by the file's ground overrides")
+            : found.OverridesWhy.Length > 0
+                ? "the file's tail did not read: " + found.OverridesWhy
+                : "no ground overrides in the file");
+        ImGui.PushTextWrapPos(0f);
+        ImGui.TextDisabled(ImGuiText.Escape("the room's file: " + string.Join("  ·  ", facts)));
+        ImGui.PopTextWrapPos();
+
+        Around(grid, room, found);
+
+        float rows = Math.Min(found.Candidates.Count, 6);
+        if (rows == 0)
+        {
+            Parting(found);
+            return;
+        }
+
+        if (ImGui.BeginChild("##roomwhere", new Vector2(0f, (rows * ImGui.GetTextLineHeightWithSpacing()) + ImGui.GetStyle().FramePadding.Y), ImGuiChildFlags.Borders))
+        {
+            for (var one = 0; one < found.Candidates.Count; one++)
+            {
+                RoomCandidate where = found.Candidates[one];
+                if (ImGui.Selectable(one < _rows.Length ? _rows[one] : "##where", _ghosted == one))
+                {
+                    _ghosted = _ghosted == one ? -1 : one;
+                    RoomMisses misses = one < found.Misses.Count ? found.Misses[one] : RoomMisses.None;
+                    Ghost?.Invoke(_ghosted >= 0 ? new RoomGhost(grid, room, where, misses) : null);
+                }
+
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetTooltip(RowSaid);
+                }
+            }
+
+            if (found.More > 0)
+            {
+                ImGui.TextDisabled(string.Create(CultureInfo.InvariantCulture, $"{found.More} more that fit all corners, not listed"));
+            }
+        }
+
+        ImGui.EndChild();
+        Sharing(room, found);
+        Parting(found);
+    }
+
+    /// <summary>The row the map outlines, or null for none.</summary>
+    private RoomCandidate? Picked(RoomSearch found)
+        => _ghosted >= 0 && _ghosted < found.Candidates.Count
+            ? found.Candidates[_ghosted]
+            : _ghosted == GhostAround ? _around?.Where : null;
+
+    /// <summary>
+    /// The outlined row held against every room the map draws: the tiles it shares with each, on both rims and elsewhere, and how many it touches - with a button to copy them.
+    /// </summary>
+    /// <remarks>
+    /// WHAT THE ARRANGEMENT'S RULE RESTS ON. Rooms that join either lay their rims on one row - those
+    /// tiles held by both, nothing inside - or on two rows side by side, sharing nothing and touching
+    /// along the join. Held against a room known to be right, this says which; and on a room pushed off
+    /// its first row, which room held the tiles. Both halves are printed - the room's own place as
+    /// arranged first - so nothing has to be read off the map. Worked out once per pick.
+    /// </remarks>
+    private void Sharing(string room, RoomSearch found)
+    {
+        if (!_roomsOnMap || AllRooms?.Last is not { } arranged || Picked(found) is not { } candidate)
+        {
+            return;
+        }
+
+        if (!ReferenceEquals(arranged, _sharedOf) || _sharedFor != candidate || !string.Equals(room, _sharedRoom, StringComparison.Ordinal))
+        {
+            _sharedOf = arranged;
+            _sharedFor = candidate;
+            _sharedRoom = room;
+            string rule = arranged.Rule == RoomOverlap.Rims ? "rims shared" : "no tile shared";
+            if (!arranged.Layouts.TryGetValue(room, out RoomLayout? layout))
+            {
+                _sharedHeader = $"against the rooms on the map ({rule}): this room is not among them##roomshared";
+                _sharedLines = [];
+            }
+            else
+            {
+                IReadOnlyList<RoomShared> shared = arranged.Sharing(layout, candidate, except: room);
+                RoomLaid? self = arranged.Laid.FirstOrDefault(one => string.Equals(one.Room, room, StringComparison.OrdinalIgnoreCase));
+                var lines = new List<string>(shared.Count + 1)
+                {
+                    self is null
+                        ? "this room on the map: crowded out - every place on its list covers a tile a surer room holds"
+                        : string.Create(CultureInfo.InvariantCulture,
+                            $"this room on the map: tile {self.Where.X}, {self.Where.Y}, {RoomFinder.Said(self.Where.Turn)}, row {self.Rank + 1} of its list")
+                            + (self.Where == candidate ? " - the row picked" : string.Empty),
+                };
+                foreach (RoomShared one in shared)
+                {
+                    lines.Add(string.Create(CultureInfo.InvariantCulture,
+                        $"{TerrainRooms.NameFor(one.Laid.Room)} at tile {one.Laid.Where.X}, {one.Laid.Where.Y}, {RoomFinder.Said(one.Laid.Where.Turn)}:"
+                        + $" {one.Rims} tiles on both rims, {one.Elsewhere} elsewhere, {one.Touching} touching"));
+                }
+
+                int sharing = shared.Count(one => one.Rims + one.Elsewhere > 0);
+                _sharedHeader = string.Create(CultureInfo.InvariantCulture,
+                    $"against the rooms on the map ({rule}): tile {candidate.X}, {candidate.Y} shares tiles with {sharing}, touches {shared.Count - sharing} more##roomshared");
+                _sharedLines = [.. lines];
+            }
+        }
+
+        // DRAWN THIS FRAME, which is what lets the capture key take the fold's text only while it is
+        // on screen - see PickedReport.
+        _sharedFrame = ImGui.GetFrameCount();
+        if (!ImGui.CollapsingHeader(_sharedHeader))
+        {
+            return;
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("A tile on both rims lies on the outermost row or column of both footprints; elsewhere is inside either;"
+                + " touching is a tile of this row's beside one of the other room's, across a side. The capture key writes these lines to room-pick.txt.");
+        }
+
+        foreach (string line in _sharedLines)
+        {
+            ImGui.TextUnformatted(line);
+        }
+    }
+
+    /// <summary>
+    /// Every place the outlined candidate parts with the area, one line each - written out by the capture key.
+    /// </summary>
+    /// <remarks>
+    /// THE DATA FOR WHAT IS NOT DECODED YET. Each tile names what the room asks for and what was laid,
+    /// whether it can be walked on, the room sides its slot lies on and that slot's edge and exit
+    /// numbers as the file writes them - poe_data_tools names the exit pairs and does not say what
+    /// their values mean, and a join's tiles beside a slot's numbers is how to find out. Worked out
+    /// once per pick, not per frame.
+    /// </remarks>
+    private void Parting(RoomSearch found)
+    {
+        RoomCandidate? picked = _ghosted >= 0 && _ghosted < found.Candidates.Count
+            ? found.Candidates[_ghosted]
+            : _ghosted == GhostAround ? _around?.Where : null;
+        if (picked is not { } candidate)
+        {
+            return;
+        }
+
+        if (!ReferenceEquals(found, _partsOf) || _partsFor != candidate)
+        {
+            _partsOf = found;
+            _partsFor = candidate;
+            IReadOnlyList<RoomPart> parts = found.Parts(candidate);
+            int elsewhere = parts.Count(one => one.Join == RoomJoin.None);
+            _partLines = new string[parts.Count];
+            for (var one = 0; one < parts.Count; one++)
+            {
+                _partLines[one] = PartSaid(parts[one]);
+            }
+
+            _partsHeader = string.Create(CultureInfo.InvariantCulture,
+                $"where tile {candidate.X}, {candidate.Y} ({RoomFinder.Said(candidate.Turn)}) parts with the area: {parts.Count} misses, {elsewhere} of them at no join##roomparts");
+        }
+
+        _partsFrame = ImGui.GetFrameCount();
+        if (!ImGui.CollapsingHeader(_partsHeader))
+        {
+            return;
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Every tile and corner where this row disagrees with the area, with the slot's own numbers - the capture key writes them to room-pick.txt.");
+        }
+
+        float rows = Math.Clamp(_partLines.Length, 1, 8);
+        if (ImGui.BeginChild("##roomparts", new Vector2(0f, (rows * ImGui.GetTextLineHeightWithSpacing()) + ImGui.GetStyle().FramePadding.Y), ImGuiChildFlags.Borders, ImGuiWindowFlags.HorizontalScrollbar))
+        {
+            foreach (string line in _partLines)
+            {
+                ImGui.TextUnformatted(line);
+            }
+        }
+
+        ImGui.EndChild();
+    }
+
+    /// <summary>One miss in a line's words.</summary>
+    private static string PartSaid(RoomPart part)
+    {
+        string join = part.Join switch
+        {
+            RoomJoin.Opening => "opening",
+            RoomJoin.Cap => "cap",
+            RoomJoin.Corner => "join corner",
+            _ => "elsewhere",
+        };
+        string sides = part.Sides.Length > 0 ? " (" + part.Sides + ")" : string.Empty;
+        if (part.IsCorner)
+        {
+            return string.Create(CultureInfo.InvariantCulture,
+                $"corner {part.X}, {part.Y}  ·  {join}  ·  room corner {part.RoomU}, {part.RoomV}{sides}  ·  wants {part.Wanted}  ·  laid {part.Laid}");
+        }
+
+        var exits = new System.Text.StringBuilder();
+        for (var side = 0; side < part.SideEdges.Count && side < 4; side++)
+        {
+            string edge = part.SideEdges[side].Length > 0 ? Path.GetFileNameWithoutExtension(part.SideEdges[side]) : "-";
+            string pair = (2 * side) + 1 < part.SideExits.Count
+                ? string.Create(CultureInfo.InvariantCulture, $"{part.SideExits[2 * side]}/{part.SideExits[(2 * side) + 1]}")
+                : "?";
+            exits.Append(CultureInfo.InvariantCulture, $" {"DRUL"[side]}:{edge} {pair}");
+        }
+
+        return string.Create(CultureInfo.InvariantCulture,
+            $"tile {part.X}, {part.Y}  ·  {join}  ·  slot {part.RoomU}, {part.RoomV}{sides}  ·  {(part.Walkable ? "walkable" : "not walkable")}  ·  wants {part.Wanted}  ·  laid {part.Laid}  ·  slot sides{exits}");
+    }
+
+    /// <summary>What a candidate row's figures mean.</summary>
+    private const string RowSaid = "Corners: the room's ground types against the ground laid at every tile corner.\n"
+        + "Tiles: each of the room's slots against the tile laid where it falls - size, tag, edge and ground types, whichever way round.\n"
+        + "Big: the slots bigger than one tile, which the ground leaves out and which make a room this room.\n"
+        + "Places are ranked by their tiles, then their corners: where a room lies, the area lays its own tiles along the sides it joins the map by.\n"
+        + "On the map, dots are corners that disagree and rings tiles that do (red and orange by default); a third colour marks the ones at a join -"
+        + " a ring for a rim tile turned to walkable ground with walkable ground beyond it, a ring with a dot for a miss beside it,"
+        + " and a dot for its corners. Their colours, the outline's and the name's are set under Markers, Places, Room outlines.\n"
+        + "Joins: how many such runs; beside them: of the corners and tiles no join explains, how many agree.";
+
+    /// <summary>A candidate in a row's words, with how its misses fall where they were sorted into joins.</summary>
+    private static string Said(RoomCandidate where, bool tileChecked, RoomMisses? misses)
+    {
+        string tiles = !tileChecked
+            ? string.Empty
+            : where.Big > 0
+                ? string.Create(CultureInfo.InvariantCulture, $"  ·  tiles {where.TilesAgree}/{where.Tiles}, big {where.BigAgree}/{where.Big}")
+                : string.Create(CultureInfo.InvariantCulture, $"  ·  tiles {where.TilesAgree}/{where.Tiles}");
+        string joins = misses is { Classified: true } sorted
+            ? string.Create(CultureInfo.InvariantCulture, $"  ·  joins {sorted.Joins}  ·  {Beside(where, sorted)}% beside them")
+            : string.Empty;
+        return string.Create(CultureInfo.InvariantCulture,
+            $"tile {where.X}, {where.Y}  ·  {RoomFinder.Said(where.Turn)}  ·  {where.Matched}/{where.Corners} corners ({Share(where)}%){tiles}{joins}");
+    }
+
+    /// <summary>
+    /// The "around you" row: the room laid its best way over the tile the player stands on, whether or not that made the list.
+    /// </summary>
+    /// <remarks>
+    /// BOTH HALVES OF THE COMPARISON. Standing in a room, a person knows where it is; this says how the
+    /// room's own corners and slots meet what the area laid there, so a list that ranks somewhere else
+    /// first shows by how much and where - pick the row and the map marks it. Worked out off the frame
+    /// whenever the player reaches another tile, one probe at a time.
+    /// </remarks>
+    private void Around(TerrainGrid grid, string room, RoomSearch found)
+    {
+        if (Here is null)
+        {
+            return;
+        }
+
+        if (_probing is { Task.IsCompleted: true } done)
+        {
+            _probing = null;
+            if (ReferenceEquals(done.For, found))
+            {
+                _around = done.Task.IsCompletedSuccessfully ? done.Task.Result : null;
+                _aroundRow = _around is { } scored ? "around you: " + Said(scored.Where, found.TileChecked, scored.Misses) + "##wherearound" : string.Empty;
+                if (_ghosted == GhostAround)
+                {
+                    Ghost?.Invoke(_around is { } moved ? new RoomGhost(grid, room, moved.Where, moved.Misses) : null);
+                }
+            }
+        }
+
+        if (_probing is null && Here() is { } here && (here != _probedAt || !ReferenceEquals(found, _probedIn)))
+        {
+            _probedAt = here;
+            _probedIn = found;
+            _probing = (Task.Run(() => found.Around(here.X, here.Y)), found);
+        }
+
+        if (_around is not { } around)
+        {
+            return;
+        }
+
+        if (ImGui.Selectable(_aroundRow, _ghosted == GhostAround))
+        {
+            _ghosted = _ghosted == GhostAround ? -1 : GhostAround;
+            Ghost?.Invoke(_ghosted == GhostAround ? new RoomGhost(grid, room, around.Where, around.Misses) : null);
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("The room laid its best way over the tile you stand on - most tiles agreeing, then most corners -"
+                + " whether or not that made the list below. Standing in the room, this is where it is: what it scores here"
+                + " against the list's first row says whether the search can tell it apart.\n" + RowSaid);
+        }
+    }
+
+    /// <summary>How much of a candidate's corners and tiles agree that no join explains - see RoomArrangement.Beside.</summary>
+    private static int Beside(RoomCandidate where, RoomMisses misses) => RoomArrangement.Beside(where, misses);
+
+    /// <summary>How much of a candidate's corners agree, as a whole percentage, rounded down so nothing short of all reads 100.</summary>
+    private static int Share(RoomCandidate where) => where.Corners > 0 ? where.Matched * 100 / where.Corners : 0;
+
+    /// <summary>The ways the current area laid a tile, one bit per placement - zero where it did not, or the tables were not read.</summary>
+    private byte LaidHere(string tile) => Laid?.Invoke().GetValueOrDefault(tile) ?? 0;
+
+    /// <summary>The chosen placement where the area laid this tile that way, or -1 - see <see cref="_laid"/>.</summary>
+    private int Laying(string tile) => _laid >= 0 && (LaidHere(tile) & (1 << _laid)) != 0 ? _laid : -1;
+
+    /// <summary>
+    /// The "laid as" choice: the tile as its file holds it, or turned the way the current area laid it.
+    /// </summary>
+    /// <remarks>
+    /// ONLY THE WAYS THIS AREA LAID IT, read off each tile's RotationSelector through the engine's own
+    /// tables - the decode the heights already read the ground through, so a turn offered here is one
+    /// the game made, not one this could make. A ROOM HAS NO SUCH CHOICE: no tile names its room, so
+    /// nothing in memory says where or how a room was laid - see RoomFiles.
+    /// </remarks>
+    private void LaidAs(string tile)
+    {
+        if (Laid is null)
+        {
+            return;
+        }
+
+        ImGui.TextDisabled("laid as");
+        ImGui.SameLine();
+        byte laid = LaidHere(tile);
+        if (laid == 0)
+        {
+            int row = Page.Row(tile);
+            ImGui.TextDisabled(row >= 0 && Page.Placed[row] > 0
+                ? "the file's own orientation - how this area laid it was not read (the rotation tables were not found)"
+                : "the file's own orientation - not placed in this area");
+            return;
+        }
+
+        const string Own = "as in the file";
+        int current = Laying(tile);
+        ImGui.SetNextItemWidth(Math.Min(ImGui.GetContentRegionAvail().X, 260f));
+        if (ImGui.BeginCombo("##laidas", current >= 0 ? "as here: " + TileOrientation.OfPlacement(current) : Own))
+        {
+            if (ImGui.Selectable(Own, current < 0))
+            {
+                _laid = -1;
+            }
+
+            for (int placement = 0; placement < 8; placement++)
+            {
+                if ((laid & (1 << placement)) == 0)
+                {
+                    continue;
+                }
+
+                string name = "as here: " + TileOrientation.OfPlacement(placement);
+                if (ImGui.Selectable(name + "##laid" + placement.ToString(CultureInfo.InvariantCulture), placement == current))
+                {
+                    _laid = placement;
+                }
+            }
+
+            ImGui.EndCombo();
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("How this area laid the tile down, from each placed tile's RotationSelector through the engine's own tables -"
+                + " the same decode the map's ground heights are read through. Turns are counter-clockwise in the file's own X and Y,"
+                + " a mirror flips X first. Rooms have no such choice: nothing in memory says how a room was laid.");
+        }
+
+        int ways = System.Numerics.BitOperations.PopCount(laid);
+        ImGui.SameLine();
+        ImGui.TextDisabled(string.Create(CultureInfo.InvariantCulture, $"laid {ways} way{(ways == 1 ? string.Empty : "s")} here"));
+    }
+
+    /// <summary>
+    /// The "drawn as" choice: the tile's own materials, or those of a tileset that places it.
+    /// </summary>
+    /// <remarks>
+    /// ONLY TILESETS THAT PLACE THIS TILE, by its whole path - see TilesetIndex - because a tileset's
+    /// overrides name the materials of the tiles it places, and offering one that never places the
+    /// tile would offer a choice that changes nothing.
+    /// </remarks>
+    private void DrawnAs(string tile)
+    {
+        if (Tilesets is not { } catalog)
+        {
+            return;
+        }
+
+        ImGui.TextDisabled("drawn as");
+        ImGui.SameLine();
+        if (catalog.Ready is not { } index)
+        {
+            ImGui.TextDisabled(catalog.Reading ? "reading every tileset..." : "no tilesets yet - the install's list is read shortly after start-up");
+            return;
+        }
+
+        IReadOnlyList<string> placing = index.Of(tile);
+        if (placing.Count == 0)
+        {
+            ImGui.TextDisabled(string.Create(CultureInfo.InvariantCulture,
+                $"the tile's own materials - none of {index.Searched} tilesets places it"));
+            return;
+        }
+
+        const string Own = "the tile's own materials";
+        string current = Placing(tile);
+        ImGui.SetNextItemWidth(Math.Min(ImGui.GetContentRegionAvail().X, 360f));
+        if (ImGui.BeginCombo("##drawnas", current.Length > 0 ? TilesetIndex.Short(current) : Own))
+        {
+            if (ImGui.Selectable(Own, current.Length == 0))
+            {
+                _tileset = string.Empty;
+            }
+
+            foreach (string one in placing)
+            {
+                if (ImGui.Selectable(TilesetIndex.Short(one) + "##" + one, string.Equals(one, current, StringComparison.OrdinalIgnoreCase)))
+                {
+                    _tileset = one;
+                }
+
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetTooltip(ImGuiText.Escape(one));
+                }
+            }
+
+            ImGui.EndCombo();
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("The tilesets that place this tile. Each swaps some of the tile's materials for its own"
+                + " (its TileMaterialOverrides) - the desert tilesets swap every cliff and ledge."
+                + " The ground stays plain: which texture a tileset lays on it is listed in the dump, not yet drawn.");
+        }
+
+        ImGui.SameLine();
+        ImGui.TextDisabled(string.Create(CultureInfo.InvariantCulture, $"{placing.Count} of {index.Searched} tilesets place it"));
+    }
+}

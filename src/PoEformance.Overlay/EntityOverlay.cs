@@ -1,0 +1,6210 @@
+using System.Numerics;
+using System.Runtime.Versioning;
+using ClickableTransparentOverlay;
+using ImGuiNET;
+using PoEformance.Core.Diagnostics;
+using PoEformance.Features;
+using PoEformance.Game.Components;
+using PoEformance.Game.Diagnostics;
+using PoEformance.Game.Entities;
+using PoEformance.Game.Files;
+using PoEformance.Game.Ui;
+using PoEformance.Game.World;
+
+namespace PoEformance.Overlay;
+
+/// <summary>
+/// The in-game overlay: draws a dot for every entity at its projected screen position.
+/// </summary>
+/// <remarks>
+/// Click-through and always-on-top via ClickableTransparentOverlay, drawn with ImGui on a
+/// GPU-backed transparent window - the game keeps every input, the overlay only paints.
+///
+/// The renderer NEVER touches game memory. It is handed a finished
+/// <see cref="WorldSnapshot"/> by whoever owns the reading, projects each entity through
+/// the snapshot's matrix, and draws. That separation is what lets the projection be tested
+/// against recordings while this class stays a thin drawing loop.
+/// </remarks>
+[SupportedOSPlatform("windows")]
+public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
+{
+    // Fully qualified: this project's own namespace is PoEformance.Overlay, which would
+    // otherwise shadow the library's Overlay type.
+
+    private readonly Func<UiScale, WorldSnapshot> _snapshotSource;
+    private readonly IntPtr _gameWindow;
+    private readonly int _cull;
+    private WorldSnapshot _snapshot = WorldSnapshot.Empty;
+
+    /// <summary>The icon names the classifier gave up on, collected for later. See the type.</summary>
+    private readonly UnrecognisedMarkers _unrecognised = new();
+
+    /// <summary>Which boss arenas have been cleared, so their markers can say so. See the type.</summary>
+    private readonly BossArenas _arenas = new();
+
+    /// <summary>The endgame maps whose boss still has no picture. See BossIconRows.</summary>
+    private readonly BossIconRows _bossPlan;
+
+    /// <summary>Sends the exports to the repository to be baked. See BossExportPanel.</summary>
+    private readonly BossExportPanel _bossExport;
+    private ClientRect _tracked;
+    private readonly TerrainLayer _terrain;
+    private readonly IconCache _icons;
+    /// <summary>
+    /// The reader's noise filter, so it can be switched from the overlay.
+    /// </summary>
+    /// <remarks>
+    /// Here rather than in a settings file because of WHEN it is wanted: a filtered entity is
+    /// absent from the snapshot entirely, so the moment somebody needs it is the moment they
+    /// are looking at the entity browser wondering where something went. A switch that needs
+    /// a restart would be no switch at all.
+    /// </remarks>
+    public NoiseFilter? Noise { get; set; }
+
+    /// <summary>
+    /// What the game has stopped listing and this keeps drawing, when the reader is sharing it.
+    /// </summary>
+    /// <remarks>
+    /// Held rather than copied, for the same reason the noise filter is: it is a switch the
+    /// reader owns and this window is where somebody reaches for it.
+    /// </remarks>
+    public EntityMemory? Memory { get; set; }
+
+    /// <summary>
+    /// Tells the reader whether to keep the hostile ground effects it otherwise drops.
+    /// </summary>
+    /// <remarks>
+    /// A callback rather than the reader itself: the overlay draws and has no other business
+    /// with it, and this is the one bit of it worth reaching for from up here.
+    ///
+    /// PUSHED EVERY FRAME from <c>EffectLayer.KeepHostile</c> rather than at the moment the
+    /// switch moves, which is the arrangement <see cref="ReadVisuals"/> already uses and for a
+    /// second reason here: the switch is SAVED, and settings are applied before this delegate is
+    /// wired, so a one-shot push during Apply would go nowhere and a restored value would be
+    /// silently lost. There is no matching getter - the layer holds the state, so asking the
+    /// reader what it is doing would be asking the wrong end.
+    /// </remarks>
+    public Action<bool>? KeepEffects { get; set; }
+
+    /// <summary>
+    /// Tells the reader whether to read the game's visual entities, where the projectiles are.
+    /// </summary>
+    /// <remarks>
+    /// Driven by the projectile layer rather than offered as a switch of its own, and that is
+    /// one decision rather than two on purpose. Without it no projectile reaches a snapshot at
+    /// all - see <see cref="WorldReader.ReadVisualEntities"/> - so a separate switch would be a
+    /// second thing to find before the first one did anything, which is exactly the overlay
+    /// that drew nothing over a screen of Spark. Turning the layer off takes the read cost with
+    /// it, so nobody pays for a feature they are not looking at.
+    /// </remarks>
+    public Action<bool>? ReadVisuals { get; set; }
+
+    /// <summary>
+    /// Tells the reader whether to read what is ON the monsters, for the status icons.
+    /// </summary>
+    /// <remarks>
+    /// The same arrangement as the visual entities above and for the same reason: without the
+    /// read no monster carries buffs, so a separate switch would be a second thing to find
+    /// before the first one drew anything - and with it every rare-or-better monster costs a
+    /// component walk nothing else in the tool wants. Driven by the settings that ask for it,
+    /// so switching the icons off takes the cost with them.
+    /// </remarks>
+    public Action<bool>? ReadMonsterBuffs { get; set; }
+
+    /// <summary>
+    /// Tells the reader whether to read where things POINT and what they are doing.
+    /// </summary>
+    /// <remarks>
+    /// The third of these, on the same terms: two reads per monster that only the aim rays want,
+    /// switched on by the settings that ask for them and taken away again with them.
+    /// </remarks>
+    public Action<bool>? ReadAim { get; set; }
+
+    /// <summary>
+    /// What the tracker draws - lines to monsters, rings on dangerous ground, status icons.
+    /// </summary>
+    /// <remarks>
+    /// ONE record shared by three layers, set through here rather than on each: they are edited
+    /// together in one tab, and three copies of the settings would be three things to keep in
+    /// step. The layers read it on the render thread every frame, so an edit lands on the next.
+    /// </remarks>
+    public TrackerSettings Tracker
+    {
+        get => _tracker;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _tracker = value;
+            _monsterLines.Settings = value;
+            _groundDanger.Settings = value;
+            _beams.Settings = value;
+            _statusIcons.Settings = value;
+            _aim.Settings = value;
+        }
+    }
+
+    private TrackerSettings _tracker = TrackerSettings.Default;
+
+    /// <summary>
+    /// The game's own names for the kinds of ground, when the install could be read.
+    /// </summary>
+    /// <remarks>
+    /// Set once at startup rather than passed through the settings, because it is not a setting:
+    /// it is a table read out of the install, it cannot change while the game runs, and nothing
+    /// in the config window has any business editing it. Null is ordinary - see
+    /// GroundEffectTypeTable - and costs only the name on a debug label.
+    /// </remarks>
+    public GroundEffectTypeTable? GroundTypes
+    {
+        get => _groundDanger.GroundTypes;
+        set => _groundDanger.GroundTypes = value;
+    }
+
+    /// <summary>
+    /// What the evasion warnings draw, and where their threats come from.
+    /// </summary>
+    /// <remarks>
+    /// Its own settings record rather than a section of the tracker's, because the same file
+    /// decides whether the tool PRESSES A KEY - and that is worth being able to find in one
+    /// place. See <see cref="EvasionSettings"/>.
+    /// </remarks>
+    public Func<EvasionSettings>? Evasion
+    {
+        get => _evasion.Settings;
+        set => _evasion.Settings = value;
+    }
+
+    /// <summary>Where the layer gets the threats the planner last decided.</summary>
+    public Func<IReadOnlyList<Threat>>? EvasionThreats
+    {
+        get => _evasion.Threats;
+        set => _evasion.Threats = value;
+    }
+
+    /// <summary>
+    /// How every drawn thing looks - colours, sizes, line widths, and whether it is drawn.
+    /// </summary>
+    /// <remarks>
+    /// Read on the render thread every frame rather than copied into fields on a change, so a
+    /// colour picked in the editor lands on the next frame. Nothing else would do: choosing a
+    /// colour is a thing you do by looking at it, and a value that needs a restart to take
+    /// effect cannot be chosen that way at all.
+    ///
+    /// Handed on to the layers that draw their own things, so there is ONE of these rather
+    /// than one per layer - the editor writes to it, and everything drawn reads from it.
+    /// </remarks>
+    public OverlayStyle Style
+    {
+        get => _style;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _style = value;
+            if (_poi is not null)
+            {
+                _poi.Style = value;
+            }
+
+            if (_uiBrowser is not null)
+            {
+                _uiBrowser.Style = value;
+            }
+
+            _preloadPanel.Style = value;
+            _preloadEntry.Style = value;
+            _unwalked.Style = value;
+            _heat.Style = value;
+            _healthBars.Style = value;
+            _projectiles.Style = value;
+            _atlas.Style = value;
+            _ground.Style = value;
+            _flaskUses.Style = value;
+            _skillDps.Style = value;
+        }
+    }
+
+    private OverlayStyle _style = new();
+
+    /// <summary>
+    /// How the tool's OWN windows are drawn - text size, and how solid the panels are.
+    /// </summary>
+    /// <remarks>
+    /// NOT APPLIED WHERE IT IS SET, and that is the whole reason this is a field with a flag
+    /// beside it rather than a property that does the work. ImGui's style and its font atlas
+    /// belong to the render thread's context, and the first thing that sets this is the saved
+    /// settings being applied while the app wires itself up - on the main thread, before that
+    /// context exists at all. Touching ImGui from there is a crash, and one that would only
+    /// happen on a machine slow enough to lose the race.
+    ///
+    /// So a change is only RECORDED here, and the next frame picks it up - see
+    /// <see cref="ApplyInterfaceIfAsked"/>. That also gives the font swap somewhere sensible
+    /// to live: rebuilding the atlas is expensive and must not happen on a frame that did not
+    /// ask for it.
+    /// </remarks>
+    public InterfaceStyle Interface
+    {
+        get => _interface;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _interface = value.Normalised();
+            _interfaceWanted = true;
+
+            // The tool window is the only one told: the preload panel's solidity is a
+            // catalogue entry of its own (StyleCatalogue.Keys.PreloadListBack), and two
+            // settings for one window is one of them being ignored.
+            _tools.Interface = _interface;
+        }
+    }
+
+    private InterfaceStyle _interface = InterfaceStyle.Default;
+
+    // Volatile because the two ends are different threads: the wiring and the configuration
+    // window ask, the render thread answers. Nothing here needs to be ordered against anything
+    // else - a change landing one frame later is invisible - but a flag that is never re-read
+    // is a setting that never arrives, and that failure would only show on somebody else's
+    // machine.
+    private volatile bool _interfaceWanted = true;
+    private int _wearing;
+
+    /// <summary>
+    /// Puts the chosen text size and palette on, on a frame that asked for them.
+    /// </summary>
+    /// <remarks>
+    /// Called at the top of the frame rather than part-way through it, so that no window is
+    /// drawn half in one palette and half in the next.
+    ///
+    /// The FONT is only touched when the size actually changed, because a change means
+    /// rebuilding the atlas and re-uploading the texture. The palette costs a couple of
+    /// hundred vector writes and is simply reapplied.
+    /// </remarks>
+    private void ApplyInterfaceIfAsked()
+    {
+        if (!_interfaceWanted)
+        {
+            return;
+        }
+
+        _interfaceWanted = false;
+        OverlayTheme.Apply(_interface);
+
+        if (_wearing != _interface.TextSizeOr)
+        {
+            WearASerif(_interface.TextSizeOr);
+        }
+    }
+
+    /// <summary>
+    /// Which windows are pinned in place or handed over to the mouse.
+    /// </summary>
+    /// <remarks>
+    /// ONE of these, like the style, and for the same reason: every window reads it and the
+    /// settings write it, so a copy per window is a copy that drifts. Handed to the windows
+    /// that draw themselves rather than reached for statically, so a test can hand them
+    /// another.
+    /// </remarks>
+    public WindowChrome Chrome { get; } = new();
+
+    /// <summary>Hands the shared window rules to everything that opens a window.</summary>
+    /// <remarks>
+    /// Called from the constructor rather than assigned where each window is built, because
+    /// two of them are created there and one arrives later - and a window that missed the
+    /// assignment silently keeps its own empty copy, which reads as a lock that did nothing.
+    /// </remarks>
+    private void ShareChrome()
+    {
+        _tools.Chrome = Chrome;
+        _preloadPanel.Chrome = Chrome;
+        _wealthPanel.Chrome = Chrome;
+        Chrome.Changed = () => SettingsChanged?.Invoke();
+        _tools.HiddenChanged = () => SettingsChanged?.Invoke();
+        EntitiesHidden.Changed = () => SettingsChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Called when a setting the user can see was changed, so it can be written down.
+    /// </summary>
+    /// <remarks>
+    /// Every one of these is a choice made once and expected to hold. Losing them on each
+    /// launch is small and constant, which is the kind of friction that never gets reported
+    /// and never stops - so the toggles say when they moved and somebody else decides where
+    /// that is kept.
+    /// </remarks>
+    public Action? SettingsChanged { get; set; }
+
+    /// <summary>What the entity browser has been told to leave out of its list.</summary>
+    /// <remarks>
+    /// Owned here rather than by the browser window, because it is written to the settings
+    /// file and this class is what Apply and CurrentSettings run on. The window that edits it
+    /// is attached later, or not at all.
+    /// </remarks>
+    public EntityHiding EntitiesHidden { get; } = new();
+
+    /// <summary>Hands the saved stash switches to whichever stores are attached.</summary>
+    /// <remarks>
+    /// Called from both ends - when the settings arrive and when the stores do - because either
+    /// can be second and only the later one can complete the pair. Cheap and idempotent, so
+    /// calling it when nothing has changed costs four assignments.
+    ///
+    /// The exchange's league is deliberately NOT set here: it is not known until the player is
+    /// in an area, so <c>StashWindow</c> tells the store on every draw where it is playing.
+    /// </remarks>
+    private void PushStashWants()
+    {
+        if (_stashArt is not null)
+        {
+            _stashArt.Enabled = _stashWants.Art;
+        }
+
+        if (_stashPrices is not null)
+        {
+            _stashPrices.Enabled = _stashWants.Prices;
+        }
+
+        if (_stashExchange is not null)
+        {
+            _stashExchange.Enabled = _stashWants.Exchange;
+        }
+
+        if (_stashTrade is not null)
+        {
+            _stashTrade.Enabled = _stashWants.Trade;
+        }
+    }
+
+    /// <summary>Applies the settings that persist, and remembers them for the next save.</summary>
+    public void Apply(OverlaySettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+
+        MinimumLootRarity = settings.MinLootRarity;
+        ShowTerrain = settings.ShowTerrain;
+        ShowLabels = settings.DotLabels;
+        _healthBars.OnlyWhenHurt = settings.HealthBarsOnlyWhenHurt;
+        HideBehindPanels = settings.HideBehindPanels;
+        HideWindowsBehindPanels = settings.HideWindowsBehindPanels;
+        ScreenshotKey = settings.ScreenshotKey;
+        _capture.Key = settings.CaptureKey;
+        _capture.Off = settings.CaptureOffOrEmpty;
+        KeepOut = settings.MapKeepOutOrDefault;
+        _projectiles.Enabled = settings.ShowProjectiles;
+        _projectiles.ShowTrails = settings.ProjectileTrails;
+        _projectiles.ShowPaths = settings.ProjectilePaths;
+        _projectiles.MineOnly = settings.ProjectilesMineOnly;
+        _effects.Enabled = settings.ShowEffects;
+        _effects.ShowPaths = settings.EffectPaths;
+        _effects.KeepHostile = settings.KeepEffects;
+        Interface = settings.InterfaceOrDefault;
+
+        // Remembered rather than applied, because the stores do not exist yet - AttachStash
+        // runs after this, exactly like the wealth stretch below. Pushed straight through as
+        // well, for the second and later Apply: the config page re-applies while the tool runs.
+        _stashWants = (settings.StashItemArt, settings.StashPrices,
+            settings.StashExchange, settings.StashTrade);
+        PushStashWants();
+        Chrome.Apply(settings.WindowsOrEmpty);
+        _tools.ApplyHidden(settings.HiddenTabsOrEmpty);
+        EntitiesHidden.Use(settings.HiddenEntitiesOrEmpty, settings.HiddenEntitySpotsOrEmpty);
+
+        // The panel can be applied straight away; the page cannot exist yet - the tracker is
+        // attached later, like the stash - so the stretch is remembered until it does.
+        _wealthPanel.Enabled = settings.WealthPanel;
+        _wealthMinutes = settings.WealthWindowMinutes;
+        if (_wealthWindow is not null)
+        {
+            _wealthWindow.WindowMinutes = _wealthMinutes;
+        }
+
+        if (Noise is not null)
+        {
+            Noise.Enabled = settings.HideNoise;
+
+            // Every kind back on first, so a name dropped from the file turns its class back
+            // ON rather than leaving it let through from the last time this ran.
+            IReadOnlyList<string> letThrough = settings.NoiseOffOrEmpty;
+            foreach (NoiseKind kind in NoiseFilter.Kinds)
+            {
+                Noise.Set(
+                    kind,
+                    !letThrough.Contains(kind.ToString(), StringComparer.OrdinalIgnoreCase));
+            }
+        }
+
+        if (Memory is not null)
+        {
+            Memory.Enabled = settings.RememberOutOfRange;
+        }
+
+        if (_poi is not null)
+        {
+            _poi.ShowPicker = settings.ShowPoi;
+            _poi.ShowLabels = settings.PoiLabels;
+            _poi.ShowRoutes = settings.PoiRoutes;
+            _poi.ShowArrows = settings.PoiArrows;
+            _poi.ShowBossArt = settings.BossArt;
+        }
+
+        _roomWants = settings.RoomsOrDefault;
+        _rooms?.Apply(_roomWants);
+
+        // The same handover as the rooms above, and for the same reason: the settings are read
+        // before the monster book is attached, so what they say is remembered here and pressed
+        // onto the pane whenever it turns up - see AttachMonsterBook.
+        _modelWants = settings;
+        Capture(_monsterBook?.Model);
+        Capture(_itemBook?.Model);
+        Capture(_tileBook?.Model);
+        Capture(_effectBook?.Model);
+
+        // No handover hole here, unlike the room layer above: the ground names need no route
+        // planner, so the layer exists from the start and takes the settings directly.
+        _ground.Apply(settings.GroundOrDefault);
+
+        ApplyTerrainStyle(
+            OverlaySettings.ParseColour(settings.TerrainColour), settings.TerrainThickness, settings.TerrainRim,
+            OverlaySettings.ParseColour(settings.TerrainFillColour), settings.TerrainFillOpacity);
+    }
+
+    /// <summary>The settings as they stand now, for writing down.</summary>
+    /// <remarks>
+    /// Built from the LIVE state rather than from a copy kept alongside it. Two records of the
+    /// same thing drift, and the one that would be saved is the one nobody is looking at.
+    /// </remarks>
+    public OverlaySettings CurrentSettings(OverlaySettings basis)
+    {
+        ArgumentNullException.ThrowIfNull(basis);
+
+        return basis with
+        {
+            MinLootRarity = MinimumLootRarity,
+            ShowTerrain = ShowTerrain,
+
+            // The page's own choices, from where the page put them - NOT from the basis,
+            // which is the file as it was at start-up. Taken from there, every save the
+            // overlay made for one of its own switches wrote the start-up colour and width
+            // back over whatever the page had set since, and the next launch had lost them.
+            // In the page's six-digit form while it is opaque, which is all the page can make;
+            // the eight-digit form only for an alpha somebody wrote into the file by hand.
+            TerrainColour = (_terrainColour >> 24) == 0xFF
+                ? OverlaySettings.FormatPageColour(_terrainColour)
+                : OverlaySettings.FormatColour(_terrainColour),
+            TerrainThickness = _terrainThickness,
+            TerrainRim = _terrainRim,
+            TerrainFillColour = OverlaySettings.FormatPageColour(_terrainFillColour),
+            TerrainFillOpacity = _terrainFillOpacity,
+            DotLabels = ShowLabels,
+            HealthBarsOnlyWhenHurt = _healthBars.OnlyWhenHurt,
+            HideBehindPanels = HideBehindPanels,
+            HideWindowsBehindPanels = HideWindowsBehindPanels,
+            ScreenshotKey = ScreenshotKey,
+            CaptureKey = _capture.Key,
+
+            // Null once every part is on again, so an untouched file gains no key - the hidden tabs' bargain.
+            CaptureOff = _capture.Off is { Count: > 0 } captureOff ? captureOff : null,
+            MapKeepOut = KeepOut,
+
+            // FROM THE WINDOW WHERE THERE IS ONE, and from the file where there is not: a build
+            // that never attached the book must not write an empty list over what somebody chose
+            // in a build that did.
+            MonsterColumns = _monsterBook?.Columns is { Count: > 0 } columns
+                ? columns
+                : basis.MonsterColumns,
+            MonsterColumnWidths = _monsterBook?.ColumnWidths is { Count: > 0 } widths
+                ? widths
+                : basis.MonsterColumnWidths,
+            MonsterPanes = _monsterBook?.Panes is { Count: > 0 } panes
+                ? panes
+                : basis.MonsterPanes,
+            MonsterRail = _monsterBook?.RailOpen ?? basis.MonsterRail,
+            ItemColumns = _itemBook?.Columns is { Count: > 0 } itemColumns
+                ? itemColumns
+                : basis.ItemColumns,
+            ItemColumnWidths = _itemBook?.ColumnWidths is { Count: > 0 } itemWidths
+                ? itemWidths
+                : basis.ItemColumnWidths,
+            ItemPanes = _itemBook?.Panes is { Count: > 0 } itemPanes
+                ? itemPanes
+                : basis.ItemPanes,
+            ItemRail = _itemBook?.RailOpen ?? basis.ItemRail,
+            TileColumns = _tileBook?.Columns is { Count: > 0 } tileColumns
+                ? tileColumns
+                : basis.TileColumns,
+            TileColumnWidths = _tileBook?.ColumnWidths is { Count: > 0 } tileWidths
+                ? tileWidths
+                : basis.TileColumnWidths,
+            TilePanes = _tileBook?.Panes is { Count: > 0 } tilePanes
+                ? tilePanes
+                : basis.TilePanes,
+            TileRail = _tileBook?.RailOpen ?? basis.TileRail,
+            TileSections = _tileBook?.SectionsOpen ?? basis.TileSections,
+            RoomDoodads = _tileBook is { } tiles
+                ? tiles.Doodads == RoomModels.UsualDoodads ? 0 : tiles.Doodads
+                : basis.RoomDoodads,
+            RoomTools = _tileBook?.Tools ?? basis.RoomTools,
+            RoomAnywhere = _tileBook?.Anywhere ?? basis.RoomAnywhere,
+            RoomsOnMap = _tileBook?.RoomsOnMap ?? basis.RoomsOnMap,
+            RoomSight = _tileBook?.Sight ?? basis.RoomSight,
+            RoomCut = _tileBook?.Cut ?? basis.RoomCut,
+            EffectColumns = _effectBook?.Columns is { Count: > 0 } effectColumns
+                ? effectColumns
+                : basis.EffectColumns,
+            EffectColumnWidths = _effectBook?.ColumnWidths is { Count: > 0 } effectWidths
+                ? effectWidths
+                : basis.EffectColumnWidths,
+            EffectPanes = _effectBook?.Panes is { Count: > 0 } effectPanes
+                ? effectPanes
+                : basis.EffectPanes,
+            EffectRail = _effectBook?.RailOpen ?? basis.EffectRail,
+            MonsterModel = _monsterBook?.ModelOpen ?? basis.MonsterModel,
+            ModelGrey = _monsterBook?.Model?.Grey ?? basis.ModelGrey,
+            ModelGreyFactor = _monsterBook?.Model?.GreyFactor ?? basis.ModelGreyFactor,
+            ModelBackdrop = _monsterBook?.Model?.Behind.ToString() ?? basis.ModelBackdrop,
+            ModelOutline = _monsterBook?.Model?.Outline.ToString() ?? basis.ModelOutline,
+            ModelOutlineWidth = _monsterBook?.Model?.OutlineWidth ?? basis.ModelOutlineWidth,
+            ModelLight = _monsterBook?.Model?.Light ?? basis.ModelLight,
+            ModelLightTarget = _monsterBook?.Model?.LightTarget ?? basis.ModelLightTarget,
+            ModelFlatLight = _modelWants.ModelFlatLight,
+            ModelCard = _card.On,
+            ModelCardSharp = _card.Sharp,
+            ShowProjectiles = _projectiles.Enabled,
+            ProjectileTrails = _projectiles.ShowTrails,
+            ProjectilePaths = _projectiles.ShowPaths,
+            ProjectilesMineOnly = _projectiles.MineOnly,
+            ShowEffects = _effects.Enabled,
+            EffectPaths = _effects.ShowPaths,
+            KeepEffects = _effects.KeepHostile,
+
+            // From the stores where they exist, and from what was loaded where they do not:
+            // saving before the stash is attached must not write four falses over the file.
+            StashItemArt = _stashArt?.Enabled ?? basis.StashItemArt,
+            StashPrices = _stashPrices?.Enabled ?? basis.StashPrices,
+            StashExchange = _stashExchange?.Enabled ?? basis.StashExchange,
+            StashTrade = _stashTrade?.Enabled ?? basis.StashTrade,
+
+            // Only once it differs from the defaults, so an untouched file gains no key and a
+            // default corrected in a release still reaches somebody who never opened the
+            // sliders - the same bargain the window rules and the marker styles make.
+            Interface = _interface == InterfaceStyle.Default ? basis.Interface : _interface,
+            Windows = Chrome.Saved(),
+            HiddenTabs = _tools.Hidden() is { Length: > 0 } hiddenTabs ? hiddenTabs : null,
+            HiddenEntities = EntitiesHidden.Kinds is { Count: > 0 } kinds ? kinds : null,
+            HiddenEntitySpots = EntitiesHidden.Spots is { Count: > 0 } spots ? [.. spots] : null,
+            HideNoise = Noise?.Enabled ?? basis.HideNoise,
+
+            // Only once one is let through, so an untouched file gains no key - the same
+            // bargain the hidden tabs make. Null rather than an empty array for the same reason.
+            NoiseOff = Noise is null
+                ? basis.NoiseOff
+                : NoiseFilter.Kinds.Where(k => !Noise.IsOn(k)).Select(k => k.ToString()).ToArray()
+                    is { Length: > 0 } through
+                    ? through
+                    : null,
+            RememberOutOfRange = Memory?.Enabled ?? basis.RememberOutOfRange,
+            ShowPoi = _poi?.ShowPicker ?? basis.ShowPoi,
+            PoiLabels = _poi?.ShowLabels ?? basis.PoiLabels,
+            PoiRoutes = _poi?.ShowRoutes ?? basis.PoiRoutes,
+            PoiArrows = _poi?.ShowArrows ?? basis.PoiArrows,
+            BossArt = _poi?.ShowBossArt ?? basis.BossArt,
+
+            // From the layer where there is one, and from what was loaded where there is not:
+            // saving before the layer is attached must not write an empty pick list over a
+            // file full of pinned rooms.
+            Rooms = _rooms?.Saved() ?? basis.Rooms,
+            Ground = _ground.Saved(),
+
+            // The page's switch is the live one where there is a page; before it is attached
+            // the basis is what was read out of the file, and writing the default over it is
+            // how a setting gets lost by opening the tool and closing it again.
+            WealthWatch = _wealthWindow?.Watching ?? basis.WealthWatch,
+            WealthPanel = _wealthPanel.Enabled,
+            WealthWindowMinutes = _wealthWindow?.WindowMinutes ?? _wealthMinutes,
+        };
+    }
+
+    /// <summary>What every read cost, kept so a whole map can be looked at afterwards.</summary>
+    public CostHistory? Costs { get; set; }
+
+    /// <summary>How much of the area has been walked, if it is being measured.</summary>
+    public MapCoverage? Coverage { get; set; }
+
+    /// <summary>
+    /// How much damage is being done, if it is being measured.
+    /// </summary>
+    /// <remarks>
+    /// Fed on the READER thread - the meter takes one sample per snapshot, and sampling it
+    /// from here instead would count every VSync frame that redraws an unchanged snapshot as
+    /// a reading in which no damage happened. This side only reads the figures.
+    /// </remarks>
+    public DamageMeter? Damage { get; set; }
+
+    /// <summary>The tabbed window every tool lives in.</summary>
+    /// <remarks>
+    /// The tools below register themselves here as they are attached; what remains of each
+    /// window class is its tab's content and the work it does while not in front. The order
+    /// passed with each registration pins the tab's place in the bar - play-time tools left
+    /// of the reverse-engineering ones - rather than leaving it to attach order, which is
+    /// app wiring and not an interface decision.
+    /// </remarks>
+    private readonly ToolTabs _tools = new();
+
+    /// <summary>
+    /// What the main window's title bar says this build is: the version, and the commit.
+    /// </summary>
+    /// <remarks>
+    /// Handed in rather than read here, because the build stamp is a file beside the
+    /// executable and this class reads no files - the same arrangement every other table
+    /// here arrives by. See ToolVersion.With.
+    /// </remarks>
+    public string Version
+    {
+        get => _tools.Version;
+        set => _tools.Version = value ?? ToolVersion.Said;
+    }
+
+    // The tools something elsewhere in the overlay jumps to by name.
+    private const string UiBrowserTab = "uibrowser";
+    private const string DissectorTab = "dissector";
+    private const string MapDataTab = "map-data";
+
+    /// <summary>
+    /// The pages that hold more than one tool.
+    /// </summary>
+    /// <remarks>
+    /// Named constants rather than strings at each registration, because a page is a JOIN:
+    /// the tools that share one are wired up in different methods, at different times, and a
+    /// typo in one of them would not fail - it would quietly open a page of its own with one
+    /// tool on it, which is the fourteen-tab bar growing back a tab at a time.
+    ///
+    /// Grouped by the question they answer rather than by what they read. "How much damage am
+    /// I doing" and "where did my projectiles go" are one question asked twice, and so are
+    /// "what is that thing" and "what is inside it".
+    /// </remarks>
+    private const string Status = "status";
+    private const string Area = "area";
+    private const string Combat = "combat";
+    private const string Atlas = "atlas";
+    private const string Markers = "markers";
+    private const string Routes = "routes";
+    private const string Entities = "entities";
+
+    /// <summary>
+    /// What the low-level page is CALLED, said at every registration that joins it.
+    /// </summary>
+    /// <remarks>
+    /// A PAGE'S LABEL CAME FROM WHICHEVER TOOL HAPPENED TO REGISTER FIRST, which is attach order,
+    /// which is app wiring - the one thing the numbered order above exists to keep out of
+    /// interface decisions. This page proved it: the entity browser is the registration that
+    /// names it, the app attaches the interface browser before it, and so the tab on the bar read
+    /// "Interface tree" - the name of one of its four tools - for as long as that wiring stood.
+    /// Passed by every joiner, the name no longer depends on the order they arrive in.
+    ///
+    /// NOT "Entities", which is what the browser asked for and what the id still says. Three of
+    /// the four tools here are not about entities at all - a UI tree, raw memory, the engine's
+    /// effect nodes - and a page named after one of its tools is how somebody looking for the
+    /// dissector learns to look somewhere else. The id stays "entities" because it is in
+    /// settings files, where a name nobody reads is worth more than a name that is right.
+    /// </remarks>
+    private const string EntitiesLabel = "Inspect";
+
+    // Only the tools something else still reaches for keep a field; the rest live on as
+    // their tab's callbacks and nothing more. A field that nothing reads is a claim that
+    // somebody talks to that window, and here nobody does.
+    private CostWindow? _costWindow;
+    private EffectWindow? _effectWindow;
+    private ProjectileWindow? _projectileWindow;
+    private DamageWindow? _damageWindow;
+    private UiBrowserWindow? _uiBrowser;
+    private DissectorWindow? _dissector;
+
+    /// <summary>Kept so the settings file can be told which columns it is showing.</summary>
+    private MonsterBookWindow? _monsterBook;
+    private ItemBookWindow? _itemBook;
+    private TileBookWindow? _tileBook;
+    private EffectBookWindow? _effectBook;
+    private PoiLayer? _poi;
+    private RoomLayer? _rooms;
+
+    /// <summary>What the ground under the rooms IS. Always here - it needs nothing attached.</summary>
+    private readonly GroundLayer _ground = new();
+    private RoutePlanner? _planner;
+
+    /// <summary>
+    /// What the file said about the room names, until the layer exists to be told.
+    /// </summary>
+    /// <remarks>
+    /// The settings are read before the points of interest are attached, and the room layer
+    /// arrives with them - so what was loaded is remembered here and handed over on attach.
+    /// Same hole the stash switches fell into, kept shut the same way.
+    /// </remarks>
+    private RoomSettings _roomWants = RoomSettings.Default;
+
+    /// <summary>What the settings file said about the model pane, until there is a pane to say it to.</summary>
+    private OverlaySettings _modelWants = OverlaySettings.Default;
+
+    /// <summary>The graphics card's drawing for every model pane - see CardPictures.</summary>
+    private readonly CardPictures _card;
+
+    /// <summary>
+    /// Puts the capture settings onto the model pane, wherever it has got to.
+    /// </summary>
+    /// <remarks>
+    /// A ZERO FACTOR IS "NOT SET" rather than a factor of zero, which would draw every model
+    /// black. That is the convention every other number in the settings file follows, and here
+    /// it is what keeps the measured default in the code where a better measurement can correct
+    /// it - see <see cref="PictureGrey.Measured"/>.
+    ///
+    /// The backdrop is stored by NAME. An enum's numbers are an implementation detail and
+    /// reordering them would silently turn somebody's checkerboard into a flat colour; a name
+    /// that no longer exists simply leaves the default standing.
+    /// </remarks>
+    private void Capture(MonsterPortrait? pane)
+    {
+        if (pane is null)
+        {
+            return;
+        }
+
+        pane.Grey = _modelWants.ModelGrey;
+        if (_modelWants.ModelGreyFactor > 0f)
+        {
+            pane.GreyFactor = _modelWants.ModelGreyFactor;
+        }
+
+        if (Enum.TryParse(_modelWants.ModelBackdrop, ignoreCase: true, out ModelBackdrop behind))
+        {
+            pane.Behind = behind;
+        }
+
+        if (Enum.TryParse(_modelWants.ModelOutline, ignoreCase: true, out OutlineSide outline))
+        {
+            pane.Outline = outline;
+        }
+
+        // Zero is "no rim" and is a choice somebody made; only a negative means the file has
+        // never said anything about it. See OverlaySettings.
+        if (_modelWants.ModelOutlineWidth >= 0f)
+        {
+            pane.OutlineWidth = _modelWants.ModelOutlineWidth;
+        }
+
+        pane.Light = _modelWants.ModelLight;
+        if (_modelWants.ModelLightTarget > 0f)
+        {
+            pane.LightTarget = _modelWants.ModelLightTarget;
+        }
+
+        // ONE CARD FOR EVERY BOOK, and one switch: every pane holds the same one, so a press in one
+        // is the others' too, and only the settings need telling.
+        pane.Card = _card;
+        _card.On = _modelWants.ModelCard;
+        _card.Changed = on =>
+        {
+            _modelWants = _modelWants with { ModelCard = on };
+            SettingsChanged?.Invoke();
+        };
+        _card.Sharp = _modelWants.ModelCardSharp;
+        _card.SharpChanged = sharp =>
+        {
+            _modelWants = _modelWants with { ModelCardSharp = sharp };
+            SettingsChanged?.Invoke();
+        };
+
+        // ONE CHOICE FOR EVERY BOOK: a press in one pane is carried to the others and kept.
+        pane.FlatLight = _modelWants.ModelFlatLight;
+        pane.FlatLightChanged = flat =>
+        {
+            _modelWants = _modelWants with { ModelFlatLight = flat };
+            foreach (MonsterPortrait other in Panes())
+            {
+                other.FlatLight = flat;
+            }
+
+            SettingsChanged?.Invoke();
+        };
+    }
+
+    /// <summary>Every book's model pane that is attached.</summary>
+    private IEnumerable<MonsterPortrait> Panes()
+    {
+        foreach (MonsterPortrait? one in (MonsterPortrait?[])[_monsterBook?.Model, _itemBook?.Model, _tileBook?.Model, _effectBook?.Model])
+        {
+            if (one is not null)
+            {
+                yield return one;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gives the model pane what it needs to write an entry beside the pictures it exports.
+    /// </summary>
+    /// <remarks>
+    /// THREE THINGS, AND NONE OF THEM IS THE PICTURE. The table to write into, where the player
+    /// is, and which arenas are known in a given area: the export asks for an area, a tile and
+    /// a name, and all three of those are things this class already has to hand while the
+    /// person answering is looking at a model. See <see cref="MonsterPortrait.Icons"/>.
+    ///
+    /// CALLED FROM BOTH SIDES, because the order of the Attach calls is not fixed and the table
+    /// is loaded by whoever wires this up: the book takes what is here when it attaches, and a
+    /// table that lands afterwards is pushed into the book by its own setter.
+    /// </remarks>
+    private void Hand(MonsterPortrait? pane)
+    {
+        if (pane is null)
+        {
+            return;
+        }
+
+        pane.Icons = _bossIcons;
+        pane.Written = _icons.SheetChanged;
+
+        // The map picked in the to-do list wins over the one being stood in: somebody working
+        // through that list has the game in a hideout as often as in the map they are filling
+        // in, and the list is the more deliberate of the two statements.
+        pane.AreaNow = () => _bossPlan.Picked.Length > 0 ? _bossPlan.Picked : _snapshot.Area.Id;
+        pane.ArenasIn = ArenaTiles;
+
+        // THE FRAME'S GRID, asked on the load's task: a stage that is a room is laid from the area's own
+        // tiles - see StagedModels.LaidRoom.
+        pane.Terrain = () => _snapshot.Terrain as TerrainGrid;
+    }
+
+    /// <summary>
+    /// The arena rooms standing in an area as the game laid it, for the monster book's stage - the area on screen alone. See MonsterBookWindow.RoomsLaidIn.
+    /// </summary>
+    /// <remarks>
+    /// ASKING STARTS THE PLACING, as the map's and the capture's asks do (see AreaRooms.Arranged), and the
+    /// answer is whatever has landed: the book works the list out again each time its combo opens, so a
+    /// placing that lands later is a reopen away. An arena room is one named for an arena or a boss, the
+    /// rule the map's markers use (TerrainLandmarks.LooksLikeArena).
+    /// </remarks>
+    private MonsterBookWindow.RoomsLaid RoomsLaidIn(string area)
+    {
+        if (_areaRooms is null || _snapshot.Terrain is not TerrainGrid grid
+            || !string.Equals(area, _snapshot.Area.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            return MonsterBookWindow.RoomsLaid.None;
+        }
+
+        _areaRooms.Arranged(grid, AreaRoomFiles(), _tileBook?.RoomsOverlap ?? RoomOverlap.Rims);
+        if (_areaRooms.Standing is not { } standing)
+        {
+            return new MonsterBookWindow.RoomsLaid([], "the area's rooms are still being placed - open the combo again in a moment");
+        }
+
+        int stamp = RoomKey.Stamp(grid);
+        var rooms = new List<(string Room, string Key)>();
+        foreach ((string room, _, RoomCandidate where) in standing)
+        {
+            if (TerrainLandmarks.LooksLikeArena(room))
+            {
+                rooms.Add((room, new RoomKey(room, Laid: RoomKey.LaidAt(where.X, where.Y, where.Turn, stamp)).ToString()));
+            }
+        }
+
+        return new MonsterBookWindow.RoomsLaid(rooms, rooms.Count == 0 ? "no room of the area on screen is named for an arena" : string.Empty);
+    }
+
+    /// <summary>
+    /// The arena rooms of an area built from its tileset, for the monster book's stage - from the install alone. See MonsterBookWindow.RoomsBuiltIn.
+    /// </summary>
+    /// <remarks>
+    /// THE AREA'S FOLDER FROM ITS GRAPH (AreaGraphs), its masters from the install's index in that folder
+    /// (AreaRoomSet.MastersIn), its rooms from their sets, and the first master naming a tileset is what
+    /// each arena room is built from - a map has one tileset as a rule, and where it has several the first
+    /// is a choice this says in the key. The index arrives from a background walk, so an empty answer
+    /// before it says so; the book works the list out again each time its combo opens.
+    /// </remarks>
+    private MonsterBookWindow.RoomsLaid RoomsBuiltIn(Func<string, byte[]?>? readFile, string area)
+    {
+        if (readFile is null)
+        {
+            return MonsterBookWindow.RoomsLaid.None;
+        }
+
+        IReadOnlyList<string> folders = AreaGraphs.FoldersOf(area);
+        if (folders.Count == 0)
+        {
+            return new MonsterBookWindow.RoomsLaid([], "no terrain folder is known for " + area);
+        }
+
+        if (TileSets.Count == 0)
+        {
+            return new MonsterBookWindow.RoomsLaid([], "the install's tile index is not walked yet - open the combo again in a moment");
+        }
+
+        List<string> masters = AreaRoomSet.MastersIn(folders, TileSets);
+        string? tileset = null;
+        foreach (string master in masters)
+        {
+            byte[]? bytes = readFile(master);
+            if (TilesetFile.Value(bytes is { Length: > 0 } ? StatDescriptionFiles.Decode(bytes) : null, "TileSet") is { Length: > 0 } set)
+            {
+                tileset = TilesetFile.Beside(master, set);
+                break;
+            }
+        }
+
+        if (tileset is null)
+        {
+            return new MonsterBookWindow.RoomsLaid([], $"no master in {string.Join(", ", folders)} names a tileset");
+        }
+
+        var rooms = new List<(string Room, string Key)>();
+        foreach (string room in AreaRoomSet.FilesOf(masters, readFile))
+        {
+            if (TerrainLandmarks.LooksLikeArena(room))
+            {
+                rooms.Add((room, new RoomKey(room, Built: tileset).ToString()));
+            }
+        }
+
+        return new MonsterBookWindow.RoomsLaid(rooms, rooms.Count == 0 ? $"no room of {string.Join(", ", folders)} is named for an arena" : string.Empty);
+    }
+
+    /// <summary>
+    /// What the game calls a monster, by its metadata path, or empty where nothing does.
+    /// </summary>
+    /// <remarks>
+    /// Asked per call rather than captured, because <see cref="Monsters"/> is replaced when the
+    /// install's own tables finish reading - a captured table would keep answering out of the
+    /// shipped export for the rest of the session.
+    /// </remarks>
+    private string Called(string path)
+        => Monsters.Find(path)?.Name ?? string.Empty;
+
+    /// <summary>
+    /// Opens the Monster Book at a monster, so the boss a map needs can be posed straight away.
+    /// </summary>
+    /// <remarks>
+    /// THE STEP THAT WAS TYPED BY HAND. Making the ninety boss pictures means finding ninety
+    /// monsters in a table of 2733 rows, and the only way in was the name - read off the to-do
+    /// list and typed into the search, once per boss. The list knows the path, the book can be
+    /// told it, so the click does it.
+    ///
+    /// False when the book has no row for that path, which is the honest answer rather than a
+    /// window opened onto nothing: the shipped export and the install's own tables do not
+    /// always agree, and a boss the current table has never heard of cannot be shown.
+    /// </remarks>
+    private bool Pose(string path)
+    {
+        if (_monsterBook is not { } book || !book.Choose(path))
+        {
+            return false;
+        }
+
+        _tools.Show("monster-book");
+        return true;
+    }
+
+    /// <summary>
+    /// The arena tiles known for an area: the ones under the player's feet, then the collected ones.
+    /// </summary>
+    /// <remarks>
+    /// BOTH SOURCES, because they answer for different areas. The terrain has the arenas of the
+    /// area that is loaded, exactly and now; logs/boss-arenas.tsv has the ones that were seen in
+    /// any area this tool has been in, which is the only source for the map somebody played an
+    /// hour ago and is filling in from the hideout. The live one comes first where they overlap.
+    /// </remarks>
+    private IReadOnlyList<string> ArenaTiles(string areaId)
+    {
+        var tiles = new List<string>();
+        if (string.Equals(areaId, _snapshot.Area.Id, StringComparison.OrdinalIgnoreCase)
+            && _snapshot.Terrain is TerrainGrid grid)
+        {
+            foreach (TerrainLandmark landmark in grid.Landmarks)
+            {
+                if (landmark.Kind == PoiKind.BossArena && !tiles.Contains(landmark.Path, StringComparer.OrdinalIgnoreCase))
+                {
+                    tiles.Add(landmark.Path);
+                }
+            }
+        }
+
+        foreach (string tile in _bossIcons.Unnamed(areaId))
+        {
+            if (!tiles.Contains(tile, StringComparer.OrdinalIgnoreCase))
+            {
+                tiles.Add(tile);
+            }
+        }
+
+        return tiles;
+    }
+    private readonly RuleLayer _rules = new();
+
+    /// <summary>What the rule engine decided to show this tick, or null when it is not wired.</summary>
+    /// <remarks>
+    /// A function rather than the engine itself, and the reason is the layering: the engine is
+    /// evaluated on the READER thread, once per read, and the renderer redraws far more often
+    /// than that. Handing the overlay the engine would invite it to evaluate per frame, which
+    /// is how the reference plugin ends up with a macro whose firing rate depends on the frame
+    /// rate.
+    /// </remarks>
+    private Func<IReadOnlyList<RuleDrawing>>? _ruleDrawings;
+
+    /// <summary>The ranges the rule being edited measures, for the debug view.</summary>
+    private Func<IReadOnlyList<PreviewRing>>? _ruleRanges;
+    private Func<IReadOnlyList<PreviewFact>>? _ruleFacts;
+    private readonly UnwalkedLayer _unwalked = new();
+    private readonly HeatLayer _heat = new();
+    private readonly EffectLayer _effects = new();
+
+    /// <summary>Where the game's interface is, and the boxes for saying so.</summary>
+    /// <remarks>
+    /// The editor OWNS the zones rather than holding a copy of them - see the
+    /// <see cref="KeepOut"/> property, which reads straight through it. Two records of the same
+    /// setting drift, and the one that gets saved is the one nobody is looking at.
+    /// </remarks>
+    private readonly MapKeepOutEditor _keepOut = new();
+
+    // Whether the game's own panel about a hovered map is accounted for, which is what decides
+    // between keeping off that panel and hiding the atlas overlay altogether. Kept here rather
+    // than on the watch because it compares against the interface parts, and this is the thread
+    // that has both those and the atlas view in the same frame.
+    private readonly AtlasHoverPanel _atlasHover = new();
+
+    /// <summary>
+    /// The Stash tab's four network switches, as loaded, until the stores exist to take them.
+    /// </summary>
+    /// <remarks>
+    /// Apply runs before AttachStash, so a value pushed at the stores when the settings land
+    /// would be pushed at nulls and lost - the same trap the effect switches fell into, arriving
+    /// by the other road. The wealth stretch below solves it the same way.
+    /// </remarks>
+    private (bool Art, bool Prices, bool Exchange, bool Trade) _stashWants;
+
+    private ItemArtStore? _stashArt;
+    private PriceStore? _stashPrices;
+    private TradePrices? _stashTrade;
+    private ExchangeStore? _stashExchange;
+    private readonly HealthBarLayer _healthBars = new();
+
+    // The tracker's three layers, which share one settings record - see AttachTracker.
+    private readonly MonsterLineLayer _monsterLines = new();
+    private readonly GroundDangerLayer _groundDanger = new();
+
+    /// <summary>The boss beams, drawn as the lines they occupy. See BeamLayer.</summary>
+    private readonly BeamLayer _beams = new();
+    private readonly StatusIconLayer _statusIcons = new();
+    private readonly FlaskUsesLayer _flaskUses = new();
+    private readonly SkillDpsLayer _skillDps = new();
+    private readonly AimLayer _aim = new();
+
+    /// <summary>The evasion warnings. Not one of the tracker's - it has its own settings file.</summary>
+    private readonly EvasionLayer _evasion = new();
+
+    /// <summary>
+    /// The animation table, for saying what a monster is doing rather than which number it is.
+    /// </summary>
+    /// <remarks>
+    /// Loaded from a data file by whoever wires this up, like every other table here - the
+    /// overlay draws, and where a file lives is not its business. Absent, the numbers still
+    /// show; a table is a label and never a fact.
+    /// </remarks>
+    public AnimationNames Animations
+    {
+        get => _animations;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _animations = value;
+            _aim.Animations = value;
+        }
+    }
+
+    private AnimationNames _animations = AnimationNames.Empty;
+
+    /// <summary>
+    /// The game's monster table, for saying what a thing IS rather than where its files live.
+    /// </summary>
+    /// <remarks>
+    /// Same arrangement as <see cref="Animations"/>: loaded by whoever wires this up, and the
+    /// overlay only draws it. Absent, the browser shows what it always showed - a path.
+    ///
+    /// Read through this property rather than captured at construction, because the Attach calls
+    /// have no fixed order and a captured Empty would look exactly like a build with no table.
+    /// </remarks>
+    public MonsterVarieties Monsters
+    {
+        get => _monsters;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _monsters = value;
+        }
+    }
+
+    private MonsterVarieties _monsters = MonsterVarieties.Empty;
+
+    /// <summary>
+    /// Every item the game has a model for, for the item book.
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="Monsters"/> arrangement: set by whoever wires this up - here, once the
+    /// install's tables have been read on a background thread - and read through this property
+    /// each frame rather than captured, so a table that arrives after the book is attached is seen.
+    /// </remarks>
+    public ItemVisuals Items
+    {
+        get => _items;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _items = value;
+        }
+    }
+
+    private ItemVisuals _items = ItemVisuals.Empty;
+
+    /// <summary>Every effect with a model, for the effect book. The <see cref="Items"/> arrangement.</summary>
+    public EffectVisuals Effects
+    {
+        get => _effectVisuals;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _effectVisuals = value;
+        }
+    }
+
+    private EffectVisuals _effectVisuals = EffectVisuals.Empty;
+
+    /// <summary>
+    /// Every terrain tile definition the install has, for the tile book. Empty until its walk runs.
+    /// </summary>
+    /// <remarks>The <see cref="Items"/> arrangement: set once from a background walk, read each frame.</remarks>
+    public IReadOnlyList<string> TileFiles
+    {
+        get => _tileFiles;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _tileFiles = value;
+        }
+    }
+
+    private IReadOnlyList<string> _tileFiles = [];
+
+    /// <summary>
+    /// Every tileset (<c>.tsi</c>) the install has, for the tile dump's search for the areas a tile is used in.
+    /// </summary>
+    /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
+    public IReadOnlyList<string> TileSets
+    {
+        get => _tileSets;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _tileSets = value;
+        }
+    }
+
+    private IReadOnlyList<string> _tileSets = [];
+
+    /// <summary>
+    /// The install's shader sources, for the tile dump's search for where a ground's coordinates are made.
+    /// </summary>
+    /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs, and empty if the install ships none.</remarks>
+    public IReadOnlyList<string> ShaderFiles
+    {
+        get => _shaderFiles;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _shaderFiles = value;
+        }
+    }
+
+    private IReadOnlyList<string> _shaderFiles = [];
+
+    /// <summary>
+    /// Every material (<c>.mat</c>) the install has, for the graph survey.
+    /// </summary>
+    /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
+    public IReadOnlyList<string> MaterialFiles
+    {
+        get => _materialFiles;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _materialFiles = value;
+        }
+    }
+
+    private IReadOnlyList<string> _materialFiles = [];
+
+    /// <summary>
+    /// Every environment (<c>.env</c>) the install has, for the env survey - see EnvSurvey.
+    /// </summary>
+    /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
+    public IReadOnlyList<string> EnvironmentFiles
+    {
+        get => _environmentFiles;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _environmentFiles = value;
+        }
+    }
+
+    private IReadOnlyList<string> _environmentFiles = [];
+
+    /// <summary>
+    /// How many rooms of the current area each tile file builds, by path - a NEW dictionary only when
+    /// the area's terrain changes, which is what tells the tile book to rebuild.
+    /// </summary>
+    /// <remarks>
+    /// CACHED ON THE ROOM LIST'S IDENTITY. The terrain is read once per area and its room list is a
+    /// fixed object from then on, so asking per frame costs a reference compare; building the map per
+    /// frame would be an allocation per frame and would make the book rebuild sixty times a second.
+    /// </remarks>
+    private IReadOnlyDictionary<string, int> TilesHere()
+    {
+        IReadOnlyList<TerrainRoom>? rooms = _snapshot.Terrain is TerrainGrid grid ? grid.Rooms : null;
+        IReadOnlyList<string> loaded = LoadedFiles?.Invoke() ?? [];
+        if (ReferenceEquals(rooms, _tilesHereOf) && ReferenceEquals(loaded, _loadedOf))
+        {
+            return _tilesHere;
+        }
+
+        _tilesHereOf = rooms;
+        _loadedOf = loaded;
+        var here = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var laid = new Dictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
+        foreach (TerrainRoom room in rooms ?? [])
+        {
+            if (room.Path.Length > 0)
+            {
+                here[room.Path] = room.Placements;
+
+                // Every way the file was laid, across all of its rooms - each room's set already
+                // covers the placements its fill joined.
+                laid[room.Path] = (byte)(laid.GetValueOrDefault(room.Path) | room.Turns);
+            }
+        }
+
+        // THE AREA'S ROOMS ARE THE FILES IT LOADED, not anything the tiles say - no tile reaches its
+        // room (see RoomFiles) - so a room is "here" once, whatever it built.
+        foreach (string path in loaded)
+        {
+            if (TileBook.IsRoom(path))
+            {
+                here.TryAdd(path, 1);
+            }
+        }
+
+        _tilesHere = here;
+        _laidHere = laid;
+        return here;
+    }
+
+    /// <summary>
+    /// The ways each tile file was laid in the current area, by path, one bit per TileOrientation.Placement -
+    /// built with <see cref="TilesHere"/> and on the same cache.
+    /// </summary>
+    private IReadOnlyDictionary<string, byte> LaidHere()
+    {
+        _ = TilesHere();
+        return _laidHere;
+    }
+
+    private IReadOnlyDictionary<string, byte> _laidHere = new Dictionary<string, byte>();
+
+    /// <summary>The place the tile book picked for a room, outlined on the large map - see <see cref="RoomGhost"/>.</summary>
+    private RoomGhost? _roomGhost;
+
+    /// <summary>Every room of the area searched and arranged, for the large map to outline all at once - see <see cref="AreaRooms"/>. Null without an install.</summary>
+    private AreaRooms? _areaRooms;
+
+    /// <summary>One room outline name as drawn: its plate on screen, and the room and place it names.</summary>
+    private readonly record struct RoomLabel(Vector2 Min, Vector2 Max, string Room, RoomCandidate Where, RoomLayout? Layout);
+
+    /// <summary>The room outline names drawn on the frame before, topmost last - what a ctrl + click this frame lands on. See <see cref="MapClicks"/>.</summary>
+    private readonly List<RoomLabel> _roomLabels = [];
+
+    /// <summary>The outline name under the cursor while ctrl is held, drawn lit - or null.</summary>
+    private (string Room, RoomCandidate Where)? _roomLabelLit;
+
+    /// <summary>Ctrl and shift, as the system reports them - see <see cref="ScreenInput.IsDown"/>.</summary>
+    private const int VkControl = 0x11;
+    private const int VkShift = 0x10;
+
+    /// <summary>
+    /// The large map's clicks that are the overlay's: ctrl + click on a room outline's name routes to the room, ctrl + shift + click anywhere on the map puts a stop on the newest route. True where an outline name has the cursor.
+    /// </summary>
+    /// <remarks>
+    /// BEFORE ANY ROOM NAME IS DRAWN, on the frame before's plates. The map's own room names
+    /// answer ctrl + click as well, and they are drawn first; asked after them, one click on a name
+    /// lying over theirs would route to both. A frame's lag on where a plate is costs nothing a
+    /// person could aim at.
+    ///
+    /// THE MOUSE IS TAKEN ONLY WHILE IT IS WANTED, as RoomLayer does - see its remarks for why a
+    /// click needs that at all: ctrl over an outline name, or ctrl and shift over an uncovered part
+    /// of the map. Without them every click still reaches the game, so dragging and zooming the
+    /// map are untouched.
+    ///
+    /// A STOP GOES ON THE GROUND UNDER THE CURSOR: the map flattens height into the vertical, so
+    /// the point is found at the player's height first and again at the ground's height there,
+    /// which settles it - see MapView.Unproject.
+    /// </remarks>
+    private bool MapClicks(MapView map, WorldEntity player)
+    {
+        _roomLabelLit = null;
+        if (!map.IsLargeMap || _planner is not { } planner || _snapshot.Terrain is not TerrainGrid grid)
+        {
+            _roomLabels.Clear();
+            return false;
+        }
+
+        bool ctrl = ScreenInput.IsDown(VkControl);
+        bool shift = ScreenInput.IsDown(VkShift);
+        Vector2 mouse = ImGui.GetMousePos();
+        var covered = false;
+        if (ctrl && shift)
+        {
+            if (map.Contains(mouse))
+            {
+                ImGui.SetNextFrameWantCaptureMouse(true);
+                ImDrawListPtr front = ImGui.GetForegroundDrawList();
+                front.AddCircle(mouse, 7f, 0xFF_FFFFFF, 16, 2f);
+                front.AddText(mouse + new Vector2(11f, -7f), 0xFF_FFFFFF, planner.Targets.Count > 0 ? "stop on the newest route" : "route to here");
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                {
+                    Vector2 at = OnGround(map, player, grid, mouse);
+                    planner.AddVia(at.X, at.Y);
+                }
+            }
+        }
+        else if (ctrl)
+        {
+            for (int one = _roomLabels.Count - 1; one >= 0; one--)
+            {
+                RoomLabel label = _roomLabels[one];
+                if (mouse.X < label.Min.X || mouse.Y < label.Min.Y || mouse.X > label.Max.X || mouse.Y > label.Max.Y)
+                {
+                    continue;
+                }
+
+                covered = true;
+                _roomLabelLit = (label.Room, label.Where);
+                ImGui.SetNextFrameWantCaptureMouse(true);
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                {
+                    RouteToRoom(planner, grid, label);
+                }
+
+                break;
+            }
+        }
+
+        _roomLabels.Clear();
+        return covered;
+    }
+
+    /// <summary>Starts the route to a room outline's room, or drops it - see <see cref="RoomRoute"/>.</summary>
+    private static void RouteToRoom(RoutePlanner planner, TerrainGrid grid, RoomLabel label)
+    {
+        ulong id = RoomRoute.IdFor(label.Room, label.Where);
+        if (planner.IsTarget(id))
+        {
+            planner.Toggle(id, 0f, 0f);
+        }
+        else if (RoomRoute.For(grid, label.Room, label.Layout, label.Where) is { } target)
+        {
+            planner.Toggle(target);
+        }
+    }
+
+    /// <summary>The world position of the ground under a point on the large map - see <see cref="MapClicks"/>.</summary>
+    private static Vector2 OnGround(MapView map, WorldEntity player, TerrainGrid grid, Vector2 screen)
+    {
+        float height = player.TerrainHeight;
+        Vector2 at = map.Unproject(screen, height, player.WorldX, player.WorldY, player.TerrainHeight);
+        for (var again = 0; again < 2; again++)
+        {
+            height = grid.HeightAt((int)(at.X / MapView.WorldToGrid), (int)(at.Y / MapView.WorldToGrid));
+            at = map.Unproject(screen, height, player.WorldX, player.WorldY, player.TerrainHeight);
+        }
+
+        return at;
+    }
+
+    /// <summary>Every room the area may have laid - the loaded list's and the sets its files and the install's masters name, cached on both lists' identities. See AreaRoomSet.</summary>
+    private IReadOnlyList<string> AreaRoomFiles()
+        => _areaRooms?.RoomSet(LoadedFiles?.Invoke() ?? [], TileSets) ?? [];
+
+    /// <summary>
+    /// Every room the area may have laid, outlined on the large map with its name where it stands, where the tile book's option asks for it - see <see cref="AreaRooms"/>.
+    /// </summary>
+    /// <remarks>
+    /// ASKED FOR ON ANY MAP, DRAWN ON THE LARGE ONE: the search starts while the minimap is up, so the
+    /// rooms are there by the time the large map is opened. Each a touch thinner than the picked one
+    /// (RoomGhostOnMap), which is drawn over it.
+    ///
+    /// BY THEIR DOODADS, wherever the area's entities can be read: every place each room's doodads
+    /// stand, a room the area lays four times outlined four times, and a ring on each doodad line
+    /// whose entity is not where the place puts it - see RoomDoodadFinder for why the entities decide
+    /// and AreaRooms for what the first answer got wrong. Nothing is drawn while they are being read:
+    /// the arrangement's places are the ones this replaced, and drawing them meanwhile would show the
+    /// wrong map for a second and then change it.
+    ///
+    /// BY THE GROUND AND TILES only where nothing can read the entities, with the three marks the
+    /// picked room gets. They were asked for because they are what shows the rooms fitting together:
+    /// where two rooms join, each one's rim misses along the join, so the marks a join explains sit
+    /// on the seam between the two outlines like the teeth of a puzzle piece. Each kind is its own
+    /// style row, so a map that is too busy switches a kind off.
+    /// </remarks>
+    private void AllRoomsOnMap(ImDrawListPtr draw, MapView map, WorldEntity player)
+    {
+        if (_areaRooms is null || _tileBook is not { RoomsOnMap: true } || _snapshot.Terrain is not TerrainGrid grid)
+        {
+            return;
+        }
+
+        // ASKED EVERY FRAME, on any map: this is what starts the searches and, after them, the survey.
+        RoomArrangement? arranged = _areaRooms.Arranged(grid, AreaRoomFiles(), _tileBook.RoomsOverlap);
+        if (!map.IsLargeMap)
+        {
+            return;
+        }
+
+        (uint outline, uint name, uint plate) = RoomInks();
+        (uint corner, uint tile, uint joined) = MissInks();
+        if ((outline | name | corner | tile | joined) == 0)
+        {
+            return;
+        }
+
+        float width = Math.Max(1f, Style.Width(StyleCatalogue.Keys.RoomOutline, 2f) * 0.75f);
+        float font = RoomFont();
+        Span<Vector2> corners = stackalloc Vector2[4];
+        if (_areaRooms.ReadDoodads is not null)
+        {
+            if (_areaRooms.Placed is not { } placed)
+            {
+                return;
+            }
+
+            foreach ((string room, RoomLayout layout, RoomDoodadPlaces found) in placed)
+            {
+                foreach (RoomDoodadPlace place in found.Places)
+                {
+                    Outlined(draw, map, player, grid, place.Where, outline, width, corners);
+                    if (tile != 0)
+                    {
+                        // A DOODAD THE PLACE HAS NO ENTITY FOR, in the tile ink: the same ring as a tile
+                        // that disagrees, which is the nearest thing in meaning the style rows have.
+                        foreach (Vector2 at in place.Missing)
+                        {
+                            Vector2 on = Grounded(grid, map, player, (int)(at.X / MapView.WorldToGrid), (int)(at.Y / MapView.WorldToGrid));
+                            draw.AddCircle(on, 3.75f, tile, 12, 1.5f);
+                        }
+                    }
+
+                    Named(draw, corners, room, place.Where, layout, name, plate, font);
+                }
+            }
+
+            return;
+        }
+
+        if (arranged is null)
+        {
+            return;
+        }
+
+        foreach (RoomLaid room in arranged.Laid)
+        {
+            Outlined(draw, map, player, grid, room.Where, outline, width, corners);
+            Missed(draw, map, player, grid, room.Misses, corner, tile, joined, 0.75f);
+            Named(draw, corners, room.Room, room.Where, room.Layout, name, plate, font);
+        }
+    }
+
+    /// <summary>
+    /// Where a room parts with the area, marked on the large map: a dot on each corner whose ground is not the room's, a ring on each tile whose definition is not what its slot asks for - and those a join explains drawn over in a third colour, the same mark a touch larger, so no lookup is needed per mark. See RoomMisses for what counts as a join.
+    /// </summary>
+    /// <param name="corner">The ink for a corner that disagrees - nought leaves them out.</param>
+    /// <param name="tile">The ink for a tile that disagrees - nought leaves them out.</param>
+    /// <param name="joined">The ink for either where a join explains it - nought leaves them out.</param>
+    /// <param name="scale">The marks' size against the picked room's - every room of the area is drawn at three quarters, so the picked one stays the one on top.</param>
+    private static void Missed(
+        ImDrawListPtr draw, MapView map, WorldEntity player, TerrainGrid grid, RoomMisses misses, uint corner, uint tile, uint joined, float scale)
+    {
+        const int Cells = TerrainGrid.CellsPerTile;
+        const int Middle = Cells / 2;
+        if (corner != 0)
+        {
+            foreach ((int x, int y) in misses.Corners)
+            {
+                draw.AddCircleFilled(Grounded(grid, map, player, x * Cells, y * Cells), 3.5f * scale, corner);
+            }
+        }
+
+        if (tile != 0)
+        {
+            foreach ((int x, int y) in misses.Tiles)
+            {
+                draw.AddCircle(Grounded(grid, map, player, (x * Cells) + Middle, (y * Cells) + Middle), 5f * scale, tile, 12, 2f * scale);
+            }
+        }
+
+        if (joined == 0)
+        {
+            return;
+        }
+
+        foreach ((int x, int y) in misses.JoinCorners)
+        {
+            draw.AddCircleFilled(Grounded(grid, map, player, x * Cells, y * Cells), 4f * scale, joined);
+        }
+
+        foreach ((int x, int y) in misses.Openings)
+        {
+            draw.AddCircle(Grounded(grid, map, player, (x * Cells) + Middle, (y * Cells) + Middle), 5f * scale, joined, 12, 2.5f * scale);
+        }
+
+        // A CAP, the tile beside an opening, the same ring with a dot in it.
+        foreach ((int x, int y) in misses.Caps)
+        {
+            Vector2 cap = Grounded(grid, map, player, (x * Cells) + Middle, (y * Cells) + Middle);
+            draw.AddCircle(cap, 5f * scale, joined, 12, 2.5f * scale);
+            draw.AddCircleFilled(cap, 1.75f * scale, joined);
+        }
+    }
+
+    /// <summary>The three marks' inks from the style - nought for one switched off, which <see cref="Missed"/> reads as "leave it out". Once per frame, not per room.</summary>
+    private (uint Corner, uint Tile, uint Join) MissInks()
+        => (Ink(StyleCatalogue.Keys.RoomOutlineCorner), Ink(StyleCatalogue.Keys.RoomOutlineTile), Ink(StyleCatalogue.Keys.RoomOutlineJoin));
+
+    /// <summary>A room outline's name, lit where ctrl has the cursor on it, kept for the next frame's ctrl + click - see <see cref="MapClicks"/>.</summary>
+    private void Named(
+        ImDrawListPtr draw, ReadOnlySpan<Vector2> corners, string room, RoomCandidate where, RoomLayout? layout, uint name, uint plate, float font)
+    {
+        bool lit = _roomLabelLit is { } on && on.Where == where && string.Equals(on.Room, room, StringComparison.Ordinal);
+        if (Labelled(draw, corners, room, name, plate, font) is not { } box)
+        {
+            return;
+        }
+
+        _roomLabels.Add(new RoomLabel(box.Min, box.Max, room, where, layout));
+        if (!lit)
+        {
+            return;
+        }
+
+        // LIT: an edge round the plate, and what the click will do written under it.
+        draw.AddRect(box.Min, box.Max, name, 3f, ImDrawFlags.None, 1.5f);
+        string said = _planner?.IsTarget(RoomRoute.IdFor(room, where)) == true ? "ctrl + click: drop the route" : "ctrl + click: route here";
+        draw.AddText(new Vector2(box.Min.X, box.Max.Y + 2f), name, said);
+    }
+
+    /// <summary>The room outlines' name size: the interface's font size times the "Name" row's scale.</summary>
+    private float RoomFont() => Style.Sized(StyleCatalogue.Keys.RoomOutlineName, ImGui.GetFontSize());
+
+    /// <summary>
+    /// The room outlines' three inks from the style - nought for one switched off, which the drawing reads as "leave it out". Once per frame, not per room.
+    /// </summary>
+    private (uint Outline, uint Name, uint Plate) RoomInks()
+        => (Ink(StyleCatalogue.Keys.RoomOutline), Ink(StyleCatalogue.Keys.RoomOutlineName), Ink(StyleCatalogue.Keys.RoomOutlinePlate));
+
+    /// <summary>A style entry's colour, or nought where its row is switched off.</summary>
+    private uint Ink(string key) => Style.Visible(key) ? Style.Colour(key) : 0u;
+
+    /// <summary>A room's footprint outlined at the ground's height - the map is isometric, so a rhombus - its four corners on screen left in <paramref name="corners"/>; no line where <paramref name="colour"/> is nought.</summary>
+    private static void Outlined(
+        ImDrawListPtr draw, MapView map, WorldEntity player, TerrainGrid grid, RoomCandidate where, uint colour, float width, Span<Vector2> corners)
+    {
+        const int Cells = TerrainGrid.CellsPerTile;
+        for (var one = 0; one < 4; one++)
+        {
+            int cellX = (where.X + (one is 1 or 2 ? where.Width : 0)) * Cells;
+            int cellY = (where.Y + (one >= 2 ? where.Height : 0)) * Cells;
+            corners[one] = Grounded(grid, map, player, cellX, cellY);
+        }
+
+        if (colour == 0)
+        {
+            return;
+        }
+
+        for (var one = 0; one < 4; one++)
+        {
+            draw.AddLine(corners[one], corners[(one + 1) & 3], colour, width);
+        }
+    }
+
+    /// <summary>A room's name at <paramref name="font"/> pixels on a plate in the middle of its outline - no name where <paramref name="colour"/> is nought, no plate where <paramref name="plate"/> is.</summary>
+    private static (Vector2 Min, Vector2 Max)? Labelled(ImDrawListPtr draw, ReadOnlySpan<Vector2> corners, string room, uint colour, uint plate, float font)
+    {
+        if (colour == 0)
+        {
+            return null;
+        }
+
+        Vector2 middle = (corners[0] + corners[1] + corners[2] + corners[3]) * 0.25f;
+        string name = TerrainRooms.NameFor(room);
+        float scale = font / ImGui.GetFontSize();
+        Vector2 size = ImGui.CalcTextSize(name) * scale;
+        Vector2 at = middle - (size * 0.5f);
+        var pad = new Vector2(3f, 1f) * scale;
+        if (plate != 0)
+        {
+            draw.AddRectFilled(at - pad, at + size + pad, plate, 3f * scale);
+        }
+
+        draw.AddText(ImGui.GetFont(), font, at, colour, name);
+        return (at - pad, at + size + pad);
+    }
+
+    /// <summary>The tile the player stands on, for the tile book's "around you" row, or null.</summary>
+    /// <summary>The player's place in the world and the area's terrain height under it - what a laid room's heights are counted in - or null.</summary>
+    private (float X, float Y, float Ground)? PlayerGround()
+        => _snapshot.Player is WorldEntity player && _snapshot.Terrain is TerrainGrid grid
+            ? (player.WorldX, player.WorldY, grid.HeightAt((int)(player.WorldX / MapView.WorldToGrid), (int)(player.WorldY / MapView.WorldToGrid)))
+            : null;
+
+    /// <summary>
+    /// How the area's ground runs on the screen by the live camera - the player and a step from the player along x and along y put through the matrix - or null outside the game.
+    /// </summary>
+    private SceneLight.GroundOnScreen? LiveGround()
+    {
+        if (!_snapshot.InGame || _snapshot.Player is not WorldEntity player || _snapshot.Matrix.Length < 16)
+        {
+            return null;
+        }
+
+        Vector2 size = ImGui.GetIO().DisplaySize;
+        const float step = 100f;
+        Vector2? origin = OnScreen(player.WorldX, player.WorldY, player.WorldZ, size);
+        Vector2? alongX = OnScreen(player.WorldX + step, player.WorldY, player.WorldZ, size);
+        Vector2? alongY = OnScreen(player.WorldX, player.WorldY + step, player.WorldZ, size);
+        return origin is { } o && alongX is { } x && alongY is { } y
+            ? new SceneLight.GroundOnScreen(x - o, y - o)
+            : null;
+    }
+
+    /// <summary>
+    /// The game's camera as the snapshot holds it, for a laid room to leave out what it cannot see - or null outside the game.
+    /// </summary>
+    /// <remarks>
+    /// ASKED OFF THE FRAME, by the tile book's load: the snapshot is swapped whole, so one read of it is
+    /// one frame's, and the matrix is copied because the next frame's may arrive in the same array.
+    /// </remarks>
+    private CameraShot? Shot()
+    {
+        WorldSnapshot snapshot = _snapshot;
+        return snapshot.InGame && snapshot.Player is WorldEntity player && snapshot.Matrix.Length >= 16
+            ? new CameraShot(snapshot.Matrix[..16], new Vector3(player.WorldX, player.WorldY, player.WorldZ))
+            : null;
+    }
+
+    /// <summary>A world point on the screen as right and up from the screen's middle, in pixels, or null behind the camera.</summary>
+    private Vector2? OnScreen(float x, float y, float z, Vector2 size)
+    {
+        (double cx, double cy, double cw) = WorldToScreen.Clip(_snapshot.Matrix, x, y, z);
+        return cw > 1e-6 ? new Vector2((float)(cx / cw) * size.X * 0.5f, (float)(cy / cw) * size.Y * 0.5f) : null;
+    }
+
+    private (int X, int Y)? PlayerTile()
+        => _snapshot.Player is WorldEntity player
+            ? ((int)(player.WorldX / MapView.WorldToGrid) / TerrainGrid.CellsPerTile, (int)(player.WorldY / MapView.WorldToGrid) / TerrainGrid.CellsPerTile)
+            : null;
+
+    /// <summary>A grid cell on the large map at the ground's height under it.</summary>
+    private static Vector2 Grounded(TerrainGrid grid, MapView map, WorldEntity player, int cellX, int cellY)
+        => map.Project(
+            cellX * MapView.WorldToGrid,
+            cellY * MapView.WorldToGrid,
+            grid.HeightAt(Math.Max(0, cellX - 1), Math.Max(0, cellY - 1)),
+            player.WorldX,
+            player.WorldY,
+            player.TerrainHeight);
+
+    /// <summary>
+    /// Outlines the room candidate the tile book picked, on the large map, with the room's name in the middle.
+    /// </summary>
+    /// <remarks>
+    /// THE FOUR CORNERS OF ITS FOOTPRINT, each at the ground's height under it like every other
+    /// marker, joined - the map is isometric, so the footprint is a rhombus and nothing simpler.
+    /// Only on the grid it was found on: a new area drops it without being told.
+    /// </remarks>
+    private void RoomGhostOnMap(ImDrawListPtr draw, MapView map, WorldEntity player)
+    {
+        if (_roomGhost is not { } ghost
+            || !map.IsLargeMap
+            || !ReferenceEquals(_snapshot.Terrain, ghost.Grid))
+        {
+            return;
+        }
+
+        Span<Vector2> corners = stackalloc Vector2[4];
+        (uint outline, uint name, uint plate) = RoomInks();
+        float width = Math.Max(1f, Style.Width(StyleCatalogue.Keys.RoomOutline, 2f));
+        Outlined(draw, map, player, ghost.Grid, ghost.Where, outline, width, corners);
+
+        // WHERE IT PARTS WITH THE AREA, at full size: the same marks every room gets at three quarters.
+        (uint corner, uint tile, uint joined) = MissInks();
+        Missed(draw, map, player, ghost.Grid, ghost.Misses, corner, tile, joined, 1f);
+
+        RoomLayout? layout = _areaRooms?.LayoutOf(ghost.Room);
+        Named(draw, corners, ghost.Room, ghost.Where, layout, name, plate, RoomFont());
+    }
+
+    /// <summary>
+    /// The files the current area loaded, by path - a new list per area. Where the tile book finds
+    /// the area's rooms. Null where nothing reads the loaded-file table.
+    /// </summary>
+    public Func<IReadOnlyList<string>>? LoadedFiles { get; set; }
+
+    private IReadOnlyList<string>? _loadedOf;
+    private IReadOnlyList<TerrainRoom>? _tilesHereOf;
+    private IReadOnlyDictionary<string, int> _tilesHere = new Dictionary<string, int>();
+
+    /// <summary>
+    /// Which boss picture belongs to which arena, for the arenas whose names do not say it.
+    /// </summary>
+    /// <remarks>
+    /// The same arrangement as <see cref="Monsters"/> and for the same reason - loaded by
+    /// whoever wires this up, with no fixed order against the Attach calls - except that this
+    /// one is handed ON as well: the layer that draws the markers may already exist, and a
+    /// table that arrived afterwards would otherwise sit here unread.
+    /// </remarks>
+    public BossIcons BossIcons
+    {
+        get => _bossIcons;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _bossIcons = value;
+            if (_poi is not null)
+            {
+                _poi.BossIcons = value;
+            }
+
+            Hand(_monsterBook?.Model);
+        }
+    }
+
+    private BossIcons _bossIcons = BossIcons.Empty;
+
+    /// <summary>Which terrain graphs each area is built from, for a boss's arena as a stage - see AreaGraphs. Empty until the file is handed over.</summary>
+    public AreaGraphs AreaGraphs { get; set; } = AreaGraphs.Empty;
+
+    /// <summary>
+    /// The endgame maps, for the list of which of them still need a boss picture made.
+    /// </summary>
+    /// <remarks>
+    /// The FILE's list rather than the game's, and on purpose: this is read while deciding what
+    /// to play next, which is exactly when the game is not attached. The two agree - the shipped
+    /// table is EndgameMaps.dat's own 173 rows, see AtlasMapNames - and the file's copy is the
+    /// one that is there at start-up.
+    /// </remarks>
+    public AtlasMapNames EndgameMaps { get; set; } = AtlasMapNames.Empty;
+
+    /// <summary>
+    /// Where the game's own sentence for a stat comes from, asked per frame.
+    /// </summary>
+    /// <remarks>
+    /// A CALLBACK RATHER THAN A VALUE, because this one changes mid-session and the other tables
+    /// here do not. The sentences start as the shipped export and are replaced by the install's own
+    /// .csd files on a background walk that finishes long after start-up - AtlasWatch owns that
+    /// upgrade and <c>AtlasWatch.StatSentences</c> is what this is normally pointed at, so there is
+    /// one answer to "what does this stat say" rather than one per window.
+    /// </remarks>
+    public Func<Game.Components.StatDescriptions>? StatSentences { get; set; }
+
+    /// <summary>
+    /// What stands in when nothing has been wired up.
+    /// </summary>
+    /// <remarks>
+    /// HELD rather than fetched, and that is not a micro-optimisation: StatDescriptions.Empty is a
+    /// property that builds a NEW instance per call, and the book notices a different table by
+    /// REFERENCE - so a fresh Empty each frame would have it rebuild all 2733 rows, every frame,
+    /// on exactly the machines that have no sentences to show for it.
+    /// </remarks>
+    private readonly Game.Components.StatDescriptions _noSentences = Game.Components.StatDescriptions.Empty;
+
+    // The trails belong to the LAYER's question rather than the reader's, so they are kept
+    // here: a projectile's path across the screen is something only a thing that sees every
+    // snapshot in order can assemble, and the reader hands out one snapshot at a time.
+    private readonly ProjectileLayer _projectiles = new();
+    private readonly ProjectileWatch _projectileWatch = new();
+    private readonly AtlasLayer _atlas = new();
+    private AtlasWatch? _atlasWatch;
+    private readonly RitualLayer _ritual = new();
+    private RitualWatch? _ritualWatch;
+    private RitualWindow? _ritualWindow;
+    private readonly RunecraftLayer _runecraft = new();
+    private RunecraftWatch? _runecraftWatch;
+    private readonly MonolithLayer _monoliths = new();
+    private MonolithWatch? _monolithWatch;
+    private readonly ExpeditionLayer _expedition = new();
+    private ExpeditionWatch? _expeditionWatch;
+
+    /// <summary>Called when a preload switch changed, so it can be written down.</summary>
+    public Action<PreloadSettings>? PreloadRulesChanged { get; set; }
+
+    /// <summary>Called when the curated list changed, which is a different file.</summary>
+    public Action<IReadOnlyList<PreloadAlertEntry>>? PreloadListChanged { get; set; }
+
+    /// <summary>Takes a change from the editor and passes it on.</summary>
+    private void TookPreload(PreloadSettings changed)
+    {
+        _preloadSettings = changed;
+        _preloadPanel.Enabled = changed.Window;
+        _preloadPanel.HideWhenEmpty = changed.HideWhenEmpty;
+        PreloadRulesChanged?.Invoke(changed);
+    }
+
+    private PreloadWatch? _preload;
+    private PreloadSettings _preloadSettings = PreloadSettings.Default;
+    private readonly PreloadPanel _preloadPanel = new();
+
+    /// <summary>The corner panel and the record behind it. Null until the tracker is attached.</summary>
+    private readonly WealthPanel _wealthPanel = new();
+    private WealthTracker? _wealth;
+    private WealthWindow? _wealthWindow;
+    private int _wealthMinutes = 60;
+    private readonly PreloadEntryBanner _preloadEntry = new();
+
+    /// <summary>The area whose findings have already been said out loud.</summary>
+    /// <remarks>
+    /// Kept so the banner fires ONCE per area rather than on every frame that finds a
+    /// finding. Zero is not an area, so it also covers the state before anything was read.
+    /// </remarks>
+    private uint _announced;
+
+    /// <summary>When the area last changed, for the timer. Zero until one has.</summary>
+    /// <remarks>
+    /// Set where the card is announced rather than from the snapshot's area, because that is
+    /// the one place that already knows an area is NEW - the snapshot carries which area you
+    /// are in, not when you arrived, and comparing it every frame would restart the clock on
+    /// any frame the hash was read as zero.
+    /// </remarks>
+    private long _areaAtMs;
+
+    /// <summary>
+    /// Adds the "what is in this area" list.
+    /// </summary>
+    /// <remarks>
+    /// The walk that fills it belongs to whoever owns the reading - it is far too expensive
+    /// for a tick and runs once per area on its own thread. This only shows the answer, and
+    /// offers the button that forces another look.
+    /// </remarks>
+    /// <param name="settings">What the preload alerts do - the banner, the list, the gate.</param>
+    /// <param name="rulesChanged">
+    /// Writes the rules down. Called from the raw-list window as well as the editor, because
+    /// a rule added by pressing "+ watch" on a path is exactly as permanent as a typed one.
+    /// </param>
+    /// <param name="starter">
+    /// The shipped list, read on demand. Null means there is none to offer, and the editor then
+    /// says what it said before anything shipped: build your own from the area tab.
+    /// </param>
+    /// <summary>
+    /// Opens the area's room files out of the game's own bundles, when something can.
+    /// </summary>
+    /// <remarks>
+    /// Null unless the App attaches it, which it only does with an install to read. The overlay
+    /// has no business finding the game's files; what it owns is the button, and a button with
+    /// nothing behind it is simply not drawn. See RoomFiles for what the answer is for.
+    ///
+    /// SET IT BEFORE <see cref="AttachPreload"/>, which is where the window is built and where
+    /// this is read. Nothing enforces that, so it is written down here rather than discovered
+    /// as a button that never appears.
+    /// </remarks>
+    public Action? LookInsideRooms { get; set; }
+
+    /// <summary>
+    /// Writes the area's room files out whole, decoded, when something can.
+    /// </summary>
+    /// <remarks>
+    /// Same rules as <see cref="LookInsideRooms"/>, including SET IT BEFORE
+    /// <see cref="AttachPreload"/>. Separate from it because the two answer different
+    /// questions: one says what a room names, and this is what a person reads the format out
+    /// of, on a machine that is not running the game.
+    /// </remarks>
+    public Action? WriteRoomsOut { get; set; }
+
+    /// <summary>
+    /// Searches memory for anything that REFERS to one of the area's room files.
+    /// </summary>
+    /// <remarks>
+    /// Same rules as the two above, including SET IT BEFORE <see cref="AttachPreload"/>. It is
+    /// the opposite direction to both: they read what a room file SAYS, and this asks who in
+    /// the game points AT one - which is the question that would place a room on the map.
+    /// Unlike them it needs no install, only the loaded-file table this page already walks.
+    /// </remarks>
+    public Action? HuntRoomPlacements { get; set; }
+
+    public void AttachPreload(
+        PreloadWatch watch,
+        Action lookAgain,
+        Action sweep,
+        PreloadSettings settings,
+        Action<PreloadSettings> rulesChanged,
+        bool visible = false,
+        Func<IReadOnlyList<PreloadAlertEntry>>? starter = null)
+    {
+        ArgumentNullException.ThrowIfNull(watch);
+        ArgumentNullException.ThrowIfNull(lookAgain);
+        ArgumentNullException.ThrowIfNull(sweep);
+        ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(rulesChanged);
+        _preload = watch;
+        _preloadSettings = settings;
+        _preloadPanel.Enabled = settings.Window;
+        _preloadPanel.HideWhenEmpty = settings.HideWhenEmpty;
+        PreloadRulesChanged = rulesChanged;
+        // A ROW OF TABS, not a stack of folds. Four unrelated tools share this page - a file
+        // inspector, a watch list, a quest tree and a pin editor - and nobody has ever wanted
+        // two of them on screen at once. See ToolTabs.AsTabs for when each shape is right.
+        _tools.AsTabs(Area);
+
+        var styles = new StyleRows(Style, SaveStyle, StyleCatalogue.Homes.Area, _icons.Sheet);
+        var window = new PreloadWindow(
+            watch,
+            lookAgain,
+            sweep,
+            () => PreloadListChanged?.Invoke(watch.Watching),
+            LookInsideRooms,
+            WriteRoomsOut,
+            HuntRoomPlacements);
+        _tools.Add(
+            20,
+            "preload",
+            "Loaded Files",
+            () =>
+            {
+                window.DrawTab();
+                styles.Draw();
+            },
+            styles.Idle,
+            page: Area,
+            pageLabel: "Area");
+
+        // The list that decides what gets said, beside the raw one it is built from. Two tabs
+        // rather than one long page: finding a path and curating the list are different jobs,
+        // and the raw one is thousands of rows deep.
+        var alerts = new PreloadAlertWindow(
+            watch,
+            () => _preloadSettings,
+            TookPreload,
+            list => PreloadListChanged?.Invoke(list),
+            SayItNow,
+            starter);
+        _tools.Add(22, "preload-alerts", "Watch List", alerts.DrawTab, page: Area, pageLabel: "Area");
+
+        if (visible)
+        {
+            _tools.Show("preload");
+        }
+
+    }
+
+    /// <summary>
+    /// Says what this area loaded, once, on the way in.
+    /// </summary>
+    /// <remarks>
+    /// Fired from the AREA the findings belong to rather than from a flag the reader sets,
+    /// because the walk finishes on its own thread some moments after the zone changed - so
+    /// "has it been said for this area" is the only question that has a stable answer here.
+    ///
+    /// The area is marked as said even when there was nothing to say. Otherwise every frame
+    /// in a quiet map re-asks a question already answered, and worse, a rule added mid-map
+    /// would announce an area you have been standing in for ten minutes.
+    /// </remarks>
+    private void AnnounceWhatLoaded(long nowMs)
+    {
+        if (_preload is not { Looked: true } watch || !_preloadSettings.Card)
+        {
+            return;
+        }
+
+        uint area = watch.Area;
+        if (area == 0 || area == _announced)
+        {
+            return;
+        }
+
+        _announced = area;
+        _areaAtMs = nowMs;
+
+        IReadOnlyList<PreloadAlertEntry> saying = watch.Found;
+        if (saying.Count > 0)
+        {
+            _preloadEntry.Announce(saying, nowMs);
+        }
+    }
+
+    /// <summary>Says the card again for the area already being stood in.</summary>
+    /// <remarks>
+    /// Bypasses the once-per-area guard on purpose - this is somebody asking to see it, which
+    /// is a different question from whether it has already been said. It goes through the same
+    /// gates otherwise, so a card with nothing in it stays a card with nothing in it.
+    /// </remarks>
+    private void SayItNow()
+    {
+        if (_preload is not { Looked: true } watch)
+        {
+            return;
+        }
+
+        IReadOnlyList<PreloadAlertEntry> saying = watch.Found;
+        if (saying.Count > 0)
+        {
+            _preloadEntry.Announce(saying, Environment.TickCount64);
+        }
+    }
+
+    /// <summary>
+    /// Adds the appearance editor, and says where its choices should be written down.
+    /// </summary>
+    /// <remarks>
+    /// The saving is somebody else's, like every other setting here: the overlay draws, and
+    /// where a file lives is not its business. Attaching this is also what makes the editor
+    /// reachable at all - without it the style still applies, it just cannot be changed from
+    /// in the game.
+    /// </remarks>
+    public void AttachStyleEditor(Action saved, bool visible = false)
+    {
+        ArgumentNullException.ThrowIfNull(saved);
+        _styleSaved = saved;
+        var window = new StyleWindow
+        {
+            Chrome = Chrome,
+
+            // The interface's own size and solidity, which are kept in the OVERLAY settings
+            // rather than in the style file - so the writing down is SettingsChanged's, not
+            // this editor's own save. Applied the moment it changes and written down when the
+            // drag stops, which is the same bargain every other control on this page makes.
+            Interface = new StyleWindow.InterfaceEditor(
+                () => Interface,
+                chosen => Interface = chosen,
+                () => SettingsChanged?.Invoke()),
+
+            // This page hosts the list, so it is the page the list must never offer to
+            // hide - see DrawHideList.
+            TabList = () => _tools.DrawHideList("style"),
+            Keys = () =>
+            {
+                DrawScreenshotControls();
+                _capture.DrawControls();
+            },
+        };
+
+        // What is drawn on the game WORLD - markers, routes, the layout, the aids - has no
+        // feature tab to be styled on, so it gets a page of its own, right before the page
+        // about the tool itself. The feature styles sit with their features; see
+        // StyleCatalogue.Homes for the split.
+        // FOUR TABS, not eight folds on one scroll. Forty rows of near-identical controls under
+        // eight headings is where somebody loses their place: every heading looks like the last
+        // one and the row you were looking at is three screens from the row you want to compare
+        // it with. Split by what a row is drawn ON - a thing, a place, a health bar, the tool's
+        // own furniture - which is the question somebody arrives at this page with.
+        _tools.AsTabs(Markers);
+
+        var entities = new StyleRows(Style, SaveStyle, StyleCatalogue.Homes.MarkerEntities, _icons.Sheet);
+        var places = new StyleRows(Style, SaveStyle, StyleCatalogue.Homes.MarkerPlaces, _icons.Sheet);
+        var health = new StyleRows(Style, SaveStyle, StyleCatalogue.Homes.MarkerHealth, _icons.Sheet);
+        var aids = new StyleRows(Style, SaveStyle, StyleCatalogue.Homes.MarkerAids, _icons.Sheet);
+
+        _tools.Add(
+            65,
+            "markers",
+            "Entities & Drops",
+            () =>
+            {
+                // The reset line covers every drawn thing in the tool, not just this tab's -
+                // it says so - so it is drawn once, on the tab this page opens to.
+                entities.DrawResetLine();
+                entities.Draw();
+            },
+            entities.Idle,
+            page: Markers,
+            pageLabel: "Markers");
+
+        _tools.Add(
+            66,
+            "markers-places",
+            "Map & Places",
+            () =>
+            {
+                // On THIS tab, because the unrecognised marker whose row is on it is what the
+                // collected names are about - and a file nothing mentions is a file nobody
+                // opens. One line, and only once there is something in it to open.
+                DrawCollectedNames();
+                DrawBossArt();
+                places.Draw();
+            },
+            places.Idle,
+            page: Markers);
+        _tools.Add(67, "markers-health", "Health Bars", health.Draw, health.Idle, page: Markers);
+        _tools.Add(68, "markers-aids", "Measuring Aids", aids.Draw, aids.Idle, page: Markers);
+
+        _tools.Add(70, "style", "Appearance", window.DrawTab, window.Idle);
+        if (visible)
+        {
+            _tools.Show("style");
+        }
+    }
+
+    /// <summary>
+    /// How many icon names the classifier gave up on, and where they were written.
+    /// </summary>
+    /// <remarks>
+    /// The collecting happens whether or not anybody reads this - see
+    /// <see cref="UnrecognisedMarkers"/> - so this is only the part that says it is happening.
+    /// Without it the file is a secret, and a secret file is one nobody sends on when they ask
+    /// why a marker is a question mark.
+    /// </remarks>
+    private void DrawCollectedNames()
+    {
+        int names = _unrecognised.Count;
+        if (names == 0)
+        {
+            return;
+        }
+
+        ImGuiText.Wrapped(
+            OverlayInk.Quiet,
+            names == 1
+                ? "1 icon name the marker rules do not recognise has been collected, with an"
+                    + " example path for it:"
+                : $"{names} icon names the marker rules do not recognise have been collected,"
+                    + " with an example path for each:");
+        ImGuiText.Mono(OverlayInk.Quiet, UnrecognisedMarkers.LogPath);
+        ImGui.Separator();
+    }
+
+    /// <summary>
+    /// The switch for the boss arenas' own pictures, and what the sheet had nothing for.
+    /// </summary>
+    /// <remarks>
+    /// ON THIS TAB because the row it stands in front of is here: "Boss arena" is a style row
+    /// like any other, and a picture chosen there is what this overrides. A switch for that
+    /// hidden on another page would be the one thing somebody cannot find when they wonder why
+    /// their chosen icon stopped appearing.
+    ///
+    /// The second line is the same argument <see cref="DrawCollectedNames"/> makes: the arenas
+    /// nothing could name are collected whether or not anybody reads this, and an unmentioned
+    /// file is a file nobody opens - while this one is the list of pairs still to add.
+    /// </remarks>
+    private void DrawBossArt()
+    {
+        if (_poi is not PoiLayer poi)
+        {
+            return;
+        }
+
+        bool art = poi.ShowBossArt;
+        if (ImGui.Checkbox("boss arenas wear the game's own picture of their boss", ref art))
+        {
+            poi.ShowBossArt = art;
+            SettingsChanged?.Invoke();
+        }
+
+        int missing = poi.BossIcons.MissingCount;
+        if (art && missing > 0)
+        {
+            ImGuiText.Wrapped(
+                OverlayInk.Quiet,
+                missing == 1
+                    ? "1 boss arena has turned up that the sheet has no picture for; its area and"
+                        + " tile were written down, so the pair can be added to data/boss-icons.json:"
+                    : $"{missing} boss arenas have turned up that the sheet has no picture for;"
+                        + " their areas and tiles were written down, so the pairs can be added to"
+                        + " data/boss-icons.json:");
+            ImGuiText.Mono(OverlayInk.Quiet, BossIcons.LogPath);
+        }
+
+        // THE LIST OF WHAT IS LEFT, which the line above cannot be: that one grows out of what
+        // has been played, and this one starts from the game's own set of endgame maps, so it
+        // says what is missing before anybody has been there. Folded away, because it is 173
+        // rows and this is a tab about markers.
+        if (EndgameMaps.Count > 0 && ImGui.CollapsingHeader("boss pictures still to make"))
+        {
+            _bossPlan.Draw();
+
+            // Under the list it empties: what is waiting there is what this sends.
+            ImGui.Spacing();
+            _bossExport.Draw();
+        }
+
+        ImGui.Separator();
+    }
+
+    /// <summary>
+    /// Writes the marker styles down, once the editor that knows how has been attached.
+    /// </summary>
+    /// <remarks>
+    /// Late-bound because the feature tabs carry style rows too, and their attach methods can
+    /// run before <see cref="AttachStyleEditor"/> brings the save action - both orders happen
+    /// depending on how the app is wired. Until it arrives, edits still apply live; they are
+    /// written down with the next change after the wiring completes.
+    /// </remarks>
+    private void SaveStyle() => _styleSaved?.Invoke();
+
+    private Action? _styleSaved;
+
+    /// <summary>
+    /// Adds the tracker: lines to monsters, rings on dangerous ground, status icons.
+    /// </summary>
+    /// <remarks>
+    /// Its editor is a TAB rather than a page in the configuration window, and that is forced
+    /// by what has to be typed into it. A status rule matches on the game's own internal buff
+    /// name - a spelling nobody is ever shown - so the only way to write one is to have the
+    /// effect on you and read the list of what you are carrying, which means the editor has to
+    /// be open while playing.
+    /// </remarks>
+    public void AttachTracker(TrackerSettings settings, Action<TrackerSettings> saved, bool visible = false)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(saved);
+
+        Tracker = settings;
+        var window = new TrackerWindow(
+            () => Tracker,
+            changed =>
+            {
+                Tracker = changed;
+                saved(changed);
+            },
+            _icons.Sheet,
+            () => Animations);
+
+        _tools.Add(
+            32, "tracker", "Tracker", () => window.DrawTab(_snapshot), page: Combat, pageLabel: "Combat");
+
+        if (visible)
+        {
+            _tools.Show("tracker");
+        }
+    }
+
+    /// <summary>Radius in pixels of an entity dot.</summary>
+    private const float DotRadius = 5f;
+
+    /// <summary>
+    /// The entity kinds worth a dot.
+    /// </summary>
+    /// <remarks>
+    /// A filter rather than "draw everything", because most of the entity map is not worth
+    /// looking at while playing: terrain pieces, visual effects and the unclassified
+    /// remainder are things the RE work needs to SEE, and things a player needs gone. They
+    /// stay reachable through the diagnostic window, which is where inspecting the entity
+    /// map belongs.
+    /// </remarks>
+    public HashSet<EntityKind> DrawnKinds { get; } =
+        [EntityKind.Monster, EntityKind.Chest, EntityKind.WorldItem, EntityKind.Npc];
+
+    /// <summary>
+    /// The worst drop still worth a marker. Currency is always shown.
+    /// </summary>
+    /// <remarks>
+    /// Magic by default because Path of Exile 2 carpets the floor in normal-rarity items,
+    /// and an overlay that marks every one of them is harder to read than no overlay at
+    /// all - it turns the useful drops into three more dots among forty.
+    ///
+    /// Currency ignores this deliberately. It carries no rarity component, so it is
+    /// classified by path, and it is the class of drop nobody wants filtered.
+    /// </remarks>
+    public ItemRarity MinimumLootRarity { get; set; } = ItemRarity.Magic;
+
+    /// <summary>Draw the area's layout on the map, including the parts not explored yet.</summary>
+    public bool ShowTerrain { get; set; } = true;
+
+    /// <summary>Draw name labels next to dots.</summary>
+    public bool ShowLabels { get; set; }
+
+    /// <summary>
+    /// Add the projection measurements and the per-kind filters to the readout.
+    /// </summary>
+    /// <remarks>
+    /// OFF by default, and that split is a correction rather than a preference. Everything
+    /// in here was built to PROVE the projection - off-centre fractions, scene spread,
+    /// marker deltas, the probe height - and once proven it is arithmetic nobody reads
+    /// while playing. What stays visible is the part that answers a question during a
+    /// session: is it reading, what are the pools, and why did the flask not fire.
+    /// </remarks>
+    public bool ShowDiagnostics { get; set; }
+
+    /// <summary>Draw the alignment aids: screen centre and both candidate player heights.</summary>
+    public bool ShowCalibration { get; set; }
+
+    /// <summary>
+    /// World height added to every marker before projecting, adjustable live.
+    /// </summary>
+    /// <remarks>
+    /// A MEASURING instrument, not a fudge factor. The game's own map draws an X at the
+    /// player's position, which is an exact reference; dragging this until the marker sits
+    /// on that X reads off the residual as a NUMBER instead of an estimate from a
+    /// screenshot. Deliberately in WORLD units rather than pixels, because that is what
+    /// distinguishes the possible causes: if the value that aligns it is a round height
+    /// (a character's 88, say, or its half) the height fed in is wrong, whereas a value
+    /// that shifts when the camera moves means the error is in screen space instead.
+    /// </remarks>
+    public float ProbeHeight { get; set; }
+
+    /// <summary>
+    /// Creates the overlay. <paramref name="snapshotSource"/> is called once per frame and
+    /// must be cheap and non-blocking - it is the render thread.
+    /// <paramref name="gameWindow"/> is the game's window handle, which the overlay resizes
+    /// itself to match.
+    /// </summary>
+    public EntityOverlay(Func<UiScale, WorldSnapshot> snapshotSource, IntPtr gameWindow, int cull = 0)
+        : base("PoEformance", true)
+    {
+        ArgumentNullException.ThrowIfNull(snapshotSource);
+        _snapshotSource = snapshotSource;
+        _gameWindow = gameWindow;
+        _cull = cull;
+
+        // The layer never touches the renderer directly - it is handed the two operations
+        // it needs, which is what keeps its projection maths testable away from a GPU.
+        _terrain = new TerrainLayer(Upload, key => RemoveImage(key));
+        _icons = new IconCache(Upload, key => RemoveImage(key));
+
+        // THE MODEL PANES' CARD, on this overlay's own device - asked for on the render thread the
+        // first time a pane draws, since the device does not exist yet. See CardPictures.
+        _card = new CardPictures(() => (Device, DeviceContext), AddView, DropView);
+
+        // Both tables are set by whoever wires this up, in no fixed order against this
+        // constructor, so the list reads them per draw rather than taking a copy of Empty.
+        _bossPlan = new BossIconRows(() => _bossIcons, () => EndgameMaps, Called, Pose);
+
+        // Read per press, like the list: the table is replaced whenever it is loaded again.
+        _bossExport = new BossExportPanel(() => _bossIcons.Source);
+
+        // Everything it reads, it reads as the press happens or while it waits - see CaptureKey.
+        _capture = new CaptureKey(
+            () => _snapshot,
+            () => _tracked,
+            () =>
+            {
+                // ASKING STARTS THE WORK, as the map's own ask does - see AreaRooms.Arranged.
+                if (_snapshot.Terrain is not TerrainGrid grid || _areaRooms is null)
+                {
+                    return null;
+                }
+
+                _areaRooms.Arranged(grid, AreaRoomFiles(), _tileBook?.RoomsOverlap ?? RoomOverlap.Rims);
+                return _areaRooms.Standing;
+            },
+            () => _areaRooms is not null && _snapshot.Terrain is TerrainGrid { Ground: not null },
+            () => _areaRooms?.Progress ?? (0, 0),
+            () => _areaRooms,
+            () => LoadedFiles?.Invoke() ?? [],
+            () => TileSets,
+            () => Version)
+        {
+            Changed = () => SettingsChanged?.Invoke(),
+        };
+
+        // THE PANES' PROBE is offered here rather than where each book is attached: there are four
+        // panes and one part, and the books arrive in any order.
+        _capture.Offer(CaptureParts.ModelProbe, ProbeReports);
+
+        // The entry card takes its plates from the same cache the markers use, so a picture
+        // that cannot be loaded is reported in one place and given up on once.
+        _preloadEntry.Icons = _icons;
+
+        // And the status icon sheet out of the same one, for the same reason: one texture per
+        // file, and one place that says why a file did not load.
+        _statusIcons.Icons = _icons;
+
+        // FIRST, and registered here rather than where the tools attach, because this one is
+        // not attached by anybody: it is this class's own readout, it is what the window shows
+        // when nothing else is asked for, and being the leading page is what makes the window
+        // size itself to a dozen short lines during a fight. Order 0 keeps it leftmost however
+        // the rest are numbered.
+        _tools.Add(
+            0, Status, "Live readout", () => DrawStatusTab(_viewport.X, _viewport.Y),
+            page: Status, pageLabel: "Status");
+
+        // The live facts that belong on EVERY page rather than on this one - see
+        // DrawStatusStrip, and StatusBar for why the window stopped resizing itself once they
+        // moved up there.
+        _tools.Header = DrawStatusStrip;
+
+        // Dragging a zone is a settings change like any switch, and it has to reach the file:
+        // the whole value of saying where the interface is, is not saying it again next launch.
+        _keepOut.Changed = () => SettingsChanged?.Invoke();
+
+        // THE LOW-LEVEL PAGE IS TABS, NOT FOLDS - see ToolTabs.AsTabs for which shape suits
+        // which page. Its four tools are the strongest case in the tool: each is a two-pane tree
+        // or a scrolling table that wants the whole window, and nobody has ever wanted two of
+        // them on screen at once - a pointer is followed in ONE of them at a time. Stacked as
+        // folds they were four collapsing bars taking the height off whichever one was open, and
+        // the entity browser's own panes then scrolled inside a page that was also scrolling.
+        //
+        // HERE rather than beside the registrations, because the four arrive from four separate
+        // Attach calls in no fixed order and any of them may not be attached at all - so said
+        // there, whether the page came out as tabs would depend on how the app was wired.
+        _tools.AsTabs(Entities);
+
+        // THE ATLAS PAGE IS TABS TOO, and for a different reason: its four tools are not read
+        // together, they are used at different times. The routing groups are edited at a league
+        // start, the filters are set once, the colours less often than that, and the ritual line
+        // is watched during a ritual. Stacked as folds the routing list alone - eleven rows that
+        // grow as somebody adds groups - made the page twice as long as everything else on it and
+        // pushed the switches below the fold.
+        _tools.AsTabs(Atlas);
+
+        ShareChrome();
+    }
+
+    /// <summary>
+    /// The viewport as the last frame measured it, for the pages that need it.
+    /// </summary>
+    /// <remarks>
+    /// A field because a tab's content is a callback registered once, while the size arrives
+    /// per frame. The readout is the only page that cares - it reports the viewport and
+    /// projects the player through it - and one frame's lag is not a thing anybody could see.
+    /// </remarks>
+    private (int X, int Y) _viewport;
+
+    private IntPtr Upload(string key, SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32> image, bool srgb)
+    {
+        AddOrGetImagePointer(key, image, srgb, out IntPtr handle);
+        return handle;
+    }
+
+    /// <summary>
+    /// Also draw a dot on each entity out in the 3D world.
+    /// </summary>
+    /// <remarks>
+    /// OFF by default. It is the world-to-screen projection's showcase, and as a playing
+    /// aid it is the opposite of one: the markers land between the player and the thing
+    /// they are fighting. The map is where a radar belongs.
+    /// </remarks>
+    public bool ShowWorldDots { get; set; }
+
+    /// <summary>
+    /// Stop drawing in world space while a screen-filling panel is open.
+    /// </summary>
+    /// <remarks>
+    /// ON by default, because it is what somebody expects: markers over a stash or health bars
+    /// across the passive tree are right information in the way, which is worse than none.
+    ///
+    /// It is a switch rather than a rule because the panels are found at unverified offsets and
+    /// paths, and the way a wrong one fails is the worst kind - a panel reported open forever,
+    /// so the overlay never comes back and nothing says why. The status window prints which
+    /// panels are being reported so a stuck one names itself, and this turns the question off
+    /// entirely for anybody who would rather have the markers than the tidiness.
+    /// </remarks>
+    public bool HideBehindPanels { get; set; } = true;
+
+    /// <summary>
+    /// Whether the tool's own WINDOWS get out of the way of an open panel as well.
+    /// </summary>
+    /// <remarks>
+    /// The same idea as <see cref="HideBehindPanels"/> and deliberately its own switch, because
+    /// what the two cost when they are wrong is not the same. A marker layer that hides itself
+    /// leaves the game exactly as it was; a window that hides itself takes controls with it -
+    /// the tabs, the readout, and the Appearance page holding these two checkboxes.
+    ///
+    /// ONLY THE WINDOWS ACTUALLY OVER A PANEL, which is what makes it worth having on: the
+    /// corner readout stays where it is while an inventory is open on the other side of the
+    /// screen, and goes when the passive tree takes the whole screen. See
+    /// <see cref="WindowChrome.Covered"/>, which also records the ways back.
+    /// </remarks>
+    public bool HideWindowsBehindPanels { get; set; } = true;
+
+    /// <summary>The capture key and the capture it runs - see <see cref="CaptureKey"/>.</summary>
+    private readonly CaptureKey _capture;
+
+    /// <summary>
+    /// Starts the memory half of a capture - the recording, and the pass inside it reading what the ask says - or null where one is already running. Set by whoever owns the reader; unset, the capture says it has none. See CaptureKey.RecordMemory.
+    /// </summary>
+    public Func<CaptureMemoryAsk, Task<string>?>? RecordMemory
+    {
+        get => _capture.RecordMemory;
+        set => _capture.RecordMemory = value;
+    }
+
+    /// <summary>Every model pane's probe lines, each under its book's name - the capture's model-probe part; null where no pane is probing.</summary>
+    private string? ProbeReports()
+    {
+        System.Text.StringBuilder? said = null;
+        foreach (MonsterPortrait? pane in (MonsterPortrait?[])[_monsterBook?.Model, _itemBook?.Model, _tileBook?.Model, _effectBook?.Model])
+        {
+            if (pane?.ProbeReport() is not { } lines)
+            {
+                continue;
+            }
+
+            said ??= new System.Text.StringBuilder();
+            if (said.Length > 0)
+            {
+                said.AppendLine();
+            }
+
+            said.Append("=== the ").Append(pane.Book).AppendLine(" book's pane");
+            said.AppendLine(lines);
+        }
+
+        return said?.ToString().TrimEnd();
+    }
+
+    /// <summary>Why this session has no memory recording to offer the capture, where <see cref="RecordMemory"/> is not set.</summary>
+    public string NoMemory
+    {
+        get => _capture.NoMemory;
+        set => _capture.NoMemory = value;
+    }
+
+    /// <summary>
+    /// Starts a search of the whole of the game's memory for runs of floats, nearest an address first - set by whoever owns the reader, before the tile book is attached. See FloatHunt.
+    /// </summary>
+    /// <remarks>
+    /// The tile book's light panel asks the game with it which reading of an environment's angles it
+    /// uses - see LightHunt. Unset, its button says the overlay cannot search.
+    /// </remarks>
+    public Func<IReadOnlyList<FloatNeedle>, ulong, FloatHuntProgress, Task<FloatHuntResult>?>? HuntFloats { get; set; }
+
+    /// <summary>
+    /// Reads the area's entity maps once for the paths given - the rooms' doodad stubs - and where each stands; set by whoever owns the reader, before the tile book is attached. See SleepingDoodads.
+    /// </summary>
+    /// <remarks>AreaRooms runs it on its own task once the rooms are read, and the map places the rooms by it. Unset, the map falls back to the arrangement and the capture's doodad parts say why they are empty.</remarks>
+    public Func<IReadOnlySet<string>, DoodadSurvey>? SurveyDoodads { get; set; }
+
+    /// <summary>
+    /// Where the parsed environment keeps its dust colour, from the offset schema's ParsedEnvironment - set by whoever loaded the schema, before the tile book is attached.
+    /// </summary>
+    /// <remarks>Unset, the light panel's hunt does not read the dust colour beside the angles, and its report says why.</remarks>
+    public DustPlace? EnvironmentDust { get; set; }
+
+    /// <summary>
+    /// Starts a search of the whole of the game's memory for runs of bytes - set by whoever owns the reader. See PatternHunt.
+    /// </summary>
+    /// <remarks>The Memory Dissector's find: a text, or the pointers to the address on show. Unset, it is not offered.</remarks>
+    public Func<IReadOnlyList<PatternNeedle>, FloatHuntProgress, Task<PatternHuntResult>?>? HuntPatterns { get; set; }
+
+    /// <summary>Delete - what the screenshot key is until somebody chooses another.</summary>
+    private const int DefaultScreenshotKey = 0x2E;
+
+    /// <summary>The screenshot key as a virtual-key code; zero means "not chosen" and reads as Delete.</summary>
+    public int ScreenshotKey { get; set; }
+
+    private int ScreenshotKeyOrDefault => ScreenshotKey == 0 ? DefaultScreenshotKey : ScreenshotKey;
+
+    private bool _shotWasDown;
+    private bool _shotListening;
+    private long _shotToastUntil;
+    private bool _shotToastOk;
+
+    /// <summary>
+    /// The screenshot key: the focused window of the tool, or with Ctrl the whole overlay.
+    /// </summary>
+    /// <remarks>
+    /// OBSERVED, NEVER SWALLOWED - the game still gets the key, which is why this only runs while
+    /// the game or the tool is in front (the caller sits behind that gate) and not while a text
+    /// box wants the key: Delete there means "delete a letter".
+    ///
+    /// The rectangle is taken HERE, on the render thread, where ImGui can be asked; the copy runs
+    /// on the pool because a screen grab plus a clipboard open is a hitch nobody wants mid-fight.
+    /// With no focused window the whole overlay is taken instead of nothing, since a key that
+    /// silently does nothing reads as broken.
+    /// </remarks>
+    private void PollScreenshot(long now)
+    {
+        bool down = !_shotListening && ScreenInput.IsDown(ScreenshotKeyOrDefault);
+        bool pressed = down && !_shotWasDown;
+        _shotWasDown = down;
+
+        if (pressed && !ImGui.GetIO().WantTextInput && _tracked.IsValid)
+        {
+            bool whole = ScreenInput.IsDown(0x11) || Chrome.Focused is null;
+            ClientRect area = _tracked;
+
+            if (!whole && Chrome.Focused is (Vector2 at, Vector2 size))
+            {
+                int left = Math.Max(0, (int)MathF.Floor(at.X));
+                int top = Math.Max(0, (int)MathF.Floor(at.Y));
+                int right = Math.Min(area.Width, (int)MathF.Ceiling(at.X + size.X));
+                int bottom = Math.Min(area.Height, (int)MathF.Ceiling(at.Y + size.Y));
+                area = new ClientRect(area.X + left, area.Y + top, right - left, bottom - top);
+            }
+
+            _ = Task.Run(() =>
+            {
+                bool ok = ScreenCapture.CopyToClipboard(area.X, area.Y, area.Width, area.Height);
+                _shotToastOk = ok;
+                Volatile.Write(ref _shotToastUntil, Environment.TickCount64 + 1500);
+            });
+        }
+
+        if (now < Volatile.Read(ref _shotToastUntil))
+        {
+            ImGui.GetForegroundDrawList().AddText(
+                new Vector2(12, 12),
+                _shotToastOk ? 0xFFFFFFFFu : 0xFF5050FFu,
+                _shotToastOk ? "Screenshot copied" : "Screenshot failed");
+        }
+    }
+
+    /// <summary>The row on Appearance → Keys that shows and rebinds the screenshot key.</summary>
+    private void DrawScreenshotControls()
+    {
+        OverlayLayout.Group("Screenshot");
+
+        if (_shotListening)
+        {
+            ImGui.Button("Press a key...  (Esc cancels)");
+            if (CaptureKey.PressedKey() is int key and > 0)
+            {
+                if (key != 0x1B)
+                {
+                    ScreenshotKey = key;
+                    SettingsChanged?.Invoke();
+                }
+
+                _shotListening = false;
+            }
+        }
+        else if (ImGui.Button($"{(ConsoleKey)ScreenshotKeyOrDefault}##shotkey"))
+        {
+            _shotListening = true;
+        }
+
+        OverlayLayout.Hint("Copies the focused window of the tool to the clipboard. With Ctrl: the whole overlay.");
+    }
+
+    /// <summary>
+    /// Where the game's own interface sits, so the map overlay keeps off it.
+    /// </summary>
+    /// <remarks>
+    /// Edited by <see cref="MapKeepOutEditor"/> and saved with the rest of the settings. See
+    /// <see cref="Features.MapKeepOut"/> for what the zones are and why they are not measured.
+    /// </remarks>
+    public MapKeepOut KeepOut
+    {
+        get => _keepOut.Zones;
+        set => _keepOut.Zones = value;
+    }
+
+    /// <summary>
+    /// Everything the map must not be drawn over, this frame.
+    /// </summary>
+    /// <remarks>
+    /// ALL THREE SOURCES ARE MEASURED but one. The interface parts and the panel rectangles come
+    /// from the elements the game itself keeps, read by the snapshot this frame and costing
+    /// nothing here; the extra zones are the one thing somebody drew by hand, and they are empty
+    /// unless somebody drew one.
+    ///
+    /// The panels are included whatever <see cref="HideBehindPanels"/> says, which is not a
+    /// contradiction of that switch. Turning it off means "do not blank the whole overlay
+    /// because a panel is open" - it has never meant "paint the level layout across my stash",
+    /// and painting across the stash is the state that made this necessary.
+    /// </remarks>
+    private List<ScreenRect> KeepOutOf(int width, int height)
+    {
+        List<ScreenRect> keepOut = KeepOut.Blocking(width, height);
+
+        if (KeepOut.On)
+        {
+            foreach (InterfacePart part in _snapshot.InterfaceParts)
+            {
+                if (KeepOut.Honours(part.Label))
+                {
+                    keepOut.Add(part.Where);
+                }
+            }
+        }
+
+        foreach (PanelArea panel in _snapshot.Covering)
+        {
+            keepOut.Add(new ScreenRect(panel.Left, panel.Top, panel.Right, panel.Bottom));
+        }
+
+        return keepOut;
+    }
+
+    /// <summary>
+    /// Everything the ATLAS layers must not be drawn over, this frame.
+    /// </summary>
+    /// <remarks>
+    /// THE SAME PROBLEM AS THE MAP'S, and it needs a different list for two reasons.
+    ///
+    /// The atlas panel IS what these layers draw on, so it cannot be kept out of - which the
+    /// map's list would do the moment the atlas is open, leaving the web, the routes and the
+    /// labels with nowhere to go.
+    ///
+    /// And a panel BESIDE the atlas has to be taken at its measured size rather than at the
+    /// whole screen. <c>PanelReader</c> reports the panning kinds as screen-filling on purpose,
+    /// because over-answering only costs a hidden window there; here it would erase the feature,
+    /// since the atlas skill panel is a column down one side with most of the atlas still
+    /// visible. So this uses <c>PanelArea.Measured</c> and SKIPS a panel that could not be
+    /// measured - failing towards drawing, like every other unreadable answer in these readers.
+    ///
+    /// AND A PART THE SIZE OF THE SCREEN IS DROPPED, one at a time, which is the difference
+    /// between this degrading and this collapsing. The world screen holds furniture that is
+    /// genuinely screen-sized - a vignette, a fade, an input catcher - and honouring one of
+    /// those is not "keep off that bit", it is "keep off everything": identical to the feature
+    /// being switched off, and arrived at without anybody switching it off. Dropping only the
+    /// offender leaves the title bar, the search box and the orbs still doing their job, which
+    /// is what the region is for. Whole-screen is an exact test rather than a tuned share, so
+    /// nothing in between is quietly discarded - a part that over-claims by half is still
+    /// honoured, still listed with its rectangle, and still one click to switch off.
+    /// </remarks>
+    private List<ScreenRect> KeepOutOfAtlas(int width, int height)
+    {
+        ScreenRect window = ScreenRect.Window(width, height);
+        List<ScreenRect> keepOut = [];
+
+        foreach (ScreenRect zone in KeepOut.Blocking(width, height))
+        {
+            Take(zone);
+        }
+
+        foreach (InterfacePart part in AtlasInterface(window))
+        {
+            keepOut.Add(part.Where);
+        }
+
+        foreach (PanelArea panel in _snapshot.Covering)
+        {
+            if (panel.Panel != GamePanel.Atlas && panel.Measured is ScreenRect where)
+            {
+                Take(where);
+            }
+        }
+
+        return keepOut;
+
+        void Take(ScreenRect rect)
+        {
+            if (!rect.Covers(window))
+            {
+                keepOut.Add(rect);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The interface parts the atlas layers are actually keeping off, as parts rather than
+    /// rectangles.
+    /// </summary>
+    /// <remarks>
+    /// Split out of <see cref="KeepOutOfAtlas"/> because two things need the same list and only
+    /// one of them wants rectangles: <see cref="AtlasHoverPanel"/> works out whether the game's
+    /// hover panel is among them, and it can only do that from what the parts ARE. The switches
+    /// and the whole-screen drop are applied here, so both callers agree about what is being
+    /// kept off - a part filtered out for one and not the other is exactly the disagreement that
+    /// would have the overlay draw over the panel while claiming it did not.
+    /// </remarks>
+    private List<InterfacePart> AtlasInterface(ScreenRect window)
+    {
+        List<InterfacePart> parts = [];
+        if (!KeepOut.On)
+        {
+            return parts;
+        }
+
+        foreach (InterfacePart part in _snapshot.InterfaceParts)
+        {
+            if (KeepOut.Honours(part.Label) && !part.Where.Covers(window))
+            {
+                parts.Add(part);
+            }
+        }
+
+        return parts;
+    }
+
+    /// <summary>
+    /// Optional: read cost, completed reads and failures from the reader thread.
+    /// </summary>
+    /// <remarks>
+    /// Shown next to the frame rate so the two are directly comparable. That comparison IS
+    /// the point of the reader thread: read time no longer bounds frame time, and seeing
+    /// both numbers is what makes a regression obvious instead of felt.
+    /// </remarks>
+    public Func<(double Milliseconds, long Reads, long Failures)>? ReadStats { get; set; }
+
+    /// <summary>Optional: what auto-flask did, or why it did nothing.</summary>
+    /// <remarks>
+    /// Shown because "why did nothing happen" is the question actually asked of an
+    /// automation feature, and a silent no-op cannot answer it.
+    /// </remarks>
+    public Func<string>? FlaskStatus { get; set; }
+
+    /// <summary>Optional: what the evasion planner did, or why it did nothing.</summary>
+    /// <remarks>
+    /// The same argument as <see cref="FlaskStatus"/>, and it carries more weight here: this
+    /// feature has more ways of being armed and silent - both gates, a rarity floor nothing in
+    /// the area reaches, an unset dodge key, the cooldown - and every one of them looks
+    /// identical from the outside.
+    /// </remarks>
+    public Func<string>? EvasionStatus { get; set; }
+
+    /// <summary>Optional: which rules are acting, or why none is.</summary>
+    /// <remarks>
+    /// The same line the config window's rules tab shows, put where it can be read DURING a
+    /// map. That window is not open while somebody is playing, and a rule that quietly does
+    /// nothing - an unbound key, a cooldown, a condition that never holds - is a question asked
+    /// mid-fight rather than at a desk.
+    /// </remarks>
+    public Func<string>? RuleStatus { get; set; }
+
+    /// <summary>Optional: what came of the last effect that aimed at something.</summary>
+    /// <remarks>
+    /// Separate from <see cref="RuleStatus"/> because it is not part of any tick: placing the
+    /// pointer waits on the game and finishes after the decision that started it, so its
+    /// outcome - confirmed, landed on nothing, pulled away, off screen - arrives on its own.
+    /// </remarks>
+    public Func<string>? AimStatus { get; set; }
+
+    /// <summary>Optional: what the rules have been doing, newest first.</summary>
+    /// <remarks>
+    /// The status line above answers what is happening THIS tick, and a tick is 33 ms. With
+    /// six rules configured that line changes several times a second - measured by the owner
+    /// as "no status lasts a second" - so every question about it is a question about the
+    /// recent past. Folded away by default: it is a page of text, and the readout's job is
+    /// still to answer "is it working" at a glance.
+    /// </remarks>
+    public Func<IReadOnlyList<RuleLogEntry>>? RuleHistory { get; set; }
+
+    /// <summary>
+    /// Adds the interface browser, served by an inspector on the reader thread.
+    /// </summary>
+    /// <remarks>
+    /// Optional, and the overlay works without it - which is why it is attached rather than
+    /// constructed here. The browser exists to reverse-engineer the interface; the overlay
+    /// exists to draw the world, and it has no business owning a tree reader.
+    /// </remarks>
+    public void AttachUiBrowser(UiTreeInspector inspector, bool visible = false)
+    {
+        ArgumentNullException.ThrowIfNull(inspector);
+        var window = new UiBrowserWindow(inspector) { Style = _style };
+        _uiBrowser = window;
+        _tools.Add(
+            95, UiBrowserTab, "UI Browser", window.DrawTab, window.Idle,
+            page: Entities, pageLabel: EntitiesLabel);
+        if (visible)
+        {
+            _tools.Show(UiBrowserTab);
+        }
+    }
+
+    /// <summary>
+    /// Adds the atlas overlay, served by a watch on the reader thread.
+    /// </summary>
+    /// <remarks>
+    /// Attached rather than constructed here for the same reason as the browser: this class
+    /// draws, and the atlas is read by something else. What it hands over is a finished view.
+    /// </remarks>
+    /// <summary>Adds the rule engine's captions and bars.</summary>
+    /// <remarks>
+    /// Takes what to DRAW rather than the engine, so nothing here can trigger an evaluation.
+    /// See <see cref="_ruleDrawings"/>.
+    /// </remarks>
+    public void AttachRules(
+        Func<IReadOnlyList<RuleDrawing>> drawings,
+        Func<IReadOnlyList<PreviewRing>>? ranges = null,
+        Func<IReadOnlyList<PreviewFact>>? facts = null)
+    {
+        ArgumentNullException.ThrowIfNull(drawings);
+        _ruleDrawings = drawings;
+        _ruleRanges = ranges;
+        _ruleFacts = facts;
+    }
+
+    /// <summary>
+    /// What the cursor is resting on over the atlas, said in the game's own words.
+    /// </summary>
+    /// <remarks>
+    /// THE PICTURES ARE WHY THIS EXISTS. A written line answers for itself; a 20-pixel icon
+    /// does not, until somebody has learnt what the game's art for a Delirium mirror looks
+    /// like - and the wording that would teach them is already loaded, sitting unused next to
+    /// the picture's name.
+    ///
+    /// Only what the line does not already say: an effect IS its sentence, so it gets a tooltip
+    /// only where the icon replaced the words entirely.
+    /// </remarks>
+    private static void Explain(AtlasSaid? said)
+    {
+        if (said is not { } content || (content.Text.Length == 0 && content.Detail.Length == 0))
+        {
+            return;
+        }
+
+        if (!ImGui.BeginTooltip())
+        {
+            return;
+        }
+
+        try
+        {
+            ImGui.TextUnformatted(ImGuiText.Escape(content.Text));
+
+            if (content.Detail.Length > 0)
+            {
+                ImGui.Separator();
+
+                // Wrapped, because a content's description is a whole sentence and a few of
+                // them are two - unwrapped, one of those is a tooltip as wide as the screen.
+                ImGui.PushTextWrapPos(ImGui.GetFontSize() * 22f);
+                try
+                {
+                    ImGui.TextUnformatted(ImGuiText.Escape(content.Detail));
+                }
+                finally
+                {
+                    ImGui.PopTextWrapPos();
+                }
+            }
+        }
+        finally
+        {
+            ImGui.EndTooltip();
+        }
+    }
+
+    /// <param name="art">
+    /// Where the pictures for what a map contains come from, or null to draw them as words.
+    /// </param>
+    public void AttachAtlas(
+        AtlasWatch watch, Action<AtlasSettings> saved, bool visible = false, AtlasArt? art = null)
+    {
+        ArgumentNullException.ThrowIfNull(watch);
+        ArgumentNullException.ThrowIfNull(saved);
+        _atlasWatch = watch;
+        var window = new AtlasWindow(watch, saved, art);
+
+        if (art is not null)
+        {
+            // Bound ONCE rather than per frame. It is called several times for every map on
+            // screen, so a lambda built each frame would be an allocation per frame for a
+            // lookup that is two dictionary hits.
+            _atlas.Art = name => _icons.PictureFor(art.File(name), IconCache.MaxEdge).Texture;
+        }
+
+        // THE MASTER SWITCH AND THE READ BELONG TO THE PAGE, not to any one of its four tools -
+        // see ToolTabs.Lead. The switch decides whether the other three do anything at all, and
+        // "did it read the atlas" is asked from whichever tab somebody is standing on.
+        _tools.Lead(Atlas, window.DrawLead);
+
+        // ROUTING LEADS, because it is the tab people come here to use: the groups are somebody's
+        // own answer to what is worth walking to, they change every league, and the rest of this
+        // page is set once. It was buried under eleven switches.
+        _tools.Add(
+            40, "atlas-routes", "Routing", window.DrawRouting, window.Idle,
+            page: Atlas, pageLabel: "Atlas");
+
+        _tools.Add(
+            41, "atlas", "Display Filters", window.DrawTab, window.Idle,
+            page: Atlas, pageLabel: "Atlas");
+
+        // The atlas's plate, web and route colours, between the filters and the ritual line
+        // that draws onto it.
+        var styles = new StyleRows(Style, SaveStyle, StyleCatalogue.Homes.Atlas, _icons.Sheet);
+        _tools.Add(
+            42, "atlas-style", "Visual Style", styles.Draw, styles.Idle,
+            page: Atlas, pageLabel: "Atlas");
+
+        // LAST, and a tab rather than the nine-row box it used to be drawn in under the filters.
+        // The check's report is eight hundred lines now - every repeated map row, every content the
+        // file disagrees with, every effect id with the game's own name for it - and nine rows of
+        // that, unresizable, is a worse answer than none. It is also a diagnostic rather than a
+        // setting, so it goes at the end where nobody lands on it by accident.
+        var log = new AtlasLogWindow(() => watch.Checked);
+        _tools.Add(
+            49, "atlas-log", "Debug Log", log.DrawTab,
+            page: Atlas, pageLabel: "Atlas",
+            live: () => watch.Checked.Count > 0 ? $"Debug Log ({watch.Checked.Count})###atlas-log" : "Debug Log###atlas-log");
+
+        // The check's report whole, for a capture - the window's filter is for reading, not sending.
+        _capture.Offer(CaptureParts.AtlasLog, () => watch.Checked is { Count: > 0 } report ? string.Join('\n', report) : null);
+
+        if (visible)
+        {
+            _tools.Show("atlas");
+        }
+
+        _atlas.Style = _style;
+    }
+
+    /// <summary>
+    /// Adds the map-data reconciliation: what the game says about every map beside what the
+    /// files say.
+    /// </summary>
+    /// <remarks>
+    /// ON THE INSPECT PAGE and not the atlas one, deliberately. The atlas page is for playing -
+    /// what to draw, where to walk - and this answers a question about the TOOL: whether the
+    /// values it is about to start reading out of memory agree with the ones it has been
+    /// shipping, and what would break if the file were cut. That belongs beside the browsers.
+    ///
+    /// Takes the report and a writer rather than the watch, so nothing here reads memory and the
+    /// app keeps the decision about where a saved file lands.
+    /// </remarks>
+    public void AttachMapData(Func<MapDataReport> report, Func<string, string> save, bool visible = false)
+    {
+        ArgumentNullException.ThrowIfNull(report);
+        ArgumentNullException.ThrowIfNull(save);
+
+        var window = new MapDataWindow(report, save);
+        _tools.Add(
+            105, MapDataTab, "Map Data", window.DrawTab,
+            page: Entities, pageLabel: EntitiesLabel);
+        if (visible)
+        {
+            _tools.Show(MapDataTab);
+        }
+    }
+
+    /// <summary>
+    /// Adds the stash listing.
+    /// </summary>
+    /// <remarks>
+    /// A tab and nothing else: it draws nothing over the game, because what it answers -
+    /// what have I got, and where - is not a question anybody asks mid-fight.
+    /// </remarks>
+    /// <param name="probe">
+    /// Runs the one-off currency-exchange diagnostic, or null where nothing wired one. Handed in
+    /// like the sign-in beside it, because the trade session lives in a layer this cannot see.
+    /// </param>
+    /// <param name="exchange">
+    /// The game's own Currency Exchange, or null where nothing wired one. Shown beside poe.ninja
+    /// rather than instead of it, because which of the two is right is not settled yet.
+    /// </param>
+    public void AttachStash(
+        StashInspector inspector,
+        ItemArtStore art,
+        PriceStore prices,
+        TradePrices trade,
+        Action signIn,
+        Func<Task<TradeProbe>>? probe = null,
+        ExchangeStore? exchange = null,
+        bool visible = false)
+    {
+        ArgumentNullException.ThrowIfNull(inspector);
+        ArgumentNullException.ThrowIfNull(art);
+        ArgumentNullException.ThrowIfNull(prices);
+        ArgumentNullException.ThrowIfNull(trade);
+        ArgumentNullException.ThrowIfNull(signIn);
+
+        // The icon cache is the overlay's, because uploading a texture needs the renderer -
+        // so the window is handed a way to turn a file into something drawable rather than
+        // being given the renderer itself. The sign-in is handed in for the same shape of
+        // reason: the trade window is a browser, and this layer cannot see that one.
+        // Kept so the four switches can be saved and restored: they belong to the stores, not
+        // to the window, and this class is what Apply and CurrentSettings run on.
+        _stashArt = art;
+        _stashPrices = prices;
+        _stashTrade = trade;
+        _stashExchange = exchange;
+        PushStashWants();
+
+        var window = new StashWindow(
+            inspector, art, prices, trade, signIn, probe,
+            file => _icons.PictureFor(file, IconCache.MaxWideEdge).Texture,
+            () => SettingsChanged?.Invoke(),
+            exchange);
+        _tools.Add(60, "stash", "Stash", window.DrawTab);
+        if (visible)
+        {
+            _tools.Show("stash");
+        }
+    }
+
+    /// <summary>
+    /// Adds the wealth tracker: a page holding the record, and a corner panel over the game.
+    /// </summary>
+    /// <remarks>
+    /// TWO VIEWS OF ONE THING, because they answer different questions. "Am I up or down" is
+    /// asked mid-map and has to be readable without opening anything, so it is a corner panel;
+    /// "what has this league actually been worth" needs the record drawn, which needs a page.
+    /// They share the chosen stretch of time so the two figures on screen can never be labelled
+    /// differently and answer the same question.
+    ///
+    /// The panel is a window like any other - it appears in the window list, it can be pinned,
+    /// and its click-through is the ordinary one. That is what the user asked for and it is also
+    /// the only way it can be moved: painted pixels take no mouse.
+    /// </remarks>
+    /// <param name="exchange">
+    /// The game's own Currency Exchange, or null where nothing wired one. It is what the per-tab
+    /// worth is priced from: the aggregated index covers a fraction of what a stash holds, and a
+    /// breakdown built on it would report whole tabs as empty.
+    /// </param>
+    public void AttachWealth(
+        WealthTracker tracker,
+        StashInspector inspector,
+        PriceStore prices,
+        ExchangeStore? exchange = null)
+    {
+        ArgumentNullException.ThrowIfNull(tracker);
+        ArgumentNullException.ThrowIfNull(inspector);
+        ArgumentNullException.ThrowIfNull(prices);
+
+        _wealth = tracker;
+        _wealthPanel.Chrome = Chrome;
+
+        var window = new WealthWindow(
+            tracker,
+            _wealthPanel,
+            () => prices.Book,
+            () => inspector.League,
+            () => inspector.Purse,
+            exchange is null ? null : () => exchange.Pairs)
+        {
+            Watching = inspector.WatchPurse,
+            WatchChanged = on =>
+            {
+                inspector.WatchPurse = on;
+                SettingsChanged?.Invoke();
+            },
+            Changed = () => SettingsChanged?.Invoke(),
+        };
+
+        // Whatever Apply already read out of the settings file, which ran before this - the
+        // tracker is attached late, like the stash, so the switches arrive before the thing
+        // they switch. Assigning them here is what stops an attached page starting at its
+        // defaults and then saving those over what the user chose.
+        window.WindowMinutes = _wealthMinutes;
+
+        _wealthWindow = window;
+        _tools.Add(61, "wealth", "Wealth", window.DrawTab);
+    }
+
+    /// <summary>
+    /// Adds the rates page: what everything is going for, where it has been, and where a loop pays.
+    /// </summary>
+    /// <remarks>
+    /// A tab and nothing else, for the same reason as the stash beside it: nobody reads a price
+    /// table mid-fight.
+    ///
+    /// BOTH SOURCES OR NEITHER. The page is handed the two stores rather than their data because
+    /// it owns the switch that starts them, and that switch turns both on together - the index is
+    /// what makes the arbitrage column believable, so a state where the rates are read and the
+    /// check is not is a state worth making unreachable.
+    /// </remarks>
+    /// <param name="named">
+    /// What the game calls a metadata path, for the rows the index has no name for. Optional -
+    /// without it those rows read as their own path, which is what they did before.
+    /// </param>
+    public void AttachRates(
+        ExchangeStore exchange, ScoutStore scout, Func<string> league, Func<string, string>? named = null)
+    {
+        ArgumentNullException.ThrowIfNull(exchange);
+        ArgumentNullException.ThrowIfNull(scout);
+        ArgumentNullException.ThrowIfNull(league);
+
+        var window = new RatesWindow(exchange, scout, league, named);
+        _tools.Add(62, "rates", "Rates", window.DrawTab);
+    }
+
+    /// <summary>
+    /// Adds the update notice, beside the live readout on the Status page.
+    /// </summary>
+    /// <remarks>
+    /// ON THE STATUS PAGE, which is the page this window opens on and the one that is up during
+    /// a session. A notice on a page nobody has in front of them is not a notice - and its
+    /// header carries the news, so "there is a newer build" is legible with the section still
+    /// folded.
+    ///
+    /// The check and the installer are HANDED IN rather than made here, because the config
+    /// window drives the same two. One of each, or the two surfaces disagree about what the
+    /// tool is doing.
+    /// </remarks>
+    /// <param name="download">Fetches and unpacks the published build. Replaces nothing.</param>
+    /// <param name="install">Swaps the folders and restarts. Does not return.</param>
+    /// <param name="skip">Waves this build away, so the next one still gets to ask.</param>
+    /// <param name="outcome">What the last restart's update did - "updated", "failed", or empty.</param>
+    public void AttachUpdates(
+        UpdateCheck check,
+        UpdateInstaller installer,
+        Action download,
+        Action install,
+        Action skip,
+        string outcome,
+        string outcomeVersion)
+    {
+        var window = new UpdateWindow(check, installer, download, install, skip)
+        {
+            Outcome = outcome,
+            OutcomeVersion = outcomeVersion,
+        };
+
+        // The IDLE callback is what keeps the check ticking: this section is folded shut for
+        // the whole of an ordinary session, so hanging the tick off the draw would mean
+        // checking once at startup and never again.
+        _tools.Add(
+            5, "update", "Update", window.DrawTab, window.Idle,
+            page: Status, pageLabel: "Status", live: () => window.Label);
+    }
+
+    /// <summary>
+    /// Adds the quest list: every quest and the step it is waiting on.
+    /// </summary>
+    /// <remarks>
+    /// Its own tab rather than a line somewhere, because it is a LIST and the thing people go
+    /// looking for in it is the quest they forgot - which needs the whole act on screen at
+    /// once, not the one the game happens to be tracking.
+    /// </remarks>
+    public void AttachQuests(QuestWatch watch, bool visible = false)
+    {
+        ArgumentNullException.ThrowIfNull(watch);
+        var window = new QuestWindow(watch);
+        _tools.Add(25, "quests", "Quests", window.DrawTab, page: Area);
+
+        // Its own tab rather than a fold inside the quests one. It answers a different
+        // question - "what is my map still hiding" against "what am I supposed to do next" -
+        // and it rides the same read, so it costs a tab and nothing else.
+        var pins = new MapPinWindow(watch);
+        _tools.Add(26, "mappins", "Map Pins", pins.DrawTab, page: Area);
+
+        if (visible)
+        {
+            _tools.Show("quests");
+        }
+    }
+
+    /// <summary>
+    /// Adds the ritual-line planner, which rides the atlas read.
+    /// </summary>
+    /// <remarks>
+    /// Separate from the atlas even though it shares its read: it answers a different question,
+    /// it is idle unless a line is being drawn, and its tab is a list somebody works through
+    /// rather than a set of switches.
+    /// </remarks>
+    public void AttachRitual(
+        RitualWatch watch,
+        Func<IReadOnlyDictionary<string, int>> worth,
+        Action<IReadOnlyDictionary<string, int>> apply,
+        Action<IReadOnlyDictionary<string, int>> save,
+        bool visible = false)
+    {
+        ArgumentNullException.ThrowIfNull(watch);
+        _ritualWatch = watch;
+        var window = new RitualWindow(watch, worth, apply, save);
+        _ritualWindow = window;
+        _tools.Add(50, "ritual", "Ritual Line", window.DrawTab, page: Atlas, pageLabel: "Atlas");
+        if (visible)
+        {
+            _tools.Show("ritual");
+        }
+    }
+
+    /// <summary>
+    /// Adds the Runeshape Combinations prices: poe.ninja's figure on each recipe row of the panel.
+    /// </summary>
+    /// <remarks>
+    /// Beside the stash, the wealth and the rates rather than on the atlas page, because it is
+    /// the fourth thing in the tool that is about what something is WORTH - and it shares their
+    /// book and their switch. The window is handed the price store for that switch, and the
+    /// overlay's own settings callback so a flip of it is written down exactly as the Stash tab
+    /// writes its copy.
+    /// </remarks>
+    public void AttachRunecraft(
+        RunecraftWatch watch, MonolithWatch monoliths, Action<RunecraftSettings> saved, PriceStore prices, bool visible = false)
+    {
+        ArgumentNullException.ThrowIfNull(watch);
+        ArgumentNullException.ThrowIfNull(monoliths);
+        ArgumentNullException.ThrowIfNull(saved);
+        ArgumentNullException.ThrowIfNull(prices);
+        _runecraftWatch = watch;
+        _monolithWatch = monoliths;
+
+        var window = new RunecraftWindow(watch, monoliths, saved, prices, () => SettingsChanged?.Invoke());
+        _tools.Add(63, "runecraft", "Runecraft", window.DrawTab);
+        if (visible)
+        {
+            _tools.Show("runecraft");
+        }
+    }
+
+    /// <summary>Attaches the expedition route planner: its tab, its map and world drawing, its hotkey.</summary>
+    public void AttachExpedition(ExpeditionWatch watch, Action<ExpeditionSettings> saved, bool visible = false)
+    {
+        ArgumentNullException.ThrowIfNull(watch);
+        ArgumentNullException.ThrowIfNull(saved);
+        _expeditionWatch = watch;
+
+        var window = new ExpeditionWindow(watch, saved);
+        _tools.Add(64, "expedition", "Expedition", window.DrawTab);
+        if (visible)
+        {
+            _tools.Show("expedition");
+        }
+    }
+
+    /// <summary>
+    /// Adds the raw-memory dissector.
+    /// </summary>
+    /// <remarks>
+    /// Over the game for the same reason the interface browser is: what is being watched is
+    /// the game reacting, and a window somewhere else cannot be looked at and acted in at the
+    /// same time. Finding a field means doing something and seeing what moved, which only
+    /// works if both are in front of you.
+    /// </remarks>
+    public void AttachDissector(StructureInspector inspector, bool visible = false)
+    {
+        ArgumentNullException.ThrowIfNull(inspector);
+        // ASKED FOR WHEN PRESSED, not when attached: the reader's search is set by whoever owns it,
+        // and nothing says that comes first.
+        var window = new DissectorWindow(inspector) { Hunt = (needles, progress) => HuntPatterns?.Invoke(needles, progress) };
+        _dissector = window;
+        _capture.Offer(CaptureParts.Dissector, window.Report);
+        _tools.Add(
+            110, DissectorTab, "Memory Dissector", window.DrawTab, window.Idle,
+            page: Entities, pageLabel: EntitiesLabel);
+        if (visible)
+        {
+            _tools.Show(DissectorTab);
+        }
+    }
+
+    /// <summary>
+    /// Adds the entity browser, which takes an entity apart into its components.
+    /// </summary>
+    /// <remarks>
+    /// Wired to the dissector so a component can be opened where it can be read. Attach that
+    /// first: without it the browser still lists everything, but the click that matters -
+    /// "show me the one nothing describes" - has nowhere to go.
+    /// </remarks>
+    /// <param name="readFile">
+    /// The install's own bytes, for the turning picture on a monster's page. Null leaves the
+    /// page exactly as it was - a browser on a machine with no game still lists everything.
+    /// </param>
+    /// <param name="unpack">The install's Oodle, so a bundled rig can move. See the book's.</param>
+    public void AttachEntityBrowser(
+        EntityInspector inspector,
+        bool visible = false,
+        Func<string, byte[]?>? readFile = null,
+        Func<ReadOnlyMemory<byte>, int, byte[]?>? unpack = null)
+    {
+        ArgumentNullException.ThrowIfNull(inspector);
+
+        // The jump also brings the dissector's tab in front - "show me this" used to mean
+        // opening that window, and with tabs it means switching to it. Only for a real
+        // address: Show ignores zero, and a tab switch to an unchanged dissector would
+        // just take the browser away from under the click that asked for it.
+        // The planner is read through the field rather than captured, because the two Attach
+        // calls have no fixed order and a captured null would silently mean "this build has
+        // no routes" - which looks exactly like a broken feature.
+        var window = new EntityBrowserWindow(
+            inspector,
+            EntitiesHidden,
+            (address, label, layout) =>
+            {
+                if (address != 0 && _dissector is not null)
+                {
+                    _dissector.Show(address, label, layout);
+                    _tools.Show(DissectorTab);
+                }
+            },
+            (address, worldX, worldY) => _planner?.Toggle(address, worldX, worldY),
+            address => _planner?.IsTarget(address) ?? false,
+            (address, label) =>
+            {
+                // Brings the dissector forward exactly as "dissect" does, and for the same
+                // reason: the new place appearing beside the others IS the confirmation that
+                // the click landed. Adding a third costs one tab click back, which is cheap
+                // next to a button that looks like it did nothing.
+                if (address != 0 && _dissector is not null && _dissector.Compare(address, label))
+                {
+                    _tools.Show(DissectorTab);
+                }
+            },
+            () => Monsters);
+
+        // ITS OWN PORTRAIT, capped at the ladder's smallest rung. The strip is 180 px and never
+        // grows, so drawing it at the book's 1024 would rasterise a megapixel to show a
+        // thumbnail; and sharing the book's instance would reload the model - six to sixteen
+        // megabytes - on every switch between the two tabs. See MonsterPortrait.Circling.
+        window.Model = new MonsterPortrait(
+            readFile, Upload, key => RemoveImage(key), PictureLadder.Smallest, unpack)
+        {
+            Written = _icons.SheetChanged,
+        };
+
+        _tools.Add(
+            90, "entities", "Entity Browser", () => window.DrawTab(_snapshot, _snapshot.Player),
+            window.Idle, page: Entities, pageLabel: EntitiesLabel);
+        if (visible)
+        {
+            _tools.Show("entities");
+        }
+    }
+
+    /// <summary>
+    /// Adds the monster reference book - the whole table, rather than the thing in front of you.
+    /// </summary>
+    /// <remarks>
+    /// BESIDE THE BROWSER AND NOT INSIDE IT, because it asks the opposite question. The browser
+    /// starts from an entity on screen and looks up what the table says about it; the book starts
+    /// from the table and lets somebody read it - which monsters cast this skill, what a boss
+    /// carries, what "AbyssMonsterBase" is built on. Nothing has to be in the area for it to work,
+    /// so it does not take the inspector and can be attached on its own.
+    ///
+    /// The table is read through a callback rather than captured: <see cref="Monsters"/> is set by
+    /// whoever wires this up and the Attach calls have no fixed order, so a captured Empty would
+    /// look exactly like a build with no table at all. The stat sentences are read the same way for
+    /// a stronger reason - see <see cref="StatSentences"/>, which changes mid-session.
+    /// </remarks>
+    public void AttachMonsterBook(
+        IReadOnlyList<string>? columns = null,
+        bool rail = true,
+        bool model = true,
+        bool visible = false,
+        Func<string, byte[]?>? readFile = null,
+        int modelSize = PictureLadder.Usual,
+        Func<ReadOnlyMemory<byte>, int, byte[]?>? unpack = null,
+        IReadOnlyDictionary<string, int>? columnWidths = null,
+        IReadOnlyDictionary<string, double>? panes = null)
+    {
+        // THE GAME'S LIGHT FOR A MONSTER ON A STAGE - the same panel the tile book has, of its own: a
+        // stage and the monster on it are one mesh, so one light, its sun and its shadows fall on both.
+        SceneLightPanel lighting = Lighting(readFile);
+        var window = new MonsterBookWindow(() => Monsters, () => StatSentences?.Invoke() ?? _noSentences)
+        {
+            Changed = () => SettingsChanged?.Invoke(),
+            Lighting = lighting,
+
+            // THE SAME PAIR EVERY PICTURE IN THIS OVERLAY IS MADE WITH - see the icon cache and
+            // the terrain layer. The install is handed in because this class does not have one;
+            // without it the book simply shows no model, which is the ordinary case on a machine
+            // that has the tool and not the game. The unpacker is the install's own Oodle, which
+            // is what an animation's keyframes come out of the skeleton file through.
+            Model = new MonsterPortrait(readFile, Upload, key => RemoveImage(key), modelSize, unpack)
+            {
+                Book = "monster",
+                SceneLit = lighting.For,
+                SceneDust = lighting.Dust,
+                Sun = lighting,
+            },
+
+            // READ WHEN ASKED, not captured: the tile book is attached after this one, and the choice
+            // is whatever that book is open at when the stage is picked.
+            TileChoice = () => _tileBook?.ChosenTile ?? string.Empty,
+
+            // THE INSTALL'S OWN ANSWER for a boss's arena, by the area's terrain folder - see AreaArenas.
+            // The lists arrive from the install's walk and the graphs from the file, both read when asked.
+            ArenasOf = area => AreaArenas.Find(readFile, AreaGraphs.FoldersOf(area), TileFiles, TileSets),
+
+            // THE AREA ON SCREEN'S OWN ROOMS, laid where the game laid them - see RoomsLaidIn.
+            RoomsLaidIn = RoomsLaidIn,
+
+            // AND ANY AREA'S ARENA ROOMS BUILT FROM ITS TILESET, from the install alone - see RoomsBuiltIn.
+            RoomsBuiltIn = area => RoomsBuiltIn(readFile, area),
+        };
+
+        window.Show(columns, rail, model, columnWidths, panes);
+
+        // What the settings file said about the pane, which was read before this existed - and
+        // what an export needs to write its entry beside the pictures.
+        Capture(window.Model);
+        Hand(window.Model);
+        _monsterBook = window;
+
+        _tools.Add(
+            91, "monster-book", "Monster Book", window.DrawTab,
+            page: Entities, pageLabel: EntitiesLabel);
+        if (visible)
+        {
+            _tools.Show("monster-book");
+        }
+    }
+
+    /// <summary>
+    /// Adds the item reference book - every item with a 3D model, and the model.
+    /// </summary>
+    /// <remarks>
+    /// BESIDE THE MONSTER BOOK, and built the same way: the table through a callback because it
+    /// arrives late, and a model pane of its own because it holds its own model and textures - a
+    /// shared pane would reload one book's model every time the other tab was looked at.
+    ///
+    /// THE PANE TAKES THE MONSTER BOOK'S LOOK - greying, outline, light and backdrop - from the
+    /// settings file, so the two viewers draw alike. It does not write them back: the monster book
+    /// owns those settings, and two panes writing one setting would leave it to whichever moved last.
+    /// </remarks>
+    public void AttachItemBook(
+        IReadOnlyList<string>? columns = null,
+        bool rail = true,
+        bool visible = false,
+        Func<string, byte[]?>? readFile = null,
+        int modelSize = PictureLadder.Usual,
+        Func<ReadOnlyMemory<byte>, int, byte[]?>? unpack = null,
+        IReadOnlyDictionary<string, int>? columnWidths = null,
+        IReadOnlyDictionary<string, double>? panes = null)
+    {
+        var window = new ItemBookWindow(() => Items)
+        {
+            Changed = () => SettingsChanged?.Invoke(),
+            Model = new MonsterPortrait(readFile, Upload, key => RemoveImage(key), modelSize, unpack)
+            {
+                Book = "item",
+                Shaded = true,
+            },
+        };
+
+        window.Show(columns, rail, columnWidths, panes);
+        Capture(window.Model);
+        _itemBook = window;
+
+        _tools.Add(
+            92, "item-book", "Item Book", window.DrawTab,
+            page: Entities, pageLabel: EntitiesLabel);
+        if (visible)
+        {
+            _tools.Show("item-book");
+        }
+    }
+
+    /// <summary>
+    /// Adds the effect reference book - projectiles, animated effects and ground effects, and their models.
+    /// </summary>
+    /// <remarks>
+    /// THE ITEM BOOK'S ARRANGEMENT, with one addition to its pane: the line naming the shader graphs
+    /// the model's materials use, which is the evidence for how an effect blends. See
+    /// MonsterPortrait.ShowShaders.
+    /// </remarks>
+    public void AttachEffectBook(
+        IReadOnlyList<string>? columns = null,
+        bool rail = true,
+        bool visible = false,
+        Func<string, byte[]?>? readFile = null,
+        int modelSize = PictureLadder.Usual,
+        Func<ReadOnlyMemory<byte>, int, byte[]?>? unpack = null,
+        IReadOnlyDictionary<string, int>? columnWidths = null,
+        IReadOnlyDictionary<string, double>? panes = null)
+    {
+        var window = new EffectBookWindow(() => Effects)
+        {
+            Changed = () => SettingsChanged?.Invoke(),
+            Model = new MonsterPortrait(readFile, Upload, key => RemoveImage(key), modelSize, unpack)
+            {
+                Book = "effect",
+                ShowShaders = true,
+                Translucent = true,
+                Shaded = true,
+            },
+        };
+
+        window.Show(columns, rail, columnWidths, panes);
+        Capture(window.Model);
+        _effectBook = window;
+
+        _tools.Add(
+            94, "effect-book", "Effect Book", window.DrawTab,
+            page: Entities, pageLabel: EntitiesLabel);
+        if (visible)
+        {
+            _tools.Show("effect-book");
+        }
+    }
+
+    /// <summary>
+    /// A panel that lights a book's pictures the game's way, from the area's .env - one per book.
+    /// </summary>
+    /// <remarks>
+    /// ONE PER BOOK AND NOT ONE SHARED, because the panel keeps the light it last built for the model
+    /// it built it for, and hands the same object back while nothing changed - which is what tells a
+    /// pane not to redraw. Two panes asking one panel for two models would rebuild it on every ask,
+    /// and each pane would see a new light every frame and draw its picture again every frame.
+    ///
+    /// THE HUNT AS IT STANDS NOW: HuntFloats is set before the books are attached, and the anchor is
+    /// the player's own entity, on the game's heap, whenever the button is pressed.
+    /// </remarks>
+    private SceneLightPanel Lighting(Func<string, byte[]?>? readFile)
+    {
+        Func<IReadOnlyList<FloatNeedle>, ulong, FloatHuntProgress, Task<FloatHuntResult>?>? huntFloats = HuntFloats;
+        return new SceneLightPanel(
+            readFile, () => EnvironmentFiles, () => _snapshot.Area.Environment, PlayerGround, LiveGround,
+            huntFloats is null ? null : (needles, progress) => huntFloats(needles, _snapshot.Player?.Address ?? 0, progress),
+            EnvironmentDust);
+    }
+
+    /// <summary>
+    /// Adds the tile reference book - every terrain tile the install has, and the tile's geometry.
+    /// </summary>
+    /// <remarks>
+    /// THE ITEM BOOK'S ARRANGEMENT with two lists instead of one table: the install's tiles, set once
+    /// a background walk has run, and the current area's, read off the terrain the overlay already
+    /// holds. Its own pane, loading through <see cref="TileModels.Of"/>.
+    /// </remarks>
+    public void AttachTileBook(
+        IReadOnlyList<string>? columns = null,
+        bool rail = true,
+        bool visible = false,
+        Func<string, byte[]?>? readFile = null,
+        int modelSize = PictureLadder.Usual,
+        IReadOnlyDictionary<string, int>? columnWidths = null,
+        IReadOnlyDictionary<string, double>? panes = null,
+        int roomDoodads = 0,
+        bool roomTools = false,
+        bool roomAnywhere = false,
+        bool roomsOnMap = false,
+        IReadOnlyList<string>? tileSections = null,
+        bool roomSight = true,
+        int roomCut = 0)
+    {
+        // ONE INDEX OF WHICH TILESETS PLACE WHICH TILE, built off the frame on first ask: the pane's
+        // tileset choice and the dump both read it, and building it twice would read every tileset twice.
+        var catalog = new TilesetCatalog(readFile, () => TileSets);
+        _areaRooms = readFile is null ? null : new AreaRooms(readFile);
+        if (_areaRooms is not null)
+        {
+            // THE ENTITIES' READ, set before the books are attached like the hunts: the map places the
+            // rooms by their doodads wherever this is set - see AreaRooms.
+            _areaRooms.ReadDoodads = SurveyDoodads;
+        }
+
+        _capture.Read = readFile;
+        SceneLightPanel lighting = Lighting(readFile);
+        var window = new TileBookWindow(() => TileFiles, TilesHere)
+        {
+            Lighting = lighting,
+            AllRooms = _areaRooms,
+            RoomsOnMap = roomsOnMap,
+            Changed = () => SettingsChanged?.Invoke(),
+            Tilesets = catalog,
+            Needs = new AreaNeeds(readFile, catalog),
+            Clocks = new TileClockCatalog(readFile, () => TileFiles),
+            Laid = LaidHere,
+            Doodads = roomDoodads,
+            Tools = roomTools,
+            Anywhere = roomAnywhere,
+            Sight = roomSight,
+            Cut = roomCut,
+            Terrain = () => _snapshot.Terrain as TerrainGrid,
+            Read = readFile,
+            Ghost = ghost => _roomGhost = ghost,
+            Here = PlayerTile,
+            Model = new MonsterPortrait(readFile, Upload, key => RemoveImage(key), modelSize)
+            {
+                Book = "tile",
+                Load = (read, _, key, _, progress) => TileBookWindow.Load(read, key, () => _snapshot.Terrain as TerrainGrid, progress, () => _snapshot.Entities, Shot),
+                Ink = TileBookWindow.GroundInk,
+                Shaded = true,
+
+                // TRANSLUCENT, because a tile's ground layers are mixed shapes that fade into the ground
+                // under them - see the property - and drawn solid they were the slab of mud over the floor.
+                Translucent = true,
+                Masked = true,
+                Tilesets = catalog,
+                Shaders = () => ShaderFiles,
+                Materials = () => MaterialFiles,
+                Environments = () => EnvironmentFiles,
+                Loaded = () => LoadedFiles?.Invoke() ?? [],
+                SceneLit = lighting.For,
+                SceneDust = lighting.Dust,
+                Sun = lighting,
+            },
+        };
+
+        window.Show(columns, rail, columnWidths, panes);
+        window.Sections(tileSections);
+        Capture(window.Model);
+        _tileBook = window;
+
+        // THE BOOK'S TWO DIAGNOSES FOR THE CAPTURE KEY: the picked row's folds, and the light hunt's report.
+        _capture.Offer(CaptureParts.RoomPick, window.PickedReport);
+        _capture.Offer(CaptureParts.SceneLight, () => lighting.HuntReport);
+
+        _tools.Add(
+            93, "tile-book", "Tile Book", window.DrawTab,
+            page: Entities, pageLabel: EntitiesLabel);
+        if (visible)
+        {
+            _tools.Show("tile-book");
+        }
+    }
+
+    /// <summary>
+    /// Adds the map's points of interest and the route to a chosen one.
+    /// </summary>
+    /// <remarks>
+    /// Attached like the browser: the overlay draws the world, and finding a way across it is
+    /// somebody else's job - here it only projects what the planner produced.
+    /// </remarks>
+    public void AttachPointsOfInterest(RoutePlanner planner)
+    {
+        ArgumentNullException.ThrowIfNull(planner);
+
+        // Takes the style as it stands, and the setter hands it on if it is replaced later -
+        // so the order these two are done in does not matter. It otherwise would, and the
+        // symptom of getting it wrong is a whole layer that ignores the editor.
+        // Kept as well as handed on: the entity browser routes to whatever is selected, and
+        // it is attached separately from this.
+        _planner = planner;
+
+        _poi = new PoiLayer(planner)
+        {
+            Style = _style,
+            Chrome = Chrome,
+            SheetFor = _icons.Sheet,
+            Changed = () => SettingsChanged?.Invoke(),
+
+            // Whatever was handed over before this ran, and the property hands over whatever
+            // arrives after - the same arrangement the style makes above, for the same reason:
+            // the data file is loaded by the app and the layer is built here, and neither
+            // order should be the one that works.
+            BossIcons = BossIcons,
+            Arenas = _arenas,
+
+            // So an arena can be labelled with the boss the game says stands in it rather than
+            // with the tile it is built from. See PoiLayer.MonsterName.
+            MonsterName = Called,
+        };
+
+        // A PAGE OF ITS OWN for everything about routes but their looks, which stay on Markers -
+        // see PoiLayer.DrawRouteSettings. Beside the markers in the order, which is where somebody
+        // looking for "how routes work" would look next. The list first, as on the atlas page's
+        // routing: it is what the page is opened for once the switches are set.
+        PoiLayer poi = _poi;
+        _tools.Add(
+            69, "routes-active", "Active Routes", () => poi.DrawActiveRoutes(_snapshot),
+            page: Routes, pageLabel: "Routes", live: () => poi.ActiveRoutesLabel);
+        _capture.Offer(CaptureParts.Routes, () => poi.RoutesReport(_snapshot.Player));
+        _tools.Add(69, "routes-settings", "Settings", poi.DrawRouteSettings, page: Routes, pageLabel: "Routes");
+
+        // TABS, the atlas page's reason: the list is watched while playing, the switches are set
+        // once - never both on screen at the same time.
+        _tools.AsTabs(Routes);
+
+        // Attached with the places rather than beside them: pinning a room is asking for a
+        // route to it, so the room layer wants the same planner and is useless without one.
+        _rooms = new RoomLayer(planner)
+        {
+            Style = _style,
+            Changed = () => SettingsChanged?.Invoke(),
+        };
+
+        // What the settings file said, which was read before this existed - the same handover
+        // the stash stores make, and for the same reason.
+        _rooms.Apply(_roomWants);
+    }
+
+    protected override Task PostInitialized()
+    {
+        VSync = true;
+
+        // The palette and the font both land on the first frame instead of here, so there is
+        // ONE path that puts the interface on rather than one for start-up and another for a
+        // change - the second of which is the one that gets forgotten. See
+        // <see cref="ApplyInterfaceIfAsked"/>.
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Faces to try for the interface, best first.
+    /// </summary>
+    /// <remarks>
+    /// FONTS WINDOWS ALREADY HAS, rather than one shipped with the tool. A face that can be
+    /// redistributed is a licence somebody has to read and a file that has to travel; these
+    /// are on every Windows since Vista and cost nothing but the attempt.
+    ///
+    /// Serifs, because the thing being drawn over is a game whose own lettering is carved and
+    /// gilded, and the default here is a 13-pixel bitmap face designed for debug output. On a
+    /// painted banner that reads as a placeholder - which, in fairness, is what it was.
+    /// </remarks>
+    private static readonly string[] Serifs =
+    [
+        "constan.ttf",   // Constantia - warm, and the closest of these to the game's own
+        "georgia.ttf",   // Georgia - the most legible at a small size
+        "pala.ttf",      // Palatino Linotype - the last resort that is still a serif
+    ];
+
+    /// <summary>Each serif's own italic file, for the aside face - by Windows' own file names.</summary>
+    /// <remarks>
+    /// Looked up by the REGULAR file that loaded, so the italic is always the same family as the
+    /// body: a Georgia body with a Constantia italic under it would be the two typefaces arguing
+    /// that the heading face was chosen to avoid. A family whose italic file is missing keeps the
+    /// body face for asides, like a machine with none of these.
+    /// </remarks>
+    private static readonly (string Regular, string Italic)[] Italics =
+    [
+        ("constan.ttf", "constani.ttf"),
+        ("georgia.ttf", "georgiai.ttf"),
+        ("pala.ttf", "palai.ttf"),
+    ];
+
+    /// <summary>
+    /// Faces to try for figures, best first.
+    /// </summary>
+    /// <remarks>
+    /// EVERY ONE OF THESE IS A TERMINAL FACE, and that is the requirement rather than a style:
+    /// the strings drawn in it are addresses somebody reads off the screen and types back into
+    /// the dissector, so O and 0, and l and 1, have to be different shapes. All four also carry
+    /// the full ASCII range at a small size, which the display-oriented monospaces on a Windows
+    /// machine do not reliably do.
+    ///
+    /// Ordered by how well they sit beside the serif body text rather than by age: Consolas has
+    /// the largest x-height of the four, so at the same pixel size it does not read as a size
+    /// smaller than the line it sits in. The last two are there because they are the ones that
+    /// cannot be missing - Lucida Console since Windows 2000, Courier New since before that.
+    /// </remarks>
+    private static readonly string[] Monos =
+    [
+        "consola.ttf",       // Consolas - shipped with every Windows since Vista
+        "CascadiaMono.ttf",  // Cascadia Mono - Windows 11, and anywhere Windows Terminal is
+        "lucon.ttf",         // Lucida Console
+        "cour.ttf",          // Courier New - always there, and the last resort
+    ];
+
+    /// <summary>
+    /// Puts the interface in a face that suits what it is drawn over, if one can be found.
+    /// </summary>
+    /// <remarks>
+    /// Every step is allowed to fail into the one after it, ending with the built-in font,
+    /// because none of this is worth a tool that does not start: a missing Windows font, a
+    /// locked file, a face ImGui refuses. ReplaceFont says whether it worked, so the answer is
+    /// checked rather than assumed.
+    ///
+    /// THE SIZE IS REMEMBERED whether or not a face was found, and it is the ATTEMPT that is
+    /// recorded rather than the success. Otherwise a machine with none of these fonts asks for
+    /// a new atlas on every single frame, for a face it is never going to get.
+    /// </remarks>
+    /// <param name="size">Pixels. Comes from <see cref="Interface"/>, already inside its range.</param>
+    private void WearASerif(int size)
+    {
+        _wearing = size;
+
+        // Until a face is actually loaded there is no heading font to push, and saying so is
+        // what makes every heading in the tool fall back silently instead of pushing a
+        // pointer into an atlas that was just cleared.
+        OverlayFonts.None();
+
+        string fonts = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
+        if (fonts.Length == 0)
+        {
+            return;
+        }
+
+        // Chosen once, outside the loop: which monospace is present has nothing to do with
+        // which serif turns out to load, and asking the file system again per attempt would
+        // only make the answer able to differ between them.
+        string? mono = FirstPresent(fonts, Monos);
+
+        foreach (string face in Serifs)
+        {
+            string file = Path.Combine(fonts, face);
+
+            try
+            {
+                if (File.Exists(file) && WearTheseFaces(file, ItalicOf(fonts, face), mono, size))
+                {
+                    return;
+                }
+            }
+            catch (Exception exception) when (
+                exception is IOException or UnauthorizedAccessException or ArgumentException)
+            {
+                // Try the next one. A font is decoration, and the built-in face is waiting.
+            }
+        }
+
+        // Nothing loaded. A delegate that ran and then had its atlas rejected will have left
+        // its pointers behind, and those now name fonts that are not in the atlas being drawn -
+        // so the state is said again rather than assumed to be still what it was set to above.
+        OverlayFonts.None();
+    }
+
+    /// <summary>The italic file of a serif that loaded, when the machine has it, else null.</summary>
+    private static string? ItalicOf(string folder, string regular)
+    {
+        foreach ((string known, string italic) in Italics)
+        {
+            if (string.Equals(known, regular, StringComparison.OrdinalIgnoreCase))
+            {
+                return FirstPresent(folder, [italic]);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The first of these font files that the machine actually has, if any.</summary>
+    private static string? FirstPresent(string folder, string[] faces)
+    {
+        foreach (string face in faces)
+        {
+            string file = Path.Combine(folder, face);
+
+            try
+            {
+                if (File.Exists(file))
+                {
+                    return file;
+                }
+            }
+            catch (Exception exception) when (
+                exception is IOException or UnauthorizedAccessException or ArgumentException)
+            {
+                // Unreadable counts as absent, same as everywhere else in here.
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Loads the body face at two sizes and, if the machine has one, a face for figures - that
+    /// one at two sizes as well.
+    /// </summary>
+    /// <remarks>
+    /// ALL OF THEM IN ONE DELEGATE, because the library clears the whole atlas before calling it
+    /// and rebuilds the texture after - so separate requests would be separate rebuilds, of
+    /// which each would throw the last one's fonts away. The delegate is the only place they
+    /// can exist at once, and the only place their pointers are known.
+    ///
+    /// THE MONOSPACE IS LOADED AT THE BODY SIZE, deliberately the same number rather than one
+    /// tuned to match its x-height. A figure is drawn INSIDE a row of body text - a table cell,
+    /// a field's value - and ImGui gives a row the height of the tallest font used in it, so a
+    /// monospace even a pixel larger would make every table with a number in it taller than the
+    /// same table without one.
+    ///
+    /// The glyph range is the default English one, which is what the single-font call this
+    /// replaced asked for. Reusing the one config across the AddFont calls is ImGui's own
+    /// pattern; it copies what it needs out of it.
+    /// </remarks>
+    /// <param name="file">The serif face. Already known to exist.</param>
+    /// <param name="italic">
+    /// The same family's italic file, or null when the machine has none. Null leaves asides in
+    /// the body face, which is how they were drawn before the aside face existed.
+    /// </param>
+    /// <param name="mono">
+    /// The monospaced face, or null when the machine has none of them. Null leaves figures in
+    /// the body face, which is exactly how they were drawn before this existed.
+    /// </param>
+    /// <param name="size">Pixels, for the body text.</param>
+    private unsafe bool WearTheseFaces(string file, string? italic, string? mono, int size)
+    {
+        // The library hands the delegate a raw ImFontConfig*, which is what makes this method
+        // unsafe - the same reason the tab bar's own BeginTabItem is.
+        return ReplaceFont(config =>
+        {
+            ImGuiIOPtr io = ImGui.GetIO();
+            IntPtr english = io.Fonts.GetGlyphRangesDefault();
+
+            // FIRST is the default face, which is what everything not asking for one of the
+            // others gets - so the body size has to be added first.
+            io.Fonts.AddFontFromFileTTF(file, size, config, english);
+
+            ImFontPtr heading = io.Fonts.AddFontFromFileTTF(
+                file, InterfaceStyle.HeadingSizeFor(size), config, english);
+
+            OverlayFonts.Rebuilt(heading);
+
+            // The body face once more, one pixel up, for a page's own tab bar and its group
+            // titles - see OverlayFonts.RebuiltLabel for why a fifth size earns its glyphs.
+            OverlayFonts.RebuiltLabel(io.Fonts.AddFontFromFileTTF(
+                file, InterfaceStyle.LabelSizeFor(size), config, english));
+
+            // The family's italic at the body size, for the asides under group titles. The one
+            // face here that is another FILE, since ImGui has no slant of its own.
+            if (italic is not null)
+            {
+                OverlayFonts.RebuiltAside(io.Fonts.AddFontFromFileTTF(italic, size, config, english));
+            }
+
+            if (mono is not null)
+            {
+                OverlayFonts.RebuiltMono(io.Fonts.AddFontFromFileTTF(mono, size, config, english));
+
+                // The same face once more, large and holding only the digits, for the figures
+                // written on the game itself. See OverlayFonts.FigureSize for why that size is
+                // not a multiple of the text size like the heading's.
+                OverlayFonts.RebuiltFigures(io.Fonts.AddFontFromFileTTF(
+                    mono, OverlayFonts.FigureSize, config, OverlayFonts.DigitRange));
+            }
+        });
+    }
+
+    // What the settings page asked for, kept so the style can override it per frame without
+    // either of them losing the other's value.
+    private uint _terrainColour = OverlaySettings.ParseColour(OverlaySettings.Default.TerrainColour);
+    private int _terrainThickness = 1;
+    private bool _terrainRim = true;
+
+    // The fill's colour and its opacity, kept APART as the page holds them: packed into one
+    // alpha and unpacked again, 70 comes back as 69, and the slider creeps on every save.
+    private uint _terrainFillColour = OverlaySettings.ParseColour(OverlaySettings.Default.TerrainFillColour);
+    private int _terrainFillOpacity = OverlaySettings.Default.TerrainFillOpacity;
+
+    /// <summary>
+    /// Sets the layout's colour, line width, whether it has a dark rim, and the floor's fill.
+    /// A colour of 0 keeps the current one.
+    /// </summary>
+    public void ApplyTerrainStyle(uint colour, int thickness, bool rim, uint fillColour, int fillOpacity)
+    {
+        if (colour != 0)
+        {
+            _terrainColour = colour;
+            _terrain.Colour = colour;
+        }
+
+        if (fillColour != 0)
+        {
+            _terrainFillColour = fillColour;
+        }
+
+        _terrainThickness = thickness;
+        _terrain.Thickness = thickness;
+        _terrainRim = rim;
+        _terrain.Rim = rim;
+        _terrainFillOpacity = fillOpacity;
+        _terrain.Fill = OverlaySettings.WithOpacity(_terrainFillColour, fillOpacity);
+    }
+
+    /// <summary>
+    /// What the configuration page chose for the layout: applied, and made to WIN.
+    /// </summary>
+    /// <remarks>
+    /// Two editors set the layout's colour and width - this page and the in-game style
+    /// editor - and the style used to win unconditionally, because it is the one somebody
+    /// chose deliberately. That held right up until somebody chose deliberately on the PAGE,
+    /// where every drag of the colour picker did nothing on screen and nothing said why: the
+    /// style file still carried a colour from weeks before. So the rule is now the ordinary
+    /// one, the last choice wins: choosing here clears the style's colour and width, and
+    /// choosing in the style editor overrides this again until the page is next used.
+    ///
+    /// The clearing is DEFERRED to the render thread. This is called from the config window's
+    /// thread, and the style is a plain dictionary the layers read every frame - writing it
+    /// from here would race those reads. A flag costs one volatile read a frame.
+    /// </remarks>
+    public void ChooseTerrainStyle(uint colour, int thickness, bool rim, uint fillColour, int fillOpacity)
+    {
+        ApplyTerrainStyle(colour, thickness, rim, fillColour, fillOpacity);
+        Volatile.Write(ref _terrainStyleYields, true);
+    }
+
+    // Set by the page's thread, consumed on the render thread - see ChooseTerrainStyle.
+    private bool _terrainStyleYields;
+
+    /// <summary>The layout colour actually drawn, once the style has had its say.</summary>
+    public uint TerrainColourInUse => _terrain.Colour;
+
+    /// <summary>The layout line width actually drawn, once the style has had its say.</summary>
+    public int TerrainThicknessInUse => _terrain.Thickness;
+
+    /// <summary>
+    /// What the terrain layer holds, for the config page and the status window.
+    /// </summary>
+    /// <remarks>
+    /// The height state is in here because it is the difference between an outline that
+    /// stays put on a staircase and one that slides, and nothing on screen distinguishes
+    /// "read the heights" from "drew it flat" other than walking up a hill.
+    ///
+    /// The two ground figures are the measurement for the part that is NOT done. Tile height
+    /// is the whole tile's; the game's own is that plus a sub-tile term this does not read.
+    /// On flat ground they should agree, and how far apart they drift on a staircase is
+    /// exactly how much the missing term is worth - a number to read off rather than a guess
+    /// about whether the rest of the port is worth doing.
+    /// </remarks>
+    public string DescribeTerrain()
+    {
+        if (_snapshot.Terrain is not TerrainGrid grid)
+        {
+            return "loading";
+        }
+
+        return $"{grid.Describe()}, {DescribeHeights(grid)}, texture {_terrain.Describe()}";
+    }
+
+    /// <summary>
+    /// The height state, and the one number that says how much is still missing.
+    /// </summary>
+    /// <remarks>
+    /// "ground" is the player's real ground height; "tile" is the height of the whole tile
+    /// they stand on. Their difference IS the sub-tile term - the within-tile slope that is
+    /// not read - measured live at the one place both figures are available. On flat ground
+    /// they should agree; how far they part on a staircase is what the remaining error is
+    /// worth, and it decides whether reading the rest is worth doing at all.
+    ///
+    /// A difference that persists on FLAT ground would mean something else: the two are not
+    /// the same quantity, and the outline would be shifted by that much everywhere.
+    /// </remarks>
+    private string DescribeHeights(TerrainGrid grid)
+    {
+        if (!grid.HasHeights)
+        {
+            return $"FLAT - heights unavailable: {grid.HeightNote}";
+        }
+
+        if (_snapshot.Player is not WorldEntity player)
+        {
+            return grid.HeightNote;
+        }
+
+        // The residual, measured live at the one place both figures exist: the game's own
+        // ground height under the player, against what this computes for the same spot. Zero
+        // means the height model agrees with the game; anything else is drawn into the map.
+        float here = grid.HeightAt(
+            (int)(player.WorldX / MapView.WorldToGrid),
+            (int)(player.WorldY / MapView.WorldToGrid));
+
+        return $"{grid.HeightNote}; here ground {player.TerrainHeight:F0} vs computed {here:F0}"
+               + $" (off by {player.TerrainHeight - here:F0})";
+    }
+
+    /// <summary>Releases the textures along with the renderer that holds them.</summary>
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _terrain.Dispose();
+            _icons.Dispose();
+            _card.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
+
+    /// <summary>
+    /// Draws a marker's own picture where one was chosen, and says whether it did.
+    /// </summary>
+    /// <remarks>
+    /// False means "draw it the ordinary way", which covers both no cell chosen and a sheet
+    /// that did not ship. Those are deliberately the same answer: a marker whose picture is
+    /// missing has to still be a marker, because its absence reads as nothing being there.
+    /// </remarks>
+    /// <param name="fade">
+    /// How much of the icon's opacity to keep. Below one for a marker drawn from memory - see
+    /// <see cref="FadeFor"/>.
+    /// </param>
+    private bool DrawIcon(ImDrawListPtr draw, string key, Vector2 at, float radius, float fade = 1f)
+    {
+        LayerStyle style = Style[key];
+
+        // Untinted unless a colour was CHOSEN, rather than tinted with the catalogue's
+        // default. The sheet's art carries its own colours, and multiplying a finished icon by
+        // the red that ordinary monsters happen to default to would make every one of them
+        // look broken. Choosing a colour still tints - which is what makes one white shape
+        // serve every rarity.
+        return SheetIcon.Draw(
+            draw,
+            _icons.Sheet(),
+            style,
+            at - new Vector2(radius, radius),
+            at + new Vector2(radius, radius),
+            OverlayStyle.Faded(style.ColourOr(0xFFFFFFFF), fade));
+    }
+
+    /// <summary>How solid a marker is drawn, which is how it says whether it is a sighting.</summary>
+    /// <remarks>
+    /// A remembered thing has not moved - only the standing kinds are kept, which is the whole
+    /// rule in <see cref="EntityMemory"/> - so its position is exactly as true as it was when
+    /// it was read. What has aged is whether it is still THERE: somebody else may have opened
+    /// the chest, and the game is no longer in a position to say. Dimmer rather than hidden,
+    /// and dimmer rather than identical, because both of those answer a question that was not
+    /// asked.
+    /// </remarks>
+    private static float FadeFor(WorldEntity entity)
+        => entity.IsRemembered ? OverlayStyle.RememberedAlpha : 1f;
+
+    /// <summary>
+    /// One frame. Nothing that happens in here may end the process.
+    /// </summary>
+    /// <remarks>
+    /// The render loop runs on a thread-pool thread, so an escaping exception terminates
+    /// the tool - with the game still running and the player mid-map. That is exactly how a
+    /// texture upload failure in a cosmetic terrain layer turned into a crash on entering an
+    /// area. A frame that cannot be drawn is worth reporting and skipping; it is not worth
+    /// the session.
+    ///
+    /// Reported once per distinct message rather than every frame, because sixty identical
+    /// lines a second is a way of hiding an error, not surfacing it.
+    /// </remarks>
+    protected override void Render()
+    {
+        try
+        {
+            RenderFrame();
+        }
+        catch (Exception exception) when (_reported.Add(exception.Message))
+        {
+            Console.Error.WriteLine($"overlay frame failed: {exception}");
+        }
+    }
+
+    private readonly HashSet<string> _reported = [];
+
+    private void RenderFrame()
+    {
+        // FIRST, before anything is submitted: this is the thread that owns ImGui's style and
+        // its font atlas, and a palette applied part-way through a frame draws half a window
+        // in each of two of them.
+        ApplyInterfaceIfAsked();
+
+        TrackGameWindow();
+
+        int width = (int)ImGui.GetIO().DisplaySize.X;
+        int height = (int)ImGui.GetIO().DisplaySize.Y;
+
+        // The renderer knows the viewport, so it hands it to the reader rather than the
+        // reader guessing at a window it cannot see. Kept ahead of the foreground gate so
+        // the viewport stays current while hidden - the game can be resized from a
+        // borderless-window setting change without ever giving up focus.
+        // Kept in step every frame rather than on the switch being moved, because the switch
+        // moves from three places - the tab, the settings being applied, a future page - and
+        // one thing that syncs cannot drift out of step the way three callers can. It costs a
+        // delegate call and a bool.
+        ReadVisuals?.Invoke(_projectiles.Enabled);
+
+        // The same arrangement again, and it is what makes this switch survive a restart: the
+        // settings are applied before the reader can be reached, so a value pushed at the reader
+        // during Apply would be pushed at nothing. Held on the layer and synced here, a saved
+        // "keep the hostile effects" is in force from the first frame - which is the whole point
+        // of saving it, since a recording can only contain reads the build actually performed.
+        KeepEffects?.Invoke(_effects.KeepHostile);
+
+        // The same arrangement, for the read the status icons need: kept in step every frame
+        // rather than at the moment a switch moves, because the switch moves from the tab and
+        // from the settings being applied, and one thing that syncs cannot drift out of step
+        // the way two callers can.
+        ReadMonsterBuffs?.Invoke(_tracker.NeedsMonsterBuffs);
+        ReadAim?.Invoke(_tracker.NeedsAim);
+
+        _viewport = (width, height);
+        _snapshot = _snapshotSource(new UiScale(width, height, _cull));
+
+        // HERE rather than where the markers are drawn, because the markers are only walked
+        // while a map is open - and an icon name nobody can classify is worth catching whether
+        // or not somebody happened to have the map up when they walked past it.
+        _unrecognised.Note(_snapshot);
+
+        // THE ROOMS' SCRIPTED OBJECTS, for the same reason: a checkpoint passes through the frame's
+        // read while the player is near it, map up or not, and the rooms are placed by what has
+        // been near at any moment of the instance - see DoodadMemory.
+        _areaRooms?.Noticed(_snapshot.AreaHash, _snapshot.Entities);
+
+        // The same argument, one step stronger: an arena is cleared during a fight, which is
+        // the one moment nobody has their map up. Watched every frame so the marker has
+        // already changed by the time anybody opens it.
+        _arenas.Note(_snapshot, Environment.TickCount64);
+
+        // Where the game's panels are, handed to the windows so one lying over an open panel can
+        // take itself off screen until it is not. Published every frame including the empty
+        // case, which is what brings a hidden window back the moment the panel shuts - and the
+        // empty list is also how the switch is expressed, so a user who turned this off is
+        // indistinguishable from a player with no panel open.
+        Chrome.Covering = HideWindowsBehindPanels ? _snapshot.Covering : [];
+
+        // The same arrangement for the interface parts: published every frame, including the
+        // empty case, because the settings page lists what was MEASURED and a remembered list
+        // would show where the orbs were the last time anybody looked at it.
+        _keepOut.Parts = _snapshot.InterfaceParts;
+
+        // Nothing is drawn unless the game - or one of OUR windows - is in front. Not
+        // tidiness: the overlay is always-on-top and covers the game's whole client area,
+        // so every dot painted while the user has alt-tabbed away lands on the browser or
+        // editor they switched to.
+        //
+        // Our own windows have to count, and leaving them out is not a subtle bug. Clicking
+        // this overlay's own controls gives IT focus, so the game stops being foreground,
+        // so the next frame draws nothing, so there is nothing left to click: the window
+        // disappears under the cursor and neither dragging nor a button ever registers.
+        // Keystrokes are a different question and stay strict - see InputSender.
+        if (!GameWindowTracker.IsForeground(_gameWindow) && !GameWindowTracker.IsOwnProcessForeground())
+        {
+            return;
+        }
+
+        // FIRST, before anything is drawn: while it hides the overlay for the picture of the game
+        // alone, nothing at all may reach the screen - the screenshot key's own line included.
+        if (_capture.Poll(Environment.TickCount64, ImGui.GetIO().WantTextInput))
+        {
+            return;
+        }
+
+        PollScreenshot(Environment.TickCount64);
+
+        // The planner's Run key, behind the foreground gate above so a press meant for another
+        // application never reaches it, and inert unless there is a chain to plan.
+        if (_expeditionWatch is { Settings.Enabled: true } planner)
+        {
+            _expedition.PollRunKey(planner, planner.Settings, planner.View);
+        }
+
+        // Before the marker gate, and outside it: the watcher decides for itself where it is
+        // quiet, and its own rule is towns rather than "wherever markers are drawn".
+        if (_snapshot.InGame)
+        {
+            long now = Environment.TickCount64;
+
+            AnnounceWhatLoaded(now);
+
+            if (width > 0 && height > 0)
+            {
+                _preloadEntry.Draw(ImGui.GetForegroundDrawList(), width, height, now);
+            }
+        }
+
+        // Outside the InGame block and above the panel gate, both deliberately. A rule may
+        // legitimately watch for not being in the game - a reminder while a portal loads - and
+        // a caption is not a world marker, so a stash being open is no reason to take away a
+        // readout somebody put at the top of their screen. Whether any of this shows at all was
+        // decided by the engine, which knows about focus and about panels.
+        if (_ruleDrawings is not null && width > 0 && height > 0)
+        {
+            _rules.Draw(ImGui.GetForegroundDrawList(), _ruleDrawings(), width, height);
+        }
+
+        // The ranges a rule measures, while somebody is building it. Under the world-panel
+        // gate rather than over it, unlike the captions: these are drawn ON THE GROUND, so a
+        // stash open over them is the same "right information in the way" every other world
+        // marker is hidden for.
+        if (_ruleRanges is not null && width > 0 && height > 0 && !_snapshot.InAPanel)
+        {
+            _rules.DrawRanges(
+                ImGui.GetForegroundDrawList(),
+                _ruleRanges(),
+                _snapshot,
+                GameWindowTracker.CursorInClient(_gameWindow),
+                width,
+                height,
+                _ruleFacts?.Invoke());
+        }
+
+        // Nothing to mark in a town or a hideout, and a screen full of markers over the
+        // stash is worse than no overlay. An area that did not resolve counts as hostile,
+        // so a failed read never silently switches the tool off.
+        //
+        // Nor while a panel is over the game, which is the same argument one step further in:
+        // everything below draws in world space, and a screen-filling panel is what the player
+        // is actually looking at. Right information in the way is worse than none. What counts
+        // as a panel - and whether to ask at all - is PanelReader and HideBehindPanels.
+        if (_snapshot.InGame && width > 0 && height > 0 && _snapshot.Area.WantsMarkers
+            && !(HideBehindPanels && _snapshot.InAPanel))
+        {
+            // Markers go ON THE MAP, not over the 3D scene. Scattering dots across the game
+            // world puts them between the player and what they are fighting; the map is
+            // where a radar belongs, and it is where the game already draws its own.
+            DrawMapDots(width, height);
+
+            // UNDER everything else in world space, because it is drawn ON the ground and
+            // filled rings would otherwise cover the markers standing in them.
+            _groundDanger.Draw(ImGui.GetBackgroundDrawList(), _snapshot, width, height);
+
+            // With the ground rings rather than with the monster lines, because a beam is a
+            // hazard on the floor and not a thing to walk to - and UNDER the health bars for
+            // the same reason the rings are: a line long enough to cross the screen would
+            // otherwise sit on top of every number the player is reading.
+            _beams.Draw(ImGui.GetBackgroundDrawList(), _snapshot, width, height);
+
+            // Over the monsters themselves rather than on the map, and separate from the
+            // world dots for that reason: a dot in the world lands between the player and
+            // what they are fighting, while a health bar goes where the eye already is.
+            _healthBars.Draw(ImGui.GetBackgroundDrawList(), _snapshot, width, height);
+
+            // After the health bars so a line lands over them rather than under, and before
+            // the status icons so it never crosses the numbers they carry.
+            _monsterLines.Draw(ImGui.GetBackgroundDrawList(), _snapshot, width, height);
+
+            // Between the lines and the icons: a ray is a world-space line like the monster
+            // lines, and the icons carry numbers that nothing should be drawn over.
+            _aim.Draw(ImGui.GetBackgroundDrawList(), _snapshot, width, height);
+
+            // AFTER the aim rays and before the icons, deliberately: a ray says where something
+            // is pointing and this says where its attack will LAND, so when both are on the
+            // marker has to be the one on top. It is the half you are meant to react to.
+            _evasion.Draw(ImGui.GetBackgroundDrawList(), _snapshot, width, height);
+            _statusIcons.Draw(ImGui.GetBackgroundDrawList(), _snapshot, width, height);
+
+            // The next charge of the expedition plan, ringed on the ground where it goes. On
+            // the ground like the hazard rings, and after the icons because it is the one mark
+            // the player is walking toward rather than reading.
+            if (_expeditionWatch is { Settings.Enabled: true } expedition)
+            {
+                _expedition.DrawWorld(ImGui.GetBackgroundDrawList(), _snapshot, width, height, expedition.View);
+            }
+
+            if (ShowWorldDots)
+            {
+                DrawEntities(width, height);
+            }
+
+            // After the dots, so an effect ring sits over the marker it belongs beside rather
+            // than under it - and it is a ring precisely so the marker still reads through.
+            _effects.Draw(
+                ImGui.GetBackgroundDrawList(),
+                _snapshot,
+                entity =>
+                {
+                    ScreenPoint point = ProjectGround(entity, width, height);
+                    return (point.OnScreen, point.X, point.Y);
+                });
+
+            // LAST of the world-space layers, so it lands on top of them. A projectile is the
+            // only thing drawn here that is gone within half a second, which makes it the one
+            // thing that cannot afford to be underneath something standing still.
+            //
+            // Followed on THIS thread, and only while it is being drawn. Where a projectile
+            // has been is a drawing question - it turns a mark that blinks into a direction -
+            // and nothing else in the tool asks it. A snapshot redrawn at VSync extends no
+            // trail, because the watch appends only where the position CHANGED; see
+            // ProjectileWatch.
+            if (_projectiles.Enabled)
+            {
+                _projectileWatch.Update(_snapshot, Environment.TickCount64);
+                _projectiles.Draw(
+                    ImGui.GetBackgroundDrawList(), _snapshot, _projectileWatch, width, height);
+            }
+        }
+
+        // On the game's own HUD rather than in the world, so it stands behind none of the gate
+        // above: a town has flasks too, and an open panel leaves the belt on screen. It goes
+        // away with the bar, which the reader stops reporting while the interface hides it.
+        if (_snapshot.InGame && width > 0 && height > 0)
+        {
+            _flaskUses.Draw(ImGui.GetBackgroundDrawList(), _snapshot);
+            _skillDps.Draw(ImGui.GetBackgroundDrawList(), _snapshot);
+
+            // On the game's own Runeshape Combinations panel, so it sits with the HUD layers
+            // rather than behind the panel gate: the panel this draws on IS a panel, and hiding
+            // behind panels would hide the feature exactly when it is wanted. It draws nothing
+            // while the panel is shut, which is what the view reports.
+            if (_runecraftWatch is not null)
+            {
+                _runecraft.Draw(ImGui.GetBackgroundDrawList(), _runecraftWatch.View, _runecraftWatch.Settings);
+            }
+        }
+
+        // OUTSIDE the marker gate above, which only lets things through in a hostile area.
+        // The atlas is opened from a hideout at least as often as from a map, and it draws
+        // over the game's own panel rather than over the world - so the reasons that gate
+        // exists (dots between the player and the fight) do not apply to it. It draws
+        // nothing at all while the panel is closed, which is what the view reports.
+        if (_atlasWatch is not null)
+        {
+            // Read once, both from the same settings: the window can change them between
+            // frames, and a layer told to hide names by one half of a stale pair is worse
+            // than either answer.
+            AtlasSettings drawing = _atlasWatch.Settings;
+            _atlas.ShowNames = drawing.Names;
+            _atlas.TextScale = drawing.Writing;
+            _atlas.Icons = drawing.Icons;
+            _atlas.Pointers = drawing.Pointers;
+            _atlas.PointerRange = drawing.Reach;
+
+            // The atlas is drawn across the whole window with the game's own interface painted
+            // over it, exactly as the large map is - so the web, the routes and the labels get
+            // the same treatment. Built once here for both layers, since they draw on the same
+            // panel and would otherwise disagree about what is covering it.
+            var covering = ScreenRegion.Of(
+                ScreenRect.Window(width, height), KeepOutOfAtlas(width, height));
+
+            // NOTHING LEFT MEANS THE KEEP-OUT IS WRONG, not that the atlas is covered. The
+            // panel is drawn across the whole window, so a region with no room in it says
+            // something was measured as covering everything - and the honest response is the
+            // one every unreadable answer in this tool gets: fail towards DRAWING. Shipped
+            // without this, one bad ancestor turned the entire atlas overlay off with nothing
+            // on screen to say why, while its own tab reported the read as healthy.
+            _atlas.Region = covering.HasAnything
+                ? covering
+                : ScreenRegion.Whole(ScreenRect.Window(width, height));
+
+            // Published from HERE because this is the thread that has it. ImGui's mouse position
+            // is the real cursor even while the game has focus and the overlay is click-through:
+            // the library re-reads it from the system every frame rather than from the messages
+            // an unfocused window never receives.
+            _atlasWatch.Cursor = ImGui.GetMousePos();
+
+            // Hovering a map used to switch the whole overlay off, because the game puts its own
+            // panel over that node. That panel is an interface part like any other, so now the
+            // region above keeps off IT and everything else goes on being drawn - and the old
+            // blanking is only what happens on a frame where the panel cannot be accounted for.
+            AtlasView view = _atlasWatch.View;
+            _atlasHover.Look(
+                (_snapshot.Panels & GamePanel.Atlas) != 0,
+                view.Hovering,
+                AtlasInterface(ScreenRect.Window(width, height)));
+
+            if (!drawing.HideOnHover || !view.Hovering || _atlasHover.Found)
+            {
+                _atlas.Draw(ImGui.GetBackgroundDrawList(), view);
+
+                // The tooltip is raised HERE rather than inside the layer, because a tooltip is
+                // an ImGui window and the layer draws into the background list - one opened from
+                // in there would be built in the middle of somebody else's frame.
+                Explain(_atlas.Told);
+            }
+
+            // After the atlas, so a route runs OVER the map labels it passes rather than under
+            // them - it is the thing being looked at while it is on screen.
+            if (_ritualWatch is not null && _ritualWindow is not null)
+            {
+                _ritual.TextScale = drawing.Writing;
+                _ritual.Region = _atlas.Region;
+                _ritual.Draw(ImGui.GetBackgroundDrawList(), _ritualWatch.View, _ritualWindow.Picked);
+            }
+        }
+
+        // Registered on first use rather than at attach because the cost history is a
+        // property, set whenever the app happens to wire it - the tab appears the moment
+        // there is something for it to show.
+        if (Costs is not null)
+        {
+            if (_costWindow is null)
+            {
+                var made = new CostWindow(Costs);
+                _costWindow = made;
+                _tools.Add(80, "cost", "Read cost", made.DrawTab, page: Status);
+            }
+
+            _costWindow.CurrentArea = _snapshot.AreaHash;
+        }
+
+        // Registered here rather than at attach because nothing attaches it: the layer and its
+        // watch are owned by this class, so the tab exists the first time a frame is drawn.
+        if (_projectileWindow is null)
+        {
+            var made = new ProjectileWindow(
+                _projectiles, _projectileWatch, () => SettingsChanged?.Invoke());
+            _projectileWindow = made;
+            _tools.Add(
+                35, "projectiles", "Projectiles", () => made.DrawTab(_snapshot), page: Combat);
+
+            // The marks' and trails' colours, folded under the switches they belong to.
+            var styles = new StyleRows(Style, SaveStyle, StyleCatalogue.Homes.Projectiles, _icons.Sheet);
+            _tools.Add(
+                36, "projectiles-style", "How projectiles look", styles.Draw, styles.Idle,
+                page: Combat);
+
+            // The two figures written on the HUD, a tab each: the switch somebody looks for
+            // on this page, and the figure's looks under it. See FigureTab for why the switch
+            // is the style's own rather than a flag of its own.
+            var belt = new FigureTab(
+                Style, SaveStyle, StyleCatalogue.Keys.FlaskUses, "Uses Left on the Flasks",
+                FigureTab.BeltExplanation, StyleCatalogue.Homes.Flasks, FigureTab.BeltStatus, _icons.Sheet);
+            _tools.Add(37, "belt", "Belt", () => belt.Draw(_snapshot), belt.Idle, page: Combat);
+
+            var skillBar = new FigureTab(
+                Style, SaveStyle, StyleCatalogue.Keys.SkillDps, "DPS on the Skill Bar",
+                FigureTab.SkillBarExplanation, StyleCatalogue.Homes.Skills, FigureTab.SkillBarStatus, _icons.Sheet);
+            _tools.Add(38, "skillbar", "Skill bar", () => skillBar.Draw(_snapshot), skillBar.Idle, page: Combat);
+        }
+
+        // The same first-use registration, and for the same reason: the two callbacks it needs
+        // are properties the app sets when it wires the reader up.
+        if (_effectWindow is null && KeepEffects is not null)
+        {
+            var made = new EffectWindow(_effects, Noise, () => SettingsChanged?.Invoke());
+            _effectWindow = made;
+            _tools.Add(
+                100, "effects", "Effects Engine", () => made.DrawTab(_snapshot),
+                page: Entities, pageLabel: EntitiesLabel);
+        }
+
+        // Registered on first use for the same reason as the cost tab: the meter is a
+        // property, so the tab appears once there is something behind it.
+        if (Damage is DamageMeter meter)
+        {
+            if (_damageWindow is null)
+            {
+                _damageWindow = new DamageWindow(meter) { Heat = _heat };
+                _tools.Add(30, "damage", "Damage", _damageWindow.DrawTab, page: Combat, pageLabel: "Combat");
+            }
+
+            _damageWindow.CurrentArea = _snapshot.AreaHash;
+        }
+
+        // Polled outside the tools window on purpose: F8 captures what is under the cursor
+        // the moment it is pressed, with the tools closed or on another tab, and the pick
+        // is what brings the browser in front - not the other way around.
+        if (_uiBrowser is not null && _uiBrowser.Tick(_tracked))
+        {
+            _tools.Show(UiBrowserTab);
+        }
+
+        // Its own small window rather than a tab, alone among the tools: routing is done
+        // WHILE playing, and a route picked from inside the toolbox would mean parking a
+        // full-size window over the fight to click a destination.
+        _poi?.DrawPicker(_snapshot, _snapshot.Player);
+
+        _tools.Render();
+
+        // AFTER the tools, so a zone box being dragged sits over the page that switched it on
+        // rather than under it. It draws nothing at all unless somebody asked to see the boxes.
+        _keepOut.Draw(width, height);
+
+        // A window rather than something painted, so it can be closed and moved - which means
+        // it belongs here with the windows and not in the drawing pass.
+        //
+        // In town it is STALE rather than absent, and which of those you get is a setting. The
+        // walk never runs in a town, so what is held there is the last map's list; the window
+        // says so in as many words rather than showing it as though it were where you stand.
+        if (_preload is not null && _snapshot.InGame)
+        {
+            bool stale = !_snapshot.Area.WantsMarkers;
+            if (!stale || !_preloadSettings.HideInTown)
+            {
+                _preloadPanel.Draw(
+                    _snapshot.AreaHash,
+                    _preload.Found,
+                    _preloadSettings.Timer && _areaAtMs > 0 ? Environment.TickCount64 - _areaAtMs : -1,
+                    stale);
+            }
+        }
+
+        // Everywhere in the game, unlike the one above: what the purse is worth is as true in a
+        // town as in a map, and hiding it in the hideout would take it away at exactly the
+        // moment somebody is deciding what to spend.
+        if (_wealth is not null && _snapshot.InGame)
+        {
+            _wealthPanel.Alpha = _interface.ReadoutOpacityOr;
+            _wealthPanel.Draw(_wealth, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        }
+    }
+
+    /// <summary>
+    /// Matches the overlay to the game's client area, so a projected pixel means the same
+    /// thing in both windows.
+    /// </summary>
+    /// <remarks>
+    /// Only applied on a CHANGE: assigning position and size re-creates swap-chain resources,
+    /// so doing it every frame would cost far more than the comparison saves - and it also
+    /// keeps the window movable by the user when no game window is being tracked.
+    /// </remarks>
+    private void TrackGameWindow()
+    {
+        ClientRect rect = GameWindowTracker.TryGet(_gameWindow);
+        if (!rect.IsValid || rect == _tracked)
+        {
+            return;
+        }
+
+        _tracked = rect;
+        Position = new System.Drawing.Point(rect.X, rect.Y);
+        Size = new System.Drawing.Size(rect.Width, rect.Height);
+    }
+
+    /// <summary>Projects every entity and paints it on the background draw list.</summary>
+    private void DrawEntities(int width, int height)
+    {
+        ImDrawListPtr draw = ImGui.GetBackgroundDrawList();
+
+        foreach (WorldEntity entity in _snapshot.Entities)
+        {
+            if (!DrawnKinds.Contains(entity.Kind) || !WorthDrawing(entity))
+            {
+                continue;
+            }
+
+            string key = KeyFor(entity);
+            if (!Style.Visible(key))
+            {
+                continue;
+            }
+
+            ScreenPoint point = ProjectGround(entity, width, height);
+
+            if (!point.OnScreen)
+            {
+                continue; // behind the camera or outside the viewport
+            }
+
+            float fade = FadeFor(entity);
+            uint chosen = Style.Colour(key);
+            uint colour = OverlayStyle.Faded(chosen, fade);
+            var position = new Vector2(point.X, point.Y);
+            float size = Style.Sized(key, DotRadius);
+
+            if (!DrawIcon(draw, key, position, size, fade))
+            {
+                draw.AddCircleFilled(position, size, colour);
+                draw.AddCircle(
+                    position, size, OverlayStyle.Faded(OutlineColour, fade), 12,
+                    Style.Width(StyleCatalogue.Keys.DotOutline, 1.5f));
+            }
+
+            if (ShowLabels && entity.Kind is EntityKind.Monster or EntityKind.Chest or EntityKind.WorldItem)
+            {
+                // The dot's own colour unless a label colour was chosen. Matching the dot is
+                // what makes a label readable among forty of them, so it is the default
+                // rather than something to configure your way back to.
+                draw.AddText(
+                    position + new Vector2(size + 3, -7),
+                    OverlayStyle.Faded(Style[StyleCatalogue.Keys.DotLabel].ColourOr(chosen), fade),
+                    entity.ShortName);
+            }
+        }
+
+        // The player last, so it is never hidden under another dot.
+        if (_snapshot.Player is WorldEntity player)
+        {
+            ScreenPoint point = ProjectGround(player, width, height);
+            if (point.OnScreen && Style.Visible(StyleCatalogue.Keys.Player))
+            {
+                var position = new Vector2(point.X, point.Y);
+                float size = Style.Sized(StyleCatalogue.Keys.Player, DotRadius + 2);
+                if (!DrawIcon(draw, StyleCatalogue.Keys.Player, position, size))
+                {
+                    draw.AddCircleFilled(position, size, Style.Colour(StyleCatalogue.Keys.Player));
+                    draw.AddCircle(position, size, OutlineColour, 16, Style.Width(StyleCatalogue.Keys.DotOutline, 2f));
+                }
+            }
+
+            if (ShowCalibration)
+            {
+                DrawCalibration(draw, player, width, height);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Projects an entity at ground level, plus the live probe height.
+    /// </summary>
+    /// <remarks>
+    /// The entity's OWN base height, which is what GameHelper2 projects - not TerrainHeight.
+    /// TerrainHeight belongs to the map radar's separate projection, and feeding it here was
+    /// mixing the two systems up.
+    /// </remarks>
+    private ScreenPoint ProjectGround(WorldEntity entity, int width, int height)
+        => WorldToScreen.Project(
+            _snapshot.Matrix, entity.WorldX, entity.WorldY, entity.WorldZ + ProbeHeight, width, height);
+
+    /// <summary>
+    /// Draws the alignment aids: screen centre, and the player at both candidate heights.
+    /// </summary>
+    /// <remarks>
+    /// A residual offset between a marker and the character can come from several places -
+    /// the height fed into the projection, the overlay not covering the client area, or the
+    /// camera simply not centring the player. Guessing between them from a screenshot is
+    /// hopeless, so this draws the competing answers AT THE SAME TIME and lets the picture
+    /// decide: whichever marker sits on the feet is the correct height, and the crosshair
+    /// shows how far off centre the character really is. The line between the two markers
+    /// is the character's own height in screen pixels, which is the scale for judging any
+    /// leftover error.
+    /// </remarks>
+    private void DrawCalibration(ImDrawListPtr draw, WorldEntity player, int width, int height)
+    {
+        ScreenPoint ground = ProjectGround(player, width, height);
+        ScreenPoint healthbar = WorldToScreen.Project(
+            _snapshot.Matrix, player.WorldX, player.WorldY, player.HealthBarZ, width, height);
+
+        // Screen centre: where the camera claims the player is.
+        var centre = new Vector2(width / 2f, height / 2f);
+        uint centreColour = Style.Colour(StyleCatalogue.Keys.AidCentre);
+        float centreWidth = Style.Width(StyleCatalogue.Keys.AidCentre, 1.5f);
+        draw.AddLine(centre - new Vector2(24, 0), centre + new Vector2(24, 0), centreColour, centreWidth);
+        draw.AddLine(centre - new Vector2(0, 24), centre + new Vector2(0, 24), centreColour, centreWidth);
+        draw.AddText(centre + new Vector2(28, -7), centreColour, "screen centre");
+
+        if (!ground.OnScreen || !healthbar.OnScreen)
+        {
+            return;
+        }
+
+        var groundPoint = new Vector2(ground.X, ground.Y);
+        var healthbarPoint = new Vector2(healthbar.X, healthbar.Y);
+
+        uint groundColour = Style.Colour(StyleCatalogue.Keys.AidGround);
+        uint healthbarColour = Style.Colour(StyleCatalogue.Keys.AidHealthbar);
+
+        DrawHealthbarReferences(draw, width, height);
+
+        draw.AddLine(groundPoint, healthbarPoint, Style.Colour(StyleCatalogue.Keys.AidLink), Style.Width(StyleCatalogue.Keys.AidLink, 1f));
+        draw.AddCircle(groundPoint, DotRadius + 6, groundColour, 20, Style.Width(StyleCatalogue.Keys.AidGround, 2f));
+        draw.AddText(groundPoint + new Vector2(DotRadius + 9, 2), groundColour, "base (Render z)");
+        draw.AddCircle(healthbarPoint, DotRadius + 4, healthbarColour, 20, Style.Width(StyleCatalogue.Keys.AidHealthbar, 2f));
+        draw.AddText(healthbarPoint + new Vector2(DotRadius + 7, -14), healthbarColour, "health bar (z - ModelBounds)");
+    }
+
+    /// <summary>
+    /// The window's leading page: what is being read, the pools, and the switches.
+    /// </summary>
+    /// <remarks>
+    /// FIRST among the pages, because a blank overlay is otherwise ambiguous - "nothing
+    /// nearby" and "the read chain broke" look identical - and because "why did the flask not
+    /// fire" is a question asked mid-session rather than during a debugging pass. Leading also
+    /// means the window sizes itself to this page's dozen short lines while it is in front,
+    /// which is what lets it sit in a corner during a fight and still open into the dissector.
+    ///
+    /// The measurements are the debugging pass and hide behind --debug, in their own rows and
+    /// their own controls, so what is left is the part somebody reads at a glance.
+    /// </remarks>
+    private void DrawStatusTab(int width, int height)
+    {
+        DrawReadout(width, height);
+        DrawRuleHistory();
+
+        ImGui.Separator();
+        DrawSwitches();
+
+        if (!ShowDiagnostics)
+        {
+            return;
+        }
+
+        ImGui.Separator();
+        DrawMeasuringControls(width, height);
+    }
+
+    /// <summary>Shortens a value that would otherwise stretch the readout's second column.</summary>
+    /// <remarks>
+    /// By characters rather than by pixels, which is the crude version - but the table sizes
+    /// itself to its widest row, so the alternative is measuring text against a column that
+    /// does not exist until the row is in it. Never cuts a surrogate pair in half: a rule name
+    /// somebody put an emoji in would otherwise end in half a character.
+    /// </remarks>
+    private static string Clip(string value, int limit)
+    {
+        if (string.IsNullOrEmpty(value) || value.Length <= limit)
+        {
+            return value ?? string.Empty;
+        }
+
+        int cut = char.IsHighSurrogate(value[limit - 1]) ? limit - 1 : limit;
+        return string.Concat(value.AsSpan(0, cut), "...");
+    }
+
+    /// <summary>A label and its value, as one row of the readout's two columns.</summary>
+    /// <remarks>
+    /// A TABLE rather than the padded strings this used to be - "area:     Clearfell" and
+    /// friends, lined up by counting spaces. That only ever looked right in a monospaced font,
+    /// and ImGui's default is not one: every row was a couple of pixels off from its
+    /// neighbours, and any value long enough to matter pushed its own label out of line.
+    ///
+    /// The colour is PUSHED rather than passed to TextColored, and that is not a style
+    /// preference. ImGui's Text calls are printf - a value read out of the game can carry a
+    /// percent sign, "100% Increased" is a real monster name, and TextColored would take it
+    /// as a conversion specifier and print whatever was in the register. TextUnformatted
+    /// cannot, so this row is safe by construction rather than by remembering to escape.
+    /// </remarks>
+    /// <param name="figure">
+    /// Whether the value is a measurement rather than a name, and so belongs in the mono face.
+    ///
+    /// THIS READOUT IS WHERE IT MATTERS MOST, because these rows are redrawn every frame with
+    /// new numbers in them. In a proportional face a value counting from 999 to 1000 is a value
+    /// that gets WIDER, so the whole line shifts - and several of these lines hold three or four
+    /// counters that all do it independently. The readout twitches the entire time it is being
+    /// watched, which is the entire time it is on screen. Fixed-width digits are what stop it.
+    ///
+    /// Set per row rather than worked out from the value, because a row's KIND does not change
+    /// between frames while a value very much does - see <see cref="ImGuiText.Mono(string)"/>.
+    /// </param>
+    private static void Row(string label, string value, Vector4? colour = null, bool figure = false)
+    {
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
+        ImGui.TextDisabled(label);
+        ImGui.TableNextColumn();
+
+        if (colour is Vector4 tint)
+        {
+            ImGui.PushStyleColor(ImGuiCol.Text, tint);
+        }
+
+        if (figure)
+        {
+            ImGuiText.Mono(value);
+        }
+        else
+        {
+            ImGui.TextUnformatted(value);
+        }
+
+        if (colour is not null)
+        {
+            ImGui.PopStyleColor();
+        }
+    }
+
+    // THE READOUT WROTE IN ITS OWN INK, and that was the worst instance of a problem the whole
+    // palette exists to fix: this is the surface that is on screen the entire time somebody is
+    // playing, and its quiet grey was (0.70, 0.75, 0.80) - a COLD one - where every other window
+    // in the tool writes its quiet text in a warm (0.72, 0.70, 0.65). Nothing about the readout
+    // wanted to be cooler than the rest of the tool; it was simply written on a different day.
+    // Named here rather than used inline so the rows below still read as rows.
+    private static readonly Vector4 Warning = OverlayInk.Warn;
+    private static readonly Vector4 Quiet = OverlayInk.Quiet;
+    private static readonly Vector4 Bad = OverlayInk.Bad;
+
+    /// <summary>A figure this tool worked out, as against one it read off the game.</summary>
+    /// <remarks>
+    /// Was a green-grey, which was making a judgement it had no business making: green means
+    /// "this is good" in every other window here, so "walked 43%" read as approval of 43%. See
+    /// <see cref="OverlayInk.Measured"/>, which is the ordinary ink leaned towards the pointer
+    /// blue - visibly derived, and saying nothing at all about whether the number is welcome.
+    /// </remarks>
+    private static readonly Vector4 Measured = OverlayInk.Measured;
+
+    /// <summary>
+    /// Why nothing is being read, when nothing is.
+    /// </summary>
+    /// <remarks>
+    /// WHICH state, not just "no". A loading screen, the login screen and a character select
+    /// all draw nothing, and they are different situations - saying "not in an area" over a
+    /// loading screen reads as a broken read.
+    ///
+    /// Its own method because it is now asked twice: once by the readout page and once by the
+    /// strip above the tabs, which has to answer this on every page. Two copies of a switch
+    /// over eight game states is two copies to keep in step.
+    /// </remarks>
+    private string Idling() => _snapshot.State switch
+    {
+        GameStateKind.AreaLoading or GameStateKind.Loading => "loading",
+        GameStateKind.Login or GameStateKind.PreGame => "at the login screen",
+        GameStateKind.SelectCharacter or GameStateKind.CreateCharacter
+            or GameStateKind.DeleteCharacter => "at character select",
+        GameStateKind.Escape => "in the escape menu",
+        GameStateKind.InGame => "in game, but the area has not resolved",
+        GameStateKind.NotLoaded => "game not loaded",
+        GameStateKind.Unreadable => "state unreadable - falling back to the player pointer",
+        _ => $"in {_snapshot.State}",
+    };
+
+    /// <summary>
+    /// The live strip above the tabs: the four or five facts worth having on every page.
+    /// </summary>
+    /// <remarks>
+    /// WHAT EARNS A PLACE HERE is the question asked while doing something else. "Is it reading
+    /// the game", "which area does it think this is", "how many entities", "is the read keeping
+    /// up" and "what is auto-flask doing" are all asked mid-fight, with some other tab in front,
+    /// and every one of them used to mean leaving that tab. Everything else the readout knows -
+    /// the belt, the panels, the projection probe, the whole debugging pass - stays on the
+    /// status PAGE, because those are read deliberately once while working something out.
+    ///
+    /// IN THE ORDER THEY ARE NEEDED, because a chip that does not fit is dropped rather than
+    /// wrapped (see <see cref="StatusBar.Chip(string, Vector4)"/>). Somebody who has dragged the
+    /// window narrow keeps the state and the area and loses the frame timing, which is the right
+    /// way round.
+    /// </remarks>
+    private void DrawStatusStrip()
+    {
+        if (!_snapshot.InGame)
+        {
+            StatusBar.Chip(Idling(), Warning);
+            return;
+        }
+
+        // FIRST AND ALWAYS, even though the area beside it implies it. This is the chip that
+        // answers "is the tool alive", and an answer that has to be inferred from the presence
+        // of another answer is not one you can take in at a glance.
+        StatusBar.Chip("reading", OverlayInk.Good);
+
+        AreaInfo area = _snapshot.Area;
+        StatusBar.Chip(area.Describe(), area.WantsMarkers ? Quiet : Warning);
+
+        // The remembered ones counted separately, for the reason the readout row does it: added
+        // together they read as the entity list having grown, which is what this number is
+        // watched for.
+        int listed = _snapshot.Entities.Count - _snapshot.Remembered;
+        StatusBar.Figure(
+            _snapshot.Remembered > 0 ? $"{listed} +{_snapshot.Remembered}" : $"{listed}");
+
+        if (ReadStats is not null)
+        {
+            (double ms, long _, long failures) = ReadStats();
+            StatusBar.Figure(
+                $"{ms:F1} ms / {1000f / ImGui.GetIO().Framerate:F1} ms"
+                + (failures > 0 ? $"  {failures} failed" : string.Empty),
+                failures > 0 ? Bad : OverlayInk.Measured);
+        }
+
+        if (FlaskStatus is not null)
+        {
+            StatusBar.Chip(FlaskStatus(), OverlayInk.Accent);
+        }
+    }
+
+    /// <summary>What is being read, the pools, and what auto-flask is doing.</summary>
+    private void DrawReadout(int width, int height)
+    {
+        if (!ImGui.BeginTable("##readout", 2, ImGuiTableFlags.SizingFixedFit))
+        {
+            return;
+        }
+
+        try
+        {
+            if (!_snapshot.InGame)
+            {
+                Row("idle", Idling(), Warning);
+                return;
+            }
+
+            // Named even when nothing is hidden. An overlay that goes blank in town otherwise
+            // looks broken, and this is the line that says it is not - it also reports the
+            // area id, which is what pins down any further rule about WHERE it should be
+            // active.
+            AreaInfo area = _snapshot.Area;
+            Row(
+                "area",
+                area.Describe() + (area.WantsMarkers ? string.Empty : "   - markers hidden"),
+                area.WantsMarkers ? Quiet : Warning);
+
+            // The two counts kept apart: one is what the game listed this read, the other is
+            // what it has stopped listing and this still draws. Added together they would
+            // read as the entity list having grown, which is the one thing this line is used
+            // to watch.
+            Row(
+                "entities",
+                _snapshot.Remembered > 0
+                    ? $"{_snapshot.Entities.Count - _snapshot.Remembered}"
+                      + $"   (+{_snapshot.Remembered} remembered out of range)"
+                    : $"{_snapshot.Entities.Count}",
+                figure: true);
+
+            // The question a map is actually being looked at for near the end of a run: is
+            // there any of it left. Measured against what can be REACHED rather than every
+            // walkable cell, which is why it is worth showing at all - the same figure
+            // against the whole grid reads as a few per cent on a finished map.
+            if (Coverage is MapCoverage walked && walked.Measuring)
+            {
+                // With what the last change of area did - resumed, or fresh and why - because a
+                // map that comes back from town with its walk forgotten looks exactly like one
+                // that was never walked, and only this line tells the two apart.
+                Row(
+                    "walked",
+                    $"{walked.Percent:F0}%   ({walked.SeenCells} of {walked.ReachableCells})"
+                    + (walked.RegionKnown ? string.Empty : "   - still working out what is reachable")
+                    + $"   {walked.LastSwitch}",
+                    Measured,
+                    figure: true);
+            }
+
+            if (ReadStats is not null)
+            {
+                (double ms, long reads, long failures) = ReadStats();
+                Row(
+                    "read",
+                    $"{ms:F1} ms on its own thread   frame {1000f / ImGui.GetIO().Framerate:F1} ms"
+                    + $"   ({reads} reads{(failures > 0 ? $", {failures} failed" : string.Empty)})",
+                    figure: true);
+            }
+
+            if (_snapshot.PlayerVitals is Vitals vitals)
+            {
+                Row(
+                    "vitals",
+                    $"life {Show(vitals.Life)}   mana {Show(vitals.Mana)}   es {Show(vitals.EnergyShield)}",
+                    figure: true);
+            }
+
+            // Here rather than only on its page, because this is a number you watch while
+            // doing the thing it measures - a damage figure you have to open a window to read
+            // cannot tell you whether the pack you just hit died to that skill.
+            if (Damage is DamageMeter damage && damage.Measuring)
+            {
+                Row(
+                    "damage",
+                    $"{DamageWindow.Number(damage.Dps)} dps   peak {DamageWindow.Number(damage.Peak)}"
+                    + $"   {DamageWindow.Number(damage.Total)} this area",
+                    Measured,
+                    figure: true);
+            }
+
+            // Always shown, including when it failed: an omitted row looks like a feature that
+            // is not running, when it actually means a read gave up.
+            if (_snapshot.FlaskBelt is FlaskBelt belt && !belt.IsUnknown)
+            {
+                // With the slots the HUD shows, because the number on a flask needs both halves
+                // and "no number" does not say which one is missing.
+                int onScreen = _snapshot.FlaskSlotsOnScreen.Count;
+                Row(
+                    "belt",
+                    string.Join("   ", belt.Flasks.Select(f =>
+                        $"{f.Slot}:{f.Charges}/{f.MaxCharges}"
+                        + (f.IsCharm ? " (charm)" : f.CanUse ? string.Empty : " (empty)")))
+                    + (onScreen > 0 ? $"   {onScreen} slots on the HUD" : "   (flask bar not on screen)"),
+                    figure: true);
+            }
+            else
+            {
+                Row("belt", "not read - run with --flasks for the chain", Bad);
+            }
+
+            // Both halves of the figure on a skill icon, and the join between them: how many
+            // slots the bar shows and where their skill pointer was matched, how big the skill
+            // table is, and what the Skills panel has yielded so far.
+            if (_snapshot.SkillsReadout.Length > 0)
+            {
+                Row("skills", _snapshot.SkillsReadout, figure: true);
+            }
+
+            // The layout as read, for the first slot's skill: what the object's pointers lead
+            // to and what its row holds. A refusal above says what is not there; this says
+            // what is.
+            if (_snapshot.SkillsSurveyReadout.Length > 0)
+            {
+                Row("skillrow", _snapshot.SkillsSurveyReadout, figure: true);
+            }
+
+            if (FlaskStatus is not null)
+            {
+                Row("flask", FlaskStatus(), OverlayInk.Accent);
+            }
+
+            if (EvasionStatus is not null)
+            {
+                Row("evade", EvasionStatus(), OverlayInk.Accent);
+            }
+
+            if (RuleStatus is not null)
+            {
+                // Clipped, unlike its neighbours: this line names every rule that is acting AND
+                // every one that is blocked, so a profile with a dozen rules produces a
+                // sentence long enough to widen the whole window - in the corner of the screen,
+                // during a fight. The full text is on the rules tab.
+                Row("rules", Clip(RuleStatus(), 90), OverlayInk.Accent);
+            }
+
+            // Only once something has aimed. An event, not a state: before the first one there
+            // is nothing to say, and the row above already answers whether the engine is
+            // running at all.
+            if (AimStatus?.Invoke() is string aim && aim.Length > 0)
+            {
+                Row("aim", aim, OverlayInk.Accent);
+            }
+
+            // The summary stays here even though the full list is a page of its own: the
+            // common case needs no page at all - the answer is one line and it is already on
+            // screen.
+            if (_preload is not null)
+            {
+                string here = _preload.Summary();
+                Row("loaded", here.Length > 0 ? here : $"{_preload.All.Count} files", Measured);
+            }
+
+            // WHICH ones, not just whether. The panels are found at unverified offsets and
+            // paths, and the way a wrong one fails is that something reads open forever and
+            // the markers never come back - which looks exactly like an overlay that broke.
+            // Named here, it is instead one line saying which panel to stop believing.
+            //
+            // AND WHERE EACH ONE IS, which is a separate answer and fails separately: the bit
+            // decides about the markers, the rectangle decides about this window. HOW it was
+            // arrived at is printed too, because the ways differ in how much they can be
+            // trusted, and a screenshot of this line is what settles which one a machine took -
+            // it is how the atlas was caught reporting itself 733 pixels too narrow.
+            if (_snapshot.InAPanel)
+            {
+                // Only the panels that actually take a window with them. The atlas is open at
+                // the same time as the tool's atlas tabs by design, so listing it as "covering"
+                // would have this line report a hiding that is not happening - see
+                // PanelArea.WorkedOn.
+                List<PanelArea> hiding = [.. _snapshot.Covering.Where(area => area.HidesWindows)];
+
+                string where = !HideWindowsBehindPanels
+                    ? "windows staying put"
+                    : hiding.Count == 0
+                        ? "nothing that hides a window - windows staying put"
+                        : "covering " + string.Join(
+                            ", ",
+                            hiding.Select(
+                                area => $"{area.Panel} {area.Right - area.Left:F0}x{area.Bottom - area.Top:F0}"
+                                        + $" {Extent(area.From)}"));
+
+                Row(
+                    "panels",
+                    $"{_snapshot.Panels}   ({where})",
+                    Measured,
+                    figure: true);
+            }
+
+            // Only when there is one. A path that does not work otherwise shows up as a
+            // marker drawn its ordinary way, which is exactly what not setting an icon looks
+            // like - so the setting appears to do nothing at all.
+            foreach (string problem in _icons.Files.Problems)
+            {
+                Row("icon", problem, Bad);
+            }
+
+            // And what the tool itself could not make into a picture - an export of the wrong
+            // size, a sheet with no room left - which otherwise looks like an export that did
+            // nothing.
+            foreach (string problem in _icons.Problems)
+            {
+                Row("icon", problem, Bad);
+            }
+
+            if (ShowDiagnostics)
+            {
+                DrawMeasurements(width, height);
+            }
+        }
+        finally
+        {
+            ImGui.EndTable();
+        }
+    }
+
+    /// <summary>
+    /// The rules' recent history, folded away until it is wanted.
+    /// </summary>
+    /// <remarks>
+    /// WHY THIS EXISTS beside the one-line status: the line above holds this tick's reason, and
+    /// with six rules configured it is replaced several times a second. Everything actually
+    /// asked of it - did that rule fire, when did it stop, was the cull aimed - is a question
+    /// about seconds ago, and a field showing only the present answers none of them.
+    ///
+    /// NEWEST FIRST, and not scrolled to follow: a log that jumps while it is being read is one
+    /// nobody can read during a fight, and the newest line is the one being looked for anyway.
+    ///
+    /// The age is recomputed every frame from the same clock the engine stamps with, so the
+    /// numbers count up while the panel is open rather than freezing at whatever they were when
+    /// it was unfolded.
+    /// </remarks>
+    private void DrawRuleHistory()
+    {
+        if (RuleHistory is null)
+        {
+            return;
+        }
+
+        IReadOnlyList<RuleLogEntry> entries = RuleHistory();
+        if (entries.Count == 0)
+        {
+            return;
+        }
+
+        if (!ImGui.CollapsingHeader($"rule history ({entries.Count})"))
+        {
+            return;
+        }
+
+        // A fixed height with its own scrollbar rather than however tall the list happens to
+        // be: this panel sits in a corner during a fight, and a section that grows with its
+        // contents would push the switches under it off the screen after a busy pack.
+        float lines = Math.Min(entries.Count, 12);
+        if (!ImGui.BeginChild(
+            "##rulelog",
+            new Vector2(0, lines * ImGui.GetTextLineHeightWithSpacing() + 8),
+            ImGuiChildFlags.Borders))
+        {
+            ImGui.EndChild();
+            return;
+        }
+
+        try
+        {
+            if (!ImGui.BeginTable("##rulelogrows", 4, ImGuiTableFlags.SizingFixedFit))
+            {
+                return;
+            }
+
+            try
+            {
+                foreach (RuleLogEntry entry in entries)
+                {
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGuiText.Mono(Quiet, entry.Clock);
+
+                    ImGui.TableNextColumn();
+
+                    // NOT escaped, and that is the correct half of the percent-sign rule
+                    // rather than a missed one: TextUnformatted is not a format call, so
+                    // doubling the signs here would print them doubled. A rule somebody named
+                    // "Spark 100%" is exactly the case.
+                    ImGui.TextUnformatted(entry.Rule);
+
+                    ImGui.TableNextColumn();
+                    ImGui.PushStyleColor(ImGuiCol.Text, entry.Tone switch
+                    {
+                        RuleLogTone.Bad => Bad,
+                        RuleLogTone.Warning => Warning,
+                        _ => OverlayInk.Good,
+                    });
+                    ImGui.TextUnformatted(entry.What);
+                    ImGui.PopStyleColor();
+
+                    // The measurement in the mono face, like every other figure in this window:
+                    // these are life totals and counts that change between frames, and a
+                    // proportional face makes the whole column twitch as they do.
+                    ImGui.TableNextColumn();
+                    ImGuiText.Mono(Measured, entry.Measured);
+                }
+            }
+            finally
+            {
+                ImGui.EndTable();
+            }
+        }
+        finally
+        {
+            ImGui.EndChild();
+        }
+    }
+
+    /// <summary>
+    /// The rows that are only interesting while something is being worked out.
+    /// </summary>
+    /// <remarks>
+    /// BEHIND --debug, all of it, and that is a correction rather than a preference. Every row
+    /// here was written to settle a question - where the read's time goes, whether the terrain
+    /// heights line up, whether the projection still centres the player - and once settled
+    /// they are arithmetic nobody reads while playing. Left on, they were most of a readout
+    /// whose job is to answer "is it working" at a glance: a line reporting
+    /// "here ground 23 vs computed 23 (off by 0), texture 1932x1863" is a sentence you have to
+    /// stop and parse to learn that nothing is wrong.
+    /// </remarks>
+    private void DrawMeasurements(int width, int height)
+    {
+        // WHERE the read's time went, not just how much. One number says a frame was expensive
+        // and nothing about why, and an expensive phase is usually a redundancy rather than a
+        // fundamental cost - which only a breakdown shows.
+        if (_snapshot.Cost.TotalMs > 0)
+        {
+            Row("cost", _snapshot.Cost.ToString(), figure: true);
+        }
+
+        Row(
+            "viewport",
+            _tracked.IsValid
+                ? $"{width} x {height}   (game {_tracked.Width} x {_tracked.Height} @ {_tracked.X},{_tracked.Y})"
+                : $"{width} x {height}   (game window not tracked)",
+            figure: true);
+
+        // In the overlay rather than only in the config window, because this is read while
+        // standing on the hill that shows the problem - a readout that needs a second window
+        // open is a readout nobody is looking at in that moment.
+        if (ShowTerrain)
+        {
+            Row("terrain", DescribeTerrain(), Measured, figure: true);
+        }
+
+        // The hunt for the ROOM level, one line per pointer found around a tile. Only under
+        // --debug and only while it finds anything, because it is a question being worked on
+        // rather than a reading of the game: the names on the map today are TILES, one level
+        // below the rooms the reference tool shows, and these are the bytes that would say
+        // where the level above lives. A line marked ROOM? is the answer arriving.
+        if (_snapshot.Terrain is TerrainGrid probed && probed.RoomProbeLines.Count > 0)
+        {
+            foreach (string line in probed.RoomProbeLines)
+            {
+                Row(
+                    string.Empty,
+                    line,
+                    line.Contains("ROOM?", StringComparison.Ordinal) ? OverlayInk.Good : Measured,
+                    figure: true);
+            }
+
+            // And what the per-tile majority costs, beside it and behind the same --debug gate.
+            // The ground layer reduces each tile's four corners to one type while the game paints
+            // all four; this counts whether that ever DELETES a type from the map, which is the
+            // only way the reduction changes what a person reads. See GroundResolutionProbe.
+            //
+            // Asked with the layer's own threshold rather than a constant, because the answer is
+            // about the patches the map would keep and that is the number deciding which ones
+            // those are.
+            foreach (string line in probed.GroundResolution(_ground.MinTiles))
+            {
+                Row(
+                    string.Empty,
+                    line,
+                    line.Contains("NAMED NOWHERE TODAY", StringComparison.Ordinal)
+                        ? OverlayInk.Good
+                        : Measured,
+                    figure: true);
+            }
+        }
+
+        // What the map is actually allowed to draw on, once the game's interface and any open
+        // panel are taken out. The one line that separates "the projection is wrong" from "the
+        // keep-out region ate the map", which look identical from a screenshot: a region in
+        // ZERO pieces is a map covered edge to edge, and there is nothing else in the tool that
+        // would say so. The part count beside it is the other half - a HUD that measured as
+        // nothing and one that was never found look the same on screen and not here.
+        Row(
+            "map area",
+            ScreenRegion.Of(ScreenRect.Window(width, height), KeepOutOf(width, height))
+            + $"   (interface {_snapshot.InterfaceParts.Count} parts)",
+            Measured,
+            figure: true);
+
+        // The atlas keeps off a DIFFERENT list - it may not keep off the panel it is drawn on,
+        // and it takes a neighbouring panel at its measured size rather than at the whole
+        // screen. Two regions means two ways for one of them to come out empty, so both say so.
+        if ((_snapshot.Panels & GamePanel.Atlas) != 0)
+        {
+            // WHICH parts were dropped for being the whole screen, by name, not just how many.
+            // A screen-sized piece of furniture is the one thing that can take the atlas region
+            // down to nothing, and it took two rounds of screenshots to find out which it was -
+            // one line here answers that without either of us guessing.
+            ScreenRect window = ScreenRect.Window(width, height);
+            string swallowed = string.Join(
+                ", ",
+                _snapshot.InterfaceParts
+                    .Where(part => KeepOut.Honours(part.Label) && part.Where.Covers(window))
+                    .Select(part => part.Label));
+
+            Row(
+                "atlas area",
+                ScreenRegion.Of(window, KeepOutOfAtlas(width, height))
+                + (swallowed.Length > 0 ? $"   (screen-sized, dropped: {swallowed})" : string.Empty),
+                Measured,
+                figure: true);
+
+            // WHAT THE HOVER PANEL TURNED OUT TO BE, by name. Nobody here has read the StringId
+            // of the panel the game puts over a hovered map - it is found by appearing rather
+            // than by name - so this line is how it gets read: hover a map with the readout open
+            // and it says which part came up. It is also the only way to tell "the overlay is
+            // hidden because a map is hovered" from "the overlay is hidden because something is
+            // wrong", which look identical on a screenshot and used to cost a round trip each.
+            if (_atlasWatch is not null)
+            {
+                Row(
+                    "atlas hover",
+                    _atlasHover.Describe(_atlasWatch.View.Hovered),
+                    _atlasWatch.View.Hovering && !_atlasHover.Found ? Warning : Measured,
+                    figure: true);
+            }
+        }
+
+        // The Runeshape Combinations panel, while its prices are switched on: whether it was
+        // found, what it holds, and - the line this row exists for - what the game CALLS the
+        // elements the fingerprint walk resolved, since a name would anchor it better.
+        if (_runecraftWatch is { Settings.Enabled: true })
+        {
+            RunecraftView recipes = _runecraftWatch.View;
+            Row(
+                "runecraft",
+                recipes.Status + (recipes.Named.Length > 0 ? $"   ({recipes.Named})" : string.Empty),
+                recipes.Open && recipes.Priced == 0 && recipes.Rewards.Count > 0 ? Warning : Measured,
+                figure: true);
+
+            // The monoliths of the area, and - the half this row exists for - what the station
+            // walk could not read, since every offset behind it is the reference's and unseen.
+            if (_monolithWatch is not null)
+            {
+                MonolithsView monoliths = _monolithWatch.View;
+                var unread = 0;
+                foreach (MonolithView view in monoliths.Monoliths)
+                {
+                    if (view.Listed && !view.Station.Resolved)
+                    {
+                        unread++;
+                    }
+                }
+
+                Row(
+                    "monoliths",
+                    monoliths.Status + (unread > 0 ? $"   ({unread} without a station - see the Runecraft tab)" : string.Empty),
+                    unread > 0 ? Warning : Measured,
+                    figure: true);
+            }
+        }
+
+        // The expedition planner: what the scan found and where the charge counts came from -
+        // the half that says whether the controller offsets, unseen by this tool, resolved.
+        if (_expeditionWatch is { Settings.Enabled: true } planner)
+        {
+            ExpeditionView expedition = planner.View;
+            Row(
+                "expedition",
+                expedition.Status + (expedition.HasDetonator ? $"   (charges {expedition.Placed}/{expedition.Total} by {expedition.CountsSource})" : string.Empty),
+                expedition.HasDetonator && !expedition.CountsKnown ? Warning : Measured,
+                figure: true);
+        }
+
+        if (_snapshot.Player is not WorldEntity player)
+        {
+            return;
+        }
+
+        Row("player", $"({player.WorldX:F0}, {player.WorldY:F0}, {player.WorldZ:F0})", figure: true);
+
+        // The live projection sanity check: the camera follows the player, so this must sit at
+        // the screen centre. If it drifts, the matrix is wrong.
+        ScreenPoint p = WorldToScreen.Project(
+            _snapshot.Matrix, player.WorldX, player.WorldY, player.TerrainHeight, width, height);
+        double offCentre = WorldToScreen.OffCentreFraction(p, width, height);
+
+        // Centred ALONE is not proof: a matrix that blows w up collapses the whole scene onto
+        // the centre, so the player looks perfect while nothing else is drawable. Showing the
+        // scene's pixel spread next to it makes that failure visible instead of reassuring.
+        double spread = ScreenSpread(width, height);
+        bool healthy = offCentre < 0.15 && spread > width * 0.05;
+        Vector4 colour = healthy ? OverlayInk.Good : Bad;
+
+        Row("projection", $"off-centre {offCentre:F3}   scene spread {spread:F0} px", colour, figure: true);
+
+        // The same thing in pixels, which is what a screenshot can be measured against: how
+        // far the marker sits from the screen centre, and how tall the character is on screen,
+        // so the two are directly comparable.
+        ScreenPoint hb = WorldToScreen.Project(
+            _snapshot.Matrix, player.WorldX, player.WorldY, player.WorldZ, width, height);
+        Row(
+            "marker",
+            $"({p.X:F0}, {p.Y:F0})   centre ({width / 2}, {height / 2})"
+            + $"   delta ({p.X - (width / 2f):F0}, {p.Y - (height / 2f):F0}) px",
+            figure: true);
+        Row(
+            "character",
+            $"{Math.Abs(hb.Y - p.Y):F0} px tall"
+            + $"   (world z {player.WorldZ:F0} vs ground {player.TerrainHeight:F0})",
+            figure: true);
+
+        if (!healthy && spread <= width * 0.05)
+        {
+            Row(string.Empty, "scene collapsed - the matrix offset is wrong.", colour);
+        }
+    }
+
+    /// <summary>The switches with no page of their own.</summary>
+    /// <remarks>
+    /// One line each and every one of them is reached for mid-fight, which is why they sit
+    /// under the readout rather than on the appearance page: a switch you have to go to
+    /// another tab for is a switch you flip after the thing you wanted it for has happened.
+    ///
+    /// IN TWO GROUPS, because they answer two different questions and used to be one list of
+    /// seven. "What gets drawn" and "when does the tool get out of the way" have nothing to do
+    /// with each other, and a reader who cannot see the join has to read all seven lines to
+    /// find the one they came for. The grouping is not decoration - it is the difference
+    /// between scanning and reading.
+    ///
+    /// AND WITH THEIR EXPLANATIONS IN TOOLTIPS. Every label here used to carry its own aside in
+    /// brackets - "Hide noise  (effects, pets, daemons - off to see everything)" - which is a
+    /// sentence read every time the page is opened by somebody who learned what it meant months
+    /// ago, and which made a block of seven checkboxes seven paragraphs tall. The name is on the
+    /// line; the explanation is under the pointer.
+    /// </remarks>
+    private void DrawSwitches()
+    {
+        OverlayLayout.Group("What Is Drawn");
+
+        // The points-of-interest window's switch lives on the Routes page with the rest of the
+        // routing - see PoiLayer.DrawRouteSettings.
+
+        if (_rooms is not null)
+        {
+            bool naming = _rooms.Enabled;
+            if (OverlayLayout.Toggle("Room Names on the Map", ref naming))
+            {
+                _rooms.Enabled = naming;
+                SettingsChanged?.Invoke();
+            }
+
+            OverlayLayout.Hint(
+                "What the game itself calls each part of the layout, on the large map."
+                + "\nPoint at one for its file, and ctrl + click it to pin it with a route.");
+
+            if (_rooms.Enabled)
+            {
+                // FIRST, because it is the one that does the work. An area is built from one
+                // module repeated, so the threshold in tiles below is a cliff rather than a
+                // slider - this is what separates a place from a building block.
+                int repeats = _rooms.MaxPlacements;
+                if (OverlayLayout.Slider("Named up to", ref repeats, 1, 40, "%d placements"))
+                {
+                    _rooms.MaxPlacements = repeats;
+                    SettingsChanged?.Invoke();
+                }
+
+                OverlayLayout.Hint(
+                    "A file placed eighty times in one area is a wall module, and labelling"
+                    + "\nall eighty buries the one room worth reading.");
+
+                int least = _rooms.MinTiles;
+                if (OverlayLayout.Slider("Smallest Room Named", ref least, 1, 32, "%d tiles"))
+                {
+                    _rooms.MinTiles = least;
+                    SettingsChanged?.Invoke();
+                }
+
+                OverlayLayout.Hint(
+                    "A one-tile room is a rock or a strip of wall, and there are hundreds."
+                    + "\nRooms with no ground to stand on are never named - the buildings and the"
+                    + "\nsea are tiles too, and they are most of what an area is built from.");
+
+                // On ENTER rather than per keystroke: every change here writes the settings
+                // file, and a filter typed a letter at a time would write it eight times.
+                string only = _rooms.Filter;
+                if (OverlayLayout.Search(
+                        "##rooms", "only rooms named...", ref only, 64,
+                        flags: ImGuiInputTextFlags.EnterReturnsTrue))
+                {
+                    _rooms.Filter = only;
+                    SettingsChanged?.Invoke();
+                }
+
+                // The way out of a pick that can no longer be seen. An endgame map is generated
+                // per instance, so a room pinned in one leaves a key that will never match a
+                // room again - invisible on the map, and still in the file.
+                // The ###id keeps the button ONE control while its label counts: ImGui takes a
+                // control's identity from its label, so a live number in one would make a new
+                // control every time it changed - and the click land on nothing.
+                if (_rooms.PinnedHere > 0
+                    && OverlayLayout.Actions($"Forget the {_rooms.PinnedHere} pinned here###forget-rooms") == 0)
+                {
+                    _rooms.Forget();
+                }
+            }
+        }
+
+        {
+            bool ground = _ground.Enabled;
+            if (OverlayLayout.Toggle("Ground Types on the Map", ref ground))
+            {
+                _ground.Enabled = ground;
+                SettingsChanged?.Invoke();
+            }
+
+            OverlayLayout.Hint(
+                "What the ground IS rather than which file drew it - the abyss, the fill,"
+                + "\nthe waypoint - in the names the area itself lists."
+                + "\nGround you can stand on is named; walls and ceilings only in an area"
+                + "\nwhere nothing else carries a name.");
+
+            if (_ground.Enabled)
+            {
+                // FIRST, because it is the one that does the work - the same order the room
+                // names put their two filters in, and for the same reason. Every patch of one
+                // type carries the same word, so the twentieth adds a position and no meaning.
+                int repeats = _ground.MaxPatches;
+                if (OverlayLayout.Slider("Named up to", ref repeats, 1, 20, "%d patches"))
+                {
+                    _ground.MaxPatches = repeats;
+                    SettingsChanged?.Invoke();
+                }
+
+                OverlayLayout.Hint(
+                    "One type winds through an area in dozens of separate pieces, and each one"
+                    + "\nis a label carrying the same word. The biggest are kept.");
+
+                int least = _ground.MinTiles;
+                if (OverlayLayout.Slider("Smallest Patch Named", ref least, 1, 64, "%d tiles"))
+                {
+                    _ground.MinTiles = least;
+                    SettingsChanged?.Invoke();
+                }
+
+                OverlayLayout.Hint(
+                    "What this drops is the ragged edge where two types meet."
+                    + "\nFew types does not mean few patches - size alone cannot thin them.");
+
+                // WHY THERE IS NOTHING ON THE MAP, which without this line is indistinguishable
+                // from the feature being broken. WRITTEN OUT rather than hinted: OverlayLayout
+                // .Hint is a hover tooltip, and the first version put this in one - so the
+                // sentence that explains an empty map was itself invisible unless somebody
+                // happened to point at the right control. A diagnostic nobody can see is not a
+                // diagnostic.
+                if (_ground.Note.Length > 0)
+                {
+                    ImGuiText.Wrapped(Quiet, ImGuiText.Escape(_ground.Note));
+                }
+
+                // AND WHAT THE ARRAY ACTUALLY HOLDS when the verdict was no. A one-line verdict
+                // says the pairing is wrong and nothing about the values, which is the only
+                // thing that decides what to do next - so the histogram sits right under it,
+                // and only there.
+                //
+                // ImGuiText.Mono rather than ImGui.TextColored, and the reason is the whole
+                // history of this feature: TextColored is printf, the first histogram went to
+                // it raw with two per-cent signs per row, and printf ate one of them and left
+                // the OTHER number standing under its label. Mono is TextUnformatted, so a row
+                // is drawn as written - and a table of figures wants the mono face anyway.
+                foreach (string line in _ground.Diagnosis)
+                {
+                    ImGuiText.Mono(Quiet, line);
+                }
+            }
+        }
+
+        if (Noise is not null)
+        {
+            bool filtering = Noise.Enabled;
+            if (OverlayLayout.Toggle("Hide Noise", ref filtering))
+            {
+                Noise.Enabled = filtering;
+                SettingsChanged?.Invoke();
+            }
+
+            OverlayLayout.Hint("Effects, pets and daemons. Off to see everything the game lists.");
+        }
+
+        if (Memory is not null)
+        {
+            bool remembering = Memory.Enabled;
+            if (OverlayLayout.Toggle("Keep What Is Out of Range", ref remembering))
+            {
+                Memory.Enabled = remembering;
+                SettingsChanged?.Invoke();
+            }
+
+            OverlayLayout.Hint("Places and drops the game has stopped listing stay on the map.");
+        }
+
+        bool labels = ShowLabels;
+        if (OverlayLayout.Toggle("Name Labels Beside the Dots", ref labels))
+        {
+            ShowLabels = labels;
+            SettingsChanged?.Invoke();
+        }
+
+        bool hurtOnly = _healthBars.OnlyWhenHurt;
+        if (OverlayLayout.Toggle("Health Bars Only Once Hurt", ref hurtOnly))
+        {
+            _healthBars.OnlyWhenHurt = hurtOnly;
+            SettingsChanged?.Invoke();
+        }
+
+        OverlayLayout.Hint("Off draws a bar over every monster, at full life included.");
+
+        OverlayLayout.Group("Getting Out of the Way");
+
+        bool behind = HideBehindPanels;
+        if (OverlayLayout.Toggle("Hide Markers Behind Big Panels", ref behind))
+        {
+            HideBehindPanels = behind;
+            SettingsChanged?.Invoke();
+        }
+
+        OverlayLayout.Hint("The stash, the skill tree, the atlas and the world map.");
+
+        bool windowsBehind = HideWindowsBehindPanels;
+        if (OverlayLayout.Toggle("Hide These Windows over a Panel", ref windowsBehind))
+        {
+            HideWindowsBehindPanels = windowsBehind;
+            SettingsChanged?.Invoke();
+        }
+
+        OverlayLayout.Hint("Only the windows actually lying on top of the open panel.");
+
+        _keepOut.DrawControls();
+    }
+
+    /// <summary>The kind filter and the projection probe. Both are --debug work.</summary>
+    private void DrawMeasuringControls(int width, int height)
+    {
+        // The kind breakdown doubles as the filter, since "what is out there" and "what do I
+        // want drawn" are the same question asked twice. Note the ##id suffix: ImGui derives a
+        // control's identity from its label, so a label carrying a live count would be a NEW
+        // control every frame and the click would never register.
+        foreach (IGrouping<EntityKind, WorldEntity> group in
+                 _snapshot.Entities.GroupBy(e => e.Kind).OrderBy(g => g.Key.ToString(), StringComparer.Ordinal))
+        {
+            bool drawn = DrawnKinds.Contains(group.Key);
+            if (ImGui.Checkbox($"{group.Key,-12} {group.Count()}##kind{group.Key}", ref drawn))
+            {
+                if (drawn)
+                {
+                    DrawnKinds.Add(group.Key);
+                }
+                else
+                {
+                    DrawnKinds.Remove(group.Key);
+                }
+            }
+        }
+
+        bool calibration = ShowCalibration;
+        if (OverlayLayout.Toggle("Calibration Aids", ref calibration))
+        {
+            ShowCalibration = calibration;
+        }
+
+        if (!ShowCalibration || _snapshot.Player is not WorldEntity subject)
+        {
+            return;
+        }
+
+        // Drag until the marker sits on the X the game's own map draws at the player's
+        // position, then read the number off. Reported in BOTH units because that is what
+        // separates the possible causes: a round world height means the wrong height is being
+        // fed in, while a value that only makes sense in pixels means the error is in screen
+        // space.
+        float probe = ProbeHeight;
+        if (OverlayLayout.Drag("Probe Height", ref probe, 0.5f, -200f, 200f, "%.0f world units"))
+        {
+            ProbeHeight = probe;
+        }
+
+        if (OverlayLayout.Actions("Reset the probe") == 0)
+        {
+            ProbeHeight = 0;
+        }
+
+        // The character's own height calibrates world units against pixels: the two rings are
+        // exactly its Render z above the ground.
+        float characterUnits = Math.Abs(subject.ModelBoundsZ);
+        ScreenPoint top = WorldToScreen.Project(
+            _snapshot.Matrix, subject.WorldX, subject.WorldY, subject.HealthBarZ, width, height);
+        ScreenPoint bottom = ProjectGround(subject, width, height);
+        float pixelsPerUnit = characterUnits > 0.01f
+            ? Math.Abs(top.Y - bottom.Y) / characterUnits
+            : 0f;
+
+        ImGui.TextUnformatted(pixelsPerUnit > 0.0001f
+            ? $"probe    {ProbeHeight:F0} world units = {ProbeHeight * pixelsPerUnit:F0} px"
+              + $"   (scale {pixelsPerUnit:F2} px per world unit)"
+            : "probe    scale unavailable - no character height to calibrate against");
+    }
+
+    /// <summary>
+    /// Draws entity dots on the game's own map, through the map's projection.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately NOT the camera matrix. The map is zoomable and this transform accounts
+    /// for it; markers projected with the matrix drift away from the game's own map markers
+    /// the moment the map is zoomed, which is what made a correct world projection look
+    /// broken.
+    ///
+    /// The large map wins when it is OPEN - the two swap, so both elements exist at all
+    /// times and only their visibility says which one the player is looking at. Everything
+    /// is clipped to the chosen map's rectangle: the projection places a marker by world
+    /// distance, which lands far outside a minimap for anything further away than its edge,
+    /// and a marker outside its map is just a dot in the middle of the game.
+    ///
+    /// AND TO WHAT IS LEFT OF THAT RECTANGLE once the game's own interface is taken out of it.
+    /// The large map's rectangle IS the window - the game draws it edge to edge and paints the
+    /// orbs, the bars and any open panel on top - so clipping to the rectangle alone leaves
+    /// this drawing over every one of them, which is the state this replaced. See
+    /// <see cref="MapKeepOut"/> for where the zones come from and why they are settings.
+    /// </remarks>
+    private void DrawMapDots(int width, int height)
+    {
+        if (_snapshot.Player is not WorldEntity player)
+        {
+            return;
+        }
+
+        MapView? chosen = _snapshot.LargeMap is MapView large && large.IsUsable && large.Visible ? large
+            : _snapshot.MiniMap is MapView mini && mini.IsUsable && mini.Visible ? mini
+            : null;
+
+        if (chosen is not MapView map)
+        {
+            return; // neither map on screen - the player hid them, so hide with them
+        }
+
+        map = map.Within(KeepOutOf(width, height));
+        if (map.Uncovered.Count == 0)
+        {
+            return; // the interface has the whole map; nothing to draw on
+        }
+
+        ImDrawListPtr draw = ImGui.GetBackgroundDrawList();
+
+        // UNDER EVERYTHING, including the layout: it is the ground the rest is read against,
+        // and a monster dot lost behind a heat patch is a marker that did not work.
+        if (Damage is DamageMeter measured)
+        {
+            _heat.Draw(draw, map, measured.Heat, player, _snapshot.AreaHash);
+        }
+
+        // Under the markers: the layout is context, not the thing being looked for.
+        if (ShowTerrain && Style.Visible(StyleCatalogue.Keys.Terrain) && _snapshot.Terrain is TerrainGrid terrain)
+        {
+            // The style wins where it says anything, and the settings page's colour and
+            // thickness stand where it does not. Two places can set this, and the one used
+            // LAST is the deliberate one: the page clears the style's say when it is used
+            // (below), and the style editor's next edit puts it back.
+            LayerStyle outline = Style[StyleCatalogue.Keys.Terrain];
+
+            // The page chose since the last frame, so the style's colour and width stand
+            // down - see ChooseTerrainStyle. Written down at once, or the old override would
+            // be back on the next launch.
+            if (Volatile.Read(ref _terrainStyleYields))
+            {
+                Volatile.Write(ref _terrainStyleYields, false);
+                if (!string.IsNullOrEmpty(outline.Colour) || outline.Width > 0f)
+                {
+                    outline = outline with { Colour = "", Width = 0f };
+                    Style.Set(StyleCatalogue.Keys.Terrain, outline);
+                    SaveStyle();
+                }
+            }
+
+            _terrain.Colour = outline.ColourOr(_terrainColour);
+            _terrain.Thickness = (int)outline.WidthOr(_terrainThickness);
+
+            _terrain.Draw(draw, map, terrain, new Vector3(player.WorldX, player.WorldY, player.TerrainHeight), Coverage);
+        }
+
+        // Over the layout and under the markers: it is context for where to go next, and a
+        // monster dot must never be lost behind it.
+        if (Coverage is MapCoverage walked)
+        {
+            _unwalked.Draw(draw, map, walked, player);
+        }
+
+        float radius = map.IsLargeMap ? 3.5f : 2.5f;
+
+        foreach (WorldEntity entity in _snapshot.Entities)
+        {
+            if (!DrawnKinds.Contains(entity.Kind) || !WorthDrawing(entity))
+            {
+                continue;
+            }
+
+            string key = KeyFor(entity);
+            if (!Style.Visible(key))
+            {
+                continue;
+            }
+
+            Vector2 projected = map.Project(
+                entity.WorldX, entity.WorldY, entity.TerrainHeight,
+                player.WorldX, player.WorldY, player.TerrainHeight);
+
+            // On the map it is drawn where it is; off it, pinned to the frame on the bearing
+            // it lies along - or dropped, when edge indicators are off for this map.
+            if (MapEdge.Place(
+                    Style, map, projected, Style.Sized(key, radius * SizeFor(entity)), FadeFor(entity))
+                is not (Vector2 at, float size, float fade))
+            {
+                continue;
+            }
+
+            if (!DrawIcon(draw, key, at, size, fade))
+            {
+                draw.AddCircleFilled(at, size, OverlayStyle.Faded(Style.Colour(key), fade));
+                draw.AddCircle(
+                    at, size, OverlayStyle.Faded(OutlineColour, fade), 10,
+                    Style.Width(StyleCatalogue.Keys.DotOutline, 1f));
+            }
+        }
+
+        // Over the entity dots, because it is TEXT: a name half behind a monster dot is not a
+        // quieter name, it is an unreadable one. Under the places, which still win.
+        //
+        // Called whether or not it draws anything: the rooms somebody pinned are handed to the
+        // place layer below, and it is this call that resolves them for the area.
+        //
+        // UNDER the room names, in draw order as in meaning: where both are on and two labels
+        // land on the same spot, the room's name is the more specific of the two and should be
+        // the one that stays legible.
+        _ground.DrawOnMap(draw, map, _snapshot, player);
+
+        // BEFORE the room names - see MapClicks.
+        bool outlineHovered = MapClicks(map, player);
+
+        if (_rooms is not null)
+        {
+            _rooms.Covered = outlineHovered;
+            _rooms.DrawOnMap(draw, map, _snapshot, player);
+
+            if (_poi is not null)
+            {
+                _poi.PickedRooms = _rooms.Picked;
+            }
+        }
+
+        AllRoomsOnMap(draw, map, player);
+        RoomGhostOnMap(draw, map, player);
+
+        // Over the entity dots: a landmark is what the map is being consulted for, so it wins
+        // when the two land on the same pixel.
+        _poi?.DrawOnMap(draw, map, _snapshot, player);
+
+        // Over the places: a monolith's price is the one figure the map is consulted FOR in an
+        // expedition. Not while the Runeshape panel is open - its rows say it better, and the
+        // labels would sit on the panel.
+        if (_monolithWatch is not null
+            && _runecraftWatch is { Settings: { Enabled: true, MapLabels: true } } recipes
+            && !recipes.View.Open)
+        {
+            _monoliths.Draw(draw, map, player, _monolithWatch.View, recipes.Settings);
+        }
+
+        // Over the labels: the chain is the map's answer to "where next" in an expedition, and
+        // a numbered charge wants to be read over the price it collects.
+        if (_expeditionWatch is { Settings.Enabled: true } planner)
+        {
+            _expedition.DrawOnMap(draw, map, player, _snapshot.Terrain, planner.View, planner.Settings);
+        }
+
+        if (ShowCalibration)
+        {
+            // The self-check for this projection: the player is the map's origin BY
+            // CONSTRUCTION, so this ring must sit exactly on the marker the game draws for
+            // the player on its own map. Nothing to eyeball and nothing to compare across
+            // screenshots - the game supplies the reference every frame.
+            uint colour = Style.Colour(StyleCatalogue.Keys.AidCentre);
+            draw.AddCircle(map.Centre, 9f, colour, 20, Style.Width(StyleCatalogue.Keys.AidCentre, 2f));
+            draw.AddText(map.Centre + new Vector2(12, -7), colour,
+                $"map centre - the game's player marker belongs here (zoom {map.Zoom:F2})");
+        }
+    }
+
+    /// <summary>
+    /// Marks where each monster's floating health bar should be, if the projection is right.
+    /// </summary>
+    /// <remarks>
+    /// This is the one check that needs no judgement about where a character's feet are. The
+    /// game draws a monster's health bar at that monster's Render z - the exact value we feed
+    /// the projection - so the bracket must land ON the bar the game itself drew. It is a
+    /// pixel-accurate reference point supplied by the game, for free, on every monster on
+    /// screen. If the brackets sit on the bars, the matrix and the height interpretation are
+    /// both confirmed, and any remaining gap to the feet is simply the character's height.
+    /// </remarks>
+    private void DrawHealthbarReferences(ImDrawListPtr draw, int width, int height)
+    {
+        uint colour = Style.Colour(StyleCatalogue.Keys.AidHealthbar);
+        float line = Style.Width(StyleCatalogue.Keys.AidHealthbar, 2f);
+        foreach (WorldEntity monster in _snapshot.Entities.Where(e => e.Kind == EntityKind.Monster))
+        {
+            ScreenPoint bar = WorldToScreen.Project(
+                _snapshot.Matrix, monster.WorldX, monster.WorldY, monster.HealthBarZ, width, height);
+            if (!bar.OnScreen)
+            {
+                continue;
+            }
+
+            // A bracket rather than a dot: it frames the game's bar instead of hiding it.
+            var at = new Vector2(bar.X, bar.Y);
+            draw.AddLine(at - new Vector2(18, 0), at - new Vector2(6, 0), colour, line);
+            draw.AddLine(at + new Vector2(6, 0), at + new Vector2(18, 0), colour, line);
+            draw.AddLine(at - new Vector2(18, 4), at - new Vector2(18, -4), colour, line);
+            draw.AddLine(at + new Vector2(18, 4), at + new Vector2(18, -4), colour, line);
+        }
+    }
+
+    /// <summary>
+    /// Widest pixel gap between any two projected entities - near zero when a bad matrix has
+    /// collapsed the scene onto one point.
+    /// </summary>
+    private double ScreenSpread(int width, int height)
+    {
+        double minX = double.MaxValue, maxX = double.MinValue;
+        double minY = double.MaxValue, maxY = double.MinValue;
+
+        // What the game is listing, not what is remembered: a sighting is out of the bubble
+        // by definition, so it projects far off screen and would inflate this on a correct
+        // matrix in proportion to how much of the map has been walked.
+        foreach (WorldEntity entity in _snapshot.Listed)
+        {
+            ScreenPoint point = WorldToScreen.Project(
+                _snapshot.Matrix, entity.WorldX, entity.WorldY, entity.TerrainHeight, width, height);
+            minX = Math.Min(minX, point.X); maxX = Math.Max(maxX, point.X);
+            minY = Math.Min(minY, point.Y); maxY = Math.Max(maxY, point.Y);
+        }
+
+        return maxX < minX ? 0 : Math.Max(maxX - minX, maxY - minY);
+    }
+
+    /// <summary>
+    /// A vital as "current/usable (percent)" - the usable pool, not the raw maximum.
+    /// </summary>
+    private static string Show(Vital vital)
+        => vital.Percent < 0 ? "-" : $"{vital.Current}/{vital.Unreserved} ({vital.Percent}%)";
+
+    /// <summary>How a panel's rectangle was arrived at, in words rather than as an enum name.</summary>
+    /// <remarks>
+    /// Read while something is being diagnosed, so it says what it MEANS: a measurement that can
+    /// be wrong reads differently from a rule that cannot. "by element" is the one that has
+    /// already been caught lying, on the atlas, on an ultrawide.
+    /// </remarks>
+    private static string Extent(PanelExtent from) => from switch
+    {
+        PanelExtent.Element => "by its own size",
+        PanelExtent.Children => "by what it draws",
+        PanelExtent.Kind => "whole screen by kind",
+        _ => "whole screen - nothing measurable",
+    };
+
+    /// <summary>
+    /// Whether an entity is worth a marker: the loot filter, and the things that are still in
+    /// the world while no longer being worth pointing at.
+    /// </summary>
+    /// <remarks>
+    /// Both draw loops pass through here, which is the point of it - the dots on the screen
+    /// and the dots on the game's map answer the same question and had drifted apart before.
+    ///
+    /// A drop whose rarity has not resolved yet is DRAWN. It is one frame old at most, and
+    /// showing a drop that turns out to be junk costs a moment of attention, while hiding
+    /// one that turns out to be a unique costs the drop.
+    /// </remarks>
+    private bool WorthDrawing(WorldEntity entity)
+    {
+        // An emptied chest is scenery. It was already excluded from the points of interest
+        // and not from the dots, so a looted map still showed every container on it.
+        if (entity.IsSpent)
+        {
+            return false;
+        }
+
+        // A thing the game says is not in the world. THE SAME OMISSION AS THE LINE ABOVE, found
+        // the same way and two months later: IsPlace has refused these since the Lurking
+        // Creature was drawn in an empty map, and the dots never asked.
+        //
+        // What that cost: a quest NPC the game spawns once at a player's FIRST Vaal chest and
+        // never again stayed in the entity list afterwards - awake, positioned, carrying the
+        // game's own NPC minimap icon - and a dot stood in front of every Vaal chest for the
+        // rest of the character's life. Replaying the capture of it settled where to look:
+        // the reader had it right all along, present=False and isPlace=False on both that NPC
+        // and the Lurking Creature, so nothing was wrong upstream of here.
+        //
+        // Only places can reach this. Present is read for an entity that is a point of
+        // interest and neither a monster nor a chest - on those two the same byte answers a
+        // different question - so everything else carries null and is unaffected.
+        if (entity.Present == false)
+        {
+            return false;
+        }
+
+        // Your own flame wall is not a dot. Only FRIENDLY effects get this far - the reader
+        // drops the hostile ones - and it keeps them deliberately, because whose side a thing
+        // is on is a fact while whether to draw it is a preference. This is where that
+        // preference lives, and it is the half that was missing: the health bars stopped and
+        // the dots did not, so one cast still covered the map in markers.
+        //
+        // Effects only, not friendly things in general. A minion or a totem is targetable, so
+        // it is not an effect and stays drawn - which is what the targetable clause is for.
+        if (entity.IsEffect)
+        {
+            return false;
+        }
+
+        // A monster the game has taken out of the fight - imprisoned by essences, a boss
+        // between phases. It stands there with a full bar and the map drew a rare's dot on the
+        // essence icon, which is how the two were told apart in the first place; see
+        // HiddenMonsters. The prison object keeps its own icon, so the place is still marked.
+        if (entity.IsHidden)
+        {
+            return false;
+        }
+
+        if (entity.Kind != EntityKind.WorldItem)
+        {
+            return true;
+        }
+
+        return entity.Rarity switch
+        {
+            ItemRarity.Currency => true,
+            ItemRarity.Unknown => true,
+            _ => entity.Rarity >= MinimumLootRarity,
+        };
+    }
+
+    /// <summary>Dark outline so dots stay readable over any background.</summary>
+    private uint OutlineColour => Style.Colour(StyleCatalogue.Keys.DotOutline);
+
+    /// <summary>
+    /// Which style entry an entity is drawn from: drops and monsters by rarity, the rest by
+    /// kind.
+    /// </summary>
+    /// <remarks>
+    /// The game's own item-label colours are the DEFAULTS behind these keys, because that is
+    /// the association already learned - a yellow dot means the same thing on the floor and on
+    /// the overlay, with nothing to translate. A monster's rarity is drawn from the same
+    /// palette for the same reason: which of forty dots is the rare pack leader is the
+    /// question a monster radar is being consulted for.
+    /// </remarks>
+    private static string KeyFor(WorldEntity entity) => entity.Kind switch
+    {
+        EntityKind.WorldItem => StyleCatalogue.ForRarity("entity.item", entity.Rarity),
+        EntityKind.Monster => StyleCatalogue.ForRarity("entity.monster", entity.Rarity),
+        _ => StyleCatalogue.ForKind(entity.Kind),
+    };
+
+    /// <summary>
+    /// How much bigger a dot is than the ordinary one, before the chosen scale.
+    /// </summary>
+    /// <remarks>
+    /// Colour alone is not enough for the thing that matters most here. A rare pack leader
+    /// among forty red dots has to be findable in the corner of an eye, and on a busy map at
+    /// three pixels a hue is the first thing lost - size survives where colour does not.
+    /// </remarks>
+    public static float SizeFor(WorldEntity entity) => entity.Kind == EntityKind.Monster
+        ? entity.Rarity switch
+        {
+            ItemRarity.Unique => 1.9f,
+            ItemRarity.Rare => 1.5f,
+            ItemRarity.Magic => 1.2f,
+            _ => 1f,
+        }
+        : 1f;
+
+    private static uint Pack(float r, float g, float b)
+        => ImGui.ColorConvertFloat4ToU32(new Vector4(r, g, b, 0.9f));
+}

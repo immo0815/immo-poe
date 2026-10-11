@@ -1,0 +1,4875 @@
+using System.Diagnostics;
+using System.Runtime.Versioning;
+using System.Text.Json;
+using PoEformance.Core.Diagnostics;
+using PoEformance.Core.Memory;
+using PoEformance.Core.Scanning;
+using PoEformance.Core.Schema;
+
+[assembly: SupportedOSPlatform("windows")]
+
+namespace PoEformance.App;
+
+/// <summary>
+/// The composition root. Everything the program does is wired here, by hand, in
+/// order - no dependency container, no reflection, no plugins. To understand the
+/// program, read this file top to bottom.
+/// </summary>
+/// <remarks>
+/// This is a THIN shell. The one thing it does that only works on Windows is attach to
+/// the game process; the actual drift-report engine lives in
+/// <see cref="DriftReport"/> in Core, so it runs against a live attach, a replay, or a
+/// synthetic test process, on any OS.
+///
+/// The attach + module scan happen ONCE; the report re-runs cheaply. So <c>--watch</c>
+/// keeps the tool attached and re-validates whenever the schema file changes on disk -
+/// edit an offset, save, see the new report, no rebuild and no re-attach. That is the
+/// whole point of "offsets are data".
+/// </remarks>
+internal static class Program
+{
+    private static int Main(string[] args)
+    {
+        var options = CliOptions.Parse(args);
+        Console.WriteLine("PoEformance (C# port) - drift report");
+
+        // What the tool HEARD, not what was typed - the one line that settles "but I always
+        // pass --overlay" against a launcher, a shortcut or a batch variable that quietly
+        // dropped it. Only the switches that change what runs; the probe flags answer for
+        // themselves in their own output.
+        Console.WriteLine("heard   overlay=" + OnOff(options.ShowOverlay)
+            + " config=" + OnOff(options.ShowConfig)
+            + " autoflask=" + OnOff(options.AutoFlask)
+            + (options.RecordPath is string recording ? $" record={recording}" : "")
+            + (options.ReplayPath is string replaying ? $" replay={replaying}" : "")
+            + (options.Debug ? " debug" : ""));
+
+        string schemaPath = options.SchemaPath ?? FindSchemaFile();
+        Console.WriteLine($"schema  {schemaPath}");
+
+        // Before the attach on purpose: this reads a FILE, so it must still answer when the
+        // game is not running - which is exactly when someone sits down to check why a
+        // flask key did not work.
+        if (options.ProbeKeys)
+        {
+            PoEformance.Features.KeyBindingProbe.Report(Console.Out);
+        }
+
+        // BEFORE THE ATTACH, and that is the point rather than an ordering accident. This says
+        // which build is running and whether the last restart was an update that worked - two
+        // answers that must not depend on the game being open, because the launch where they
+        // matter most is the one right after an update, with the game not started yet.
+        using var updates = new UpdateService(options.UpdateOutcome, options.UpdatedVersion);
+        updates.Start();
+
+        Console.WriteLine();
+
+        // ── Attach (or replay) - the only Windows-specific step ──────────────
+        IMemoryReader reader;
+        RecordingMemoryReader? recorder = null;
+        IntPtr gameWindow = IntPtr.Zero;
+
+        if (options.ReplayPath is not null)
+        {
+            reader = ReplayMemoryReader.Load(File.OpenRead(options.ReplayPath));
+            Console.WriteLine($"replay  {options.ReplayPath} ({((ReplayMemoryReader)reader).FrameCount} frames)");
+        }
+        else
+        {
+            Process? game = FindGameProcess();
+            if (game is null)
+            {
+                Console.Error.WriteLine("PathOfExile process not found. Start the game, or pass --replay <file>.");
+                return 1;
+            }
+
+            LiveMemoryReader? live = LiveMemoryReader.TryAttach(game);
+            if (live is null)
+            {
+                Console.Error.WriteLine($"Found PoE2 (pid {game.Id}) but could not open it for reading.");
+                Console.Error.WriteLine("Run the terminal as Administrator.");
+                return 1;
+            }
+
+            Console.WriteLine($"attach  pid {live.ProcessId}, module 0x{live.ModuleBase:X} ({live.ModuleSize / (1024 * 1024)} MB)");
+            WarnAboutOtherInstances();
+
+            // The overlay sizes itself to this window, so a wrong viewport is impossible.
+            gameWindow = game.MainWindowHandle;
+
+            if (options.RecordPath is not null)
+            {
+                recorder = new RecordingMemoryReader(live, File.Create(options.RecordPath));
+                reader = recorder;
+                Console.WriteLine($"record  {options.RecordPath}");
+            }
+            else
+            {
+                // Through a tap, so the capture key can record a few seconds of this session
+                // without anybody having asked for --record at launch - see TapMemoryReader.
+                reader = new TapMemoryReader(live);
+            }
+        }
+
+        using IMemoryReader _ = reader;
+
+        // The scanner copies the module image once and caches it, so re-running the
+        // report (in --watch) re-resolves statics against the cached image cheaply.
+        var scanner = new PatternScanner(reader);
+
+        DriftReportResult result = RunReportOnce(reader, scanner, schemaPath, recorder, options.Verbose);
+
+        // Store the resolved statics IMMEDIATELY, not at exit. Finding them needs the game's
+        // whole module image, which is far too large to record, so a replay depends entirely
+        // on these six notes - and a session that is closed with Ctrl+C, or that ends in the
+        // overlay, never reaches an exit-time write. An uploaded recording with no statics
+        // cannot be replayed at all, which is exactly what happened to the first one.
+        if (recorder is not null)
+        {
+            foreach (ResolvedStatic resolved in result.Statics.Where(s => s.Found))
+            {
+                recorder.NoteStatic(resolved.Name, resolved.Address);
+
+                // A static that only a fallback found is a schema edit waiting to happen, and
+                // the bytes it needs are on the console and nowhere else. The first patched
+                // recording (2026-09-05) carried the address and not the site, so which
+                // fallback hit and what the site reads had to be asked for again. Keep it.
+                if (resolved.ViaFallback && resolved.Candidates is { } candidates)
+                {
+                    foreach (StaticCandidate c in candidates.Where(c => c.Fingerprinted && c.Resolved == resolved.Address))
+                    {
+                        recorder.Note($"fallback:{resolved.Name}", $"{c.FallbackIndex} at {c.MatchAddress:X}: {c.SiteText()}");
+                    }
+                }
+            }
+        }
+
+        // ── Peek: one address somebody already found ─────────────────────────
+        // Before the world scan, because a peek is an answer to a question already being
+        // asked and everything below is background. It composes with --record on purpose:
+        // the sampling loop marks a frame per tick, so a hover experiment replays.
+        if (options.Peek.Count > 0)
+        {
+            // The statics come from the report above, so a path may be anchored on one by name
+            // ("GameStates,88,290,...") instead of on an RVA that is only right for this build.
+            RunPeek(
+                reader,
+                options.Peek,
+                options.PeekWatch,
+                recorder,
+                result.Statics.Where(s => s.Found).ToDictionary(s => s.Name, s => s.Address, StringComparer.OrdinalIgnoreCase));
+        }
+
+        // Probe the player and project its position - the end-to-end proof of the whole
+        // read chain. Running it here also means a --record session captures the component
+        // reads, so the projection can be verified offline from the recording.
+        if (result.Statics.FirstOrDefault(s => s.Name == "GameStates")?.Found == true)
+        {
+            OffsetSchema probeSchema = SchemaJson.Load(schemaPath);
+            ulong gameStates = result.Statics.First(s => s.Name == "GameStates").Address;
+            recorder?.MarkFrame();
+            new PoEformance.Game.Diagnostics.PlayerProbe(reader, probeSchema).ProbeAndReport(gameStates, Console.Out);
+            recorder?.MarkFrame();
+
+            // Same reasoning as the probe above, for the one Actor field nobody could ever
+            // check: it reads empty both when it is right and when it is 0x10 short, so it
+            // can only be settled while minions or totems are actually out. Unconditional
+            // because a recording carries only the reads that were performed, and every
+            // fixture in the repo is missing this one - which is exactly why the question
+            // stayed open. About a hundred bytes.
+            new PoEformance.Game.Diagnostics.DeployedEntitiesProbe(reader, probeSchema)
+                .Report(gameStates, Console.Out);
+            recorder?.MarkFrame();
+        }
+
+        // Scan the whole entity map once. Besides the readout, this is what puts the map
+        // traversal into a --record session so it can be replayed and tested offline.
+        ulong gameStatesAddress = result.Statics.FirstOrDefault(s => s.Name == "GameStates")?.Address ?? 0;
+
+        // Kept out of the block below so the auto-flask report can see the BELT. Without it
+        // that report cannot tell an unbound flask from a charm, and the two mean opposite
+        // things - see ReportAutoFlask.
+        PoEformance.Game.Components.FlaskBelt? belt = null;
+
+        if (gameStatesAddress != 0)
+        {
+            recorder?.MarkFrame();
+            OffsetSchema worldSchema = SchemaJson.Load(schemaPath);
+            PoEformance.Game.World.WorldSnapshot snapshot = ReportWorldScan(reader, worldSchema, gameStatesAddress);
+            belt = snapshot.FlaskBelt;
+            recorder?.MarkFrame();
+
+            // Verify the matrix against the whole scene, not just the player. Reading the
+            // scan window also puts it into a --record session, so the same hunt can be
+            // re-run offline against the recording.
+            RunMatrixHunt(reader, worldSchema, gameStatesAddress, snapshot);
+            recorder?.MarkFrame();
+
+            if (options.ProbeFlasks)
+            {
+                // The tables so the flask's own stats print as names rather than row numbers -
+                // "local_charges_used_+% -15" is the finding, "key 1715 -15" is homework.
+                // Loaded here rather than held, because this is the only path that wants them
+                // this early and it is opt-in.
+                var flasks = new PoEformance.Game.Diagnostics.FlaskProbe(
+                    reader,
+                    worldSchema,
+                    PoEformance.Game.Items.ItemNames.Load(
+                        FindDataFile("item-stats.json"),
+                        FindDataFile("item-names.json")));
+
+                flasks.Report(gameStatesAddress, Console.Out);
+                recorder?.MarkFrame();
+
+                // The interactive half, and the only way to tell a current charge count from a
+                // maximum: on a full flask they are the same number at every offset that holds
+                // either. Drinking separates them, so this samples while somebody does.
+                if (options.WatchFlasks)
+                {
+                    flasks.Watch(gameStatesAddress, Console.Out, KeyPressed);
+                    recorder?.MarkFrame();
+                }
+            }
+
+            // Opt-in, because it reads a couple of hundred kilobytes it has no other use for.
+            // That reading IS the point: a recording made with this on carries the regions a
+            // character's quest flags could live in, and two sessions have now failed to
+            // answer the question for the sole reason that nothing ever read them.
+            if (options.HuntQuestFlags)
+            {
+                var hunt = new PoEformance.Game.Diagnostics.QuestFlagHunt(reader, worldSchema);
+                hunt.Report(hunt.Run(gameStatesAddress, scanHeap: options.ScanHeap), Console.Out);
+                recorder?.MarkFrame();
+            }
+
+            // Opt-in and interactive: samples the player's Actor while the person plays the
+            // protocol it prints, hunting the action fields (ActionPtr / ActionId / the
+            // wrapper's Destination) that no reference carries PoE2 numbers for. Against a
+            // replay it steps the recording's own frames instead, which is what lets a hunt
+            // that was recorded once be re-scored offline after every analyzer change.
+            if (options.HuntActions)
+            {
+                RunActionHunt(reader, worldSchema, gameStatesAddress, recorder);
+            }
+
+            // The same shape one question further on: --actionhunt finds WHERE an action is
+            // aimed, this finds WHAT it is. Kept a separate switch because it costs far more
+            // per frame and answers nothing the other one is asked for.
+            if (options.HuntSkills)
+            {
+                RunSkillHunt(reader, worldSchema, gameStatesAddress, recorder);
+            }
+
+            // The two questions nineteen recordings cannot answer, for the one reason a
+            // recording ever cannot: nothing has ever read those bytes. This switch exists to
+            // put them in a --record file - see HoverHunt.
+            if (options.HuntHover)
+            {
+                RunHoverHunt(reader, worldSchema, gameStatesAddress, recorder);
+            }
+
+            // The map elements, both ways of reaching them, captured whole - the question the
+            // 0.5.5 patch left open and no recording could answer. See MapHunt.
+            if (options.HuntMap)
+            {
+                RunMapHunt(reader, worldSchema, gameStatesAddress, recorder);
+            }
+
+            if (options.SweepComponents)
+            {
+                RunComponentSweep(reader, worldSchema, gameStatesAddress, recorder);
+            }
+
+            // The same reason again, for the stash: what SORT a tab is has never been read, so
+            // no recording in the repo holds the bytes that would say. See InventorySweep.
+            if (options.SweepInventories)
+            {
+                RunInventorySweep(
+                    reader, worldSchema, gameStatesAddress, recorder, options.TabName);
+            }
+
+            if (options.DumpAnimations)
+            {
+                RunAnimationDump(reader, worldSchema, gameStatesAddress, recorder);
+            }
+        }
+
+        // Needs no game PROCESS at all - it reads the INSTALL, so it sits outside the block
+        // above, which is gated on being attached. Somebody diagnosing why their ground rings
+        // have no names should not have to launch the game to find out. Note the difference
+        // from the two below: those read tables the game has already LOADED, off FileRoot, so
+        // they need a process but no area; this one needs neither.
+        if (options.DumpGroundTypes)
+        {
+            RunGroundTypeDump();
+        }
+
+        // The same kind of thing and for the same reason - the install, no process. See RunAoDump.
+        if (options.DumpAo is { } wanted)
+        {
+            RunAoDump(wanted);
+        }
+
+        // And the hop after it: the skeletons those .ao files name. See RunAstDump.
+        if (options.DumpAst is { } rig)
+        {
+            RunAstDump(rig);
+        }
+
+        // And the pose those skeletons put a mesh in: where a monster's feet are. See RunPoseDump.
+        if (options.DumpPose is { } stance)
+        {
+            RunPoseDump(stance);
+        }
+
+        // And all of it at once, over every monster in the table. See RunModelDump.
+        if (options.DumpModels is { } sweep)
+        {
+            RunModelDump(sweep);
+        }
+
+        // OUTSIDE the block above on purpose. Everything in it hangs off the game state, and
+        // the loaded-file table does not: it hangs off FileRoot, so the tables are there at the
+        // login screen, before any area exists. That is also what makes them worth having -
+        // a table is the same table for every character and every zone.
+        if (options.ReadGlossary)
+        {
+            RunGlossary(
+                reader,
+                SchemaJson.Load(schemaPath),
+                result.Statics.FirstOrDefault(s => s.Name == "FileRoot" && s.Found)?.Address ?? 0,
+                Console.Out);
+            recorder?.MarkFrame();
+        }
+
+        if (options.ListTables)
+        {
+            RunTableList(
+                reader,
+                SchemaJson.Load(schemaPath),
+                result.Statics.FirstOrDefault(s => s.Name == "FileRoot" && s.Found)?.Address ?? 0,
+                Console.Out);
+            recorder?.MarkFrame();
+        }
+
+        // ── Auto-flask ───────────────────────────────────────────────────────
+        // Two sources, deliberately kept apart: WHAT to do comes from our settings file,
+        // WHICH KEY uses a flask comes from the GAME's own config. Assuming the key would
+        // work perfectly until someone rebinds one, and then fail with no symptom beyond
+        // "nothing happens" - see FlaskKeyBindings.
+        var flaskKeys = PoEformance.Features.FlaskKeyBindings.Load();
+        var flaskSettings = PoEformance.Features.AutoFlaskSettingsStore.Load();
+        var autoFlask = new PoEformance.Features.AutoFlask(
+            flaskSettings.ToRules(flaskKeys),
+            enabled: flaskSettings.Enabled || options.AutoFlask);
+        if (options.ShowOverlay || options.ShowConfig || options.AutoFlask)
+        {
+            ReportAutoFlask(autoFlask, flaskKeys, flaskSettings, belt, forcedOn: options.AutoFlask);
+
+            if (!options.ShowConfig)
+            {
+                Console.WriteLine("           (pass --config for the settings window - that is where slots");
+                Console.WriteLine("           are switched on; it can stay open while the overlay runs)");
+            }
+        }
+
+        // The rule engine takes the same two sources: what to do from our file, which key from
+        // the game's own bindings - which is why the binding is handed in rather than copied
+        // into each effect. An effect bound to a belt slot follows a rebind; one that names a
+        // key does not, and that is the user's choice to make.
+        var ruleEngine = new PoEformance.Features.RuleEngine();
+        ruleEngine.Configure(PoEformance.Features.RuleSettingsStore.Read());
+        ruleEngine.Bind(flaskKeys);
+        var ruleHistory = new PoEformance.Features.RuleHistory();
+
+        // What the character has had on, so a buff condition can be picked from a list. The
+        // name a rule matches is the ENGINE identifier, which is nowhere on the player's own
+        // screen - so without this a buff rule is written by guessing at a spelling.
+        var buffWatch = new PoEformance.Features.BuffWatch();
+
+        // What is about to land on the player. Created HERE rather than inside the overlay loop
+        // because the config window starts first and edits the same planner: two of them would
+        // mean the window changing settings that the reader never sees, which is the shape of
+        // "the switch does nothing" that this tool has no way of showing.
+        var evasionPlanner = new PoEformance.Features.EvasionPlanner(
+            PoEformance.Features.EvasionSettingsStore.Load());
+
+        // The config window runs on its own thread so it can be open WHILE the overlay is,
+        // which is what makes its switches worth having: a setting that needs a restart is
+        // a settings file with extra steps.
+        // The overlay does not exist yet - the config window starts first so it is already
+        // up while the overlay runs - so the two are joined by a handle the config thread
+        // fills in later rather than by a reference that cannot be taken yet.
+        var overlayHandle = new OverlayHandle();
+        var overlaySettings = PoEformance.Features.OverlaySettingsStore.Load();
+
+        // What dangerous-looking ground this session has met, so a path can be PICKED in the
+        // config window instead of typed from memory. Fed from the read loops rather than from
+        // the window's own poll, for the reason the buff list is: what somebody wants a rule
+        // about is usually gone by the time they have alt-tabbed to write one.
+        var groundWatch = new PoEformance.Features.GroundWatch();
+
+        // The tracker's settings, loaded HERE rather than at the overlay's attach, because two
+        // windows now edit them: the overlay's own tab owns most of them and the config window's
+        // ground panel owns the rule list. One copy each would let a save from either silently
+        // discard the other's edits.
+        PoEformance.Features.TrackerSettings tracker = PoEformance.Features.TrackerStore.Load();
+        void WriteTracker(PoEformance.Features.TrackerSettings changed)
+        {
+            tracker = changed.Normalised();
+            SaveWarning(
+                PoEformance.Features.TrackerStore.Save(tracker),
+                PoEformance.Features.TrackerStore.DefaultPath);
+
+            // Null until the overlay actually starts, which is the normal state for a --config
+            // run: the setting is still saved, it just has nothing to apply to yet.
+            if (overlayHandle.Overlay is PoEformance.Overlay.EntityOverlay live)
+            {
+                live.Tracker = tracker;
+            }
+        }
+
+        // Topmost only when the overlay is up, i.e. when a fullscreen game would otherwise
+        // hide it. On its own it is an ordinary window and should behave like one.
+        Thread? configWindow = options.ShowConfig
+            ? StartConfigWindow(
+                reader, schemaPath, result, gameStatesAddress, autoFlask, flaskKeys, flaskSettings,
+                overlaySettings, ruleEngine, buffWatch, evasionPlanner, overlayHandle, updates,
+                groundWatch, () => tracker, WriteTracker,
+                alwaysOnTop: options.ShowOverlay)
+            : null;
+
+        bool overlayRuns = options.ShowOverlay && options.ReplayPath is null && gameStatesAddress != 0;
+        if (overlayRuns)
+        {
+            // The letterbox bar width. UI positions are scaled by the window MINUS these
+            // bars and then shifted by one, so a missing cull misplaces every UI-derived
+            // coordinate on anything that is not 16:10.
+            ResolvedStatic? cullStatic = result.Statics.FirstOrDefault(s => s.Name == "GameCullSize" && s.Found);
+            int cull = cullStatic is { Address: not 0 } found ? reader.Read<int>(found.Address) : 0;
+            if (cull is < 0 or > 2000)
+            {
+                cull = 0; // a mis-resolved pattern would poison every width-scaled rect
+            }
+
+            // The within-tile terrain heights need these two engine tables. A scan that
+            // comes up empty leaves the map on tile-level heights, so this is read
+            // permissively rather than checked.
+            var rotation = new PoEformance.Game.World.TerrainRotationTables(
+                result.Statics.FirstOrDefault(s => s.Name == "TerrainRotationSelector" && s.Found)?.Address ?? 0,
+                result.Statics.FirstOrDefault(s => s.Name == "TerrainRotatorHelper" && s.Found)?.Address ?? 0);
+
+            RunOverlay(
+                reader, SchemaJson.Load(schemaPath), gameStatesAddress, gameWindow, cull, autoFlask,
+                ruleEngine, ruleHistory, buffWatch, groundWatch, evasionPlanner, rotation,
+                debug: options.Debug, settings: overlaySettings, handle: overlayHandle,
+                uiBrowser: options.ShowUiBrowser, updates: updates,
+                tracker: tracker, writeTracker: WriteTracker,
+                fileRoot: result.Statics.FirstOrDefault(s => s.Name == "FileRoot" && s.Found)?.Address ?? 0,
+                areaCounter: result.Statics.FirstOrDefault(s => s.Name == "AreaChangeCounter" && s.Found)?.Address ?? 0,
+                recorder: recorder,
+                statics: [.. result.Statics.Where(s => s.Found)]);
+        }
+        else if (gameStatesAddress != 0 && options.ReplayPath is null
+                 && (options.ShowConfig || options.AutoFlask))
+        {
+            // The rules and auto-flask WITHOUT the overlay. They used to live only inside
+            // RunOverlay's read loop, which quietly made --overlay a precondition for every
+            // form of automation: --config alone gave a settings window whose rules said
+            // "not started" forever, and --autoflask alone did nothing at all. The AHK tool
+            // this replaces never had an overlay, so the coupling was an accident of where
+            // the code happened to sit, not a design.
+            RunRulesWithoutOverlay(
+                reader, SchemaJson.Load(schemaPath), gameStatesAddress, gameWindow,
+                autoFlask, ruleEngine, ruleHistory, buffWatch, groundWatch, overlayHandle,
+                configWindow);
+        }
+
+        configWindow?.Join();
+
+        if (options.Watch && options.ReplayPath is null)
+        {
+            WatchSchema(reader, scanner, schemaPath, recorder, options.Verbose);
+        }
+
+        if (recorder is not null && options.RecordPath is not null)
+        {
+            recorder.Dispose(); // flush before measuring
+            long bytes = new FileInfo(options.RecordPath).Length;
+            Console.WriteLine();
+            Console.WriteLine($"recorded {bytes / 1024.0:F0} KB to {options.RecordPath} "
+                + $"({recorder.SkippedLargeReads} oversized reads skipped - the module image is not needed for replay)");
+            Console.WriteLine($"        {recorder.RecordedBytes / 1024.0:F0} KB of reads written, "
+                + $"{recorder.SkippedUnchangedReads:N0} reads left out because nothing about them had moved");
+            if (recorder.ReachedSizeLimit)
+            {
+                Console.WriteLine("        the size cap stopped recording partway - the file still holds the "
+                    + "startup chain and diagnostics, which is what replays.");
+            }
+        }
+
+        return result.GameStatesResolved ? 0 : 2;
+    }
+
+    /// <summary>How often the quest flag set is re-read while the overlay runs.</summary>
+    /// <remarks>
+    /// A second. The read itself is a handful of small reads, but the join behind it walks a
+    /// few thousand quest states, and no quest step changes between two frames of anything.
+    /// </remarks>
+    private const int QuestFlagIntervalMs = 1000;
+
+    /// <summary>A tileset's extension - see the tile walk in the install setup.</summary>
+    private const string TilesetExtension = ".tsi";
+
+    /// <summary>Where the install keeps its shader sources, if it ships any - every path under it is kept.</summary>
+    private const string ShaderFolder = "Shaders/";
+
+    /// <summary>What a material is called wherever it is - the graph survey reads every one.</summary>
+    private const string MaterialExtension = ".mat";
+
+    /// <summary>What an environment is called wherever it is - the env survey reads every one.</summary>
+    private const string EnvironmentExtension = ".env";
+
+    /// <summary>What a shader source is called wherever it is - the tile dump searches them for the ground's coordinates.</summary>
+    private static readonly string[] ShaderExtensions = [".ffx", ".hlsl", ".hlsli", ".fxh"];
+
+    /// <summary>How often <c>--peekwatch</c> re-reads the addresses it is watching.</summary>
+    /// <remarks>
+    /// Ten times a second, which is fast enough that a hover and its release land in
+    /// different samples and slow enough to cost nothing next to the overlay's own reads.
+    /// </remarks>
+    private const int PeekSampleMs = 100;
+
+    /// <summary>
+    /// Reports on the addresses given with <c>--peek</c>, and keeps sampling them under
+    /// <c>--peekwatch</c>.
+    /// </summary>
+    /// <remarks>
+    /// The sampling is the half that answers questions. One reading of an unknown slot says
+    /// almost nothing; two readings with something done in the game in between say which slot
+    /// is that thing - hover the item, take the hand off, and what printed is the short list.
+    ///
+    /// The path is resolved AGAIN every tick rather than once. A pointer path exists precisely
+    /// because the object moves, and a window pinned to where it used to be would keep
+    /// reporting "nothing changed" about somebody else's memory.
+    /// </remarks>
+    private static void RunPeek(
+        IMemoryReader reader,
+        IReadOnlyList<string> paths,
+        bool watch,
+        RecordingMemoryReader? recorder,
+        Dictionary<string, ulong> statics)
+    {
+        var watching = new List<(string Text, PointerPath Path, ulong Start, ulong ObjectBase, ulong?[] Last, AddressPeek.PeekWatchLog Log)>();
+
+        Console.WriteLine();
+        Console.WriteLine("peek");
+
+        foreach (string text in paths)
+        {
+            if (!PointerPath.TryParse(text, out PointerPath? path, out string error, statics.Keys) || path is null)
+            {
+                Console.WriteLine($"  {text}: {error}");
+                continue;
+            }
+
+            Console.WriteLine($"  {text}");
+            recorder?.MarkFrame();
+            foreach (string line in AddressPeek.Report(reader, path, statics: statics))
+            {
+                Console.WriteLine("  " + line);
+            }
+
+            Console.WriteLine();
+
+            PathResolution at = path.Resolve(reader, statics);
+            if (at.Ok)
+            {
+                (ulong start, int slots, _) = AddressPeek.Window(at.Target, AddressPeek.DefaultBefore, AddressPeek.DefaultAfter);
+                watching.Add((text, path, start, at.ObjectBase, AddressPeek.Sample(reader, start, slots), new AddressPeek.PeekWatchLog()));
+            }
+        }
+
+        if (!watch || watching.Count == 0)
+        {
+            return;
+        }
+
+        Console.WriteLine("  watching - do the thing in the game and the slots that moved will print.");
+        Console.WriteLine("  Any key to stop.");
+        Console.WriteLine();
+
+        var started = System.Diagnostics.Stopwatch.StartNew();
+        while (!KeyPressed())
+        {
+            Thread.Sleep(PeekSampleMs);
+            recorder?.MarkFrame();
+
+            for (int i = 0; i < watching.Count; i++)
+            {
+                (string text, PointerPath path, ulong start, ulong objectBase, ulong?[] last, AddressPeek.PeekWatchLog log) = watching[i];
+
+                PathResolution at = path.Resolve(reader, statics);
+                if (!at.Ok)
+                {
+                    continue;
+                }
+
+                (ulong now, int slots, _) = AddressPeek.Window(at.Target, AddressPeek.DefaultBefore, AddressPeek.DefaultAfter);
+                ulong?[] sample = AddressPeek.Sample(reader, now, slots);
+
+                if (now != start)
+                {
+                    // The object itself moved. Saying so is the finding; diffing the old
+                    // window against the new one would print every slot as "changed".
+                    Console.WriteLine($"  [{started.Elapsed.TotalSeconds,7:F1}s] {text}: the path now lands on 0x{at.Target:X}"
+                        + $" (object 0x{at.ObjectBase:X}) - window restarted");
+                    watching[i] = (text, path, now, at.ObjectBase, sample, log);
+                    continue;
+                }
+
+                foreach (AddressPeek.SlotChange change in log.Observe(last, sample))
+                {
+                    if (!change.Print)
+                    {
+                        continue;
+                    }
+
+                    ulong address = now + (ulong)(change.Slot * 8);
+                    Console.WriteLine($"  [{started.Elapsed.TotalSeconds,7:F1}s] {text}");
+                    Console.WriteLine("  " + AddressPeek.Line(reader, address, objectBase, change.Before, change.After));
+
+                    if (change.LastPrint)
+                    {
+                        Console.WriteLine("               (this one keeps moving - quiet from here, see the summary)");
+                    }
+                }
+
+                watching[i] = (text, path, start, objectBase, sample, log);
+            }
+        }
+
+        // The tally, which is where the answer actually is: a slot taking two values over and
+        // over is a state, and one that never repeats is a clock. Neither shows a line at a time.
+        foreach ((string text, _, ulong start, ulong objectBase, _, AddressPeek.PeekWatchLog log) in watching)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"  {text}");
+            foreach (string line in log.Summary(start, objectBase))
+            {
+                Console.WriteLine("  " + line);
+            }
+        }
+    }
+
+    /// <summary>Whether a key is waiting, tolerating a console that has no keyboard.</summary>
+    /// <remarks>
+    /// <c>KeyAvailable</c> throws when input is redirected - which is exactly how this tool is
+    /// run from a script - and an unhandled throw there would end a watch that was working.
+    /// </remarks>
+    private static string OnOff(bool value) => value ? "on" : "off";
+
+    private static bool KeyPressed()
+    {
+        try
+        {
+            return Console.KeyAvailable;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Loads the schema fresh from disk (so <c>--watch</c> picks up edits) and runs one
+    /// report to the console via the Core engine.
+    /// </summary>
+    private static DriftReportResult RunReportOnce(IMemoryReader reader, PatternScanner scanner, string schemaPath, RecordingMemoryReader? recorder, bool verbose)
+    {
+        OffsetSchema schema = SchemaJson.Load(schemaPath);
+        Console.WriteLine($"{schema.Structs.Count} structs, {schema.Statics.Count} statics, game version \"{schema.GameVersion}\"");
+        Console.WriteLine();
+        recorder?.MarkFrame();
+
+        IReadOnlyDictionary<string, ulong>? knownStatics =
+            reader is ReplayMemoryReader replay && replay.ResolvedStatics.Count > 0
+                ? replay.ResolvedStatics
+                : null;
+
+        DriftReportResult result = DriftReport.Run(reader, scanner, schema, Console.Out, verbose, knownStatics);
+
+        recorder?.MarkFrame();
+        return result;
+    }
+
+    /// <summary>
+    /// Reads the whole entity map once and prints a breakdown, so the entity layer can be
+    /// sanity-checked from the console before any pixels are drawn.
+    /// </summary>
+    private static PoEformance.Game.World.WorldSnapshot ReportWorldScan(IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic)
+    {
+        var world = new PoEformance.Game.World.WorldReader(reader, schema);
+        PoEformance.Game.World.WorldSnapshot snapshot = world.Read(gameStatesStatic);
+
+        Console.WriteLine();
+        Console.WriteLine("world scan");
+        if (!snapshot.InGame)
+        {
+            Console.WriteLine("  --    not in an area.");
+            return snapshot;
+        }
+
+        Console.WriteLine($"  entities with a position: {snapshot.Entities.Count}");
+        foreach (IGrouping<PoEformance.Game.World.EntityKind, PoEformance.Game.World.WorldEntity> group
+                 in snapshot.Entities.GroupBy(e => e.Kind).OrderByDescending(g => g.Count()))
+        {
+            Console.WriteLine($"    {group.Key,-10} {group.Count()}");
+        }
+
+        // A couple of concrete monsters make it obvious at a glance that real entities were
+        // read, not just counted.
+        foreach (PoEformance.Game.World.WorldEntity monster
+                 in snapshot.Entities.Where(e => e.Kind == PoEformance.Game.World.EntityKind.Monster).Take(5))
+        {
+            Console.WriteLine($"    monster  {monster.ShortName} @ ({monster.WorldX:F0}, {monster.WorldY:F0})");
+        }
+
+        return snapshot;
+    }
+
+    /// <summary>
+    /// Sampling cadence of the action hunt. The rotation recordings resolved 94 ms turns at
+    /// ~47 ms a sample, so 50 ms comfortably resolves casts and click-moves.
+    /// </summary>
+    private const int ActionSampleMs = 50;
+
+    /// <summary>
+    /// Consecutive empty ticks before a live hunt gives up (~5 s) - reached when the game
+    /// leaves the world, so a hunt started in a menu says so instead of hanging.
+    /// </summary>
+    private const int ActionHuntMostFailures = 100;
+
+    /// <summary>
+    /// Reads the whole animation-name table out of the game and writes it beside the executable.
+    /// </summary>
+    /// <remarks>
+    /// SHORT BY DESIGN, unlike the hunts: nothing is being searched for. It samples only until
+    /// two different animations agree on the row array's base - usually a few seconds of moving
+    /// and hitting something - and then reads every row in one pass.
+    ///
+    /// It writes a NEW file and prints the diff rather than replacing data/animations.tsv. A
+    /// dozen behaviours classify off those names, so re-extracting them is a deliberate act with
+    /// a diff somebody looked at, the same way an offset change is.
+    /// </remarks>
+    /// <summary>
+    /// Walks the loaded-file table, names every dat table in it, and reads the glossary.
+    /// </summary>
+    /// <remarks>
+    /// THE ROUTE IS THE POINT, more than the words it prints. Until a dat table turned out to
+    /// be a loaded-file record, the tables this tool could read were the ones something on
+    /// screen happened to point at; this walks from a static to any of them by name. The
+    /// glossary is what it was written for, and is also the check that the route arrived
+    /// somewhere real - a wrong turn does not produce readable English.
+    ///
+    /// Worth running with --record. No recording in this repo has ever read a file record's
+    /// row store, because the preload walk stops one byte short of it, so the last hop of this
+    /// route has no fixture behind it. This run is what would give it one.
+    /// </remarks>
+    private static void RunGlossary(
+        IMemoryReader reader, OffsetSchema schema, ulong fileRootStatic, TextWriter output)
+    {
+        output.WriteLine();
+        if (fileRootStatic == 0)
+        {
+            output.WriteLine("glossary  the FileRoot static did not resolve - no file table to walk.");
+            return;
+        }
+
+        var tables = new PoEformance.Game.Files.LoadedDatTables(reader, schema);
+        IReadOnlyList<PoEformance.Game.Files.LoadedDatTable> loaded = tables.Read(fileRootStatic);
+        output.WriteLine(
+            $"glossary  {loaded.Count} dat tables among {tables.RecordsWalked} loaded files");
+
+        if (tables.LastError.Length > 0)
+        {
+            output.WriteLine($"          {tables.LastError}");
+        }
+
+        PoEformance.Game.Files.KeywordGlossary glossary =
+            PoEformance.Game.Files.KeywordGlossary.Read(tables, reader, schema);
+
+        if (glossary.Table is not { } found)
+        {
+            output.WriteLine($"          {glossary.LastError}");
+
+            // A few of the tables that WERE found, so a walk that arrived somewhere can be told
+            // from one that arrived nowhere. Those are different problems and look identical
+            // from a count.
+            foreach (PoEformance.Game.Files.LoadedDatTable table in loaded.Take(6))
+            {
+                output.WriteLine(
+                    $"            {table.Facts.Path} - {table.Facts.Rows} rows of 0x{table.Facts.RowSize:X}");
+            }
+
+            return;
+        }
+
+        output.WriteLine(
+            $"          {found.Facts.Path} at 0x{found.Address:X} - {found.Facts.Rows} rows "
+            + $"of 0x{found.Facts.RowSize:X}, {glossary.ById.Count} keywords read");
+        output.WriteLine();
+
+        foreach (PoEformance.Game.Files.KeywordPopup entry in glossary.ById.Values.Take(8))
+        {
+            output.WriteLine($"  {entry.Id,-22}  {entry.Term}");
+            if (entry.Definition.Length > 0)
+            {
+                output.WriteLine(
+                    $"  {string.Empty,-22}  {PoEformance.Game.Files.KeywordGlossary.Plain(entry.Definition)}");
+            }
+        }
+
+        // The table explaining itself: a definition written in the markup, rendered, and then
+        // the keywords inside it looked up in the same table. If that reads as English, every
+        // hop from the static to the string pool is right.
+        // Take(1) over a filter rather than FirstOrDefault: these are structs, so "none found"
+        // and "the first one" are the same value and a null check would print the empty entry.
+        foreach (PoEformance.Game.Files.KeywordPopup example in glossary.ById.Values
+                     .Where(e => PoEformance.Game.Files.KeywordGlossary.KeysIn(e.Definition).Count > 0)
+                     .Take(1))
+        {
+            output.WriteLine();
+            output.WriteLine($"  {example.Term}: {PoEformance.Game.Files.KeywordGlossary.Plain(example.Definition)}");
+            foreach (string key in PoEformance.Game.Files.KeywordGlossary.KeysIn(example.Definition))
+            {
+                output.WriteLine(
+                    glossary.Lookup(key) is { } popup
+                        ? $"    -> {key} = {popup.Term}"
+                        : $"    -> {key} is not a row of this table");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Lists every dat table the game has loaded, and the .dat files that are not one.
+    /// </summary>
+    /// <remarks>
+    /// A TABLE REPORTS ITS OWN ROW SIZE, which is what makes this more than a listing: the row
+    /// store divides its rows by its by-Id index, so every line here is a number the game
+    /// computed. Checking those against the column widths in the schema is what turned a
+    /// three-table confirmation into a 123-table one - see the note above WorldAreaDat - and
+    /// re-running it after a patch is how the next disagreement gets found.
+    ///
+    /// The refused list is the open question in printable form. Four tables this tool reads rows
+    /// from were missing from the 131 a live walk found, and no recording can say why, because
+    /// a record that fails the checks never has its name read. This reads them.
+    /// </remarks>
+    private static void RunTableList(
+        IMemoryReader reader, OffsetSchema schema, ulong fileRootStatic, TextWriter output)
+    {
+        output.WriteLine();
+        if (fileRootStatic == 0)
+        {
+            output.WriteLine("tables    the FileRoot static did not resolve - no file table to walk.");
+            return;
+        }
+
+        var tables = new PoEformance.Game.Files.LoadedDatTables(reader, schema);
+        PoEformance.Game.Files.DatTableSurvey survey = tables.Survey(fileRootStatic);
+
+        output.WriteLine(
+            $"tables    {survey.Tables.Count} dat tables among {survey.Records} loaded files");
+
+        if (tables.LastError.Length > 0)
+        {
+            output.WriteLine($"          {tables.LastError}");
+        }
+
+        // THE NUMBER EVERYTHING ABOVE IS SCALED BY. If sixteen buckets were too small then every
+        // count here is a fraction and "not in the file table" only ever meant "not in the part
+        // we look at". No recording can check it - nothing had ever read past the last bucket -
+        // so it is checked here, where the game is. It came back clean on 2026-09-01; printed
+        // every run because the answer belongs to a build rather than to the game forever.
+        int beyond = new PoEformance.Game.World.PreloadReader(reader, schema)
+            .BucketsBeyondTheCount(fileRootStatic);
+
+        output.WriteLine(
+            beyond == 0
+                ? "          nothing past the last bucket looks like one, so the count holds."
+                : $"          WARNING: {beyond} slots past the last bucket ALSO look like buckets - "
+                    + "BucketCount is too small and every walk of this table has been partial.");
+
+        output.WriteLine();
+        foreach (PoEformance.Game.Files.LoadedDatTable table in survey.Tables
+                     .OrderBy(t => t.Facts.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            output.WriteLine(
+                $"  {table.Facts.Name,-46} {table.Facts.Rows,7} rows of 0x{table.Facts.RowSize:X}");
+        }
+
+        output.WriteLine();
+        if (survey.Refused.Count == 0)
+        {
+            // Which is itself an answer: every .dat file in the table is a parsed table, so the
+            // ones missing from the list above are missing from the FILE TABLE, not unparsed.
+            output.WriteLine("          every .dat file in the table resolved as a table.");
+            return;
+        }
+
+        output.WriteLine($"          {survey.Refused.Count} .dat files did NOT resolve as tables:");
+        foreach (string path in survey.Refused.Order(StringComparer.OrdinalIgnoreCase))
+        {
+            output.WriteLine($"            {path}");
+        }
+    }
+
+    private static void RunAnimationDump(
+        IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic, RecordingMemoryReader? recorder)
+    {
+        var dump = new PoEformance.Game.Diagnostics.AnimationDump(reader, schema);
+
+        if (reader is ReplayMemoryReader replay)
+        {
+            for (uint frame = 0; frame < replay.FrameCount; frame++)
+            {
+                // SEEK FIRST, THEN SAMPLE. The other way round reads whatever frame the reader
+                // happened to be parked on and then moves - which on a replay samples one frame
+                // behind throughout, and leaves the reader somewhere arbitrary afterwards.
+                replay.Seek(frame);
+                if (dump.Sample(gameStatesStatic))
+                {
+                    break;
+                }
+            }
+
+            // The walk needs the frame the live run made its reads on. The last one carries the
+            // newest recorded value of every address, so it is the only position that can hold a
+            // whole table read at some single moment.
+            if (replay.FrameCount > 0)
+            {
+                replay.Seek((uint)(replay.FrameCount - 1));
+            }
+        }
+        else
+        {
+            Console.WriteLine();
+            Console.WriteLine("animation table dump - reading the game's own names.");
+            Console.WriteLine();
+            Console.WriteLine("  MOVE AROUND AND HIT SOMETHING. The row array's base comes from");
+            Console.WriteLine("  seeing real animations, and TWO DIFFERENT ones have to agree on");
+            Console.WriteLine("  it - standing still in town will never confirm it.");
+            Console.WriteLine("  Press a key to give up.");
+            Console.WriteLine();
+
+            int ticks = 0;
+            while (!KeyPressed() && !dump.Sample(gameStatesStatic))
+            {
+                recorder?.MarkFrame();
+
+                if (++ticks % 100 == 0)
+                {
+                    Console.WriteLine(
+                        $"  ... still waiting for a second animation ({dump.Table.Observations} sighting(s))");
+                }
+
+                Thread.Sleep(ActionSampleMs);
+            }
+        }
+
+        PoEformance.Game.Components.AnimationNames shipped =
+            PoEformance.Game.Components.AnimationNames.Load(FindDataFile("animations.tsv"));
+        PoEformance.Game.Diagnostics.AnimationDumpResult result = dump.Read(shipped);
+        PoEformance.Game.Diagnostics.AnimationDump.Report(result, Console.Out, dump.Slots);
+
+        if (result.Confirmed && result.Names.Count > 0)
+        {
+            string path = Path.Combine(AppContext.BaseDirectory, "animations.generated.tsv");
+            PoEformance.Game.Diagnostics.AnimationDump.WriteTsv(
+                result,
+                path,
+                $"Read {DateTimeOffset.Now:yyyy-MM-dd}, base confirmed by animations "
+                + $"{result.ConfirmedBy.First} and {result.ConfirmedBy.Second}.");
+
+            Console.WriteLine();
+            Console.WriteLine($"  written to {path}");
+            Console.WriteLine("  Diff it against data/animations.tsv before replacing anything.");
+        }
+    }
+
+    /// <summary>
+    /// Runs the skill-name hunt: follows the skill object out to whatever names it.
+    /// </summary>
+    /// <remarks>
+    /// THE SESSION HAS TO BE PLAYED A PARTICULAR WAY and the console says so, because the whole
+    /// method is telling skills apart: a chain that produced one string for one skill has proved
+    /// nothing, since a class name or a shared label does exactly that. Cast several DIFFERENT
+    /// skills, deliberately, and the report marks the chains that gave a different name to each.
+    ///
+    /// Same replay/live split as the action hunt, and for the same reason: the recording IS the
+    /// session, so a chain nobody thought of can be scored offline afterwards without playing
+    /// again - provided the bytes are in the file, which is precisely what this build reads and
+    /// the earlier ones did not.
+    /// </remarks>
+    private static void RunSkillHunt(
+        IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic, RecordingMemoryReader? recorder)
+    {
+        var hunt = new PoEformance.Game.Diagnostics.SkillHunt(reader, schema);
+        var samples = new List<PoEformance.Game.Diagnostics.SkillHuntSample>();
+
+        if (reader is ReplayMemoryReader replay)
+        {
+            for (uint frame = 0; frame < replay.FrameCount; frame++)
+            {
+                replay.Seek(frame);
+                if (hunt.SampleFrame(gameStatesStatic) is { } sample)
+                {
+                    samples.Add(sample);
+                }
+            }
+
+            if (replay.FrameCount > 0)
+            {
+                replay.Seek((uint)(replay.FrameCount - 1));
+            }
+        }
+        else
+        {
+            Console.WriteLine();
+            Console.WriteLine("skill hunt - following Actor.CurrentSkillPtr out to whatever names it.");
+            Console.WriteLine();
+            Console.WriteLine("  CAST SEVERAL DIFFERENT SKILLS while this runs. One skill cannot");
+            Console.WriteLine("  distinguish a name from a label that every skill shares.");
+            Console.WriteLine("  Record it (--record) so the file can be re-scored offline.");
+            Console.WriteLine("  Press a key to stop.");
+            Console.WriteLine();
+
+            int failures = 0;
+            int ticks = 0;
+            while (!KeyPressed() && failures < ActionHuntMostFailures)
+            {
+                recorder?.MarkFrame();
+                if (hunt.SampleFrame(gameStatesStatic) is { } sample)
+                {
+                    failures = 0;
+                    samples.Add(sample);
+                }
+                else
+                {
+                    failures++;
+                }
+
+                if (++ticks % 200 == 0)
+                {
+                    int named = samples.Count(s => s.Texts.Count > 0);
+                    Console.WriteLine(
+                        $"  ... {samples.Count} frames, {named} with a readable string,"
+                        + $" {hunt.SkillTableEntries} granted skills");
+                }
+
+                Thread.Sleep(ActionSampleMs);
+            }
+        }
+
+        PoEformance.Game.Diagnostics.SkillHunt.Report(
+            PoEformance.Game.Diagnostics.SkillHunt.Analyze(samples), Console.Out);
+    }
+
+    /// <summary>
+    /// Runs the action-field hunt: live, a sampling loop the person plays against; on a
+    /// replay, a walk over the recording's frames. Same samples, same analysis, one code path
+    /// for the conclusions - the recording IS the session, which is the property every other
+    /// hunt here is built around.
+    /// </summary>
+    /// <summary>
+    /// Samples the hover chain and every monster's Monster component while a person points at
+    /// things.
+    /// </summary>
+    /// <remarks>
+    /// The shape of --actionhunt and for the same reason: what settles these is a person doing
+    /// something deliberate while the reads happen. Against a replay it steps the recording's
+    /// frames instead, so a session captured once can be re-scored after every change to what
+    /// the bytes are thought to mean.
+    /// </remarks>
+    private static void RunHoverHunt(
+        IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic, RecordingMemoryReader? recorder)
+    {
+        var hunt = new PoEformance.Game.Diagnostics.HoverHunt(reader, schema);
+        var samples = new List<PoEformance.Game.Diagnostics.HoverSample>();
+
+        if (reader is ReplayMemoryReader replay)
+        {
+            for (uint frame = 0; frame < replay.FrameCount; frame++)
+            {
+                replay.Seek(frame);
+                if (hunt.SampleFrame(gameStatesStatic) is { } sample)
+                {
+                    samples.Add(sample);
+                }
+            }
+
+            if (replay.FrameCount > 0)
+            {
+                replay.Seek((uint)(replay.FrameCount - 1));
+            }
+        }
+        else
+        {
+            Console.WriteLine();
+            Console.WriteLine("hover hunt - reading the two candidates nothing else in this tool reads.");
+            Console.WriteLine("  HOVER MONSTERS DELIBERATELY: put the cursor on one, hold it there a beat,");
+            Console.WriteLine("  move it off onto empty ground, then onto another. The off-target moments");
+            Console.WriteLine("  matter as much as the on-target ones - a slot that never changes is not an");
+            Console.WriteLine("  answer, and only the contrast can tell 'nothing hovered' from a wrong offset.");
+            Console.WriteLine("  FOR THE BOSS BYTE: have a unique or boss monster on screen at some point.");
+            Console.WriteLine("  Any key to stop and report.");
+            Console.WriteLine();
+
+            int failures = 0, ticks = 0;
+            while (!KeyPressed() && failures < ActionHuntMostFailures)
+            {
+                recorder?.MarkFrame();
+                if (hunt.SampleFrame(gameStatesStatic) is { } sample)
+                {
+                    failures = 0;
+                    samples.Add(sample);
+                }
+                else
+                {
+                    failures++;
+                }
+
+                if (++ticks % 200 == 0)
+                {
+                    int named = samples.Count(s => s.EntityPath.Length > 0);
+                    Console.WriteLine($"  ... {samples.Count} frames, {named} with an entity in the slot");
+                }
+
+                Thread.Sleep(ActionSampleMs);
+            }
+        }
+
+        PoEformance.Game.Diagnostics.HoverHunt.Report(samples, Console.Out);
+    }
+
+    /// <summary>
+    /// Captures the map elements by both routes while the person works the map. See MapHunt.
+    /// </summary>
+    private static void RunMapHunt(
+        IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic, RecordingMemoryReader? recorder)
+    {
+        var hunt = new PoEformance.Game.Diagnostics.MapHunt(reader, schema);
+        var samples = new List<PoEformance.Game.Diagnostics.MapHuntSample>();
+
+        if (reader is ReplayMemoryReader replay)
+        {
+            for (uint frame = 0; frame < replay.FrameCount; frame++)
+            {
+                replay.Seek(frame);
+                if (hunt.SampleFrame(gameStatesStatic) is { } sample)
+                {
+                    samples.Add(sample);
+                }
+            }
+
+            if (replay.FrameCount > 0)
+            {
+                replay.Seek((uint)(replay.FrameCount - 1));
+            }
+        }
+        else
+        {
+            Console.WriteLine();
+            Console.WriteLine("map hunt - capturing the map elements by every route, bytes and all.");
+            Console.WriteLine("  WORK THE MAP WHILE THIS RUNS: zoom the minimap in and out, drag it, open the");
+            Console.WriteLine("  large map, zoom and drag that too, close it. The zoom is found by what MOVES -");
+            Console.WriteLine("  a value that never changes cannot be told from furniture.");
+            Console.WriteLine("  Any key to stop and report.");
+            Console.WriteLine();
+
+            int failures = 0, ticks = 0;
+            while (!KeyPressed() && failures < ActionHuntMostFailures)
+            {
+                recorder?.MarkFrame();
+                if (hunt.SampleFrame(gameStatesStatic) is { } sample)
+                {
+                    failures = 0;
+                    samples.Add(sample);
+                }
+                else
+                {
+                    failures++;
+                }
+
+                if (++ticks % 100 == 0 && samples.Count > 0)
+                {
+                    Console.WriteLine($"  ... {samples.Count} frames, {samples[^1].Candidates.Count} elements each");
+                }
+
+                Thread.Sleep(ActionSampleMs);
+            }
+        }
+
+        PoEformance.Game.Diagnostics.MapHunt.Report(samples, Console.Out);
+    }
+
+    /// <summary>
+    /// Prints the game's GroundEffectTypes table, so a row index becomes a name.
+    /// </summary>
+    /// <remarks>
+    /// THE EXPERIMENT THIS WHOLE THREAD NEEDED, and it needs no game running and no fight to
+    /// survive - it reads the install. The GroundEffect component carries a row index at +0x48
+    /// and the sweep capture shows rows 12, 17 and 20; what those rows ARE has never been
+    /// readable, because the entity path is the same generic string on every ground effect on
+    /// file. This resolves them.
+    ///
+    /// THE BUFF COUNT IS THE POINT, not the name. Damage is a property of the type, expressed
+    /// as the BuffDefinitions the row carries - so a row with no buff at all cannot be doing
+    /// anything to anybody, and that is the first hard statement about hazards this project
+    /// will have made. It counts rather than judging: a shrine's ground applies a buff too.
+    ///
+    /// Prints the WHOLE table rather than the three observed rows. The observed three are from
+    /// one capture in one hideout; the rest of the table is what says whether those three are
+    /// the decorative corner of it, and that context costs one screenful.
+    /// </remarks>
+    /// <summary>
+    /// Walks the .ao files the monsters name and reports what is in them.
+    /// </summary>
+    /// <remarks>
+    /// READS THE INSTALL AND NEEDS NO PROCESS, like the ground types above and unlike the two
+    /// after them. The .ao files sit in the bundles whether or not the game is running.
+    ///
+    /// THIS IS A MEASUREMENT, and the two things it is measuring are written down on AoSurvey:
+    /// whether any picture is reachable from a monster, and what "stance2" is. Neither can be
+    /// settled on a machine without the game - no .ao file exists in this repository - so the
+    /// reader was written against a format diagram and a prototype parser, and the FAULT COUNT
+    /// in the output is the first thing to read. Thousands of faults means the reader is wrong
+    /// and the rest of the numbers are about the reader rather than about the game.
+    /// </remarks>
+    /// <param name="match">A monster name or path to look at in full, or empty to survey all.</param>
+    private static void RunAoDump(string match)
+    {
+        Console.WriteLine();
+        Console.WriteLine("animated objects - what a monster is made of, out of the install's own .ao files.");
+
+        PoEformance.Game.Files.GameFiles.OpenedFiles opened =
+            PoEformance.Game.Files.GameFiles.OpenOrSay(PoEformance.Game.Files.GameInstall.Find(null));
+        if (opened.Files is null)
+        {
+            // A RETURN, unlike the ground types: there is no vendored copy of anything here and
+            // the shipped monster export does not carry the AOFiles column, so without an install
+            // there is not a single path to ask for.
+            Console.WriteLine($"  no install ({opened.Why}) - nothing to read.");
+            return;
+        }
+
+        PoEformance.Features.MonsterTables read = PoEformance.Features.MonsterTables.Read(
+            opened.Files,
+            PoEformance.Features.QuestTableLayouts.Load(FindDataFile("monster-tables.json")),
+            PoEformance.Game.Entities.MonsterVarieties.Load(FindDataFile("monster-varieties.json")));
+
+        foreach (string line in read.Say)
+        {
+            Console.WriteLine($"  {line}");
+        }
+
+        if (!read.FromGame)
+        {
+            Console.WriteLine("  the install's own monster table did not read, so no .ao paths are known.");
+            return;
+        }
+
+        // The full dump is kept only when one monster was asked for. Over the whole table it
+        // would be every struct of every file, which is not something anybody reads.
+        List<PoEformance.Game.Diagnostics.AoRead>? keep = match.Length > 0 ? [] : null;
+
+        PoEformance.Game.Diagnostics.AoSurveyResult survey =
+            PoEformance.Game.Diagnostics.AoSurvey.Read(opened.Files, read.Table, match, keep);
+
+        Console.WriteLine();
+        PoEformance.Game.Diagnostics.AoSurvey.Report(survey, Console.Out);
+
+        if (keep is { Count: > 0 })
+        {
+            Console.WriteLine();
+            Console.WriteLine($"  the files behind \"{match}\", in full:");
+            PoEformance.Game.Diagnostics.AoSurvey.Detail(keep, Console.Out);
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("  Read the fault count first: this reader has never seen a real .ao file.");
+        Console.WriteLine("  Then \"referenced file types\" - a .dds there means a picture is reachable,");
+        Console.WriteLine("  and \"animation names\" says whether the Stance column resolves to anything.");
+    }
+
+    /// <summary>
+    /// Walks every monster's model and writes what became of each of its pieces.
+    /// </summary>
+    /// <remarks>
+    /// WHAT THIS IS FOR. Every attachment bug so far was found by somebody playing, seeing a boot
+    /// on the floor and asking - which finds the monsters somebody happens to fight. Four fixes
+    /// in a row each broke a monster the other had just fixed, because the case that would have
+    /// caught it was on a monster nobody had looked at. The files are all on disk; this reads
+    /// them. See <see cref="PoEformance.Features.ModelSweep"/> for what it counts and why.
+    ///
+    /// TWO THINGS COME OUT. A line of JSON per monster, which is the corpus - greppable, sortable,
+    /// diffable between two builds, and small enough to keep. And a full text dump, the same one
+    /// the model pane's files button writes, for the monsters the sweep flagged - which is the
+    /// part somebody actually reads.
+    ///
+    /// NEEDS THE INSTALL AND NOT THE GAME, like --aodump and --astdump.
+    /// </remarks>
+    /// <param name="match">A monster name or path to limit the sweep to, or empty for all of them.</param>
+    private static void RunModelDump(string match)
+    {
+        Console.WriteLine();
+        Console.WriteLine("monster models - every piece of every monster, out of the install's own files.");
+
+        PoEformance.Game.Files.GameFiles.OpenedFiles opened =
+            PoEformance.Game.Files.GameFiles.OpenOrSay(PoEformance.Game.Files.GameInstall.Find(null));
+        if (opened.Files is null)
+        {
+            Console.WriteLine($"  no install ({opened.Why}) - nothing to read.");
+            return;
+        }
+
+        PoEformance.Features.MonsterTables read = PoEformance.Features.MonsterTables.Read(
+            opened.Files,
+            PoEformance.Features.QuestTableLayouts.Load(FindDataFile("monster-tables.json")),
+            PoEformance.Game.Entities.MonsterVarieties.Load(FindDataFile("monster-varieties.json")));
+
+        foreach (string line in read.Say)
+        {
+            Console.WriteLine($"  {line}");
+        }
+
+        if (!read.FromGame)
+        {
+            Console.WriteLine("  the install's own monster table did not read, so no .ao paths are known.");
+            return;
+        }
+
+        string folder = Path.Combine(AppContext.BaseDirectory, "modeldump");
+        Directory.CreateDirectory(folder);
+        string corpus = Path.Combine(folder, "monster-fits.jsonl");
+
+        Console.WriteLine();
+        Console.WriteLine(match.Length > 0 ? $"  walking the monsters matching \"{match}\"." : "  walking every monster.");
+        Console.WriteLine($"  writing {corpus}");
+
+        byte[]? Read(string path) => opened.Files.Read(path);
+
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        PoEformance.Features.SweepResult said;
+
+        // STREAMED TO DISK RATHER THAN GATHERED, because the whole point is that this runs over
+        // thousands of monsters: a list of every line held until the end is the one part of this
+        // whose cost grows with the table.
+        using (var file = new StreamWriter(corpus, append: false))
+        {
+            StreamWriter writing = file;
+            said = PoEformance.Features.ModelSweep.Of(
+                Read,
+                read.Table,
+                match,
+                line => writing.WriteLine(line),
+                (at, many) => Console.WriteLine($"    {at} of {many}, {clock.Elapsed.TotalSeconds:0} s"));
+        }
+
+        Console.WriteLine();
+        Console.WriteLine($"  {said.Tally.Walked} monsters walked in {clock.Elapsed.TotalSeconds:0} s, "
+            + $"{said.Tally.Pieces} pieces between them.");
+        if (said.Tally.Nameless > 0)
+        {
+            Console.WriteLine($"  {said.Tally.Nameless} name no .ao file at all, so there was nothing to walk.");
+        }
+
+        Console.WriteLine($"  {said.Tally.Odd} carry at least one flag:");
+        foreach ((string flag, int many) in said.Tally.Flags.OrderByDescending(one => one.Value))
+        {
+            Console.WriteLine($"    {flag,-10} {many}");
+        }
+
+        // THE FLAGGED ONES IN FULL, and only those: the same dump the model pane's files button
+        // writes. Over the whole table that would be hundreds of megabytes and nobody reads it;
+        // over the flagged ones it is the file somebody opens.
+        var wrote = 0;
+        string dumps = Path.Combine(folder, "flagged");
+        Directory.CreateDirectory(dumps);
+        foreach (string path in said.Flagged)
+        {
+            PoEformance.Game.Entities.MonsterVariety? one = read.Table.Find(path);
+            if (one is null)
+            {
+                continue;
+            }
+
+            try
+            {
+                var model = PoEformance.Features.MonsterModels.Of(Read, one);
+                File.WriteAllText(
+                    Path.Combine(dumps, Stem(path) + ".files.txt"),
+                    PoEformance.Features.ModelDump.Of(Read, one, path, model));
+                wrote++;
+            }
+            catch (Exception fault) when (fault is IOException or UnauthorizedAccessException)
+            {
+                Console.WriteLine($"  could not write the dump for {path}: {fault.Message}");
+            }
+        }
+
+        Console.WriteLine();
+        Console.WriteLine($"  {wrote} full dumps under {dumps}");
+        Console.WriteLine();
+        Console.WriteLine("  The .jsonl is one monster per line, sorted by path, so two builds diff.");
+        Console.WriteLine("  \"fell\" is the flag that has meant a piece on the floor every time so far;");
+        Console.WriteLine("  \"apart\" is a rule of thumb and will name some monsters that are fine.");
+        Console.WriteLine("  No pictures were decoded, so this says nothing about a monster's colour.");
+    }
+
+    /// <summary>A metadata path as a file name: the last part, with nothing in it a folder minds.</summary>
+    private static string Stem(string path)
+    {
+        string last = path[(path.LastIndexOf('/') + 1)..];
+        Span<char> said = stackalloc char[last.Length];
+        for (var one = 0; one < last.Length; one++)
+        {
+            said[one] = Path.GetInvalidFileNameChars().Contains(last[one]) ? '_' : last[one];
+        }
+
+        return said.Length > 0 ? new string(said) : "monster";
+    }
+
+    /// <summary>
+    /// Reads the skeletons the monsters' .ao files name and reports what is in them.
+    /// </summary>
+    /// <remarks>
+    /// THE MEASUREMENT BEFORE THE FEATURE. A moving monster in the Monster Book is a week of work
+    /// if the game's files support it and a dead end if they do not, and this is the run that says
+    /// which - the same order that settled .ao and .smd, and the same order that not taking would
+    /// have cost a week each time.
+    ///
+    /// THREE NUMBERS DECIDE IT, and they are on AstSurvey in full: whether monsters reach a
+    /// skeleton at all and through what, whether anything but version 12 is shipped, and whether
+    /// the animation offsets tile their track region. That last one is the whole of it. A region
+    /// that tiles means one animation's keyframes are a contiguous range, which is what makes
+    /// playing a walk cycle forty kilobytes of work instead of twelve megabytes.
+    ///
+    /// NEEDS THE INSTALL AND NOT THE GAME, like --aodump: the files are in the bundles whether or
+    /// not anybody is playing.
+    /// </remarks>
+    /// <param name="match">A monster name or path to read in full, or empty to survey all.</param>
+    private static void RunAstDump(string match)
+    {
+        Console.WriteLine();
+        Console.WriteLine("animation skeletons - the bones and the animation list, out of the install's .ast files.");
+
+        PoEformance.Game.Files.GameFiles.OpenedFiles opened =
+            PoEformance.Game.Files.GameFiles.OpenOrSay(PoEformance.Game.Files.GameInstall.Find(null));
+        if (opened.Files is null)
+        {
+            Console.WriteLine($"  no install ({opened.Why}) - nothing to read.");
+            return;
+        }
+
+        PoEformance.Features.MonsterTables read = PoEformance.Features.MonsterTables.Read(
+            opened.Files,
+            PoEformance.Features.QuestTableLayouts.Load(FindDataFile("monster-tables.json")),
+            PoEformance.Game.Entities.MonsterVarieties.Load(FindDataFile("monster-varieties.json")));
+
+        foreach (string line in read.Say)
+        {
+            Console.WriteLine($"  {line}");
+        }
+
+        if (!read.FromGame)
+        {
+            Console.WriteLine("  the install's own monster table did not read, so no .ao paths are known.");
+            return;
+        }
+
+        // ONLY FOR ONE MONSTER. A kept skeleton holds its whole file - unpacking an animation
+        // later reads back through those bytes - so keeping the install's worth would be every
+        // rig's keyframes in memory at once, which is gigabytes for a list nobody reads.
+        List<PoEformance.Game.Diagnostics.AstRead>? keep = match.Length > 0 ? [] : null;
+
+        PoEformance.Game.Diagnostics.AstSurveyResult survey =
+            PoEformance.Game.Diagnostics.AstSurvey.Read(opened.Files, read.Table, match, keep);
+
+        Console.WriteLine();
+        PoEformance.Game.Diagnostics.AstSurvey.Report(survey, Console.Out);
+
+        if (keep is { Count: > 0 })
+        {
+            Console.WriteLine();
+            Console.WriteLine($"  the skeletons behind \"{match}\", in full:");
+            PoEformance.Game.Diagnostics.AstSurvey.Detail(keep, Console.Out);
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("  Read the two capitalised lines first: together they are the whole format.");
+        Console.WriteLine("  The first says the frames are WHERE the headers claim, the second that they");
+        Console.WriteLine("  are WHAT a track is. Versions 6, 7, 9, 10, 11 and 12 have all been read and");
+        Console.WriteLine("  checked over a real install; a version outside that list would be new.");
+    }
+
+    /// <summary>
+    /// Poses the monsters that match and reports where their feet are: the box, the skeleton at
+    /// bind, and the skeleton and the mesh frame by frame, against the ground the pane draws.
+    /// </summary>
+    /// <remarks>
+    /// THE MEASUREMENT BEHIND THE FLOOR'S HEIGHT. The model pane draws the floor through the
+    /// model's origin, on a rule measured on one real rig: the feet at z = 0.98 in the bind pose,
+    /// and there through every frame of an animation while the pelvis dips. A monster that stands
+    /// in the floor or hovers above it is either a model that breaks that rule or a pose this
+    /// reader gets wrong, and the two are told apart by numbers rather than by looking - the box's
+    /// bottom, the lowest bone at bind, and the lowest bone and the lowest posed vertex frame by
+    /// frame, with the root's own height beside them. Needs the install and its Oodle for a
+    /// bundled rig's keyframes, not the game.
+    /// </remarks>
+    /// <param name="match">A monster name or path; every monster containing it is posed, up to a handful.</param>
+    private static void RunPoseDump(string match)
+    {
+        Console.WriteLine();
+        Console.WriteLine("poses - where a monster's feet are, out of its mesh, its skeleton and its animation.");
+
+        PoEformance.Game.Files.GameFiles.OpenedFiles opened =
+            PoEformance.Game.Files.GameFiles.OpenOrSay(PoEformance.Game.Files.GameInstall.Find(null));
+        if (opened.Files is null)
+        {
+            Console.WriteLine($"  no install ({opened.Why}) - nothing to read.");
+            return;
+        }
+
+        PoEformance.Features.MonsterTables read = PoEformance.Features.MonsterTables.Read(
+            opened.Files,
+            PoEformance.Features.QuestTableLayouts.Load(FindDataFile("monster-tables.json")),
+            PoEformance.Game.Entities.MonsterVarieties.Load(FindDataFile("monster-varieties.json")));
+
+        foreach (string line in read.Say)
+        {
+            Console.WriteLine($"  {line}");
+        }
+
+        if (!read.FromGame)
+        {
+            Console.WriteLine("  the install's own monster table did not read, so no .ao paths are known.");
+            return;
+        }
+
+        if (match.Length == 0)
+        {
+            Console.WriteLine("  --posedump wants a monster name or path: it poses every match, and the whole table is not a list anybody reads.");
+            return;
+        }
+
+        var shown = 0;
+        foreach ((string path, PoEformance.Game.Entities.MonsterVariety one) in read.Table.All)
+        {
+            bool hit = path.Contains(match, StringComparison.OrdinalIgnoreCase)
+                || (one.Name is { Length: > 0 } && one.Name.Contains(match, StringComparison.OrdinalIgnoreCase));
+            if (!hit)
+            {
+                continue;
+            }
+
+            if (shown++ == 6)
+            {
+                Console.WriteLine("  … and more; narrow the name.");
+                break;
+            }
+
+            PoseDump(opened.Files, path, one);
+        }
+
+        if (shown == 0)
+        {
+            Console.WriteLine($"  no monster's name or path contains \"{match}\".");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("  The model's up is -z, so the ground is z = 0 and a foot BELOW it reads positive.");
+        Console.WriteLine("  A lowest bone near 0 at bind and at every frame is a monster planted the way the");
+        Console.WriteLine("  floor assumes; one that drifts with the root is a pose this reader gets wrong.");
+    }
+
+    /// <summary>One monster's numbers, for <see cref="RunPoseDump"/>.</summary>
+    private static void PoseDump(PoEformance.Game.Files.GameFiles files, string path, PoEformance.Game.Entities.MonsterVariety one)
+    {
+        Console.WriteLine();
+        Console.WriteLine($"  {one.Name} - {path}");
+
+        PoEformance.Features.MonsterModel model = PoEformance.Features.MonsterModels.Of(files.Read, one);
+        if (!model.Ready)
+        {
+            Console.WriteLine($"    no model: {model.Why}");
+            return;
+        }
+
+        PoEformance.Game.Files.SkinnedMesh mesh = model.Mesh;
+        Console.WriteLine(
+            $"    mesh {model.Mesh_}: box z {mesh.Least.Z:F2} (top) to {mesh.Most.Z:F2} (bottom), "
+            + $"lowest vertex z {Lowest(mesh.Positions):F2}, {mesh.Positions.Length} vertices");
+
+        if (!model.Moves)
+        {
+            Console.WriteLine($"    holds still: {model.Move}");
+            return;
+        }
+
+        PoEformance.Game.Files.AnimationSkeleton rig = model.Rig;
+        PoEformance.Game.Files.SkeletonPose? pose = PoEformance.Game.Files.SkeletonPose.Of(rig);
+        if (pose is null)
+        {
+            Console.WriteLine("    the skeleton's bone tree does not hold together");
+            return;
+        }
+
+        pose.AtRest();
+        Console.WriteLine(
+            $"    rig {model.Rig_}: {rig.Bones.Count} bones, version {rig.Version}, {rig.Animations.Count} animations; "
+            + $"at bind lowest bone {Lowest(pose.BindModel, rig)}, root {Root(pose.BindModel, rig)}");
+
+        // The animation the pane plays first, the way the pane chooses it.
+        var chosen = 0;
+        for (var at = 0; at < rig.Animations.Count; at++)
+        {
+            if (string.Equals(rig.Animations[at].Name, PoEformance.Overlay.MonsterPortrait.Idle, StringComparison.Ordinal))
+            {
+                chosen = at;
+                break;
+            }
+        }
+
+        PoEformance.Game.Files.SkeletonAnimation move = rig.Animations[chosen];
+        byte[]? frames = rig.Tracks(move, files.Unpack);
+        PoEformance.Game.Files.AnimationTracks tracks = frames is null
+            ? PoEformance.Game.Files.AnimationTracks.None
+            : PoEformance.Game.Files.AnimationTracks.Read(frames, move.Tracks, rig.Version);
+        if (!tracks.Ready)
+        {
+            Console.WriteLine($"    {move.Name}: the keyframes did not read ({(frames is null ? "did not unpack" : tracks.Why)})");
+            return;
+        }
+
+        var posed = new System.Numerics.Vector3[mesh.Positions.Length];
+        var normals = new System.Numerics.Vector3[mesh.Positions.Length];
+        Console.WriteLine($"    {move.Name}: {tracks.Frames:F0} frames at {move.Rate}/s, {move.Tracks} tracks");
+        for (var step = 0; step <= 4; step++)
+        {
+            float frame = tracks.Frames * step / 4f;
+            pose.Take(tracks, frame);
+            pose.Move(mesh, posed, normals);
+            Console.WriteLine(
+                $"      frame {frame,6:F1}: lowest bone {Lowest(pose.World, rig)}, root {Root(pose.World, rig)}, "
+                + $"lowest vertex z {Lowest(posed):F2}");
+        }
+    }
+
+    /// <summary>The largest z among the points - the lowest, the model's up being -z.</summary>
+    private static float Lowest(ReadOnlySpan<System.Numerics.Vector3> places)
+    {
+        float lowest = float.MinValue;
+        foreach (System.Numerics.Vector3 place in places)
+        {
+            lowest = MathF.Max(lowest, place.Z);
+        }
+
+        return lowest;
+    }
+
+    /// <summary>The lowest bone's z and its name.</summary>
+    private static string Lowest(IReadOnlyList<System.Numerics.Matrix4x4> bones, PoEformance.Game.Files.AnimationSkeleton rig)
+    {
+        var lowest = float.MinValue;
+        var name = "?";
+        for (var at = 0; at < bones.Count && at < rig.Bones.Count; at++)
+        {
+            float z = bones[at].Translation.Z;
+            if (z > lowest)
+            {
+                lowest = z;
+                name = rig.Bones[at].Name;
+            }
+        }
+
+        return $"z {lowest:F2} ({name})";
+    }
+
+    /// <summary>The root's position - the bone called root, or the first one where nothing is.</summary>
+    private static string Root(IReadOnlyList<System.Numerics.Matrix4x4> bones, PoEformance.Game.Files.AnimationSkeleton rig)
+    {
+        var root = 0;
+        for (var at = 0; at < rig.Bones.Count; at++)
+        {
+            if (string.Equals(rig.Bones[at].Name, "root", StringComparison.OrdinalIgnoreCase))
+            {
+                root = at;
+                break;
+            }
+        }
+
+        if (root >= bones.Count)
+        {
+            return "?";
+        }
+
+        System.Numerics.Vector3 at_ = bones[root].Translation;
+        return $"{rig.Bones[root].Name} at ({at_.X:F2}, {at_.Y:F2}, {at_.Z:F2})";
+    }
+
+    private static void RunGroundTypeDump()
+    {
+        Console.WriteLine();
+        Console.WriteLine("ground effect types - the table that says what a patch of ground IS.");
+
+        PoEformance.Game.Files.GameFiles.OpenedFiles opened =
+            PoEformance.Game.Files.GameFiles.OpenOrSay(PoEformance.Game.Files.GameInstall.Find(null));
+        if (opened.Files is null)
+        {
+            // NOT a return. The vendored copy names every row without an install, and somebody
+            // running this on a replay machine wants the table just as much.
+            Console.WriteLine($"  no install ({opened.Why}) - falling back to the vendored copy");
+        }
+
+        PoEformance.Features.GroundEffectTypeTable table =
+            PoEformance.Features.GroundEffectTypeTable.Load(
+                opened.Files, FindDataFile("ground-tables.json"), FindDataFile("ground-effect-types.json"));
+
+        Console.WriteLine($"  {table.Why}");
+        if (table.Rows == 0)
+        {
+            return;
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("  row  harm      id / buff                              what the game says");
+        foreach (PoEformance.Features.GroundEffectType type in table.All)
+        {
+            // The rows the captures actually observed, marked - so a reader can see at a glance
+            // whether the ones this project has met are typical of the table or a corner of it.
+            string seen = type.Row is 10 or 12 or 16 or 17 or 18 or 20 ? " *" : "  ";
+            string harm = type.Harm switch
+            {
+                PoEformance.Features.GroundHarm.Harmful => "HURTS",
+                PoEformance.Features.GroundHarm.Helpful => "helps",
+                _ => "?",
+            };
+
+            Console.WriteLine($"{seen}{type.Row,3}  {harm,-8}  {type.Describe,-38}  {type.Says}");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("  * = a row seen in one of this project's recordings.");
+        Console.WriteLine("  harm comes from the buff each row applies - see data/ground-effect-types.json,");
+        Console.WriteLine("  where every row carries the reason it was judged that way.");
+    }
+
+    private static void RunComponentSweep(
+        IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic, RecordingMemoryReader? recorder)
+    {
+        var sweep = new PoEformance.Game.Diagnostics.ComponentSweep(reader, schema);
+        var frames = new List<PoEformance.Game.Diagnostics.SweepFrame>();
+
+        if (reader is ReplayMemoryReader replay)
+        {
+            for (uint frame = 0; frame < replay.FrameCount; frame++)
+            {
+                replay.Seek(frame);
+                if (sweep.SampleFrame(gameStatesStatic, (int)frame) is { } got)
+                {
+                    frames.Add(got);
+                }
+            }
+
+            if (replay.FrameCount > 0)
+            {
+                replay.Seek((uint)(replay.FrameCount - 1));
+            }
+        }
+        else
+        {
+            Console.WriteLine();
+            Console.WriteLine("component sweep - reading four components neither reference has a layout for.");
+            Console.WriteLine("  GET THE SITUATIONS ON SCREEN, and they are different for each:");
+            Console.WriteLine("    GroundEffect  - stand near burning/chilled/desecrated ground and LET IT RUN");
+            Console.WriteLine("                    OUT. They live 14-50 s; the expiry is the measurement.");
+            Console.WriteLine("    Beam          - a boss beam. They last half a second, so several is better");
+            Console.WriteLine("                    than one long look.");
+            Console.WriteLine("    DiesAfterTime - a totem, yours or the game's, watched until it vanishes.");
+            Console.WriteLine("    LimitedLifespan - any fight at all; these are everywhere and brief.");
+            Console.WriteLine("  WHAT MAKES A CAPTURE USEFUL is watching things EXPIRE while recording. A");
+            Console.WriteLine("  countdown is only provable against the frame the entity leaves the list.");
+            Console.WriteLine("  Any key to stop and report.");
+            Console.WriteLine();
+
+            int failures = 0, ticks = 0, frame = 0;
+            while (!KeyPressed() && failures < ActionHuntMostFailures)
+            {
+                recorder?.MarkFrame();
+                if (sweep.SampleFrame(gameStatesStatic, frame++) is { } got)
+                {
+                    failures = 0;
+                    frames.Add(got);
+                }
+                else
+                {
+                    failures++;
+                }
+
+                if (++ticks % 200 == 0)
+                {
+                    var counts = frames.SelectMany(f => f.Seen)
+                        .GroupBy(o => o.Component)
+                        .Select(g => $"{g.Key} {g.Select(o => o.EntityId).Distinct().Count()}")
+                        .ToList();
+                    Console.WriteLine($"  ... {frames.Count} frames; entities seen: "
+                        + (counts.Count > 0 ? string.Join(", ", counts) : "none yet"));
+                }
+
+                Thread.Sleep(ActionSampleMs);
+            }
+        }
+
+        PoEformance.Game.Diagnostics.ComponentSweep.Report(frames, schema, Console.Out);
+    }
+
+    /// <summary>
+    /// Reads every inventory whole, live or out of a recording, and reports the candidates.
+    /// </summary>
+    /// <remarks>
+    /// A FRAME EVERY TWO SECONDS, not every tick like the component sweep. A stash of 140
+    /// inventories is 76 KB a frame at this window, and the thing being watched does not move:
+    /// a tab holds what it holds until somebody opens another one. Sampling at the hunt rate
+    /// would put a hundred megabytes of identical bytes in the recording that has to be uploaded.
+    /// </remarks>
+    private static void RunInventorySweep(
+        IMemoryReader reader,
+        OffsetSchema schema,
+        ulong gameStatesStatic,
+        RecordingMemoryReader? recorder,
+        string tabName)
+    {
+        var sweep = new PoEformance.Game.Diagnostics.InventorySweep(reader, schema);
+        var frames = new List<PoEformance.Game.Diagnostics.InventorySweepFrame>();
+
+        if (reader is ReplayMemoryReader replay)
+        {
+            for (uint frame = 0; frame < replay.FrameCount; frame++)
+            {
+                replay.Seek(frame);
+                if (sweep.SampleFrame(gameStatesStatic, (int)frame, tabName) is { } got)
+                {
+                    frames.Add(got);
+                }
+            }
+
+            if (replay.FrameCount > 0)
+            {
+                replay.Seek((uint)(replay.FrameCount - 1));
+            }
+        }
+        else
+        {
+            Console.WriteLine();
+            Console.WriteLine("inventory sweep - reading every inventory whole, to find what says");
+            Console.WriteLine("what SORT of tab it is.");
+            Console.WriteLine();
+
+            // SAID BEFORE A MINUTE IS SPENT, because this exact thing has already cost a round:
+            // the first capture was made without --record, the console report looked perfectly
+            // healthy, and the recording that was uploaded turned out to hold only the six
+            // fields the ordinary stash reader touches. A sweep whose entire purpose is to land
+            // in a file must not run silently when there is no file.
+            if (recorder is null)
+            {
+                Console.WriteLine("  *** NOT RECORDING. This sweep exists to put bytes nothing else reads");
+                Console.WriteLine("  *** into a --record file, so that they can be decoded afterwards. The");
+                Console.WriteLine("  *** report below is a summary; the BYTES are the deliverable, and");
+                Console.WriteLine("  *** without --record they are gone the moment this exits.");
+                Console.WriteLine("  ***");
+                Console.WriteLine("  *** Re-run as:  PoEformance.App --record inventories.rec --inventories");
+                Console.WriteLine();
+            }
+
+            Console.WriteLine("  OPEN YOUR STASH AND CLICK THROUGH THE TABS while this runs. A tab the");
+            Console.WriteLine("  game has not been asked to load reads as empty from here, so the sweep");
+            Console.WriteLine("  is worth exactly as much of the stash as you visit.");
+            Console.WriteLine();
+            Console.WriteLine("  AND OPEN THE MERCHANT WINDOW ONCE. Its two shop pages are the only");
+            Console.WriteLine("  inventory sort this project can name for certain, so they are what any");
+            Console.WriteLine("  candidate is tested against - without them nothing here can be settled.");
+            Console.WriteLine();
+            Console.WriteLine("  Visit the specialised tabs you own - currency, essence, breach, maps -");
+            Console.WriteLine("  and a plain one, so there is something for a type to differ ACROSS.");
+            Console.WriteLine("  Any key to stop and report.");
+            Console.WriteLine();
+
+            // The name hunt is the only part of this that can settle the naming question outright,
+            // and it cannot run at all without a word only the player knows.
+            if (tabName.Length == 0)
+            {
+                Console.WriteLine("  NO --tabname GIVEN, so the name hunt is skipped. A stash tab's name is");
+                Console.WriteLine("  your own word - the tool cannot know one - and with one it walks out");
+                Console.WriteLine("  from the inventories looking for it, which either finds the path or");
+                Console.WriteLine("  shows there is none. Add:  --tabname <the name of a tab you own>");
+                Console.WriteLine();
+            }
+            else
+            {
+                Console.WriteLine($"  HUNTING FOR \"{tabName}\" from every inventory, every array slot and both");
+                Console.WriteLine("  server-data structs. OPEN THE TAB WITH THAT NAME while this runs.");
+                Console.WriteLine();
+            }
+
+            int failures = 0, frame = 0;
+            while (!KeyPressed() && failures < ActionHuntMostFailures)
+            {
+                recorder?.MarkFrame();
+                if (sweep.SampleFrame(gameStatesStatic, frame++, tabName) is { } got)
+                {
+                    failures = 0;
+                    frames.Add(got);
+
+                    Console.WriteLine(
+                        $"  ... {frames.Count} frames; {got.Seen.Count} inventories, "
+                        + $"{got.Seen.Count(one => one.Cells > 0)} loaded, "
+                        + $"{got.Seen.Count(one => PoEformance.Game.Diagnostics.InventorySweep.IsShop(one.Id))}"
+                        + " shop pages");
+                }
+                else
+                {
+                    failures++;
+                }
+
+                Thread.Sleep(InventorySampleMs);
+            }
+        }
+
+        PoEformance.Game.Diagnostics.InventorySweep.Report(frames, Console.Out);
+
+        // AND SAID AGAIN AFTERWARDS, with the number. A byte count is the one thing that can be
+        // checked before uploading a file: the sweep's own reads are 544 bytes an inventory, so
+        // a capture of a real stash is megabytes, and anything smaller means it did not land.
+        if (recorder is not null)
+        {
+            Console.WriteLine();
+            Console.WriteLine(
+                $"  recorded {recorder.RecordedBytes / 1024} KB in all this session"
+                + (recorder.ReachedSizeLimit ? " - THE SIZE CAP WAS REACHED, so the tail is missing." : "."));
+        }
+        else if (reader is not ReplayMemoryReader)
+        {
+            Console.WriteLine();
+            Console.WriteLine("  NOTHING WAS RECORDED - see the warning above. Re-run with --record.");
+        }
+    }
+
+    /// <summary>How long between inventory samples. See RunInventorySweep for why it is slow.</summary>
+    private const int InventorySampleMs = 2000;
+
+    private static void RunActionHunt(
+        IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic, RecordingMemoryReader? recorder)
+    {
+        var hunt = new PoEformance.Game.Diagnostics.ActionHunt(reader, schema);
+        var samples = new List<PoEformance.Game.Diagnostics.ActionHuntSample>();
+
+        if (reader is ReplayMemoryReader replay)
+        {
+            for (uint frame = 0; frame < replay.FrameCount; frame++)
+            {
+                replay.Seek(frame);
+                if (hunt.SampleFrame(gameStatesStatic) is { } sample)
+                {
+                    samples.Add(sample);
+                }
+            }
+
+            // Back to the reader's default position (the last frame), so whatever reads the
+            // replay after this hunt sees the same final state it would have seen without it.
+            if (replay.FrameCount > 0)
+            {
+                replay.Seek((uint)(replay.FrameCount - 1));
+            }
+        }
+        else
+        {
+            Console.WriteLine();
+            Console.WriteLine("action hunt - sampling the player's Actor component AND every monster's.");
+            Console.WriteLine("  to settle the OFFSETS (player): click-move somewhere and LET THE CHARACTER");
+            Console.WriteLine("  ARRIVE before the next click - a dozen clicks, different directions, an");
+            Console.WriteLine("  idle beat between them - then cast a few skills at distinct spots.");
+            Console.WriteLine("  to settle MONSTERS: stand in a fight. Let things walk at you rather than");
+            Console.WriteLine("  killing them instantly - a monster that arrives somewhere is the evidence,");
+            Console.WriteLine("  and one that dies mid-stride is not.");
+            Console.WriteLine("  Any key to stop and score.");
+            Console.WriteLine();
+
+            int failures = 0;
+            int ticks = 0;
+            while (!KeyPressed() && failures < ActionHuntMostFailures)
+            {
+                recorder?.MarkFrame();
+                if (hunt.SampleFrame(gameStatesStatic) is { } sample)
+                {
+                    failures = 0;
+                    samples.Add(sample);
+                }
+                else
+                {
+                    failures++;
+                }
+
+                if (++ticks % 200 == 0)
+                {
+                    // The monster count is in the status line because the first fight recording
+                    // had none and nobody could have known until it was replayed: eighty-six
+                    // seconds of sampling that could not answer the question it was made for.
+                    int monsters = samples.Count > 0 ? samples[^1].Monsters?.Count ?? 0 : 0;
+                    Console.WriteLine(
+                        $"  ... {samples.Count} frames, following {hunt.FollowedSlots.Count} toggling slots,"
+                        + $" {monsters} hostile monster(s) in view");
+                }
+
+                Thread.Sleep(ActionSampleMs);
+            }
+        }
+
+        PoEformance.Game.Diagnostics.ActionHuntFindings findings = PoEformance.Game.Diagnostics.ActionHunt
+            .Analyze(samples, hunt.AnimationIdOffset, hunt.PlayerCastTypes);
+        PoEformance.Game.Diagnostics.ActionHunt.Report(findings, hunt.AnimationIdOffset, Console.Out);
+
+        // The monster question, asked of the whole session rather than of one frame: the
+        // arrival test and the bearing cross-check, over every monster that was sampled.
+        PoEformance.Game.Diagnostics.MonsterActionCheck.Report(
+            PoEformance.Game.Diagnostics.MonsterActionCheck.Analyze(samples), Console.Out);
+
+        // And what the fields the hunt already found say right now - on the player and, the
+        // case none of them has ever been checked against, on monsters. The hunt searches;
+        // this reads. Both run from one session so a person in a fight gets both answers.
+        var readout = new PoEformance.Game.Diagnostics.ActionReadout(reader, schema);
+        PoEformance.Game.Diagnostics.ActionReadout.Report(
+            readout.Read(gameStatesStatic, PoEformance.Game.Components.AnimationNames.Load(FindDataFile("animations.tsv"))),
+            Console.Out);
+    }
+
+    /// <summary>
+    /// Scores every candidate matrix offset against the scene and prints the ranking.
+    /// </summary>
+    /// <remarks>
+    /// The single-point check ("is the player centred?") cannot be trusted on its own: a
+    /// matrix that inflates w collapses EVERY point onto the centre, so the player looks
+    /// perfect while the scene is unusable. Requiring the other entities to spread out is
+    /// what makes the answer decisive.
+    /// </remarks>
+    private static void RunMatrixHunt(
+        IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic, PoEformance.Game.World.WorldSnapshot snapshot)
+    {
+        if (!snapshot.InGame)
+        {
+            return;
+        }
+
+        GameChainAddresses chain = GameChain.Resolve(reader, schema, gameStatesStatic);
+        int current = schema.Structs["WorldData"].OffsetOf("W2SMatrix");
+        List<PoEformance.Game.Diagnostics.ProjectionCandidate> candidates =
+            PoEformance.Game.Diagnostics.MatrixHunt.Find(reader, chain.WorldData, snapshot);
+
+        PoEformance.Game.Diagnostics.MatrixHunt.Report(candidates, current, Console.Out);
+    }
+
+    /// <summary>
+    /// Runs the ImGui overlay until it is closed. The snapshot is re-read per frame; the
+    /// renderer itself never touches game memory.
+    /// </summary>
+    /// <summary>
+    /// Holds the running overlay so the config window can reach it.
+    /// </summary>
+    /// <remarks>
+    /// The config window is started BEFORE the overlay - it should be usable while the
+    /// overlay runs, which means it cannot be handed a reference that does not exist yet.
+    /// A field the overlay fills in on start is the whole mechanism; the config thread only
+    /// ever assigns an enum through it, and an enum write is atomic.
+    /// </remarks>
+    /// <summary>
+    /// What the overlay publishes about itself for the config window to read.
+    /// </summary>
+    /// <remarks>
+    /// BOTH FIELDS CROSS A THREAD. The overlay runs on the main thread and fills them in; the
+    /// config window reads them from its own thread, once a second, for as long as the tool is
+    /// up. Plain auto-properties gave no guarantee that the second thread would ever observe
+    /// the first thread's write - the memory model permits the read to be hoisted and the value
+    /// cached indefinitely - so a config window that opened first could go on reporting "not
+    /// running" about an overlay that plainly was. Volatile is the whole cost of ruling that
+    /// out, and it is the second unsynchronised cross-thread field this feature has produced.
+    /// </remarks>
+    private sealed class OverlayHandle
+    {
+        private PoEformance.Overlay.EntityOverlay? _overlay;
+        private PoEformance.Features.SnapshotFeed? _feed;
+
+        public PoEformance.Overlay.EntityOverlay? Overlay
+        {
+            get => Volatile.Read(ref _overlay);
+            set => Volatile.Write(ref _overlay, value);
+        }
+
+        /// <summary>
+        /// The reader thread, once it exists, so the config window can say whether it is well.
+        /// </summary>
+        /// <remarks>
+        /// The feed swallows an exception out of its read callback on purpose - a stale pointer
+        /// during a zone change must not end it - and everything the callback does after the
+        /// throw stops happening. The config window is where somebody notices that, because it
+        /// is where the rules and the buff list claim to be live.
+        /// </remarks>
+        public PoEformance.Features.SnapshotFeed? Feed
+        {
+            get => Volatile.Read(ref _feed);
+            set => Volatile.Write(ref _feed, value);
+        }
+
+        private string _stage = string.Empty;
+        private long _stageSinceMs;
+
+        /// <summary>Which part of the overlay's start-up is running, or empty once it is up.</summary>
+        /// <remarks>
+        /// The overlay builds a dozen services before its window exists, and some of them are
+        /// slow on a cold disk - the item-art store walks the game's own bundle index. For as
+        /// long as that runs, this process has every switch right and nothing on screen, which
+        /// used to be indistinguishable from a process that never started an overlay at all.
+        /// </remarks>
+        public string Stage
+        {
+            get => Volatile.Read(ref _stage);
+            set
+            {
+                Volatile.Write(ref _stageSinceMs, Environment.TickCount64);
+                Volatile.Write(ref _stage, value ?? string.Empty);
+            }
+        }
+
+        /// <summary>How long the current stage has been running.</summary>
+        public long StageSeconds
+            => (Environment.TickCount64 - Volatile.Read(ref _stageSinceMs)) / 1000;
+    }
+
+    /// <summary>
+    /// A feed that evaluates only what acts - auto-flask, the rules, the buff watch.
+    /// </summary>
+    /// <remarks>
+    /// The whole of the automation and none of the drawing, so it can run in two places: as
+    /// THE loop when there is no overlay, and as the stand-in during the overlay's own start.
+    /// The overlay builds a dozen services before its full loop exists - the item-art store
+    /// walks the game's bundle index, the price book reads disk, quest tables parse - and for
+    /// as long as that takes, a feed that waited on it left the rules dead and the buff list
+    /// empty in a process started with every right switch. The automation must not wait on
+    /// cosmetics.
+    /// </remarks>
+    private static PoEformance.Features.SnapshotFeed StartRulesFeed(
+        IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic, IntPtr gameWindow,
+        PoEformance.Features.AutoFlask autoFlask,
+        PoEformance.Features.RuleEngine ruleEngine,
+        PoEformance.Features.RuleHistory ruleHistory,
+        PoEformance.Features.BuffWatch buffWatch,
+        PoEformance.Features.GroundWatch groundWatch)
+    {
+        var world = new PoEformance.Game.World.WorldReader(reader, schema);
+
+        return new PoEformance.Features.SnapshotFeed(
+            _ =>
+            {
+                PoEformance.Game.World.WorldSnapshot snapshot = world.Read(gameStatesStatic);
+
+                PoEformance.Features.FlaskTick tick = autoFlask.Evaluate(
+                    snapshot.PlayerVitals,
+                    InputSender.IsForeground(gameWindow),
+                    Environment.TickCount64,
+                    snapshot.PlayerBuffs,
+                    snapshot.FlaskBelt,
+                    snapshot.State == PoEformance.Core.Diagnostics.GameStateKind.InGame);
+                foreach (PoEformance.Features.FlaskUse use in tick.Used)
+                {
+                    InputSender.Press(use.Rule.Key);
+                }
+
+                PoEformance.Features.PointerView? pointer = null;
+                PoEformance.Overlay.ClientRect client =
+                    PoEformance.Overlay.GameWindowTracker.TryGet(gameWindow);
+                if (client.IsValid
+                    && PoEformance.Overlay.GameWindowTracker.CursorInClient(gameWindow) is (float cx, float cy))
+                {
+                    pointer = new PoEformance.Features.PointerView(cx, cy, client.Width, client.Height);
+                }
+
+                buffWatch.Look(snapshot.PlayerBuffs, Environment.TickCount64);
+                groundWatch.Look(snapshot, Environment.TickCount64);
+
+                Perform(ruleEngine.Evaluate(
+                    PoEformance.Features.RuleState.From(
+                        snapshot,
+                        InputSender.IsForeground(gameWindow),
+                        ruleHistory,
+                        Environment.TickCount64,
+                        pointer),
+                    Environment.TickCount64));
+
+                return snapshot;
+            },
+            TimeSpan.FromMilliseconds(33));
+    }
+
+    /// <summary>
+    /// The reader loop for a session with no overlay: rules, buffs and auto-flask, nothing drawn.
+    /// </summary>
+    /// <remarks>
+    /// The feed is published on the handle for the rules panel's health line, and disposed
+    /// only after the config window closes - a panel that outlives the reader it reports on
+    /// would end the session with a lie on screen.
+    /// </remarks>
+    private static void RunRulesWithoutOverlay(
+        IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic, IntPtr gameWindow,
+        PoEformance.Features.AutoFlask autoFlask,
+        PoEformance.Features.RuleEngine ruleEngine,
+        PoEformance.Features.RuleHistory ruleHistory,
+        PoEformance.Features.BuffWatch buffWatch,
+        PoEformance.Features.GroundWatch groundWatch,
+        OverlayHandle handle,
+        Thread? configWindow)
+    {
+        using PoEformance.Features.SnapshotFeed feed = StartRulesFeed(
+            reader, schema, gameStatesStatic, gameWindow,
+            autoFlask, ruleEngine, ruleHistory, buffWatch, groundWatch);
+        handle.Feed = feed;
+
+        Console.WriteLine();
+        Console.WriteLine("rules running without the overlay - keys, mouse and sounds work; captions,");
+        Console.WriteLine("bars and the in-game range drawings need --overlay.");
+
+        if (configWindow is not null)
+        {
+            configWindow.Join();
+            return;
+        }
+
+        // --autoflask with neither window: nothing will ever join, so a key ends it.
+        Console.WriteLine("any key stops.");
+        while (!KeyPressed())
+        {
+            Thread.Sleep(200);
+        }
+    }
+
+    private static void RunOverlay(
+        IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic, IntPtr gameWindow, int cull,
+        PoEformance.Features.AutoFlask autoFlask,
+        PoEformance.Features.RuleEngine ruleEngine,
+        PoEformance.Features.RuleHistory ruleHistory,
+        PoEformance.Features.BuffWatch buffWatch,
+        PoEformance.Features.GroundWatch groundWatch,
+        PoEformance.Features.EvasionPlanner evasionPlanner,
+        PoEformance.Game.World.TerrainRotationTables rotation, bool debug,
+        PoEformance.Features.OverlaySettings settings, OverlayHandle handle, bool uiBrowser,
+        UpdateService updates,
+        // The ONE copy of the tracker's settings, shared with the config window rather than
+        // loaded again here: both windows edit them, and a second copy would let a save from
+        // either silently discard the other's edits.
+        PoEformance.Features.TrackerSettings tracker,
+        Action<PoEformance.Features.TrackerSettings> writeTracker,
+        ulong fileRoot, ulong areaCounter, RecordingMemoryReader? recorder = null,
+        IReadOnlyList<ResolvedStatic>? statics = null)
+    {
+        // The rules FIRST, before any of the services below. Several of them are slow on a
+        // cold start - the item-art store walks the game's own bundle index - and for as long
+        // as they build, a process started with every right switch had a live config window,
+        // a working map and completely dead automation: no feed, no overlay, "the reader has
+        // not looked at the player yet". The stand-in runs the same decisions the full loop
+        // will, and is replaced by it in the moment the full loop exists.
+        PoEformance.Features.SnapshotFeed earlyRules = StartRulesFeed(
+            reader, schema, gameStatesStatic, gameWindow,
+            autoFlask, ruleEngine, ruleHistory, buffWatch, groundWatch);
+        handle.Feed = earlyRules;
+        handle.Stage = "loading landmarks";
+
+        // When the quest set was last re-read, so it happens on a timer and not per frame.
+        long questsRead = 0;
+
+        // How many table disagreements have been reported. Not a count of problems - a cursor,
+        // so each row is named once rather than on every read for the rest of the session.
+        int animationDrift = 0;
+
+        // The planner arrives already configured - the config window shares it, and a second
+        // one here would edit settings the reader never sees.
+        PoEformance.Game.Components.AnimationNames animationNames =
+            PoEformance.Game.Components.AnimationNames.Load(FindDataFile("animations.tsv"));
+
+        handle.Stage = "loading item names";
+
+        // HELD RATHER THAN BUILT INLINE, because the stash is no longer the only reader: the
+        // rates page names the rows its index has never heard of from the same table, the world
+        // reader resolves a flask's charge stats out of it, and loading five thousand entries
+        // again to answer the same questions would be silly. LOADED HERE, before the world
+        // reader, because that is now one of the readers that needs it - a flask's charge
+        // numbers are computed from three stat rows this table supplies by id.
+        PoEformance.Game.Items.ItemNames itemNames = PoEformance.Game.Items.ItemNames.Load(
+            FindDataFile("item-stats.json"),
+            FindDataFile("item-names.json"),
+            FindDataFile("unique_ivi_name_map.tsv"));
+
+        var world = new PoEformance.Game.World.WorldReader(reader, schema, rotation, itemNames)
+        {
+            // Names for tiles somebody has described. Missing is fine: the boss arenas are
+            // found from the shape of the ground either way, this only names them.
+            LandmarkNames = PoEformance.Game.World.LandmarkNames.Load(FindDataFile("landmarks.json")),
+
+            // Set per tick below rather than here: the config window can switch the feature on
+            // while the tool runs, and a flag fixed at construction would make that edit take a
+            // restart to notice.
+            ReadActions = evasionPlanner.Settings.NeedsActions,
+
+            // The hunt for the room level, which is reverse-engineering rather than a feature -
+            // so it rides with the rest of the measurements. Its point is the recording: the
+            // reads have to HAPPEN for the question to be answerable offline.
+            ProbeRooms = debug,
+        };
+        Console.WriteLine();
+        Console.WriteLine(gameWindow != IntPtr.Zero
+            ? "overlay running - it follows the game window and hides while the game is not in front"
+            : "overlay running - no game window found, using a default size; Ctrl+C to quit");
+        Console.WriteLine(debug
+            ? "        --debug: projection measurements and calibration aids are ON"
+            : "        drawing living monsters, chests, items and NPCs. --debug adds the"
+              + " projection measurements and the entity-kind filter.");
+
+        // Reads happen on their own thread at their own rate; the renderer only ever picks
+        // up the newest finished snapshot. 30 Hz because entities move at the game's tick
+        // rate - reading once per drawn frame bought nothing and cost the frame rate.
+        //
+        // Auto-flask runs HERE, inside the read, for two reasons: it needs the freshest
+        // vitals rather than whatever the last drawn frame saw, and reacting at the read
+        // rate rather than the frame rate keeps it working when the overlay is hidden.
+        // Served from the reader thread alongside the world read, and idle until the browser
+        // is opened: an interface tree read per tick is cheap next to the entity map, and
+        // still pure waste while nobody is looking at it.
+        var uiTree = new PoEformance.Features.UiTreeInspector(reader, schema, gameStatesStatic);
+
+        // The same arrangement for raw memory: the window says where to look, this looks. Idle
+        // until it is opened, and one window of a few kilobytes when it is - nothing next to
+        // the entity map.
+        var structures = new PoEformance.Features.StructureInspector(reader, schema, gameStatesStatic);
+
+        // Every stash tab and everything in it. ON DEMAND rather than per tick: a full read is
+        // thousands of entities taken down to their stats, which is orders of magnitude past
+        // anything else here and answers a question nobody asks sixty times a second.
+        // Each item's own picture. The item carries the PATH of its art, and that file is in
+        // the game's own packed bundles - so the install is read for it, which needs nobody's
+        // permission and works offline. poe2db is the fallback for whatever that cannot give
+        // up, and THAT stays off until somebody turns it on: nothing else here talks to the
+        // network while playing.
+        handle.Stage = "opening the game's art bundle";
+        // THE ONE OPEN OF THE INSTALL, moved up here from further down the file. It was opened
+        // twice: once inside the art reader and once for the quest and ground tables, each paying
+        // for the bundle index - and a third reader has since arrived, the one that asks what the
+        // game CALLS its own art files. It cannot change while the game runs, so one open serves
+        // all of them.
+        handle.Stage = "opening the game's own files";
+        PoEformance.Game.Files.GameFiles.OpenedFiles opening =
+            PoEformance.Game.Files.GameFiles.OpenOrSay(
+                PoEformance.Game.Files.GameInstall.Find(null));
+        PoEformance.Game.Files.GameFiles? installed = opening.Files;
+        Console.WriteLine($"install  {opening.Why}");
+
+        // Each item's own picture. The item carries the PATH of its art, and that file is in
+        // the game's own packed bundles - so the install is read for it, which needs nobody's
+        // permission and works offline. poe2db is the fallback for whatever that cannot give
+        // up, and THAT stays off until somebody turns it on: nothing else here talks to the
+        // network while playing.
+        using var itemArt = new PoEformance.Features.ItemArtStore
+        {
+            Install = installed is null ? null : PoEformance.Overlay.InstalledArt.Pictures(installed),
+        };
+
+        // The quest tables come out of the INSTALL, not out of memory: a quest state is an
+        // array of flag references, and an array lives in the .dat's variable-length section,
+        // which the resident copy of a table does not carry. Opened once - they cannot change
+        // while the game runs - and then only the flag set is re-read.
+        handle.Stage = "parsing quest tables";
+
+        var quests = new PoEformance.Features.QuestWatch();
+        quests.Open(installed, FindDataFile("quest-tables.json"));
+        Console.WriteLine($"quests   {quests.Opening}");
+
+        // What KIND each patch of dangerous-looking ground is. The entity path cannot say - every
+        // ground effect on file is the same generic VisibleServerGroundEffect - so the component
+        // carries a row index and the name lives in the game's own table. Missing is ordinary and
+        // costs only the name: the rings still draw.
+        PoEformance.Features.GroundEffectTypeTable groundTypes =
+            PoEformance.Features.GroundEffectTypeTable.Load(
+                installed, FindDataFile("ground-tables.json"), FindDataFile("ground-effect-types.json"));
+        Console.WriteLine($"ground   {groundTypes.Why}");
+
+        // The evasion planner needs the same table, for a different question: the tracker asks it
+        // what to WRITE beside a ring, and the planner asks it which patches are worth rolling out
+        // of. Without it every ground effect counts as harmful - the safe direction, and wrong for
+        // the six rows that grant something.
+        evasionPlanner.GroundTypes = groundTypes;
+
+        var stash = new PoEformance.Features.StashInspector(reader, schema, gameStatesStatic, itemNames);
+
+        // What things are worth. OFF until somebody switches it on in the stash window - and
+        // more firmly than the pictures, because there is no local copy of a price to prefer:
+        // they exist only on somebody else's server. Which league to ask about comes from the
+        // game rather than from a setting, so it cannot go stale at a league start.
+        handle.Stage = "opening the price book";
+        using var prices = new PoEformance.Features.PriceStore();
+
+        // The game's own Currency Exchange, alongside poe.ninja rather than in place of it. Its
+        // hours are immutable, so after the first read this costs one request an hour for every
+        // market in the league - see ExchangeStore.
+        using var exchange = new PoEformance.Features.ExchangeStore();
+
+        // And the aggregated index beside it, which is here for the two things an hourly digest
+        // of one moment cannot give: a week of history, and somebody to disagree with. Switched
+        // on and off together with the exchange - see RatesWindow.
+        using var scout = new PoEformance.Features.ScoutStore();
+
+        // The record of what the currency has been worth, read back from disk before anything
+        // else touches it. It spans every session there has ever been and NOTHING here ever
+        // clears it - see WealthHistory, which explains why that is worth saying out loud.
+        handle.Stage = "reading the wealth record";
+        var wealth = new PoEformance.Features.WealthTracker(PoEformance.Features.WealthHistory.Load());
+        stash.WatchPurse = settings.WealthWatch;
+        Console.WriteLine(
+            $"wealth   {wealth.History.Count} readings"
+            + (wealth.History.Readable ? string.Empty : " - the record on disk could not be read"));
+
+        // And the other half of "what is this worth": the game's own trade site, for the
+        // uniques poe.ninja has nothing on - which on Standard is all of them. It cannot be
+        // asked over plain HTTP (the endpoints are Cloudflare-gated), so the query runs inside
+        // a browser the player signs in to once, and only asking prices come back out.
+        handle.Stage = "preparing the trade session";
+        using var tradeSession = new PoEformance.Config.TradeSession();
+        using var trade = new PoEformance.Features.TradePrices(ask: tradeSession.Query);
+
+        // The endgame atlas, which is INTERFACE rather than world: it reads nothing at all
+        // while the panel is closed, which is almost all of a session. Its two data files are
+        // what turn a node's raw id and content numbers into a name and a list of what is in
+        // it - both optional, and missing either only costs the words.
+        // The ritual line rides the atlas read. Its own first read is one byte - the mode
+        // flag - so having it switched on costs nothing while no line is being drawn, which is
+        // all but a few seconds of a session.
+        handle.Stage = "loading ritual and atlas data";
+        var ritual = new PoEformance.Features.RitualWatch(
+            new PoEformance.Game.Ui.RitualLineReader(
+                reader, schema, new PoEformance.Game.Ui.UiElementReader(reader, schema)),
+            PoEformance.Game.World.RitualMods.Load(FindDataFile("ritual-mods.json")),
+            PoEformance.Game.World.AtlasMapNames.Load(FindDataFile("atlas-maps.json")));
+
+        // Loaded ONCE and handed to both, because the ratings are resolved against it: a second
+        // load would be a second table for the same file and a second chance for them to differ.
+        PoEformance.Game.World.AtlasMapNames mapNames =
+            PoEformance.Game.World.AtlasMapNames.Load(FindDataFile("atlas-maps.json"));
+
+        // Loaded once and read twice, for the same reason as the map names: the atlas reads the
+        // meanings out of it and the pictures read where their art lives out of the same file.
+        PoEformance.Game.World.AtlasContentNames atlasContents =
+            PoEformance.Game.World.AtlasContentNames.Load(FindDataFile("atlas-content.json"));
+
+        var atlas = new PoEformance.Features.AtlasWatch(
+            reader,
+            schema,
+            gameStatesStatic,
+            atlasContents,
+            mapNames,
+            PoEformance.Game.World.AtlasRatings.Load(FindDataFile("atlas-ratings.json"), mapNames),
+
+            // The game's own sentence per stat, behind both content tables. Keyed by the stat's
+            // NAME rather than by a row index, so it does not go wrong when the game inserts a row -
+            // the index half of that join comes out of memory. See StatDescriptions.
+            PoEformance.Game.Components.StatDescriptions.Load(FindDataFile("stat_desc_map.tsv")))
+        {
+            Settings = PoEformance.Features.AtlasStore.Load(),
+            Ritual = ritual,
+        };
+        atlas.RitualWorth = atlas.Settings.Worth;
+
+        // The Runeshape Combinations panel - the recipes a Runecraft monolith offers - with
+        // poe.ninja's price on each row. Interface rather than world, like the atlas, and idle
+        // while the panel is shut, which is almost always. The reward names come from the
+        // install's own tables once that read lands (below, on the item book's task); until
+        // then, and without an install, from the shipped item-names.json.
+        handle.Stage = "loading runecraft settings";
+        var runecraft = new PoEformance.Features.RunecraftWatch(reader, schema, gameStatesStatic, itemNames.ShippedBase)
+        {
+            Settings = PoEformance.Features.RunecraftStore.Load(),
+        };
+
+        // AND THE MONOLITHS THEMSELVES - every one in the area, read off its station and priced
+        // by what it can roll, before the panel is opened on any of them. The same settings
+        // record, since they are one feature with one switch; the recipe catalogue lands with
+        // the reward names below.
+        var monoliths = new PoEformance.Features.MonolithWatch(reader, schema, gameStatesStatic, itemNames.ShippedBase)
+        {
+            Settings = runecraft.Settings,
+        };
+
+        // AND THE ROUTE PLANNER over them: the explosive chain from the detonator through the
+        // monoliths, relics and markers worth it, planned on request and drawn on the map. It
+        // takes the monoliths' chain values and hands back the detonation order the chain
+        // values want - the two feed each other, a scan apart.
+        handle.Stage = "loading expedition settings";
+        var expedition = new PoEformance.Features.ExpeditionWatch(reader, schema, gameStatesStatic)
+        {
+            Settings = PoEformance.Features.ExpeditionStore.Load(),
+            ChainSettings = runecraft.Settings,
+            ModNames = PoEformance.Features.RelicModNames.Load(FindDataFile("expedition-relic-mods.json")),
+        };
+
+        // What a map contains, drawn as the game's own pictures. Shares the stash's art store,
+        // so one cache on disk serves both and a picture is unpacked once - and asks the install
+        // itself where that art lives, rather than being told by a list somebody maintains.
+        var atlasArt = new PoEformance.Features.AtlasArt
+        {
+            Store = itemArt,
+            Wanted = atlasContents.Icons,
+            Names = installed is null ? null : WalkTheInstall,
+        };
+
+        // ONE WALK, TWO ANSWERS, and that is not a tidy-up: the index spells its four million paths
+        // out once per session and releases them, so a second walk finds nothing - not an error,
+        // an EMPTY answer, which reads as "the install has no such file". Both questions that need
+        // the walk are therefore asked in the same call. See GameFiles.Names.
+        //
+        // The second of them replaces data/stat_desc_map.tsv with the game's own .csd files, which
+        // is what makes that export a fallback rather than the source. It lands here because this
+        // is where the walk happens: on AtlasArt's background task, the first time the atlas is
+        // drawn, which is also the first moment anything wants a sentence for a token.
+        Dictionary<string, string> WalkTheInstall(IReadOnlyCollection<string> wanted)
+        {
+            // WHAT IS WANTED IS READ AGAIN HERE, not taken as handed in, and that is a fault this
+            // had. AtlasArt.Wanted is set once at start-up and holds the collection the FILE named;
+            // every art name the game supplies afterwards - a badge row's own picture, a league
+            // mechanic's - lands in a NEW set that the old reference never sees. So the index was
+            // asked for the shipped names and nothing else, and a name only the game knows was
+            // never looked up at all. One walk, so there is no second chance to ask.
+            var asking = new HashSet<string>(wanted, StringComparer.OrdinalIgnoreCase);
+            asking.UnionWith(atlasContents.Icons);
+
+            PoEformance.Game.Files.BundleIndex.WalkedNames walked = installed!.Names(
+                asking,
+                PoEformance.Game.Files.StatDescriptionFiles.Folder,
+                PoEformance.Game.Files.StatDescriptionFiles.Extension);
+
+            PoEformance.Game.Components.StatDescriptions said =
+                PoEformance.Game.Components.StatDescriptions.FromInstall(installed, walked.Inside);
+
+            atlas.LearnStatDescriptions(said);
+
+            // AND THE UNIQUES, off the same background task and for the same reason: three tables
+            // out of the install, joined, which is file work rather than memory work and has no
+            // business on the reader thread. It needs no part of the walk above - a path lookup is
+            // a hash, not a spell-out - so it rides here purely because this is the thread that is
+            // already allowed to be slow. See Features/UniqueNames for why the install at all:
+            // none of its three tables is in the loader's file table, so the route that reached
+            // BaseItemTypes and Mods does not reach them.
+            PoEformance.Features.UniqueNames joined = PoEformance.Features.UniqueNames.Read(
+                installed, PoEformance.Features.QuestTableLayouts.Load(FindDataFile("item-tables.json")));
+
+            itemNames.Learn(uniques: joined.ByArt);
+            foreach (string line in joined.Say)
+            {
+                Console.WriteLine(line);
+            }
+
+            // AND THE ITEM TABLES TAKE THE SAME SENTENCES, which costs nothing here because they
+            // have already been read. They were keyed by row index inside item-stats.json and are
+            // keyed by stat id here, which is the half of the join that survives a patch: the
+            // browser's walk supplies the row-to-id half. See ItemNames.Learn.
+            itemNames.Learn(sentences: said);
+            return walked.Paths;
+        }
+
+        // And the entity browser, which is the shortest route to something not yet
+        // understood: the game names every component an entity carries, and most of them
+        // still have nothing reading them.
+        // With the game's own names for the stat ids, when the table is next to the binary.
+        // Missing is fine - the ids still read, they are just numbers then.
+        // WITH FileRoot, so the browser can put the game's own Stats.dat in front of the file.
+        // stat_name_map.tsv is keyed by row index and a stat id is a POSITION, so a league that
+        // inserts a row moves every name after it: measured 2026-09-15, ten of 148 rows still
+        // agreed and the first disagreement was at index 4678. See StatTable.
+        var entityParts = new PoEformance.Features.EntityInspector(
+            reader,
+            schema,
+            PoEformance.Game.Components.StatNames.Load(FindDataFile("stat_name_map.tsv")),
+            fileRoot,
+
+            // The item tables ride along on the walk this browser was paying for anyway:
+            // item-stats.json is keyed by the same row index and drifts the same way.
+            itemNames);
+
+        // Finding a way across the area is a search over millions of cells - measured at about
+        // 1.8 seconds right across a real map - so it runs on the thread pool and the renderer
+        // draws whatever has come back. Asking for one from the read loop costs nothing, which
+        // matters because that loop also drives auto-flask.
+        var route = new PoEformance.Features.RoutePlanner();
+
+        // Recorded on the READER thread, so a read is sampled whether or not a frame was
+        // drawn for it - a graph that only holds what the renderer happened to see would
+        // thin out exactly when the reads got slow.
+        var costs = new PoEformance.Features.CostHistory();
+
+        // On the reader thread too, and for the same reason: it marks where the player has
+        // BEEN, so sampling it only on drawn frames would lose ground walked while the
+        // overlay was hidden behind an inventory screen.
+        var coverage = new PoEformance.Features.MapCoverage();
+
+        // On the reader thread for a stricter version of the same reason - see where it is
+        // fed. It watches monster health fall, so it needs one sample per READ; a sample per
+        // drawn frame would mostly be the same snapshot again, reporting no damage.
+        var damage = new PoEformance.Features.DamageMeter();
+
+        // What the area LOADED, which names the encounters in it before anybody has walked
+        // there. The walk is thousands of pointers and a string each - far too much for a
+        // tick - so it runs once when the area changes, on a thread of its own.
+        var preload = new PoEformance.Features.PreloadWatch();
+        var preloadReader = new PoEformance.Game.World.PreloadReader(reader, schema);
+        uint preloadArea = 0;
+        int preloadBusy = 0;
+
+        // What a loaded path MEANS is the user's list rather than this file's. It grows every
+        // league, from whoever is reading the raw paths on the day the tool has nothing to say
+        // about a new thing - so it is read from disk here and added to from that same window.
+        //
+        // TWO FILES, because the list is the half worth handing to somebody else: importing
+        // one person's watch list must not bring their window position with it.
+        PoEformance.Features.PreloadSettings preloadSettings = PoEformance.Features.PreloadStore.Load();
+        preload.Watch(PoEformance.Features.PreloadAlertStore.Load());
+
+        void SweepForTheCountField()
+        {
+            if (fileRoot == 0 || areaCounter == 0)
+            {
+                preload.Swept(["the file root or the counter did not resolve - nothing to sweep"]);
+                return;
+            }
+
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    int counter = preloadReader.AreaChangeCount(areaCounter);
+                    PoEformance.Game.World.PreloadReader.PreloadSweep swept =
+                        preloadReader.Sweep(fileRoot, counter);
+
+                    var lines = new List<string>
+                    {
+                        $"counter static reads {counter}",
+
+                        // SLOTS BEFORE RECORDS, because their difference is the diagnosis and
+                        // only the pair says which failure this is. No slots means the buckets
+                        // yielded nothing - the root or the bucket layout, and the count field
+                        // is irrelevant. Slots without records means the walk reached addresses
+                        // that could not be read. Records without names means the struct base
+                        // is wrong. The slot count was measured all along and never shown, so
+                        // this readout could contradict itself and did.
+                        $"{swept.Slots} slots walked, {swept.Records} records read,"
+                            + $" {swept.Named} with a readable path"
+                            + (swept.Slots == 0
+                                ? "  <- the buckets yielded nothing; the count field cannot be the problem"
+                                : swept.Named == 0 ? "  <- the RECORD is wrong, not the count" : string.Empty),
+                    };
+
+                    if (preloadReader.LastError.Length > 0)
+                    {
+                        lines.Add(preloadReader.LastError);
+                    }
+
+                    // ONLY WHEN THE WALK REACHED NOTHING, because that is the only time the
+                    // buckets themselves are the question. Sixteen hex rows under a working
+                    // table would be noise, and noise is how a real diagnostic stops being read.
+                    if (swept.Slots == 0)
+                    {
+                        lines.AddRange(preloadReader.DescribeBuckets(fileRoot));
+                    }
+
+                    lines.AddRange(swept.Samples.Select(sample => $"    {sample}"));
+
+                    lines.Add($"at the offset in use (+0x{swept.Chosen:X}) the records hold:");
+                    lines.AddRange(swept.NearbyValues.Select(v => $"    {v.Value}  in {v.Records} records"));
+
+                    lines.Add("offsets holding the counter's value:");
+                    lines.AddRange(swept.CountAt.Count > 0
+                        ? swept.CountAt.Select(c => $"    +0x{c.Offset:X}  in {c.Agreeing} records")
+                        : ["    none - no field in the first 0x100 bytes holds it"]);
+
+                    preload.Swept(lines);
+                }
+                catch (Exception exception)
+                {
+                    preload.Swept([exception.Message]);
+                }
+            });
+        }
+
+        void LookAtWhatLoaded(uint area)
+        {
+            // One at a time, and never twice for the same area. Two walks at once would be
+            // two thousand reads competing with the one the renderer is waiting for.
+            if (fileRoot == 0 || areaCounter == 0
+                || System.Threading.Interlocked.CompareExchange(ref preloadBusy, 1, 0) != 0)
+            {
+                return;
+            }
+
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    int counter = preloadReader.AreaChangeCount(areaCounter);
+                    HashSet<string> files = preloadReader.Read(fileRoot, counter);
+
+                    // The two numbers side by side when they disagree, because that IS the
+                    // finding - the table stamps its own generation and the static is only a
+                    // cross-check, so a mismatch says the static is reading something else.
+                    string note = preloadReader.LastError;
+                    if (files.Count > 0 && preloadReader.Newest != counter)
+                    {
+                        note = $"area {preloadReader.Newest} by the table, {counter} by the counter static";
+                    }
+
+                    preload.Took(area, files, note);
+
+                    // On the way in, once, from the thread that just read the list. Only the
+                    // entries that asked for it write anything - see PreloadAlertStore.Log.
+                    PoEformance.Features.PreloadAlertStore.Log(
+                        area, preload.Found, DateTimeOffset.Now);
+                }
+                catch (Exception exception)
+                {
+                    preload.Took(area, [], exception.Message);
+                }
+                finally
+                {
+                    System.Threading.Volatile.Write(ref preloadBusy, 0);
+                }
+            });
+        }
+
+        // Which stash read has already been offered to the trade layer.
+        PoEformance.Features.StashView tradeAsked = PoEformance.Features.StashView.Nothing;
+
+        handle.Stage = "starting the full reader";
+
+        // The stand-in retires HERE, not at scope end: two feeds evaluating the same rule
+        // engine would race its timers. Disposal joins the stand-in's thread, so from this
+        // line on exactly one loop is deciding.
+        earlyRules.Dispose();
+
+        using var feed = new PoEformance.Features.SnapshotFeed(
+            scale =>
+            {
+                // The capture key's recording keeps the same clock, and ends itself on it.
+                (reader as TapMemoryReader)?.MarkFrame();
+
+                // The recording's clock, and its only one once the startup report is over.
+                // Without this every read the overlay ever makes lands in the same frame:
+                // a recording of a whole map clear replayed as one instant, with no way to
+                // ask what memory held at second forty - which is the entire reason for
+                // recording a map clear. It is also where the file is flushed, so a session
+                // that ends by being killed still ends somewhere.
+                recorder?.MarkFrame();
+
+                // Before the read, because it decides what the read DOES: four reads per hostile
+                // monster that nobody should pay for a feature they have switched off, and that
+                // has to appear the moment they switch it on.
+                world.ReadActions = evasionPlanner.Settings.NeedsActions;
+
+                // Let the game name its own animations. Two hops and a short string, ONCE per
+                // animation id per session - and it beats the shipped table, which ages with the
+                // game: three rows have been inserted into Data/Balance/Animation.dat since the
+                // file was first transcribed, and while that stood, 37 animations were classified
+                // QUIET that are not. The name is what KindOf classifies, so this is the
+                // difference between filtering an animation correctly and dropping a threat.
+                world.AnimationNames = animationNames;
+
+                // AND SAY SO WHEN IT HAPPENS. The table is generated now, so a disagreement means
+                // the game has moved on since it was generated - which is exactly the state that
+                // last time went unnoticed until somebody went looking. Correcting it silently
+                // fixes this session and lets the file rot; one line names the row and what to
+                // run. Reported once per id, and only for ids the file HAS - a name for an id it
+                // never had is news rather than a contradiction.
+                if (animationNames.Disagreements.Count > animationDrift)
+                {
+                    foreach ((int id, string shipped, string live) in animationNames.Disagreements.Skip(animationDrift))
+                    {
+                        Console.WriteLine(
+                            $"  animation {id}: the table says {shipped}, the game says {live}"
+                            + " - data/animations.tsv is behind, re-run --animdump");
+                    }
+
+                    animationDrift = animationNames.Disagreements.Count;
+                }
+
+                // The keyboard hook, started the first tick steering is switched on and never
+                // before it. Idempotent and a volatile read when it is already running, so it
+                // costs nothing to ask every tick - and asking every tick is what lets the
+                // config window turn steering on without a restart. It is deliberately NOT
+                // started at launch: a global keyboard hook is a thing to install when it is
+                // needed for something, not one to have running because it might be.
+                if (evasionPlanner.Settings.CanSteer)
+                {
+                    PhysicalKeys.Watch();
+                }
+
+                PoEformance.Game.World.WorldSnapshot snapshot = world.Read(gameStatesStatic, scale: scale);
+                uiTree.Service(scale);
+                structures.Service();
+                entityParts.Service();
+                atlas.Service(scale, Environment.TickCount64);
+                stash.Service(Environment.TickCount64);
+
+                // On the READER thread, and never waiting: the league is read here every few
+                // seconds, and this only starts a fetch when it is news or the book has aged.
+                prices.Watching(stash.League);
+
+                // After the book has been told the league, so the first tick the panel is open
+                // prices against whatever book is finished rather than against none.
+                // The monoliths first, so the panel's rows are joined to the one whose panel
+                // is open as it stands this tick.
+                monoliths.Service(snapshot, Environment.TickCount64, prices.Book);
+                runecraft.Service(scale, Environment.TickCount64, prices.Book, monoliths.View);
+
+                // The planner after the monoliths, on their fresh view; its order goes back to
+                // them for the next scan. The same reference every tick costs the monoliths
+                // nothing - they re-value only when the order is a new one.
+                expedition.ChainSettings = runecraft.Settings;
+                expedition.Service(snapshot, Environment.TickCount64, monoliths.View);
+                monoliths.PlannedOrder = expedition.PlannedOrder;
+
+                // The same arrangement for the game's own exchange, and for the same reason:
+                // told the league every tick, it refreshes only when that is news or the hour
+                // has turned. Its digests are immutable, so a refresh is one request.
+                exchange.Playing(stash.League);
+
+                // The index RIDES THE EXCHANGE'S SWITCH, and this is the line that makes that
+                // true no matter which tab did the switching: the Stash tab's checkbox knows
+                // only about the exchange, so without this an index switched on from the Rates
+                // tab would go dark again the moment somebody used the other one.
+                scout.Enabled = exchange.Enabled;
+                scout.Playing(stash.League);
+
+                trade.Watching(stash.League);
+                trade.Book = prices.Book;
+                trade.Service();
+
+                // Once per stash READ rather than per frame: the view is published whole, so a
+                // new one is a different object, and asking the trade site is one request per
+                // name at three and a half seconds apiece.
+                if (!ReferenceEquals(tradeAsked, stash.View))
+                {
+                    tradeAsked = stash.View;
+                    trade.Ask(tradeAsked, prices.Book);
+                }
+
+                // On the READER thread, beside the count that feeds it. The purse is re-counted
+                // on its own timer inside stash.Service above; this prices the result and
+                // decides whether it is fit to be written down - see WealthTracker.Fit.
+                //
+                // The wall clock rather than TickCount64, and that is not interchangeable here:
+                // the record spans sessions, and milliseconds-since-boot restarts at zero every
+                // time the machine does.
+                // WHERE A STASH CAN EXIST, from the area the world reader has just resolved -
+                // IsTown is the game's own field and IsHideout the reference's id test. Without
+                // this the remembered tab contents are wiped every time the player enters a
+                // map, because the game lists the tabs there too, empty. See CanSeeAStash.
+                stash.CanSeeAStash = snapshot.InGame && !snapshot.Area.IsHostile;
+
+                if (stash.WatchPurse
+                    && wealth.Update(
+                        stash.Purse,
+                        prices.Book,
+                        DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                        settling: prices.Busy))
+                {
+                    // Written whenever a point was added rather than on a timer of its own. A
+                    // point is at most one every thirty seconds, so this is a few hundred
+                    // kilobytes a minute at the very worst - and the alternative is losing the
+                    // session's record to a crash or a kill, which is the failure this whole
+                    // feature is least able to afford.
+                    wealth.History.Save();
+                }
+
+                route.Service(snapshot, Environment.TickCount64);
+                costs.Add(snapshot.Cost, snapshot.AreaHash, Environment.TickCount64);
+                coverage.Look(snapshot);
+
+                // HERE rather than in the overlay, and that is the whole difference between a
+                // damage figure and a wrong one: the renderer redraws at VSync while these
+                // snapshots arrive at about 30Hz, so sampling there would read the same
+                // unchanged snapshot twice and count the second as a moment in which no
+                // damage happened. One sample per read is one sample per thing that changed.
+                damage.Look(snapshot, Environment.TickCount64);
+
+                // On the area CHANGE rather than on a timer. The list cannot change while
+                // you stand in a zone, so looking again would be thousands of reads to
+                // confirm what is already on screen.
+                // Not in town, and only on a change of INSTANCE. Both come from the
+                // reference, which learned them: the walk is thousands of reads and a town
+                // has nothing worth listing, while the hash is what distinguishes a new map
+                // from a portal back into the one you were already in.
+                if (snapshot.InGame && snapshot.AreaHash != 0 && snapshot.AreaHash != preloadArea
+                    && snapshot.Area.IsHostile)
+                {
+                    preloadArea = snapshot.AreaHash;
+                    LookAtWhatLoaded(snapshot.AreaHash);
+                }
+
+                // The flag set, about once a second. Reading it is a handful of reads, but
+                // the JOIN behind it walks a few thousand quest states, and a quest step does
+                // not change between two frames of anything.
+                // NOT gated on the tables having opened. The flags are a handful of reads and
+                // they are the half that comes out of the process, so a --record session of a
+                // run where a table failed still carries them - which is exactly the session
+                // somebody wants to look at afterwards.
+                if (snapshot.ServerData != 0
+                    && Environment.TickCount64 - questsRead >= QuestFlagIntervalMs)
+                {
+                    questsRead = Environment.TickCount64;
+                    quests.Update(PoEformance.Game.Diagnostics.QuestFlagSet.Rows(
+                        reader, schema, snapshot.ServerData));
+                }
+
+                // Evaluated even when the feature is off: it costs a bool check, and its
+                // reason string is what the overlay's status line shows - including the
+                // word "disabled", which is the answer to the question actually asked.
+                PoEformance.Features.FlaskTick tick = autoFlask.Evaluate(
+                    snapshot.PlayerVitals,
+                    InputSender.IsForeground(gameWindow),
+                    Environment.TickCount64,
+                    snapshot.PlayerBuffs,
+                    snapshot.FlaskBelt,
+                    snapshot.State == PoEformance.Core.Diagnostics.GameStateKind.InGame);
+
+                foreach (PoEformance.Features.FlaskUse use in tick.Used)
+                {
+                    InputSender.Press(use.Rule.Key);
+                }
+
+                // What is about to land on the player, and whether to roll out of it. On this
+                // thread and once per read for the same reason the rules are: deciding in the
+                // renderer would make how often the tool rolls a function of the frame rate.
+                //
+                // The planner is pure - it returns a decision, and the press happens HERE, at
+                // the one place in the codebase that can synthesise input.
+                PoEformance.Features.EvasionTick evasion = evasionPlanner.Evaluate(
+                    snapshot,
+                    animationNames,
+                    InputSender.IsForeground(gameWindow),
+                    Environment.TickCount64);
+
+                if (evasion.Dodge)
+                {
+                    // Steered or not, one call: with no direction chosen this is the plain
+                    // press it has always been, and the movement keys are never touched.
+                    PoEformance.Features.EvasionSettings evade = evasionPlanner.Settings;
+                    DodgeSteer.Roll(
+                        (ushort)evade.DodgeKey,
+                        evade.KeysOrDefault.KeysFor(evasion.Steer),
+                        evasion.Steer == PoEformance.Features.MoveDirection.None
+                            ? []
+                            : evade.KeysOrDefault.All,
+                        evade.SteerHoldMs);
+                }
+
+                // The rules, on this thread and once per read - NOT in the renderer. The
+                // reference plugin evaluates inside its draw callback, which makes how often a
+                // macro fires a function of the frame rate: the same rule types twice as fast
+                // on a better graphics card, and a dropped frame skips a beat.
+                // Where the mouse is, for the rules that count what you are AIMING at rather
+                // than what is near you. Read here rather than in the state: asking Windows
+                // belongs at the composition root, and it keeps every cursor rule testable.
+                PoEformance.Features.PointerView? pointer = null;
+                PoEformance.Overlay.ClientRect client =
+                    PoEformance.Overlay.GameWindowTracker.TryGet(gameWindow);
+                if (client.IsValid
+                    && PoEformance.Overlay.GameWindowTracker.CursorInClient(gameWindow) is (float cx, float cy))
+                {
+                    pointer = new PoEformance.Features.PointerView(cx, cy, client.Width, client.Height);
+                }
+
+                // On the read rather than in the config window: the window reads its own
+                // snapshot once a second, and a buff worth writing a rule about lasts a few
+                // seconds - so half of them would never be seen.
+                buffWatch.Look(snapshot.PlayerBuffs, Environment.TickCount64);
+                groundWatch.Look(snapshot, Environment.TickCount64);
+
+                PoEformance.Features.RuleTick rules = ruleEngine.Evaluate(
+                    PoEformance.Features.RuleState.From(
+                        snapshot,
+                        InputSender.IsForeground(gameWindow),
+                        ruleHistory,
+                        Environment.TickCount64,
+                        pointer),
+                    Environment.TickCount64);
+
+                // The projection and the hover re-read, supplied here because this is the only
+                // place that has the camera matrix, the window and the reader all at once.
+                Perform(rules, new AimContext(
+                    aim =>
+                    {
+                        PoEformance.Overlay.ClientRect at =
+                            PoEformance.Overlay.GameWindowTracker.TryGet(gameWindow);
+                        if (!at.IsValid)
+                        {
+                            return null;
+                        }
+
+                        PoEformance.Game.World.ScreenPoint point =
+                            PoEformance.Game.World.WorldToScreen.Project(
+                                snapshot.Matrix, aim.X, aim.Y, aim.Z, at.Width, at.Height);
+
+                        // Client pixels are what the projection produces; the pointer is set in
+                        // SCREEN pixels, so the window's own origin has to be added back.
+                        return point.OnScreen
+                            ? (at.X + (int)point.X, at.Y + (int)point.Y)
+                            : null;
+                    },
+                    world.ReadHoveredNow,
+                    (ruleId, note, detail) =>
+                        ruleEngine.Aimed(ruleId, note, detail, Environment.TickCount64),
+                    (ruleId, what) =>
+                    {
+                        long at = Environment.TickCount64;
+                        ruleEngine.Aimed(ruleId, what, "sent", at);
+                        ruleEngine.Fired(ruleId, at);
+                    }));
+
+                return snapshot;
+            },
+            TimeSpan.FromMilliseconds(33));
+
+        // Published as soon as it exists: the config window may already be open.
+        handle.Feed = feed;
+        handle.Stage = string.Empty;
+
+        using var overlay = new PoEformance.Overlay.EntityOverlay(
+            scale =>
+            {
+                feed.SetViewport(scale);
+                return feed.Latest;
+            },
+            gameWindow,
+            cull);
+        overlay.ReadStats = () => (feed.LastReadMilliseconds, feed.ReadCount, feed.FailureCount);
+        overlay.FlaskStatus = () => autoFlask.LastTick.Reason;
+        overlay.EvasionStatus = () => evasionPlanner.LastTick.Reason;
+        overlay.RuleStatus = () => ruleEngine.LastTick.Reason;
+        overlay.AimStatus = () => ruleEngine.AimNote(Environment.TickCount64);
+
+        // Enough to fill the folded panel several times over without asking the log for a
+        // session's worth of history on every frame it happens to be open.
+        overlay.RuleHistory = () => ruleEngine.Log.Recent(60);
+
+        // The last EVALUATED tick, not a fresh one. The renderer redraws at VSync and the rules
+        // are decided once per read, so asking here would both cost a re-evaluation per frame
+        // and let an interval condition consume its timer sixty times a second.
+        overlay.AttachRules(
+            () => ruleEngine.LastTick.Drawings,
+            () => ruleEngine.LastPreview,
+            () => ruleEngine.LastPreviewFacts);
+        overlay.ShowDiagnostics = debug;
+        overlay.ShowCalibration = debug;
+        overlay.ShowWorldDots = debug;
+        overlay.AttachUiBrowser(uiTree, uiBrowser);
+        overlay.AttachAtlas(
+            atlas, changed => PoEformance.Features.AtlasStore.Save(changed), art: atlasArt);
+        overlay.AttachMapData(() => atlas.MapData, SaveMapData);
+        overlay.AttachStash(
+            stash,
+            itemArt,
+            prices,
+            trade,
+            () => tradeSession.Show(stash.League),
+            () => tradeSession.Probe(stash.League, CancellationToken.None),
+            exchange);
+        overlay.AttachWealth(wealth, stash, prices, exchange);
+        overlay.AttachRates(exchange, scout, () => stash.League, itemNames.Base);
+        overlay.AttachUpdates(
+            updates.Check, updates.Installer,
+            download: updates.Download, install: updates.Apply,
+            skip: updates.Skip,
+            outcome: updates.Outcome, outcomeVersion: updates.OutcomeVersion);
+        overlay.AttachRitual(
+            ritual,
+            () => atlas.RitualWorth,
+            worth => atlas.RitualWorth = worth,
+            worth =>
+            {
+                // Kept on the settings the atlas already holds, so the two cannot drift apart -
+                // and written only once the typing has stopped.
+                PoEformance.Features.AtlasSettings kept = atlas.Settings with { RitualWorth = worth };
+                atlas.Settings = kept;
+                PoEformance.Features.AtlasStore.Save(kept);
+            });
+        overlay.AttachRunecraft(runecraft, monoliths, changed => PoEformance.Features.RunecraftStore.Save(changed), prices);
+        overlay.AttachExpedition(expedition, changed => PoEformance.Features.ExpeditionStore.Save(changed));
+        overlay.Noise = world.Noise;
+        overlay.Memory = world.Memory;
+
+        // WHAT BUILD THIS IS, on the title bar. The version says what was meant to be in it
+        // and the stamp says which commit actually was - a build compiled here has no stamp
+        // and reads "local", which is the answer that keeps a version number from being
+        // mistaken for a released one. See ToolVersion.
+        overlay.Version = PoEformance.Features.ToolVersion.With(PoEformance.Features.BuildStamp.Load());
+
+        // THE LIGHT PANEL'S SEARCH of the game's memory, off the frame - see FloatHunt and LightHunt.
+        // Set before the books are attached, which take it as they are made. Twice HeapScan's budget:
+        // the first hunt in AzmerianRanges stopped at eight gigabytes with the sky's turn not found.
+        // And where the parsed environment keeps its dust colour, which that search reads beside the
+        // angles it finds - an offset like any other, so the schema's.
+        overlay.EnvironmentDust = PoEformance.Game.Diagnostics.DustPlace.From(schema.Structs.GetValueOrDefault("ParsedEnvironment"));
+        if (reader is IMemoryRegions space)
+        {
+            overlay.HuntFloats = (needles, anchor, progress) => Task.Run(() => PoEformance.Core.Diagnostics.FloatHunt.Run(
+                reader, space, needles, anchor, progress, budget: 2 * PoEformance.Core.Diagnostics.HeapScan.ByteBudget));
+
+            // AND THE DISSECTOR'S FIND - a text, or pointers to an address - nearest the game's own image
+            // first: a name the engine keeps among its code's constants is there, and in address order the
+            // image comes last of all, past the heaps and the driver mappings.
+            overlay.HuntPatterns = (needles, progress) => Task.Run(() => PoEformance.Core.Diagnostics.PatternHunt.Run(
+                reader, space, needles, reader.ModuleBase, progress, budget: 2 * PoEformance.Core.Diagnostics.HeapScan.ByteBudget));
+        }
+
+        // THE ROOMS' DOODADS ACROSS THE WHOLE AREA, read once on a press - see SleepingDoodads. Off the
+        // frame, on the chain the last snapshot resolved, with readers of its own; the tile book runs it
+        // on its own task. Set before the books are attached, like the hunts.
+        overlay.SurveyDoodads = paths => PoEformance.Game.World.SleepingDoodads.Read(reader, schema, world.LastAreaInstance, paths);
+
+        // The capture key's memory: a recording started on demand, and inside it ONE pass that reads
+        // what the ticked parts of the capture ask for, from nothing - see CaptureMemory. The
+        // recording stays open until the pass is done, and keeps reads as large as the terrain's.
+        // The statics go in first, as --record writes them, or the recording could not be replayed.
+        if (reader is TapMemoryReader tap)
+        {
+            KeyValuePair<string, string>[] notes =
+            [
+                .. (statics ?? []).Select(one => new KeyValuePair<string, string>(
+                    RecordingFormat.StaticNotePrefix + one.Name,
+                    one.Address.ToString("X", System.Globalization.CultureInfo.InvariantCulture))),
+            ];
+            overlay.RecordMemory = ask =>
+            {
+                if (tap.Recording)
+                {
+                    return null;
+                }
+
+                var passed = new TaskCompletionSource();
+                Task<long>? recorded = tap.Start(
+                    File.Create(Path.Combine(ask.Folder, PoEformance.Features.CaptureReport.MemoryFile)),
+                    notes,
+                    new TapRecording(PoEformance.Features.CaptureReport.MemoryFrames)
+                    {
+                        Until = passed.Task,
+                        MaxReadBytes = PoEformance.Features.CaptureMemory.MaxReadBytes,
+                        MaxTotalBytes = PoEformance.Features.CaptureMemory.MaxTotalBytes,
+                    });
+                if (recorded is null)
+                {
+                    return null;
+                }
+
+                PoEformance.Game.Ui.UiScale scale = feed.Viewport;
+                return Task.Run(async () =>
+                {
+                    PoEformance.Features.CapturePass pass;
+                    try
+                    {
+                        // A FRESH animation table, so every animation the game names is asked for
+                        // again inside the recording rather than served from this session's copy -
+                        // loaded only where the pass reads the world, which is what names them.
+                        PoEformance.Game.Components.AnimationNames? animations = PoEformance.Features.CaptureMemory.ReadsWorld(ask.Reads)
+                            ? PoEformance.Game.Components.AnimationNames.Load(FindDataFile("animations.tsv"))
+                            : null;
+                        pass = PoEformance.Features.CaptureMemory.Pass(
+                            reader, schema, gameStatesStatic, rotation, itemNames, world.LandmarkNames, animations,
+                            scale, fileRoot, areaCounter, ask.Reads);
+                    }
+                    catch (Exception exception)
+                    {
+                        pass = new PoEformance.Features.CapturePass($"the pass failed: {exception}", new Dictionary<string, string>());
+                    }
+                    finally
+                    {
+                        passed.TrySetResult();
+                    }
+
+                    await File.WriteAllTextAsync(Path.Combine(ask.Folder, PoEformance.Features.CaptureMemory.IndexFile), pass.Index).ConfigureAwait(false);
+
+                    // The files only the pass can write - a monster's mods are read nowhere else -
+                    // beside the index, each on its own so one failing loses only itself.
+                    foreach ((string file, string text) in pass.Files)
+                    {
+                        try
+                        {
+                            await File.WriteAllTextAsync(Path.Combine(ask.Folder, file), text).ConfigureAwait(false);
+                        }
+                        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                        {
+                            await File.AppendAllTextAsync(
+                                Path.Combine(ask.Folder, PoEformance.Features.CaptureMemory.IndexFile),
+                                $"\n{file} could not be written: {exception.Message}\n").ConfigureAwait(false);
+                        }
+                    }
+                    long bytes = await recorded.ConfigureAwait(false);
+                    return $"{bytes / 1024} KB: the overlay's own reads for {PoEformance.Features.CaptureReport.MemoryFrames} reader ticks and "
+                        + $"one pass reading {PoEformance.Features.CaptureMemory.Said(ask.Reads)} from nothing - replay with --replay; "
+                        + $"{PoEformance.Features.CaptureMemory.IndexFile} says what the pass read where";
+                });
+            };
+        }
+        else
+        {
+            overlay.NoMemory = recorder is not null
+                ? "this session is recorded from launch already (--record), so the whole of it is in that file"
+                : "this session's reader cannot record on demand";
+        }
+
+        // The effects debug switch, as a pair of callbacks: the overlay draws and has no other
+        // business with the reader, and this is the one bit of it worth reaching from up there.
+        overlay.KeepEffects = keep => world.KeepEffects = keep;
+
+        // And the one the projectiles need: the game files every projectile in flight as a
+        // visual entity, which the entity walk drops before its path is read.
+        overlay.ReadVisuals = read => world.ReadVisualEntities = read;
+
+        // And the one the status icons need: no monster carries buffs until the reader is
+        // asked to walk that component, and it is the only per-monster read here that nothing
+        // else in the tool wants.
+        overlay.ReadMonsterBuffs = read => world.ReadMonsterBuffs = read;
+
+        // And the one the aim rays need: where things point, and what they are doing.
+        overlay.ReadAim = read => world.ReadAim = read;
+
+        // The evasion warnings: the settings decide what is drawn, and the threats come from the
+        // LAST EVALUATED tick rather than a fresh one - the renderer runs at VSync while the
+        // planner decides once per read, so asking here would consume the dodge cooldown sixty
+        // times a second.
+        overlay.Evasion = () => evasionPlanner.Settings;
+        overlay.EvasionThreats = () => evasionPlanner.LastTick.Draw;
+        overlay.Animations = PoEformance.Game.Components.AnimationNames.Load(
+            FindDataFile("animations.tsv"));
+
+        // What a monster IS, beside what it is doing. Keyed on the entity's own path, so the
+        // browser can name a thing the moment it is selected - see MonsterVarieties.
+        overlay.Monsters = PoEformance.Game.Entities.MonsterVarieties.Load(
+            FindDataFile("monster-varieties.json"));
+
+        // Which of the sheet's boss pictures belongs to which arena, for the arenas whose area
+        // id and tile path do not already say it. Missing is fine and is the ordinary case: the
+        // arena is still found in the ground and still marked, with the boss shape - see
+        // BossIcons, which also collects the ones nothing could name.
+        PoEformance.Features.BossIcons bossIcons =
+            PoEformance.Features.BossIcons.Load(FindDataFile("boss-icons.json"));
+
+        // And WHO the game says stands in each area - WorldAreas' own Bosses column. It names the
+        // boss of 125 of the atlas's 173 maps, which is where an arena's label and its icon
+        // family come from when nobody has written either down. Set BEFORE the table is handed
+        // over, so the layer that draws the markers never sees a half-built one. See AreaBosses.
+        bossIcons.Bosses = PoEformance.Game.World.AreaBosses.Load(FindDataFile("area-bosses.json"));
+        overlay.BossIcons = bossIcons;
+
+        // AND WHERE EACH AREA'S TERRAIN LIVES, from the same export, so the Monster Book can offer a
+        // boss his arena as a stage without the map having been played - see AreaGraphs, AreaArenas.
+        overlay.AreaGraphs = PoEformance.Game.World.AreaGraphs.Load(FindDataFile("area-graphs.json"));
+
+        // THE SAME INSTANCE GOES TO THE ATLAS WALK, which is what upgrades it from the shipped
+        // file to the client's own column: WorldAreaCatalogue reads all 442 rows the first time
+        // an atlas node is seen, and what it finds is merged over this. The file stays as the
+        // answer until then and for any area the walk did not reach - a table read from the
+        // running client cannot go stale with a patch, and a file always will.
+        atlas.Bosses = bossIcons.Bosses;
+
+        // And the set of maps those entries are still missing for. The same table the atlas
+        // uses - loaded once, above - because "which maps have no boss picture yet" is a set
+        // difference against EndgameMaps.dat's own 173 rows rather than a guess. See BossIconPlan.
+        overlay.EndgameMaps = mapNames;
+
+        // And what the game says each of a monster's modifier stats DOES, taken from the atlas's
+        // copy rather than loaded a second time. It owns the upgrade: the shipped export until the
+        // background walk reads the install's own .csd files, and the game's own afterwards. Asked
+        // per frame, because that swap happens long after this line runs.
+        overlay.StatSentences = () => atlas.StatSentences;
+
+        // THE INSTALL'S OWN MONSTER TABLES, which replace the export above when they read. Off the
+        // thread pool for one measured reason: this parses eight .dat files, and Mods alone is
+        // sixteen thousand rows of six hundred and ninety-three bytes - file work, on the thread
+        // that must not be slow, at the moment somebody is waiting for a window to appear.
+        //
+        // ASSIGNED AND NOT MERGED. The two tables are the same 2733 monsters read two different
+        // ways, so merging them would only hide which one is in force - and MonsterTables.Say
+        // prints how far the install and the export agree, which is the check. On failure nothing
+        // is assigned at all and the export simply stays.
+        if (installed is not null)
+        {
+            PoEformance.Game.Entities.MonsterVarieties exported = overlay.Monsters;
+            _ = Task.Run(() =>
+            {
+                PoEformance.Features.MonsterTables read = PoEformance.Features.MonsterTables.Read(
+                    installed,
+                    PoEformance.Features.QuestTableLayouts.Load(FindDataFile("monster-tables.json")),
+                    exported);
+
+                foreach (string line in read.Say)
+                {
+                    Console.WriteLine(line);
+                }
+
+                if (read.FromGame)
+                {
+                    overlay.Monsters = read.Table;
+                }
+            });
+
+            // AND THE ITEM BOOK'S TABLE, on its own task for the same reason: five more .dat files,
+            // BaseItemTypes among them at five thousand rows of three hundred and sixty bytes. There
+            // is no shipped export to fall back on, so a failure leaves the book empty and saying why.
+            _ = Task.Run(() =>
+            {
+                PoEformance.Features.QuestTableLayouts? itemLayouts =
+                    PoEformance.Features.QuestTableLayouts.Load(FindDataFile("item-tables.json"));
+
+                PoEformance.Features.ItemVisuals items = PoEformance.Features.ItemVisuals.Read(installed, itemLayouts);
+
+                foreach (string line in items.Say)
+                {
+                    Console.WriteLine(line);
+                }
+
+                overlay.Items = items;
+
+                // AND EVERY BASE TYPE'S ENGLISH NAME, off the same two tables on the same task:
+                // the recipe panel names a reward by path, and the install is the one place that
+                // path becomes the spelling poe.ninja prices under whatever language the client
+                // runs in. The item book keeps only the rows with a model, which are exactly the
+                // rows a monolith never pays, so this is its own read of the same files.
+                PoEformance.Features.RewardCatalog rewards = PoEformance.Features.RewardCatalog.Read(installed, itemLayouts);
+                foreach (string line in rewards.Say)
+                {
+                    Console.WriteLine(line);
+                }
+
+                runecraft.Catalog = rewards;
+                monoliths.Rewards = rewards;
+
+                // AND THE RECIPES, off three more tables on the same task: what every runeshape
+                // combination takes and pays, which is what a monolith's station is matched
+                // against to say what it can roll. The reference plugin ships a dump of this; the
+                // install is the copy that is never out of date.
+                PoEformance.Features.RecipeCatalog recipes = PoEformance.Features.RecipeCatalog.Read(
+                    installed,
+                    PoEformance.Features.QuestTableLayouts.Load(FindDataFile("expedition-tables.json")),
+                    itemLayouts);
+                foreach (string line in recipes.Say)
+                {
+                    Console.WriteLine(line);
+                }
+
+                monoliths.Catalog = recipes;
+                runecraft.Recipes = recipes;
+            });
+
+            // AND THE EFFECT BOOK'S, on its own task for the same reason - four more .dat files.
+            _ = Task.Run(() =>
+            {
+                PoEformance.Features.EffectVisuals effects = PoEformance.Features.EffectVisuals.Read(
+                    installed,
+                    PoEformance.Features.QuestTableLayouts.Load(FindDataFile("effect-tables.json")));
+
+                foreach (string line in effects.Say)
+                {
+                    Console.WriteLine(line);
+                }
+
+                overlay.Effects = effects;
+            });
+
+            // AND THE TILE BOOK'S LIST, which is a WALK of the index rather than a table: every .tdt
+            // under Metadata/Terrain. The index spells its paths out once and drops them, and the
+            // atlas's walk must stay the one that runs whenever the atlas is first drawn - it gathers
+            // names the game supplies as it goes - so the index is told two walks are coming and
+            // keeps the path text until both have run. See BundleIndex.ExpectWalks.
+            installed.Index.ExpectWalks(2);
+            _ = Task.Run(() =>
+            {
+                // AND THE TILESETS (.tsi) IN THE SAME WALK, for the tile dump's ground section: nothing
+                // points from a tile to the areas that use it, so the dump reads every tileset's list.
+                // One more extension costs nothing beside assembling four million paths.
+                //
+                // AND THE SHADER SOURCES, for the question the ground left: its graphs read InputUV and
+                // its mesh has none, so the engine makes the coordinates, and if that is written down
+                // anywhere it is a shader source - under Shaders/, or anywhere by its extension.
+                List<string>[] found = installed.Under(
+                [
+                    new PoEformance.Game.Files.BundleIndex.WalkPlace(
+                        PoEformance.Features.TileBook.Root,
+                        [PoEformance.Game.Diagnostics.RoomFiles.TileExtension, PoEformance.Game.Files.RoomLayout.Extension, TilesetExtension]),
+                    new PoEformance.Game.Files.BundleIndex.WalkPlace(ShaderFolder, [string.Empty]),
+                    new PoEformance.Game.Files.BundleIndex.WalkPlace(string.Empty, ShaderExtensions),
+
+                    // AND EVERY MATERIAL, for the graph survey: which graph nodes keep the most
+                    // materials from being coloured by their graphs. Only the paths - the survey
+                    // reads the files when it is asked for.
+                    new PoEformance.Game.Files.BundleIndex.WalkPlace(string.Empty, [MaterialExtension]),
+
+                    // AND EVERY ENVIRONMENT, for the env survey: the keys a sun is given in, which no
+                    // file read so far had. Only the paths again.
+                    new PoEformance.Game.Files.BundleIndex.WalkPlace(string.Empty, [EnvironmentExtension]),
+                ]);
+                List<string> tiles = [.. found[0].Where(one => !one.EndsWith(TilesetExtension, StringComparison.OrdinalIgnoreCase))];
+                List<string> sets = [.. found[0].Where(one => one.EndsWith(TilesetExtension, StringComparison.OrdinalIgnoreCase))];
+                List<string> shaders = [.. found[1].Concat(found[2]).Distinct(StringComparer.OrdinalIgnoreCase)];
+                Console.WriteLine($"tiles: {tiles.Count} tile definitions and rooms, {sets.Count} tilesets, {shaders.Count} shader sources, {found[3].Count} materials, {found[4].Count} environments in the install");
+                overlay.TileSets = sets;
+                overlay.ShaderFiles = shaders;
+                overlay.MaterialFiles = found[3];
+                overlay.EnvironmentFiles = found[4];
+                overlay.TileFiles = tiles;
+            });
+        }
+        else
+        {
+            // So the book says there is no install rather than waiting for a table that never comes.
+            overlay.Items = PoEformance.Features.ItemVisuals.Read(null, null);
+            overlay.Effects = PoEformance.Features.EffectVisuals.Read(null, null);
+        }
+
+        overlay.Costs = costs;
+        overlay.Coverage = coverage;
+        overlay.Damage = damage;
+
+        // A DIAGNOSTIC BUTTON THAT CAN DO NOTHING VISIBLE IS WORSE THAN NO BUTTON, and all three
+        // of the ones below could. Each ran its work in a Task.Run whose catch named two
+        // exception types; anything else - a schema field that moved, a null, an overflow - left
+        // a faulted Task nobody observes and a panel that simply did not change. That is what
+        // "I press it and nothing happens" IS, and it cost a round of hunting the wrong thing.
+        //
+        // So every failure is reported in the panel, with its TYPE: "KeyNotFoundException:
+        // Schema struct 'TgtFile' has no field 'TgtPath'" says where to look, where a bare
+        // message often does not. And the press is acknowledged before the work starts, so a
+        // button that ran and found nothing can never look like a button that did not fire.
+        static void RunDiagnostic(
+            PoEformance.Features.PreloadWatch watch,
+            string doing,
+            Func<IReadOnlyList<string>> work)
+        {
+            watch.Swept([doing + "..."]);
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    watch.Swept(work());
+                }
+                catch (Exception exception)
+                {
+                    watch.Swept([$"{doing} failed - {exception.GetType().Name}: {exception.Message}"]);
+                }
+            });
+        }
+
+        // BEFORE AttachPreload, which is where the button that runs this is built. Only offered
+        // with an install to read: the rooms of an area are named in memory and placed nowhere
+        // this tool can see, so the files themselves are the last place that could say where
+        // each one sits - see RoomFiles for what the answer decides.
+        if (installed is not null)
+        {
+            overlay.LookInsideRooms = () => RunDiagnostic(
+                preload,
+                "looking inside the rooms",
+                () => PoEformance.Game.Diagnostics.RoomFiles.Describe(
+                    preload.All,
+                    path => PoEformance.Game.Files.GameArt.ReadRaw(installed, path)));
+
+            // And the whole of them, decoded, beside the loaded-file dumps. The readout is
+            // eight strings per room, which cannot answer a question about the format itself.
+            overlay.WriteRoomsOut = () => RunDiagnostic(
+                preload,
+                "writing the rooms out",
+                () =>
+                {
+                    string? written = PoEformance.Game.Diagnostics.RoomFiles.Dump(
+                        preload.Area,
+                        preload.All,
+                        path => PoEformance.Game.Files.GameArt.ReadRaw(installed, path));
+                    return [
+                        written is null
+                            ? "could not write the rooms out"
+                            : $"rooms written to {written}"];
+                });
+        }
+
+        // NEEDS NO INSTALL, unlike the two above: it reads memory rather than the game's files,
+        // so it is attached whether or not the bundles can be opened. The one thing it needs is
+        // the loaded-file table, which is the very list this page is about.
+        overlay.HuntRoomPlacements = () => RunDiagnostic(preload, "hunting the placements", () =>
+        {
+            if (fileRoot == 0)
+            {
+                return ["placements: the FileRoot static did not resolve"];
+            }
+
+            PoEformance.Core.Diagnostics.GameChainAddresses chain =
+                PoEformance.Core.Diagnostics.GameChain.Resolve(reader, schema, gameStatesStatic);
+
+                // THE ADDRESSES ARE THE SEARCH. Every loaded file has a record, and the walk
+                // gives its address - so the area's rooms become a set of known pointers that
+                // nothing can match by accident. See RoomPlacementProbe.
+                // BOTH SETS, and the second is what makes a miss mean anything: the rooms are
+                // what is searched for, and every file is what the control needs - the tiles
+                // refer to .tdt files, so proving the search's premise takes more than rooms.
+            var rooms = new Dictionary<ulong, string>();
+            var files = new Dictionary<ulong, string>();
+            foreach (ulong record in preloadReader.Records(fileRoot))
+            {
+                string path = preloadReader.NameOf(record);
+                if (path.Length == 0)
+                {
+                    continue;
+                }
+
+                files[record] = path;
+                if (path.EndsWith(".arm", StringComparison.OrdinalIgnoreCase))
+                {
+                    rooms[record] = path;
+                }
+            }
+
+            return new PoEformance.Game.Diagnostics.RoomPlacementProbe(reader, schema)
+                .Probe(chain.AreaInstance, rooms, files);
+        });
+
+        overlay.AttachPreload(
+            preload,
+            () => LookAtWhatLoaded(preloadArea),
+            SweepForTheCountField,
+            preloadSettings,
+            changed => PoEformance.Features.PreloadStore.Save(changed),
+            // READ WHEN THE BUTTON IS PRESSED, not now. It is six rows off a disk nobody is
+            // waiting on, and reading it at startup would make a file most people never ask
+            // for part of every launch.
+            starter: () => PoEformance.Features.PreloadAlertStore.Load(
+                FindDataFile("preload-alerts.starter.json")));
+        overlay.PreloadListChanged = list => PoEformance.Features.PreloadAlertStore.Save(list);
+        overlay.AttachQuests(quests);
+        overlay.GroundTypes = groundTypes;
+        overlay.AttachTracker(tracker, writeTracker);
+        overlay.AttachDissector(structures);
+        // The install goes in for the turning picture on a monster's page - the same bytes the
+        // book's model pane reads, and for the same reason it is InstalledArt.Read rather than
+        // .Pictures: an .ao is not a .dds and a decoder would answer null for every model.
+        overlay.AttachEntityBrowser(
+            entityParts,
+            readFile: installed is null ? null : installed.Read,
+            unpack: installed is null ? null : installed.Unpack);
+        // THE INSTALL'S OWN BYTES, and not InstalledArt.Pictures - which has this same signature
+        // and returns a PNG. It decodes a .dds and re-encodes it, so an .ao gives null - and
+        // every monster reports having no model. A delegate type says nothing about what the bytes
+        // MEAN; this one has to be the file as the bundle holds it.
+        overlay.AttachMonsterBook(
+            settings.MonsterColumns,
+            settings.MonsterRail,
+            settings.MonsterModel,
+            readFile: installed is null ? null : installed.Read,
+            modelSize: settings.MonsterModelSize,
+            unpack: installed is null ? null : installed.Unpack,
+            columnWidths: settings.MonsterColumnWidths,
+            panes: settings.MonsterPanes);
+        overlay.AttachItemBook(
+            settings.ItemColumns,
+            settings.ItemRail,
+            readFile: installed is null ? null : installed.Read,
+            modelSize: settings.MonsterModelSize,
+            unpack: installed is null ? null : installed.Unpack,
+            columnWidths: settings.ItemColumnWidths,
+            panes: settings.ItemPanes);
+        // The area's ROOMS come from what it loaded - no tile reaches its room - and the preload
+        // watch already holds that list, a new one per area.
+        overlay.LoadedFiles = () => preload.All;
+        overlay.AttachEffectBook(
+            settings.EffectColumns,
+            settings.EffectRail,
+            readFile: installed is null ? null : installed.Read,
+            modelSize: settings.MonsterModelSize,
+            unpack: installed is null ? null : installed.Unpack,
+            columnWidths: settings.EffectColumnWidths,
+            panes: settings.EffectPanes);
+        overlay.AttachTileBook(
+            settings.TileColumns,
+            settings.TileRail,
+            readFile: installed is null ? null : installed.Read,
+            modelSize: settings.MonsterModelSize,
+            columnWidths: settings.TileColumnWidths,
+            panes: settings.TilePanes,
+            roomDoodads: settings.RoomDoodads,
+            roomTools: settings.RoomTools,
+            roomAnywhere: settings.RoomAnywhere,
+            roomsOnMap: settings.RoomsOnMap,
+            tileSections: settings.TileSections,
+            roomSight: settings.RoomSight,
+            roomCut: settings.RoomCut);
+        overlay.AttachPointsOfInterest(route);
+
+        // Before the editor, which is handed this exact instance - and before the layers read
+        // it, which they do every frame. The setter passes it on to whatever is attached.
+        overlay.Style = PoEformance.Features.OverlayStyleStore.Load();
+        overlay.AttachStyleEditor(() => PoEformance.Features.OverlayStyleStore.Save(overlay.Style));
+
+        // AFTER the parts it configures are attached, or half of it would be applied to
+        // things that do not exist yet - and silently, since every one of them is optional.
+        overlay.Apply(settings);
+        overlay.SettingsChanged = () =>
+            PoEformance.Features.OverlaySettingsStore.Save(overlay.CurrentSettings(settings));
+        handle.Overlay = overlay;
+        overlay.Start().GetAwaiter().GetResult();
+
+        // The record is already written every time a point is added, so this only catches a
+        // write that failed earlier - a file locked by a backup, a disk that was full. Cheap
+        // insurance on the one piece of state here that cannot be re-derived from the game.
+        if (wealth.History.Dirty)
+        {
+            wealth.History.Save();
+        }
+    }
+
+    /// <summary>
+    /// Turns a tick's decision into something the outside world can observe.
+    /// </summary>
+    /// <remarks>
+    /// The whole side-effecting half of the rule engine, in one switch. Every gate that decides
+    /// WHETHER any of this happens - the game being in front, no panel being open, cooldowns,
+    /// priorities - was applied in <see cref="PoEformance.Features.RuleEngine"/>, and nothing
+    /// here re-checks them: a second copy of a safety rule is a copy that can disagree with the
+    /// one that matters. What this must not do is decide anything.
+    ///
+    /// Drawn effects are absent on purpose. They are not performed at all - the overlay reads
+    /// the same tick's list and paints it.
+    /// </remarks>
+    /// <summary>
+    /// Where an aiming input has to be turned into a pixel, and by whom.
+    /// </summary>
+    /// <param name="Project">
+    /// A world point to a place on screen, or null when it is not on screen. Supplied by the
+    /// caller because the projection needs the camera matrix and the client rect, and the
+    /// engine that decided the aim has neither.
+    /// </param>
+    /// <param name="Hovered">Re-reads the game's hovered-entity slot, on demand.</param>
+    /// <param name="Note">
+    /// Where every outcome of an aim goes, so it can be read on the status page. The sequence
+    /// finishes milliseconds AFTER the tick that started it, so there is no tick left to report
+    /// through - which is why this is a callback rather than something on <see cref="RuleTick"/>.
+    /// Takes the rule's id: with several aiming rules configured, an outcome that does not say
+    /// WHOSE pointer missed is not one anybody can act on.
+    /// </param>
+    /// <param name="Fired">
+    /// Told when the key has actually gone out at a confirmed target, which is what arms the
+    /// engine's look at that monster a moment later. Separate from <paramref name="Note"/>
+    /// because it does more than write a line.
+    /// </param>
+    internal readonly record struct AimContext(
+        Func<PoEformance.Features.AimPoint, (int X, int Y)?> Project,
+        Func<ulong> Hovered,
+        Action<string, string, string> Note,
+        Action<string, string> Fired);
+
+    private static void Perform(PoEformance.Features.RuleTick tick, AimContext? aiming = null)
+    {
+        foreach (PoEformance.Features.RuleSound sound in tick.Sounds)
+        {
+            SoundCue.Play(sound.Pitch, sound.Ms);
+        }
+
+        foreach (PoEformance.Features.RuleInput input in tick.Inputs)
+        {
+            // An input that names a target does not act here: the pointer has to be placed and
+            // the landing confirmed first, and that waits on the game - which this thread, the
+            // reader loop, must not do. Handed to a sequence of its own instead.
+            if (input.Aim is PoEformance.Features.AimPoint aim && aiming is AimContext context)
+            {
+                Aim(input, aim, context);
+                continue;
+            }
+
+            switch (input.Kind)
+            {
+                case PoEformance.Features.RuleEffectKind.KeyPress:
+                case PoEformance.Features.RuleEffectKind.KeySequence:
+                    InputSender.Press(input.Keys);
+                    break;
+                case PoEformance.Features.RuleEffectKind.KeyDown:
+                    InputSender.Hold(input.Keys[0]);
+                    break;
+                case PoEformance.Features.RuleEffectKind.KeyUp:
+                    InputSender.Release(input.Keys[0]);
+                    break;
+                case PoEformance.Features.RuleEffectKind.MouseLeftClick:
+                    InputSender.Click(left: true);
+                    break;
+                case PoEformance.Features.RuleEffectKind.MouseRightClick:
+                    InputSender.Click(left: false);
+                    break;
+                case PoEformance.Features.RuleEffectKind.MouseLeftDown:
+                    InputSender.MouseDown(left: true);
+                    break;
+                case PoEformance.Features.RuleEffectKind.MouseLeftUp:
+                    InputSender.MouseUp(left: true);
+                    break;
+                case PoEformance.Features.RuleEffectKind.MouseRightDown:
+                    InputSender.MouseDown(left: false);
+                    break;
+                case PoEformance.Features.RuleEffectKind.MouseRightUp:
+                    InputSender.MouseUp(left: false);
+                    break;
+                case PoEformance.Features.RuleEffectKind.ScrollUp:
+                    InputSender.Scroll(up: true);
+                    break;
+                case PoEformance.Features.RuleEffectKind.ScrollDown:
+                    InputSender.Scroll(up: false);
+                    break;
+                default:
+                    // Text, Bar and Sound never reach here - the engine files those elsewhere -
+                    // so this is a kind added to the enum and not to this switch. Doing
+                    // nothing is the right answer for something whose effect nobody has
+                    // written yet.
+                    break;
+            }
+        }
+    }
+
+    /// <summary>Places the pointer on an aimed input's target, then performs it.</summary>
+    /// <remarks>
+    /// The act is the same switch the unaimed path runs, reached through a closure so the two
+    /// cannot drift apart: an aimed key press and a plain one must press the same key the same
+    /// way, and the only difference is where the pointer was standing.
+    /// </remarks>
+    private static void Aim(
+        PoEformance.Features.RuleInput input,
+        PoEformance.Features.AimPoint aim,
+        AimContext context)
+    {
+        if (context.Project(aim) is not (int x, int y))
+        {
+            // Off screen, so there is nothing to point at. The decision was sound - the monster
+            // is in range and under its threshold - it simply cannot be reached by a pointer,
+            // which is a different thing from the rule being wrong. Said out loud for exactly
+            // that reason: a radius wider than the screen produces this every time, and it is
+            // indistinguishable from a broken projection until something names it.
+            context.Note(input.RuleId, "the target is off screen", string.Empty);
+            return;
+        }
+
+        AimSequence.Run(
+            (x, y),
+            aim.Address,
+            context.Hovered,
+            () =>
+            {
+                Perform(
+                    new PoEformance.Features.RuleTick([], [], [input with { Aim = null }], string.Empty));
+
+                // Logged HERE rather than where the input was decided, which is the whole
+                // point of moving it: this line means the key actually went out, after the
+                // hover check said the pointer was on the right monster. At the decision it
+                // meant "will go out if everything after this works", and the two read
+                // identically in a log.
+                context.Fired(input.RuleId, input.Describes);
+            },
+            (note, detail) => context.Note(input.RuleId, note, detail));
+    }
+
+    /// <summary>
+    /// Prints how auto-flask is configured, one line per belt slot.
+    /// </summary>
+    /// <remarks>
+    /// The key column is the point of this. Bindings read from the game's config and
+    /// bindings assumed from the default 1-5 layout produce an identical-looking tool right
+    /// up until a flask has been rebound, at which point the only symptom is that nothing
+    /// happens. Printing WHERE the keys came from turns a silent failure into a visible one.
+    /// </remarks>
+    private static void ReportAutoFlask(
+        PoEformance.Features.AutoFlask engine,
+        PoEformance.Features.FlaskKeys keys,
+        PoEformance.Features.AutoFlaskSettings settings,
+        PoEformance.Game.Components.FlaskBelt? belt,
+        bool forcedOn)
+    {
+        Console.WriteLine();
+        if (!engine.Enabled)
+        {
+            Console.WriteLine("auto-flask off - turn it on in the config window (--config), or with --autoflask");
+        }
+        else if (engine.AnyRuleEnabled())
+        {
+            Console.WriteLine("auto-flask ARMED - it presses keys only while the GAME window has focus");
+        }
+        else
+        {
+            // The exact state that looks armed and does nothing. Say it plainly: the master
+            // switch is on, every slot is off, so no key can ever be pressed.
+            Console.WriteLine("auto-flask ON, but NO SLOT IS ENABLED - nothing will be pressed.");
+            Console.WriteLine($"           Enable a slot in the config window (--config), or in");
+            Console.WriteLine($"           {PoEformance.Features.AutoFlaskSettingsStore.DefaultPath}");
+        }
+
+        if (forcedOn && !settings.Enabled)
+        {
+            Console.WriteLine("           (--autoflask flips the master switch only; the saved setting is off)");
+        }
+
+        Console.WriteLine($"  keys     {keys.Detail}");
+        switch (keys.Source)
+        {
+            case PoEformance.Features.KeyBindingSource.GameDefaults:
+                // Not a problem: the game writes this file when a binding is CHANGED, so
+                // an empty one means the game is on the same 1-5 defaults used below.
+                Console.WriteLine("           The game has no saved bindings, so it is using its own 1-5");
+                Console.WriteLine("           defaults - which is what the slots below match. Rebind a flask");
+                Console.WriteLine("           in game and the file appears; this reads it from then on.");
+                break;
+
+            case PoEformance.Features.KeyBindingSource.Unmatched:
+                Console.WriteLine("           The config HAS content but no flask binding was found in it, so");
+                Console.WriteLine("           the 1-5 defaults are assumed. If a flask key is rebound, the tool");
+                Console.WriteLine("           would press the wrong one - run --keys to dump what is in there.");
+                break;
+        }
+
+        foreach (PoEformance.Features.FlaskRule rule in engine.Rules)
+        {
+            string trigger = rule.TriggerBuff.Length > 0
+                ? $"on \"{rule.TriggerBuff}\""
+                : $"{rule.Vital,-12} at or below {rule.ThresholdPercent,3}%";
+
+            keys.BySlot.TryGetValue(rule.Slot, out ushort key);
+
+            // A charm slot has no key BY DESIGN - the game fires it on its own condition, so
+            // there is nothing to bind and nothing wrong. Saying "this slot can never fire"
+            // there would report the normal state as a fault, and send someone looking for a
+            // binding that is not supposed to exist.
+            bool charm = belt?.InSlot(rule.Slot)?.IsCharm ?? false;
+
+            string keyName = charm
+                ? "charm - the game triggers it, no key needed"
+                : key == 0
+                    ? "no usable key - this slot can never fire"
+                    : $"key {PoEformance.Features.FlaskKeyBindings.Describe(key)}";
+
+            Console.WriteLine($"  slot {rule.Slot}   {(rule.Enabled ? "ON " : "off")}  {trigger}   {keyName}");
+        }
+    }
+
+    /// <summary>
+    /// Opens the WebView2 configuration window on its own thread and returns it.
+    /// </summary>
+    /// <remarks>
+    /// Every "getState" from the page re-reads the world FRESH - the page's refresh button
+    /// is therefore also a liveness check of the whole read chain, not a cached echo. This
+    /// window is the Native AOT risk probe: it must keep working in the AOT-published build,
+    /// which the CI publish job verifies at compile level and a live run verifies fully.
+    ///
+    /// Both callbacks run on the window's own thread. The state read is fine there (reads
+    /// are thread-safe and each call builds its own reader stack); the change applies to the
+    /// engine in a single atomic swap, so a reader tick sees the old configuration or the
+    /// new one but never half of each.
+    /// </remarks>
+    private static Thread StartConfigWindow(
+        IMemoryReader reader,
+        string schemaPath,
+        DriftReportResult report,
+        ulong gameStatesAddress,
+        PoEformance.Features.AutoFlask autoFlask,
+        PoEformance.Features.FlaskKeys flaskKeys,
+        PoEformance.Features.AutoFlaskSettings flaskSettings,
+        PoEformance.Features.OverlaySettings overlaySettings,
+        PoEformance.Features.RuleEngine ruleEngine,
+        PoEformance.Features.BuffWatch buffWatch,
+        PoEformance.Features.EvasionPlanner evasionPlanner,
+        OverlayHandle overlayHandle,
+        UpdateService updates,
+        PoEformance.Features.GroundWatch groundWatch,
+        Func<PoEformance.Features.TrackerSettings> readTracker,
+        Action<PoEformance.Features.TrackerSettings> writeTracker,
+        bool alwaysOnTop)
+    {
+        Console.WriteLine();
+        Console.WriteLine("config window open" + (alwaysOnTop ? " (kept on top, so the game cannot bury it)" : "")
+            + " - the tool exits once it (and the overlay) are closed");
+
+        // The live settings. Only the window's thread touches these: it reads them to build
+        // a state and replaces them when the page saves.
+        PoEformance.Features.AutoFlaskSettings settings = flaskSettings;
+        PoEformance.Features.OverlaySettings overlay = overlaySettings;
+
+        // ONCE, not per poll. These come off the game's config file and cannot change while the
+        // tool runs, and the state is rebuilt every second - reading an ini sixty times a minute
+        // to show a hint nobody is watching would be pure waste.
+        IReadOnlyList<string> dodgeHints =
+            [.. PoEformance.Features.DodgeKeyHints.Find().Select(hint => hint.Describe())];
+        IReadOnlyList<string> moveHints =
+            [.. PoEformance.Features.DodgeKeyHints.FindMovement().Select(hint => hint.Describe())];
+
+        // One reader for the window's whole life. The terrain grid is cached inside it, so
+        // building a fresh one per request would re-read megabytes on every poll.
+        var worldReader = new PoEformance.Game.World.WorldReader(reader, SchemaJson.Load(schemaPath));
+        PoEformance.Game.World.WorldSnapshot ReadSnapshot()
+            => gameStatesAddress == 0
+                ? PoEformance.Game.World.WorldSnapshot.Empty
+                : worldReader.Read(gameStatesAddress);
+
+        PoEformance.Config.ConfigState BuildState()
+        {
+            // The one place that ticks the update check while only the config window is open.
+            // It costs nothing when the last answer is fresh, which it is for six hours out of
+            // every six hours and a moment.
+            updates.Tick();
+
+            OffsetSchema schema = SchemaJson.Load(schemaPath);
+            PoEformance.Game.World.WorldSnapshot snapshot = ReadSnapshot();
+            bool inGame = snapshot.InGame;
+            int entityCount = snapshot.Entities.Count;
+            PoEformance.Game.Components.FlaskBelt? belt = snapshot.FlaskBelt;
+
+            return new PoEformance.Config.ConfigState(
+                Type: "state",
+                ToolVersion: typeof(Program).Assembly.GetName().Version?.ToString() ?? "dev",
+                GameVersion: schema.GameVersion,
+                Attached: reader.IsAttached,
+                ProcessId: reader.ProcessId,
+                StaticsFound: report.Statics.Count(s => s.Found),
+                StaticsTotal: report.Statics.Count,
+                InGame: inGame,
+                EntityCount: entityCount,
+                AutoFlask: BuildAutoFlaskView(settings, flaskKeys, autoFlask, belt),
+                Overlay: new PoEformance.Config.OverlayView(
+                    overlay.MinLootRarity.ToString(),
+                    overlay.ShowTerrain,
+
+                    // What is DRAWN, once the overlay is up: the in-game style editor can
+                    // override the page's colour and width, and a page showing its own last
+                    // choice over a map plainly drawn in another colour is the page lying.
+                    // The next choice made here wins again - see ChooseTerrainStyle.
+                    overlayHandle.Overlay is PoEformance.Overlay.EntityOverlay drawn
+                        ? PoEformance.Features.OverlaySettings.FormatPageColour(drawn.TerrainColourInUse)
+                        : overlay.TerrainColour,
+                    overlayHandle.Overlay?.TerrainThicknessInUse ?? overlay.TerrainThickness,
+                    overlay.TerrainRim,
+                    overlay.TerrainFillColour,
+                    overlay.TerrainFillOpacity,
+                    DescribeTerrain(overlayHandle)),
+                Map: BuildMapView(snapshot, overlay.MinLootRarity),
+
+                // Read off the engine rather than kept beside it. The engine normalises what
+                // it is given, so what it holds is what actually runs - and a copy here could
+                // show a threshold the engine rejected.
+                Rules: PoEformance.Config.RulesView.Of(
+                    ruleEngine, $"{flaskKeys.Source} - {flaskKeys.Detail}", buffWatch,
+                    DescribeReader(overlayHandle)),
+
+                // Read off the planner rather than from a copy kept beside it, for the same
+                // reason the rules are: the planner normalises what it is given, so what it
+                // holds is what actually runs.
+                Evasion: new PoEformance.Config.EvasionView(
+                    evasionPlanner.Settings,
+                    evasionPlanner.LastTick.Reason,
+                    PoEformance.Features.FlaskKeyBindings.Describe((ushort)evasionPlanner.Settings.DodgeKey),
+                    dodgeHints,
+                    moveHints,
+                    evasionPlanner.Settings.KeysOrDefault.Describe()),
+
+                // The rule list and what the session has actually seen. Read through the
+                // getter rather than from a copy, so the panel shows what the overlay's own
+                // tab last wrote rather than a snapshot taken when this window opened.
+                Ground: new PoEformance.Config.GroundView(
+                    readTracker().GroundDangerOrDefault, groundWatch.Seen, groundWatch.LastRead),
+
+                Update: updates.View());
+        }
+
+        // Rebuilding the outline is a pass over megabytes, so it is done once per area and
+        // handed out from here - the page only asks on an area change, but a page bug must
+        // not be able to turn that into a per-second cost.
+        uint layoutArea = 0;
+        PoEformance.Features.MapLayout layout = PoEformance.Features.MapLayout.Empty;
+
+        string? Apply(PoEformance.Config.ConfigRequest request)
+        {
+            // FIRST, because two of these do not take a payload and one of them ends the
+            // process. The payload guard further down would drop "checkUpdate" on the floor.
+            if (updates.Handle(request) is string handled)
+            {
+                return handled;
+            }
+
+            if (request.Type == "getMapLayout")
+            {
+                PoEformance.Game.World.WorldSnapshot snapshot = ReadSnapshot();
+                if (snapshot.Terrain is PoEformance.Game.World.TerrainGrid grid)
+                {
+                    if (layoutArea != snapshot.AreaHash || layout.Width == 0)
+                    {
+                        layout = PoEformance.Features.MapLayout.From(grid);
+                        layoutArea = snapshot.AreaHash;
+                    }
+                }
+                else
+                {
+                    layout = PoEformance.Features.MapLayout.Empty;
+                    layoutArea = snapshot.AreaHash;
+                }
+
+                return JsonSerializer.Serialize(
+                    new PoEformance.Config.MapLayoutMessage("mapLayout", layoutArea, layout),
+                    PoEformance.Config.ConfigJsonContext.Default.MapLayoutMessage);
+            }
+
+            if (request.Type == "getRuleCatalogue")
+            {
+                // Once per page load, and never pushed with a state. What a rule may ask about
+                // cannot change while the tool runs, and it is a few kilobytes that would
+                // otherwise ride the once-a-second poll.
+                return JsonSerializer.Serialize(
+                    PoEformance.Config.RuleCatalogue.Build(),
+                    PoEformance.Config.ConfigJsonContext.Default.RuleCatalogue);
+            }
+
+            if (request.Type == "setRulePreview")
+            {
+                // Which rule the editor has open, so its ranges can be drawn on the ground.
+                // Kept in memory and never saved: it is meaningless once the window is shut.
+                ruleEngine.PreviewRuleId =
+                    request.Payload.ValueKind == JsonValueKind.Object
+                    && request.Payload.TryGetProperty("ruleId", out JsonElement previewed)
+                        ? previewed.GetString() ?? string.Empty
+                        : string.Empty;
+
+                return string.Empty;
+            }
+
+            if (request.Type == "parseCondition")
+            {
+                // The page never parses a condition itself. One parser, host-side, is what
+                // makes the text box and the canvas two views of the same thing - a second
+                // implementation in JavaScript would eventually accept something the engine
+                // does not, and the rule would save and then never fire.
+                string typed = request.Payload.ValueKind == JsonValueKind.Object
+                    && request.Payload.TryGetProperty("text", out JsonElement text)
+                        ? text.GetString() ?? string.Empty
+                        : string.Empty;
+
+                PoEformance.Features.ExpressionResult parsed =
+                    PoEformance.Features.RuleExpression.Parse(typed);
+
+                return JsonSerializer.Serialize(
+                    new PoEformance.Config.ConditionMessage(
+                        "condition", parsed.Ok, parsed.Error, parsed.Column, parsed.Condition),
+                    PoEformance.Config.ConfigJsonContext.Default.ConditionMessage);
+            }
+
+            // Every command below reads its payload as a record, so anything else is a message
+            // this host cannot act on. SAID OUT LOUD rather than dropped: a refusal here is
+            // indistinguishable from a working save whose setting does not stick, and finding
+            // that out cost an afternoon once - the page posted a bare array, the guard threw
+            // it away without a word, and the row disappeared a second later when the poll
+            // re-rendered from a state that had never changed.
+            if (request.Payload.ValueKind != JsonValueKind.Object)
+            {
+                Refused(request.Type, $"its payload is {request.Payload.ValueKind}, not an object");
+                return null;
+            }
+
+            switch (request.Type)
+            {
+                case "setRuleSettings":
+                    PoEformance.Features.RuleSettings? rules = request.Payload.Deserialize(
+                        PoEformance.Config.ConfigJsonContext.Default.RuleSettings);
+                    if (rules is null)
+                    {
+                        return null;
+                    }
+
+                    // Configure normalises, and the engine is then the one copy of what runs -
+                    // which is also what the next state push reads back out, so the page can
+                    // never show a value the engine rejected.
+                    ruleEngine.Configure(rules);
+                    SaveWarning(
+                        PoEformance.Features.RuleSettingsStore.Save(ruleEngine.Settings),
+                        PoEformance.Features.RuleSettingsStore.DefaultPath);
+                    return string.Empty;
+
+                case "setFlaskSettings":
+                    PoEformance.Features.AutoFlaskSettings? flasks = request.Payload.Deserialize(
+                        PoEformance.Config.ConfigJsonContext.Default.AutoFlaskSettings);
+                    if (flasks is null)
+                    {
+                        return null;
+                    }
+
+                    // Normalise BEFORE anything else sees it: the page is editable on disk
+                    // and the file is hand-editable, so this is where a value becomes
+                    // trustworthy.
+                    settings = flasks.Normalised();
+                    autoFlask.Configure(settings.ToRules(flaskKeys), settings.Enabled);
+                    SaveWarning(
+                        PoEformance.Features.AutoFlaskSettingsStore.Save(settings),
+                        PoEformance.Features.AutoFlaskSettingsStore.DefaultPath);
+                    return string.Empty;
+
+                case "setGroundRules":
+                    // The list arrives UNDER A KEY rather than as the payload itself, because
+                    // the guard above refuses any payload that is not an object - and it is
+                    // right to. A bare array was silently dropped there, which from the page
+                    // looked exactly like a rule that would not save: added, shown for a
+                    // second while the page held its own edit, then gone on the next poll.
+                    if (!request.Payload.TryGetProperty("rules", out JsonElement sentRules))
+                    {
+                        return null;
+                    }
+
+                    List<PoEformance.Features.GroundDangerRule>? ground = sentRules.Deserialize(
+                        PoEformance.Config.ConfigJsonContext.Default.ListGroundDangerRule);
+                    if (ground is null)
+                    {
+                        return null;
+                    }
+
+                    // MERGED, not replaced. The page holds one slice of the tracker's settings
+                    // and the overlay's tab holds the rest; sending the whole record from here
+                    // would reset every switch this panel does not show - silently, and noticed
+                    // only later.
+                    writeTracker(readTracker() with { GroundDanger = ground });
+                    return string.Empty;
+
+                case "setEvasionSettings":
+                    PoEformance.Features.EvasionSettings? evasion = request.Payload.Deserialize(
+                        PoEformance.Config.ConfigJsonContext.Default.EvasionSettings);
+                    if (evasion is null)
+                    {
+                        return null;
+                    }
+
+                    // Configure NORMALISES, so the planner holds trustworthy values whatever the
+                    // page sent - and the file is written from what the planner ended up with
+                    // rather than from what arrived, so the two cannot disagree.
+                    evasionPlanner.Configure(evasion);
+                    SaveWarning(
+                        PoEformance.Features.EvasionSettingsStore.Save(evasionPlanner.Settings),
+                        PoEformance.Features.EvasionSettingsStore.DefaultPath);
+                    return string.Empty;
+
+                case "setOverlaySettings":
+                    PoEformance.Features.OverlaySettings? sent = request.Payload.Deserialize(
+                        PoEformance.Config.ConfigJsonContext.Default.OverlaySettings);
+                    if (sent is null)
+                    {
+                        return null;
+                    }
+
+                    // Merged, not replaced: the page sends only the settings it shows, and
+                    // swapping the whole record in would reset the overlay's own switches to
+                    // their defaults - silently, and only noticed later.
+                    overlay = overlay.MergeFromPage(sent).Normalised();
+
+                    // Null until the overlay actually starts, which is the normal state for
+                    // a --config run without --overlay: the setting is still saved, it just
+                    // has nothing to apply to yet.
+                    if (overlayHandle.Overlay is PoEformance.Overlay.EntityOverlay live)
+                    {
+                        live.MinimumLootRarity = overlay.MinLootRarity;
+                        live.ShowTerrain = overlay.ShowTerrain;
+                        live.ChooseTerrainStyle(
+                            PoEformance.Features.OverlaySettings.ParseColour(overlay.TerrainColour),
+                            overlay.TerrainThickness,
+                            overlay.TerrainRim,
+                            PoEformance.Features.OverlaySettings.ParseColour(overlay.TerrainFillColour),
+                            overlay.TerrainFillOpacity);
+                    }
+
+                    SaveWarning(
+                        PoEformance.Features.OverlaySettingsStore.Save(overlay),
+                        PoEformance.Features.OverlaySettingsStore.DefaultPath);
+                    return string.Empty;
+
+                default:
+                    Refused(request.Type, "no handler is registered for it");
+                    return null;
+            }
+        }
+
+        // Names a message the host threw away. On the console rather than to the page, because
+        // the page is the thing that got it wrong and would be reporting on itself; and the
+        // Bridge card already shows the traffic, so the two together say what was sent and why
+        // nothing happened to it.
+        static void Refused(string type, string why)
+            => Console.WriteLine($"  config window: ignored \"{type}\" - {why}");
+
+        return PoEformance.Config.ConfigWindowHost.Start("PoEformance", BuildState, Apply, alwaysOnTop);
+    }
+
+    /// <summary>Says so when settings could not be written, instead of losing them quietly.</summary>
+    private static void SaveWarning(bool saved, string path)
+    {
+        if (!saved)
+        {
+            Console.Error.WriteLine($"could not write {path} - the change applies to this session only.");
+        }
+    }
+
+    /// <summary>
+    /// Builds the auto-flask panel: what is configured, next to what is actually equipped.
+    /// </summary>
+    /// <remarks>
+    /// Showing the equipped flask beside each row is what makes the choice concrete. "Slot
+    /// 2" means nothing on its own; "Slot 2 - Ultimate Mana Flask, 42/12 charges" is the
+    /// question the setting is actually answering.
+    /// </remarks>
+    private static PoEformance.Config.AutoFlaskView BuildAutoFlaskView(
+        PoEformance.Features.AutoFlaskSettings settings,
+        PoEformance.Features.FlaskKeys keys,
+        PoEformance.Features.AutoFlask engine,
+        PoEformance.Game.Components.FlaskBelt? belt)
+    {
+        var slots = new List<PoEformance.Config.FlaskSlotView>(settings.Slots.Count);
+        foreach (PoEformance.Features.FlaskSlotSettings slot in settings.Slots)
+        {
+            keys.BySlot.TryGetValue(slot.Slot, out ushort key);
+            PoEformance.Game.Components.EquippedFlask? equipped = belt?.InSlot(slot.Slot);
+
+            slots.Add(new PoEformance.Config.FlaskSlotView(
+                Slot: slot.Slot,
+                Enabled: slot.Enabled,
+                Vital: slot.Vital.ToString(),
+                ThresholdPercent: slot.ThresholdPercent,
+                Key: PoEformance.Features.FlaskKeyBindings.Describe(key),
+                Item: equipped is { } item ? ShortItemName(item.Path) : string.Empty,
+                // "60/60 - 8 per use" rather than "60/10". The old form put the current count
+                // beside the per-use cost with a slash between them, which reads as a fraction
+                // and was taken for one: it was reported as "60 of max 60" when the 10 was the
+                // cost. Both numbers are this flask's now, not the base type's.
+                Charges: equipped is { } charges
+                    ? $"{charges.Charges}/{charges.MaxCharges} - {charges.ChargesPerUse} per use"
+                    : string.Empty,
+                IsCharm: equipped?.IsCharm ?? false,
+
+                // Passed through so the page can post them back untouched - see the view's
+                // own note on why a missing field is a setting that quietly resets.
+                CooldownMs: slot.CooldownMs,
+                TriggerBuff: slot.TriggerBuff,
+                SkipWhileActive: slot.SkipWhileActive,
+                EmergencyPercent: slot.EmergencyPercent));
+        }
+
+        return new PoEformance.Config.AutoFlaskView(
+            Enabled: settings.Enabled,
+            KeySource: $"{keys.Source} - {keys.Detail}",
+            Status: engine.LastTick.Reason,
+            Slots: slots);
+    }
+
+    /// <summary>
+    /// Builds the map panel's per-frame half: where the player is, and what is around them.
+    /// </summary>
+    /// <remarks>
+    /// Positions are in GRID CELLS, not in the outline's pixels. The page divides by the
+    /// layout's step, which means a marker stays correct even if the layout is later rebuilt
+    /// at a different thinning - the two messages travel separately and can be one apart.
+    /// </remarks>
+    private static PoEformance.Config.MapStateView BuildMapView(
+        PoEformance.Game.World.WorldSnapshot snapshot, PoEformance.Game.Components.ItemRarity minLoot)
+    {
+        var markers = new List<PoEformance.Config.MapMarker>();
+        foreach (PoEformance.Game.World.WorldEntity entity in snapshot.Entities)
+        {
+            string? kind = entity.Kind switch
+            {
+                PoEformance.Game.World.EntityKind.Monster => "monster",
+                PoEformance.Game.World.EntityKind.Chest => "chest",
+                PoEformance.Game.World.EntityKind.Npc => "npc",
+                PoEformance.Game.World.EntityKind.WorldItem when Worth(entity.Rarity, minLoot) => "loot",
+                _ => null,
+            };
+
+            if (kind is not null)
+            {
+                markers.Add(new PoEformance.Config.MapMarker(
+                    entity.WorldX / PoEformance.Game.Ui.MapView.WorldToGrid,
+                    entity.WorldY / PoEformance.Game.Ui.MapView.WorldToGrid,
+                    kind));
+            }
+        }
+
+        PoEformance.Game.World.WorldEntity? player = snapshot.Player;
+        return new PoEformance.Config.MapStateView(
+            Area: snapshot.AreaHash,
+            HasLayout: snapshot.Terrain is not null,
+            Status: snapshot.Terrain is null ? "terrain loading" : snapshot.Area.Describe(),
+            PlayerX: (player?.WorldX ?? 0) / PoEformance.Game.Ui.MapView.WorldToGrid,
+            PlayerY: (player?.WorldY ?? 0) / PoEformance.Game.Ui.MapView.WorldToGrid,
+            Markers: markers);
+    }
+
+    /// <summary>The same loot rule the overlay uses - currency always, unknown until it resolves.</summary>
+    private static bool Worth(
+        PoEformance.Game.Components.ItemRarity rarity, PoEformance.Game.Components.ItemRarity minimum)
+        => rarity is PoEformance.Game.Components.ItemRarity.Currency
+            or PoEformance.Game.Components.ItemRarity.Unknown
+            || rarity >= minimum;
+
+    /// <summary>What the terrain layer currently holds, for the config page.</summary>
+    /// <remarks>
+    /// Terrain populates well after an area loads - a minute or more on a large map - so
+    /// "nothing yet" is a normal state that needs saying rather than an empty box.
+    /// </remarks>
+    /// <summary>Says so when another copy of the tool is already running.</summary>
+    /// <remarks>
+    /// A WARNING, NOT A REFUSAL: two instances are occasionally what somebody wants - one
+    /// recording while another is used - and the tool has no business deciding otherwise.
+    /// But two are also indistinguishable from one when both draw over the same game, and an
+    /// overlay drawn by the first instance beside a config window belonging to the second
+    /// reads exactly like a single instance whose config window has stopped working. That
+    /// cost three rounds of diagnosis, and one line at startup would have ended it.
+    /// </remarks>
+    private static void WarnAboutOtherInstances()
+    {
+        int mine = Environment.ProcessId;
+        int[] others;
+        try
+        {
+            others = [.. System.Diagnostics.Process
+                .GetProcessesByName(System.Diagnostics.Process.GetCurrentProcess().ProcessName)
+                .Select(p => p.Id)
+                .Where(id => id != mine)];
+        }
+        catch (InvalidOperationException)
+        {
+            return; // enumerating processes is a courtesy, never a reason to fail to start
+        }
+
+        if (others.Length == 0)
+        {
+            return;
+        }
+
+        Console.WriteLine($"        NOTE: {others.Length} other copy of this tool is already "
+            + $"running (pid {string.Join(", ", others)}).");
+        Console.WriteLine("        Each has its own overlay and its own rules, so what you see "
+            + "drawn and what a");
+        Console.WriteLine("        config window shows can belong to different ones.");
+    }
+
+    private static string DescribeTerrain(OverlayHandle handle)
+        => handle.Overlay is null ? "overlay not running" : handle.Overlay.DescribeTerrain();
+
+    /// <summary>Whether the thread that feeds the rules is running, and what it last hit.</summary>
+    /// <remarks>
+    /// The rules and the buff list are produced by the reader thread's callback, and the feed
+    /// catches anything that comes out of it. So a rules tab that shows nothing has two very
+    /// different explanations - no reader at all, or a reader that throws before it gets to the
+    /// rules - and neither of them was visible from the window that shows the rules.
+    /// </remarks>
+    private static string DescribeReader(OverlayHandle handle)
+    {
+        if (handle.Feed is not PoEformance.Features.SnapshotFeed feed)
+        {
+            // WHICH PROCESS, because an earlier version of this line said "the rules only run
+            // with the overlay" to somebody who had started the tool with --overlay and could
+            // see it drawing. Both halves can be true at once: an overlay drawn by one instance
+            // and a config window belonging to another. Since the rules gained their own loop
+            // the reader exists whenever this process attached, so no feed here means it never
+            // did - the game was not running when this instance started, or this is a replay.
+            int id = Environment.ProcessId;
+            return handle.Overlay is null
+                ? $"no reader in this process (pid {id}) - it starts when the tool attaches, "
+                  + "so start the game first and this tool after; an overlay you can see may "
+                  + "belong to another instance"
+                : $"the overlay is up in this process (pid {id}) but published no reader - "
+                  + "that is a fault here, not a missing switch";
+        }
+
+        string health = $"{feed.ReadCount} reads, {feed.FailureCount} failed";
+        if (feed.LastFailure.Length > 0)
+        {
+            health = $"{health}; last failure {feed.LastFailure}";
+        }
+
+        // The overlay's start-up, while it is still going. The stand-in feed above keeps the
+        // rules alive through it, but "the overlay is not on screen yet" deserves its stage
+        // and its clock - a bundle walk on a cold disk is half a minute of exactly nothing.
+        return handle.Stage.Length > 0
+            ? $"{health}; overlay still starting: {handle.Stage} ({handle.StageSeconds}s)"
+            : health;
+    }
+
+    /// <summary>The last segment of a metadata path - the readable half of an item name.</summary>
+    private static string ShortItemName(string path)
+    {
+        int slash = path.LastIndexOf('/');
+        return slash >= 0 && slash < path.Length - 1 ? path[(slash + 1)..] : path;
+    }
+
+    /// <summary>
+    /// Keeps the process attached and re-runs the report whenever the schema file changes.
+    /// This is the hot-reload dev loop: edit an offset in the JSON, save, and the new
+    /// report appears - no rebuild, no re-attach.
+    /// </summary>
+    private static void WatchSchema(IMemoryReader reader, PatternScanner scanner, string schemaPath, RecordingMemoryReader? recorder, bool verbose)
+    {
+        string fullPath = Path.GetFullPath(schemaPath);
+        string directory = Path.GetDirectoryName(fullPath) ?? ".";
+        string fileName = Path.GetFileName(fullPath);
+
+        Console.WriteLine();
+        Console.WriteLine($"watching {fileName} - edit + save to re-run, Ctrl+C to quit");
+
+        using var watcher = new FileSystemWatcher(directory, fileName)
+        {
+            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
+        };
+
+        // Editors save in several ways (write-in-place, or write-temp-then-rename) and
+        // often fire two events per save. A short debounce collapses that into one re-run.
+        using var pending = new ManualResetEventSlim(false);
+        long lastFireTicks = 0;
+
+        void OnChanged(object? sender, FileSystemEventArgs e)
+        {
+            long now = Environment.TickCount64;
+            if (now - Interlocked.Read(ref lastFireTicks) < 150)
+            {
+                return;
+            }
+
+            Interlocked.Exchange(ref lastFireTicks, now);
+            pending.Set();
+        }
+
+        watcher.Changed += OnChanged;
+        watcher.Created += OnChanged;
+        watcher.Renamed += OnChanged;
+        watcher.EnableRaisingEvents = true;
+
+        using var quit = new ManualResetEventSlim(false);
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true;
+            quit.Set();
+            pending.Set();
+        };
+
+        while (!quit.IsSet)
+        {
+            pending.Wait();
+            pending.Reset();
+            if (quit.IsSet)
+            {
+                break;
+            }
+
+            // Give the editor a moment to finish writing before we read the file.
+            Thread.Sleep(80);
+
+            Console.WriteLine();
+            Console.WriteLine($"── re-run {DateTime.Now:HH:mm:ss} ─────────────────────────────");
+            try
+            {
+                RunReportOnce(reader, scanner, schemaPath, recorder, verbose);
+            }
+            catch (Exception ex)
+            {
+                // A malformed edit must not kill the watch session - report and wait for the fix.
+                Console.Error.WriteLine($"  schema error: {ex.Message}");
+            }
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("stopped.");
+    }
+
+    private static Process? FindGameProcess()
+    {
+        // The same list that finding the game's FILES uses - it is one question, and two copies
+        // of the answer drift the moment a launcher adds a name.
+        foreach (string name in PoEformance.Game.Files.GameInstall.Names)
+        {
+            Process[] found = Process.GetProcessesByName(name);
+            if (found.Length > 0)
+            {
+                return found[0];
+            }
+        }
+
+        return null;
+    }
+
+    private static string FindSchemaFile()
+    {
+        // Next to the exe (deployed layout), else walk up to the repo root (dev layout).
+        string local = Path.Combine(AppContext.BaseDirectory, "schema", "poe2.offsets.json");
+        if (File.Exists(local))
+        {
+            return local;
+        }
+
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            string candidate = Path.Combine(dir.FullName, "schema", "poe2.offsets.json");
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            dir = dir.Parent!;
+        }
+
+        throw new FileNotFoundException("schema/poe2.offsets.json not found next to the executable or in any parent directory.");
+    }
+
+    /// <summary>Finds a shipped data file next to the executable, or in a parent directory.</summary>
+    /// <remarks>
+    /// The same walk the schema uses, so running from a build output and running from the
+    /// repository both work - and a missing file is a path, not an exception, because every
+    /// caller of this treats absence as "do without".
+    /// </remarks>
+    /// <summary>
+    /// Writes the map-data report beside the exe and says where it went.
+    /// </summary>
+    /// <remarks>
+    /// Beside the exe rather than under data/: this is something the tool PRODUCED for a person
+    /// to read, not something it ships and loads back. Overwritten each time, because the useful
+    /// comparison is against a copy somebody deliberately kept, not against a directory of
+    /// timestamps nobody prunes.
+    ///
+    /// Never throws. It is a button on an overlay: a read-only directory or a file someone left
+    /// open in a spreadsheet is a sentence on screen, not a crash mid-session.
+    /// </remarks>
+    private static string SaveMapData(string text)
+    {
+        string path = Path.Combine(AppContext.BaseDirectory, "map-data.tsv");
+        try
+        {
+            File.WriteAllText(path, text);
+            return $"saved to {path}";
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return $"could not save: {exception.Message}";
+        }
+    }
+
+    private static string FindDataFile(string name)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            string candidate = Path.Combine(directory.FullName, "data", name);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            directory = directory.Parent;
+        }
+
+        return Path.Combine(AppContext.BaseDirectory, "data", name);
+    }
+
+    /// <summary>Parsed command line. Kept tiny and explicit - no arg-parsing library.</summary>
+    private sealed record CliOptions(
+        string? SchemaPath,
+        string? ReplayPath,
+        string? RecordPath,
+        bool Watch,
+        bool Verbose,
+        bool ShowOverlay,
+        bool ShowConfig,
+        bool AutoFlask,
+        bool ProbeFlasks,
+        bool WatchFlasks,
+        bool ProbeKeys,
+        bool Debug,
+        bool ShowUiBrowser,
+        bool HuntQuestFlags,
+        bool ScanHeap,
+        bool HuntActions,
+        bool HuntSkills,
+        bool HuntHover,
+        bool HuntMap,
+        bool SweepComponents,
+        bool SweepInventories,
+        string TabName,
+        bool DumpGroundTypes,
+        bool DumpAnimations,
+        string? DumpAo,
+        string? DumpAst,
+        string? DumpPose,
+        string? DumpModels,
+        bool ReadGlossary,
+        bool ListTables,
+        IReadOnlyList<string> Peek,
+        bool PeekWatch,
+        string UpdateOutcome,
+        string UpdatedVersion)
+    {
+        public static CliOptions Parse(string[] args)
+        {
+            string? schema = null, replay = null, record = null;
+            string updateOutcome = string.Empty, updatedVersion = string.Empty;
+            bool watch = false, verbose = false, overlay = false, config = false;
+            bool autoFlask = false, probeFlasks = false, probeKeys = false, debug = false;
+            var watchFlasks = false;
+            bool uiBrowser = false, questFlags = false, scanHeap = false, peekWatch = false;
+            bool actionHunt = false, skillHunt = false, animDump = false, hoverHunt = false, mapHunt = false;
+            bool sweep = false, groundTypeDump = false, glossary = false, listTables = false;
+            string? aoDump = null, astDump = null, poseDump = null, modelDump = null;
+            var inventorySweep = false;
+            string tabName = string.Empty;
+            List<string> peek = [];
+
+            // An option that takes a value must not be handed the NEXT OPTION as that value.
+            // "--record --overlay --config" - a forgotten file name, or a batch variable that
+            // expanded to nothing - used to record to a file literally named "--overlay" and
+            // silently drop the overlay, the rules and the buff list with it. Nothing warned:
+            // every token was consumed, so the unknown-option branch never saw one. Refusing
+            // here is a hard stop on purpose - the line was not what the person meant, and a
+            // tool that runs half of it looks broken in whichever half was eaten.
+            string Value(ref int at)
+            {
+                string option = args[at];
+                if (at + 1 >= args.Length || args[at + 1].StartsWith('-'))
+                {
+                    string got = at + 1 < args.Length ? $"\"{args[at + 1]}\"" : "nothing";
+                    Console.Error.WriteLine(
+                        $"{option} needs a value and got {got}. Nothing was started, because "
+                        + "running the rest of the line would silently drop whatever the "
+                        + "missing value swallowed.");
+                    Environment.Exit(2);
+                }
+
+                return args[++at];
+            }
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                switch (args[i])
+                {
+                    case "--schema":
+                        schema = Value(ref i);
+                        break;
+                    case "--replay":
+                        replay = Value(ref i);
+                        break;
+                    case "--record":
+                        record = Value(ref i);
+                        break;
+                    case "--watch":
+                        watch = true;
+                        break;
+                    case "--overlay":
+                        overlay = true;
+                        break;
+                    case "--config":
+                        config = true;
+                        break;
+                    case "--autoflask":
+                        autoFlask = true;
+                        break;
+                    case "--flasks":
+                        probeFlasks = true;
+                        break;
+                    case "--flaskwatch":
+                        // Implies --flasks: the watch is only readable next to the report that
+                        // says which offsets are already named.
+                        probeFlasks = true;
+                        watchFlasks = true;
+                        break;
+                    case "--keys":
+                        probeKeys = true;
+                        break;
+                    case "--debug":
+                        debug = true;
+                        break;
+                    case "--uibrowser":
+                        uiBrowser = true;
+                        break;
+                    case "--questflags":
+                        questFlags = true;
+                        break;
+                    case "--heapscan":
+                        questFlags = true;
+                        scanHeap = true;
+                        break;
+                    case "--actionhunt":
+                        actionHunt = true;
+                        break;
+
+                    // The follow-up hunt: what the action fields cannot say is WHAT is being
+                    // cast, and this follows the skill object until it reaches the game's own
+                    // name for it. Separate from --actionhunt because it reads far more per
+                    // frame - two hops out of every pointer - and only the session that is
+                    // looking for a name should pay for that.
+                    case "--skillhunt":
+                        skillHunt = true;
+                        break;
+
+                    // Hovers and bosses: the two candidates that have sat unverified because
+                    // no build reads them, so no capture contains them. Separate from the
+                    // others because it wants a person deliberately pointing at things.
+                    case "--hoverhunt":
+                        hoverHunt = true;
+                        break;
+
+                    // The map elements every way they can be reached, bytes and all - see
+                    // MapHunt. It wants the person zooming and panning the map while it runs.
+                    case "--maphunt":
+                        mapHunt = true;
+                        break;
+
+                    // The components neither reference has a layout for. Blind, because there
+                    // is nothing to verify against - see ComponentSweep. Like the hunts above
+                    // it wants a person putting the situation on screen: a ground effect, a
+                    // beam, a totem running out.
+                    case "--sweep":
+                        sweep = true;
+                        break;
+
+                    // Reads every inventory WHOLE, hunting the field that says what sort of
+                    // tab it is. Like the hunts above it wants a person setting the situation up:
+                    // a tab the game has not been asked to load reads as empty, so the sweep is
+                    // worth only as much of the stash as somebody clicks through while it runs.
+                    case "--inventories":
+                        inventorySweep = true;
+                        break;
+
+                    // The one thing the tool cannot know and must be told: a stash tab's name is
+                    // the player's own word. Given one, the sweep walks outwards from the
+                    // inventories looking for it, and either produces a path or establishes that
+                    // there is none - see InventorySweep.Hunt.
+                    case "--tabname":
+                        tabName = Value(ref i) ?? string.Empty;
+                        break;
+
+                    case "--groundtypes":
+                        groundTypeDump = true;
+                        break;
+
+                    // Reads the monsters' own .ao files out of the install and says what is in
+                    // them. Takes an optional monster name or path, which switches it from a
+                    // survey of the whole table to a full dump of that one - and the survey is
+                    // what it is for: whether a picture is reachable and what "stance2" is.
+                    // Empty string means all, which is why this is a string? and not a bool.
+                    case "--aodump":
+                        aoDump = i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal)
+                            ? Value(ref i)
+                            : string.Empty;
+                        break;
+
+                    // The hop after --aodump: the .ast files those .ao files name, which is where
+                    // the bones and the animation list are. Same shape and for the same reason -
+                    // a name switches it from a survey to one monster's skeletons in full.
+                    case "--astdump":
+                        astDump = i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal)
+                            ? Value(ref i)
+                            : string.Empty;
+                        break;
+
+                    // The hop after --astdump: the mesh posed on the skeleton, and where its feet
+                    // come out against the ground the model pane draws at the origin. Takes the
+                    // monster name or path; there is no survey form, because a pose is only
+                    // worth reading for the monster that stands wrong.
+                    case "--posedump":
+                        poseDump = i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal)
+                            ? Value(ref i)
+                            : string.Empty;
+                        break;
+
+                    // The whole table at once: what every monster's model is made of and what
+                    // became of each of its pieces. Empty means all 2733 of them, which is the
+                    // point - the attachments that are wrong are wrong whether or not anybody
+                    // has walked past them. See RunModelDump.
+                    case "--modeldump":
+                        modelDump = i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal)
+                            ? Value(ref i)
+                            : string.Empty;
+                        break;
+
+                    // Regenerates data/animations.tsv from the game. Not a hunt - nothing is
+                    // being searched for any more - so it stops the moment the row array's base
+                    // is confirmed rather than sampling for as long as somebody plays.
+                    case "--animdump":
+                        animDump = true;
+                        break;
+
+                    // Walks the loaded-file table and reads the game's glossary out of it.
+                    // Opt-in because the walk is thousands of records, and worth recording
+                    // with --record: no fixture in this repo has ever read a file record's
+                    // row store, so this is the run that turns the route into a test.
+                    case "--glossary":
+                        glossary = true;
+                        break;
+
+                    // The same walk, listing every table instead of reading one - and the .dat
+                    // files that did NOT resolve as tables, which is the open question: four
+                    // tables this tool reads rows from were missing from the 131 a live walk
+                    // found, and nothing recorded so far can say why.
+                    case "--tables":
+                        listTables = true;
+                        break;
+
+                    // Takes a Cheat Engine pointer path as written - "+468C3A8,235C" - so a
+                    // finding can be checked without transcribing it into an absolute address
+                    // that stops meaning anything the moment the game restarts.
+                    case "--peek":
+                        peek.Add(Value(ref i));
+                        break;
+                    case "--peekwatch":
+                        peekWatch = true;
+                        break;
+
+                    // NOT MEANT TO BE TYPED. The update script adds one of these when it starts
+                    // the tool again, and it is the only way an update can ever be reported:
+                    // the build that performed it has been overwritten and the script that did
+                    // the copying has exited, so the new process is the only thing left that
+                    // knows an update happened. See UpdateScript.
+                    case PoEformance.Features.UpdateScript.UpdatedFlag:
+                        updateOutcome = "updated";
+                        updatedVersion = Value(ref i);
+                        break;
+                    case PoEformance.Features.UpdateScript.FailedFlag:
+                        updateOutcome = "failed";
+                        break;
+                    case "-v" or "--verbose":
+                        verbose = true;
+                        break;
+                    default:
+                        // A BUILD THAT IS TOO OLD LOOKS EXACTLY LIKE A WORKING ONE without
+                        // this. An option it has never heard of was dropped without a word,
+                        // and the report that came back looked entirely normal because
+                        // everything else still ran - so the missing section read as "the scan
+                        // found nothing" rather than "the scan does not exist here". That cost
+                        // a game session with --heapscan, which is the whole reason this
+                        // branch says something.
+                        Console.Error.WriteLine(
+                            $"unknown option \"{args[i]}\" - ignored. If you expected it to do "
+                            + "something, this build is older than the option.");
+                        break;
+                }
+            }
+
+            return new CliOptions(
+                schema, replay, record, watch, verbose, overlay, config, autoFlask, probeFlasks, watchFlasks, probeKeys,
+                debug, uiBrowser, questFlags, scanHeap, actionHunt, skillHunt, hoverHunt, mapHunt, sweep,
+                inventorySweep, tabName, groundTypeDump, animDump, aoDump, astDump, poseDump,
+                modelDump, glossary, listTables, peek, peekWatch, updateOutcome, updatedVersion);
+        }
+    }
+}

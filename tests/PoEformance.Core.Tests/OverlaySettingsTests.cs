@@ -1,0 +1,792 @@
+using PoEformance.Features;
+using PoEformance.Game.Components;
+
+namespace PoEformance.Core.Tests;
+
+/// <summary>The loot filter's setting: its default, its bounds, and that it survives a restart.</summary>
+public class OverlaySettingsTests
+{
+    [Fact]
+    public void Default_HidesNormalDrops()
+    {
+        // The complaint that produced this feature: Path of Exile 2 drops normal items
+        // faster than they can be read, and marking all of them buries the ones worth
+        // walking to.
+        Assert.Equal(ItemRarity.Magic, OverlaySettings.Default.MinLootRarity);
+    }
+
+    [Theory]
+    [InlineData(ItemRarity.Currency)]
+    [InlineData(ItemRarity.Unknown)]
+    [InlineData((ItemRarity)99)]
+    public void NonThresholdValues_FallBackToTheDefault(ItemRarity written)
+    {
+        // Currency is a classification, not a rank: drops that carry no rarity component at
+        // all. Selecting it as a MINIMUM would read as "currency only" and actually mean
+        // "rarity 5 and above", which nothing satisfies.
+        Assert.Equal(ItemRarity.Magic, new OverlaySettings(written).Normalised().MinLootRarity);
+    }
+
+    [Fact]
+    public void SaveAndLoad_RoundTripsByName()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"poeformance-overlay-{Guid.NewGuid():N}.json");
+        try
+        {
+            Assert.True(OverlaySettingsStore.Save(new OverlaySettings(ItemRarity.Rare), path));
+
+            Assert.Equal(ItemRarity.Rare, OverlaySettingsStore.Load(path).MinLootRarity);
+
+            // By NAME, so inserting a rarity into the enum later cannot silently turn a
+            // saved "Rare" into something else.
+            Assert.Contains("Rare", File.ReadAllText(path), StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData("#96C8FF", 0xFFFFC896)]   // ImGui packs ABGR, the reverse of the page's RGB
+    [InlineData("96c8ff", 0xFFFFC896)]    // the leading hash is optional
+    [InlineData("#FF0000", 0xFF0000FF)]   // red: the byte order is not symmetric, so this catches a swap
+    [InlineData("#00FF00", 0xFF00FF00)]
+    public void ColourIsPackedTheWayImGuiReadsIt(string text, uint expected)
+        => Assert.Equal(expected, OverlaySettings.ParseColour(text));
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("nope")]
+    [InlineData("#12345")]
+    [InlineData("#GGGGGG")]
+    public void AnUnparseableColourIsRejectedRatherThanDrawnInvisibly(string text)
+    {
+        // 0 means "no colour", which the caller reads as "keep what you had". Returning a
+        // transparent black instead would draw the outline as nothing at all, which looks
+        // exactly like the feature being broken.
+        Assert.Equal(0u, OverlaySettings.ParseColour(text));
+        Assert.Equal(OverlaySettings.Default.TerrainColour,
+            new OverlaySettings(ItemRarity.Magic, TerrainColour: text).Normalised().TerrainColour);
+    }
+
+    [Fact]
+    public void FadingTakesTheAlphaAndLeavesTheColourAlone()
+    {
+        // Red at full alpha, half faded. If the shift is wrong this comes back a different
+        // COLOUR rather than a fainter one - which looks deliberate and is not.
+        uint red = OverlaySettings.ParseColour("#FF0000");
+
+        // 0x7F rather than 0x80: the alpha is truncated, not rounded, which is what the
+        // three drawing classes this was collapsed out of already did.
+        Assert.Equal(0x7F00_00FFu, OverlaySettings.Fade(red, 0.5f));
+        Assert.Equal(red, OverlaySettings.Fade(red, 1f));
+        Assert.Equal(red, OverlaySettings.Fade(red, 2f));       // never brighter than it was
+        Assert.Equal(0x0000_00FFu, OverlaySettings.Fade(red, 0f));
+    }
+
+    [Fact]
+    public void ANDItMultipliesSoAChosenTransparencySurvives()
+    {
+        // Somebody set this backing to be half transparent on purpose. A fade that SET the
+        // alpha would make it opaque halfway through a banner's fade-out.
+        uint half = OverlaySettings.ParseColour("#80FFFFFF");
+        Assert.Equal(0x40FF_FFFFu, OverlaySettings.Fade(half, 0.5f));
+    }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(1, 1)]
+    [InlineData(4, 4)]
+    [InlineData(99, 6)]
+    public void ThicknessIsClampedToWhatStillReadsAsAnOutline(int written, int expected)
+        => Assert.Equal(expected, new OverlaySettings(ItemRarity.Magic, TerrainThickness: written)
+            .Normalised().TerrainThickness);
+
+    [Fact]
+    public void CorruptFile_FallsBackToTheDefault()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"poeformance-overlay-{Guid.NewGuid():N}.json");
+        try
+        {
+            File.WriteAllText(path, "not json at all");
+            Assert.Equal(ItemRarity.Magic, OverlaySettingsStore.Load(path).MinLootRarity);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+}
+
+/// <summary>
+/// The choices that have to survive a restart.
+/// </summary>
+/// <remarks>
+/// Every one of these is decided once and expected to hold. Losing them on each launch is
+/// small and constant, which is the kind of friction nobody reports and nobody stops paying -
+/// so the round trip is worth a test, and so is the fact that an OLD settings file still
+/// loads. A tool that forgets its configuration when it gains an option is worse than one
+/// that never had the option.
+/// </remarks>
+public class OverlaySettingsRoundTripTests
+{
+    private static string TempPath() => Path.Combine(Path.GetTempPath(), $"poeformance-overlay-{Guid.NewGuid():N}.json");
+
+    [Fact]
+    public void EverythingTheUserCanChangeComesBack()
+    {
+        var wanted = new PoEformance.Features.OverlaySettings(
+            PoEformance.Game.Components.ItemRarity.Rare,
+            ShowTerrain: false,
+            TerrainColour: "#112233",
+            TerrainThickness: 3,
+            TerrainRim: false,
+            TerrainFillColour: "#102030",
+            TerrainFillOpacity: 35,
+            HideNoise: false,
+            RememberOutOfRange: false,
+            ShowPoi: false,
+            PoiLabels: false,
+            PoiRoutes: false,
+            PoiArrows: false,
+            DotLabels: true);
+
+        string path = TempPath();
+        try
+        {
+            Assert.True(PoEformance.Features.OverlaySettingsStore.Save(wanted, path));
+            Assert.Equal(wanted, PoEformance.Features.OverlaySettingsStore.Load(path));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>
+    /// The model pane's capture settings survive a restart.
+    /// </summary>
+    /// <remarks>
+    /// THE FACTOR IS THE ONE THAT MATTERS, because it does not only change what is on screen -
+    /// it decides how dark the Inactive half of an exported icon comes out. A set of icons made
+    /// over two evenings with the slider silently back at its default on the second one is a
+    /// set that does not match, and nothing about it looks wrong until they are side by side.
+    /// </remarks>
+    [Fact]
+    public void TheModelPanesCaptureSettingsComeBack()
+    {
+        var wanted = new PoEformance.Features.OverlaySettings(
+            ItemRarity.Magic,
+            ModelGrey: true,
+            ModelGreyFactor: 0.62f,
+            ModelBackdrop: "Checker",
+            ModelOutline: "Inward",
+            ModelOutlineWidth: 0f,
+            ModelLight: false,
+            ModelLightTarget: 72f);
+
+        string path = TempPath();
+        try
+        {
+            Assert.True(PoEformance.Features.OverlaySettingsStore.Save(wanted, path));
+            PoEformance.Features.OverlaySettings read = PoEformance.Features.OverlaySettingsStore.Load(path);
+
+            Assert.True(read.ModelGrey);
+            Assert.Equal(0.62f, read.ModelGreyFactor);
+            Assert.Equal("Checker", read.ModelBackdrop);
+            Assert.Equal("Inward", read.ModelOutline);
+
+            // ZERO HAS TO SURVIVE, and it is the reason the unset value is negative: zero is
+            // how somebody switches the rim off, and a file that read it back as "nothing was
+            // said" would put the rim on again at every launch.
+            Assert.Equal(0f, read.ModelOutlineWidth);
+            Assert.False(read.ModelLight);
+            Assert.Equal(72f, read.ModelLightTarget);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void TheHiddenTabsComeBack()
+    {
+        // By CONTENT rather than record equality: a list property compares by reference,
+        // so Assert.Equal on the records would pass with both null and prove nothing here.
+        var wanted = PoEformance.Features.OverlaySettings.Default with
+        {
+            HiddenTabs = ["atlas", "stash"],
+        };
+
+        string path = TempPath();
+        try
+        {
+            Assert.True(PoEformance.Features.OverlaySettingsStore.Save(wanted, path));
+            Assert.Equal(
+                new[] { "atlas", "stash" },
+                PoEformance.Features.OverlaySettingsStore.Load(path).HiddenTabsOrEmpty);
+
+            // By id in the file, so a relabelled tab stays hidden across an upgrade.
+            Assert.Contains("hiddenTabs", File.ReadAllText(path), StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void TheHiddenEntitiesComeBack()
+    {
+        // The whole point of the feature being persisted: somebody hides the scenery once and
+        // finds it still hidden next launch. By content rather than record equality - the
+        // lists compare by reference, so Assert.Equal on the records would pass on two nulls.
+        var wanted = PoEformance.Features.OverlaySettings.Default with
+        {
+            HiddenEntities = ["Metadata/MiscellaneousObjects/DoodadNoBlocking"],
+            HiddenEntitySpots = [new PoEformance.Features.EntitySpot("Metadata/Chests/Chest", 120, 340)],
+        };
+
+        string path = TempPath();
+        try
+        {
+            Assert.True(PoEformance.Features.OverlaySettingsStore.Save(wanted, path));
+            PoEformance.Features.OverlaySettings loaded = PoEformance.Features.OverlaySettingsStore.Load(path);
+
+            Assert.Equal(
+                new[] { "Metadata/MiscellaneousObjects/DoodadNoBlocking" }, loaded.HiddenEntitiesOrEmpty);
+
+            PoEformance.Features.EntitySpot spot = Assert.Single(loaded.HiddenEntitySpotsOrEmpty);
+            Assert.Equal("Metadata/Chests/Chest", spot.Path);
+            Assert.Equal(120, spot.X);
+            Assert.Equal(340, spot.Y);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void AnUntouchedFileHidesNothing()
+    {
+        // The default, and the upgrade: a file with no such key means every tab on the bar,
+        // exactly as the tool behaved before tabs could hide.
+        Assert.Empty(PoEformance.Features.OverlaySettings.Default.HiddenTabsOrEmpty);
+
+        string path = TempPath();
+        File.WriteAllText(path, """{"minLootRarity":2}""");
+        try
+        {
+            PoEformance.Features.OverlaySettings loaded = PoEformance.Features.OverlaySettingsStore.Load(path);
+            Assert.Empty(loaded.HiddenTabsOrEmpty);
+            Assert.Empty(loaded.HiddenEntitiesOrEmpty);
+            Assert.Empty(loaded.HiddenEntitySpotsOrEmpty);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void ASettingsFileWrittenBEFORETheseOptionsExistedStillLoads()
+    {
+        // The upgrade case, and the one that would be found by a user rather than by a test:
+        // a file from the previous version has none of these keys, and the defaults have to
+        // fill in rather than the load failing back to everything-default.
+        string path = TempPath();
+        File.WriteAllText(path, """{"minLootRarity":2,"showTerrain":false,"terrainColour":"#ABCDEF","terrainThickness":2}""");
+
+        try
+        {
+            PoEformance.Features.OverlaySettings loaded = PoEformance.Features.OverlaySettingsStore.Load(path);
+
+            Assert.Equal(PoEformance.Game.Components.ItemRarity.Rare, loaded.MinLootRarity);
+            Assert.Equal("#ABCDEF", loaded.TerrainColour);
+            Assert.False(loaded.ShowTerrain);
+
+            // The new ones take their defaults, which are what the tool did before they existed.
+            Assert.True(loaded.HideNoise);
+            Assert.True(loaded.RememberOutOfRange);
+            Assert.True(loaded.ShowPoi);
+            Assert.False(loaded.DotLabels);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void TheDefaultsAreWhatTheToolDidBefore()
+    {
+        // A new option that changes behaviour on upgrade is a surprise, and surprises get
+        // blamed on the wrong thing.
+        PoEformance.Features.OverlaySettings fresh = PoEformance.Features.OverlaySettings.Default;
+
+        Assert.True(fresh.HideNoise);
+        Assert.True(fresh.RememberOutOfRange);
+        Assert.True(fresh.ShowPoi);
+        Assert.True(fresh.PoiRoutes);
+        Assert.False(fresh.DotLabels);
+    }
+}
+
+/// <summary>
+/// Two things write the settings file and only one of them knows every field.
+/// </summary>
+/// <remarks>
+/// The configuration page shows four settings; the overlay has switches of its own. Sending
+/// the page's four as a whole record gives the rest their DEFAULTS, and saving that resets
+/// every choice made on the overlay - silently, because the page did what it was asked, the
+/// file is valid, and the switches are simply back where they started the next time anybody
+/// looks. This was live for exactly as long as it took to notice.
+/// </remarks>
+public class OverlaySettingsMergeTests
+{
+    private static PoEformance.Features.OverlaySettings Chosen() =>
+        PoEformance.Features.OverlaySettings.Default with
+        {
+            HideNoise = false,
+            RememberOutOfRange = false,
+            ShowPoi = false,
+            PoiRoutes = false,
+            DotLabels = true,
+        };
+
+    [Fact]
+    public void ThePageChangesWhatItSHOWS()
+    {
+        var sent = PoEformance.Features.OverlaySettings.Default with
+        {
+            MinLootRarity = PoEformance.Game.Components.ItemRarity.Rare,
+            TerrainColour = "#010203",
+            TerrainThickness = 4,
+            TerrainRim = false,
+            TerrainFillColour = "#040506",
+            TerrainFillOpacity = 15,
+            ShowTerrain = false,
+        };
+
+        PoEformance.Features.OverlaySettings merged = Chosen().MergeFromPage(sent);
+
+        Assert.Equal(PoEformance.Game.Components.ItemRarity.Rare, merged.MinLootRarity);
+        Assert.Equal("#010203", merged.TerrainColour);
+        Assert.Equal(4, merged.TerrainThickness);
+        Assert.False(merged.TerrainRim);
+        Assert.Equal("#040506", merged.TerrainFillColour);
+        Assert.Equal(15, merged.TerrainFillOpacity);
+        Assert.False(merged.ShowTerrain);
+    }
+
+    [Fact]
+    public void TheFillStaysAPercentageOfAColour()
+    {
+        // The page's slider says 0 to 100 and the file can say anything; a colour that does not
+        // parse falls back rather than drawing a fill of nothing in particular.
+        PoEformance.Features.OverlaySettings tooMuch = (PoEformance.Features.OverlaySettings.Default with
+        {
+            TerrainFillOpacity = 140,
+            TerrainFillColour = "navy",
+        }).Normalised();
+
+        Assert.Equal(100, tooMuch.TerrainFillOpacity);
+        Assert.Equal(PoEformance.Features.OverlaySettings.Default.TerrainFillColour, tooMuch.TerrainFillColour);
+        Assert.Equal(0, (PoEformance.Features.OverlaySettings.Default with { TerrainFillOpacity = -5 }).Normalised().TerrainFillOpacity);
+
+        // Packed for the overlay: the colour's own bytes under an alpha that is the percentage,
+        // rounded - so the default's 70 is 179 of 255, not 178.
+        uint packed = PoEformance.Features.OverlaySettings.Default.TerrainFillPacked;
+        Assert.Equal(179u, packed >> 24);
+        Assert.Equal(
+            PoEformance.Features.OverlaySettings.ParseColour("#0B1B2B") & 0x00FF_FFFF,
+            packed & 0x00FF_FFFF);
+        Assert.Equal(0u, PoEformance.Features.OverlaySettings.WithOpacity(0xFFFFFFFFu, 0) >> 24);
+    }
+
+    [Fact]
+    public void AndLeavesEVERYTHINGElseAlone()
+    {
+        // The whole point. A record arriving from the page carries defaults for the fields it
+        // does not show, and those defaults are the opposite of what this user chose.
+        PoEformance.Features.OverlaySettings merged =
+            Chosen().MergeFromPage(PoEformance.Features.OverlaySettings.Default);
+
+        Assert.False(merged.HideNoise);
+        Assert.False(merged.RememberOutOfRange);
+        Assert.False(merged.ShowPoi);
+        Assert.False(merged.PoiRoutes);
+        Assert.True(merged.DotLabels);
+    }
+
+    [Fact]
+    public void TheWealthTrackerIsOffUntilSomebodyAsksForIt()
+    {
+        // Both halves separately, and both off. Counting the purse sweeps every inventory every
+        // few seconds; the corner panel is a dead spot on the screen. Neither should arrive
+        // uninvited on somebody who never opened the page.
+        Assert.False(PoEformance.Features.OverlaySettings.Default.WealthWatch);
+        Assert.False(PoEformance.Features.OverlaySettings.Default.WealthPanel);
+        Assert.Equal(60, PoEformance.Features.OverlaySettings.Default.WealthWindowMinutes);
+    }
+
+    [Fact]
+    public void AndItsSwitchesSurviveARestart()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"poeformance-wealth-settings-{Guid.NewGuid():N}.json");
+        try
+        {
+            var chosen = new PoEformance.Features.OverlaySettings(
+                PoEformance.Game.Components.ItemRarity.Rare)
+            {
+                WealthWatch = true,
+                WealthPanel = true,
+                WealthWindowMinutes = 10_080,
+            };
+
+            Assert.True(PoEformance.Features.OverlaySettingsStore.Save(chosen, path));
+
+            PoEformance.Features.OverlaySettings back =
+                PoEformance.Features.OverlaySettingsStore.Load(path);
+
+            Assert.True(back.WealthWatch);
+            Assert.True(back.WealthPanel);
+            Assert.Equal(10_080, back.WealthWindowMinutes);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void AndThePageDoesNotResetThem()
+    {
+        // The configuration page sends the four settings it shows. Everything else has to come
+        // through untouched, or opening the page and closing it silently turns the tracker off.
+        var kept = new PoEformance.Features.OverlaySettings(PoEformance.Game.Components.ItemRarity.Magic)
+        {
+            WealthWatch = true,
+            WealthPanel = true,
+            WealthWindowMinutes = 1440,
+        };
+
+        PoEformance.Features.OverlaySettings merged =
+            kept.MergeFromPage(PoEformance.Features.OverlaySettings.Default);
+
+        Assert.True(merged.WealthWatch);
+        Assert.True(merged.WealthPanel);
+        Assert.Equal(1440, merged.WealthWindowMinutes);
+    }
+
+    /// <summary>The effect switches survive a restart, which is the whole reason they exist.</summary>
+    /// <remarks>
+    /// THEY DID NOT, and the report that found it is what makes this worth a test rather than a
+    /// line of wiring: the three switches on the Effects tab were session-only while the
+    /// projectile ones next door had always persisted, so the difference read as a bug.
+    ///
+    /// It is one for the job these are for. A recording can only contain reads the running build
+    /// actually performed, so anything that wants hostile ground effects IN the file needs
+    /// KeepEffects on BEFORE the process starts - and a switch that forgets itself on exit can
+    /// never be on before the process starts. The setting was unreachable for its own purpose.
+    ///
+    /// "THE ONLY ONE OF ITS KIND" WAS WRONG when it was first written here. That sweep compared
+    /// the drawing LAYERS against <c>TrackerSettings</c> and found them all covered - true, and
+    /// not the question. The switches that were missing belong to WINDOWS holding their own
+    /// state, which that sweep never looked at, and the owner found the next four on the Stash
+    /// tab within the hour. A search that answers a narrower question than the one asked reads
+    /// exactly like an answer - the same shape of mistake as six animation rows standing in for
+    /// a table.
+    ///
+    /// AND THEN THIS TEST PASSED WHILE THE FEATURE WAS BROKEN, which is the part worth the ink.
+    /// The field, the Apply, the CurrentSettings and the round-trip below were all in place and
+    /// all correct, and the switches still did not survive a restart: the settings file is
+    /// written when <c>EntityOverlay.SettingsChanged</c> fires and at NO OTHER TIME, and no
+    /// switch on either tab called it. Somewhere to keep a value and something to notice it
+    /// moved are separate jobs, and having only the first is indistinguishable from having
+    /// neither. Every window that owns persisted state now takes a REQUIRED changed callback -
+    /// not an optional one - because that is the only version of this the compiler can check.
+    ///
+    /// WHAT THAT COSTS TO TEST, honestly: nothing here can drive an ImGui checkbox, so no test
+    /// in this file would have caught it and none added since would either. The guard is the
+    /// required constructor argument, not this test.
+    /// </remarks>
+    [Fact]
+    public void TheEffectSwitchesSurviveARestart()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"poeformance-effects-{Guid.NewGuid():N}.json");
+        try
+        {
+            Assert.True(OverlaySettingsStore.Save(
+                OverlaySettings.Default with
+                {
+                    ShowEffects = true,
+                    EffectPaths = false,
+                    KeepEffects = true,
+                },
+                path));
+
+            OverlaySettings back = OverlaySettingsStore.Load(path);
+
+            Assert.True(back.ShowEffects);
+            Assert.False(back.EffectPaths);
+            Assert.True(back.KeepEffects);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>All three ship off-or-harmless, because keeping the effects costs a read.</summary>
+    /// <remarks>
+    /// Persisting a switch is not the same as turning it on. KeepEffects undoes the rule that
+    /// stops a Firewall build covering its own screen in enemy markers, so the default has to
+    /// stay where it was - the complaint was that the setting would not STICK, not that it was
+    /// off. The paths default to true because they are what the layer is for once it is drawn.
+    /// </remarks>
+    [Fact]
+    public void KeepingTheEffectsIsStillOffByDefault()
+    {
+        Assert.False(OverlaySettings.Default.ShowEffects);
+        Assert.False(OverlaySettings.Default.KeepEffects);
+        Assert.True(OverlaySettings.Default.EffectPaths);
+    }
+
+    /// <summary>The config page must not reset them either.</summary>
+    /// <remarks>
+    /// The same trap as the wealth settings above, and worth pinning for these specifically:
+    /// they are set from the overlay and the page has never heard of them, so a merge that
+    /// dropped unknown fields would turn the recording switch off the moment somebody opened
+    /// the configuration window - between arming it and starting the fight.
+    /// </remarks>
+    [Fact]
+    public void AndThePageDoesNotResetTheEffectSwitchesEither()
+    {
+        OverlaySettings armed = OverlaySettings.Default with { ShowEffects = true, KeepEffects = true };
+
+        OverlaySettings merged = armed.MergeFromPage(OverlaySettings.Default);
+
+        Assert.True(merged.ShowEffects);
+        Assert.True(merged.KeepEffects);
+    }
+
+    /// <summary>The Stash tab's four network switches survive a restart too.</summary>
+    /// <remarks>
+    /// FOUND AFTER the effect ones, and by the owner rather than by the sweep that was supposed
+    /// to have covered them. All four reach the network - poe2db for pictures, poe.ninja and the
+    /// trade site for prices, the game's own exchange - and every store that owns one documents
+    /// itself as "off until somebody says otherwise". Saying so once is what that sentence
+    /// means; until now it had to be said again on every launch.
+    ///
+    /// Persisting them is not a change of policy about outbound requests. A tool that asks
+    /// poe.ninja the moment the box is ticked asks it just the same the second time it is
+    /// ticked - the only thing that changed is having to tick it four times a day.
+    /// </remarks>
+    [Fact]
+    public void TheStashSwitchesSurviveARestart()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"poeformance-stash-{Guid.NewGuid():N}.json");
+        try
+        {
+            Assert.True(OverlaySettingsStore.Save(
+                OverlaySettings.Default with
+                {
+                    StashItemArt = true,
+                    StashPrices = true,
+                    StashExchange = true,
+                    StashTrade = true,
+                },
+                path));
+
+            OverlaySettings back = OverlaySettingsStore.Load(path);
+
+            Assert.True(back.StashItemArt);
+            Assert.True(back.StashPrices);
+            Assert.True(back.StashExchange);
+            Assert.True(back.StashTrade);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>And all four still ship off, because all four reach the network.</summary>
+    [Fact]
+    public void TheStashSwitchesAreStillOffByDefault()
+    {
+        Assert.False(OverlaySettings.Default.StashItemArt);
+        Assert.False(OverlaySettings.Default.StashPrices);
+        Assert.False(OverlaySettings.Default.StashExchange);
+        Assert.False(OverlaySettings.Default.StashTrade);
+    }
+
+    /// <summary>Letting a class of noise through survives a restart, and by NAME.</summary>
+    /// <remarks>
+    /// The fourth switch on the Effects tab, missed by the first pass over that very tab: it
+    /// lets the engine's own <c>/fx/</c> and <c>/mat/</c> nodes past the noise filter, which is
+    /// what a wave's particles would arrive as. Stored by name so a kind inserted into
+    /// <c>NoiseKind</c> later cannot silently turn a saved choice into a different class - the
+    /// same reason the loot rarity round-trips by name above.
+    /// </remarks>
+    [Fact]
+    public void LettingNoiseThroughSurvivesARestart()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"poeformance-noise-{Guid.NewGuid():N}.json");
+        try
+        {
+            Assert.True(OverlaySettingsStore.Save(
+                OverlaySettings.Default with { NoiseOff = ["Engine"] },
+                path));
+
+            Assert.Contains("Engine", OverlaySettingsStore.Load(path).NoiseOffOrEmpty);
+            Assert.Contains("Engine", File.ReadAllText(path), StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>Nothing let through writes no key, so an untouched file stays untouched.</summary>
+    [Fact]
+    public void NothingLetThroughIsNotAnEmptyList()
+    {
+        Assert.Null(OverlaySettings.Default.NoiseOff);
+        Assert.Empty(OverlaySettings.Default.NoiseOffOrEmpty);
+    }
+
+    /// <summary>
+    /// The monster book's column widths and pane boundaries survive a restart, by the names it
+    /// writes them under.
+    /// </summary>
+    /// <remarks>
+    /// THE ROUND TRIP AND THE FILE, both. Both of these are DICTIONARIES, and a dictionary is a
+    /// shape the source-generated JSON has to have been told about - where that goes wrong is
+    /// Native AOT, on somebody else's machine, as a settings file that silently stops holding
+    /// one key. Reading the text back pins the names too: this is the whole point of keying by
+    /// name rather than by position, and a renamed key is a layout quietly forgotten.
+    ///
+    /// The numbers are a real layout rather than round ones - a name column dragged wide, the two
+    /// figure columns left near their fitted width, and three boundaries nowhere near their
+    /// defaults of 0.2, 0.46 and 0.58.
+    /// </remarks>
+    [Fact]
+    public void TheMonsterBooksWidthsAndPanesSurviveARestart()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"poeformance-monsterbook-{Guid.NewGuid():N}.json");
+        try
+        {
+            Assert.True(OverlaySettingsStore.Save(
+                OverlaySettings.Default with
+                {
+                    MonsterColumnWidths = new Dictionary<string, int>(StringComparer.Ordinal)
+                    {
+                        ["name"] = 214,
+                        ["skills"] = 47,
+                        ["size"] = 41,
+                    },
+                    MonsterPanes = new Dictionary<string, double>(StringComparer.Ordinal)
+                    {
+                        ["rail"] = 0.17,
+                        ["list"] = 0.38,
+                        ["model"] = 0.62,
+                    },
+                },
+                path));
+
+            OverlaySettings back = OverlaySettingsStore.Load(path);
+
+            Assert.NotNull(back.MonsterColumnWidths);
+            Assert.Equal(214, back.MonsterColumnWidths["name"]);
+            Assert.Equal(47, back.MonsterColumnWidths["skills"]);
+            Assert.Equal(41, back.MonsterColumnWidths["size"]);
+
+            Assert.NotNull(back.MonsterPanes);
+            Assert.Equal(0.17, back.MonsterPanes["rail"], 6);
+            Assert.Equal(0.38, back.MonsterPanes["list"], 6);
+            Assert.Equal(0.62, back.MonsterPanes["model"], 6);
+
+            string written = File.ReadAllText(path);
+            Assert.Contains("monsterColumnWidths", written, StringComparison.Ordinal);
+            Assert.Contains("monsterPanes", written, StringComparison.Ordinal);
+            Assert.Contains("\"skills\"", written, StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>Until somebody drags something there is nothing to remember, and no key for it.</summary>
+    [Fact]
+    public void AnUndraggedBookRemembersNothing()
+    {
+        Assert.Null(OverlaySettings.Default.MonsterColumnWidths);
+        Assert.Null(OverlaySettings.Default.MonsterPanes);
+        Assert.Null(OverlaySettings.Default.ItemColumns);
+        Assert.Null(OverlaySettings.Default.ItemColumnWidths);
+        Assert.Null(OverlaySettings.Default.ItemPanes);
+        Assert.True(OverlaySettings.Default.ItemRail);
+        Assert.Null(OverlaySettings.Default.TileColumns);
+        Assert.Null(OverlaySettings.Default.TileColumnWidths);
+        Assert.Null(OverlaySettings.Default.TilePanes);
+        Assert.True(OverlaySettings.Default.TileRail);
+        Assert.Equal(0, OverlaySettings.Default.RoomDoodads);
+        Assert.Null(OverlaySettings.Default.EffectColumns);
+        Assert.Null(OverlaySettings.Default.EffectPanes);
+        Assert.True(OverlaySettings.Default.EffectRail);
+    }
+
+    /// <summary>
+    /// The item book's layout is kept under keys of its own, and survives the AOT serialiser.
+    /// </summary>
+    [Fact]
+    public void TheItemBooksLayoutSurvivesARestartApartFromTheMonsterBooks()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"poeformance-itembook-{Guid.NewGuid():N}.json");
+        try
+        {
+            Assert.True(OverlaySettingsStore.Save(
+                OverlaySettings.Default with
+                {
+                    ItemColumns = ["name", "class", "art"],
+                    ItemColumnWidths = new Dictionary<string, int>(StringComparer.Ordinal) { ["name"] = 230 },
+                    ItemPanes = new Dictionary<string, double>(StringComparer.Ordinal) { ["rail"] = 0.15, ["list"] = 0.4 },
+                    ItemRail = false,
+                    TileColumns = ["name", "here"],
+                    TileRail = false,
+                    RoomDoodads = 1200,
+                    EffectColumns = ["name", "folder"],
+                    EffectRail = false,
+                },
+                path));
+
+            OverlaySettings back = OverlaySettingsStore.Load(path);
+
+            Assert.Equal(["name", "class", "art"], back.ItemColumns);
+            Assert.Equal(230, back.ItemColumnWidths!["name"]);
+            Assert.Equal(0.4, back.ItemPanes!["list"], 6);
+            Assert.False(back.ItemRail);
+            Assert.Equal(["name", "here"], back.TileColumns);
+            Assert.False(back.TileRail);
+            Assert.Equal(1200, back.RoomDoodads);
+            Assert.Equal(["name", "folder"], back.EffectColumns);
+            Assert.False(back.EffectRail);
+            Assert.Null(back.MonsterColumns);
+            Assert.True(back.MonsterRail);
+
+            string written = File.ReadAllText(path);
+            Assert.Contains("itemColumns", written, StringComparison.Ordinal);
+            Assert.Contains("itemRail", written, StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+}

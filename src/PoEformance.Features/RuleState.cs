@@ -1,0 +1,1104 @@
+using PoEformance.Game.Components;
+using PoEformance.Game.Ui;
+using PoEformance.Game.World;
+
+namespace PoEformance.Features;
+
+/// <summary>
+/// Everything a rule may ask about, gathered once per tick.
+/// </summary>
+/// <remarks>
+/// One flat fact sheet rather than a live view of the snapshot, for the same reason the
+/// snapshot itself is immutable: every condition in a rule must see the same moment. A tree
+/// that read the entity list per leaf could have its monster count change between two branches
+/// of the same AND, and the resulting rule would fire on a state that never existed.
+///
+/// A NUMBER THAT COULD NOT BE ANSWERED IS NULL, NEVER A SENTINEL, and that is the single
+/// most load-bearing decision in this type. The reference plugin reports an unreadable life
+/// pool as 0 and "no rare monster anywhere" as 9999, so `LifePercent &lt;= 35` fires on a
+/// loading screen and `NearestRare &gt;= 100` is satisfied by an empty room. Both read as the
+/// feature working. Null makes the comparison say "no" instead - see
+/// <see cref="RuleCondition"/>, where that rule lives.
+///
+/// Counts are the exception and are answered as 0: no monsters nearby is a real reading, not a
+/// failure to read.
+/// </remarks>
+public sealed record RuleState
+{
+    /// <summary>Nothing known - what a rule sees before the first read lands.</summary>
+    public static RuleState Nothing { get; } = new();
+
+    /// <summary>Whether the game is in an area rather than in a menu or a loading screen.</summary>
+    public bool InGame { get; init; }
+
+    /// <summary>
+    /// Whether the GAME window has focus.
+    /// </summary>
+    /// <remarks>
+    /// The gate every input effect hangs on, and it lives in the state - i.e. in the DECISION -
+    /// rather than in the code that presses keys, on the same argument as
+    /// <see cref="AutoFlask"/>: keystrokes land wherever focus is, so no future caller should
+    /// be able to reach the sending path without passing this.
+    /// </remarks>
+    public bool GameFocused { get; init; }
+
+    /// <summary>Whether the character is alive and loaded.</summary>
+    public bool Alive { get; init; }
+
+    /// <summary>Whether a screen-filling panel - stash, atlas, skill tree - is open.</summary>
+    /// <remarks>
+    /// Not a copy of "in game": a player reading their passive tree is in the area, and a rule
+    /// that presses a key at them is pressing it into the tree's own key handling.
+    /// </remarks>
+    public bool InPanel { get; init; }
+
+    public bool InTown { get; init; }
+
+    public bool InHideout { get; init; }
+
+    /// <summary>Somewhere with something to fight - neither town nor hideout.</summary>
+    public bool InMap => InGame && !InTown && !InHideout;
+
+    /// <summary>Whether the player moved measurably since the previous tick.</summary>
+    public bool Moving { get; init; }
+
+    /// <summary>World units per second, measured across the last two ticks.</summary>
+    public double? Speed { get; init; }
+
+    public string AreaId { get; init; } = string.Empty;
+
+    public string AreaName { get; init; } = string.Empty;
+
+    /// <summary>The area's monster level, or null when it could not be read.</summary>
+    public int? AreaLevel { get; init; }
+
+    /// <summary>The character's level, or null when it could not be read.</summary>
+    public int? PlayerLevel { get; init; }
+
+    /// <summary>How long since the area last changed.</summary>
+    public double SecondsInArea { get; init; }
+
+    /// <summary>The player's pools, or null when they could not be read.</summary>
+    public Vitals? Vitals { get; init; }
+
+    /// <summary>What is on the player, or null when it could not be read.</summary>
+    public ActiveBuffs? Buffs { get; init; }
+
+    /// <summary>The belt, or null when it could not be read.</summary>
+    public FlaskBelt? Belt { get; init; }
+
+    /// <summary>Live monsters around the player, nearest first.</summary>
+    /// <remarks>
+    /// Sorted once here rather than per condition: a rule with three distance leaves would
+    /// otherwise walk the entity list three times, and the whole tree is evaluated on every
+    /// tick of every rule in the profile.
+    /// </remarks>
+    public IReadOnlyList<NearMonster> Monsters { get; init; } = [];
+
+    /// <summary>How many live monsters are around, by rarity band.</summary>
+    public int MonsterCount => Monsters.Count;
+
+    public int RareMonsterCount => Count(ItemRarity.Rare);
+
+    public int UniqueMonsterCount => Count(ItemRarity.Unique);
+
+    public int RareOrUniqueMonsterCount => RareMonsterCount + UniqueMonsterCount;
+
+    /// <summary>Distance to the closest live monster, or null when there is none.</summary>
+    public double? NearestMonster => Monsters.Count > 0 ? Monsters[0].Distance : null;
+
+    public double? NearestRareMonster => Nearest(ItemRarity.Rare);
+
+    public double? NearestUniqueMonster => Nearest(ItemRarity.Unique);
+
+    /// <summary>Distance to the closest rare OR unique, or null when there is neither.</summary>
+    public double? NearestRareOrUniqueMonster
+    {
+        get
+        {
+            foreach (NearMonster monster in Monsters)
+            {
+                if (monster.Rarity is ItemRarity.Rare or ItemRarity.Unique)
+                {
+                    return monster.Distance;
+                }
+            }
+
+            return null;
+        }
+    }
+
+    /// <summary>Fill level of a pool, 0-100, or null when it could not be read.</summary>
+    /// <remarks>
+    /// Measured against the UNRESERVED pool by <see cref="Vital.Percent"/>, which is the whole
+    /// reason this goes through that type rather than dividing here: with half of mana reserved
+    /// by auras a full globe is 50% of the maximum, and every threshold below that would fire
+    /// forever.
+    /// </remarks>
+    public double? Percent(VitalKind kind)
+    {
+        if (Vitals is not Vitals pools)
+        {
+            return null;
+        }
+
+        int percent = Select(pools, kind).Percent;
+        return percent < 0 ? null : percent;
+    }
+
+    /// <summary>The raw current value of a pool, or null when it could not be read.</summary>
+    public double? Current(VitalKind kind)
+        => Vitals is Vitals pools && Select(pools, kind).IsValid ? Select(pools, kind).Current : null;
+
+    /// <summary>Whether a buff or debuff whose name contains this is on the player.</summary>
+    /// <remarks>
+    /// One lookup for both, because the game keeps one list and this project's reader records
+    /// no flag separating them. The reference plugin ships HasBuff and HasDebuff as separate
+    /// conditions that call the same code, which reads as a distinction the tool can make.
+    /// </remarks>
+    public bool HasBuff(string needle) => Buffs?.Has(needle) == true;
+
+    /// <summary>Seconds left on a named buff, or null when it is not on the player.</summary>
+    /// <remarks>
+    /// Null rather than 0 for an absent buff, so "expiring within 2 seconds" does not fire
+    /// forever on a buff nobody has - the same trap as an unreadable pool, one level down.
+    /// </remarks>
+    public double? BuffTimeLeft(string needle) => Find(needle)?.TimeLeft;
+
+    /// <summary>Stacks on a named buff, or null when it is not on the player.</summary>
+    public double? BuffCharges(string needle) => Find(needle)?.Charges;
+
+    /// <summary>Whether the flask in a belt slot is still doing its job.</summary>
+    public bool FlaskActive(int slot) => Buffs?.IsFlaskActive(slot) == true;
+
+    /// <summary>Charges held by the flask in a belt slot, or null when the slot is unreadable.</summary>
+    /// <remarks>
+    /// Per SLOT, which the reference plugin's condition of the same name is not: it returns the
+    /// player's single exposed charge count whatever slot is asked for, and its own
+    /// documentation says so. This project reads the belt item by item, so the honest answer
+    /// is available and the misleading one need not be shipped.
+    /// </remarks>
+    public double? FlaskCharges(int slot) => Belt?.InSlot(slot)?.Charges;
+
+    /// <summary>Whether pressing that flask's key would actually do anything.</summary>
+    /// <remarks>
+    /// Null-safe in the direction that does nothing: an unreadable belt answers "no", so a
+    /// rule gated on readiness stays quiet rather than pressing keys on a guess.
+    /// </remarks>
+    public bool FlaskReady(int slot)
+        => Belt?.InSlot(slot) is EquippedFlask flask && !flask.IsCharm && flask.CanUse;
+
+    /// <summary>Whether the area's name or id contains this.</summary>
+    public bool AreaContains(string needle)
+        => needle.Length > 0
+           && (AreaName.Contains(needle, StringComparison.OrdinalIgnoreCase)
+               || AreaId.Contains(needle, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>How many live monsters are within a distance of the player.</summary>
+    public int MonsterCountWithin(double distance) => CountWithin(distance, null);
+
+    /// <summary>How many live rares and uniques are within a distance of the player.</summary>
+    public int RareOrUniqueCountWithin(double distance) => CountWithin(distance, RareOrUnique);
+
+    /// <summary>
+    /// How many live monsters are within a distance AND have unbroken ground to them.
+    /// </summary>
+    /// <remarks>
+    /// The question an autocast rule is really asking. A pack on the other side of a wall is
+    /// within the radius and within nothing else: the skill goes off, the mana goes, and the
+    /// wall takes it. Counting only what can be reached is what stops a rule firing into
+    /// scenery for as long as the player stands near it.
+    ///
+    /// NULL, NOT ZERO, when the terrain has not loaded - which is the one place this parts
+    /// company with the other counts. They answer 0 because an empty room is a real reading;
+    /// here 0 would claim the view is blocked to everything when the truth is that the map is
+    /// missing. The difference only shows on a rule written the other way round -
+    /// "MonsterCountInSight &lt; 1" as a stand-still condition - and there a confident 0 during
+    /// the first minute of a map is a rule acting on a guess.
+    /// </remarks>
+    public int? MonsterCountInSight(double distance)
+    {
+        if (Terrain is not TerrainGrid grid || PlayerAt is not (float px, float py))
+        {
+            return null;
+        }
+
+        (int fromX, int fromY) = Cell(px, py);
+        int total = 0;
+        foreach (NearMonster monster in Monsters)
+        {
+            // Sorted nearest first, so the first one out of range ends it - and that bound is
+            // what keeps this cheap: the lines walked are only the ones inside the radius, each
+            // at most radius/10.87 cells long.
+            if (monster.Distance > distance)
+            {
+                break;
+            }
+
+            (int toX, int toY) = Cell(monster.WorldX, monster.WorldY);
+            if (grid.IsClearLine(fromX, fromY, toX, toY))
+            {
+                total++;
+            }
+        }
+
+        return total;
+    }
+
+    /// <summary>The grid cell a world point falls in.</summary>
+    private static (int X, int Y) Cell(float worldX, float worldY)
+        => ((int)(worldX / MapView.WorldToGrid), (int)(worldY / MapView.WorldToGrid));
+
+    /// <summary>
+    /// Where on the ground the cursor is pointing, or null when it is not over the game.
+    /// </summary>
+    /// <remarks>
+    /// The screen pixel run back through the camera matrix onto the plane at the PLAYER's
+    /// height - see <see cref="WorldToScreen.OnGround"/>. Which is also its limit: on a ledge
+    /// or a staircase the ground is not at that height, and the point lands where that plane
+    /// is rather than where the floor is.
+    /// </remarks>
+    public (float X, float Y)? CursorGround { get; init; }
+
+    /// <summary>Where the player stands, for the facts that measure from them in WORLD space.</summary>
+    /// <remarks>
+    /// <see cref="NearMonster.Distance"/> already answers "how far", so nothing needed this
+    /// until a fact had to draw a LINE between two absolute points.
+    /// </remarks>
+    public (float X, float Y)? PlayerAt { get; init; }
+
+    /// <summary>
+    /// The area's walkable grid, or null while it is still loading.
+    /// </summary>
+    /// <remarks>
+    /// A rule holding terrain looks like the state following something back into memory, and it
+    /// is not: this grid is read ONCE per area and is immutable afterwards - see
+    /// <see cref="TerrainGrid"/> - so what is held here is a snapshot of the same kind as
+    /// everything else on this sheet, just a large one that did not have to be copied.
+    ///
+    /// Null is a real state and a common one. Terrain populates after the area loads and on a
+    /// large map that can take a minute, so every fact built on this has to answer "I cannot
+    /// tell" rather than "nothing is in the way".
+    /// </remarks>
+    public TerrainGrid? Terrain { get; init; }
+
+    /// <summary>
+    /// How many live monsters are within a radius of where the CURSOR is pointing.
+    /// </summary>
+    /// <remarks>
+    /// The question a targeted skill actually asks. "Three monsters near me" and "three
+    /// monsters where I am aiming" are different rules, and for anything placed at the cursor
+    /// - a wall, a ground effect, a targeted blast - only the second one is about the skill.
+    /// Ported from the AHK tool's cursor radius, which is the half of its monster count that
+    /// has no equivalent in the reference plugin at all.
+    ///
+    /// IN WORLD UNITS, measured from the cursor's ground point, and that is a correction to
+    /// how this shipped. It was a radius in screen PIXELS, which is what the AHK tool's plain
+    /// cursor mode does - and a circle on the screen is an ELLIPSE on the ground, stretched
+    /// away from the camera by the tilt. So a pixel radius counts monsters in a region no
+    /// skill has, and the number moves with the resolution and the zoom besides. The AHK tool
+    /// has the world-space mode too, and that is the one worth having.
+    /// </remarks>
+    public int MonsterCountAtCursor(double distance) => CountAtCursor(distance, null);
+
+    /// <summary>How many live rares and uniques are within a radius of the cursor's ground point.</summary>
+    public int RareOrUniqueCountAtCursor(double distance) => CountAtCursor(distance, RareOrUnique);
+
+    /// <summary>
+    /// The emptiest health bar within a radius of the player, 0-100, or null when there is none.
+    /// </summary>
+    /// <remarks>
+    /// "Is anything in range nearly dead" - the cull question, and the reason it is the LOWEST
+    /// rather than the nearest: a rule that watches the closest monster goes quiet the moment a
+    /// full-health one steps in front of the one that was about to die.
+    ///
+    /// Null and not 0 when the radius holds nothing, which is the same rule
+    /// <see cref="NearestMonster"/> follows and matters more here. The counts answer 0 because
+    /// an empty room is a real count; there is no such thing as the health of a monster that is
+    /// not there, and a 0 would make "below 35" fire forever in an empty room - on a rule whose
+    /// whole job is to press a key.
+    ///
+    /// Its own pool, not the player's scale: a white monster at 30% and a boss at 30% both
+    /// answer 30. That is what "nearly dead" means to the skill being fired, and it is the same
+    /// number the health bar over its head is drawn from.
+    /// </remarks>
+    public double? LowestMonsterLifePercent(double distance) => LowestWithin(distance, null);
+
+    /// <summary>The emptiest health bar on a MAGIC monster within a radius of the player.</summary>
+    /// <remarks>
+    /// Split by rarity because a cull threshold is: the game executes a magic monster from a
+    /// higher share of its life than a rare, and a rare from higher than a unique. One
+    /// threshold over every monster answers about whichever happens to be weakest, and the pack
+    /// of white monsters that is always the weakest thing on screen would keep the rule firing
+    /// while the rare it was written for stands at half health.
+    ///
+    /// Normal has no fact of its own: <see cref="LowestMonsterLifePercent"/> already answers
+    /// "anything at all", and a white monster does not survive long enough for a threshold to
+    /// be the thing that catches it.
+    /// </remarks>
+    public double? LowestMagicMonsterLifePercent(double distance)
+        => LowestWithin(distance, ItemRarity.Magic);
+
+    /// <summary>The emptiest health bar on a RARE monster within a radius of the player.</summary>
+    public double? LowestRareMonsterLifePercent(double distance)
+        => LowestWithin(distance, ItemRarity.Rare);
+
+    /// <summary>The emptiest health bar on a UNIQUE monster within a radius of the player.</summary>
+    public double? LowestUniqueMonsterLifePercent(double distance)
+        => LowestWithin(distance, ItemRarity.Unique);
+
+    /// <summary>The emptiest health bar within a radius of where the cursor points.</summary>
+    /// <remarks>
+    /// The companion to the counts, on the same terms: for anything aimed rather than cast at
+    /// the character, "the weakest thing near me" and "the weakest thing where I am pointing"
+    /// are different rules, and only the second one is about the skill.
+    /// </remarks>
+    public double? LowestMonsterLifePercentAtCursor(double distance)
+    {
+        if (CursorGround is not (float cx, float cy))
+        {
+            return null;
+        }
+
+        double? lowest = null;
+        foreach (NearMonster monster in Monsters)
+        {
+            // Not sorted by this measure - the list is ordered by distance from the PLAYER - so
+            // every monster is looked at rather than the walk stopping at the first one out of
+            // range.
+            if (Away(monster, cx, cy) <= distance)
+            {
+                lowest = Lower(lowest, monster.LifePercent);
+            }
+        }
+
+        return lowest;
+    }
+
+    /// <summary>World units from the cursor to the nearest live monster, or null when there is none.</summary>
+    /// <remarks>
+    /// Answers "am I aiming at anything at all", which is the companion to the counts: a rule
+    /// can hold fire until the pointer is actually over a fight rather than over the floor.
+    /// </remarks>
+    public double? NearestMonsterAtCursor
+    {
+        get
+        {
+            if (CursorGround is not (float cx, float cy))
+            {
+                return null;
+            }
+
+            double nearest = double.MaxValue;
+            foreach (NearMonster monster in Monsters)
+            {
+                nearest = Math.Min(nearest, Away(monster, cx, cy));
+            }
+
+            return nearest == double.MaxValue ? null : nearest;
+        }
+    }
+
+    /// <summary>
+    /// Gathers the facts from one snapshot.
+    /// </summary>
+    /// <param name="snapshot">The world as of the last read.</param>
+    /// <param name="focused">Whether the game window has focus.</param>
+    /// <param name="track">
+    /// Where the facts that need a previous tick come from - time in area, and movement. Passed
+    /// in rather than kept in statics, so two engines (or a test and a game) never share them.
+    /// </param>
+    /// <param name="nowMs">A monotonic clock.</param>
+    /// <param name="pointer">
+    /// Where the mouse is over the game, for the rules that measure from the cursor. Null - a
+    /// pointer somewhere else, or no window - makes every cursor rule answer no rather than
+    /// answering about a place nobody is aiming at.
+    /// </param>
+    public static RuleState From(
+        WorldSnapshot snapshot, bool focused, RuleHistory track, long nowMs, PointerView? pointer = null)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(track);
+
+        if (!snapshot.InGame)
+        {
+            // Deliberately keeps the focus flag: a rule may legitimately watch for the game
+            // being in front while sitting in a menu, and nothing else here can be answered.
+            track.Reset(nowMs);
+            return new RuleState { GameFocused = focused };
+        }
+
+        WorldEntity? player = snapshot.Player;
+        RuleMovement movement = track.Observe(snapshot.AreaHash, player, nowMs);
+
+        return new RuleState
+        {
+            InGame = true,
+            GameFocused = focused,
+            Alive = snapshot.PlayerVitals is Vitals pools && !pools.IsDeadOrUnloaded,
+            InPanel = snapshot.InAPanel,
+            InTown = snapshot.Area.IsTown,
+            InHideout = snapshot.Area.IsHideout,
+            Moving = movement.Moving,
+            Speed = movement.Speed,
+            AreaId = snapshot.Area.Id,
+            AreaName = snapshot.Area.Name,
+            AreaLevel = snapshot.AreaLevel > 0 ? snapshot.AreaLevel : null,
+            PlayerLevel = snapshot.PlayerLevel > 0 ? snapshot.PlayerLevel : null,
+            SecondsInArea = movement.SecondsInArea,
+            Vitals = snapshot.PlayerVitals,
+            Buffs = snapshot.PlayerBuffs,
+            Belt = snapshot.FlaskBelt,
+            CursorGround = OnGround(snapshot, player, pointer),
+            PlayerAt = player is WorldEntity at ? (at.WorldX, at.WorldY) : null,
+            Terrain = snapshot.Terrain,
+            Monsters = NearbyMonsters(snapshot, player),
+        };
+    }
+
+    /// <summary>Where the cursor is pointing on the plane at the player's height.</summary>
+    private static (float X, float Y)? OnGround(
+        WorldSnapshot snapshot, WorldEntity? player, PointerView? pointer)
+        => pointer is PointerView view && view.IsValid && player is WorldEntity at
+            ? WorldToScreen.OnGround(
+                snapshot.Matrix, view.X, view.Y, at.WorldZ, view.Width, view.Height)
+            : null;
+
+    /// <summary>
+    /// The live monsters around the player, nearest first.
+    /// </summary>
+    /// <remarks>
+    /// The health-bar layer's filter, and the damage meter's: friendly things are the player's
+    /// own minions and totems, an effect wearing a monster's components is not something
+    /// anybody is fighting, and an unreadable pool is excluded rather than counted - a
+    /// component that did not resolve would otherwise read as a monster at full health.
+    ///
+    /// Nothing filters remembered entities here because nothing that MOVES is ever remembered
+    /// (see <see cref="EntityMemory"/>), so a monster cannot arrive from that half of the list.
+    ///
+    /// A HIDDEN monster is left out entirely rather than flagged: imprisoned by essences, or a
+    /// boss between phases, it has a full bar and a targetable byte and nothing can hit it,
+    /// and a rule that counted it fired Spark at a prison the moment the cursor came near.
+    /// Out of the list, no fact and no aim can reach it - see <see cref="HiddenMonsters"/>.
+    /// </remarks>
+    private static List<NearMonster> NearbyMonsters(WorldSnapshot snapshot, WorldEntity? player)
+    {
+        var found = new List<NearMonster>();
+        if (player is not WorldEntity at)
+        {
+            return found;
+        }
+
+        foreach (WorldEntity entity in snapshot.Entities)
+        {
+            if (entity.Kind != EntityKind.Monster
+                || entity.IsFriendly
+                || entity.IsEffect
+                || entity.IsHidden
+                || !entity.Life.IsValid
+                || entity.Life.Current <= 0)
+            {
+                continue;
+            }
+
+            float dx = entity.WorldX - at.WorldX;
+            float dy = entity.WorldY - at.WorldY;
+
+            // The same number the health bar over its head is drawn from - see
+            // HealthBarLayer, which reads this exact property. Vital.Percent answers -1 for a
+            // pool with nothing to measure, and that sentinel stops here: it becomes null, so a
+            // monster whose pool did not resolve is a monster with no reading rather than one
+            // reading as a hair from death.
+            int percent = entity.Life.Percent;
+
+            found.Add(new NearMonster(
+                MathF.Sqrt((dx * dx) + (dy * dy)),
+                entity.Rarity,
+                entity.WorldX,
+                entity.WorldY,
+                percent < 0 ? null : percent,
+
+                // Where the health bar floats, not where the feet are: that is the point a
+                // cursor put "on the monster" should land on, and it is the same height the
+                // overlay draws the bar at. WorldZ alone aims at the ground under it.
+                entity.HealthBarZ,
+                entity.Address,
+                entity.Life.Current,
+
+                // The UNRESERVED pool, so this number and the percentage above share a
+                // denominator - see NearMonster.Pool.
+                entity.Life.Unreserved,
+
+                // Only an explicit yes. Null is a component nobody could read, and the rule
+                // this feeds presses keys - see AnyTargetableIn.
+                entity.Targetable == true));
+        }
+
+        found.Sort(static (left, right) => left.Distance.CompareTo(right.Distance));
+        return found;
+    }
+
+    private int Count(ItemRarity rarity)
+    {
+        int total = 0;
+        foreach (NearMonster monster in Monsters)
+        {
+            if (monster.Rarity == rarity)
+            {
+                total++;
+            }
+        }
+
+        return total;
+    }
+
+    private int CountAtCursor(double distance, Func<ItemRarity, bool>? matches)
+    {
+        if (CursorGround is not (float cx, float cy))
+        {
+            return 0;
+        }
+
+        int total = 0;
+        foreach (NearMonster monster in Monsters)
+        {
+            // Not sorted by this measure - the list is ordered by distance from the PLAYER -
+            // so every monster is looked at rather than the walk stopping at the first one out
+            // of range.
+            if (Away(monster, cx, cy) <= distance && (matches is null || matches(monster.Rarity)))
+            {
+                total++;
+            }
+        }
+
+        return total;
+    }
+
+    /// <summary>
+    /// Whether any monster the range conditions among these select can be targeted right now.
+    /// </summary>
+    /// <remarks>
+    /// The one fact that asks about its NEIGHBOURS. "Is something targetable" has no meaning
+    /// without saying which monsters, and the rule has already said: the 'within' conditions
+    /// it is grouped with name a centre, a radius, a rarity and whether a wall is in the way.
+    /// So IsTargetable asks exactly the monsters those count - beside RareOrUniqueCountWithin
+    /// only the rares and uniques, beside MonsterCountInSight only the reachable ones - and
+    /// holds when one of them answers yes. Any of them: a rule wired as "A or B" is a rule
+    /// about either region, and so is the question.
+    ///
+    /// Groups among the neighbours are walked into, so an IsTargetable beside two boxes sees
+    /// the range conditions in both. Beside no range condition at all the answer is NO rather
+    /// than "any monster anywhere": a condition that fires on a targetable monster three
+    /// screens away would press keys at nothing, and <see cref="RuleFacts.HasRange"/> lets the
+    /// preview say which of the two kinds of no this is.
+    ///
+    /// WHY THE BYTE IS WORTH A CONDITION. Every count here is of LIVE monsters, and alive is
+    /// not the same as hittable: a boss between its phases and a monster still rising out of
+    /// the ground both carry a full health bar and read untargetable, and a skill cast at
+    /// either is mana spent on something the game refuses to hit. The byte is the game's own
+    /// answer - see Targetable.IsTargetable in the schema, the same byte the corpse filter
+    /// trusts - and a monster whose byte could not be read is NOT targetable here, on the
+    /// null rule that runs through this sheet: a rule that presses a key stays quiet on a
+    /// guess.
+    /// </remarks>
+    public bool AnyTargetableIn(IReadOnlyList<RuleCondition> beside)
+    {
+        ArgumentNullException.ThrowIfNull(beside);
+
+        var search = new Search(null, 100, aiming: false);
+        foreach (RuleCondition condition in beside)
+        {
+            if (Walk(condition, ref search, 0))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The monster an aiming effect should put the cursor on, or null when there is none.
+    /// </summary>
+    /// <param name="within">
+    /// The rule's condition. Its range conditions - every one, at any depth - say WHERE to
+    /// look, exactly as they do for IsTargetable: the monsters those count are the monsters
+    /// the rule is about, so they are the ones worth a cast.
+    /// </param>
+    /// <remarks>
+    /// STRONGEST FIRST, not weakest, and that is the owner's call rather than a default: with
+    /// two things under the threshold at once the rare is the one worth the cull, because the
+    /// white monster beside it dies to anything. Ties inside a rarity go to the lowest bar -
+    /// among equals, the one closest to dying is the one the cast is most likely to land on
+    /// before something else kills it.
+    ///
+    /// ONLY WHAT CAN BE HIT. A monster reading untargetable is skipped however strong or
+    /// weak: the pointer would land on it, the hover check would fail, and the cast would be
+    /// skipped - a rule that fires and does nothing, which from outside reads as broken. Nor
+    /// would waiting help, because a boss between phases stays untargetable for as long as
+    /// the phase lasts. Skipping it lets the cast go to the next thing the rule is about.
+    ///
+    /// The region used to be a radius on the effect, repeated beside the condition's because
+    /// a condition is a boolean TREE with no subject and nothing in it says which leaf the
+    /// effect belongs to. Reading every range leaf instead keeps the one honest answer to that
+    /// - the rule's regions, all of them - and removes the number that had to be kept in step
+    /// by hand. The threshold stays on the effect: a cull's share is a fact about the skill,
+    /// not about the area, and nothing in the condition carries it.
+    /// </remarks>
+    public NearMonster? AimTarget(RuleCondition within, ItemRarity? only, double atOrBelowPercent)
+    {
+        ArgumentNullException.ThrowIfNull(within);
+
+        var search = new Search(only, atOrBelowPercent, aiming: true);
+        Walk(within, ref search, 0);
+        return search.Best;
+    }
+
+    /// <summary>
+    /// What one walk over the rule's regions is looking for, and what it has found so far.
+    /// </summary>
+    /// <remarks>
+    /// A struct carried by reference rather than a callback, so the two questions asked of the
+    /// regions - "is anything here targetable" and "which of these is worth a cast" - share
+    /// one walk without a delegate allocated per tick. The first is the second with every
+    /// candidate acceptable and the walk ending at the first.
+    /// </remarks>
+    private struct Search(ItemRarity? only, double atOrBelowPercent, bool aiming)
+    {
+        private readonly ItemRarity? _only = only;
+        private readonly double _atOrBelow = atOrBelowPercent;
+        private readonly bool _aiming = aiming;
+
+        /// <summary>The best candidate so far, when aiming.</summary>
+        public NearMonster? Best { get; private set; }
+
+        /// <summary>Whether anything acceptable has been offered.</summary>
+        public bool Found { get; private set; }
+
+        /// <summary>Whether the walk may stop: a yes-or-no question is answered at the first yes.</summary>
+        public readonly bool Done => Found && !_aiming;
+
+        /// <summary>Considers one monster a region contains.</summary>
+        public void Offer(NearMonster monster)
+        {
+            if (!monster.Targetable)
+            {
+                return;
+            }
+
+            if (!_aiming)
+            {
+                Found = true;
+                return;
+            }
+
+            // The address is what the hover check compares against; without one the cursor
+            // could be placed but never confirmed. A pool that did not resolve is not a
+            // monster at zero, so it is not under any threshold.
+            if (monster.Address == 0
+                || monster.LifePercent is not double life
+                || life > _atOrBelow
+                || (_only is ItemRarity wanted && monster.Rarity != wanted))
+            {
+                return;
+            }
+
+            if (Best is not NearMonster held
+                || monster.Rarity > held.Rarity
+                || (monster.Rarity == held.Rarity && life < held.LifePercent))
+            {
+                Best = monster;
+            }
+
+            Found = true;
+        }
+    }
+
+    /// <summary>Offers every monster the range conditions under a node select. True once the search is done.</summary>
+    private bool Walk(RuleCondition node, ref Search search, int depth)
+    {
+        if (depth > RuleCondition.MaxDepth)
+        {
+            return false;
+        }
+
+        if (node.Kind != ConditionKind.Fact)
+        {
+            foreach (RuleCondition child in node.Children)
+            {
+                if (Walk(child, ref search, depth + 1))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        FactInfo info = RuleFacts.Describe(node.Fact);
+        if (info.Argument != FactArgument.Distance)
+        {
+            return false;
+        }
+
+        if (info.AtCursor)
+        {
+            OfferAtCursor(node.Fact, node.Argument, ref search);
+        }
+        else
+        {
+            OfferWithin(node.Fact, node.Argument, ref search);
+        }
+
+        return search.Done;
+    }
+
+    /// <summary>Offers the monsters a player-centred range fact counts.</summary>
+    private void OfferWithin(RuleFact fact, double distance, ref Search search)
+    {
+        bool inSight = fact == RuleFact.MonsterCountInSight;
+        TerrainGrid? grid = null;
+        int fromX = 0, fromY = 0;
+        if (inSight)
+        {
+            // The same answer MonsterCountInSight gives while the terrain is loading: nothing
+            // is in sight, so there is nothing to offer.
+            if (Terrain is not TerrainGrid loaded || PlayerAt is not (float px, float py))
+            {
+                return;
+            }
+
+            grid = loaded;
+            (fromX, fromY) = Cell(px, py);
+        }
+
+        foreach (NearMonster monster in Monsters)
+        {
+            // Sorted nearest first, so the first one out of range ends the walk.
+            if (monster.Distance > distance)
+            {
+                break;
+            }
+
+            if (!Counted(fact, monster))
+            {
+                continue;
+            }
+
+            if (grid is TerrainGrid walkable)
+            {
+                (int toX, int toY) = Cell(monster.WorldX, monster.WorldY);
+                if (!walkable.IsClearLine(fromX, fromY, toX, toY))
+                {
+                    continue;
+                }
+            }
+
+            search.Offer(monster);
+            if (search.Done)
+            {
+                return;
+            }
+        }
+    }
+
+    /// <summary>Offers the monsters a cursor-centred range fact counts.</summary>
+    private void OfferAtCursor(RuleFact fact, double distance, ref Search search)
+    {
+        if (CursorGround is not (float cx, float cy))
+        {
+            return;
+        }
+
+        foreach (NearMonster monster in Monsters)
+        {
+            // Not sorted by this measure - see CountAtCursor - so every monster is looked at.
+            if (Counted(fact, monster) && Away(monster, cx, cy) <= distance)
+            {
+                search.Offer(monster);
+                if (search.Done)
+                {
+                    return;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether a range fact would count this monster, radius aside.
+    /// </summary>
+    /// <remarks>
+    /// Each fact's own filter, restated in one place so IsTargetable and the aim ask the same
+    /// monsters the condition counts. The life facts are the subtle ones: <see cref="LowestWithin"/>
+    /// skips a monster with no reading rather than ranking it lowest, so one with no reading
+    /// is not among the monsters that fact is about.
+    /// </remarks>
+    private static bool Counted(RuleFact fact, NearMonster monster) => fact switch
+    {
+        RuleFact.RareOrUniqueCountWithin or RuleFact.RareOrUniqueCountAtCursor => RareOrUnique(monster.Rarity),
+        RuleFact.LowestMonsterLifePercent or RuleFact.LowestMonsterLifePercentAtCursor => monster.LifePercent is not null,
+        RuleFact.LowestMagicMonsterLifePercent => monster.Rarity == ItemRarity.Magic && monster.LifePercent is not null,
+        RuleFact.LowestRareMonsterLifePercent => monster.Rarity == ItemRarity.Rare && monster.LifePercent is not null,
+        RuleFact.LowestUniqueMonsterLifePercent => monster.Rarity == ItemRarity.Unique && monster.LifePercent is not null,
+        _ => true,
+    };
+
+    /// <summary>The emptiest health bar within a radius of the player, of one rarity or of any.</summary>
+    /// <remarks>
+    /// Null for a rarity that is not in range, which is the same answer an empty radius gives
+    /// and for the same reason: "no unique nearby" and "a unique at 0%" must not read alike to
+    /// a rule that presses a key. A monster whose rarity did not resolve reads as
+    /// <see cref="ItemRarity.Unknown"/> and so matches no rarity asked for - it is still counted
+    /// by the any-rarity fact, which is the honest split between "I know what this is" and
+    /// "there is something there".
+    /// </remarks>
+    private double? LowestWithin(double distance, ItemRarity? only)
+    {
+        double? lowest = null;
+        foreach (NearMonster monster in Monsters)
+        {
+            // Sorted nearest first, so the first one out of range ends the walk.
+            if (monster.Distance > distance)
+            {
+                break;
+            }
+
+            if (only is null || monster.Rarity == only)
+            {
+                lowest = Lower(lowest, monster.LifePercent);
+            }
+        }
+
+        return lowest;
+    }
+
+    /// <summary>The smaller of two readings, ignoring one that could not be read.</summary>
+    /// <remarks>
+    /// A monster with no reading leaves the answer where it was, rather than becoming the
+    /// lowest one - which is the whole reason this is not a Math.Min over the list.
+    /// </remarks>
+    private static double? Lower(double? held, double? found)
+        => found is not double reading ? held
+            : held is not double best ? reading
+            : Math.Min(best, reading);
+
+    private static double Away(NearMonster monster, float x, float y)
+    {
+        double dx = monster.WorldX - x;
+        double dy = monster.WorldY - y;
+        return Math.Sqrt((dx * dx) + (dy * dy));
+    }
+
+    private int CountWithin(double distance, Func<ItemRarity, bool>? matches)
+    {
+        int total = 0;
+        foreach (NearMonster monster in Monsters)
+        {
+            // Sorted nearest first, so the first one out of range ends the walk.
+            if (monster.Distance > distance)
+            {
+                break;
+            }
+
+            if (matches is null || matches(monster.Rarity))
+            {
+                total++;
+            }
+        }
+
+        return total;
+    }
+
+    private double? Nearest(ItemRarity rarity)
+    {
+        foreach (NearMonster monster in Monsters)
+        {
+            if (monster.Rarity == rarity)
+            {
+                return monster.Distance;
+            }
+        }
+
+        return null;
+    }
+
+    private ActiveBuff? Find(string needle)
+    {
+        if (Buffs is not ActiveBuffs on || string.IsNullOrWhiteSpace(needle))
+        {
+            return null;
+        }
+
+        // The strongest match rather than the first: several stacks of the same effect are
+        // separate entries, and "how long is this on me for" means the one that lasts longest.
+        ActiveBuff? best = null;
+        foreach (ActiveBuff buff in on.All)
+        {
+            if (buff.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                && (best is not ActiveBuff held || buff.TimeLeft > held.TimeLeft))
+            {
+                best = buff;
+            }
+        }
+
+        return best;
+    }
+
+    private static bool RareOrUnique(ItemRarity rarity) => rarity is ItemRarity.Rare or ItemRarity.Unique;
+
+    private static Vital Select(Vitals pools, VitalKind kind) => kind switch
+    {
+        VitalKind.Life => pools.Life,
+        VitalKind.Mana => pools.Mana,
+        VitalKind.EnergyShield => pools.EnergyShield,
+        _ => default,
+    };
+}
+
+/// <summary>One live monster, reduced to what a rule can ask about.</summary>
+/// <remarks>
+/// Not a <see cref="WorldEntity"/>: a rule never follows an entity back into memory, and
+/// carrying the whole record would let a future condition do exactly that on an address that
+/// may since have been freed.
+/// </remarks>
+/// <param name="Distance">World units from the player.</param>
+/// <param name="WorldX">Where it stands, for the rules that measure from somewhere else.</param>
+/// <param name="LifePercent">
+/// How full its health bar is, 0-100, or null when the pool could not be measured.
+///
+/// Null rather than 0 on the same argument as every other unreadable number here, and the trap
+/// is sharper for this one than most: a monster recorded at 0 satisfies "below 35" and a rule
+/// meant to cull something nearly dead would fire on every monster the reader could not read.
+/// </param>
+/// <param name="WorldZ">
+/// Its height, for the one thing that needs to turn a monster back into a place ON SCREEN:
+/// aiming at it. Every other consumer here works in the XY plane.
+/// </param>
+/// <param name="Address">
+/// The entity address, and it is here for ONE purpose: comparing it against the address the
+/// game reports as hovered, to confirm that a cursor put on this monster actually landed.
+///
+/// A deliberate exception to the rule above, and narrow on purpose. It is never dereferenced -
+/// nothing reads through it, so a freed object cannot be followed - and the only operation
+/// performed on it is equality. That is what keeps the exception from becoming the door the
+/// type was shaped to close.
+/// </param>
+/// <param name="Targetable">
+/// Whether the game would let a click land on it right now. False for a byte that could not
+/// be read as well as for a 0, because the one rule asking (<see cref="RuleState.AnyTargetableIn"/>)
+/// presses keys on a yes.
+/// </param>
+public readonly record struct NearMonster(
+    double Distance,
+    ItemRarity Rarity,
+    float WorldX = 0,
+    float WorldY = 0,
+    double? LifePercent = null,
+    float WorldZ = 0,
+    ulong Address = 0,
+    int Life = 0,
+    int LifeMax = 0,
+    bool Targetable = false)
+{
+    /// <summary>Its pool as the log prints it - "1240/3600 34%", or empty when unread.</summary>
+    /// <remarks>
+    /// The DENOMINATOR is the unreserved pool, the same one <see cref="Vital.Percent"/>
+    /// divides by, and it is carried rather than recomputed for exactly that reason: printing
+    /// Max beside a percentage taken against Unreserved would show two numbers that do not
+    /// agree with each other, and the whole point of showing both is to be able to check one
+    /// against the other.
+    /// </remarks>
+    public string Pool => LifePercent is double percent && LifeMax > 0
+        ? $"{Life}/{LifeMax} {percent:0}%"
+        : string.Empty;
+}
+
+/// <summary>Where the mouse is, in the pixels the projection produces.</summary>
+/// <remarks>
+/// Handed to <see cref="RuleState.From"/> rather than read there: asking Windows where the
+/// cursor is belongs at the composition root, and this keeps the whole state - including
+/// every cursor rule - buildable in a test.
+/// </remarks>
+public readonly record struct PointerView(float X, float Y, int Width, int Height)
+{
+    public bool IsValid => Width > 0 && Height > 0;
+}
+
+/// <summary>What the previous tick has to say about this one.</summary>
+public readonly record struct RuleMovement(bool Moving, double? Speed, double SecondsInArea);
+
+/// <summary>
+/// The little that cannot be answered from one snapshot: time in area, and movement.
+/// </summary>
+/// <remarks>
+/// An object rather than statics, which is what the reference plugin uses. Statics make two
+/// instances impossible - a test and a live engine in the same process share one area clock -
+/// and they make "why did this fire" untestable, because the answer depends on whatever ran
+/// before.
+/// </remarks>
+public sealed class RuleHistory
+{
+    /// <summary>
+    /// Below this, the player counts as standing still.
+    /// </summary>
+    /// <remarks>
+    /// World units per second. Not zero: a stationary character's position wobbles by a
+    /// fraction of a unit between reads, so an exact test reports constant motion.
+    /// </remarks>
+    public const double StillBelow = 1.0;
+
+    private uint _area;
+    private long _areaAt;
+    private bool _hasArea;
+    private float _lastX;
+    private float _lastY;
+    private long _lastAt;
+    private bool _hasPosition;
+
+    /// <summary>Notes where the player is now, and says what changed since last time.</summary>
+    public RuleMovement Observe(uint area, WorldEntity? player, long nowMs)
+    {
+        if (!_hasArea || area != _area)
+        {
+            _area = area;
+            _areaAt = nowMs;
+            _hasArea = true;
+
+            // A new area is a teleport, not a sprint. Keeping the last position would report a
+            // speed of several thousand for one tick, and every "is moving" rule would fire on
+            // arrival - including the ones meant to notice standing still.
+            _hasPosition = false;
+        }
+
+        double inArea = Math.Max(0, nowMs - _areaAt) / 1000d;
+
+        if (player is not WorldEntity at)
+        {
+            _hasPosition = false;
+            return new RuleMovement(false, null, inArea);
+        }
+
+        double? speed = null;
+        if (_hasPosition && nowMs > _lastAt)
+        {
+            float dx = at.WorldX - _lastX;
+            float dy = at.WorldY - _lastY;
+            speed = MathF.Sqrt((dx * dx) + (dy * dy)) / ((nowMs - _lastAt) / 1000d);
+        }
+
+        _lastX = at.WorldX;
+        _lastY = at.WorldY;
+        _lastAt = nowMs;
+        _hasPosition = true;
+
+        return new RuleMovement(speed >= StillBelow, speed, inArea);
+    }
+
+    /// <summary>Forgets everything - leaving the game is not a pause in the same area.</summary>
+    public void Reset(long nowMs)
+    {
+        _hasArea = false;
+        _hasPosition = false;
+        _areaAt = nowMs;
+    }
+}

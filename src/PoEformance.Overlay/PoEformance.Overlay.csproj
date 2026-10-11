@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Layer 4a - the in-game overlay (ImGui / ClickableTransparentOverlay). Windows only. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <!-- The overlay drags in native ImGui/Veldrid assets that the AOT analyzer cannot see
+         through; it is loaded dynamically at runtime, so exclude it from AOT analysis
+         rather than silencing individual warnings. -->
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnableAotAnalyzer>false</EnableAotAnalyzer>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Pinned explicitly: upstream ClickableTransparentOverlay asks for 3.1.6, which carries
+         known high-severity advisories. The vendored copy asks for 3.1.12 as well. -->
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PoEformance.Features\PoEformance.Features.csproj" />
+    <!-- The model panes' pictures on the graphics card - see CardPictures. -->
+    <ProjectReference Include="..\PoEformance.Gpu\PoEformance.Gpu.csproj" />
+    <!-- VENDORED, NOT THE PACKAGE: see src/ClickableTransparentOverlay/NOTICE.md. -->
+    <ProjectReference Include="..\ClickableTransparentOverlay\ClickableTransparentOverlay.csproj" />
+  </ItemGroup>
+  <!-- Pictures the tool draws by default, INSIDE the assembly rather than beside the
+       executable. A loose file can be deleted, missed by a copy, or lost when a new build is
+       unzipped over an old folder, and the failure looks like the feature being broken; a
+       manifest resource cannot be separated from the code that draws it and survives
+       single-file publishing. The glob matching nothing is not an error, so the mechanism
+       ships before the art does and degrades to text until it lands. -->
+  <ItemGroup>
+    <EmbeddedResource Include="assets\*.png" />
+    <!-- The icon sheet lives at the repository root because it is the project's art rather
+         than the overlay's, and it is linked here rather than copied so the 4.9 MB exists
+         once. LogicalName is pinned: IconCache.BuiltIn matches on the END of the resource
+         name, and a linked file's generated name is derived from its path outside the project
+         directory, which is neither stable nor predictable. -->
+    <EmbeddedResource Include="..\..\assets\icons.png" LogicalName="PoEformance.Overlay.assets.icons.png" />
+    <!-- The names for its cells travel WITH it. Kept apart they can be separated, and a
+         name table that does not match the sheet it names is worse than none. -->
+    <EmbeddedResource Include="..\..\assets\icon-names.tsv" LogicalName="PoEformance.Overlay.assets.icon-names.tsv" />
+    <!-- And the names of the cells this project added past the game's rows, kept apart so
+         scripts/name-icon-cells.py can regenerate the table above without losing them. Written
+         by tools/IconBaker. -->
+    <EmbeddedResource Include="..\..\assets\icon-names-custom.tsv" LogicalName="PoEformance.Overlay.assets.icon-names-custom.tsv" />
+    <!-- The art of the five buttons down the model pane's right edge, linked and pinned for the
+         same reasons as the sheet: MonsterPortrait.SideIcon matches on the END of the resource
+         name. The sheet three were cut from (3dMV_light-cpugpu-probe.png) stays out. -->
+    <EmbeddedResource Include="..\..\assets\3dMV_cpugpu.png" LogicalName="PoEformance.Overlay.assets.3dMV_cpugpu.png" />
+    <EmbeddedResource Include="..\..\assets\3dMV_light.png" LogicalName="PoEformance.Overlay.assets.3dMV_light.png" />
+    <EmbeddedResource Include="..\..\assets\3dMV_orbit.png" LogicalName="PoEformance.Overlay.assets.3dMV_orbit.png" />
+    <EmbeddedResource Include="..\..\assets\3dMV_probe.png" LogicalName="PoEformance.Overlay.assets.3dMV_probe.png" />
+    <EmbeddedResource Include="..\..\assets\3dMV_clock.png" LogicalName="PoEformance.Overlay.assets.3dMV_clock.png" />
+  </ItemGroup>
+</Project>

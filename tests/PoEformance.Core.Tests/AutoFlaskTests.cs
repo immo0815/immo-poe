@@ -1,0 +1,466 @@
+using PoEformance.Features;
+using PoEformance.Game.Components;
+
+namespace PoEformance.Core.Tests;
+
+/// <summary>
+/// The flask decision, and the vital arithmetic under it. Both are pure, so the rules that
+/// actually matter in play are covered here instead of by playing.
+/// </summary>
+public class AutoFlaskTests
+{
+    private static Vitals Pools(int life = 100, int lifeMax = 100, int mana = 100, int manaMax = 100,
+        int manaReservedPercent = 0, int es = 0, int esMax = 0)
+        => new(
+            new Vital(life, lifeMax, 0, 0),
+            new Vital(mana, manaMax, 0, manaReservedPercent),
+            new Vital(es, esMax, 0, 0));
+
+    private static AutoFlask Engine(params FlaskRule[] rules) => new(rules, enabled: true);
+
+    // ── the arithmetic ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Percent_IsMeasuredAgainstTheUnreservedPool()
+    {
+        // THE rule worth pinning. Half of mana reserved by auras: a FULL globe holds 50 of
+        // a 100 max. Against Max that reads 50%, which would make any threshold below 50
+        // fire forever. Against the unreserved pool it correctly reads 100%.
+        var halfReserved = new Vital(Current: 50, Max: 100, ReservedFlat: 0, ReservedPercent: 5000);
+
+        Assert.Equal(50, halfReserved.Reserved);
+        Assert.Equal(50, halfReserved.Unreserved);
+        Assert.Equal(100, halfReserved.Percent);
+    }
+
+    [Fact]
+    public void Percent_CombinesFlatAndProportionalReservations()
+    {
+        // reserved = ceil(2500/10000 * 200) + 20 = 50 + 20 = 70; usable = 130.
+        var vital = new Vital(Current: 65, Max: 200, ReservedFlat: 20, ReservedPercent: 2500);
+
+        Assert.Equal(70, vital.Reserved);
+        Assert.Equal(130, vital.Unreserved);
+        Assert.Equal(50, vital.Percent);
+    }
+
+    [Fact]
+    public void Percent_IsUnknownRatherThanZero_WhenThereIsNoPool()
+    {
+        // An unloaded or fully reserved pool must not read as "empty" - that is the
+        // difference between "nothing to measure" and "emergency".
+        Assert.Equal(-1, new Vital(0, 0, 0, 0).Percent);
+        Assert.Equal(-1, new Vital(0, 100, 100, 0).Percent);
+    }
+
+    // ── the decision ─────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Fires_WhenThePoolDropsToTheThreshold()
+    {
+        AutoFlask engine = Engine(new FlaskRule("life", VitalKind.Life, 65, Key: 0x31));
+
+        Assert.Empty(engine.Evaluate(Pools(life: 70), gameFocused: true, 1000).Used);
+
+        FlaskTick tick = engine.Evaluate(Pools(life: 65), gameFocused: true, 2000);
+        FlaskUse use = Assert.Single(tick.Used);
+        Assert.Equal("life", use.Rule.Name);
+        Assert.Equal(65, use.Percent);
+    }
+
+    [Fact]
+    public void DoesNotFire_WhenTheGameIsNotFocused()
+    {
+        // A SAFETY property, not a preference: keystrokes go to whatever holds focus, so
+        // firing while alt-tabbed types flask keys into someone's browser or editor.
+        AutoFlask engine = Engine(new FlaskRule("life", VitalKind.Life, 65, Key: 0x31));
+
+        FlaskTick tick = engine.Evaluate(Pools(life: 10), gameFocused: false, 1000);
+
+        Assert.Empty(tick.Used);
+        Assert.Contains("focus", tick.Reason, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void DoesNotFire_WhenDeadOrUnloaded()
+    {
+        // At zero life every threshold reads as maximum urgency. Without this guard the
+        // whole belt drains into a corpse, and again on every loading screen.
+        AutoFlask engine = Engine(new FlaskRule("life", VitalKind.Life, 65, Key: 0x31));
+
+        Assert.Empty(engine.Evaluate(Pools(life: 0), gameFocused: true, 1000).Used);
+        Assert.Empty(engine.Evaluate(Pools(life: 0, lifeMax: 0), gameFocused: true, 2000).Used);
+        Assert.Contains("dead", engine.LastTick.Reason, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void DoesNotFire_WhenDisabled()
+    {
+        var engine = new AutoFlask([new FlaskRule("life", VitalKind.Life, 65, Key: 0x31)], enabled: false);
+        Assert.Empty(engine.Evaluate(Pools(life: 5), gameFocused: true, 1000).Used);
+        Assert.Equal("disabled", engine.LastTick.Reason);
+    }
+
+    [Fact]
+    public void Cooldown_StopsTheBeltDrainingInOneSecond()
+    {
+        // Recovery is not instant, so the pool is still below threshold on the very next
+        // tick. Without a per-flask cooldown that means every flask, immediately.
+        AutoFlask engine = Engine(new FlaskRule("life", VitalKind.Life, 65, Key: 0x31, CooldownMs: 1500));
+
+        Assert.Single(engine.Evaluate(Pools(life: 20), gameFocused: true, 10_000).Used);
+        Assert.Empty(engine.Evaluate(Pools(life: 20), gameFocused: true, 10_100).Used);
+        Assert.Empty(engine.Evaluate(Pools(life: 20), gameFocused: true, 11_400).Used);
+        Assert.Single(engine.Evaluate(Pools(life: 20), gameFocused: true, 11_500).Used);
+    }
+
+    [Fact]
+    public void Cooldowns_ArePerFlask()
+    {
+        // One flask on cooldown must not hold back another - the mana flask should still
+        // fire while the life flask is recovering.
+        AutoFlask engine = Engine(
+            new FlaskRule("life", VitalKind.Life, 65, Key: 0x31, CooldownMs: 5000),
+            new FlaskRule("mana", VitalKind.Mana, 30, Key: 0x32, CooldownMs: 5000));
+
+        Assert.Single(engine.Evaluate(Pools(life: 20, mana: 100), gameFocused: true, 1000).Used);
+
+        FlaskTick tick = engine.Evaluate(Pools(life: 20, mana: 10), gameFocused: true, 1100);
+        FlaskUse use = Assert.Single(tick.Used);
+        Assert.Equal("mana", use.Rule.Name);
+    }
+
+    [Fact]
+    public void OneLifeBuild_IsAliveAndStillFlasksOffMana()
+    {
+        // A real user's character: Chaos Inoculation pins maximum life at 1, and Eldritch
+        // Battery folds energy shield into mana, so the readout is "life 1/1 (100), es -"
+        // and every hit comes off MANA. That looked broken enough that it was reported as a
+        // bug, so it is pinned here as the correct reading it is.
+        //
+        // The trap is the dead guard. It exists because zero life reads as the most urgent
+        // emergency possible, and it must key off life being GONE, not life being low -
+        // one maximum life is a permanent state for this build, not a dying character.
+        var oneLife = new Vitals(
+            Life: new Vital(1, 1, 0, 0),
+            Mana: new Vital(1127, 5415, 0, 0),
+            EnergyShield: new Vital(0, 0, 0, 0));
+
+        Assert.False(oneLife.IsDeadOrUnloaded);
+        Assert.Equal(100, oneLife.Life.Percent);
+        Assert.Equal(-1, oneLife.EnergyShield.Percent);   // no pool, not an empty one
+
+        AutoFlask engine = Engine(new FlaskRule("mana", VitalKind.Mana, 30, Key: 0x32) { Slot = 2 });
+        FlaskUse use = Assert.Single(engine.Evaluate(oneLife, gameFocused: true, 1000).Used);
+        Assert.Equal(21, use.Percent);   // the same 21% the overlay showed on that character
+
+        // Dying still stops it - the guard is intact, it just is not tripped by CI.
+        Assert.True(new Vitals(new Vital(0, 1, 0, 0), oneLife.Mana, default).IsDeadOrUnloaded);
+    }
+
+    [Fact]
+    public void EnergyShieldRule_OnABuildWithNoShield_ReportsThePoolRatherThanFiring()
+    {
+        // The other half of that build: a rule pointed at a pool that does not exist must
+        // say so, not read the empty pool as 0% and empty the belt into it.
+        AutoFlask engine = Engine(new FlaskRule("es", VitalKind.EnergyShield, 50, Key: 0x33));
+
+        FlaskTick tick = engine.Evaluate(
+            new Vitals(new Vital(1, 1, 0, 0), new Vital(100, 100, 0, 0), new Vital(0, 0, 0, 0)),
+            gameFocused: true, nowMs: 1000);
+
+        Assert.Empty(tick.Used);
+        Assert.Contains("no energyshield pool", tick.Reason, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ManaFlask_RespectsReservation()
+    {
+        // The end-to-end version of the arithmetic test: with 50% of mana reserved and the
+        // globe FULL, a 30% mana rule must stay quiet. Measured against Max it would fire
+        // on every single tick, forever.
+        AutoFlask engine = Engine(new FlaskRule("mana", VitalKind.Mana, 30, Key: 0x32));
+
+        FlaskTick tick = engine.Evaluate(
+            Pools(mana: 50, manaMax: 100, manaReservedPercent: 5000), gameFocused: true, 1000);
+
+        Assert.Empty(tick.Used);
+    }
+
+    [Fact]
+    public void DisabledRules_AreSkipped()
+    {
+        AutoFlask engine = Engine(
+            new FlaskRule("life", VitalKind.Life, 65, Key: 0x31) { Enabled = false },
+            new FlaskRule("mana", VitalKind.Mana, 90, Key: 0x32));
+
+        FlaskTick tick = engine.Evaluate(Pools(life: 10, mana: 10), gameFocused: true, 1000);
+        Assert.Equal("mana", Assert.Single(tick.Used).Rule.Name);
+    }
+
+    [Fact]
+    public void Reason_IsAlwaysSet_SoNothingHappenedCanBeExplained()
+    {
+        AutoFlask engine = Engine(new FlaskRule("life", VitalKind.Life, 65, Key: 0x31));
+
+        Assert.NotEmpty(engine.Evaluate(null, gameFocused: true, 1000).Reason);
+        Assert.NotEmpty(engine.Evaluate(Pools(), gameFocused: true, 1000).Reason);
+        Assert.Contains("life 100%", engine.LastTick.Reason, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void OffByDefault_HoweverAlarmingTheReading()
+    {
+        // A tool that starts pressing keys on first run is not one anybody can trust. The
+        // shipped defaults themselves live in AutoFlaskSettings (see AutoFlaskSettingsTests
+        // - there is deliberately only one set of them); this pins the engine's half.
+        var engine = new AutoFlask([new FlaskRule("life", VitalKind.Life, 65, Key: 0x31)]);
+
+        Assert.False(engine.Enabled);
+        Assert.Empty(engine.Evaluate(Pools(life: 1), gameFocused: true, 1000).Used);
+    }
+
+    // ── charges and active effects ───────────────────────────────────────────────
+
+    private static FlaskBelt Belt(params EquippedFlask[] flasks) => new(flasks);
+
+    private static ActiveBuffs FlaskBuff(int slot, float timeLeft = 4f)
+        => new([new ActiveBuff("flask_effect_life", timeLeft, 5f, 0, slot, IsFlask: true)]);
+
+    [Fact]
+    public void EmptyFlask_IsSkippedWithoutBurningItsCooldown()
+    {
+        // The game ignores a press with too few charges outright - nothing triggers and no
+        // in-game cooldown starts. What must not happen is OUR side recording a use that
+        // never occurred: the rule would then sit out its own cooldown, and a refill during
+        // that window would go unused. Skipping without stamping is what the second half of
+        // this test checks.
+        AutoFlask engine = Engine(new FlaskRule("life", VitalKind.Life, 65, Key: 0x31) { Slot = 1 });
+        FlaskBelt empty = Belt(new EquippedFlask(1, "Metadata/Items/Flasks/X", Charges: 5, ChargesPerUse: 20));
+
+        FlaskTick tick = engine.Evaluate(Pools(life: 20), true, 1000, belt: empty);
+
+        Assert.Empty(tick.Used);
+        Assert.Contains("charges", tick.Reason, StringComparison.OrdinalIgnoreCase);
+
+        // And the slot is NOT suppressed afterwards: once refilled it fires immediately.
+        FlaskBelt refilled = Belt(new EquippedFlask(1, "Metadata/Items/Flasks/X", 40, 20));
+        Assert.Single(engine.Evaluate(Pools(life: 20), true, 1100, belt: refilled).Used);
+    }
+
+    [Fact]
+    public void Fires_WhenChargesExactlyCoverOneUse()
+    {
+        AutoFlask engine = Engine(new FlaskRule("life", VitalKind.Life, 65, Key: 0x31) { Slot = 1 });
+        FlaskBelt exact = Belt(new EquippedFlask(1, "Metadata/Items/Flasks/X", Charges: 20, ChargesPerUse: 20));
+
+        Assert.Single(engine.Evaluate(Pools(life: 20), true, 1000, belt: exact).Used);
+    }
+
+    [Fact]
+    public void UnknownBelt_DoesNotBlockTheFeature()
+    {
+        // A belt that could not be read is not evidence of an empty flask. Blocking on it
+        // would turn one failed read into a silently disabled feature.
+        AutoFlask engine = Engine(new FlaskRule("life", VitalKind.Life, 65, Key: 0x31) { Slot = 1 });
+        Assert.Single(engine.Evaluate(Pools(life: 20), true, 1000, belt: FlaskBelt.Empty).Used);
+    }
+
+    [Fact]
+    public void DoesNotReuse_WhileTheFlasksOwnEffectIsStillRunning()
+    {
+        // The real charge saver, and the reason buffs are read at all: a cooldown only
+        // GUESSES the duration, while the game reports the remaining time as fact.
+        AutoFlask engine = Engine(
+            new FlaskRule("life", VitalKind.Life, 65, Key: 0x31, CooldownMs: 0) { Slot = 1 });
+
+        FlaskTick blockedTick = engine.Evaluate(Pools(life: 20), true, 1000, FlaskBuff(slot: 1));
+        Assert.Empty(blockedTick.Used);
+        Assert.Contains("active", blockedTick.Reason, StringComparison.OrdinalIgnoreCase);
+
+        // Another slot's flask being active is irrelevant to this one.
+        Assert.Single(engine.Evaluate(Pools(life: 20), true, 1100, FlaskBuff(slot: 3)).Used);
+    }
+
+    [Fact]
+    public void ExpiredFlaskBuff_DoesNotBlock()
+    {
+        AutoFlask engine = Engine(
+            new FlaskRule("life", VitalKind.Life, 65, Key: 0x31, CooldownMs: 0) { Slot = 1 });
+
+        Assert.Single(engine.Evaluate(Pools(life: 20), true, 1000, FlaskBuff(slot: 1, timeLeft: 0f)).Used);
+    }
+
+    [Fact]
+    public void BuffTriggeredFlask_FiresOnTheDebuffRegardlessOfLife()
+    {
+        // Utility flasks are not low-life events. A bleed at full life must still trigger
+        // the removal flask, which a threshold rule would never do.
+        AutoFlask engine = Engine(
+            new FlaskRule("bleed", VitalKind.Life, ThresholdPercent: 0, Key: 0x33)
+            {
+                Slot = 3,
+                TriggerBuff = "bleeding",
+            });
+
+        var bleeding = new ActiveBuffs([new ActiveBuff("bleeding", 5f, 5f, 0, 0, IsFlask: false)]);
+
+        Assert.Empty(engine.Evaluate(Pools(life: 100), true, 1000).Used);
+        Assert.Single(engine.Evaluate(Pools(life: 100), true, 2000, bleeding).Used);
+    }
+
+    [Fact]
+    public void BuffLookup_IsForgivingAboutExactNames()
+    {
+        // The internal names are game identifiers; a person configuring a bleed flask
+        // should not have to know the exact one.
+        var buffs = new ActiveBuffs([new ActiveBuff("player_bleeding_dot", 3f, 5f, 0, 0, false)]);
+
+        Assert.True(buffs.Has("BLEEDING"));
+        Assert.True(buffs.Has("bleed"));
+        Assert.False(buffs.Has("frozen"));
+        Assert.False(buffs.Has(" "));
+    }
+
+    [Fact]
+    public void FlaskDetection_MatchesFlaskPaths()
+    {
+        Assert.True(FlaskBeltReader.IsFlask("Metadata/Items/Flasks/FlaskLife1"));
+        Assert.False(FlaskBeltReader.IsFlask("Metadata/Items/Weapons/Bow"));
+    }
+
+    [Fact]
+    public void CharmSlot_IsNeverPressed()
+    {
+        // Charms live in the same belt inventory and under the same Flasks/ path, so they
+        // arrive looking like flasks - but the game triggers them itself. A rule aimed at
+        // one would emit keystrokes that can never have an effect. Seen live: slot 3 held
+        // "Flasks/FourCharm6".
+        AutoFlask engine = Engine(new FlaskRule("charm", VitalKind.Life, 65, Key: 0x33) { Slot = 3 });
+        FlaskBelt belt = Belt(new EquippedFlask(3, "Metadata/Items/Flasks/FourCharm6", 60, 20));
+
+        FlaskTick tick = engine.Evaluate(Pools(life: 20), true, 1000, belt: belt);
+
+        Assert.Empty(tick.Used);
+        Assert.Contains("charm", tick.Reason, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CharmDetection_SeparatesCharmsFromFlasks()
+    {
+        Assert.True(new EquippedFlask(3, "Metadata/Items/Flasks/FourCharm6", 60, 20).IsCharm);
+        Assert.False(new EquippedFlask(1, "Metadata/Items/Flasks/FourFlaskLife9", 75, 10).IsCharm);
+
+        // Both still count as belt contents - their charges are worth knowing either way.
+        Assert.True(FlaskBeltReader.IsFlask("Metadata/Items/Flasks/FourCharm6"));
+    }
+
+
+    // ── the hold-off, and the ways out of it ─────────────────────────────────────
+
+    [Fact]
+    public void TheHoldOffCanBeSwitchedOffPerSlot()
+    {
+        // It used to be hard-coded on, and the premise underneath it - buff running means
+        // recovery running - is a property of ordinary flasks rather than a law. A flask
+        // carrying "Effect is not removed when Unreserved Mana is Filled" keeps its buff long
+        // after it has stopped refilling anything, and holding off on that is a lockout
+        // bought for nothing.
+        var held = new FlaskRule("mana", VitalKind.Mana, 50, Key: 0x32, CooldownMs: 0) { Slot = 2 };
+        var free = held with { SkipWhileActive = false };
+
+        Vitals low = Pools(mana: 20);
+
+        Assert.Empty(Engine(held).Evaluate(low, true, 1_000, FlaskBuff(2)).Used);
+        Assert.Single(Engine(free).Evaluate(low, true, 1_000, FlaskBuff(2)).Used);
+    }
+
+    [Fact]
+    public void TheEmergencyLevelFiresThroughTheHoldOff()
+    {
+        // The floor under the charge saving. The skip can be right about the flask and still
+        // wrong about the situation: a pool falling faster than the flask refills it is
+        // exactly when the hold-off bites hardest.
+        var rule = new FlaskRule("mana", VitalKind.Mana, 50, Key: 0x32, CooldownMs: 0)
+        {
+            Slot = 2,
+            EmergencyPercent = 25,
+        };
+
+        AutoFlask engine = Engine(rule);
+
+        // Under the threshold but above the emergency: the hold-off still wins, which is the
+        // charge saving doing its job.
+        Assert.Empty(engine.Evaluate(Pools(mana: 40), true, 1_000, FlaskBuff(2)).Used);
+
+        // At or below it, the flask goes out despite its own effect running.
+        FlaskTick fired = engine.Evaluate(Pools(mana: 25), true, 2_000, FlaskBuff(2));
+        FlaskUse use = Assert.Single(fired.Used);
+        Assert.True(use.Emergency);
+
+        // And the status line says WHICH of the two happened - "it fired" and "it fired
+        // through the hold-off" want different reactions.
+        Assert.Contains("emergency", fired.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheEmergencyLevelOverridesTheHoldOffAndNothingElse()
+    {
+        // Narrow on purpose. An emergency is a reason to skip one guard, not to remove the
+        // rest: the cooldown is what stops a belt draining in a second, and a press the game
+        // has no charges for does nothing anyway.
+        var rule = new FlaskRule("mana", VitalKind.Mana, 50, Key: 0x32, CooldownMs: 5_000)
+        {
+            Slot = 2,
+            EmergencyPercent = 40,
+        };
+
+        AutoFlask engine = Engine(rule);
+        Vitals dire = Pools(mana: 5);
+
+        Assert.Single(engine.Evaluate(dire, true, 1_000, FlaskBuff(2)).Used);
+
+        // Still cooling down, emergency or not.
+        Assert.Empty(engine.Evaluate(dire, true, 2_000, FlaskBuff(2)).Used);
+
+        // And no charges is still no charges.
+        FlaskBelt dry = Belt(new EquippedFlask(2, "Metadata/Items/Flasks/X", Charges: 1, ChargesPerUse: 10));
+        Assert.Empty(engine.Evaluate(dire, true, 9_000, FlaskBuff(2), dry).Used);
+    }
+
+    [Fact]
+    public void ABuffTriggeredRuleIsNeverTreatedAsAnEmergency()
+    {
+        // The trap under this feature. A buff-triggered rule carries -1 for "no reading", and
+        // a naive "percent <= emergency" reads -1 as lower than anything - so every such rule
+        // would clear the hold-off on every tick, for a pool nobody measured.
+        var rule = new FlaskRule("bleed", VitalKind.Life, 100, Key: 0x33, CooldownMs: 0)
+        {
+            Slot = 3,
+            TriggerBuff = "bleeding",
+            EmergencyPercent = 20,
+        };
+
+        var bleeding = new ActiveBuffs(
+        [
+            new ActiveBuff("bleeding", 5f, 5f, 0, 0, IsFlask: false),
+            new ActiveBuff("flask_effect_life", 4f, 5f, 0, 3, IsFlask: true),
+        ]);
+
+        FlaskTick tick = Engine(rule).Evaluate(Pools(), true, 1_000, bleeding);
+
+        Assert.Empty(tick.Used);
+        Assert.Contains("already active", tick.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnEmergencyOfZeroIsOff()
+    {
+        // 0 has to mean off rather than "at or below zero", which nothing ever reaches but
+        // which would read as a configured guard.
+        var rule = new FlaskRule("mana", VitalKind.Mana, 50, Key: 0x32, CooldownMs: 0) { Slot = 2 };
+
+        Assert.Equal(0, rule.EmergencyPercent);
+        Assert.Empty(Engine(rule).Evaluate(Pools(mana: 1), true, 1_000, FlaskBuff(2)).Used);
+    }
+}

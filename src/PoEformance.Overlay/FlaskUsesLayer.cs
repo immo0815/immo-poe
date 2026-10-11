@@ -1,0 +1,198 @@
+using System.Globalization;
+using System.Numerics;
+using System.Runtime.Versioning;
+using ImGuiNET;
+using PoEformance.Features;
+using PoEformance.Game.Components;
+using PoEformance.Game.Ui;
+using PoEformance.Game.World;
+
+namespace PoEformance.Overlay;
+
+/// <summary>
+/// Writes on each flask how many times it can still be used.
+/// </summary>
+/// <remarks>
+/// The game shows a flask's charges as a liquid level and prints the number only in the
+/// tooltip, and what a player wants mid-fight is not the level but the count - two more, or
+/// none. The count is charges over the cost of one use, both already read for the auto-flask
+/// (the cost with the item's own rolls applied, which is the number the tooltip prints), so
+/// nothing new is read for this: the belt says what each flask holds, the interface says where
+/// each slot is drawn, and the two are joined on the item entity the slot points at.
+///
+/// ON THE HUD, so it takes none of the gates the world layers stand behind: a town has flasks
+/// too, and an open inventory leaves the belt on screen. It goes away with the bar, which the
+/// reader stops reporting while the interface hides it.
+///
+/// CHARMS ARE LEFT ALONE. They arrive through the same belt and the same bar, but the game
+/// prints their charges itself, and a second number beside the game's own would read as a
+/// disagreement.
+///
+/// ON A PLATE, the same one the room names stand on. The first build set the figure pale with
+/// a dark edge and nothing else, and the edge was not enough: what is under the figure is
+/// whatever colour the flask is, and a life flask's glare swallowed the pale digit. The plate
+/// has a style key of its own, so how much of the flask shows through is the user's to set,
+/// and a belt of dark flasks can hide it outright.
+///
+/// IN THE FIGURES FACE, not the serif. The second build drew the digit in the heading face for
+/// sharpness, and two flasks side by side showed a 6 standing above a 7: the serif's figures
+/// are old-style, each with its own height. The monospace's are lining, and OverlayFonts loads
+/// it once more at a display size for exactly this, so the figure is sharp as well as level.
+/// </remarks>
+[SupportedOSPlatform("windows")]
+public sealed class FlaskUsesLayer
+{
+    /// <summary>How tall the figure's line is, as a share of the slot's height.</summary>
+    /// <remarks>
+    /// Four tenths: a third was asked to be a touch bigger after a look in game, and at this
+    /// the digit is read from the middle of the screen while the flask's own picture still
+    /// shows around it. The style's scale multiplies it.
+    /// </remarks>
+    private const float FigureShare = 0.4f;
+
+    /// <summary>Smallest the figure is drawn, whatever the slot and the scale come to.</summary>
+    private const float SmallestFigure = 10f;
+
+    /// <summary>How far the plate reaches beyond the digit's ink, beside it and above and below, as shares of the figure's size.</summary>
+    private const float PlateBeside = 0.22f;
+    private const float PlateAbove = 0.14f;
+
+    /// <summary>The plate's corner radius, as a share of the figure's size.</summary>
+    private const float PlateRounding = 0.2f;
+
+    /// <summary>How every drawn thing looks. Shared with the overlay.</summary>
+    /// <remarks>
+    /// Also where this is switched off, rather than a flag of its own - the same reason the
+    /// unwalked marks give: two switches for one thing is how a setting ends up not doing what
+    /// it says, and the style's one is already persisted and already in the editor.
+    /// </remarks>
+    public OverlayStyle Style { get; set; } = new();
+
+    /// <summary>Writes the count on every flask whose slot is on screen.</summary>
+    public void Draw(ImDrawListPtr draw, WorldSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+
+        if (!Style.Visible(StyleCatalogue.Keys.FlaskUses)
+            || snapshot.FlaskBelt is not FlaskBelt belt || belt.IsUnknown)
+        {
+            return;
+        }
+
+        IReadOnlyList<FlaskSlotOnScreen> slots = snapshot.FlaskSlotsOnScreen;
+        if (slots.Count == 0)
+        {
+            return;
+        }
+
+        uint colour = Style.Colour(StyleCatalogue.Keys.FlaskUses);
+        uint empty = Empty(colour);
+        uint plate = Style.Visible(StyleCatalogue.Keys.FlaskUsesPlate)
+            ? Style.Colour(StyleCatalogue.Keys.FlaskUsesPlate)
+            : 0;
+
+        // In the figures face: lining digits, so a 6 and a 7 on neighbouring flasks stand at
+        // the same height - the serif's are old-style and put one above the other - and
+        // rasterised near the size they are drawn at, so they come out sharp. ImGui measures
+        // in whatever font is pushed, so the measuring happens inside the pair too.
+        OverlayFonts.PushFigures();
+        ImFontPtr font = ImGui.GetFont();
+        float natural = ImGui.GetFontSize();
+
+        // Where a digit's ink sits in its line. The line keeps room above and below that no
+        // digit uses, so centring the LINE puts every figure high on its slot and its plate low
+        // on the figure; the ink is centred instead. Taken from the zero, which in a lining
+        // face stands exactly where the other nine do.
+        ImFontGlyphPtr zero = font.FindGlyph('0');
+        float inkTop = zero.Y0;
+        float inkHeight = zero.Y1 - zero.Y0;
+        if (inkHeight <= 0f)
+        {
+            inkTop = 0f;
+            inkHeight = natural;
+        }
+
+        foreach (FlaskSlotOnScreen slot in slots)
+        {
+            if (slot.Item == 0 || Held(belt, slot.Item) is not EquippedFlask flask
+                || flask.IsCharm || flask.ChargesPerUse <= 0)
+            {
+                continue;
+            }
+
+            int uses = flask.Uses;
+            string text = uses.ToString(CultureInfo.InvariantCulture);
+            float size = MathF.Max(
+                SmallestFigure,
+                Style.Sized(StyleCatalogue.Keys.FlaskUses, slot.Where.Height * FigureShare));
+            float scale = size / natural;
+
+            float wide = ImGui.CalcTextSize(text).X * scale;
+            float top = inkTop * scale;
+            float tall = inkHeight * scale;
+
+            // The line's origin, placed so that the INK is centred on the slot.
+            var at = new Vector2(
+                slot.Where.Left + ((slot.Where.Width - wide) / 2f),
+                slot.Where.Top + ((slot.Where.Height - tall) / 2f) - top);
+
+            if (plate != 0)
+            {
+                var ink = new Vector2(at.X, at.Y + top);
+                var reach = new Vector2(size * PlateBeside, size * PlateAbove);
+                draw.AddRectFilled(
+                    ink - reach, ink + new Vector2(wide, tall) + reach, plate, size * PlateRounding);
+            }
+
+            Written(draw, font, at, text, size, uses > 0 ? colour : empty);
+        }
+
+        OverlayFonts.PopFigures();
+    }
+
+    /// <summary>The belt's flask with this item, or null when the belt does not list it.</summary>
+    /// <remarks>
+    /// A loop over a list of at most five rather than a lookup: joined every frame on two slots,
+    /// and a dictionary built per snapshot would cost more than the ten comparisons it saves.
+    /// </remarks>
+    private static EquippedFlask? Held(FlaskBelt belt, ulong item)
+    {
+        foreach (EquippedFlask flask in belt.Flasks)
+        {
+            if (flask.Entity == item)
+            {
+                return flask;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The interface's "bad" ink at the figure's own alpha - the colour of an empty flask.</summary>
+    private static uint Empty(uint colour)
+    {
+        Vector4 bad = OverlayInk.Bad;
+        bad.W = ((colour >> 24) & 0xFF) / 255f;
+        return ImGui.ColorConvertFloat4ToU32(bad);
+    }
+
+    /// <summary>The figure with a dark edge under it, so it reads on the flask's own picture.</summary>
+    /// <remarks>
+    /// Four extra draws, the same edge the entry card gives its names and for the same reason:
+    /// the colour is the user's and the ground is the game's, and nothing checks that the two
+    /// go together. The edge grows with the figure, since one pixel disappears under a figure
+    /// drawn at three times the interface's size.
+    /// </remarks>
+    private static void Written(
+        ImDrawListPtr draw, ImFontPtr font, Vector2 at, string text, float size, uint colour)
+    {
+        uint edge = OverlaySettings.Fade(0xFF00_0000, ((colour >> 24) & 0xFF) / 255f * 0.9f);
+        float step = MathF.Max(1f, size / 14f);
+
+        draw.AddText(font, size, at + new Vector2(step, 0f), edge, text);
+        draw.AddText(font, size, at + new Vector2(-step, 0f), edge, text);
+        draw.AddText(font, size, at + new Vector2(0f, step), edge, text);
+        draw.AddText(font, size, at + new Vector2(0f, -step), edge, text);
+        draw.AddText(font, size, at, colour, text);
+    }
+}

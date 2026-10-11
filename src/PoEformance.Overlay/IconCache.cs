@@ -1,0 +1,614 @@
+using System.Runtime.Versioning;
+using PoEformance.Features;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Pbm;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Qoi;
+using SixLabors.ImageSharp.Formats.Tga;
+using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+
+namespace PoEformance.Overlay;
+
+/// <summary>
+/// Turns a user's own picture into a texture a marker can be drawn with.
+/// </summary>
+/// <remarks>
+/// The decoding half of custom icons. Which file a path means and whether it is worth another
+/// look is <see cref="IconFiles"/>' job; this one opens it, shrinks it, and hands it to the
+/// renderer.
+///
+/// Every failure ends the same way: no texture, and whoever asked draws the built-in shape.
+/// That is not a nicety - a marker whose file went missing has to still be a marker, because
+/// a missing marker on a map reads as "there is nothing there".
+/// </remarks>
+[SupportedOSPlatform("windows")]
+public sealed class IconCache : IDisposable
+{
+    /// <summary>
+    /// Largest edge an icon is kept at.
+    /// </summary>
+    /// <remarks>
+    /// A marker is a few pixels across on the map, so detail past this cannot be seen - and
+    /// somebody WILL point this at a 4000-pixel photograph, which as a texture is 64 MB of
+    /// video memory for something drawn at eight pixels.
+    /// </remarks>
+    public const int MaxEdge = 128;
+
+    /// <summary>
+    /// Largest edge for something drawn big, like a banner across the screen.
+    /// </summary>
+    /// <remarks>
+    /// A marker is eight pixels and a banner is most of the screen's width, so one limit
+    /// cannot serve both: at 128 an ornate plate arrives as a 21-pixel-tall smear. The cap
+    /// still exists, because the 4000-pixel photograph is still out there.
+    /// </remarks>
+    public const int MaxWideEdge = 1024;
+
+    /// <summary>
+    /// Largest edge for a SHEET, whose tiles are addressed by coordinate.
+    /// </summary>
+    /// <remarks>
+    /// NOT A PREFERENCE ABOUT DETAIL - it has to be larger than the sheet, or the sheet is
+    /// wrong. A tile is picked out with texture coordinates derived from a tile size in
+    /// PIXELS, so a sheet shrunk on the way in has a grid that no longer matches the number
+    /// it is being cut up by, and every icon drawn lands part way between two of them.
+    ///
+    /// This used to be 4096, which was comfortably clear of the 256x3392 sheet the reference
+    /// ships and 832 pixels short of ours: <c>assets/icons.png</c> is 896x4928, so at the old
+    /// limit it arrived scaled to 745x4096 and its 64-pixel cells measured 53.2. Raised to the
+    /// 8192 that every D3D11 feature level guarantees, which is the next real ceiling rather
+    /// than one picked to fit today's file by a margin somebody has to notice again later.
+    ///
+    /// It is also how far the sheet may GROW when boss pictures are laid into it - see
+    /// IconSheetGrowth, which refuses to place past it rather than have the sheet shrunk here.
+    /// </remarks>
+    public const int MaxSheetEdge = IconSheet.MaxEdge;
+
+    /// <summary>
+    /// Whether a picture is handed to the renderer as an sRGB texture. It is not, and the
+    /// reason is the RENDER TARGET rather than the picture.
+    /// </summary>
+    /// <remarks>
+    /// WHY EVERY ICON CAME OUT DARK. Asking for sRGB picks
+    /// <c>R8G8B8A8_UNorm_SRgb</c>, which makes the sampler decode each texel from sRGB into
+    /// linear light on the way in - 0.5 arrives at the shader as 0.214. That is correct in a
+    /// pipeline that encodes back on the way out, and the overlay's swap chain is plain
+    /// <c>R8G8B8A8_UNorm</c> (ClickableTransparentOverlay's <c>Overlay</c> constructor), so
+    /// nothing ever does. The decoded value is written to the screen as if it were already
+    /// sRGB, and every midtone lands roughly a stop and a half down: item art that is
+    /// visibly duller than the same art in the game, most of it in the mid greys and browns
+    /// that PoE's icons are made of. Highlights and pure black are unaffected, which is why
+    /// it reads as "wrong somehow" rather than as an obvious blackout.
+    ///
+    /// It was never about where the picture came from - poe2db's PNGs were darkened by
+    /// exactly the same conversion as the install's own textures, which is the clue that
+    /// pointed here rather than at the DDS decode.
+    ///
+    /// The reference agrees: GameHelper2 draws over the same overlay and passes false at all
+    /// six of its call sites (<c>Radar</c>, <c>HealthBars</c>, <c>Atlas2</c>,
+    /// <c>PlayerBuffBar</c>), and <see cref="TerrainLayer"/> here already did.
+    /// </remarks>
+    public const bool Srgb = false;
+
+    /// <summary>A loaded picture, and the shape it came in.</summary>
+    /// <remarks>
+    /// The SIZE is the reason this exists. A banner is drawn to a width and has to keep its
+    /// proportions, and a caller that cannot ask how tall the picture is can only guess -
+    /// which shows up as every custom banner being subtly squashed.
+    /// </remarks>
+    public readonly record struct Picture(IntPtr Texture, int Width, int Height)
+    {
+        /// <summary>Whether there is anything to draw.</summary>
+        public bool Ready => Texture != IntPtr.Zero && Width > 0 && Height > 0;
+
+        /// <summary>How tall this is when drawn at a given width.</summary>
+        public float HeightAt(float width) => Ready ? width * Height / Width : 0f;
+    }
+
+    private readonly Func<string, Image<Rgba32>, bool, IntPtr> _upload;
+    private readonly Action<string> _release;
+    private readonly Dictionary<string, Picture> _textures = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _keys = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _missingBuiltIn = new(StringComparer.OrdinalIgnoreCase);
+
+    private readonly List<string> _problems = [];
+
+    // The sheet, once. See Sheet() for why this is a field rather than a lookup.
+    private Picture _sheet;
+    private bool _sheetAsked;
+
+    // The sheet's texture key, its own counter, and a rebuild in flight. See SheetChanged().
+    private string _sheetKey = string.Empty;
+    private int _sheetBuilds;
+    private Task<SheetBuild?>? _sheetBuilding;
+    private volatile bool _sheetStale;
+    private List<string> _sheetProblems = [];
+
+    /// <summary>A sheet put together off the render thread, waiting to be uploaded on it.</summary>
+    private sealed record SheetBuild(Image<Rgba32> Image, List<(string Name, int Cell)> Live, List<string> Problems);
+
+    /// <summary>
+    /// How pictures are decoded, which is CONTIGUOUS and that is not a preference.
+    /// </summary>
+    /// <remarks>
+    /// THE RENDERER UPLOADS A TEXTURE BY TAKING THE IMAGE'S SINGLE PIXEL SPAN, and for an
+    /// image ImageSharp has split across several buffers that span does not exist. Past a few
+    /// megabytes the default allocator splits every time: measured here, 896x1024 arrives whole
+    /// and 896x2048 does not, so the 896x4928 icon sheet never had a chance.
+    ///
+    /// What it looks like when this is wrong is the reason it is worth this much comment. The
+    /// renderer answers with "Make sure to initialize MemoryAllocator.Default!", which names
+    /// neither the cause nor the fix - and every icon silently goes back to its built-in shape,
+    /// which is exactly what choosing no icon looks like. <see cref="TerrainLayer"/> learned
+    /// the same thing the same way, on the first area whose terrain was large enough to split.
+    ///
+    /// A configuration of its own rather than the global default: the renderer loads its own
+    /// images through that, and this is not the place to change how they are allocated.
+    /// </remarks>
+    internal static readonly Configuration Contiguous = Contiguously();
+
+    private static Configuration Contiguously()
+    {
+        Configuration configuration = WithoutTiff();
+        configuration.PreferContiguousImageBuffers = true;
+        return configuration;
+    }
+
+    /// <summary>
+    /// A configuration knowing every format ImageSharp 3.1 knows by default except TIFF.
+    /// </summary>
+    /// <remarks>
+    /// THE GROUND THE AUDIT SUPPRESSION IN Directory.Build.props STANDS ON. Of the advisories
+    /// suppressed there, the one a decode could reach is the BigTIFF reader looping on a malformed
+    /// entry count, and a picture this tool decodes is any file a person points a setting at - so
+    /// TIFF is left out rather than trusted not to turn up. Everything else stays: the atlas folder
+    /// takes JPEG and BMP as well as PNG, and a marker icon may be anything ImageSharp reads.
+    /// A .tif chosen as an icon now fails as an unknown format, which every caller already treats
+    /// as "not a picture we can draw". The list is Configuration.CreateDefaultInstance's at
+    /// v3.1.12, minus TiffConfigurationModule.
+    /// </remarks>
+    internal static Configuration WithoutTiff() => new(
+        new PngConfigurationModule(),
+        new JpegConfigurationModule(),
+        new GifConfigurationModule(),
+        new BmpConfigurationModule(),
+        new PbmConfigurationModule(),
+        new TgaConfigurationModule(),
+        new WebpConfigurationModule(),
+        new QoiConfigurationModule());
+
+    public IconCache(Func<string, Image<Rgba32>, bool, IntPtr> upload, Action<string> release)
+    {
+        ArgumentNullException.ThrowIfNull(upload);
+        ArgumentNullException.ThrowIfNull(release);
+        _upload = upload;
+        _release = release;
+    }
+
+    /// <summary>Where the files are looked for, and what has already been given up on.</summary>
+    public IconFiles Files { get; } = new();
+
+    /// <summary>
+    /// Pictures that loaded and still could not be made into a texture.
+    /// </summary>
+    /// <remarks>
+    /// ITS OWN LIST rather than <see cref="IconFiles.Problems"/>, for the same reason a missing
+    /// resource has one: nothing here is about a path somebody typed, so putting it among those
+    /// would send them looking for a file they never chose. This is the tool failing to upload
+    /// a picture it decoded perfectly well.
+    /// </remarks>
+    public IReadOnlyList<string> Problems => _problems;
+
+    /// <summary>
+    /// The picture for a path at a given size limit, or an empty one when there is none.
+    /// </summary>
+    /// <remarks>
+    /// The limit is part of the KEY, not just of the load. The same file is a marker in one
+    /// place and a banner in another, and without it in the key whichever asked first decides
+    /// how detailed the other one gets - which is a bug that only appears when somebody
+    /// happens to point two settings at one file.
+    /// </remarks>
+    public Picture PictureFor(string? path, int maxEdge)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return default;
+        }
+
+        string cached = $"{maxEdge}|{path}";
+        if (_textures.TryGetValue(cached, out Picture known))
+        {
+            return known;
+        }
+
+        string file = Files.NextToTry(path);
+        if (file.Length == 0)
+        {
+            return default;   // never chosen, or already given up on
+        }
+
+        Picture picture = Load(path, file, maxEdge);
+        if (picture.Ready)
+        {
+            _textures[cached] = picture;
+        }
+
+        return picture;
+    }
+
+    /// <summary>
+    /// A picture that ships INSIDE the assembly, by the tail of its resource name.
+    /// </summary>
+    /// <remarks>
+    /// For the things the tool draws by default and does not want to have to install. A file
+    /// beside the executable can be deleted, missed by a copy, or lost when somebody unzips a
+    /// new build over an old folder - and the failure looks like the feature not working. A
+    /// manifest resource cannot be separated from the code that draws it, survives
+    /// single-file publishing and AOT alike, and needs no path for anybody to type.
+    ///
+    /// It does NOT replace the file path. A shipped plate is the default; the style entry's
+    /// icon still wins when it is set, which is what keeps "all of it can be changed" true.
+    ///
+    /// Matched on the END of the resource name, because the full one is built from the root
+    /// namespace and folder and would have to be repeated - and silently rewritten - every
+    /// time either moved.
+    /// </remarks>
+    /// <summary>
+    /// The sprite sheet every marker and status icon is cut from, or an empty picture.
+    /// </summary>
+    /// <remarks>
+    /// ONE CALL FOR THE WHOLE TOOL, so nothing can load the sheet at a second size limit and
+    /// end up with a grid that disagrees with everybody else's.
+    ///
+    /// HELD IN A FIELD rather than looked up, and that is not premature. This is asked once
+    /// PER MARKER PER FRAME - every entity dot and every landmark on the map - and a lookup by
+    /// an interpolated key would be six thousand throwaway strings a second at a hundred
+    /// markers, to arrive at the same texture handle every time.
+    ///
+    /// THE EMBEDDED SHEET PLUS THE EXPORTS FOLDER. A boss posed in the model pane is laid into
+    /// this copy of the sheet the moment its files are written - see <see cref="ExportedIcons"/>
+    /// - so the marker wears it this session, and tools/IconBaker is what puts it into
+    /// assets/icons.png for every session after. The first ask builds synchronously, as the
+    /// plain sheet always did; a rebuild after an export happens on a worker and the old
+    /// texture is drawn until the new one is ready, so the click that wrote a picture costs no
+    /// frame.
+    ///
+    /// Empty when the resource did not ship, and every caller falls back to the built-in
+    /// shape for that, exactly as they did for a missing file. A failed rebuild keeps the sheet
+    /// that was already drawing.
+    /// </remarks>
+    public Picture Sheet()
+    {
+        if (!_sheetAsked)
+        {
+            _sheetAsked = true;
+            _sheetStale = false;
+            Swap(BuildSheet());
+        }
+        else if (_sheetBuilding is { IsCompleted: true } built)
+        {
+            _sheetBuilding = null;
+            Swap(built.IsCompletedSuccessfully ? built.Result : null);
+        }
+
+        if (_sheetStale && _sheetBuilding is null)
+        {
+            _sheetStale = false;
+            _sheetBuilding = Task.Run(BuildSheet);
+        }
+
+        return _sheet;
+    }
+
+    /// <summary>
+    /// Says the exports folder has new pictures in it. Safe from any thread.
+    /// </summary>
+    /// <remarks>
+    /// A FLAG AND NOT A REBUILD, because the export finishes on a worker task and the texture
+    /// can only be made on the render thread. The next <see cref="Sheet"/> sees it and starts
+    /// the rebuild; several exports in a row while one is building collapse into one more.
+    /// </remarks>
+    public void SheetChanged() => _sheetStale = true;
+
+    /// <summary>The embedded sheet with the exports laid into it. Runs on a worker.</summary>
+    /// <remarks>
+    /// Touches nothing the render thread writes: the baked name tables are immutable, and the
+    /// live names this produces are handed back to be set by <see cref="Swap"/>.
+    /// </remarks>
+    private static SheetBuild? BuildSheet()
+    {
+        Image<Rgba32>? sheet = null;
+        try
+        {
+            sheet = Embedded(IconSheet.Resource);
+            if (sheet is null)
+            {
+                return null;
+            }
+
+            var live = new List<(string Name, int Cell)>();
+            var problems = new List<string>();
+            sheet = ExportedIcons.LayInto(sheet, MonsterPortrait.Folder, live, problems);
+            SheetBuild build = new(sheet, live, problems);
+            sheet = null;
+            return build;
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnknownImageFormatException or InvalidImageContentException
+                or NotSupportedException or ArgumentException or UnauthorizedAccessException)
+        {
+            // A sheet that shipped broken is a build mistake; an export that cannot be read is
+            // reported per file by LayInto. Either way the markers keep their shapes.
+            return null;
+        }
+        finally
+        {
+            sheet?.Dispose();
+        }
+    }
+
+    /// <summary>Uploads a built sheet and lets the previous texture go. Render thread.</summary>
+    private void Swap(SheetBuild? build)
+    {
+        if (build is null)
+        {
+            return;
+        }
+
+        using (build.Image)
+        {
+            // The renderer's precondition, checked rather than discovered - see Upload.
+            if (!build.Image.DangerousTryGetSinglePixelMemory(out _))
+            {
+                _problems.Add(
+                    $"{IconSheet.Resource}: {build.Image.Width}x{build.Image.Height} did not decode into"
+                    + " one buffer, so it cannot be uploaded as a texture.");
+                return;
+            }
+
+            // A NEW KEY EVERY BUILD: the renderer caches by key, and reusing one would keep
+            // drawing the sheet from before the export.
+            string key = $"poeformance.sheet.{_sheetBuilds++}";
+            IntPtr texture = _upload(key, build.Image, Srgb);
+            if (texture == IntPtr.Zero)
+            {
+                return;
+            }
+
+            ReleaseSheet();
+            _sheetKey = key;
+            _sheet = new Picture(texture, build.Image.Width, build.Image.Height);
+        }
+
+        IconNames.Live(build.Live);
+
+        // Replaced, not added to: every rebuild reports the same unreadable export again.
+        _problems.RemoveAll(_sheetProblems.Contains);
+        _sheetProblems = build.Problems;
+        _problems.AddRange(_sheetProblems);
+    }
+
+    /// <summary>Gives the sheet's texture back to the renderer.</summary>
+    private void ReleaseSheet()
+    {
+        if (_sheetKey.Length == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            _release(_sheetKey);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or ObjectDisposedException)
+        {
+            // Shutting down, or the renderer already let it go.
+        }
+
+        _sheetKey = string.Empty;
+    }
+
+    /// <summary>
+    /// A picture that ships INSIDE the assembly, by the tail of its resource name.
+    /// </summary>
+    /// <remarks>
+    /// For the things the tool draws by default and does not want to have to install. A file
+    /// beside the executable can be deleted, missed by a copy, or lost when somebody unzips a
+    /// new build over an old folder - and the failure looks like the feature not working. A
+    /// manifest resource cannot be separated from the code that draws it, survives
+    /// single-file publishing and AOT alike, and needs no path for anybody to type.
+    ///
+    /// It does NOT replace the file path. A shipped plate is the default; the style entry's
+    /// icon still wins when it is set, which is what keeps "all of it can be changed" true.
+    ///
+    /// Matched on the END of the resource name, because the full one is built from the root
+    /// namespace and folder and would have to be repeated - and silently rewritten - every
+    /// time either moved.
+    /// </remarks>
+    public Picture BuiltIn(string name, int maxEdge)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        string cached = $"{maxEdge}|resource:{name}";
+        if (_textures.TryGetValue(cached, out Picture known))
+        {
+            return known;
+        }
+
+        if (_missingBuiltIn.Contains(cached))
+        {
+            return default;   // asked once, not there - do not go looking sixty times a second
+        }
+
+        Picture picture = LoadBuiltIn(cached, name, maxEdge);
+        if (picture.Ready)
+        {
+            _textures[cached] = picture;
+        }
+        else
+        {
+            // Its own list rather than the file problems: a resource that is not there is a
+            // build mistake, and putting it among the paths the USER typed would send them
+            // looking for a file they never chose.
+            _missingBuiltIn.Add(cached);
+        }
+
+        return picture;
+    }
+
+    private Picture LoadBuiltIn(string cached, string name, int maxEdge)
+    {
+        try
+        {
+            using Image<Rgba32>? image = Embedded(name);
+            return image is null ? default : Upload(cached, image, maxEdge);
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnknownImageFormatException or InvalidImageContentException
+                or NotSupportedException or ArgumentException)
+        {
+            // A picture that shipped broken is a build mistake, not something to end a session
+            // over. The caller draws its text form, exactly as it does for a missing file.
+            return default;
+        }
+    }
+
+    /// <summary>Decodes an embedded picture by the tail of its resource name, or null.</summary>
+    private static Image<Rgba32>? Embedded(string name)
+    {
+        System.Reflection.Assembly assembly = typeof(IconCache).Assembly;
+        string? resource = Array.Find(
+            assembly.GetManifestResourceNames(),
+            candidate => candidate.EndsWith(name, StringComparison.OrdinalIgnoreCase));
+
+        if (resource is null)
+        {
+            return null;
+        }
+
+        using Stream? stream = assembly.GetManifestResourceStream(resource);
+        return stream is null
+            ? null
+            : Image.Load<Rgba32>(new DecoderOptions { Configuration = Contiguous }, stream);
+    }
+
+    private Picture Load(string path, string file, int maxEdge)
+    {
+        try
+        {
+            if (!File.Exists(file))
+            {
+                Files.Failed(path, "not found");
+                return default;
+            }
+
+            using Image<Rgba32> image =
+                Image.Load<Rgba32>(new DecoderOptions { Configuration = Contiguous }, file);
+            Files.Worked(path);
+            return Upload($"{maxEdge}|{path}", image, maxEdge);
+        }
+        catch (IOException busy) when (IconFiles.Momentary(busy))
+        {
+            // NOT a verdict. Somebody else has the file open, which for the item art is this
+            // tool itself finishing the download of the very icon being drawn - and remembered
+            // as a failure, that picture is gone until the next run. The next frame asks again.
+            Files.Busy(path, busy.Message);
+            return default;
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnknownImageFormatException or InvalidImageContentException
+                or NotSupportedException or UnauthorizedAccessException or ArgumentException)
+        {
+            // Every one of these means "that file is not a picture we can draw", and none is
+            // worth a frame - let alone the session, which is what an escaping exception on
+            // the render thread costs.
+            Files.Failed(path, exception.Message);
+            return default;
+        }
+    }
+
+    /// <summary>Shrinks a loaded picture to the limit and hands it to the renderer.</summary>
+    private Picture Upload(string cached, Image<Rgba32> image, int maxEdge)
+    {
+        if (image.Width > maxEdge || image.Height > maxEdge)
+        {
+            // Fits INSIDE the box rather than filling it, so a wide picture is not squashed
+            // into a square - a squashed icon is a different picture.
+            image.Mutate(context => context.Resize(new ResizeOptions
+            {
+                Size = new Size(maxEdge, maxEdge),
+                Mode = ResizeMode.Max,
+            }));
+        }
+
+        // THE RENDERER'S PRECONDITION, CHECKED RATHER THAN DISCOVERED. Uploading takes the
+        // image's single pixel span, and for a split image there is none - the renderer answers
+        // that with a bare Exception saying "Make sure to initialize MemoryAllocator.Default!",
+        // which names neither the cause nor the fix and is not one of the types the load sites
+        // above catch. Asking first turns an escaping exception on the render thread into a
+        // picture that did not load, which every caller already knows how to draw.
+        //
+        // Contiguous should have seen to it, so reaching here means something it does not cover
+        // - and the one thing worse than this failing is it failing silently, which is what
+        // sent somebody looking through the icon code for a whole afternoon.
+        if (!image.DangerousTryGetSinglePixelMemory(out _))
+        {
+            _problems.Add(
+                $"{cached}: {image.Width}x{image.Height} did not decode into one buffer, so it"
+                + " cannot be uploaded as a texture.");
+            return default;
+        }
+
+        string key = $"poeformance.icon.{_keys.Count}.{maxEdge}";
+        _keys[cached] = key;
+        return new Picture(_upload(key, image, Srgb), image.Width, image.Height);
+    }
+
+    /// <summary>Drops everything, so changed files are picked up on the next ask.</summary>
+    public void Forget()
+    {
+        Release();
+        _textures.Clear();
+        _keys.Clear();
+        _missingBuiltIn.Clear();
+        _problems.Clear();
+
+        // The held sheet points at a texture that has just been released, so it has to go with
+        // them - kept, it would hand every marker a handle the renderer no longer knows. A
+        // rebuild still in flight is dropped too; its picture is disposed whenever it lands.
+        _sheet = default;
+        _sheetAsked = false;
+        _sheetBuilding?.ContinueWith(
+            static done => done.Result?.Image.Dispose(),
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnRanToCompletion,
+            TaskScheduler.Default);
+        _sheetBuilding = null;
+        Files.Forget();
+    }
+
+    private void Release()
+    {
+        ReleaseSheet();
+        foreach (string key in _keys.Values)
+        {
+            try
+            {
+                _release(key);
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or ObjectDisposedException)
+            {
+                // Shutting down, or the renderer already let it go. Nothing to do about it,
+                // and nothing worth ending the process over.
+            }
+        }
+    }
+
+    public void Dispose() => Release();
+}

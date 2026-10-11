@@ -1,0 +1,643 @@
+/* Base look for the config window. Dark, quiet, readable - the tool sits next to a game. */
+
+:root {
+  --bg: #16181d;
+  --card: #1e2129;
+  --text: #d6d8de;
+  --dim: #8a8f9c;
+  --accent: #c8a85a;
+  --ok: #6fbf73;
+  --bad: #d4645c;
+
+  /* The same amber the overlay paints a warning in (OverlayInk.Warn), so the two windows do
+     not disagree about what "it happened, but not the way it was meant to" looks like. */
+  --warn: #ffa34d;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 system-ui, "Segoe UI", sans-serif;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #000;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+
+/* ── Tabs ───────────────────────────────────────────────────────────────── */
+
+#tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 20px;
+  border-bottom: 1px solid #000;
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 8px 14px;
+  color: var(--dim);
+}
+
+.tab:hover { color: var(--text); border-color: #00000000; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Map ────────────────────────────────────────────────────────────────── */
+
+/* An author display rule BEATS the hidden attribute - the UA stylesheet's [hidden] is the
+   weakest rule there is. Without this the panel stays on screen with hidden set, which
+   reads as "the tabs do nothing" and stacks both pages on top of each other. */
+[hidden] { display: none !important; }
+
+#tab-map {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 20px;
+  height: calc(100vh - 110px);
+}
+
+.map-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.map-bar label { display: flex; align-items: center; gap: 6px; }
+
+/* The canvas is sized to this box in JS, so the layout decides the pixels rather than
+   the other way round - a fixed canvas would letterbox or crop on a resize. */
+.map-frame {
+  flex: 1;
+  min-height: 0;
+  background: #0e1013;
+  border: 1px solid #00000088;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+#map-canvas { display: block; }
+
+main {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  align-items: start;
+  gap: 16px;
+  padding: 16px 20px;
+}
+
+/* The right-hand stack. Explicit rather than letting cards flow into grid cells, so
+   adding one does not silently rearrange the others. */
+.column {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid #00000066;
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+
+.card h2 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dim);
+}
+
+dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 14px;
+  margin: 0 0 12px;
+}
+
+dt { color: var(--dim); }
+dd { margin: 0; }
+
+.dim { color: var(--dim); }
+.ok { color: var(--ok); }
+.bad { color: var(--bad); }
+
+button {
+  background: #2a2e38;
+  color: var(--text);
+  border: 1px solid #00000088;
+  border-radius: 4px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+button:hover { border-color: var(--accent); }
+
+.cfg-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.cfg-row select {
+  background: #2a2e38;
+  color: var(--text);
+  border: 1px solid #00000088;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font: inherit;
+}
+
+/* ── Auto flask ─────────────────────────────────────────────────────────── */
+
+.master {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+#af-slots {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0 4px;
+}
+
+#af-slots th {
+  text-align: left;
+  font-weight: normal;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+  padding: 0 8px 4px 0;
+  border-bottom: 1px solid #00000066;
+}
+
+#af-slots td {
+  padding: 5px 8px 5px 0;
+  border-bottom: 1px solid #ffffff0d;
+  vertical-align: middle;
+}
+
+#af-slots select,
+#af-slots input[type="number"] {
+  background: #2a2e38;
+  color: var(--text);
+  border: 1px solid #00000088;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font: inherit;
+}
+
+#af-slots input[type="number"] { width: 64px; }
+
+/* Read-only, and it should look it: the key is the game's setting, not ours. */
+.af-key {
+  font: 12px/1.5 ui-monospace, Consolas, monospace;
+  color: var(--accent);
+}
+
+.af-item { color: var(--text); }
+.af-empty { color: var(--dim); font-style: italic; }
+
+/* ── Dangerous ground ───────────────────────────────────────────────────── */
+
+#gd-rules {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0 12px;
+  table-layout: fixed;
+}
+
+#gd-rules th {
+  text-align: left;
+  font-weight: normal;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+  padding: 0 8px 4px 0;
+  border-bottom: 1px solid #00000066;
+}
+
+#gd-rules td {
+  padding: 5px 8px 5px 0;
+  border-bottom: 1px solid #ffffff0d;
+  vertical-align: middle;
+}
+
+/* The path takes what the six fixed columns leave: it is the only one whose content varies,
+   and it is long enough that a shared width would truncate every one of them. */
+#gd-rules th:nth-child(2) { width: auto; }
+#gd-rules th:nth-child(1),
+#gd-rules th:nth-child(6),
+#gd-rules th:nth-child(7) { width: 40px; }
+/* Wide enough for the HEADING, not for the swatch: the layout is fixed, so a column sized to
+   its control lets the uppercase label overflow into the next one. */
+#gd-rules th:nth-child(3) { width: 72px; }
+#gd-rules th:nth-child(4),
+#gd-rules th:nth-child(5) { width: 80px; }
+
+#gd-rules input[type="text"],
+#gd-rules input[type="number"] {
+  background: #2a2e38;
+  color: var(--text);
+  border: 1px solid #00000088;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font: inherit;
+}
+
+#gd-rules input[type="number"] { width: 64px; }
+
+/* Monospace because it is a path being trimmed to a prefix, and lining the segments up is
+   what makes "where does the variant part start" answerable at a glance. */
+#gd-rules .gd-path {
+  width: 100%;
+  font: 12px/1.5 ui-monospace, Consolas, monospace;
+}
+
+#gd-rules button { padding: 2px 8px; }
+
+/* The picker holds full metadata paths, which are long. Letting it take the row rather than
+   the widest option keeps the card from growing a horizontal scrollbar. */
+#gd-pick {
+  flex: 1;
+  min-width: 0;
+}
+
+#gd-read { font-size: 11px; font-family: ui-monospace, Consolas, monospace; }
+
+/* A charm slot has no key to press at all, so its row is greyed and its toggle locked. */
+tr.af-charm td { color: var(--dim); }
+
+pre#log {
+  margin: 0;
+  max-height: 420px;
+  overflow: auto;
+  font: 12px/1.5 ui-monospace, Consolas, monospace;
+  color: var(--dim);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ── Rules ──────────────────────────────────────────────────────────────── */
+
+/* The same author-display-beats-[hidden] rule the map tab needs: the flex below would
+   otherwise show a hidden tab. */
+#tab-rules { display: flex; flex-direction: column; height: calc(100vh - 108px); }
+#tab-rules[hidden] { display: none; }
+
+.rules-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  border-bottom: 1px solid #000;
+  flex-wrap: wrap;
+}
+
+.rules-bar .grow, .graph-bar .grow { flex: 1; }
+.rules-bar .rl-gap input { width: 72px; }
+
+.rules-body {
+  display: flex;
+  gap: 16px;
+  padding: 16px 20px;
+  overflow: hidden;
+  flex: 1;
+}
+
+/* The list scrolls on its own, so a long profile cannot push the editor off the window. */
+.rules-list {
+  width: 260px;
+  flex: none;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.rules-list-head { display: flex; align-items: center; justify-content: space-between; }
+.rules-list-head h2 { margin: 0; font-size: 14px; color: var(--dim); }
+
+.rules-detail { flex: 1; overflow-y: auto; }
+.rules-detail .card { margin-bottom: 12px; }
+.rules-empty { padding: 40px 0; text-align: center; }
+
+.rl-group {
+  background: var(--card);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 8px 0;
+}
+
+.rl-group-head { display: flex; align-items: center; gap: 6px; }
+.rl-group-name { flex: 1; min-width: 0; background: none; border: none; color: var(--text); font: inherit; }
+.rl-group-name:focus { background: #00000044; border-radius: 3px; }
+
+.rl-where { display: flex; gap: 10px; margin: 4px 0 6px; }
+.rl-where .rl-field { gap: 3px; color: var(--dim); font-size: 12px; }
+
+.rl-rules { list-style: none; margin: 0; padding: 0; }
+.rl-rules li { display: flex; align-items: center; gap: 6px; border-radius: 3px; }
+.rl-rules li.chosen { background: #ffffff10; }
+
+.rl-rule-name {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text);
+  padding: 3px 4px;
+}
+
+.rl-rule-name.dim { color: var(--dim); }
+.rl-add-rule { margin-top: 6px; width: 100%; }
+
+.rl-detail-head { display: flex; align-items: center; gap: 8px; }
+.rl-name { flex: 1; font-size: 15px; }
+.rl-comment { width: 100%; margin-top: 8px; }
+.rl-priority { width: 72px; }
+
+.rl-section-head { display: flex; align-items: center; justify-content: space-between; }
+.rl-section-head h2 { margin: 0; }
+
+.rl-field { display: inline-flex; align-items: center; gap: 6px; }
+.rl-field > span { color: var(--dim); font-size: 12px; }
+.rl-pair { display: inline-flex; gap: 4px; }
+.rl-pair input { width: 66px; }
+
+.rl-modes { display: flex; }
+.rl-modes button { border-radius: 0; color: var(--dim); }
+.rl-modes button:first-child { border-radius: 4px 0 0 4px; }
+.rl-modes button:last-child { border-radius: 0 4px 4px 0; }
+.rl-modes button.active { color: var(--accent); border-color: var(--accent); }
+
+.rl-expression {
+  width: 100%;
+  background: #00000055;
+  color: var(--text);
+  border: 1px solid #00000088;
+  border-radius: 4px;
+  padding: 8px;
+  font: 13px/1.6 ui-monospace, Consolas, monospace;
+  resize: vertical;
+}
+
+.rl-effect {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid #ffffff0f;
+}
+
+.rl-effect-fields { display: flex; flex-wrap: wrap; gap: 10px; flex: 1; }
+.rl-effect-fields input[type="number"] { width: 84px; }
+.rl-effect-fields input[type="text"] { min-width: 160px; }
+
+.rl-icon {
+  background: none;
+  border: none;
+  color: var(--dim);
+  padding: 0 6px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.rl-icon:hover { color: var(--bad); }
+
+/* ── The node editor ────────────────────────────────────────────────────── */
+
+.graph { border: 1px solid #00000088; border-radius: 6px; overflow: hidden; }
+.graph-bar { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #00000033; }
+.graph-hint { font-size: 12px; }
+
+/* The window onto the canvas: a fixed size that scrolls. A graph is laid out in real
+   coordinates, and clipping one that outgrew the pane would hide boxes with no sign that they
+   are there. */
+.graph-surface {
+  overflow: auto;
+  height: 420px;
+  resize: vertical;
+  background:
+    radial-gradient(circle, #ffffff10 1px, transparent 1px) 0 0 / 24px 24px,
+    #00000022;
+}
+
+/* The canvas itself, sized in JS to what the boxes reach. Everything is positioned inside
+   THIS rather than inside the surface, which is what keeps the wires straight: the surface is
+   the visible strip, so a wire layer stretched to it while the graph is taller has its viewBox
+   squashed into it - every wire in the right place for a canvas nobody is looking at. */
+.graph-content { position: relative; }
+
+/* Behind the boxes and deaf to the mouse, except the wires themselves - a click on a wire
+   is how one is removed, and a transparent sheet over the canvas would eat every other click. */
+.graph-wires { position: absolute; left: 0; top: 0; pointer-events: none; }
+.graph-wire { fill: none; stroke: var(--accent); stroke-width: 2; pointer-events: stroke; cursor: pointer; }
+.graph-wire:hover { stroke: var(--bad); }
+
+.graph-node {
+  position: absolute;
+  width: 200px;
+  background: var(--card);
+  border: 1px solid #00000088;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px #00000066;
+}
+
+.graph-node.selected { border-color: var(--accent); }
+.graph-node.kind-output { width: 130px; border-color: var(--ok); }
+.graph-node.kind-not { width: 130px; }
+
+.graph-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: #ffffff0d;
+  border-radius: 5px 5px 0 0;
+  cursor: grab;
+  font-size: 12px;
+  color: var(--dim);
+  user-select: none;
+}
+
+.graph-head:active { cursor: grabbing; }
+.graph-remove { background: none; border: none; color: var(--dim); padding: 0 2px; line-height: 1; }
+.graph-remove:hover { color: var(--bad); }
+
+.graph-body { padding: 6px 8px 8px; display: flex; flex-direction: column; gap: 5px; }
+.graph-body select, .graph-body input[type="text"] { width: 100%; }
+.graph-row { display: flex; align-items: center; gap: 4px; }
+.graph-row input[type="number"] { width: 100%; min-width: 0; }
+.graph-row select { width: auto; }
+.graph-negate { display: flex; align-items: center; gap: 4px; color: var(--dim); font-size: 12px; }
+
+/* The ports sit ON the border, half outside the box, so a wire visibly ends at the dot. */
+.graph-port {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--card);
+  background: var(--accent);
+  cursor: crosshair;
+}
+
+.graph-port.in { left: -6px; }
+.graph-port.out { right: -6px; }
+.graph-port:hover { background: var(--ok); }
+
+/* The buff list: a discovery tool, not a setting. The name a rule matches is the game's
+   internal one, which is nowhere on the player's own screen. */
+.rl-buffs { margin: 12px 0 4px; }
+.rl-buffs > summary { cursor: pointer; color: var(--dim); font-size: 12px; }
+.rl-buffs-hint { font-size: 11px; margin: 6px 0; }
+.rl-buffs-read { font-size: 10px; margin: 6px 0 0; font-family: ui-monospace, monospace; }
+.rl-buffs-read.warn { color: var(--bad, #e06c6c); }
+
+.rl-buffs ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.rl-buffs li { display: flex; align-items: baseline; gap: 6px; }
+
+/* Off is the ordinary state for a REMEMBERED buff, so the live ones are what stands out -
+   that is how somebody finds the one they just cast. */
+.rl-buffs li .rl-buff-name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  color: var(--dim);
+  font: 12px/1.5 ui-monospace, Consolas, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rl-buffs li.on .rl-buff-name { color: var(--ok); }
+.rl-buffs li .rl-buff-name:hover { color: var(--accent); }
+.rl-buff-detail { font-size: 11px; white-space: nowrap; }
+
+/* One line per thing that happened: when, whose, what. Monospaced and fixed-width in the
+   first two columns so the eye can run down the ages and the rule names without them
+   shifting as the numbers grow - the list is redrawn once a second underneath the reader. */
+.rl-log li {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1.1fr);
+  gap: 6px;
+  font: 11px/1.6 ui-monospace, Consolas, monospace;
+}
+
+.rl-log li > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rl-log .rl-log-clock { color: var(--dim); }
+.rl-log .rl-log-rule { color: var(--dim); }
+.rl-log .rl-log-detail { color: var(--dim); }
+
+/* Three tones, not two. A cull that left its target hurt but alive is neither a success nor a
+   failure: green hides it among the kills, red reads as the tool being broken. */
+.rl-log li.good .rl-log-what { color: var(--ok); }
+.rl-log li.warning .rl-log-what { color: var(--warn); }
+.rl-log li.bad .rl-log-what { color: var(--bad); }
+
+/* Two names per row: the readable one to find it by, the id underneath because that is what
+   a rule actually matches. */
+.rl-buffs li .rl-buff-name { display: flex; flex-direction: column; gap: 0; }
+.rl-buff-readable { font: 12px/1.4 system-ui, "Segoe UI", sans-serif; }
+.rl-buff-id { font: 11px/1.3 ui-monospace, Consolas, monospace; opacity: 0.65; }
+
+/* ── Update ─────────────────────────────────────────────────────────────── */
+
+/* The notice on the tab itself. It is the whole notification while another tab is open,
+   so it sits where the eye already goes rather than inside the page it announces. */
+.tab-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+#tab-update {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  padding: 16px 20px;
+  max-width: 900px;
+}
+
+/* The report on the update that already happened. Loud on purpose in both directions: a
+   successful one is the only confirmation anybody gets, and a failed one leaves the OLD
+   build running, which looks exactly like nothing having been attempted. */
+.up-outcome {
+  border-radius: 6px;
+  padding: 10px 14px;
+  border: 1px solid #00000066;
+}
+
+.up-good { background: #1d2a1e; color: var(--ok); }
+.up-bad { background: #2c1c1b; color: var(--bad); }
+
+.up-auto { margin-top: 12px; }
+
+.up-progress { margin: 10px 0 4px; }
+
+.up-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: #00000066;
+  overflow: hidden;
+}
+
+.up-bar > div {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 0.2s linear;
+}
+
+.up-bar > div.up-fill-bad { background: var(--bad); }
+
+/* The changelog, as the release wrote it. Monospace and pre-wrapped because it is markdown
+   with lists and shas in it, and it is inserted as TEXT - see updates.js. */
+#up-notes {
+  margin: 0;
+  max-height: 420px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 12px/1.6 ui-monospace, Consolas, monospace;
+  color: var(--text);
+}

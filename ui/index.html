@@ -1,0 +1,522 @@
+<!doctype html>
+<!--
+  The config page. Lives on disk next to the executable and is loaded as a file - edit,
+  reload the window, no rebuild (the same rule as the offsets schema).
+
+  Structure over convenience: markup here, styling in css/, behaviour in js/ as modules.
+  The predecessor tool grew a single 20k-line index.html; the split is the guard rail.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PoEformance</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header>
+    <h1>PoEformance</h1>
+    <span id="tool-version" class="dim"></span>
+  </header>
+
+  <nav id="tabs">
+    <button class="tab active" data-tab="setup">Setup</button>
+    <button class="tab" data-tab="rules">Rules</button>
+    <button class="tab" data-tab="map">Map</button>
+    <!--
+      The label carries the notice. A tab that reads "Update" whether or not there is one is
+      a tab nobody looks at twice; the dot beside it appears only while a newer build is
+      published and the user has not waved it away.
+    -->
+    <button class="tab" data-tab="update">Update<span id="up-dot" class="tab-dot" hidden></span></button>
+  </nav>
+
+  <main id="tab-setup">
+    <section class="card">
+      <h2>Session</h2>
+      <dl id="session">
+        <dt>Game</dt><dd id="s-attached">–</dd>
+        <dt>In game</dt><dd id="s-ingame">–</dd>
+        <dt>Entities</dt><dd id="s-entities">–</dd>
+        <dt>Statics</dt><dd id="s-statics">–</dd>
+        <dt>Schema</dt><dd id="s-schema">–</dd>
+      </dl>
+      <button id="refresh">Refresh</button>
+    </section>
+
+    <div class="column">
+    <section class="card" id="autoflask">
+      <h2>Auto flask</h2>
+
+      <label class="master">
+        <input type="checkbox" id="af-enabled">
+        <span>Use flasks automatically</span>
+      </label>
+      <p class="dim" id="af-status">–</p>
+
+      <!--
+        One row per belt slot, built by JS from the state. The KEY column is read-only on
+        purpose: which key uses a flask is the game's setting, read from its own config -
+        editing it here would create a second source of truth that silently disagrees.
+      -->
+      <table id="af-slots">
+        <thead>
+          <tr>
+            <th>On</th><th>Slot</th><th>Equipped</th><th>Watches</th><th>Below</th>
+            <th title="Hold off while this flask's own effect is still running. Switch it off for a flask whose effect outlasts its recovery - one carrying &quot;Effect is not removed when Unreserved Mana is Filled&quot; keeps the buff long after it has stopped refilling anything, and the hold-off then buys nothing.">Wait</th>
+            <th title="Fire anyway at or below this fill level, even while the effect is running. 0 is off. The floor under the charge saving: a pool falling faster than the flask refills it is exactly when the hold-off bites hardest and exactly when it is most dangerous. Overrides only the hold-off - never the cooldown.">Emergency</th>
+            <th>Key</th>
+          </tr>
+        </thead>
+        <tbody id="af-rows"></tbody>
+      </table>
+
+      <p class="dim" id="af-keysource">–</p>
+    </section>
+
+    <section class="card" id="overlay">
+      <h2>Overlay</h2>
+      <div class="cfg-row">
+        <label for="ov-loot">Mark drops from</label>
+        <select id="ov-loot">
+          <option value="Normal">Normal — everything</option>
+          <option value="Magic">Magic and better</option>
+          <option value="Rare">Rare and better</option>
+          <option value="Unique">Unique only</option>
+        </select>
+      </div>
+      <p class="dim">Currency is always marked — it carries no rarity, and it is the last
+        thing worth hiding.</p>
+
+      <div class="cfg-row">
+        <label><input type="checkbox" id="ov-terrain"> Show the area layout on the map</label>
+      </div>
+      <div class="cfg-row">
+        <label for="ov-terrain-colour">Outline colour</label>
+        <input type="color" id="ov-terrain-colour" value="#DCE3EA">
+        <label for="ov-terrain-thickness">Thickness</label>
+        <input type="range" id="ov-terrain-thickness" min="1" max="6" step="1" value="1">
+        <span id="ov-terrain-thickness-value" class="dim">1</span>
+      </div>
+      <div class="cfg-row">
+        <label for="ov-terrain-fill-colour">Floor fill</label>
+        <input type="color" id="ov-terrain-fill-colour" value="#0B1B2B">
+        <label for="ov-terrain-fill">Opacity</label>
+        <input type="range" id="ov-terrain-fill" min="0" max="100" step="5" value="70">
+        <span id="ov-terrain-fill-value" class="dim">70 %</span>
+      </div>
+      <p class="dim">The floor between the walls as a translucent sheet, the way the game draws
+        the parts of the map it has revealed. Zero opacity draws the outline alone.</p>
+      <div class="cfg-row">
+        <label><input type="checkbox" id="ov-terrain-rim"> Dark rim along the outside of the
+          outline, so it reads on bright ground too</label>
+      </div>
+      <p class="dim">Terrain: <span id="ov-terrain-state">–</span> — it loads well after the
+        area does, so "loading" right after a portal is normal.</p>
+    </section>
+
+    <!--
+      Dangerous ground. A rule matches the START of a metadata path - a string written nowhere
+      a player can see, different per skill, per league mechanic and per boss - so the picker
+      above the table is the whole point of this card: what the session has walked past is a
+      list to choose from, and typing one from memory is how the feature ends up drawing
+      nothing. Same answer the buff list gives on the Rules tab, to the same problem.
+    -->
+    <section class="card" id="ground">
+      <h2>Dangerous ground</h2>
+      <p class="dim">A rule is how you say <em>ring this ground, in this colour, at this size</em>.
+        Where you have written one it wins over the overlay's own ground rings — not because it
+        knows more, but because it is an instruction you gave, and a tool that overrides those
+        quietly is one whose settings cannot be trusted.</p>
+      <p class="dim">Ground the game itself marks is already ringed without any rule, and the
+        overlay can name it: the component carries a row of the game's own table, so the label
+        reads <em>IgnitedGround — Ignited Ground</em> rather than a metadata path. All 53 rows in
+        that table are real effect kinds. A rule is worth writing for ground the reader lists but
+        the game does <em>not</em> mark, and for when you want a particular colour or size.</p>
+      <!--
+        Stated on the page because it is invisible from it, and because somebody hunting for the
+        burning ground a rare left behind will otherwise conclude the picker is broken. The
+        overlay's own entity filter drops those before the reader ever lists them - see
+        GroundWatch, which carries the measurement.
+      -->
+      <p class="dim">The list holds what the reader lists. Ground that hangs off a monster's
+        modifiers — the burning patch a rare leaves when it dies — is dropped by the overlay's
+        <em>Daemon</em> entity filter before it gets here, so it can be neither picked nor
+        matched by a rule until that filter class is switched off.</p>
+
+      <div class="cfg-row">
+        <label for="gd-pick">Seen this session</label>
+        <select id="gd-pick"></select>
+        <button id="gd-add" type="button">Add a rule for this</button>
+      </div>
+      <!--
+        Why the list can be empty and what that means. Three different states look identical
+        without it: the reader never ran, it ran in a hideout, or it ran and found nothing.
+      -->
+      <p class="dim" id="gd-read">–</p>
+
+      <table id="gd-rules">
+        <thead>
+          <tr>
+            <th>On</th><th>Path starts with</th><th>Colour</th>
+            <th title="In screen pixels, not world units">Radius</th>
+            <th>Line</th><th>Fill</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="gd-rows"></tbody>
+      </table>
+
+      <div class="cfg-row">
+        <button id="gd-new" type="button">Add an empty rule</button>
+        <span class="dim">The radius is in screen pixels — it does not shrink as the camera
+          pulls back.</span>
+      </div>
+    </section>
+
+    <!--
+      Evasion. Two gates rather than one master switch, because drawing a marker is free and
+      pressing a key is not: seeing everything coming while the tool only acts on a rare's slam
+      is the ordinary setup, and one threshold cannot say it.
+    -->
+    <section class="card" id="evasion">
+      <h2>Evasion</h2>
+      <p class="dim">Monsters commit to an attack, and to a place it will land, before the
+        animation shows it. This marks that place — and can roll you out of it.</p>
+
+      <label class="master">
+        <input type="checkbox" id="ev-warn">
+        <span>Mark where incoming attacks will land</span>
+      </label>
+      <div class="cfg-row">
+        <label for="ev-warn-rarity">Mark monsters from</label>
+        <select id="ev-warn-rarity">
+          <option value="Normal">Normal — everything</option>
+          <option value="Magic">Magic and better</option>
+          <option value="Rare">Rare and better</option>
+          <option value="Unique">Unique only</option>
+        </select>
+      </div>
+
+      <label class="master">
+        <input type="checkbox" id="ev-act">
+        <span>Press the dodge key when one is aimed at me</span>
+      </label>
+      <div class="cfg-row">
+        <label for="ev-act-rarity">Dodge for monsters from</label>
+        <select id="ev-act-rarity">
+          <option value="Normal">Normal — everything</option>
+          <option value="Magic">Magic and better</option>
+          <option value="Rare">Rare and better</option>
+          <option value="Unique">Unique only</option>
+        </select>
+      </div>
+
+      <!--
+        Editable here, unlike the flask keys, and the difference is deliberate: their config
+        spelling was established against a real file, and nobody has established what this game
+        calls the dodge roll. The hints below are lines FROM that file that mention it - a place
+        to look, never a reading.
+      -->
+      <div class="cfg-row">
+        <label for="ev-key">Dodge key (virtual-key code, 0 = unset)</label>
+        <input type="number" id="ev-key" min="0" max="255" step="1">
+        <span class="dim" id="ev-keyname">–</span>
+      </div>
+      <p class="dim" id="ev-keyhints"></p>
+
+      <div class="cfg-row">
+        <label for="ev-radius">Counts as aimed at me within</label>
+        <input type="number" id="ev-radius" min="10" max="2000" step="10">
+        <span class="dim">world units</span>
+      </div>
+      <div class="cfg-row">
+        <label for="ev-cooldown">Shortest gap between dodges</label>
+        <input type="number" id="ev-cooldown" min="0" max="60000" step="100">
+        <span class="dim">ms</span>
+      </div>
+
+      <div class="cfg-row">
+        <label for="ev-only">Only these monster types</label>
+        <input type="text" id="ev-only" placeholder="Goatman, Skeleton — part of the metadata path, comma separated">
+      </div>
+      <div class="cfg-row">
+        <label for="ev-ignore">Never these</label>
+        <input type="text" id="ev-ignore" placeholder="left empty means no exclusions">
+      </div>
+
+      <div class="cfg-row">
+        <label><input type="checkbox" id="ev-quiet"> Ignore monsters that are only walking</label>
+      </div>
+
+      <!--
+        Damaging ground. Two switches rather than one because they cost different things: the
+        first only changes the direction of a roll that was going to happen anyway, and the
+        second presses the key in a situation where the tool used to do nothing at all.
+      -->
+      <div class="cfg-row">
+        <label><input type="checkbox" id="ev-avoid-ground"> Never dodge into damaging ground</label>
+      </div>
+      <p class="dim">Free: the roll was already happening, this only stops it landing in fire.
+        Ground the game marks as <em>helpful</em> — Consecration, an oasis — is left out, so it
+        will not roll you off something good.</p>
+
+      <div class="cfg-row">
+        <label><input type="checkbox" id="ev-escape-ground"> Roll out when I am standing in it</label>
+      </div>
+      <p class="dim">This one presses the dodge key with <em>no monster winding up</em> — the
+        danger is already underfoot and will not announce itself. It needs "press the dodge key"
+        above to be on, and it leans hardest on the radius below being right.</p>
+
+      <div class="cfg-row">
+        <label for="ev-ground-radius">Assume a patch reaches</label>
+        <input type="number" id="ev-ground-radius" min="2" max="500" step="1">
+        <span class="dim">world units</span>
+      </div>
+      <p class="dim"><strong>This is a guess.</strong> Nothing found in the game's memory has been
+        shown to carry the size of a ground effect. It is the same number the overlay's ring uses,
+        so what you see is what the steering is reasoning about — if the ring looks too small for
+        the fire it is drawn on, this is too small too.</p>
+
+      <!--
+        Steering. Its own switch on top of "press the dodge key", because the two hand the tool
+        different amounts: pressing leaves the direction entirely with the player, while this
+        takes the movement keys over for the length of a roll. Left off, the feature is the one
+        that has been played with for hours.
+      -->
+      <label class="master">
+        <input type="checkbox" id="ev-steer">
+        <span>Also choose which way to roll</span>
+      </label>
+      <p class="dim">Without this the roll goes where you are already pointing — which is at the
+        boss, when you are fighting one, and straight along the beam it is channelling at you.
+        With it, the tool holds a movement key for the length of the roll so it goes
+        <em>across</em> what is coming instead. Your own keys are handed back the moment it ends;
+        if nothing is safer than standing still, it does not roll at all.</p>
+
+      <div class="cfg-row">
+        <label for="ev-move-up">Movement keys (virtual-key codes)</label>
+        <input type="number" id="ev-move-up" min="0" max="255" step="1" title="Forward — W by default">
+        <input type="number" id="ev-move-left" min="0" max="255" step="1" title="Left — A">
+        <input type="number" id="ev-move-down" min="0" max="255" step="1" title="Back — S">
+        <input type="number" id="ev-move-right" min="0" max="255" step="1" title="Right — D">
+        <span class="dim" id="ev-movenames">–</span>
+      </div>
+      <p class="dim" id="ev-movehints"></p>
+
+      <div class="cfg-row">
+        <label for="ev-roll">A roll travels</label>
+        <input type="number" id="ev-roll" min="50" max="2000" step="10">
+        <span class="dim">world units — measured at about 400 on a recorded session</span>
+      </div>
+      <div class="cfg-row">
+        <label for="ev-hold">Hold the movement key for</label>
+        <input type="number" id="ev-hold" min="0" max="500" step="10">
+        <span class="dim">ms — it has to span one of the game's frames: 17 ms at 60 fps, 33 at
+          30, 62 at 16. Both 60 and 20 were shown to work in game; 20 is the shorter window in
+          which the tool owns your keys, and the default covers a slower machine.</span>
+      </div>
+
+      <p class="dim" id="ev-status">–</p>
+      <p class="dim">With steering off, the roll follows a held movement key or your
+        <em>mouse</em> when none is held — so you steer, and this only decides <em>when</em>.
+        Knowing an attack is committed before its animation starts is the part you cannot do
+        yourself.</p>
+    </section>
+
+    <section class="card">
+      <h2>Bridge</h2>
+      <p class="dim">Raw traffic, newest first — the debugging view while the protocol grows.</p>
+      <pre id="log"></pre>
+    </section>
+    </div>
+  </main>
+
+  <!--
+    The rules tab. Everything inside is built by JS from the state and from the catalogue the
+    host sends: which conditions exist, which keys can be pressed and which effects there are
+    all come from the engine's own tables, so this page cannot offer a condition the engine
+    would not understand. Markup here is the frame only.
+  -->
+  <section id="tab-rules" hidden>
+    <div class="rules-bar">
+      <label class="master">
+        <input type="checkbox" id="rl-enabled">
+        <span>Run rules</span>
+      </label>
+
+      <label for="rl-profile">Profile</label>
+      <select id="rl-profile"></select>
+      <button id="rl-profile-new" title="Add a profile">+</button>
+      <button id="rl-profile-delete" title="Delete this profile">−</button>
+
+      <label class="rl-gap">
+        Slowest typing
+        <input type="number" id="rl-gap" min="0" max="10000" step="10" title="Shortest gap between any two synthesised inputs, in milliseconds">
+        ms
+      </label>
+
+      <label class="rl-gap">
+        Vary cooldowns by
+        <input type="number" id="rl-jitter" min="0" max="10000" step="10" title="How wide a random spread to put on every cooldown. At 50, a rule set to 1000 ms fires somewhere between 975 and 1025 ms, redrawn each time - so a rule that is always ready does not produce a keystroke on the exact same beat forever. 0 restores an exact cooldown.">
+        ms
+      </label>
+
+      <label title="Captions stay up, and cues keep sounding, while the game is not in front. Captions still show nothing while another application has focus - the overlay refuses to paint then - but a beep has no such second gate.">
+        <input type="checkbox" id="rl-background"> Show and sound without game focus
+      </label>
+
+      <label id="rl-preview-label" title="Draws the ranges the rule you have open measures, on the ground and around the cursor, with what each one currently counts. Needs the overlay running.">
+        <input type="checkbox" id="rl-preview"> Show ranges in game
+      </label>
+
+      <span class="grow"></span>
+      <span id="rl-load-note" class="bad" hidden></span>
+      <span id="rl-aim-note" class="dim" hidden></span>
+      <span id="rl-status" class="dim">–</span>
+    </div>
+
+    <div class="rules-body">
+      <aside class="rules-list">
+        <div class="rules-list-head">
+          <h2>Groups</h2>
+          <button id="rl-group-new">Add group</button>
+        </div>
+        <div id="rl-groups"></div>
+
+        <!--
+          What the character has had on. The name a rule matches is the ENGINE identifier -
+          "flask_effect_life", not the "Life Flask" the game paints - and that name appears
+          nowhere on the player's own screen, so without this a buff condition is written by
+          guessing at a spelling. Cast the skill, then look here.
+        -->
+        <!--
+          The status line beside the switches holds ONE tick, and a tick is 33 ms. With
+          several rules configured it is replaced faster than it can be read, so everything
+          actually asked of it - did that rule fire, when did it stop, was the cull aimed -
+          is a question about a few seconds ago that only a history can answer.
+        -->
+        <details id="rl-log-panel" class="rl-buffs rl-log">
+          <summary>Rule history <span id="rl-log-count" class="dim"></span></summary>
+          <p class="dim rl-buffs-hint">Newest first. A repeat collapses into a count, and the
+            engine pacing itself - a cooldown, the typing floor - is left out.</p>
+          <ul id="rl-log"></ul>
+        </details>
+
+        <details id="rl-buffs-panel" class="rl-buffs">
+          <summary>Buffs seen <span id="rl-buffs-count" class="dim"></span></summary>
+          <p class="dim rl-buffs-hint">Click one to put its name in the buff field you last used.
+            Rules match the game's internal name, which is not the one on your screen.</p>
+          <ul id="rl-buffs"></ul>
+          <!--
+            Where the read of the buff vector got to. An empty list has five causes and they
+            used to look identical from here, which is how a wrong stride survived for months.
+          -->
+          <p class="dim rl-buffs-read" id="rl-buffs-read"></p>
+          <!--
+            The reader thread's own health. A rules tab with nothing on it means either no
+            reader or a reader that throws before it reaches the rules, and the feed swallows
+            the exception on purpose - so this is the only place either becomes visible.
+          -->
+          <p class="dim rl-buffs-read" id="rl-reader"></p>
+        </details>
+      </aside>
+
+      <div class="rules-detail" id="rl-detail">
+        <p class="dim rules-empty">Pick a rule on the left, or add one.</p>
+      </div>
+    </div>
+  </section>
+
+  <!--
+    The map tab. One canvas: the layout is painted once per area onto an offscreen buffer
+    and blitted, so the per-second marker update never re-walks the outline.
+  -->
+  <section id="tab-map" hidden>
+    <div class="map-bar">
+      <span id="map-status" class="dim">–</span>
+      <label class="map-follow"><input type="checkbox" id="map-follow" checked> Follow the player</label>
+      <label class="map-zoom">Zoom <input type="range" id="map-zoom" min="1" max="6" step="0.5" value="1"></label>
+    </div>
+    <div class="map-frame">
+      <canvas id="map-canvas"></canvas>
+    </div>
+  </section>
+
+  <!--
+    The update tab. Four steps, each of them asked for: check, read what changed, download,
+    restart. Nothing here closes the tool without a click - the tool is attached to a running
+    game, and deciding on its own that now is a good moment to exit is not a decision it gets
+    to make.
+  -->
+  <section id="tab-update" hidden>
+    <!-- The notification about the update that already happened, shown once per launch. -->
+    <div id="up-outcome" class="up-outcome" hidden></div>
+
+    <section class="card">
+      <h2>Version</h2>
+      <dl>
+        <dt>Running</dt><dd id="up-current">–</dd>
+        <dt>Published</dt><dd id="up-available">–</dd>
+        <dt>Last checked</dt><dd id="up-checked">–</dd>
+      </dl>
+      <p id="up-status" class="dim">–</p>
+
+      <div class="cfg-row">
+        <button id="up-check">Check now</button>
+        <button id="up-download" hidden>Download</button>
+        <button id="up-install" hidden>Install and restart</button>
+        <button id="up-skip" hidden>Not this one</button>
+      </div>
+
+      <!--
+        Real bytes, not a spinner. The asset is a self-contained runtime well over a hundred
+        megabytes, and a progress display that cannot distinguish "slow" from "stalled" is
+        the one thing a download this size must not have.
+      -->
+      <div id="up-progress" class="up-progress" hidden>
+        <div class="up-bar"><div id="up-bar-fill"></div></div>
+        <p class="dim" id="up-progress-text">–</p>
+      </div>
+
+      <label class="master up-auto">
+        <input type="checkbox" id="up-enabled">
+        <span>Check GitHub for newer builds</span>
+      </label>
+      <p class="dim">Two small requests every six hours, to the public releases API. It is the
+        only thing this tool sends without being asked, and it carries nothing about this
+        machine.</p>
+    </section>
+
+    <section class="card" id="up-notes-card" hidden>
+      <h2>What changed</h2>
+      <p class="dim" id="up-release">–</p>
+      <pre id="up-notes"></pre>
+    </section>
+  </section>
+
+  <script>
+    // Before the modules: any script error lands where somebody is LOOKING, not only in the
+    // log panel - which lives on the Setup tab, so a page that died while the Rules tab was
+    // open showed nothing but its own initial HTML: empty dropdowns, an empty gap field, a
+    // dash for a status. That is indistinguishable from "the host sends no states", and the
+    // difference between those two is an evening of diagnosis. A banner on every tab is not.
+    window.addEventListener("error", (e) => {
+      const text = `SCRIPT ERROR  ${e.message} (${(e.filename || "?").split("/").pop()}:${e.lineno})`;
+      const log = document.getElementById("log");
+      if (log) log.textContent = text + "\n" + log.textContent;
+      let banner = document.getElementById("script-error");
+      if (!banner) {
+        banner = document.createElement("div");
+        banner.id = "script-error";
+        banner.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99;background:#7a2222;"
+          + "color:#fff;font:12px ui-monospace,monospace;padding:6px 12px;white-space:pre-wrap;";
+        document.body.appendChild(banner);
+      }
+      banner.textContent = text;
+    });
+    window.addEventListener("unhandledrejection", (e) => {
+      window.dispatchEvent(new ErrorEvent("error", { message: `unhandled rejection: ${e.reason}` }));
+    });
+  </script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

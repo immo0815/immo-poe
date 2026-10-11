@@ -1,0 +1,184 @@
+using PoEformance.Core.Memory;
+using PoEformance.Core.Schema;
+
+namespace PoEformance.Game.World;
+
+/// <summary>What kind of area the player is in.</summary>
+/// <param name="Id">The area's internal id, e.g. <c>G1_2</c>, <c>MapRiverhold</c>.</param>
+/// <param name="Act">Act number; endgame areas are not part of an act.</param>
+/// <param name="Environment">The .env file the area is lit by, from its row's Environments row - empty where it does not resolve.</param>
+public readonly record struct AreaInfo(string Id, string Name, int Act, bool IsTown, bool IsHideout, string Environment = "")
+{
+    /// <summary>Nothing resolved - treated as hostile, so a failed read never blanks the overlay.</summary>
+    public static AreaInfo Unknown { get; } = new(string.Empty, string.Empty, 0, false, false);
+
+    /// <summary>True when there is something here to fight.</summary>
+    /// <remarks>
+    /// Town and hideout only. Both come from the game's own data - IsTown is a field,
+    /// IsHideout is the reference's id test.
+    /// </remarks>
+    public bool IsHostile => !IsTown && !IsHideout;
+
+    /// <summary>
+    /// True for campaign content: an act zone rather than an endgame map.
+    /// </summary>
+    /// <remarks>
+    /// Two observations, and they are what this is built on rather than a guess: a campaign
+    /// area reports its own act (Abyss_Hub, act 2), and an endgame map reports act 10
+    /// (MapOvergrown, a T6). Act 10 is evidently the endgame bucket, not an act anybody
+    /// plays through - so campaign content is the range BETWEEN, and both ends are excluded.
+    ///
+    /// The id test stays alongside it because one map is one sample. Either signal alone
+    /// would be a guess; together they only have to be right about the same area once.
+    ///
+    /// Kept as a FACT about the area, and no longer a reason to hide anything - see
+    /// <see cref="WantsMarkers"/>. It still names the area in the readout, and a feature that
+    /// genuinely only makes sense in endgame content can still ask.
+    /// </remarks>
+    public bool IsCampaign
+        => Act is >= 1 and < EndgameAct && !Id.StartsWith("Map", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The act number endgame areas report - observed on a T6 map, not an act played.</summary>
+    private const int EndgameAct = 10;
+
+    /// <summary>
+    /// Whether the overlay should mark anything here.
+    /// </summary>
+    /// <remarks>
+    /// Anywhere with something to fight, which now INCLUDES campaign zones. They were
+    /// excluded originally, and the reason was sound at the time: the overlay marked monsters
+    /// and drops, and an act zone is walked through once with the route already known.
+    ///
+    /// Points of interest changed what the overlay is for. In a campaign zone the question is
+    /// "where is the thing this quest wants", which is exactly what a marked exit and a drawn
+    /// route answer - so the content the overlay was least useful in is now the content it
+    /// helps most in.
+    ///
+    /// Towns and hideouts stay out. There is nothing to find in them and the panels are open
+    /// half the time, which is the case the rule was really about.
+    ///
+    /// An area that did not resolve still wants markers: the failure mode of a read that went
+    /// wrong should be "the overlay is still there", not "the overlay silently stopped
+    /// working and you find out during a fight".
+    /// </remarks>
+    public bool WantsMarkers => IsHostile;
+
+    /// <summary>A short description for the status readout.</summary>
+    public string Describe()
+    {
+        if (Id.Length == 0)
+        {
+            return "unknown";
+        }
+
+        string kind = IsHideout ? "hideout"
+            : IsTown ? "town"
+            : IsCampaign ? "campaign"
+            : "map";
+
+        return $"{Name} [{Id}] act {Act}, {kind}";
+    }
+}
+
+/// <summary>
+/// Reads the current area's row out of the game's own area table.
+/// </summary>
+/// <remarks>
+/// TWO hops, which is the part worth knowing: WorldData holds a pointer to a details
+/// struct, and the details struct holds the pointer to the WorldAreas.dat ROW. Reading the
+/// row fields straight off WorldData lands in the middle of the camera structure instead.
+///
+/// Ported from the AHK tool's <c>ReadWorldAreaDat</c>, including its two derived rules:
+/// hideouts are identified by the id (there is no flag for it), and a couple of league hubs
+/// count as towns despite the field saying otherwise.
+/// </remarks>
+public sealed class WorldAreaReader
+{
+    private readonly IMemoryReader _reader;
+    private readonly int _detailsPtr;
+    private readonly int _rowPtr;
+    private readonly int _idPtr;
+    private readonly int _namePtr;
+    private readonly int _act;
+    private readonly int _isTown;
+    private readonly int _environmentRef;
+    private readonly int _environmentFile;
+
+    // The last row's environment. Tables are loaded once and never freed while the game runs,
+    // so a row's environment is fixed for the session: it is read when the area changes rather
+    // than on every frame this is asked.
+    private ulong _environmentOf;
+    private string _environment = string.Empty;
+
+    public WorldAreaReader(IMemoryReader reader, OffsetSchema schema)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(schema);
+        _reader = reader;
+
+        _detailsPtr = schema.Structs["WorldData"].OffsetOf("WorldAreaDetailsPtr");
+        _rowPtr = schema.Structs["WorldAreaDetails"].OffsetOf("RowPtr");
+
+        StructDef row = schema.Structs["WorldAreaDat"];
+        _idPtr = row.OffsetOf("IdPtr");
+        _namePtr = row.OffsetOf("NamePtr");
+        _act = row.OffsetOf("Act");
+        _isTown = row.OffsetOf("IsTown");
+        // OPTIONAL, both: a schema from before 2026-10-08 - every recording's own - names neither,
+        // and the area must still read from it. Without them the environment stays empty.
+        _environmentRef = row.Field("EnvironmentRef")?.Offset ?? -1;
+        _environmentFile = schema.Structs.TryGetValue("EnvironmentsDat", out StructDef? environments)
+            ? environments.Field("BaseEnvFilePtr")?.Offset ?? -1
+            : -1;
+    }
+
+    /// <summary>Reads the current area, or <see cref="AreaInfo.Unknown"/> if it does not resolve.</summary>
+    public AreaInfo Read(ulong worldData)
+    {
+        ulong details = _reader.ReadPointer(worldData + (ulong)_detailsPtr);
+        if (details == 0)
+        {
+            return AreaInfo.Unknown;
+        }
+
+        ulong row = _reader.ReadPointer(details + (ulong)_rowPtr);
+        if (row == 0)
+        {
+            return AreaInfo.Unknown;
+        }
+
+        string id = ReadString(row + (ulong)_idPtr);
+        if (id.Length == 0)
+        {
+            return AreaInfo.Unknown;
+        }
+
+        string name = ReadString(row + (ulong)_namePtr);
+        int act = _reader.Read<int>(row + (ulong)_act);
+        bool isTown = _reader.Read<byte>(row + (ulong)_isTown) != 0;
+
+        // The reference's two derived rules. "map" excludes the map-device hideouts, whose
+        // ids contain both words and which are very much hostile.
+        bool isHideout = id.Contains("hideout", StringComparison.OrdinalIgnoreCase)
+                         && !id.Contains("map", StringComparison.OrdinalIgnoreCase);
+        isTown = isTown
+                 || id.Equals("HeistHub", StringComparison.OrdinalIgnoreCase)
+                 || id.Equals("KalguuranSettlersLeague", StringComparison.OrdinalIgnoreCase);
+
+        if (row != _environmentOf && _environmentRef >= 0 && _environmentFile >= 0)
+        {
+            ulong environment = _reader.ReadPointer(row + (ulong)_environmentRef);
+            _environment = environment == 0 ? string.Empty : ReadString(environment + (ulong)_environmentFile, 260);
+            _environmentOf = row;
+        }
+
+        return new AreaInfo(id, name, act, isTown, isHideout, _environment);
+    }
+
+    /// <summary>Reads a wide string through a pointer field, empty when it does not resolve.</summary>
+    private string ReadString(ulong pointerField, int maxChars = 64)
+    {
+        ulong text = _reader.ReadPointer(pointerField);
+        return text == 0 ? string.Empty : _reader.ReadUnicodeString(text, maxChars);
+    }
+}

@@ -1,0 +1,576 @@
+{
+  "maps": {
+    "Abyss_Pinnacle": {
+      "name": "The Well of Souls"
+    },
+    "ChayulaLeague": {
+      "name": "Monastery of the Keepers"
+    },
+    "ChayulaLeague_Tower": {
+      "name": "Hive Fortress",
+      "tags": ["breach"]
+    },
+    "ChayulaLeague_TowerBoss": {
+      "name": "Hive Colony",
+      "tags": ["boss", "breach"]
+    },
+    "Delirium_Act1Town": {
+      "name": "Simulacrum of Delusion"
+    },
+    "Delirium_Act1Town_Quest": {
+      "name": "Simulacrum of Delusion"
+    },
+    "Delirium_Act2Reveal": {
+      "name": "Garukhan's Tomb"
+    },
+    "Delirium_Act3Town": {
+      "name": "Sunken Pyramid"
+    },
+    "Delirium_VastiriOutskirts": {
+      "name": "[DNT-UNUSED] Vastiri Outpost"
+    },
+    "EndgameDoodad_BeastGroundZero": {
+      "name": "The Chained Beast",
+      "tags": ["boss", "expedition"]
+    },
+    "EndgameDoodad_MeteorCrater": {
+      "name": "The Fallen Star",
+      "tags": ["expedition"]
+    },
+    "ExpeditionLogBook_Atoll": {
+      "name": "Barren Atoll",
+      "tags": ["expedition"]
+    },
+    "ExpeditionLogBook_Basin": {
+      "name": "Stagnant Basin",
+      "tags": ["expedition"]
+    },
+    "ExpeditionLogBook_Digsite": {
+      "name": "Exhumed Ruins",
+      "tags": ["expedition"]
+    },
+    "ExpeditionLogBook_Gully": {
+      "name": "Sloughed Gully",
+      "tags": ["expedition"]
+    },
+    "ExpeditionLogBook_Heath": {
+      "name": "Moor of Fallen Skies",
+      "tags": ["expedition"]
+    },
+    "ExpeditionLogBook_Peninsula": {
+      "name": "Craggy Peninsula",
+      "tags": ["expedition"]
+    },
+    "ExpeditionLogBook_Prairie": {
+      "name": "Grazed Prairie",
+      "tags": ["expedition"]
+    },
+    "ExpeditionLogBook_Reef": {
+      "name": "Bleached Shoals",
+      "tags": ["expedition"]
+    },
+    "ExpeditionLogBook_Tropical": {
+      "name": "Lush Isle",
+      "tags": ["expedition"]
+    },
+    "ExpeditionLogBook_Tundra": {
+      "name": "Frigid Bluffs",
+      "tags": ["expedition"]
+    },
+    "ExpeditionLogBook_Wastes": {
+      "name": "Scorched Cay",
+      "tags": ["expedition"]
+    },
+    "ExpeditionSubArea_MedvedBoss": {
+      "name": "Sprawling Jungle",
+      "tags": ["boss", "expedition"]
+    },
+    "ExpeditionSubArea_OlrothBoss": {
+      "name": "Obscure Island",
+      "tags": ["boss", "expedition"]
+    },
+    "ExpeditionSubArea_UhtredBoss": {
+      "name": "Secluded Temple",
+      "tags": ["boss", "expedition"]
+    },
+    "ExpeditionSubArea_VoranaBoss": {
+      "name": "Mournful Cliffside",
+      "tags": ["boss", "expedition"]
+    },
+    "G_Endgame_Town": {
+      "name": "The Ziggurat Refuge"
+    },
+    "IncursionHubEndgame": {
+      "name": "Vaal Ruins"
+    },
+    "MapAlpineRidge": {
+      "name": "Alpine Ridge"
+    },
+    "MapAridPlains": {
+      "name": "Arid Plains"
+    },
+    "MapAugury": {
+      "name": "Augury"
+    },
+    "MapAzmerianRanges": {
+      "name": "Azmerian Ranges",
+      "tags": ["craft"]
+    },
+    "MapBackwash": {
+      "name": "Backwash"
+    },
+    "MapBastille": {
+      "name": "Bastille"
+    },
+    "MapBazaar": {
+      "name": "Bazaar"
+    },
+    "MapBloodwood": {
+      "name": "Bloodwood"
+    },
+    "MapBloomingField": {
+      "name": "Blooming Field"
+    },
+    "MapBluff": {
+      "name": "Bluff"
+    },
+    "MapBurialBog": {
+      "name": "Burial Bog"
+    },
+    "MapCaldera": {
+      "name": "Caldera"
+    },
+    "MapCanyon": {
+      "name": "Canyon"
+    },
+    "MapCavernCity": {
+      "name": "Sacred Reservoir",
+      "tags": ["lineage"]
+    },
+    "MapCenotes": {
+      "name": "Cenotes"
+    },
+    "MapChannel": {
+      "name": "Channel"
+    },
+    "MapChasm": {
+      "name": "Chasm"
+    },
+    "MapCliffside": {
+      "name": "Cliffside"
+    },
+    "MapCreek": {
+      "name": "Creek"
+    },
+    "MapCrimsonShores": {
+      "name": "Crimson Shores"
+    },
+    "MapCrypt": {
+      "name": "Crypt"
+    },
+    "MapDecay": {
+      "name": "Decay"
+    },
+    "MapDeforestation": {
+      "name": "Deforestation"
+    },
+    "MapDerelictMansion": {
+      "name": "Derelict Mansion",
+      "tags": ["lineage"]
+    },
+    "MapDeserted": {
+      "name": "Deserted"
+    },
+    "MapEpitaph": {
+      "name": "Epitaph"
+    },
+    "MapExcavation": {
+      "name": "Digsite"
+    },
+    "MapFlotsam": {
+      "name": "Flotsam"
+    },
+    "MapForge": {
+      "name": "Forge"
+    },
+    "MapFortress": {
+      "name": "Fortress"
+    },
+    "MapFrozenFalls": {
+      "name": "Frozen Falls"
+    },
+    "MapGreenhouse": {
+      "name": "Greenhouse"
+    },
+    "MapGrimhaven": {
+      "name": "Grimhaven"
+    },
+    "MapHeadland": {
+      "name": "Headland"
+    },
+    "MapHiddenGrotto": {
+      "name": "Hidden Grotto"
+    },
+    "MapHideoutCanal_Claimable": {
+      "name": "Canal Hideout",
+      "tags": ["hideout"]
+    },
+    "MapHideoutFarmlands_Claimable": {
+      "name": "Farmlands Hideout",
+      "tags": ["hideout"]
+    },
+    "MapHideoutFelled_Claimable": {
+      "name": "Felled Hideout",
+      "tags": ["hideout"]
+    },
+    "MapHideoutLimestone_Claimable": {
+      "name": "Limestone Hideout",
+      "tags": ["hideout"]
+    },
+    "MapHideoutPrison_Claimable": {
+      "name": "Prison Hideout",
+      "tags": ["hideout"]
+    },
+    "MapHideoutShrine_Claimable": {
+      "name": "Shrine Hideout",
+      "tags": ["hideout"]
+    },
+    "MapHive": {
+      "name": "Hive"
+    },
+    "MapIceCave": {
+      "name": "Ice Cave"
+    },
+    "MapInferno": {
+      "name": "Inferno"
+    },
+    "MapLoftySummit": {
+      "name": "Lofty Summit"
+    },
+    "MapLostTowers": {
+      "name": "Lost Towers",
+      "tags": ["tower"]
+    },
+    "MapMarrow": {
+      "name": "Marrow"
+    },
+    "MapMesa": {
+      "name": "Mesa"
+    },
+    "MapMineshaft": {
+      "name": "Mineshaft"
+    },
+    "MapMire": {
+      "name": "Mire"
+    },
+    "MapMonument": {
+      "name": "The Monument"
+    },
+    "MapMortuary": {
+      "name": "Mortuary"
+    },
+    "MapMothersoul_Female": {
+      "name": "The Matriarch Halls",
+      "tags": ["arbiter"]
+    },
+    "MapMothersoul_Female_Quest": {
+      "name": "The Matriarch Halls",
+      "tags": ["arbiter", "quest"]
+    },
+    "MapMothersoul_Male": {
+      "name": "The Patriarch Halls",
+      "tags": ["arbiter"]
+    },
+    "MapMothersoul_Male_Quest": {
+      "name": "The Patriarch Halls",
+      "tags": ["arbiter", "quest"]
+    },
+    "MapNecropolis": {
+      "name": "Necropolis"
+    },
+    "MapOasis": {
+      "name": "Oasis"
+    },
+    "MapOrbalasCrossing": {
+      "name": "Orbala's Crossing"
+    },
+    "MapOrnateChambers": {
+      "name": "Ornate Chambers"
+    },
+    "MapOutlands": {
+      "name": "Outlands"
+    },
+    "MapOvergrown": {
+      "name": "Overgrown"
+    },
+    "MapPenitentiary": {
+      "name": "Penitentiary"
+    },
+    "MapPit": {
+      "name": "Pit"
+    },
+    "MapPlantation": {
+      "name": "Plantation"
+    },
+    "MapPort": {
+      "name": "Port"
+    },
+    "MapPrecipice": {
+      "name": "Precipice"
+    },
+    "MapPrecursorTowerDesert": {
+      "name": "Precursor Tower",
+      "tags": ["tower"]
+    },
+    "MapPrecursorTowerForest": {
+      "name": "Precursor Tower",
+      "tags": ["tower"]
+    },
+    "MapPrecursorTowerGrass": {
+      "name": "Precursor Tower",
+      "tags": ["tower"]
+    },
+    "MapPrecursorTowerMountain": {
+      "name": "Precursor Tower",
+      "tags": ["tower"]
+    },
+    "MapPrecursorTowerSwamp": {
+      "name": "Precursor Tower",
+      "tags": ["tower"]
+    },
+    "MapRavine": {
+      "name": "Ravine"
+    },
+    "MapRazedFields": {
+      "name": "Razed Fields"
+    },
+    "MapReservoir": {
+      "name": "Reservoir"
+    },
+    "MapRiverhold": {
+      "name": "Riverhold"
+    },
+    "MapRiverside": {
+      "name": "Riverside"
+    },
+    "MapRockpools": {
+      "name": "Rockpools"
+    },
+    "MapRugosa": {
+      "name": "Rugosa"
+    },
+    "MapRupture": {
+      "name": "Rupture"
+    },
+    "MapRustbowl": {
+      "name": "Rustbowl"
+    },
+    "MapSanctuary": {
+      "name": "Sanctuary"
+    },
+    "MapSandspit": {
+      "name": "Sandspit"
+    },
+    "MapSavanna": {
+      "name": "Savannah"
+    },
+    "MapSeepage": {
+      "name": "Seepage"
+    },
+    "MapSevenWaters": {
+      "name": "Confluence"
+    },
+    "MapSinkhole": {
+      "name": "Sinkhole"
+    },
+    "MapSinterRift": {
+      "name": "Sinter Rift"
+    },
+    "MapSlash": {
+      "name": "Slash"
+    },
+    "MapSlick": {
+      "name": "Slick"
+    },
+    "MapSnowfall": {
+      "name": "Snowfall"
+    },
+    "MapSpiderWoods": {
+      "name": "Spider Woods"
+    },
+    "MapSpring_": {
+      "name": "Spring"
+    },
+    "MapSteamingSprings": {
+      "name": "Steaming Springs"
+    },
+    "MapSteppe": {
+      "name": "Steppe"
+    },
+    "MapStronghold": {
+      "name": "Stronghold"
+    },
+    "MapSulphuricCaverns": {
+      "name": "Sulphuric Caverns"
+    },
+    "MapSump": {
+      "name": "Sump"
+    },
+    "MapSunTemple": {
+      "name": "Sun Temple"
+    },
+    "MapSwampTower": {
+      "name": "Sinking Spire"
+    },
+    "MapSwarm": {
+      "name": "Swarm"
+    },
+    "MapTrenches": {
+      "name": "Trenches"
+    },
+    "MapUberBoss_CopperCitadel": {
+      "name": "The Copper Citadel",
+      "tags": ["arbiter"]
+    },
+    "MapUberBoss_Delirium": {
+      "name": "The Withered Willow"
+    },
+    "MapUberBoss_Divinity": {
+      "name": "The Origin Tower",
+      "tags": ["traverse"]
+    },
+    "MapUberBoss_FallenStar": {
+      "name": "Ruins of Kingsmarch",
+      "tags": ["traverse"]
+    },
+    "MapUberBoss_IronCitadel": {
+      "name": "The Iron Citadel",
+      "tags": ["arbiter"]
+    },
+    "MapUberBoss_IronCitadel_Quest": {
+      "name": "Western Enigma Chamber",
+      "tags": ["quest"]
+    },
+    "MapUberBoss_JadeCitadel": {
+      "name": "The Jade Isles",
+      "tags": ["lineage"]
+    },
+    "MapUberBoss_Monolith": {
+      "name": "The Burning Monolith",
+      "tags": ["traverse"]
+    },
+    "MapUberBoss_Ritual": {
+      "name": "Caer Tarth",
+      "tags": ["traverse"]
+    },
+    "MapUberBoss_StoneCitadel": {
+      "name": "The Stone Citadel",
+      "tags": ["arbiter"]
+    },
+    "MapUberBoss_StoneCitadel_Quest": {
+      "name": "Eastern Enigma Chamber",
+      "tags": ["quest"]
+    },
+    "MapUniqueCastaway": {
+      "name": "Castaway"
+    },
+    "MapUniqueInitialTower": {
+      "name": "Precursor Tower",
+      "tags": ["tower"]
+    },
+    "MapUniqueLake": {
+      "name": "The Fractured Lake"
+    },
+    "MapUniqueMegalith": {
+      "name": "The Ezomyte Megaliths"
+    },
+    "MapUniqueMerchant01_Chimeral": {
+      "name": "Merchant's Campsite"
+    },
+    "MapUniqueMerchant01_Oasis": {
+      "name": "Jado's Campsite"
+    },
+    "MapUniqueMerchant01_Sandswept": {
+      "name": "Merchant's Campsite"
+    },
+    "MapUniqueMerchant02_Crimson": {
+      "name": "Merchant's Campsite"
+    },
+    "MapUniqueMerchant02_Farmland": {
+      "name": "Merchant's Campsite"
+    },
+    "MapUniqueMerchant03_Beach": {
+      "name": "Moment of Zen"
+    },
+    "MapUniqueMerchant03_Raft": {
+      "name": "Moment of Zen"
+    },
+    "MapUniqueMerchant03_Tropical": {
+      "name": "Moment of Zen"
+    },
+    "MapUniqueReactor_01": {
+      "name": "Western Gateway"
+    },
+    "MapUniqueReactor_02": {
+      "name": "Ancient Gateway"
+    },
+    "MapUniqueReactor_03": {
+      "name": "Eastern Gateway"
+    },
+    "MapUniqueReactor_04": {
+      "name": "Site of the Chosen"
+    },
+    "MapUniqueSelenite": {
+      "name": "The Silent Cave"
+    },
+    "MapUniqueUntaintedParadise": {
+      "name": "Untainted Paradise"
+    },
+    "MapUniqueVault": {
+      "name": "Vaults of Kamasa"
+    },
+    "MapUniqueWildwood": {
+      "name": "The Viridian Wildwood"
+    },
+    "MapVaalCity": {
+      "name": "Vaal City"
+    },
+    "MapVaalFactory": {
+      "name": "The Assembly"
+    },
+    "MapVaalFoundry": {
+      "name": "Molten Vault"
+    },
+    "MapVaalVault": {
+      "name": "Sealed Vault",
+      "tags": ["lineage"]
+    },
+    "MapVaalVillage": {
+      "name": "Vaal Village"
+    },
+    "MapVoidReliquary": {
+      "name": "The Reliquary Vault",
+      "tags": ["traverse"]
+    },
+    "MapWaywardIsle": {
+      "name": "Wayward Isle"
+    },
+    "MapWetlands": {
+      "name": "Wetlands"
+    },
+    "MapWillow": {
+      "name": "Willow"
+    },
+    "MapWoodland": {
+      "name": "Woodland"
+    },
+    "Map_HildaCampsite": {
+      "name": "Hilda's Campsite",
+      "tags": ["traverse"]
+    },
+    "RitualLeagueBoss": {
+      "name": "Crux of Nothingness",
+      "tags": ["boss", "ritual"]
+    }
+  }
+}
