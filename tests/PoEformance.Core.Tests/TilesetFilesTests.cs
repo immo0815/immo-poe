@@ -267,4 +267,65 @@ public class TilesetFilesTests
         Assert.Equal(only, TileKey.Read(only.ToString()));
         Assert.Equal(new TileKey("Metadata/Terrain/A.tdt"), TileKey.Read("Metadata/Terrain/A.tdt"));
     }
+
+    /// <summary>
+    /// A fill list in both of poe_data_tools' versions: version 1 counts its sections and each section's files, version 2 does
+    /// not; a section is a quoted name with an optional number, a file a weight, a quoted .tdt or .arm and its words.
+    /// </summary>
+    [Fact]
+    public void AFillListReadsItsSectionsAndFilesInEitherVersion()
+    {
+        FillList one = FillList.Parse(
+            "version 1\n2\n\"walls\" 3\n1\n// a comment\n10 \"Metadata/Terrain/A/fill_01.tdt\"\n\"rooms\"\n1\n5\t\"Metadata/Terrain/A/Rooms/gap.arm\" R90 R270\n");
+        Assert.Equal(1, one.Version);
+        Assert.Equal(["walls", "rooms"], one.Sections);
+        Assert.Equal(
+            [
+                new FillListEntry("walls", 10, "Metadata/Terrain/A/fill_01.tdt", []),
+                new FillListEntry("rooms", 5, "Metadata/Terrain/A/Rooms/gap.arm", ["R90", "R270"]),
+            ],
+            one.Entries,
+            (left, right) => left.Section == right.Section && left.Weight == right.Weight && left.Path == right.Path && left.Words.SequenceEqual(right.Words));
+
+        FillList two = FillList.Parse("version 2\n\"abyss\"\n3 \"Metadata\\Terrain\\A\\fill_02.tdt\"\n");
+        Assert.Equal(2, two.Version);
+        Assert.Equal(new FillListEntry("abyss", 3, "Metadata/Terrain/A/fill_02.tdt", []).Path, Assert.Single(two.Entries).Path);
+        Assert.Same(FillList.None, FillList.Parse(string.Empty));
+    }
+
+    /// <summary>
+    /// A tile's doodad list, on lines out of Marrow's own files: a plain one, a wall top 250 up and turned, a spawner whose
+    /// .ao is two files, one with an exact pair - and a line with a field too few, refused and counted rather than shifted.
+    /// </summary>
+    [Fact]
+    public void ATileDoodadListReadsEachLineCountedBeforeItIsTaken()
+    {
+        TileDoodadList list = TileDoodadList.Parse(
+            "version 8\r\n"
+            + "12 2 0 -7.10543e-15 -0.598659 0 0 -0.294879 0.955534 0 1 \"Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao\" \"\" \"\" \"Metadata/MiscellaneousObjects/Doodad\" 0\r\n"
+            + "11 11 0 -250 -0.785398 0 0 -0.382683 0.92388 0 1 \"Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_Cv_1_a.ao\" \"\" \"\" \"Metadata/MiscellaneousObjects/TileUpperDoodad\" 0\r\n"
+            + "11 -12 0 -0 -0 0 0 0 1 0 1 \"Art/Models/Terrain/A/Spawner.fmt;Metadata/Terrain/A/Spawner.ao\" \"\" \"Art/Models/Terrain/A/Spawner.fmt\" \"Metadata/Terrain/A/Spawners/BlackStriderSpawnerClimbDown\" 0\r\n"
+            + "23 37 1 251.163 411.258 -328 -9.20604e-06 -0.0539278 7.30157e-07 -4.64916e-06 0.998545 0 1 \"Metadata/Terrain/Doodads/Lights/G2_4_2_fill02.ao\" \"\" \"\" \"Metadata/MiscellaneousObjects/DoodadNoBlocking\" 0\r\n"
+            + "1 2 0 0 0 0 0 1 0 1 \"a.ao\" \"\" \"\" \"Metadata/MiscellaneousObjects/Doodad\" 0\r\n");
+
+        Assert.Equal(8, list.Version);
+        Assert.Equal(4, list.Doodads.Count);
+        Assert.StartsWith("1 lines refused, the first 10 numbers before the file", list.Why, StringComparison.Ordinal);
+
+        RoomDoodad wall = list.Doodads[1];
+        Assert.Equal((11, 11, -250f, -0.785398f), (wall.X, wall.Y, wall.Height!.Value, wall.Turn));
+        Assert.Equal("Metadata/MiscellaneousObjects/TileUpperDoodad", wall.Stub);
+        Assert.False(wall.IsProp);
+
+        RoomDoodad spawner = list.Doodads[2];
+        Assert.Equal((11, -12), (spawner.X, spawner.Y));
+        Assert.Equal("Art/Models/Terrain/A/Spawner.fmt;Metadata/Terrain/A/Spawner.ao", spawner.Ao);
+        Assert.Equal("Metadata/Terrain/A/Spawners/BlackStriderSpawnerClimbDown", spawner.Stub);
+
+        RoomDoodad light = list.Doodads[3];
+        Assert.Equal(new System.Numerics.Vector2(251.163f, 411.258f), light.Exact);
+        Assert.Equal(-328f, light.Height);
+        Assert.True(light.IsProp);
+        Assert.Same(TileDoodadList.None, TileDoodadList.Parse(" "));
+    }
 }

@@ -92,6 +92,55 @@ public partial class CaptureFixtureTests
         Assert.Equal(settled.Groups[1].Value, settled.Groups[2].Value);
     }
 
+    /// <summary>
+    /// Marrow's laid files no tile list names: none inherited, the plain Cavepassage tile sharing its template with the listed
+    /// _feature one, and the four mine_abyss_fill tiles explained by nothing a v0.1.183 capture carries.
+    /// </summary>
+    /// <remarks>
+    /// THE COUNT OF THE UNEXPLAINED IS PINNED ON PURPOSE: it is the open question. When the replay learns where they come
+    /// from - a master's fill list is the next place to look, and Marrow's capture predates area-masters.txt - this is the
+    /// line that has to change, and it should change with a reason.
+    /// </remarks>
+    [Fact]
+    public void THETILEFILESOfMarrowLeaveOnlyTheFillsUnexplained()
+    {
+        string replay = CaptureReplayTests.TileFilesReplay(Capture("marrow"));
+        Assert.StartsWith("tile files: 5 laid files no tile list names: 0 reached by inheriting, 0 in a fill list, 1 sharing a template with a listed file, 4 not explained", replay, StringComparison.Ordinal);
+        Assert.Contains("Cavepassage_blacknessNoFog_v01_01: shares a template with Metadata/Terrain/Desert/CavePath/Features/Cavepassage_blacknessNoFog_v01_01_feature.tdt", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>Marrow's words are read off its tile list - four files, the cave entrance twice - and none of those files was laid in that instance.</summary>
+    /// <remarks>
+    /// THE OPEN HALF AGAIN: what a word does to a tile's placement needs a laid worded tile, which Marrow's instance did not
+    /// have. The first capture that has one is a fixture worth adding, and this count is what it will move.
+    /// </remarks>
+    [Fact]
+    public void THEWORDSOfMarrowAreReadButNotLaid()
+    {
+        string replay = CaptureReplayTests.WordsReplay(Capture("marrow"));
+        Assert.StartsWith("words: 4 tile files carry words in the area's lists", replay, StringComparison.Ordinal);
+        Assert.Contains("0 of them laid, 0 times", replay, StringComparison.Ordinal);
+        Assert.Contains("Metadata/Terrain/Desert/CavePath/Features/cave_entrance_01.tdt: I (tile list); R180 (tile list)", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Every doodad list Marrow's capture carries reads whole - 171 lines of 35 lists, none refused - and the recording's own
+    /// TileUpperDoodad entities are there to hold them against once a capture carries the lists beside the templates.
+    /// </summary>
+    /// <remarks>
+    /// THE MEASUREMENT ITSELF WAITS: the only doodads of Marrow's lists that meet an entity stand in the middle of a three by
+    /// three tile, where every way a tile can lie puts them - so all sixteen readings find the same three. The wall tops
+    /// (TileUpperDoodad, off the middle) that would tell the readings apart sit in lists beside the templates, which v0.1.183
+    /// did not look for.
+    /// </remarks>
+    [Fact]
+    public void THETILEDOODADSOfMarrowReadWholeAndWaitForTheWallTops()
+    {
+        string replay = CaptureReplayTests.TileDoodadsReplay(Capture("marrow"));
+        Assert.StartsWith("tile doodads: 35 tile files with a doodad list, 171 doodad lines - 35 doodad lists read, 0 with lines refused", replay, StringComparison.Ordinal);
+        Assert.Contains("Metadata/MiscellaneousObjects/TileUpperDoodad x238", replay, StringComparison.Ordinal);
+    }
+
     [GeneratedRegex(@"room way (\d), tile way (\d): edges (\d+) agree, (\d+) disagree")]
     private static partial Regex Pair();
 

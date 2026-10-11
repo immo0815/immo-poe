@@ -520,3 +520,95 @@ public sealed record TileList(IReadOnlyList<string> Includes, IReadOnlyList<stri
         return new TileList(includes, tiles) { Entries = entries };
     }
 }
+
+/// <summary>One line of a fill list: the weight, the <c>.tdt</c> or <c>.arm</c>, and the words after it.</summary>
+/// <param name="Section">The name of the section the line sits in.</param>
+/// <param name="Weight">The number before the path - not optional here, unlike a tile list's.</param>
+/// <param name="Path">The file as the line spells it, slashes forward.</param>
+/// <param name="Words">The unquoted words after the path - poe_data_tools calls them rotations, as in a tile list.</param>
+public sealed record FillListEntry(string Section, int Weight, string Path, IReadOnlyList<string> Words);
+
+/// <summary>
+/// An area's fill list (<c>.gft</c>), the file a master names under <c>FillTiles</c>: named sections of
+/// weighted tiles and rooms.
+/// </summary>
+/// <remarks>
+/// poe_data_tools' <c>gft</c> grammar (<c>file_parsers/gft/parser.rs</c>): lines, <c>//</c> ones and blank ones
+/// skipped; a <c>version</c> line; in version 1 a count of sections; then each section - a header of a quoted
+/// name and an optional number, in version 1 a count of its files, and a line per file: a weight, the quoted
+/// <c>.arm</c> or <c>.tdt</c>, and any number of unquoted words. The counts are skipped here rather than
+/// trusted: a line that starts with a quote opens a section and a line that starts with a number and quotes a
+/// path is a file, whatever the version.
+///
+/// WHY IT IS READ: every area lays tile files no tile list names - Marrow's mine_abyss_fill tiles sit beside
+/// its gapfill rooms and in no list - and a master's FillTiles line is the one other place a master names
+/// tiles (RePoE's VaalFactory: <c>FillTiles random_fill_tiles.gft</c>).
+/// </remarks>
+public sealed record FillList(int Version, IReadOnlyList<FillListEntry> Entries)
+{
+    /// <summary>What a fill list's file name ends with.</summary>
+    public const string Extension = ".gft";
+
+    /// <summary>Nothing read.</summary>
+    public static FillList None { get; } = new(0, []);
+
+    /// <summary>The section names in the order the file gives them.</summary>
+    public IReadOnlyList<string> Sections { get; init; } = [];
+
+    /// <summary>Reads a file's bytes, through the game's shared text decode. Never throws.</summary>
+    public static FillList Read(byte[]? content)
+        => content is not { Length: > 0 } ? None : Parse(StatDescriptionFiles.Decode(content));
+
+    /// <summary>Reads the text. Public so the format can be tested without an install.</summary>
+    public static FillList Parse(string? text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return None;
+        }
+
+        var version = 0;
+        string section = string.Empty;
+        var sections = new List<string>();
+        var entries = new List<FillListEntry>();
+        foreach (string line in text.Split('\n'))
+        {
+            ReadOnlySpan<char> rest = line.AsSpan().Trim();
+            if (rest.IsEmpty || rest.StartsWith("//", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (rest.StartsWith("version", StringComparison.Ordinal))
+            {
+                _ = int.TryParse(rest[7..].Trim(), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out version);
+                continue;
+            }
+
+            int open = rest.IndexOf('"');
+            int close = open >= 0 ? rest[(open + 1)..].IndexOf('"') : -1;
+            if (close < 0)
+            {
+                // A count of sections or of a section's files.
+                continue;
+            }
+
+            string quoted = rest.Slice(open + 1, close).ToString().Replace('\\', '/');
+            if (open == 0)
+            {
+                section = quoted;
+                sections.Add(section);
+                continue;
+            }
+
+            if (int.TryParse(rest[..open].Trim(), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int weight))
+            {
+                string[] words = rest[(open + close + 2)..].ToString()
+                    .Split((char[])[' ', '\t'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                entries.Add(new FillListEntry(section, weight, quoted, words));
+            }
+        }
+
+        return new FillList(version, entries) { Sections = sections };
+    }
+}

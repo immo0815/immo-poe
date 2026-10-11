@@ -1,7 +1,9 @@
 using System.Globalization;
 using System.Numerics;
 using System.Text;
+using PoEformance.Core.Diagnostics;
 using PoEformance.Core.Memory;
+using PoEformance.Core.Schema;
 using PoEformance.Features;
 using PoEformance.Game.Files;
 using PoEformance.Game.World;
@@ -890,7 +892,7 @@ public class CaptureReplayTests
         Assert.StartsWith("tile files", replay, StringComparison.Ordinal);
     }
 
-    /// <summary>A tile-files.txt written and read back: each laid file no list names is explained the way the area is built.</summary>
+    /// <summary>A tile-files.txt and an area-masters.txt written and read back: each laid file no tile list names is explained the way the area is built.</summary>
     [Fact]
     public void THETILEFILESReplayReadsWhatTheCaptureWrites()
     {
@@ -898,15 +900,20 @@ public class CaptureReplayTests
         Directory.CreateDirectory(folder);
         try
         {
+            string[] loaded = ["Metadata/Terrain/Maps/Test/master.tsi"];
             File.WriteAllText(
                 Path.Combine(folder, CaptureReport.TileFilesFile),
-                CaptureReport.TileFiles(CaptureReportTests.TileFilesInstall, ["Metadata/Terrain/Maps/Test/master.tsi"], null, CaptureReportTests.TileFilesLaid()));
+                CaptureReport.TileFiles(CaptureReportTests.TileFilesInstall, loaded, null, CaptureReportTests.TileFilesLaid()));
+            File.WriteAllText(Path.Combine(folder, CaptureReport.MastersFile), CaptureReport.Masters(CaptureReportTests.TileFilesInstall, loaded, null));
 
             string replay = TileFilesReplay(folder).ReplaceLineEndings("\n");
-            Assert.Contains("2 laid files no list names: 1 reached by inheriting, 1 by its path in a .tmd, 0 by its name alone in one, 0 not explained", replay, StringComparison.Ordinal);
+            Assert.Contains("4 laid files no tile list names: 1 reached by inheriting, 1 in a fill list, 1 sharing a template with a listed file, 1 not explained", replay, StringComparison.Ordinal);
             Assert.Contains("Fill_01: inherited - Metadata/Terrain/Test/Murky/Fill_01.tdt lies as Metadata/Terrain/Test/Fill_01.tdt", replay, StringComparison.Ordinal);
-            Assert.Contains("Fill_02: in the .tmd of Metadata/Terrain/Test/Lava/Fill_01.tdt", replay, StringComparison.Ordinal);
-            Assert.Contains("listed files: 2, 1 inheriting, 1 with a .tmd (1 text, 0 binary)", replay, StringComparison.Ordinal);
+            Assert.Contains("Fill_02: in a fill list", replay, StringComparison.Ordinal);
+            Assert.Contains("Passage: shares a template with Metadata/Terrain/Test/Features/Passage_feature.tdt", replay, StringComparison.Ordinal);
+            Assert.Contains("Alone: NOT EXPLAINED - Metadata/Terrain/Test/Alone.tdt", replay, StringComparison.Ordinal);
+            Assert.Contains("listed files: 3, 1 inheriting, 2 with a doodad list (.tmd)", replay, StringComparison.Ordinal);
+            Assert.Contains("fill list Metadata/Terrain/Maps/Test/fills.gft: version 2, 1 sections, 1 tiles (1 laid), 1 rooms", replay, StringComparison.Ordinal);
         }
         finally
         {
@@ -916,16 +923,14 @@ public class CaptureReplayTests
 
     /// <summary>
     /// tile-files-replay.txt: every laid file no tile list names, and what explains it - a listed file whose
-    /// chain passes through it, a listed file's .tmd naming its path, or its name alone - read back from
-    /// tile-files.txt, so a changed reading of either half runs again over a capture without the game.
+    /// chain passes through it, a fill list naming it, or a listed file with the same template - read back from
+    /// tile-files.txt, and the fill lists read back from area-masters.txt with the tool's own parser
+    /// (FillList), so a changed reading of any of them runs again over a capture without the game.
     /// </summary>
     /// <remarks>
-    /// WHY BOTH HALVES. Sulphuric Caverns' boss room lays Thickwall/Fill_01 where its list names
-    /// Murky/Thickwall/Fill_01, and Abyss/Lava/Fill_02 beside the list's Fill_01; a definition may inherit
-    /// another (annalithic's Tdt.cs) and some tiles load with a .tmd of their name, which neither reference
-    /// reads. Which of the two lays a file no list names is what this counts, so the build's pool can follow
-    /// the one the files show rather than the one that sounds right. The .tmd's own text is printed for the
-    /// first files it explains, since its layout is still to be read.
+    /// THE ORDER IS THE EVIDENCE'S, strongest first: a chain is the file saying what it is, a fill list is the
+    /// master naming the file, and a shared template is only the same geometry. A .tmd explains nothing here -
+    /// it is the tile's own doodad list (Marrow: 'version 8', a line a doodad) - and is only counted.
     /// </remarks>
     public static string TileFilesReplay(string folder)
     {
@@ -937,11 +942,13 @@ public class CaptureReplayTests
             return said.ToString();
         }
 
-        // THE BLOCKS: each file's flags, its chain (itself first) and the searchable .tmd - text lines, or the strings of a binary one.
+        // THE BLOCKS: each file's flags, its chain (itself first), the templates it ends at, and whether it carries a doodad list.
         var listed = new List<string>();
+        var fill = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var laid = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var chains = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        var tmds = new Dictionary<string, (bool Text, StringBuilder Body)>(StringComparer.OrdinalIgnoreCase);
+        var templates = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var doodads = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         string current = string.Empty;
         foreach (string raw in File.ReadLines(path))
         {
@@ -950,95 +957,536 @@ public class CaptureReplayTests
             {
                 int flags = line.LastIndexOf("  (", StringComparison.Ordinal);
                 current = line[6..flags];
-                string kinds = line[(flags + 3)..^1];
-                if (kinds.Contains("listed", StringComparison.Ordinal))
+                string[] kinds = line[(flags + 3)..^1].Split(", ");
+                if (kinds.Contains("listed"))
                 {
                     listed.Add(current);
                 }
 
-                if (kinds.Contains("laid", StringComparison.Ordinal))
+                if (kinds.Contains("fill"))
+                {
+                    fill.Add(current);
+                }
+
+                if (kinds.Contains("laid"))
                 {
                     laid.Add(current);
                 }
 
                 chains[current] = [current];
-                continue;
+                templates[current] = [];
             }
-
-            if (current.Length == 0)
-            {
-                continue;
-            }
-
-            if (line.StartsWith("  inherits\t", StringComparison.Ordinal))
+            else if (current.Length > 0 && line.StartsWith("  inherits\t", StringComparison.Ordinal))
             {
                 chains[current].Add(line[11..]);
             }
-            else if (line.StartsWith("  tmd\t", StringComparison.Ordinal) && !line.EndsWith("\tnone", StringComparison.Ordinal))
+            else if (current.Length > 0 && line.StartsWith("  defines\t", StringComparison.Ordinal))
             {
-                tmds[current] = (line.EndsWith("\ttext", StringComparison.Ordinal), new StringBuilder());
+                string shapes = line.Split('\t')[^1];
+                templates[current] = shapes.StartsWith("templates ", StringComparison.Ordinal)
+                    ? shapes[10..].Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    : [];
             }
-            else if ((line.StartsWith("  | ", StringComparison.Ordinal) || line.StartsWith("  strings\t", StringComparison.Ordinal)) && tmds.TryGetValue(current, out var tmd))
+            else if (current.Length > 0 && line.StartsWith("  tmd\t", StringComparison.Ordinal) && !line.EndsWith("\tnone", StringComparison.Ordinal))
             {
-                tmd.Body.AppendLine((line.StartsWith("  | ", StringComparison.Ordinal) ? line[4..] : line[10..]).Replace('\\', '/'));
+                doodads.Add(current);
             }
         }
 
         var listedSet = new HashSet<string>(listed, StringComparer.OrdinalIgnoreCase);
         List<string> unlisted = [.. laid.Where(one => !listedSet.Contains(one)).Order(StringComparer.OrdinalIgnoreCase)];
-        int inherited = 0, byPath = 0, byName = 0, unexplained = 0;
+        int inherited = 0, filled = 0, shaped = 0, unexplained = 0;
         var lines = new StringBuilder();
-        var shown = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (string file in unlisted)
         {
-            string name = Path.GetFileName(file);
             List<string> heirs = [.. listed.Where(one => chains[one].Skip(1).Contains(file, StringComparer.OrdinalIgnoreCase))];
-            List<string> naming = [.. listed.Where(one => tmds.TryGetValue(one, out var tmd) && tmd.Body.ToString().Contains(file, StringComparison.OrdinalIgnoreCase))];
-            List<string> named = [.. listed.Where(one => !naming.Contains(one) && tmds.TryGetValue(one, out var tmd) && tmd.Body.ToString().Contains(name, StringComparison.OrdinalIgnoreCase))];
+            List<string> twins = [.. listed.Where(one => templates[one].Intersect(templates[file], StringComparer.OrdinalIgnoreCase).Any())];
             if (heirs.Count > 0)
             {
                 inherited++;
                 lines.AppendLine(CultureInfo.InvariantCulture, $"  {Short(file)}: inherited - {string.Join(", ", heirs)} lies as {file}");
             }
-            else if (naming.Count > 0)
+            else if (fill.Contains(file))
             {
-                byPath++;
-                lines.AppendLine(CultureInfo.InvariantCulture, $"  {Short(file)}: in the .tmd of {string.Join(", ", naming)}");
+                filled++;
+                lines.AppendLine(CultureInfo.InvariantCulture, $"  {Short(file)}: in a fill list - {file}");
             }
-            else if (named.Count > 0)
+            else if (twins.Count > 0)
             {
-                byName++;
-                lines.AppendLine(CultureInfo.InvariantCulture, $"  {Short(file)}: its name alone in the .tmd of {string.Join(", ", named)} - {file}");
+                shaped++;
+                lines.AppendLine(CultureInfo.InvariantCulture, $"  {Short(file)}: shares a template with {string.Join(", ", twins)} - {file}");
             }
             else
             {
                 unexplained++;
                 lines.AppendLine(CultureInfo.InvariantCulture, $"  {Short(file)}: NOT EXPLAINED - {file}");
-                continue;
             }
+        }
 
-            // THE .tmd THAT EXPLAINS IT, whole, the first few times: its layout is still to be read.
-            foreach (string one in naming.Concat(named))
+        said.AppendLine(CultureInfo.InvariantCulture,
+            $"tile files: {unlisted.Count} laid files no tile list names: {inherited} reached by inheriting, {filled} in a fill list, {shaped} sharing a template with a listed file, {unexplained} not explained");
+        said.AppendLine(CultureInfo.InvariantCulture,
+            $"listed files: {listed.Count}, {listed.Count(one => chains[one].Count > 1)} inheriting, {listed.Count(doodads.Contains)} with a doodad list (.tmd)");
+        FillLists(said, folder, laid);
+        said.AppendLine();
+        said.Append(lines);
+        return said.ToString();
+    }
+
+    /// <summary>Holds every laid tile whose list line carries words against the way the game laid it; writes the table beside the capture's files.</summary>
+    [Fact]
+    public void THEWORDSAreHeldAgainstTheLaidTilesFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder)
+        {
+            return;
+        }
+
+        string replay = WordsReplay(folder);
+        File.WriteAllText(Path.Combine(folder, "words-replay.txt"), replay);
+        Assert.StartsWith("words:", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// words-replay.txt: every tile a tile list or fill list writes words after (I, R90, R180, R270 in Marrow's), and every
+    /// time the area laid it - the placement in the area, and where a placed room holds it, the way it lies in the room.
+    /// </summary>
+    /// <remarks>
+    /// WHY MEASURE FIRST. poe_data_tools reads the words as strings it calls rotations and says nothing of what they do;
+    /// Marrow lists its cave entrance once with I and once with R180 and its boss arena with I. Whether a word fixes the
+    /// tile's way in the AREA or in its ROOM, or only picks which file stands for which turn, the two placements side by
+    /// side say - which is why both halves are printed and nothing is concluded here. The build obeys the words once a
+    /// capture with a worded tile laid shows which.
+    /// </remarks>
+    public static string WordsReplay(string folder)
+    {
+        var said = new StringBuilder();
+        var words = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        void Word(string tile, IReadOnlyList<string> written, string from)
+        {
+            if (written.Count > 0)
             {
-                if (shown.Count < 6 && shown.Add(one))
+                (words.TryGetValue(tile, out List<string>? known) ? known : words[tile] = []).Add($"{string.Join(' ', written)} ({from})");
+            }
+        }
+
+        string lists = Path.Combine(folder, CaptureReport.TilesetListsFile);
+        if (File.Exists(lists))
+        {
+            foreach (TileListEntry entry in TileList.Parse(File.ReadAllText(lists)).Entries)
+            {
+                Word(entry.Tile, entry.Words, "tile list");
+            }
+        }
+
+        foreach (FillListEntry entry in FillEntries(folder))
+        {
+            Word(entry.Path, entry.Words, $"fill list, section {entry.Section}");
+        }
+
+        TerrainGrid? grid = Terrain(folder, out string how);
+        said.AppendLine(CultureInfo.InvariantCulture, $"words: {words.Count} tile files carry words in the area's lists; {how}");
+        if (words.Count == 0 || grid?.Tiles is not { } laid)
+        {
+            said.AppendLine(words.Count == 0 ? "no tile line carries a word" : "nothing to hold them against without the terrain's tiles");
+            return said.ToString();
+        }
+
+        // EVERY LAID TILE ONCE, at its first piece: the placement the area gives it.
+        var inArea = new Dictionary<string, List<(int X, int Y, int Placement)>>(StringComparer.OrdinalIgnoreCase);
+        for (var y = 0; y < laid.Height; y++)
+        {
+            for (var x = 0; x < laid.Width; x++)
+            {
+                string path = laid.PathAt(x, y);
+                if (path.Length > 0 && words.ContainsKey(path) && laid.SubAt(x, y) is (0, 0))
                 {
-                    lines.AppendLine(CultureInfo.InvariantCulture, $"    the .tmd of {one} ({(tmds[one].Text ? "text" : "binary - its strings")}):");
-                    foreach (string text in tmds[one].Body.ToString().Split('\n'))
+                    (inArea.TryGetValue(path, out List<(int, int, int)>? found) ? found : inArea[path] = []).Add((x, y, laid.PlacementAt(x, y)));
+                }
+            }
+        }
+
+        // AND WHERE A PLACED ROOM HOLDS IT: the room's turn and the way the tile lies in the room, as the build replay reads it.
+        var inRoom = new Dictionary<(int X, int Y), List<string>>();
+        Placing placing = Place(folder);
+        for (var one = 0; one < placing.Rooms.Count; one++)
+        {
+            (string room, RoomLayout layout) = placing.Rooms[one];
+            foreach (RoomDoodadPlace place in placing.Placed[one].Places.Places)
+            {
+                RoomCandidate at = place.Where;
+                for (var line = 0; line < layout.Height; line++)
+                {
+                    for (var column = 0; column < layout.Width; column++)
                     {
-                        lines.Append("    | ").AppendLine(text.TrimEnd('\r'));
+                        RoomSlot slot = layout.SlotAt(column, line);
+                        if (!slot.IsTile)
+                        {
+                            continue;
+                        }
+
+                        (int left, int top) = slot.Corner(column, line);
+                        (int cellX, int cellY) = RoomFinder.CornerOf(left, top, slot.Width, slot.Height, layout.Width, layout.Height, at.Turn);
+                        (int x, int y) = (at.X + cellX, at.Y + cellY);
+                        if (!words.ContainsKey(laid.PathAt(x, y)) || laid.SubAt(x, y) is not (0, 0))
+                        {
+                            continue;
+                        }
+
+                        int placement = laid.PlacementAt(x, y);
+                        int way = Enumerable.Range(0, 8).FirstOrDefault(candidate => Composed(at.Turn, candidate) == placement, -1);
+                        (inRoom.TryGetValue((x, y), out List<string>? rooms) ? rooms : inRoom[(x, y)] = [])
+                            .Add(string.Create(CultureInfo.InvariantCulture, $"{Short(room)} slot {column}, {line}, room {RoomFinder.Said(at.Turn)}: in the room {way}"));
                     }
                 }
             }
         }
 
-        int inheriting = listed.Count(one => chains[one].Count > 1);
-        int withTmd = listed.Count(tmds.ContainsKey);
-        int textTmd = listed.Count(one => tmds.TryGetValue(one, out var tmd) && tmd.Text);
-        said.AppendLine(CultureInfo.InvariantCulture, $"tile files: {unlisted.Count} laid files no list names: {inherited} reached by inheriting, {byPath} by its path in a .tmd, {byName} by its name alone in one, {unexplained} not explained");
-        said.AppendLine(CultureInfo.InvariantCulture, $"listed files: {listed.Count}, {inheriting} inheriting, {withTmd} with a .tmd ({textTmd} text, {withTmd - textTmd} binary)");
+        int laidFiles = inArea.Count, instances = inArea.Values.Sum(found => found.Count);
+        said.AppendLine(CultureInfo.InvariantCulture, $"{laidFiles} of them laid, {instances} times; {inRoom.Count} of those inside a room the doodads placed");
         said.AppendLine();
-        said.Append(lines);
+        foreach ((string tile, List<string> written) in words.OrderBy(one => one.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            said.AppendLine(CultureInfo.InvariantCulture, $"{tile}: {string.Join("; ", written)}");
+            if (!inArea.TryGetValue(tile, out List<(int X, int Y, int Placement)>? found))
+            {
+                said.AppendLine("  not laid");
+                continue;
+            }
+
+            said.AppendLine(CultureInfo.InvariantCulture, $"  laid {found.Count}x, placements in the area: {string.Join(", ", found.GroupBy(one => one.Placement).OrderBy(group => group.Key).Select(group => $"{group.Key} x{group.Count()}"))}");
+            foreach ((int x, int y, int placement) in found)
+            {
+                string rooms = inRoom.TryGetValue((x, y), out List<string>? held) ? string.Join("; ", held) : "no placed room holds it";
+                said.AppendLine(CultureInfo.InvariantCulture, $"    tile {x}, {y}: placement {placement} - {rooms}");
+            }
+        }
+
         return said.ToString();
+    }
+
+    /// <summary>Holds every laid tile's own doodads against the entities the recording holds, under every way a tile can lie; writes the table beside the capture's files.</summary>
+    [Fact]
+    public void THETILEDOODADSAreHeldAgainstTheEntitiesFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder)
+        {
+            return;
+        }
+
+        string replay = TileDoodadsReplay(folder);
+        File.WriteAllText(Path.Combine(folder, "tile-doodads-replay.txt"), replay);
+        Assert.StartsWith("tile doodads:", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>The tolerances a predicted tile doodad is counted at - a doodad's own place, a little off, within its tile.</summary>
+    private static readonly float[] Within = [30f, 100f, 250f];
+
+    /// <summary>
+    /// tile-doodads-replay.txt: every laid piece whose file carries a doodad list in tile-files.txt, each doodad put into
+    /// the area under sixteen readings - the eight ways a file can lie on its template, the game's turn after it or before
+    /// it - and held against the nearest entity of the same type and model the recording holds, unfiltered.
+    /// </summary>
+    /// <remarks>
+    /// WHAT IS MEASURED: how a point of a tile's own frame reaches the world. LaidRoomModels draws a tile's mesh one way of
+    /// eight, chosen from the ground of the sloped pieces only, and leaves open whether rows count from the top or the bottom;
+    /// a tile's doodads are points in the same frame that the game ALSO puts down as entities, so where they stand settles it
+    /// directly. The fifteen wrong readings are the control: a reading is right where it finds far more of them than the rest,
+    /// not where it finds some. Every line of the best reading is printed with both halves - the doodad, where it was put, the
+    /// entity found and how far - so a near miss can be told from a coincidence.
+    /// </remarks>
+    public static string TileDoodadsReplay(string folder)
+    {
+        var said = new StringBuilder();
+        (Dictionary<string, (int Width, int Height, List<RoomDoodad> Doodads)> files, string filesHow) = TileDoodads(folder);
+        TerrainGrid? grid = Terrain(folder, out string how);
+        (List<DoodadSighting> entities, string entitiesHow) = Entities(folder);
+        int lines = files.Values.Sum(file => file.Doodads.Count);
+        said.AppendLine(CultureInfo.InvariantCulture, $"tile doodads: {files.Count} tile files with a doodad list, {lines} doodad lines - {filesHow}; {how}; {entitiesHow}");
+        if (lines == 0 || grid?.Tiles is not { } laid || entities.Count == 0)
+        {
+            said.AppendLine("nothing to measure");
+            return said.ToString();
+        }
+
+        var byType = entities.GroupBy(one => one.Path, StringComparer.OrdinalIgnoreCase).ToDictionary(group => group.Key, group => group.ToList(), StringComparer.OrdinalIgnoreCase);
+        (int Width, int Height) Size(int id) => files.TryGetValue(laid.Paths[id], out var file) ? (file.Width, file.Height) : (1, 1);
+        List<TilePiece> pieces = [.. laid.Pieces(0, 0, laid.Width, laid.Height, Size).Where(piece => piece.Whole && files.ContainsKey(laid.Paths[piece.Id]))];
+
+        // EVERY READING: (way the file lies, the game's turn after it or before it).
+        var readings = new List<(int Way, bool TurnAfter, int[] Found, double Off, List<string> Lines)>();
+        for (var way = 0; way < 8; way++)
+        {
+            foreach (bool turnAfter in (bool[])[true, false])
+            {
+                int[] found = new int[Within.Length];
+                double off = 0;
+                var printed = new List<string>();
+                foreach (TilePiece piece in pieces)
+                {
+                    (int width, int height, List<RoomDoodad> doodads) = files[laid.Paths[piece.Id]];
+                    var middle = new Vector2((piece.MinX + piece.MaxX + 1) * TileModels.Side / 2f, (piece.MinY + piece.MaxY + 1) * TileModels.Side / 2f);
+                    foreach (RoomDoodad doodad in doodads)
+                    {
+                        Vector2 local = (doodad.Exact ?? new Vector2(doodad.X, doodad.Y) * (TileModels.Side / RoomModels.CellsPerTile))
+                            - new Vector2(width * TileModels.Side / 2f, height * TileModels.Side / 2f);
+                        Vector2 lies = Apply(TileOrientation.OfPlacement(way).Turn, local);
+                        Vector2 turned = Apply(TileOrientation.OfPlacement(piece.Placement).Turn, turnAfter ? lies : local);
+                        Vector2 world = middle + (turnAfter ? turned : Apply(TileOrientation.OfPlacement(way).Turn, turned));
+                        (DoodadSighting? nearest, float distance) = Nearest(byType, doodad, world);
+                        for (var within = 0; within < Within.Length; within++)
+                        {
+                            found[within] += distance <= Within[within] ? 1 : 0;
+                        }
+
+                        off += distance <= Within[^1] ? distance : 0;
+                        string seen = nearest is { } entity
+                            ? string.Create(CultureInfo.InvariantCulture, $"nearest {Short(entity.Model)} at {entity.X:0}, {entity.Y:0}, z {entity.Z:0}, {distance:0} off")
+                            : "no entity of its type";
+                        printed.Add(string.Create(CultureInfo.InvariantCulture,
+                            $"  {Short(laid.Paths[piece.Id])} at {piece.MinX}, {piece.MinY} placement {piece.Placement}: {Short(doodad.Ao)} cell {doodad.X}, {doodad.Y} z {doodad.Height} -> {world.X:0}, {world.Y:0}; {seen}"));
+                    }
+                }
+
+                readings.Add((way, turnAfter, found, found[^1] > 0 ? off / found[^1] : double.NaN, printed));
+            }
+        }
+
+        int predicted = readings[0].Lines.Count;
+        said.AppendLine(CultureInfo.InvariantCulture, $"{pieces.Count} whole laid pieces carry them, {predicted} doodads put into the area under each reading; entities by type: {byType.Count}");
+
+        // BOTH HALVES OF THE TYPES: what the tiles' lines name, and what the recording holds - a type on one side only finds nothing.
+        var named = files.Values.SelectMany(file => file.Doodads).GroupBy(doodad => doodad.Stub, StringComparer.OrdinalIgnoreCase);
+        said.AppendLine("  the doodad lists' types, lines: " + string.Join(", ", named.OrderByDescending(group => group.Count())
+            .Select(group => $"{group.Key} x{group.Count()} ({(byType.TryGetValue(group.Key, out List<DoodadSighting>? held) ? held.Count : 0)} entities)")));
+        said.AppendLine("  the recording's types, entities: " + string.Join(", ", byType.OrderByDescending(one => one.Value.Count).Select(one => $"{one.Key} x{one.Value.Count}")));
+        said.AppendLine("readings, best first - found within " + string.Join(" / ", Within.Select(one => one.ToString(CultureInfo.InvariantCulture))) + " units, and the mean distance of those within the last:");
+        var ordered = readings.OrderByDescending(one => one.Found[0]).ThenByDescending(one => one.Found[1]).ThenByDescending(one => one.Found[2]).ToList();
+        foreach ((int way, bool turnAfter, int[] found, double off, _) in ordered)
+        {
+            said.AppendLine(CultureInfo.InvariantCulture,
+                $"  way {way} ({TileOrientation.OfPlacement(way)}), the game's turn {(turnAfter ? "after" : "before")}: {string.Join(" / ", found)} of {predicted}, mean {off:0.#}");
+        }
+
+        said.AppendLine();
+        said.AppendLine("the best reading's doodads, both halves:");
+        foreach (string line in ordered[0].Lines)
+        {
+            said.AppendLine(line);
+        }
+
+        return said.ToString();
+
+        static Vector2 Apply((int Xx, int Xy, int Yx, int Yy) turn, Vector2 point)
+            => new((turn.Xx * point.X) + (turn.Xy * point.Y), (turn.Yx * point.X) + (turn.Yy * point.Y));
+    }
+
+    /// <summary>The nearest entity of a doodad's type whose model is the doodad's .ao (or unread), and how far.</summary>
+    private static (DoodadSighting? Entity, float Distance) Nearest(Dictionary<string, List<DoodadSighting>> byType, RoomDoodad doodad, Vector2 world)
+    {
+        if (!byType.TryGetValue(doodad.Stub, out List<DoodadSighting>? candidates))
+        {
+            return (null, float.PositiveInfinity);
+        }
+
+        string[] models = doodad.Ao.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        DoodadSighting? best = null;
+        float nearest = float.PositiveInfinity;
+        foreach (DoodadSighting entity in candidates)
+        {
+            if (entity.Model.Length > 0 && !models.Contains(entity.Model, StringComparer.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            float distance = Vector2.Distance(world, new Vector2(entity.X, entity.Y));
+            if (distance < nearest)
+            {
+                (best, nearest) = (entity, distance);
+            }
+        }
+
+        return (best, nearest);
+    }
+
+    /// <summary>Each tile file's size and doodad lists out of tile-files.txt, by path, read with TileDoodadList - and how many lists did not read whole.</summary>
+    private static (Dictionary<string, (int Width, int Height, List<RoomDoodad> Doodads)> Files, string How) TileDoodads(string folder)
+    {
+        var files = new Dictionary<string, (int Width, int Height, List<RoomDoodad> Doodads)>(StringComparer.OrdinalIgnoreCase);
+        string path = Path.Combine(folder, CaptureReport.TileFilesFile);
+        if (!File.Exists(path))
+        {
+            return (files, $"no {CaptureReport.TileFilesFile} in the capture");
+        }
+
+        string current = string.Empty;
+        (int Width, int Height) size = (1, 1);
+        var doodads = new List<RoomDoodad>();
+        var text = new StringBuilder();
+        bool inTmd = false;
+        int lists = 0, refused = 0;
+        void CloseTmd()
+        {
+            if (inTmd)
+            {
+                TileDoodadList list = TileDoodadList.Parse(text.ToString());
+                doodads.AddRange(list.Doodads);
+                lists++;
+                refused += list.Why.Length > 0 ? 1 : 0;
+            }
+
+            inTmd = false;
+            text.Clear();
+        }
+
+        void CloseFile()
+        {
+            CloseTmd();
+            if (current.Length > 0 && doodads.Count > 0)
+            {
+                files[current] = (size.Width, size.Height, [.. doodads]);
+            }
+
+            doodads.Clear();
+            size = (1, 1);
+        }
+
+        foreach (string raw in File.ReadLines(path))
+        {
+            string line = raw.TrimEnd('\r');
+            if (line.StartsWith("##### ", StringComparison.Ordinal))
+            {
+                CloseFile();
+                int flags = line.LastIndexOf("  (", StringComparison.Ordinal);
+                current = flags > 6 ? line[6..flags] : line[6..];
+            }
+            else if (line.StartsWith("  defines\t", StringComparison.Ordinal))
+            {
+                string[] cells = line.Split('\t');
+                string[] wide = cells.Length > 2 ? cells[2].Split('x') : [];  // defines, path, WxH, tag, templates
+                size = wide.Length == 2 && int.TryParse(wide[0], CultureInfo.InvariantCulture, out int width) && int.TryParse(wide[1], CultureInfo.InvariantCulture, out int height)
+                    ? (width, height)
+                    : (1, 1);
+            }
+            else if (line.StartsWith("  tmd\t", StringComparison.Ordinal))
+            {
+                CloseTmd();
+                inTmd = line.EndsWith("\ttext", StringComparison.Ordinal);
+            }
+            else if (inTmd && line.StartsWith("  | ", StringComparison.Ordinal))
+            {
+                text.AppendLine(line[4..]);
+            }
+            else if (inTmd)
+            {
+                CloseTmd();
+            }
+        }
+
+        CloseFile();
+        return (files, string.Create(CultureInfo.InvariantCulture, $"{lists} doodad lists read, {refused} with lines refused"));
+    }
+
+    /// <summary>Every named entity the recording holds - both entity maps walked unfiltered, as the capture's pass walked them.</summary>
+    private static (List<DoodadSighting> Entities, string How) Entities(string folder)
+    {
+        string path = Path.Combine(folder, CaptureReport.MemoryFile);
+        if (!File.Exists(path))
+        {
+            return ([], $"no {CaptureReport.MemoryFile} in the capture");
+        }
+
+        using var replay = ReplayMemoryReader.Load(File.OpenRead(path));
+        if (!replay.ResolvedStatics.TryGetValue("GameStates", out ulong gameStates))
+        {
+            return ([], "the recording names no GameStates static");
+        }
+
+        OffsetSchema schema = RealSessionTests.LiveSchema();
+        GameChainAddresses chain = GameChain.Resolve(replay, schema, gameStates);
+        DoodadSurvey survey = SleepingDoodads.Read(replay, schema, chain.AreaInstance, paths: null);
+        return survey.Why.Length > 0
+            ? ([], "entities not read: " + survey.Why)
+            : ([.. survey.Found], string.Create(CultureInfo.InvariantCulture, $"{survey.Found.Count} named entities from the recording"));
+    }
+
+    /// <summary>Every line of the fill lists area-masters.txt carries, read back with FillList - none where the capture has no such file.</summary>
+    private static List<FillListEntry> FillEntries(string folder)
+    {
+        var entries = new List<FillListEntry>();
+        string path = Path.Combine(folder, CaptureReport.MastersFile);
+        if (!File.Exists(path))
+        {
+            return entries;
+        }
+
+        string current = string.Empty;
+        var text = new StringBuilder();
+        foreach (string raw in File.ReadLines(path).Append("##### "))
+        {
+            string line = raw.TrimEnd('\r');
+            if (line.StartsWith("##### ", StringComparison.Ordinal))
+            {
+                if (current.EndsWith(FillList.Extension, StringComparison.OrdinalIgnoreCase))
+                {
+                    entries.AddRange(FillList.Parse(text.ToString()).Entries);
+                }
+
+                int named = line.IndexOf("  (", StringComparison.Ordinal);
+                current = named > 6 ? line[6..named] : line[6..];
+                text.Clear();
+            }
+            else if (line.StartsWith("  | ", StringComparison.Ordinal))
+            {
+                text.AppendLine(line[4..]);
+            }
+        }
+
+        return entries;
+    }
+
+    /// <summary>The fill lists of area-masters.txt read back with FillList, each with how many of its tiles the area laid.</summary>
+    private static void FillLists(StringBuilder said, string folder, HashSet<string> laid)
+    {
+        string path = Path.Combine(folder, CaptureReport.MastersFile);
+        if (!File.Exists(path))
+        {
+            said.AppendLine(CultureInfo.InvariantCulture, $"fill lists: no {CaptureReport.MastersFile} in the capture - a capture from 0.1.184 on carries it");
+            return;
+        }
+
+        string current = string.Empty;
+        var text = new StringBuilder();
+        void Close()
+        {
+            if (current.EndsWith(FillList.Extension, StringComparison.OrdinalIgnoreCase))
+            {
+                FillList list = FillList.Parse(text.ToString());
+                int rooms = list.Entries.Count(entry => entry.Path.EndsWith(".arm", StringComparison.OrdinalIgnoreCase));
+                int onGround = list.Entries.Count(entry => laid.Contains(entry.Path));
+                said.AppendLine(CultureInfo.InvariantCulture,
+                    $"fill list {current}: version {list.Version}, {list.Sections.Count} sections, {list.Entries.Count - rooms} tiles ({onGround} laid), {rooms} rooms");
+            }
+
+            text.Clear();
+        }
+
+        foreach (string raw in File.ReadLines(path))
+        {
+            string line = raw.TrimEnd('\r');
+            if (line.StartsWith("##### ", StringComparison.Ordinal))
+            {
+                Close();
+                int named = line.IndexOf("  (", StringComparison.Ordinal);
+                current = named > 6 ? line[6..named] : line[6..];
+            }
+            else if (line.StartsWith("  | ", StringComparison.Ordinal))
+            {
+                text.AppendLine(line[4..]);
+            }
+        }
+
+        Close();
     }
 
     /// <summary>The captures to read together: POEF_CAPTURES, several folders split by the platform's path separator - else POEF_CAPTURE alone, else none.</summary>

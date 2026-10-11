@@ -1,0 +1,795 @@
+176 tile files - 171 the area's lists name, 47 laid, 5 of those named by no list; each with its definition followed through what it inherits, and the .tmd beside it
+a definition that inherits carries nothing but the reference (annalithic's Tdt.cs); a .tmd is written as it is, since no reference reads its layout
+
+=== laid, but named by no list - and the listed files whose chain passes through it, or whose .tmd names it
+Metadata/Terrain/Desert/CavePath/Cavepassage_blacknessNoFog_v01_01.tdt
+  reached by inheriting from: none
+  its path in the .tmd of: none
+  its name alone in the .tmd of: none
+Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_01.tdt
+  reached by inheriting from: none
+  its path in the .tmd of: none
+  its name alone in the .tmd of: none
+Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_02.tdt
+  reached by inheriting from: none
+  its path in the .tmd of: none
+  its name alone in the .tmd of: none
+Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_03.tdt
+  reached by inheriting from: none
+  its path in the .tmd of: none
+  its name alone in the .tmd of: none
+Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_04.tdt
+  reached by inheriting from: none
+  its path in the .tmd of: none
+  its name alone in the .tmd of: none
+
+=== every file: 'inherits' for each hop, then 'defines' (size, tag, templates) or 'not read'; 'tmd' with '| ' text lines, or 'hex' and 'strings'
+##### Metadata/Terrain/Desert/CavePath/Abyss/abysswall_BendLarge_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abysswall_BendLarge_01.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/abysswall_BendLarge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/abysswall_BendLarge_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abysswall_BendLarge_02.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/abysswall_BendLarge_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/abysswall_BendLarge_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abysswall_BendLarge_03.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/abysswall_BendLarge_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/abysswall_CcLarge_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abysswall_CcLarge_01.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/abysswall_CcLarge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/abysswall_CcLarge_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abysswall_CcLarge_02.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/abysswall_CcLarge_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/abysswall_CcLarge_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abysswall_CcLarge_03.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/abysswall_CcLarge_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/abysswall_CvLarge_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abysswall_CvLarge_01.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/abysswall_CvLarge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/abysswall_CvLarge_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abysswall_CvLarge_02.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/abysswall_CvLarge_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/abysswall_CvLarge_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abysswall_CvLarge_03.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/abysswall_CvLarge_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/abysswall_StLarge_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abysswall_StLarge_01.tdt	2x1	tag 	templates Art/Models/Terrain/Desert/CavePath/abysswall_StLarge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/abyss_BendLarge_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abyss_BendLarge_01.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/abyss_BendLarge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/abyss_BendLarge_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abyss_BendLarge_02.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/abyss_BendLarge_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/abyss_BendLarge_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abyss_BendLarge_03.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/abyss_BendLarge_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/abyss_CcLarge_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abyss_CcLarge_01.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/abyss_CcLarge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/abyss_CcLarge_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abyss_CcLarge_02.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/abyss_CcLarge_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/abyss_CcLarge_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abyss_CcLarge_03.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/abyss_CcLarge_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/abyss_StLarge_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/abyss_StLarge_01.tdt	2x1	tag 	templates Art/Models/Terrain/Desert/CavePath/abyss_StLarge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/mine_abysswall_concave_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/mine_abysswall_concave_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/mine_abysswall_concave_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/mine_abysswall_concave_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/mine_abysswall_concave_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/mine_abysswall_concave_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/mine_abysswall_concave_v01_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/mine_abysswall_concave_v01_03.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/mine_abysswall_concave_v01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/mine_abysswall_convex_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/mine_abysswall_convex_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/mine_abysswall_convex_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/mine_abysswall_doubleconvex_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/mine_abysswall_doubleconvex_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/mine_abysswall_doubleconvex_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/mine_abysswall_doubleconvex_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/mine_abysswall_doubleconvex_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/mine_abysswall_doubleconvex_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/mine_abysswall_straight_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/mine_abysswall_straight_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/mine_abysswall_straight_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/mine_abysswall_straight_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/mine_abysswall_straight_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/mine_abysswall_straight_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/mine_abyss_concave_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/mine_abyss_concave_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/mine_abyss_concave_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/mine_abyss_convex_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/mine_abyss_convex_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/mine_abyss_convex_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/mine_abyss_doubleconvex_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/mine_abyss_doubleconvex_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/mine_abyss_doubleconvex_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Abyss/mine_abyss_straight_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Abyss/mine_abyss_straight_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/mine_abyss_straight_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Ambush/ambush_CenterHoleLarge_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Ambush/ambush_CenterHoleLarge_01.tdt	3x3	tag Ambush	templates Art/Models/Terrain/Desert/CavePath/ambush_CenterHoleLarge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Ambush/ambush_Straight_01_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Ambush/ambush_Straight_01_01.tdt	1x1	tag Ambush	templates Art/Models/Terrain/Desert/CavePath/ambush_Straight_01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Ambush/ambush_Straight_01_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Ambush/ambush_Straight_01_02.tdt	1x1	tag Ambush	templates Art/Models/Terrain/Desert/CavePath/ambush_Straight_01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Ambush/ambush_Straight_01_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Ambush/ambush_Straight_01_03.tdt	1x1	tag Ambush	templates Art/Models/Terrain/Desert/CavePath/ambush_Straight_01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_BendLarge_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_BendLarge_01.tdt	2x2	tag Ambush	templates Art/Models/Terrain/Desert/CavePath/thickwall_ambush_BendLarge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_BendLarge_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_BendLarge_02.tdt	2x2	tag Ambush	templates Art/Models/Terrain/Desert/CavePath/thickwall_ambush_BendLarge_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_BendLarge_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_BendLarge_03.tdt	2x2	tag Ambush	templates Art/Models/Terrain/Desert/CavePath/thickwall_ambush_BendLarge_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_CcLarge_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_CcLarge_02.tdt	2x2	tag Ambush	templates Art/Models/Terrain/Desert/CavePath/thickwall_ambush_CcLarge_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_CcLarge_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_CcLarge_03.tdt	2x2	tag Ambush	templates Art/Models/Terrain/Desert/CavePath/thickwall_ambush_CcLarge_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_CcLarge_04.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_CcLarge_04.tdt	2x2	tag Ambush	templates Art/Models/Terrain/Desert/CavePath/thickwall_ambush_CcLarge_04.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_CvLarge_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_CvLarge_01.tdt	2x2	tag Ambush	templates Art/Models/Terrain/Desert/CavePath/thickwall_ambush_CvLarge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_CvLarge_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_CvLarge_02.tdt	2x2	tag Ambush	templates Art/Models/Terrain/Desert/CavePath/thickwall_ambush_CvLarge_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_CvLarge_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_CvLarge_03.tdt	2x2	tag Ambush	templates Art/Models/Terrain/Desert/CavePath/thickwall_ambush_CvLarge_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_StLarge_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_StLarge_01.tdt	2x1	tag Ambush	templates Art/Models/Terrain/Desert/CavePath/thickwall_ambush_StLarge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_StLarge_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_StLarge_02.tdt	2x1	tag Ambush	templates Art/Models/Terrain/Desert/CavePath/thickwall_ambush_StLarge_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_StLarge_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Ambush/thickwall_ambush_StLarge_03.tdt	2x1	tag Ambush	templates Art/Models/Terrain/Desert/CavePath/thickwall_ambush_StLarge_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Blank_01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Blank_01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/Blank_01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Cavepassage_blacknessNoFog_v01_01.tdt  (laid)
+  defines	Metadata/Terrain/Desert/CavePath/Cavepassage_blacknessNoFog_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/Cavepassage_blacknessNoFog_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/arena_golemboss_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/arena_golemboss_01.tdt	7x7	tag GolemBoss_Arena	templates Art/Models/Terrain/Desert/CavePath/arena_golemboss_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/Cavepassage_blacknessNoFog_v01_01_feature.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/Cavepassage_blacknessNoFog_v01_01_feature.tdt	1x1	tag black_inside_wall_nofog	templates Art/Models/Terrain/Desert/CavePath/Cavepassage_blacknessNoFog_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/cave_entrance_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/cave_entrance_01.tdt	6x6	tag entrance	templates Art/Models/Terrain/Desert/CavePath/cave_entrance_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/cave_entrance_01_r270.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/cave_entrance_01_r270.tdt	6x6	tag entrance	templates Art/Models/Terrain/Desert/CavePath/cave_entrance_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/cave_entrance_01_r90.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/cave_entrance_01_r90.tdt	6x6	tag entrance	templates Art/Models/Terrain/Desert/CavePath/cave_entrance_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/centralstaircase_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/centralstaircase_01.tdt	11x11	tag giantstatue	templates Art/Models/Terrain/Desert/CavePath/centralstaircase_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/stairway_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/stairway_01.tdt	3x3	tag stairway	templates Art/Models/Terrain/Desert/CavePath/stairway_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_01_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_01_01.tdt	1x1	tag niche	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_01_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_01_02.tdt	1x1	tag niche	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_01_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_01_03.tdt	1x1	tag niche	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_nolight_01_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_nolight_01_01.tdt	1x1	tag niche	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_nolight_01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_nolight_01_01_forced.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_nolight_01_01_forced.tdt	1x1	tag niche_nolight	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_nolight_01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_nolight_01_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_nolight_01_02.tdt	1x1	tag niche	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_nolight_01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_nolight_01_02_forced.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_nolight_01_02_forced.tdt	1x1	tag niche_nolight	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_nolight_01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_nolight_01_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_nolight_01_03.tdt	1x1	tag niche	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_nolight_01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_nolight_01_03_forced.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/Straight_Niche_nolight_01_03_forced.tdt	1x1	tag niche_nolight	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_nolight_01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Features/Thickwall_Cave_Entrance.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Features/Thickwall_Cave_Entrance.tdt	2x2	tag transition	templates Art/Models/Terrain/Desert/CavePath/Thickwall_Cave_Entrance.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Features/Thickwall_Cave_Entrance.tmd	420 bytes	text
+  | version 8
+  | 23 37 1 251.163 411.258 -328 -9.20604e-06 -0.0539278 7.30157e-07 -4.64916e-06 0.998545 0 1 "Metadata/Terrain/Doodads/Lights/G2_4_2_fill02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Forced_Blank_01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/Forced_Blank_01_02.tdt	1x1	tag forcedblank	templates Art/Models/Terrain/Desert/CavePath/Blank_01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Seals/Convex_01_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/Convex_01_01.tdt	1x1	tag sealed	templates Art/Models/Terrain/Desert/CavePath/Convex_01_01.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/Convex_01_01.tmd	1666 bytes	text
+  | version 8
+  | 9 7 0 -31.8134 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonLean_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_Convex_01_01.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 11 0 -250 -0.785398 0 0 -0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_Cv_1_a.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 11 0 -250 -2.35619 0 0 -0.92388 0.382683 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_Cv_1_b.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 11 0 -250 0.785398 0 0 0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_Cv_1_c.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/Convex_01_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/Convex_01_02.tdt	1x1	tag sealed	templates Art/Models/Terrain/Desert/CavePath/Convex_01_02.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/Convex_01_02.tmd	1696 bytes	text
+  | version 8
+  | 3 5 0 -0 -2.37739 0 0 -0.927884 0.372869 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_Convex_01_02.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 11 0 -250 -0.785398 0 0 -0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_Cv_2_a.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 11 0 -250 -2.35619 0 0 -0.92388 0.382683 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_Cv_2_b.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 11 0 -250 0.785398 0 0 0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_Cv_2_c.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/Convex_01_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/Convex_01_03.tdt	1x1	tag sealed	templates Art/Models/Terrain/Desert/CavePath/Convex_01_03.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/Convex_01_03.tmd	1700 bytes	text
+  | version 8
+  | 15 2 0 -0 -0.598659 0 0 -0.294879 0.955534 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_Convex_01_03.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 11 0 -250 -0.785398 0 0 -0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_Cv_3_a.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 11 0 -250 -2.35619 0 0 -0.92388 0.382683 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_Cv_3_b.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 11 0 -250 0.785398 0 0 0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_Cv_3_c.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/Straight_01_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/Straight_01_01.tdt	1x1	tag sealed	templates Art/Models/Terrain/Desert/CavePath/Straight_01_01.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/Straight_01_01.tmd	1678 bytes	text
+  | version 8
+  | 9 2 0 -17.4278 0.256851 0 0 0.128073 0.991765 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonLean_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_Straight_01_01.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 -12 0 -0 -0 0 0 0 1 0 1 "Art/Models/Terrain/Desert/CavePath/Straight_01_01_Spawner_BlackStrider_05.fmt;Metadata/Terrain/Desert/CavePath/Seals/Straight_01_01_Spawner_BlackStrider_05.ao" "" "Art/Models/Terrain/Desert/CavePath/Straight_01_01_Spawner_BlackStrider_05.fmt" "Metadata/Terrain/Gallows/Act2/2_2/Objects/Spawners/BlackStriderSpawnerClimbDown" 0
+  | 11 11 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_St_01.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/Straight_01_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/Straight_01_02.tdt	1x1	tag sealed	templates Art/Models/Terrain/Desert/CavePath/Straight_01_02.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/Straight_01_02.tmd	1618 bytes	text
+  | version 8
+  | 10 0 0 -0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/CliffRocks/cliff_rocks_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_Straight_01_02.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 -12 0 -0 -0 0 0 0 1 0 1 "Art/Models/Terrain/Desert/CavePath/Straight_01_02_Spawner_BlackStrider_05.fmt;Metadata/Terrain/Desert/CavePath/Seals/Straight_01_02_Spawner_BlackStrider_05.ao" "" "Art/Models/Terrain/Desert/CavePath/Straight_01_02_Spawner_BlackStrider_05.fmt" "Metadata/Terrain/Gallows/Act2/2_2/Objects/Spawners/BlackStriderSpawnerClimbDown" 0
+  | 11 11 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_St_02.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/Straight_01_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/Straight_01_03.tdt	1x1	tag sealed	templates Art/Models/Terrain/Desert/CavePath/Straight_01_03.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/Straight_01_03.tmd	1978 bytes	text
+  | version 8
+  | 5 8 0 -9.19834 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 20 6 0 -0.871013 -1.72552 0 0 -0.759641 0.650343 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_Straight_01_03.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 -12 0 -0 -0 0 0 0 1 0 1 "Art/Models/Terrain/Desert/CavePath/Straight_01_03_Spawner_BlackStrider_05.fmt;Metadata/Terrain/Desert/CavePath/Seals/Straight_01_03_Spawner_BlackStrider_05.ao" "" "Art/Models/Terrain/Desert/CavePath/Straight_01_03_Spawner_BlackStrider_05.fmt" "Metadata/Terrain/Gallows/Act2/2_2/Objects/Spawners/BlackStriderSpawnerClimbDown" 0
+  | 11 11 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_St_03.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_01_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_01_01.tdt	1x1	tag niche_sealed	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_01_01.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_01_01.tmd	3192 bytes	text
+  | version 8
+  | 7 9 0 2.88811 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 19 9 0 2.88811 -1.33933 0 0 -0.620725 0.784029 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 12 2 0 -7.10543e-15 -0.598659 0 0 -0.294879 0.955534 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 22 7 0 -7.10543e-15 1.6637 0 0 0.73918 0.673508 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 18 4 0 -7.10543e-15 0.635781 0 0 0.312563 0.949897 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 10 18 0 -0 -0.00200483 0 0 -0.00100241 1 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 10 10 0 -30.5673 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Effects/Ao/firelight.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 10 10 0 -30.5673 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/MarakethRuin/torch_fire.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_Straight_Niche_01_01.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 13 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_NicheUpper_St_01.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_01_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_01_02.tdt	1x1	tag niche_sealed	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_01_02.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_01_02.tmd	1212 bytes	text
+  | version 8
+  | 10 11 0 -63.2079 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Effects/Ao/firelight.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 10 11 0 -63.2079 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/MarakethRuin/torch_fire.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_Straight_Niche_01_02.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 11 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_NicheUpper_St_02.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_01_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_01_03.tdt	1x1	tag niche_sealed	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_01_03.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_01_03.tmd	2504 bytes	text
+  | version 8
+  | 7 9 0 2.88811 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 19 9 0 2.88811 -1.33933 0 0 -0.620725 0.784029 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 5 2 0 -7.10543e-15 -0.598659 0 0 -0.294879 0.955534 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 10 18 0 -0 -0.00200483 0 0 -0.00100241 1 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 8 0 -31.0814 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Effects/Ao/firelight.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 8 0 -31.0814 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/MarakethRuin/torch_fire.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_Straight_Niche_01_03.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 13 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_NicheUpper_St_03.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_nolight_01_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_nolight_01_01.tdt	1x1	tag niche_sealed	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_nolight_01_01.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_nolight_01_01.tmd	1622 bytes	text
+  | version 8
+  | 7 9 0 2.88811 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 19 9 0 2.88811 -1.33933 0 0 -0.620725 0.784029 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 10 18 0 -0 -0.00200483 0 0 -0.00100241 1 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_Nolight_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_Straight_Niche_01_01.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 13 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_NicheUpper_St_01.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_nolight_01_01_forced.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_nolight_01_01_forced.tdt	1x1	tag niche_nolight_sealed	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_nolight_01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_nolight_01_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_nolight_01_02.tdt	1x1	tag niche_sealed	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_nolight_01_02.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_nolight_01_02.tmd	672 bytes	text
+  | version 8
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_Straight_Niche_nolight_01_02.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 11 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_NicheUpper_St_02.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_nolight_01_02_forced.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_nolight_01_02_forced.tdt	1x1	tag niche_nolight_sealed	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_nolight_01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_nolight_01_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_nolight_01_03.tdt	1x1	tag niche_sealed	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_nolight_01_03.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_nolight_01_03.tmd	1638 bytes	text
+  | version 8
+  | 7 9 0 2.88811 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 19 9 0 2.88811 -1.33933 0 0 -0.620725 0.784029 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 10 18 0 -0 -0.00200483 0 0 -0.00100241 1 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_Nolight_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_Straight_Niche_nolight_01_03.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 13 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_NicheUpper_St_03.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_nolight_01_03_forced.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/Straight_Niche_nolight_01_03_forced.tdt	1x1	tag niche_nolight_sealed	templates Art/Models/Terrain/Desert/CavePath/Straight_Niche_nolight_01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_BendLarge_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_BendLarge_01.tdt	2x2	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_BendLarge_01.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_BendLarge_01.tmd	1678 bytes	text
+  | version 8
+  | 42 13 0 -5.46392e-06 0.521053 0 0 0.257589 0.966254 0 1 "Metadata/Terrain/Desert/CavePath/CliffRocks/cliff_rocks_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 43 24 0 -6.37747 -1.38252 0 0 -0.637509 0.770443 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 6 8 0 -5.46392e-06 2.88411 0 0 0.991724 0.128386 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_BendLarge_01.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 34 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_BendLarge_1.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_BendLarge_04.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_BendLarge_04.tdt	2x2	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_BendLarge_04.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_BendLarge_04.tmd	2282 bytes	text
+  | version 8
+  | 26 15 0 -5.46392e-06 2.88411 0 0 0.991724 0.128386 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 40 19 0 -5.46392e-06 -1.38252 0 0 -0.637509 0.770443 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 18 21 0 -8.09208 0.358782 0 0 0.17843 0.983953 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 21 12 0 -36.4317 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Effects/Ao/firelight.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 21 12 0 -36.4317 0.358782 0 0 0.17843 0.983953 0 1 "Metadata/Terrain/Doodads/Desert/MarakethRuin/torch_fire.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_BendLarge_04.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 34 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_BendLarge_1.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_BendLarge_05.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_BendLarge_05.tdt	2x2	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_BendLarge_05.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_BendLarge_05.tmd	2628 bytes	text
+  | version 8
+  | 13 5 0 -5.46392e-06 -2.12935 0 0 -0.874631 0.48479 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 31 25 0 -0.0746784 -1.57824 0 0 -0.709735 0.704469 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 18 9 0 -5.46392e-06 2.55643 0 0 0.957503 0.288423 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 34 23 0 -0.0746784 2.96346 0 0 0.996036 0.0889505 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 28 18 0 -29.7733 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Effects/Ao/firelight.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 28 18 0 -29.7733 0.358782 0 0 0.17843 0.983953 0 1 "Metadata/Terrain/Doodads/Desert/MarakethRuin/torch_fire.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_BendLarge_05.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 34 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_BendLarge_2.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_CcLarge_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CcLarge_01.tdt	2x2	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_CcLarge_01.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CcLarge_01.tmd	2970 bytes	text
+  | version 8
+  | 25 13 0 -3.7811 -2.78499 0 0 -0.984147 0.177356 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 15 25 0 -7.62805 1.435 0 0 0.657504 0.753451 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 24 5 0 -3.7811 -0.00334203 0 0 -0.00167101 0.999999 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 31 31 0 -8.09208 -0.680668 0 0 -0.333802 0.942643 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 22 20 0 -19.8114 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Effects/Ao/firelight.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 22 20 0 -19.8114 -0.616703 0 0 -0.303488 0.952835 0 1 "Metadata/Terrain/Doodads/Desert/MarakethRuin/torch_fire.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_CcLarge_01.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 34 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CCLarge_1a.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 34 0 -250 -1.5708 0 0 -0.707107 0.707107 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CCLarge_1b.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_CcLarge_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CcLarge_03.tdt	2x2	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_CcLarge_03.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CcLarge_03.tmd	1352 bytes	text
+  | version 8
+  | 29 3 0 -0.305456 0.940354 0 0 0.453044 0.891488 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_CcLarge_03.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 34 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CCLarge_3a.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 34 0 -250 -1.5708 0 0 -0.707107 0.707107 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CCLarge_3b.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_CcMed_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CcMed_01.tdt	2x1	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_CcMed_01.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CcMed_01.tmd	1002 bytes	text
+  | version 8
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_CcMed_01.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 11 0 -230 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CcMed_1a.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 11 0 -230 -1.5708 0 0 -0.707107 0.707107 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CcMed_1b.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_CcMed_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CcMed_02.tdt	2x1	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_CcMed_02.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CcMed_02.tmd	1342 bytes	text
+  | version 8
+  | 13 -1 0 1.23235 -0.564199 0 0 -0.278373 0.960473 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_CcMed_02.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 11 0 -230 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CcMed_2a.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 11 0 -230 -1.5708 0 0 -0.707107 0.707107 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CcMed_2b.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_CcMed_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CcMed_03.tdt	2x1	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_CcMed_03.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CcMed_03.tmd	1002 bytes	text
+  | version 8
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_CcMed_03.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 11 0 -230 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CcMed_3a.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 11 0 -230 -1.5708 0 0 -0.707107 0.707107 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CcMed_3b.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvExtend_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvExtend_01.tdt	2x2	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_CvExtend_01.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvExtend_01.tmd	1374 bytes	text
+  | version 8
+  | 24 12 0 2.73368 0.0967646 0 0 0.0483634 0.99883 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 24 43 0 -5.46392e-06 1.57889 0 0 0.709963 0.704239 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 28 36 0 -5.46392e-06 -0.0840547 0 0 -0.042015 0.999117 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_CvExtend_01.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvLarge_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvLarge_01.tdt	2x2	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_CvLarge_01.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvLarge_01.tmd	2766 bytes	text
+  | version 8
+  | 6 3 0 -7.46887 -2.78499 0 0 -0.984147 0.177356 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 33 21 0 -6.64792 1.90053 0 0 0.813569 0.581468 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 25 15 0 -3.081 1.24488 0 0 0.58302 0.812458 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 28 32 0 -5.46392e-06 1.01934 0 0 0.48789 0.872905 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_Nolight_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_CvLarge_01.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 34 0 -250 0.785398 0 0 0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvLarge_1a.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 34 0 -250 -0.785398 0 0 -0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvLarge_1b.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 34 0 -250 2.35619 0 0 0.92388 0.382683 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvLarge_1c.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvLarge_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvLarge_02.tdt	2x2	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_CvLarge_02.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvLarge_02.tmd	1744 bytes	text
+  | version 8
+  | 24 16 0 -5.46392e-06 0.795223 0 0 0.387217 0.921988 0 1 "Metadata/Terrain/Desert/CavePath/CliffRocks/cliff_rocks_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_CvLarge_02.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 34 0 -250 0.785398 0 0 0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvLarge_2a.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 34 0 -250 -0.785398 0 0 -0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvLarge_2b.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 34 0 -250 2.35619 0 0 0.92388 0.382683 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvLarge_2c.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvLarge_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvLarge_03.tdt	2x2	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_CvLarge_03.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvLarge_03.tmd	2408 bytes	text
+  | version 8
+  | 4 6 0 -7.46887 -2.12935 0 0 -0.874631 0.48479 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 33 12 0 0.107249 1.90053 0 0 0.813569 0.581468 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 9 10 0 -3.081 1.90053 0 0 0.813569 0.581468 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_CvLarge_03.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 11 34 0 -250 0.785398 0 0 0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvLarge_3a.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 34 0 -250 -0.785398 0 0 -0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvLarge_3b.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 34 0 -250 2.35619 0 0 0.92388 0.382683 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvLarge_3c.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvMed_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvMed_01.tdt	2x1	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_CvMed_01.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvMed_01.tmd	2492 bytes	text
+  | version 8
+  | 3 8 0 -1.32026 -0.00334203 0 0 -0.00167101 0.999999 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_CvMed_01.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 18 -12 0 -5.46392e-06 -0 0 0 0 1 0 1 "Art/Models/Terrain/Desert/CavePath/thickwall_CvMed_01_Spawner_BlackStrider_01.fmt;Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvMed_01_Spawner_BlackStrider_01.ao" "" "Art/Models/Terrain/Desert/CavePath/thickwall_CvMed_01_Spawner_BlackStrider_01.fmt" "Metadata/Terrain/Gallows/Act2/2_2/Objects/Spawners/BlackStriderSpawnerClimbDown" 0
+  | 11 11 0 -250 0.785398 0 0 0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvMed_1a.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 11 0 -250 -0.785398 0 0 -0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvMed_1b.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 11 0 -250 2.35619 0 0 0.92388 0.382683 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvMed_1c.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvMed_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvMed_02.tdt	2x1	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_CvMed_02.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvMed_02.tmd	2824 bytes	text
+  | version 8
+  | 34 10 0 1.25309 -1.66714 0 0 -0.740334 0.672239 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 24 3 0 -1.32026 -0.564199 0 0 -0.278373 0.960473 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_CvMed_02.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 18 -12 0 -5.46392e-06 -0 0 0 0 1 0 1 "Art/Models/Terrain/Desert/CavePath/thickwall_CvMed_02_Spawner_BlackStrider_01.fmt;Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvMed_02_Spawner_BlackStrider_01.ao" "" "Art/Models/Terrain/Desert/CavePath/thickwall_CvMed_02_Spawner_BlackStrider_01.fmt" "Metadata/Terrain/Gallows/Act2/2_2/Objects/Spawners/BlackStriderSpawnerClimbDown" 0
+  | 11 11 0 -250 0.785398 0 0 0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvMed_2a.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 11 0 -250 -0.785398 0 0 -0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvMed_2b.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 11 0 -250 2.35619 0 0 0.92388 0.382683 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvMed_2c.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvMed_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvMed_03.tdt	2x1	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_CvMed_03.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvMed_03.tmd	2528 bytes	text
+  | version 8
+  | 43 2 0 -5.46392e-06 -1.66714 0 0 -0.740334 0.672239 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_CvMed_03.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 31 -8 0 -5.46392e-06 0.471239 0 0 0.233445 0.97237 0 1 "Art/Models/Terrain/Desert/CavePath/thickwall_CvMed_03_Spawner_BlackStrider_01.fmt;Metadata/Terrain/Desert/CavePath/Seals/thickwall_CvMed_03_Spawner_BlackStrider_01.ao" "" "Art/Models/Terrain/Desert/CavePath/thickwall_CvMed_03_Spawner_BlackStrider_01.fmt" "Metadata/Terrain/Gallows/Act2/2_2/Objects/Spawners/BlackStriderSpawnerClimbDown" 0
+  | 11 11 0 -250 0.785398 0 0 0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvMed_3a.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 11 0 -250 -0.785398 0 0 -0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvMed_3b.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 11 11 0 -250 2.35619 0 0 0.92388 0.382683 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_CvMed_3c.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_StLarge_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_StLarge_01.tdt	2x1	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_StLarge_01.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_StLarge_01.tmd	1716 bytes	text
+  | version 8
+  | 23 -1 0 -5.46392e-06 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/CliffRocks/cliff_rocks_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_StLarge_01.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 23 -13 0 -5.46392e-06 -0 0 0 0 1 0 1 "Art/Models/Terrain/Desert/CavePath/thickwall_StLarge_01_Spawner_BlackStrider_07.fmt;Metadata/Terrain/Desert/CavePath/Seals/thickwall_StLarge_01_Spawner_BlackStrider_07.ao" "" "Art/Models/Terrain/Desert/CavePath/thickwall_StLarge_01_Spawner_BlackStrider_07.fmt" "Metadata/Terrain/Gallows/Act2/2_2/Objects/Spawners/BlackStriderSpawnerClimbDown" 0
+  | 11 11 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_StLarge_1.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_StLarge_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_StLarge_02.tdt	2x1	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_StLarge_02.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_StLarge_02.tmd	2366 bytes	text
+  | version 8
+  | 23 1 0 -5.46392e-06 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 3 4 0 -5.46392e-06 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 15 4 0 -5.46392e-06 0.92921 0 0 0.44807 0.893999 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_StLarge_02.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 23 -13 0 -5.46392e-06 -0 0 0 0 1 0 1 "Art/Models/Terrain/Desert/CavePath/thickwall_StLarge_02_Spawner_BlackStrider_08.fmt;Metadata/Terrain/Desert/CavePath/Seals/thickwall_StLarge_02_Spawner_BlackStrider_08.ao" "" "Art/Models/Terrain/Desert/CavePath/thickwall_StLarge_02_Spawner_BlackStrider_08.fmt" "Metadata/Terrain/Gallows/Act2/2_2/Objects/Spawners/BlackStriderSpawnerClimbDown" 0
+  | 11 11 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_StLarge_2.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/Seals/thickwall_StLarge_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/Seals/thickwall_StLarge_03.tdt	2x1	tag sealed	templates Art/Models/Terrain/Desert/CavePath/thickwall_StLarge_03.tgt
+  tmd	Metadata/Terrain/Desert/CavePath/Seals/thickwall_StLarge_03.tmd	2412 bytes	text
+  | version 8
+  | 37 1 0 -5.46392e-06 -0.923027 0 0 -0.445304 0.89538 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 41 0 0 -5.46392e-06 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 3 1 0 -5.46392e-06 0.852751 0 0 0.413573 0.910471 0 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/Seals/Seals_thickwall_StLarge_03.ao" "" "" "Metadata/Terrain/Gallows/Act2/2_2/Objects/WallSeals" 0
+  | 23 -13 0 -5.46392e-06 -0 0 0 0 1 0 1 "Art/Models/Terrain/Desert/CavePath/thickwall_StLarge_03_Spawner_BlackStrider_09.fmt;Metadata/Terrain/Desert/CavePath/Seals/thickwall_StLarge_03_Spawner_BlackStrider_09.ao" "" "Art/Models/Terrain/Desert/CavePath/thickwall_StLarge_03_Spawner_BlackStrider_09.fmt" "Metadata/Terrain/Gallows/Act2/2_2/Objects/Spawners/BlackStriderSpawnerClimbDown" 0
+  | 11 11 0 -250 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Thickwall_Upper_StLarge_3.ao" "" "" "Metadata/MiscellaneousObjects/TileUpperDoodad" 0
+  | 
+##### Metadata/Terrain/Desert/CavePath/ThickWall/Combo_01_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/Combo_01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/Combo_01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/Concave_01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/Concave_01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/Concave_01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/Concave_01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/Concave_01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/Concave_01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/Concave_01_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/Concave_01_03.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/Concave_01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/Convex_01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/Convex_01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/Convex_01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/Convex_01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/Convex_01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/Convex_01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/Convex_01_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/Convex_01_03.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/Convex_01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/Straight_01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/Straight_01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/Straight_01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/Straight_01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/Straight_01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/Straight_01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/Straight_01_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/Straight_01_03.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/Straight_01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_BendLarge_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_BendLarge_01.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_BendLarge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_BendLarge_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_BendLarge_02.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_BendLarge_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_BendLarge_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_BendLarge_03.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_BendLarge_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_BendLarge_04.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_BendLarge_04.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_BendLarge_04.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_BendLarge_05.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_BendLarge_05.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_BendLarge_05.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_BendLarge_nolight_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_BendLarge_nolight_01.tdt	2x2	tag nolight	templates Art/Models/Terrain/Desert/CavePath/thickwall_BendLarge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_BendLarge_nolight_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_BendLarge_nolight_02.tdt	2x2	tag nolight	templates Art/Models/Terrain/Desert/CavePath/thickwall_BendLarge_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_BendLarge_nolight_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_BendLarge_nolight_03.tdt	2x2	tag nolight	templates Art/Models/Terrain/Desert/CavePath/thickwall_BendLarge_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcExtend_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcExtend_01.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_CcExtend_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcLarge_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcLarge_01.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_CcLarge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcLarge_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcLarge_02.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_CcLarge_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcLarge_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcLarge_03.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_CcLarge_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcLarge_04.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcLarge_04.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_CcLarge_04.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcLarge_nolight_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcLarge_nolight_02.tdt	2x2	tag nolight	templates Art/Models/Terrain/Desert/CavePath/thickwall_CcLarge_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcLarge_nolight_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcLarge_nolight_03.tdt	2x2	tag nolight	templates Art/Models/Terrain/Desert/CavePath/thickwall_CcLarge_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcLarge_nolight_04.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcLarge_nolight_04.tdt	2x2	tag nolight	templates Art/Models/Terrain/Desert/CavePath/thickwall_CcLarge_04.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcMed_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcMed_01.tdt	2x1	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_CcMed_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcMed_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcMed_02.tdt	2x1	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_CcMed_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcMed_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CcMed_03.tdt	2x1	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_CcMed_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CvExtend_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CvExtend_01.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_CvExtend_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CvLarge_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CvLarge_01.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_CvLarge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CvLarge_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CvLarge_02.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_CvLarge_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CvLarge_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CvLarge_03.tdt	2x2	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_CvLarge_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CvMed_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CvMed_01.tdt	2x1	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_CvMed_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CvMed_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CvMed_02.tdt	2x1	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_CvMed_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CvMed_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_CvMed_03.tdt	2x1	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_CvMed_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_StLarge_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_StLarge_01.tdt	2x1	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_StLarge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_StLarge_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_StLarge_02.tdt	2x1	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_StLarge_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_StLarge_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_StLarge_03.tdt	2x1	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_StLarge_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_StLarge_04.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_StLarge_04.tdt	2x1	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_StLarge_04.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_StLarge_05.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CavePath/ThickWall/thickwall_StLarge_05.tdt	2x1	tag 	templates Art/Models/Terrain/Desert/CavePath/thickwall_StLarge_05.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/Maraketh/TraitorsPassage/TraitorsPassage_Arena_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/Maraketh/TraitorsPassage/TraitorsPassage_Arena_01.tdt	8x8	tag arena	templates Art/Models/Terrain/Desert/MarakethRuin/TraitorsPassage/TraitorsPassage_Arena_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/UnwalkableDune/CaveEntrance/CcMM_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/UnwalkableDune/CaveEntrance/CcMM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/CavePath/CcMM_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/UnwalkableDune/CaveEntrance/CvMM_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/UnwalkableDune/CaveEntrance/CvMM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/CavePath/CvMM_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/UnwalkableDune/CaveEntrance/CvMM_01_blankborder.tdt  (listed)
+  defines	Metadata/Terrain/Desert/UnwalkableDune/CaveEntrance/CvMM_01_blankborder.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/CavePath/CvMM_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/UnwalkableDune/CaveEntrance/StMM_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/UnwalkableDune/CaveEntrance/StMM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/CavePath/StMM_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/UnwalkableDune/CaveEntrance/StMM_01_blankborder.tdt  (listed)
+  defines	Metadata/Terrain/Desert/UnwalkableDune/CaveEntrance/StMM_01_blankborder.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/CavePath/StMM_01.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_01.tdt  (laid)
+  defines	Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/CavePath/mine_abyss_fill_v01_01.tgt
+  tmd	Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_01.tmd	780 bytes	text
+  | version 8
+  | 5 10 1 60.3008 118.099 700 1.2119 0 0 0.569541 0.821963 1 2 "Metadata/Terrain/Doodads/Desert/Badlands/FeatureAssets/MediumObjects_set.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 16 8 1 177.04 91.6987 700 1.21987 0 0 0.572816 0.819684 0 2 "Metadata/Terrain/Doodads/Desert/Badlands/RandomBonesSmall_set.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+##### Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_02.tdt  (laid)
+  defines	Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_02.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/CavePath/mine_abyss_fill_v01_01.tgt
+  tmd	Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_02.tmd	790 bytes	text
+  | version 8
+  | 37 37 1 404.992 405.692 700 1.15247 0 0 0.544872 0.838519 0 2 "Metadata/Terrain/Doodads/Desert/Badlands/FeatureAssets/LargeObjects_set.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 43 43 1 475.127 469.932 700 -1.0985 0 0 -0.522049 0.852915 1 3 "Metadata/Terrain/Doodads/Desert/Badlands/RandomBonesMedium_set.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+##### Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_03.tdt  (laid)
+  defines	Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_03.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/CavePath/mine_abyss_fill_v01_01.tgt
+  tmd	Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_03.tmd	352 bytes	text
+  | version 8
+  | 34 34 0 505 0.565424 0 0 0.278961 0.960302 0 2 "Metadata/Terrain/Doodads/Desert/Badlands/SuperLarge_Set.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+##### Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_04.tdt  (laid)
+  defines	Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_04.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/CavePath/mine_abyss_fill_v01_01.tgt
+  tmd	Metadata/Terrain/Maps/Marrow/Rooms/Fills/mine_abyss_fill_v01_04.tmd	350 bytes	text
+  | version 8
+  | 34 34 0 635 0.562276 0 0 0.277449 0.96074 0 1 "Metadata/Terrain/Doodads/Desert/Badlands/Skull_large_01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledgestair_WM_01.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledgestair_WM_01.tdt	3x3	tag ledgestair	templates Art/Models/Terrain/Maps/Abyss/ledgestair_WM_01.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledgestair_WS_01.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledgestair_WS_01.tdt	3x3	tag ledgestair	templates Art/Models/Terrain/Maps/Abyss/ledgestair_WS_01.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledgestair_WW_01.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledgestair_WW_01.tdt	3x3	tag stair	templates Art/Models/Terrain/Maps/Abyss/ledgestair_WW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_abysswall_thickwall_Straight_Cn_01.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_abysswall_thickwall_Straight_Cn_01.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/legde_abysswall_thickwall_Straight_Cn_01.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_abysswall_thickwall_Straight_Cn_02.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_abysswall_thickwall_Straight_Cn_02.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_abysswall_thickwall_Straight_Cn_02.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_abysswall_thickwall_Straight_Cn_03.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_abysswall_thickwall_Straight_Cn_03.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_abysswall_thickwall_Straight_Cn_03.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_abysswall_thickwall_Straight_Cn_04.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_abysswall_thickwall_Straight_Cn_04.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_abysswall_thickwall_Straight_Cn_04.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_abysswall_thickwall_Straight_Cn_05.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_abysswall_thickwall_Straight_Cn_05.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_abysswall_thickwall_Straight_Cn_05.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_abyss_concave_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_abyss_concave_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_abyss_concave_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_abyss_concave_v01_02.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_abyss_concave_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_abyss_concave_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_abyss_concave_v01_03.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_abyss_concave_v01_03.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_abyss_concave_v01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_abyss_concave_v01_04.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_abyss_concave_v01_04.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_abyss_concave_v01_04.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_abyss_convex_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_abyss_convex_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_abyss_convex_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_abyss_straight_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_abyss_straight_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_abyss_straight_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_abyss_straight_v01_02.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_abyss_straight_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_abyss_straight_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_concave_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_concave_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_concave_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_convex_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_convex_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_convex_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_convex_v01_02.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_convex_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_convex_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_convex_v01_03.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_convex_v01_03.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_convex_v01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_straight_ladder_overlay_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_straight_ladder_overlay_v01_01.tdt	1x3	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_straight_ladder_overlay_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_straight_ladder_overlay_v01_02.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_straight_ladder_overlay_v01_02.tdt	2x2	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_straight_ladder_overlay_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_straight_ladder_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_straight_ladder_v01_01.tdt	1x1	tag door	templates Art/Models/Terrain/Maps/Abyss/ledge_straight_ladder_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_straight_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_straight_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_straight_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/Marrow/Tiles/ledge_thickwall_Straight_Cn_01.tdt  (listed)
+  defines	Metadata/Terrain/Maps/Marrow/Tiles/ledge_thickwall_Straight_Cn_01.tdt	1x1	tag 	templates Art/Models/Terrain/Maps/Abyss/ledge_thickwall_Straight_Cn_01.tgt
+  tmd	none
+##### Metadata/Terrain/Tools/blank_border_concave.tdt  (listed)
+  defines	Metadata/Terrain/Tools/blank_border_concave.tdt	1x1	tag 	templates Art/Models/Terrain/Blank.tgt
+  tmd	none
+##### Metadata/Terrain/Tools/blank_border_convex.tdt  (listed)
+  defines	Metadata/Terrain/Tools/blank_border_convex.tdt	1x1	tag 	templates Art/Models/Terrain/Blank.tgt
+  tmd	none
+##### Metadata/Terrain/Tools/blank_border_straight.tdt  (listed)
+  defines	Metadata/Terrain/Tools/blank_border_straight.tdt	1x1	tag 	templates Art/Models/Terrain/Blank.tgt
+  tmd	none

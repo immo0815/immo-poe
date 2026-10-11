@@ -211,12 +211,28 @@ want about 75 - so Steppe measures the tag question, not the default. The build 
 that is decided. Every area also LAYS TILE FILES NO LIST NAMES - one to twenty a capture: Sulphuric
 Caverns' boss room lays `Thickwall/Fill_01` where its list names `Murky/Thickwall/Fill_01`, and an
 `Abyss/Lava/Fill_02` beside the list's `Fill_01`, so 17 of its 39 settled slots can never come out the
-game's file. A definition may inherit another, and some tiles load with a `.tmd` of their name that
-no reference reads; `tile-files.txt` writes both halves for every listed and laid file, and
-`tile-files-replay.txt` counts which one explains each laid file - read it before giving the build a
-rule for either. Four captures are committed under `tests/fixtures/captures/` (its README says why
-each), and `CaptureFixtureTests` holds the orientation rule, the origin rule and the settled slots
-against them on every build. Two captures of one area forty
+game's file. A `.tmd` is NOT a list of variants, as was first thought: Marrow's are text, `version 8`
+then a line a doodad (position, rotation, an `.ao`, an entity type such as `TileUpperDoodad`) - the
+doodads a TILE brings, beside the room's own - and one sits beside the `.tdt` or beside its template
+(`.tgt`). Marrow inherits nothing either; what it showed is a laid plain tile sharing its template with
+the listed `_feature` one, and four `mine_abyss_fill` tiles from its `Rooms/Fills` folder that no tile
+list and no room names. A master is a key-value file of any keys, and besides `TileSet` and `RoomSet`
+it may name `FillTiles`, a `.gft` fill list (`FillList`, poe_data_tools' `gft`) - the next place to
+look. `tile-files.txt` writes for every listed, filled and laid file its chain, its doodad lists and its
+flags, `area-masters.txt` every master and every file it names whole, and `tile-files-replay.txt`
+counts what explains each laid file no tile list names (inherited, in a fill list, a shared template,
+nothing) - read it before giving the build a rule for any of them. A tile list's words appeared for the
+first time in Marrow (`I`, `R90`, `R180`, `R270`, on its cave entrance and its boss arena); poe_data_tools
+reads them as strings and says nothing of what they mean, so what they do to a tile's placement is to
+be measured on a laid one before the build obeys them. A tile's doodads ARE entities: Marrow's recording
+holds 238 `TileUpperDoodad` and 6321 `DoodadNoBlocking` (the plain `Doodad` lines mostly not), and
+`tile-doodads-replay.txt` puts every laid tile's doodads (`TileDoodadList`, its own grammar - the height
+before the angle, one bool, four strings) into the area under all sixteen readings of how a tile's frame
+reaches the world, against the unfiltered entities. Marrow cannot tell them apart - its only matches stand
+in a tile's middle, where every reading lands - and a doodad's `.tmd` height (635) is not the entity's z
+(106); the wall tops off the middle, in lists beside the templates, are what will. Five captures are committed under
+`tests/fixtures/captures/` (its README says why each), and `CaptureFixtureTests` holds the orientation
+rule, the origin rule and the settled slots against them on every build. Two captures of one area forty
 minutes apart are how it was learned that the power-line pieces and checkpoints come and go
 with play while the plain props never move; hold a finder change against a capture before
 asking for a screenshot. The reason they come and go is the network bubble: a scripted
