@@ -97,6 +97,12 @@ public sealed record FloatHuntResult(
 
     /// <summary>What each kind of memory cost, the most bytes first.</summary>
     public IReadOnlyList<FloatHuntKind> Kinds { get; init; } = [];
+
+    /// <summary>How many regions the target listed, those too large to be data among them.</summary>
+    public long Listed { get; init; }
+
+    /// <summary>How long listing and ordering them took, before the first byte was read.</summary>
+    public TimeSpan Listing { get; init; }
 }
 
 /// <summary>
@@ -172,7 +178,7 @@ public static class FloatHunt
         for (var at = 0; at < needles.Count; at++)
         {
             FloatNeedle needle = needles[at];
-            if (needle.Values.Length is 0 or > LongestNeedle || AnchorOf(needle.Values) is not { } first)
+            if (needle.Values.Length is 0 or > LongestNeedle || AnchorOf(needle.Values, needle.Tolerance) is not { } first)
             {
                 unsearched.Add(at);
                 continue;
@@ -192,6 +198,7 @@ public static class FloatHunt
         progress?.Budgeted(budget);
         var hunt = new Hunt(reader, needles, [.. anchors.OrderBy(one => one.Low)], longest * sizeof(float), budget, progress, cancel);
         hunt.Plan(anchor == 0 ? [.. regions.Regions()] : [.. regions.Regions().OrderBy(one => HeapScan.Distance(one, anchor))]);
+        TimeSpan listing = clock.Elapsed;
         hunt.Go(workers > 0 ? workers : Environment.ProcessorCount);
         cancel.ThrowIfCancellationRequested();
 
@@ -202,6 +209,8 @@ public static class FloatHunt
             Stopped = hunt.Stopped,
             Workers = hunt.Workers,
             Kinds = hunt.Kinds(),
+            Listed = hunt.Listed,
+            Listing = listing,
         };
     }
 
@@ -245,14 +254,27 @@ public static class FloatHunt
         return dumps;
     }
 
-    /// <summary>The float a needle is first looked for by: its largest that is not nought, one or a blank - null where it has none.</summary>
-    internal static int? AnchorOf(float[] values)
+    /// <summary>
+    /// The float a needle is first looked for by: its largest that cannot be taken for nought or one within the tolerance, and is no blank - null where it has none.
+    /// </summary>
+    /// <remarks>
+    /// WITHIN THE TOLERANCE, NOT EXACTLY: Port's hor_angle is pi, so every turn of the cube the light hunt
+    /// looks for is made of noughts and ones but for sin(pi), which a float makes -8.7e-8. That was the
+    /// largest value that was not exactly nought or one, so it became the anchor - and its range, 1e-4
+    /// either side, takes in nought. Every bucket from nought up to 1e-4 was marked on both signs, which
+    /// is every nought in memory and every integer below a billion, and each such word was compared with
+    /// the 572 arrangements of the turn: 3.15 GB took 4860 s of the threads' time to look through and
+    /// 7.7 s to read. A needle of noughts and ones in all but rounding is an identity, found everywhere and
+    /// telling nothing, so it is not looked for.
+    /// </remarks>
+    internal static int? AnchorOf(float[] values, float tolerance)
     {
+        float within = MathF.Max(0f, tolerance);
         int? best = null;
         for (var at = 0; at < values.Length; at++)
         {
             float value = values[at];
-            if (!float.IsFinite(value) || value == 0f || MathF.Abs(value) == 1f)
+            if (!float.IsFinite(value) || MathF.Abs(value) <= within || MathF.Abs(MathF.Abs(value) - 1f) <= within)
             {
                 continue;
             }
@@ -432,6 +454,8 @@ public static class FloatHunt
         public long Walked => _lanes.Sum(lane => lane.Walked);
 
         public int Workers => _lanes.Length;
+
+        public long Listed => _regions.Length;
 
         /// <summary>True when the budget ended it with chunks left.</summary>
         public bool Truncated => Scanned >= budget && Volatile.Read(ref _next) + 1 < _chunks.Length;

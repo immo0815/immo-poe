@@ -41,6 +41,19 @@ public sealed class TapMemoryReader : IMemoryReader, IMemoryRegions
     /// <summary>Whether a recording is running.</summary>
     public bool Recording => Volatile.Read(ref _tap) is not null;
 
+    /// <summary>
+    /// The reader under the tap, never recorded - for a search of the whole space. Its regions are the target's; it is not to be disposed.
+    /// </summary>
+    /// <remarks>
+    /// A SEARCH MUST NEVER READ THROUGH A RECORDING. Its megabyte chunks were thought safe, being above
+    /// a recording's usual cap - but the capture's recording keeps reads up to the format's largest,
+    /// eight megabytes, for the terrain, and the capture key starts its light hunt beside it. The v0.1.207
+    /// capture's recording held fifteen of the hunt's chunks: heap it was never meant to keep, each copied
+    /// into the recorder's history and compressed under the one lock the overlay's own reads wait on.
+    /// (That hunt's crawl was its anchor, not this - see FloatHunt.AnchorOf - but this was measured too.)
+    /// </remarks>
+    public IMemoryReader Untapped => _kept;
+
     public bool IsAttached => _inner.IsAttached;
 
     public int ProcessId => _inner.ProcessId;

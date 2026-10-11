@@ -451,7 +451,8 @@ public sealed class LightHunt
             return;
         }
 
-        report.AppendLine("where the time went, by kind of memory (the times summed over the threads):");
+        report.Append(CultureInfo.InvariantCulture,
+            $"where the time went: {result.Listed} regions listed and ordered in {result.Listing.TotalSeconds:0.00} s, then by kind of memory (the times summed over the threads):").AppendLine();
         report.AppendLine("  kind                              regions        GB   reading s  sweeping s   GB/s read  gave up");
         foreach (FloatHuntKind kind in result.Kinds)
         {
@@ -805,7 +806,7 @@ public sealed class LightHunt
     {
         if (unsearched)
         {
-            return "not looked for - nothing in it but nought and one";
+            return "not looked for - nothing in it but nought and one, within the tolerance";
         }
 
         if (places.Count == 0)

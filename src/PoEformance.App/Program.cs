@@ -3128,17 +3128,20 @@ internal static class Program
         // the first hunt in AzmerianRanges stopped at eight gigabytes with the sky's turn not found.
         // And where the parsed environment keeps its dust colour, which that search reads beside the
         // angles it finds - an offset like any other, so the schema's.
+        //
+        // PAST THE TAP: a search never reads through the capture's recording - see TapMemoryReader.Untapped.
         overlay.EnvironmentDust = PoEformance.Game.Diagnostics.DustPlace.From(schema.Structs.GetValueOrDefault("ParsedEnvironment"));
-        if (reader is IMemoryRegions space)
+        IMemoryReader searching = reader is TapMemoryReader tapped ? tapped.Untapped : reader;
+        if (searching is IMemoryRegions space)
         {
             overlay.HuntFloats = (needles, anchor, progress) => Task.Run(() => PoEformance.Core.Diagnostics.FloatHunt.Run(
-                reader, space, needles, anchor, progress, budget: 2 * PoEformance.Core.Diagnostics.HeapScan.ByteBudget));
+                searching, space, needles, anchor, progress, budget: 2 * PoEformance.Core.Diagnostics.HeapScan.ByteBudget));
 
             // AND THE DISSECTOR'S FIND - a text, or pointers to an address - nearest the game's own image
             // first: a name the engine keeps among its code's constants is there, and in address order the
             // image comes last of all, past the heaps and the driver mappings.
             overlay.HuntPatterns = (needles, progress) => Task.Run(() => PoEformance.Core.Diagnostics.PatternHunt.Run(
-                reader, space, needles, reader.ModuleBase, progress, budget: 2 * PoEformance.Core.Diagnostics.HeapScan.ByteBudget));
+                searching, space, needles, searching.ModuleBase, progress, budget: 2 * PoEformance.Core.Diagnostics.HeapScan.ByteBudget));
         }
 
         // THE ROOMS' DOODADS ACROSS THE WHOLE AREA, read once on a press - see SleepingDoodads. Off the
