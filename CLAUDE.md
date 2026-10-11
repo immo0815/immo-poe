@@ -224,7 +224,13 @@ counts what explains each laid file no tile list names (inherited, in a fill lis
 nothing) - read it before giving the build a rule for any of them. A tile list's words appeared for the
 first time in Marrow (`I`, `R90`, `R180`, `R270`, on its cave entrance and its boss arena); poe_data_tools
 reads them as strings and says nothing of what they mean, so what they do to a tile's placement is to
-be measured on a laid one before the build obeys them. Five captures are committed under
+be measured on a laid one before the build obeys them. A tile's doodads ARE entities: Marrow's recording
+holds 238 `TileUpperDoodad` and 6321 `DoodadNoBlocking` (the plain `Doodad` lines mostly not), and
+`tile-doodads-replay.txt` puts every laid tile's doodads (`TileDoodadList`, its own grammar - the height
+before the angle, one bool, four strings) into the area under all sixteen readings of how a tile's frame
+reaches the world, against the unfiltered entities. Marrow cannot tell them apart - its only matches stand
+in a tile's middle, where every reading lands - and a doodad's `.tmd` height (635) is not the entity's z
+(106); the wall tops off the middle, in lists beside the templates, are what will. Five captures are committed under
 `tests/fixtures/captures/` (its README says why each), and `CaptureFixtureTests` holds the orientation
 rule, the origin rule and the settled slots against them on every build. Two captures of one area forty
 minutes apart are how it was learned that the power-line pieces and checkpoints come and go

@@ -1,7 +1,9 @@
 using System.Globalization;
 using System.Numerics;
 using System.Text;
+using PoEformance.Core.Diagnostics;
 using PoEformance.Core.Memory;
+using PoEformance.Core.Schema;
 using PoEformance.Features;
 using PoEformance.Game.Files;
 using PoEformance.Game.World;
@@ -1161,6 +1163,251 @@ public class CaptureReplayTests
         }
 
         return said.ToString();
+    }
+
+    /// <summary>Holds every laid tile's own doodads against the entities the recording holds, under every way a tile can lie; writes the table beside the capture's files.</summary>
+    [Fact]
+    public void THETILEDOODADSAreHeldAgainstTheEntitiesFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder)
+        {
+            return;
+        }
+
+        string replay = TileDoodadsReplay(folder);
+        File.WriteAllText(Path.Combine(folder, "tile-doodads-replay.txt"), replay);
+        Assert.StartsWith("tile doodads:", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>The tolerances a predicted tile doodad is counted at - a doodad's own place, a little off, within its tile.</summary>
+    private static readonly float[] Within = [30f, 100f, 250f];
+
+    /// <summary>
+    /// tile-doodads-replay.txt: every laid piece whose file carries a doodad list in tile-files.txt, each doodad put into
+    /// the area under sixteen readings - the eight ways a file can lie on its template, the game's turn after it or before
+    /// it - and held against the nearest entity of the same type and model the recording holds, unfiltered.
+    /// </summary>
+    /// <remarks>
+    /// WHAT IS MEASURED: how a point of a tile's own frame reaches the world. LaidRoomModels draws a tile's mesh one way of
+    /// eight, chosen from the ground of the sloped pieces only, and leaves open whether rows count from the top or the bottom;
+    /// a tile's doodads are points in the same frame that the game ALSO puts down as entities, so where they stand settles it
+    /// directly. The fifteen wrong readings are the control: a reading is right where it finds far more of them than the rest,
+    /// not where it finds some. Every line of the best reading is printed with both halves - the doodad, where it was put, the
+    /// entity found and how far - so a near miss can be told from a coincidence.
+    /// </remarks>
+    public static string TileDoodadsReplay(string folder)
+    {
+        var said = new StringBuilder();
+        (Dictionary<string, (int Width, int Height, List<RoomDoodad> Doodads)> files, string filesHow) = TileDoodads(folder);
+        TerrainGrid? grid = Terrain(folder, out string how);
+        (List<DoodadSighting> entities, string entitiesHow) = Entities(folder);
+        int lines = files.Values.Sum(file => file.Doodads.Count);
+        said.AppendLine(CultureInfo.InvariantCulture, $"tile doodads: {files.Count} tile files with a doodad list, {lines} doodad lines - {filesHow}; {how}; {entitiesHow}");
+        if (lines == 0 || grid?.Tiles is not { } laid || entities.Count == 0)
+        {
+            said.AppendLine("nothing to measure");
+            return said.ToString();
+        }
+
+        var byType = entities.GroupBy(one => one.Path, StringComparer.OrdinalIgnoreCase).ToDictionary(group => group.Key, group => group.ToList(), StringComparer.OrdinalIgnoreCase);
+        (int Width, int Height) Size(int id) => files.TryGetValue(laid.Paths[id], out var file) ? (file.Width, file.Height) : (1, 1);
+        List<TilePiece> pieces = [.. laid.Pieces(0, 0, laid.Width, laid.Height, Size).Where(piece => piece.Whole && files.ContainsKey(laid.Paths[piece.Id]))];
+
+        // EVERY READING: (way the file lies, the game's turn after it or before it).
+        var readings = new List<(int Way, bool TurnAfter, int[] Found, double Off, List<string> Lines)>();
+        for (var way = 0; way < 8; way++)
+        {
+            foreach (bool turnAfter in (bool[])[true, false])
+            {
+                int[] found = new int[Within.Length];
+                double off = 0;
+                var printed = new List<string>();
+                foreach (TilePiece piece in pieces)
+                {
+                    (int width, int height, List<RoomDoodad> doodads) = files[laid.Paths[piece.Id]];
+                    var middle = new Vector2((piece.MinX + piece.MaxX + 1) * TileModels.Side / 2f, (piece.MinY + piece.MaxY + 1) * TileModels.Side / 2f);
+                    foreach (RoomDoodad doodad in doodads)
+                    {
+                        Vector2 local = (doodad.Exact ?? new Vector2(doodad.X, doodad.Y) * (TileModels.Side / RoomModels.CellsPerTile))
+                            - new Vector2(width * TileModels.Side / 2f, height * TileModels.Side / 2f);
+                        Vector2 lies = Apply(TileOrientation.OfPlacement(way).Turn, local);
+                        Vector2 turned = Apply(TileOrientation.OfPlacement(piece.Placement).Turn, turnAfter ? lies : local);
+                        Vector2 world = middle + (turnAfter ? turned : Apply(TileOrientation.OfPlacement(way).Turn, turned));
+                        (DoodadSighting? nearest, float distance) = Nearest(byType, doodad, world);
+                        for (var within = 0; within < Within.Length; within++)
+                        {
+                            found[within] += distance <= Within[within] ? 1 : 0;
+                        }
+
+                        off += distance <= Within[^1] ? distance : 0;
+                        string seen = nearest is { } entity
+                            ? string.Create(CultureInfo.InvariantCulture, $"nearest {Short(entity.Model)} at {entity.X:0}, {entity.Y:0}, z {entity.Z:0}, {distance:0} off")
+                            : "no entity of its type";
+                        printed.Add(string.Create(CultureInfo.InvariantCulture,
+                            $"  {Short(laid.Paths[piece.Id])} at {piece.MinX}, {piece.MinY} placement {piece.Placement}: {Short(doodad.Ao)} cell {doodad.X}, {doodad.Y} z {doodad.Height} -> {world.X:0}, {world.Y:0}; {seen}"));
+                    }
+                }
+
+                readings.Add((way, turnAfter, found, found[^1] > 0 ? off / found[^1] : double.NaN, printed));
+            }
+        }
+
+        int predicted = readings[0].Lines.Count;
+        said.AppendLine(CultureInfo.InvariantCulture, $"{pieces.Count} whole laid pieces carry them, {predicted} doodads put into the area under each reading; entities by type: {byType.Count}");
+
+        // BOTH HALVES OF THE TYPES: what the tiles' lines name, and what the recording holds - a type on one side only finds nothing.
+        var named = files.Values.SelectMany(file => file.Doodads).GroupBy(doodad => doodad.Stub, StringComparer.OrdinalIgnoreCase);
+        said.AppendLine("  the doodad lists' types, lines: " + string.Join(", ", named.OrderByDescending(group => group.Count())
+            .Select(group => $"{group.Key} x{group.Count()} ({(byType.TryGetValue(group.Key, out List<DoodadSighting>? held) ? held.Count : 0)} entities)")));
+        said.AppendLine("  the recording's types, entities: " + string.Join(", ", byType.OrderByDescending(one => one.Value.Count).Select(one => $"{one.Key} x{one.Value.Count}")));
+        said.AppendLine("readings, best first - found within " + string.Join(" / ", Within.Select(one => one.ToString(CultureInfo.InvariantCulture))) + " units, and the mean distance of those within the last:");
+        var ordered = readings.OrderByDescending(one => one.Found[0]).ThenByDescending(one => one.Found[1]).ThenByDescending(one => one.Found[2]).ToList();
+        foreach ((int way, bool turnAfter, int[] found, double off, _) in ordered)
+        {
+            said.AppendLine(CultureInfo.InvariantCulture,
+                $"  way {way} ({TileOrientation.OfPlacement(way)}), the game's turn {(turnAfter ? "after" : "before")}: {string.Join(" / ", found)} of {predicted}, mean {off:0.#}");
+        }
+
+        said.AppendLine();
+        said.AppendLine("the best reading's doodads, both halves:");
+        foreach (string line in ordered[0].Lines)
+        {
+            said.AppendLine(line);
+        }
+
+        return said.ToString();
+
+        static Vector2 Apply((int Xx, int Xy, int Yx, int Yy) turn, Vector2 point)
+            => new((turn.Xx * point.X) + (turn.Xy * point.Y), (turn.Yx * point.X) + (turn.Yy * point.Y));
+    }
+
+    /// <summary>The nearest entity of a doodad's type whose model is the doodad's .ao (or unread), and how far.</summary>
+    private static (DoodadSighting? Entity, float Distance) Nearest(Dictionary<string, List<DoodadSighting>> byType, RoomDoodad doodad, Vector2 world)
+    {
+        if (!byType.TryGetValue(doodad.Stub, out List<DoodadSighting>? candidates))
+        {
+            return (null, float.PositiveInfinity);
+        }
+
+        string[] models = doodad.Ao.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        DoodadSighting? best = null;
+        float nearest = float.PositiveInfinity;
+        foreach (DoodadSighting entity in candidates)
+        {
+            if (entity.Model.Length > 0 && !models.Contains(entity.Model, StringComparer.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            float distance = Vector2.Distance(world, new Vector2(entity.X, entity.Y));
+            if (distance < nearest)
+            {
+                (best, nearest) = (entity, distance);
+            }
+        }
+
+        return (best, nearest);
+    }
+
+    /// <summary>Each tile file's size and doodad lists out of tile-files.txt, by path, read with TileDoodadList - and how many lists did not read whole.</summary>
+    private static (Dictionary<string, (int Width, int Height, List<RoomDoodad> Doodads)> Files, string How) TileDoodads(string folder)
+    {
+        var files = new Dictionary<string, (int Width, int Height, List<RoomDoodad> Doodads)>(StringComparer.OrdinalIgnoreCase);
+        string path = Path.Combine(folder, CaptureReport.TileFilesFile);
+        if (!File.Exists(path))
+        {
+            return (files, $"no {CaptureReport.TileFilesFile} in the capture");
+        }
+
+        string current = string.Empty;
+        (int Width, int Height) size = (1, 1);
+        var doodads = new List<RoomDoodad>();
+        var text = new StringBuilder();
+        bool inTmd = false;
+        int lists = 0, refused = 0;
+        void CloseTmd()
+        {
+            if (inTmd)
+            {
+                TileDoodadList list = TileDoodadList.Parse(text.ToString());
+                doodads.AddRange(list.Doodads);
+                lists++;
+                refused += list.Why.Length > 0 ? 1 : 0;
+            }
+
+            inTmd = false;
+            text.Clear();
+        }
+
+        void CloseFile()
+        {
+            CloseTmd();
+            if (current.Length > 0 && doodads.Count > 0)
+            {
+                files[current] = (size.Width, size.Height, [.. doodads]);
+            }
+
+            doodads.Clear();
+            size = (1, 1);
+        }
+
+        foreach (string raw in File.ReadLines(path))
+        {
+            string line = raw.TrimEnd('\r');
+            if (line.StartsWith("##### ", StringComparison.Ordinal))
+            {
+                CloseFile();
+                int flags = line.LastIndexOf("  (", StringComparison.Ordinal);
+                current = flags > 6 ? line[6..flags] : line[6..];
+            }
+            else if (line.StartsWith("  defines\t", StringComparison.Ordinal))
+            {
+                string[] cells = line.Split('\t');
+                string[] wide = cells.Length > 2 ? cells[2].Split('x') : [];  // defines, path, WxH, tag, templates
+                size = wide.Length == 2 && int.TryParse(wide[0], CultureInfo.InvariantCulture, out int width) && int.TryParse(wide[1], CultureInfo.InvariantCulture, out int height)
+                    ? (width, height)
+                    : (1, 1);
+            }
+            else if (line.StartsWith("  tmd\t", StringComparison.Ordinal))
+            {
+                CloseTmd();
+                inTmd = line.EndsWith("\ttext", StringComparison.Ordinal);
+            }
+            else if (inTmd && line.StartsWith("  | ", StringComparison.Ordinal))
+            {
+                text.AppendLine(line[4..]);
+            }
+            else if (inTmd)
+            {
+                CloseTmd();
+            }
+        }
+
+        CloseFile();
+        return (files, string.Create(CultureInfo.InvariantCulture, $"{lists} doodad lists read, {refused} with lines refused"));
+    }
+
+    /// <summary>Every named entity the recording holds - both entity maps walked unfiltered, as the capture's pass walked them.</summary>
+    private static (List<DoodadSighting> Entities, string How) Entities(string folder)
+    {
+        string path = Path.Combine(folder, CaptureReport.MemoryFile);
+        if (!File.Exists(path))
+        {
+            return ([], $"no {CaptureReport.MemoryFile} in the capture");
+        }
+
+        using var replay = ReplayMemoryReader.Load(File.OpenRead(path));
+        if (!replay.ResolvedStatics.TryGetValue("GameStates", out ulong gameStates))
+        {
+            return ([], "the recording names no GameStates static");
+        }
+
+        OffsetSchema schema = RealSessionTests.LiveSchema();
+        GameChainAddresses chain = GameChain.Resolve(replay, schema, gameStates);
+        DoodadSurvey survey = SleepingDoodads.Read(replay, schema, chain.AreaInstance, paths: null);
+        return survey.Why.Length > 0
+            ? ([], "entities not read: " + survey.Why)
+            : ([.. survey.Found], string.Create(CultureInfo.InvariantCulture, $"{survey.Found.Count} named entities from the recording"));
     }
 
     /// <summary>Every line of the fill lists area-masters.txt carries, read back with FillList - none where the capture has no such file.</summary>

@@ -123,6 +123,24 @@ public partial class CaptureFixtureTests
         Assert.Contains("Metadata/Terrain/Desert/CavePath/Features/cave_entrance_01.tdt: I (tile list); R180 (tile list)", replay, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Every doodad list Marrow's capture carries reads whole - 171 lines of 35 lists, none refused - and the recording's own
+    /// TileUpperDoodad entities are there to hold them against once a capture carries the lists beside the templates.
+    /// </summary>
+    /// <remarks>
+    /// THE MEASUREMENT ITSELF WAITS: the only doodads of Marrow's lists that meet an entity stand in the middle of a three by
+    /// three tile, where every way a tile can lie puts them - so all sixteen readings find the same three. The wall tops
+    /// (TileUpperDoodad, off the middle) that would tell the readings apart sit in lists beside the templates, which v0.1.183
+    /// did not look for.
+    /// </remarks>
+    [Fact]
+    public void THETILEDOODADSOfMarrowReadWholeAndWaitForTheWallTops()
+    {
+        string replay = CaptureReplayTests.TileDoodadsReplay(Capture("marrow"));
+        Assert.StartsWith("tile doodads: 35 tile files with a doodad list, 171 doodad lines - 35 doodad lists read, 0 with lines refused", replay, StringComparison.Ordinal);
+        Assert.Contains("Metadata/MiscellaneousObjects/TileUpperDoodad x238", replay, StringComparison.Ordinal);
+    }
+
     [GeneratedRegex(@"room way (\d), tile way (\d): edges (\d+) agree, (\d+) disagree")]
     private static partial Regex Pair();
 
