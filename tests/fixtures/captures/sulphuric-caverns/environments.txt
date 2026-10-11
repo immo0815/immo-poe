@@ -1,5 +1,5 @@
 === environments
-1915 files the area loaded, 0 of them tilesets
+1771 files the area loaded, 0 of them tilesets
 
 === .env Metadata/EnvironmentSettings/Maps/Murky.env  (the area's own: its WorldAreas row's Environments row)
 {

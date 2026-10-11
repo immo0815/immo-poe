@@ -1,0 +1,384 @@
+1 master of the area and 10 files they name or the area loaded, each whole - a tile list by name only, being whole in tileset-lists.txt
+
+##### metadata/terrain/maps/sulphuriccaverns/master.tsi  (master)
+  | version 3
+  | StoreyHeight	26
+  | RoomUnitSize	10
+  | RoomOverlap		1
+  | OuterBufferSize	7
+  | OuterGroundType	"Metadata/Terrain/black_inside_wall.gt"
+  | FillTiles	 	"random_fill_tiles.gft"
+  | Doodads			"doodads.ddt"
+  | TileSet			"tiles.tst"
+  | MaterialsList	"materials.mtd"
+  | RoomSet			"generate.rs"
+  | ChestData		"chests.cht"
+  | TileMaterialOverrides   "material_overrides.tmo"
+  | EdgeCombination	"coral_dungeon.ecf"
+  | Critters		"critters.clt"
+  | DefaultKillZone	9
+##### Metadata/Terrain/black_inside_wall.gt  (OuterGroundType of metadata/terrain/maps/sulphuriccaverns/master.tsi)
+  | BlackInsideWall
+  | 0 1 0 0
+##### metadata/terrain/maps/sulphuriccaverns/random_fill_tiles.gft  (FillTiles of metadata/terrain/maps/sulphuriccaverns/master.tsi)
+  fill list: version 2, 3 sections, 4 tiles, 0 rooms
+  | version 2
+  | "default"
+  | 1 "Metadata/Terrain/Blank.tdt"
+  | 
+  | "BlackInsideWall"
+  | 1 "Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Fill_01.tdt"
+  | 
+  | "CoralAbyss"
+  | 50 "Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/Fill_01.tdt"
+  | 25 "Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/Fill_02.tdt" I FR270
+##### metadata/terrain/maps/sulphuriccaverns/doodads.ddt  (Doodads of metadata/terrain/maps/sulphuriccaverns/master.tsi)
+  | version 3
+  | 1 1
+  | Default
+  | 
+##### metadata/terrain/maps/sulphuriccaverns/tiles.tst  (TileSet of metadata/terrain/maps/sulphuriccaverns/master.tsi)
+  (a tile list - whole in tileset-lists.txt)
+##### metadata/terrain/maps/sulphuriccaverns/materials.mtd  (MaterialsList of metadata/terrain/maps/sulphuriccaverns/master.tsi)
+  | version 5
+  | 
+  | // Default Ground ==========================================================================================================================================
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | 3 3
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava01.mat"
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava02.mat"
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava03.mat"
+  | 40 40 40 100
+  | 60 1
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava01.mat" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_DriedBonesMisc01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneBison01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneCarcuss02.dlp"
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava02.mat" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_DriedBonesMisc01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneBison01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneCarcuss02.dlp"
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava03.mat" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_DriedBonesMisc01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneBison01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneCarcuss02.dlp"
+  | 
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // =========================================================================================================================================================
+  | 
+  | // Trim Around Cave Walls =================================================================================================================================
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "CoralTrim" 6 0
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava01.mat"
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava02.mat"
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava03.mat"
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava01.mat" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_DriedBonesMisc01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneBison01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneCarcuss02.dlp"
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava02.mat" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_DriedBonesMisc01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneBison01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneCarcuss02.dlp"
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava03.mat" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_DriedBonesMisc01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneBison01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneCarcuss02.dlp"
+  | 30 30 30 40 40 40 32
+  | 
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // =========================================================================================================================================================
+  | 
+  | // =========================================================================================================================================================
+  | 
+  | // ABYSS ===================================================================================================================================================
+  | // =========================================================================================================================================================
+  | 
+  | // Ground at Base of Abyss =================================================================================================================================
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "CoralAbyss" 3 0
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava01.mat" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_DriedBonesMisc01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneBison01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneCarcuss02.dlp"
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava02.mat" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_DriedBonesMisc01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneBison01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneCarcuss02.dlp"
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava03.mat" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_DriedBonesMisc01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneBison01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneCarcuss02.dlp"
+  | 40 40 40 32
+  | 
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // =========================================================================================================================================================
+  | 
+  | // Trim Around the Edge of the Abyss =======================================================================================================================
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "CoralAbyssTrim" 3 0
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava01.mat" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_DriedBonesMisc01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneBison01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneCarcuss02.dlp"
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava02.mat" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_DriedBonesMisc01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneBison01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneCarcuss02.dlp"
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Ground/G_VOL_CooledLava03.mat" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_DriedBonesMisc01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneBison01.dlp" "Metadata/Doodads/Maps/SulphuricCaverns/MSCA_BoneCarcuss02.dlp"
+  | 40 40 40 32
+  | 
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // =========================================================================================================================================================
+  | 
+  | // =========================================================================================================================================================
+##### metadata/terrain/maps/sulphuriccaverns/generate.rs  (RoomSet of metadata/terrain/maps/sulphuriccaverns/master.tsi)
+  | version 2
+  | "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/insidewall_01.arm"
+  | 
+  | "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Unique/boss.arm"
+  | "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Unique/noboss.arm"
+  | "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Unique/entrance.arm"
+  | "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Unique/forced_rare_01.arm"
+  | "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Unique/mission_01.arm"
+  | "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Unique/checkpoint_cnr_01.arm"
+  | "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Unique/checkpoint_st_01.arm"
+  | 
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/Cnr_01.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/Cnr_02.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/Cnr_03.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/Cnr_04.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/Cnr_05.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_1_01.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_1_02.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_1_03.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_1_04.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_1_05.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_2_01.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_2_02.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_2_03.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_2_04.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_2_05.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_3_01.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_3_02.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_3_03.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_3_04.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_4_01.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_4_02.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/St_01.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/St_02.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/St_03.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/St_04.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/St_05.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/StLarge_1_01.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/StLarge_1_02.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/StLarge_1_03.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/StLarge_2_01.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/StLarge_2_02.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/StLarge_2_03.arm"
+  | 
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Cc_01.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Cc_02.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Cc_03.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Cc_04.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Cc_05.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/St_01.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/St_02.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/St_03.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/St_04.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/St_05.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Tri_01.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Tri_02.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Tri_03.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Tri_04.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/X_01.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/X_02.arm"
+  | 1 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/X_03.arm"
+  | 
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_2_01.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_2_02.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_2_03.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_2_04.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_2_05.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_2_06.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_2_07.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_2_08.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_3_01.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_3_02.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_3_03.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_3_04.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_3_05.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_4_01.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_4_02.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_4_03.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_4_04.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_5_01.arm"
+  | 5 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_5_02.arm"
+  | 3 "Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_8_01.arm"
+##### metadata/terrain/maps/sulphuriccaverns/chests.cht  (ChestData of metadata/terrain/maps/sulphuriccaverns/master.tsi)
+  | version 2
+  | 0.6 0.3 40 0
+  | 40 "GoblinRockPile01, GoblinRockPile02, GoblinRockPile03, GoblinRockPile04, MossyChest11MagicAndRare, MossyChest13MagicAndRare, MossyChest14MagicAndRare, MossyChest17MagicAndRare"
+  | 40 "StackedBoulders"
+##### metadata/terrain/maps/sulphuriccaverns/material_overrides.tmo  (TileMaterialOverrides of metadata/terrain/maps/sulphuriccaverns/master.tsi)
+  | version 1
+  | 
+  | // "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveWalls_FlowstoneMCF01c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/VOL_CaveWallFlowstone01_MCFc.mat"
+  | // "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveWalls_Rock01Mcf1c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/VOL_CaveWallRock01_MCF01c.mat"
+  | // "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveWalls_Rock01Mcf2c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/VOL_CaveWallRock01_MCF02c.mat"
+  | 
+  | 
+  | // CAVE WALLS ===========================================================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CRL_CaveWallRock01c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/VOL_CaveWallRock01c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CRL_CaveWallRock02c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/VOL_CaveWallRock02c.mat"
+  | 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CRL_CaveWallFlowstone01c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/VOL_CaveWallFlowstone01c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CRL_CaveWallFlowstone02c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/VOL_CaveWallFlowstone02c.mat"
+  | 
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ======================================================================================================================================================================================================================
+  | 
+  | // STALAGMITES ==========================================================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/Stalagmites/CRL_Stalagmite01c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Stalagmites/VOL_Stalagmite01c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/Stalagmites/CRL_Stalagmite02c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Stalagmites/VOL_Stalagmite02c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/Stalagmites/CRL_Stalagmite03c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Stalagmites/VOL_Stalagmite03c.mat"
+  | 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveStalagmites/CRL_CaveStalagmite01c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/CaveStalagmites/VOL_CaveStalagmite01c.mat" 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveStalagmites/CRL_CaveStalagmite02c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/CaveStalagmites/VOL_CaveStalagmite02c.mat" 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveStalagmites/CRL_CaveStalagmite03c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/CaveStalagmites/VOL_CaveStalagmite03c.mat" 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveStalagmites/CRL_CaveStalagmite04c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/CaveStalagmites/VOL_CaveStalagmite04c.mat" 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveStalagmites/CRL_CaveStalagmite05c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/CaveStalagmites/VOL_CaveStalagmite05c.mat" 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveStalagmites/CRL_CaveStalagmite06c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/CaveStalagmites/VOL_CaveStalagmite06c.mat" 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveStalagmites/CRL_CaveStalagmite07c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/CaveStalagmites/VOL_CaveStalagmite07c.mat" 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveStalagmites/CRL_CaveStalagmite08c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/CaveStalagmites/VOL_CaveStalagmite08c.mat" 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveStalagmites/CRL_CaveStalagmite09c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/CaveStalagmites/VOL_CaveStalagmite09c.mat" 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveStalagmites/CRL_CaveStalagmite10c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/CaveStalagmites/VOL_CaveStalagmite10c.mat" 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveStalagmites/CRL_CaveStalagmite11c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/CaveStalagmites/VOL_CaveStalagmite11c.mat" 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveStalagmites/CRL_CaveStalagmite12c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/CaveStalagmites/VOL_CaveStalagmite12c.mat" 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveStalagmites/CRL_CaveStalagmite13c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/CaveStalagmites/VOL_CaveStalagmite13c.mat" 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveStalagmites/CRL_CaveStalagmite14c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/CaveStalagmites/VOL_CaveStalagmite14c.mat" 
+  | 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/Stalagmites/CRL_StalagmiteLunar01c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Stalagmites/VOL_StalagmiteLunar01c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/Stalagmites/CRL_StalagmiteLunar02c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Stalagmites/VOL_StalagmiteLunar02c.mat"
+  | 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/Stalagmites/CRL_StalagmiteArched01c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Stalagmites/VOL_StalagmiteArched01c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/Stalagmites/CRL_StalagmiteCake01c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Stalagmites/VOL_StalagmiteCake01c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/Stalagmites/CRL_StalagmiteDrip01c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Stalagmites/VOL_StalagmiteDrip01c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/Stalagmites/CRL_StalagmiteLedge01c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Stalagmites/VOL_StalagmiteLedge01c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/Stalagmites/CRL_StalagmiteMoss01c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Stalagmites/VOL_StalagmiteMoss01c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/Stalagmites/CRL_StalagmiteSmall01c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Stalagmites/VOL_StalagmiteSmall01c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/Stalagmites/CRL_StalagmiteTall01c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/Stalagmites/VOL_StalagmiteTall01c.mat"
+  | 
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ======================================================================================================================================================================================================================
+  | 
+  | // STROMATOLITES ========================================================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveStromatolites/CRL_CaveStromaDry01c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/CaveStromatolites/VOL_StromatolitesDry01c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CaveStromatolites/CRL_CaveStromaDry02c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/CaveStromatolites/VOL_StromatolitesDry02c.mat"
+  | 
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ======================================================================================================================================================================================================================
+  | 
+  | // ABYSS EDGES ==========================================================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CRL_AbyssEdge01c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/VOL_AbyssEdge01c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CRL_AbyssEdge02c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/VOL_AbyssEdge02c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CRL_AbyssEdge03c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/VOL_AbyssEdge03c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CRL_AbyssEdge04c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/VOL_AbyssEdge04c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CRL_AbyssEdge05c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/VOL_AbyssEdge05c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CRL_AbyssEdge06c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/VOL_AbyssEdge06c.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/CRL_AbyssEdge07c.mat" "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/VOL_AbyssEdge07c.mat"
+  | 
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ======================================================================================================================================================================================================================
+  | 
+  | // EDGES TRIM MCF =======================================================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/G_CRL_FlatStone01Mcfc.mat" "Art\Models\Terrain\Islands\Tiles\Volcano\Textures\Volcano\VOL_CooledLava01_MCFc.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/Ground/CRL_FlatStone03_MCFc.mat" "Art\Models\Terrain\Islands\Tiles\Volcano\Textures\Volcano\VOL_CooledLava01_MCFc.mat"
+  | "Art/Models/Terrain/Islands/Tiles/CoralDungeon/Textures/LavaRockMCFc.mat" "Art\Models\Terrain\Islands\Tiles\Volcano\Textures\Volcano\VOL_CooledLava01_MCFc.mat"
+  | 
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ======================================================================================================================================================================================================================
+  | 
+  | // BONES ================================================================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "Art/Models/Terrain/Islands/Doodads/WhaleStranding/Textures/StrandingBones/WHL_BoneBison01c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_BoneBison01c.mat"
+  | "Art/Models/Terrain/Islands/Doodads/WhaleStranding/Textures/StrandingBones/WHL_BoneCarcuss02c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_BoneCarcuss02c.mat"
+  | "Art/Models/Terrain/Islands/Doodads/WhaleStranding/Textures/StrandingBones/WHL_BoneSpine01c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_BoneSpine01c.mat"
+  | "Art/Models/Terrain/Islands/Doodads/WhaleStranding/Textures/StrandingBones/WHL_BoneSpine02c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_BoneSpine02c.mat"
+  | "Art/Models/Terrain/Islands/Doodads/WhaleStranding/Textures/StrandingBones/WHL_BoneWhale01c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_BoneWhale01c.mat"
+  | "Art/Models/Terrain/Islands/Doodads/WhaleStranding/Textures/StrandingBones/WHL_BoneWhale02c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_BoneWhale02c.mat"
+  | "Art/Models/Terrain/Islands/Doodads/WhaleStranding/Textures/StrandingBones/WHL_DinoSkulls04c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_DinoSkulls04c.mat"
+  | "Art/Models/Terrain/Islands/Doodads/WhaleStranding/Textures/StrandingBones/WHL_SpineDecor01c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_SpineDecor01c.mat"
+  | "Art/Models/Terrain/Islands/Doodads/WhaleStranding/Textures/StrandingBones/WHL_SpineDecor02c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_SpineDecor02c.mat"
+  | "Art\Textures\Environment\desert\Badlands\AnimalSkullsDecor01c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_AnimalSkullsDecor01c.mat"
+  | "Art\Textures\Environment\desert\Badlands\BoneCarcuss01c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_BoneCarcuss01c.mat"
+  | "Art\Textures\Environment\desert\Badlands\BoneCarcuss02c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_BoneCarcuss02c.mat"
+  | "Art\Textures\Environment\desert\Badlands\BoneSkullMisc01c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_BoneSkullMisc01c.mat"
+  | "Art\Textures\Environment\desert\Badlands\BoneSkullMisc02c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_BoneSkullMisc02c.mat"
+  | "Art\Textures\Environment\desert\Badlands\DinoSkull02c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_DinoSkull02c.mat"
+  | "Art\Textures\Environment\desert\Badlands\DinoSkull03c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_DinoSkull03c.mat"
+  | "Art\Textures\Environment\desert\Badlands\DinoSkulls04c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_DinoSkulls04c.mat"
+  | "Art\Textures\Environment\desert\Badlands\DriedBonesMisc01c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_DriedBonesMisc01c.mat"
+  | "Art\Textures\Environment\desert\Badlands\DriedBonesMisc02c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_DriedBonesMisc02c.mat"
+  | "Art\Textures\Environment\desert\Badlands\DriedBonesMisc03c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_DriedBonesMisc03c.mat"
+  | "Art\Textures\Environment\desert\Badlands\FemurDecor01c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_FemurDecor01c.mat"
+  | "Art\Textures\Environment\desert\Badlands\MiscBoneProps01c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Bones\MSCA_MiscBoneProps01c.mat"
+  | 
+  | "Art\Textures\Environment\desert\Badlands\MiscBoneProps04c.mat" "Art\Textures\masks\transparentobjectsc.mat"
+  | "Art\Textures\Environment\desert\Badlands\MessyRopeThinTiling01flatc.mat" "Art\Textures\masks\transparentobjectsc.mat"
+  | 
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ======================================================================================================================================================================================================================
+  | 
+  | // MOLTEN SULPHUR =======================================================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/VOL_MoltenMagma01c.mat" "Art\Models\Terrain\Maps\SulphuricCaverns\Magma\MSCA_SulphurAcid01c.mat"
+  | 
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ======================================================================================================================================================================================================================
+  | 
+  | // GOBLIN EFFIGIES ======================================================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | // "Art/Models/Terrain/Islands/Doodads/Volcano/Textures/IsleofKin/GOB_Adornments01c.mat" "Art\Textures\masks\transparentobjectsc.mat"
+  | // "Art/Models/Terrain/Islands/Doodads/Volcano/Textures/IsleofKin/GOB_EffigyDirt01c.mat" "Art\Textures\masks\transparentobjectsc.mat"
+  | // "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/GOB_PackedMud02c.mat" "Art\Textures\masks\transparentobjectsc.mat"
+  | 
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ======================================================================================================================================================================================================================
+  | 
+  | // GOBLIN TUNNELS =======================================================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "Art/Models/Terrain/Islands/Tiles/Island/Textures/Rocks/IsleofKin/GOB_RockMountain03c.mat" "Art/Models/Terrain/Islands/Tiles/Island/Textures/Rocks/KedgeBay/KGB_RockMountain03c.mat"
+  | 
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ======================================================================================================================================================================================================================
+  | 
+  | // GOBLIN SCAFFOLDS =====================================================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | // "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/GOB_BaseSticksc.mat" "Art\Textures\__TestTextures\DEBUG\DBG_Greenc.mat"
+  | // "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/GOB_StickPath02c.mat" "Art\Textures\__TestTextures\DEBUG\DBG_Greenc.mat"
+  | // "Art/Textures/Environment/Woods/Canopy/BaseSticksc.mat" "Art\Textures\__TestTextures\DEBUG\DBG_Greenc.mat"
+  | 
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ======================================================================================================================================================================================================================
+  | 
+  | // SULPHUR PILES ========================================================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/IsleofKin/GOB_JaggedRocksA02c.mat" "Art\Textures\masks\transparentobjectsc.mat"
+  | 
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ======================================================================================================================================================================================================================
+  | 
+  | // GOBLIN DECOR =========================================================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "Art/Textures/General/Rope/Rope02c.mat" "Art\Textures\General\Rope\Rope01c.mat"
+  | // "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/GOB_QueenKabalaProps02c.mat"
+  | 
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ======================================================================================================================================================================================================================
+  | 
+  | // "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/VOL_ChiseledRock01c.mat"
+  | // "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/VOL_ChiseledRockMCF01c.mat"
+  | 
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ======================================================================================================================================================================================================================
+##### metadata/terrain/maps/sulphuriccaverns/coral_dungeon.ecf  (EdgeCombination of metadata/terrain/maps/sulphuriccaverns/master.tsi)
+  | version 1
+  | "Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et" "Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et" "" 0
+  | "Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et" "Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et" "Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et" 1
+  | "Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et" "Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et" "Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et"
+  | "Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et" "Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et" "Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et"
+##### metadata/terrain/maps/sulphuriccaverns/critters.clt  (Critters of metadata/terrain/maps/sulphuriccaverns/master.tsi)
+  | version 4
+  | 0.04
+  | Default
+  | //1 "Metadata/Critters/Bat/Vampire" "Metadata/Critters/Bat/Vampire.ao" 5.0 20.0 2 6
+  | //1 "Metadata/Critters/Weta/Basic" "Metadata/Critters/Weta/Basic.ao" 0 0 1 1

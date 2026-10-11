@@ -1,38 +1,38 @@
-capture  2026-10-11 07:53:48 local, PoEformance v0.1.179 · 5dc98b8
-area     Sulphuric Caverns (MapSulphuricCaverns), act 10, level 70, hash 0x03EB5F7D, state InGame
+capture  2026-10-11 13:07:42 local, PoEformance v0.1.188 · 1228476
+area     Sulphuric Caverns (MapSulphuricCaverns), act 10, level 70, hash 0x6C3D3F29, state InGame
 light    Metadata/EnvironmentSettings/Maps/Murky.env
 screen   game client at 0, 0, 3440 x 1440
-player   world 19048.91 19266.3 -87.825, terrain height 0, level 96
-         grid cell 1752, 1772, tile 76, 77
+player   world 5513.06 5216.551 -87.825, terrain height 0, level 96
+         grid cell 507, 479, tile 22, 20
          the grid's height there -0, the tile's level -0
-tile     Metadata/Terrain/Maps/SulphuricCaverns/Tiles/Features/SulphuricCaverns_Boss_01.tdt, laid 5, piece 10, 11
-camera   1.105 1.983 0.488 0.467 -1.105 1.983 0.488 0.467 0 -2.462 0.786 0.751 240.149 -75823.59 -16616.89 -15694.42
+tile     Metadata/Terrain/Maps/SulphuricCaverns/Tiles/Features/SulphuricCaverns_Boss_01.tdt, laid 2, piece 10, 8
+camera   1.105 1.983 0.488 0.467 -1.105 1.983 0.488 0.467 0 -2.462 0.786 0.751 -327.547 -21119.06 -3162.382 -2824.887
 terrain  2208 x 2208 cells, 96 x 96 tiles
 
 === rooms around the player
 (none laid within 3 tiles)
 
 === what this capture holds
-  game.png  3440 x 1440, the game alone, the overlay hidden for 141 ms
-  overlay.png  3440 x 1440, the game with the overlay, as the key went down
-  entities.txt  125 entities, nearest first
-  loaded-files.txt  1915 files
+  entities.txt  41 entities, nearest first
+  loaded-files.txt  1771 files
   environments.txt  the area's environment (Metadata/EnvironmentSettings/Maps/Murky.env) and those of 0 rooms
   room-files.txt  77 room files the area may lay - the loaded list's and every room of the sets its files and the install's masters name
-  tile-identities.txt  74 tile files laid in the area, each as a room's slot asks about it - tab-separated, or why it did not read
+  tile-identities.txt  80 tile files laid in the area, each as a room's slot asks about it - tab-separated, or why it did not read
   slot-candidates.txt  77 rooms of the area's set against 184 tiles its tilesets list - 1 master, lists metadata/terrain/maps/sulphuriccaverns/tiles.tst
   tileset-lists.txt  1 tile list of 1 master, 184 tile lines - each list whole: an optional weight, the tile, then the words after it
+  tile-files.txt  186 tile files - 184 the area's tile lists name, 4 its fill lists, 80 laid, 1 of those named by no tile list; each with its definition followed through what it inherits, and the tile's doodad list (.tmd)
+  area-masters.txt  1 master of the area and 10 files they name or the area loaded, each whole - a tile list by name only, being whole in tileset-lists.txt
   rooms.txt  0 rooms within 3 tiles, their doodads' lights and the pieces attached to them, and the file of each room the player stands in
   rooms-arranged.txt  not written: the rooms stand by their doodads - see rooms-placed.txt
-  doodads.txt  doodads: 1070 entities stand where the rooms name a doodad, on 6 paths - sleeping map 1160 of 1160 walked, awake 26, 1186 with a path, read in 176 ms, 4 remembered from the bubble since
+  doodads.txt  doodads: 354 entities stand where the rooms name a doodad, on 6 paths - sleeping map 418 of 418 walked, awake 64, 482 with a path, read in 25 ms, 4 remembered from the bubble since
   rooms-placed.txt  rooms: 1 placed by their doodads at 1 places, 76 with no place
   room-pick.txt  not written: nothing there when the key went down
-  routes.txt  2 lines
+  routes.txt  not written: nothing there when the key went down
   scene-light.txt  not written: nothing there when the key went down
   model-probe.txt  not written: nothing there when the key went down
   dissector.txt  not written: nothing there when the key went down
   atlas-log.txt  not written: nothing there when the key went down
-  memory.rec  1063 KB: the overlay's own reads for 90 reader ticks and one pass reading the world with every switch on, the loaded files, both entity maps with every named entity's model, every monster's mods, the raw bytes of the roots, one hop beyond them and the components around you from nothing - replay with --replay; memory.txt says what the pass read where
+  memory.rec  946 KB: the overlay's own reads for 90 reader ticks and one pass reading the world with every switch on, the loaded files, both entity maps with every named entity's model, every monster's mods, the raw bytes of the roots, one hop beyond them and the components around you from nothing - replay with --replay; memory.txt says what the pass read where
   monsters.txt  written by the pass inside the recording - memory.txt says what it holds
-  every part of the catalogue was on
-  2026-10-11 07-53-48 Sulphuric Caverns.zip  beside this folder: every file here, packed to send
+  off: game-picture, overlay-picture
+  2026-10-11 13-07-42 Sulphuric Caverns.zip  beside this folder: every file here, packed to send

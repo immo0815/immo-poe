@@ -1448,6 +1448,8 @@ public class CaptureReplayTests
             // THE TILE'S LEVEL, which the pictures lift a piece by: a line's z counted from it and a z counted from the area's
             // nought read alike wherever the level is nought, so this says whether the area could tell them apart at all.
             said.AppendLine("    the tile's level under it: " + Commonest(put => grid.LevelAt((int)(put.World.X / TileModels.Side), (int)(put.World.Y / TileModels.Side))));
+            said.AppendLine("    entity ground - line z - the tile's level: " + Commonest(put =>
+                put.Entity!.Value.TerrainHeight - (put.Line.Doodad.Height ?? 0f) - grid.LevelAt((int)(put.World.X / TileModels.Side), (int)(put.World.Y / TileModels.Side))));
             said.AppendLine("    entity z - line z: " + Commonest(put => put.Entity!.Value.Z - (put.Line.Doodad.Height ?? 0f)));
             said.AppendLine("    entity z - entity ground: " + Commonest(put => put.Entity!.Value.Z - put.Entity!.Value.TerrainHeight));
             said.AppendLine("    entity z - grid height: " + Commonest(put => put.Entity!.Value.Z - Ground(put)));
