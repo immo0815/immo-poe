@@ -653,8 +653,8 @@ public static class CaptureGround
             for (var one = 0; one < count; one++)
             {
                 Spot spot = taken.All[one];
-                green[one] = Sample(picture, 1, spot.U, spot.V);
-                red[one] = Sample(picture, 0, spot.U, spot.V);
+                green[one] = GroundPainter.Sample(picture, 1, spot.U, spot.V);
+                red[one] = GroundPainter.Sample(picture, 0, spot.U, spot.V);
             }
 
             said.Append(CultureInfo.InvariantCulture,
@@ -728,24 +728,6 @@ public static class CaptureGround
         }
 
         return zz > 0 && vv > 0 ? both / Math.Sqrt(zz * vv) : 0;
-    }
-
-    /// <summary>One channel at a texture coordinate, nought to one, as a linear sampler that wraps reads it.</summary>
-    internal static float Sample(GamePicture picture, int channel, float u, float v)
-    {
-        float x = (u * picture.Width) - 0.5f, y = (v * picture.Height) - 0.5f;
-        int x0 = (int)MathF.Floor(x), y0 = (int)MathF.Floor(y);
-        float fx = x - x0, fy = y - y0;
-        float At(int column, int row)
-        {
-            int wrappedX = ((column % picture.Width) + picture.Width) % picture.Width;
-            int wrappedY = ((row % picture.Height) + picture.Height) % picture.Height;
-            return picture.Rgba[(((wrappedY * picture.Width) + wrappedX) * 4) + channel] / 255f;
-        }
-
-        float top = (At(x0, y0) * (1 - fx)) + (At(x0 + 1, y0) * fx);
-        float bottom = (At(x0, y0 + 1) * (1 - fx)) + (At(x0 + 1, y0 + 1) * fx);
-        return (top * (1 - fy)) + (bottom * fy);
     }
 
     /// <summary>The ground masks the templates name, each decoded once and described: header, size, every channel's spread.</summary>

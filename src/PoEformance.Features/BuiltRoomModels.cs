@@ -138,7 +138,7 @@ public static class BuiltRoomModels
             "built from the tileset: no heights, every tile at level nought", tiles: tiles);
 
         MonsterModel model = LaidRoomModels.Of(
-            read, path, grid, build.X, build.Y, 0, shaded, doodads, tools, atLevel: true, progress: progress, heights: heights);
+            read, path, grid, build.X, build.Y, 0, shaded, doodads, tools, atLevel: true, progress: progress, heights: heights, master: master);
         string said = build.Said + $" ({pool.Count} tiles in the pool{(unread > 0 ? $", {unread} did not read" : string.Empty)}{fillsSaid})";
         return model.Ready
             ? model with { Move = said + "; " + model.Move }

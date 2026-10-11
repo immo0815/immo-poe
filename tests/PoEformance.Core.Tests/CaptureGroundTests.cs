@@ -171,11 +171,11 @@ public sealed class CaptureGroundTests
     {
         var picture = new GamePicture(2, 1, [0, 0, 0, 255, 0, 255, 0, 255]);
 
-        Assert.Equal(0f, CaptureGround.Sample(picture, 1, 0.25f, 0.5f), 3);
-        Assert.Equal(1f, CaptureGround.Sample(picture, 1, 0.75f, 0.5f), 3);
-        Assert.Equal(0.5f, CaptureGround.Sample(picture, 1, 0.5f, 0.5f), 3);
-        Assert.Equal(0.5f, CaptureGround.Sample(picture, 1, 0f, 0.5f), 3);
-        Assert.Equal(1f, CaptureGround.Sample(picture, 1, 1.75f, 0.5f), 3);
+        Assert.Equal(0f, GroundPainter.Sample(picture, 1, 0.25f, 0.5f), 3);
+        Assert.Equal(1f, GroundPainter.Sample(picture, 1, 0.75f, 0.5f), 3);
+        Assert.Equal(0.5f, GroundPainter.Sample(picture, 1, 0.5f, 0.5f), 3);
+        Assert.Equal(0.5f, GroundPainter.Sample(picture, 1, 0f, 0.5f), 3);
+        Assert.Equal(1f, GroundPainter.Sample(picture, 1, 1.75f, 0.5f), 3);
     }
 
     /// <summary>No shader list and no terrain are said, not passed over.</summary>
@@ -232,10 +232,10 @@ public sealed class CaptureGroundTests
     }
 
     /// <summary>Text as the game writes it: UTF-16 with its mark.</summary>
-    private static byte[] Text(string text) => [.. Encoding.Unicode.GetPreamble(), .. Encoding.Unicode.GetBytes(text)];
+    internal static byte[] Text(string text) => [.. Encoding.Unicode.GetPreamble(), .. Encoding.Unicode.GetBytes(text)];
 
     /// <summary>A version 7 definition, one tile by one, naming its template and its four corners' ground types.</summary>
-    private static byte[] Tdt(string template, string[] grounds)
+    internal static byte[] Tdt(string template, string[] grounds)
     {
         string[] strings = ["", template, "tag", "edge", .. grounds.Distinct(StringComparer.Ordinal)];
         var starts = new Dictionary<string, uint>(StringComparer.Ordinal);
