@@ -353,6 +353,19 @@ public sealed class SceneLight
     /// </remarks>
     public bool WaterReflection { get; init; }
 
+    /// <summary>
+    /// How far the water's surface is lifted by its waves, as a share of the height the engine's octaves give it - nought for a flat surface.
+    /// </summary>
+    /// <remarks>
+    /// NOT THE ENGINE'S, and said so under the picture: its ocean planes are flat meshes, and the waves
+    /// raise the surface only per pixel (GetFlowingSurface meets the view with the plane lifted by the
+    /// height there); only the beach, crashing and flood waves move their vertices (BreakingWavesVertex and
+    /// its kin). The game's camera never looks along the water, the book's does, so here a water shape's
+    /// vertices are lifted by <see cref="ShadeProgram.Ripples"/> times this - one being the engine's own
+    /// height - on a mesh fine enough to carry them (SkinnedMesh.Refined).
+    /// </remarks>
+    public float WaterLift { get; init; }
+
     /// <summary>env_map_rotation: what a normal is put through before the cube is read - the world's axes as the cube's unless the environment turns it, see <see cref="CubeTurnFrom"/>.</summary>
     public Matrix4x4 CubeTurn { get; init; } = CubeSwap;
 

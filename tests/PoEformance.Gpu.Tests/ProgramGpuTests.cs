@@ -77,7 +77,7 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
             program => program.HasAlpha || program.UsesDepth);
 
     /// <summary>
-    /// The water's waves, glinting in the sun and reflecting the ambient, laid over the solid floor as the processor lays them - the engine's octaves, the glints' lobe and the reflection, on the card.
+    /// The water's waves, glinting in the sun, reflecting the ambient and lifting the surface, laid over the solid floor as the processor lays them - the engine's octaves, the glints' lobe, the reflection and PlacedWaves, on the card.
     /// </summary>
     [GpuFact]
     public void THEWATERSWavesAreLitByTheCardAsTheProcessorLightsThem()
@@ -93,6 +93,7 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
             Exposure = 1.2f,
             WaterGlints = true,
             WaterReflection = true,
+            WaterLift = 3f,
         };
         ShadeProgram waves = ShadeProgram.Water().Glossy!;
         var scene = new ModelScene(

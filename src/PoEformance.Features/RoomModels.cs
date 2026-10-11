@@ -184,7 +184,7 @@ public static class RoomModels
         var lights = new RoomLights.Gathered(Counted);
         Doodads laid = Lay(room, Counted, paints, pile, doodads, tools, beyond: null, heights, lights);
 
-        SkinnedMesh joined = SkinnedMesh.Joined(pile.Joins);
+        SkinnedMesh joined = Watered(SkinnedMesh.Joined(pile.Joins), pile.Modes);
         if (!joined.Ready)
         {
             return MonsterModel.None with
@@ -461,6 +461,35 @@ public static class RoomModels
         }
 
         return (low, high);
+    }
+
+    /// <summary>
+    /// How long an edge of a water shape may be once it is split for its waves to lift it, in world units - CHOSEN.
+    /// </summary>
+    /// <remarks>
+    /// THE OCTAVES' CELLS RUN 400, 200, 100 AND 50 UNITS (ShadeProgram.Ripples over its noise), the coarse
+    /// ones carrying nearly all the height: edges of 48 follow the first three pairs and leave the finest
+    /// to the light's own normal. A WaterPlane3x3 - 750 a side, its diagonal 1,060 - is halved five times,
+    /// 2,048 triangles; Port's harbour's 48 such come to under 100,000.
+    /// </remarks>
+    public const float WaterEdge = 48f;
+
+    /// <summary>
+    /// A joined room with its water shapes split fine enough for their waves to lift them - see SceneLight.WaterLift; the room as it was where none is water.
+    /// </summary>
+    /// <param name="joined">The room joined.</param>
+    /// <param name="modes">Per shape, its blend word - "water" for an Ocean material (Paints.Modes).</param>
+    internal static SkinnedMesh Watered(SkinnedMesh joined, IReadOnlyList<string> modes)
+    {
+        var fine = new bool[joined.Shapes.Count];
+        var any = false;
+        for (var shape = 0; shape < fine.Length && shape < modes.Count; shape++)
+        {
+            fine[shape] = modes[shape] == "water";
+            any |= fine[shape];
+        }
+
+        return any ? joined.Refined(fine, WaterEdge) : joined;
     }
 
     /// <summary>A pile joined into a room's model, with the shaders and meshes of the models in it.</summary>

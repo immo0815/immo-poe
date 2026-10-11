@@ -2121,7 +2121,7 @@ public sealed class MonsterPortrait
                 _waterSaidFor = water;
                 _waterSaid = ImGuiText.Escape(water.Line() + " (its colour's pattern a moving noise; its waves the engine's eight octaves over a noise of"
                     + " this tool's - the engine's ripple texture unread - drifting the pattern's way, which is chosen; their glints and reflection under"
-                    + " the game light, by the light panel's water switches"
+                    + " the game light, by the light panel's water switches, and the surface lifted by them times its lift - which the engine does per pixel only"
                     + (water.HeightOffset != 0f ? "; its height offset not applied - the planes stand where the tile puts them)" : ")"));
             }
 

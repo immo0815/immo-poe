@@ -308,7 +308,7 @@ public static class LaidRoomModels
             return beyondFlat * Matrix4x4.CreateTranslation(0f, 0f, z);
         }, heights, lights, hiding.Sieve, tileDoodads);
 
-        SkinnedMesh joined = hiding.Keep(SkinnedMesh.Joined(pile.Joins), pile);
+        SkinnedMesh joined = RoomModels.Watered(hiding.Keep(SkinnedMesh.Joined(pile.Joins), pile), pile.Modes);
         if (!joined.Ready)
         {
             return MonsterModel.None with
