@@ -208,6 +208,11 @@ public sealed record MonsterModel(
     /// </remarks>
     public Vector2? AreaOrigin { get; init; }
 
+    /// <summary>
+    /// Where a laid or built room names its boss's place, in the picture's own frame - or null where the room names none. See <see cref="RoomSpot"/>.
+    /// </summary>
+    public RoomSpot? BossSpot { get; init; }
+
     /// <summary>Whether there is a skeleton with animations on it that fits this mesh.</summary>
     public bool Moves => Move.Length == 0 && Rig.Ready && Rig.Animations.Count > 0;
 

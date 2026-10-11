@@ -121,6 +121,38 @@ public class StagedModelsTests
         Assert.Equal(ModelKind.Ao, staged.Kind);
     }
 
+    /// <summary>
+    /// A room naming its boss's place stands the monster there, turned the way the place faces, on the deck round it - not on the
+    /// seat of the throne the place is.
+    /// </summary>
+    [Fact]
+    public void TheMonsterStandsWhereTheRoomNamesItsBossTurnedItsWay()
+    {
+        // A deck four hundred across at z 10, and a throne's seat forty across, 30 higher (up is minus z), over the place.
+        SkinnedMesh deck = SkinnedMesh.Joined(
+        [
+            new MeshJoin(Square(400f, 10f, "deck")),
+            new MeshJoin(Square(40f, -20f, "seat"), Place: Matrix4x4.CreateTranslation(80f, 280f, 0f)),
+        ]);
+        var tile = new MonsterModel(deck, null, "room.arm", string.Empty, string.Empty)
+        {
+            Kind = ModelKind.Room,
+            BossSpot = new RoomSpot(new Vector2(100f, 300f), MathF.PI / 2f, "mapboss", Others: 1),
+        };
+        var actor = new MonsterModel(Box(5f, 20f), null, "monster.smd", string.Empty, string.Empty);
+
+        MonsterModel staged = StagedModels.Staged(actor, tile, modelSize: 0, "Metadata/Terrain/Rooms/boss_01.arm");
+
+        Assert.Contains("where the room names its boss (\"mapboss\", facing 90°; 1 more boss places passed over)", staged.StageSaid, StringComparison.Ordinal);
+        Assert.Contains("on the floor there (10 on the tile's z)", staged.StageSaid, StringComparison.Ordinal);
+
+        // His feet at the place, on the deck; the way he faces - minus y in his own file - turned to plus x.
+        Assert.Equal(new Vector3(100f, 300f, 10f), Vector3.Transform(Vector3.Zero, staged.ActorPlace));
+        Vector3 facing = Vector3.TransformNormal(new Vector3(0f, -1f, 0f), staged.ActorPlace);
+        Assert.Equal(1f, facing.X, 3);
+        Assert.Equal(0f, facing.Y, 3);
+    }
+
     [Fact]
     public void WithNothingFacingUpUnderTheMiddleTheMonsterStandsAtTheTilesLowestPoint()
     {
@@ -130,7 +162,7 @@ public class StagedModelsTests
 
         MonsterModel staged = StagedModels.Staged(actor, tile, modelSize: 0, "Arena.tdt");
 
-        Assert.Contains("nothing faces up under the middle", staged.StageSaid, StringComparison.Ordinal);
+        Assert.Contains("nothing faces up there", staged.StageSaid, StringComparison.Ordinal);
         Assert.Equal(new Vector3(50f, 50f, 10f), staged.Mesh.Positions[staged.ActorFirst] + new Vector3(5f, 5f, 0f));
     }
 

@@ -6,6 +6,13 @@ using PoEformance.Game.World;
 
 namespace PoEformance.Features;
 
+/// <summary>A place a room names for its boss, in the room picture's own frame - see LaidRoomModels.BossSpotOf.</summary>
+/// <param name="At">Where, in the picture's x and y.</param>
+/// <param name="Turn">The way the boss faces there, in radians, as a doodad's angle turns its model.</param>
+/// <param name="Tag">The point's tag - "mapboss", "force:mapboss", "mapboss1".</param>
+/// <param name="Others">How many other boss points the room names, which a stage passes over.</param>
+public sealed record RoomSpot(Vector2 At, float Turn, string Tag, int Others);
+
 /// <summary>
 /// A monster standing in the middle of a terrain tile - its arena, or any tile the book is pointed at - or of a room as the area laid it, as one model.
 /// </summary>
@@ -165,15 +172,33 @@ public static class StagedModels
 
         float scale = modelSize > 0 ? modelSize / 100f : 1f;
         Vector3 middle = (tile.Mesh.Least + tile.Mesh.Most) * 0.5f;
-        bool found = Floor(tile.Mesh, tile.Blends, middle.X, middle.Y, out float floor);
+        bool found;
+        float floor;
+        float turn = 0f;
+        string where;
+        if (tile.BossSpot is { } spot)
+        {
+            // WHERE THE ROOM NAMES ITS BOSS, on the floor round the place rather than at it: a throne at the place has a seat
+            // that faces up, and the boss stands on the deck under it - sitting in it and rising out of it are his animation's.
+            (middle.X, middle.Y, turn) = (spot.At.X, spot.At.Y, spot.Turn);
+            found = FloorAround(tile.Mesh, tile.Blends, spot.At.X, spot.At.Y, out floor);
+            where = string.Create(CultureInfo.InvariantCulture, $"where the room names its boss (\"{spot.Tag}\", facing {spot.Turn * 180f / MathF.PI:0}°{(spot.Others > 0 ? $"; {spot.Others} more boss places passed over" : string.Empty)})");
+        }
+        else
+        {
+            found = Floor(tile.Mesh, tile.Blends, middle.X, middle.Y, out floor);
+            where = "at its middle";
+        }
+
         if (!found)
         {
             floor = tile.Mesh.Most.Z;
         }
 
-        // SCALED ABOUT ITS OWN ORIGIN AND THEN MOVED, as row vectors multiply: the monster's feet - its
+        // SCALED ABOUT ITS OWN ORIGIN, TURNED, AND THEN MOVED, as row vectors multiply: the monster's feet - its
         // greatest z, the files' up being minus z - land on the floor.
         Matrix4x4 place = Matrix4x4.CreateScale(scale)
+            * Matrix4x4.CreateRotationZ(turn)
             * Matrix4x4.CreateTranslation(middle.X, middle.Y, floor - (actor.Mesh.Most.Z * scale));
 
         var pile = new ModelPile();
@@ -184,7 +209,7 @@ public static class StagedModels
 
         string said = string.Create(
             CultureInfo.InvariantCulture,
-            $"stage: {Tail(stage)}{(TileBook.IsRoom(stage) ? " as the area laid it" : string.Empty)} · the monster stands at its middle at {scale:0.##} of its file's size, {(found ? $"on the floor there ({floor:0} on the tile's z)" : "at the tile's lowest point - nothing faces up under the middle")}");
+            $"stage: {Tail(stage)}{(TileBook.IsRoom(stage) ? " as the area laid it" : string.Empty)} · the monster stands {where} at {scale:0.##} of its file's size, {(found ? $"on the floor there ({floor:0} on the tile's z)" : "at the tile's lowest point - nothing faces up there")}");
 
         return RoomModels.Piled(joined, pile, actor.Mesh_, [tile, actor]) with
         {
@@ -226,6 +251,34 @@ public static class StagedModels
             Stage = stage,
             StageSaid = said,
         };
+    }
+
+    /// <summary>The ring the floor round a boss's place is asked on, in world units from it - wider than a throne, narrower than a room.</summary>
+    private const float Around = 120f;
+
+    /// <summary>
+    /// The floor round a point: the middle of the floors found at it and at eight points a ring round it - or false where none is found.
+    /// </summary>
+    /// <remarks>
+    /// THE MIDDLE OF NINE, so one surface at the point itself - the seat of the throne a boss is set on - does not lift him off
+    /// the deck the rest stand on, nor one hole in the ring drop him through it.
+    /// </remarks>
+    private static bool FloorAround(SkinnedMesh mesh, IReadOnlyList<MaterialBlend>? blends, float x, float y, out float height)
+    {
+        var floors = new List<float>(9);
+        for (var one = -1; one < 8; one++)
+        {
+            (float sin, float cos) = MathF.SinCos(one * MathF.PI / 4f);
+            float r = one < 0 ? 0f : Around;
+            if (Floor(mesh, blends, x + (r * cos), y + (r * sin), out float found))
+            {
+                floors.Add(found);
+            }
+        }
+
+        floors.Sort();
+        height = floors.Count > 0 ? floors[floors.Count / 2] : float.PositiveInfinity;
+        return floors.Count > 0;
     }
 
     /// <summary>

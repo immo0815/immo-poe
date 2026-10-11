@@ -1,0 +1,50 @@
+48 entities, 17 of them remembered rather than listed this read; distance and position in world units
+distance	kind	id	address	x	y	z	terrain	bounds z	remembered	path	name
+0	Player	959	0x55F0AC4B800	6581.521	10364.13	-87.825	0	87.466	no	Metadata/Characters/Int/IntFourb	Sorceress
+44.817	Terrain	72	0x55E9965C780	6625	10375	-0.075	0	0.075	no	Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLine	
+141.722	Object	79	0x55E99651100	6440.217	10375	-121.268	0	118.558	no	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame	Checkpoint
+211.049	Effect	1395	0x55E99650200	6625	10157.61	-2.701	0	0	no	Metadata/Effects/PermanentServerEffect	
+243.05	Terrain	73	0x55E99655480	6625	10125	-0.075	0	0.075	no	Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLine	
+264.469	Terrain	77	0x55E99657A00	6625	10625	-0.075	0	0.075	no	Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLine	
+277.759	Effect	1391	0x55E9965A200	6722.826	10125	-2.701	0	0	no	Metadata/Effects/PermanentServerEffect	
+354.888	Effect	1397	0x55E9965D180	6809.783	10092.39	-2.701	0	0	no	Metadata/Effects/PermanentServerEffect	
+415.326	Terrain	78	0x55E3498DB80	6625	10777.17	-56.222	94	32.785	no	Metadata/Terrain/Maps/Augury/Objects/DoorLever	Stone Altar
+457.039	Effect	1403	0x55E99653E00	6603.261	9907.608	-2.701	0	0	no	Metadata/Effects/PermanentServerEffect	
+491.059	Terrain	74	0x55E99656380	6625	9875	-0.075	0	0.075	no	Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLine	
+695.737	WorldItem	1599	0x55E9965F700	7277.174	10353.26	-11.562	0	11.562	no	Metadata/MiscellaneousObjects/WorldItem	
+740.408	Terrain	75	0x55E9965F200	6625	9625	-0.075	0	0.075	no	Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLine	
+990.085	Terrain	76	0x55E99653B80	6625	9375	-0.075	0	0.075	no	Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLine	Zealous Guard
+1094.43	WorldItem	1543	0x55E9965AE80	5527.174	10070.65	-125.999	-125	0.629	no	Metadata/MiscellaneousObjects/WorldItem	
+1239.892	Terrain	71	0x55E99659A80	6625	9125	-15.7	0	15.55	no	Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLineMerge	
+1271.414	WorldItem	1541	0x55E9965EF80	5483.695	9722.826	-125.999	-125	0.629	no	Metadata/MiscellaneousObjects/WorldItem	Petrosphere
+1351.371	Effect	1329	0x55E99657280	5538.043	9505.435	-127.701	-125	0	no	Metadata/Effects/PermanentServerEffect	
+1396.771	Effect	1328	0x55E99651B00	5364.13	9679.348	-127.701	-125	0	no	Metadata/Effects/PermanentServerEffect	
+1417.718	Effect	1327	0x55E99652000	5429.348	9538.043	-127.701	-125	0	no	Metadata/Effects/PermanentServerEffect	
+1422.543	Effect	1330	0x55E9965CC80	5472.826	9472.826	-127.701	-125	0	no	Metadata/Effects/PermanentServerEffect	
+1429.006	Effect	1326	0x55E9965CF00	5385.87	9581.521	-127.701	-125	0	no	Metadata/Effects/PermanentServerEffect	
+1489.765	Terrain	93	0x55F5E742A80	6625	8875	-0.075	0	0.075	no	Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLine	
+1739.673	Terrain	104	0x55E57CAA980	6625	8625	-0.075	0	0.075	no	Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLine	
+1874.015	Chest	642	0x55E99655E80	4788.043	9820.652	-20.761	0	20.761	no	Metadata/Chests/PetrosphereCluster03	
+1904.253	Chest	641	0x55E99650700	4777.174	9755.435	-23.758	0	23.758	no	Metadata/Chests/PetrosphereCluster02A	Petrosphere
+2506.89	Monster	957	0x55E98325400	9038.043	10864.13	-118.383	-23.438	94.945	no	Metadata/Monsters/NPC/Torment/TormentNPC@70	Delwyn
+2627.132	WorldItem	1797	0x55E60E95700	9179.348	10755.43	-119.413	-101.563	17.851	yes	Metadata/MiscellaneousObjects/WorldItem	
+3032.043	WorldItem	1247	0x55E99650480	3690.217	9451.087	-7.165	0	7.165	yes	Metadata/MiscellaneousObjects/WorldItem	
+3413.977	Object	2060	0x55E343ABC80	7396.739	7048.913	-62.5	62.5	125	yes	Metadata/MiscellaneousObjects/Checkpoint	Checkpoint
+3816.208	WorldItem	2127	0x55E301D1800	6494.565	6548.913	72.042	78.125	6.084	yes	Metadata/MiscellaneousObjects/WorldItem	
+3957.835	WorldItem	1194	0x55E317E5B00	3081.522	8516.304	-39.919	-39.063	0.627	yes	Metadata/MiscellaneousObjects/WorldItem	
+4208.992	Object	105	0x55E56F8C000	5451.087	6309.783	-120.116	0	119.711	yes	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame_Boss	Checkpoint
+4373.024	WorldItem	1138	0x55E5F746400	3190.217	7603.261	-102.561	-101.563	0.629	yes	Metadata/MiscellaneousObjects/WorldItem	
+4807.556	WorldItem	1874	0x55E59BFC180	10885.87	8222.826	-0.857	0	0.627	yes	Metadata/MiscellaneousObjects/WorldItem	
+4807.556	WorldItem	1876	0x55E59BF6500	10885.87	8222.826	-13.833	0	13.833	yes	Metadata/MiscellaneousObjects/WorldItem	
+4831.861	WorldItem	1875	0x55E59BFEC00	10907.61	8211.956	-0.857	0	0.627	yes	Metadata/MiscellaneousObjects/WorldItem	Slitherspitter
+5457.799	Object	12	0x55E2AC66C80	10375	6440.217	-121.268	0	118.558	yes	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame	Checkpoint
+5571.497	Terrain	61	0x55E34988900	2451.087	6625	-44.62	94	44.387	no	Metadata/Terrain/Maps/Augury/Objects/DoorLever	Stone Altar
+5620.017	Terrain	4	0x55E3498D900	10777.17	6625	-44.62	94	44.387	no	Metadata/Terrain/Maps/Augury/Objects/DoorLever	Stone Altar
+5916.339	WorldItem	1939	0x55E2AC66280	10222.83	5701.087	-0.999	0	0.629	yes	Metadata/MiscellaneousObjects/WorldItem	
+8967.496	WorldItem	2047	0x55E70470080	8592.392	1625	-16.121	0	16.121	yes	Metadata/MiscellaneousObjects/WorldItem	
+12277.28	WorldItem	1710	0x55E9965A980	0	0	0	0	0	no	Metadata/MiscellaneousObjects/WorldItem	Powered Zealot
+12277.28	WorldItem	1363	0x55E99651380	0	0	0	0	0	no	Metadata/MiscellaneousObjects/WorldItem	
+12277.28	WorldItem	1244	0x55E99656380	0	0	0	0	0	yes	Metadata/MiscellaneousObjects/WorldItem	
+12277.28	WorldItem	1192	0x55E634D5280	0	0	0	-23.438	0	yes	Metadata/MiscellaneousObjects/WorldItem	
+12277.28	WorldItem	1909	0x55E2AC61500	0	0	0	0	0	yes	Metadata/MiscellaneousObjects/WorldItem	
+12277.28	WorldItem	1865	0x55E63FC4100	0	0	0	0	0	yes	Metadata/MiscellaneousObjects/WorldItem	

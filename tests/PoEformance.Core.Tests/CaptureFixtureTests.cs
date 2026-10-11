@@ -16,7 +16,8 @@ namespace PoEformance.Core.Tests;
 /// the forced_blank question and the weights 1, 20 and 300; Steaming Springs, the most weight samples and
 /// fifteen placed rooms - those three v0.1.179; Marrow (v0.1.186), the fill lists, the words and the wall
 /// tops; Sulphuric Caverns (v0.1.188), the fill list's tiles in its boss room and the tiles above level
-/// nought that settled a tile doodad's height.
+/// nought that settled a tile doodad's height; Augury (v0.1.188), nineteen rooms placed by their doodads, the
+/// fill list's tile in hundreds of slots and the first laid tile carrying a word.
 /// tests/fixtures/captures/README.md says more.
 /// </remarks>
 public partial class CaptureFixtureTests
@@ -199,6 +200,71 @@ public partial class CaptureFixtureTests
     }
 
     /// <summary>
+    /// Augury's slots asking BlackInsideWall all round, which no tile of its list answers, are filled from its fill list - and
+    /// most come out the game's own file, black.tdt.
+    /// </summary>
+    /// <remarks>
+    /// MOST, NOT ALL: of 703 such slots over nineteen rooms, 571 are the game's file. The rest lie in rooms the doodads place
+    /// at several places, wrongly at some, or on a rim a neighbouring room's walls cover - a room laid once matched 327 of
+    /// its 351. Without the fill list 707 slots of the build had no tile at all.
+    /// </remarks>
+    [Fact]
+    public void THEFILLListFillsAugurysWallsWhereNoListedTileAnswers()
+    {
+        string replay = CaptureReplayTests.BuildReplay(Capture("augury"));
+        Match filled = Filled().Match(replay);
+        Assert.True(filled.Success);
+        int all = int.Parse(filled.Groups[1].Value, CultureInfo.InvariantCulture), game = int.Parse(filled.Groups[2].Value, CultureInfo.InvariantCulture);
+        Assert.True(all > 500, $"only {all} slots filled from the fill list");
+        Assert.True(game >= all * 0.75, $"{game} of {all} the game's file");
+
+        Match built = Built().Match(replay);
+        Assert.True(built.Success);
+        Assert.True(int.Parse(built.Groups[2].Value, CultureInfo.InvariantCulture) * 100 < int.Parse(built.Groups[1].Value, CultureInfo.InvariantCulture), "more than one slot in a hundred with no tile alike");
+    }
+
+    /// <summary>
+    /// The first laid tile carrying a word: Augury's arena, written "I" in its list, lay as authored in a room laid as
+    /// written.
+    /// </summary>
+    /// <remarks>
+    /// ONE SAMPLE, PINNED AS ONE: "I" as identity fits it, and so would a word that says nothing of the way round. It is what
+    /// the next laid worded tile - turned, or in a turned room - is held against.
+    /// </remarks>
+    [Fact]
+    public void THEWORDSOfAuguryLayItsArenaAsAuthored()
+    {
+        string replay = CaptureReplayTests.WordsReplay(Capture("augury"));
+        Assert.Contains("Metadata/Terrain/Jungle/SnakePit/MapAugury/AuguryArena.tdt: I (tile list)", replay, StringComparison.Ordinal);
+        Assert.Contains("placement 3 - boss_01 slot 4, 4, room as written: in the room 3", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A map's boss stands on the point of interest his room tags for him, at the middle of its cell - what a stage sets him on
+    /// (LaidRoomModels.BossSpotOf).
+    /// </summary>
+    /// <remarks>
+    /// THREE BOSSES NOT YET FOUGHT, each where the recording holds him: Marrow's on "force:mapboss", Steaming Springs' on
+    /// "mapboss", and Sulphuric Caverns' second boss on "mapboss2" - its first, on "mapboss1", 58 units off, had moved. At the
+    /// cell's corner every one was 8 units off, the distance to its middle.
+    /// </remarks>
+    [Theory]
+    [InlineData("marrow", "force:mapboss")]
+    [InlineData("steaming-springs", "mapboss")]
+    [InlineData("sulphuric-caverns", "mapboss2")]
+    public void THEBOSSStandsWhereHisRoomNamesHisPlace(string name, string tag)
+    {
+        string replay = CaptureReplayTests.BossPointsReplay(Capture(name));
+        string? line = replay.Split('\n').Select(one => one.TrimEnd('\r')).FirstOrDefault(one => one.StartsWith("  \"" + tag + "\"", StringComparison.Ordinal));
+        Assert.NotNull(line);
+        int nearest = line.IndexOf("nearest: ", StringComparison.Ordinal);
+        Assert.True(nearest > 0, line);
+        string[] words = line[(nearest + 9)..].Split(' ');
+        Assert.True(words.Length > 2 && words[2].StartsWith("off", StringComparison.Ordinal), line);
+        Assert.True(int.Parse(words[1], CultureInfo.InvariantCulture) <= 2, line);
+    }
+
+    /// <summary>
     /// A tile doodad's z counts from its tile's level: Sulphuric Caverns lays tiles at -203, and every doodad found there
     /// stands at its line's z plus that level - as every one on a tile at nought stands at its line's z - while the tile's
     /// frame, as authored then the game's placement, finds every doodad it puts down.
@@ -258,4 +324,10 @@ public partial class CaptureFixtureTests
 
     [GeneratedRegex(@"entity ground - line z - the tile's level: -?0 x\d+([^\r\n]*)")]
     private static partial Regex Level();
+
+    [GeneratedRegex(@"(\d+) filled from the master's fill list \((\d+) the game's file\)")]
+    private static partial Regex Filled();
+
+    [GeneratedRegex(@"rooms built and held against their places: (\d+) slots, [^\r\n]*?(\d+) with no tile alike")]
+    private static partial Regex Built();
 }

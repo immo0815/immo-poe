@@ -1,0 +1,248 @@
+1 master of the area and 10 files they name or the area loaded, each whole - a tile list by name only, being whole in tileset-lists.txt
+
+##### Metadata/Terrain/Maps/Augury/master.tsi  (master)
+  | version 3
+  | RoomUnitSize	5
+  | StoreyHeight	16
+  | OuterBufferSize	4
+  | RoomOverlap		1
+  | OuterGroundType	"Metadata/Terrain/black_inside_wall.gt"
+  | FillTiles	 	"random_fill_tiles.gft"
+  | TileSet			"tiles.tst"
+  | MaterialsList	"materials.mtd"
+  | TileMaterialOverrides "material_overrides.tmo"
+  | ChestData		"chests.cht"
+  | Critters		"critters.clt"
+  | RoomSet			"generate.rs"
+  | Overlays		"overlays.toy"
+  | EdgeCombination	"combination.ecf"
+  | DefaultKillZone	9
+##### Metadata/Terrain/black_inside_wall.gt  (OuterGroundType of Metadata/Terrain/Maps/Augury/master.tsi)
+  | BlackInsideWall
+  | 0 1 0 0
+##### Metadata/Terrain/Maps/Augury/random_fill_tiles.gft  (FillTiles of Metadata/Terrain/Maps/Augury/master.tsi)
+  fill list: version 2, 3 sections, 15 tiles, 0 rooms
+  | version 2
+  | "default"
+  | 10 "Metadata/Terrain/Jungle/SnakePit/Blank_01.tdt"
+  | 10 "Metadata/Terrain/Jungle/SnakePit/Blank_02.tdt"
+  | 10 "Metadata/Terrain/Jungle/SnakePit/Blank_03.tdt"
+  | 10 "Metadata/Terrain/Jungle/SnakePit/Blank_04.tdt"
+  | 10 "Metadata/Terrain/Jungle/SnakePit/Blank_05.tdt"
+  | 
+  | 1 "Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_04.tdt"
+  | 1 "Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_03.tdt"
+  | 1 "Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_02.tdt"
+  | 1 "Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_01.tdt"
+  | 
+  | "SnakepitRuinGround"
+  | 40 "Metadata/Terrain/Dungeon/NextFeatures/dungeon_blank_fill.tdt"
+  | 1 "Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_04.tdt"
+  | 1 "Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_03.tdt"
+  | 1 "Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_02.tdt"
+  | 1 "Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_01.tdt"
+  | 
+  | "BlackInsideWall"
+  | 1 "Metadata/Terrain/Dungeon/black.tdt"
+##### Metadata/Terrain/Maps/Augury/tiles.tst  (TileSet of Metadata/Terrain/Maps/Augury/master.tsi)
+  (a tile list - whole in tileset-lists.txt)
+##### Metadata/Terrain/Maps/Augury/materials.mtd  (MaterialsList of Metadata/Terrain/Maps/Augury/master.tsi)
+  | version 5
+  | 6 0
+  | "Art/Models/Terrain/Jungle/Tiles/SnakePit/Textures/G_SnakePitDirtFloor01.mat"
+  | "Art/Models/Terrain/Jungle/Tiles/SnakePit/Textures/G_SnakePitDirtFloorPuddles01.mat"
+  | "Art/Models/Terrain/Jungle/Tiles/SnakePit/Textures/G_SnakePitDirtFloor02.mat"
+  | "Art/Models/Terrain/Jungle/Tiles/SnakePit/Textures/G_SnakePitDirtFloor03.mat"
+  | "Art/Models/Terrain/Jungle/Tiles/SnakePit/Textures/G_SnakePitMossyDirtFloor01.mat"
+  | "Art/Models/Terrain/Jungle/Tiles/SnakePit/Textures/G_SnakePitMossyDirtFloor02.mat"
+  | 40 20 25 15 10 20 10
+  | 
+  | "SnakepitRuinGround" 3 0
+  | "Art/Models/Terrain/Jungle/Tiles/SnakePit/Textures/G_SnakePitMuddyTiles01.mat"
+  | "Art/Models/Terrain/Jungle/Tiles/SnakePit/Textures/G_SnakePitMuddyTiles02.mat"
+  | "Art/Models/Terrain/Jungle/Tiles/SnakePit/Textures/G_SnakePitMuddyTiles03.mat"
+  | 35 45 30 20
+  | 
+  | "Trims1" 5 0
+  | "Art/Models/Terrain/Jungle/Tiles/AntHill/Textures/Ground/G_ANT_JungleDirt01.mat" "Metadata/Doodads/FallenLeafPiles.dlp"
+  | "Art/Models/Terrain/Jungle/Tiles/AntHill/Textures/Ground/G_ANT_JungleDirt02.mat" "Metadata/Doodads/FallenLeafPiles.dlp"
+  | "Art/Models/Terrain/Jungle/Tiles/AntHill/Textures/Ground/G_ANT_JungleDirt03.mat" "Metadata/Doodads/FallenLeafPiles.dlp"
+  | "Art/Models/Terrain/Jungle/Tiles/AntHill/Textures/Ground/G_ANT_JungleDirtPuddles01.mat" 
+  | "Art/Models/Terrain/Jungle/Tiles/AntHill/Textures/Ground/G_ANT_JungleDirtPuddles02.mat" 
+  | 10 10 10 10 10 32
+##### Metadata/Terrain/Maps/Augury/material_overrides.tmo  (TileMaterialOverrides of Metadata/Terrain/Maps/Augury/master.tsi)
+  | version 1
+  | 
+  | // VAAL INTERIOR ARCHITECTURE [DEFAULT => PIT] ==========================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_AbyssBrickClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_AbyssBrickPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_AbyssSkullWallClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_AbyssSkullWallPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_AbyssStairsClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_AbyssStairsPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_AbyssThickWallBrickClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_AbyssThickWallBrickPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_AbyssThickwallClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_AbyssThickwallPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_AbyssThickwallClean02c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_AbyssThickwallPit02c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_AbyssThickwallClean03c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_AbyssThickwallPit03c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_AbyssThickwallPillarClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_AbyssThickwallPillarPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_AbyssWalkwayClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_AbyssWalkwayPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_AbyssWalkwayEdgeClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_AbyssWalkwayEdgePit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_DoorClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_DoorPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_DoorThickWallClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_DoorThickWallPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_DoorThinWallClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_DoorThinWallPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_StairsClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_StairsPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_ThickWallClean02c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_ThickWallPit02c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_ThickWallClean03c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_ThickWallPit03c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_ThickWallClean04c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_ThickWallPit04c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_ThickWallClean05c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_ThickWallPit05c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_ThickWallCornersClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_ThickWallCornersPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_ThickWallCornersClean02c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_ThickWallCornersPit02c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_ThinWallClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_ThinWallPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_ThinWallClean02c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_ThinWallPit02c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_ThinWallClean03c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_ThinWallPit03c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_ThinWallClean04c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_ThinWallPit04c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_ThinWallClean05c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_ThinWallPit05c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_ThinWallEndClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_ThinWallEndPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_ThinWallEndClean02c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_ThinWallEndPit02c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_ThinWallEndClean03c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_ThinWallEndPit03c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_ThinWallPillarsClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_ThinWallPillarsPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_ThinWallTrimsClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_ThinWallTrimsPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_TilingReliefClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_TilingReliefPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_TrimsClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Pit\VaalInt_TrimsPit01c.mat"
+  | 
+  | // VAAL ExTERIOR ARCHITECTURE [DEFAULT => PIT] ==========================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_AbyssLedgeClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_AbyssLedgePit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_AbyssWallClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_AbyssWallPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_BridgeIdolClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_BridgeIdolPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_BridgeRailClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_BridgeRailPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_BridgeTilesClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_BridgeTilesPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_BridgeTrimClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_BridgeTrimPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_PillarsClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_PillarsPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_PillarsClean02c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_PillarsPit02c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_SanctumDoorClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_SanctumDoorPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_StairsClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_StairsPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_StairTileClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_StairTilePit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_StatueClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_StatuePit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_ThickWallCornerClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_ThickWallCornerPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_ThickWallStraightClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_ThickWallStraightPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_ThickWallStatueClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_ThickWallStatuePit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_ThickWallStepsClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_ThickWallStepsPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_ThinWallBaseClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_ThinWallBasePit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_ThinWallBaseClean02c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_ThinWallBasePit02c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_ThinWallBaseClean03c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_ThinWallBasePit03c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_ThinWallCornersClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_ThinWallCornersPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_ThinWallDoorClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_ThinWallDoorPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_ThinWallTrimsClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_ThinWallTrimsPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Clean\VaalExt_TileClean01c.mat" "Art\Models\Terrain\Jungle\Tiles\VaalExterior\Textures\Pit\VaalExt_TilePit01c.mat"
+  | 
+  | // VAAL FLOOR TRIMS [DEFAULT => PIT] ==================================================================================================================================================================================
+  | // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_FloorMechanismsClean01c.mat" "Art/Models/Terrain/Jungle/Tiles/VaalInterior/Textures/Pit/VaalInt_FloorMechanismsPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_FloorMedallionsClean01c.mat" "Art/Models/Terrain/Jungle/Tiles/VaalInterior/Textures/Pit\VaalInt_FloorMedallionsPit01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\VaalInterior\Textures\Clean\VaalInt_FloorMedallionsGoldenClean01c.mat" "Art/Models/Terrain/Jungle/Tiles/VaalInterior/Textures/Pit/VaalInt_FloorMedallionsGoldenPit01c.mat"
+  | 
+  | // ROOTS ================================================================================================================================================================================================================
+  | "Art\Textures\Environment\Woods\GrimTangle\GrimTangleTreeBase2c.mat" "Art\Models\Terrain\Jungle\Tiles\SnakePit\Textures\Roots\SNP_GnarledRoots01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\SnakePit\Textures\SnakePitTreeBase2c.mat" "Art\Models\Terrain\Jungle\Tiles\SnakePit\Textures\Roots\SNP_GnarledRoots01c.mat"
+  | "Art\Models\Terrain\Woods\Tiles\GrimTangle\Textures\Roots\GRM_GnarledRoots01c.mat" "Art\Models\Terrain\Jungle\Tiles\SnakePit\Textures\Roots\SNP_GnarledRoots01c.mat"
+  | "Art\Models\Terrain\Woods\Tiles\GrimTangle\Textures\Roots\GRM_GnarledRoots02c.mat" "Art\Models\Terrain\Jungle\Tiles\SnakePit\Textures\Roots\SNP_GnarledRoots02c.mat"
+  | "Art\Models\Terrain\Woods\Tiles\GrimTangle\Textures\GrimTangleRoots01c.mat" "Art\Models\Terrain\Jungle\Tiles\SnakePit\Textures\Roots\SNP_GnarledRoots01c.mat"
+  | "Art\Models\Terrain\Woods\Tiles\GrimTangle\Textures\GrimTangleRoots01c.mat" "Art\Models\Terrain\Jungle\Tiles\SnakePit\Textures\Roots\SNP_GnarledRoots02c.mat"
+  | "Art\Models\Terrain\Woods\Tiles\GrimTangle\Textures\GrimTangleRoots03c.mat" "Art\Models\Terrain\Jungle\Tiles\SnakePit\Textures\Roots\SNP_GnarledRoots03c.mat"
+  | "Art\Models\Terrain\Woods\Tiles\GrimTangle\Textures\Roots\GRM_TangledRootWall01c.mat" "Art\Models\Terrain\Jungle\Tiles\SnakePit\Textures\Roots\SNP_TangledRootWall01c.mat"
+  | "Art\Models\Terrain\Woods\Tiles\GrimTangle\Textures\Roots\GRM_TangledRootWall01_MCFc.mat" "Art\Models\Terrain\Jungle\Tiles\SnakePit\Textures\Roots\SNP_TangledRootWall01_MCFc.mat"
+  | "Art\Textures\Environment\Woods\GrimTangle\GrimTangleWall_fadec.mat" "Art\Models\Terrain\Jungle\Tiles\SnakePit\Textures\Roots\SNP_TangledRootWall01_MCFc.mat"
+  | "Art\Textures\Environment\Woods\GrimTangle\GrimTangleWallc.mat" "Art\Models\Terrain\Jungle\Tiles\SnakePit\Textures\Roots\SNP_TangledRootWall01c.mat"
+  | "Art\Models\Terrain\Jungle\Tiles\SnakePit\Textures\SnakePitWall_fadec.mat" "Art\Models\Terrain\Jungle\Tiles\SnakePit\Textures\Roots\SNP_TangledRootWall01_MCFc.mat"
+  | 
+  | // FOLIAGE
+  | "Art/Models/Terrain/Jungle/Doodads/Foliage/Textures/JungleFoliage01c.mat" "Art/Models/Terrain/Foliage/Jungle/Textures/Jungle/JGD_JungleFoliage01c.mat"
+  | "Art/Models/Terrain/Foliage/Woods/Textures/Leafpile01c.mat" "Art/Textures/General/Leaves/Decals/LeafPileDecals02Ac.mat"
+  | "Art\Models\Terrain\Foliage\Jungle\Textures\Chimeral\CHW_ExoticPlantsLarge01c.mat" "Art\Models\Terrain\Foliage\Jungle\Textures\Jungle\JGD_ExoticPlantsLarge01c.mat"
+  | "Art\Models\Terrain\Foliage\Jungle\Textures\Chimeral\CHW_ExoticLeafyPlants01c.mat" "Art\Models\Terrain\Foliage\Jungle\Textures\Jungle\JGD_ExoticLeafyPlants01c.mat"
+  | 
+  | // EXOTIC PLANTS
+  | "Art/Models/Terrain/Jungle/Doodads/Foliage/Textures/JGD_ExoticPlantsLarge01c.mat" "Art/Models/Terrain/Foliage/Jungle/Textures/Jungle/JGD_ExoticPlantsLarge01c.mat"
+  | "Art/Models/Terrain/Jungle/Doodads/Foliage/Textures/ExoticPlants/ExoticLeafyPlants01c.mat" "Art/Models/Terrain/Foliage/Jungle/Textures/Jungle/JGD_ExoticLeafyPlants01c.mat"
+  | "Art/Models/Terrain/Jungle/Doodads/Foliage/Textures/ExoticPlants/ExoticPlantsLarge01c.mat" "Art/Models/Terrain/Foliage/Jungle/Textures/Jungle/JGD_ExoticPlantsLarge01c.mat"
+  | 
+  | // FUNGI
+  | "Art/Textures/Monsters/FungalArtillery/FungalArtilleryFungusc.mat" "Art/Models/Terrain/Jungle/Tiles/SnakePit/Textures/SnakePitFungi01c.mat"
+##### Metadata/Terrain/Maps/Augury/chests.cht  (ChestData of Metadata/Terrain/Maps/Augury/master.tsi)
+  | version 2
+  | 0.40 0.60 5 70
+  | 10 "VaalStoneChest01, VaalStoneChest02, VaalStoneChest03"
+  | 
+  | 15 "VaalPetrospheres"
+##### Metadata/Terrain/Maps/Augury/critters.clt  (Critters of Metadata/Terrain/Maps/Augury/master.tsi)
+  | version 4
+  | 0.11
+  | Default
+  | 1 "Metadata/Critters/Snake/Cobra" "Metadata/Critters/Snake/Cobra.ao" 0.0 0.0 1 3
+  | 1 "Metadata/Critters/Spider/NurseryWebSpider" "Metadata/Critters/Spider/NurseryWebSpider.ao" 0.0 0.0 1 1
+  | 
+  | "Trims1"
+  | 1 "Metadata/Critters/Pigeon/Pigeon" "Metadata/Critters/Pigeon/Pigeon.ao" 6.0 12.0 1 3
+  | 
+  | "SnakepitRootGround"
+  | 1 "Metadata/Critters/Pigeon/Pigeon" "Metadata/Critters/Pigeon/Pigeon.ao" 6.0 12.0 1 3
+##### Metadata/Terrain/Maps/Augury/generate.rs  (RoomSet of Metadata/Terrain/Maps/Augury/master.tsi)
+  | version 2
+  | "Metadata/Terrain/Maps/Augury/Rooms/Unique/boss_01.arm" I
+  | "Metadata/Terrain/Maps/Augury/Rooms/Unique/entrance_01.arm"
+  | "Metadata/Terrain/Maps/Augury/Rooms/Unique/lever_01.arm" I R90 R180 R270
+  | "Metadata/Terrain/Maps/Augury/Rooms/Unique/lever_02.arm" I R90 R180 R270
+  | "Metadata/Terrain/Maps/Augury/Rooms/Unique/lever_03.arm" I R90 R180 R270
+  | "Metadata/Terrain/Maps/Augury/Rooms/Unique/lever_01_flip.arm" FI FR90 FR180 FR270
+  | "Metadata/Terrain/Maps/Augury/Rooms/Unique/lever_02_flip.arm" FI FR90 FR180 FR270
+  | "Metadata/Terrain/Maps/Augury/Rooms/Unique/lever_03_flip.arm" FI FR90 FR180 FR270
+  | "Metadata/Terrain/Maps/Augury/Rooms/Unique/rare_01.arm" I
+  | "Metadata/Terrain/Maps/Augury/Rooms/Unique/void.arm"
+  | 
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Unique/Mission_Large_Connection_01.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Unique/Mission_Large_Connection_02.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Unique/Mission_Large_Corner_01.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Unique/Mission_Large_Corner_02.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Unique/Mission_Large_Side_01.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Unique/Mission_Large_Side_02.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Unique/Mission_Mid_Corner_01.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Unique/Mission_Mid_Side_01.arm"
+  | 
+  | "Metadata/Terrain/Maps/Augury/Rooms/Large_Open_01.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Large_Connection_01.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Large_Connection_02.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Large_Corner_01.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Large_Corner_02.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Large_Corner_03.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Large_Side_01.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Large_Side_02.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Large_Side_03.arm"
+  | 
+  | "Metadata/Terrain/Maps/Augury/Rooms/Mid_Open_01.arm"
+  | 50 "Metadata/Terrain/Maps/Augury/Rooms/Mid_Connection_01.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Mid_Corner_01.arm"
+  | 30 "Metadata/Terrain/Maps/Augury/Rooms/Mid_Corner_02.arm"
+  | 50 "Metadata/Terrain/Maps/Augury/Rooms/Mid_Side_01.arm"
+  | 
+  | "Metadata/Terrain/Maps/Augury/Rooms/Long_Open_01.arm"
+  | 10 "Metadata/Terrain/Maps/Augury/Rooms/Long_Side_01.arm"
+  | 10 "Metadata/Terrain/Maps/Augury/Rooms/Long_Side_02.arm"
+  | 
+  | "Metadata/Terrain/Maps/Augury/Rooms/Small_Open_01.arm"
+  | 5 "Metadata/Terrain/Maps/Augury/Rooms/Small_Side_01.arm"
+  | 5 "Metadata/Terrain/Maps/Augury/Rooms/Small_Side_02.arm"
+  | 5 "Metadata/Terrain/Maps/Augury/Rooms/Small_Corner_01.arm"
+  | 5 "Metadata/Terrain/Maps/Augury/Rooms/Small_Corner_02.arm"
+  | 10 "Metadata/Terrain/Maps/Augury/Rooms/Small_End_01.arm"
+  | 10 "Metadata/Terrain/Maps/Augury/Rooms/Small_End_02.arm"
+##### Metadata/Terrain/Maps/Augury/overlays.toy  (Overlays of Metadata/Terrain/Maps/Augury/master.tsi)
+  | version 1
+  | 0 1
+  | 100 "Metadata/Terrain/Maps/Augury/Rooms/Overlays/boss_entrance_blank.arm" limit=1 !door_boss +OverlayFeatureRooms +OverlayFeatureTiles +SuppressUnderlyingDoodads
+  | 100 "Metadata/Terrain/Maps/Augury/Rooms/Overlays/ledge_intersection_1.arm" +SuppressUnderlyingDoodads
+##### Metadata/Terrain/Maps/Augury/combination.ecf  (EdgeCombination of Metadata/Terrain/Maps/Augury/master.tsi)
+  | version 1
+  | "Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et" "Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et" ""
+  | "Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et" "Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et" "Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et" 1
