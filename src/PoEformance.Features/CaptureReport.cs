@@ -105,6 +105,9 @@ public static class CaptureReport
     /// <summary>The model panes' probe lines.</summary>
     public const string ProbeFile = "model-probe.txt";
 
+    /// <summary>The model panes' lines and their rooms' doodad files - see CapturePanes.</summary>
+    public const string PanesFile = "model-panes.txt";
+
     /// <summary>The Memory Dissector's places, route and last search.</summary>
     public const string DissectorFile = "dissector.txt";
 
@@ -1225,7 +1228,7 @@ public static class CaptureReport
         => !StatDescriptionFiles.Decode(bytes).Any(c => c < ' ' && c is not ('\r' or '\n' or '\t'));
 
     /// <summary>Writes a file as it is: its text a '| ' line at a time, or its opening bytes in hex and the strings in it.</summary>
-    private static void Whole(StringBuilder said, byte[] bytes)
+    internal static void Whole(StringBuilder said, byte[] bytes)
     {
         string text = StatDescriptionFiles.Decode(bytes);
         if (IsText(bytes))

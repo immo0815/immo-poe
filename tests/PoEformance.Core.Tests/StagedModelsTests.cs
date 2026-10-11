@@ -166,18 +166,30 @@ public class StagedModelsTests
             new MeshJoin(Square(400f, 12f, "ground")),
             new MeshJoin(Square(40f, -20f, "boat")),
         ]);
+        DoodadFile water = new("WaterPlane3x3.ao", 31, 0, 0, 31, 0, string.Empty, Vector3.Zero);
         var tile = new MonsterModel(room, null, "room.arm", string.Empty, string.Empty)
         {
             Kind = ModelKind.Room,
             ShapeSources = ["Port_Boss_01.tdt at tile 3, 4", "ground of Port_Boss_01.tdt at tile 3, 4", string.Empty],
+            Move = "tile doodads: 31 from the doodad lists of 1 tile files",
+            DoodadFiles = [water],
         };
-        var actor = new MonsterModel(Box(5f, 20f), null, "monster.smd", string.Empty, string.Empty);
+        var actor = new MonsterModel(Box(5f, 20f), null, "monster.smd", string.Empty, string.Empty) { Move = "the monster's own" };
 
         MonsterModel staged = StagedModels.Staged(actor, tile, modelSize: 0, "Metadata/Terrain/Rooms/boss_01.arm");
 
         Assert.Equal(
             ["Port_Boss_01.tdt at tile 3, 4", "ground of Port_Boss_01.tdt at tile 3, 4", "Metadata/Terrain/Rooms/boss_01.arm", StagedModels.ActorSource],
             staged.ShapeSources);
+
+        // AND THE ROOM'S OWN LINES AND DOODAD FILES, beside the monster's: dropped, the stage could not say where its water went.
+        Assert.Equal("the monster's own", staged.Move);
+        Assert.Equal(tile.Move, staged.StageMove);
+        Assert.Equal([water], staged.DoodadFiles);
+
+        // A TILE STAGE HAS NONE: its Move is why a rigid mesh does not move, which is not a stage's account.
+        var plain = new MonsterModel(room, null, "stage.tgm", string.Empty, string.Empty) { Kind = ModelKind.Tile, Move = "a fixed mesh is rigid" };
+        Assert.Equal(string.Empty, StagedModels.Staged(actor, plain, modelSize: 0, "Arena.tdt").StageMove);
     }
 
     [Fact]
