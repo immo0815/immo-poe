@@ -39,6 +39,18 @@ export class UpdatePanel {
       this.editingUntil = Date.now() + 1500;
       bridge.send({ type: "setUpdateSettings", payload: { enabled: $("up-enabled").checked } });
     });
+
+    // The field is emptied the moment the token is sent, so the page keeps no copy of it.
+    const saveToken = () => {
+      const token = $("up-token-input").value.trim();
+      $("up-token-input").value = "";
+      if (token) bridge.send({ type: "saveGitHubToken", payload: { token } });
+    };
+    $("up-token-save").addEventListener("click", saveToken);
+    $("up-token-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") saveToken();
+    });
+    $("up-token-forget").addEventListener("click", () => bridge.send({ type: "forgetGitHubToken" }));
   }
 
   /** Renders the whole panel from one state block. */
@@ -56,6 +68,9 @@ export class UpdatePanel {
     }[u.verdict] ?? "dim";
 
     if (Date.now() >= this.editingUntil) $("up-enabled").checked = u.enabled;
+
+    $("up-token").hidden = u.hasToken;
+    $("up-token-held").hidden = !u.hasToken;
 
     // The dot on the tab, which is the whole notification when this tab is not the one open.
     $("up-dot").hidden = !u.offering;

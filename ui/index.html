@@ -477,13 +477,30 @@
         <p class="dim" id="up-progress-text">–</p>
       </div>
 
+      <!--
+        The repository is private, so the releases are "not found" without a token. Entered
+        here once, saved encrypted to the Windows user, and never sent back to this page - the
+        host only ever says whether there is one.
+      -->
+      <div id="up-token" class="cfg-row" hidden>
+        <input type="password" id="up-token-input" autocomplete="off" spellcheck="false"
+          placeholder="GitHub token - fine-grained, Contents: read">
+        <button id="up-token-save">Save token</button>
+      </div>
+      <div id="up-token-held" class="cfg-row" hidden>
+        <span class="dim">A GitHub token is saved, encrypted to this Windows user.</span>
+        <button id="up-token-forget">Forget token</button>
+      </div>
+
       <label class="master up-auto">
         <input type="checkbox" id="up-enabled">
         <span>Check GitHub for newer builds</span>
       </label>
-      <p class="dim">Two small requests every six hours, to the public releases API. It is the
-        only thing this tool sends without being asked, and it carries nothing about this
-        machine.</p>
+      <p class="dim">Two small requests every six hours, to the releases API of the private
+        repository immo0815/immo-poe, with the saved token. It is the only thing this tool sends
+        without being asked; it carries nothing about this machine, and the token tells GitHub
+        whose account is asking, which a private repository requires. The same token is what the
+        overlay's boss-export upload writes with - that one needs Contents: read and write.</p>
     </section>
 
     <section class="card" id="up-notes-card" hidden>

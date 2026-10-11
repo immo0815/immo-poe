@@ -14,11 +14,12 @@ running app hot-reloads.
    dotnet --version     # should print 10.x
    ```
 
-2. **Clone the repo** (once, wherever you like):
+2. **Clone the repo** (once, wherever you like). It is private, so git opens a GitHub sign-in
+   the first time (Git for Windows' credential manager keeps it afterwards):
 
    ```powershell
-   git clone https://github.com/imm0r/PoEformance2.git
-   cd PoEformance2
+   git clone https://github.com/immo0815/immo-poe.git
+   cd immo-poe
    ```
 
 3. **Allow local scripts** (once per machine, current user only):
@@ -109,7 +110,11 @@ fix and save again.
 Every push to `main` compiles on GitHub's servers and updates a rolling release, so
 there is one stable download link that always carries the newest build:
 
-**https://github.com/imm0r/PoEformance2/releases/tag/latest-dev**
+**https://github.com/immo0815/immo-poe/releases/tag/latest-dev**
+
+The repository is private: the page opens only when you are signed in to GitHub with access to
+it. The tool's own update check reads the same release with a token - a fine-grained one with
+**Contents: read** on this repository, entered once on the Update tab (config window or overlay).
 
 Download `PoEformance-win-x64.zip`, unzip anywhere, run `PoEformance.App.exe` from an
 elevated terminal — no .NET install, no git, no build. `schema\poe2.offsets.json` sits

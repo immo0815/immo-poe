@@ -49,8 +49,8 @@ docs/architecture.md          why it is built this way
 Windows quick start (full guide: [`docs/setup-windows.md`](docs/setup-windows.md)):
 
 ```powershell
-# one-time: install the .NET 10 SDK, then
-git clone https://github.com/imm0r/PoEformance2.git
+# one-time: install the .NET 10 SDK, then (the repository is private - git asks you to sign in)
+git clone https://github.com/immo0815/immo-poe.git
 
 # daily, from an elevated PowerShell in the repo:
 .\scripts\run.ps1            # pull + incremental build + attach + drift report
@@ -60,8 +60,9 @@ git clone https://github.com/imm0r/PoEformance2.git
 Offset changes never need a build: edit `schema/poe2.offsets.json` while `-Watch`
 runs and the report refreshes against the still-attached game. No SDK at all? Every
 push to `main` auto-compiles on GitHub and updates the rolling release
-[`latest-dev`](https://github.com/imm0r/PoEformance2/releases/tag/latest-dev) with a
-ready-to-run, self-contained exe.
+[`latest-dev`](https://github.com/immo0815/immo-poe/releases/tag/latest-dev) with a
+ready-to-run, self-contained exe. The repository is private, so the release opens only for an
+account with access to it.
 
 **The overlay says which build it is**, on its own title bar beside the lock: `v0.1.11 · 4659c18`
 — the version, raised on every push, and the commit the publish workflow stamped into it. A build
@@ -74,7 +75,10 @@ says so on the config window's **Update** tab and in the overlay's Status page, 
 changed since the build you are running, and — when you press the button — downloads it,
 unpacks it over its own folder and restarts into it, telling you it worked. Nothing is
 downloaded or replaced without a click, `config/` is never touched, and the check can be
-switched off on the same tab. Builds compiled locally say "local build" and are never
+switched off on the same tab. Because the repository is private, the check needs a GitHub token
+that may read it (fine-grained, **Contents: read**), entered once on the Update tab and kept
+encrypted to your Windows user; the boss-export upload uses the same token and needs **read and
+write**. Builds compiled locally say "local build" and are never
 offered an update, because a release zip has no business landing on top of a working tree.
 
 ```bash

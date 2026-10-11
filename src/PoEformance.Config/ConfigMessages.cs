@@ -303,6 +303,10 @@ public sealed record ConditionMessage(
 /// user gets for an update that has already happened, which is the only moment the tool can
 /// report on one - the process that did the work no longer exists.
 /// </param>
+/// <param name="HasToken">
+/// Whether a GitHub token is saved. Only whether - the token itself never crosses the bridge
+/// back to the page. The repository is private, so without one the check cannot see a release.
+/// </param>
 public sealed record UpdateView(
     [property: JsonPropertyName("enabled")] bool Enabled,
     [property: JsonPropertyName("verdict")] string Verdict,
@@ -322,7 +326,8 @@ public sealed record UpdateView(
     [property: JsonPropertyName("total")] long Total,
     [property: JsonPropertyName("outcome")] string Outcome,
     [property: JsonPropertyName("outcomeVersion")] string OutcomeVersion,
-    [property: JsonPropertyName("log")] string Log);
+    [property: JsonPropertyName("log")] string Log,
+    [property: JsonPropertyName("hasToken")] bool HasToken);
 
 /// <summary>The host's state push: everything the config page shows.</summary>
 /// <remarks>

@@ -1,19 +1,29 @@
 name: CI
 
-# Back on automatic triggers. This was briefly manual-only: the repository was private, so
-# Actions minutes were metered, and the account ran out of them - which is worth recording
-# because the symptom looks nothing like a billing problem. Jobs fail in about three seconds
-# with `runner_id: 0`, no runner name and NO STEP LIST AT ALL: never dispatched to a machine,
-# so nothing is checked out and nothing is built. That is indistinguishable at a glance from
-# a transient Actions outage, and the only thing that tells them apart is that an outage
-# recovers on its own. Making the repository public settled it - public repositories run on
-# GitHub-hosted runners for free, with no minute metering and no Windows multiplier.
+# THE REPOSITORY IS PRIVATE AGAIN (immo0815/immo-poe, since 2026-10-11), so every minute here
+# comes out of the account's monthly allowance - 2,000 on the free plan - and Windows minutes
+# cost more than Linux ones. Worth recording what running out looks like, because it looks
+# nothing like a billing problem: jobs fail in about three seconds with `runner_id: 0`, no
+# runner name and NO STEP LIST AT ALL - never dispatched to a machine. That is
+# indistinguishable at a glance from a transient Actions outage, and the only thing that tells
+# them apart is that an outage recovers on its own. It happened once already, the last time
+# this repository was private.
+#
+# Measured on the import commit: test 7:20 on Linux, aot-publish 4:30 and gpu-test 2:30 on
+# Windows. So the run is cut where it was paying twice:
+# - push only on main, pull requests through pull_request. Both on every branch ran the whole
+#   workflow TWICE for each push to a branch with an open pull request - same commit, same
+#   answer, double the minutes.
+# - the two Windows jobs only after the merge (and by hand), not on every pull-request push.
+#   That is a trade, chosen deliberately: an AOT or GPU break now shows on main after the merge
+#   instead of on the pull request. Run this workflow by hand on a branch (workflow_dispatch)
+#   when a change is likely to touch either - ILC-sensitive dependencies, the shaders.
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
-  # Kept from the parked version: useful for re-running a suspected-flaky job without
-  # pushing an empty commit.
+  # Useful for re-running a suspected-flaky job without pushing an empty commit, and for
+  # asking the Windows jobs about a branch before it is merged.
   workflow_dispatch:
 
 jobs:
@@ -37,6 +47,8 @@ jobs:
   # reasons the AOT job below gives.
   gpu-test:
     needs: test
+    # Not on pull requests - see the minutes note at the top.
+    if: github.event_name != 'pull_request'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,7 +58,7 @@ jobs:
       - run: dotnet test tests/PoEformance.Gpu.Tests --nologo
 
   # THE Native AOT gate - the deployment risk this project carries, measured on every
-  # push instead of discovered at ship time. Publishing with PublishAot compiles the
+  # merge to main (and on request) instead of discovered at ship time. Publishing with PublishAot compiles the
   # whole dependency graph through ILC: the overlay stack (ClickableTransparentOverlay,
   # ImGui.NET, Vortice), the WebView2 config window (source-generated COM), and our own
   # code. A failure here is real information about exactly which dependency breaks AOT;
@@ -64,6 +76,8 @@ jobs:
   # collide, and it is the right shape regardless.
   aot-publish:
     needs: test
+    # Not on pull requests - see the minutes note at the top.
+    if: github.event_name != 'pull_request'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -94,7 +108,14 @@ jobs:
       # Named by run number so two builds downloaded on the same day cannot be confused.
       # Running yesterday's exe while believing it is today's is the kind of mistake that
       # costs an afternoon here, because the symptom is a wrong offset, not a wrong version.
+      #
+      # ALLOWED TO FAIL, like the publish workflow's copy, and for the same reason: artifact
+      # STORAGE is metered too in a private repository - 500 MB on the free plan - and this is
+      # about 46 MB a run kept for two weeks, beside publish's 52 MB kept for one. A handful of
+      # merges in a week fills it, and then this upload fails. The AOT publish above has already
+      # answered the question this job exists for; a full store must not turn that answer red.
       - uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: PoEformance-win-x64-${{ github.run_number }}
           path: src/PoEformance.App/bin/Release/net10.0-windows/win-x64/publish

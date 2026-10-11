@@ -63,6 +63,7 @@ public sealed class UpdateInstaller : IDisposable
     public static readonly TimeSpan Patience = TimeSpan.FromMinutes(20);
 
     private readonly Func<string, CancellationToken, Task<Stream?>> _open;
+    private readonly Func<string> _token;
     private readonly string _folder;
     private readonly string _install;
     private readonly string _executable;
@@ -77,11 +78,16 @@ public sealed class UpdateInstaller : IDisposable
     /// assembly's location, which is empty under the single-file publish the release ships.
     /// </param>
     /// <param name="open">Opens one address for reading, or null when it could not.</param>
+    /// <param name="token">
+    /// The saved GitHub token, or empty - the same one the check used, because the zip sits in
+    /// the same private repository as the listing that named it.
+    /// </param>
     public UpdateInstaller(
         string? folder = null,
         string? install = null,
         string? executable = null,
-        Func<string, CancellationToken, Task<Stream?>>? open = null)
+        Func<string, CancellationToken, Task<Stream?>>? open = null,
+        Func<string>? token = null)
     {
         _folder = folder ?? DefaultFolder;
         _install = install ?? AppContext.BaseDirectory;
@@ -89,6 +95,7 @@ public sealed class UpdateInstaller : IDisposable
             ?? Environment.ProcessPath
             ?? Path.Combine(AppContext.BaseDirectory, "PoEformance.App.exe");
         _open = open ?? Download;
+        _token = token ?? (static () => string.Empty);
     }
 
     /// <summary>The executable a finished update starts again.</summary>
@@ -344,14 +351,27 @@ public sealed class UpdateInstaller : IDisposable
     /// <c>ResponseHeadersRead</c> is what makes the progress real: the default buffers the
     /// whole response before handing anything back, so a hundred-and-fifty-megabyte download
     /// would sit at zero percent and then jump to done.
+    ///
+    /// The address is the asset's API address, asked for as bytes (see
+    /// <see cref="GitHubReleases.IsAsset"/>); the redirect it usually answers with is followed
+    /// by the handler, without the token.
     /// </remarks>
     private async Task<Stream?> Download(string address, CancellationToken cancelling)
     {
-        _http ??= UpdateCheck.Client();
-        _http.Timeout = Patience;
+        // The timeout ONCE, when the client is made: HttpClient refuses a property change after
+        // its first request, so setting it on every call threw on the second download of a
+        // session - a retry after a failed one - and left the step stuck at "downloading".
+        if (_http is null)
+        {
+            _http = UpdateCheck.Client();
+            _http.Timeout = Patience;
+        }
 
+        // Disposing the request does not touch the response: a GET carries no content to
+        // dispose, and the response stream is the response's.
+        using HttpRequestMessage request = UpdateCheck.Request(address, _token());
         HttpResponseMessage answer = await _http
-            .GetAsync(address, HttpCompletionOption.ResponseHeadersRead, cancelling)
+            .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelling)
             .ConfigureAwait(false);
 
         if (!answer.IsSuccessStatusCode)

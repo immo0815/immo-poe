@@ -33,6 +33,18 @@ public sealed class UpdateWindow
     private static readonly Vector4 BadText = OverlayInk.Bad;
     private static readonly Vector4 NewsText = OverlayInk.Accent;
 
+    private const string TokenSaid =
+        "the repository is private, so its releases are read with a GitHub token,\n"
+        + "saved encrypted to your Windows user. make one at github.com -> settings ->\n"
+        + "developer settings -> fine-grained tokens: repository "
+        + $"{UpdateCheck.Owner}/{UpdateCheck.Repository},\n"
+        + "permission Contents: read (read and write if it should also send boss exports).";
+
+    private readonly GitHubTokenField _token = new("update-token", "GitHub token (Contents: read)", TokenSaid);
+
+    /// <summary>What the last press on the token's buttons came to.</summary>
+    private string _tokenSaid = string.Empty;
+
     private readonly UpdateCheck _check;
     private readonly UpdateInstaller _installer;
     private readonly Action _download;
@@ -118,6 +130,8 @@ public sealed class UpdateWindow
             ImGuiText.Wrapped(DimText, "asking GitHub...");
         }
 
+        DrawToken();
+
         ImGui.Spacing();
         if (ImGui.Button("Check Now"))
         {
@@ -157,6 +171,39 @@ public sealed class UpdateWindow
             // string that arrived over the network, so this is exactly the draw where an
             // exception would leave ImGui's stack unbalanced.
             ImGui.EndChild();
+        }
+    }
+
+    /// <summary>
+    /// The token field while none is saved, and the way to drop the saved one while it fails.
+    /// </summary>
+    /// <remarks>
+    /// The forget button ONLY WHILE THE CHECK FAILS: a token that works needs nothing here, and
+    /// a page that is three lines on the newest build should stay three lines. A refused or
+    /// wrongly scoped token is exactly a failing check, and its status line says to forget it.
+    /// </remarks>
+    private void DrawToken()
+    {
+        if (!_token.Has)
+        {
+            ImGui.Spacing();
+            if (_token.Ask() is string saved)
+            {
+                _tokenSaid = saved;
+
+                // Straight away, not in six hours: whoever just typed a token wants to know
+                // whether it works.
+                _check.Refresh();
+            }
+        }
+        else if (_check.Verdict == UpdateVerdict.Failed && _token.Forget() is string forgot)
+        {
+            _tokenSaid = forgot;
+        }
+
+        if (_tokenSaid.Length > 0)
+        {
+            ImGuiText.Wrapped(DimText, _tokenSaid);
         }
     }
 

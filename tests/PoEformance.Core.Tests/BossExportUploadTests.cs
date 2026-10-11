@@ -129,7 +129,7 @@ public sealed class BossExportUploadTests
 
         public async Task<HttpResponseMessage> Send(HttpRequestMessage request, CancellationToken cancelling)
         {
-            string path = request.RequestUri!.PathAndQuery.Replace("/repos/imm0r/PoEformance2/", string.Empty, StringComparison.Ordinal);
+            string path = request.RequestUri!.PathAndQuery.Replace($"/repos/{UpdateCheck.Owner}/{UpdateCheck.Repository}/", string.Empty, StringComparison.Ordinal);
             string body = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancelling);
             Calls.Add((request.Method.Method, path, body));
             Assert.Equal("Bearer", request.Headers.Authorization?.Scheme);
@@ -290,6 +290,33 @@ public sealed class BossExportUploadTests
 
             Assert.True(GitHubTokenStore.Forget(path));
             Assert.False(GitHubTokenStore.Has(path));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>
+    /// Every save and forget moves the generation, which is all the overlay's fields look at
+    /// before asking the disk again - a token saved in the config window must show there.
+    /// </summary>
+    [Fact]
+    public void SavingAndForgettingMoveTheGeneration()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"github-{Guid.NewGuid():N}.json");
+        static byte[] Same(byte[] bytes) => bytes;
+
+        try
+        {
+            // Strictly later rather than one more: another test may move it in between.
+            int before = GitHubTokenStore.Generation;
+            Assert.True(GitHubTokenStore.Save("github_pat_x", Same, path));
+            int saved = GitHubTokenStore.Generation;
+            Assert.True(saved > before);
+
+            Assert.True(GitHubTokenStore.Forget(path));
+            Assert.True(GitHubTokenStore.Generation > saved);
         }
         finally
         {

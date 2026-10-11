@@ -43,7 +43,11 @@ internal sealed class UpdateService : IDisposable
     public UpdateService(string outcome, string outcomeVersion)
     {
         _settings = UpdateSettingsStore.Load();
-        _check = new UpdateCheck(BuildStamp.Load())
+
+        // The repository is private, so both the listing and the zip are read with the saved
+        // token - decrypted per check and per download rather than held for the session.
+        Func<string> token = static () => GitHubTokenStore.Load(Dpapi.Unprotect);
+        _check = new UpdateCheck(BuildStamp.Load(), token: token)
         {
             Enabled = _settings.Enabled,
             Skipped = _settings.Skipped,
@@ -51,7 +55,7 @@ internal sealed class UpdateService : IDisposable
 
         _check.Answered = Report;
 
-        _installer = new UpdateInstaller();
+        _installer = new UpdateInstaller(token: token);
         _restartArguments = [.. UpdateScript.RestartArguments(Environment.GetCommandLineArgs()[1..])];
 
         Outcome = outcome;
@@ -153,7 +157,8 @@ internal sealed class UpdateService : IDisposable
             Total: _installer.Total,
             Outcome: Outcome,
             OutcomeVersion: OutcomeVersion,
-            Log: _installer.LogPath);
+            Log: _installer.LogPath,
+            HasToken: GitHubTokenStore.Has());
     }
 
     /// <summary>
@@ -186,6 +191,36 @@ internal sealed class UpdateService : IDisposable
 
             case "skipUpdate":
                 Skip();
+                return string.Empty;
+
+            case "saveGitHubToken":
+                if (request.Payload.ValueKind != JsonValueKind.Object
+                    || !request.Payload.TryGetProperty("token", out JsonElement sentToken)
+                    || sentToken.ValueKind != JsonValueKind.String)
+                {
+                    return null;
+                }
+
+                // Into the same encrypted file the overlay's fields write, and straight into a
+                // check: somebody who just entered a token wants to know whether it works, not
+                // to wait six hours for the staleness timer.
+                if (GitHubTokenStore.Save(sentToken.GetString() ?? string.Empty, Dpapi.Protect))
+                {
+                    _check.Refresh();
+                }
+                else
+                {
+                    Console.Error.WriteLine($"update  the GitHub token could not be saved to {GitHubTokenStore.DefaultPath}");
+                }
+
+                return string.Empty;
+
+            case "forgetGitHubToken":
+                if (!GitHubTokenStore.Forget())
+                {
+                    Console.Error.WriteLine($"update  could not delete {GitHubTokenStore.DefaultPath}");
+                }
+
                 return string.Empty;
 
             case "setUpdateSettings":

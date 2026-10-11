@@ -923,6 +923,17 @@ Four steps, and the last two are asked for:
 `--record` is the one switch not carried into the restart: it names a file, and restarting
 would truncate a recording somebody deliberately captured.
 
+**The repository is private** since it moved to `immo0815/immo-poe` (2026-10-11), and a private
+repository's releases are "not found" to an anonymous request. So the check and the download
+carry the GitHub token the boss-export upload already kept (`Features/GitHubTokenStore`, DPAPI
+to the Windows user): a fine-grained token with **Contents: read** is enough for both GitHub
+calls. The listing is asked as the API's JSON; the stamp and the zip are fetched from each
+asset's **API address** (`url`, not `browser_download_url`) as `application/octet-stream`, the
+documented way to an asset outside a browser. That answers with a redirect to a signed address
+on another host, and .NET's redirect handler drops the `Authorization` header on every redirect,
+so the token reaches GitHub and nothing else. Without a token the status line says the
+repository is private and the Update tab (config window and overlay alike) shows the field.
+
 ## Conventions
 
 - Language: English for everything in the repo (code, comments, commits, docs).
