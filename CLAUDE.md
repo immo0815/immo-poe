@@ -159,6 +159,13 @@ recordings, dumps, measurements - and it is grown, not worked around.** One key 
 from one spot at one moment: the pictures, the recording, the area's files, every window's
 diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule for new work:
 
+- **Debug lives in the capture, nowhere else** (asked for from the live client, 2026-10-11). A measurement
+  the tool can make - a memory search, a dump, an evaluation of what a window shows - is a capture part run
+  at the press: not a test written for one problem and kept in the test project, and not a button on a
+  window the person must find first. Unit tests guard the code; they are not where a diagnosis is made. The
+  light panel's memory hunt is the example: `light-hunt.txt` runs it at the press for the area's own
+  environment, the water's evidence with it.
+
 - **Before asking for anything from the game, ask the capture.** A screenshot, a copied line, a
   dump pasted into chat is the slow road and the one that loses context. Ask for a capture from
   the right spot; if the question is one of "what does the game hold / draw / name here", a
@@ -197,6 +204,13 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   `water_clarity` and more as pass uniforms; `WaterComputeSurface`, `WaterComputeRefraction`), while Port.env's
   water section names only its flow and a height offset. `water.txt` (`CaptureWater`) writes every
   environment's water keys and the water pass's sources whole - read it before the water is given a colour.
+  Its first capture (v0.1.205): 313 of 861 environments write a water section, 28 keys, the colours among
+  them as `open_water_color` and `terrain_water_color` with `open_water_murkiness` and `terrain_water_murkiness`
+  beside them - and water.ffx takes `water_color_open.a` as the density, `exp(-distance * density)`. Port.env
+  sets none, so Port's water is the engine's default, written in no file: `light-hunt.txt` (`LightHunt`, run at
+  the press) looks for it in memory two ways - the water pass's uniform block as common.ffx declares it, the
+  file's values in their slots and the rest read out by name; and the file's values in the window round the
+  parsed environment's phi, printed whole.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

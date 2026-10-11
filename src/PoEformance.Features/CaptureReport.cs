@@ -93,6 +93,9 @@ public static class CaptureReport
     /// <summary>What the water is drawn from - see CaptureWater.</summary>
     public const string WaterFile = "water.txt";
 
+    /// <summary>The light and water hunt run at the press - see LightHunt.</summary>
+    public const string LightHuntFile = "light-hunt.txt";
+
     /// <summary>The survey of the entity maps for the rooms' doodads, and every sighting.</summary>
     public const string DoodadsFile = "doodads.txt";
 

@@ -146,6 +146,9 @@ public static class CaptureParts
     /// <summary>The atlas check's report.</summary>
     public const string AtlasLog = "atlas-log";
 
+    /// <summary>The light hunt run at the press: the sun, the sky's turn, the dust and the water as the game's memory holds them.</summary>
+    public const string LightHunt = "light-hunt";
+
     /// <summary>The memory recording itself.</summary>
     public const string Memory = "memory";
 
@@ -253,6 +256,12 @@ public static class CaptureParts
         new(AtlasLog, "Windows", "the atlas check", CaptureReport.AtlasLogFile,
             "The Atlas page's \"Check the Read\" report whole, as its Debug Log tab has it. Nothing where it has not run."),
 
+        new(LightHunt, "Memory", "the light and water hunt", CaptureReport.LightHuntFile,
+            "The Tile Book light panel's search of the game's memory, run at the press for the area's own environment: "
+            + "where the game keeps the sun, the sky's turn and the dust colour, and the water - the water pass's uniform "
+            + "block as common.ffx declares it, read out by name, its colours among them, and the file's water values in the "
+            + "window round the parsed environment, printed whole. What the engine draws an area's water with where its file "
+            + "sets no colour. Takes a few seconds; the capture waits for it."),
         new(Memory, "Memory", "a memory recording", CaptureReport.MemoryFile,
             "The overlay's own reads for three seconds, and inside them one pass reading once more from nothing whatever the "
             + "ticked parts above ask for - memory.txt beside it says what the pass read where. Replays with --replay, game closed."),

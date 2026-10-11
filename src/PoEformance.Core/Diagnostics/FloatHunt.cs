@@ -198,11 +198,15 @@ public static class FloatHunt
         return new FloatHuntResult(walked, scanned, sightings, [.. capped.Order()], unsearched, truncated, clock.Elapsed, Dumps(reader, needles, sightings));
     }
 
-    /// <summary>The bytes round the first places of each needle that asked for them, windows that overlap one already read left out.</summary>
+    /// <summary>The bytes round the first places of each needle that asked for them, windows another one already read whole left out.</summary>
     /// <remarks>
     /// THE NARROWEST WINDOWS FIRST, then by address: a wide window asked for to read one value well
     /// past its needle - the light hunt's dust colour, 0x360 bytes after phi - would otherwise swallow
     /// a narrow one asked for to be printed whole, the sun's vector among them.
+    ///
+    /// LEFT OUT ONLY WHERE A WINDOW READ ALREADY HOLDS ALL OF IT. Left out wherever the place lay in one,
+    /// the widest window could never be read: the light hunt's water window round phi (4096 bytes either
+    /// side) lies inside the narrower hor_angle window read before it, every time.
     /// </remarks>
     private static List<FloatDump> Dumps(IMemoryReader reader, IReadOnlyList<FloatNeedle> needles, List<FloatSighting> sightings)
     {
@@ -211,13 +215,19 @@ public static class FloatHunt
         foreach (FloatSighting one in sightings.OrderBy(sighting => Math.Clamp(needles[sighting.Needle].Around, 0, MostAround)).ThenBy(sighting => sighting.At))
         {
             int around = Math.Clamp(needles[one.Needle].Around, 0, MostAround);
-            if (around == 0 || taken[one.Needle] >= MostDumps || dumps.Exists(dump => one.At >= dump.From && one.At < dump.From + (ulong)dump.Bytes.Length))
+            if (around == 0 || taken[one.Needle] >= MostDumps)
             {
                 continue;
             }
 
             ulong from = one.At > (ulong)around ? one.At - (ulong)around : 0;
             var bytes = new byte[(2 * around) + (needles[one.Needle].Values.Length * sizeof(float))];
+            ulong end = from + (ulong)bytes.Length;
+            if (dumps.Exists(dump => from >= dump.From && end <= dump.From + (ulong)dump.Bytes.Length))
+            {
+                continue;
+            }
+
             if (reader.TryRead(from, bytes))
             {
                 taken[one.Needle]++;

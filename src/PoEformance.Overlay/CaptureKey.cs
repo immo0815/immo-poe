@@ -155,6 +155,14 @@ internal sealed class CaptureKey
     public IReadOnlyList<string> Environments { get; set; } = [];
 
     /// <summary>
+    /// Starts the light hunt for the area's own environment and hands back its whole report, or null where nothing can search - the light-hunt part. Set by whoever owns the search.
+    /// </summary>
+    public Func<Task<string>?>? HuntLight { get; set; }
+
+    /// <summary>How long the writer waits for the light hunt started at the press before it writes without it.</summary>
+    private const int HuntWaitSeconds = 120;
+
+    /// <summary>
     /// Starts the memory half of a capture - the recording, and the pass inside it that reads what the ask says - or null where one is already running. Set by whoever owns the reader.
     /// </summary>
     /// <remarks>Completes with what it wrote, in a line, once the recording is closed. See CaptureMemory.</remarks>
@@ -306,6 +314,13 @@ internal sealed class CaptureKey
         if (On(CaptureParts.ModelPanes) && _panes is { } panes)
         {
             run.Panes = panes();
+        }
+
+        // THE LIGHT AND WATER HUNT FROM THE PRESS ON, beside everything else - it searches the game's memory for seconds.
+        if (On(CaptureParts.LightHunt))
+        {
+            run.LightHunt = HuntLight?.Invoke();
+            run.LightHuntNote = HuntLight is null ? "nothing can search the game's memory in this session" : "the hunt could not start";
         }
 
         if (!On(CaptureParts.Memory))
@@ -713,6 +728,34 @@ internal sealed class CaptureKey
             });
         }
 
+        if (On(CaptureParts.LightHunt))
+        {
+            if (run.LightHunt is not { } hunt)
+            {
+                parts.Add($"{CaptureReport.LightHuntFile}  not written: {run.LightHuntNote}");
+            }
+            else
+            {
+                Part(CaptureReport.LightHuntFile, () =>
+                {
+                    try
+                    {
+                        if (!hunt.Wait(TimeSpan.FromSeconds(HuntWaitSeconds)))
+                        {
+                            return $"not written: the hunt still ran after {HuntWaitSeconds} s";
+                        }
+                    }
+                    catch (AggregateException failed)
+                    {
+                        return "FAILED: " + failed.GetBaseException().Message;
+                    }
+
+                    File.WriteAllText(At(CaptureReport.LightHuntFile), hunt.Result);
+                    return hunt.Result[..Math.Max(0, hunt.Result.IndexOf('\n'))].TrimEnd('\r');
+                });
+            }
+        }
+
         // Last, so the recording has had the time the rest took. It closes once its ticks are
         // spent and the pass inside it is done - seconds, or a minute at the very most.
         if (run.Memory is { } memory)
@@ -971,6 +1014,12 @@ internal sealed class CaptureKey
 
         /// <summary>The model panes showing a model on the press, or null where the part is off or none was offered - see OfferPanes.</summary>
         public IReadOnlyList<CapturePane>? Panes { get; set; }
+
+        /// <summary>The light hunt started at the press, its whole report to come - or null, with why in <see cref="LightHuntNote"/>.</summary>
+        public Task<string>? LightHunt { get; set; }
+
+        /// <summary>Why there is no light hunt.</summary>
+        public string LightHuntNote { get; set; } = string.Empty;
 
         public Task<string>? Memory { get; set; }
 

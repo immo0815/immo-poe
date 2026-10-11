@@ -148,6 +148,20 @@ public sealed class LightHunt
 
             entries.Add(Angle("phi", phi, Reach(dust?.AfterPhi)));
             entries.Add(Angle("theta", theta));
+
+            // AND THE WATER SECTION'S WINDOW: phi again, read as far either side as the hunt reads anything, so the
+            // file's own water values can be found in it and what stands beside them read - see WaterWindow.
+            if (environment.Water.Count > 0)
+            {
+                entries.Add(new Entry(What.Water, -1, false, false, new FloatNeedle("phi, for the water section", [phi], 0f, FloatHunt.MostAround)));
+            }
+        }
+
+        // AND THE WATER PASS'S UNIFORMS AS common.ffx DECLARES THEM, where the processor keeps a copy in that order: the
+        // file's water values each in its uniform's slot, every other slot left unchecked - see Uniforms.
+        if (UniformNeedle(environment.Water) is { } uniforms)
+        {
+            entries.Add(new Entry(What.WaterUniforms, -1, false, false, uniforms));
         }
 
         var sameCube = new Dictionary<int, int>();
@@ -201,7 +215,7 @@ public sealed class LightHunt
             entries.Add(new Entry(What.Dust, -1, false, false, new FloatNeedle("area.dust_color", [colour.X, colour.Y, colour.Z], 0f, Around)));
         }
 
-        if (!entries.Exists(one => one.What is What.Sun or What.Cube or What.CubeOther or What.Dust))
+        if (!entries.Exists(one => one.What is What.Sun or What.Cube or What.CubeOther or What.Dust or What.WaterUniforms))
         {
             why = "the environment gives neither a sun's angles, a cube turn nor a dust colour";
             return null;
@@ -385,12 +399,14 @@ public sealed class LightHunt
             }
         }
 
+        WaterWindow(report, result);
+
         // WHAT THE GAME KEEPS BESIDE THE SUN'S VECTOR, a row of eight floats at a time, the vector's
         // own in brackets - the cube's turn and the light's other numbers may sit next to it. The
-        // angles' own windows are only there for the dust, said above.
+        // angles' own windows are only there for the dust, said above; the water's for the water.
         foreach (FloatDump dump in result.Dumps ?? [])
         {
-            if (_entries[dump.Needle].What == What.Angle)
+            if (_entries[dump.Needle].What is What.Angle or What.Water or What.WaterUniforms)
             {
                 continue;
             }
@@ -419,6 +435,179 @@ public sealed class LightHunt
     }
 
     private static Entry Angle(string name, float value, int around = 0) => new(What.Angle, -1, false, false, new FloatNeedle(name, [value], 0f, around));
+
+    /// <summary>
+    /// The water pass's uniforms in the order common.ffx declares them, each with its first float's slot and its width: three
+    /// float4s, then sixteen floats - packed as HLSL packs a block, a float4 on a 16-byte boundary and the floats after it.
+    /// </summary>
+    /// <remarks>
+    /// AN ORDER READ OFF THE SOURCE, NOT A LAYOUT MEASURED: whether the processor keeps a copy of the block in this order is
+    /// exactly what the needle built from it asks the game. Found, the slots before the file's values are the engine's own -
+    /// water_color_open among them, its alpha the density water.ffx takes as exp(-distance * density).
+    /// </remarks>
+    private static readonly (string Name, int Slot, int Width)[] Uniforms =
+    [
+        ("water_color_terrain", 0, 4), ("water_color_open", 4, 4), ("water_wind_direction", 8, 4),
+        ("water_subsurface_scattering", 12, 1), ("water_refraction_index", 13, 1), ("water_reflectiveness", 14, 1),
+        ("water_caustics_mult", 15, 1), ("water_wind_intensity", 16, 1), ("water_wind_speed", 17, 1),
+        ("water_directionness", 18, 1), ("water_swell_intensity", 19, 1), ("water_swell_height", 20, 1),
+        ("water_swell_angle", 21, 1), ("water_swell_period", 22, 1), ("water_flow_intensity", 23, 1),
+        ("water_flow_foam", 24, 1), ("water_dispersion", 25, 1), ("water_clarity", 26, 1), ("water_height_offset", 27, 1),
+    ];
+
+    /// <summary>The .env water keys that name one uniform each, by the uniform's slot - the colours their first three floats.</summary>
+    /// <remarks>
+    /// ONLY WHERE THE NAMES SAY IT: a key that is the uniform's name without "water_", and the two colours by what they are.
+    /// The murkiness keys are left out - that they become the colours' alpha fits the shader and is not written anywhere.
+    /// </remarks>
+    private static readonly Dictionary<string, int> UniformOfKey = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["terrain_water_color"] = 0, ["open_water_color"] = 4, ["subsurface_scattering"] = 12, ["refraction_index"] = 13,
+        ["reflectiveness"] = 14, ["caustics_mult"] = 15, ["wind_intensity"] = 16, ["wind_speed"] = 17, ["directionness"] = 18,
+        ["swell_intensity"] = 19, ["swell_height"] = 20, ["swell_angle"] = 21, ["swell_period"] = 22, ["flow_intensity"] = 23,
+        ["flow_foam"] = 24, ["height_offset"] = 27,
+    };
+
+    /// <summary>The uniform block as a needle: the file's water values each in its slot, from the first slot one fills to the last, every other slot unchecked - or null where fewer than two slots are filled.</summary>
+    private static FloatNeedle? UniformNeedle(IReadOnlyList<EnvironmentValue> water)
+    {
+        var slots = new SortedDictionary<int, float>();
+        foreach (EnvironmentValue one in water)
+        {
+            if (one.Flag || !UniformOfKey.TryGetValue(one.Key, out int slot))
+            {
+                continue;
+            }
+
+            for (var at = 0; at < Math.Min(one.Values.Count, slot < 8 ? 3 : 1); at++)
+            {
+                slots[slot + at] = one.Values[at];
+            }
+        }
+
+        if (slots.Count < 2)
+        {
+            return null;
+        }
+
+        int first = slots.Keys.First(), last = slots.Keys.Last();
+        var values = new float[last - first + 1];
+        Array.Fill(values, float.NaN);
+        foreach ((int slot, float value) in slots)
+        {
+            values[slot - first] = value;
+        }
+
+        // READ FROM THE BLOCK'S FIRST SLOT ON, wherever the file's values begin: the colours stand before them.
+        string named = string.Join(", ", slots.Keys.Select(slot => Uniforms.Last(one => one.Slot <= slot).Name).Distinct());
+        return values.Length > FloatHunt.LongestNeedle ? null : new FloatNeedle($"the water uniforms as common.ffx declares them, {named} in their slots", values, 0f, (first * sizeof(float)) + 64);
+    }
+
+    /// <summary>The water's two lines of evidence: the uniform block where it is found, and the file's values in the window round phi.</summary>
+    private void WaterWindow(StringBuilder report, FloatHuntResult result)
+    {
+        IReadOnlyList<EnvironmentValue> water = Environment.Water;
+        if (water.Count == 0)
+        {
+            return;
+        }
+
+        report.Append("water - the file's water section: ").AppendLine(string.Join(", ", water.Select(Said)));
+        int uniformAt = _entries.FindIndex(one => one.What == What.WaterUniforms);
+        if (uniformAt < 0)
+        {
+            report.AppendLine("  the uniform block: not looked for - fewer than two of the file's keys name a uniform");
+        }
+        else
+        {
+            FloatNeedle needle = _entries[uniformAt].Needle;
+            int first = UniformOfKey.Where(pair => water.Any(one => !one.Flag && string.Equals(one.Key, pair.Key, StringComparison.OrdinalIgnoreCase))).Min(pair => pair.Value);
+            List<FloatSighting> seen = [.. result.Sightings.Where(one => one.Needle == uniformAt)];
+            report.Append(CultureInfo.InvariantCulture, $"  {needle.Name}: {seen.Count} places{(result.Capped.Contains(uniformAt) ? " (capped)" : string.Empty)}").AppendLine();
+            foreach (FloatDump dump in (result.Dumps ?? []).Where(one => one.Needle == uniformAt))
+            {
+                long block = (long)(dump.At - dump.From) - (first * sizeof(float));
+                report.Append(CultureInfo.InvariantCulture, $"  the block at 0x{dump.At - (ulong)(first * sizeof(float)):X}, read as declared:").AppendLine();
+                foreach ((string name, int slot, int width) in Uniforms)
+                {
+                    long at = block + (slot * sizeof(float));
+                    if (at < 0 || at + (width * sizeof(float)) > dump.Bytes.Length)
+                    {
+                        continue;
+                    }
+
+                    IEnumerable<string> floats = Enumerable.Range(0, width).Select(one => Say(BitConverter.ToSingle(dump.Bytes, (int)at + (one * sizeof(float)))));
+                    report.Append("    ").Append(name).Append(' ').AppendLine(string.Join(" ", floats));
+                }
+            }
+        }
+
+        int windowAt = _entries.FindIndex(one => one.What == What.Water);
+        List<FloatDump> windows = windowAt < 0 ? [] : [.. (result.Dumps ?? []).Where(one => one.Needle == windowAt)];
+        if (windows.Count == 0)
+        {
+            report.AppendLine("  beside phi: no window read - phi was not found, or the file gives none");
+            return;
+        }
+
+        report.Append(CultureInfo.InvariantCulture, $"  beside phi, within 0x{FloatHunt.MostAround:X} bytes either side - where each of the file's values lies, as a float and a whole number as an int too:").AppendLine();
+        FloatDump? fullest = null;
+        int most = -1;
+        foreach (FloatDump dump in windows)
+        {
+            long origin = (long)(dump.At - dump.From);
+            int found = 0;
+            var line = new StringBuilder();
+            foreach (EnvironmentValue one in water)
+            {
+                List<long> places = Places(dump.Bytes, one, origin);
+                found += places.Count > 0 ? 1 : 0;
+                line.Append("; ").Append(one.Key).Append(' ').Append(places.Count == 0 ? "-" : string.Join(" ", places.Take(8).Select(Offset)));
+            }
+
+            report.Append(CultureInfo.InvariantCulture, $"    phi at 0x{dump.At:X}: {found} of {water.Count} found").AppendLine(line.ToString());
+            if (found > most)
+            {
+                (fullest, most) = (dump, found);
+            }
+        }
+
+        report.Append(CultureInfo.InvariantCulture, $"  the window round phi at 0x{fullest!.At:X} whole, eight floats a row, phi in brackets:").AppendLine();
+        Dumped(report, fullest, 1);
+
+        static string Offset(long offset) => string.Create(CultureInfo.InvariantCulture, $"{(offset < 0 ? "-" : "+")}0x{Math.Abs(offset):X}");
+    }
+
+    /// <summary>Where a file's value lies in a window, as offsets from the needle: its floats in a row, and a whole number as an int too.</summary>
+    private static List<long> Places(byte[] bytes, EnvironmentValue value, long origin)
+    {
+        var places = new List<long>();
+        int width = value.Values.Count * sizeof(float);
+        bool whole = value.Values.Count == 1 && !value.Flag && value.Values[0] == MathF.Round(value.Values[0]) && MathF.Abs(value.Values[0]) < 1e6f;
+        for (var at = 0; at + width <= bytes.Length; at += sizeof(float))
+        {
+            var floats = true;
+            for (var one = 0; one < value.Values.Count && floats; one++)
+            {
+                floats = BitConverter.ToSingle(bytes, at + (one * sizeof(float))) == value.Values[one];
+            }
+
+            if (floats || (whole && BitConverter.ToInt32(bytes, at) == (int)value.Values[0]))
+            {
+                places.Add(at - origin);
+            }
+        }
+
+        return places;
+    }
+
+    private static string Said(EnvironmentValue value)
+        => value.Key + " " + (value.Flag ? (value.Values[0] != 0f ? "true" : "false") : string.Join(" ", value.Values.Select(one => one.ToString("0.#####", CultureInfo.InvariantCulture))));
+
+    private static string Say(float value)
+        => float.IsFinite(value) && (value == 0f || MathF.Abs(value) is >= 1e-6f and < 1e7f)
+            ? value.ToString("0.#####", CultureInfo.InvariantCulture)
+            : string.Create(CultureInfo.InvariantCulture, $"#{BitConverter.SingleToUInt32Bits(value):X8}");
 
     /// <summary>
     /// Every arrangement of the environment's two turns but the readings' own: each turn about any of the three axes, either way, in either order, after any of the 48 swaps and flips of the axes - each matrix once, in both layouts.
@@ -647,6 +836,8 @@ public sealed class LightHunt
         CubeOther,
         Angle,
         Dust,
+        Water,
+        WaterUniforms,
     }
 
     private readonly record struct Entry(What What, int Reading, bool Transposed, bool Padded, FloatNeedle Needle);
