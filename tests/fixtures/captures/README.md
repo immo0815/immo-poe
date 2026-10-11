@@ -3,7 +3,8 @@
 Captures (F9, "Capture for Diagnosis") kept as fixtures, so the room rules are held against real
 areas on every build (`CaptureFixtureTests`) and every replay of `CaptureReplayTests` can be run
 again without the game. All were taken on 2026-10-11; the pictures were left out (about 20 MB a
-capture) - nothing the replays read is in them.
+capture) - nothing the replays read is in them - and from the two v0.1.213 ones the install-wide `water.txt`,
+`ground.txt` and `light-hunt.txt`, which answer other questions.
 
 | Folder | Area | Why it is kept |
 |---|---|---|
@@ -13,6 +14,8 @@ capture) - nothing the replays read is in them.
 | `steaming-springs` | Steaming Springs (MapSteamingSprings), `0x6FC87FF1` | the most weight samples (57) and 15 placed rooms; every settled slot comes out the game's file |
 | `marrow` | Marrow (MapMarrow), `0x193FC4A6` | v0.1.186, the first with `area-masters.txt`: the five laid tiles no tile list names all in the master's fill list (`random_fill_tiles.gft`); `.tmd` read as a tile's doodad list, and its wall tops (`TileUpperDoodad`) are how a tile's frame reaches the world and which of a top's directional lines the game puts down (`TileDoodadList.Shown`, 514 of 514); the first tile-list words (`I`, `R90`, `R180`, `R270`), none laid. It replaced a v0.1.183 capture of the same area, which lacked the masters |
 | `augury` | Augury (MapAugury), `0xF21793AA` | v0.1.188: 19 rooms placed by their doodads; the fill list's `black.tdt` in 571 of the 703 slots asking BlackInsideWall all round that no tile of its list answers (`RoomBuilder`'s fill rule); the first laid tile carrying a word - its arena, `I`, as authored in a room laid as written; two laid tiles carrying a doodad list beside the `.tdt` and one beside the template. Its tile doodads are symmetric, so it does not tell the readings of a tile's frame apart |
+| `traitors-passage` | Traitor's Passage (G2_2), `0xB4379881` | v0.1.213, the first with `landscape.txt`: an Act 2 cave of thick walls and abyss edges, reached by a waypoint, asked for to settle the terrain's second grid - its walls nought and its chasm five along the edge of where anybody can stand, every cell (`THESECONDGridIsWhereProjectilesStop`) |
+| `titan-grotto` | The Titan Grotto (G2_7), `0xD6B5A6A5` | v0.1.213, the same question over walkways above an abyss: every abyss cell on that edge five, 18474 of 7.6 million unwalkable cells nought |
 
 Oasis, Steppe and Steaming Springs were taken with v0.1.179 and carry neither `tile-files.txt` nor
 `area-masters.txt` (v0.1.184); Marrow's and Sulphuric's say a master's fill list is where their unlisted

@@ -1,0 +1,1004 @@
+215 tile files - 199 the area's tile lists name, 17 its fill lists, 43 laid, 5 of those named by no tile list; each with its definition followed through what it inherits, and the tile's doodad list (.tmd)
+a definition that inherits carries nothing but the reference (annalithic's Tdt.cs); a .tmd is the tile's own doodads, found beside the .tdt or beside its template
+
+=== laid, but named by no tile list - the listed files whose chain passes through it, the fill lists that name it, the listed files sharing its template
+Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Fill_01.tdt
+  reached by inheriting from: none
+  in a fill list: Metadata/Terrain/Gallows/Act2/2_7/random_fill_tiles.gft section "TitanAbyss" weight 5
+  shares a template with: Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_01.tdt, Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_02.tdt, Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_03.tdt
+Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Fill_02.tdt
+  reached by inheriting from: none
+  in a fill list: Metadata/Terrain/Gallows/Act2/2_7/random_fill_tiles.gft section "TitanAbyss" weight 1
+  shares a template with: Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_01.tdt, Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_02.tdt, Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_03.tdt
+Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Fill_03.tdt
+  reached by inheriting from: none
+  in a fill list: Metadata/Terrain/Gallows/Act2/2_7/random_fill_tiles.gft section "TitanAbyss" weight 1
+  shares a template with: Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_01.tdt, Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_02.tdt, Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_03.tdt
+Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Fill_04.tdt
+  reached by inheriting from: none
+  in a fill list: Metadata/Terrain/Gallows/Act2/2_7/random_fill_tiles.gft section "TitanAbyss" weight 1
+  shares a template with: Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_01.tdt, Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_02.tdt, Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_03.tdt
+Metadata/Terrain/Desert/CaveTitans/blank_fill_01.tdt
+  reached by inheriting from: none
+  in a fill list: Metadata/Terrain/Gallows/Act2/2_7/random_fill_tiles.gft section "default" weight 100
+  shares a template with: Metadata/Terrain/Desert/CaveTitans/forced_blank_fill_01.tdt
+
+=== every file: 'inherits' for each hop, then 'defines' (size, tag, templates) or 'not read'; 'tmd' with '| ' text lines, or 'hex' and 'strings'
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cc_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cc_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cc_01.tgt
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cc_01.tmd	1240 bytes	text
+  | version 8
+  | 62 0 1 684.579 8.61753 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/StalagmiteSmall_set.ao" "Abyss_Edge_Cc_01_AOSet_StalagmiteSmall_ledge" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cc_01_AOSet_StalagmiteSmall_ledge.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 68 1 1 740.83 18.5159 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_Cc_01_AOSet_Worshipper_ledge" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cc_01_AOSet_Worshipper_ledge.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cc_01a.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cc_01a.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cc_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cc_01a.tmd	1554 bytes	text
+  | version 8
+  | 46 38 1 500.741 420.354 179 2.02513 0 0 0.848194 0.529685 1 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_05.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 24 26 1 261.301 282.634 0 -2.5383 0 0 -0.954849 0.297092 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoSteleShrine01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 32 31 1 351.431 339.819 0 -2.79963 0 0 -0.985418 0.170151 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoElderShrine03.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 31 19 1 340.725 211.842 291 -2.56611 0 0 -0.958887 0.283789 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_Set.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cc_01.tmd	1240 bytes	text
+  | version 8
+  | 62 0 1 684.579 8.61753 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/StalagmiteSmall_set.ao" "Abyss_Edge_Cc_01_AOSet_StalagmiteSmall_ledge" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cc_01_AOSet_StalagmiteSmall_ledge.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 68 1 1 740.83 18.5159 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_Cc_01_AOSet_Worshipper_ledge" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cc_01_AOSet_Worshipper_ledge.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cc_01b.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cc_01b.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cc_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cc_01b.tmd	1928 bytes	text
+  | version 8
+  | 31 18 1 345.982 201.26 315 -2.83525 0 0 -0.988292 0.152574 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 34 33 1 370.119 368.919 15 1.59741 0 0 0.716453 0.697635 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_08.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 27 24 1 297.942 266.979 -71 -2.04807 0 0 -0.854214 0.519922 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoWarrior01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 27 24 1 300.352 264.261 11 1.11194 0 0 0.527769 0.849388 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoSteleCarving01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 18 10 1 201.22 119.489 0 1.20882 0 0 0.568275 0.822839 1 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_09.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cc_01.tmd	1240 bytes	text
+  | version 8
+  | 62 0 1 684.579 8.61753 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/StalagmiteSmall_set.ao" "Abyss_Edge_Cc_01_AOSet_StalagmiteSmall_ledge" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cc_01_AOSet_StalagmiteSmall_ledge.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 68 1 1 740.83 18.5159 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_Cc_01_AOSet_Worshipper_ledge" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cc_01_AOSet_Worshipper_ledge.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cc_01c.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cc_01c.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cc_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cc_01c.tmd	1842 bytes	text
+  | version 8
+  | 38 43 1 422.588 471.309 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_06.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 24 29 1 264.257 321.964 0 -2.55172 0 0 -0.95682 0.290681 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_09.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 30 43 1 335.442 470.582 0 -2.81956 0 0 -0.987065 0.16032 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoElderShrine02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 37 44 1 406.674 483.717 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoSteleTall02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 17 13 1 191.635 147.248 5 -1.8935 0 0 -0.81152 0.584325 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_10.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cc_01.tmd	1240 bytes	text
+  | version 8
+  | 62 0 1 684.579 8.61753 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/StalagmiteSmall_set.ao" "Abyss_Edge_Cc_01_AOSet_StalagmiteSmall_ledge" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cc_01_AOSet_StalagmiteSmall_ledge.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 68 1 1 740.83 18.5159 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_Cc_01_AOSet_Worshipper_ledge" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cc_01_AOSet_Worshipper_ledge.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cv_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cv_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cv_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cv_01a.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cv_01a.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cv_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cv_01a.tmd	1154 bytes	text
+  | version 8
+  | 20 17 1 219.566 191.1 235 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_03.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 15 11 1 163.979 124.542 25 3.1351 0 -0.000732422 0.999994 0.00324808 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_08.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 14 9 1 156.583 105.175 15 -1.25049 0 0 -0.585297 0.810819 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoElderShrine02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cv_01b.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cv_01b.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cv_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cv_01b.tmd	410 bytes	text
+  | version 8
+  | 15 10 1 163.557 109.408 15 2.99657 0 0 0.997372 0.0724469 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_08.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cv_01c.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cv_01c.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Cv_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Cv_01c.tmd	1180 bytes	text
+  | version 8
+  | 18 8 1 205.626 89.3929 25 -1.35887 0 0 -0.628352 0.777929 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_10.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 28 41 1 309.273 450.726 562 -2.74474 0 0 -0.980378 0.197127 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite03.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 18 23 1 199.045 255.42 245 -0.905749 0 0 -0.437552 0.899193 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Stairs_Cv_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Stairs_Cv_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Stairs_Cv_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Stairs_St_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Stairs_St_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Stairs_St_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_St_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_St_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01.tgt
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01.tmd	1868 bytes	text
+  | version 8
+  | 65 38 1 714.463 417.769 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_St_01_AOSet_Worshipper_ledge15" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01_AOSet_Worshipper_ledge15.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 67 2 1 730.559 22.9492 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_St_01_AOSet_Worshipper_ledge16" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01_AOSet_Worshipper_ledge16.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 54 51 1 597.736 557.572 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_St_01_AOSet_Worshipper_ledge19" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01_AOSet_Worshipper_ledge19.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_St_01a.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_St_01a.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_St_01a.tmd	1574 bytes	text
+  | version 8
+  | 23 14 1 252.783 160.406 -35 -1.22408 0 0 -0.574539 0.818477 1 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoSkeletonBody_04.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 27 28 1 298.1 307.466 135 2.63921 0 0 0.968617 0.248558 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_03.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 20 49 1 223.382 536.078 115 -1.5428 0 0 -0.697141 0.716934 1 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 18 28 1 200.942 310.216 0 -1.7621 0 0 -0.771409 0.63634 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_09.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01.tmd	1868 bytes	text
+  | version 8
+  | 65 38 1 714.463 417.769 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_St_01_AOSet_Worshipper_ledge15" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01_AOSet_Worshipper_ledge15.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 67 2 1 730.559 22.9492 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_St_01_AOSet_Worshipper_ledge16" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01_AOSet_Worshipper_ledge16.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 54 51 1 597.736 557.572 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_St_01_AOSet_Worshipper_ledge19" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01_AOSet_Worshipper_ledge19.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_St_01b.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_St_01b.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_St_01b.tmd	1494 bytes	text
+  | version 8
+  | 23 35 1 257.021 390.553 15 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoSteleShrine02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 30 31 1 331.745 339.709 152 2.28898 0 0 0.9105 0.41351 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_03.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 27 47 1 297.485 519.306 140 1.20664 0 0 0.567381 0.823456 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 20 47 1 225.149 513.089 0 -0.314802 0 0 -0.156752 0.987638 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStele02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01.tmd	1868 bytes	text
+  | version 8
+  | 65 38 1 714.463 417.769 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_St_01_AOSet_Worshipper_ledge15" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01_AOSet_Worshipper_ledge15.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 67 2 1 730.559 22.9492 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_St_01_AOSet_Worshipper_ledge16" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01_AOSet_Worshipper_ledge16.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 54 51 1 597.736 557.572 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_St_01_AOSet_Worshipper_ledge19" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01_AOSet_Worshipper_ledge19.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_St_01c.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_St_01c.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_St_01c.tmd	2338 bytes	text
+  | version 8
+  | 23 44 1 251.426 488.263 101 -1.65955 0 0 -0.737781 0.67504 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 8 39 1 91.9313 433.222 765 -1.43743 0.116787 -0.102825 -0.65277 0.741404 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanHead06_set.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 15 39 1 167.537 430.225 0 -2.04035 0 0 -0.852199 0.523217 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoElderShrine02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 12 31 1 137.896 338.152 0 -1.72542 0 0 -0.759608 0.650381 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_07.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 23 45 1 258.497 494.452 7 -0.737453 0 0 -0.360428 0.932787 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoSteleShrine01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 21 26 1 235.442 291.984 84 1.87713 0 0 0.806711 0.590946 1 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01.tmd	1868 bytes	text
+  | version 8
+  | 65 38 1 714.463 417.769 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_St_01_AOSet_Worshipper_ledge15" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01_AOSet_Worshipper_ledge15.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 67 2 1 730.559 22.9492 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_St_01_AOSet_Worshipper_ledge16" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01_AOSet_Worshipper_ledge16.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 54 51 1 597.736 557.572 500 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_St_01_AOSet_Worshipper_ledge19" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_St_01_AOSet_Worshipper_ledge19.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Walkway_Cv_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Walkway_Cv_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Walkway_Cv_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Walkway_St_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Walkway_St_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Walkway_St_01.tgt
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Walkway_St_01.tmd	1332 bytes	text
+  | version 8
+  | 67 2 1 730.559 22.9492 532.661 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_Walkway_St_01_AOSet_Worshipper_ledge16" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Walkway_St_01_AOSet_Worshipper_ledge16.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 43 66 1 468.406 725.057 309.036 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/UnwalkableDune/Titans/Stalagmite/TitanValleyWorshipper_set.ao" "Abyss_Edge_Walkway_St_01_AOSet_Worshipper_ledge19" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Walkway_St_01_AOSet_Worshipper_ledge19.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Walkway_X_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Edge_Walkway_X_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Walkway_X_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Fill_01.tdt  (fill, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Fill_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01.tgt
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01.tmd	1212 bytes	text
+  | version 8
+  | 10 57 1 117.32 628.533 1500 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "Abyss_Fill_01_GrottoStalagmites077" "Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01_GrottoStalagmites077.fmt" "Metadata/MiscellaneousObjects/Doodad_Distant_Max"
+  | 40 10 1 443.543 111.129 1500 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "Abyss_Fill_01_GrottoStalagmites079" "Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01_GrottoStalagmites079.fmt" "Metadata/MiscellaneousObjects/Doodad_Distant_Max"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Fill_02.tdt  (fill, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Fill_02.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Fill_02.tmd	364 bytes	text
+  | version 8
+  | 48 64 1 524.51 703.056 59 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_cluster_02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01.tmd	1212 bytes	text
+  | version 8
+  | 10 57 1 117.32 628.533 1500 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "Abyss_Fill_01_GrottoStalagmites077" "Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01_GrottoStalagmites077.fmt" "Metadata/MiscellaneousObjects/Doodad_Distant_Max"
+  | 40 10 1 443.543 111.129 1500 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "Abyss_Fill_01_GrottoStalagmites079" "Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01_GrottoStalagmites079.fmt" "Metadata/MiscellaneousObjects/Doodad_Distant_Max"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Fill_03.tdt  (fill, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Fill_03.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Fill_03.tmd	368 bytes	text
+  | version 8
+  | 13 14 1 147.015 157.107 1338 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_single_01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01.tmd	1212 bytes	text
+  | version 8
+  | 10 57 1 117.32 628.533 1500 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "Abyss_Fill_01_GrottoStalagmites077" "Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01_GrottoStalagmites077.fmt" "Metadata/MiscellaneousObjects/Doodad_Distant_Max"
+  | 40 10 1 443.543 111.129 1500 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "Abyss_Fill_01_GrottoStalagmites079" "Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01_GrottoStalagmites079.fmt" "Metadata/MiscellaneousObjects/Doodad_Distant_Max"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Fill_04.tdt  (fill, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Fill_04.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Abyss/Abyss_Fill_04.tmd	368 bytes	text
+  | version 8
+  | 29 29 1 316.474 321.276 608 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_cluster_01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01.tmd	1212 bytes	text
+  | version 8
+  | 10 57 1 117.32 628.533 1500 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "Abyss_Fill_01_GrottoStalagmites077" "Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01_GrottoStalagmites077.fmt" "Metadata/MiscellaneousObjects/Doodad_Distant_Max"
+  | 40 10 1 443.543 111.129 1500 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "Abyss_Fill_01_GrottoStalagmites079" "Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01_GrottoStalagmites079.fmt" "Metadata/MiscellaneousObjects/Doodad_Distant_Max"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/blank_fill_01.tdt  (fill, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/blank_fill_01.tdt	1x1	tag 	templates Art/Models/Terrain/Desert/TitanCave/blank_fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/CaveWall/AbyssWall_Cc_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/CaveWall/AbyssWall_Cc_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/AbyssWall_Cc_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/CaveWall/AbyssWall_Cv_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/CaveWall/AbyssWall_Cv_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/AbyssWall_Cv_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/CaveWall/AbyssWall_St_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/CaveWall/AbyssWall_St_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/AbyssWall_St_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/Features/Abyss_Edge_Quad_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/Features/Abyss_Edge_Quad_01.tdt	6x6	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Quad_01.tgt
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Quad_01.tmd	624 bytes	text
+  | version 8
+  | 64 69 1 704.393 751.743 -231.562 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_cluster_01.ao" "Abyss_Edge_Quad_01_WispCluster_08" "Art/Models/Terrain/Desert/TitanCave/Abyss_Edge_Quad_01_WispCluster_08.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Features/Abyss_Walkway_Titan_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/Features/Abyss_Walkway_Titan_01.tdt	6x6	tag 	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Walkway_Titan_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_01.tdt	9x12	tag OverlayEndchest	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01.tgt;Art/Models/Terrain/Desert/TitanCave/StairsEmpty_01.tgt;Art/Models/Terrain/Desert/TitanCave/Walkway_Mid_End_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_01.tmd	1128 bytes	text
+  | version 8
+  | 4 48 1 46.944 524.51 59 1.5708 0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_cluster_02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 54 124 1 592.893 1352.98 1338 1.5708 0 0 0.707107 0.707107 1 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_single_01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 158 202 1 1725.49 2203.06 59 -0 0 0 0 1 1 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_cluster_02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01.tmd	1212 bytes	text
+  | version 8
+  | 10 57 1 117.32 628.533 1500 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "Abyss_Fill_01_GrottoStalagmites077" "Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01_GrottoStalagmites077.fmt" "Metadata/MiscellaneousObjects/Doodad_Distant_Max"
+  | 40 10 1 443.543 111.129 1500 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "Abyss_Fill_01_GrottoStalagmites079" "Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01_GrottoStalagmites079.fmt" "Metadata/MiscellaneousObjects/Doodad_Distant_Max"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_02.tdt	9x6	tag OverlayEndchest02	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01.tgt;Art/Models/Terrain/Desert/TitanCave/Walkway_Mid_BrokenBridge_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_02.tmd	406 bytes	text
+  | version 8
+  | 192 82 1 2092.89 897.015 1338 1.5708 0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_single_01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01.tmd	1212 bytes	text
+  | version 8
+  | 10 57 1 117.32 628.533 1500 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "Abyss_Fill_01_GrottoStalagmites077" "Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01_GrottoStalagmites077.fmt" "Metadata/MiscellaneousObjects/Doodad_Distant_Max"
+  | 40 10 1 443.543 111.129 1500 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "Abyss_Fill_01_GrottoStalagmites079" "Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01_GrottoStalagmites079.fmt" "Metadata/MiscellaneousObjects/Doodad_Distant_Max"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_03.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_03.tdt	9x9	tag OverlayEndchest03	templates Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01.tgt;Art/Models/Terrain/Desert/TitanCave/Walkway_Upper_End_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Features/overlay_endchest_03.tmd	1182 bytes	text
+  | version 8
+  | 133 20 1 1453.06 225.49 59 -1.5708 0 0 -0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_cluster_02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 152 55 1 1657.11 602.985 1338 -1.5708 0 0 -0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_single_01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 14 124 1 157.107 1352.98 1338 -1.5708 0 0 -0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_single_01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+  tmd	Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01.tmd	1212 bytes	text
+  | version 8
+  | 10 57 1 117.32 628.533 1500 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "Abyss_Fill_01_GrottoStalagmites077" "Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01_GrottoStalagmites077.fmt" "Metadata/MiscellaneousObjects/Doodad_Distant_Max"
+  | 40 10 1 443.543 111.129 1500 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "Abyss_Fill_01_GrottoStalagmites079" "Art/Models/Terrain/Desert/TitanCave/Abyss_Fill_01_GrottoStalagmites079.fmt" "Metadata/MiscellaneousObjects/Doodad_Distant_Max"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Features/Staircase_Entrance_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Features/Staircase_Entrance_01.tdt	12x12	tag spiral_entrance	templates Art/Models/Terrain/Desert/TitanCave/centralstaircase_01.tgt
+  tmd	Art/Models/Terrain/Desert/TitanCave/centralstaircase_01.tmd	1850 bytes	text
+  | version 8
+  | 86 157 1 935.907 1716.23 -5.46392e-06 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_cluster_02.ao" "centralstaircase_01_WispCluster_02" "Art/Models/Terrain/Desert/TitanCave/centralstaircase_01_WispCluster_02.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 183 158 1 1991.7 1724.67 -390.88 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_cluster_02.ao" "centralstaircase_01_WispCluster_04" "Art/Models/Terrain/Desert/TitanCave/centralstaircase_01_WispCluster_04.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 126 84 1 1373.96 920.899 194.519 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_cluster_02.ao" "centralstaircase_01_WispCluster_05" "Art/Models/Terrain/Desert/TitanCave/centralstaircase_01_WispCluster_05.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Features/Titan_Arena_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Features/Titan_Arena_01.tdt	12x9	tag titan_arena	templates Art/Models/Terrain/Desert/TitanCave/Titan_Arena_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Features/Titan_Arena_01.tmd	1478 bytes	text
+  | version 8
+  | 68 206 0 351.562 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CaveTitans/Features/PlatformShatter/Shatter01BlockingOnly.ao" "" "" "Metadata/Monsters/TitanBoss/Objects/shatter1blocking" 0
+  | 68 206 0 351.562 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CaveTitans/Features/PlatformShatter/Shatter02BlockingOnly.ao" "" "" "Metadata/Monsters/TitanBoss/Objects/shatter2blocking" 0
+  | 68 206 0 351.562 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CaveTitans/Features/PlatformShatter/Shatter04BlockingOnly.ao" "" "" "Metadata/Monsters/TitanBoss/Objects/shatter4blocking" 0
+  | 68 206 0 351.562 -0 0 0 0 1 0 1 "Metadata/Terrain/Desert/CaveTitans/Features/PlatformShatter/Shatter03BlockingOnly.ao" "" "" "Metadata/Monsters/TitanBoss/Objects/shatter3blocking" 0
+  | 
+  tmd	Art/Models/Terrain/Desert/TitanCave/Titan_Arena_01.tmd	2686 bytes	text
+  | version 8
+  | 69 207 1 750 2250 -0 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/CaveTitans/Features/PlatformShatter/Shatter01.ao" "Titan_Arena_01_Shatter01_exact" "Art/Models/Terrain/Desert/TitanCave/Titan_Arena_01_Shatter01_exact.fmt" "Metadata/Monsters/TitanBoss/RoofTarget1"
+  | 69 207 1 750 2250 -0 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/CaveTitans/Features/PlatformShatter/Shatter02.ao" "Titan_Arena_01_Shatter02_exact" "Art/Models/Terrain/Desert/TitanCave/Titan_Arena_01_Shatter02_exact.fmt" "Metadata/Monsters/TitanBoss/RoofTarget2"
+  | 69 207 1 750 2250 -0 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/CaveTitans/Features/PlatformShatter/Shatter03.ao" "Titan_Arena_01_Shatter03_exact" "Art/Models/Terrain/Desert/TitanCave/Titan_Arena_01_Shatter03_exact.fmt" "Metadata/Monsters/TitanBoss/RoofTarget3"
+  | 69 207 1 750 2250 -0 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/CaveTitans/Features/PlatformShatter/Shatter04.ao" "Titan_Arena_01_Shatter04_exact" "Art/Models/Terrain/Desert/TitanCave/Titan_Arena_01_Shatter04_exact.fmt" "Metadata/Monsters/TitanBoss/RoofTarget4"
+  | 69 207 1 750 2250 -0 0 -0 0 0 1 0 1 "Metadata/Terrain/Desert/CaveTitans/Features/PlatformShatter/TitanArenaShattered.ao" "Titan_Arena_01_TitanArenaShattered_exact" "Art/Models/Terrain/Desert/TitanCave/Titan_Arena_01_TitanArenaShattered_exact.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_Cr_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_Cr_01.tdt	6x6	tag LeanTitan	templates Art/Models/Terrain/Desert/TitanCave/WalkwayTitan_Cr_01.tgt
+  tmd	Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_Cr_01.tmd	756 bytes	text
+  | version 8
+  | 65 68 1 713.743 743.393 0 -2.9624 0 0 -0.995989 0.0894755 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_08.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 86 60 1 943.976 661.73 30 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanGrottoStalagmites_01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_MidUpper_Cr_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_MidUpper_Cr_01.tdt	6x6	tag stair	templates Art/Models/Terrain/Desert/TitanCave/WalkwayTitan_MidUpper_Cr_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_platform_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_platform_01.tdt	6x6	tag Titanshoulder	templates Art/Models/Terrain/Desert/TitanCave/WalkwayTitan_platform_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_platform_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_platform_02.tdt	6x6	tag TitanHandBridge	templates Art/Models/Terrain/Desert/TitanCave/WalkwayTitan_platform_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_Quad_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_Quad_01.tdt	6x6	tag SlumpTitan	templates Art/Models/Terrain/Desert/TitanCave/WalkwayTitan_Quad_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_Statue_St_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_Statue_St_01.tdt	3x6	tag StatueBack	templates Art/Models/Terrain/Desert/TitanCave/WalkwayTitan_Statue_St_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_Statue_St_End_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_Statue_St_End_01.tdt	3x6	tag ShrineTitan	templates Art/Models/Terrain/Desert/TitanCave/WalkwayTitan_Statue_St_End_01.tgt
+  tmd	Art/Models/Terrain/Desert/TitanCave/WalkwayTitan_Statue_St_End_01.tmd	438 bytes	text
+  | version 8
+  | 35 63 1 388.754 684.927 -223.454 0 -0 0 0 1 0 1 "" "WalkwayTitan_Statue_St_End_01_shrine" "Art/Models/Terrain/Desert/TitanCave/WalkwayTitan_Statue_St_End_01_shrine.fmt" "Metadata/MiscellaneousObjects/Doodad"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_Statue_St_End_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/Features/WalkwayTitan_Statue_St_End_02.tdt	3x6	tag WalkableTitan	templates Art/Models/Terrain/Desert/TitanCave/WalkwayTitan_Statue_St_End_02.tgt
+  tmd	Art/Models/Terrain/Desert/TitanCave/WalkwayTitan_Statue_St_End_02.tmd	706 bytes	text
+  | version 8
+  | 34 141 1 369.889 1542.36 -430.312 -3.11253 0.134766 0.0700377 -0.988388 0.00462191 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/TitanSword01.ao" "WalkwayTitan_Statue_St_End_02_TitanSword01" "Art/Models/Terrain/Desert/TitanCave/WalkwayTitan_Statue_St_End_02_TitanSword01.fmt" "Metadata/Terrain/Gallows/Act2/2_7/Objects/LandmarkSwordChest"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/forced_blank_fill_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/forced_blank_fill_01.tdt	1x1	tag forcedblank	templates Art/Models/Terrain/Desert/TitanCave/blank_fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/HeadPlatforms/HeadStairsMidUpper_Cr_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/HeadPlatforms/HeadStairsMidUpper_Cr_01.tdt	6x6	tag stair	templates Art/Models/Terrain/Desert/TitanCave/HeadStairsMidUpper_Cr_01.tgt
+  tmd	Art/Models/Terrain/Desert/TitanCave/HeadStairsMidUpper_Cr_01.tmd	2586 bytes	text
+  | version 8
+  | 13 5 1 146.625 57.3171 1500 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "HeadStairsMidUpper_Cr_01_GrottoStalagmites080" "Art/Models/Terrain/Desert/TitanCave/HeadStairsMidUpper_Cr_01_GrottoStalagmites080.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | -11 50 1 -113.471 553.503 1500 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "HeadStairsMidUpper_Cr_01_GrottoStalagmites081" "Art/Models/Terrain/Desert/TitanCave/HeadStairsMidUpper_Cr_01_GrottoStalagmites081.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 119 133 1 1303.44 1447.85 849.556 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "HeadStairsMidUpper_Cr_01_GrottoStalagmites082" "Art/Models/Terrain/Desert/TitanCave/HeadStairsMidUpper_Cr_01_GrottoStalagmites082.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 136 99 1 1481.22 1086.44 849.556 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/GrottoStalagmite_set.ao" "HeadStairsMidUpper_Cr_01_GrottoStalagmites083" "Art/Models/Terrain/Desert/TitanCave/HeadStairsMidUpper_Cr_01_GrottoStalagmites083.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/HeadPlatforms/HeadStairsMidUpper_Cr_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/HeadPlatforms/HeadStairsMidUpper_Cr_02.tdt	6x6	tag stair	templates Art/Models/Terrain/Desert/TitanCave/HeadStairsMidUpper_Cr_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/HeadPlatforms/TitanWalkway_Statue_Tri_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/HeadPlatforms/TitanWalkway_Statue_Tri_01.tdt	6x6	tag 	templates Art/Models/Terrain/Desert/TitanCave/TitanWalkway_Statue_Tri_01.tgt
+  tmd	Art/Models/Terrain/Desert/TitanCave/TitanWalkway_Statue_Tri_01.tmd	1286 bytes	text
+  | version 8
+  | 95 28 1 1035.09 310.706 507.639 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_cluster_02.ao" "TitanWalkway_Statue_Tri_01_WispCluster_06" "Art/Models/Terrain/Desert/TitanCave/TitanWalkway_Statue_Tri_01_WispCluster_06.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 46 84 1 502.799 919.428 79.6234 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_cluster_02.ao" "TitanWalkway_Statue_Tri_01_WispCluster_07" "Art/Models/Terrain/Desert/TitanCave/TitanWalkway_Statue_Tri_01_WispCluster_07.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Desert/CaveTitans/LargeStairs/StairsEmpty_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/LargeStairs/StairsEmpty_01.tdt	3x6	tag stair	templates Art/Models/Terrain/Desert/TitanCave/StairsEmpty_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/LargeStairs/Walkway_LargeStair_Cr_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/LargeStairs/Walkway_LargeStair_Cr_01.tdt	6x6	tag stair	templates Art/Models/Terrain/Desert/TitanCave/LargeStair_Cr_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/LargeStairs/Walkway_LargeStair_Cr_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/LargeStairs/Walkway_LargeStair_Cr_02.tdt	6x6	tag stair	templates Art/Models/Terrain/Desert/TitanCave/LargeStair_Cr_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/LargeStairs/Walkway_LargeStair_St_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/LargeStairs/Walkway_LargeStair_St_02.tdt	6x6	tag stair	templates Art/Models/Terrain/Desert/TitanCave/LargeStair_St_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayMid/WalkwayTitan_Mid_St_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayMid/WalkwayTitan_Mid_St_01.tdt	3x6	tag 	templates Art/Models/Terrain/Desert/TitanCave/WalkwayTitan_Mid_St_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayMid/WalkwayTitan_Mid_St_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayMid/WalkwayTitan_Mid_St_02.tdt	3x6	tag 	templates Art/Models/Terrain/Desert/TitanCave/WalkwayTitan_Mid_St_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_MidPlatform_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_MidPlatform_01.tdt	6x6	tag FaceLift	templates Art/Models/Terrain/Desert/TitanCave/Walkway_MidPlatform_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_MidUpper_StairsCr_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_MidUpper_StairsCr_01.tdt	3x3	tag stair	templates Art/Models/Terrain/Desert/TitanCave/Walkway_MidUpper_StairsCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_MidUpper_StairsSt_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_MidUpper_StairsSt_01.tdt	3x3	tag stair	templates Art/Models/Terrain/Desert/TitanCave/Walkway_MidUpper_StairsSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_BrokenBridge_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_BrokenBridge_01.tdt	3x6	tag mid_end_feature	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Mid_BrokenBridge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_Cr_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_Cr_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Mid_Cr_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_Cr_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_Cr_02.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Mid_Cr_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_End_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_End_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Mid_End_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_St_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_St_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Mid_St_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_St_01_blank.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_St_01_blank.tdt	3x3	tag Blank	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Mid_St_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_St_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_St_02.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Mid_St_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_St_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_St_03.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Mid_St_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_Tri_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_Tri_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Mid_Tri_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_Tri_v02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_Mid_Tri_v02.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Mid_Tri_v02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_X_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayMid/Walkway_X_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Walkway_X_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/WalkwayTitan_Upper_St_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/WalkwayTitan_Upper_St_01.tdt	3x6	tag 	templates Art/Models/Terrain/Desert/TitanCave/WalkwayTitan_Upper_St_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/WalkwayTitan_Upper_St_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/WalkwayTitan_Upper_St_02.tdt	3x6	tag 	templates Art/Models/Terrain/Desert/TitanCave/WalkwayTitan_Upper_St_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/Walkway_Upper_BrokenBridge_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/Walkway_Upper_BrokenBridge_01.tdt	3x9	tag broken	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Upper_BrokenBridge_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/Walkway_Upper_Cr_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/Walkway_Upper_Cr_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Upper_Cr_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/Walkway_Upper_End_01.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/Walkway_Upper_End_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Upper_End_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/Walkway_Upper_St_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/Walkway_Upper_St_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Upper_St_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/Walkway_Upper_St_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/Walkway_Upper_St_02.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Upper_St_02.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/Walkway_Upper_St_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/Walkway_Upper_St_03.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Upper_St_03.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/Walkway_Upper_Tri_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/Walkway_Upper_Tri_01.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Upper_Tri_01.tgt
+  tmd	none
+##### Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/Walkway_Upper_Tri_02.tdt  (listed)
+  defines	Metadata/Terrain/Desert/CaveTitans/WalkwayUpper/Walkway_Upper_Tri_02.tdt	3x3	tag 	templates Art/Models/Terrain/Desert/TitanCave/Walkway_Upper_Tri_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/black.tdt  (fill)
+  defines	Metadata/Terrain/Dungeon/black.tdt	1x1	tag 	templates Art/Models/Terrain/IncaDungeon/dungeon_blackness_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/black_nofog.tdt  (fill)
+  defines	Metadata/Terrain/Dungeon/black_nofog.tdt	1x1	tag 	templates Art/Models/Terrain/IncaDungeon/dungeon_blacknessNoFog_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Leagues/Expedition/Tiles/KalguurDungeon/Feature/Act2Door_02.tdt  (listed)
+  defines	Metadata/Terrain/Leagues/Expedition/Tiles/KalguurDungeon/Feature/Act2Door_02.tdt	3x3	tag KalguurEntrance	templates Art/Models/Terrain/Leagues/Expedition/KalguurDungeon/Act2Door_02.tgt
+  tmd	Metadata/Terrain/Leagues/Expedition/Tiles/KalguurDungeon/Feature/Act2Door_02.tmd	344 bytes	text
+  | version 8
+  | 42 40 1 466.455 443.689 -2.1875 -0 0 0 0 1 1 1 "Metadata/Terrain/Doodads/Leagues/Expedition/RuneDoor/RuneDoor.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_Cr_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_Cr_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertChasm_Cr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertChasm_End_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_Sand_Cr_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertChasm_End_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_Sand_Quad_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertChasm_End_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_Sand_St_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertChasm_End_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_Sand_TriSide_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertChasm_End_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_Sand_Tri_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_End_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertChasm_End_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_Quad_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_Quad_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertChasm_Quad_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_St_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_St_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertChasm_St_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_Tri_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertChasm/DesertChasm_Tri_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertChasm_Tri_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Cc_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Cc_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Cc_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Cv_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Cv_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Cv_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CcCr_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CcCr_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CcCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CcSt_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CcSt_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CcSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvCr_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvCr_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CvCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvCvCr_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvCvCr_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CvCvCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvCvSt_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvCvSt_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CvCvSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvEnd_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvEnd_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CvEnd_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvStCr_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvStCr_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CvStCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvStSt_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvStSt_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CvStSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StCvCr_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StCvCr_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_StCvCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StCvSt_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StCvSt_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_StCvSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StEnd_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StEnd_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_StEnd_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StStCr_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StStCr_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_StStCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StStSt_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StStSt_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_StStSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StSt_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StSt_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_StSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertMountains_CvCr_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertMountains_CvCr_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertMountains_CvCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertMountains_CvEnd_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertMountains_CvEnd_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertMountains_CvEnd_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertMountains_StEnd_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertMountains_StEnd_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertMountains_StEnd_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Dune_CcCc_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Dune_CcCc_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Dune_CcCc_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Dune_CcX_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Dune_CcX_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Dune_CcX_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Dune_Cc_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Dune_Cc_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Dune_Cc_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Dune_CvX_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Dune_CvX_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Dune_CvX_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Dune_Cv_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Dune_Cv_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Dune_Cv_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Dune_St_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Dune_St_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Dune_St_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Dune_X_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Dune_X_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Dune_X_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Dune_Y_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Dune_Y_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Dune_Y_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_St_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_St_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_St_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_X_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_X_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_X_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliffMountain_DesertMountains_CcCr_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliffMountain_DesertMountains_CcCr_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliffMountain_DesertMountains_CcCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliffMountain_DesertMountains_CcEnd_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliffMountain_DesertMountains_CcEnd_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliffMountain_DesertMountains_CcEnd_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliffMountain_DesertMountains_StEnd_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliffMountain_DesertMountains_StEnd_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliffMountain_DesertMountains_StEnd_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_Cc_NO_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Cc_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Cc_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Cc_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_Cc_to_NO_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Cc_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Cc_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Cc_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_Cv_NO_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Cv_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Cv_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Cv_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_Cv_to_NO_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Cv_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_Cv_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Cv_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_CcNOCr_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CcCr_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CcCr_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CcCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_CcNOSt_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CcSt_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CcSt_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CcSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_CvCvNOCr_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvCvCr_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvCvCr_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CvCvCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_CvCvNOSt_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvCvSt_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvCvSt_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CvCvSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_CvNOCvCr_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvCvCr_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvCvCr_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CvCvCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_CvNOCvSt_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvCvSt_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvCvSt_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CvCvSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_CvNOStCr_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvStCr_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvStCr_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CvStCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_CvNOStSt_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvStSt_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvStSt_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CvStSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_CvStNOCr_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvStCr_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvStCr_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CvStCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_CvStNOSt_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvStSt_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CvStSt_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CvStSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_NOCcSt_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CcSt_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_CcSt_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_CcSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_StCvNOCr_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StCvCr_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StCvCr_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_StCvCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_StCvNOSt_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StCvSt_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StCvSt_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_StCvSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_StNOCvCr_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StCvCr_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StCvCr_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_StCvCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_StNOCvSt_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StCvSt_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StCvSt_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_StCvSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_StNOStCr_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StStCr_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StStCr_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_StStCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_StNOStSt_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StStSt_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StStSt_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_StStSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_StNOSt_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StSt_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StSt_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_StSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_StStNOCr_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StStCr_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StStCr_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_StStCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_DesertChasm_StStNOSt_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StStSt_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_DesertChasm_StStSt_01.tdt	2x2	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_DesertChasm_StStSt_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_Dune_Cc_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_Dune_Cc_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Dune_Cc_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_Dune_Cv_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_Dune_Cv_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Dune_Cv_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_Dune_St_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_Dune_St_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_Dune_St_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_St_NO_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_St_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_St_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_St_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_St_to_NO_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_St_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_St_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_St_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_XCc_NO_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_X_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_X_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_X_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_XCv_NO_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_X_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_X_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_X_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffsNoOverlays/DesertCliff_X_NO_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_X_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertCliffs/DesertCliff_X_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertCliff_X_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_Cc_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_Cc_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertDune_Cc_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_Cv_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_Cv_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertDune_Cv_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_DesertChasm_CvCr_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_DesertChasm_CvCr_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertDune_DesertChasm_CvCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_DesertChasm_CvEnd_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_DesertChasm_CvEnd_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertDune_DesertChasm_CvEnd_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_DesertChasm_StEnd_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_DesertChasm_StEnd_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertDune_DesertChasm_StEnd_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_DesertMountain_CvCr_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_DesertMountain_CvCr_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertDune_DesertMountain_CvCr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_DesertMountain_CvEnd_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_DesertMountain_CvEnd_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertDune_DesertMountain_CvEnd_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_DesertMountain_StEnd_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_DesertMountain_StEnd_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertDune_DesertMountain_StEnd_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_St_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_St_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertDune_St_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_X_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertDunes/DesertDune_X_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertDune_X_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_Cr_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_Cr_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertMountain_Cr_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_End_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_End_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertMountain_End_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_End_Sand_Cr_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_End_Sand_Cr_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertMountain_End_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_End_Sand_Quad_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_End_Sand_Quad_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertMountain_End_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_End_Sand_St_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_End_Sand_St_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertMountain_End_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_End_Sand_TriSide_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_End_Sand_TriSide_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertMountain_End_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_End_Sand_Tri_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_End_Sand_Tri_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertMountain_End_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_Quad_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_Quad_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertMountain_Quad_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_St_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_St_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertMountain_St_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_Tri_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/DesertMountains/DesertMountain_Tri_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/DesertMountain_Tri_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertSand/Desert_Sand_Cr_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/Desert_Fill_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Desert_Fill_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/Desert_Fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertSand/Desert_Sand_End_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/Desert_Fill_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Desert_Fill_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/Desert_Fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertSand/Desert_Sand_Quad_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/Desert_Fill_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Desert_Fill_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/Desert_Fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertSand/Desert_Sand_St_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/Desert_Fill_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Desert_Fill_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/Desert_Fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/DesertSand/Desert_Sand_Tri_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/Desert_Fill_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Desert_Fill_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/Desert_Fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/Desert_Fill_01.tdt  (listed, fill)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Desert_Fill_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Act2/Desert_Fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/Badlands_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/Badlands_01.tdt	2x4	tag Badlands	templates Art/Models/Terrain/WorldMap/Act2/Badlands_01.tgt
+  tmd	Art/Models/Terrain/WorldMap/Act2/Badlands_01.tmd	884 bytes	text
+  | version 8
+  | 23 69 1 250 750 -3.88578e-13 2.35619 -0 0 0.92388 0.382683 0 1 "" "Badlands_01_badlands_01" "Art/Models/Terrain/WorldMap/Act2/Badlands_01_badlands_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/LocationMastadonBadlands"
+  | 23 69 1 250 750 -3.88578e-13 0 -0 0 0 1 0 1 "" "Badlands_01_badlands_hide_01" "Art/Models/Terrain/WorldMap/Act2/Badlands_01_badlands_hide_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/HideMastadonBadlands"
+  | 
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/Gates_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/Gates_01.tdt	1x2	tag Gates	templates Art/Models/Terrain/WorldMap/Act2/Gates_01.tgt
+  tmd	Art/Models/Terrain/WorldMap/Act2/Gates_01.tmd	2042 bytes	text
+  | version 8
+  | 11 23 1 125 250 -2.22045e-13 0 -0 0 0 1 0 1 "" "Gates_01_Encampment_01" "Art/Models/Terrain/WorldMap/Act2/Gates_01_Encampment_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/LocationGates"
+  | 11 31 1 122.33 345.848 4.98649 0 -0 0 0 1 0 1 "" "Gates_01_gates_closed" "Art/Models/Terrain/WorldMap/Act2/Gates_01_gates_closed.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/ClosedGates"
+  | -10 -6 1 -107.188 -59.7906 -1.08358e-13 -1.0472 -0 0 -0.5 0.866025 0 1 "" "Gates_01_mappin_18" "Art/Models/Terrain/WorldMap/Act2/Gates_01_mappin_18.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarkerGates"
+  | 9 51 1 102.458 564.604 -5.01821e-14 0 -0 0 0 1 0 1 "" "Gates_01_Sandstorm" "Art/Models/Terrain/WorldMap/Act2/Gates_01_Sandstorm.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/Sandstorm"
+  | 29 4 1 323.006 47.153 -2.22045e-13 0.852106 -0 0 0.41328 0.910604 0 1 "" "Gates_01_traitorspassage" "Art/Models/Terrain/WorldMap/Act2/Gates_01_traitorspassage.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/LocationTraitorsPassage"
+  | 
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/Keth_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/Keth_01.tdt	2x2	tag Keth	templates Art/Models/Terrain/WorldMap/Act2/Keth_01.tgt
+  tmd	Art/Models/Terrain/WorldMap/Act2/Keth_01.tmd	730 bytes	text
+  | version 8
+  | 18 18 1 200 200 -3.10862e-13 0 -0 0 0 1 0 1 "" "Keth_01_keth_01" "Art/Models/Terrain/WorldMap/Act2/Keth_01_keth_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/LocationKeth"
+  | 18 18 1 200 200 -3.10862e-13 0 -0 0 0 1 0 1 "" "Keth_01_kethhide_01" "Art/Models/Terrain/WorldMap/Act2/Keth_01_kethhide_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/HideKeth"
+  | 
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/MtVastiri_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/MtVastiri_01.tdt	2x2	tag MtVastiri	templates Art/Models/Terrain/WorldMap/Act2/MtVastiri_01.tgt
+  tmd	Art/Models/Terrain/WorldMap/Act2/MtVastiri_01.tmd	876 bytes	text
+  | version 8
+  | 28 20 1 306.27 220.653 -2.22045e-13 0 -0 0 0 1 0 1 "" "MtVastiri_01_AscendancyTrial_01" "Art/Models/Terrain/WorldMap/Act2/MtVastiri_01_AscendancyTrial_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/LocationAscendancyTrial"
+  | 31 -8 1 344.846 -85.0743 -2.77556e-13 0 -0 0 0 1 0 1 "" "MtVastiri_01_mappin_03" "Art/Models/Terrain/WorldMap/Act2/MtVastiri_01_mappin_03.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/MapPinAscendancy"
+  | 
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/Oasis_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/Oasis_01.tdt	1x1	tag Oasis	templates Art/Models/Terrain/WorldMap/Act2/Oasis_01.tgt
+  tmd	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/Oasis_01.tmd	562 bytes	text
+  | version 8
+  | 11 11 1 122.315 128.856 -2.7756e-13 -3.14158 0 0 1 -4.55976e-06 0 1 "Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/MtVastiri_01_mappin_03.ao" "" "Art/Models/Terrain/WorldMap/Act2/MtVastiri_01_mappin_03.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/MapPinExpedition" 0
+  | 
+  tmd	Art/Models/Terrain/WorldMap/Act2/Oasis_01.tmd	382 bytes	text
+  | version 8
+  | 11 11 1 125 125 -2.22045e-13 0 -0 0 0 1 0 1 "" "Oasis_01_Oasis_01" "Art/Models/Terrain/WorldMap/Act2/Oasis_01_Oasis_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/LocationOasis"
+  | 
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/Outpost_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/Outpost_01.tdt	1x1	tag Outpost	templates Art/Models/Terrain/WorldMap/Act2/Outpost_01.tgt
+  tmd	Art/Models/Terrain/WorldMap/Act2/Outpost_01.tmd	442 bytes	text
+  | version 8
+  | -6 20 1 -63.6881 227.13 -2.22045e-13 -1.9635 -0 0 0.83147 -0.55557 0 1 "" "Outpost_01_mappin_19" "Art/Models/Terrain/WorldMap/Act2/Outpost_01_mappin_19.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTown"
+  | 
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/Quarry_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/Quarry_01.tdt	2x2	tag Quarry	templates Art/Models/Terrain/WorldMap/Act2/Quarry_01.tgt
+  tmd	Art/Models/Terrain/WorldMap/Act2/Quarry_01.tmd	392 bytes	text
+  | version 8
+  | 11 23 1 125 250 -3.88578e-13 0 -0 0 0 1 0 1 "" "Quarry_01_quarry_01" "Art/Models/Terrain/WorldMap/Act2/Quarry_01_quarry_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/LocationQuarry"
+  | 
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/Spires_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/Spires_01.tdt	2x2	tag Spires	templates Art/Models/Terrain/WorldMap/Act2/Spires_01.tgt
+  tmd	Art/Models/Terrain/WorldMap/Act2/Spires_01.tmd	392 bytes	text
+  | version 8
+  | 23 23 1 250 250 -3.88578e-13 0 -0 0 0 1 0 1 "" "Spires_01_Spires_01" "Art/Models/Terrain/WorldMap/Act2/Spires_01_Spires_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/LocationSpires"
+  | 
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TitanValley_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TitanValley_01.tdt	2x2	tag TitanValley	templates Art/Models/Terrain/WorldMap/Act2/TitanValley_01.tgt
+  tmd	Art/Models/Terrain/WorldMap/Act2/TitanValley_01.tmd	442 bytes	text
+  | version 8
+  | 23 23 1 250 250 -3.88578e-13 0 -0 0 0 1 0 1 "" "TitanValley_01_TitanValley_01" "Art/Models/Terrain/WorldMap/Act2/TitanValley_01_TitanValley_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/LocationTitanValley"
+  | 
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_01.tdt	1x1	tag TownMarker01	templates Art/Models/Terrain/WorldMap/Act2/Desert_Fill_01.tgt
+  tmd	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_01.tmd	344 bytes	text
+  | version 8
+  | 11 11 0 -2.22045e-13 0 -0 0 0 1 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Location_01.ao" "" "" "Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarker1"
+  | 
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_02.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_01.tdt	1x1	tag TownMarker01	templates Art/Models/Terrain/WorldMap/Act2/Desert_Fill_01.tgt
+  tmd	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_02.tmd	344 bytes	text
+  | version 8
+  | 11 11 0 -2.22045e-13 0 -0 0 0 1 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Location_01.ao" "" "" "Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarker2"
+  | 
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_03.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_01.tdt	1x1	tag TownMarker01	templates Art/Models/Terrain/WorldMap/Act2/Desert_Fill_01.tgt
+  tmd	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_03.tmd	344 bytes	text
+  | version 8
+  | 11 11 0 -2.22045e-13 0 -0 0 0 1 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Location_01.ao" "" "" "Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarker3"
+  | 
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_04.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_01.tdt	1x1	tag TownMarker01	templates Art/Models/Terrain/WorldMap/Act2/Desert_Fill_01.tgt
+  tmd	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_04.tmd	344 bytes	text
+  | version 8
+  | 11 11 0 -2.22045e-13 0 -0 0 0 1 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Location_01.ao" "" "" "Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarker4"
+  | 
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_05.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_01.tdt	1x1	tag TownMarker01	templates Art/Models/Terrain/WorldMap/Act2/Desert_Fill_01.tgt
+  tmd	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_05.tmd	344 bytes	text
+  | version 8
+  | 11 11 0 -2.22045e-13 0 -0 0 0 1 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Location_01.ao" "" "" "Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarker5"
+  | 
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_06.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_01.tdt	1x1	tag TownMarker01	templates Art/Models/Terrain/WorldMap/Act2/Desert_Fill_01.tgt
+  tmd	Metadata/Terrain/WorldMaps/Act2/Tiles/Locations/TownMarker_06.tmd	344 bytes	text
+  | version 8
+  | 11 11 0 -2.22045e-13 0 -0 0 0 1 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Location_01.ao" "" "" "Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarker6"
+  | 
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/VoidBorder/void_stledge_01.tdt  (listed)
+  inherits	Metadata/Terrain/Dungeon/black_nofog.tdt
+  defines	Metadata/Terrain/Dungeon/black_nofog.tdt	1x1	tag 	templates Art/Models/Terrain/IncaDungeon/dungeon_blacknessNoFog_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Act2/Tiles/VoidBorder/void_st_01.tdt  (listed)
+  inherits	Metadata/Terrain/Dungeon/black_nofog.tdt
+  defines	Metadata/Terrain/Dungeon/black_nofog.tdt	1x1	tag 	templates Art/Models/Terrain/IncaDungeon/dungeon_blacknessNoFog_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Feature/AbyssHub_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Feature/AbyssHub_01.tdt	4x4	tag AbyssHub	templates Art/Models/Terrain/WorldMap/Underground/AbyssHub_01.tgt
+  tmd	Art/Models/Terrain/WorldMap/Underground/AbyssHub_01.tmd	1286 bytes	text
+  | version 8
+  | 46 45 1 501.831 499.999 -16.9903 0 -0 0 0 1 0 1 "" "AbyssHub_01_AbyssHub_01" "Art/Models/Terrain/WorldMap/Underground/AbyssHub_01_AbyssHub_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/LocationWellOfSouls"
+  | 46 46 1 500 500 -85.3333 0 -0 0 0 1 0 1 "" "AbyssHub_01_AbyssHubHide_01" "Art/Models/Terrain/WorldMap/Underground/AbyssHub_01_AbyssHubHide_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/HideWellOfSouls"
+  | 46 45 1 501.831 499.999 -16.9903 0 -0 0 0 1 0 1 "" "AbyssHub_01_AbyssIntro_01" "Art/Models/Terrain/WorldMap/Underground/AbyssHub_01_AbyssIntro_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/LocationLightlessPassage"
+  | 
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Feature/FoundryInterior_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Feature/FoundryInterior_01.tdt	4x4	tag FoundryInterior	templates Art/Models/Terrain/WorldMap/Underground/FoundryInterior_01.tgt
+  tmd	Art/Models/Terrain/WorldMap/Underground/FoundryInterior_01.tmd	872 bytes	text
+  | version 8
+  | 45 46 1 490.765 500 59.3852 0 -0 0 0 1 0 1 "" "FoundryInterior_01_Foundry_01" "Art/Models/Terrain/WorldMap/Underground/FoundryInterior_01_Foundry_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/LocationFoundry"
+  | 46 46 1 500 500 -85.3333 0 -0 0 0 1 0 1 "" "FoundryInterior_01_FoundryHide_01" "Art/Models/Terrain/WorldMap/Underground/FoundryInterior_01_FoundryHide_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/HideFoundry"
+  | 
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Feature/GrottoInterior_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Feature/GrottoInterior_01.tdt	3x3	tag TitanGrottoInterior	templates Art/Models/Terrain/WorldMap/Underground/GrottoInterior_01.tgt
+  tmd	Art/Models/Terrain/WorldMap/Underground/GrottoInterior_01.tmd	910 bytes	text
+  | version 8
+  | 35 34 1 381.597 375 100.69 0 -0 0 0 1 0 1 "" "GrottoInterior_01_titangrotto_01" "Art/Models/Terrain/WorldMap/Underground/GrottoInterior_01_titangrotto_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/LocationTitanValley"
+  | 34 34 1 375 375 -85.3333 0 -0 0 0 1 0 1 "" "GrottoInterior_01_titangrottohide_01" "Art/Models/Terrain/WorldMap/Underground/GrottoInterior_01_titangrottohide_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/HideTitanValley"
+  | 
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Feature/KethInterior_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Feature/KethInterior_01.tdt	4x4	tag KethInterior	templates Art/Models/Terrain/WorldMap/Underground/KethInterior_01.tgt
+  tmd	Art/Models/Terrain/WorldMap/Underground/KethInterior_01.tmd	876 bytes	text
+  | version 8
+  | 46 46 1 500 500 -3.70074e-14 0 -0 0 0 1 0 1 "" "KethInterior_01_kethinterior_01" "Art/Models/Terrain/WorldMap/Underground/KethInterior_01_kethinterior_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/LocationKeth"
+  | 46 46 1 500 500 82.8099 0 -0 0 0 1 0 1 "" "KethInterior_01_Kethinteriorhide_01" "Art/Models/Terrain/WorldMap/Underground/KethInterior_01_Kethinteriorhide_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/HideKeth"
+  | 
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Feature/SanctumInterior_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Feature/SanctumInterior_01.tdt	2x2	tag SanctumInterior	templates Art/Models/Terrain/WorldMap/Underground/SanctumInterior_01.tgt
+  tmd	Art/Models/Terrain/WorldMap/Underground/SanctumInterior_01.tmd	884 bytes	text
+  | version 8
+  | 23 23 1 250 250 -0.321808 0 -0 0 0 1 0 1 "" "SanctumInterior_01_Trial_01" "Art/Models/Terrain/WorldMap/Underground/SanctumInterior_01_Trial_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/LocationAscendancyTrial"
+  | 23 23 1 250 250 -42.6667 0 -0 0 0 1 0 1 "" "SanctumInterior_01_Trialhide_01" "Art/Models/Terrain/WorldMap/Underground/SanctumInterior_01_Trialhide_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/HideAscendancyTrial"
+  | 
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Feature/TraitorsPassageInterior_01.tdt  (listed)
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Feature/TraitorsPassageInterior_01.tdt	4x4	tag TraitorsPassage	templates Art/Models/Terrain/WorldMap/Underground/TraitorsPassage_01.tgt
+  tmd	Art/Models/Terrain/WorldMap/Underground/TraitorsPassage_01.tmd	978 bytes	text
+  | version 8
+  | 46 45 1 501.831 499.999 -16.9903 0 -0 0 0 1 0 1 "" "TraitorsPassage_01_TraitorsPassage_01" "Art/Models/Terrain/WorldMap/Underground/TraitorsPassage_01_TraitorsPassage_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/LocationTraitorsPassage"
+  | 46 46 1 500 500 -85.3333 0 -0 0 0 1 0 1 "" "TraitorsPassage_01_TraitorsPassageHide_01" "Art/Models/Terrain/WorldMap/Underground/TraitorsPassage_01_TraitorsPassageHide_01.fmt" "Metadata/Terrain/WorldMaps/Act2/Objects/HideTraitorsPassage"
+  | 
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Foundry/Foundry_Cc_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Underground/Tiles/Underground_Fill_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Underground_Fill_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Underground/Underground_Fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Foundry/Foundry_Cv_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Underground/Tiles/Underground_Fill_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Underground_Fill_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Underground/Underground_Fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Foundry/Foundry_St_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Underground/Tiles/Underground_Fill_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Underground_Fill_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Underground/Underground_Fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Foundry_Fill_01.tdt  (fill)
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Foundry_Fill_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Underground/Foundry_Fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Foundry_Fill_02.tdt  (fill)
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Foundry_Fill_02.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Underground/Foundry_Fill_02.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Foundry_Fill_03.tdt  (fill)
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Foundry_Fill_03.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Underground/Foundry_Fill_03.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Foundry_Fill_04.tdt  (fill)
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Foundry_Fill_04.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Underground/Foundry_Fill_04.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Passage/Passage_Cc_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Underground/Tiles/Underground_Fill_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Underground_Fill_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Underground/Underground_Fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Passage/Passage_Cv_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Underground/Tiles/Underground_Fill_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Underground_Fill_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Underground/Underground_Fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Passage/Passage_St_01.tdt  (listed)
+  inherits	Metadata/Terrain/WorldMaps/Underground/Tiles/Underground_Fill_01.tdt
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Underground_Fill_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Underground/Underground_Fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Passage_Fill_01.tdt  (fill)
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Passage_Fill_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Underground/Passage_Fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Passage_Fill_02.tdt  (fill)
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Passage_Fill_02.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Underground/Passage_Fill_02.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Passage_Fill_03.tdt  (fill)
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Passage_Fill_03.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Underground/Passage_Fill_03.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Passage_Fill_04.tdt  (fill)
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Passage_Fill_04.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Underground/Passage_Fill_04.tgt
+  tmd	none
+##### Metadata/Terrain/WorldMaps/Underground/Tiles/Underground_Fill_01.tdt  (fill)
+  defines	Metadata/Terrain/WorldMaps/Underground/Tiles/Underground_Fill_01.tdt	1x1	tag 	templates Art/Models/Terrain/WorldMap/Underground/Underground_Fill_01.tgt
+  tmd	none

@@ -1,0 +1,782 @@
+2 masters of the area and 26 files they name or the area loaded, each whole - a tile list by name only, being whole in tileset-lists.txt
+
+##### metadata/terrain/worldmaps/act2/master.tsi  (master)
+  | version 3
+  | StoreyHeight        8
+  | RoomUnitSize        3
+  | OuterBufferSize     0
+  | RoomOverlap         1
+  | OuterGroundType		"Metadata/Terrain/black_inside_wall.gt"
+  | EdgeCombination     "combination.ecf"
+  | RoomSet             "generate.rs"
+  | TileSet             "tiles.tst"
+  | FillTiles           "fill_tiles.gft"
+  | Overlays            "overlays.toy"
+  | MaterialsList       "materials.mtd"
+  | DoNotFillOutside    1
+  | ForceOuterGT		1
+  | IgnoreDeepWaterMarkup 0
+  | TileMaterialOverrides   "material_overrides.tmo"
+##### Metadata/Terrain/black_inside_wall.gt  (OuterGroundType of metadata/terrain/worldmaps/act2/master.tsi)
+  | BlackInsideWall
+  | 0 1 0 0
+##### metadata/terrain/worldmaps/act2/combination.ecf  (EdgeCombination of metadata/terrain/worldmaps/act2/master.tsi)
+  | version 1
+  | 
+  | "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_cliffs.et" "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_dunes.et" ""
+  | "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_cliffs.et" "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_cliffs_no_overlays.et" ""
+  | "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_dunes.et" "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_cliffs_no_overlays.et" ""
+  | 
+  | "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_chasm.et" "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_cliffs.et" "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_cliffs.et"
+  | "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_chasm.et" "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_cliffs_no_overlays.et" "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_cliffs_no_overlays.et"
+  | "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_chasm.et" "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_dunes.et" "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_dunes.et"
+  | 
+  | "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_mountains.et" "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_cliffs.et" "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_cliffs.et"
+  | "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_mountains.et" "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_cliffs_no_overlays.et" "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_cliffs_no_overlays.et"
+  | "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_mountains.et" "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_dunes.et" "Metadata/Terrain/WorldMaps/Act2/Tiles/world_map_desert_dunes.et"
+##### metadata/terrain/worldmaps/act2/generate.rs  (RoomSet of metadata/terrain/worldmaps/act2/master.tsi)
+  | version 2
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Fills/black_fill_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Fills/blacksand_fill_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Fills/redsand_fill_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Fills/whitesand_fill_01.arm"
+  | 
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Compass_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Compass_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Compass_Chasm_Cr.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Compass_Chasm_St.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Compass_Cliff_Cc.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Compass_Cliff_Cv.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Compass_Cliff_St.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Compass_CliffNO_Cc.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Compass_CliffNO_Cv.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Compass_CliffNO_St.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Compass_Mountains_Cr.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Compass_Mountains_St.arm"
+  | //----------------------
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Label_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Label_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Label_Chasm_Cr.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Label_Chasm_St.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Label_Cliff_Cc.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Label_Cliff_Cv.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Label_Cliff_St_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Label_Cliff_St_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Label_Mountains_Cr.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Label_Mountains_St.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Label_Sand_Cr.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Label_Sand_St.arm"
+  | //----------------------
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Ascendancy_LN.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Ascendancy_LS.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Ascendancy_LE.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Ascendancy_LW.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Ascendancy_RN.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Ascendancy_RS.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Ascendancy_RE.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Ascendancy_RW.arm"
+  | //----------------------
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Badlands_E.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Badlands_FE.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Badlands_FN.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Badlands_FS.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Badlands_FW.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Badlands_N.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Badlands_S.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Badlands_W.arm"
+  | //----------------------
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Dreadnought_SN.arm"
+  | //----------------------
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Keth_EE.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Keth_EN.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Keth_ES.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Keth_EW.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Keth_NE.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Keth_NN.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Keth_NS.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Keth_NW.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Keth_SE.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Keth_SN.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Keth_SS.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Keth_SW.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Keth_WE.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Keth_WN.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Keth_WS.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Keth_WW.arm"
+  | //----------------------
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Oasis_E.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Oasis_N.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Oasis_S.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Oasis_W.arm"
+  | //----------------------
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Outpost_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Outpost_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Outpost_03.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Outpost_04.arm"
+  | //----------------------
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Quarry.arm"
+  | //----------------------
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_TitanValley.arm"
+  | //----------------------
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Gates_N.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Gates_FN.arm"
+  | //----------------------
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Spires_EE.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Spires_EN.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Spires_ES.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Spires_NE.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Spires_NN.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Spires_NW.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Spires_SE.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Spires_SS.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Spires_SW.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Spires_WN.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Spires_WS.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Spires_WW.arm"
+  | //----------------------
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Town_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Town_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Town_03.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Town_03_St.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Town_03_StLower.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Town_04.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Town_05.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Town_06.arm"
+  | //----------------------
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Underground_EW_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Underground_EW_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Underground_NS_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Underground_NS_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Underground_SN_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Underground_SN_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Underground_WE_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/2_Underground_WE_02.arm"
+  | //----------------------
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/blacksand_flood_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/whitesand_flood_01.arm"
+  | //----------------------
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/ledge_canyon_end_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/ledge_canyon_end_02.arm"
+  | 
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Border/border_end_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Border/border_stledge_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Border/border_st_01.arm"
+  | 
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_cr_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_cr_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_end_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_end_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_sand_cr_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_sand_quad_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_sand_st_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_sand_tri_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_sand_triside_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_st_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_st_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_st_03.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_quad_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_quad_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_quad_03.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_tri_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_tri_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Chasm/chasm_tri_03.arm"
+  | 
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_cc_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_cc_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_cc_03.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_cc_04.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_chasm_cccr_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_chasm_ccst_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_chasm_stst_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_chasm_cccrlower_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_chasm_cccrlower_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_chasm_ccstlower_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_chasm_ccstlower_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_chasm_ststlower_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_chasm_ststlower_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_cv_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_cv_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_cv_03.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_cv_04.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_end_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_ledge_x_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_ledge_x_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_ledge_x_03.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_sand_cv_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_sand_cv_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_sand_cv_03.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_st_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_st_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_st_03.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_st_04.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_x_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_x_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_x_03.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Ledge/ledge_x_04.arm"
+  | 
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_cr_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_cr_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_end_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_end_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_sand_cr_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_sand_quad_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_sand_st_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_sand_tri_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_sand_triside_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_st_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_st_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_st_03.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_quad_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_quad_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_quad_03.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_tri_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_tri_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Mountains/mountains_tri_03.arm"
+  | 
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_cc_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_cc_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_cc_to_NO_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_cc_to_NO_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_chasm_cccr_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_chasm_ccast_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_chasm_ccbst_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_chasm_stst_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_cv_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_cv_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_cv_to_NO_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_cv_to_NO_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_end_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_mountains_cccr_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_mountains_ccst_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_mountains_stend_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_mountains_stend_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_st_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_st_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_st_to_NO_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_st_to_NO_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_xcc_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_xcc_02.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_xcv_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/LedgeNoOverlays/ledge_xcv_02.arm"
+  | 
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Sand/sand_chasm_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Sand/sand_cr_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Sand/sand_end_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Sand/sand_quad_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Sand/sand_st_01.arm"
+  | "Metadata/Terrain/WorldMaps/Act2/Rooms/Sand/sand_tri_01.arm"
+##### metadata/terrain/worldmaps/act2/tiles.tst  (TileSet of metadata/terrain/worldmaps/act2/master.tsi)
+  (a tile list - whole in tileset-lists.txt)
+##### metadata/terrain/worldmaps/act2/fill_tiles.gft  (FillTiles of metadata/terrain/worldmaps/act2/master.tsi)
+  fill list: version 2, 5 sections, 11 tiles, 0 rooms
+  | version 2
+  | "default"
+  | 150 "Metadata/Terrain/WorldMaps/Act2/Tiles/Desert_Fill_01.tdt"
+  | 
+  | "WorldMapUnderground"
+  | 100 "Metadata/Terrain/WorldMaps/Underground/Tiles/Underground_Fill_01.tdt"
+  | 
+  | "WorldMapUndergroundFoundry"
+  | 100 "Metadata/Terrain/WorldMaps/Underground/Tiles/Foundry_Fill_01.tdt"
+  | 100 "Metadata/Terrain/WorldMaps/Underground/Tiles/Foundry_Fill_02.tdt"
+  | 100 "Metadata/Terrain/WorldMaps/Underground/Tiles/Foundry_Fill_03.tdt"
+  | 100 "Metadata/Terrain/WorldMaps/Underground/Tiles/Foundry_Fill_04.tdt"
+  | 
+  | "WorldMapUndergroundPassage"
+  | 100 "Metadata/Terrain/WorldMaps/Underground/Tiles/Passage_Fill_01.tdt"
+  | 100 "Metadata/Terrain/WorldMaps/Underground/Tiles/Passage_Fill_02.tdt"
+  | 100 "Metadata/Terrain/WorldMaps/Underground/Tiles/Passage_Fill_03.tdt"
+  | 100 "Metadata/Terrain/WorldMaps/Underground/Tiles/Passage_Fill_04.tdt"
+  | 
+  | "BlackInsideWall"
+  | 1 "Metadata/Terrain/Dungeon/black_nofog.tdt"
+##### metadata/terrain/worldmaps/act2/overlays.toy  (Overlays of metadata/terrain/worldmaps/act2/master.tsi)
+  | version 1
+##### metadata/terrain/worldmaps/act2/materials.mtd  (MaterialsList of metadata/terrain/worldmaps/act2/master.tsi)
+  | version 5
+  | 1 0 "Art/Textures/Environment/ten_gridc.mat"
+##### metadata/terrain/worldmaps/act2/material_overrides.tmo  (TileMaterialOverrides of metadata/terrain/worldmaps/act2/master.tsi)
+  | version 1
+  | 
+  | // Hide Assets 
+  | 
+  | "Art\Models\Terrain\WorldMap\Textures\Underground\Underground_Stonec.mat" "Art\Models\Terrain\WorldMap\Textures\Underground\Underground300_Stonec.mat"
+  | "Art\Models\Terrain\WorldMap\Textures\details_undergroundrockc.mat" "Art\Models\Terrain\WorldMap\Textures\Underground\details_undergroundrock300c.mat"
+##### metadata/terrain/gallows/act2/2_2/master.tsi  (master)
+  | version 3
+  | RoomUnitSize            9
+  | StoreyHeight            32
+  | OuterBufferSize         6
+  | RoomOverlap             1
+  | MergeInsideWalls        1
+  | OuterGroundType         "Metadata/Terrain/black_inside_wall.gt"
+  | FillTiles               "random_fill_tiles.gft"
+  | TileSet                 "tiles.tst"
+  | MaterialsList           "materials.mtd"
+  | RoomSet                 "generate.rs"
+  | Overlays                "overlays.toy"
+  | Decals                  "decals.dct"
+  | Doodads                 "doodads.ddt"
+  | ChestData               "chests.cht"
+  | EdgeCombination         "combination.ecf"
+  | Critters                "critters.clt"
+  | TileMaterialOverrides   "material_overrides.tmo"
+  | 
+##### metadata/terrain/gallows/act2/2_2/random_fill_tiles.gft  (FillTiles of metadata/terrain/gallows/act2/2_2/master.tsi)
+  fill list: version 2, 4 sections, 4 tiles, 0 rooms
+  | version 2
+  | "default"
+  | 1 "Metadata/Terrain/Desert/CavePath/Blank_01_01.tdt"
+  | 
+  | "CavernAbyss"
+  | 1 "Metadata/Terrain/Desert/CavePath/Abyss/mine_abyss_fill_v01_01.tdt"
+  | 
+  | "BlackInsideWall"
+  | 1 "Metadata/Terrain/Desert/CavePath/Cavepassage_blacknessNoFog_v01_01.tdt"
+  | 
+  | "ImpassableGround"
+  | 1 "Metadata/Terrain/Blank_impassable.tdt"
+##### metadata/terrain/gallows/act2/2_2/tiles.tst  (TileSet of metadata/terrain/gallows/act2/2_2/master.tsi)
+  (a tile list - whole in tileset-lists.txt)
+##### metadata/terrain/gallows/act2/2_2/materials.mtd  (MaterialsList of metadata/terrain/gallows/act2/2_2/master.tsi)
+  | version 5
+  | 
+  | // INTERIOR GROUNDS--------------------------------------------------------------
+  | //-------------------------------------------------------------------------------
+  | 
+  | 2 0 
+  | "Art/Textures/Environment/desert/Passage/Ground/G_TTP_CavePath01.mat"
+  | "Art/Textures/Environment/desert/Passage/Ground/G_TTP_CavePath02.mat"
+  | 65 35 32
+  | 
+  | "CaveGroundFade" 2 0 
+  | "Art/Textures/Environment/desert/Passage/Ground/G_TTP_CavePath01.mat"
+  | "Art/Textures/Environment/desert/Passage/Ground/G_TTP_CavePath02.mat"
+  | 65 35 32
+  | 
+  | "Trims1" 2 0 
+  | "Art/Textures/Environment/desert/Passage/Ground/G_TTP_CavePath02.mat"
+  | "Art/Textures/Environment/desert/Passage/Ground/G_TTP_CavePath03.mat"
+  | 40 60 60
+  | 
+  | "Trims1Fade" 2 0 
+  | "Art/Textures/Environment/desert/Passage/Ground/G_TTP_CavePath02.mat"
+  | "Art/Textures/Environment/desert/Passage/Ground/G_TTP_CavePath03.mat"
+  | 40 60 40
+  | 
+  | "CavernAbyss" 2 0 
+  | "Art/Textures/Environment/desert/Passage/Ground/G_TTP_CavePath02.mat"
+  | "Art/Textures/Environment/desert/Passage/Ground/G_TTP_CavePath03.mat"
+  | 40 60 30
+  | 
+  | // Boss Arena
+  | "BalbalaArena" 2 0 
+  | "Art/Textures/Environment/desert/Passage/Ground/G_TTP_CavePath01.mat"
+  | "Art/Textures/Environment/desert/Passage/Ground/G_TTP_CavePath02.mat"
+  | 80 20 30
+  | 
+  | "BlackInsideWall" 1 0 
+  | "Art/Textures/Environment/desert/Gates/SubCanyon/G_SmoothSandDust_Gates.mat"
+  | 
+  | 
+  | // EXTERIOR GROUNDS -------------------------------------------------------------
+  | //-------------------------------------------------------------------------------
+  | 
+  | "ImpassableGround" 3 0
+  | "Art\Textures\Environment\desert\Gates\Ground\G_AGT_PackedDirt01.mat"
+  | "Art\Textures\Environment\desert\Gates\Ground\G_AGT_PackedDirt02.mat"
+  | "Art\Textures\Environment\desert\Gates\Ground\G_AGT_PackedDirt03.mat"
+  | 25 50 15 32
+  | 
+  | "Trims2" 2 0
+  | "Art/Textures/Environment/desert/Gates/SubCanyon/G_SmoothSand_Gates.mat"
+  | "Art/Textures/Environment/desert/Gates/SubCanyon/G_SmoothSandDust_Gates.mat"
+  | 25 50 32
+  | 
+##### metadata/terrain/gallows/act2/2_2/generate.rs  (RoomSet of metadata/terrain/gallows/act2/2_2/master.tsi)
+  | version 2
+  | 35 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Fills/cavern_gapfill_1.arm"
+  | 100 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Fills/cavern_gapfill_2.arm"
+  | 100 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Fills/cavern_gapfill_3.arm"
+  | 
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/entrance_01.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/entrance_rooms_01.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/exit_01.arm" I R90 FR180 FR270
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/exit_outro_02.arm" I R90 FR180 FR270
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/exit_outro_03.arm" R180 R270 FI FR90
+  | //"Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/GolemBoss_01.arm"
+  | //"Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/GolemBoss_02.arm"
+  | //"Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/GolemBoss_03.arm"
+  | //"Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/GolemBoss_04.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/stairsup_01.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/stairsup_02.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/stairsup_03.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/stairsup_04.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/stairsup_intro_01.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/stairsup_intro_02.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/stairsup_intro_03.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/stairsup_intro_04.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/stairsdown_intro_01.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/stairsdown_intro_02.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/stairsdown_intro_03.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/stairsdown_intro_04.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/bigstatue_01.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/bigstatue_02.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/bigstatue_02_reverse.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/bossentrance_01.arm" I
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/loreobject_01.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/loreobject_02.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/loreobject_03.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/loreobject_04.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/loreobject_05.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/mission_01.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/SpiderZone_01.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/SpiderZone_02.arm"
+  | "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Unique/landmark_01.arm"
+  | 
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/4open_01.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/4open_02.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/4open_03.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/4open_04.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/4open_05.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/3open_01.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/3open_02.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/3open_03.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/3open_04.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/3open_05.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/2open_corner_01.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/2open_corner_02.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/2open_corner_03.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/2open_corner_04.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/2open_corner_05.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/2open_straight_01.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/2open_straight_02.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/2open_straight_03.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/2open_straight_04.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/2open_straight_05.arm"
+  | 10 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/1open_01.arm"
+  | 10 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/1open_02.arm"
+  | 10 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/1open_03.arm"
+  | 10 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/1open_04.arm"
+  | 10 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/1open_05.arm"
+  | 
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/2x2/2open_corner_01.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/2x2/3open_corner_01.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/2x2/3open_corner_02.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/2x2/4open_diagonal_01.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/2x2/4open_side_01.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/2x2/4open_side_02.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/2x2/4open_side_03.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/2x2/6open_corner_01.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/2x2/6open_corner_02.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/2x2/6open_corner_03.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/2x2/8open_01.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/2x2/8open_02.arm"
+  | 
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/4open_01.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/4open_02.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/4open_03.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/3open_01.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/3open_02.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/3open_03.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/2open_corner_01.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/2open_corner_02.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/2open_corner_03.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/2open_straight_01.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/2open_straight_02.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/2open_straight_03.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/1open_01.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/1open_02.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/1open_03.arm"
+  | 
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro2x2/2open_corner_01.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro2x2/3open_corner_01.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro2x2/3open_corner_02.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro2x2/4open_diagonal_01.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro2x2/4open_side_01.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro2x2/4open_side_02.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro2x2/4open_side_03.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro2x2/6open_corner_01.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro2x2/6open_corner_02.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro2x2/6open_corner_03.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro2x2/8open_01.arm"
+  | 4 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro2x2/8open_02.arm"
+  | 
+  | 1 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Outro/outro_Cc_01.arm"
+  | 1 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Outro/outro_Cc_02.arm"
+  | 1 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Outro/outro_Cv_01.arm"
+  | 1 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Outro/outro_St_01.arm"
+  | 1 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Outro/outro_St_02.arm"
+  | 1 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Outro/outro_St_03.arm"
+  | 
+  | 1 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Outro/path_to_outro_Cc_01.arm"
+  | 1 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Outro/path_to_outro_Cc_02.arm"
+  | 1 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Outro/path_to_outro_St_01.arm"
+  | 1 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Outro/path_to_outro_St_02.arm"
+  | 
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/3open_01.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/3open_02.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/3open_03.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/3open_04.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/3open_05.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/4open_01.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/2open_corner_01.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/2open_corner_02.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/2open_corner_03.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/2open_corner_04.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/2open_corner_05.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/2open_straight_01.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/2open_straight_02.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/2open_straight_03.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/2open_straight_04.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/2open_straight_05.arm"
+  | 2 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/BossPath/2open_connection_01.arm"
+  | 
+##### metadata/terrain/gallows/act2/2_2/overlays.toy  (Overlays of metadata/terrain/gallows/act2/2_2/master.tsi)
+  | version 1
+  | 1 1
+  | 100 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Overlays/overlay_abyssedge_2x1_st_01.arm"
+  | 100 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Overlays/overlay_abysswall_2x1_st_01.arm"
+  | 100 "Metadata/Terrain/Gallows/Act2/2_2/Rooms/Overlays/overlay_thickwall_2x1_st_01.arm"
+  | 
+##### metadata/terrain/gallows/act2/2_2/decals.dct  (Decals of metadata/terrain/gallows/act2/2_2/master.tsi)
+  | version 2
+  | 0.6
+  | Default
+  | 
+##### metadata/terrain/gallows/act2/2_2/doodads.ddt  (Doodads of metadata/terrain/gallows/act2/2_2/master.tsi)
+  | version 3
+  | 0.25
+  | Default
+  | 8 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao"
+  | 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_01.ao"
+  | 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_02.ao"
+  | 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_03.ao"
+  | 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_04.ao"
+  | 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_05.ao"
+  | 
+  | "BalbalaArena"
+  | 1 "Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_set.ao"
+##### metadata/terrain/gallows/act2/2_2/chests.cht  (ChestData of metadata/terrain/gallows/act2/2_2/master.tsi)
+  | version 3
+  | 0.25 0.75 0 25 5
+  | 15 "TraitorsPassageChest_01, TraitorsPassageChest_02, TraitorsPassageChest_03, TraitorsPassageSmallChest_01, TraitorsPassageSmallChest_02"
+  | 
+  | 4 "CavePassagePots"
+##### metadata/terrain/gallows/act2/2_2/combination.ecf  (EdgeCombination of metadata/terrain/gallows/act2/2_2/master.tsi)
+  | version 1
+  | "Metadata/Terrain/Desert/CavePath/cavern_thickwall.et" "Metadata/Terrain/Desert/CavePath/cavern_abyss_wall.et" "Metadata/Terrain/Desert/CavePath/cavern_abyss_edge.et"
+  | 
+  | "Metadata/Terrain/Desert/Maraketh/ThickWall/MarakethRuin_thick_wall.et" "Metadata/Terrain/Desert/Maraketh/ThickWall/MarakethRuin_thick_wall.et" "Metadata/Terrain/Desert/Maraketh/Floor/MarakethRuin_floortrim.et"
+  | 
+  | "Metadata/Terrain/Desert/CavePath/cavern_thickwall.et" "Metadata/Terrain/Desert/CavePath/cavern_abyss_edge.et" "Metadata/Terrain/Desert/CavePath/cavern_abyss_wall.et"
+  | 
+  | "Metadata/Terrain/Desert/Maraketh/ThickWall/MarakethRuin_thick_wall.et" "Metadata/Terrain/Desert/Maraketh/ThickWall/MarakethRuin_thick_wall.et" "Metadata/Terrain/Desert/Maraketh/Floor/MarakethRuin_floortrim.et"
+  | 
+  | "Metadata/Terrain/Desert/CavePath/cavern_abyss_wall.et" "Metadata/Terrain/Desert/CavePath/cavern_abyss_edge.et" "Metadata/Terrain/Desert/CavePath/cavern_thickwall.et"
+##### metadata/terrain/gallows/act2/2_2/critters.clt  (Critters of metadata/terrain/gallows/act2/2_2/master.tsi)
+  | version 4
+  | 0.04
+  | Default
+  | 1 "Metadata/Critters/Weta/Basic" "Metadata/Critters/Weta/Basic.ao" 0.0 0.0 1 1
+  | 1 "Metadata/Critters/Scorpion/Yellow" "Metadata/Critters/Scorpion/Yellow.ao" 0.0 0.0 1 1
+  | //1 "Metadata/Critters/Bat/Vampire" "Metadata/Critters/Bat/Vampire.ao" 0.0 0.0 1 1
+  | 3 "Metadata/Critters/Spider/RedGreenWebSpider" "Metadata/Critters/Spider/RedGreenWebSpider.ao" 0.0 0.0 1 1
+##### metadata/terrain/gallows/act2/2_2/material_overrides.tmo  (TileMaterialOverrides of metadata/terrain/gallows/act2/2_2/master.tsi)
+  | version 1
+  | 
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | // HIDE
+  | // ----------------------------
+  | // "Art\Textures\Environment\desert\Passage\BasicSkeletonDustc.mat" "Art\Textures\masks\transparentobjectsc.mat"
+  | 
+  | "Art\Textures\Environment\desert\Passage\Cavedebrisc.mat" "Art\Textures\masks\transparentobjectsc.mat"
+  | "Art\Textures\Environment\desert\Oasis\Cacti\DriedCacti01_dustc.mat" "Art\Textures\masks\transparentobjectsc.mat"
+  | "Art\Textures\Environment\desert\Oasis\Cacti\DriedCactusCoarse02_dustc.mat" "Art\Textures\masks\transparentobjectsc.mat"
+  | "Art\Textures\Environment\desert\Oasis\Cacti\DriedCactusLarge01_dustc.mat" "Art\Textures\masks\transparentobjectsc.mat"
+  | "Art\Textures\Environment\desert\Oasis\Cacti\DriedCactusLarge02_dustc.mat" "Art\Textures\masks\transparentobjectsc.mat"
+  | "Art\Textures\Environment\desert\Oasis\Cacti\DriedCactusThick01_dustc.mat" "Art\Textures\masks\transparentobjectsc.mat"
+  | "Art\Textures\Environment\desert\Oasis\Cacti\DriedCactusThick02_dustc.mat" "Art\Textures\masks\transparentobjectsc.mat"
+  | "Art\Textures\Environment\desert\Oasis\Cacti\DriedCactusThin01_dustc.mat" "Art\Textures\masks\transparentobjectsc.mat"
+  | 
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | // DESERT CLIFFS [GATES]
+  | // ----------------------------
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff01c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Cliff01c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff02c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Cliff02c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff03c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Cliff03c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff04c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Cliff04c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff05c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Cliff05c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff06c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Cliff06c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff07c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Cliff07c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff08c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Cliff08c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff09c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Cliff09c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff10c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Cliff10c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff11c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Cliff11c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff12c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Cliff12c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff13c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Cliff13c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff14c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Cliff14c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff15c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Cliff15c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff16c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Cliff16c.mat"
+  | 
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Cliff17c.mat" "Art\Textures\Environment\desert\Gates\Ground\AGT_PackedDirtPlatau01c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Rubble01c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Rubble01c.mat"
+  | 
+  | // DESERT ROCKS [GATES]
+  | // ----------------------------
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Rock01c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Rock01c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Rock02c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Rock02c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Rock03c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Rock03c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Rock04c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Rock04c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Rock05c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Rock05c.mat"
+  | "Art\Textures\Environment\desert\DesertCliffs\DESERT_Rock06c.mat" "Art\Textures\Environment\desert\DesertCliffs\Gates\AGT_Rock06c.mat"
+  | 
+  | "Art\Textures\Environment\desert\GroundMaterials\TallDune1c.mat" "Art\Textures\Environment\desert\Gates\Ground\AGT_SweptSandEdge01c.mat"
+  | 
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | // DESERT CLIFFS [PASSAGE]
+  | // ---------------------------
+  | "Art/Textures/Environment/desert/Passage/cliff_siEoZc.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliff01c.mat"
+  | "Art/Textures/Environment/desert/Passage/cliff_siEoZ_fadec.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliff01_MCFc.mat"
+  | 
+  | "Art/Textures/Environment/desert/Passage/Cliff_sjjnRc.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliff02c.mat"
+  | "Art/Textures/Environment/desert/Passage/Cliff_sjjnR_fadec.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliff02_MCFc.mat"
+  | 
+  | "Art/Textures/Environment/desert/Passage/Cliff_ubhubhydac.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliff03c.mat"
+  | "Art/Textures/Environment/desert/Passage/Cliff_ubhubhyda_dustc.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliff03c.mat"
+  | 
+  | "Art/Textures/Environment/desert/Passage/Cliff_ubjuddqdac.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliff04c.mat"
+  | "Art\Textures\Environment\desert\Passage\Cliff_ubjuddqda_dustc.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliff05c.mat"
+  | 
+  | "Art/Textures/Environment/desert/Passage/CliffFace_ubjteehdac.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliff05c.mat"
+  | "Art\Textures\Environment\desert\Passage\CliffFace_ubjteehda_dustc.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliff05c.mat"
+  | 
+  | "Art/Textures/Environment/desert/Passage/QuarryCliff_ubhvccfdac.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliff06c.mat"
+  | "Art/Textures/Environment/desert/Passage/QuarryCliff_ubhvccfda_dustc.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliff06c.mat"
+  | 
+  | "Art/Textures/Environment/desert/Passage/QuarryCliff_ubjvbczdac.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliff07c.mat"
+  | 
+  | "Art/Textures/Environment/desert/Passage/RubbleGroundc.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_RubbleGround01c.mat"
+  | 
+  | "Art\Textures\Environment\desert\Passage\Pillars_dustc.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliffPillars01c.mat"
+  | "Art\Textures\Environment\desert\Passage\Pillarsc.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveCliffPillars01c.mat"
+  | 
+  | // DESERT ROCKS [PASSAGE]
+  | // ----------------------------
+  | "Art/Textures/Environment/desert/Passage/M_RED_ROCK_1c.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveRock01c.mat"
+  | "Art/Textures/Environment/desert/Passage/M_RED_ROCK_2c.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveRock02c.mat"
+  | "Art/Textures/Environment/desert/Passage/M_RED_ROCK_3c.mat" "Art\Textures\Environment\desert\Passage\Cliff\TTP_CaveRock03c.mat"
+  | 
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | // PASSAGE ARCHITECTURE
+  | // ----------------------------
+  | 
+  | "Art/Textures/Environment/desert/Passage/KethTallPillar01c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_TallPillar01c.mat" 
+  | "Art/Textures/Environment/desert/Keth/KethTallPillar02c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_TallPillar02c.mat" 
+  | 
+  | "Art/Textures/Environment/desert/Passage/KethArches01c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Arches01c.mat"
+  | "Art/Textures/Environment/desert/Passage/KethArches02c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Arches02c.mat"
+  | "Art/Textures/Environment/desert/Passage/KethArches03c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Arches03c.mat"
+  | 
+  | "Art/Textures/Environment/desert/Passage/KethBridgec.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Bridge01c.mat"
+  | 
+  | "Art/Textures/Environment/desert/Passage/Pillar01c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Pillar01c.mat"
+  | "Art/Textures/Environment/desert/Passage/Buttress01c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Buttress01c.mat"
+  | "Art/Textures/Environment/desert/Passage/DrainageSet01c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_DrainageSet01c.mat"
+  | "Art/Textures/Environment/desert/Passage/ButtressArch01c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_ButtressArch01c.mat"
+  | 
+  | "Art/Textures/Environment/desert/Passage/HiddenPassageAsset101c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_HiddenPassageAsset01c.mat"
+  | "Art/Textures/Environment/desert/Passage/HiddenPassageAsset102c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_HiddenPassageAsset02c.mat"
+  | "Art/Textures/Environment/desert/Passage/HiddenPassageAsset103c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_HiddenPassageAsset03c.mat"
+  | 
+  | "Art/Textures/Environment/desert/Passage/KethCornerc.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Corner01c.mat"
+  | "Art/Textures/Environment/desert/Passage/KethStairs01c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Stairs01c.mat"
+  | "Art/Textures/Environment/desert/Passage/KethNicheWallc.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_NicheWall01c.mat"
+  | 
+  | "Art/Textures/Environment/desert/Passage/KethStatue_01c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Statues02c.mat"
+  | "Art/Textures/Environment/desert/Passage/KethStatue_02c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Statues01c.mat"
+  | "Art/Textures/Environment/desert/Passage/KethStatue_01_largec.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Statues02c.mat"
+  | "Art/Textures/Environment/desert/Passage/KethStatue_02_largec.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Statues01c.mat"
+  | 
+  | // "Art\Textures\Environment\desert\Passage\Architecture\TTP_TallWall01c.mat"
+  | 
+  | "Art/Textures/Environment/desert/Passage/KethWalls01c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Walls01c.mat"
+  | "Art/Textures/Environment/desert/Passage/KethWalls02c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Walls02c.mat"
+  | "Art/Textures/Environment/desert/Passage/KethWalls03c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Walls03c.mat"
+  | "Art/Textures/Environment/desert/Passage/KethWalls04c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Walls04c.mat"
+  | "Art/Textures/Environment/desert/Passage/KethWalls05c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Walls05c.mat"
+  | "Art/Textures/Environment/desert/Passage/KethWalls06c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Walls06c.mat"
+  | "Art/Textures/Environment/desert/Passage/KethWallsC07c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Walls07c.mat"
+  | "Art/Textures/Environment/desert/Passage/KethWallsC08c.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Walls08c.mat"
+  | "Art/Textures/Environment/desert/Passage/KethWalls03_opaquec.mat" "Art\Textures\Environment\desert\Passage\Architecture\TTP_Walls03c.mat"
+  | 
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | // PASSAGE SHRINES
+  | // ----------------------------
+  | 
+  | "Art\Textures\Environment\desert\TitanValley\GrottoElder01c.mat" "Art\Textures\Environment\desert\Passage\Shrines\TTP_GrottoElder01c.mat"
+  | "Art\Textures\Environment\desert\TitanValley\GrottoStele01_cavedustc.mat" "Art\Textures\Environment\desert\Passage\Shrines\TTP_GrottoStele01c.mat"
+  | "Art\Textures\Environment\desert\TitanValley\GrottoSteleRound01_cavedustc.mat" "Art\Textures\Environment\desert\Passage\Shrines\TTP_GrottoSteleRound01c.mat"
+  | "Art\Textures\Environment\desert\TitanValley\GrottoWarrior02_cavedustc.mat" "Art\Textures\Environment\desert\Passage\Shrines\TTP_GrottoWarrior02c.mat"
+  | "Art\Textures\Environment\desert\TitanValley\ValleyPots01_dustc.mat" "Art\Textures\Environment\desert\Passage\Shrines\TTP_ValleyPots01c.mat"
+  | "Art\Textures\Environment\desert\TitanValley\ValleyPots02_cavedustc.mat" "Art\Textures\Environment\desert\Passage\Shrines\TTP_ValleyPots02c.mat"
+  | "Art\Textures\Environment\desert\TitanValley\ValleyShrine01_cavedustc.mat" "Art\Textures\Environment\desert\Passage\Shrines\TTP_ValleyShrine01c.mat"
+  | "Art\Textures\Environment\desert\TitanValley\ValleyStele01_cavedustc.mat" "Art\Textures\Environment\desert\Passage\Shrines\TTP_ValleyStele01c.mat"
+  | "Art\Textures\Environment\desert\TitanValley\GrottoSteleShrine01_cavedustc.mat" "Art\Textures\Environment\desert\Passage\Shrines\TTP_GrottoSteleShrine01c.mat"
+  | "Art\Textures\Environment\desert\TitanValley\GrottoSteleTall02_cavedustc.mat" "Art\Textures\Environment\desert\Passage\Shrines\TTP_GrottoSteleTall02c.mat"
+  | 
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | // Not Necessary
+  | 
+  | // "Art/Textures/Environment/desert/Passage/BurialChamberProp01_Dustc.mat" "Art\Textures\__TestTextures\DEBUG\DBG_Blue.mat"
+  | // "Art/Textures/Environment/desert/Passage/BurialChamberProp02_Dustc.mat" "Art\Textures\__TestTextures\DEBUG\DBG_Blue.mat"
+  | // "Art/Textures/Environment/desert/Passage/BurialChamberProps02_Dust_ccolourc.mat" "Art\Textures\__TestTextures\DEBUG\DBG_Blue.mat"
+  | // "Art/Textures/Environment/desert/Passage/BurialChamberProps03_Dust_ccolourc.mat" "Art\Textures\__TestTextures\DEBUG\DBG_Blue.mat"
+  | 
+  | // "Art\Textures\__TestTextures\DEBUG\DBG_Blue.mat"
+  | // "Art\Textures\__TestTextures\DEBUG\DBG_Green.mat"
+  | // "Art\Textures\__TestTextures\DEBUG\DBG_Orange.mat"
+  | // "Art\Textures\__TestTextures\DEBUG\DBG_Purple.mat"
+  | // "Art\Textures\__TestTextures\DEBUG\DBG_Red.mat"
+  | // "Art\Textures\__TestTextures\DEBUG\DBG_Yellow.mat"
+  | // "Art\Textures\__TestTextures\DEBUG\DBG_Finder.mat"
+  | 
+  | // // ---------------------------------------------------------------------------------------------------------------------------------------------------------
+  | 
+  | 
+  | "Art/Textures/Environment/desert/Keth/Effects/GlowingCoals/GlowingCoalsc.mat" "Art/Textures/General/GlowingCoals/CharredEmbers01c.mat"
+##### Metadata/Terrain/impassable_ground.gt  (a ground type of the area)
+  | ImpassableGround
+  | 1 1 0 1
+##### Metadata/Terrain/Desert/CavePath/caveground_fade.gt  (a ground type of the area)
+  | CaveGroundFade
+  | 1 0 1 1 1
+  | "HideRoof"
+##### Metadata/Terrain/Desert/CavePath/trims1_fade.gt  (a ground type of the area)
+  | Trims1Fade
+  | 1 0 1 1 1
+  | "HideRoof"
+##### Metadata/Terrain/trims2.gt  (a ground type of the area)
+  | Trims2
+  | 1 0 1 1 1
+##### Metadata/Terrain/trims1.gt  (a ground type of the area)
+  | Trims1
+  | 1 0 1 1 1
+##### Metadata/Terrain/Desert/CavePath/cavern_abyss.gt  (a ground type of the area)
+  | CavernAbyss
+  | 0 1 0 0
+##### Metadata/Terrain/Desert/Maraketh/TraitorsPassage/Balbala_Arena.gt  (a ground type of the area)
+  | BalbalaArena
+  | 1 0 1 0 0

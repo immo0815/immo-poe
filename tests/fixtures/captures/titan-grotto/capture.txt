@@ -1,0 +1,44 @@
+capture  2026-10-11 22:58:21 local, PoEformance v0.1.213 · 1f4d255
+area     The Titan Grotto (G2_7), act 2, level 27, hash 0xD6B5A6A5, state InGame
+light    Metadata/EnvironmentSettings/Gallows/2_7.env
+screen   game client at 0, 0, 3440 x 1440
+player   world 15427.51 24506.32 -962.825, terrain height -875, level 96
+         grid cell 1419, 2254, tile 61, 98
+         the grid's height there -875, the tile's level -875
+tile     Metadata/Terrain/Desert/CaveTitans/Features/Staircase_Entrance_01.tdt, laid 5, piece 1, 11
+camera   1.105 1.983 0.478 0.467 -1.105 1.983 0.478 0.467 0 -2.462 0.771 0.751 10029.18 -81187.95 -16376.43 -15792.02
+terrain  2691 x 2967 cells, 117 x 129 tiles
+
+=== rooms around the player
+  2 off  entrance_01  at tile 52, 82, 25 x 25, turned 180  (Metadata/Terrain/Gallows/Act2/2_7/Rooms/Unique/entrance_01.arm)
+
+=== what this capture holds
+  game.png  3440 x 1440, the game alone, the overlay hidden for 125 ms
+  entities.txt  11 entities, nearest first
+  loaded-files.txt  1090 files
+  environments.txt  the area's environment (Metadata/EnvironmentSettings/Gallows/2_7.env) and those of 1 rooms
+  room-files.txt  295 room files the area may lay - the loaded list's and every room of the sets and overlay lists its files and the install's masters name
+  tile-identities.txt  43 tile files laid in the area, each as a room's slot asks about it - tab-separated, or why it did not read
+  slot-candidates.txt  295 rooms of the area's set against 199 tiles its tilesets list - 2 masters, lists Metadata/Terrain/Gallows/Act2/2_7/tiles.tst, metadata/terrain/worldmaps/act2/tiles.tst
+  tileset-lists.txt  2 tile lists of 2 masters, 201 tile lines - each list whole: an optional weight, the tile, then the words after it
+  tile-files.txt  215 tile files - 199 the area's tile lists name, 17 its fill lists, 43 laid, 5 of those named by no tile list; each with its definition followed through what it inherits, and the tile's doodad list (.tmd)
+  area-masters.txt  2 masters of the area and 22 files they name or the area loaded, each whole - a tile list by name only, being whole in tileset-lists.txt
+  ground.txt  43 tile files laid over 15093 cells, 30 templates, 586 of their 586 sub-tile meshes read, 0 ground masks; 13734 cells under one ground all round, 1278 mixed; 2 MaterialsLists, 8 ground materials; 5 of 197 shader sources name the ground's coordinates
+  water.txt  313 of 861 environments carry a water section, 28 keys; 6 of 197 shader sources draw the water
+  rooms.txt  1 rooms within 3 tiles, their doodads' lights and the pieces attached to them, and the file of each room the player stands in
+  rooms-arranged.txt  not written: the rooms stand by their doodads - see rooms-placed.txt
+  doodads.txt  doodads: 3162 entities stand where the rooms name a doodad, on 7 paths - sleeping map 2849 of 2849 walked, awake 461, 3310 with a path, read in 479 ms
+  rooms-placed.txt  rooms: 9 placed by their doodads at 62 places, 2 by their tiles at 44 places, 284 with no place
+  model-panes.txt  not written: no model pane showed a model when the key went down
+  room-pick.txt  not written: nothing there when the key went down
+  routes.txt  not written: nothing there when the key went down
+  scene-light.txt  not written: nothing there when the key went down
+  model-probe.txt  not written: nothing there when the key went down
+  dissector.txt  not written: nothing there when the key went down
+  atlas-log.txt  not written: nothing there when the key went down
+  light-hunt.txt  sun: no reading's vector found · cube: reading 1 (or one that is the same for these angles)
+  memory.rec  1057 KB: the overlay's own reads for 90 reader ticks and one pass reading the world with every switch on, the loaded files, both entity maps with every named entity's model, every monster's mods, the terrain's two cell grids whole, the raw bytes of the roots, one hop beyond them and the components around you from nothing - replay with --replay; memory.txt says what the pass read where
+  monsters.txt  written by the pass inside the recording - memory.txt says what it holds
+  landscape.txt  written by the pass inside the recording - memory.txt says what it holds
+  off: overlay-picture
+  2026-10-11 22-58-21 The Titan Grotto.zip  beside this folder: every file here, packed to send

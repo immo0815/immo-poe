@@ -1,0 +1,13 @@
+11 entities, 0 of them remembered rather than listed this read; distance and position in world units
+distance	kind	id	address	x	y	z	terrain	bounds z	remembered	path	name
+0	Player	2922	0x55E33A92B80	15427.51	24506.32	-962.825	-875	87.466	no	Metadata/Characters/Int/IntFourb	Sorceress
+134.196	Object	91	0x55E33A9D800	15559.78	24483.7	-1007.829	-870	85.954	no	Metadata/MiscellaneousObjects/Checkpoint	Checkpoint
+792.676	Object	88	0x55E33A9A380	15646.74	23744.56	-891.517	-875	0	no	Metadata/MiscellaneousObjects/Waypoint	Waypoint
+2745.137	Monster	2834	0x55E4F2B1F80	12690.22	24298.91	-966.866	-875	91.456	no	Metadata/Monsters/Skeletons/TitanGrotto/SkeletonTitanGrottoSwordShield@27	Sandflesh Warrior
+2884.462	Monster	2832	0x55E4F2B3B00	12565.57	24146.54	-973.496	-875	98.055	no	Metadata/Monsters/Skeletons/TitanGrotto/SkeletonTitanGrottoSword_@27	Sandflesh Warrior
+2915.973	Monster	2833	0x55E4F2B4780	12521.92	24260.39	-969.708	-875	94.284	no	Metadata/Monsters/Skeletons/TitanGrotto/SkeletonTitanGrottoSword_@27	Sandflesh Warrior
+2938.945	Portal	90	0x55E33A9D580	17451.09	22375	-1797.786	-1625	299.062	no	Metadata/MiscellaneousObjects/AreaTransition_Animate	Valley of the Titans
+3224.146	Chest	2667	0x55E4F2B9500	12603.26	22951.09	-898.564	-875	23.564	no	Metadata/Chests/GrottoPotSmall_01	Pot
+3250.711	Chest	2668	0x55E4F2BB580	12603.26	22896.74	-914.995	-875	39.995	no	Metadata/Chests/GrottoPotSmall_02	Pot
+3291.784	Chest	2670	0x55E4F2B4F00	12538.04	22929.35	-924.046	-875	49.042	no	Metadata/Chests/GrottoPotSmall_03	Pot
+3299.25	Chest	2669	0x55E4F2B8B00	12559.78	22875	-914.995	-875	39.995	no	Metadata/Chests/GrottoPotSmall_02	Pot

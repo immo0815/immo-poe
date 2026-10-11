@@ -1,0 +1,51 @@
+11 monsters among 199 entities, read fresh inside the recording with every switch on, nearest the player first; distance and position in world units
+mods are the game's own ids off ObjectMagicProperties, named where its Mods table names them; buffs carry their clocks; targetable is the game's own byte
+a marked place within 100 of a monster is listed under it - an essence prison stands on its monster and carries the icon the monster does not
+
+### 1153.1  Normal Skitter Golem  (Metadata/Monsters/Bugbot/BugbotRocky_@19)  id 691  at 0x55F5E075680
+  position 13364.1 4907.6 -59.5   life 134/134 (100%)   targetable no   hidden yes   friendly no   effect no
+  mods: (none readable on its ObjectMagicProperties)
+  buffs: hidden_monster (permanent) x1, disable_rarity_epk (permanent) x1
+### 1227.6  Normal Quake Golem  (Metadata/Monsters/SaltGolem/SaltGolem_@19)  id 687  at 0x55F0A510680
+  position 13212 4798.9 -92.6   life 403/403 (100%)   targetable yes   hidden yes   friendly no   effect no
+  mods: (none readable on its ObjectMagicProperties)
+  buffs: hidden_monster (permanent) x1
+### 1342  Normal Skitter Golem  (Metadata/Monsters/Bugbot/BugbotRocky_@19)  id 689  at 0x55F0A512E80
+  position 13070.7 4766.3 -73.6   life 134/134 (100%)   targetable no   hidden yes   friendly no   effect no
+  mods: (none readable on its ObjectMagicProperties)
+  buffs: hidden_monster (permanent) x1, disable_rarity_epk (permanent) x1
+### 1511.9  Normal Skitter Golem  (Metadata/Monsters/Bugbot/BugbotRocky_@19)  id 688  at 0x55F0A513D80
+  position 12918.5 4842.4 -68   life 134/134 (100%)   targetable no   hidden yes   friendly no   effect no
+  mods: (none readable on its ObjectMagicProperties)
+  buffs: hidden_monster (permanent) x1, disable_rarity_epk (permanent) x1
+### 1524.1  Normal Skitter Golem  (Metadata/Monsters/Bugbot/BugbotRocky_@19)  id 690  at 0x55F0A51C480
+  position 12940.2 4918.5 -82.8   life 134/134 (100%)   targetable no   hidden yes   friendly no   effect no
+  mods: (none readable on its ObjectMagicProperties)
+  buffs: hidden_monster (permanent) x1, disable_rarity_epk (permanent) x1
+### 1913.9  Normal Risen Maraketh  (Metadata/Monsters/Skeletons/Maraketh/MarakethSkeletonUnarmed@19)  id 630  at 0x55F4C207C80
+  position 12635.9 3309.8 -99.3   life 224/224 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: MonsterNecromancerRaisable
+  buffs: (none)
+### 1999.4  Normal Risen Maraketh  (Metadata/Monsters/Skeletons/Maraketh/MarakethSkeletonCrossbow@19)  id 635  at 0x55F4C206D80
+  position 12606.7 3190.8 -97.3   life 224/224 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: MonsterNecromancerRaisable
+  buffs: (none)
+### 2042.5  Normal Risen Maraketh  (Metadata/Monsters/Skeletons/Maraketh/MarakethSkeletonOneHandAxeNoArmour_@19)  id 631  at 0x55F4C20F200
+  position 12634.3 3070.7 -100.3   life 224/224 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: MonsterNecromancerRaisable
+  buffs: (none)
+### 2139.9  Normal Risen Maraketh  (Metadata/Monsters/Skeletons/Maraketh/MarakethSkeletonOneHandSwordNoArmour@19)  id 511  at 0x55F0A511580
+  position 12585.2 2972.2 -108.7   life 224/224 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: MonsterNecromancerRaisable, MonsterAdditionalAttackRange
+  buffs: (none)
+### 2623.9  Normal Black Strider  (Metadata/Monsters/DemonSpiders/BlackStriderEmerge@19)  id 818  at 0x55F4C209080
+  position 16687.5 5346.2 -95.3   life 448/448 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: MonsterIgnoreActorScaleFromStats
+  buffs: (none)
+### 2636.3  Normal Black Strider  (Metadata/Monsters/DemonSpiders/BlackStriderEmerge@19)  id 816  at 0x55F0A516D00
+  position 16277.2 5994.6 -102.7   life 448/448 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: MonsterIgnoreActorScaleFromStats
+  buffs: (none)
+
+=== 0 marked places - every entity the game gives a map icon, nearest the player first
+distance	icon	present	id	address	x	y	z	path	name
