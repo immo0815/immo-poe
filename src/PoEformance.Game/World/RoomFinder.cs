@@ -316,6 +316,7 @@ public static class RoomFinder
     /// <param name="most">Most candidates listed.</param>
     /// <param name="walkable">Which tiles have ground anybody can stand on, row by row - TerrainGrid.WalkableTileMask - to leave out every placement covering none, and to tell a join among the misses; null leaves both out, and a mask of no walkable tile at all leaves nothing out.</param>
     /// <param name="anywhere">Whether to keep the placements covering no walkable tile too - the mask still telling the joins.</param>
+    /// <param name="lattice">The lattice a room of the area's module lies on, or null for a room free to lie anywhere - see RoomLattice. Only its places are tried, a step squared fewer.</param>
     public static RoomSearch Find(
         RoomLayout room,
         TerrainGroundTypes ground,
@@ -325,7 +326,8 @@ public static class RoomFinder
         Func<string, TileIdentity?>? identity = null,
         int most = MostCandidates,
         bool[]? walkable = null,
-        bool anywhere = false)
+        bool anywhere = false,
+        RoomLattice? lattice = null)
     {
         ArgumentNullException.ThrowIfNull(room);
         ArgumentNullException.ThrowIfNull(ground);
@@ -366,13 +368,14 @@ public static class RoomFinder
         var ranked = new List<RoomCandidate>(capacity + 1);
         int fits = 0;
         int across = tilesX + 1;
+        (int start, int step) = lattice is { Step: > 0 } grid ? (grid.First, grid.Step) : (0, 1);
 
         for (var turn = 0; turn < 8; turn++)
         {
             (int wide, int tall) = placements.Size(turn);
-            for (var y = 0; y + tall <= tilesY; y++)
+            for (int y = start; y + tall <= tilesY; y += step)
             {
-                for (var x = 0; x + wide <= tilesX; x++)
+                for (int x = start; x + wide <= tilesX; x += step)
                 {
                     if (standing is not null && Covered(standing, across, x, y, wide, tall) == 0)
                     {

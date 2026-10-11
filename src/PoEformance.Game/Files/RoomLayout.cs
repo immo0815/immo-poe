@@ -245,6 +245,26 @@ public sealed class RoomLayout
     /// <summary>Tiles down.</summary>
     public int Height { get; private init; } = 1;
 
+    /// <summary>
+    /// The side of the module the room is cut to, in tiles - the dimension line's first number; nought where the file has none.
+    /// </summary>
+    /// <remarks>
+    /// THE MASTER'S RoomUnitSize, WRITTEN INTO EVERY ROOM. poe_data_tools reads the line as
+    /// <c>side_length</c> (twice below version 31) and, from 22, an unnamed <c>uint1</c>; neither says
+    /// more. The captures do: every room of the area's own set carries its master's RoomUnitSize and
+    /// RoomOverlap here - Augury "5 1", Marrow "9 1", Sulphuric Caverns "10 1" - and every one of the
+    /// 548 rooms of the six committed captures is <see cref="ModuleOverlap"/> plus a whole number
+    /// of (side - overlap) tiles each way: Augury's 5, 9, 13 and 21, Oasis's 7, 13, 19, 25 and 31. A fill
+    /// room or a league's room carries a module of its own ("3 0", "1 0", "3 1"). See RoomLattice for
+    /// where the module puts a room in its area.
+    /// </remarks>
+    public int ModuleSide { get; private init; }
+
+    /// <summary>
+    /// How many tiles two neighbouring modules share - the dimension line's last number from version 22 on; -1 where the file is older or the line has none. See <see cref="ModuleSide"/>.
+    /// </summary>
+    public int ModuleOverlap { get; private init; } = -1;
+
     /// <summary>The doodads, in the file's order.</summary>
     public IReadOnlyList<RoomDoodad> Doodads { get; private init; } = [];
 
@@ -338,7 +358,13 @@ public sealed class RoomLayout
             strings[one] = Line(lines, ref at).Trim().Trim('"').Replace('\\', '/');
         }
 
-        Line(lines, ref at);                                         // Dimensions.
+        // THE MODULE: the side, written twice below 31, and from 22 the overlap - see ModuleSide. Read where it reads and
+        // left unsaid where it does not: the line was stepped over before, and a room must not be lost to it now.
+        string[] dimensions = Words(Line(lines, ref at));
+        int overlapAt = version < 31 ? 2 : 1;
+        int moduleSide = dimensions.Length > 0 && int.TryParse(dimensions[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int side) ? side : 0;
+        int moduleOverlap = version >= 22 && dimensions.Length > overlapAt
+            && int.TryParse(dimensions[overlapAt], NumberStyles.Integer, CultureInfo.InvariantCulture, out int overlap) ? overlap : -1;
         long thingies = 0;
         foreach (string word in Words(Line(lines, ref at)))
         {
@@ -415,6 +441,8 @@ public sealed class RoomLayout
             Version = version,
             Width = width,
             Height = height,
+            ModuleSide = moduleSide,
+            ModuleOverlap = moduleOverlap,
             Doodads = doodads,
             Strings = strings,
             Slots = slotsWhy.Length == 0 ? slots : [],

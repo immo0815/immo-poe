@@ -909,6 +909,11 @@ internal sealed class CaptureKey
             {
                 Said(CaptureReport.MonstersFile, $"written by the pass inside the recording - {CaptureMemory.IndexFile} says what it holds", CaptureStepState.Done);
             }
+
+            if (On(CaptureParts.Landscape))
+            {
+                Said(CaptureReport.LandscapeFile, $"written by the pass inside the recording - {CaptureMemory.IndexFile} says what it holds", CaptureStepState.Done);
+            }
         }
         else
         {
@@ -916,6 +921,11 @@ internal sealed class CaptureKey
             if (On(CaptureParts.Monsters))
             {
                 Not(CaptureReport.MonstersFile, "it is read inside the recording, and there is none");
+            }
+
+            if (On(CaptureParts.Landscape))
+            {
+                Not(CaptureReport.LandscapeFile, "it is read inside the recording, and there is none");
             }
         }
 
