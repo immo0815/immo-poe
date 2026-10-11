@@ -30,7 +30,9 @@ already cost real time on this project.
   doodad or tile piece, depths), and counts how each translucent layer came out over the
   whole picture. The capture key (F9, "Capture for Diagnosis") writes it to `model-probe.txt`
   in the capture's zip, beside every other diagnosis the tool can give — ask for that capture
-  before theorising about why a tile or room looks wrong.
+  before theorising about why a tile or room looks wrong. Each probe click also puts its lines in
+  the clipboard (asked for from the live client, v0.1.204) - the one copy the capture rule below
+  allows, because it is the probe's own result and not a diagnosis kept out of the catalogue.
 - **`adamthedash/poe_data_tools`** is to the game's FILE formats what GameHelper2 is to its
   memory: working parsers for `.ao`, `.sm`, `.smd`, `.fmt`, `.mat` and `.ast`. Clone it and
   read the parser, not a diagram of it — `crates/poe_data_tools-lib/src/file_parsers/`.
@@ -185,6 +187,9 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   stage said nothing of why. Its first capture answered at once: the planes loaded fine and all 48 were
   left out by the cap - the room comes to 2.25 million triangles, the ship alone 355,726 of the usual
   500,000 - so a Monster Book stage now lays every doodad and tile piece (`RoomModels.EveryDoodad`).
+  Laid, the planes came out white, so the part writes the materials under the last probe click and those
+  drawn plain whole too, with what each compiles to, what drawing it left out and its graphs
+  (`CaptureMaterials`, shared with the ground's part).
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

@@ -11,7 +11,14 @@ namespace PoEformance.Features;
 /// <param name="Book">Which book's pane - "monster", "tile", ...</param>
 /// <param name="Lines">The lines under the picture, as the pane's info fold shows them.</param>
 /// <param name="Model">The model shown.</param>
-public sealed record CapturePane(string Book, IReadOnlyList<string> Lines, MonsterModel Model);
+public sealed record CapturePane(string Book, IReadOnlyList<string> Lines, MonsterModel Model)
+{
+    /// <summary>The shapes under the last probe click, nearest first - empty where the probe is off or was not clicked on this model.</summary>
+    public IReadOnlyList<int> Probed { get; init; } = [];
+
+    /// <summary>The programs the pane draws each shape with - the flat or the glossy list - or null where it draws none.</summary>
+    public IReadOnlyList<ShadeProgram?>? Shades { get; init; }
+}
 
 /// <summary>
 /// The capture's model-panes part: every model pane's lines under its picture, every doodad file of the room it shows with what
@@ -84,6 +91,8 @@ public static class CapturePanes
             }
         }
 
+        Materials(body, read, panes);
+
         if (unlaid.Count > 0)
         {
             body.AppendLine().Append(CultureInfo.InvariantCulture, $"=== the doodad files that did not draw, whole, with what each extends ({unlaid.Count})").AppendLine();
@@ -105,6 +114,113 @@ public static class CapturePanes
         said.Append(body);
         return said.ToString();
     }
+
+    /// <summary>
+    /// The materials under each pane's last probe click and those it draws plain - neither texture nor program - each whole
+    /// with what it compiles to and what drawing it left out, then their graphs once each, whole.
+    /// </summary>
+    /// <remarks>
+    /// WRITTEN FOR PORT'S WATER AGAIN: laid at last (v0.1.203), the planes came out white - drawn, but with nothing to colour
+    /// them - and why is in the material and its graphs, which no part wrote for a doodad. The probed ones first, nearest
+    /// first, then the plain ones by how many triangles they cover; a shadow-only material is not drawn, so not listed.
+    /// </remarks>
+    private static void Materials(StringBuilder body, Func<string, byte[]?>? read, IReadOnlyList<CapturePane> panes)
+    {
+        var picked = new List<(string Material, string Why)>();
+        var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int plainInAll = 0;
+        foreach (CapturePane pane in panes)
+        {
+            MonsterModel model = pane.Model;
+            foreach (int shape in pane.Probed)
+            {
+                if (MaterialOf(model, shape) is { Length: > 0 } material && named.Add(material))
+                {
+                    picked.Add((material, $"under the probe in the {pane.Book} book's pane · {Drawn(pane, shape)}{From(model, shape)}"));
+                }
+            }
+
+            // PLAIN BY TRIANGLES COVERED, most first: what the picture shows most of is what to read first.
+            var plain = new Dictionary<string, (long Triangles, int Shape)>(StringComparer.OrdinalIgnoreCase);
+            for (var shape = 0; shape < model.Mesh.Shapes.Count; shape++)
+            {
+                if (Drawn(pane, shape) != "plain"
+                    || (shape < model.Blends.Count && model.Blends[shape] == MaterialBlend.ShadowOnly)
+                    || MaterialOf(model, shape) is not { Length: > 0 } material)
+                {
+                    continue;
+                }
+
+                long triangles = model.Mesh.Shapes[shape].Count / 3;
+                plain[material] = plain.TryGetValue(material, out (long Triangles, int Shape) had) ? (had.Triangles + triangles, had.Shape) : (triangles, shape);
+            }
+
+            plainInAll += plain.Count;
+            foreach ((string material, (long triangles, int shape)) in plain.OrderByDescending(one => one.Value.Triangles))
+            {
+                if (named.Add(material))
+                {
+                    picked.Add((material, string.Create(CultureInfo.InvariantCulture, $"drawn plain in the {pane.Book} book's pane · {triangles} triangles{From(model, shape)}")));
+                }
+            }
+        }
+
+        if (picked.Count == 0)
+        {
+            return;
+        }
+
+        body.AppendLine().Append(CultureInfo.InvariantCulture,
+            $"=== the materials under the probe and those drawn plain, whole ({Math.Min(picked.Count, MostMaterials)} of {picked.Count}; {plainInAll} drawn plain)").AppendLine();
+        if (read is null)
+        {
+            foreach ((string material, string why) in picked.Take(MostMaterials))
+            {
+                body.AppendLine().Append("##### ").Append(material).Append("  (").Append(why).AppendLine(")").AppendLine("  (no install to read it from)");
+            }
+
+            return;
+        }
+
+        var paints = new MonsterModels.Paints();
+        var graphs = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach ((string material, string why) in picked.Take(MostMaterials))
+        {
+            body.AppendLine().Append("##### ").Append(material).Append("  (").Append(why).AppendLine(")");
+            if (!CaptureMaterials.Material(read, material, paints, body, graphs, seen))
+            {
+                continue;
+            }
+
+            // AND WHAT DRAWING IT LEFT OUT - a texture that would not read is the step past the compile.
+            MonsterModels.Shade shade = paints.Shade(read, material);
+            body.Append("drawn: ").AppendLine(shade.Program switch
+            {
+                { UsesTime: true } => "from its program, running with the clock",
+                not null => "from its program",
+                null when shade.Plain is not null => "from a plain sheet",
+                _ => "plain - nothing to colour it with",
+            } + (shade.Skipped.Count > 0 ? " · left out: " + string.Join("; ", shade.Skipped) : string.Empty));
+        }
+
+        CaptureMaterials.Graphs(read, graphs, "a graph these materials are instances of", body);
+    }
+
+    /// <summary>How the pane draws a shape: from a program, a texture, or plain - as the probe says it.</summary>
+    private static string Drawn(CapturePane pane, int shape)
+        => pane.Shades is { } shades && shape < shades.Count && shades[shape] is not null
+            ? "program"
+            : shape < pane.Model.Skins.Count && pane.Model.Skins[shape] is not null ? "texture" : "plain";
+
+    private static string? MaterialOf(MonsterModel model, int shape)
+        => shape >= 0 && shape < model.ShapeMaterials.Count && model.ShapeMaterials[shape].Length > 0 ? MaterialFile.Bare(model.ShapeMaterials[shape]) : null;
+
+    private static string From(MonsterModel model, int shape)
+        => shape < model.ShapeSources.Count && model.ShapeSources[shape].Length > 0 ? " · from " + model.ShapeSources[shape] : string.Empty;
+
+    /// <summary>Most materials written whole.</summary>
+    private const int MostMaterials = 24;
 
     /// <summary>A room's doodad files, a line each: the counts, the box and first place, the materials, and why it did not draw.</summary>
     private static void Files(StringBuilder body, IReadOnlyList<DoodadFile> files)
