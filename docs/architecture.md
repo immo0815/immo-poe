@@ -2348,6 +2348,13 @@ interesting part was not the feature:
   (sw, se, ne, nw), then the slot's own tag and its origin corner. String indices are 1-based,
   0 meaning none.
 
+  **The dimension list is the room's MODULE** (2026-10): its first number is the master's
+  `RoomUnitSize` and, from version 22, its last the master's `RoomOverlap` - Augury's rooms say
+  "5 1" as its master does - and every one of the 548 rooms of the six committed captures is the
+  overlap plus whole steps of (side - overlap) each way. A room of the master's module stands at
+  `OuterBufferSize` plus whole steps; see `RoomLattice` and CLAUDE.md for the measurement, and
+  for the joins (`.ecf`) and the overlays (`.toy`) the same masters name.
+
   **Those eight are FOUR PAIRS, one per edge, and they are not booleans. What the first of each
   pair MEANS is not settled, and an earlier version of this paragraph said it was.**
 

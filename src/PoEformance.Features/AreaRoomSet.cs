@@ -1,4 +1,5 @@
 using PoEformance.Game.Files;
+using PoEformance.Game.World;
 
 namespace PoEformance.Features;
 
@@ -26,6 +27,12 @@ namespace PoEformance.Features;
 ///
 /// ONLY THE TERRAIN'S: a <c>.rs</c> or <c>.tsi</c> under Metadata/Terrain is the area's, and nothing
 /// else with the extension is asked for.
+///
+/// AND THE OVERLAYS, WHICH NO SET NAMES. A master's <c>Overlays</c> line names an overlay list
+/// (<c>.toy</c>, see OverlayList) of rooms the generator lays over the layout in a pass of its own -
+/// Augury's two, Marrow's three - and none of them is in <c>generate.rs</c>. A fresh instance's list
+/// carries the ones it laid (and Steaming Springs' carried the <c>.toy</c> itself); a re-entered one
+/// carries none, so the lists a loaded <c>.toy</c> or a master names are read for them too.
 /// </remarks>
 public static class AreaRoomSet
 {
@@ -42,6 +49,7 @@ public static class AreaRoomSet
         ArgumentNullException.ThrowIfNull(read);
         var files = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         var sets = new List<string>();
+        var overlays = new List<string>();
         foreach (string path in loaded)
         {
             if (path.EndsWith(".arm", StringComparison.OrdinalIgnoreCase))
@@ -52,6 +60,10 @@ public static class AreaRoomSet
             {
                 sets.Add(path);
             }
+            else if (path.StartsWith("Metadata/Terrain/", StringComparison.OrdinalIgnoreCase) && path.EndsWith(OverlayList.Extension, StringComparison.OrdinalIgnoreCase))
+            {
+                overlays.Add(path);
+            }
         }
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -60,6 +72,14 @@ public static class AreaRoomSet
             if (seen.Add(set))
             {
                 Add(files, RoomSetFile.Read(read(set)));
+            }
+        }
+
+        foreach (string list in overlays)
+        {
+            if (seen.Add(list))
+            {
+                Add(files, OverlayList.Read(read(list)));
             }
         }
 
@@ -101,7 +121,7 @@ public static class AreaRoomSet
             }
             else if (path.StartsWith("Metadata/Terrain/", StringComparison.OrdinalIgnoreCase))
             {
-                if (path.EndsWith(".rs", StringComparison.OrdinalIgnoreCase))
+                if (path.EndsWith(".rs", StringComparison.OrdinalIgnoreCase) || path.EndsWith(OverlayList.Extension, StringComparison.OrdinalIgnoreCase))
                 {
                     folders.Add(Folder(path));
                 }
@@ -155,13 +175,25 @@ public static class AreaRoomSet
         return named;
     }
 
-    /// <summary>The rooms the masters' sets name, without duplicates and in path order - an area's rooms from its masters alone, nothing loaded.</summary>
+    /// <summary>
+    /// The room lattices the area's masters name - the loaded list's and the install's in the area's folders, as <see cref="Masters"/> finds them. See RoomLattice.
+    /// </summary>
+    /// <param name="loaded">The files the area loaded.</param>
+    /// <param name="read">How to get a file out of the install.</param>
+    /// <param name="masters">Every master the install has, as its index lists them - or none.</param>
+    public static RoomLattices Lattices(IEnumerable<string> loaded, Func<string, byte[]?> read, IReadOnlyList<string>? masters = null)
+    {
+        ArgumentNullException.ThrowIfNull(read);
+        return RoomLattices.From(Masters(loaded, masters).Select(master => MasterFile.Read(read(master))));
+    }
+
+    /// <summary>The rooms the masters' sets and overlay lists name, without duplicates and in path order - an area's rooms from its masters alone, nothing loaded.</summary>
     /// <param name="masters">The masters to read.</param>
     /// <param name="read">How to get a file out of the install.</param>
     public static List<string> FilesOf(IEnumerable<string> masters, Func<string, byte[]?> read)
         => FilesOf(masters, read, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
 
-    /// <summary>The rooms the masters' sets name, skipping the sets already read - see <see cref="Files"/>.</summary>
+    /// <summary>The rooms the masters' sets and overlay lists name, skipping the files already read - see <see cref="Files"/>.</summary>
     private static List<string> FilesOf(IEnumerable<string> masters, Func<string, byte[]?> read, HashSet<string> seen)
     {
         ArgumentNullException.ThrowIfNull(masters);
@@ -169,26 +201,43 @@ public static class AreaRoomSet
         var files = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (string master in masters)
         {
-            // AS WRITTEN, THEN BESIDE THE MASTER, as RePoE resolves it - the first that reads is the set.
-            foreach (string candidate in MasterFile.Candidates(master, MasterFile.Read(read(master)).RoomSet))
+            MasterFile file = MasterFile.Read(read(master));
+            if (Named(master, file.RoomSet, read, seen) is { } set)
             {
-                if (!seen.Add(candidate))
-                {
-                    break;
-                }
+                Add(files, RoomSetFile.Read(set));
+            }
 
-                byte[]? bytes = read(candidate);
-                if (bytes is { Length: > 0 })
-                {
-                    Add(files, RoomSetFile.Read(bytes));
-                    break;
-                }
-
-                seen.Remove(candidate);
+            if (Named(master, file.Overlays, read, seen) is { } overlays)
+            {
+                Add(files, OverlayList.Read(overlays));
             }
         }
 
         return [.. files];
+    }
+
+    /// <summary>
+    /// The file a master names, read AS WRITTEN, THEN BESIDE THE MASTER, as RePoE resolves it - the first that reads - or null where none does, or the file was read already.
+    /// </summary>
+    private static byte[]? Named(string master, string named, Func<string, byte[]?> read, HashSet<string> seen)
+    {
+        foreach (string candidate in MasterFile.Candidates(master, named))
+        {
+            if (!seen.Add(candidate))
+            {
+                return null;
+            }
+
+            byte[]? bytes = read(candidate);
+            if (bytes is { Length: > 0 })
+            {
+                return bytes;
+            }
+
+            seen.Remove(candidate);
+        }
+
+        return null;
     }
 
     /// <summary>The folder a path sits in, with its trailing slash - empty for a bare name.</summary>
@@ -204,6 +253,14 @@ public static class AreaRoomSet
         foreach (RoomSetEntry room in set.Rooms)
         {
             files.Add(room.Arm);
+        }
+    }
+
+    private static void Add(SortedSet<string> files, OverlayList overlays)
+    {
+        foreach (OverlayEntry room in overlays.Entries)
+        {
+            files.Add(room.Room);
         }
     }
 }

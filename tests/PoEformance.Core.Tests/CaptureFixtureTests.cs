@@ -298,6 +298,107 @@ public partial class CaptureFixtureTests
         Assert.All(levels, level => Assert.True(level.Groups[1].Value.Length == 0, "a doodad does not stand at its line's z above its tile's level: " + level.Value));
     }
 
+    /// <summary>
+    /// Every room is its module's overlap plus whole steps each way, and where the capture carries its master, every room of the master's
+    /// module the doodads or tiles place stands on the master's lattice at its strongest - from the buffer, every side less the overlap.
+    /// </summary>
+    /// <remarks>
+    /// PLACED WITHOUT THE LATTICE, so it is held against places it had no hand in (CaptureReplayTests.LatticeReplay). Augury's places off
+    /// it were the weaker of two places of one room, and stood 25 to 97 units from their lines where every place on it stood within 10 -
+    /// pinned as the rule that every doodad place off the lattice stands further from its lines than every one on it.
+    /// </remarks>
+    [Theory]
+    [InlineData("augury")]
+    [InlineData("marrow")]
+    [InlineData("sulphuric-caverns")]
+    public void THELATTICEHoldsEveryRoomOfTheMastersModule(string name)
+    {
+        string replay = CaptureReplayTests.LatticeReplay(Capture(name));
+        Assert.StartsWith("lattice: 1 masters in the capture name 1 lattices", replay, StringComparison.Ordinal);
+        Assert.Matches(@"across \d+ = [^\n]*, whole, down \d+ = [^\n]*, whole", replay);
+        Assert.Matches(@"rooms: \d+, \d+ of them the overlap plus whole steps of their module each way \(\d+ of a module no master here names\), 0 not", replay);
+
+        Match held = LatticeHeld().Match(replay);
+        Assert.True(held.Success);
+        Assert.True(int.Parse(held.Groups[1].Value, CultureInfo.InvariantCulture) > 0);
+        Assert.Equal(held.Groups[1].Value, held.Groups[2].Value);
+        Assert.Equal("0", held.Groups[3].Value);
+
+        var on = new List<int>();
+        var off = new List<int>();
+        foreach (Match place in LatticePlace().Matches(replay))
+        {
+            (place.Groups[2].Value == "on" ? on : off).Add(int.Parse(place.Groups[1].Value, CultureInfo.InvariantCulture));
+        }
+
+        Assert.All(off, units => Assert.True(units > on.DefaultIfEmpty(0).Max(), $"a place off the lattice stands {units} units from its lines, no further than one on it"));
+    }
+
+    /// <summary>The captures without a master: every room is still its own module's overlap plus whole steps each way.</summary>
+    [Theory]
+    [InlineData("oasis")]
+    [InlineData("steppe")]
+    [InlineData("steaming-springs")]
+    public void EVERYRoomIsItsModulesOverlapPlusWholeSteps(string name)
+        => Assert.Matches(@"rooms: \d+, \d+ of them the overlap plus whole steps of their module each way \(\d+ of a module no master here names\), 0 not", CaptureReplayTests.LatticeReplay(Capture(name)));
+
+    /// <summary>
+    /// Where two of Augury's placed rooms lay their rims on one row and both slots name dungeon_thick_wall on a side, the tile the game
+    /// laid has what the master's edge combinations make of the two - nothing (an opening) or dungeon_stairs - on nine sides in ten,
+    /// and both of the two lines are taken.
+    /// </summary>
+    /// <remarks>
+    /// THE TALK'S "WALL + WALL = NO WALL", measured (CaptureReplayTests.JoinsReplay): 168 of 184 such sides, 84 open and 84 stairs, a
+    /// join mostly one or the other whole. The rest: the boss room's joins with the lever rooms keep the thick wall (12 sides), and one
+    /// join lays dungeon_ledge (4). What picks the opening or the stairs is not in either slot's numbers - every such side carries the
+    /// pair 1/3 - nor in the corner heights, all nought; the file's own number (none for the opening, 1 for the stairs) is unread.
+    /// </remarks>
+    [Fact]
+    public void THEJOINSOfAuguryAreWhatItsEdgeCombinationsMakeOfTheTwoRims()
+    {
+        string replay = CaptureReplayTests.JoinsReplay(Capture("augury"));
+        Match joins = Joins().Match(replay);
+        Assert.True(joins.Success);
+        int named = int.Parse(joins.Groups[1].Value, CultureInfo.InvariantCulture), held = int.Parse(joins.Groups[2].Value, CultureInfo.InvariantCulture);
+        Assert.True(named > 100, $"only {named} sides met a pair the edge combinations name");
+        Assert.True(held * 10 >= named * 9, $"{held} of {named} sides laid what the edge combinations make");
+        Assert.Matches(@"dungeon_thick_wall \+ dungeon_thick_wall: [^\n]*- x\d+[^\n]*\.ecf makes - or dungeon_stairs 1", replay);
+        Assert.Matches(@"dungeon_thick_wall \+ dungeon_thick_wall: [^\n]*dungeon_stairs x\d+", replay);
+    }
+
+    /// <summary>
+    /// Augury's overlays both say +SuppressUnderlyingDoodads, and every prop line of a placed room whose entity is missing stands where
+    /// one of them fits the laid tiles - none anywhere else.
+    /// </summary>
+    /// <remarks>
+    /// MEASURED, NOT BUILT ON (CaptureReplayTests.OverlaysReplay): 32 missing lines, every one under a place an overlay's every slot fits,
+    /// 879 present and none missing under none; 24 of the 32 on a tile that is not what the room's own slot asks, where 2 of the 946
+    /// present ones are. Excusing those lines from a room's two thirds would place none of the thirteen rooms the doodads leave without a
+    /// place - their props are missing everywhere, not under an overlay - so the placing is left as it is.
+    /// </remarks>
+    [Fact]
+    public void THEOVERLAYSOfAugurySuppressThePropsBeneathThem()
+    {
+        string replay = CaptureReplayTests.OverlaysReplay(Capture("augury"));
+        Assert.Contains("boss_entrance_blank limit=1 !door_boss +OverlayFeatureRooms +OverlayFeatureTiles +SuppressUnderlyingDoodads", replay, StringComparison.Ordinal);
+        Match under = Suppressed().Match(replay);
+        Assert.True(under.Success);
+        Assert.True(int.Parse(under.Groups[1].Value, CultureInfo.InvariantCulture) >= 20, "too few missing lines under a suppressing overlay to say anything");
+        Assert.Matches(@"under no overlay: \d{3,} present, 0 missing", replay);
+    }
+
+    [GeneratedRegex(@"under a suppressing overlay's place: \d+ present, (\d+) missing")]
+    private static partial Regex Suppressed();
+
+    [GeneratedRegex(@"(\d+) met a pair the edge combinations name, the laid side what they make at (\d+)")]
+    private static partial Regex Joins();
+
+    [GeneratedRegex(@"places of rooms held to a lattice: \d+ on it, \d+ off it; (\d+) such rooms placed, (\d+) with their strongest place on it; (\d+) with a place off it stronger")]
+    private static partial Regex LatticeHeld();
+
+    [GeneratedRegex(@"doodads, off (\d+): (on|OFF) the lattice")]
+    private static partial Regex LatticePlace();
+
     [GeneratedRegex(@"room way (\d), tile way (\d): edges (\d+) agree, (\d+) disagree")]
     private static partial Regex Pair();
 

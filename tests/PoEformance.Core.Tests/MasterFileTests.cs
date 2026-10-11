@@ -47,6 +47,26 @@ public class MasterFileTests
         Assert.Equal("tiles.tst", utf16.Values["TileSet"]);
     }
 
+    /// <summary>The numbers the room lattice is made of, and the two files GGG's procedural-generation talk explains, as Augury's master writes them.</summary>
+    [Fact]
+    public void AMASTERNamesItsModuleItsOverlaysAndItsEdgeCombinations()
+    {
+        MasterFile master = MasterFile.Parse(
+            "version 3\r\nRoomUnitSize\t5\r\nStoreyHeight\t16\r\nOuterBufferSize\t4\r\nRoomOverlap\t\t1\r\n"
+            + "Overlays\t\t\"overlays.toy\"\r\nEdgeCombination\t\"combination.ecf\"\r\n");
+
+        Assert.Equal(5, master.RoomUnitSize);
+        Assert.Equal(1, master.RoomOverlap);
+        Assert.Equal(4, master.OuterBufferSize);
+        Assert.Equal("overlays.toy", master.Overlays);
+        Assert.Equal("combination.ecf", master.EdgeCombination);
+
+        MasterFile bare = MasterFile.Parse("version 3\nRoomUnitSize big\n");
+        Assert.Null(bare.RoomUnitSize);
+        Assert.Null(bare.RoomOverlap);
+        Assert.Equal(string.Empty, bare.Overlays);
+    }
+
     /// <summary>A name is tried as written and then beside the master, with GGG's backslashes and doubled slashes straightened; a full path that is its own neighbour is tried once; no name is no candidate.</summary>
     [Fact]
     public void ANAMEIsLookedForAsWrittenThenBesideTheMaster()

@@ -64,6 +64,12 @@ public sealed class AreaRooms
     private IReadOnlyList<string>? _setMasters;
     private IReadOnlyList<string> _set = [];
 
+    /// <summary>The lattices the area's masters name, made with the set - see RoomLattice. A room of the area's module is placed on its lattice alone.</summary>
+    private RoomLattices _lattices = RoomLattices.None;
+
+    /// <summary>The lattices the rooms were last read and placed under - a new set of them places the rooms again, as a new grid does.</summary>
+    private RoomLattices? _latticesOf;
+
     /// <summary>The rooms' files being read, and read.</summary>
     private Task<List<(string Room, RoomLayout Layout)>>? _reading;
     private List<(string Room, RoomLayout Layout)>? _layouts;
@@ -183,6 +189,9 @@ public sealed class AreaRooms
         }
     }
 
+    /// <summary>The lattices the area's masters name, as the last <see cref="RoomSet"/> read them - see RoomLattice.</summary>
+    public RoomLattices Lattices => _lattices;
+
     /// <summary>The room's file as read, or null where it is not one of the area's or not read yet.</summary>
     public RoomLayout? LayoutOf(string room)
     {
@@ -211,6 +220,7 @@ public sealed class AreaRooms
             _setOf = loaded;
             _setMasters = masters;
             _set = AreaRoomSet.Files(loaded, _read, masters);
+            _lattices = AreaRoomSet.Lattices(loaded, _read, masters);
         }
 
         return _set;
@@ -288,6 +298,7 @@ public sealed class AreaRooms
         ConcurrentDictionary<string, RoomScorer?> scorers = _scorers ??= new(StringComparer.OrdinalIgnoreCase);
         ConcurrentDictionary<string, RoomTilePlaces> tilePlaces = _tilePlaces ??= new(StringComparer.OrdinalIgnoreCase);
         Func<string, TileIdentity?> identity = Identity();
+        RoomLattices lattices = _lattices;
         List<DoodadSighting> remembered = _memory.Held();
         _placedVersion = _memory.Version;
         _placedAt = Environment.TickCount64;
@@ -304,7 +315,7 @@ public sealed class AreaRooms
             }
 
             (List<(string Room, RoomLayout Layout, RoomDoodadPlaces Places)> placed, List<(string Room, RoomLayout Layout, RoomCandidate Where)> standing) =
-                Place(layouts, survey.Found, ground, tilesX, tilesY, tiles, grid.WalkableTileMask(), scorers, identity, tilePlaces);
+                Place(layouts, survey.Found, ground, tilesX, tilesY, tiles, grid.WalkableTileMask(), scorers, identity, tilePlaces, lattices);
             return (survey, placed, standing);
         });
         return true;
@@ -325,11 +336,12 @@ public sealed class AreaRooms
             return null;
         }
 
-        if (!ReferenceEquals(grid, _grid) || rooms.Count != _rooms)
+        if (!ReferenceEquals(grid, _grid) || rooms.Count != _rooms || !ReferenceEquals(_lattices, _latticesOf))
         {
             // LET THE OLD ONE RUN OUT: it reads nothing this one changes, and its answer is dropped.
             _grid = grid;
             _rooms = rooms.Count;
+            _latticesOf = _lattices;
             _layouts = null;
             _searched = null;
             _walkable = null;
@@ -384,7 +396,8 @@ public sealed class AreaRooms
                 int[] done = [0];
                 _done = done;
                 Volatile.Write(ref _of, layouts.Count);
-                _running = Task.Run(() => Search(layouts, grid, ground, done));
+                RoomLattices lattices = _lattices;
+                _running = Task.Run(() => Search(layouts, grid, ground, done, lattices));
             }
         }
 
@@ -420,6 +433,7 @@ public sealed class AreaRooms
         ConcurrentDictionary<string, RoomScorer?> scorers = _scorers ??= new(StringComparer.OrdinalIgnoreCase);
         ConcurrentDictionary<string, RoomTilePlaces> tilePlaces = _tilePlaces ??= new(StringComparer.OrdinalIgnoreCase);
         Func<string, TileIdentity?> identity = Identity();
+        RoomLattices lattices = _lattices;
         List<DoodadSighting> remembered = _memory.Held();
         _placedVersion = _memory.Version;
         _placedAt = now;
@@ -427,7 +441,7 @@ public sealed class AreaRooms
         {
             DoodadSurvey survey = surveyed with { Found = DoodadMemory.Merged(surveyed.Found, remembered) };
             (List<(string Room, RoomLayout Layout, RoomDoodadPlaces Places)> placed, List<(string Room, RoomLayout Layout, RoomCandidate Where)> standing) =
-                Place(layouts, survey.Found, ground, tilesX, tilesY, tiles, grid.WalkableTileMask(), scorers, identity, tilePlaces);
+                Place(layouts, survey.Found, ground, tilesX, tilesY, tiles, grid.WalkableTileMask(), scorers, identity, tilePlaces, lattices);
             return (survey, placed, standing);
         });
     }
@@ -445,12 +459,13 @@ public sealed class AreaRooms
         bool[] walkable,
         ConcurrentDictionary<string, RoomScorer?> scorers,
         Func<string, TileIdentity?> identity,
-        ConcurrentDictionary<string, RoomTilePlaces> tilePlaces)
+        ConcurrentDictionary<string, RoomTilePlaces> tilePlaces,
+        RoomLattices lattices)
     {
         var found = new List<(string Room, RoomDoodadPlaces Places)>(layouts.Count);
         foreach ((string room, RoomLayout layout) in layouts)
         {
-            RoomDoodadPlaces places = RoomDoodadFinder.Find(layout.Doodads, layout.Width, layout.Height, sightings, tilesX, tilesY);
+            RoomDoodadPlaces places = RoomDoodadFinder.Find(layout.Doodads, layout.Width, layout.Height, sightings, tilesX, tilesY, lattices.For(layout));
             if (places.Places.Count > 0)
             {
                 // THE TILES AT EACH PLACE FOUND - the tie-breaker between variants that share every
@@ -476,7 +491,7 @@ public sealed class AreaRooms
         // and only they are asked again.
         if (tiles is not null && tiles.Width == tilesX && tiles.Height == tilesY)
         {
-            placed = RoomTileFinder.Settled(placed, (room, layout) => tilePlaces.GetOrAdd(room, _ => RoomTileFinder.Find(layout, tiles, identity)), sightings);
+            placed = RoomTileFinder.Settled(placed, (room, layout) => tilePlaces.GetOrAdd(room, _ => RoomTileFinder.Find(layout, tiles, identity, lattices.For(layout))), sightings);
         }
 
         var standing = new List<(string Room, RoomLayout Layout, RoomCandidate Where)>();
@@ -548,7 +563,7 @@ public sealed class AreaRooms
 
     /// <summary>Every room searched in turn by its ground and tiles, and the walkable mask they were searched with - the fallback where the entities cannot be read.</summary>
     private (List<(string Room, RoomLayout Layout, RoomSearch Search)> Rooms, bool[] Walkable) Search(
-        List<(string Room, RoomLayout Layout)> layouts, TerrainGrid grid, TerrainGroundTypes ground, int[] done)
+        List<(string Room, RoomLayout Layout)> layouts, TerrainGrid grid, TerrainGroundTypes ground, int[] done, RoomLattices lattices)
     {
         // EACH TILE FILE ONCE across every room - the same cache the tile book keeps per area.
         Func<string, TileIdentity?> identity = Identity();
@@ -556,7 +571,7 @@ public sealed class AreaRooms
         var searched = new List<(string Room, RoomLayout Layout, RoomSearch Search)>(layouts.Count);
         foreach ((string file, RoomLayout layout) in layouts)
         {
-            RoomSearch search = RoomFinder.Find(layout, ground, grid.TilesX, grid.TilesY, grid.Tiles, identity, walkable: walkable);
+            RoomSearch search = RoomFinder.Find(layout, ground, grid.TilesX, grid.TilesY, grid.Tiles, identity, walkable: walkable, lattice: lattices.For(layout));
             searched.Add((file, layout, search));
             Interlocked.Increment(ref done[0]);
         }

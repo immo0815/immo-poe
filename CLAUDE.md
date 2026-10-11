@@ -374,8 +374,9 @@ a picture not looked at closely: the gangway and the ship are wood, the pier is 
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
 Six captures are committed under
 `tests/fixtures/captures/` (its README says why each), and `CaptureFixtureTests` holds the orientation
-rule, the origin rule, the settled slots, the fill rule, the tile doodads' frame and height and the one
-laid word against them on every build. Two captures of one area forty
+rule, the origin rule, the settled slots, the fill rule, the tile doodads' frame and height, the one
+laid word, the room lattice, the joins' edge combinations and the overlays' suppressed props against them
+on every build. Two captures of one area forty
 minutes apart are how it was learned that the power-line pieces and checkpoints come and go
 with play while the plain props never move; hold a finder change against a capture before
 asking for a screenshot. The reason they come and go is the network bubble: a scripted
@@ -420,7 +421,43 @@ whose `RoomSet` line names the set; The Stone Citadel's list carried neither, bo
 from an earlier visit. So three roads are read: the listed sets, the listed masters, and
 the masters the install's index lists in the folder above the rooms' `Rooms/` - where 456
 of RePoE's 458 map graphs keep theirs. A list that lacks a thing is not evidence the area
-lacks it.
+lacks it. And a fourth: a master's `Overlays` list (`.toy`, `OverlayList`) names rooms no set does -
+the overlays, laid in a pass of their own - so it is read too, and a loaded `.toy` likewise.
+
+**The generator's own rules are in the master, and a talk said where to look.** GGG's procedural-generation
+talk (Rhys Abraham, ExileCon, known here through a third party's notes - a lead, not a source) has rooms laid
+on a grid overlapping by one tile, their keys merged there by rules, and overlays laid over the made layout by
+matching shapes. Every master names the numbers and files for that - `RoomUnitSize`, `RoomOverlap`,
+`OuterBufferSize`, `EdgeCombination` (`.ecf`), `Overlays` (`.toy`), `MergeInsideWalls` - and nothing read them.
+Measured on the committed captures (`lattice-replay.txt`, `joins-replay.txt`, `overlays-replay.txt`, pinned in
+`CaptureFixtureTests`):
+- **THE LATTICE** (`RoomLattice`). A room's dimension line is its master's module - Augury "5 1", poe_data_tools'
+  unnamed `side_length` and `uint1` (`RoomLayout.ModuleSide`) - and all 548 rooms of the six captures are the
+  overlap plus whole steps of (side - overlap) each way. A room of the master's module stands at
+  `OuterBufferSize + k x (side - overlap)` both ways: Augury 29 of 29 places with their lines within ten units,
+  Marrow's and Sulphuric's bosses; the grid comes out whole (Augury 53 = 4 + 11 x 4 + 1 + 4). The places off it
+  were the weaker twin of a place on it, 25 to 152 units from their lines. So the doodads, the tiles and the
+  search place such a room on its lattice alone - a step squared fewer candidates for the search. A fill or league
+  room ("3 0", "1 0", "3 1") lies anywhere and is not held. Oasis, Steppe and Steaming Springs predate
+  `area-masters.txt`: their module rooms sit on one residue, 1, of their own step, the buffer unread.
+- **THE JOINS.** Where two of Augury's placed rooms lay their rims on one row and both slots name
+  `dungeon_thick_wall` on a side, the game laid what `combination.ecf` makes of the two - nothing (an opening) or
+  `dungeon_stairs` - on 168 of 184 sides, 84 each, mostly one or the other a whole join; the boss room's joins
+  with the lever rooms keep the wall (12), one join lays a ledge (4). What picks the opening or the stairs is NOT
+  in either slot's edge pair (all 1/3) nor the corner heights (all nought); the `.ecf`'s own number (none for the
+  opening, 1 for the stairs) is unread. This is what `RoomMisses`' openings and caps were found from a screenshot.
+  Nothing builds with it yet - `RoomBuilder` builds a room alone, and a join is two rooms'.
+- **THE OVERLAYS.** Augury's two both say `+SuppressUnderlyingDoodads`, and every one of the 32 prop lines of a
+  placed room with no entity stands where an overlay's every slot fits the laid tiles - 879 present and none
+  missing anywhere else; 24 of the 32 on a tile that is not what the room's own slot asks. Excusing them would
+  place none of Augury's thirteen unplaced rooms (their props are missing everywhere - not laid), so the placing
+  is unchanged; it explains the rings on placed rooms.
+- **THE SECOND GRID** (`GridLandscapeData`) is, by ExileCore's naming of the same pair (PoE1: LayerMelee,
+  LayerRanged, read by its Radar as targeting data) and the talk's "tall geometry that blocks projectiles", likely
+  the projectiles' grid. A hypothesis: the capture part `landscape.txt` (`CaptureParts.Landscape`, `TerrainLayers`,
+  `CaptureLandscape`) holds both grids against each other, the ground under every cell and the edge of where
+  anybody can stand; `LandscapeReplay` reads it back. Settle it from a capture of an area with walls AND chasms
+  before anything reads it.
 
 ## Raise the version on every push
 
