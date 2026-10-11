@@ -144,6 +144,9 @@ public class OverlaySettingsRoundTripTests
             TerrainRim: false,
             TerrainFillColour: "#102030",
             TerrainFillOpacity: 35,
+            ShowShots: false,
+            ShotsColour: "#203040",
+            ShotsOpacity: 55,
             HideNoise: false,
             RememberOutOfRange: false,
             ShowPoi: false,
@@ -369,9 +372,16 @@ public class OverlaySettingsMergeTests
             TerrainFillColour = "#040506",
             TerrainFillOpacity = 15,
             ShowTerrain = false,
+            ShowShots = false,
+            ShotsColour = "#070809",
+            ShotsOpacity = 45,
         };
 
         PoEformance.Features.OverlaySettings merged = Chosen().MergeFromPage(sent);
+
+        Assert.False(merged.ShowShots);
+        Assert.Equal("#070809", merged.ShotsColour);
+        Assert.Equal(45, merged.ShotsOpacity);
 
         Assert.Equal(PoEformance.Game.Components.ItemRarity.Rare, merged.MinLootRarity);
         Assert.Equal("#010203", merged.TerrainColour);
@@ -405,6 +415,29 @@ public class OverlaySettingsMergeTests
             PoEformance.Features.OverlaySettings.ParseColour("#0B1B2B") & 0x00FF_FFFF,
             packed & 0x00FF_FFFF);
         Assert.Equal(0u, PoEformance.Features.OverlaySettings.WithOpacity(0xFFFFFFFFu, 0) >> 24);
+    }
+
+    [Fact]
+    public void THEPROJECTILESheetIsOnAndAPercentageOfAColourToo()
+    {
+        // On by default, asked for so; light, because over an abyss nearly all the map is such ground.
+        PoEformance.Features.OverlaySettings defaults = PoEformance.Features.OverlaySettings.Default;
+        Assert.True(defaults.ShowShots);
+        Assert.Equal(77u, defaults.ShotsPacked >> 24);
+        Assert.Equal(PoEformance.Features.OverlaySettings.ParseColour("#E0A040") & 0x00FF_FFFF, defaults.ShotsPacked & 0x00FF_FFFF);
+
+        PoEformance.Features.OverlaySettings wild = (defaults with { ShotsOpacity = 250, ShotsColour = "amber" }).Normalised();
+        Assert.Equal(100, wild.ShotsOpacity);
+        Assert.Equal(defaults.ShotsColour, wild.ShotsColour);
+        Assert.Equal(0, (defaults with { ShotsOpacity = -1 }).Normalised().ShotsOpacity);
+
+        // A file from before the sheet has no keys for it, and gets the sheet as the defaults say.
+        PoEformance.Features.OverlaySettings old = System.Text.Json.JsonSerializer.Deserialize(
+            """{ "minLootRarity": "Magic", "showTerrain": true }""",
+            PoEformance.Features.OverlayJsonContext.Default.OverlaySettings)!;
+        Assert.True(old.ShowShots);
+        Assert.Equal(defaults.ShotsColour, old.ShotsColour);
+        Assert.Equal(defaults.ShotsOpacity, old.ShotsOpacity);
     }
 
     [Fact]

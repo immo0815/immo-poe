@@ -1,5 +1,9 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using PoEformance.Core.Memory;
+using PoEformance.Features;
+using PoEformance.Game;
+using PoEformance.Game.World;
 
 namespace PoEformance.Core.Tests;
 
@@ -440,6 +444,92 @@ public partial class CaptureFixtureTests
             long down = long.Parse(ones.Groups[1].Value, CultureInfo.InvariantCulture), none = long.Parse(ones.Groups[2].Value, CultureInfo.InvariantCulture);
             Assert.True(down > 1000 && none * 1000 <= down, $"{grid}: {none} ones with no nought beside them, {down} with one");
         }
+    }
+
+    /// <summary>
+    /// The projectile sheet (TerrainOutline.Shots) over the two captures' own grids: beside every edge of the walkable
+    /// ground, the ground a shot crosses is drawn where the floor beside it is - lifted to the floor's height, not
+    /// left at its own.
+    /// </summary>
+    /// <remarks>
+    /// THE GROTTO SAID WHY (v0.1.218): its abyss lies up to 85 cells of displacement below the paths, so drawn at its own
+    /// height or flat the sheet sat tens of cells off the outline; and pushed cell by cell to the floor's height it tore
+    /// into black wedges wherever the nearest floor changed height - which is why each pixel gathers its cells instead.
+    /// Counted here: an edge cell's shot-only neighbour, moved by the edge cell's own shift, lands on a drawn pixel - in
+    /// both areas all but about one in 150, and those a pixel off, where the edge's height steps by a cell inside one
+    /// block of the lift (blocks of four missed twice as many, at the same cost).
+    /// </remarks>
+    [Theory]
+    [InlineData("traitors-passage", 644023)]
+    [InlineData("titan-grotto", 7630179)]
+    public void THEPROJECTILESheetMeetsTheFloorItBorders(string name, long cells)
+    {
+        TerrainGrid grid = RecordedTerrain(Capture(name));
+        Assert.True(grid.HasShotGrid, grid.ShotNote);
+
+        ShotPlan plan = TerrainOutline.Shots(grid, 2048, isoHeightShift: true);
+        Assert.Equal(cells, plan.Cells);
+
+        long met = 0, beside = 0, far = 0, shut = 0;
+        for (int y = 0; y < grid.Height; y++)
+        {
+            for (int x = 0; x < grid.Width; x++)
+            {
+                if (!grid.IsWalkable(x, y))
+                {
+                    continue;
+                }
+
+                // No walkable cell is shut to a projectile - what makes the sheet a difference rather than a second floor.
+                shut += grid.CanShootOver(x, y) ? 0 : 1;
+                int shift = grid.IsoHeightShift(x, y);
+                foreach ((int nx, int ny) in (ReadOnlySpan<(int, int)>)[(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)])
+                {
+                    if (!grid.IsShotOnly(nx, ny) || nx - shift < 0 || ny - shift < 0)
+                    {
+                        continue;
+                    }
+
+                    int px = (nx - shift) / plan.Step, py = (ny - shift) / plan.Step;
+                    if (px >= plan.Width || py >= plan.Height)
+                    {
+                        continue;
+                    }
+
+                    if (Drawn(plan, px, py))
+                    {
+                        met++;
+                    }
+                    else if (Drawn(plan, px - 1, py) || Drawn(plan, px + 1, py) || Drawn(plan, px, py - 1) || Drawn(plan, px, py + 1)
+                        || Drawn(plan, px - 1, py - 1) || Drawn(plan, px + 1, py + 1) || Drawn(plan, px - 1, py + 1) || Drawn(plan, px + 1, py - 1))
+                    {
+                        beside++;
+                    }
+                    else
+                    {
+                        far++;
+                    }
+                }
+            }
+        }
+
+        Assert.Equal(0, shut);
+        Assert.True(met > 20_000 && beside * 100 <= met && far * 1000 <= met, $"{met} edge cells met, {beside} a pixel off, {far} further");
+    }
+
+    private static bool Drawn(ShotPlan plan, int x, int y)
+        => (uint)x < (uint)plan.Width && (uint)y < (uint)plan.Height && plan.Coverage[(y * plan.Width) + x] != 0;
+
+    /// <summary>The terrain grid the capture's recording reads back as the tool reads it live - both grids, the heights.</summary>
+    private static TerrainGrid RecordedTerrain(string folder)
+    {
+        using var replay = ReplayMemoryReader.Load(File.OpenRead(Path.Combine(folder, CaptureReport.MemoryFile)));
+        Assert.True(replay.ResolvedStatics.TryGetValue("GameStates", out ulong gameStates));
+        var rotation = new TerrainRotationTables(
+            replay.ResolvedStatics.GetValueOrDefault("TerrainRotationSelector"),
+            replay.ResolvedStatics.GetValueOrDefault("TerrainRotatorHelper"));
+        WorldSnapshot snapshot = new WorldReader(replay, RealSessionTests.LiveSchema(), rotation).Read(gameStates, CaptureMemory.MostEntities);
+        return Assert.IsType<TerrainGrid>(snapshot.Terrain);
     }
 
     [GeneratedRegex(@"under a suppressing overlay's place: \d+ present, (\d+) missing")]

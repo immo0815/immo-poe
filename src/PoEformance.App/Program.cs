@@ -3968,7 +3968,18 @@ internal static class Program
                     overlay.TerrainRim,
                     overlay.TerrainFillColour,
                     overlay.TerrainFillOpacity,
-                    DescribeTerrain(overlayHandle)),
+                    DescribeTerrain(overlayHandle),
+                    overlay.ShowShots,
+
+                    // What is drawn, as for the layout: the style editor's colour carries its own alpha, which is the
+                    // sheet's opacity - shown back as the percentage the slider would have set.
+                    overlayHandle.Overlay is PoEformance.Overlay.EntityOverlay sheet
+                        ? PoEformance.Features.OverlaySettings.FormatPageColour(sheet.ShotsColourInUse)
+                        : overlay.ShotsColour,
+                    overlayHandle.Overlay is PoEformance.Overlay.EntityOverlay faded
+                        ? (int)Math.Round((faded.ShotsColourInUse >> 24) * 100 / 255.0)
+                        : overlay.ShotsOpacity,
+                    DescribeShots(overlayHandle)),
                 Map: BuildMapView(snapshot, overlay.MinLootRarity),
 
                 // Read off the engine rather than kept beside it. The engine normalises what
@@ -4195,6 +4206,10 @@ internal static class Program
                             overlay.TerrainRim,
                             PoEformance.Features.OverlaySettings.ParseColour(overlay.TerrainFillColour),
                             overlay.TerrainFillOpacity);
+                        live.ShowShots = overlay.ShowShots;
+                        live.ChooseShotStyle(
+                            PoEformance.Features.OverlaySettings.ParseColour(overlay.ShotsColour),
+                            overlay.ShotsOpacity);
                     }
 
                     SaveWarning(
@@ -4371,6 +4386,9 @@ internal static class Program
 
     private static string DescribeTerrain(OverlayHandle handle)
         => handle.Overlay is null ? "overlay not running" : handle.Overlay.DescribeTerrain();
+
+    private static string DescribeShots(OverlayHandle handle)
+        => handle.Overlay is null ? "overlay not running" : handle.Overlay.DescribeShots();
 
     /// <summary>Whether the thread that feeds the rules is running, and what it last hit.</summary>
     /// <remarks>

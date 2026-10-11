@@ -30,6 +30,7 @@ function renderState(s) {
     // holds its value until the dialog is committed, so a poll landing in between would
     // put the old colour back - which is what "the swatch reverts after a second" was.
     $("ov-terrain-state").textContent = s.overlay.terrain;
+    $("ov-shots-state").textContent = s.overlay.shots;
     if (Date.now() >= overlayEditingUntil) {
       $("ov-loot").value = s.overlay.minLootRarity;
       $("ov-terrain").checked = s.overlay.showTerrain;
@@ -40,6 +41,10 @@ function renderState(s) {
       $("ov-terrain-fill-colour").value = s.overlay.terrainFillColour;
       $("ov-terrain-fill").value = s.overlay.terrainFillOpacity;
       $("ov-terrain-fill-value").textContent = `${s.overlay.terrainFillOpacity} %`;
+      $("ov-shots").checked = s.overlay.showShots;
+      $("ov-shots-colour").value = s.overlay.shotsColour;
+      $("ov-shots-opacity").value = s.overlay.shotsOpacity;
+      $("ov-shots-opacity-value").textContent = `${s.overlay.shotsOpacity} %`;
     }
   }
 
@@ -126,12 +131,15 @@ function sendOverlay() {
       terrainRim: $("ov-terrain-rim").checked,
       terrainFillColour: $("ov-terrain-fill-colour").value,
       terrainFillOpacity: Number($("ov-terrain-fill").value),
+      showShots: $("ov-shots").checked,
+      shotsColour: $("ov-shots-colour").value,
+      shotsOpacity: Number($("ov-shots-opacity").value),
     },
   });
 }
 
 for (const id of ["ov-loot", "ov-terrain", "ov-terrain-colour", "ov-terrain-thickness", "ov-terrain-rim",
-  "ov-terrain-fill-colour", "ov-terrain-fill"]) {
+  "ov-terrain-fill-colour", "ov-terrain-fill", "ov-shots", "ov-shots-colour", "ov-shots-opacity"]) {
   // Touching a control claims it, even before anything is sent: dragging a colour picker
   // fires "input" for a while before the "change" that commits it.
   $(id).addEventListener("input", () => (overlayEditingUntil = Date.now() + 1500));
@@ -153,6 +161,14 @@ $("ov-terrain-fill-colour").addEventListener("change", sendOverlay);
 $("ov-terrain-fill").addEventListener("input", () =>
   ($("ov-terrain-fill-value").textContent = `${$("ov-terrain-fill").value} %`));
 $("ov-terrain-fill").addEventListener("change", sendOverlay);
+
+// The projectile sheet is a tint over a texture that does not change with it, so its controls cost nothing on the
+// overlay; "change" anyway, so a drag is one save rather than fifty.
+$("ov-shots").addEventListener("change", sendOverlay);
+$("ov-shots-colour").addEventListener("change", sendOverlay);
+$("ov-shots-opacity").addEventListener("input", () =>
+  ($("ov-shots-opacity-value").textContent = `${$("ov-shots-opacity").value} %`));
+$("ov-shots-opacity").addEventListener("change", sendOverlay);
 
 // ── Auto flask ─────────────────────────────────────────────────────────────
 
@@ -741,7 +757,7 @@ if (bridge.connected) {
     entityCount: 0,
     staticsFound: 0,
     staticsTotal: 6,
-    overlay: { minLootRarity: "Magic", showTerrain: true, terrainColour: "#dce3ea", terrainThickness: 1, terrainRim: true, terrainFillColour: "#0b1b2b", terrainFillOpacity: 70, terrain: "browser preview" },
+    overlay: { minLootRarity: "Magic", showTerrain: true, terrainColour: "#dce3ea", terrainThickness: 1, terrainRim: true, terrainFillColour: "#0b1b2b", terrainFillOpacity: 70, terrain: "browser preview", showShots: true, shotsColour: "#e0a040", shotsOpacity: 30, shots: "browser preview" },
     autoFlask: {
       enabled: false,
       keySource: "Defaults - no host",

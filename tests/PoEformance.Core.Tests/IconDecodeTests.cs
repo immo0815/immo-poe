@@ -117,7 +117,7 @@ public class IconDecodeTests
     {
         // The configurations above are allowed to be named, so what the names MEAN has to be
         // checked too - otherwise a configuration that never sets the flag passes.
-        foreach (string file in new[] { "IconCache.cs", "TerrainLayer.cs", "TerrainFloor.cs", "MonsterPortrait.cs" })
+        foreach (string file in new[] { "IconCache.cs", "TerrainLayer.cs", "TerrainFloor.cs", "ShotLayer.cs", "MonsterPortrait.cs" })
         {
             string source = File.ReadAllText(Path.Combine(OverlaySources, file));
             Assert.Contains("PreferContiguousImageBuffers = true", source, StringComparison.Ordinal);

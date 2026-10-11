@@ -49,6 +49,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     private readonly BossExportPanel _bossExport;
     private ClientRect _tracked;
     private readonly TerrainLayer _terrain;
+    private readonly ShotLayer _shots;
     private readonly IconCache _icons;
     /// <summary>
     /// The reader's noise filter, so it can be switched from the overlay.
@@ -379,6 +380,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
 
         MinimumLootRarity = settings.MinLootRarity;
         ShowTerrain = settings.ShowTerrain;
+        ShowShots = settings.ShowShots;
         ShowLabels = settings.DotLabels;
         _healthBars.OnlyWhenHurt = settings.HealthBarsOnlyWhenHurt;
         HideBehindPanels = settings.HideBehindPanels;
@@ -463,6 +465,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         ApplyTerrainStyle(
             OverlaySettings.ParseColour(settings.TerrainColour), settings.TerrainThickness, settings.TerrainRim,
             OverlaySettings.ParseColour(settings.TerrainFillColour), settings.TerrainFillOpacity);
+        ApplyShotStyle(OverlaySettings.ParseColour(settings.ShotsColour), settings.ShotsOpacity);
     }
 
     /// <summary>The settings as they stand now, for writing down.</summary>
@@ -492,6 +495,9 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             TerrainRim = _terrainRim,
             TerrainFillColour = OverlaySettings.FormatPageColour(_terrainFillColour),
             TerrainFillOpacity = _terrainFillOpacity,
+            ShowShots = ShowShots,
+            ShotsColour = OverlaySettings.FormatPageColour(_shotsColour),
+            ShotsOpacity = _shotsOpacity,
             DotLabels = ShowLabels,
             HealthBarsOnlyWhenHurt = _healthBars.OnlyWhenHurt,
             HideBehindPanels = HideBehindPanels,
@@ -2322,6 +2328,9 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// <summary>Draw the area's layout on the map, including the parts not explored yet.</summary>
     public bool ShowTerrain { get; set; } = true;
 
+    /// <summary>Draw on the map the ground a projectile crosses and a body cannot - see ShotLayer.</summary>
+    public bool ShowShots { get; set; } = true;
+
     /// <summary>Draw name labels next to dots.</summary>
     public bool ShowLabels { get; set; }
 
@@ -2371,6 +2380,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         // The layer never touches the renderer directly - it is handed the two operations
         // it needs, which is what keeps its projection maths testable away from a GPU.
         _terrain = new TerrainLayer(Upload, key => RemoveImage(key));
+        _shots = new ShotLayer(Upload, key => RemoveImage(key));
         _icons = new IconCache(Upload, key => RemoveImage(key));
 
         // THE MODEL PANES' CARD, on this overlay's own device - asked for on the render thread the
@@ -4138,6 +4148,45 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     // Set by the page's thread, consumed on the render thread - see ChooseTerrainStyle.
     private bool _terrainStyleYields;
 
+    // The projectile sheet's colour and opacity, kept apart as the page holds them - for the reason the floor's are.
+    private uint _shotsColour = OverlaySettings.ParseColour(OverlaySettings.Default.ShotsColour);
+    private int _shotsOpacity = OverlaySettings.Default.ShotsOpacity;
+
+    /// <summary>Sets the projectile sheet's colour and opacity. A colour of 0 keeps the current one.</summary>
+    public void ApplyShotStyle(uint colour, int opacity)
+    {
+        if (colour != 0)
+        {
+            _shotsColour = colour;
+        }
+
+        _shotsOpacity = opacity;
+        _shots.Fill = OverlaySettings.WithOpacity(_shotsColour, opacity);
+        _shotsInUse = _shots.Fill;
+    }
+
+    /// <summary>
+    /// What the configuration page chose for the projectile sheet: applied, and made to win over the style editor's colour
+    /// until that is next used - the rule the layout follows, see ChooseTerrainStyle.
+    /// </summary>
+    public void ChooseShotStyle(uint colour, int opacity)
+    {
+        ApplyShotStyle(colour, opacity);
+        Volatile.Write(ref _shotStyleYields, true);
+    }
+
+    // Set by the page's thread, consumed on the render thread - see ChooseShotStyle.
+    private bool _shotStyleYields;
+
+    /// <summary>The projectile sheet's colour actually drawn, alpha included, once the style has had its say.</summary>
+    public uint ShotsColourInUse => _shotsInUse;
+
+    // Written by the render thread each frame the sheet is drawn; until then, the page's own choice.
+    private uint _shotsInUse = OverlaySettings.Default.ShotsPacked;
+
+    /// <summary>What the projectile sheet holds, or why it holds nothing - for the config page and the status window.</summary>
+    public string DescribeShots() => _shots.Describe(_snapshot.Terrain as TerrainGrid);
+
     /// <summary>The layout colour actually drawn, once the style has had its say.</summary>
     public uint TerrainColourInUse => _terrain.Colour;
 
@@ -4210,6 +4259,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         if (disposing)
         {
             _terrain.Dispose();
+            _shots.Dispose();
             _icons.Dispose();
             _card.Dispose();
         }
@@ -5422,6 +5472,11 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             Row("terrain", DescribeTerrain(), Measured, figure: true);
         }
 
+        if (ShowShots)
+        {
+            Row("shots", DescribeShots(), Measured, figure: true);
+        }
+
         // The hunt for the ROOM level, one line per pointer found around a tile. Only under
         // --debug and only while it finds anything, because it is a question being worked on
         // rather than a reading of the game: the names on the map today are TILES, one level
@@ -5940,6 +5995,28 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         if (Damage is DamageMeter measured)
         {
             _heat.Draw(draw, map, measured.Heat, player, _snapshot.AreaHash);
+        }
+
+        // Under the layout's floor and line, which it never shares a cell with: what only a projectile crosses.
+        if (ShowShots && Style.Visible(StyleCatalogue.Keys.Shots) && _snapshot.Terrain is TerrainGrid shotGround)
+        {
+            // The style's colour wins where it says anything, the page's where it does not, and the page's next choice
+            // clears the style's - the layout's rule, below.
+            LayerStyle sheet = Style[StyleCatalogue.Keys.Shots];
+            if (Volatile.Read(ref _shotStyleYields))
+            {
+                Volatile.Write(ref _shotStyleYields, false);
+                if (!string.IsNullOrEmpty(sheet.Colour))
+                {
+                    sheet = sheet with { Colour = "" };
+                    Style.Set(StyleCatalogue.Keys.Shots, sheet);
+                    SaveStyle();
+                }
+            }
+
+            _shotsInUse = sheet.ColourOr(OverlaySettings.WithOpacity(_shotsColour, _shotsOpacity));
+            _shots.Fill = _shotsInUse;
+            _shots.Draw(draw, map, shotGround, new Vector3(player.WorldX, player.WorldY, player.TerrainHeight));
         }
 
         // Under the markers: the layout is context, not the thing being looked for.

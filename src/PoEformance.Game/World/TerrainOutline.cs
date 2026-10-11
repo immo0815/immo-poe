@@ -38,6 +38,14 @@ public sealed record OutlineMask(byte[] Cells, int Width, int Height, int Step, 
 public sealed record FloorPlan(byte[] Coverage, int[] Source, int Width, int Height, int Step);
 
 /// <summary>
+/// The ground a projectile crosses and a body cannot, at a step something can draw - see TerrainOutline.Shots.
+/// </summary>
+/// <param name="Coverage">One byte per pixel, 0 to 255: how much of the pixel is such ground.</param>
+/// <param name="Step">Grid cells to a side of one pixel.</param>
+/// <param name="Cells">How many cells of the area are such ground, for the readouts.</param>
+public sealed record ShotPlan(byte[] Coverage, int Width, int Height, int Step, long Cells);
+
+/// <summary>
 /// Reduces a walkable grid to a drawable outline.
 /// </summary>
 /// <remarks>
@@ -230,6 +238,270 @@ public static class TerrainOutline
 
         return new FloorPlan(coverage, source, width, height, step);
     }
+
+    /// <summary>Cells to a side of the blocks that carry one height for the ground a projectile crosses - see <see cref="Shots"/>.</summary>
+    public const int ShotLiftBlock = 2;
+
+    /// <summary>
+    /// The ground a projectile crosses and a body cannot - a chasm, the foot of a wall - as a picture of its own, thinned
+    /// until it fits within <paramref name="maxEdge"/>.
+    /// </summary>
+    /// <remarks>
+    /// THE DIFFERENCE BETWEEN THE TWO GRIDS and nothing else: a cell open in the projectiles' grid (TerrainGrid.CanShootOver)
+    /// and shut in the walkable one. Every walkable cell is open in the projectiles' grid too (measured, see the schema's
+    /// GridLandscapeData), so the floor and this never share a cell, and with the layout's own floor and line drawn over it
+    /// the map shows where a body goes, where only a shot goes, and - the gaps - where neither does.
+    ///
+    /// A COVERAGE, like the floor's (<see cref="Floor"/>), so the edge of a strip a cell or two wide comes out as a
+    /// fainter pixel rather than a whole one; but at the outline's thinning rather than the floor's coarse step, and
+    /// meant to be halved into levels like the outline (TerrainPicture.Halved) - the foot of a wall is a strip a few
+    /// cells wide, which a coarse step or a skipped texel would turn into dashes.
+    ///
+    /// DRAWN AT THE HEIGHT OF THE NEAREST WALKABLE GROUND, not at its own, and that was measured before it was decided. At
+    /// the edge a chasm's own height is its walkable neighbour's (17224 of 18181 such cells in the Titan Grotto, 23698 of
+    /// 25928 in Traitor's Passage, nearly all the rest one cell off); further in it falls away - the Grotto's abyss lies
+    /// up to 85 cells of displacement below the paths above it. Displaced by its own height the abyss would fold down the
+    /// screen under the map, away from the edges it belongs to; drawn flat it sat forty cells off the Grotto's paths. And
+    /// its own height is not where a projectile crosses it: a shot flies at the height it was fired from, over the floor
+    /// of the chasm.
+    ///
+    /// GATHERED, NOT SCATTERED, and that was learned from a picture of the Grotto. Pushing each cell to its place left
+    /// black wedges wherever the nearest ground changed height - two neighbouring cells taking lifts twenty apart land
+    /// twenty apart, with nothing between. So the lift is kept where the picture is: every walkable block is put at its
+    /// displaced place with its shift, the shift carried from there to every block of the picture (<see cref="Lifts"/>),
+    /// and each pixel then reads the cells its own shift says it shows. Every pixel reads something, so nothing tears;
+    /// where the lift changes, the abyss's content jumps instead, which in open air shows as nothing. Beside the floor
+    /// the shift is the floor's own, so the fill meets the outline: on both captures (CaptureFixtureTests) all but about
+    /// one edge cell in 150 lands on its pixel and those a pixel off, where the floor's height steps by a cell inside one
+    /// block - blocks of four cells missed twice as many at the same cost, so the blocks are two. Once per area, on the
+    /// render thread, like the outline: about 90 ms for the Grotto's eight million cells.
+    /// </remarks>
+    /// <param name="isoHeightShift">Bakes the height in as the outline does - see <see cref="Build"/>.</param>
+    public static ShotPlan Shots(TerrainGrid grid, int maxEdge, bool isoHeightShift)
+    {
+        ArgumentNullException.ThrowIfNull(grid);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxEdge, 1);
+
+        // Rounded UP, as the floor is: a chasm in the last partial column is still a chasm.
+        int step = 1;
+        while (Up(grid.Width, step) > maxEdge || Up(grid.Height, step) > maxEdge)
+        {
+            step++;
+        }
+
+        int width = Math.Max(1, Up(grid.Width, step));
+        int height = Math.Max(1, Up(grid.Height, step));
+        var coverage = new byte[width * height];
+        if (grid.ShotBytes is not byte[] shots)
+        {
+            return new ShotPlan(coverage, width, height, step, 0);
+        }
+
+        byte[] cells = grid.WalkableBytes;
+        int stride = grid.BytesPerRow;
+        int liftWide = Up(grid.Width, ShotLiftBlock);
+        int liftHigh = Up(grid.Height, ShotLiftBlock);
+        (short[]? lift, long total) = Lifts(grid, cells, shots, stride, liftWide, liftHigh, isoHeightShift && grid.HasHeights);
+
+        int full = step * step;
+        int gridWidth = grid.Width;
+        int gridHeight = grid.Height;
+        for (int py = 0; py < height; py++)
+        {
+            int top = py * step;
+            int liftRow = Math.Min(top / ShotLiftBlock, liftHigh - 1) * liftWide;
+            for (int px = 0; px < width; px++)
+            {
+                int left = px * step;
+                int shift = lift is null ? 0 : lift[liftRow + Math.Min(left / ShotLiftBlock, liftWide - 1)];
+
+                // The cells this pixel shows: its own square, moved back up the diagonal by the shift that put them here.
+                int count = 0;
+                for (int dy = 0; dy < step; dy++)
+                {
+                    int y = top + dy + shift;
+                    if ((uint)y >= (uint)gridHeight)
+                    {
+                        continue;
+                    }
+
+                    int row = y * stride;
+                    for (int dx = 0; dx < step; dx++)
+                    {
+                        int x = left + dx + shift;
+                        if ((uint)x >= (uint)gridWidth)
+                        {
+                            continue;
+                        }
+
+                        // Per NIBBLE: the values are distances, not flags, so a walkable 3 under a projectiles' 5 is no difference.
+                        int at = row + (x >> 1);
+                        int nibble = (x & 1) == 0 ? 0 : 4;
+                        if (((shots[at] >> nibble) & 0x0F) != 0 && ((cells[at] >> nibble) & 0x0F) == 0)
+                        {
+                            count++;
+                        }
+                    }
+                }
+
+                if (count != 0)
+                {
+                    coverage[(py * width) + px] = (byte)Math.Min(255, ((count * 255) + (full / 2)) / full);
+                }
+            }
+        }
+
+        return new ShotPlan(coverage, width, height, step, total);
+    }
+
+    /// <summary>
+    /// Per block of the PICTURE, <see cref="ShotLiftBlock"/> cells a side, the height shift of the walkable ground drawn
+    /// nearest it - or null when nothing is lifted - and how many cells of the area are open to a shot and shut to a foot.
+    /// </summary>
+    /// <remarks>
+    /// One pass over the packed bytes does both. Every block of the area holding walkable ground looks one height up, at
+    /// its first walkable cell, and puts its shift at the block its ground is DRAWN in - the cell less its shift, as the
+    /// outline draws it. A chamfer pass each way then carries every seed to the blocks round it, a step to a block in any
+    /// of eight directions. Nearest within a block or two rather than exactly nearest, which the picture cannot tell apart:
+    /// walkable neighbours differ by a cell of shift at most where they differ at all. Where no walkable ground is drawn
+    /// at all, nought - the flat drawing.
+    /// </remarks>
+    private static (short[]? Lift, long Cells) Lifts(
+        TerrainGrid grid, byte[] cells, byte[] shots, int stride, int wide, int high, bool lifting)
+    {
+        short[]? lift = lifting ? new short[wide * high] : null;
+        ushort[]? distance = lifting ? new ushort[wide * high] : null;
+        bool[]? looked = lifting ? new bool[wide * high] : null;
+        if (distance is not null)
+        {
+            Array.Fill(distance, ushort.MaxValue);
+        }
+
+        // Padding is no ground: the row stride may run past the area's own width.
+        int bytes = Math.Min((grid.Width + 1) / 2, stride);
+        long total = 0;
+        for (int y = 0; y < grid.Height; y++)
+        {
+            int row = y * stride;
+            int blockRow = (y / ShotLiftBlock) * wide;
+            for (int b = 0; b < bytes; b++)
+            {
+                int walk = cells[row + b];
+                int shot = shots[row + b];
+                int x = b * 2;
+                bool second = x + 1 < grid.Width;
+                if ((shot & 0x0F) != 0 && (walk & 0x0F) == 0)
+                {
+                    total++;
+                }
+
+                if (second && (shot & 0xF0) != 0 && (walk & 0xF0) == 0)
+                {
+                    total++;
+                }
+
+                if (lift is null || walk == 0)
+                {
+                    continue;
+                }
+
+                // A byte's two cells are always in one block: a block is an even number of cells wide.
+                int at = (walk & 0x0F) != 0 ? x : x + 1;
+                int block = blockRow + (at / ShotLiftBlock);
+                if ((at == x || second) && !looked![block])
+                {
+                    looked[block] = true;
+                    int shift = Math.Clamp(grid.IsoHeightShift(at, y), short.MinValue, short.MaxValue);
+                    int drawnX = at - shift;
+                    int drawnY = y - shift;
+                    if (drawnX >= 0 && drawnY >= 0 && drawnX < grid.Width && drawnY < grid.Height)
+                    {
+                        int drawn = ((drawnY / ShotLiftBlock) * wide) + (drawnX / ShotLiftBlock);
+                        if (distance![drawn] != 0)
+                        {
+                            distance[drawn] = 0;
+                            lift[drawn] = (short)shift;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (lift is null)
+        {
+            return (null, total);
+        }
+
+        // Forward over the blocks, taking from the four already passed; then back, from the four the other side.
+        for (int by = 0; by < high; by++)
+        {
+            for (int bx = 0; bx < wide; bx++)
+            {
+                int at = (by * wide) + bx;
+                if (bx > 0)
+                {
+                    Take(at, at - 1);
+                }
+
+                if (by > 0)
+                {
+                    int above = at - wide;
+                    Take(at, above);
+                    if (bx > 0)
+                    {
+                        Take(at, above - 1);
+                    }
+
+                    if (bx + 1 < wide)
+                    {
+                        Take(at, above + 1);
+                    }
+                }
+            }
+        }
+
+        for (int by = high - 1; by >= 0; by--)
+        {
+            for (int bx = wide - 1; bx >= 0; bx--)
+            {
+                int at = (by * wide) + bx;
+                if (bx + 1 < wide)
+                {
+                    Take(at, at + 1);
+                }
+
+                if (by + 1 < high)
+                {
+                    int below = at + wide;
+                    Take(at, below);
+                    if (bx + 1 < wide)
+                    {
+                        Take(at, below + 1);
+                    }
+
+                    if (bx > 0)
+                    {
+                        Take(at, below - 1);
+                    }
+                }
+            }
+        }
+
+        return (lift, total);
+
+        void Take(int at, int from)
+        {
+            int through = distance![from];
+            if (through != ushort.MaxValue && through + 1 < distance[at])
+            {
+                distance[at] = (ushort)(through + 1);
+                lift![at] = lift[from];
+            }
+        }
+    }
+
+    /// <summary>How many steps a run of cells spans, rounding up.</summary>
+    private static int Up(int cells, int step) => (cells + step - 1) / step;
 
     /// <summary>
     /// The mask grown by <paramref name="pixels"/> on every side - the line plus a rim around it.

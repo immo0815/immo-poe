@@ -320,7 +320,7 @@ public sealed class TerrainLayer : IDisposable
     /// <param name="coverX">How many grid cells the picture spans across, padding included.</param>
     /// <param name="coverY">How many grid cells it spans down.</param>
     /// <param name="lean">How far to pull the picture back along both axes, in grid cells.</param>
-    private static void DrawQuad(
+    internal static void DrawQuad(
         ImDrawListPtr draw, MapView map, TerrainGrid grid, Vector3 player,
         IntPtr texture, float coverX, float coverY, float lean, uint tint)
     {

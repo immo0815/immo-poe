@@ -110,6 +110,32 @@ public sealed record TerrainPicture(byte[] Pixels, int Width, int Height)
         return new TerrainPicture(pixels, mask.Width, mask.Height);
     }
 
+    /// <summary>
+    /// A coverage as a white sheet, each texel as solid as its coverage - for a layer drawn through a tint, whose colour
+    /// and opacity then change nothing in it (see TerrainOutline.Shots).
+    /// </summary>
+    public static TerrainPicture Sheet(byte[] coverage, int width, int height)
+    {
+        ArgumentNullException.ThrowIfNull(coverage);
+        int count = width * height;
+        ArgumentOutOfRangeException.ThrowIfNotEqual(coverage.Length, count);
+
+        var pixels = new byte[count * 4];
+        for (int i = 0, at = 0; i < count; i++, at += 4)
+        {
+            byte alpha = coverage[i];
+            if (alpha != 0)
+            {
+                pixels[at] = 255;
+                pixels[at + 1] = 255;
+                pixels[at + 2] = 255;
+                pixels[at + 3] = alpha;
+            }
+        }
+
+        return new TerrainPicture(pixels, width, height);
+    }
+
     /// <summary>The same picture at half the size, each texel the average of four.</summary>
     /// <remarks>
     /// Odd edges are padded with clear: the last texel of an odd row averages two real texels

@@ -66,7 +66,11 @@ public sealed record OverlayView(
     [property: JsonPropertyName("terrainRim")] bool TerrainRim,
     [property: JsonPropertyName("terrainFillColour")] string TerrainFillColour,
     [property: JsonPropertyName("terrainFillOpacity")] int TerrainFillOpacity,
-    [property: JsonPropertyName("terrain")] string Terrain);
+    [property: JsonPropertyName("terrain")] string Terrain,
+    [property: JsonPropertyName("showShots")] bool ShowShots = true,
+    [property: JsonPropertyName("shotsColour")] string ShotsColour = "#E0A040",
+    [property: JsonPropertyName("shotsOpacity")] int ShotsOpacity = 30,
+    [property: JsonPropertyName("shots")] string Shots = "");
 
 /// <summary>One marker on the page's map, in outline-pixel coordinates.</summary>
 public sealed record MapMarker(
