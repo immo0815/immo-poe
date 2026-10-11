@@ -257,7 +257,7 @@ public sealed class LightHunt
         EnvironmentSettings env = Environment;
         report.Append(CultureInfo.InvariantCulture, $"light hunt for {Path}: phi {Say(env.Phi)} theta {Say(env.Theta)}, hor_angle {Say(env.HorAngle)} vert_angle {Say(env.VertAngle)}").AppendLine();
         report.Append(CultureInfo.InvariantCulture,
-            $"looked through {result.BytesScanned / (1024.0 * 1024 * 1024):0.00} GB in {result.RegionsWalked} regions in {result.Took.TotalSeconds:0.0} s{(result.Truncated ? " - stopped at the budget, so a reading not found may lie past it" : string.Empty)}").AppendLine();
+            $"looked through {result.BytesScanned / (1024.0 * 1024 * 1024):0.00} GB in {result.RegionsWalked} regions in {result.Took.TotalSeconds:0.0} s on {result.Workers} threads{(result.Truncated ? " - stopped at the budget, so a reading not found may lie past it" : result.Stopped ? " - STOPPED before the last region, so a reading not found may lie past it" : string.Empty)}").AppendLine();
 
         int? sun = null;
         var sunFound = new List<int>();
@@ -431,7 +431,35 @@ public sealed class LightHunt
             report.AppendLine("nothing settled: the game may keep these where this cannot see, in another form, or for another environment than the area's own");
         }
 
+        Costs(report, result);
         return new LightHuntVerdict(report.ToString(), summary, sun, cube);
+    }
+
+    /// <summary>
+    /// Where the hunt's time went, by kind of memory - the reading out of the game and the looking through apart.
+    /// </summary>
+    /// <remarks>
+    /// WRITTEN because a capture's hunt over sixteen gigabytes was still running after two minutes on
+    /// one thread, and whether the time goes on the game's heap, on files mapped in or on memory the
+    /// driver shares - and on reading it or on looking through it - decides what would make it faster.
+    /// The times are summed over the threads, so beside the hunt's own time they say how busy each was.
+    /// </remarks>
+    private static void Costs(StringBuilder report, FloatHuntResult result)
+    {
+        if (result.Kinds.Count == 0)
+        {
+            return;
+        }
+
+        report.AppendLine("where the time went, by kind of memory (the times summed over the threads):");
+        report.AppendLine("  kind                              regions        GB   reading s  sweeping s   GB/s read  gave up");
+        foreach (FloatHuntKind kind in result.Kinds)
+        {
+            double gb = kind.Bytes / (1024.0 * 1024 * 1024);
+            double rate = kind.Reading.TotalSeconds > 0 ? gb / kind.Reading.TotalSeconds : 0;
+            report.Append(CultureInfo.InvariantCulture,
+                $"  {kind.Kind,-32} {kind.Regions,8} {gb,9:0.000} {kind.Reading.TotalSeconds,11:0.00} {kind.Sweeping.TotalSeconds,11:0.00} {rate,11:0.00} {kind.Failed,8}").AppendLine();
+        }
     }
 
     private static Entry Angle(string name, float value, int around = 0) => new(What.Angle, -1, false, false, new FloatNeedle(name, [value], 0f, around));

@@ -261,7 +261,8 @@ public static class CaptureParts
             + "where the game keeps the sun, the sky's turn and the dust colour, and the water - the water pass's uniform "
             + "block as common.ffx declares it, read out by name, its colours among them, and the file's water values in the "
             + "window round the parsed environment, printed whole. What the engine draws an area's water with where its file "
-            + "sets no colour. Takes a few seconds; the capture waits for it."),
+            + "sets no colour. It looks through up to sixteen gigabytes on every core: the capture's window shows how far it is "
+            + "and where its time goes, and stops it on a click - what it found until then is written, as it is at five minutes."),
         new(Memory, "Memory", "a memory recording", CaptureReport.MemoryFile,
             "The overlay's own reads for three seconds, and inside them one pass reading once more from nothing whatever the "
             + "ticked parts above ask for - memory.txt beside it says what the pass read where. Replays with --replay, game closed."),

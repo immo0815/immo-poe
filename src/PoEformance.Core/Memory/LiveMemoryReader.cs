@@ -128,7 +128,7 @@ public sealed class LiveMemoryReader : IMemoryReader, IMemoryRegions
 
             if (readable)
             {
-                yield return new MemoryRegion(info.BaseAddress, info.RegionSize);
+                yield return new MemoryRegion(info.BaseAddress, info.RegionSize, info.Protect, info.Type);
             }
 
             ulong next = (ulong)info.BaseAddress + info.RegionSize;
