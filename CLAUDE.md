@@ -243,7 +243,12 @@ found doodad was at level nought. A tile may carry TWO lists - beside the `.tdt`
 of overlapping doodads - and whether the game lays both
 or one instead of the other waits for a laid tile carrying both; the replay counts the two apart. A line
 naming a set (`_set.ao`) stands in the game as one member of the set, so matching by model misses it:
-7221 such lines found nothing, the seven plain ones all. Five captures are committed under
+7221 such lines found nothing, the seven plain ones all. A laid room's picture - an area's, a built one's
+in the Monster Book - draws each piece's doodads so (`LaidRoomModels.TileDoodadsOf`): placed as measured,
+not hung on the tile's mesh, whose sub-tile rows run down -y while the cells run down +y; turned, not
+mirrored, since an entity carries an angle only; the height above the piece's own lift and the `.tdt`'s
+list taken where there are two - both DECIDED, not measured, and the line under the picture says the
+second. Five captures are committed under
 `tests/fixtures/captures/` (its README says why each), and `CaptureFixtureTests` holds the orientation
 rule, the origin rule and the settled slots against them on every build. Two captures of one area forty
 minutes apart are how it was learned that the power-line pieces and checkpoints come and go

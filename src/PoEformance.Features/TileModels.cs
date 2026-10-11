@@ -5,6 +5,15 @@ using PoEformance.Game.World;
 
 namespace PoEformance.Features;
 
+/// <summary>The doodads a tile brings with it, from its doodad lists - see <see cref="TileModels.DoodadsOf"/>.</summary>
+/// <param name="Lines">Every line of the list taken, wall tops facing every way included - TileDoodadList.Shown picks per placement.</param>
+/// <param name="Both">Whether the tile also had a list beside its template, and the one beside its .tdt was taken instead.</param>
+internal sealed record TileDoodads(IReadOnlyList<RoomDoodad> Lines, bool Both)
+{
+    /// <summary>No list.</summary>
+    public static TileDoodads None { get; } = new([], false);
+}
+
 /// <summary>
 /// Walks a terrain tile from its definition to the triangles and textures that make it.
 /// </summary>
@@ -119,15 +128,41 @@ public static class TileModels
     /// MonsterModel.None where the tile is ground and nothing else - a floor tile - with its ground
     /// still given. One paint cache for every tile of a room, as a room's doodads share one.
     /// </remarks>
-    internal static (MonsterModel Props, SkinnedMesh Ground, int Width, int Height) Apart(
+    internal static (MonsterModel Props, SkinnedMesh Ground, int Width, int Height, TileDoodads Doodads) Apart(
         Func<string, byte[]?> read, string path, bool walls, MonsterModels.Paints paints)
     {
-        (MonsterModel model, SkinnedMesh ground, int wide, int tall) = Built(read, path, true, walls, false, null, string.Empty, default, paints, apart: true);
-        return (model, ground, wide, tall);
+        (MonsterModel model, SkinnedMesh ground, int wide, int tall, IReadOnlyList<string> templates) = Built(read, path, true, walls, false, null, string.Empty, default, paints, apart: true);
+        return (model, ground, wide, tall, DoodadsOf(read, path, templates));
+    }
+
+    /// <summary>
+    /// The doodads a tile brings with it (its <c>.tmd</c>, see TileDoodadList): the list beside its <c>.tdt</c> where there is
+    /// one, else every list beside its templates.
+    /// </summary>
+    /// <remarks>
+    /// THE .TDT'S LIST WINS, AND THAT IS A DECISION, NOT A MEASUREMENT. A tile may carry both - Marrow's seal tiles do, the
+    /// same skeleton and wall top in each and the .tdt's adding the seal - and no capture has yet had such a tile laid, so
+    /// whether the game puts down both or one instead of the other is open (the tile-doodad replay counts the two apart).
+    /// Both drawn would put every shared doodad down twice; the one beside the .tdt is the one the tile's own definition sits
+    /// beside. <see cref="TileDoodads.Both"/> says where it was taken, so the line under a picture can say so.
+    /// </remarks>
+    internal static TileDoodads DoodadsOf(Func<string, byte[]?> read, string path, IReadOnlyList<string> templates)
+    {
+        TileDoodadList own = TileDoodadList.Read(read(Path.ChangeExtension(Slashed(path), TileDoodadList.Extension)));
+        var beside = new List<RoomDoodad>();
+        foreach (string template in templates)
+        {
+            beside.AddRange(TileDoodadList.Read(read(Path.ChangeExtension(Slashed(template), TileDoodadList.Extension))).Doodads);
+        }
+
+        bool owns = own.Version > 0 || own.Doodads.Count > 0;
+        return owns
+            ? new TileDoodads(own.Doodads, beside.Count > 0)
+            : new TileDoodads(beside, false);
     }
 
     /// <summary>The walk behind <see cref="Of"/> and <see cref="Apart"/>.</summary>
-    private static (MonsterModel Model, SkinnedMesh Ground, int Width, int Height) Built(
+    private static (MonsterModel Model, SkinnedMesh Ground, int Width, int Height, IReadOnlyList<string> Templates) Built(
         Func<string, byte[]?> read,
         string path,
         bool ground,
@@ -161,7 +196,7 @@ public static class TileModels
                 Why = why.Length > 0 ? why : $"the tile names no template: {path}",
                 Bytes = bytes,
                 Files = files,
-            }, SkinnedMesh.None, 0, 0);
+            }, SkinnedMesh.None, 0, 0, []);
         }
 
         int wide = 0;
@@ -256,7 +291,7 @@ public static class TileModels
                     : said.Count > 0 ? said[0] : $"the tile's sub-tiles hold no geometry: {path}",
                 Bytes = bytes,
                 Files = files,
-            }, groundApart, wide, tall);
+            }, groundApart, wide, tall, definition.Templates);
         }
 
         // A WALK THAT DID NOT END AT THE END OF THE FILE IS SAID, not hidden: the props drew because
@@ -286,7 +321,7 @@ public static class TileModels
         // THE WALLS GO BEFORE THE GRAPHS ARE READ, so a material only the walls wear is not compiled
         // for nothing.
         model = walls ? model : Unwalled(model);
-        return (shaded ? MonsterModels.Shaded(Counted, model, paints) : model, groundApart, wide, tall);
+        return (shaded ? MonsterModels.Shaded(Counted, model, paints) : model, groundApart, wide, tall, definition.Templates);
     }
 
     /// <summary>
