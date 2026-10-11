@@ -152,8 +152,10 @@ public static class CaptureGround
 
         var texts = new List<(string Path, string Text)>();
         var named = new SortedDictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        int opened = Blocks(read, templates, body, texts, named, out int subTiles);
+        var spots = new SortedDictionary<string, Spots>(StringComparer.OrdinalIgnoreCase);
+        int opened = Blocks(read, templates, body, texts, named, spots, out int subTiles);
         masks = Masks(read, named, body);
+        AtVertices(spots, masks, body);
         string groundsSaid = Corners(read, laid, cells, corners, NameOf, loaded, masters, body);
         string shadersSaid = Shaders(read, shaders, body);
         Whole(texts, body);
@@ -178,6 +180,7 @@ public static class CaptureGround
         StringBuilder said,
         List<(string Path, string Text)> texts,
         SortedDictionary<string, List<string>> masks,
+        SortedDictionary<string, Spots> spots,
         out int subTiles)
     {
         var formats = new SortedDictionary<uint, Format>();
@@ -259,6 +262,17 @@ public static class CaptureGround
                         {
                             (uLeast, uMost) = (MathF.Min(uLeast, spot.X), MathF.Max(uMost, spot.X));
                             (vLeast, vMost) = (MathF.Min(vLeast, spot.Y), MathF.Max(vMost, spot.Y));
+                        }
+
+                        if (layout.GroundMask.Length > 0)
+                        {
+                            if (!spots.TryGetValue(template, out Spots? taken))
+                            {
+                                taken = new Spots(Clean(layout.GroundMask));
+                                spots[template] = taken;
+                            }
+
+                            taken.Add(ground);
                         }
                     }
                     uint word = ground.Facts.Format;
@@ -571,6 +585,167 @@ public static class CaptureGround
         }
 
         return string.Create(CultureInfo.InvariantCulture, $"{found.Count} of {shaders.Count} shader sources name the ground's coordinates");
+    }
+
+    /// <summary>One ground vertex: its own coordinates, its height, and the first ground shape of its block that uses it.</summary>
+    private readonly record struct Spot(float U, float V, float Z, int Shape);
+
+    /// <summary>A template's ground vertices, every sub-tile's, and the mask its template names.</summary>
+    private sealed class Spots(string mask)
+    {
+        public string Mask { get; } = mask;
+
+        public List<Spot> All { get; } = [];
+
+        /// <summary>Takes a sub-tile's ground block: every vertex once, with the first of its shapes to use it.</summary>
+        public void Add(SkinnedMesh ground)
+        {
+            var shapeOf = new int[ground.Positions.Length];
+            Array.Fill(shapeOf, -1);
+            for (var shape = 0; shape < ground.Shapes.Count; shape++)
+            {
+                MeshShape part = ground.Shapes[shape];
+                int end = Math.Min(ground.Indices.Length, part.From + part.Count);
+                for (int at = Math.Max(0, part.From); at < end; at++)
+                {
+                    int vertex = ground.Indices[at];
+                    if (shapeOf[vertex] < 0)
+                    {
+                        shapeOf[vertex] = shape;
+                    }
+                }
+            }
+
+            for (var vertex = 0; vertex < ground.Positions.Length; vertex++)
+            {
+                System.Numerics.Vector2 uv = ground.Coordinates[vertex];
+                All.Add(new Spot(uv.X, uv.Y, ground.Positions[vertex].Z, shapeOf[vertex]));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Each template's mask read where its ground's own coordinates point - green as GetUserMask reads it - set against the
+    /// vertices' heights and their ground shapes.
+    /// </summary>
+    /// <remarks>
+    /// THE QUESTION IS WHICH MASK SPLITS A TILE OF TWO GROUNDS. Red is the engine's, read through an atlas placed by two
+    /// transforms no file holds; green is the user's, read through the block's own coordinates, which the files do hold.
+    /// Port's harbour is cobblestone on the pier and black under the water: if green read at its vertices follows the
+    /// height - one side on the pier, the other on the sea floor - the harbour is split by its user mask, and can be
+    /// painted from the files alone. Read as the sampler does, bilinear and wrapped (SamplerLinearWrap). Red is read at
+    /// the same coordinates for comparison only - the engine never reads it there.
+    /// </remarks>
+    private static void AtVertices(SortedDictionary<string, Spots> spots, IReadOnlyList<GroundMask> masks, StringBuilder said)
+    {
+        said.AppendLine().AppendLine("=== the masks at the ground's own coordinates - green as GetUserMask reads it, red beside it for comparison; z is height, up being minus");
+        var pictures = masks.Where(mask => mask.Picture is not null).ToDictionary(mask => mask.Path, mask => mask.Picture!.Value, StringComparer.OrdinalIgnoreCase);
+        foreach ((string template, Spots taken) in spots)
+        {
+            if (!pictures.TryGetValue(taken.Mask, out GamePicture picture) || taken.All.Count == 0)
+            {
+                continue;
+            }
+
+            int count = taken.All.Count;
+            var green = new float[count];
+            var red = new float[count];
+            for (var one = 0; one < count; one++)
+            {
+                Spot spot = taken.All[one];
+                green[one] = Sample(picture, 1, spot.U, spot.V);
+                red[one] = Sample(picture, 0, spot.U, spot.V);
+            }
+
+            said.Append(CultureInfo.InvariantCulture,
+                $"  {template}  ({Short(taken.Mask)})  {count} vertices · green against height r = {Correlation(taken.All, green):0.00} · red against height r = {Correlation(taken.All, red):0.00}")
+                .AppendLine();
+
+            // FOUR BANDS OF HEIGHT, each a quarter of the vertices.
+            int[] order = [.. Enumerable.Range(0, count).OrderBy(one => taken.All[one].Z)];
+            said.Append("    by height:");
+            for (var band = 0; band < 4; band++)
+            {
+                int from = band * count / 4, to = (band + 1) * count / 4;
+                if (to <= from)
+                {
+                    continue;
+                }
+
+                IEnumerable<int> members = order[from..to];
+                said.Append(CultureInfo.InvariantCulture,
+                    $" z {taken.All[order[from]].Z:0}..{taken.All[order[to - 1]].Z:0}: {Summary(members, green, red)};");
+            }
+
+            said.AppendLine();
+            said.Append("    by ground shape:");
+            foreach (IGrouping<int, int> shape in Enumerable.Range(0, count).GroupBy(one => taken.All[one].Shape).OrderBy(group => group.Key))
+            {
+                float low = shape.Min(one => taken.All[one].Z), high = shape.Max(one => taken.All[one].Z);
+                said.Append(CultureInfo.InvariantCulture,
+                    $" {(shape.Key < 0 ? "none" : shape.Key.ToString(CultureInfo.InvariantCulture))}: {shape.Count()} at z {low:0}..{high:0}, {Summary(shape, green, red)};");
+            }
+
+            said.AppendLine();
+        }
+    }
+
+    /// <summary>A set of vertices' green and red in a few words: the mean of each, and the share of green at a half or more.</summary>
+    private static string Summary(IEnumerable<int> members, float[] green, float[] red)
+    {
+        int n = 0, over = 0;
+        double greens = 0, reds = 0;
+        foreach (int one in members)
+        {
+            n++;
+            greens += green[one];
+            reds += red[one];
+            over += green[one] >= 0.5f ? 1 : 0;
+        }
+
+        return n == 0 ? "none" : string.Create(CultureInfo.InvariantCulture, $"green {greens / n:0.00} ({100.0 * over / n:0}% at a half or more), red {reds / n:0.00}");
+    }
+
+    /// <summary>Pearson's r between the vertices' heights and a value of each.</summary>
+    private static double Correlation(List<Spot> spots, float[] values)
+    {
+        int n = spots.Count;
+        double meanZ = 0, meanV = 0;
+        for (var one = 0; one < n; one++)
+        {
+            meanZ += spots[one].Z;
+            meanV += values[one];
+        }
+
+        (meanZ, meanV) = (meanZ / n, meanV / n);
+        double both = 0, zz = 0, vv = 0;
+        for (var one = 0; one < n; one++)
+        {
+            double dz = spots[one].Z - meanZ, dv = values[one] - meanV;
+            both += dz * dv;
+            zz += dz * dz;
+            vv += dv * dv;
+        }
+
+        return zz > 0 && vv > 0 ? both / Math.Sqrt(zz * vv) : 0;
+    }
+
+    /// <summary>One channel at a texture coordinate, nought to one, as a linear sampler that wraps reads it.</summary>
+    internal static float Sample(GamePicture picture, int channel, float u, float v)
+    {
+        float x = (u * picture.Width) - 0.5f, y = (v * picture.Height) - 0.5f;
+        int x0 = (int)MathF.Floor(x), y0 = (int)MathF.Floor(y);
+        float fx = x - x0, fy = y - y0;
+        float At(int column, int row)
+        {
+            int wrappedX = ((column % picture.Width) + picture.Width) % picture.Width;
+            int wrappedY = ((row % picture.Height) + picture.Height) % picture.Height;
+            return picture.Rgba[(((wrappedY * picture.Width) + wrappedX) * 4) + channel] / 255f;
+        }
+
+        float top = (At(x0, y0) * (1 - fx)) + (At(x0 + 1, y0) * fx);
+        float bottom = (At(x0, y0 + 1) * (1 - fx)) + (At(x0 + 1, y0 + 1) * fx);
+        return (top * (1 - fy)) + (bottom * fy);
     }
 
     /// <summary>The ground masks the templates name, each decoded once and described: header, size, every channel's spread.</summary>

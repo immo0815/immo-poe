@@ -136,6 +136,48 @@ public sealed class CaptureGroundTests
         Assert.Contains("1 ground masks;", said, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The mask read at the ground's own coordinates and set against height: a green that splits the block by height reads r = -1.
+    /// </summary>
+    [Fact]
+    public void THEMASKIsReadAtTheGroundsOwnCoordinatesAgainstHeight()
+    {
+        // A tile whose ground has two vertices on the floor (z 0, green 0 where they point) and two raised 100 (z -100, green 1).
+        const string Raised = "Metadata/Terrain/Maps/Test/raised.tdt";
+        const string RaisedTemplate = "Art/Models/Terrain/Test/Raised.tgt";
+        byte[]? Read(string path) => path switch
+        {
+            Raised => Tdt(RaisedTemplate, [Sand, Sand, Rock, Rock]),
+            RaisedTemplate => Text("version 3\nSize 1 1\nTileMeshRoot \"Art/Models/Terrain/Test/Raised\"\nGroundMask \"" + MaskPath + "\"\n"),
+            "Art/Models/Terrain/Test/Raised.tgm" => Tgm([0f, 0f, -100f, -100f], [(0.25f, 0.25f), (0.25f, 0.25f), (0.75f, 0.75f), (0.75f, 0.75f)]),
+
+            // Green nought at the top left texel and whole at the bottom right; read at a texel's middle it is that texel's.
+            MaskPath => GameArtTests.Dds(2, 2, [0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 255, 0, 255]),
+            _ => Install(path),
+        };
+
+        var tiles = new TerrainTiles([Raised], [0], new byte[1], new byte[1], new sbyte[1], 1, 1);
+        string said = CaptureGround.Write(Read, tiles, [Master], null, []).ReplaceLineEndings("\n");
+
+        Assert.Contains($"  {RaisedTemplate}  (Mask)  4 vertices · green against height r = -1.00", said, StringComparison.Ordinal);
+        Assert.Contains("z -100..-100: green 1.00 (100% at a half or more), red 0.00;", said, StringComparison.Ordinal);
+        Assert.Contains("z 0..0: green 0.00 (0% at a half or more), red 0.00;", said, StringComparison.Ordinal);
+        Assert.Contains("by ground shape: 0: 4 at z -100..0, green 0.50 (50% at a half or more), red 0.00;", said, StringComparison.Ordinal);
+    }
+
+    /// <summary>A linear, wrapping read lands on a texel's own value at its middle, halfway between two at their edge, and wraps past the side.</summary>
+    [Fact]
+    public void ASAMPLEIsLinearAndWraps()
+    {
+        var picture = new GamePicture(2, 1, [0, 0, 0, 255, 0, 255, 0, 255]);
+
+        Assert.Equal(0f, CaptureGround.Sample(picture, 1, 0.25f, 0.5f), 3);
+        Assert.Equal(1f, CaptureGround.Sample(picture, 1, 0.75f, 0.5f), 3);
+        Assert.Equal(0.5f, CaptureGround.Sample(picture, 1, 0.5f, 0.5f), 3);
+        Assert.Equal(0.5f, CaptureGround.Sample(picture, 1, 0f, 0.5f), 3);
+        Assert.Equal(1f, CaptureGround.Sample(picture, 1, 1.75f, 0.5f), 3);
+    }
+
     /// <summary>No shader list and no terrain are said, not passed over.</summary>
     [Fact]
     public void NOTHINGToSearchIsSaid()
@@ -226,6 +268,59 @@ public sealed class CaptureGroundTests
         }
 
         write.Write(new byte[48]);
+        return stream.ToArray();
+    }
+
+    /// <summary>
+    /// A sub-tile of no props and a ground of one quad at format 0x8 - texture coordinates and nothing else - its corners at the heights and coordinates given.
+    /// </summary>
+    private static byte[] Tgm(float[] heights, (float U, float V)[] coordinates)
+    {
+        using var stream = new MemoryStream();
+        using var write = new BinaryWriter(stream);
+        write.Write((byte)9);
+        for (var one = 0; one < 6; one++)
+        {
+            write.Write(0f);
+        }
+
+        write.Write((ushort)0);
+        write.Write((ushort)0);
+        write.Write((byte)0);
+        write.Write((byte)0);
+
+        write.Write("DOLm"u8);
+        write.Write((ushort)1);
+        write.Write((byte)0);
+        write.Write((ushort)0);
+        write.Write(0x8u);
+
+        write.Write("DOLm"u8);
+        write.Write((ushort)1);
+        write.Write((byte)1);
+        write.Write((ushort)1);
+        write.Write(0x8u);
+        write.Write(2u);
+        write.Write(4u);
+        write.Write(0u);
+        write.Write(6u);
+        foreach (int corner in new[] { 0, 1, 2, 1, 3, 2 })
+        {
+            write.Write((ushort)corner);
+        }
+
+        for (var corner = 0; corner < 4; corner++)
+        {
+            write.Write((corner % 2) * 250f);
+            write.Write((corner / 2) * 250f);
+            write.Write(heights[corner]);
+            write.Write(new byte[] { 0, 0, 127, 0, 127, 0, 0, 0 });
+            write.Write(BitConverter.HalfToUInt16Bits((Half)coordinates[corner].U));
+            write.Write(BitConverter.HalfToUInt16Bits((Half)coordinates[corner].V));
+        }
+
+        write.Write((ushort)0);
+        write.Write(new byte[24]);
         return stream.ToArray();
     }
 
