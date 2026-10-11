@@ -2541,7 +2541,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// make is one key's work. The same hunt the panel runs - the same needles, the anchor the player's own entity - and the
     /// water's two lines of evidence with it, see LightHunt.
     /// </remarks>
-    private Task<string>? CaptureLightHunt()
+    private Task<string>? CaptureLightHunt(FloatHuntProgress progress)
     {
         Func<IReadOnlyList<FloatNeedle>, ulong, FloatHuntProgress, Task<FloatHuntResult>?>? search = HuntFloats;
         Func<string, byte[]?>? read = _capture.Read;
@@ -2562,7 +2562,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             return Task.FromResult($"nothing to hunt for in {path}: {why}");
         }
 
-        return search(hunt.Needles, _snapshot.Player?.Address ?? 0, new FloatHuntProgress())?.ContinueWith(
+        return search(hunt.Needles, _snapshot.Player?.Address ?? 0, progress)?.ContinueWith(
             done => done.IsCompletedSuccessfully
                 ? hunt.Read(done.Result) is { } verdict ? verdict.Summary + Environment.NewLine + Environment.NewLine + verdict.Report : string.Empty
                 : "the hunt failed: " + (done.Exception?.GetBaseException().Message ?? "cancelled"),

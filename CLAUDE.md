@@ -177,6 +177,13 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   part unasked. Nothing goes on a window as a copy button or a new pane; the catalogue is the one
   place. Do this on your own initiative whenever a diagnosis needs data: the person at the game
   then presses one key, and the measurement is in the zip.
+- **A part that runs long says so in the capture's ONE window** (`CaptureProgress`, asked for from the live
+  client, v0.1.207): from the end of the hiding to the zip it lists every ticked part with where it stands,
+  the long ones - the rooms, the memory hunt, the recording - with what they are doing and how far, and a
+  summary once written. One window for every part, never one per diagnosis, and never the main window. A
+  new long part gives its step a `Live` line and a `Fraction`, and a `Stop` that keeps what it found where
+  it can be stopped. Whoever presses the key has chosen to spend the machine on it: a search runs on every
+  core (`FloatHunt`), and writes where its time went by kind of memory beside what it found.
 - **Every part has an offline reader.** A capture is also a fixture: the replay test
   (`CaptureReplayTests`, `POEF_CAPTURE=<folder>`) runs the tool's own arithmetic over the capture's
   files and writes its answers beside them, so a change to a finder, a rule or a parser is held

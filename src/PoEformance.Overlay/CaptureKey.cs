@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.Versioning;
 using ImGuiNET;
+using PoEformance.Core.Diagnostics;
 using PoEformance.Features;
 using PoEformance.Game.Files;
 using PoEformance.Game.World;
@@ -41,8 +42,12 @@ namespace PoEformance.Overlay;
 ///
 /// THE ROOMS NEED THE ROOM SEARCH, the one the large map's outlines use, and it takes seconds the
 /// first time in an area; the doodad survey follows it. So the capture waits for them - up to
-/// <see cref="RoomWaitMs"/> - with a line saying so, and writes without them if they are not done
-/// by then, saying why. It waits only where a ticked part wants them.
+/// <see cref="RoomWaitMs"/> - and writes without them if they are not done by then, saying why. It
+/// waits only where a ticked part wants them.
+///
+/// ONE WINDOW SAYS WHERE IT IS (<see cref="CaptureProgress"/>), from the end of the hiding to the
+/// zip: every ticked part, the long ones - the rooms, the memory hunt, the recording - with what
+/// they are doing, and a summary once it is written. It stays up until closed or the next press.
 ///
 /// OBSERVED, NEVER SWALLOWED, like the screenshot key: the game gets the key too, so the row that
 /// binds it says what the game itself does with it, read from the player's own config.
@@ -64,9 +69,6 @@ internal sealed class CaptureKey
 
     /// <summary>How long the files wait for the memory half - past the longest a recording runs.</summary>
     private const int MemoryWaitSeconds = 90;
-
-    /// <summary>How long the line saying what happened stays up.</summary>
-    private const int SaidMs = 5000;
 
     private readonly Func<WorldSnapshot> _snapshot;
     private readonly Func<ClientRect> _client;
@@ -90,9 +92,10 @@ internal sealed class CaptureKey
     private bool _wasDown;
     private bool _listening;
     private Run? _run;
-    private string _said = string.Empty;
-    private bool _saidOk = true;
-    private long _saidUntil;
+
+    /// <summary>The window's capture - the one running, or the last until its window is closed.</summary>
+    private CaptureProgress? _shown;
+
     private int _conflictOf = -1;
     private string _conflict = string.Empty;
 
@@ -157,10 +160,19 @@ internal sealed class CaptureKey
     /// <summary>
     /// Starts the light hunt for the area's own environment and hands back its whole report, or null where nothing can search - the light-hunt part. Set by whoever owns the search.
     /// </summary>
-    public Func<Task<string>?>? HuntLight { get; set; }
+    /// <remarks>The progress is the capture's: its window shows how far the hunt is, and stops it.</remarks>
+    public Func<FloatHuntProgress, Task<string>?>? HuntLight { get; set; }
 
-    /// <summary>How long the writer waits for the light hunt started at the press before it writes without it.</summary>
-    private const int HuntWaitSeconds = 120;
+    /// <summary>How long the writer waits for the light hunt started at the press before it stops it and writes what it found.</summary>
+    /// <remarks>
+    /// NOT A CUT THAT LOSES IT: at two minutes the first capture's hunt, on one thread, was thrown away
+    /// whole. Now it runs on every core, the window shows it and stops it on a click, and reaching this
+    /// stops it the same way - what it found until then is written, the file saying it was stopped.
+    /// </remarks>
+    private const int HuntWaitSeconds = 300;
+
+    /// <summary>How long a stopped hunt has to hand back what it found - one chunk a thread, then the bytes round its places.</summary>
+    private const int HuntStopSeconds = 30;
 
     /// <summary>
     /// Starts the memory half of a capture - the recording, and the pass inside it that reads what the ask says - or null where one is already running. Set by whoever owns the reader.
@@ -241,21 +253,24 @@ internal sealed class CaptureKey
                 if (written.IsCompletedSuccessfully)
                 {
                     Last = run.Packed.Length > 0 ? run.Packed : run.Folder;
-                    Say(
+                    run.Progress.Finish(
                         run.LeftOut.Count == 0
-                            ? "capture saved and packed: " + Last
-                            : $"capture saved: {run.Folder} - packed without {string.Join(", ", run.LeftOut)}",
+                            ? "saved and packed: " + Last
+                            : $"saved: {run.Folder} - packed without {string.Join(", ", run.LeftOut)}",
                         run.LeftOut.Count == 0,
                         now);
                 }
                 else
                 {
-                    Say("capture failed: " + written.Exception?.GetBaseException().Message, false, now);
+                    run.Progress.Finish("failed: " + written.Exception?.GetBaseException().Message, false, now);
                 }
+
+                // BACK UP WITH ITS SUMMARY, even where its window was closed while it ran.
+                _shown = run.Progress;
             }
         }
 
-        DrawLine(now);
+        DrawWindow(now);
         return false;
     }
 
@@ -267,7 +282,7 @@ internal sealed class CaptureKey
         ClientRect client = _client();
         if (!client.IsValid)
         {
-            Say("capture: the game's window was not found", false, now);
+            Refused(snapshot, "the game's window was not found", now);
             return;
         }
 
@@ -287,12 +302,14 @@ internal sealed class CaptureKey
         }
         catch (Exception failed) when (failed is IOException or UnauthorizedAccessException)
         {
-            Say("capture: " + failed.Message, false, now);
+            Refused(snapshot, failed.Message, now);
             return;
         }
 
-        var run = new Run(folder, local, snapshot, client, now, new HashSet<string>(_off, StringComparer.Ordinal))
+        var hunt = new FloatHuntProgress();
+        var run = new Run(folder, local, snapshot, client, now, new HashSet<string>(_off, StringComparer.Ordinal), Progress(folder, snapshot, hunt, now))
         {
+            Hunt = hunt,
             Overlay = On(CaptureParts.OverlayPicture) ? ScreenCapture.Grab(client.X, client.Y, client.Width, client.Height) : null,
             Loaded = _loaded(),
             Masters = _masters(),
@@ -316,11 +333,15 @@ internal sealed class CaptureKey
             run.Panes = panes();
         }
 
-        // THE LIGHT AND WATER HUNT FROM THE PRESS ON, beside everything else - it searches the game's memory for seconds.
+        // THE LIGHT AND WATER HUNT FROM THE PRESS ON, beside everything else - it searches the game's memory for a minute.
         if (On(CaptureParts.LightHunt))
         {
-            run.LightHunt = HuntLight?.Invoke();
+            run.LightHunt = HuntLight?.Invoke(run.Hunt);
             run.LightHuntNote = HuntLight is null ? "nothing can search the game's memory in this session" : "the hunt could not start";
+            if (run.LightHunt is not null)
+            {
+                run.Progress.Of(CaptureReport.LightHuntFile)?.Start(now);
+            }
         }
 
         if (!On(CaptureParts.Memory))
@@ -333,6 +354,10 @@ internal sealed class CaptureKey
             {
                 run.Memory = record(new CaptureMemoryAsk(folder, CaptureParts.Reads(_off)));
                 run.MemoryNote = run.Memory is null ? "a recording was already running" : string.Empty;
+                if (run.Memory is not null)
+                {
+                    run.Progress.Of(CaptureReport.MemoryFile)?.Start(now);
+                }
             }
             catch (Exception failed) when (failed is IOException or UnauthorizedAccessException)
             {
@@ -345,13 +370,89 @@ internal sealed class CaptureKey
         }
 
         _run = run;
+        _shown = run.Progress;
     }
+
+    /// <summary>
+    /// The window's list for this press: the rooms where a ticked part waits for them, every ticked part that writes a file in the catalogue's order, and the packing.
+    /// </summary>
+    /// <remarks>
+    /// THE LONG ONES SAY WHAT THEY ARE DOING: the rooms how many are read, the memory hunt how much of its budget it has looked
+    /// through and how fast, with a stop that keeps what it found; the recording that it closes itself.
+    /// </remarks>
+    private CaptureProgress Progress(string folder, WorldSnapshot snapshot, FloatHuntProgress hunt, long now)
+    {
+        var progress = new CaptureProgress(folder, snapshot.Area.Name.Length > 0 ? snapshot.Area.Name : snapshot.Area.Id, now);
+        if (WantsRooms(_off))
+        {
+            progress.Add(new CaptureStep(RoomsStep, "the rooms, placed")
+            {
+                Live = () => _run is { Waiting.Length: > 0 } run && _roomsProgress() is var (done, of) ? $"waiting for {run.Waiting} - {done} of {of} rooms" : "waiting for the rooms",
+                Fraction = () => _roomsProgress() is { Of: > 0 } rooms ? (float)rooms.Done / rooms.Of : 0f,
+            });
+        }
+
+        foreach (CapturePart part in CaptureParts.All)
+        {
+            if (!On(part.Key) || part.File.Length == 0)
+            {
+                continue;
+            }
+
+            progress.Add(part.Key switch
+            {
+                CaptureParts.LightHunt => new CaptureStep(part.File, part.Label)
+                {
+                    Live = () => Hunting(hunt, progress.Of(CaptureReport.LightHuntFile)),
+                    Fraction = () => hunt.Budget > 0 ? (float)((double)hunt.Bytes / hunt.Budget) : 0f,
+                    Stop = hunt.Stop,
+                },
+                CaptureParts.Memory => new CaptureStep(part.File, part.Label)
+                {
+                    Live = () => "the overlay's own reads, and one pass reading the ticked parts once more from nothing - it closes itself once its ticks are spent and the pass is done",
+                },
+                _ => new CaptureStep(part.File, part.Label),
+            });
+        }
+
+        progress.Add(new CaptureStep(CaptureReport.SummaryFile, "the summary, and the zip"));
+        return progress;
+    }
+
+    /// <summary>The hunt for the window: how much of its budget it has looked through, how fast, where.</summary>
+    private static string Hunting(FloatHuntProgress hunt, CaptureStep? step)
+    {
+        const double Gb = 1024.0 * 1024 * 1024;
+        double seconds = step is null ? 0 : (Environment.TickCount64 - step.Read().Began) / 1000.0;
+        long bytes = hunt.Bytes;
+        string rate = seconds > 0.5 ? $" · {bytes / Gb / seconds:0.00} GB/s" : string.Empty;
+        return string.Create(
+            System.Globalization.CultureInfo.InvariantCulture,
+            $"{bytes / Gb:0.00} of {hunt.Budget / Gb:0} GB of the game's memory looked through{rate} · {hunt.Regions} regions · {hunt.Places} places found");
+    }
+
+    /// <summary>A press that could not begin, in the window as a capture that failed at once.</summary>
+    private void Refused(WorldSnapshot snapshot, string why, long now)
+    {
+        var refused = new CaptureProgress(string.Empty, snapshot.Area.Name.Length > 0 ? snapshot.Area.Name : snapshot.Area.Id, now);
+        refused.Finish("not captured: " + why, false, now);
+        _shown = refused;
+    }
+
+    /// <summary>The rooms' step - not a file, the wait before the files.</summary>
+    private const string RoomsStep = "(the rooms)";
+
+    /// <summary>Whether a part on waits for the rooms to stand.</summary>
+    private static bool WantsRooms(HashSet<string> off)
+        => !off.Contains(CaptureParts.RoomsNear) || !off.Contains(CaptureParts.RoomsArranged) || !off.Contains(CaptureParts.Environments)
+            || !off.Contains(CaptureParts.Doodads) || !off.Contains(CaptureParts.RoomsPlaced);
 
     /// <summary>Waits for the rooms to stand - the doodad survey, or the search where nothing reads the entities - where a ticked part wants them, then hands everything to the pool.</summary>
     private void Rooms(Run run, long now)
     {
-        bool wantsRooms = On(CaptureParts.RoomsNear) || On(CaptureParts.RoomsArranged) || On(CaptureParts.Environments)
-            || On(CaptureParts.Doodads) || On(CaptureParts.RoomsPlaced);
+        bool wantsRooms = WantsRooms(run.Off);
+        CaptureStep? step = run.Progress.Of(RoomsStep);
+        step?.Start(now);
         bool wantsSurvey = On(CaptureParts.Doodads) || On(CaptureParts.RoomsPlaced);
         bool sameArea = _snapshot().AreaHash == run.Snapshot.AreaHash;
         bool possible = wantsRooms && sameArea && _roomsPossible();
@@ -377,6 +478,12 @@ internal sealed class CaptureKey
             run.Placed = rooms.Placed;
         }
 
+        step?.End(
+            standing is not null ? CaptureStepState.Done : CaptureStepState.NotWritten,
+            standing is not null
+                ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{standing.Count} rooms stand, after {(now - run.Since) / 1000.0:0.0} s")
+                : "not placed: " + run.RoomsNote,
+            now);
         run.SurveyNote = run.Survey is not null ? string.Empty
             : !wantsSurvey ? "no ticked part wanted it"
             : rooms is null || rooms.ReadDoodads is null ? "nothing can read the area's entities in this session"
@@ -394,15 +501,32 @@ internal sealed class CaptureKey
     private static void Write(Run run, Func<string, byte[]?>? read, string version, IReadOnlyList<string> shaders, IReadOnlyList<string> environments)
     {
         var parts = new List<string>();
+
+        // EACH PART'S LINE IN capture.txt AND IN THE WINDOW at once - see CaptureProgress.
+        void Said(string file, string line, CaptureStepState state)
+        {
+            parts.Add($"{file}  {line}");
+            run.Progress.Of(file)?.End(state, line, Environment.TickCount64);
+        }
+
+        void Not(string file, string why) => Said(file, "not written: " + why, CaptureStepState.NotWritten);
+
         void Part(string file, Func<string> write)
         {
+            run.Progress.Of(file)?.Start(Environment.TickCount64);
             try
             {
-                parts.Add($"{file}  {write()}");
+                string line = write();
+                Said(
+                    file,
+                    line,
+                    line.StartsWith("not written", StringComparison.Ordinal) ? CaptureStepState.NotWritten
+                    : line.StartsWith("FAILED", StringComparison.Ordinal) ? CaptureStepState.Failed
+                    : CaptureStepState.Done);
             }
             catch (Exception failed) when (failed is IOException or UnauthorizedAccessException or InvalidOperationException or ArgumentException or NotSupportedException)
             {
-                parts.Add($"{file}  FAILED: {failed.Message}");
+                Said(file, "FAILED: " + failed.Message, CaptureStepState.Failed);
             }
         }
 
@@ -450,7 +574,7 @@ internal sealed class CaptureKey
         {
             if (read is null)
             {
-                parts.Add($"{CaptureReport.EnvironmentsFile}  not written: no install to read them from");
+                Not(CaptureReport.EnvironmentsFile, "no install to read them from");
             }
             else
             {
@@ -470,7 +594,7 @@ internal sealed class CaptureKey
         {
             if (read is null)
             {
-                parts.Add($"{CaptureReport.RoomFilesFile}  not written: no install to read them from");
+                Not(CaptureReport.RoomFilesFile, "no install to read them from");
             }
             else
             {
@@ -487,11 +611,11 @@ internal sealed class CaptureKey
         {
             if (read is null)
             {
-                parts.Add($"{CaptureReport.TileIdentitiesFile}  not written: no install to read them from");
+                Not(CaptureReport.TileIdentitiesFile, "no install to read them from");
             }
             else if (run.Snapshot.Terrain is not TerrainGrid { Tiles: { } laid })
             {
-                parts.Add($"{CaptureReport.TileIdentitiesFile}  not written: the terrain's tiles were not read");
+                Not(CaptureReport.TileIdentitiesFile, "the terrain's tiles were not read");
             }
             else
             {
@@ -508,7 +632,7 @@ internal sealed class CaptureKey
         {
             if (read is null)
             {
-                parts.Add($"{CaptureReport.SlotCandidatesFile}  not written: no install to read the rooms and tilesets from");
+                Not(CaptureReport.SlotCandidatesFile, "no install to read the rooms and tilesets from");
             }
             else
             {
@@ -525,7 +649,7 @@ internal sealed class CaptureKey
         {
             if (read is null)
             {
-                parts.Add($"{CaptureReport.TilesetListsFile}  not written: no install to read the lists from");
+                Not(CaptureReport.TilesetListsFile, "no install to read the lists from");
             }
             else
             {
@@ -542,7 +666,7 @@ internal sealed class CaptureKey
         {
             if (read is null)
             {
-                parts.Add($"{CaptureReport.TileFilesFile}  not written: no install to read the tile files from");
+                Not(CaptureReport.TileFilesFile, "no install to read the tile files from");
             }
             else
             {
@@ -561,7 +685,7 @@ internal sealed class CaptureKey
         {
             if (read is null)
             {
-                parts.Add($"{CaptureReport.MastersFile}  not written: no install to read the masters from");
+                Not(CaptureReport.MastersFile, "no install to read the masters from");
             }
             else
             {
@@ -578,7 +702,7 @@ internal sealed class CaptureKey
         {
             if (read is null)
             {
-                parts.Add($"{CaptureReport.GroundFile}  not written: no install to read the ground from");
+                Not(CaptureReport.GroundFile, "no install to read the ground from");
             }
             else
             {
@@ -610,7 +734,7 @@ internal sealed class CaptureKey
         {
             if (read is null)
             {
-                parts.Add($"{CaptureReport.WaterFile}  not written: no install to read the water from");
+                Not(CaptureReport.WaterFile, "no install to read the water from");
             }
             else
             {
@@ -627,11 +751,11 @@ internal sealed class CaptureKey
         {
             if (read is null)
             {
-                parts.Add($"{CaptureReport.RoomsFile}  not written: no install to read them from");
+                Not(CaptureReport.RoomsFile, "no install to read them from");
             }
             else if (near is null)
             {
-                parts.Add($"{CaptureReport.RoomsFile}  not written: {noRooms}");
+                Not(CaptureReport.RoomsFile, noRooms);
             }
             else
             {
@@ -656,7 +780,7 @@ internal sealed class CaptureKey
             }
             else
             {
-                parts.Add($"{CaptureReport.ArrangedFile}  not written: {(run.RoomsNote.Length > 0 ? run.RoomsNote : "the rooms stand by their doodads - see " + CaptureReport.PlacedFile)}");
+                Not(CaptureReport.ArrangedFile, run.RoomsNote.Length > 0 ? run.RoomsNote : "the rooms stand by their doodads - see " + CaptureReport.PlacedFile);
             }
         }
 
@@ -673,7 +797,7 @@ internal sealed class CaptureKey
             }
             else
             {
-                parts.Add($"{CaptureReport.DoodadsFile}  not written: {run.SurveyNote}");
+                Not(CaptureReport.DoodadsFile, run.SurveyNote);
             }
         }
 
@@ -691,7 +815,7 @@ internal sealed class CaptureKey
             }
             else
             {
-                parts.Add($"{CaptureReport.PlacedFile}  not written: {run.SurveyNote}");
+                Not(CaptureReport.PlacedFile, run.SurveyNote);
             }
         }
 
@@ -699,7 +823,7 @@ internal sealed class CaptureKey
         {
             if (run.Panes is not { Count: > 0 } panes)
             {
-                parts.Add($"{CaptureReport.PanesFile}  not written: no model pane showed a model when the key went down");
+                Not(CaptureReport.PanesFile, "no model pane showed a model when the key went down");
             }
             else
             {
@@ -717,7 +841,7 @@ internal sealed class CaptureKey
         {
             if (text is null)
             {
-                parts.Add($"{part.File}  not written: nothing there when the key went down");
+                Not(part.File, "nothing there when the key went down");
                 continue;
             }
 
@@ -732,7 +856,7 @@ internal sealed class CaptureKey
         {
             if (run.LightHunt is not { } hunt)
             {
-                parts.Add($"{CaptureReport.LightHuntFile}  not written: {run.LightHuntNote}");
+                Not(CaptureReport.LightHuntFile, run.LightHuntNote);
             }
             else
             {
@@ -740,9 +864,14 @@ internal sealed class CaptureKey
                 {
                     try
                     {
+                        // ITS LIMIT REACHED, it is stopped and what it found until then is written - see HuntWaitSeconds.
                         if (!hunt.Wait(TimeSpan.FromSeconds(HuntWaitSeconds)))
                         {
-                            return $"not written: the hunt still ran after {HuntWaitSeconds} s";
+                            run.Hunt?.Stop();
+                            if (!hunt.Wait(TimeSpan.FromSeconds(HuntStopSeconds)))
+                            {
+                                return $"not written: the hunt still ran {HuntStopSeconds} s after it was stopped at {HuntWaitSeconds} s";
+                            }
                         }
                     }
                     catch (AggregateException failed)
@@ -762,32 +891,39 @@ internal sealed class CaptureKey
         {
             try
             {
-                parts.Add(memory.Wait(TimeSpan.FromSeconds(MemoryWaitSeconds))
-                    ? $"{CaptureReport.MemoryFile}  {memory.Result}"
-                    : $"{CaptureReport.MemoryFile}  still recording after {MemoryWaitSeconds} s when this was written - it closes itself");
+                if (memory.Wait(TimeSpan.FromSeconds(MemoryWaitSeconds)))
+                {
+                    Said(CaptureReport.MemoryFile, memory.Result, CaptureStepState.Done);
+                }
+                else
+                {
+                    Said(CaptureReport.MemoryFile, $"still recording after {MemoryWaitSeconds} s when this was written - it closes itself", CaptureStepState.NotWritten);
+                }
             }
             catch (AggregateException failed)
             {
-                parts.Add($"{CaptureReport.MemoryFile}  FAILED: {failed.GetBaseException().Message}");
+                Said(CaptureReport.MemoryFile, "FAILED: " + failed.GetBaseException().Message, CaptureStepState.Failed);
             }
 
             if (On(CaptureParts.Monsters))
             {
-                parts.Add($"{CaptureReport.MonstersFile}  written by the pass inside the recording - {CaptureMemory.IndexFile} says what it holds");
+                Said(CaptureReport.MonstersFile, $"written by the pass inside the recording - {CaptureMemory.IndexFile} says what it holds", CaptureStepState.Done);
             }
         }
         else
         {
-            parts.Add($"{CaptureReport.MemoryFile}  not recorded: {run.MemoryNote}");
+            Said(CaptureReport.MemoryFile, "not recorded: " + run.MemoryNote, CaptureStepState.NotWritten);
             if (On(CaptureParts.Monsters))
             {
-                parts.Add($"{CaptureReport.MonstersFile}  not written: it is read inside the recording, and there is none");
+                Not(CaptureReport.MonstersFile, "it is read inside the recording, and there is none");
             }
         }
 
         string[] off = [.. CaptureParts.All.Where(part => run.Off.Contains(part.Key)).Select(part => part.Key)];
         parts.Add(off.Length == 0 ? "every part of the catalogue was on" : "off: " + string.Join(", ", off));
         parts.Add($"{Path.GetFileName(run.Folder)}.zip  beside this folder: every file here, packed to send");
+        CaptureStep? packing = run.Progress.Of(CaptureReport.SummaryFile);
+        packing?.Start(Environment.TickCount64);
         File.WriteAllText(
             At(CaptureReport.SummaryFile),
             CaptureReport.Summary(run.Snapshot, run.Local, version, (client.X, client.Y, client.Width, client.Height), near, parts));
@@ -799,10 +935,15 @@ internal sealed class CaptureKey
             (string zip, List<string> leftOut) = CaptureReport.Pack(run.Folder);
             run.Packed = zip;
             run.LeftOut = leftOut;
+            packing?.End(
+                leftOut.Count == 0 ? CaptureStepState.Done : CaptureStepState.Failed,
+                leftOut.Count == 0 ? $"{CaptureReport.SummaryFile}, and every file packed into {Path.GetFileName(zip)}" : "packed without " + string.Join(", ", leftOut),
+                Environment.TickCount64);
         }
         catch (Exception failed) when (failed is IOException or UnauthorizedAccessException)
         {
             run.LeftOut = [$"everything ({failed.Message})"];
+            packing?.End(CaptureStepState.Failed, "not packed: " + failed.Message, Environment.TickCount64);
         }
     }
 
@@ -833,36 +974,36 @@ internal sealed class CaptureKey
         return $"{client.Width} x {client.Height}, {what}";
     }
 
-    private void Say(string text, bool ok, long now)
+    /// <summary>
+    /// The capture's window, from the end of the hiding until it is closed or the key goes down again - see CaptureProgress.
+    /// </summary>
+    /// <remarks>
+    /// NOT FOCUSED WHEN IT APPEARS: the key is pressed in the game, and a window taking the keyboard from
+    /// it at that moment would swallow the next skill. Closed while the capture runs, it comes back
+    /// with the summary once the zip is written.
+    /// </remarks>
+    private void DrawWindow(long now)
     {
-        _said = text;
-        _saidOk = ok;
-        _saidUntil = now + SaidMs;
-    }
-
-    /// <summary>A line at the top of the screen while a capture runs, and for a while after.</summary>
-    private void DrawLine(long now)
-    {
-        string text;
-        bool ok = true;
-        if (_run is { } run)
-        {
-            (int done, int of) = _roomsProgress();
-            text = run.Stage != Stage.Rooms ? "capturing... writing the files and reading memory"
-                : run.Waiting.Length > 0 ? $"capturing... waiting for {run.Waiting} ({done} of {of} rooms)"
-                : "capturing... waiting for the rooms";
-        }
-        else if (now < _saidUntil)
-        {
-            text = _said;
-            ok = _saidOk;
-        }
-        else
+        if (_shown is not { } shown)
         {
             return;
         }
 
-        ImGui.GetForegroundDrawList().AddText(new Vector2(12, 30), ok ? 0xFFFFFFFFu : 0xFF5050FFu, text);
+        ImGui.SetNextWindowPos(new Vector2(12, 30), ImGuiCond.FirstUseEver);
+        bool open = true;
+        if (ImGui.Begin(
+            "Capture for Diagnosis###captureprogress",
+            ref open,
+            ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoNav))
+        {
+            shown.Draw(now);
+        }
+
+        ImGui.End();
+        if (!open)
+        {
+            _shown = null;
+        }
     }
 
     /// <summary>The rows on Appearance → Keys: the key, what the game does with it, and a box for every part of the catalogue.</summary>
@@ -979,9 +1120,15 @@ internal sealed class CaptureKey
         Writing,
     }
 
-    private sealed class Run(string folder, DateTime local, WorldSnapshot snapshot, ClientRect client, long since, HashSet<string> off)
+    private sealed class Run(string folder, DateTime local, WorldSnapshot snapshot, ClientRect client, long since, HashSet<string> off, CaptureProgress progress)
     {
         public string Folder { get; } = folder;
+
+        /// <summary>Where each part stands, for the window.</summary>
+        public CaptureProgress Progress { get; } = progress;
+
+        /// <summary>The light hunt's progress, and its stop - the window's and the writer's.</summary>
+        public FloatHuntProgress? Hunt { get; init; }
 
         public DateTime Local { get; } = local;
 

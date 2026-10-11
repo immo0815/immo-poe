@@ -70,6 +70,76 @@ public class LightHuntTests
         Assert.Equal(Base + 0x80, Assert.Single(result.Sightings).At);
     }
 
+    /// <summary>
+    /// On every core the hunt keeps the places one thread keeps, in the same order - nearest the anchor first, each needle's cap
+    /// applied in that order - and says what each kind of memory cost.
+    /// </summary>
+    [Fact]
+    public void ONEVERYCOREThePlacesAndTheirOrderAreThoseOfOneThread()
+    {
+        // Three regions of three chunks each, the anchor in the last: a needle laid in every chunk
+        // forty times is capped, and which sixty-four are kept is the order's to decide.
+        var memory = new FakeMemoryReader();
+        var regions = new List<MemoryRegion>();
+        for (var region = 0; region < 3; region++)
+        {
+            var bytes = new byte[3 * HeapScan.ChunkBytes];
+            for (var chunk = 0; chunk < 3; chunk++)
+            {
+                for (var copy = 0; copy < 40; copy++)
+                {
+                    Floats(bytes, (chunk * HeapScan.ChunkBytes) + (copy * 0x1000), 0.25f, -0.75f, 0.5f);
+                }
+
+                Floats(bytes, (chunk * HeapScan.ChunkBytes) + 0x80_000, 7.5f + region);
+            }
+
+            ulong at = Base + ((ulong)region * 0x1000_0000);
+            memory.Place(at, bytes);
+            regions.Add(new MemoryRegion(at, (ulong)bytes.Length, region == 1 ? 0x02u : 0x04u, region == 1 ? 0x40000u : 0x20000u));
+        }
+
+        var space = new Space([.. regions]);
+        FloatNeedle[] needles = [new("many", [0.25f, -0.75f, 0.5f], 1e-5f), new("few", [8.5f], 1.01f)];
+        ulong anchor = regions[2].Address + 0x10;
+
+        FloatHuntResult one = FloatHunt.Run(memory, space, needles, anchor, workers: 1);
+        FloatHuntResult every = FloatHunt.Run(memory, space, needles, anchor, workers: 8);
+
+        Assert.Equal(64, one.Sightings.Count(place => place.Needle == 0));
+        Assert.Equal(9, one.Sightings.Count(place => place.Needle == 1));
+        Assert.Equal(one.Sightings, every.Sightings);
+        Assert.Equal([0], every.Capped);
+        Assert.Equal(one.BytesScanned, every.BytesScanned);
+        Assert.Equal(3, every.RegionsWalked);
+        Assert.Equal(8, every.Workers);
+        Assert.True(every.Sightings[0].At >= regions[2].Address, "the anchor's region first");
+        Assert.Equal(
+            [("private rw", 2L, 6L * HeapScan.ChunkBytes), ("mapped r", 1L, 3L * HeapScan.ChunkBytes)],
+            every.Kinds.Select(kind => (kind.Kind, kind.Regions, kind.Bytes)));
+    }
+
+    /// <summary>A hunt asked to stop ends at its next chunk and hands back what it found until then, saying it was stopped.</summary>
+    [Fact]
+    public void ASTOPPEDHuntKeepsWhatItFound()
+    {
+        var bytes = new byte[4 * HeapScan.ChunkBytes];
+        for (var chunk = 0; chunk < 4; chunk++)
+        {
+            Floats(bytes, (chunk * HeapScan.ChunkBytes) + 0x40, 0.25f, -0.75f, 0.5f);
+        }
+
+        var progress = new FloatHuntProgress();
+        var memory = new StopAfterFirstRead(new FakeMemoryReader().Place(Base, bytes), progress);
+        FloatHuntResult result = FloatHunt.Run(memory, new Space(new MemoryRegion(Base, (ulong)bytes.Length)), [new FloatNeedle("v", [0.25f, -0.75f, 0.5f], 1e-5f)], progress: progress, workers: 1);
+
+        Assert.True(result.Stopped);
+        Assert.False(result.Truncated);
+        Assert.Equal(Base + 0x40, Assert.Single(result.Sightings).At);
+        Assert.Equal(HeapScan.ChunkBytes, result.BytesScanned);
+        Assert.Equal(HeapScan.ByteBudget, progress.Budget);
+    }
+
     // ---- what a finding means ----
 
     /// <summary>The reading whose vector the game holds is the verdict, the raw angle beside it is said, and the panel's reading follows it.</summary>
@@ -470,5 +540,28 @@ public class LightHuntTests
     private sealed class Space(params MemoryRegion[] regions) : IMemoryRegions
     {
         public IEnumerable<MemoryRegion> Regions() => regions;
+    }
+
+    /// <summary>A reader that asks the hunt to stop once its first read is served - a click on the window's stop, mid-hunt.</summary>
+    private sealed class StopAfterFirstRead(FakeMemoryReader inner, FloatHuntProgress progress) : IMemoryReader
+    {
+        public bool IsAttached => true;
+
+        public int ProcessId => inner.ProcessId;
+
+        public ulong ModuleBase => inner.ModuleBase;
+
+        public uint ModuleSize => inner.ModuleSize;
+
+        public bool TryRead(ulong address, Span<byte> destination)
+        {
+            bool read = inner.TryRead(address, destination);
+            progress.Stop();
+            return read;
+        }
+
+        public void Dispose()
+        {
+        }
     }
 }

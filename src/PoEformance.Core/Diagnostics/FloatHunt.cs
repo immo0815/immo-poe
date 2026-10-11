@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using PoEformance.Core.Memory;
 
@@ -24,16 +25,50 @@ public sealed record FloatDump(ulong At, int Needle, ulong From, byte[] Bytes);
 /// <param name="Needle">Which needle, by its index in the list asked for.</param>
 public readonly record struct FloatSighting(ulong At, int Needle);
 
-/// <summary>How far a running hunt has got - read from another thread while it runs.</summary>
+/// <summary>How far a running hunt has got - read from another thread while it runs - and how to stop it.</summary>
 public sealed class FloatHuntProgress
 {
     private long _bytes;
+    private long _regions;
+    private long _places;
+    private long _budget;
+    private int _stop;
 
     /// <summary>How many bytes have been looked through so far.</summary>
     public long Bytes => Volatile.Read(ref _bytes);
 
+    /// <summary>How many regions have been begun.</summary>
+    public long Regions => Volatile.Read(ref _regions);
+
+    /// <summary>How many places the needles were found at so far, before each needle's cap is applied.</summary>
+    public long Places => Volatile.Read(ref _places);
+
+    /// <summary>The most bytes the hunt looks through, set as it starts - nought before, and for a hunt that does not say.</summary>
+    public long Budget => Volatile.Read(ref _budget);
+
+    /// <summary>Whether <see cref="Stop"/> was asked for.</summary>
+    public bool Stopping => Volatile.Read(ref _stop) != 0;
+
+    /// <summary>Asks the hunt to end at its next chunk and hand back what it found so far - its result then says it was stopped.</summary>
+    public void Stop() => Volatile.Write(ref _stop, 1);
+
     internal void Add(long bytes) => Interlocked.Add(ref _bytes, bytes);
+
+    internal void Began() => Interlocked.Increment(ref _regions);
+
+    internal void Found(int places) => Interlocked.Add(ref _places, places);
+
+    internal void Budgeted(long budget) => Volatile.Write(ref _budget, budget);
 }
+
+/// <summary>What one kind of memory cost a hunt - see <see cref="MemoryRegion.Kind"/>.</summary>
+/// <param name="Kind">The regions' type and protection, in words.</param>
+/// <param name="Regions">How many of them were begun.</param>
+/// <param name="Bytes">How many of their bytes were looked through.</param>
+/// <param name="Reading">The time spent reading them out of the game, summed over every worker.</param>
+/// <param name="Sweeping">The time spent looking through what was read, summed likewise.</param>
+/// <param name="Failed">How many of them gave up a read part way, the rest of the region left.</param>
+public sealed record FloatHuntKind(string Kind, long Regions, long Bytes, TimeSpan Reading, TimeSpan Sweeping, long Failed);
 
 /// <summary>What a float hunt looked through and what it found.</summary>
 /// <param name="RegionsWalked">How many regions were read.</param>
@@ -52,7 +87,17 @@ public sealed record FloatHuntResult(
     IReadOnlyList<int> Unsearched,
     bool Truncated,
     TimeSpan Took,
-    IReadOnlyList<FloatDump>? Dumps = null);
+    IReadOnlyList<FloatDump>? Dumps = null)
+{
+    /// <summary>True when <see cref="FloatHuntProgress.Stop"/> ended it before the last region - what it holds is what was found until then.</summary>
+    public bool Stopped { get; init; }
+
+    /// <summary>How many threads looked.</summary>
+    public int Workers { get; init; } = 1;
+
+    /// <summary>What each kind of memory cost, the most bytes first.</summary>
+    public IReadOnlyList<FloatHuntKind> Kinds { get; init; } = [];
+}
 
 /// <summary>
 /// Searches the whole of the target's memory for runs of floats near given values - a vector or a matrix the caller can work out, to learn where and in which form the game keeps it.
@@ -74,6 +119,12 @@ public sealed record FloatHuntResult(
 /// remarks give: in address order the budget goes on driver mappings far below the game's heap.
 ///
 /// NOT RECORDED: it reads in megabyte chunks, above the recorder's cap, like HeapScan.
+///
+/// ON EVERY CORE, asked for from the live client: a capture's hunt over sixteen gigabytes on one
+/// thread was still running after two minutes, and whoever presses the capture key has chosen to
+/// spend the machine on it. The chunks are handed out one at a time, nearest the anchor first, so
+/// the workers still go outward together; what each found is put back in that order before each
+/// needle's cap is applied, so the first places kept are the nearest ones as they were on one thread.
 /// </remarks>
 public static class FloatHunt
 {
@@ -96,9 +147,10 @@ public static class FloatHunt
     /// <param name="regions">Its regions.</param>
     /// <param name="needles">What to look for.</param>
     /// <param name="anchor">An address in the game's own heap to start from; nought keeps the enumeration order.</param>
-    /// <param name="progress">Where to say how far it has got, or null.</param>
-    /// <param name="cancel">Stops it between chunks.</param>
+    /// <param name="progress">Where to say how far it has got, and where it is asked to stop - or null.</param>
+    /// <param name="cancel">Stops it between chunks, throwing.</param>
     /// <param name="budget">The most bytes looked through - HeapScan's budget unless the caller wants further.</param>
+    /// <param name="workers">How many threads look - nought for one a core.</param>
     public static FloatHuntResult Run(
         IMemoryReader reader,
         IMemoryRegions regions,
@@ -106,7 +158,8 @@ public static class FloatHunt
         ulong anchor = 0,
         FloatHuntProgress? progress = null,
         CancellationToken cancel = default,
-        long budget = HeapScan.ByteBudget)
+        long budget = HeapScan.ByteBudget,
+        int workers = 0)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(regions);
@@ -131,71 +184,25 @@ public static class FloatHunt
             longest = Math.Max(longest, needle.Values.Length);
         }
 
-        var sightings = new List<FloatSighting>();
-        var found = new int[needles.Count];
-        var capped = new HashSet<int>();
-        long walked = 0, scanned = 0;
-        bool truncated = false;
         if (anchors.Count == 0)
         {
-            return new FloatHuntResult(0, 0, sightings, [], unsearched, false, clock.Elapsed);
+            return new FloatHuntResult(0, 0, [], [], unsearched, false, clock.Elapsed);
         }
 
-        Anchor[] sorted = [.. anchors.OrderBy(one => one.Low)];
-        float widest = sorted.Max(one => one.High - one.Low);
-        ulong[] buckets = Buckets(sorted);
-        int overlap = longest * sizeof(float);
-        IEnumerable<MemoryRegion> order = anchor == 0
-            ? regions.Regions()
-            : [.. regions.Regions().OrderBy(one => HeapScan.Distance(one, anchor))];
+        progress?.Budgeted(budget);
+        var hunt = new Hunt(reader, needles, [.. anchors.OrderBy(one => one.Low)], longest * sizeof(float), budget, progress, cancel);
+        hunt.Plan(anchor == 0 ? [.. regions.Regions()] : [.. regions.Regions().OrderBy(one => HeapScan.Distance(one, anchor))]);
+        hunt.Go(workers > 0 ? workers : Environment.ProcessorCount);
+        cancel.ThrowIfCancellationRequested();
 
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(HeapScan.ChunkBytes + overlap);
-        try
+        (List<FloatSighting> sightings, HashSet<int> capped) = hunt.Gather();
+        return new FloatHuntResult(
+            hunt.Walked, hunt.Scanned, sightings, [.. capped.Order()], unsearched, hunt.Truncated, clock.Elapsed, Dumps(reader, needles, sightings))
         {
-            foreach (MemoryRegion region in order)
-            {
-                if (region.Size > HeapScan.LargestRegion)
-                {
-                    continue;
-                }
-
-                if (scanned >= budget)
-                {
-                    truncated = true;
-                    break;
-                }
-
-                cancel.ThrowIfCancellationRequested();
-                walked++;
-                for (ulong taken = 0; taken < region.Size; taken += HeapScan.ChunkBytes)
-                {
-                    // A FEW FLOATS PAST THE CHUNK, so a needle that starts in it and ends in the next
-                    // is still compared whole; each start is tried in the one chunk it begins in.
-                    int want = (int)Math.Min((ulong)HeapScan.ChunkBytes, region.Size - taken);
-                    int extra = (int)Math.Min((ulong)overlap, region.Size - taken - (ulong)want);
-                    while (want >= sizeof(float) && !reader.TryRead(region.Address + taken, buffer.AsSpan(0, want + extra)))
-                    {
-                        want /= 2;
-                        extra = 0;
-                    }
-
-                    if (want < sizeof(float))
-                    {
-                        break;
-                    }
-
-                    scanned += want;
-                    progress?.Add(want);
-                    Sweep(buffer.AsSpan(0, (want + extra) & ~3), want, region.Address + taken, needles, sorted, widest, buckets, found, capped, sightings);
-                }
-            }
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(buffer);
-        }
-
-        return new FloatHuntResult(walked, scanned, sightings, [.. capped.Order()], unsearched, truncated, clock.Elapsed, Dumps(reader, needles, sightings));
+            Stopped = hunt.Stopped,
+            Workers = hunt.Workers,
+            Kinds = hunt.Kinds(),
+        };
     }
 
     /// <summary>The bytes round the first places of each needle that asked for them, windows another one already read whole left out.</summary>
@@ -399,4 +406,264 @@ public static class FloatHunt
 
     /// <summary>A needle's first float and the values it may take.</summary>
     private readonly record struct Anchor(int Needle, int Index, float Low, float High);
+
+    /// <summary>One chunk of one region - the unit the workers take, in the order the regions were put.</summary>
+    private readonly record struct Chunk(int Region, ulong Offset);
+
+    /// <summary>One run's shared state: the chunks to take, the bytes looked through, and each worker's own findings.</summary>
+    private sealed class Hunt(
+        IMemoryReader reader, IReadOnlyList<FloatNeedle> needles, Anchor[] anchors, int overlap, long budget, FloatHuntProgress? progress,
+        CancellationToken cancel)
+    {
+        private readonly float _widest = anchors.Max(one => one.High - one.Low);
+        private readonly ulong[] _buckets = Buckets(anchors);
+        private readonly List<string> _kindNames = [];
+        private MemoryRegion[] _regions = [];
+        private int[] _kindOf = [];
+        private int[] _dead = [];
+        private Chunk[] _chunks = [];
+        private Lane[] _lanes = [];
+        private int _next = -1;
+        private long _scanned;
+        private ExceptionDispatchInfo? _failed;
+
+        public long Scanned => Volatile.Read(ref _scanned);
+
+        public long Walked => _lanes.Sum(lane => lane.Walked);
+
+        public int Workers => _lanes.Length;
+
+        /// <summary>True when the budget ended it with chunks left.</summary>
+        public bool Truncated => Scanned >= budget && Volatile.Read(ref _next) + 1 < _chunks.Length;
+
+        /// <summary>True when it was asked to stop with chunks left.</summary>
+        public bool Stopped => progress is { Stopping: true } && !Truncated && Volatile.Read(ref _next) + 1 < _chunks.Length;
+
+        /// <summary>Every chunk of every region small enough to be data, in the order given, and each region's kind.</summary>
+        public void Plan(MemoryRegion[] regions)
+        {
+            _regions = regions;
+            _kindOf = new int[regions.Length];
+            _dead = new int[regions.Length];
+            var kinds = new Dictionary<(uint Protect, uint Type), int>();
+            var chunks = new List<Chunk>();
+            for (var at = 0; at < regions.Length; at++)
+            {
+                MemoryRegion region = regions[at];
+                if (region.Size > HeapScan.LargestRegion)
+                {
+                    continue;
+                }
+
+                if (!kinds.TryGetValue((region.Protect, region.Type), out int kind))
+                {
+                    kind = kinds.Count;
+                    kinds.Add((region.Protect, region.Type), kind);
+                    _kindNames.Add(region.Kind);
+                }
+
+                _kindOf[at] = kind;
+                for (ulong taken = 0; taken < region.Size; taken += HeapScan.ChunkBytes)
+                {
+                    chunks.Add(new Chunk(at, taken));
+                }
+            }
+
+            _chunks = [.. chunks];
+        }
+
+        /// <summary>Runs the workers - this thread one of them - until the chunks, the budget or the asking runs out.</summary>
+        public void Go(int workers)
+        {
+            _lanes = new Lane[Math.Clamp(workers, 1, Math.Max(1, _chunks.Length))];
+            for (var at = 0; at < _lanes.Length; at++)
+            {
+                _lanes[at] = new Lane(needles.Count, _kindNames.Count);
+            }
+
+            var threads = new Thread[_lanes.Length - 1];
+            for (var at = 0; at < threads.Length; at++)
+            {
+                Lane lane = _lanes[at + 1];
+                threads[at] = new Thread(() => Work(lane)) { IsBackground = true, Name = "FloatHunt" };
+                threads[at].Start();
+            }
+
+            Work(_lanes[0]);
+            foreach (Thread thread in threads)
+            {
+                thread.Join();
+            }
+
+            _failed?.Throw();
+        }
+
+        private void Work(Lane lane)
+        {
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(HeapScan.ChunkBytes + overlap);
+            try
+            {
+                while (!cancel.IsCancellationRequested && progress is not { Stopping: true } && Volatile.Read(ref _scanned) < budget)
+                {
+                    int item = Interlocked.Increment(ref _next);
+                    if (item >= _chunks.Length)
+                    {
+                        break;
+                    }
+
+                    Chunk chunk = _chunks[item];
+                    if (Volatile.Read(ref _dead[chunk.Region]) != 0)
+                    {
+                        continue;
+                    }
+
+                    MemoryRegion region = _regions[chunk.Region];
+                    int kind = _kindOf[chunk.Region];
+                    if (chunk.Offset == 0)
+                    {
+                        lane.Walked++;
+                        lane.Regions[kind]++;
+                        progress?.Began();
+                    }
+
+                    // A FEW FLOATS PAST THE CHUNK, so a needle that starts in it and ends in the next
+                    // is still compared whole; each start is tried in the one chunk it begins in.
+                    int want = (int)Math.Min((ulong)HeapScan.ChunkBytes, region.Size - chunk.Offset);
+                    int extra = (int)Math.Min((ulong)overlap, region.Size - chunk.Offset - (ulong)want);
+                    long began = Stopwatch.GetTimestamp();
+                    while (want >= sizeof(float) && !reader.TryRead(region.Address + chunk.Offset, buffer.AsSpan(0, want + extra)))
+                    {
+                        want /= 2;
+                        extra = 0;
+                    }
+
+                    long read = Stopwatch.GetTimestamp();
+                    lane.Reading[kind] += read - began;
+                    if (want < sizeof(float))
+                    {
+                        // THE REST OF THE REGION IS LEFT, as on one thread: a region that will not read
+                        // here was freed or changed under the walk, and its other chunks would only
+                        // fail the same way - each after halving its read down to a word.
+                        Volatile.Write(ref _dead[chunk.Region], 1);
+                        lane.Failed[kind]++;
+                        continue;
+                    }
+
+                    Interlocked.Add(ref _scanned, want);
+                    progress?.Add(want);
+                    Sweep(
+                        buffer.AsSpan(0, (want + extra) & ~3), want, region.Address + chunk.Offset, needles, anchors, _widest, _buckets,
+                        lane.Found, lane.Capped, lane.Fresh);
+                    if (lane.Fresh.Count > 0)
+                    {
+                        progress?.Found(lane.Fresh.Count);
+                        foreach (FloatSighting one in lane.Fresh)
+                        {
+                            lane.Sightings.Add((item, one));
+                        }
+
+                        lane.Fresh.Clear();
+                    }
+
+                    lane.Bytes[kind] += want;
+                    lane.Sweeping[kind] += Stopwatch.GetTimestamp() - read;
+                }
+            }
+            catch (Exception failed)
+            {
+                // ON A THREAD OF ITS OWN an exception would take the process down; it is thrown
+                // again on the caller's once every worker is done.
+                Interlocked.CompareExchange(ref _failed, ExceptionDispatchInfo.Capture(failed), null);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
+        /// <summary>
+        /// Every worker's places in the order of the chunks they came from, each needle's cap applied to them in that order.
+        /// </summary>
+        /// <remarks>
+        /// A WORKER'S OWN CAP LOSES NOTHING KEPT HERE: its chunks are in the hunt's order too, so a place
+        /// among a needle's first few overall had fewer still before it in its own worker.
+        /// </remarks>
+        public (List<FloatSighting> Sightings, HashSet<int> Capped) Gather()
+        {
+            var all = new List<(int Item, FloatSighting Place)>();
+            var capped = new HashSet<int>();
+            foreach (Lane lane in _lanes)
+            {
+                all.AddRange(lane.Sightings);
+                capped.UnionWith(lane.Capped);
+            }
+
+            all.Sort(static (a, b) => a.Item != b.Item ? a.Item.CompareTo(b.Item)
+                : a.Place.At != b.Place.At ? a.Place.At.CompareTo(b.Place.At)
+                : a.Place.Needle.CompareTo(b.Place.Needle));
+            var found = new int[needles.Count];
+            var sightings = new List<FloatSighting>(all.Count);
+            foreach ((_, FloatSighting place) in all)
+            {
+                if (found[place.Needle] >= MostPerNeedle)
+                {
+                    capped.Add(place.Needle);
+                    continue;
+                }
+
+                found[place.Needle]++;
+                sightings.Add(place);
+            }
+
+            return (sightings, capped);
+        }
+
+        /// <summary>What each kind of memory cost, summed over the workers, the most bytes first.</summary>
+        public FloatHuntKind[] Kinds()
+        {
+            var kinds = new FloatHuntKind[_kindNames.Count];
+            for (var kind = 0; kind < kinds.Length; kind++)
+            {
+                long regions = 0, bytes = 0, reading = 0, sweeping = 0, failed = 0;
+                foreach (Lane lane in _lanes)
+                {
+                    regions += lane.Regions[kind];
+                    bytes += lane.Bytes[kind];
+                    reading += lane.Reading[kind];
+                    sweeping += lane.Sweeping[kind];
+                    failed += lane.Failed[kind];
+                }
+
+                kinds[kind] = new FloatHuntKind(
+                    _kindNames[kind], regions, bytes, Stopwatch.GetElapsedTime(0, reading), Stopwatch.GetElapsedTime(0, sweeping), failed);
+            }
+
+            return [.. kinds.Where(one => one.Regions > 0).OrderByDescending(one => one.Bytes)];
+        }
+    }
+
+    /// <summary>One worker's own findings and tallies - touched by its thread alone until the workers are done.</summary>
+    private sealed class Lane(int needles, int kinds)
+    {
+        public int[] Found { get; } = new int[needles];
+
+        public HashSet<int> Capped { get; } = [];
+
+        /// <summary>The places the chunk in hand yielded, before they are tagged with it.</summary>
+        public List<FloatSighting> Fresh { get; } = [];
+
+        public List<(int Item, FloatSighting Place)> Sightings { get; } = [];
+
+        public long Walked { get; set; }
+
+        public long[] Regions { get; } = new long[kinds];
+
+        public long[] Bytes { get; } = new long[kinds];
+
+        public long[] Reading { get; } = new long[kinds];
+
+        public long[] Sweeping { get; } = new long[kinds];
+
+        public long[] Failed { get; } = new long[kinds];
+    }
 }
