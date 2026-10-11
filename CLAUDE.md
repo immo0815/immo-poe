@@ -217,7 +217,15 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   sets none, so Port's water is the engine's default, written in no file: `light-hunt.txt` (`LightHunt`, run at
   the press) looks for it in memory two ways - the water pass's uniform block as common.ffx declares it, the
   file's values in their slots and the rest read out by name; and the file's values in the window round the
-  parsed environment's phi, printed whole.
+  parsed environment's phi, printed whole. Its first full run (v0.1.208, 16 GB in 57 s - most of the threads' time
+  on 4.4 GB of write-combined memory, the driver's upload heaps, read at 0.01 GB/s) found no uniform block as declared,
+  but four copies of Port's parsed environment, every field a value and a flag - one where the file sets it, nought
+  where the engine's default stands: flow_intensity at phi+0x218 and height_offset at +0x290 among the water's floats
+  (defaults between them 0.01, 0.03, 1.33, 1, 0.13, 0, 1.06, 1, 0, 37.5, 0, 0.04), and between dust_color (+0x360) and
+  ssf_color (+0x3B0) two colours Port's file does not set, (0.1, 0.19, 0.22) at +0x390 and (0.1015, 0.09106, 0.05037)
+  at +0x3A0. Which is the open water's is NOT read from their order: `light-hunt.txt` maps every value the area's file
+  sets to its slot (`LightHunt.Layout`), and `water.txt` lists every environment's water section file by file, so one
+  capture in an area whose file sets the water's colours names the slots.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

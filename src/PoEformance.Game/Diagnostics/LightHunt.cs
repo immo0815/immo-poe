@@ -149,11 +149,12 @@ public sealed class LightHunt
             entries.Add(Angle("phi", phi, Reach(dust?.AfterPhi)));
             entries.Add(Angle("theta", theta));
 
-            // AND THE WATER SECTION'S WINDOW: phi again, read as far either side as the hunt reads anything, so the
-            // file's own water values can be found in it and what stands beside them read - see WaterWindow.
-            if (environment.Water.Count > 0)
+            // AND THE PARSED ENVIRONMENT'S WINDOW: phi again, read as far either side as the hunt reads anything, so the
+            // file's own values can be found in it - a map of the parsed copy - and what stands beside them read. See
+            // Layout, and WaterWindow for the water's own lines.
+            if (environment.All.Count > 0)
             {
-                entries.Add(new Entry(What.Water, -1, false, false, new FloatNeedle("phi, for the water section", [phi], 0f, FloatHunt.MostAround)));
+                entries.Add(new Entry(What.Water, -1, false, false, new FloatNeedle("phi, for the parsed environment", [phi], 0f, FloatHunt.MostAround)));
             }
         }
 
@@ -399,7 +400,9 @@ public sealed class LightHunt
             }
         }
 
+        FloatDump? window = Window(result);
         WaterWindow(report, result);
+        Layout(report, window);
 
         // WHAT THE GAME KEEPS BESIDE THE SUN'S VECTOR, a row of eight floats at a time, the vector's
         // own in brackets - the cube's turn and the light's other numbers may sit next to it. The
@@ -580,8 +583,6 @@ public sealed class LightHunt
         }
 
         report.Append(CultureInfo.InvariantCulture, $"  beside phi, within 0x{FloatHunt.MostAround:X} bytes either side - where each of the file's values lies, as a float and a whole number as an int too:").AppendLine();
-        FloatDump? fullest = null;
-        int most = -1;
         foreach (FloatDump dump in windows)
         {
             long origin = (long)(dump.At - dump.From);
@@ -595,17 +596,82 @@ public sealed class LightHunt
             }
 
             report.Append(CultureInfo.InvariantCulture, $"    phi at 0x{dump.At:X}: {found} of {water.Count} found").AppendLine(line.ToString());
+        }
+    }
+
+    /// <summary>The window round phi holding the most of the file's values - the parsed environment's own, of the copies found - or null.</summary>
+    private FloatDump? Window(FloatHuntResult result)
+    {
+        int at = _entries.FindIndex(one => one.What == What.Water);
+        FloatDump? fullest = null;
+        int most = -1;
+        foreach (FloatDump dump in (result.Dumps ?? []).Where(one => one.Needle == at))
+        {
+            long origin = (long)(dump.At - dump.From);
+            int found = Environment.All.Count(one => Places(dump.Bytes, one, origin).Count > 0);
             if (found > most)
             {
                 (fullest, most) = (dump, found);
             }
         }
 
-        report.Append(CultureInfo.InvariantCulture, $"  the window round phi at 0x{fullest!.At:X} whole, eight floats a row, phi in brackets:").AppendLine();
-        Dumped(report, fullest, 1);
-
-        static string Offset(long offset) => string.Create(CultureInfo.InvariantCulture, $"{(offset < 0 ? "-" : "+")}0x{Math.Abs(offset):X}");
+        return fullest;
     }
+
+    /// <summary>
+    /// The parsed environment mapped by the file's own values: each key the file sets, where it lies beside phi, in the order of the struct - then the window whole.
+    /// </summary>
+    /// <remarks>
+    /// EACH FIELD A VALUE AND A FLAG: Port's copy (v0.1.208) holds every value its file sets with a one after it and every value it
+    /// leaves to the engine with a nought - the engine's defaults, where the water's colours are when the file names none. Which
+    /// default is which key is said by an area whose file sets that key: there it is found here, at its slot.
+    /// </remarks>
+    private void Layout(StringBuilder report, FloatDump? window)
+    {
+        if (window is null)
+        {
+            report.AppendLine("the parsed environment: no window read - phi was not found, or the file gives none");
+            return;
+        }
+
+        long origin = (long)(window.At - window.From);
+        var placed = new List<(long Nearest, string Line)>();
+        var missing = new List<string>();
+        foreach (EnvironmentValue one in Environment.All)
+        {
+            List<long> places = Places(window.Bytes, one, origin);
+            if (places.Count == 0)
+            {
+                missing.Add(Said(one));
+                continue;
+            }
+
+            long[] nearest = [.. places.OrderBy(Math.Abs).Take(MostPlacesSaid)];
+            placed.Add((nearest[0], string.Create(
+                CultureInfo.InvariantCulture,
+                $"    {Offset(nearest[0]),8}  {Said(one)}{(places.Count > 1 ? $"  (also {string.Join(" ", nearest.Skip(1).Select(Offset))}{(places.Count > MostPlacesSaid ? $" and {places.Count - MostPlacesSaid} more" : string.Empty)})" : string.Empty)}")));
+        }
+
+        report.Append(CultureInfo.InvariantCulture,
+            $"the parsed environment round phi at 0x{window.At:X}: {placed.Count} of {Environment.All.Count} of the file's values found in it, each at its nearest place - a value set by the file has a one after it, one left to the engine a nought:").AppendLine();
+        foreach ((_, string line) in placed.OrderBy(one => one.Nearest))
+        {
+            report.AppendLine(line);
+        }
+
+        if (missing.Count > 0)
+        {
+            report.Append("    not in the window: ").AppendLine(string.Join("; ", missing));
+        }
+
+        report.Append(CultureInfo.InvariantCulture, $"  the window round phi at 0x{window.At:X} whole, eight floats a row, phi in brackets:").AppendLine();
+        Dumped(report, window, 1);
+    }
+
+    /// <summary>Most places one value is listed at in the map.</summary>
+    private const int MostPlacesSaid = 4;
+
+    private static string Offset(long offset) => string.Create(CultureInfo.InvariantCulture, $"{(offset < 0 ? "-" : "+")}0x{Math.Abs(offset):X}");
 
     /// <summary>Where a file's value lies in a window, as offsets from the needle: its floats in a row, and a whole number as an int too.</summary>
     private static List<long> Places(byte[] bytes, EnvironmentValue value, long origin)

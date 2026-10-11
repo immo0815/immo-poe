@@ -385,6 +385,15 @@ public class LightHuntTests
         Assert.Contains("; height_offset +0x410", verdict.Report, StringComparison.Ordinal);
         Assert.Contains($"  the window round phi at 0x{Base + phiAt:X} whole, eight floats a row, phi in brackets:", verdict.Report, StringComparison.Ordinal);
         Assert.Contains("[2.14668]", verdict.Report, StringComparison.Ordinal);
+
+        // AND THE MAP: every value the file sets, each section's, at its nearest place beside phi in the struct's order.
+        Assert.Contains($"the parsed environment round phi at 0x{Base + phiAt:X}: ", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains("     +0x0  directional_light.phi 2.14668\n", verdict.Report.ReplaceLineEndings("\n"), StringComparison.Ordinal);
+        Assert.Contains("   +0x400  water.flow_intensity 1.5\n", verdict.Report.ReplaceLineEndings("\n"), StringComparison.Ordinal);
+        Assert.Contains("   +0x410  water.height_offset -15\n", verdict.Report.ReplaceLineEndings("\n"), StringComparison.Ordinal);
+        Assert.True(
+            verdict.Report.IndexOf("water.flow_intensity 1.5", StringComparison.Ordinal) < verdict.Report.IndexOf("water.height_offset -15\n", StringComparison.Ordinal),
+            "in the struct's order");
     }
 
     /// <summary>And an environment whose only finding would be its dust colour is still worth a hunt.</summary>
