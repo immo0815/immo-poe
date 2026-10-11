@@ -1345,6 +1345,139 @@ public partial class CaptureReplayTests
         return said.ToString();
     }
 
+    /// <summary>Counts how much of the area lies under a tile of one ground all round, and what the MaterialsList offers each ground; writes the table beside the capture's files.</summary>
+    [Fact]
+    public void THEGROUNDIsCountedByCellsFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder)
+        {
+            return;
+        }
+
+        string replay = GroundReplay(folder);
+        File.WriteAllText(Path.Combine(folder, "ground-replay.txt"), replay);
+        Assert.StartsWith("ground:", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// ground-replay.txt: every laid cell by the corners of the tile file on it - one ground all round, mixed, or none named - and
+    /// for each ground name the cells under it and what the master's MaterialsList draws it with; then the files over the most cells.
+    /// </summary>
+    /// <remarks>
+    /// WHAT IS MEASURED: how far a ground painted only where a tile's four corners agree would reach, before anything is built on
+    /// it. The terrain from the recording, the corners from tile-identities.txt, the names and the MaterialsList from
+    /// area-masters.txt - any capture from 0.1.190 on carries all three. Port's harbour is the case that asked: one tile of 315
+    /// cells whose corners are two grounds.
+    /// </remarks>
+    public static string GroundReplay(string folder)
+    {
+        var said = new StringBuilder();
+        TerrainGrid? grid = Terrain(folder, out string terrainHow);
+        Dictionary<string, TileIdentity> identities = Identities(folder) ?? new Dictionary<string, TileIdentity>(StringComparer.OrdinalIgnoreCase);
+        (Dictionary<string, string> names, List<(string Path, GroundMaterials List)> lists) = GroundFiles(folder);
+        Dictionary<string, int> cells = Cells(grid?.Tiles);
+        said.AppendLine(CultureInfo.InvariantCulture,
+            $"ground: {terrainHow}; {identities.Count} laid files with identities, {names.Count} ground types named, {lists.Count} MaterialsLists");
+
+        string NameOf(string ground) => ground.Length == 0 ? string.Empty : names.GetValueOrDefault(ground.Replace('\\', '/').Trim(), "(unnamed " + Short(ground) + ")");
+        var byName = new SortedDictionary<string, (int Cells, int AllRound)>(StringComparer.OrdinalIgnoreCase);
+        int all = 0, one = 0, mixed = 0, none = 0, unknown = 0;
+        foreach ((string path, int covered) in cells)
+        {
+            all += covered;
+            if (!identities.TryGetValue(path, out TileIdentity? identity))
+            {
+                unknown += covered;
+                continue;
+            }
+
+            string[] named = [.. identity.Grounds.Select(NameOf)];
+            string[] distinct = [.. named.Where(name => name.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase)];
+            bool allRound = named.Length == 4 && distinct.Length == 1 && named.All(name => name.Length > 0);
+            one += allRound ? covered : 0;
+            none += distinct.Length == 0 ? covered : 0;
+            mixed += !allRound && distinct.Length > 0 ? covered : 0;
+            foreach (string name in distinct)
+            {
+                (int under, int round) = byName.GetValueOrDefault(name);
+                byName[name] = (under + covered, round + (allRound ? covered : 0));
+            }
+        }
+
+        static string Share(int part, int whole) => whole == 0 ? "-" : string.Create(CultureInfo.InvariantCulture, $"{100.0 * part / whole:0}%");
+        said.AppendLine(CultureInfo.InvariantCulture,
+            $"{all} laid cells: one ground all round {one} ({Share(one, all)}), mixed {mixed} ({Share(mixed, all)}), none named {none} ({Share(none, all)}), file not identified {unknown}");
+
+        said.AppendLine().AppendLine("by ground name - cells with it at a corner, cells with it all round, and what each MaterialsList draws it with:");
+        foreach ((string name, (int under, int round)) in byName)
+        {
+            said.AppendLine(CultureInfo.InvariantCulture, $"  \"{name}\": at a corner over {under} cells, all round over {round}");
+            foreach ((string list, GroundMaterials materials) in lists)
+            {
+                GroundGroup? group = materials.Named(name);
+                said.AppendLine(group is null
+                    ? $"      {Short(list)}: not listed"
+                    : string.Create(CultureInfo.InvariantCulture,
+                        $"      {Short(list)}: {string.Join(", ", group.Choices.Select((choice, at) => Short(choice.Material) + (at < group.Weights.Count ? " " + group.Weights[at].ToString(CultureInfo.InvariantCulture) : string.Empty)))}"));
+            }
+        }
+
+        said.AppendLine().AppendLine("the files over the most cells, with their corners:");
+        foreach ((string path, int covered) in cells.OrderByDescending(pair => pair.Value).ThenBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase).Take(12))
+        {
+            string corners = identities.TryGetValue(path, out TileIdentity? identity) ? string.Join(", ", identity.Grounds.Select(ground => NameOf(ground) is { Length: > 0 } name ? name : "-")) : "no identity";
+            said.AppendLine(CultureInfo.InvariantCulture, $"  {path}  {covered} cells  corners [{corners}]");
+        }
+
+        return said.ToString();
+    }
+
+    /// <summary>The ground types area-masters.txt writes whole, by path to name, and every MaterialsList it writes whole, read back.</summary>
+    private static (Dictionary<string, string> Names, List<(string Path, GroundMaterials List)> Lists) GroundFiles(string folder)
+    {
+        var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var lists = new List<(string, GroundMaterials)>();
+        string path = Path.Combine(folder, CaptureReport.MastersFile);
+        if (!File.Exists(path))
+        {
+            return (names, lists);
+        }
+
+        string current = string.Empty;
+        var text = new StringBuilder();
+        void Close()
+        {
+            if (current.EndsWith(".gt", StringComparison.OrdinalIgnoreCase) && GroundType.NameOf(text.ToString()) is { Length: > 0 } name)
+            {
+                names[current] = name;
+            }
+            else if (current.EndsWith(GroundMaterials.Extension, StringComparison.OrdinalIgnoreCase))
+            {
+                lists.Add((current, GroundMaterials.Parse(text.ToString())));
+            }
+
+            text.Clear();
+        }
+
+        foreach (string raw in File.ReadLines(path))
+        {
+            string line = raw.TrimEnd('\r');
+            if (line.StartsWith("##### ", StringComparison.Ordinal))
+            {
+                Close();
+                int named = line.IndexOf("  (", StringComparison.Ordinal);
+                current = named > 6 ? line[6..named] : line[6..];
+            }
+            else if (line.StartsWith("  | ", StringComparison.Ordinal))
+            {
+                text.AppendLine(line[4..]);
+            }
+        }
+
+        Close();
+        return (names, lists);
+    }
+
     /// <summary>Holds every laid tile's own doodads against the entities the recording holds, under every way a tile can lie; writes the table beside the capture's files.</summary>
     [Fact]
     public void THETILEDOODADSAreHeldAgainstTheEntitiesFromACapture()

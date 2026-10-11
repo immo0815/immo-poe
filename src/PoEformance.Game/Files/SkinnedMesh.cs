@@ -1232,6 +1232,12 @@ public sealed class SkinnedMesh
     /// mostly 255, a bone or an index as small numbers, a pair of halves as neither. So each field
     /// is described by what is IN it - its first value, how many distinct values, and each byte's
     /// range - which is the measurement, where a name for the field would be the guess.
+    ///
+    /// AND AS TWO HALVES, because the field a ground block's vertex may carry its coordinates in is
+    /// one of these: poe_data_tools reads an older tile mesh's ground vertex as two pairs of halves
+    /// on the same two bits, and a pair of halves running 0..1 or 0..8 is a coordinate, where its
+    /// four byte ranges say nothing a reader can see. Only finite halves count - a colour read as
+    /// halves is mostly not-a-number, which is itself the tell.
     /// </remarks>
     private struct Extras(int extra1, int extra0, int extra6)
     {
@@ -1266,6 +1272,8 @@ public sealed class SkinnedMesh
             private int _seen;
             private int _low0 = 255, _low1 = 255, _low2 = 255, _low3 = 255;
             private int _high0, _high1, _high2, _high3;
+            private float _lowFirst = float.PositiveInfinity, _highFirst = float.NegativeInfinity;
+            private float _lowSecond = float.PositiveInfinity, _highSecond = float.NegativeInfinity;
 
             public void See(ReadOnlySpan<byte> file, int start)
             {
@@ -1294,7 +1302,22 @@ public sealed class SkinnedMesh
                 _high1 = Math.Max(_high1, bytes[1]);
                 _high2 = Math.Max(_high2, bytes[2]);
                 _high3 = Math.Max(_high3, bytes[3]);
+                Half(BinaryPrimitives.ReadUInt16LittleEndian(bytes), ref _lowFirst, ref _highFirst);
+                Half(BinaryPrimitives.ReadUInt16LittleEndian(bytes[2..]), ref _lowSecond, ref _highSecond);
             }
+
+            private static void Half(ushort bits, ref float low, ref float high)
+            {
+                float value = (float)BitConverter.UInt16BitsToHalf(bits);
+                if (float.IsFinite(value))
+                {
+                    low = MathF.Min(low, value);
+                    high = MathF.Max(high, value);
+                }
+            }
+
+            private static string Range(float low, float high)
+                => low <= high ? string.Create(CultureInfo.InvariantCulture, $"{low:G4}..{high:G4}") : "-";
 
             public readonly void Say(StringBuilder said, string name)
             {
@@ -1315,7 +1338,8 @@ public sealed class SkinnedMesh
                     CultureInfo.InvariantCulture,
                     $"{name}: first {_first & 0xFF:X2} {(_first >> 8) & 0xFF:X2} {(_first >> 16) & 0xFF:X2} {_first >> 24:X2}"
                     + $" · {distinct} distinct over {_seen} vertices"
-                    + $" · bytes {_low0}..{_high0} {_low1}..{_high1} {_low2}..{_high2} {_low3}..{_high3}"));
+                    + $" · bytes {_low0}..{_high0} {_low1}..{_high1} {_low2}..{_high2} {_low3}..{_high3}"
+                    + $" · as halves {Range(_lowFirst, _highFirst)} {Range(_lowSecond, _highSecond)}"));
             }
         }
     }

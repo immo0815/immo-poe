@@ -87,6 +87,9 @@ public static class CaptureReport
     /// <summary>The area's masters whole and every file they name - see <see cref="Masters"/>.</summary>
     public const string MastersFile = "area-masters.txt";
 
+    /// <summary>What the laid tiles' ground is made of - see CaptureGround.</summary>
+    public const string GroundFile = "ground.txt";
+
     /// <summary>The survey of the entity maps for the rooms' doodads, and every sighting.</summary>
     public const string DoodadsFile = "doodads.txt";
 

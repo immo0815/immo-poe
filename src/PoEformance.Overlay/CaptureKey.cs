@@ -145,6 +145,9 @@ internal sealed class CaptureKey
     /// <summary>How to read a file out of the install, or null where there is none - for the rooms' files.</summary>
     public Func<string, byte[]?>? Read { get; set; }
 
+    /// <summary>The install's shader sources, as its walk found them - empty until it has run. For the ground part's search.</summary>
+    public IReadOnlyList<string> Shaders { get; set; } = [];
+
     /// <summary>
     /// Starts the memory half of a capture - the recording, and the pass inside it that reads what the ask says - or null where one is already running. Set by whoever owns the reader.
     /// </summary>
@@ -345,11 +348,12 @@ internal sealed class CaptureKey
         run.Stage = Stage.Writing;
         Func<string, byte[]?>? read = Read;
         string version = _version();
-        run.Writing = Task.Run(() => Write(run, read, version));
+        IReadOnlyList<string> shaders = Shaders;
+        run.Writing = Task.Run(() => Write(run, read, version, shaders));
     }
 
     /// <summary>Every ticked part of the capture, each on its own so one failing loses only itself.</summary>
-    private static void Write(Run run, Func<string, byte[]?>? read, string version)
+    private static void Write(Run run, Func<string, byte[]?>? read, string version, IReadOnlyList<string> shaders)
     {
         var parts = new List<string>();
         void Part(string file, Func<string> write)
@@ -528,6 +532,24 @@ internal sealed class CaptureKey
                     string files = CaptureReport.Masters(read, run.Loaded, run.Masters, run.Snapshot.Terrain is TerrainGrid { Ground: { } ground } ? ground.Types : null);
                     File.WriteAllText(At(CaptureReport.MastersFile), files);
                     return files[..files.IndexOf('\n')];
+                });
+            }
+        }
+
+        if (On(CaptureParts.Ground))
+        {
+            if (read is null)
+            {
+                parts.Add($"{CaptureReport.GroundFile}  not written: no install to read the ground from");
+            }
+            else
+            {
+                Part(CaptureReport.GroundFile, () =>
+                {
+                    string ground = CaptureGround.Write(
+                        read, run.Snapshot.Terrain is TerrainGrid { Tiles: { } laid } ? laid : null, run.Loaded, run.Masters, shaders);
+                    File.WriteAllText(At(CaptureReport.GroundFile), ground);
+                    return ground[..ground.IndexOf('\n')];
                 });
             }
         }
