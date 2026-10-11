@@ -147,6 +147,11 @@ hot-reload with `--watch`, no rebuild. Every field may declare an invariant; the
 runs them at attach time. Record WHY an offset is what it is, and its drift history — that is
 the part that is expensive to rediscover.
 
+**Every offset found goes into the schema in the push that finds it** (asked for from the live
+client, 2026-10-11) - one a capture part measured as much as one the tool reads, and one not yet
+named as a field with what it holds and why it is unnamed (`ParsedEnvironment.Colour390`). A
+measurement that lives only in a capture's text or in this file is lost the moment that capture is.
+
 ## Record, then diagnose offline
 
 `--record` captures every read into a small file that replays without the game. Recordings
