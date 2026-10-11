@@ -14,14 +14,19 @@ namespace PoEformance.Features;
 /// floor a staged Malgor fights on, is most of his picture. Three things stand between that and a painted ground, and each
 /// is a file of the install, not something a picture of the game can settle:
 ///
-///     what a ground block's vertex carries - the tool's reader finds no texture coordinates in it, while poe_data_tools
-///         reads an older tile mesh's ground vertex as two pairs of halves on the format's bits 0 and 1, which this
-///         reader steps over unnamed; the block facts below say what is in those fields, as halves too
+///     what a ground block's vertex carries - the block facts below say, the fields the reader steps over as halves too
 ///     which material a corner's ground is drawn with - the master's MaterialsList keys its groups by the ground type's
 ///         name, and a group with several materials weighs them; a tile's four corners may name four grounds
-///     how the engine makes the coordinates the ground materials read - every ground graph seen reads InputUV, which the
-///         mesh does not carry; an earlier tile dump caught the line "uv = tile_ground_tiling * pos *
-///         ground_scalemove_uv.xy" without the fragment around it, so the sources naming those words go in whole
+///     how the engine makes the coordinates the ground materials read - the shader sources naming those words, whole
+///
+/// WHAT THE FIRST PORT CAPTURE (v0.1.195) SETTLED: 891 of its 893 ground blocks carry coordinates (format 0x238, a pair
+/// of halves on bit 3 - small, 0.18..0.21 in one sub-tile, more like a place in the template's ground mask than a
+/// material's tiling), while the engine's own CreateProjectedCoords makes the materials' from the world position:
+/// uv = (world.xy + ground_scalemove_uv.zw) * ground_scalemove_uv.xy, a pass uniform no file holds. And the probe said
+/// Port's white pier IS the harbour tile's ground block - whose corners name IslandOcean and IslandTownUnwalkableFill,
+/// black and cobblestone, where the game draws wood. So the template is written whole too (its MaterialSlots and the
+/// triples' first numbers are read past by TileTemplate), each template's ground shapes and coordinates are counted,
+/// and the sources of the ground's blending - up to four materials by engine and user masks - are searched for.
 ///
 /// The Tile Book's tile dump answers the same for ONE tile from a window; this answers it for every tile the area laid,
 /// and stays in the capture with the pictures and the recording.
@@ -44,8 +49,14 @@ public static class CaptureGround
     /// <remarks>
     /// The first two are the line the tile dump caught; <c>TileGroundUVs</c> is the graph node MASK_TextureStatic uses, and
     /// <c>GetGroundTBN</c> the node the engine's own Ground_TBN graph writes the ground's basis with - the coordinates' twin.
+    /// The rest are what the ground's blending reads and the first capture's sources did not define: the weights
+    /// (<c>first_ground</c>), the two masks, and how the engine's mask coordinates are made.
     /// </remarks>
-    public static IReadOnlyList<string> Words { get; } = ["tile_ground_tiling", "ground_scalemove", "TileGroundUVs", "GetGroundTBN"];
+    public static IReadOnlyList<string> Words { get; } =
+        ["tile_ground_tiling", "ground_scalemove", "TileGroundUVs", "GetGroundTBN", "first_ground", "GetEngineMask", "GetUserMask", "GenerateBlendUVs", "blend1_uv_transform"];
+
+    /// <summary>Most templates written whole; more are named.</summary>
+    public const int MostTemplatesWhole = 96;
 
     /// <summary>
     /// The whole text of the part. Never throws for a file that will not read - it is named instead.
@@ -104,9 +115,11 @@ public static class CaptureGround
             return name;
         }
 
-        int opened = Blocks(read, templates, body, out int subTiles);
+        var texts = new List<(string Path, string Text)>();
+        int opened = Blocks(read, templates, body, texts, out int subTiles);
         string groundsSaid = Corners(read, laid, cells, corners, NameOf, loaded, masters, body);
         string shadersSaid = Shaders(read, shaders, body);
+        Whole(texts, body);
 
         var said = new StringBuilder();
         said.Append(CultureInfo.InvariantCulture,
@@ -122,7 +135,8 @@ public static class CaptureGround
     }
 
     /// <summary>The ground blocks of every template, by vertex format - then one line a template. Returns how many sub-tile meshes were read.</summary>
-    private static int Blocks(Func<string, byte[]?> read, SortedDictionary<string, List<string>> templates, StringBuilder said, out int subTiles)
+    private static int Blocks(
+        Func<string, byte[]?> read, SortedDictionary<string, List<string>> templates, StringBuilder said, List<(string Path, string Text)> texts, out int subTiles)
     {
         var formats = new SortedDictionary<uint, Format>();
         var lines = new StringBuilder();
@@ -132,7 +146,13 @@ public static class CaptureGround
         string firstUnread = string.Empty;
         foreach ((string template, List<string> users) in templates)
         {
-            TileTemplate layout = TileTemplate.Read(read(template));
+            byte[]? raw = read(template);
+            TileTemplate layout = TileTemplate.Read(raw);
+            if (raw is { Length: > 0 })
+            {
+                texts.Add((template, StatDescriptionFiles.Decode(raw)));
+            }
+
             lines.Append("  ").Append(template);
             if (!layout.Ready)
             {
@@ -152,7 +172,8 @@ public static class CaptureGround
             }
 
             var mine = new SortedSet<uint>();
-            int grounds = 0, coordinated = 0;
+            int grounds = 0, coordinated = 0, fewestShapes = int.MaxValue, mostShapes = 0;
+            float uLeast = float.MaxValue, uMost = float.MinValue, vLeast = float.MaxValue, vMost = float.MinValue;
             for (var y = 1; y <= layout.Height; y++)
             {
                 for (var x = 1; x <= layout.Width; x++)
@@ -174,8 +195,18 @@ public static class CaptureGround
                     }
 
                     grounds++;
+                    fewestShapes = Math.Min(fewestShapes, ground.Shapes.Count);
+                    mostShapes = Math.Max(mostShapes, ground.Shapes.Count);
                     bool coordinates = ground.Coordinated;
                     coordinated += coordinates ? 1 : 0;
+                    if (coordinates)
+                    {
+                        foreach (System.Numerics.Vector2 spot in ground.Coordinates)
+                        {
+                            (uLeast, uMost) = (MathF.Min(uLeast, spot.X), MathF.Max(uMost, spot.X));
+                            (vLeast, vMost) = (MathF.Min(vLeast, spot.Y), MathF.Max(vMost, spot.Y));
+                        }
+                    }
                     uint word = ground.Facts.Format;
                     mine.Add(word);
                     if (!formats.TryGetValue(word, out Format? format))
@@ -197,7 +228,17 @@ public static class CaptureGround
                 lines.Append("  format ").Append(string.Join(", ", mine.Select(Hex)));
             }
 
+            if (grounds > 0)
+            {
+                lines.Append(CultureInfo.InvariantCulture, $"  ground shapes {fewestShapes}..{mostShapes} a sub-tile");
+            }
+
             lines.Append(CultureInfo.InvariantCulture, $"  coordinates in {coordinated}");
+            if (coordinated > 0)
+            {
+                lines.Append(CultureInfo.InvariantCulture, $" (u {uLeast:G4}..{uMost:G4} v {vLeast:G4}..{vMost:G4})");
+            }
+
             lines.Append("  mask ").Append(layout.GroundMask.Length > 0 ? layout.GroundMask : "none");
             lines.Append("  laid as ").AppendLine(string.Join(", ", users.Select(Short)));
         }
@@ -476,6 +517,27 @@ public static class CaptureGround
         }
 
         return string.Create(CultureInfo.InvariantCulture, $"{found.Count} of {shaders.Count} shader sources name the ground's coordinates");
+    }
+
+    /// <summary>
+    /// Every laid template whole, in path order - what TileTemplate reads past (MaterialSlots, a triple's first number) included.
+    /// </summary>
+    private static void Whole(List<(string Path, string Text)> texts, StringBuilder said)
+    {
+        said.AppendLine().Append(CultureInfo.InvariantCulture, $"=== the templates whole ({texts.Count})").AppendLine();
+        foreach ((string path, string text) in texts.Take(MostTemplatesWhole))
+        {
+            said.AppendLine().Append("##### ").AppendLine(path);
+            foreach (string line in text.TrimEnd().Split('\n'))
+            {
+                said.Append("  | ").AppendLine(line.TrimEnd('\r'));
+            }
+        }
+
+        if (texts.Count > MostTemplatesWhole)
+        {
+            said.AppendLine().Append(CultureInfo.InvariantCulture, $"{texts.Count - MostTemplatesWhole} more templates not written - named in the template lines above").AppendLine();
+        }
     }
 
     /// <summary>How many cells each laid tile file covers.</summary>
