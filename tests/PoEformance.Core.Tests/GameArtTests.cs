@@ -172,6 +172,34 @@ public class GameArtTests
         Assert.Equal<byte[]>([10, 20, 30, 255, 40, 50, 60, 128], picture.Value.Rgba);
     }
 
+    /// <summary>
+    /// A DX10 R8G8_UNORM texture - the ground's blend masks - comes out as a graphics card reads it: red, green, no blue, whole alpha.
+    /// </summary>
+    [Fact]
+    public void ATWOCHANNELMaskIsReadAsRedAndGreen()
+    {
+        // Sixteen texels, red climbing and green falling, laid four times: 8 by 8 at two bytes a texel.
+        var block = new byte[32];
+        for (var one = 0; one < 16; one++)
+        {
+            block[one * 2] = (byte)(one * 16);
+            block[(one * 2) + 1] = (byte)(255 - (one * 16));
+        }
+
+        GamePicture? read = GameArt.Decode(Compressed("DX10", 49, block));
+
+        Assert.NotNull(read);
+        Assert.Equal(8, read!.Value.Width);
+        Assert.Equal(8, read.Value.Height);
+        for (var at = 0; at < 64; at++)
+        {
+            int one = at % 16;
+            Assert.Equal(
+                [(byte)(one * 16), (byte)(255 - (one * 16)), 0, 255],
+                read.Value.Rgba.AsSpan(at * 4, 4).ToArray());
+        }
+    }
+
     [Fact]
     public void ANDTheCaseAndSlashesOfThePathDoNotMatter()
     {
