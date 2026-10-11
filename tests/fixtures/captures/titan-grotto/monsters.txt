@@ -1,0 +1,22 @@
+3 monsters among 443 entities, read fresh inside the recording with every switch on, nearest the player first; distance and position in world units
+mods are the game's own ids off ObjectMagicProperties, named where its Mods table names them; buffs carry their clocks; targetable is the game's own byte
+a marked place within 100 of a monster is listed under it - an essence prison stands on its monster and carries the icon the monster does not
+
+### 2745.1  Normal Sandflesh Warrior  (Metadata/Monsters/Skeletons/TitanGrotto/SkeletonTitanGrottoSwordShield@27)  id 2834  at 0x55E4F2B1F80
+  position 12690.2 24298.9 -966.9   life 472/472 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: MonsterNecromancerRaisable, MonsterAttackBlock30Bypass10
+  buffs: (none)
+### 2892.2  Normal Sandflesh Warrior  (Metadata/Monsters/Skeletons/TitanGrotto/SkeletonTitanGrottoSword_@27)  id 2832  at 0x55E4F2B3B00
+  position 12559 24137.3 -973.5   life 472/472 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: MonsterNecromancerRaisable
+  buffs: (none)
+### 2913.5  Normal Sandflesh Warrior  (Metadata/Monsters/Skeletons/TitanGrotto/SkeletonTitanGrottoSword_@27)  id 2833  at 0x55E4F2B4780
+  position 12523.5 24271.9 -969.7   life 472/472 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: MonsterNecromancerRaisable
+  buffs: (none)
+
+=== 3 marked places - every entity the game gives a map icon, nearest the player first
+distance	icon	present	id	address	x	y	z	path	name
+134.2	Checkpoint	yes	91	0x55E33A9D800	15559.8	24483.7	-1007.8	Metadata/MiscellaneousObjects/Checkpoint	Checkpoint
+792.7	Waypoint	yes	88	0x55E33A9A380	15646.7	23744.6	-891.5	Metadata/MiscellaneousObjects/Waypoint	Waypoint
+2938.9	Entrance	yes	90	0x55E33A9D580	17451.1	22375	-1797.8	Metadata/MiscellaneousObjects/AreaTransition_Animate	Valley of the Titans

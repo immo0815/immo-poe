@@ -380,11 +380,11 @@ green, three or four plain; the materials' coordinates the placed position times
 a picture not looked at closely: the gangway and the ship are wood, the pier is not - look before writing it down.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
-Six captures are committed under
+Eight captures are committed under
 `tests/fixtures/captures/` (its README says why each), and `CaptureFixtureTests` holds the orientation
 rule, the origin rule, the settled slots, the fill rule, the tile doodads' frame and height, the one
-laid word, the room lattice, the joins' edge combinations and the overlays' suppressed props against them
-on every build. Two captures of one area forty
+laid word, the room lattice, the joins' edge combinations, the overlays' suppressed props and the projectiles'
+grid against them on every build. Two captures of one area forty
 minutes apart are how it was learned that the power-line pieces and checkpoints come and go
 with play while the plain props never move; hold a finder change against a capture before
 asking for a screenshot. The reason they come and go is the network bubble: a scripted
@@ -460,12 +460,15 @@ Measured on the committed captures (`lattice-replay.txt`, `joins-replay.txt`, `o
   missing anywhere else; 24 of the 32 on a tile that is not what the room's own slot asks. Excusing them would
   place none of Augury's thirteen unplaced rooms (their props are missing everywhere - not laid), so the placing
   is unchanged; it explains the rings on placed rooms.
-- **THE SECOND GRID** (`GridLandscapeData`) is, by ExileCore's naming of the same pair (PoE1: LayerMelee,
-  LayerRanged, read by its Radar as targeting data) and the talk's "tall geometry that blocks projectiles", likely
-  the projectiles' grid. A hypothesis: the capture part `landscape.txt` (`CaptureParts.Landscape`, `TerrainLayers`,
-  `CaptureLandscape`) holds both grids against each other, the ground under every cell and the edge of where
-  anybody can stand; `LandscapeReplay` reads it back. Settle it from a capture of an area with walls AND chasms
-  before anything reads it.
+- **THE SECOND GRID** (`GridLandscapeData`) IS THE PROJECTILES' GRID - measured, not taken from ExileCore's PoE1
+  naming (LayerMelee, LayerRanged) or the talk's "tall geometry". The capture part `landscape.txt`
+  (`CaptureParts.Landscape`, `TerrainLayers`, `CaptureLandscape`; `LandscapeReplay` reads it back) was asked for in two
+  Act 2 areas reached by a waypoint, Traitor's Passage (walls and chasms) and the Titan Grotto (walkways over an abyss),
+  both now fixtures (`THESECONDGridIsWhereProjectilesStop`). Along the edge of where anybody can stand a wall is nought
+  in it on every cell (2875 of 2875) and a chasm five (395 of 395; 3413 of 3413 over the Grotto's abyss); no walkable
+  cell is ever nought. And both grids are the same kind of value: nought where they stop a body or a projectile, then
+  counting up from the noughts to a cap of five - the walkable grid's 1 to 5 are a distance from the nearest unwalkable
+  cell, not a flag. Whether a diagonal step counts as one is not settled. Nothing reads the second grid yet.
 
 ## Raise the version on every push
 

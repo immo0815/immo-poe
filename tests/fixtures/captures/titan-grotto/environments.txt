@@ -1,0 +1,139 @@
+=== environments
+1090 files the area loaded, 1 of them tilesets
+--- loaded .tsi Metadata/Terrain/Gallows/Act2/2_7/master.tsi
+
+=== .env Metadata/EnvironmentSettings/Gallows/2_7.env  (the area's own: its WorldAreas row's Environments row)
+{
+  "directional_light": {
+    "shadows_enabled": true,
+    "colour": [
+      1.0,
+      0.77723,
+      0.64555
+    ],
+    "cam_extra_z": 2500.0,
+    "cam_min_offset": -1500.0,
+    "cam_max_offset": 2500.0,
+    "multiplier": 4.0,
+    "penumbra_radius": 4.0,
+    "penumbra_dist": 0.2,
+    "desaturation": 0.0,
+    "phi": -3.03687,
+    "theta": -0.05234
+  },
+  "player_light": {
+    "colour": [
+      1.0,
+      0.94896,
+      0.91575
+    ],
+    "intensity": 1.56596
+  },
+  "environment_mapping": {
+    "diffuse_cube": "Art/2DArt/Cubemaps/G2-13-4v1_diffuse.dds",
+    "specular_cube": "Art/2DArt/Cubemaps/G2-13-4v1_specular.dds",
+    "direct_light_env_ratio": 0.0,
+    "env_brightness": 0.05998,
+    "gi_additional_env_light": 0.0,
+    "hor_angle": -2.61799,
+    "vert_angle": 0.0
+  },
+  "screenspace_fog": {
+    "ssf_color": [
+      0.1726,
+      0.0995,
+      0.07017
+    ],
+    "ssf_color_alpha": 0.00498,
+    "ssf_layer_count": 8.0,
+    "ssf_thickness": 100.0,
+    "ssf_turbulence": 80.0,
+    "ssf_disperse_radius": 1000.0,
+    "ssf_feathering": 0.1
+  },
+  "area": {
+    "dust_color": [
+      0.31117,
+      0.14575,
+      0.13592
+    ],
+    "ground_scale": 0.004,
+    "player_environment_ao": "Metadata/Effects/weather_attachments/G2_7/Grotto_lightplusfog.ao",
+    "wind_intensity": 0.0
+  },
+  "clouds": {
+    "clouds_intensity": 0.5
+  },
+  "camera": {
+    "far_plane": 7000.0,
+    "far_plane_zoomed": 8700.0,
+    "near_plane": 175.0,
+    "exposure": 1.0
+  },
+  "post_transform": {
+    "texture": "Metadata/EnvironmentSettings/Gallows/2_7.env.post.dds"
+  },
+  "audio": {
+    "env_bank_name": "General_Environment.bank",
+    "env_event_name": "/Environment/4.0/Part1/Act2/G2_7_The_Titan_Grotto.env",
+    "music": "A2_TitanGrotto",
+    "ambient_sound": "Audio/Sound Effects/Ambient/4.0/Part1/Act2/G2_7_The_Titan_Grotto",
+    "ambient_bank": "Amb7.bank",
+    "footstep_materials": [
+      {
+        "material": "Art/Textures/Environment/desert/TitanGrotto/EntranceStairs02c.mat",
+        "audio_id": "Rock2"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/TitanGrotto/G_TitanGrotto_CliffTop01.mat",
+        "audio_id": "RoughStone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/TitanGrotto/G_TitanGrotto_CliffTop02.mat",
+        "audio_id": "RoughStone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/TitanGrotto/G_TitanGrotto_CliffTop03.mat",
+        "audio_id": "RoughStone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/TitanGrotto/G_TitanGrotto_Tiles01.mat",
+        "audio_id": "G2_4_2_Stone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/TitanGrotto/G_TitanGrotto_Tiles01_UVc.mat",
+        "audio_id": "G2_4_1_Stone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/TitanGrotto/G_TitanGrotto_Tiles02.mat",
+        "audio_id": "G2_4_1_Stone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/TitanGrotto/G_TitanGrotto_Tiles03.mat",
+        "audio_id": "G2_4_1_Stone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/TitanValley/G_TitanValley_Ground01.mat",
+        "audio_id": "SandRed"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/TitanValley/G_TitanValley_Ground02Decalc.mat",
+        "audio_id": "SandRed"
+      }
+    ],
+    "audio_environment_ao": "Metadata/Terrain/Tools/AudioTools/G2_7/G2_7_TheTitanGrottoScatterer.ao"
+  },
+  "global_illumination": {
+    "thickness_angle": 100.0,
+    "gi_multiplier": 1.0
+  }
+}
+diffuse_cube Art/2DArt/Cubemaps/G2-13-4v1_diffuse.dds: 32x32 · 6 levels · pixel format flags 0x4 · fourCC DX10 · DXGI format 95 (BC6H_UF16) · cube x1
+specular_cube Art/2DArt/Cubemaps/G2-13-4v1_specular.dds: 512x512 · 10 levels · pixel format flags 0x4 · fourCC DX10 · DXGI format 95 (BC6H_UF16) · cube x1
+
+=== .env Metadata/EnvironmentSettings/Gallows/2_7_entrance.env  (named by entrance_01)
+{
+  "directional_light": {
+    "multiplier": 8.0
+  }
+}

@@ -1,0 +1,612 @@
+doodads: 265 entities stand where the rooms name a doodad, on 10 paths - sleeping map 2283 of 2283 walked, awake 205, 2488 with a path, read in 45 ms
+1open_01: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+1open_02: 1 of its 2 doodad lines name a path found in the area, 23 such entities over 2 paths
+1open_03: 5 of its 6 doodad lines name a path found in the area, 253 such entities over 3 paths
+1open_04: 3 of its 4 doodad lines name a path found in the area, 253 such entities over 3 paths
+1open_05: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+2open_corner_01: 1 of its 1 doodad lines name a path found in the area, 23 such entities over 1 paths
+2open_corner_02: 5 of its 5 doodad lines name a path found in the area, 253 such entities over 2 paths
+2open_corner_03: 2 of its 2 doodad lines name a path found in the area, 253 such entities over 2 paths
+2open_corner_04: its doodad lines name no stub
+2open_corner_05: its doodad lines name no stub
+2open_straight_01: 4 of its 4 doodad lines name a path found in the area, 253 such entities over 2 paths
+2open_straight_02: 4 of its 4 doodad lines name a path found in the area, 253 such entities over 2 paths
+2open_straight_03: its doodad lines name no stub
+2open_straight_04: 1 of its 1 doodad lines name a path found in the area, 23 such entities over 1 paths
+2open_straight_05: 5 of its 5 doodad lines name a path found in the area, 253 such entities over 2 paths
+3open_01: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+3open_02: 3 of its 4 doodad lines name a path found in the area, 253 such entities over 3 paths
+3open_03: 1 of its 2 doodad lines name a path found in the area, 23 such entities over 2 paths
+3open_04: 4 of its 5 doodad lines name a path found in the area, 253 such entities over 3 paths
+3open_05: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+4open_01: 2 of its 3 doodad lines name a path found in the area, 23 such entities over 2 paths
+4open_02: 3 of its 4 doodad lines name a path found in the area, 253 such entities over 3 paths
+4open_03: 3 of its 4 doodad lines name a path found in the area, 253 such entities over 3 paths
+4open_04: 1 of its 2 doodad lines name a path found in the area, 23 such entities over 2 paths
+4open_05: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+2open_corner_01: its doodad lines name no stub
+3open_corner_01: its doodad lines name no stub
+3open_corner_02: its doodad lines name no stub
+4open_diagonal_01: its doodad lines name no stub
+4open_side_01: its doodad lines name no stub
+4open_side_02: its doodad lines name no stub
+4open_side_03: its doodad lines name no stub
+6open_corner_01: its doodad lines name no stub
+6open_corner_02: its doodad lines name no stub
+6open_corner_03: its doodad lines name no stub
+8open_01: its doodad lines name no stub
+8open_02: its doodad lines name no stub
+2open_connection_01: 1 of its 5 doodad lines name a path found in the area, 23 such entities over 3 paths
+2open_corner_01: 1 of its 5 doodad lines name a path found in the area, 23 such entities over 3 paths
+2open_corner_02: 5 of its 8 doodad lines name a path found in the area, 253 such entities over 4 paths
+2open_corner_03: 3 of its 7 doodad lines name a path found in the area, 253 such entities over 4 paths
+2open_corner_04: 0 of its 4 doodad lines name a path found in the area, 0 such entities over 2 paths
+2open_corner_05: 0 of its 4 doodad lines name a path found in the area, 0 such entities over 2 paths
+2open_straight_01: 3 of its 8 doodad lines name a path found in the area, 253 such entities over 4 paths
+2open_straight_02: 4 of its 9 doodad lines name a path found in the area, 253 such entities over 4 paths
+2open_straight_03: 0 of its 5 doodad lines name a path found in the area, 0 such entities over 2 paths
+2open_straight_04: 1 of its 6 doodad lines name a path found in the area, 23 such entities over 3 paths
+2open_straight_05: 5 of its 8 doodad lines name a path found in the area, 253 such entities over 4 paths
+3open_01: 0 of its 6 doodad lines name a path found in the area, 0 such entities over 2 paths
+3open_02: 4 of its 9 doodad lines name a path found in the area, 253 such entities over 4 paths
+3open_03: 1 of its 7 doodad lines name a path found in the area, 23 such entities over 3 paths
+3open_04: 4 of its 9 doodad lines name a path found in the area, 253 such entities over 4 paths
+3open_05: 0 of its 6 doodad lines name a path found in the area, 0 such entities over 2 paths
+4open_01: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 2 paths
+cavern_gapfill_1: its doodad lines name no stub
+cavern_gapfill_2: its doodad lines name no stub
+cavern_gapfill_3: its doodad lines name no stub
+1open_01: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+1open_02: 1 of its 2 doodad lines name a path found in the area, 23 such entities over 2 paths
+1open_03: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+2open_corner_01: 1 of its 1 doodad lines name a path found in the area, 23 such entities over 1 paths
+2open_corner_02: its doodad lines name no stub
+2open_corner_03: its doodad lines name no stub
+2open_straight_01: 1 of its 1 doodad lines name a path found in the area, 23 such entities over 1 paths
+2open_straight_02: 1 of its 1 doodad lines name a path found in the area, 23 such entities over 1 paths
+2open_straight_03: 1 of its 1 doodad lines name a path found in the area, 23 such entities over 1 paths
+3open_01: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+3open_02: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+3open_03: 1 of its 2 doodad lines name a path found in the area, 23 such entities over 2 paths
+4open_01: 1 of its 2 doodad lines name a path found in the area, 23 such entities over 2 paths
+4open_02: 1 of its 2 doodad lines name a path found in the area, 23 such entities over 2 paths
+4open_03: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+2open_corner_01: its doodad lines name no stub
+3open_corner_01: its doodad lines name no stub
+3open_corner_02: its doodad lines name no stub
+4open_diagonal_01: its doodad lines name no stub
+4open_side_01: its doodad lines name no stub
+4open_side_02: its doodad lines name no stub
+4open_side_03: its doodad lines name no stub
+6open_corner_01: its doodad lines name no stub
+6open_corner_02: its doodad lines name no stub
+6open_corner_03: its doodad lines name no stub
+8open_01: its doodad lines name no stub
+8open_02: its doodad lines name no stub
+outro_Cc_01: 3 of its 3 doodad lines name a path found in the area, 230 such entities over 1 paths
+outro_Cc_02: 2 of its 2 doodad lines name a path found in the area, 230 such entities over 1 paths
+outro_Cv_01: 6 of its 6 doodad lines name a path found in the area, 230 such entities over 1 paths
+outro_St_01: 5 of its 5 doodad lines name a path found in the area, 230 such entities over 1 paths
+outro_St_02: 5 of its 5 doodad lines name a path found in the area, 230 such entities over 1 paths
+outro_St_03: 12 of its 12 doodad lines name a path found in the area, 230 such entities over 1 paths
+path_to_outro_Cc_01: 19 of its 19 doodad lines name a path found in the area, 230 such entities over 1 paths
+path_to_outro_Cc_02: 12 of its 12 doodad lines name a path found in the area, 230 such entities over 1 paths
+path_to_outro_St_01: 19 of its 19 doodad lines name a path found in the area, 230 such entities over 1 paths
+path_to_outro_St_02: 8 of its 8 doodad lines name a path found in the area, 230 such entities over 1 paths
+overlay_abyssedge_2x1_st_01: its doodad lines name no stub
+overlay_abysswall_2x1_st_01: its doodad lines name no stub
+overlay_thickwall_2x1_st_01: its doodad lines name no stub
+bigstatue_01: 3 of its 5 doodad lines name a path found in the area, 232 such entities over 5 paths
+bigstatue_02: 3 of its 5 doodad lines name a path found in the area, 232 such entities over 5 paths
+bigstatue_02_reverse: 3 of its 5 doodad lines name a path found in the area, 232 such entities over 5 paths
+bossentrance_01: 10 of its 28 doodad lines name a path found in the area, 254 such entities over 11 paths
+entrance_01: 47 of its 61 doodad lines name a path found in the area, 240 such entities over 18 paths
+entrance_rooms_01: 38 of its 56 doodad lines name a path found in the area, 263 such entities over 20 paths
+exit_01: 4 of its 6 doodad lines name a path found in the area, 232 such entities over 5 paths
+exit_outro_02: 4 of its 6 doodad lines name a path found in the area, 232 such entities over 5 paths
+exit_outro_03: 4 of its 6 doodad lines name a path found in the area, 232 such entities over 5 paths
+landmark_01: 59 of its 64 doodad lines name a path found in the area, 231 such entities over 7 paths
+loreobject_01: 4 of its 5 doodad lines name a path found in the area, 231 such entities over 3 paths
+loreobject_02: 7 of its 8 doodad lines name a path found in the area, 254 such entities over 4 paths
+loreobject_03: 4 of its 5 doodad lines name a path found in the area, 231 such entities over 3 paths
+loreobject_04: 6 of its 7 doodad lines name a path found in the area, 254 such entities over 4 paths
+loreobject_05: 4 of its 5 doodad lines name a path found in the area, 231 such entities over 3 paths
+mission_01: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+SpiderZone_01: 1 of its 6 doodad lines name a path found in the area, 23 such entities over 4 paths
+SpiderZone_02: 1 of its 6 doodad lines name a path found in the area, 23 such entities over 4 paths
+stairsdown_intro_01: its doodad lines name no stub
+stairsdown_intro_02: its doodad lines name no stub
+stairsdown_intro_03: its doodad lines name no stub
+stairsdown_intro_04: its doodad lines name no stub
+stairsup_01: its doodad lines name no stub
+stairsup_02: 1 of its 1 doodad lines name a path found in the area, 230 such entities over 1 paths
+stairsup_03: 4 of its 4 doodad lines name a path found in the area, 253 such entities over 2 paths
+stairsup_04: its doodad lines name no stub
+stairsup_intro_01: its doodad lines name no stub
+stairsup_intro_02: its doodad lines name no stub
+stairsup_intro_03: its doodad lines name no stub
+stairsup_intro_04: its doodad lines name no stub
+2_Ascendancy_LE: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+2_Ascendancy_LN: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+2_Ascendancy_LS: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+2_Ascendancy_LW: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+2_Ascendancy_RE: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+2_Ascendancy_RN: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+2_Ascendancy_RS: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+2_Ascendancy_RW: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+2_Badlands_E: 0 of its 9 doodad lines name a path found in the area, 0 such entities over 9 paths
+2_Badlands_FE: 0 of its 9 doodad lines name a path found in the area, 0 such entities over 9 paths
+2_Badlands_FN: 0 of its 9 doodad lines name a path found in the area, 0 such entities over 9 paths
+2_Badlands_FS: 0 of its 9 doodad lines name a path found in the area, 0 such entities over 9 paths
+2_Badlands_FW: 0 of its 9 doodad lines name a path found in the area, 0 such entities over 9 paths
+2_Badlands_N: 0 of its 9 doodad lines name a path found in the area, 0 such entities over 9 paths
+2_Badlands_S: 0 of its 9 doodad lines name a path found in the area, 0 such entities over 9 paths
+2_Badlands_W: 0 of its 9 doodad lines name a path found in the area, 0 such entities over 9 paths
+2_Dreadnought_SN: 0 of its 4 doodad lines name a path found in the area, 0 such entities over 4 paths
+2_Gates_FN: 1 of its 9 doodad lines name a path found in the area, 230 such entities over 9 paths
+2_Gates_N: 1 of its 9 doodad lines name a path found in the area, 230 such entities over 9 paths
+2_Keth_EE: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 7 paths
+2_Keth_EN: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 7 paths
+2_Keth_ES: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 7 paths
+2_Keth_EW: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 7 paths
+2_Keth_NE: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 7 paths
+2_Keth_NN: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 7 paths
+2_Keth_NS: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 7 paths
+2_Keth_NW: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 7 paths
+2_Keth_SE: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 7 paths
+2_Keth_SN: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 7 paths
+2_Keth_SS: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 7 paths
+2_Keth_SW: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 7 paths
+2_Keth_WE: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 7 paths
+2_Keth_WN: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 7 paths
+2_Keth_WS: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 7 paths
+2_Keth_WW: 0 of its 7 doodad lines name a path found in the area, 0 such entities over 7 paths
+2_Oasis_E: 0 of its 4 doodad lines name a path found in the area, 0 such entities over 4 paths
+2_Oasis_N: 0 of its 4 doodad lines name a path found in the area, 0 such entities over 4 paths
+2_Oasis_S: 0 of its 4 doodad lines name a path found in the area, 0 such entities over 4 paths
+2_Oasis_W: 0 of its 4 doodad lines name a path found in the area, 0 such entities over 4 paths
+2_Outpost_01: 1 of its 6 doodad lines name a path found in the area, 230 such entities over 6 paths
+2_Outpost_02: 1 of its 6 doodad lines name a path found in the area, 230 such entities over 6 paths
+2_Outpost_03: 1 of its 6 doodad lines name a path found in the area, 230 such entities over 6 paths
+2_Outpost_04: 1 of its 6 doodad lines name a path found in the area, 230 such entities over 6 paths
+2_Quarry: 0 of its 5 doodad lines name a path found in the area, 0 such entities over 5 paths
+2_Spires_EE: 0 of its 13 doodad lines name a path found in the area, 0 such entities over 13 paths
+2_Spires_EN: 0 of its 13 doodad lines name a path found in the area, 0 such entities over 13 paths
+2_Spires_ES: 0 of its 13 doodad lines name a path found in the area, 0 such entities over 13 paths
+2_Spires_NE: 0 of its 13 doodad lines name a path found in the area, 0 such entities over 13 paths
+2_Spires_NN: 0 of its 13 doodad lines name a path found in the area, 0 such entities over 13 paths
+2_Spires_NW: 0 of its 13 doodad lines name a path found in the area, 0 such entities over 13 paths
+2_Spires_SE: 0 of its 13 doodad lines name a path found in the area, 0 such entities over 13 paths
+2_Spires_SS: 0 of its 13 doodad lines name a path found in the area, 0 such entities over 13 paths
+2_Spires_SW: 0 of its 13 doodad lines name a path found in the area, 0 such entities over 13 paths
+2_Spires_WN: 0 of its 13 doodad lines name a path found in the area, 0 such entities over 13 paths
+2_Spires_WS: 0 of its 13 doodad lines name a path found in the area, 0 such entities over 13 paths
+2_Spires_WW: 0 of its 13 doodad lines name a path found in the area, 0 such entities over 13 paths
+2_TitanValley: 0 of its 6 doodad lines name a path found in the area, 0 such entities over 6 paths
+2_Town_01: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+2_Town_02: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+2_Town_03: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+2_Town_03_St: 0 of its 2 doodad lines name a path found in the area, 0 such entities over 2 paths
+2_Town_03_StLower: 0 of its 2 doodad lines name a path found in the area, 0 such entities over 2 paths
+2_Town_04: its doodad lines name no stub
+2_Town_05: its doodad lines name no stub
+2_Town_06: its doodad lines name no stub
+2_Underground_EW_01: 0 of its 23 doodad lines name a path found in the area, 0 such entities over 23 paths
+2_Underground_EW_02: 0 of its 23 doodad lines name a path found in the area, 0 such entities over 23 paths
+2_Underground_NS_01: 0 of its 23 doodad lines name a path found in the area, 0 such entities over 23 paths
+2_Underground_NS_02: 0 of its 23 doodad lines name a path found in the area, 0 such entities over 23 paths
+2_Underground_SN_01: 0 of its 23 doodad lines name a path found in the area, 0 such entities over 23 paths
+2_Underground_SN_02: 0 of its 23 doodad lines name a path found in the area, 0 such entities over 23 paths
+2_Underground_WE_01: 0 of its 23 doodad lines name a path found in the area, 0 such entities over 23 paths
+2_Underground_WE_02: 0 of its 23 doodad lines name a path found in the area, 0 such entities over 23 paths
+blacksand_flood_01: its doodad lines name no stub
+border_end_01: its doodad lines name no stub
+border_stledge_01: its doodad lines name no stub
+border_st_01: its doodad lines name no stub
+chasm_cr_01: its doodad lines name no stub
+chasm_cr_02: its doodad lines name no stub
+chasm_end_01: its doodad lines name no stub
+chasm_quad_01: its doodad lines name no stub
+chasm_quad_02: its doodad lines name no stub
+chasm_quad_03: its doodad lines name no stub
+chasm_sand_cr_01: its doodad lines name no stub
+chasm_sand_quad_01: its doodad lines name no stub
+chasm_sand_st_01: its doodad lines name no stub
+chasm_sand_triside_01: its doodad lines name no stub
+chasm_sand_tri_01: its doodad lines name no stub
+chasm_st_01: its doodad lines name no stub
+chasm_st_02: its doodad lines name no stub
+chasm_st_03: its doodad lines name no stub
+chasm_tri_01: its doodad lines name no stub
+chasm_tri_02: its doodad lines name no stub
+chasm_tri_03: its doodad lines name no stub
+Compass_01: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Compass_02: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Compass_Chasm_Cr: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Compass_Chasm_St: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Compass_CliffNO_Cc: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Compass_CliffNO_Cv: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Compass_CliffNO_St: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Compass_Cliff_Cc: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Compass_Cliff_Cv: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Compass_Cliff_St: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Compass_Mountains_Cr: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Compass_Mountains_St: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+blacksand_fill_01: its doodad lines name no stub
+black_fill_01: its doodad lines name no stub
+redsand_fill_01: its doodad lines name no stub
+whitesand_fill_01: its doodad lines name no stub
+Label_01: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Label_02: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Label_Chasm_Cr: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Label_Chasm_St: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Label_Cliff_Cc: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Label_Cliff_Cv: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Label_Cliff_St_01: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Label_Cliff_St_02: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Label_Mountains_Cr: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Label_Mountains_St: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Label_Sand_Cr: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+Label_Sand_St: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+ledge_cc_01: its doodad lines name no stub
+ledge_cc_02: its doodad lines name no stub
+ledge_cc_03: its doodad lines name no stub
+ledge_cc_04: its doodad lines name no stub
+ledge_chasm_cccrlower_01: its doodad lines name no stub
+ledge_chasm_cccrlower_02: its doodad lines name no stub
+ledge_chasm_cccr_01: its doodad lines name no stub
+ledge_chasm_ccstlower_01: its doodad lines name no stub
+ledge_chasm_ccstlower_02: its doodad lines name no stub
+ledge_chasm_ccst_01: its doodad lines name no stub
+ledge_chasm_ststlower_01: its doodad lines name no stub
+ledge_chasm_ststlower_02: its doodad lines name no stub
+ledge_chasm_stst_01: its doodad lines name no stub
+ledge_cv_01: its doodad lines name no stub
+ledge_cv_02: its doodad lines name no stub
+ledge_cv_03: its doodad lines name no stub
+ledge_cv_04: its doodad lines name no stub
+ledge_end_01: its doodad lines name no stub
+ledge_ledge_x_01: its doodad lines name no stub
+ledge_ledge_x_02: its doodad lines name no stub
+ledge_ledge_x_03: its doodad lines name no stub
+ledge_sand_cv_01: its doodad lines name no stub
+ledge_sand_cv_02: its doodad lines name no stub
+ledge_sand_cv_03: its doodad lines name no stub
+ledge_st_01: its doodad lines name no stub
+ledge_st_02: its doodad lines name no stub
+ledge_st_03: its doodad lines name no stub
+ledge_st_04: its doodad lines name no stub
+ledge_x_01: its doodad lines name no stub
+ledge_x_02: its doodad lines name no stub
+ledge_x_03: its doodad lines name no stub
+ledge_x_04: its doodad lines name no stub
+ledge_cc_01: its doodad lines name no stub
+ledge_cc_02: its doodad lines name no stub
+ledge_cc_to_NO_01: its doodad lines name no stub
+ledge_cc_to_NO_02: its doodad lines name no stub
+ledge_chasm_ccast_01: its doodad lines name no stub
+ledge_chasm_ccbst_01: its doodad lines name no stub
+ledge_chasm_cccr_01: its doodad lines name no stub
+ledge_chasm_stst_01: its doodad lines name no stub
+ledge_cv_01: its doodad lines name no stub
+ledge_cv_02: its doodad lines name no stub
+ledge_cv_to_NO_01: its doodad lines name no stub
+ledge_cv_to_NO_02: its doodad lines name no stub
+ledge_end_01: its doodad lines name no stub
+ledge_mountains_cccr_01: its doodad lines name no stub
+ledge_mountains_ccst_01: its doodad lines name no stub
+ledge_mountains_stend_01: its doodad lines name no stub
+ledge_mountains_stend_02: its doodad lines name no stub
+ledge_st_01: its doodad lines name no stub
+ledge_st_02: its doodad lines name no stub
+ledge_st_to_NO_01: its doodad lines name no stub
+ledge_st_to_NO_02: its doodad lines name no stub
+ledge_xcc_01: its doodad lines name no stub
+ledge_xcc_02: its doodad lines name no stub
+ledge_xcv_01: its doodad lines name no stub
+ledge_xcv_02: its doodad lines name no stub
+ledge_canyon_end_01: its doodad lines name no stub
+ledge_canyon_end_02: its doodad lines name no stub
+mountains_cr_01: its doodad lines name no stub
+mountains_cr_02: its doodad lines name no stub
+mountains_end_01: its doodad lines name no stub
+mountains_quad_01: its doodad lines name no stub
+mountains_quad_02: its doodad lines name no stub
+mountains_quad_03: its doodad lines name no stub
+mountains_sand_cr_01: its doodad lines name no stub
+mountains_sand_quad_01: its doodad lines name no stub
+mountains_sand_st_01: its doodad lines name no stub
+mountains_sand_triside_01: its doodad lines name no stub
+mountains_sand_tri_01: its doodad lines name no stub
+mountains_st_01: its doodad lines name no stub
+mountains_st_02: its doodad lines name no stub
+mountains_st_03: its doodad lines name no stub
+mountains_tri_01: its doodad lines name no stub
+mountains_tri_02: its doodad lines name no stub
+mountains_tri_03: its doodad lines name no stub
+sand_chasm_01: its doodad lines name no stub
+sand_cr_01: its doodad lines name no stub
+sand_end_01: its doodad lines name no stub
+sand_quad_01: its doodad lines name no stub
+sand_st_01: its doodad lines name no stub
+sand_tri_01: its doodad lines name no stub
+whitesand_flood_01: its doodad lines name no stub
+Metadata/MiscellaneousObjects/Doodad: 230 entities, 230 asleep
+Metadata/MiscellaneousObjects/Doodad_Distant_2: 23 entities, 21 asleep
+Metadata/MiscellaneousObjects/Doodad_Distant_4: 4 entities, 4 asleep
+Metadata/NPC/Four_Act2/MarakethCaravanGuardStances: 2 entities, 2 asleep
+Metadata/MiscellaneousObjects/Checkpoint: 1 entities, 1 asleep
+Metadata/MiscellaneousObjects/Waypoint: 1 entities, 1 asleep
+Metadata/NPC/Four_Act2/MarakethMysticPassageIntro: 1 entities, 1 asleep
+Metadata/Terrain/Tools/AudioTools/G2_2/StatueAbyss: 1 entities, 1 asleep
+Metadata/Terrain/Tools/AudioTools/G2_2/TraitorsPassageEntrance: 1 entities, 0 asleep
+Metadata/Terrain/Tools/AudioTools/G2_2/TraitorsPassageExit: 1 entities, 1 asleep
+found nowhere: Metadata/MiscellaneousObjects/AmbushPointHugeSpider, Metadata/MiscellaneousObjects/Ambush_ReturnChain, Metadata/MiscellaneousObjects/AreaTransition_Animate, Metadata/MiscellaneousObjects/AreaTransition_Auto, Metadata/MiscellaneousObjects/CameraZoom/Act5Statue, Metadata/MiscellaneousObjects/CameraZoom/DelveHub, Metadata/MiscellaneousObjects/CameraZoom/MinorPullBack, Metadata/MiscellaneousObjects/DoodadInvisible, Metadata/MiscellaneousObjects/DoodadNoBlocking_NoWobble, Metadata/MiscellaneousObjects/Doodad_Distant_3, Metadata/MiscellaneousObjects/Environment/EnvRadiusNode, Metadata/Monsters/Balbala/ArenaObjects/BalbalaExtraCoinTarget, Metadata/Monsters/Balbala/ArenaObjects/BossRoomMinimapIcon, Metadata/Monsters/MarakethGuards/HeroGuard/HeroGuardController, Metadata/Monsters/MarakethGuards/HeroGuard/HeroGuardMarker, Metadata/NPC/Four_Act2/MarakethCaravanGuard1, Metadata/NPC/Four_Act2/MarakethCaravanGuard3, Metadata/NPC/Four_Act2/MarakethCaravanGuard4, Metadata/NPC/Four_Act2/TraitorsPassageGlyph, Metadata/Terrain/Doodads/Desert/MarakethRuin/FireLight_Off, Metadata/Terrain/Gallows/Act2/2_2/Objects/AmbushDetector, Metadata/Terrain/Gallows/Act2/2_2/Objects/BalbalaArenaEntrancetitle, Metadata/Terrain/Gallows/Act2/2_2/Objects/BossLight, Metadata/Terrain/Gallows/Act2/2_2/Objects/BossTransition, Metadata/Terrain/Gallows/Act2/2_2/Objects/Counter_Handler_Any, Metadata/Terrain/Gallows/Act2/2_2/Objects/LandmarkEncounterController, Metadata/Terrain/Gallows/Act2/2_2/Objects/SekhemaStatuesTitle, Metadata/Terrain/Gallows/Act2/2_2/Objects/Spawners/DemonSpiderSpawner_ReturnAmbush, Metadata/Terrain/Gallows/Act2/2_2/Objects/SpiderZoneAmbush, Metadata/Terrain/Gallows/Act2/2_2/Objects/VisitedQuestFlagStatues, Metadata/Terrain/Gallows/Act2/2_2/Objects/VisitedQuestFlagWaypoint, Metadata/Terrain/Gallows/Act2/2_2/Objects/ZarkaShoutTrigger, Metadata/Terrain/Gallows/Act2/2_4_1/Objects/LightTrigger, Metadata/Terrain/WorldMaps/Act2/Objects/LocationDreadnought, Metadata/Terrain/WorldMaps/Act2/Objects/LocationDreadnoughtTowers, Metadata/Terrain/WorldMaps/Act2/Objects/LocationTownMarker0, Metadata/Terrain/WorldMaps/Act2/Objects/LocationTownMarker1, Metadata/Terrain/WorldMaps/Act2/Objects/LocationTownMarker2, Metadata/Terrain/WorldMaps/Act2/Objects/LocationTownMarker3, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinAbyssHub, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinAbyssHubUnderground, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinAbyssIntro, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinAbyssIntroUnderground, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinAncientArsenalEffect, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinAscendancyTrial, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinAscendancyUnderground, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinBadlands, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinBalbala, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinBellChest, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinBonePits, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinBorderSurface, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinBorderUnderground, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinCompass, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinCompassUnderground, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinDreadnought, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinEkbab, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinExpedition, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinFinalLetter, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinForsakenSon, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinFoundry, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinFoundryUnderground, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinGates, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinKabala, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinKeth, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinKethDungeon, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinKethDungeonUnderground, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinKethSanctum, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinKethSanctumUnderground, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinLabel, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinLightningShrine, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinLockedGates, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinMedallion, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinOutpost, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinPerennialKingDreadnought, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinPerennialKingGates, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinQuarry, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinRathbreaker, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinRudja, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinSandstorm, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinSpires, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTheColossus, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTitanGrotto, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTitanGrottoUnderground, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTitanValley, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTorGul, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTowers, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarker1, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarker2, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarker3, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarkerAscendancy, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarkerBadlands, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarkerDreadnought, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarkerExpedition, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarkerGates, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarkerKeth, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarkerQuarry, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarkerSpires, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTownMarkerTitans, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTraitorsPassage, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinTraitorsPassageUnderground, Metadata/Terrain/WorldMaps/Act2/Objects/MapPinUpperSpires, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinAncientGatesLim, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinBadlandsAbyss, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinBadlandsChest, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinExpeditionEncounter, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinFoundryEssence, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinHandRune1, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinHandRune2, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinHeadRune, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinKethBeetle, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinKethChoice, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinKethSanctumAmbush, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinKethTempleAmbush, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinKethUndergroundTomb, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinQuarryFaridunTrunk, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinQuarryQualityJewelry, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinSpiresDeadSkeleton, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinSpiresTwinBosses, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinSpiresVaseRoom, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinTitanGrottoAugment, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinTitanGrottoTitansSword, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinValleyOfTheTitansAbyss, Metadata/Terrain/WorldMaps/Act2/Objects/SideContent/MapPinValleyOfTheTitansEssence
+
+265 sightings; position in world units, z the game's way up
+id	path	model	x	y	z	map
+3221225600	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/PillarCave_01.ao	8255.435	12755.43	-378.449	sleeping
+3221226368	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_02.ao	7298.913	10396.74	-255.896	sleeping
+3221225568	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/EdgeRoofs/AbyssLowerRoofEdge_01.ao	16940.22	16646.74	-656.481	sleeping
+3221225536	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/Tents/Gates/Gates_ResistanceJeweleryBundle_SqrS_3.ao	16635.87	17679.35	-1273.961	sleeping
+3221225584	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/EdgeRoofs/AbyssUpperRoofEdge_02.ao	17070.65	18201.09	-1100.816	sleeping
+3221225632	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Jungle/RoofHoles/RoofHole_01.ao	4211.957	26407.61	-1245.077	sleeping
+3221226576	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/MarakethRuin/torch_fire.ao	5364.13	12875	-324.573	sleeping
+3221226608	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/MarakethRuin/torch_fire.ao	4625	13092.39	-281.166	sleeping
+3221225487	Metadata/NPC/Four_Act2/MarakethMysticPassageIntro	Metadata/NPC/Four_Act2/MarakethMystic.ao	18418.48	7711.957	-24.363	sleeping
+3221225552	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/MarakethRuin/MarakethRuin_AbyssLight_01.ao	16701.09	16820.65	-1079	sleeping
+3221225576	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/Tower_02.ao	16896.74	18375	-1109.626	sleeping
+3221225592	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/Maraketh/WallSand_Cc_01.ao	16472.83	16592.39	-610.272	sleeping
+3221225616	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	8625	10635.87	-250	sleeping
+3221225648	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_01.ao	14918.48	20288.04	-835.937	sleeping
+3221226416	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_04.ao	8364.131	10983.7	-258.187	sleeping
+3221226504	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_04.ao	9016.305	12222.83	-266.648	sleeping
+3221226536	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_03.ao	8114.13	12266.3	-262.887	sleeping
+3221226552	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_02.ao	9146.739	12559.78	-255.896	sleeping
+3221226584	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_02.ao	8016.304	12788.04	-256.556	sleeping
+3221226616	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_Nolight_03.ao	5864.13	13201.09	-470.984	sleeping
+3221225514	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/gazebo_ruin.ao	17461.96	8527.174	59.561	sleeping
+3221225544	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/WallPanels/PanelSet_03.ao	17385.87	17157.61	-1049.519	sleeping
+3221225560	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/Tower_02.ao	16711.96	16461.96	-711.734	sleeping
+3221225572	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/Tower_02.ao	16092.39	16548.91	-770.374	sleeping
+3221225580	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Panel_04.ao	16896.74	18494.56	-730.884	sleeping
+3221225588	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/Maraketh/WallSand_Cv_01.ao	16994.56	17331.52	-615.08	sleeping
+3221225596	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/PillarCave_02.ao	4516.304	28603.26	-1651.889	sleeping
+3221225608	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	10701.09	8331.521	-250	sleeping
+3221225624	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Jungle/RoofHoles/RoofHole_01.ao	8342.392	25266.3	-1628.885	sleeping
+3221225640	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	16331.52	22548.91	-1250	sleeping
+3221225656	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	5255.435	20581.52	453.125	sleeping
+3221226360	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_Nolight_01.ao	6635.87	10048.91	-465.094	sleeping
+3221226408	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_07.ao	7298.913	10853.26	-263.818	sleeping
+3221226456	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_Nolight_04.ao	8951.087	11364.13	-465.094	sleeping
+3221226604	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_01.ao	4711.957	13103.26	-272.281	sleeping
+3221226636	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/CavePath/CliffRocks/rocks_v01.ao	8711.956	13146.74	-331.033	sleeping
+3221226660	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_07.ao	8961.956	13353.26	-262.374	sleeping
+3221225496	Metadata/MiscellaneousObjects/Doodad_Distant_4	Metadata/Terrain/Doodads/Desert/ArduraCaravanStatic/CombinedCaravan.ao	19342.39	8201.087	242.188	sleeping
+3221225526	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_03.ao	17777.17	9135.869	233.89	sleeping
+3221225540	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/Tower_03.ao	16222.83	16940.22	-891.478	sleeping
+3221225548	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/EdgeRoofs/AbyssRoofEdge_01.ao	16385.87	15929.35	-1254.41	sleeping
+3221225556	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/Pillars/RoofPavilion03_01.ao	16711.96	16461.96	-963.369	sleeping
+3221225564	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/EdgeRoofs/AbyssUpperRoofEdge_01.ao	16961.96	17298.91	-693.098	sleeping
+3221225570	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/Dome_02.ao	16135.87	16211.96	-1222.525	sleeping
+3221225574	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/Dome_02.ao	15782.61	16695.65	-1146.684	sleeping
+3221225578	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Panel_04.ao	16896.74	18266.3	-730.884	sleeping
+3221225582	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/EdgeRoofs/AbyssUpperRoofEdge_01.ao	16722.83	18190.22	-1104.723	sleeping
+3221225586	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/Maraketh/WallSand_CcLarge_01.ao	16516.3	16951.09	-604.543	sleeping
+3221225590	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/Maraketh/WallSand_Cv_03.ao	16831.52	17222.83	-591.789	sleeping
+3221225594	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/Maraketh/WallSand_Cv_03.ao	16646.74	17309.78	-926.32	sleeping
+3221225598	Metadata/Terrain/Tools/AudioTools/G2_2/TraitorsPassageExit	Metadata/Terrain/Tools/AudioTools/G2_2/TraitorsPassageExit.ao	4744.565	28494.56	-1628.351	sleeping
+3221225604	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/PillarCave_01.ao	8755.435	13255.43	-378.449	sleeping
+3221225612	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_01.ao	13298.91	19896.74	-546.875	sleeping
+3221225620	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	4679.348	12603.26	-250	sleeping
+3221225628	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Jungle/RoofHoles/RoofHole_01.ao	6744.565	26831.52	-1419.719	sleeping
+3221225636	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Jungle/RoofHoles/RoofHole_01.ao	6451.087	24135.87	-1207.795	sleeping
+3221225644	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	13266.3	22505.44	-546.875	sleeping
+3221225652	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	13255.43	26581.52	-546.875	sleeping
+3221226356	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_07.ao	6179.348	10461.96	-263.971	sleeping
+3221226364	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_Nolight_06.ao	6885.87	10048.91	-466.947	sleeping
+3221226404	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_01.ao	6407.609	11179.35	-269.819	sleeping
+3221226452	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_Nolight_05.ao	8048.913	11364.13	-476.83	sleeping
+3221226492	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_04.ao	6070.652	12211.96	-263.288	sleeping
+3221226498	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_03.ao	7103.261	11961.96	-254.212	sleeping
+3221226526	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_05.ao	5788.043	12146.74	-252.679	sleeping
+3221226538	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_Nolight_06.ao	8059.783	12146.74	-482.572	sleeping
+3221226550	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_02.ao	8885.869	12516.3	-254.529	sleeping
+3221226606	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_05.ao	4614.13	13201.09	-470.984	sleeping
+3221226614	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_02.ao	5831.522	13103.26	-273.983	sleeping
+3221226638	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_06.ao	8320.652	13092.39	-264.732	sleeping
+3221225489	Metadata/MiscellaneousObjects/Doodad	Metadata/NPC/Four_Act2/MarakethCivilian2.ao	18646.52	7880.73	-18.803	sleeping
+3221225505	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/KethAscendancy/ruinwall_St_MM_01.ao	17331.52	8081.521	85.294	sleeping
+3221225518	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_02.ao	17222.83	8777.174	236.319	sleeping
+3221225532	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_gigantic_01.ao	8146.739	19853.26	-250.001	sleeping
+3221225538	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/Tents/Gates/Gates_ResistanceJeweleryBundle_SqrL_3.ao	16842.39	17733.7	-1243.216	sleeping
+3221225542	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/EdgeRoofs/AbyssRoofEdge_05.ao	16896.74	17201.09	-865.962	sleeping
+3221225546	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/EdgeRoofs/AbyssRoofEdge_06.ao	16994.56	16516.3	-984.254	sleeping
+3221225550	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/Tower_02.ao	17114.13	16538.04	-1012.626	sleeping
+3221225558	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/Dome_02.ao	17190.22	17842.39	-907.357	sleeping
+3221225562	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Panel_03.ao	17168.48	17548.91	-647.884	sleeping
+3221225566	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Panel_04.ao	16998.57	16548.91	-681.884	sleeping
+3221225569	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Panel_04.ao	16440.22	16559.78	-681.884	sleeping
+3221225571	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/Tower_02.ao	16135.87	16201.09	-930.977	sleeping
+3221225573	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/Tower_02.ao	15771.74	16695.65	-800.305	sleeping
+3221225575	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/Dome_02.ao	16375	17418.48	-921.009	sleeping
+3221225577	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Panel_04.ao	16788.04	18375	-730.884	sleeping
+3221225579	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Panel_04.ao	17005.44	18385.87	-926.196	sleeping
+3221225581	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/EdgeRoofs/AbyssUpperRoofEdge_02.ao	16722.83	18559.78	-999.254	sleeping
+3221225583	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/EdgeRoofs/AbyssUpperRoofEdge_02.ao	17070.65	18559.78	-1003.16	sleeping
+3221225585	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/Maraketh/WallSand_BendLarge_03.ao	16951.09	16885.87	-621.801	sleeping
+3221225587	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/Maraketh/WallSand_CcLarge_03.ao	16711.96	16657.61	-590.526	sleeping
+3221225589	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/Maraketh/WallSand_Cv_02.ao	16820.65	17233.7	-580.334	sleeping
+3221225591	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/Maraketh/WallSand_Cv_02.ao	16853.26	16679.35	-585.334	sleeping
+3221225593	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Panel_03.ao	16527.17	17353.26	-640.384	sleeping
+3221225595	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	2766.304	10494.57	562.5	sleeping
+3221225597	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/PillarCave_01.ao	5016.304	28603.26	-1623.014	sleeping
+3221225599	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/PillarCave_02.ao	8755.435	12255.43	-378.449	sleeping
+3221225602	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/PillarCave_03.ao	9005.435	12505.43	-425.324	sleeping
+3221225606	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/Tents/ResistanceJeweleryBundle_CnrS_2.ao	8244.565	12342.39	-263.841	sleeping
+3221225610	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_02.ao	10614.13	9070.652	453.125	sleeping
+3221225614	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	16788.04	20581.52	-1250	sleeping
+3221225618	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_01.ao	9429.348	10896.74	453.125	sleeping
+3221225622	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Jungle/RoofHoles/RoofHole_01.ao	8244.565	25266.3	-1553.825	sleeping
+3221225626	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Jungle/RoofHoles/RoofHole_01.ao	6918.479	26755.44	-1194.36	sleeping
+3221225630	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Jungle/RoofHoles/RoofHole_01.ao	7538.043	26114.13	-1535.57	sleeping
+3221225634	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Jungle/RoofHoles/RoofHole_01.ao	4092.391	26570.65	-1049.753	sleeping
+3221225637	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Jungle/RoofHoles/RoofHole_01.ao	6570.652	24092.39	-1109.858	sleeping
+3221225642	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_02.ao	17070.65	22635.87	-546.875	sleeping
+3221225646	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_02.ao	13190.22	22592.39	-546.875	sleeping
+3221225650	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_02.ao	14657.61	20146.74	-546.875	sleeping
+3221225654	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	18320.65	20461.96	-1250	sleeping
+3221225658	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	12461.96	18929.35	-1250	sleeping
+3221226358	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_06.ao	6668.479	10146.74	-278.912	sleeping
+3221226362	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_01.ao	6918.479	10146.74	-283.999	sleeping
+3221226366	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_07.ao	7353.261	10440.22	-263.818	sleeping
+3221226370	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/CavePath/Effects/Ao/firelight.ao	7190.217	10298.91	-280.512	sleeping
+3221226374	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_02.ao	8114.13	10364.13	-255.842	sleeping
+3221226394	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_02.ao	6146.739	10711.96	-254.452	sleeping
+3221226402	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/CavePath/CliffRocks/rocks_v01.ao	6353.261	10788.04	-342.075	sleeping
+3221226406	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_06.ao	7353.261	10809.78	-260.825	sleeping
+3221226410	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/CavePath/Effects/Ao/firelight.ao	7190.217	10951.09	-280.512	sleeping
+3221226418	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_06.ao	8103.261	10940.22	-260.826	sleeping
+3221226438	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_02.ao	8809.782	11038.04	-255.897	sleeping
+3221226446	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/CavePath/Effects/Ao/firelight.ao	6875	11364.13	-324.572	sleeping
+3221226450	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_06.ao	8146.739	11331.52	-278.912	sleeping
+3221226454	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_03.ao	8853.261	11331.52	-273.744	sleeping
+3221226482	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/CavePath/Effects/Ao/firelight.ao	4375	11864.13	-324.572	sleeping
+3221226486	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_02.ao	5222.826	12016.3	-255.896	sleeping
+3221226494	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_06.ao	6277.174	12081.52	-277.991	sleeping
+3221226497	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_07.ao	7103.261	11831.52	-281.905	sleeping
+3221226499	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_Nolight_02.ao	7201.087	11864.13	-470.984	sleeping
+3221226503	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/CavePath/CliffRocks/rocks_v02.ao	8896.739	12211.96	-356.014	sleeping
+3221226505	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_01.ao	8842.392	11820.65	-269.819	sleeping
+3221226519	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonLean_01.ao	4396.739	12168.48	-287.088	sleeping
+3221226521	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_05.ao	5418.478	12222.83	-254.123	sleeping
+3221226525	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_04.ao	5918.479	12146.74	-277.64	sleeping
+3221226527	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_Nolight_04.ao	5885.87	12048.91	-465.094	sleeping
+3221226529	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonLean_01.ao	7081.522	12146.74	-287.088	sleeping
+3221226535	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_02.ao	7820.652	12461.96	-260.75	sleeping
+3221226537	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_05.ao	8027.174	12331.52	-271.289	sleeping
+3221226551	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_04.ao	9222.826	12516.3	-259.553	sleeping
+3221226575	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/CavePath/Effects/Ao/firelight.ao	5364.13	12875	-324.573	sleeping
+3221226583	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_05.ao	8125	12864.13	-253.497	sleeping
+3221226603	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_05.ao	4581.522	13103.26	-252.68	sleeping
+3221226605	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_07.ao	4559.783	13027.17	-263.818	sleeping
+3221226607	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Desert/CavePath/Effects/Ao/firelight.ao	4625	13092.39	-281.166	sleeping
+3221226615	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_06.ao	5961.957	13103.26	-259.381	sleeping
+3221226627	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_03.ao	7309.783	13038.04	-255.657	sleeping
+3221226637	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_05.ao	8722.826	13266.3	-261.218	sleeping
+3221226659	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_06.ao	8831.521	13353.26	-259.381	sleeping
+3221226661	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_Nolight_01.ao	8864.131	13451.09	-472.906	sleeping
+3221227996	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Mtx/equip_preview_backdrop_act2.ao	0	0	0	sleeping
+3221225484	Metadata/MiscellaneousObjects/Doodad	Metadata/NPC/Four_Act2/MarakethCivilian3.ao	18651.85	7048.68	-20.554	sleeping
+3221225488	Metadata/MiscellaneousObjects/Doodad	Metadata/NPC/Four_Act2/MarakethCivilian1.ao	18650.12	7756.85	-20.174	sleeping
+3221225491	Metadata/MiscellaneousObjects/Doodad_Distant_4	Metadata/Terrain/Doodads/Desert/CaravanTrails/CaravanTrail_RedStone_StL.ao	18222.83	7766.305	246.5	sleeping
+3221225502	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_02.ao	17048.91	8125	236.319	sleeping
+3221225516	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_04.ao	17309.78	8451.087	239.334	sleeping
+3221225522	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_04.ao	18255.44	7994.565	239.334	sleeping
+3221225530	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_04.ao	18266.3	8809.783	239.334	sleeping
+3221225534	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_01.ao	8375	8853.261	-256.663	sleeping
+3221225537	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/Tents/Gates/Gates_ResistanceJeweleryBundle_SqrS_2.ao	16538.04	17733.7	-1263.339	sleeping
+3221225539	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/Tower_03.ao	17255.44	16940.22	-891.478	sleeping
+3221225541	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/EdgeRoofs/AbyssRoofEdge_05.ao	16581.52	17190.22	-865.962	sleeping
+3221225543	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/WallPanels/PanelSet_03.ao	16070.65	17179.35	-648.175	sleeping
+3221225545	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/Dome_01.ao	16711.96	16255.43	-1350.935	sleeping
+3221225547	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/EdgeRoofs/AbyssRoofEdge_02.ao	16451.09	16516.3	-981.612	sleeping
+3221225549	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/Tower_02.ao	16342.39	16548.91	-917.626	sleeping
+3221225551	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/Tower_01.ao	16342.39	16559.78	-1270.312	sleeping
+3221225553	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/MarakethRuin/MarakethRuin_AbyssLight_01.ao	16711.96	16831.52	-1397	sleeping
+3221225555	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/Pillars/WideBridge03_01.ao	16679.35	16679.35	-736.417	sleeping
+3221225557	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/Foundry/FloorMould03.ao	16710.04	16582.13	-890.07	sleeping
+3221225559	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Buildings/Tower_04.ao	17114.13	17429.35	-830.891	sleeping
+3221225561	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Panel_03.ao	17190.22	17679.35	-640.384	sleeping
+3221225563	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Panel_03.ao	16994.56	17440.22	-647.884	sleeping
+3221225565	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Panel_03.ao	17146.74	17994.57	-640.403	sleeping
+3221225567	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/BuriedCity/Panel_04.ao	17121	16653.61	-681.884	sleeping
+3221225601	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/PillarCave_02.ao	8505.435	13005.43	-378.449	sleeping
+3221225603	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/PillarCave_02.ao	9255.435	12755.43	-378.449	sleeping
+3221225605	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	8875	12853.26	-250	sleeping
+3221225607	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/Tents/ResistanceJeweleryBundle_CnrS_1.ao	8135.87	12222.83	-288.244	sleeping
+3221225609	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	10222.83	9320.652	453.125	sleeping
+3221225611	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	12625	20646.74	-1250	sleeping
+3221225613	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_01.ao	11853.26	21375	-546.875	sleeping
+3221225615	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	17288.04	19983.7	-546.875	sleeping
+3221225617	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	9298.913	10255.43	453.125	sleeping
+3221225619	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_02.ao	9266.305	10331.52	453.125	sleeping
+3221225621	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_07.ao	8451.087	24646.74	-1594	sleeping
+3221225623	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Jungle/RoofHoles/RoofHole_01.ao	8266.305	25255.44	-1686.159	sleeping
+3221225625	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Jungle/RoofHoles/RoofHole_01.ao	8222.826	25320.65	-1349.934	sleeping
+3221225627	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Jungle/RoofHoles/RoofHole_01.ao	6831.521	26798.91	-1518.776	sleeping
+3221225629	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Jungle/RoofHoles/RoofHole_01.ao	7342.391	26222.83	-1158.832	sleeping
+3221225631	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Jungle/RoofHoles/RoofHole_01.ao	7353.261	26070.65	-1030.46	sleeping
+3221225633	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Jungle/RoofHoles/RoofHole_01.ao	4135.87	26451.09	-989.074	sleeping
+3221225635	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Jungle/RoofHoles/RoofHole_01.ao	6407.609	24211.96	-1060.914	sleeping
+3221225641	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	17320.65	23027.17	-546.875	sleeping
+3221225643	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	12483.7	22820.65	-1250	sleeping
+3221225645	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_01.ao	13396.74	23125	-546.875	sleeping
+3221225647	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	14820.65	20864.13	-1250	sleeping
+3221225649	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_01.ao	14603.26	19853.26	-546.875	sleeping
+3221225651	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	12375	26385.87	-1250	sleeping
+3221225653	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_02.ao	13244.57	26581.52	-546.875	sleeping
+3221225655	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	4375	20385.87	-250	sleeping
+3221225657	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_02.ao	5244.565	20581.52	453.125	sleeping
+3221226359	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_02.ao	6538.043	10146.74	-254.452	sleeping
+3221226363	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_01.ao	6788.043	10146.74	-264.468	sleeping
+3221226367	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_07.ao	7157.609	10222.83	-267.762	sleeping
+3221226369	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_06.ao	7125	10244.57	-260.863	sleeping
+3221226371	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/MarakethRuin/torch_fire.ao	7190.217	10298.91	-280.512	sleeping
+3221226373	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_03.ao	7798.913	10429.35	-259.622	sleeping
+3221226375	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_06.ao	7853.261	10385.87	-270.178	sleeping
+3221226393	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_05.ao	6146.739	10581.52	-252.679	sleeping
+3221226395	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_Nolight_02.ao	6048.913	10614.13	-478.796	sleeping
+3221226403	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_06.ao	6233.696	10777.17	-267.92	sleeping
+3221226407	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_06.ao	7157.609	11027.17	-264.769	sleeping
+3221226409	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_01.ao	7125	11005.43	-265.95	sleeping
+3221226411	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/MarakethRuin/torch_fire.ao	7190.217	10951.09	-280.512	sleeping
+3221226417	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_04.ao	8027.174	10983.7	-259.553	sleeping
+3221226429	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_06.ao	6809.783	11038.04	-260.826	sleeping
+3221226435	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonLean_01.ao	7853.261	11027.17	-275.989	sleeping
+3221226447	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/MarakethRuin/torch_fire.ao	6875	11364.13	-324.572	sleeping
+3221226451	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_01.ao	8146.739	11461.96	-264.468	sleeping
+3221226455	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_07.ao	8853.261	11461.96	-262.374	sleeping
+3221226483	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/MarakethRuin/torch_fire.ao	4375	11864.13	-324.572	sleeping
+3221226485	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_01.ao	4885.87	12016.3	-264.546	sleeping
+3221226487	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_05.ao	5146.739	12059.78	-254.123	sleeping
+3221226493	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/SkeletonCave_04.ao	6364.13	12016.3	-266.784	sleeping
+3221226495	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_Nolight_06.ao	6309.783	11896.74	-482.572	sleeping
+27	Metadata/MiscellaneousObjects/Checkpoint	Metadata/Terrain/Doodads/Checkpoints/MarakethCheckpoint01_nobase.ao	17027.17	6831.521	-93.079	sleeping
+3221225486	Metadata/NPC/Four_Act2/MarakethCaravanGuardStances	Metadata/NPC/Four_Act2/MarakethCaravanGuardStances.ao	18195.17	7621.91	125.326	sleeping
+3221225490	Metadata/MiscellaneousObjects/Doodad	Metadata/NPC/Four_Act2/MarakethCivilian2.ao	18385.87	8690.217	-18.803	sleeping
+3221225493	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/weather_attachments/G2_2/weather_attachment.ao	17353.26	7418.479	250	sleeping
+3221225498	Metadata/MiscellaneousObjects/Doodad_Distant_4	Metadata/Terrain/Doodads/Desert/CaravanTrails/CaravanTrail_RedStone_StL.ao	19016.3	7842.392	246.5	sleeping
+3221225504	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/KethAscendancy/ruinwall_end_S_01.ao	16907.61	8114.13	127.936	sleeping
+3221225507	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/KethAscendancy/ruinwall_X_MMMM_01.ao	17848.42	7032.46	76.686	sleeping
+3221225512	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_03.ao	17614.13	8190.217	233.89	sleeping
+3221225515	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_05.ao	17635.87	8625	241.205	sleeping
+3221225517	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_03.ao	17570.65	8385.869	233.89	sleeping
+3221225520	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_03.ao	17983.7	7918.479	233.89	sleeping
+3221225524	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_03.ao	16972.83	7364.13	233.89	sleeping
+3221225528	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_05.ao	17940.22	8407.609	241.205	sleeping
+3221225531	Metadata/Terrain/Tools/AudioTools/G2_2/StatueAbyss	Metadata/Terrain/Tools/AudioTools/G2_2/StatueAbyss.ao	8570.652	19505.44	-18.979	sleeping
+3221225533	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_02.ao	8277.174	8864.131	-261.507	sleeping
+3221225535	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/KethStatues_04.ao	8288.043	8896.739	-369.421	sleeping
+13	Metadata/MiscellaneousObjects/Waypoint	Metadata/Terrain/Doodads/Waypoints/waypointcore_g2_2.ao	16027.17	6451.087	-16.517	sleeping
+3221225485	Metadata/MiscellaneousObjects/Doodad	Metadata/NPC/Four_Act2/Torbrik.ao	18591.24	6977.48	-18.803	sleeping
+3221225492	Metadata/NPC/Four_Act2/MarakethCaravanGuardStances	Metadata/NPC/Four_Act2/MarakethCaravanGuardStances.ao	18505.44	7494.565	-84.857	sleeping
+3221225497	Metadata/MiscellaneousObjects/Doodad_Distant_4	Metadata/Terrain/Doodads/Desert/CaravanTrails/CaravanTrail_RedStone_StL.ao	18864.13	7820.652	246.5	sleeping
+3221225500	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_05.ao	18146.74	6940.218	241.205	sleeping
+3221225503	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_03.ao	17690.22	7994.565	233.89	sleeping
+3221225506	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/KethAscendancy/ruinwall_pillar_tall.ao	17831.52	7961.957	91.125	sleeping
+3221225509	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/KethAscendancy/ruinwall_pillar_med.ao	17570.65	7114.13	139.028	sleeping
+3221225511	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_05.ao	17005.44	8483.695	241.205	sleeping
+3221225513	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_02.ao	17385.87	8081.521	236.319	sleeping
+3221225519	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/KethAscendancy/ruinwall_end_M_01.ao	16864.13	9244.565	56.987	sleeping
+3221225521	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_04.ao	18059.78	7505.435	239.334	sleeping
+3221225523	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_03.ao	18266.3	7722.826	233.89	sleeping
+3221225525	Metadata/MiscellaneousObjects/Doodad	Metadata/NPC/Four_Act2/Risu_nolight.ao	18494.56	7788.043	-26.865	sleeping
+3221225527	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_04.ao	17429.35	9146.739	239.334	sleeping
+3221225529	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_01.ao	17777.17	8679.348	238.007	sleeping
+3221225499	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_04.ao	17940.22	7233.696	244.075	sleeping
+3221225501	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/TraitorsPassage/groundrock_01.ao	17255.44	8027.174	240.507	sleeping
+3221225508	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/KethAscendancy/ruinwall_pillar_tall.ao	18000.68	6799.39	62.375	sleeping
+3221225495	Metadata/Terrain/Tools/AudioTools/G2_2/TraitorsPassageEntrance	Metadata/Terrain/Tools/AudioTools/G2_2/TraitorsPassageEntrance.ao	16755.44	6668.479	-128.351	awake
+3221225639	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	12668.48	4711.957	0	awake
+3221225638	Metadata/MiscellaneousObjects/Doodad_Distant_2	Metadata/Terrain/Doodads/Desert/TraitorsPassage/abysslight_large_01.ao	16538.04	4581.521	0	awake

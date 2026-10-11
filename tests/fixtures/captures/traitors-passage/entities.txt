@@ -1,0 +1,13 @@
+11 entities, 0 of them remembered rather than listed this read; distance and position in world units
+distance	kind	id	address	x	y	z	terrain	bounds z	remembered	path	name
+0	Player	810	0x55E4F43BE00	14306.6	4243.313	-87.825	0	87.466	no	Metadata/Characters/Int/IntFourb	Sorceress
+203.443	Effect	830	0x55F0BF9B180	14255.43	4440.217	-2.701	0	0	no	Metadata/Effects/PermanentServerEffect	
+1017.739	WorldItem	821	0x55F661B0B00	14711.96	3309.782	-0.999	0	0.629	no	Metadata/MiscellaneousObjects/WorldItem	
+1227.574	Monster	687	0x55F0A510680	13211.96	4798.913	-92.591	0	92.591	no	Metadata/Monsters/SaltGolem/SaltGolem_@19	Quake Golem
+1913.85	Monster	630	0x55F4C207C80	12635.87	3309.782	-99.296	0	98.959	no	Metadata/Monsters/Skeletons/Maraketh/MarakethSkeletonUnarmed@19	Risen Maraketh
+2000.499	Monster	635	0x55F4C206D80	12623.03	3162.767	-97.33	0	96.972	no	Metadata/Monsters/Skeletons/Maraketh/MarakethSkeletonCrossbow@19	Risen Maraketh
+2042.505	Monster	631	0x55F4C20F200	12634.27	3070.652	-100.342	0	100.001	no	Metadata/Monsters/Skeletons/Maraketh/MarakethSkeletonOneHandAxeNoArmour_@19	Risen Maraketh
+2156.355	Monster	511	0x55F0A511580	12588.81	2939.832	-108.703	-0	108.334	no	Metadata/Monsters/Skeletons/Maraketh/MarakethSkeletonOneHandSwordNoArmour@19	Risen Maraketh
+2624.804	Monster	818	0x55F4C209080	16690.22	5342.391	-95.256	0	95.1	no	Metadata/Monsters/DemonSpiders/BlackStriderEmerge@19	Black Strider
+2636.293	Monster	816	0x55F0A516D00	16277.17	5994.565	-102.727	0	102.559	no	Metadata/Monsters/DemonSpiders/BlackStriderEmerge@19	Black Strider
+14922.62	WorldItem	823	0x55F5E076580	0	0	0	0	0	no	Metadata/MiscellaneousObjects/WorldItem	

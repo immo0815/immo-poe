@@ -1,0 +1,169 @@
+=== environments
+1727 files the area loaded, 0 of them tilesets
+
+=== .env Metadata/EnvironmentSettings/Gallows/2_2.env  (the area's own: its WorldAreas row's Environments row)
+{
+  "directional_light": {
+    "shadows_enabled": true,
+    "colour": [
+      0.83552,
+      0.68585,
+      0.46307
+    ],
+    "cam_extra_z": 1000.0,
+    "cam_min_offset": -900.0,
+    "cam_max_offset": 1000.0,
+    "multiplier": 6.0,
+    "penumbra_radius": 4.0,
+    "penumbra_dist": 0.2,
+    "phi": 3.05432,
+    "theta": 0.24434
+  },
+  "player_light": {
+    "colour": [
+      1.0,
+      0.9534,
+      0.8751
+    ],
+    "intensity": 2.13316
+  },
+  "environment_mapping": {
+    "diffuse_cube": "Art/2DArt/Cubemaps/studio_small_06_G5_singlelight charcoal_diffuse.dds",
+    "specular_cube": "Art/2DArt/Cubemaps/studio_small_06_G5_singlelight charcoal_specular.dds",
+    "direct_light_env_ratio": 0.0,
+    "env_brightness": 0.2,
+    "gi_additional_env_light": 0.0,
+    "hor_angle": 0.83775,
+    "vert_angle": 0.52359
+  },
+  "screenspace_fog": {
+    "ssf_color": [
+      0.2549,
+      0.10232,
+      0.02483
+    ],
+    "ssf_color_alpha": 0.15997,
+    "ssf_layer_count": 8.0,
+    "ssf_thickness": 30.0,
+    "ssf_turbulence": 35.0,
+    "ssf_disperse_radius": 1000.0,
+    "ssf_feathering": 0.44999
+  },
+  "area": {
+    "dust_color": [
+      1.0,
+      0.60548,
+      0.55422
+    ],
+    "ground_scale": 0.004,
+    "player_environment_ao": "Metadata/Effects/weather_attachments/G2_2_new/weather_attachment.ao",
+    "wind_direction_angle": 0.14142,
+    "wind_intensity": 2.35612
+  },
+  "clouds": {
+    "clouds_intensity": 0.3,
+    "clouds_midpoint": 0.442,
+    "clouds_sharpness": 0.60399,
+    "clouds_speed": 2.35612,
+    "clouds_angle": 0.14142,
+    "clouds_pre_fade": 0.3
+  },
+  "camera": {
+    "far_plane": 4300.0,
+    "near_plane": 200.0,
+    "exposure": 1.0
+  },
+  "post_transform": {
+    "texture": "Metadata/EnvironmentSettings/Gallows/2_2.env.post.dds"
+  },
+  "audio": {
+    "env_bank_name": "General_Environment.bank",
+    "env_event_name": "/Environment/4.0/Part1/Act2/G2_2_Traitors_Passage.env",
+    "music": "A2_TraitorsPassage",
+    "ambient_sound": "Audio/Sound Effects/Ambient/4.0/Part1/Act2/G2_2_Traitors_Passage",
+    "footstep_materials": [
+      {
+        "material": "Art/Textures/Environment/desert/Passage/ArenaTrimc.mat",
+        "audio_id": "G2_4_1_Stone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Passage/Cavedebrisc.mat",
+        "audio_id": "G2_2_Sand"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/GroundMaterials/CavePath01.mat",
+        "audio_id": "G2_2_Sand"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/GroundMaterials/CavePath02.mat",
+        "audio_id": "G2_2_Sand"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/GroundMaterials/CavePath03.mat",
+        "audio_id": "G2_2_Sand"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Passage/Cliff_sjjnRc.mat",
+        "audio_id": "G2_2_Sand"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Gates/G_GroundBlend1.mat",
+        "audio_id": "G2_3_RoughStone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Gates/G_GroundBlend2_2.mat",
+        "audio_id": "G2_3_RoughStone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/GroundMaterials/G_Passage_Boss_Floor.mat",
+        "audio_id": "G2_2_Sand"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/GroundMaterials/G_Passage_Boss_Floor_2.mat",
+        "audio_id": "G2_2_Sand"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Passage/Ground/G_TTP_CavePath01.mat",
+        "audio_id": "Stone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Passage/Ground/G_TTP_CavePath02.mat",
+        "audio_id": "Stone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Passage/Ground/G_TTP_CavePath03.mat",
+        "audio_id": "Stone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Passage/KethStairs01c.mat",
+        "audio_id": "G2_4_1_Stone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Passage/M_RED_ROCK_1c.mat",
+        "audio_id": "G2_3_RoughStone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Passage/M_RED_ROCK_2c.mat",
+        "audio_id": "G2_3_RoughStone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/RockSandstone_MCF_rkdauc.mat",
+        "audio_id": "G2_3_RoughStone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/RockSandstone_rkdauc.mat",
+        "audio_id": "G2_3_RoughStone"
+      }
+    ],
+    "audio_environment_ao": "Metadata/Terrain/Tools/AudioTools/G2_2/G2_2_TraitorsPassageScatterer.ao",
+    "sound_parameters": {
+      "Indoors": 1.0
+    }
+  },
+  "global_illumination": {
+    "thickness_angle": 145.0,
+    "gi_multiplier": 4.5
+  }
+}
+diffuse_cube Art/2DArt/Cubemaps/studio_small_06_G5_singlelight charcoal_diffuse.dds: 32x32 · 6 levels · pixel format flags 0x4 · fourCC DX10 · DXGI format 95 (BC6H_UF16) · cube x1
+specular_cube Art/2DArt/Cubemaps/studio_small_06_G5_singlelight charcoal_specular.dds: 512x512 · 10 levels · pixel format flags 0x4 · fourCC DX10 · DXGI format 95 (BC6H_UF16) · cube x1

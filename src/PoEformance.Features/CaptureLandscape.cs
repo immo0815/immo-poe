@@ -14,6 +14,10 @@ namespace PoEformance.Features;
 /// does not - so the table that says it is the landscape value by walkability and by the ground type under the cell, and most of
 /// all along the edge of where anybody can stand, where walls and chasms both begin. Every count is written, nothing concluded;
 /// the crop round the player is for holding the numbers against the picture of the same place.
+///
+/// ITS FIRST TWO CAPTURES SETTLED IT (v0.1.213): Traitor's Passage's wall nought and its chasm five along that edge, every cell of
+/// each, and the Titan Grotto's abyss five - the projectiles' grid, a distance from its noughts as the walkable one is from its own
+/// (the section asking that of each grid was added after them; their recordings answer it in the replay).
 /// </remarks>
 public static class CaptureLandscape
 {
@@ -56,6 +60,13 @@ public static class CaptureLandscape
 
         said.AppendLine().AppendLine("=== every cell: its walkable nibble (a line each) against its landscape nibble (a column each) - nought walkable is no ground to stand on");
         Table(said, both, "walkable");
+
+        // IS EACH GRID A DISTANCE FROM ITS NOUGHTS, capped at five? Then every cell of 1 to 4 has a neighbour one less and none
+        // less than that, and a 5 has a 4 or a 5 beside it. Asked of the four neighbours across a side and of all eight, since a
+        // distance counted along the sides and one counted diagonally too part exactly there.
+        said.AppendLine().AppendLine("=== each grid as a distance from its noughts: for every cell of a value, the least of its neighbours - one less (a distance's step), as much or more (no way down), two or more less (a jump)");
+        Field(said, "walkable", walkable, stride, width, rows);
+        Field(said, "landscape", landscape, stride, width, rows);
 
         // THE GROUND UNDER EACH CELL - the type at its nearest tile corner, as the area's corner array names it - and the
         // edge of where anybody can stand: an unwalkable cell with a walkable one beside it, across a side.
@@ -137,6 +148,55 @@ public static class CaptureLandscape
     }
 
     private static bool Stands(byte[] walkable, int stride, int x, int y) => TerrainLayers.Nibble(walkable, stride, x, y) != 0;
+
+    /// <summary>One grid's values 1 to 5 by the least of their four side neighbours and of all eight - see <see cref="Report"/>.</summary>
+    private static void Field(StringBuilder said, string name, byte[] grid, int stride, int width, int rows)
+    {
+        // [value, 0 sides / 1 all eight, 0 one less / 1 as much or more / 2 two or more less]
+        var counts = new long[6, 2, 3];
+        for (var y = 0; y < rows; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                int value = TerrainLayers.Nibble(grid, stride, x, y);
+                if (value is < 1 or > 5)
+                {
+                    continue;
+                }
+
+                int sides = int.MaxValue, all = int.MaxValue;
+                for (var dy = -1; dy <= 1; dy++)
+                {
+                    for (var dx = -1; dx <= 1; dx++)
+                    {
+                        int nx = x + dx, ny = y + dy;
+                        if ((dx == 0 && dy == 0) || nx < 0 || ny < 0 || nx >= width || ny >= rows)
+                        {
+                            continue;
+                        }
+
+                        int next = TerrainLayers.Nibble(grid, stride, nx, ny);
+                        all = Math.Min(all, next);
+                        if (dx == 0 || dy == 0)
+                        {
+                            sides = Math.Min(sides, next);
+                        }
+                    }
+                }
+
+                counts[value, 0, Step(value, sides)]++;
+                counts[value, 1, Step(value, all)]++;
+            }
+        }
+
+        for (var value = 1; value <= 5; value++)
+        {
+            said.AppendLine(CultureInfo.InvariantCulture,
+                $"  {name} {value}: sides {counts[value, 0, 0]} one less, {counts[value, 0, 1]} no way down, {counts[value, 0, 2]} a jump; all eight {counts[value, 1, 0]} one less, {counts[value, 1, 1]} no way down, {counts[value, 1, 2]} a jump");
+        }
+
+        static int Step(int value, int least) => least == value - 1 ? 0 : least >= value ? 1 : 2;
+    }
 
     /// <summary>One type's counts, walkable or not, under its name - two slots of one name (a type listed twice) summed.</summary>
     private static void Add(SortedDictionary<string, long[]> into, string name, long[,,] counts, int type, int stands)

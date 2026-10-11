@@ -1,0 +1,45 @@
+capture  2026-10-11 22:56:29 local, PoEformance v0.1.213 · 1f4d255
+area     Traitor's Passage (G2_2), act 2, level 19, hash 0xB4379881, state InGame
+light    Metadata/EnvironmentSettings/Gallows/2_2.env
+screen   game client at 0, 0, 3440 x 1440
+player   world 14306.6 4243.313 -87.825, terrain height 0, level 96
+         grid cell 1316, 390, tile 57, 16
+         the grid's height there -0, the tile's level -0
+tile     Metadata/Terrain/Desert/CavePath/Features/CenterHoleLarge_01.tdt, laid 6, piece 0, 0
+camera   1.105 1.983 0.489 0.467 -1.105 1.983 0.489 0.467 0 -2.462 0.788 0.751 -11116.71 -36627.37 -6998.825 -6473.298
+terrain  1955 x 2875 cells, 85 x 125 tiles
+
+=== rooms around the player
+  2 off  2open_corner_03  at tile 54, 6, 9 x 9, turned 180  (Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/2open_corner_03.arm)
+  3 off  3open  at tile 46, 14, 9 x 9, as written  (Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/3open)
+
+=== what this capture holds
+  game.png  3440 x 1440, the game alone, the overlay hidden for 266 ms
+  entities.txt  11 entities, nearest first
+  loaded-files.txt  1727 files
+  environments.txt  the area's environment (Metadata/EnvironmentSettings/Gallows/2_2.env) and those of 2 rooms
+  room-files.txt  332 room files the area may lay - the loaded list's and every room of the sets and overlay lists its files and the install's masters name
+  tile-identities.txt  129 tile files laid in the area, each as a room's slot asks about it - tab-separated, or why it did not read
+  slot-candidates.txt  332 rooms of the area's set against 289 tiles its tilesets list - 2 masters, lists metadata/terrain/worldmaps/act2/tiles.tst, metadata/terrain/gallows/act2/2_2/tiles.tst
+  tileset-lists.txt  2 tile lists of 2 masters, 292 tile lines - each list whole: an optional weight, the tile, then the words after it
+  tile-files.txt  302 tile files - 289 the area's tile lists name, 15 its fill lists, 129 laid, 3 of those named by no tile list; each with its definition followed through what it inherits, and the tile's doodad list (.tmd)
+  area-masters.txt  2 masters of the area and 26 files they name or the area loaded, each whole - a tile list by name only, being whole in tileset-lists.txt
+  ground.txt  129 tile files laid over 10625 cells, 95 templates, 524 of their 524 sub-tile meshes read, 2 ground masks; 8034 cells under one ground all round, 1757 mixed; 2 MaterialsLists, 9 ground materials; 5 of 197 shader sources name the ground's coordinates
+  water.txt  313 of 861 environments carry a water section, 28 keys; 6 of 197 shader sources draw the water
+  rooms.txt  2 rooms within 3 tiles, their doodads' lights and the pieces attached to them, and the file of each room the player stands in
+  rooms-arranged.txt  not written: the rooms stand by their doodads - see rooms-placed.txt
+  doodads.txt  doodads: 265 entities stand where the rooms name a doodad, on 10 paths - sleeping map 2283 of 2283 walked, awake 205, 2488 with a path, read in 45 ms
+  rooms-placed.txt  rooms: 11 placed by their doodads at 13 places, 11 by their tiles at 13 places, 314 with no place
+  model-panes.txt  not written: no model pane showed a model when the key went down
+  room-pick.txt  not written: nothing there when the key went down
+  routes.txt  not written: nothing there when the key went down
+  scene-light.txt  not written: nothing there when the key went down
+  model-probe.txt  not written: nothing there when the key went down
+  dissector.txt  not written: nothing there when the key went down
+  atlas-log.txt  not written: nothing there when the key went down
+  light-hunt.txt  sun: no reading's vector found · cube: reading 2
+  memory.rec  1129 KB: the overlay's own reads for 90 reader ticks and one pass reading the world with every switch on, the loaded files, both entity maps with every named entity's model, every monster's mods, the terrain's two cell grids whole, the raw bytes of the roots, one hop beyond them and the components around you from nothing - replay with --replay; memory.txt says what the pass read where
+  monsters.txt  written by the pass inside the recording - memory.txt says what it holds
+  landscape.txt  written by the pass inside the recording - memory.txt says what it holds
+  off: overlay-picture
+  2026-10-11 22-56-29 Traitor's Passage.zip  beside this folder: every file here, packed to send
