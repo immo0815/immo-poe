@@ -45,6 +45,8 @@ function renderState(s) {
       $("ov-shots-colour").value = s.overlay.shotsColour;
       $("ov-shots-opacity").value = s.overlay.shotsOpacity;
       $("ov-shots-opacity-value").textContent = `${s.overlay.shotsOpacity} %`;
+      $("ov-shots-reach").value = s.overlay.shotsReach;
+      $("ov-shots-reach-value").textContent = reachLabel(s.overlay.shotsReach);
     }
   }
 
@@ -134,12 +136,13 @@ function sendOverlay() {
       showShots: $("ov-shots").checked,
       shotsColour: $("ov-shots-colour").value,
       shotsOpacity: Number($("ov-shots-opacity").value),
+      shotsReach: Number($("ov-shots-reach").value),
     },
   });
 }
 
 for (const id of ["ov-loot", "ov-terrain", "ov-terrain-colour", "ov-terrain-thickness", "ov-terrain-rim",
-  "ov-terrain-fill-colour", "ov-terrain-fill", "ov-shots", "ov-shots-colour", "ov-shots-opacity"]) {
+  "ov-terrain-fill-colour", "ov-terrain-fill", "ov-shots", "ov-shots-colour", "ov-shots-opacity", "ov-shots-reach"]) {
   // Touching a control claims it, even before anything is sent: dragging a colour picker
   // fires "input" for a while before the "change" that commits it.
   $(id).addEventListener("input", () => (overlayEditingUntil = Date.now() + 1500));
@@ -169,6 +172,16 @@ $("ov-shots-colour").addEventListener("change", sendOverlay);
 $("ov-shots-opacity").addEventListener("input", () =>
   ($("ov-shots-opacity-value").textContent = `${$("ov-shots-opacity").value} %`));
 $("ov-shots-opacity").addEventListener("change", sendOverlay);
+
+// The reach changes the sheet's pixels, so the overlay rebuilds it once per change - "change", never "input".
+$("ov-shots-reach").addEventListener("input", () =>
+  ($("ov-shots-reach-value").textContent = reachLabel(Number($("ov-shots-reach").value))));
+$("ov-shots-reach").addEventListener("change", sendOverlay);
+
+/** The reach as the slider's label says it: nought is no limit, anything else world units. */
+function reachLabel(units) {
+  return units > 0 ? `${units} units` : "no limit";
+}
 
 // ── Auto flask ─────────────────────────────────────────────────────────────
 
@@ -757,7 +770,7 @@ if (bridge.connected) {
     entityCount: 0,
     staticsFound: 0,
     staticsTotal: 6,
-    overlay: { minLootRarity: "Magic", showTerrain: true, terrainColour: "#dce3ea", terrainThickness: 1, terrainRim: true, terrainFillColour: "#0b1b2b", terrainFillOpacity: 70, terrain: "browser preview", showShots: true, shotsColour: "#e0a040", shotsOpacity: 30, shots: "browser preview" },
+    overlay: { minLootRarity: "Magic", showTerrain: true, terrainColour: "#dce3ea", terrainThickness: 1, terrainRim: true, terrainFillColour: "#0b1b2b", terrainFillOpacity: 70, terrain: "browser preview", showShots: true, shotsColour: "#e0a040", shotsOpacity: 30, shotsReach: 0, shots: "browser preview" },
     autoFlask: {
       enabled: false,
       keySource: "Defaults - no host",

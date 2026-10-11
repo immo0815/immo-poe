@@ -73,6 +73,27 @@ public sealed class ShotLayer : IDisposable
     /// <remarks>A tint and nothing more - the texture is white - so dragging either control rebuilds nothing.</remarks>
     public uint Fill { get; set; } = OverlaySettings.Default.ShotsPacked;
 
+    /// <summary>
+    /// How far from the walkable ground the sheet reaches, in world units; nought for all of it (TerrainOutline.Shots).
+    /// </summary>
+    /// <remarks>Unlike the colour this is pixels, not a tint: a change rebuilds the sheet, once, on the next frame drawn.</remarks>
+    public int Reach
+    {
+        get => _reach;
+        set
+        {
+            int clamped = Math.Clamp(value, 0, OverlaySettings.MostShotsReach);
+            if (clamped != _reach)
+            {
+                _reach = clamped;
+                _built = null;
+                _failure = null;
+            }
+        }
+    }
+
+    private int _reach = OverlaySettings.Default.ShotsReach;
+
     /// <summary>Draws the sheet onto a map, if the terrain has loaded with its projectiles' grid.</summary>
     /// <param name="player">The player's world position - the map projects everything relative to it.</param>
     public void Draw(ImDrawListPtr draw, MapView map, TerrainGrid grid, Vector3 player)
@@ -133,7 +154,9 @@ public sealed class ShotLayer : IDisposable
             return;
         }
 
-        ShotPlan plan = TerrainOutline.Shots(grid, MaxTextureEdge, isoHeightShift: true);
+        // World units to cells, rounded up: a reach that rounded to nought would turn the limit off.
+        int reachCells = _reach == 0 ? 0 : Math.Max(1, (int)MathF.Ceiling(_reach / MapView.WorldToGrid));
+        ShotPlan plan = TerrainOutline.Shots(grid, MaxTextureEdge, isoHeightShift: true, reachCells);
         _cells = plan.Cells;
         _step = plan.Step;
         if (plan.Cells == 0)
@@ -218,7 +241,8 @@ public sealed class ShotLayer : IDisposable
         }
 
         Level finest = _levels[0];
-        string sizes = $"{_cells:N0} cells, {finest.Width}x{finest.Height} in {_levels.Length} levels";
+        string reach = _reach == 0 ? "no reach limit" : $"within {_reach} of the ground";
+        string sizes = $"{_cells:N0} cells, {reach}, {finest.Width}x{finest.Height} in {_levels.Length} levels";
         return _texelPixels > 0f
             ? $"{sizes}, {_texelPixels:F2} px/texel on the {(_onLargeMap ? "large map" : "minimap")} -> level {_level}"
             : sizes;

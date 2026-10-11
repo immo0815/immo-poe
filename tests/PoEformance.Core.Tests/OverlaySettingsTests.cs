@@ -147,6 +147,7 @@ public class OverlaySettingsRoundTripTests
             ShowShots: false,
             ShotsColour: "#203040",
             ShotsOpacity: 55,
+            ShotsReach: 1250,
             HideNoise: false,
             RememberOutOfRange: false,
             ShowPoi: false,
@@ -375,6 +376,7 @@ public class OverlaySettingsMergeTests
             ShowShots = false,
             ShotsColour = "#070809",
             ShotsOpacity = 45,
+            ShotsReach = 800,
         };
 
         PoEformance.Features.OverlaySettings merged = Chosen().MergeFromPage(sent);
@@ -382,6 +384,7 @@ public class OverlaySettingsMergeTests
         Assert.False(merged.ShowShots);
         Assert.Equal("#070809", merged.ShotsColour);
         Assert.Equal(45, merged.ShotsOpacity);
+        Assert.Equal(800, merged.ShotsReach);
 
         Assert.Equal(PoEformance.Game.Components.ItemRarity.Rare, merged.MinLootRarity);
         Assert.Equal("#010203", merged.TerrainColour);
@@ -431,6 +434,11 @@ public class OverlaySettingsMergeTests
         Assert.Equal(defaults.ShotsColour, wild.ShotsColour);
         Assert.Equal(0, (defaults with { ShotsOpacity = -1 }).Normalised().ShotsOpacity);
 
+        // The reach: nought, no limit, unless somebody chose one - and never past what the page offers, nor below nought.
+        Assert.Equal(0, defaults.ShotsReach);
+        Assert.Equal(PoEformance.Features.OverlaySettings.MostShotsReach, (defaults with { ShotsReach = 99_999 }).Normalised().ShotsReach);
+        Assert.Equal(0, (defaults with { ShotsReach = -50 }).Normalised().ShotsReach);
+
         // A file from before the sheet has no keys for it, and gets the sheet as the defaults say.
         PoEformance.Features.OverlaySettings old = System.Text.Json.JsonSerializer.Deserialize(
             """{ "minLootRarity": "Magic", "showTerrain": true }""",
@@ -438,6 +446,7 @@ public class OverlaySettingsMergeTests
         Assert.True(old.ShowShots);
         Assert.Equal(defaults.ShotsColour, old.ShotsColour);
         Assert.Equal(defaults.ShotsOpacity, old.ShotsOpacity);
+        Assert.Equal(0, old.ShotsReach);
     }
 
     [Fact]

@@ -268,7 +268,7 @@ public static class TerrainOutline
     /// GATHERED, NOT SCATTERED, and that was learned from a picture of the Grotto. Pushing each cell to its place left
     /// black wedges wherever the nearest ground changed height - two neighbouring cells taking lifts twenty apart land
     /// twenty apart, with nothing between. So the lift is kept where the picture is: every walkable block is put at its
-    /// displaced place with its shift, the shift carried from there to every block of the picture (<see cref="Lifts"/>),
+    /// displaced place with its shift, the shift carried from there to every block of the picture (<see cref="Field"/>),
     /// and each pixel then reads the cells its own shift says it shows. Every pixel reads something, so nothing tears;
     /// where the lift changes, the abyss's content jumps instead, which in open air shows as nothing. Beside the floor
     /// the shift is the floor's own, so the fill meets the outline: on both captures (CaptureFixtureTests) all but about
@@ -277,7 +277,13 @@ public static class TerrainOutline
     /// render thread, like the outline: about 90 ms for the Grotto's eight million cells.
     /// </remarks>
     /// <param name="isoHeightShift">Bakes the height in as the outline does - see <see cref="Build"/>.</param>
-    public static ShotPlan Shots(TerrainGrid grid, int maxEdge, bool isoHeightShift)
+    /// <param name="reachCells">
+    /// How far from the walkable ground, as drawn, the sheet reaches, in grid cells - nought for all of it. Over an abyss
+    /// nearly the whole of the area's rectangle is ground a shot crosses (the Titan Grotto: 7.6 million cells to 336
+    /// thousand walkable), most of it further from anywhere to stand than any shot flies; the reach keeps the sheet to the
+    /// part a shot fired from the ground can get to, a block of <see cref="ShotLiftBlock"/> cells being its grain.
+    /// </param>
+    public static ShotPlan Shots(TerrainGrid grid, int maxEdge, bool isoHeightShift, int reachCells = 0)
     {
         ArgumentNullException.ThrowIfNull(grid);
         ArgumentOutOfRangeException.ThrowIfLessThan(maxEdge, 1);
@@ -301,7 +307,10 @@ public static class TerrainOutline
         int stride = grid.BytesPerRow;
         int liftWide = Up(grid.Width, ShotLiftBlock);
         int liftHigh = Up(grid.Height, ShotLiftBlock);
-        (short[]? lift, long total) = Lifts(grid, cells, shots, stride, liftWide, liftHigh, isoHeightShift && grid.HasHeights);
+        // The reach in the field's own units: a block's step is three, so a cell is three halves.
+        int reachUnits = reachCells > 0 ? Math.Max(1, (reachCells * Orthogonal) / ShotLiftBlock) : 0;
+        (short[]? lift, ushort[]? far, long total) = Field(
+            grid, cells, shots, stride, liftWide, liftHigh, isoHeightShift && grid.HasHeights, reachUnits > 0);
 
         int full = step * step;
         int gridWidth = grid.Width;
@@ -313,7 +322,15 @@ public static class TerrainOutline
             for (int px = 0; px < width; px++)
             {
                 int left = px * step;
-                int shift = lift is null ? 0 : lift[liftRow + Math.Min(left / ShotLiftBlock, liftWide - 1)];
+                int block = liftRow + Math.Min(left / ShotLiftBlock, liftWide - 1);
+
+                // Past the reach from the floor as drawn: nothing a shot fired from the ground could get to - and nothing read.
+                if (far is not null && far[block] > reachUnits)
+                {
+                    continue;
+                }
+
+                int shift = lift is null ? 0 : lift[block];
 
                 // The cells this pixel shows: its own square, moved back up the diagonal by the shift that put them here.
                 int count = 0;
@@ -354,24 +371,33 @@ public static class TerrainOutline
         return new ShotPlan(coverage, width, height, step, total);
     }
 
+    /// <summary>A step to the next block straight across, in the field's units - see <see cref="Field"/>.</summary>
+    private const int Orthogonal = 3;
+
+    /// <summary>A step to the next block corner to corner: four against three is the chamfer that stays within six per cent of the straight-line distance.</summary>
+    private const int Diagonal = 4;
+
     /// <summary>
-    /// Per block of the PICTURE, <see cref="ShotLiftBlock"/> cells a side, the height shift of the walkable ground drawn
-    /// nearest it - or null when nothing is lifted - and how many cells of the area are open to a shot and shut to a foot.
+    /// Per block of the PICTURE, <see cref="ShotLiftBlock"/> cells a side: the height shift of the walkable ground drawn
+    /// nearest it and how far that ground is - each null when not asked for - and how many cells of the area are open to a
+    /// shot and shut to a foot.
     /// </summary>
     /// <remarks>
-    /// One pass over the packed bytes does both. Every block of the area holding walkable ground looks one height up, at
-    /// its first walkable cell, and puts its shift at the block its ground is DRAWN in - the cell less its shift, as the
-    /// outline draws it. A chamfer pass each way then carries every seed to the blocks round it, a step to a block in any
-    /// of eight directions. Nearest within a block or two rather than exactly nearest, which the picture cannot tell apart:
-    /// walkable neighbours differ by a cell of shift at most where they differ at all. Where no walkable ground is drawn
-    /// at all, nought - the flat drawing.
+    /// One pass over the packed bytes does all three. Every block of the area holding walkable ground looks one height up,
+    /// at its first walkable cell, and puts its shift at the block its ground is DRAWN in - the cell less its shift, as the
+    /// outline draws it (nought when nothing is lifted). A chamfer pass each way then carries every seed to the blocks round
+    /// it, three a block straight across and four corner to corner, so the distance is a circle's within six per cent rather
+    /// than a square's - it is what a reach is measured by. Nearest within a block or two rather than exactly nearest, which
+    /// the picture cannot tell apart: walkable neighbours differ by a cell of shift at most where they differ at all. Where
+    /// no walkable ground is drawn at all, a shift of nought - the flat drawing - and every block out of reach.
     /// </remarks>
-    private static (short[]? Lift, long Cells) Lifts(
-        TerrainGrid grid, byte[] cells, byte[] shots, int stride, int wide, int high, bool lifting)
+    private static (short[]? Lift, ushort[]? Distance, long Cells) Field(
+        TerrainGrid grid, byte[] cells, byte[] shots, int stride, int wide, int high, bool lifting, bool measuring)
     {
+        bool seeding = lifting || measuring;
         short[]? lift = lifting ? new short[wide * high] : null;
-        ushort[]? distance = lifting ? new ushort[wide * high] : null;
-        bool[]? looked = lifting ? new bool[wide * high] : null;
+        ushort[]? distance = seeding ? new ushort[wide * high] : null;
+        bool[]? looked = seeding ? new bool[wide * high] : null;
         if (distance is not null)
         {
             Array.Fill(distance, ushort.MaxValue);
@@ -400,7 +426,7 @@ public static class TerrainOutline
                     total++;
                 }
 
-                if (lift is null || walk == 0)
+                if (!seeding || walk == 0)
                 {
                     continue;
                 }
@@ -411,7 +437,7 @@ public static class TerrainOutline
                 if ((at == x || second) && !looked![block])
                 {
                     looked[block] = true;
-                    int shift = Math.Clamp(grid.IsoHeightShift(at, y), short.MinValue, short.MaxValue);
+                    int shift = lifting ? Math.Clamp(grid.IsoHeightShift(at, y), short.MinValue, short.MaxValue) : 0;
                     int drawnX = at - shift;
                     int drawnY = y - shift;
                     if (drawnX >= 0 && drawnY >= 0 && drawnX < grid.Width && drawnY < grid.Height)
@@ -420,16 +446,19 @@ public static class TerrainOutline
                         if (distance![drawn] != 0)
                         {
                             distance[drawn] = 0;
-                            lift[drawn] = (short)shift;
+                            if (lift is not null)
+                            {
+                                lift[drawn] = (short)shift;
+                            }
                         }
                     }
                 }
             }
         }
 
-        if (lift is null)
+        if (distance is null)
         {
-            return (null, total);
+            return (null, null, total);
         }
 
         // Forward over the blocks, taking from the four already passed; then back, from the four the other side.
@@ -440,21 +469,21 @@ public static class TerrainOutline
                 int at = (by * wide) + bx;
                 if (bx > 0)
                 {
-                    Take(at, at - 1);
+                    Take(at, at - 1, Orthogonal);
                 }
 
                 if (by > 0)
                 {
                     int above = at - wide;
-                    Take(at, above);
+                    Take(at, above, Orthogonal);
                     if (bx > 0)
                     {
-                        Take(at, above - 1);
+                        Take(at, above - 1, Diagonal);
                     }
 
                     if (bx + 1 < wide)
                     {
-                        Take(at, above + 1);
+                        Take(at, above + 1, Diagonal);
                     }
                 }
             }
@@ -467,35 +496,40 @@ public static class TerrainOutline
                 int at = (by * wide) + bx;
                 if (bx + 1 < wide)
                 {
-                    Take(at, at + 1);
+                    Take(at, at + 1, Orthogonal);
                 }
 
                 if (by + 1 < high)
                 {
                     int below = at + wide;
-                    Take(at, below);
+                    Take(at, below, Orthogonal);
                     if (bx + 1 < wide)
                     {
-                        Take(at, below + 1);
+                        Take(at, below + 1, Diagonal);
                     }
 
                     if (bx > 0)
                     {
-                        Take(at, below - 1);
+                        Take(at, below - 1, Diagonal);
                     }
                 }
             }
         }
 
-        return (lift, total);
+        return (lift, measuring ? distance : null, total);
 
-        void Take(int at, int from)
+        void Take(int at, int from, int step)
         {
             int through = distance![from];
-            if (through != ushort.MaxValue && through + 1 < distance[at])
+
+            // Saturating: corner to corner across the largest grid read would pass a ushort, and an unreached block stays one.
+            if (through != ushort.MaxValue && through + step < distance[at])
             {
-                distance[at] = (ushort)(through + 1);
-                lift![at] = lift[from];
+                distance[at] = (ushort)Math.Min(through + step, ushort.MaxValue - 1);
+                if (lift is not null)
+                {
+                    lift[at] = lift[from];
+                }
             }
         }
     }
