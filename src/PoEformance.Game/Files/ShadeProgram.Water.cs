@@ -19,6 +19,20 @@ public sealed partial class ShadeProgram
     public const string OceanShader = "Ocean";
 
     /// <summary>
+    /// How fast the water thins out towards the floor behind it, a unit of water at a time: the engine's water pass's own number.
+    /// </summary>
+    /// <remarks>
+    /// internalonly.ffx's WaterComputeRefraction hands water.ffx's BuildWaterRefraction <c>0.03</c> as its
+    /// <c>water_to_terrain_mult</c>, and that makes <c>water_to_terrain_ratio = saturate(1 - gap * 0.03 * lerp(1, 30, ground_water_ratio))</c>,
+    /// the gap the distance along the view from the surface to the solid behind (DepthDistance's). The density the medium
+    /// absorbs with is multiplied by <c>1 - water_to_terrain_ratio</c>, and a fragment whose ratio reaches one is discarded:
+    /// the water fades to nothing within 33 units of the floor. The ratio's other term is nought on water drawn this way:
+    /// GetFlowingSurface's planar state (GetFlowingWaterPlanarStateWorld) leaves both its ground_water_ratio and its own
+    /// water_to_terrain_ratio at nought, so the shore's thirtyfold is not taken.
+    /// </remarks>
+    public const float ShoreFade = 0.03f;
+
+    /// <summary>
     /// Open water as a medium: the area's colour, covering by how much water the view crosses before the solid surface behind it, its pattern moving with the flow.
     /// </summary>
     /// <remarks>
@@ -28,7 +42,14 @@ public sealed partial class ShadeProgram
     /// surface to the solid one behind it along the view (DepthDistance's, see <see cref="Op.Depth"/>), the
     /// colour and density the area's (<see cref="WaterColour"/>), lit as any colour is, and what gets
     /// through is the picture behind it showing through the mix. Where nothing solid lies behind, the
-    /// water covers whole.
+    /// water covers whole. Near the floor the density thins as the engine thins it (<see cref="ShoreFade"/>),
+    /// so a shore's edge fades out rather than standing as a band of colour.
+    ///
+    /// THE PASS'S OWN FORMULA. The water pass (internalonly.ffx's WaterComputeSurface and WaterComputeRefraction,
+    /// water.ffx's BuildWaterRefraction and GetRefractedWaterLight) mixes <c>opaque * r + absorbed * (1 - r)</c>,
+    /// <c>r = exp(-travel * density)</c>; what it adds beyond this program is a Fresnel reflection weighted by the
+    /// area's reflectiveness, the sun's highlight, the environment's cube and screen-space reflections, the
+    /// refraction (index 1.33) bending the ray it measures the travel along, foam, and the waves' normals.
     ///
     /// NOT THE ENGINE'S WAVES. Its surface is a sum of waves and flow maps (WaterComputeSurface,
     /// GetFlowingSurface) that no picture of a room carries. What stands for them is a pattern of value
@@ -43,8 +64,11 @@ public sealed partial class ShadeProgram
         // HOW MUCH WATER THE VIEW CROSSES: the solid surface behind less the water's own depth, never less than nought.
         int crossed = build.Emit(Op.Max, build.Emit(Op.Depth, Position), build.Constant(Vector4.Zero));
 
+        // THE SHORE: the density thinned within 33 units of the floor, 1 - water_to_terrain_ratio.
+        int shore = build.Emit(Op.Saturate, build.Emit(Op.Multiply, crossed, build.Constant(new Vector4(ShoreFade))));
+
         // WHAT GETS THROUGH, exp(-distance * density), and the cover is the rest.
-        int density = build.Emit(Op.Swizzle, WaterColour, extra: AllFrom(3));
+        int density = build.Emit(Op.Multiply, build.Emit(Op.Swizzle, WaterColour, extra: AllFrom(3)), shore);
         int travelled = build.Emit(Op.Negate, build.Emit(Op.Multiply, crossed, density));
         int through = build.Emit(Op.Power, build.Constant(new Vector4(MathF.E)), travelled);
         int cover = build.Emit(Op.OneMinus, through);

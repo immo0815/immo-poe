@@ -83,17 +83,34 @@ public class WaterTests
     public void THEFLOORShowsThroughShallowWaterAndNotThroughDeep()
     {
         SkinnedMesh scene = Scene(10f, 300f);
-        var canvas = new MeshPicture.Canvas(Size) { Water = WaterLook.EngineDefault };
-        GamePicture picture = MeshPicture.Of(
-            scene, canvas, tilt: Down,
-            skins: [Sheet(220, 30, 30), null],
-            blends: [MaterialBlend.Opaque, MaterialBlend.Alpha],
-            shades: [null, ShadeProgram.Water()]);
+        GamePicture picture = Pictured(scene, WaterLook.EngineDefault);
 
         byte shallow = RedAt(picture, scene, new Vector3(-5f, 0f, -10f));
         byte deep = RedAt(picture, scene, new Vector3(5f, 0f, -300f));
         Assert.True(shallow > 150, $"the floor under ten units of water reads {shallow} red");
         Assert.True(deep < 60, $"the floor under three hundred units of water reads {deep} red");
+    }
+
+    /// <summary>
+    /// The water thins out at the floor as the engine's pass thins it: two units over the floor, at a density that would hide nearly half of it, the floor reads nearly bare.
+    /// </summary>
+    /// <remarks>
+    /// Unthinned, exp(-2 * 0.3) lets 55% of the floor through; thinned by saturate(2 * 0.03) as
+    /// WaterComputeRefraction does, 96%. A hundred units down nothing of it is left either way.
+    /// </remarks>
+    [Fact]
+    public void THESHOREFadesTheWaterOutAtTheFloor()
+    {
+        SkinnedMesh scene = Scene(2f, 100f);
+        var thick = new WaterLook(new Vector3(0f, 0f, 0.5f), 0.3f, WaterLook.NoFlow, 0f, "a thick blue water");
+        Vector3 shore = new(-5f, 0f, -2f);
+
+        byte bare = RedAt(Pictured(scene, thick with { Murkiness = 0f }), scene, shore);
+        GamePicture picture = Pictured(scene, thick);
+        byte through = RedAt(picture, scene, shore);
+        byte deep = RedAt(picture, scene, new Vector3(5f, 0f, -100f));
+        Assert.True(bare - through < 15, $"the floor two units under the water reads {through} red, {bare} bare");
+        Assert.True(deep < 30, $"the floor a hundred units under the water reads {deep} red");
     }
 
     /// <summary>A Monster Book build draws an Ocean material with the water program, mixed, and says so in its report.</summary>
@@ -110,6 +127,13 @@ public class WaterTests
         Assert.Contains("drawn as the area's water", Assert.Single(compiled.Skipped), StringComparison.Ordinal);
         Assert.NotNull(paints.Shade(Read, "Art/ocean.mat").Program);
     }
+
+    /// <summary>A red floor under the scene's water, drawn looking down.</summary>
+    private static GamePicture Pictured(SkinnedMesh scene, WaterLook water) => MeshPicture.Of(
+        scene, new MeshPicture.Canvas(Size) { Water = water }, tilt: Down,
+        skins: [Sheet(220, 30, 30), null],
+        blends: [MaterialBlend.Opaque, MaterialBlend.Alpha],
+        shades: [null, ShadeProgram.Water()]);
 
     /// <summary>The red where a point of the scene lands.</summary>
     private static byte RedAt(GamePicture picture, SkinnedMesh scene, Vector3 point)

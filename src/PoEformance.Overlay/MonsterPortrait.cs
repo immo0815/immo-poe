@@ -2119,7 +2119,7 @@ public sealed class MonsterPortrait
             if (_waterSaid.Length == 0 || water != _waterSaidFor)
             {
                 _waterSaidFor = water;
-                _waterSaid = ImGuiText.Escape(water.Line() + " (its pattern a moving noise, not the engine's waves"
+                _waterSaid = ImGuiText.Escape(water.Line() + " (its pattern a moving noise, not the engine's waves; no reflection"
                     + (water.HeightOffset != 0f ? "; its height offset not applied - the planes stand where the tile puts them)" : ")"));
             }
 
