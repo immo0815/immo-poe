@@ -264,7 +264,13 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   reads its texture, a cell every 16 texels (`ShadeProgram.RippleCell`) - `Ripple` alone changes when it is found; the
   drift (the engine's flow map is made at run time) is the colour pattern's, (18, 12) a unit of flow. At Port's flow they
   lean 2.7 degrees at the median, 8.7 at most, so the sun glints only where its mirror image falls near - real glitter.
-  NOT DONE: the height offset (water.ffx adds it to the surface's displacement), the waves lifting the surface, the
+  Seen from the side the sea stood flat (asked for from the live client), and so does the engine's: its ocean planes are
+  flat meshes, GetFlowingSurface lifts the surface per pixel only, and only the beach, crashing and flood waves move their
+  vertices (`BreakingWavesVertex` and its kin) - the game's camera, always above, never shows it. So THE LIFT IS CHOSEN
+  (v0.1.223, `SceneLight.WaterLift`, the light panel's "lift", one the engine's height, up to five): a room's water shapes
+  are split to edges of 48 (`SkinnedMesh.Refined`, `RoomModels.Watered`, by the blend word "water") and their vertices
+  lifted by `Ripples` times the lift - the card's `PlacedWaves`, the processor's `MeshPicture.Lifted`, which also keeps a
+  lifted drawing from `Again`. NOT DONE: the height offset (water.ffx adds it to the surface's displacement), the
   terrain water colour, screen-space reflections, the refraction's bend, foam.
 
 Its zip holds the pictures, every
