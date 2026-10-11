@@ -17,7 +17,8 @@ namespace PoEformance.Core.Tests;
 /// fifteen placed rooms - those three v0.1.179; Marrow (v0.1.186), the fill lists, the words and the wall
 /// tops; Sulphuric Caverns (v0.1.188), the fill list's tiles in its boss room and the tiles above level
 /// nought that settled a tile doodad's height; Augury (v0.1.188), nineteen rooms placed by their doodads, the
-/// fill list's tile in hundreds of slots and the first laid tile carrying a word.
+/// fill list's tile in hundreds of slots and the first laid tile carrying a word; Traitor's Passage and the Titan Grotto (v0.1.213),
+/// the terrain's second grid against walls and chasms.
 /// tests/fixtures/captures/README.md says more.
 /// </remarks>
 public partial class CaptureFixtureTests
@@ -385,6 +386,60 @@ public partial class CaptureFixtureTests
         Assert.True(under.Success);
         Assert.True(int.Parse(under.Groups[1].Value, CultureInfo.InvariantCulture) >= 20, "too few missing lines under a suppressing overlay to say anything");
         Assert.Matches(@"under no overlay: \d{3,} present, 0 missing", replay);
+    }
+
+    /// <summary>
+    /// The terrain's second cell grid (GridLandscapeData) is where projectiles stop, read back out of each capture's recording: nought on
+    /// a wall, five over a chasm though both are unwalkable, nought on no cell anybody can stand on - and like the walkable grid it
+    /// counts up from its noughts to a cap of five.
+    /// </summary>
+    /// <remarks>
+    /// THE CAPTURES ASKED FOR IT (v0.1.213, both Act 2, both reached by a waypoint): Traitor's Passage, built from the cave tileset whose
+    /// edge combinations name thick walls and abyss edges, and the Titan Grotto, walkways over an abyss. Along the edge of where anybody
+    /// can stand, every cell of black_inside_wall is nought (2875 of 2875) and every cell of cavern_abyss five (395 of 395); in the Grotto
+    /// every abyss cell there is five (3413 of 3413), and of its 7.6 million unwalkable cells 18474 are nought. A walkable cell is never
+    /// nought in either. A cell of one has a nought among its eight neighbours, in both grids - every one but a single cell of 36335 in
+    /// Traitor's Passage's second grid - a distance from the noughts by steps of one; whether a diagonal step counts as one is not
+    /// settled by these counts.
+    /// </remarks>
+    [Theory]
+    [InlineData("traitors-passage", "black_inside_wall", "cavern_abyss")]
+    [InlineData("titan-grotto", "", "abyss")]
+    public void THESECONDGridIsWhereProjectilesStop(string name, string wall, string chasm)
+    {
+        string replay = CaptureReplayTests.LandscapeReplay(Capture(name));
+        Assert.StartsWith("landscape: walkable grid ", replay, StringComparison.Ordinal);
+        Assert.DoesNotContain("not compared", replay, StringComparison.Ordinal);
+
+        // NOUGHT ON NO WALKABLE CELL: the column under "landscape 0" is nought on every line from walkable 1 to 5.
+        string[] lines = replay.Split('\n');
+        int header = Array.FindIndex(lines, line => line.TrimStart().StartsWith("walkable ", StringComparison.Ordinal) && line.Contains("landscape 0", StringComparison.Ordinal));
+        Assert.True(header >= 0, "no table of the two grids");
+        for (int at = header + 1; at < lines.Length && lines[at].Trim().Length > 0; at++)
+        {
+            string[] cells = lines[at].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (cells[0] != "0")
+            {
+                Assert.Equal("0", cells[1]);
+            }
+        }
+
+        // ALONG THE EDGE OF WHERE ANYBODY CAN STAND: the wall all nought, the chasm all five.
+        string edges = replay[replay.IndexOf("=== the edge of where anybody can stand", StringComparison.Ordinal)..];
+        Assert.Matches(@"\n  " + chasm + @": 5 x\d+\r?\n", edges);
+        if (wall.Length > 0)
+        {
+            Assert.Matches(@"\n  " + wall + @": 0 x\d+\r?\n", edges);
+        }
+
+        // A DISTANCE FROM ITS NOUGHTS, in both grids: a one has a nought among its eight neighbours - all but one cell in a thousand.
+        foreach (string grid in (string[])["walkable", "landscape"])
+        {
+            Match ones = Regex.Match(replay, grid + @" 1: sides \d+ one less, \d+ no way down, \d+ a jump; all eight (\d+) one less, (\d+) no way down");
+            Assert.True(ones.Success, grid);
+            long down = long.Parse(ones.Groups[1].Value, CultureInfo.InvariantCulture), none = long.Parse(ones.Groups[2].Value, CultureInfo.InvariantCulture);
+            Assert.True(down > 1000 && none * 1000 <= down, $"{grid}: {none} ones with no nought beside them, {down} with one");
+        }
     }
 
     [GeneratedRegex(@"under a suppressing overlay's place: \d+ present, (\d+) missing")]

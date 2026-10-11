@@ -1,0 +1,77 @@
+##### 2 off  entrance_01  at tile 52, 82, 25 x 25, turned 180  (Metadata/Terrain/Gallows/Act2/2_7/Rooms/Unique/entrance_01.arm)
+=== doodad lights
+--- Metadata/Terrain/Doodads/Desert/TitanGrotto/effects/wisp_cluster_02.ao
+  rig Art/Models/Terrain/Desert/Doodads/TitanGrotto/effects/wisp_cluster_02.ast  version 11, 6 bones, 1 lights
+  ao: Lights (client)  disable_mesh_lights = true
+  ao: Lights (client)  light = point_light
+  ao: Lights (client)  usage_frequency = 1
+  ao: Lights (client)  state = 
+  ao: Lights (client)  colour = 1.30881 0.51578 0.425411
+  ao: Lights (client)  position = -53.5473 -87.7644 22.3991
+  ao: Lights (client)  direction = 0 0 0
+  ao: Lights (client)  radius = 500
+  ao: Lights (client)  penumbra_dist = 0.5
+  ao: Lights (client)  penumbra_radius = 0.01
+  light 0 PointLightShape1  (59 bytes after the name's length)
+    0000  00 9A 99 99 3F 90 C2 F5 3E EC 51 B8 3E 8D FF B9
+    0010  A8 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+    0020  00 00 00 00 00 8D FF 39 43 00 00 00 00 00 00 00
+    0030  00 00 01 00 00 00 00 00 00 00 00
+    f32 @0: -1.5882E-23 -4.9328E+32 -5.005E-05 -0.00048743 2.3542E-43 0 0 0 0 0.00048742 9.3887E-44 0 9.1835E-41 0
+    f32 @1: 1.2 0.48 0.36 -2.065E-14 0 0 0 0 0 186 0 0 3.5873E-43 0
+    f32 @2: -3.7786E-29 -9.2343E+26 -5.877E-31 1.5495E-38 0 0 0 0 -3.9443E-31 6.1738E-39 0 0 1.4013E-45 0
+    f32 @3: -72.124 1.2683E+11 NaN 6.0526E-41 0 0 0 0 NaN 2.4115E-41 0 2.351E-38 0 0
+--- Metadata/Terrain/Doodads/Checkpoints/MarakethCheckpoint01_nobase.ao
+  rig Art/Models/Misc/Checkpoints/Rig/rig.ast  version 12, 1 bones, 0 lights
+  ao: Lights (client)  light = point_light
+  ao: Lights (client)  bone_name = aux_torch_up
+  ao: Lights (client)  state = idle_on
+  ao: Lights (client)  colour = 0.106983 0.383247 2.50977
+  ao: Lights (client)  position = 0 0 -70
+  ao: Lights (client)  radius = 400
+  ao: Lights (client)  penumbra_dist = 0
+  ao: Lights (client)  distance_threshold = 150
+  ao: Lights (client)  state = idle_off
+  ao: Lights (client)  radius = 400
+  ao: Lights (client)  penumbra_dist = 0
+  ao: Lights (client)  distance_threshold = 100
+  ao: Lights (client)  animations = [
+			{
+				"name": "activate",
+				"events": [
+					{
+						"type": "LightStateEventType",
+						"time": 0.0,
+						"state_name": "idle_off"
+					},
+					{
+						"type": "LightStateEventType",
+						"time": 0.0,
+						"end_time": 0.5240100026130676,
+						"state_name": "idle_on"
+					}
+				]
+			},
+			{
+				"name": "idle_off",
+				"events": [
+					{
+						"type": "LightStateEventType",
+						"time": 0.0,
+						"state_name": "idle_off"
+					}
+				]
+			},
+			{
+				"name": "idle_on",
+				"events": [
+					{
+						"type": "LightStateEventType",
+						"time": 0.0,
+						"state_name": "idle_on"
+					}
+				]
+			}
+		]
+5 doodad files read (attached pieces included), 2 with lights; 3 more carry only an empty Lights block
+

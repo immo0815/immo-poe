@@ -1,0 +1,8 @@
+##### 2 off  2open_corner_03  at tile 54, 6, 9 x 9, turned 180  (Metadata/Terrain/Gallows/Act2/2_2/Rooms/Intro/2open_corner_03.arm)
+=== doodad lights
+0 doodad files read (attached pieces included), 0 with lights; 0 more carry only an empty Lights block
+
+##### 3 off  3open  at tile 46, 14, 9 x 9, as written  (Metadata/Terrain/Gallows/Act2/2_2/Rooms/1x1/3open)
+=== doodad lights
+0 doodad files read (attached pieces included), 0 with lights; 0 more carry only an empty Lights block
+
