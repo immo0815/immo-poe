@@ -1,0 +1,2071 @@
+the pass reads the world with every switch on, the loaded files, both entity maps with every named entity's model, every monster's mods, the raw bytes of the roots, one hop beyond them and the components around you
+
+=== a fresh world read, every switch on: 78 ms
+state InGame, in game yes, area MapAugury hash 0xF21793AA
+environment Metadata/EnvironmentSettings/Maps/Augury.env
+169 entities read
+  Object 130
+  Terrain 12
+  Effect 12
+  Unknown 6
+  WorldItem 5
+  Chest 2
+  Player 1
+  Monster 1
+terrain 1219 x 1219 cells, 53 x 53 tiles, 760 tile rooms, heights read, tiles read
+
+=== the area's loaded files: 1722 files for area 59, 156 ms
+
+=== both entity maps, every named entity's path, position and model: 79 ms
+sleeping map 1046 of 1046 walked, awake 202, 1248 with a path, 1161 with a position
+
+=== every monster's mods, buffs and targetable byte, and the marked places beside them: 15 ms
+monsters.txt: 1 monsters among 169 entities, read fresh inside the recording with every switch on, nearest the player first; distance and position in world units
+
+=== raw: the roots, one hop from them, the components around the player: 63 ms
+chain: state InGame, GameState 0x55E56EC1D00, InGameState 0x55E56E51010, AreaInstance 0x55E3334B000, WorldData 0x55E56DB0A00, UiRoot 0x55E85746010, PlayerEntity 0x55F0AC4B800
+root GameState at 0x55E56EC1D00: 8192 of 8192 bytes
+root InGameState at 0x55E56E51010: 8192 of 8192 bytes
+root AreaInstance at 0x55E3334B000: 8192 of 8192 bytes
+root WorldData at 0x55E56DB0A00: 8192 of 8192 bytes
+root UiRoot at 0x55E85746010: 8192 of 8192 bytes
+root PlayerEntity at 0x55F0AC4B800: 8192 of 8192 bytes
+  GameState+0x0 -> 0x7FF7BDB84F88: 2048 bytes
+  GameState+0x10 -> 0x55E351E3550: 2048 bytes
+  GameState+0x18 -> 0x55E351E3560: 2048 bytes
+  GameState+0x20 -> 0x55E351E3580: 2048 bytes
+  GameState+0x28 -> 0x55E351E30D0: 2048 bytes
+  GameState+0x30 -> 0x55E351E30E0: 2048 bytes
+  GameState+0x38 -> 0x55E351E3100: 2048 bytes
+  GameState+0x50 -> 0x55E56E17010: 2048 bytes
+  GameState+0x58 -> 0x55E56E17000: 2048 bytes
+  GameState+0x80 -> 0x55E99662010: 2048 bytes
+  GameState+0x88 -> 0x55E99662000: 2048 bytes
+  GameState+0x98 -> 0x55E56E51000: 2048 bytes
+  GameState+0xA0 -> 0x55E56E10010: 2048 bytes
+  GameState+0xA8 -> 0x55E56E10000: 2048 bytes
+  GameState+0xB0 -> 0x55E56DB0410: 2048 bytes
+  GameState+0xB8 -> 0x55E56DB0400: 2048 bytes
+  GameState+0xC0 -> 0x55E99661010: 2048 bytes
+  GameState+0xC8 -> 0x55E99661000: 2048 bytes
+  GameState+0xD0 -> 0x55E7084C510: 2048 bytes
+  GameState+0xD8 -> 0x55E7084C500: 2048 bytes
+  GameState+0xE0 -> 0x55E7084CF10: 2048 bytes
+  GameState+0xE8 -> 0x55E7084CF00: 2048 bytes
+  GameState+0xF0 -> 0x55E56F52010: 2048 bytes
+  GameState+0xF8 -> 0x55E56F52000: 2048 bytes
+  GameState+0x100 -> 0x55E56E1A010: 2048 bytes
+  GameState+0x108 -> 0x55E56E1A000: 2048 bytes
+  GameState+0x110 -> 0x55E99669010: 2048 bytes
+  GameState+0x118 -> 0x55E99669000: 2048 bytes
+  GameState+0x120 -> 0x55E56D20530: 2048 bytes
+  GameState+0x128 -> 0x55F0B518A40: 2048 bytes
+  GameState+0x180 -> 0x55E56EC2000: 2048 bytes
+  GameState+0x190 -> 0x55E56ECD590: 2048 bytes
+  GameState+0x198 -> 0x55E56EC9990: 2048 bytes
+  GameState+0x1A0 -> 0x55E56EC9090: 2048 bytes
+  GameState+0x1E0 -> 0x8CEB3FEAD0: 2048 bytes
+  GameState+0x1E8 -> 0x55E2A0400B0: 2048 bytes
+  GameState+0x1F0 -> 0x7FF7BAD5EAA5: 2048 bytes
+  GameState+0x200 -> 0x7FF7BD853925: 2048 bytes
+  GameState+0x208 -> 0x1E791ED7750: 2048 bytes
+  GameState+0x210 -> 0x21B981F0080: 2048 bytes
+  GameState+0x220 -> 0x7FF7BAD5388A: 2048 bytes
+  GameState+0x228 -> 0x8CEB3FEB20: 2048 bytes
+  GameState+0x230 -> 0x7FF7BD83A1C4: 2048 bytes
+  GameState+0x240 -> 0x8CEB3FEAE2: 2048 bytes
+  GameState+0x258 -> 0x8CEB3FEAB0: 2048 bytes
+  GameState+0x260 -> 0x7FF7BBC3054F: 2048 bytes
+  GameState+0x268 -> 0x8CEB3FEAC0: 2048 bytes
+  GameState+0x278 -> 0x8CEB3FED40: 2048 bytes
+  GameState+0x290 -> 0x8CEB3FEAE0: 2048 bytes
+  GameState+0x2A0 -> 0x7FF7BD6DB115: 2048 bytes
+  GameState+0x300 -> 0x55E56EC7280: 2048 bytes
+  GameState+0x320 -> 0x55E56EC7A10: 2048 bytes
+  GameState+0x358 -> 0x8CEB3FEFA8: 2048 bytes
+  GameState+0x368 -> 0x8CEB3FEFC0: 2048 bytes
+  GameState+0x370 -> 0x8CEB3FEFC4: 2048 bytes
+  GameState+0x378 -> 0x55E2A0178E0: 2048 bytes
+  GameState+0x398 -> 0x7FF7BDABC4B8: 2048 bytes
+  GameState+0x3D8 -> 0x55E2A0177B0: 2048 bytes
+  GameState+0x3E0 -> 0x8CEB3FEF78: 2048 bytes
+  GameState+0x3E8 -> 0x7FF7BAD53172: 2048 bytes
+  GameState+0x3F0 -> 0x8CEB3FF120: 2048 bytes
+  GameState+0x3F8 -> 0x7FF7BAD4EF8A: 2048 bytes
+  GameState+0x408 -> 0x7FF7BCD9EA7D: 2048 bytes
+  GameState+0x418 -> 0x55E2A630010: 2048 bytes
+  GameState+0x420 -> 0x8CEB3FF150: 2048 bytes
+  GameState+0x428 -> 0x7FF7BD7A03B3: 2048 bytes
+  GameState+0x430 -> 0x8CEB3FF1E8: 2048 bytes
+  GameState+0x438 -> 0x8CEB3FF1F0: 2048 bytes
+  GameState+0x480 -> 0x55E56EC8600: 2048 bytes
+  GameState+0x498 -> 0x55E8831260C: 2048 bytes
+  GameState+0x540 -> 0x55E88312634: 2048 bytes
+  GameState+0x5E8 -> 0x55E88312664: 2048 bytes
+  GameState+0x618 -> 0x55E56DDDBCC: 2048 bytes
+  GameState+0x6C0 -> 0x55E56DDDBF4: 2048 bytes
+  GameState+0x768 -> 0x55E56DDDC24: 2048 bytes
+  GameState+0x798 -> 0x55E9989968C: 2048 bytes
+  GameState+0x840 -> 0x55E998996B4: 2048 bytes
+  GameState+0x8E8 -> 0x55E998996E4: 2048 bytes
+  GameState+0x900 -> 0x55E56EC7880: 2048 bytes
+  GameState+0x918 -> 0x55E56EC7890: 2048 bytes
+  GameState+0x958 -> 0x7FF7BB007365: 2048 bytes
+  GameState+0x960 -> 0x55E2A460C90: 2048 bytes
+  GameState+0x970 -> 0x8CEB3FF6D0: 2048 bytes
+  GameState+0x978 -> 0x55E2A460C10: 2048 bytes
+  GameState+0x998 -> 0x55E2A080F58: 2048 bytes
+  GameState+0x9B8 -> 0x7FF7BDD7C108: 2048 bytes
+  GameState+0x9C0 -> 0x55E2A0769D8: 2048 bytes
+  GameState+0xA28 -> 0x7FF7BD7A0980: 2048 bytes
+  GameState+0xA40 -> 0x55E4E5C2E98: 2048 bytes
+  GameState+0xA98 -> 0x55E9989B34C: 2048 bytes
+  GameState+0xB40 -> 0x55E9989B374: 2048 bytes
+  GameState+0xBE8 -> 0x55E9989B3A4: 2048 bytes
+  GameState+0xC18 -> 0x55E9989BE8C: 2048 bytes
+  GameState+0xCC0 -> 0x55E9989BEB4: 2048 bytes
+  GameState+0xD68 -> 0x55E9989BEE4: 2048 bytes
+  GameState+0xD80 -> 0x55E56EC9980: 2048 bytes
+  GameState+0xD90 -> 0x55E995F4610: 2048 bytes
+  GameState+0xE18 -> 0x55E2A4B8400: 2048 bytes
+  GameState+0xE28 -> 0x7FF7BDD96BD8: 2048 bytes
+  GameState+0xE30 -> 0x55E2A62DE00: 2048 bytes
+  GameState+0xE48 -> 0x7FF7BD6B64C2: 2048 bytes
+  GameState+0xE50 -> 0x8CEB3FEF30: 2048 bytes
+  GameState+0xE58 -> 0x8CEB3FEFA0: 2048 bytes
+  GameState+0xE88 -> 0x8CEB3FEEA0: 2048 bytes
+  GameState+0xEC0 -> 0x55E2A77F200: 2048 bytes
+  GameState+0xF18 -> 0x55E56DDD588: 2048 bytes
+  GameState+0xFC0 -> 0x55E56DDD5B0: 2048 bytes
+  GameState+0x1068 -> 0x55E56DDD5E4: 2048 bytes
+  GameState+0x1098 -> 0x55E56DDB288: 2048 bytes
+  GameState+0x1140 -> 0x55E56DDB2B0: 2048 bytes
+  GameState+0x11E8 -> 0x55E56DDB2E4: 2048 bytes
+  GameState+0x1398 -> 0x55E56DDA888: 2048 bytes
+  GameState+0x1440 -> 0x55E56DDA8B0: 2048 bytes
+  GameState+0x14E8 -> 0x55E56DDA8E4: 2048 bytes
+  GameState+0x1518 -> 0x55E56DD024C: 2048 bytes
+  GameState+0x15C0 -> 0x55E56DD0274: 2048 bytes
+  GameState+0x1668 -> 0x55E56DD02A4: 2048 bytes
+  GameState+0x1698 -> 0x55E57178B48: 2048 bytes
+  GameState+0x1740 -> 0x55E57178B70: 2048 bytes
+  GameState+0x17E8 -> 0x55E5717FAE4: 2048 bytes
+  GameState+0x1818 -> 0x55E9989D8C8: 2048 bytes
+  GameState+0x18C0 -> 0x55E9989D8F0: 2048 bytes
+  GameState+0x1968 -> 0x55E98344A64: 2048 bytes
+  GameState+0x1998 -> 0x55E99891AC8: 2048 bytes
+  GameState+0x1A40 -> 0x55E99891AF0: 2048 bytes
+  GameState+0x1AE8 -> 0x55E98349A64: 2048 bytes
+  GameState+0x1B18 -> 0x55E56DD9C08: 2048 bytes
+  GameState+0x1BC0 -> 0x55E56DD9C30: 2048 bytes
+  GameState+0x1C68 -> 0x55E983405A4: 2048 bytes
+  GameState+0x1CB8 -> 0x55E3338B810: 2048 bytes
+  GameState+0x1CC0 -> 0x55E61F22068: 2048 bytes
+  GameState+0x1CC8 -> 0x55E57BD5500: 2048 bytes
+  GameState+0x1D20 -> 0x55E33384010: 2048 bytes
+  GameState+0x1D28 -> 0x55E59D90068: 2048 bytes
+  GameState+0x1D30 -> 0x55E59935C20: 2048 bytes
+  GameState+0x1D88 -> 0x55F0B2BC810: 2048 bytes
+  GameState+0x1D90 -> 0x55E70209868: 2048 bytes
+  GameState+0x1D98 -> 0x55F603CDA00: 2048 bytes
+  GameState+0x1E00 -> 0x55E56EC1280: 2048 bytes
+  GameState+0x1E18 -> 0x55E88314908: 2048 bytes
+  GameState+0x1EC0 -> 0x55E88314930: 2048 bytes
+  GameState+0x1F98 -> 0x55E56DDBDC8: 2048 bytes
+  InGameState+0x0 -> 0x7FF7BDD79ED0: 2048 bytes
+  InGameState+0x10 -> 0x55E56E51028: 2048 bytes
+  InGameState+0x30 -> 0x55E56E40000: 2048 bytes
+  InGameState+0x50 -> 0x55E56D60000: 2048 bytes
+  InGameState+0x90 -> 0x55E56E510A8: 2048 bytes
+  InGameState+0x110 -> 0x55E56E51128: 2048 bytes
+  InGameState+0x150 -> 0x55E56DC0000: 2048 bytes
+  InGameState+0x190 -> 0x55E56E511A8: 2048 bytes
+  InGameState+0x218 -> 0x55E56E51230: 2048 bytes
+  InGameState+0x2A0 -> 0x7FF7BDD79D38: 2048 bytes
+  InGameState+0x2A8 -> 0x7FF7BDD79D40: 2048 bytes
+  InGameState+0x2B0 -> 0x7FF7BDD79C68: 2048 bytes
+  InGameState+0x2B8 -> 0x7FF7BDD7A110: 2048 bytes
+  InGameState+0x2C0 -> 0x7FF7BDD79B50: 2048 bytes
+  InGameState+0x2C8 -> 0x7FF7BDD79DC8: 2048 bytes
+  InGameState+0x2D0 -> 0x55E56E512F0: 2048 bytes
+  InGameState+0x2E8 -> 0x55ED93F6000: 2048 bytes
+  InGameState+0x2F8 -> 0x55EF537F110: 2048 bytes
+  InGameState+0x300 -> 0x55ED8B74D00: 2048 bytes
+  InGameState+0x308 -> 0x55ED8B77500: 2048 bytes
+  InGameState+0x360 -> 0x55E56E54100: 2048 bytes
+  InGameState+0x378 -> 0x55E56E51390: 2048 bytes
+  InGameState+0x380 -> 0x7FF7BDBB17E8: 2048 bytes
+  InGameState+0x388 -> 0x55E7AF06710: 2048 bytes
+  InGameState+0x390 -> 0x7FF7BBA528B0: 2048 bytes
+  InGameState+0x3A0 -> 0x55E360315D0: 2048 bytes
+  InGameState+0x3F0 -> 0x55E7039AD00: 2048 bytes
+  InGameState+0x410 -> 0x55E56D201A0: 2048 bytes
+  InGameState+0x418 -> 0x7FF7BF323D10: 2048 bytes
+  InGameState+0x4C0 -> 0x55F8C037200: 2048 bytes
+  InGameState+0x4C8 -> 0x55E56E514F0: 2048 bytes
+  InGameState+0x4D0 -> 0x55E56E51500: 2048 bytes
+  InGameState+0x4E0 -> 0x55E57987010: 2048 bytes
+  InGameState+0x4E8 -> 0x55E57980010: 2048 bytes
+  InGameState+0x510 -> 0x55E2BF9B6D0: 2048 bytes
+  InGameState+0x518 -> 0x55E56D20100: 2048 bytes
+  InGameState+0x540 -> 0x55E56D20310: 2048 bytes
+  InGameState+0x580 -> 0x55E42CDA3F0: 2048 bytes
+  InGameState+0x588 -> 0x55E42091650: 2048 bytes
+  InGameState+0x5A0 -> 0x55E56E417F0: 2048 bytes
+  InGameState+0x5D8 -> 0x55E35413B00: 2048 bytes
+  InGameState+0x5E8 -> 0x55E56E51610: 2048 bytes
+  InGameState+0x5F8 -> 0x55E56E51612: 2048 bytes
+  InGameState+0x618 -> 0x55E34D12070: 2048 bytes
+  InGameState+0x628 -> 0x55E34D12078: 2048 bytes
+  InGameState+0x630 -> 0x55E4E254730: 2048 bytes
+  InGameState+0x640 -> 0x55E4E254738: 2048 bytes
+  InGameState+0x650 -> 0x55E70858520: 2048 bytes
+  InGameState+0x698 -> 0x55E2A9773C0: 2048 bytes
+  InGameState+0x6A0 -> 0x55E2A977400: 2048 bytes
+  InGameState+0x700 -> 0x55E442D4492: 2048 bytes
+  InGameState+0x708 -> 0x55E3E0502D0: 2048 bytes
+  InGameState+0x710 -> 0x55E56E03AE0: 2048 bytes
+  InGameState+0x718 -> 0x55E442D4942: 2048 bytes
+  InGameState+0x728 -> 0x55E56E03B1C: 2048 bytes
+  InGameState+0x750 -> 0x55ED1B749BC: 2048 bytes
+  InGameState+0x7F0 -> 0x55E48508BCD: 2048 bytes
+  InGameState+0x890 -> 0x55E8B7E24F1: 2048 bytes
+  InGameState+0x8C0 -> 0x55E70850000: 2048 bytes
+  InGameState+0x930 -> 0x55EDCD754BE: 2048 bytes
+  InGameState+0x9D0 -> 0x55EE0D75B0A: 2048 bytes
+  InGameState+0xA70 -> 0x55EA1494F13: 2048 bytes
+  InGameState+0xB10 -> 0x55EFDB30564: 2048 bytes
+  InGameState+0xBB0 -> 0x55EF0455D50: 2048 bytes
+  InGameState+0xC50 -> 0x55E80A90391: 2048 bytes
+  InGameState+0xCF0 -> 0x55E7E3F0260: 2048 bytes
+  InGameState+0xD68 -> 0x55EE9310950: 2048 bytes
+  InGameState+0xDF0 -> 0x55E56D89DC0: 2048 bytes
+  InGameState+0xE10 -> 0x55E5731E540: 2048 bytes
+  InGameState+0xE30 -> 0x55E56E465D0: 2048 bytes
+  InGameState+0xE50 -> 0x55E5731E720: 2048 bytes
+  InGameState+0xE70 -> 0x55E5731E600: 2048 bytes
+  InGameState+0xE90 -> 0x55E5731E660: 2048 bytes
+  InGameState+0xEB0 -> 0x55E5731E6C0: 2048 bytes
+  InGameState+0xED0 -> 0x55E5731E7E0: 2048 bytes
+  InGameState+0xEF0 -> 0x55E56E46560: 2048 bytes
+  InGameState+0xF10 -> 0x55E5731E780: 2048 bytes
+  InGameState+0xF30 -> 0x55E5731E900: 2048 bytes
+  InGameState+0xF50 -> 0x55E56DC8020: 2048 bytes
+  InGameState+0xF70 -> 0x55E56DC8070: 2048 bytes
+  InGameState+0xF90 -> 0x55E5731E840: 2048 bytes
+  InGameState+0xFB0 -> 0x55E5731E8A0: 2048 bytes
+  InGameState+0xFD0 -> 0x55E5731C7A0: 2048 bytes
+  InGameState+0xFF0 -> 0x55E98933FA0: 2048 bytes
+  InGameState+0x1010 -> 0x55E56DC80C0: 2048 bytes
+  InGameState+0x1030 -> 0x55E56E464F0: 2048 bytes
+  InGameState+0x1050 -> 0x55E98934000: 2048 bytes
+  InGameState+0x1070 -> 0x55E98934060: 2048 bytes
+  InGameState+0x1090 -> 0x55E989340C0: 2048 bytes
+  InGameState+0x10B0 -> 0x55E98934120: 2048 bytes
+  InGameState+0x10D0 -> 0x55E98934180: 2048 bytes
+  InGameState+0x10F0 -> 0x55E56D89E60: 2048 bytes
+  InGameState+0x1110 -> 0x55E98934240: 2048 bytes
+  InGameState+0x1130 -> 0x55E56E46480: 2048 bytes
+  InGameState+0x1150 -> 0x55E56D89F00: 2048 bytes
+  InGameState+0x1170 -> 0x55E56D57680: 2048 bytes
+  InGameState+0x1190 -> 0x55E56D89FA0: 2048 bytes
+  InGameState+0x11B0 -> 0x55E56D8A040: 2048 bytes
+  InGameState+0x11D0 -> 0x55E56D8A0E0: 2048 bytes
+  InGameState+0x11F0 -> 0x55E56D8A180: 2048 bytes
+  InGameState+0x1210 -> 0x55E56EA4540: 2048 bytes
+  InGameState+0x1230 -> 0x55E56D8A220: 2048 bytes
+  InGameState+0x1250 -> 0x55E56D8A2C0: 2048 bytes
+  InGameState+0x1270 -> 0x55E56D57700: 2048 bytes
+  InGameState+0x1290 -> 0x55E56D57780: 2048 bytes
+  InGameState+0x12B0 -> 0x55E56D8A360: 2048 bytes
+  InGameState+0x12D0 -> 0x55E56D57800: 2048 bytes
+  InGameState+0x1330 -> 0x55E98930000: 2048 bytes
+  InGameState+0x13D0 -> 0x55E98940000: 2048 bytes
+  InGameState+0x14F0 -> 0x55E57315AE0: 2048 bytes
+  InGameState+0x1510 -> 0x55E57315B40: 2048 bytes
+  InGameState+0x1530 -> 0x55E56E45140: 2048 bytes
+  InGameState+0x1550 -> 0x55E57315BA0: 2048 bytes
+  InGameState+0x1570 -> 0x55E57315C00: 2048 bytes
+  InGameState+0x1590 -> 0x55E57315C60: 2048 bytes
+  InGameState+0x15B0 -> 0x55E57315CC0: 2048 bytes
+  InGameState+0x15D0 -> 0x55E57315D20: 2048 bytes
+  InGameState+0x15F0 -> 0x55E56E451B0: 2048 bytes
+  InGameState+0x1610 -> 0x55E57315D80: 2048 bytes
+  InGameState+0x1630 -> 0x55E57315DE0: 2048 bytes
+  InGameState+0x1650 -> 0x55E56DC4E70: 2048 bytes
+  InGameState+0x1670 -> 0x55E56DC4EC0: 2048 bytes
+  InGameState+0x1690 -> 0x55E57315E40: 2048 bytes
+  InGameState+0x16B0 -> 0x55E57315EA0: 2048 bytes
+  InGameState+0x16D0 -> 0x55E573155A0: 2048 bytes
+  InGameState+0x16F0 -> 0x55E57315F00: 2048 bytes
+  InGameState+0x1710 -> 0x55E56DC4F10: 2048 bytes
+  InGameState+0x1730 -> 0x55E56E45220: 2048 bytes
+  InGameState+0x1750 -> 0x55E57315F60: 2048 bytes
+  InGameState+0x1770 -> 0x55E57315FC0: 2048 bytes
+  InGameState+0x1790 -> 0x55E57316020: 2048 bytes
+  InGameState+0x17B0 -> 0x55E57316080: 2048 bytes
+  InGameState+0x17D0 -> 0x55E573160E0: 2048 bytes
+  InGameState+0x17F0 -> 0x55E57316140: 2048 bytes
+  InGameState+0x1810 -> 0x55E573161A0: 2048 bytes
+  InGameState+0x1830 -> 0x55E56E45290: 2048 bytes
+  InGameState+0x1850 -> 0x55E57316200: 2048 bytes
+  InGameState+0x1870 -> 0x55E56DC4F60: 2048 bytes
+  InGameState+0x1890 -> 0x55E57316260: 2048 bytes
+  InGameState+0x18B0 -> 0x55E573162C0: 2048 bytes
+  InGameState+0x18D0 -> 0x55E57316320: 2048 bytes
+  InGameState+0x18F0 -> 0x55E57316380: 2048 bytes
+  InGameState+0x1910 -> 0x55E56E45300: 2048 bytes
+  InGameState+0x1930 -> 0x55E573163E0: 2048 bytes
+  InGameState+0x1950 -> 0x55E57316440: 2048 bytes
+  InGameState+0x1970 -> 0x55E56DC4FB0: 2048 bytes
+  InGameState+0x1990 -> 0x55E56DC4A60: 2048 bytes
+  InGameState+0x19B0 -> 0x55E573164A0: 2048 bytes
+  InGameState+0x19D0 -> 0x55E56DC4A10: 2048 bytes
+  InGameState+0x19F0 -> 0x55E56DC49C0: 2048 bytes
+  InGameState+0x1A10 -> 0x55E56DC4970: 2048 bytes
+  InGameState+0x1A30 -> 0x55E57316500: 2048 bytes
+  InGameState+0x1A50 -> 0x55E56DC4920: 2048 bytes
+  InGameState+0x1A70 -> 0x55E57316560: 2048 bytes
+  InGameState+0x1A90 -> 0x55E56DC48D0: 2048 bytes
+  InGameState+0x1AB0 -> 0x55E56DC5000: 2048 bytes
+  InGameState+0x1AD0 -> 0x55E56D3B7C0: 2048 bytes
+  InGameState+0x1AF0 -> 0x55E56E45370: 2048 bytes
+  InGameState+0x1B10 -> 0x55E56E453E0: 2048 bytes
+  InGameState+0x1B30 -> 0x55E56E45450: 2048 bytes
+  InGameState+0x1BF0 -> 0x55E5731F020: 2048 bytes
+  InGameState+0x1C10 -> 0x55E5731F080: 2048 bytes
+  InGameState+0x1C30 -> 0x55E56E46D40: 2048 bytes
+  InGameState+0x1C50 -> 0x55E5731F0E0: 2048 bytes
+  InGameState+0x1C70 -> 0x55E5731F140: 2048 bytes
+  InGameState+0x1C90 -> 0x55E5731F1A0: 2048 bytes
+  InGameState+0x1CB0 -> 0x55E5731F200: 2048 bytes
+  InGameState+0x1CD0 -> 0x55E5731F260: 2048 bytes
+  InGameState+0x1CF0 -> 0x55E56E46DB0: 2048 bytes
+  InGameState+0x1D10 -> 0x55E5731F2C0: 2048 bytes
+  InGameState+0x1D30 -> 0x55E5731F320: 2048 bytes
+  InGameState+0x1D50 -> 0x55E56DC6BD0: 2048 bytes
+  InGameState+0x1D70 -> 0x55E56DC6B80: 2048 bytes
+  InGameState+0x1D90 -> 0x55E5731F380: 2048 bytes
+  InGameState+0x1DB0 -> 0x55E5731F3E0: 2048 bytes
+  InGameState+0x1DD0 -> 0x55E5731F440: 2048 bytes
+  InGameState+0x1DF0 -> 0x55E5731F4A0: 2048 bytes
+  InGameState+0x1E10 -> 0x55E56DC6B30: 2048 bytes
+  InGameState+0x1E30 -> 0x55E56E46E20: 2048 bytes
+  InGameState+0x1E50 -> 0x55E5731F500: 2048 bytes
+  InGameState+0x1E70 -> 0x55E5731F560: 2048 bytes
+  InGameState+0x1E90 -> 0x55E5731F5C0: 2048 bytes
+  InGameState+0x1EB0 -> 0x55E5731F620: 2048 bytes
+  InGameState+0x1ED0 -> 0x55E5731F680: 2048 bytes
+  InGameState+0x1EF0 -> 0x55E5731F6E0: 2048 bytes
+  InGameState+0x1F10 -> 0x55E5731F740: 2048 bytes
+  InGameState+0x1F30 -> 0x55E56E46E90: 2048 bytes
+  InGameState+0x1F50 -> 0x55E5731F7A0: 2048 bytes
+  InGameState+0x1F70 -> 0x55E56DC6FE0: 2048 bytes
+  InGameState+0x1F90 -> 0x55E5731F800: 2048 bytes
+  InGameState+0x1FB0 -> 0x55E5731F860: 2048 bytes
+  InGameState+0x1FD0 -> 0x55E5731F8C0: 2048 bytes
+  InGameState+0x1FF0 -> 0x55E5731F920: 2048 bytes
+  AreaInstance+0x0 -> 0x7FF7BDFACF18: 2048 bytes
+  AreaInstance+0x8 -> 0x55E4E4B92D0: 2048 bytes
+  AreaInstance+0x10 -> 0x55E4E4B9380: 2048 bytes
+  AreaInstance+0x18 -> 0x55E4E4B93D8: 2048 bytes
+  AreaInstance+0x30 -> 0x55E4F54E080: 2048 bytes
+  AreaInstance+0x70 -> 0x55E2A416638: 2048 bytes
+  AreaInstance+0x78 -> 0x55E6333D200: 2048 bytes
+  AreaInstance+0x88 -> 0x55E6333D7E0: 2048 bytes
+  AreaInstance+0x98 -> 0x55E42CFC910: 2048 bytes
+  AreaInstance+0xF8 -> 0x55E2A415770: 2048 bytes
+  AreaInstance+0x100 -> 0x55E2A415774: 2048 bytes
+  AreaInstance+0x128 -> 0x7FF7BDBE17C0: 2048 bytes
+  AreaInstance+0x130 -> 0x55E30503F00: 2048 bytes
+  AreaInstance+0x138 -> 0x55E305043B0: 2048 bytes
+  AreaInstance+0x150 -> 0x55F3534BA40: 2048 bytes
+  AreaInstance+0x158 -> 0x55F3534BA90: 2048 bytes
+  AreaInstance+0x180 -> 0x55E61BA3FC0: 2048 bytes
+  AreaInstance+0x190 -> 0x55E61BA3FE0: 2048 bytes
+  AreaInstance+0x1B8 -> 0x55E4889CDD0: 2048 bytes
+  AreaInstance+0x1C0 -> 0x55E4889CDC0: 2048 bytes
+  AreaInstance+0x1C8 -> 0x55F6636DC10: 2048 bytes
+  AreaInstance+0x1D0 -> 0x55F6636DC18: 2048 bytes
+  AreaInstance+0x1E0 -> 0x55F1ABDD0C0: 2048 bytes
+  AreaInstance+0x1E8 -> 0x55F1ABD7E40: 2048 bytes
+  AreaInstance+0x220 -> 0x55E62EB6000: 2048 bytes
+  AreaInstance+0x230 -> 0x55E62EB6BD0: 2048 bytes
+  AreaInstance+0x250 -> 0x7FF7BDAF51D8: 2048 bytes
+  AreaInstance+0x258 -> 0x7FF7BDCF06A0: 2048 bytes
+  AreaInstance+0x260 -> 0x7FF7BDCF1A60: 2048 bytes
+  AreaInstance+0x270 -> 0x55E3334B278: 2048 bytes
+  AreaInstance+0x288 -> 0x55F0A2F0E50: 2048 bytes
+  AreaInstance+0x2A0 -> 0x55F0A2FBE90: 2048 bytes
+  AreaInstance+0x2B8 -> 0x55F0A2FB0D0: 2048 bytes
+  AreaInstance+0x2D0 -> 0x55E4E4B2C50: 2048 bytes
+  AreaInstance+0x2E8 -> 0x55E4E4B2250: 2048 bytes
+  AreaInstance+0x300 -> 0x55F0A2F4CD0: 2048 bytes
+  AreaInstance+0x318 -> 0x55E4E4B38D0: 2048 bytes
+  AreaInstance+0x330 -> 0x55E4E4B4050: 2048 bytes
+  AreaInstance+0x348 -> 0x55E4E4B7ED0: 2048 bytes
+  AreaInstance+0x360 -> 0x55E4E4B5E50: 2048 bytes
+  AreaInstance+0x378 -> 0x55E3334B380: 2048 bytes
+  AreaInstance+0x390 -> 0x55E4E4B9A50: 2048 bytes
+  AreaInstance+0x3A8 -> 0x55E4E4BA6D0: 2048 bytes
+  AreaInstance+0x3C0 -> 0x55E3334B3C8: 2048 bytes
+  AreaInstance+0x3D8 -> 0x55E4E4BAF90: 2048 bytes
+  AreaInstance+0x3F0 -> 0x55E4E4BBAD0: 2048 bytes
+  AreaInstance+0x408 -> 0x55E4E4BCD90: 2048 bytes
+  AreaInstance+0x420 -> 0x55E4E4B7D90: 2048 bytes
+  AreaInstance+0x438 -> 0x55E4E4B2750: 2048 bytes
+  AreaInstance+0x450 -> 0x55E4E4BD010: 2048 bytes
+  AreaInstance+0x468 -> 0x55E4E4B0810: 2048 bytes
+  AreaInstance+0x480 -> 0x55E4E4BD150: 2048 bytes
+  AreaInstance+0x498 -> 0x55E4E4BB210: 2048 bytes
+  AreaInstance+0x4A8 -> 0x55E3A071010: 2048 bytes
+  AreaInstance+0x4C0 -> 0x55F1BED2C10: 2048 bytes
+  AreaInstance+0x4C8 -> 0x55F1BED2CA8: 2048 bytes
+  AreaInstance+0x4F0 -> 0x55F07FDF250: 2048 bytes
+  AreaInstance+0x4F8 -> 0x55F07FDF264: 2048 bytes
+  AreaInstance+0x508 -> 0x55E2A41AAA8: 2048 bytes
+  AreaInstance+0x518 -> 0x55E2A41AAB0: 2048 bytes
+  AreaInstance+0x520 -> 0x55E3334B538: 2048 bytes
+  AreaInstance+0x530 -> 0x55E3334B598: 2048 bytes
+  AreaInstance+0x550 -> 0x55E5EDF0000: 2048 bytes
+  AreaInstance+0x5B0 -> 0x55E4E91E000: 2048 bytes
+  AreaInstance+0x5B8 -> 0x55E3334B5D0: 2048 bytes
+  AreaInstance+0x5C0 -> 0x55E3334B5D8: 2048 bytes
+  AreaInstance+0x5C8 -> 0x55E3334B5E0: 2048 bytes
+  AreaInstance+0x5E0 -> 0x55E3334B5F8: 2048 bytes
+  AreaInstance+0x5E8 -> 0x55E3334B600: 2048 bytes
+  AreaInstance+0x5F0 -> 0x55E3334B608: 2048 bytes
+  AreaInstance+0x608 -> 0x55E3334B620: 2048 bytes
+  AreaInstance+0x610 -> 0x55E3334B624: 2048 bytes
+  AreaInstance+0x618 -> 0x55E3334B628: 2048 bytes
+  AreaInstance+0x630 -> 0x55E3334B648: 2048 bytes
+  AreaInstance+0x638 -> 0x55E3334B64C: 2048 bytes
+  AreaInstance+0x640 -> 0x55E3334B650: 2048 bytes
+  AreaInstance+0x688 -> 0x55E2BDE7EF0: 2048 bytes
+  AreaInstance+0x690 -> 0x55E35A89340: 2048 bytes
+  AreaInstance+0x6B0 -> 0x55F35AEAF00: 2048 bytes
+  AreaInstance+0x6C0 -> 0x55F35AEB598: 2048 bytes
+  AreaInstance+0x6D0 -> 0x7FF7BE1182A8: 2048 bytes
+  AreaInstance+0x6D8 -> 0x55E3334B258: 2048 bytes
+  AreaInstance+0x6E0 -> 0x7FF7BE118288: 2048 bytes
+  AreaInstance+0x6F0 -> 0x55E48890EE0: 2048 bytes
+  AreaInstance+0x700 -> 0x55E4889AA20: 2048 bytes
+  AreaInstance+0x710 -> 0x55F0A143200: 2048 bytes
+  AreaInstance+0x720 -> 0x55F0A143668: 2048 bytes
+  AreaInstance+0x728 -> 0x55F0A446790: 2048 bytes
+  AreaInstance+0x730 -> 0x55F0A4467C0: 2048 bytes
+  AreaInstance+0x740 -> 0x55E34B4F480: 2048 bytes
+  AreaInstance+0x748 -> 0x55E34B4F4A0: 2048 bytes
+  AreaInstance+0x758 -> 0x55E4F631D70: 2048 bytes
+  AreaInstance+0x760 -> 0x55E4F631D78: 2048 bytes
+  AreaInstance+0x770 -> 0x55E4F6356F0: 2048 bytes
+  AreaInstance+0x778 -> 0x55E4F6356F8: 2048 bytes
+  AreaInstance+0x788 -> 0x55F0AF2B0B0: 2048 bytes
+  AreaInstance+0x7C8 -> 0x55E9981C0C0: 2048 bytes
+  AreaInstance+0x7D8 -> 0x55E9981C1A0: 2048 bytes
+  AreaInstance+0x800 -> 0x55F35346050: 2048 bytes
+  AreaInstance+0x808 -> 0x55F35346088: 2048 bytes
+  AreaInstance+0x818 -> 0x55F0A8D8010: 2048 bytes
+  AreaInstance+0x828 -> 0x55F0A8D8040: 2048 bytes
+  AreaInstance+0x850 -> 0x55E2BE290D0: 2048 bytes
+  AreaInstance+0x860 -> 0x55E2BE29100: 2048 bytes
+  AreaInstance+0x880 -> 0x7FF7BDFAE718: 2048 bytes
+  AreaInstance+0x890 -> 0x7FF7BDCF3C40: 2048 bytes
+  AreaInstance+0x898 -> 0x7FF7BDCF1008: 2048 bytes
+  AreaInstance+0x8A0 -> 0x7FF7BDCF6438: 2048 bytes
+  AreaInstance+0x8D0 -> 0x7FF7BDF95B10: 2048 bytes
+  AreaInstance+0x8F8 -> 0x55F1BCB0010: 2048 bytes
+  AreaInstance+0x900 -> 0x55F1BCD6688: 2048 bytes
+  AreaInstance+0x920 -> 0x55F1A83D010: 2048 bytes
+  AreaInstance+0x928 -> 0x55F1A83F23C: 2048 bytes
+  AreaInstance+0x938 -> 0x55F1A8C5090: 2048 bytes
+  AreaInstance+0x940 -> 0x55F1A8C50C0: 2048 bytes
+  AreaInstance+0x9A0 -> 0x55F1B940010: 2048 bytes
+  AreaInstance+0x9A8 -> 0x55F1B9F58B6: 2048 bytes
+  AreaInstance+0x9B8 -> 0x55F1A510010: 2048 bytes
+  AreaInstance+0x9C0 -> 0x55F1A5C58B6: 2048 bytes
+  AreaInstance+0x9D0 -> 0x55F1BD80010: 2048 bytes
+  AreaInstance+0x9D8 -> 0x55F1BE358B6: 2048 bytes
+  AreaInstance+0x9E8 -> 0x55F06CA0010: 2048 bytes
+  AreaInstance+0x9F0 -> 0x55F06D558B6: 2048 bytes
+  AreaInstance+0xA70 -> 0x55E3334BA88: 2048 bytes
+  AreaInstance+0xA78 -> 0x55E3334BB78: 2048 bytes
+  AreaInstance+0xA80 -> 0x55E3334BE48: 2048 bytes
+  AreaInstance+0xBF0 -> 0x55E61E70000: 2048 bytes
+  AreaInstance+0xCC8 -> 0x55E57550000: 2048 bytes
+  AreaInstance+0xE48 -> 0x7FF7BDF97140: 2048 bytes
+  AreaInstance+0xE50 -> 0x7FF7BDF95E60: 2048 bytes
+  AreaInstance+0xE58 -> 0x7FF7BDF97188: 2048 bytes
+  AreaInstance+0xE60 -> 0x55E8D798610: 2048 bytes
+  AreaInstance+0xE68 -> 0x55E8D798B08: 2048 bytes
+  AreaInstance+0xEA0 -> 0x55E4889B510: 2048 bytes
+  AreaInstance+0xED8 -> 0x55E4889CB30: 2048 bytes
+  AreaInstance+0xF08 -> 0x55F03842010: 2048 bytes
+  AreaInstance+0xF10 -> 0x55F03847B30: 2048 bytes
+  AreaInstance+0xF70 -> 0x55F06120410: 2048 bytes
+  AreaInstance+0xF78 -> 0x55F06120720: 2048 bytes
+  AreaInstance+0xF80 -> 0x55F06120800: 2048 bytes
+  AreaInstance+0xF88 -> 0x55F6E0E0010: 2048 bytes
+  AreaInstance+0xFB0 -> 0x55F6E1083F4: 2048 bytes
+  AreaInstance+0xFC0 -> 0x55F07041BD0: 2048 bytes
+  AreaInstance+0xFC8 -> 0x55F07DE2B80: 2048 bytes
+  AreaInstance+0xFD0 -> 0x55F03FC0510: 2048 bytes
+  AreaInstance+0xFD8 -> 0x55F03FC0938: 2048 bytes
+  AreaInstance+0xFF0 -> 0x55E4E12B100: 2048 bytes
+  AreaInstance+0x1008 -> 0x55E4889D870: 2048 bytes
+  AreaInstance+0x1018 -> 0x55E4E4EB100: 2048 bytes
+  AreaInstance+0x1020 -> 0x55E4E4EB180: 2048 bytes
+  AreaInstance+0x1048 -> 0x55E6333CC10: 2048 bytes
+  AreaInstance+0x1058 -> 0x55E6333D10C: 2048 bytes
+  AreaInstance+0x1078 -> 0x55E3334C090: 2048 bytes
+  AreaInstance+0x1088 -> 0x55E3334C0A0: 2048 bytes
+  AreaInstance+0x10C0 -> 0x55F35AE0710: 2048 bytes
+  AreaInstance+0x10D0 -> 0x55F35AE0DA8: 2048 bytes
+  AreaInstance+0x1158 -> 0x55F0F544CD0: 2048 bytes
+  AreaInstance+0x1160 -> 0x55F0F544CF8: 2048 bytes
+  AreaInstance+0x11E8 -> 0x7FF7BDDB05C0: 2048 bytes
+  AreaInstance+0x11F8 -> 0x55E2A620500: 2048 bytes
+  AreaInstance+0x1210 -> 0x55E4F162000: 2048 bytes
+  AreaInstance+0x1220 -> 0x55E4F162698: 2048 bytes
+  AreaInstance+0x1260 -> 0x55F0B31E100: 2048 bytes
+  AreaInstance+0x1268 -> 0x55F0B31F780: 2048 bytes
+  AreaInstance+0x1270 -> 0x55F07581800: 2048 bytes
+  AreaInstance+0x1288 -> 0x55E37D6DA86: 2048 bytes
+  AreaInstance+0x1290 -> 0x55E4DFF3D90: 2048 bytes
+  AreaInstance+0x1298 -> 0x55F34651110: 2048 bytes
+  AreaInstance+0x12A8 -> 0x55F34651178: 2048 bytes
+  AreaInstance+0x12B0 -> 0x55E599B3C80: 2048 bytes
+  AreaInstance+0x12C0 -> 0x55E599B3D30: 2048 bytes
+  AreaInstance+0x15B8 -> 0x55F0B1E3000: 2048 bytes
+  AreaInstance+0x15C0 -> 0x55F0B1E3FA0: 2048 bytes
+  AreaInstance+0x15E0 -> 0x55F0B1E9000: 2048 bytes
+  AreaInstance+0x15E8 -> 0x55F0B1E9FA0: 2048 bytes
+  AreaInstance+0x1608 -> 0x55F0B1EB000: 2048 bytes
+  AreaInstance+0x1610 -> 0x55F0B1EBFA0: 2048 bytes
+  AreaInstance+0x1630 -> 0x55F0B1ED000: 2048 bytes
+  AreaInstance+0x1638 -> 0x55F0B1EDFA0: 2048 bytes
+  AreaInstance+0x1668 -> 0x55E3334C680: 2048 bytes
+  AreaInstance+0x1678 -> 0x55E3334C7C0: 2048 bytes
+  AreaInstance+0x16E8 -> 0x55E58FA0000: 2048 bytes
+  AreaInstance+0x1810 -> 0x55E3334C828: 2048 bytes
+  AreaInstance+0x1818 -> 0x55E3334C890: 2048 bytes
+  AreaInstance+0x1820 -> 0x55E3334CB68: 2048 bytes
+  AreaInstance+0x1840 -> 0x55F44092ED0: 2048 bytes
+  WorldData+0x8 -> 0x55E56DB0A10: 2048 bytes
+  WorldData+0x50 -> 0x55E56D30000: 2048 bytes
+  WorldData+0xA0 -> 0x7FF7BDD96FC0: 2048 bytes
+  WorldData+0x580 -> 0x55E56D40000: 2048 bytes
+  WorldData+0x618 -> 0x55E56E70810: 2048 bytes
+  WorldData+0x628 -> 0x55E56E70824: 2048 bytes
+  WorldData+0x638 -> 0x55E56E70838: 2048 bytes
+  WorldData+0x648 -> 0x55E56E7084C: 2048 bytes
+  WorldData+0x658 -> 0x55E56E70860: 2048 bytes
+  WorldData+0x668 -> 0x55E56E70874: 2048 bytes
+  WorldData+0x678 -> 0x55E56E70888: 2048 bytes
+  WorldData+0x688 -> 0x55E56E7089C: 2048 bytes
+  WorldData+0x698 -> 0x55E56E708B0: 2048 bytes
+  WorldData+0x6A8 -> 0x55E56E708C4: 2048 bytes
+  WorldData+0x6B8 -> 0x55E56E708D8: 2048 bytes
+  WorldData+0x6C8 -> 0x55E56E708EC: 2048 bytes
+  WorldData+0x6D8 -> 0x55E56E70900: 2048 bytes
+  WorldData+0x6E8 -> 0x55E56E70914: 2048 bytes
+  WorldData+0x6F8 -> 0x55E56E70928: 2048 bytes
+  WorldData+0x708 -> 0x55E56E7093C: 2048 bytes
+  WorldData+0x718 -> 0x55E56E70950: 2048 bytes
+  WorldData+0x728 -> 0x55E56E70964: 2048 bytes
+  WorldData+0x738 -> 0x55E56E70978: 2048 bytes
+  WorldData+0x748 -> 0x55E56E7098C: 2048 bytes
+  WorldData+0x758 -> 0x55E56E709A0: 2048 bytes
+  WorldData+0x768 -> 0x55E56E709B4: 2048 bytes
+  WorldData+0x778 -> 0x55E56E709C8: 2048 bytes
+  WorldData+0x788 -> 0x55E56E709DC: 2048 bytes
+  WorldData+0x798 -> 0x55E56E709F0: 2048 bytes
+  WorldData+0x7A8 -> 0x55E56E70A04: 2048 bytes
+  WorldData+0x7B8 -> 0x55E56E70A18: 2048 bytes
+  WorldData+0x7C8 -> 0x55E56E70A2C: 2048 bytes
+  WorldData+0x7D8 -> 0x55E56E70A40: 2048 bytes
+  WorldData+0x7E8 -> 0x55E56E70A54: 2048 bytes
+  WorldData+0x7F8 -> 0x55E56E70A68: 2048 bytes
+  WorldData+0x808 -> 0x55E56E70A7C: 2048 bytes
+  WorldData+0x818 -> 0x55E56E70A90: 2048 bytes
+  WorldData+0x828 -> 0x55E56E70AA4: 2048 bytes
+  WorldData+0x838 -> 0x55E56E70AB8: 2048 bytes
+  WorldData+0x848 -> 0x55E56E70ACC: 2048 bytes
+  WorldData+0x858 -> 0x55E56E70AE0: 2048 bytes
+  WorldData+0x868 -> 0x55E56E70AF4: 2048 bytes
+  WorldData+0x878 -> 0x55E56E70B08: 2048 bytes
+  WorldData+0x888 -> 0x55E56E70B1C: 2048 bytes
+  WorldData+0x898 -> 0x55E56E70B30: 2048 bytes
+  WorldData+0x8A8 -> 0x55E56E70B44: 2048 bytes
+  WorldData+0x8B8 -> 0x55E56E70B58: 2048 bytes
+  WorldData+0x8C8 -> 0x55E56E70B6C: 2048 bytes
+  WorldData+0x8D8 -> 0x55E56E70B80: 2048 bytes
+  WorldData+0x8E8 -> 0x55E56E70B94: 2048 bytes
+  WorldData+0x8F8 -> 0x55E56E70BA8: 2048 bytes
+  WorldData+0x908 -> 0x55E56E70BBC: 2048 bytes
+  WorldData+0x918 -> 0x55E56E70BD0: 2048 bytes
+  WorldData+0x928 -> 0x55E56E70BE4: 2048 bytes
+  WorldData+0x938 -> 0x55E56E70BF8: 2048 bytes
+  WorldData+0x948 -> 0x55E56E70C0C: 2048 bytes
+  WorldData+0x958 -> 0x55E56E70C20: 2048 bytes
+  WorldData+0x968 -> 0x55E56E70C34: 2048 bytes
+  WorldData+0x978 -> 0x55E56E70C48: 2048 bytes
+  WorldData+0x988 -> 0x55E56E70C5C: 2048 bytes
+  WorldData+0x998 -> 0x55E56E70C70: 2048 bytes
+  WorldData+0x9A8 -> 0x55E56E70C84: 2048 bytes
+  WorldData+0x9B8 -> 0x55E56E70C98: 2048 bytes
+  WorldData+0x9C8 -> 0x55E56E70CAC: 2048 bytes
+  WorldData+0x9D8 -> 0x55E56E70CC0: 2048 bytes
+  WorldData+0x9E8 -> 0x55E56E70CD4: 2048 bytes
+  WorldData+0x9F8 -> 0x55E56E70CE8: 2048 bytes
+  WorldData+0xA08 -> 0x55E56E70CFC: 2048 bytes
+  WorldData+0xA18 -> 0x55E56E70D10: 2048 bytes
+  WorldData+0xA28 -> 0x55E56E70D24: 2048 bytes
+  WorldData+0xA38 -> 0x55E56E70D38: 2048 bytes
+  WorldData+0xA48 -> 0x55E56E70D4C: 2048 bytes
+  WorldData+0xA58 -> 0x55E56E70D60: 2048 bytes
+  WorldData+0xA68 -> 0x55E56E70D74: 2048 bytes
+  WorldData+0xA78 -> 0x55E56E70D88: 2048 bytes
+  WorldData+0xA88 -> 0x55E56E70D9C: 2048 bytes
+  WorldData+0xA98 -> 0x55E56E70DB0: 2048 bytes
+  WorldData+0xAA8 -> 0x55E56E70DC4: 2048 bytes
+  WorldData+0xAB8 -> 0x55E56E70DD8: 2048 bytes
+  WorldData+0xAC8 -> 0x55E56E70DEC: 2048 bytes
+  WorldData+0xAD8 -> 0x55E56E70E00: 2048 bytes
+  WorldData+0xAE8 -> 0x55E56E70E14: 2048 bytes
+  WorldData+0xAF8 -> 0x55E56E70E28: 2048 bytes
+  WorldData+0xB08 -> 0x55E56E70E3C: 2048 bytes
+  WorldData+0xB18 -> 0x55E56E70E50: 2048 bytes
+  WorldData+0xB28 -> 0x55E56E70E64: 2048 bytes
+  WorldData+0xB38 -> 0x55E56E70E78: 2048 bytes
+  WorldData+0xB48 -> 0x55E56E70E8C: 2048 bytes
+  WorldData+0xB58 -> 0x55E56E70EA0: 2048 bytes
+  WorldData+0xB68 -> 0x55E56E70EB4: 2048 bytes
+  WorldData+0xB78 -> 0x55E56E70EC8: 2048 bytes
+  WorldData+0xB88 -> 0x55E56E70EDC: 2048 bytes
+  WorldData+0xB98 -> 0x55E56E70EF0: 2048 bytes
+  WorldData+0xBA8 -> 0x55E56E70F04: 2048 bytes
+  WorldData+0xBB8 -> 0x55E56E70F18: 2048 bytes
+  WorldData+0xBC8 -> 0x55E56E70F2C: 2048 bytes
+  WorldData+0xC20 -> 0x55E89FF451A: 2048 bytes
+  WorldData+0xC38 -> 0x55E89FF4570: 2048 bytes
+  WorldData+0xC50 -> 0x55E89FF45C6: 2048 bytes
+  WorldData+0xC68 -> 0x55E89FF461C: 2048 bytes
+  WorldData+0xC80 -> 0x55E89FF4672: 2048 bytes
+  WorldData+0xC98 -> 0x55E89FF471E: 2048 bytes
+  WorldData+0xCB0 -> 0x55E89FF4774: 2048 bytes
+  WorldData+0xCC8 -> 0x55E89FF4B26: 2048 bytes
+  WorldData+0xCE0 -> 0x55E89FF4B7C: 2048 bytes
+  WorldData+0xCF8 -> 0x55E89FF5234: 2048 bytes
+  WorldData+0xD10 -> 0x55E89FF528A: 2048 bytes
+  WorldData+0xD28 -> 0x55E89FF52E0: 2048 bytes
+  WorldData+0xD40 -> 0x55E89FF5336: 2048 bytes
+  WorldData+0xD58 -> 0x55E89FF538C: 2048 bytes
+  WorldData+0xD70 -> 0x55E89FF53E2: 2048 bytes
+  WorldData+0xD78 -> 0x55E3A28484B: 2048 bytes
+  WorldData+0xD80 -> 0x55E3B605D90: 2048 bytes
+  WorldData+0xD88 -> 0x55E89FF42C0: 2048 bytes
+  WorldData+0xDA0 -> 0x55E89FF4316: 2048 bytes
+  WorldData+0xDA8 -> 0x55E3A284886: 2048 bytes
+  WorldData+0xDB8 -> 0x55E89FF4010: 2048 bytes
+  WorldData+0xDD0 -> 0x55E89FF4066: 2048 bytes
+  WorldData+0xDE8 -> 0x55E89FF40BC: 2048 bytes
+  WorldData+0xDF0 -> 0x55E3A2848C1: 2048 bytes
+  WorldData+0xE00 -> 0x55E89FF4112: 2048 bytes
+  WorldData+0xE18 -> 0x55E89FF4168: 2048 bytes
+  WorldData+0xE30 -> 0x55E89FF41BE: 2048 bytes
+  WorldData+0xE38 -> 0x55E3A2848FC: 2048 bytes
+  WorldData+0xE48 -> 0x55E89FF4214: 2048 bytes
+  WorldData+0xE60 -> 0x55E89FF426A: 2048 bytes
+  WorldData+0xE78 -> 0x55E89FF46C8: 2048 bytes
+  WorldData+0xE80 -> 0x55E3A284937: 2048 bytes
+  WorldData+0xE90 -> 0x55E89FF446E: 2048 bytes
+  WorldData+0xEA8 -> 0x55E89FF4820: 2048 bytes
+  WorldData+0xEB0 -> 0x55E3A284972: 2048 bytes
+  WorldData+0xEC0 -> 0x55E89FF4A24: 2048 bytes
+  WorldData+0xEC8 -> 0x55E3A2849AD: 2048 bytes
+  WorldData+0xED8 -> 0x55E89FF4A7A: 2048 bytes
+  WorldData+0xEE0 -> 0x55E3A2849E8: 2048 bytes
+  WorldData+0xEF0 -> 0x55E89FF436C: 2048 bytes
+  WorldData+0xEF8 -> 0x55E3A284A23: 2048 bytes
+  WorldData+0xF08 -> 0x55E89FF43C2: 2048 bytes
+  WorldData+0xF20 -> 0x55E89FF4418: 2048 bytes
+  WorldData+0xF28 -> 0x55E3A284A5E: 2048 bytes
+  WorldData+0xF38 -> 0x55E89FF44C4: 2048 bytes
+  WorldData+0xF50 -> 0x55E89FF47CA: 2048 bytes
+  WorldData+0xF68 -> 0x55E89FF4AD0: 2048 bytes
+  WorldData+0xF70 -> 0x55E3A284A99: 2048 bytes
+  WorldData+0xF80 -> 0x55E89FF4876: 2048 bytes
+  WorldData+0xF98 -> 0x55E89FF48CC: 2048 bytes
+  WorldData+0xFB0 -> 0x55E89FF4922: 2048 bytes
+  WorldData+0xFC8 -> 0x55E89FF4978: 2048 bytes
+  WorldData+0xFE0 -> 0x55E89FF49CE: 2048 bytes
+  WorldData+0xFF8 -> 0x55E89FF4FDA: 2048 bytes
+  WorldData+0x1010 -> 0x55E89FF5030: 2048 bytes
+  WorldData+0x1028 -> 0x55E89FF5086: 2048 bytes
+  WorldData+0x1040 -> 0x55E89FF50DC: 2048 bytes
+  WorldData+0x1058 -> 0x55E89FF5132: 2048 bytes
+  WorldData+0x1070 -> 0x55E89FF5188: 2048 bytes
+  WorldData+0x1078 -> 0x55E3A284B4A: 2048 bytes
+  WorldData+0x1088 -> 0x55E89FF4BD2: 2048 bytes
+  WorldData+0x10A0 -> 0x55E89FF4C28: 2048 bytes
+  WorldData+0x10B8 -> 0x55E89FF4C7E: 2048 bytes
+  WorldData+0x10C0 -> 0x55E3A284B85: 2048 bytes
+  WorldData+0x10D0 -> 0x55E89FF4CD4: 2048 bytes
+  WorldData+0x10E8 -> 0x55E89FF4D2A: 2048 bytes
+  WorldData+0x1100 -> 0x55E89FF4D80: 2048 bytes
+  WorldData+0x1108 -> 0x55E3A284D5D: 2048 bytes
+  WorldData+0x1118 -> 0x55E89FF51DE: 2048 bytes
+  WorldData+0x1120 -> 0x55E3A285A45: 2048 bytes
+  WorldData+0x1130 -> 0x55E89FF4DD6: 2048 bytes
+  WorldData+0x1148 -> 0x55E89FF4E2C: 2048 bytes
+  WorldData+0x1160 -> 0x55E89FF4E82: 2048 bytes
+  WorldData+0x1168 -> 0x55E3A285A80: 2048 bytes
+  WorldData+0x1178 -> 0x55E89FF4ED8: 2048 bytes
+  WorldData+0x1190 -> 0x55E89FF4F2E: 2048 bytes
+  WorldData+0x11A8 -> 0x55E89FF4F84: 2048 bytes
+  WorldData+0x1210 -> 0x55E56D1B3A0: 2048 bytes
+  WorldData+0x1250 -> 0x55E56D39540: 2048 bytes
+  WorldData+0x1280 -> 0x55E56D1B3C0: 2048 bytes
+  WorldData+0x12C0 -> 0x55E56DC3CF0: 2048 bytes
+  WorldData+0x12F0 -> 0x55E56D1B3E0: 2048 bytes
+  WorldData+0x1330 -> 0x55E56DC34D0: 2048 bytes
+  WorldData+0x1360 -> 0x55E56D1B400: 2048 bytes
+  WorldData+0x1380 -> 0x55E70392B40: 2048 bytes
+  WorldData+0x13A0 -> 0x55E56DC35C0: 2048 bytes
+  WorldData+0x13D0 -> 0x55E56D1B420: 2048 bytes
+  WorldData+0x13F0 -> 0x55E56D1B440: 2048 bytes
+  WorldData+0x1410 -> 0x55E56DC3610: 2048 bytes
+  WorldData+0x1440 -> 0x55E56D1B460: 2048 bytes
+  WorldData+0x1480 -> 0x55E56D39580: 2048 bytes
+  WorldData+0x14B0 -> 0x55E56D1B480: 2048 bytes
+  WorldData+0x14F0 -> 0x55E56DC3430: 2048 bytes
+  WorldData+0x1520 -> 0x55E56D1B4A0: 2048 bytes
+  WorldData+0x1560 -> 0x55E56DC2CB0: 2048 bytes
+  WorldData+0x1590 -> 0x55E56D1B4C0: 2048 bytes
+  WorldData+0x15B0 -> 0x55E70392B70: 2048 bytes
+  WorldData+0x15D0 -> 0x55E57311640: 2048 bytes
+  WorldData+0x1600 -> 0x55E56D1B4E0: 2048 bytes
+  WorldData+0x1620 -> 0x55E70392BA0: 2048 bytes
+  WorldData+0x1640 -> 0x55E573116A0: 2048 bytes
+  WorldData+0x1670 -> 0x55E56D1B500: 2048 bytes
+  WorldData+0x1690 -> 0x55E56D1B520: 2048 bytes
+  WorldData+0x16B0 -> 0x55E56D395C0: 2048 bytes
+  WorldData+0x16E0 -> 0x55E56D1B540: 2048 bytes
+  WorldData+0x1700 -> 0x55E70392BD0: 2048 bytes
+  WorldData+0x1720 -> 0x55E57311700: 2048 bytes
+  WorldData+0x1810 -> 0x55E56D1DE20: 2048 bytes
+  WorldData+0x1850 -> 0x55E56D3B600: 2048 bytes
+  WorldData+0x1880 -> 0x55E56D1DE40: 2048 bytes
+  WorldData+0x18C0 -> 0x55E56DC46F0: 2048 bytes
+  WorldData+0x18F0 -> 0x55E56D1DE60: 2048 bytes
+  WorldData+0x1930 -> 0x55E56DC4740: 2048 bytes
+  WorldData+0x1960 -> 0x55E56D1DE80: 2048 bytes
+  WorldData+0x1980 -> 0x55E703971F0: 2048 bytes
+  WorldData+0x19A0 -> 0x55E56DC4790: 2048 bytes
+  WorldData+0x19D0 -> 0x55E56D1DEA0: 2048 bytes
+  WorldData+0x19F0 -> 0x55E56D1DEC0: 2048 bytes
+  WorldData+0x1A10 -> 0x55E56DC47E0: 2048 bytes
+  WorldData+0x1A40 -> 0x55E56D1DEE0: 2048 bytes
+  WorldData+0x1A80 -> 0x55E56D3B640: 2048 bytes
+  WorldData+0x1AB0 -> 0x55E56D1DF00: 2048 bytes
+  WorldData+0x1AF0 -> 0x55E56DC4830: 2048 bytes
+  WorldData+0x1B20 -> 0x55E56D1DF20: 2048 bytes
+  WorldData+0x1B60 -> 0x55E56DC4880: 2048 bytes
+  WorldData+0x1B90 -> 0x55E56D1DF40: 2048 bytes
+  WorldData+0x1BB0 -> 0x55E70397220: 2048 bytes
+  WorldData+0x1BD0 -> 0x55E573153C0: 2048 bytes
+  WorldData+0x1C00 -> 0x55E56D1DF60: 2048 bytes
+  WorldData+0x1C20 -> 0x55E70397250: 2048 bytes
+  WorldData+0x1C40 -> 0x55E57315420: 2048 bytes
+  WorldData+0x1C70 -> 0x55E56D1DF80: 2048 bytes
+  WorldData+0x1C90 -> 0x55E56D1DFA0: 2048 bytes
+  WorldData+0x1CB0 -> 0x55E56D3B680: 2048 bytes
+  WorldData+0x1CE0 -> 0x55E56D1DFC0: 2048 bytes
+  WorldData+0x1D00 -> 0x55E70397280: 2048 bytes
+  WorldData+0x1D20 -> 0x55E57315480: 2048 bytes
+  WorldData+0x1E00 -> 0x55E56DBFA00: 2048 bytes
+  UiRoot+0x0 -> 0x7FF7BDD77CB0: 2048 bytes
+  UiRoot+0x10 -> 0x55E82F5D810: 2048 bytes
+  UiRoot+0x18 -> 0x55E82F5DBF0: 2048 bytes
+  UiRoot+0x20 -> 0x55E82F5DD08: 2048 bytes
+  UiRoot+0x28 -> 0x55E374E0330: 2048 bytes
+  UiRoot+0x30 -> 0x55E374E1230: 2048 bytes
+  UiRoot+0x38 -> 0x55E7064C910: 2048 bytes
+  UiRoot+0x40 -> 0x55E37860650: 2048 bytes
+  UiRoot+0x48 -> 0x55E82F5DE10: 2048 bytes
+  UiRoot+0x50 -> 0x55E82F5E1F0: 2048 bytes
+  UiRoot+0x58 -> 0x55E82F5E308: 2048 bytes
+  UiRoot+0xB8 -> 0x55E7064AF30: 2048 bytes
+  UiRoot+0x228 -> 0x7FF7BDB90768: 2048 bytes
+  UiRoot+0x230 -> 0x7FF7BDB8FAD0: 2048 bytes
+  UiRoot+0x238 -> 0x7FF7BDAF5038: 2048 bytes
+  UiRoot+0x2C8 -> 0x7FF7BDD777F8: 2048 bytes
+  UiRoot+0x2D0 -> 0x7FF7BDD79298: 2048 bytes
+  UiRoot+0x2D8 -> 0x7FF7BDD793F0: 2048 bytes
+  UiRoot+0x2E0 -> 0x7FF7BDD79558: 2048 bytes
+  UiRoot+0x2E8 -> 0x7FF7BDD79A38: 2048 bytes
+  UiRoot+0x2F0 -> 0x7FF7BDD79780: 2048 bytes
+  UiRoot+0x2F8 -> 0x7FF7BDD77A98: 2048 bytes
+  UiRoot+0x310 -> 0x55F34972000: 2048 bytes
+  UiRoot+0x330 -> 0x55E85746358: 2048 bytes
+  UiRoot+0x338 -> 0x55E85746368: 2048 bytes
+  UiRoot+0x340 -> 0x55E85746378: 2048 bytes
+  UiRoot+0x348 -> 0x55E36030800: 2048 bytes
+  UiRoot+0x350 -> 0x55E360304E0: 2048 bytes
+  UiRoot+0x370 -> 0x55E7AD6AC90: 2048 bytes
+  UiRoot+0x380 -> 0x55E34329010: 2048 bytes
+  UiRoot+0x388 -> 0x55E3432B010: 2048 bytes
+  UiRoot+0x3A8 -> 0x55ED9245390: 2048 bytes
+  UiRoot+0x3B8 -> 0x55E70659AF0: 2048 bytes
+  UiRoot+0x3C0 -> 0x55E7068E830: 2048 bytes
+  UiRoot+0x3C8 -> 0x55ED8BC2810: 2048 bytes
+  UiRoot+0x3D0 -> 0x55ED8BC1C10: 2048 bytes
+  UiRoot+0x3D8 -> 0x55E379F69C0: 2048 bytes
+  UiRoot+0x3E0 -> 0x55E379EB700: 2048 bytes
+  UiRoot+0x3E8 -> 0x55E379EBF20: 2048 bytes
+  UiRoot+0x3F0 -> 0x55E37A1E380: 2048 bytes
+  UiRoot+0x3F8 -> 0x55ED8B73410: 2048 bytes
+  UiRoot+0x400 -> 0x55ED92AB810: 2048 bytes
+  UiRoot+0x408 -> 0x55E37A1DF70: 2048 bytes
+  UiRoot+0x410 -> 0x55E379E3910: 2048 bytes
+  UiRoot+0x428 -> 0x55E37A19650: 2048 bytes
+  UiRoot+0x430 -> 0x55E82051F10: 2048 bytes
+  UiRoot+0x438 -> 0x55E374E7530: 2048 bytes
+  UiRoot+0x440 -> 0x55ED8BCA610: 2048 bytes
+  UiRoot+0x458 -> 0x55ED8B71B10: 2048 bytes
+  UiRoot+0x460 -> 0x55ED8B78E10: 2048 bytes
+  UiRoot+0x468 -> 0x55ED8B7F710: 2048 bytes
+  UiRoot+0x470 -> 0x55ED8B7D910: 2048 bytes
+  UiRoot+0x478 -> 0x55ED8B7B610: 2048 bytes
+  UiRoot+0x480 -> 0x55ED8B7A210: 2048 bytes
+  UiRoot+0x488 -> 0x55ED8B79D10: 2048 bytes
+  UiRoot+0x490 -> 0x55ED8B79310: 2048 bytes
+  UiRoot+0x498 -> 0x55ED8B7D410: 2048 bytes
+  UiRoot+0x4A0 -> 0x55ED8B7CF10: 2048 bytes
+  UiRoot+0x4A8 -> 0x55ED8B7C010: 2048 bytes
+  UiRoot+0x4B0 -> 0x55ED8B7C510: 2048 bytes
+  UiRoot+0x4B8 -> 0x55ED8B7A710: 2048 bytes
+  UiRoot+0x4C0 -> 0x55ED8B7AC10: 2048 bytes
+  UiRoot+0x4C8 -> 0x55ED8B7CA10: 2048 bytes
+  UiRoot+0x4D0 -> 0x55ED8B7BB10: 2048 bytes
+  UiRoot+0x4D8 -> 0x55ED8B7B110: 2048 bytes
+  UiRoot+0x4E0 -> 0x55ED8B79810: 2048 bytes
+  UiRoot+0x4E8 -> 0x55ED8B7DE10: 2048 bytes
+  UiRoot+0x500 -> 0x55E7B6A0030: 2048 bytes
+  UiRoot+0x508 -> 0x55E7B6A1430: 2048 bytes
+  UiRoot+0x510 -> 0x55E85746538: 2048 bytes
+  UiRoot+0x518 -> 0x55E85746548: 2048 bytes
+  UiRoot+0x528 -> 0x55E36030610: 2048 bytes
+  UiRoot+0x530 -> 0x55E36030760: 2048 bytes
+  UiRoot+0x548 -> 0x55E7B6A0A30: 2048 bytes
+  UiRoot+0x560 -> 0x55E7B6A0F30: 2048 bytes
+  UiRoot+0x570 -> 0x55EF53C1C10: 2048 bytes
+  UiRoot+0x578 -> 0x55E37E90010: 2048 bytes
+  UiRoot+0x580 -> 0x55E37A19240: 2048 bytes
+  UiRoot+0x590 -> 0x55E7AB6E310: 2048 bytes
+  UiRoot+0x598 -> 0x55E3786B4E0: 2048 bytes
+  UiRoot+0x5A0 -> 0x55E706A8070: 2048 bytes
+  UiRoot+0x5B0 -> 0x55EF42B7970: 2048 bytes
+  UiRoot+0x5B8 -> 0x55E70659DD0: 2048 bytes
+  UiRoot+0x5C0 -> 0x55E2AC8B230: 2048 bytes
+  UiRoot+0x5C8 -> 0x55E37860960: 2048 bytes
+  UiRoot+0x5D0 -> 0x55E37860C70: 2048 bytes
+  UiRoot+0x5D8 -> 0x55ED3184A10: 2048 bytes
+  UiRoot+0x5E0 -> 0x55E37533730: 2048 bytes
+  UiRoot+0x5E8 -> 0x55ED9244D70: 2048 bytes
+  UiRoot+0x5F0 -> 0x55ED9245080: 2048 bytes
+  UiRoot+0x5F8 -> 0x55E374E1E30: 2048 bytes
+  UiRoot+0x600 -> 0x55ED8BCBE10: 2048 bytes
+  UiRoot+0x608 -> 0x55ED8BCC410: 2048 bytes
+  UiRoot+0x610 -> 0x55ED8BCFA10: 2048 bytes
+  UiRoot+0x618 -> 0x55E8335C210: 2048 bytes
+  UiRoot+0x620 -> 0x55E8335C810: 2048 bytes
+  UiRoot+0x628 -> 0x55ED9BF4A10: 2048 bytes
+  UiRoot+0x630 -> 0x55E7BCD5010: 2048 bytes
+  UiRoot+0x638 -> 0x55E37A28E20: 2048 bytes
+  UiRoot+0x640 -> 0x55E37506A30: 2048 bytes
+  UiRoot+0x648 -> 0x55E37506D30: 2048 bytes
+  UiRoot+0x650 -> 0x55E37A1EBA0: 2048 bytes
+  UiRoot+0x658 -> 0x55E37A1EFB0: 2048 bytes
+  UiRoot+0x660 -> 0x55F0A589810: 2048 bytes
+  UiRoot+0x668 -> 0x55F0A589E40: 2048 bytes
+  UiRoot+0x670 -> 0x55F0A58A0E0: 2048 bytes
+  UiRoot+0x680 -> 0x55ED99B1030: 2048 bytes
+  UiRoot+0x698 -> 0x55EF5276000: 2048 bytes
+  UiRoot+0x6A0 -> 0x55EF52766E0: 2048 bytes
+  UiRoot+0x6A8 -> 0x55EF52767E0: 2048 bytes
+  UiRoot+0x6E8 -> 0x55E7AFE4410: 2048 bytes
+  UiRoot+0x6F8 -> 0x55E7BC9F210: 2048 bytes
+  UiRoot+0x700 -> 0x55ED9690910: 2048 bytes
+  UiRoot+0x708 -> 0x55ED9694010: 2048 bytes
+  UiRoot+0x710 -> 0x55E7BC92F10: 2048 bytes
+  UiRoot+0x718 -> 0x55E37CDBC10: 2048 bytes
+  UiRoot+0x720 -> 0x55E37CDB510: 2048 bytes
+  UiRoot+0x728 -> 0x55E7BC5AF10: 2048 bytes
+  UiRoot+0x730 -> 0x55E8462E210: 2048 bytes
+  UiRoot+0x738 -> 0x55ED96E4E10: 2048 bytes
+  UiRoot+0x740 -> 0x55ED9290810: 2048 bytes
+  UiRoot+0x748 -> 0x55E82F16410: 2048 bytes
+  UiRoot+0x750 -> 0x55E7BC93910: 2048 bytes
+  UiRoot+0x758 -> 0x55ED9C10B10: 2048 bytes
+  UiRoot+0x760 -> 0x55E7BB3B810: 2048 bytes
+  UiRoot+0x768 -> 0x55E82E5E810: 2048 bytes
+  UiRoot+0x770 -> 0x55E37CD1410: 2048 bytes
+  UiRoot+0x778 -> 0x55ED9AC8E10: 2048 bytes
+  UiRoot+0x780 -> 0x55ED99B2480: 2048 bytes
+  UiRoot+0x788 -> 0x55ED99B7DE0: 2048 bytes
+  UiRoot+0x790 -> 0x55ED99BAA90: 2048 bytes
+  UiRoot+0x798 -> 0x55ED99BD330: 2048 bytes
+  UiRoot+0x7A0 -> 0x55ED99BDB50: 2048 bytes
+  UiRoot+0x7A8 -> 0x55ED99BCB10: 2048 bytes
+  UiRoot+0x7B0 -> 0x55ED3927210: 2048 bytes
+  UiRoot+0x7B8 -> 0x55E37868A00: 2048 bytes
+  UiRoot+0x7C8 -> 0x55E7AF01310: 2048 bytes
+  UiRoot+0x7D0 -> 0x55E37868D10: 2048 bytes
+  UiRoot+0x7D8 -> 0x55E37A1F3C0: 2048 bytes
+  UiRoot+0x7E8 -> 0x55E706A9D30: 2048 bytes
+  UiRoot+0x7F0 -> 0x55EF421D0F0: 2048 bytes
+  UiRoot+0x800 -> 0x55ED8ED5500: 2048 bytes
+  UiRoot+0x810 -> 0x55E82056F10: 2048 bytes
+  UiRoot+0x818 -> 0x55E82057310: 2048 bytes
+  UiRoot+0x848 -> 0x55E37A29230: 2048 bytes
+  UiRoot+0x850 -> 0x55ED95F2A10: 2048 bytes
+  UiRoot+0x858 -> 0x55E8300E360: 2048 bytes
+  UiRoot+0x860 -> 0x55ED99D40D0: 2048 bytes
+  UiRoot+0x868 -> 0x55E82F5E410: 2048 bytes
+  UiRoot+0x870 -> 0x55E83312010: 2048 bytes
+  UiRoot+0x878 -> 0x55E82FFF7C0: 2048 bytes
+  UiRoot+0x880 -> 0x55E82FFFBD0: 2048 bytes
+  UiRoot+0x888 -> 0x55E83000800: 2048 bytes
+  UiRoot+0x890 -> 0x55ED99D2870: 2048 bytes
+  UiRoot+0x898 -> 0x55ED99D2050: 2048 bytes
+  UiRoot+0x8A0 -> 0x55ED923B760: 2048 bytes
+  UiRoot+0x8A8 -> 0x55ED99D2460: 2048 bytes
+  UiRoot+0x8B0 -> 0x55ED99D1C40: 2048 bytes
+  UiRoot+0x8B8 -> 0x55ED99D3CC0: 2048 bytes
+  UiRoot+0x8C0 -> 0x55ED99EDF30: 2048 bytes
+  UiRoot+0x8C8 -> 0x55ED99EE340: 2048 bytes
+  UiRoot+0x8D0 -> 0x55ED99EE750: 2048 bytes
+  UiRoot+0x8D8 -> 0x55E8301D720: 2048 bytes
+  UiRoot+0x8E0 -> 0x55ED99EEB60: 2048 bytes
+  UiRoot+0x8E8 -> 0x55E832C0B10: 2048 bytes
+  UiRoot+0x8F0 -> 0x55E37AF8C30: 2048 bytes
+  UiRoot+0x8F8 -> 0x55E82F59610: 2048 bytes
+  UiRoot+0x900 -> 0x55E37AF9050: 2048 bytes
+  UiRoot+0x908 -> 0x55E3752E630: 2048 bytes
+  UiRoot+0x910 -> 0x55E82FF9E60: 2048 bytes
+  UiRoot+0x918 -> 0x55ED9973D20: 2048 bytes
+  UiRoot+0x920 -> 0x55ED9973910: 2048 bytes
+  UiRoot+0x928 -> 0x55ED9696D10: 2048 bytes
+  UiRoot+0x930 -> 0x55E83000C10: 2048 bytes
+  UiRoot+0x938 -> 0x55E83004900: 2048 bytes
+  UiRoot+0x940 -> 0x55E830034B0: 2048 bytes
+  UiRoot+0x948 -> 0x55E830179B0: 2048 bytes
+  UiRoot+0x950 -> 0x55E820C2C10: 2048 bytes
+  UiRoot+0x958 -> 0x55E8301CAF0: 2048 bytes
+  UiRoot+0x960 -> 0x55E8301D310: 2048 bytes
+  UiRoot+0x968 -> 0x55E8335E610: 2048 bytes
+  UiRoot+0x970 -> 0x55E82ED4A10: 2048 bytes
+  UiRoot+0x978 -> 0x55E37A20400: 2048 bytes
+  UiRoot+0x980 -> 0x55E37A2BEE0: 2048 bytes
+  UiRoot+0x988 -> 0x55E7B8220B0: 2048 bytes
+  UiRoot+0x990 -> 0x55E7B8224C0: 2048 bytes
+  UiRoot+0x998 -> 0x55E7B822CE0: 2048 bytes
+  UiRoot+0x9A0 -> 0x55ED9167A10: 2048 bytes
+  UiRoot+0x9A8 -> 0x55ED8F3C010: 2048 bytes
+  UiRoot+0x9B0 -> 0x55E706BBF90: 2048 bytes
+  UiRoot+0x9B8 -> 0x55E379E0030: 2048 bytes
+  UiRoot+0x9C0 -> 0x55E374E0930: 2048 bytes
+  UiRoot+0x9C8 -> 0x55E379E0440: 2048 bytes
+  UiRoot+0x9D0 -> 0x55E379E1890: 2048 bytes
+  UiRoot+0x9D8 -> 0x55E379E0850: 2048 bytes
+  UiRoot+0x9E0 -> 0x55E379E1CA0: 2048 bytes
+  UiRoot+0x9E8 -> 0x55E37A26170: 2048 bytes
+  UiRoot+0x9F0 -> 0x55E37A25D60: 2048 bytes
+  UiRoot+0x9F8 -> 0x55E37A271B0: 2048 bytes
+  UiRoot+0xA00 -> 0x55E82050610: 2048 bytes
+  UiRoot+0xA08 -> 0x55E8300C2E0: 2048 bytes
+  UiRoot+0xA10 -> 0x55E8300C6F0: 2048 bytes
+  UiRoot+0xA18 -> 0x55E83011420: 2048 bytes
+  UiRoot+0xA28 -> 0x55E8300FFD0: 2048 bytes
+  UiRoot+0xA30 -> 0x55E83011010: 2048 bytes
+  UiRoot+0xA38 -> 0x55E8335E010: 2048 bytes
+  UiRoot+0xA40 -> 0x55E82055B10: 2048 bytes
+  UiRoot+0xA48 -> 0x55E82FFB2B0: 2048 bytes
+  UiRoot+0xA50 -> 0x55E83012460: 2048 bytes
+  UiRoot+0xA58 -> 0x55E830134A0: 2048 bytes
+  UiRoot+0xA60 -> 0x55ED9693110: 2048 bytes
+  UiRoot+0xA68 -> 0x55EF4216690: 2048 bytes
+  UiRoot+0xA70 -> 0x55E82055610: 2048 bytes
+  UiRoot+0xA78 -> 0x55E83016D80: 2048 bytes
+  UiRoot+0xA80 -> 0x55E830175A0: 2048 bytes
+  UiRoot+0xA88 -> 0x55E83004D10: 2048 bytes
+  UiRoot+0xA90 -> 0x55E830B7E10: 2048 bytes
+  UiRoot+0xA98 -> 0x55E7B7D6530: 2048 bytes
+  UiRoot+0xAA0 -> 0x55EF4C1C030: 2048 bytes
+  UiRoot+0xAA8 -> 0x55E7B7D5630: 2048 bytes
+  UiRoot+0xAB0 -> 0x55E83358C10: 2048 bytes
+  UiRoot+0xAB8 -> 0x55EF4C1D230: 2048 bytes
+  UiRoot+0xAC0 -> 0x55E83005530: 2048 bytes
+  UiRoot+0xAC8 -> 0x55E83005940: 2048 bytes
+  UiRoot+0xAD0 -> 0x55E37A1D340: 2048 bytes
+  UiRoot+0xAD8 -> 0x55E706A9A50: 2048 bytes
+  UiRoot+0xAE0 -> 0x55E37A1DB60: 2048 bytes
+  UiRoot+0xAF0 -> 0x55ED2DEEB40: 2048 bytes
+  UiRoot+0xB08 -> 0x55ED2DE8CC0: 2048 bytes
+  UiRoot+0xB20 -> 0x55E8301DF40: 2048 bytes
+  UiRoot+0xB28 -> 0x55ED99EF380: 2048 bytes
+  UiRoot+0xB30 -> 0x55ED99EFFB0: 2048 bytes
+  UiRoot+0xB38 -> 0x55E37A29E60: 2048 bytes
+  UiRoot+0xB40 -> 0x55EF455A230: 2048 bytes
+  UiRoot+0xB48 -> 0x55ED9248DC0: 2048 bytes
+  UiRoot+0xB58 -> 0x55ED8ED0AC0: 2048 bytes
+  UiRoot+0xB68 -> 0x55ED8FEB1F0: 2048 bytes
+  UiRoot+0xB70 -> 0x55ED8FEB270: 2048 bytes
+  UiRoot+0xB90 -> 0x55E82052910: 2048 bytes
+  UiRoot+0xB98 -> 0x55E82053D10: 2048 bytes
+  UiRoot+0xBA8 -> 0x55E706A7D90: 2048 bytes
+  UiRoot+0xBB8 -> 0x55E37A1F7D0: 2048 bytes
+  UiRoot+0xBC0 -> 0x55E37869C60: 2048 bytes
+  UiRoot+0xBC8 -> 0x55E37869020: 2048 bytes
+  UiRoot+0xBD0 -> 0x55E37A1FFF0: 2048 bytes
+  UiRoot+0xBD8 -> 0x55E3786A8A0: 2048 bytes
+  UiRoot+0xBE0 -> 0x55E3786C740: 2048 bytes
+  UiRoot+0xBE8 -> 0x55E37A24910: 2048 bytes
+  UiRoot+0xBF0 -> 0x55E37A21440: 2048 bytes
+  UiRoot+0xBF8 -> 0x55E37A25130: 2048 bytes
+  UiRoot+0xC00 -> 0x55E83005120: 2048 bytes
+  UiRoot+0xC08 -> 0x55E37A19A60: 2048 bytes
+  UiRoot+0xC10 -> 0x55ED3498E10: 2048 bytes
+  UiRoot+0xC18 -> 0x55ED349B210: 2048 bytes
+  UiRoot+0xC20 -> 0x55E37860F80: 2048 bytes
+  UiRoot+0xC28 -> 0x55E37A1BAE0: 2048 bytes
+  UiRoot+0xC30 -> 0x55E37A1CF30: 2048 bytes
+  UiRoot+0xC38 -> 0x55E37861290: 2048 bytes
+  UiRoot+0xC40 -> 0x55E8300CF10: 2048 bytes
+  UiRoot+0xC48 -> 0x55EF421CE10: 2048 bytes
+  UiRoot+0xC50 -> 0x55EF4938330: 2048 bytes
+  UiRoot+0xC60 -> 0x7FF7BDBED948: 2048 bytes
+  UiRoot+0xC68 -> 0x55F0AA14010: 2048 bytes
+  UiRoot+0xC70 -> 0x55F0AA17DB0: 2048 bytes
+  UiRoot+0xC78 -> 0x55F0AA18408: 2048 bytes
+  UiRoot+0xC80 -> 0x55E328B7B00: 2048 bytes
+  UiRoot+0xC88 -> 0x55E328B7B10: 2048 bytes
+  UiRoot+0xC90 -> 0x55E328B7B20: 2048 bytes
+  UiRoot+0xC98 -> 0x55E328B7B30: 2048 bytes
+  UiRoot+0xCA0 -> 0x55E328B7B40: 2048 bytes
+  UiRoot+0xCA8 -> 0x55E328B7B50: 2048 bytes
+  UiRoot+0xCB0 -> 0x55E328B7B60: 2048 bytes
+  UiRoot+0xCB8 -> 0x55E328B7B70: 2048 bytes
+  UiRoot+0xCC0 -> 0x55E328B7B80: 2048 bytes
+  UiRoot+0xCC8 -> 0x55E328B7B90: 2048 bytes
+  UiRoot+0xCD0 -> 0x55E328B7BA0: 2048 bytes
+  UiRoot+0xCD8 -> 0x55E328B7BB0: 2048 bytes
+  UiRoot+0xCE0 -> 0x55E328B7BC0: 2048 bytes
+  UiRoot+0xCE8 -> 0x55E328B7BD0: 2048 bytes
+  UiRoot+0xCF0 -> 0x55E328B7BE0: 2048 bytes
+  UiRoot+0xCF8 -> 0x55E328B7BF0: 2048 bytes
+  UiRoot+0xD00 -> 0x55E85746D28: 2048 bytes
+  UiRoot+0xD10 -> 0x55E85746DA8: 2048 bytes
+  UiRoot+0xDA0 -> 0x55ED2FB55B0: 2048 bytes
+  UiRoot+0xDE8 -> 0x55ED2FB9660: 2048 bytes
+  UiRoot+0xE20 -> 0x55E7BC12730: 2048 bytes
+  UiRoot+0xE28 -> 0x55E7BC145F0: 2048 bytes
+  UiRoot+0xE30 -> 0x55E2B4BBB50: 2048 bytes
+  UiRoot+0xE38 -> 0x55E2B4BBB58: 2048 bytes
+  UiRoot+0xE48 -> 0x55E2B4BE830: 2048 bytes
+  UiRoot+0xE50 -> 0x55E2B4BE838: 2048 bytes
+  UiRoot+0xE68 -> 0x55ED8EC4150: 2048 bytes
+  UiRoot+0xE78 -> 0x55E56DD2AD0: 2048 bytes
+  UiRoot+0xE90 -> 0x55E33D25140: 2048 bytes
+  UiRoot+0xEA8 -> 0x55E33D278D0: 2048 bytes
+  UiRoot+0xEB0 -> 0x55E82F11010: 2048 bytes
+  UiRoot+0xEB8 -> 0x55ED99EDB20: 2048 bytes
+  UiRoot+0xFF0 -> 0x7FF7BDDA2CD0: 2048 bytes
+  UiRoot+0x1018 -> 0x55E85747040: 2048 bytes
+  UiRoot+0x1020 -> 0x55E85747060: 2048 bytes
+  UiRoot+0x1028 -> 0x55E85747140: 2048 bytes
+  UiRoot+0x1130 -> 0x55E85747158: 2048 bytes
+  UiRoot+0x1138 -> 0x55E85747178: 2048 bytes
+  UiRoot+0x1140 -> 0x55E85747258: 2048 bytes
+  UiRoot+0x1248 -> 0x55E85747270: 2048 bytes
+  UiRoot+0x1250 -> 0x55E857472B0: 2048 bytes
+  UiRoot+0x1258 -> 0x55E85747670: 2048 bytes
+  UiRoot+0x1660 -> 0x55E85747688: 2048 bytes
+  UiRoot+0x1668 -> 0x55E8574769C: 2048 bytes
+  UiRoot+0x1670 -> 0x55E85747888: 2048 bytes
+  UiRoot+0x1880 -> 0x55E857478A8: 2048 bytes
+  UiRoot+0x1888 -> 0x55E857478D8: 2048 bytes
+  UiRoot+0x1890 -> 0x55E85747CA8: 2048 bytes
+  UiRoot+0x1C98 -> 0x55E85747CC0: 2048 bytes
+  UiRoot+0x1CA0 -> 0x55E85747CCC: 2048 bytes
+  UiRoot+0x1CA8 -> 0x55E85747EC0: 2048 bytes
+  UiRoot+0x1EB8 -> 0x55E855AF630: 2048 bytes
+  UiRoot+0x1EC0 -> 0x55E855AF680: 2048 bytes
+  UiRoot+0x1EC8 -> 0x55E855AF690: 2048 bytes
+  UiRoot+0x1ED0 -> 0x55E85747EF8: 2048 bytes
+  UiRoot+0x1ED8 -> 0x55E85747EFA: 2048 bytes
+  UiRoot+0x1EE0 -> 0x55E85747F18: 2048 bytes
+  PlayerEntity+0x0 -> 0x7FF7BE0EB838: 2048 bytes
+  PlayerEntity+0x8 -> 0x55E40016650: 2048 bytes
+  PlayerEntity+0x10 -> 0x55F0AF2E8B0: 2048 bytes
+  PlayerEntity+0x18 -> 0x55F0AF2E918: 2048 bytes
+  PlayerEntity+0x28 -> 0x7FF7BE0EB7F8: 2048 bytes
+  PlayerEntity+0x30 -> 0x55E88352A10: 2048 bytes
+  PlayerEntity+0x38 -> 0x55E88352BC8: 2048 bytes
+  PlayerEntity+0x40 -> 0x55E88352C20: 2048 bytes
+  PlayerEntity+0x58 -> 0x55E67F7BBE0: 2048 bytes
+  PlayerEntity+0x60 -> 0x55E67F7BC30: 2048 bytes
+  PlayerEntity+0x68 -> 0x55E67F7BC70: 2048 bytes
+  PlayerEntity+0x98 -> 0x55F063B8300: 2048 bytes
+  PlayerEntity+0xB0 -> 0x55E3085EA40: 2048 bytes
+  PlayerEntity+0xB8 -> 0x55E3085EA80: 2048 bytes
+  PlayerEntity+0x108 -> 0x55E34A72010: 2048 bytes
+  PlayerEntity+0x118 -> 0x55F0B3FB010: 2048 bytes
+  PlayerEntity+0x120 -> 0x7FF7BCA96110: 2048 bytes
+  PlayerEntity+0x130 -> 0x55E33D2A760: 2048 bytes
+  PlayerEntity+0x138 -> 0x7FF7BDB8D1B0: 2048 bytes
+  PlayerEntity+0x140 -> 0x55F0B3F8C10: 2048 bytes
+  PlayerEntity+0x158 -> 0x55E33D263D0: 2048 bytes
+  PlayerEntity+0x168 -> 0x55F0AC42B92: 2048 bytes
+  PlayerEntity+0x188 -> 0x55F0AC4B990: 2048 bytes
+  PlayerEntity+0x208 -> 0x55F0AC4BA10: 2048 bytes
+  PlayerEntity+0x780 -> 0x55F0AC40680: 2048 bytes
+  PlayerEntity+0x818 -> 0x55F8C537410: 2048 bytes
+  PlayerEntity+0x888 -> 0x55F0AC4C090: 2048 bytes
+  PlayerEntity+0x898 -> 0x55F34E5F0C0: 2048 bytes
+  PlayerEntity+0x8A0 -> 0x7FF7BCC727F0: 2048 bytes
+  PlayerEntity+0x908 -> 0x55F0AC4C110: 2048 bytes
+  PlayerEntity+0x988 -> 0x55F0AC4C190: 2048 bytes
+  PlayerEntity+0xA00 -> 0x55F0AC48880: 2048 bytes
+  PlayerEntity+0xC90 -> 0x7FF7BDAF5300: 2048 bytes
+  PlayerEntity+0xC98 -> 0x55E4E0DB9C0: 2048 bytes
+  PlayerEntity+0xCB0 -> 0x55E4E0DBD40: 2048 bytes
+  PlayerEntity+0xCC0 -> 0x7FF7BDB84718: 2048 bytes
+  PlayerEntity+0xCC8 -> 0x55E4E9201B0: 2048 bytes
+  PlayerEntity+0xCD0 -> 0x7FF7BCD4F5F0: 2048 bytes
+  PlayerEntity+0xE90 -> 0x55E594EEEB0: 2048 bytes
+  PlayerEntity+0xF00 -> 0x55F0AC41580: 2048 bytes
+  PlayerEntity+0xF98 -> 0x55F8C529A40: 2048 bytes
+  PlayerEntity+0x1008 -> 0x55F0AC4C810: 2048 bytes
+  PlayerEntity+0x1088 -> 0x55F0AC4C890: 2048 bytes
+  PlayerEntity+0x1108 -> 0x55F0AC4C910: 2048 bytes
+  PlayerEntity+0x1190 -> 0x55E305FE510: 2048 bytes
+  PlayerEntity+0x1198 -> 0x55E305FE500: 2048 bytes
+  PlayerEntity+0x11C0 -> 0x55E4F542CE0: 2048 bytes
+  PlayerEntity+0x1240 -> 0x55E30987810: 2048 bytes
+  PlayerEntity+0x1248 -> 0x55E30987800: 2048 bytes
+  PlayerEntity+0x12F0 -> 0x55F0AD84F10: 2048 bytes
+  PlayerEntity+0x12F8 -> 0x55F0AD84F00: 2048 bytes
+  PlayerEntity+0x1320 -> 0x55E4F54F200: 2048 bytes
+  PlayerEntity+0x1400 -> 0x55F0AC41800: 2048 bytes
+  PlayerEntity+0x1568 -> 0x55E61362012: 2048 bytes
+  PlayerEntity+0x1610 -> 0x55E61362030: 2048 bytes
+  PlayerEntity+0x16C0 -> 0x55E6115A010: 2048 bytes
+  PlayerEntity+0x16C8 -> 0x55E6115A100: 2048 bytes
+  PlayerEntity+0x1700 -> 0x55E6115AC40: 2048 bytes
+  PlayerEntity+0x1708 -> 0x55E6115AE20: 2048 bytes
+  PlayerEntity+0x1740 -> 0x55E6115A4C0: 2048 bytes
+entities: 163 within 2500 world units, nearest first
+entity 0x55F0AC4B800 id 959 Metadata/Characters/Int/IntFourb at 6581.5 10364.1 -87.8: 1024 bytes, details 0x55E40016650 1024 bytes
+  Actor 0x55E356A4E70: 1024 bytes
+  Animated 0x55F1A714F30: 1024 bytes
+  BuffOrbs 0x55E34244720: 1024 bytes
+  Buffs 0x55F0661D160: 1024 bytes
+  Inventories 0x55E3479D960: 1024 bytes
+  Life 0x55F0A6F9CB0: 1024 bytes
+  Pathfinding 0x55E8DC23E10: 1024 bytes
+  Player 0x55E4E6B3670: 1024 bytes
+  PlayerClass 0x55E3526EEB0: 1024 bytes
+  Positioned 0x55F063B8300: 1024 bytes
+  Render 0x55F03D5C570: 1024 bytes
+  Stats 0x55F4C259EC0: 1024 bytes
+  Targetable 0x55E4E54E0B0: 1024 bytes
+entity 0x55F0B31F780 id 3221226632 Metadata/Effects/PermanentEffect at 6581.5 10364.1 0: 1024 bytes, details 0x55E3E052E90 1024 bytes
+  Animated 0x55F221DA3B0: 1024 bytes
+  BaseEvents 0x55EAAEFA1F0: 1024 bytes
+  Positioned 0x55F5BCE3CF0: 1024 bytes
+  Render 0x55EADA29E10: 1024 bytes
+entity 0x55F0B31E100 id 3221226631 Metadata/Effects/PermanentEffect at 6581.5 10364.1 0: 1024 bytes, details 0x55E3E052E90 1024 bytes
+  Animated 0x55F221D8EB0: 1024 bytes
+  BaseEvents 0x55EAAEF9F80: 1024 bytes
+  Positioned 0x55F5BCB7A60: 1024 bytes
+  Render 0x55EADA09650: 1024 bytes
+entity 0x55E9965C780 id 72 Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLine at 6625 10375 -0.1: 1024 bytes, details 0x55F1B1ED8D0 1024 bytes
+  Animated 0x55F915BEDB0: 1024 bytes
+  BaseEvents 0x55EAAEF8AB0: 1024 bytes
+  Positioned 0x55F8C528FA0: 1024 bytes
+  Render 0x55EAD9AC320: 1024 bytes
+  StateMachine 0x55E4E61B3B0: 1024 bytes
+entity 0x55F06593700 id 3221225548 Metadata/MiscellaneousObjects/Doodad at 6440.2 10375 -8.9: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F35A30D30: 1024 bytes
+  BaseEvents 0x55EAAEFA400: 1024 bytes
+  Positioned 0x55F4AE3B920: 1024 bytes
+  Render 0x55EDCA59280: 1024 bytes
+entity 0x55E99651100 id 79 Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame at 6440.2 10375 -121.3: 1024 bytes, details 0x55E3E051F90 1024 bytes
+  Animated 0x55F915A7730: 1024 bytes
+  BaseEvents 0x55EAAEFD340: 1024 bytes
+  ControlZone 0x55E671C1D30: 1024 bytes
+  InteractionAction 0x55E60D538B0: 1024 bytes
+  MinimapIcon 0x55E333225E0: 1024 bytes
+  Positioned 0x55F8C547310: 1024 bytes
+  Preload 0x55E4EA57EF0: 1024 bytes
+  Render 0x55EAD9B5DD0: 1024 bytes
+  StateMachine 0x55E4E617030: 1024 bytes
+  Targetable 0x55E4E54D070: 1024 bytes
+entity 0x55E99650200 id 1395 Metadata/Effects/PermanentServerEffect at 6625 10157.6 -2.7: 1024 bytes, details 0x55E3E053D90 1024 bytes
+  Animated 0x55F915B6FB0: 1024 bytes
+  BaseEvents 0x55EAAEF9320: 1024 bytes
+  Positioned 0x55F8C54A830: 1024 bytes
+  Render 0x55EAD9C9960: 1024 bytes
+entity 0x55E99655480 id 73 Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLine at 6625 10125 -0.1: 1024 bytes, details 0x55F1B1ED8D0 1024 bytes
+  Animated 0x55F915C4C30: 1024 bytes
+  BaseEvents 0x55EAAEFB090: 1024 bytes
+  Positioned 0x55F8C55AC80: 1024 bytes
+  Render 0x55EADAE5D30: 1024 bytes
+  StateMachine 0x55E4E6187D0: 1024 bytes
+entity 0x55E99657A00 id 77 Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLine at 6625 10625 -0.1: 1024 bytes, details 0x55F1B1ED8D0 1024 bytes
+  Animated 0x55F915C79B0: 1024 bytes
+  BaseEvents 0x55EAAEF7AC0: 1024 bytes
+  Positioned 0x55F8C54FD30: 1024 bytes
+  Render 0x55EAD9FB160: 1024 bytes
+  StateMachine 0x55E4E61ACF0: 1024 bytes
+entity 0x55E9965A200 id 1391 Metadata/Effects/PermanentServerEffect at 6722.8 10125 -2.7: 1024 bytes, details 0x55E3E053D90 1024 bytes
+  Animated 0x55F915A9330: 1024 bytes
+  BaseEvents 0x55EAAEFC0B0: 1024 bytes
+  Positioned 0x55F8C53EE40: 1024 bytes
+  Render 0x55EAD9BB470: 1024 bytes
+entity 0x55E81C1B800 id 3221225557 Metadata/MiscellaneousObjects/Doodad at 6577.9 10715.1 -8.8: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F35A34C30: 1024 bytes
+  BaseEvents 0x55EAAEFA280: 1024 bytes
+  Positioned 0x55F4AE3FE30: 1024 bytes
+  Render 0x55EDC9689E0: 1024 bytes
+entity 0x55E9965D180 id 1397 Metadata/Effects/PermanentServerEffect at 6809.8 10092.4 -2.7: 1024 bytes, details 0x55E3E053D90 1024 bytes
+  Animated 0x55F915D1AB0: 1024 bytes
+  BaseEvents 0x55EAAEFB990: 1024 bytes
+  Positioned 0x55F8C531F10: 1024 bytes
+  Render 0x55EADA8C7E0: 1024 bytes
+entity 0x55F06311400 id 3221226592 Metadata/Critters/Spider/NurseryWebSpider at 6947 10415.3 -5.5: 1024 bytes, details 0x55F1AC1F390 1024 bytes
+  Actor 0x55E35792490: 1024 bytes
+  Animated 0x55F1A70CDB0: 1024 bytes
+  BaseEvents 0x55F1B702FC0: 1024 bytes
+  Buffs 0x55F5EABF7A0: 1024 bytes
+  CritterAI 0x55F06531120: 1024 bytes
+  Life 0x55F0A6E56D0: 1024 bytes
+  Pathfinding 0x55E673F3E10: 1024 bytes
+  Positioned 0x55F063ABE70: 1024 bytes
+  Render 0x55F03D4E080: 1024 bytes
+  Stats 0x55F4C2479E0: 1024 bytes
+entity 0x55E3498DB80 id 78 Metadata/Terrain/Maps/Augury/Objects/DoorLever at 6625 10777.2 -56.2: 1024 bytes, details 0x55F03B02190 1024 bytes
+  Animated 0x55F34EC57B0: 1024 bytes
+  BaseEvents 0x55F1B703DD0: 1024 bytes
+  InteractionAction 0x55E33756930: 1024 bytes
+  MinimapIcon 0x55E4F215DE0: 1024 bytes
+  Positioned 0x55F063C5230: 1024 bytes
+  Render 0x55F03D6B6C0: 1024 bytes
+  StateMachine 0x55E4E644120: 1024 bytes
+  Targetable 0x55E33856A70: 1024 bytes
+entity 0x55E81C1AE00 id 3221225558 Metadata/MiscellaneousObjects/Doodad at 6533.3 10801.6 -4.5: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F35A341B0: 1024 bytes
+  BaseEvents 0x55EAAEF98F0: 1024 bytes
+  Positioned 0x55F4AE40380: 1024 bytes
+  Render 0x55EDC998F50: 1024 bytes
+entity 0x55E99653E00 id 1403 Metadata/Effects/PermanentServerEffect at 6603.3 9907.6 -2.7: 1024 bytes, details 0x55E3E053D90 1024 bytes
+  Animated 0x55F915BC730: 1024 bytes
+  BaseEvents 0x55EAAEFA7C0: 1024 bytes
+  Positioned 0x55F8C559740: 1024 bytes
+  Render 0x55EADA22EB0: 1024 bytes
+entity 0x55E99656380 id 74 Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLine at 6625 9875 -0.1: 1024 bytes, details 0x55F1B1ED8D0 1024 bytes
+  Animated 0x55F915C2930: 1024 bytes
+  BaseEvents 0x55EAAEFDD90: 1024 bytes
+  Positioned 0x55F8C561C10: 1024 bytes
+  Render 0x55EAD9C1770: 1024 bytes
+  StateMachine 0x55E4E61A2D0: 1024 bytes
+entity 0x55F0659CA80 id 3221225553 Metadata/MiscellaneousObjects/Doodad at 6433.8 9766.3 -26.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F35A325B0: 1024 bytes
+  BaseEvents 0x55EAAEFC6E0: 1024 bytes
+  Positioned 0x55F4AE3E8F0: 1024 bytes
+  Render 0x55EDCA88B90: 1024 bytes
+entity 0x55F0659A000 id 3221225549 Metadata/MiscellaneousObjects/Doodad at 6819 9771.4 -26.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F35A31430: 1024 bytes
+  BaseEvents 0x55EAAEF9950: 1024 bytes
+  Positioned 0x55F4AE3BE70: 1024 bytes
+  Render 0x55EDC982240: 1024 bytes
+entity 0x55E9965F700 id 1599 Metadata/MiscellaneousObjects/WorldItem at 7277.2 10353.3 -11.6: 1024 bytes, details 0x55E3E052AD0 1024 bytes
+  Animated 0x55F915D3330: 1024 bytes
+  BaseEvents 0x55EAAEFAFA0: 1024 bytes
+  InteractionAction 0x55E60D539B0: 1024 bytes
+  Positioned 0x55F8C55F190: 1024 bytes
+  Render 0x55EADACFC80: 1024 bytes
+  Targetable 0x55E4E54DD90: 1024 bytes
+  WorldItem 0x55E572A4210: 1024 bytes
+entity 0x55E9965F200 id 75 Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLine at 6625 9625 -0.1: 1024 bytes, details 0x55F1B1ED8D0 1024 bytes
+  Animated 0x55F915AEE30: 1024 bytes
+  BaseEvents 0x55EAAEFA8B0: 1024 bytes
+  Positioned 0x55F8C52DA00: 1024 bytes
+  Render 0x55EAD9C1DA0: 1024 bytes
+  StateMachine 0x55E4E61BDD0: 1024 bytes
+entity 0x55E81C18880 id 3221225554 Metadata/MiscellaneousObjects/Doodad at 6443 9587.3 -65.5: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F35A32930: 1024 bytes
+  BaseEvents 0x55EAAEF9F20: 1024 bytes
+  Positioned 0x55F4AE3EE40: 1024 bytes
+  Render 0x55EDC9C56E0: 1024 bytes
+entity 0x55F1BC8DA00 id 3221225980 Metadata/MiscellaneousObjects/Doodad at 5930.8 10828.1 -5.3: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C66FB0: 1024 bytes
+  BaseEvents 0x55EA8AC0DC0: 1024 bytes
+  Positioned 0x55F8C56FB30: 1024 bytes
+  Render 0x55EADAE8880: 1024 bytes
+entity 0x55F06599D80 id 3221225550 Metadata/MiscellaneousObjects/Doodad at 6809.8 9592.4 -65.5: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F35A317B0: 1024 bytes
+  BaseEvents 0x55EAAEFD010: 1024 bytes
+  Positioned 0x55F4AE3C910: 1024 bytes
+  Render 0x55EDC962D10: 1024 bytes
+entity 0x55F1BC8F300 id 3221225990 Metadata/MiscellaneousObjects/Doodad at 5949.3 9832.4 -132.3: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C692B0: 1024 bytes
+  BaseEvents 0x55EA8AC6040: 1024 bytes
+  Positioned 0x55F8C573050: 1024 bytes
+  Render 0x55EAD9C0B10: 1024 bytes
+entity 0x55F1BC8F580 id 3221225991 Metadata/MiscellaneousObjects/Doodad at 5828 10016.7 -132.3: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C69630: 1024 bytes
+  BaseEvents 0x55EA8AC8D40: 1024 bytes
+  Positioned 0x55F8C5735A0: 1024 bytes
+  Render 0x55EAD9E4A80: 1024 bytes
+entity 0x55F1BC8D000 id 3221225976 Metadata/MiscellaneousObjects/Doodad at 5845.3 9846.2 -172.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C661B0: 1024 bytes
+  BaseEvents 0x55EA8AC62E0: 1024 bytes
+  Positioned 0x55F8C56E5F0: 1024 bytes
+  Render 0x55EADA01A90: 1024 bytes
+entity 0x55F1BC8DC80 id 3221225981 Metadata/MiscellaneousObjects/Doodad at 5838.4 10920.3 -5.3: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C67330: 1024 bytes
+  BaseEvents 0x55EA8AC8D70: 1024 bytes
+  Positioned 0x55F8C570080: 1024 bytes
+  Render 0x55EADAE8EB0: 1024 bytes
+entity 0x55F1BC8CB00 id 3221225974 Metadata/MiscellaneousObjects/Doodad at 5673.7 10117.1 -135.9: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C65AB0: 1024 bytes
+  BaseEvents 0x55EA8AC45A0: 1024 bytes
+  Positioned 0x55F8C56DB50: 1024 bytes
+  Render 0x55EADA1BF50: 1024 bytes
+entity 0x55F1BC8B480 id 3221225965 Metadata/MiscellaneousObjects/Doodad at 5635.9 10483.7 -8.8: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C63B30: 1024 bytes
+  BaseEvents 0x55EA8AC1660: 1024 bytes
+  Positioned 0x55F8C56AB80: 1024 bytes
+  Render 0x55EADADF400: 1024 bytes
+entity 0x55F1BC8AD00 id 3221225962 Metadata/MiscellaneousObjects/Doodad at 5629.5 10282 -195.7: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C630B0: 1024 bytes
+  BaseEvents 0x55EA8AC2890: 1024 bytes
+  Positioned 0x55F8C569B90: 1024 bytes
+  Render 0x55EADA0A2B0: 1024 bytes
+entity 0x55F1BC8B200 id 3221225964 Metadata/MiscellaneousObjects/Doodad at 5635.9 10201.1 -133.8: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C637B0: 1024 bytes
+  BaseEvents 0x55EA8ABFD40: 1024 bytes
+  Positioned 0x55F8C56A630: 1024 bytes
+  Render 0x55EAD9DD4F0: 1024 bytes
+entity 0x55F1BC8C600 id 3221225972 Metadata/MiscellaneousObjects/DoodadNoBlocking at 5625.7 10278.5 -126.5: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C653B0: 1024 bytes
+  BaseEvents 0x55EA8AC5500: 1024 bytes
+  Positioned 0x55F8C56D0B0: 1024 bytes
+  Render 0x55EAD9C48F0: 1024 bytes
+entity 0x55F1BC8AF80 id 3221225963 Metadata/MiscellaneousObjects/Doodad at 5631.2 10201.6 -199.5: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C63430: 1024 bytes
+  BaseEvents 0x55EA8ABF950: 1024 bytes
+  Positioned 0x55F8C56A0E0: 1024 bytes
+  Render 0x55EADADA390: 1024 bytes
+entity 0x55E81C1EF00 id 3221225555 Metadata/MiscellaneousObjects/Doodad at 6433.8 9396.7 -26.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F35A33730: 1024 bytes
+  BaseEvents 0x55EAAEFB900: 1024 bytes
+  Positioned 0x55F4AE3F390: 1024 bytes
+  Render 0x55EDC9E64D0: 1024 bytes
+entity 0x55E99653B80 id 76 Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLine at 6625 9375 -0.1: 1024 bytes, details 0x55F1B1ED8D0 1024 bytes
+  Animated 0x55F1A716B30: 1024 bytes
+  BaseEvents 0x55EAAEFCEF0: 1024 bytes
+  Positioned 0x55F4AE22AB0: 1024 bytes
+  Render 0x55EADAA3B20: 1024 bytes
+  StateMachine 0x55E4E617540: 1024 bytes
+entity 0x55F0659C800 id 3221225551 Metadata/MiscellaneousObjects/Doodad at 6819 9401.8 -26.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F35A31B30: 1024 bytes
+  BaseEvents 0x55EAAEFBA50: 1024 bytes
+  Positioned 0x55F4AE3D900: 1024 bytes
+  Render 0x55EDCA86040: 1024 bytes
+entity 0x55F1BC8C880 id 3221225973 Metadata/MiscellaneousObjects/Doodad at 5594.4 10141.5 -134: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C65730: 1024 bytes
+  BaseEvents 0x55EA8AC1000: 1024 bytes
+  Positioned 0x55F8C56D600: 1024 bytes
+  Render 0x55EAD9E5D10: 1024 bytes
+entity 0x55E9965AE80 id 1543 Metadata/MiscellaneousObjects/WorldItem at 5527.2 10070.7 -126: 1024 bytes, details 0x55E3E052AD0 1024 bytes
+  Animated 0x55F915A3BB0: 1024 bytes
+  BaseEvents 0x55EAAEF6950: 1024 bytes
+  InteractionAction 0x55E60D53830: 1024 bytes
+  Positioned 0x55F8C54B2D0: 1024 bytes
+  Render 0x55EAD9ED2A0: 1024 bytes
+  Targetable 0x55E4E54CC10: 1024 bytes
+  WorldItem 0x55E572A4070: 1024 bytes
+entity 0x55F1BC8C100 id 3221225970 Metadata/MiscellaneousObjects/Doodad at 5679.3 9679.3 -199.6: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C64CB0: 1024 bytes
+  BaseEvents 0x55EA8AC6340: 1024 bytes
+  Positioned 0x55F8C56C610: 1024 bytes
+  Render 0x55EAD991830: 1024 bytes
+entity 0x55E81C19F00 id 3221225556 Metadata/MiscellaneousObjects/Doodad at 6443 9217.7 -65.5: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F35A33AB0: 1024 bytes
+  BaseEvents 0x55EAAEFD5E0: 1024 bytes
+  Positioned 0x55F4AE3F8E0: 1024 bytes
+  Render 0x55EDC9541F0: 1024 bytes
+entity 0x55F1BC8EB80 id 3221225987 Metadata/MiscellaneousObjects/Doodad at 5922.6 9411.3 -132.3: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C68830: 1024 bytes
+  BaseEvents 0x55EA8ABEF30: 1024 bytes
+  Positioned 0x55F8C572060: 1024 bytes
+  Render 0x55EADA905C0: 1024 bytes
+entity 0x55F0659D200 id 3221225552 Metadata/MiscellaneousObjects/Doodad at 6809.8 9222.8 -65.5: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F35A31EB0: 1024 bytes
+  BaseEvents 0x55EAAEF96B0: 1024 bytes
+  Positioned 0x55F4AE3DE50: 1024 bytes
+  Render 0x55EDCAB02B0: 1024 bytes
+entity 0x55F060D6F00 id 3221226546 Metadata/MiscellaneousObjects/DoodadNoBlocking at 7750 10125 -221.8: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55F1A702CB0: 1024 bytes
+  BaseEvents 0x55F1B702720: 1024 bytes
+  Positioned 0x55F0639CA10: 1024 bytes
+  Render 0x55F03D3C3E0: 1024 bytes
+entity 0x55F1AC0D900 id 3221225878 Metadata/MiscellaneousObjects/Doodad at 7723.1 9995.5 -29.8: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F221B4D30: 1024 bytes
+  BaseEvents 0x55EA8AC2BC0: 1024 bytes
+  Positioned 0x55F5BCF4690: 1024 bytes
+  Render 0x55EDC98C950: 1024 bytes
+entity 0x55F1BC81E80 id 3221225905 Metadata/MiscellaneousObjects/Doodad at 7727.7 10000.9 -70.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C56930: 1024 bytes
+  BaseEvents 0x55EA8AC2680: 1024 bytes
+  Positioned 0x55F5BCFFB30: 1024 bytes
+  Render 0x55EDC984130: 1024 bytes
+entity 0x55F060D6280 id 3221226541 Metadata/MiscellaneousObjects/DoodadNoBlocking at 7625 9750 -221.8: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55F1A701B30: 1024 bytes
+  BaseEvents 0x55F1B702630: 1024 bytes
+  Positioned 0x55F0639AF80: 1024 bytes
+  Render 0x55F03D3A4F0: 1024 bytes
+entity 0x55F1AC0E300 id 3221225882 Metadata/MiscellaneousObjects/Doodad at 7690.2 9875 -87.6: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F221D9930: 1024 bytes
+  BaseEvents 0x55EA8AC03D0: 1024 bytes
+  Positioned 0x55F5BCF5BD0: 1024 bytes
+  Render 0x55EDCA834F0: 1024 bytes
+entity 0x55F1BC8B980 id 3221225967 Metadata/MiscellaneousObjects/DoodadNoBlocking at 5629.5 9614.1 -202: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C64230: 1024 bytes
+  BaseEvents 0x55EA8AC65B0: 1024 bytes
+  Positioned 0x55F8C56B620: 1024 bytes
+  Render 0x55EADACE9F0: 1024 bytes
+entity 0x55F1BC8BE80 id 3221225969 Metadata/MiscellaneousObjects/DoodadNoBlocking at 5629.5 9614.1 -138.9: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C64930: 1024 bytes
+  BaseEvents 0x55EA8AC2500: 1024 bytes
+  Positioned 0x55F8C56C0C0: 1024 bytes
+  Render 0x55EAD9FDCB0: 1024 bytes
+entity 0x55F1BC8BC00 id 3221225968 Metadata/MiscellaneousObjects/DoodadNoBlocking at 5629.5 9614.1 -177: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C645B0: 1024 bytes
+  BaseEvents 0x55EA8AC49C0: 1024 bytes
+  Positioned 0x55F8C56BB70: 1024 bytes
+  Render 0x55EADA53420: 1024 bytes
+entity 0x55F1BC8B700 id 3221225966 Metadata/MiscellaneousObjects/DoodadNoBlocking at 5629.5 9614.1 -149: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C63EB0: 1024 bytes
+  BaseEvents 0x55EA8AC90A0: 1024 bytes
+  Positioned 0x55F8C56B0D0: 1024 bytes
+  Render 0x55EADA7E920: 1024 bytes
+entity 0x55F1BC8D780 id 3221225979 Metadata/MiscellaneousObjects/Doodad at 5382.7 10118.4 -219.4: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C66C30: 1024 bytes
+  BaseEvents 0x55EA8AC7870: 1024 bytes
+  Positioned 0x55F8C56F5E0: 1024 bytes
+  Render 0x55EAD9F5490: 1024 bytes
+entity 0x55F1BC88280 id 3221225945 Metadata/MiscellaneousObjects/DoodadNoBlocking at 7533.5 11146.2 -26.1: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C5F530: 1024 bytes
+  BaseEvents 0x55EA8AC20B0: 1024 bytes
+  Positioned 0x55F8C564140: 1024 bytes
+  Render 0x55EAD9D5300: 1024 bytes
+entity 0x55EC00BB980 id 3221226372 Metadata/MiscellaneousObjects/Doodad at 5796.9 11316.9 -143.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F06084BB0: 1024 bytes
+  BaseEvents 0x55F1B700680: 1024 bytes
+  Positioned 0x55F1A997DB0: 1024 bytes
+  Render 0x55EADA8CE10: 1024 bytes
+entity 0x55EC00BAA80 id 3221226366 Metadata/MiscellaneousObjects/DoodadNoBlocking at 5820.7 11342.4 -143.6: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55F060836B0: 1024 bytes
+  BaseEvents 0x55F1B700560: 1024 bytes
+  Positioned 0x55F1A995DD0: 1024 bytes
+  Render 0x55EADAD7E70: 1024 bytes
+entity 0x55E99659A80 id 71 Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLineMerge at 6625 9125 -15.7: 1024 bytes, details 0x55F1B1E5F90 1024 bytes
+  Animated 0x55F1A716430: 1024 bytes
+  BaseEvents 0x55EAAEF9590: 1024 bytes
+  Positioned 0x55F5BCDCD60: 1024 bytes
+  Render 0x55EADAAFAF0: 1024 bytes
+  StateMachine 0x55E4E619700: 1024 bytes
+entity 0x55F1BC8EE00 id 3221225988 Metadata/MiscellaneousObjects/Doodad at 5416.3 9931.8 -132.3: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C68BB0: 1024 bytes
+  BaseEvents 0x55EA8AC7BA0: 1024 bytes
+  Positioned 0x55F8C5725B0: 1024 bytes
+  Render 0x55EAD9AE210: 1024 bytes
+entity 0x55E9965EF80 id 1541 Metadata/MiscellaneousObjects/WorldItem at 5483.7 9722.8 -126: 1024 bytes, details 0x55E3E052AD0 1024 bytes
+  Animated 0x55F915A9DB0: 1024 bytes
+  BaseEvents 0x55EAAEFBF30: 1024 bytes
+  InteractionAction 0x55E60D536B0: 1024 bytes
+  Positioned 0x55F8C520AD0: 1024 bytes
+  Render 0x55EADAB8310: 1024 bytes
+  Targetable 0x55E4E54D1B0: 1024 bytes
+  WorldItem 0x55E572A3FA0: 1024 bytes
+entity 0x55F1BC84B80 id 3221225923 Metadata/MiscellaneousObjects/Doodad at 7681.5 11014.6 -189.5: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C5A830: 1024 bytes
+  BaseEvents 0x55EA8ABFF20: 1024 bytes
+  Positioned 0x55F5BCC4440: 1024 bytes
+  Render 0x55EADA9B930: 1024 bytes
+entity 0x55F1BC8E900 id 3221225986 Metadata/MiscellaneousObjects/Doodad at 5830.2 9319 -132.3: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C684B0: 1024 bytes
+  BaseEvents 0x55EA8AC69D0: 1024 bytes
+  Positioned 0x55F8C571B10: 1024 bytes
+  Render 0x55EADA06B00: 1024 bytes
+entity 0x55F1BC8D500 id 3221225978 Metadata/MiscellaneousObjects/Doodad at 5550.7 9590.7 -149.8: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C668B0: 1024 bytes
+  BaseEvents 0x55EA8AC72D0: 1024 bytes
+  Positioned 0x55F8C56F090: 1024 bytes
+  Render 0x55EADA36410: 1024 bytes
+entity 0x55F06313700 id 3221226606 Metadata/Critters/Snake/Cobra at 7871 10379.5 -3.1: 1024 bytes, details 0x55F1AC19990 1024 bytes
+  Actor 0x55E3575D2D0: 1024 bytes
+  Animated 0x55F1A70FEB0: 1024 bytes
+  BaseEvents 0x55F1B703260: 1024 bytes
+  Buffs 0x55F5EAC05B0: 1024 bytes
+  CritterAI 0x55F065313C0: 1024 bytes
+  Life 0x55F0A711C50: 1024 bytes
+  Pathfinding 0x55E673FDB90: 1024 bytes
+  Positioned 0x55F063B08D0: 1024 bytes
+  Render 0x55F03D53720: 1024 bytes
+  Stats 0x55F4C25E900: 1024 bytes
+entity 0x55F1BC8DF00 id 3221225982 Metadata/MiscellaneousObjects/Doodad at 5415 10930.2 -5.3: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C676B0: 1024 bytes
+  BaseEvents 0x55EA8AC7300: 1024 bytes
+  Positioned 0x55F8C5705D0: 1024 bytes
+  Render 0x55EADA20990: 1024 bytes
+entity 0x55F1BC8D280 id 3221225977 Metadata/MiscellaneousObjects/Doodad at 5580.4 9512.1 -132.7: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C66530: 1024 bytes
+  BaseEvents 0x55EA8ABEC30: 1024 bytes
+  Positioned 0x55F8C56EB40: 1024 bytes
+  Render 0x55EADACE3C0: 1024 bytes
+entity 0x55F1BC87380 id 3221225939 Metadata/MiscellaneousObjects/Doodad at 7653.7 11144.7 -131.7: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C5E030: 1024 bytes
+  BaseEvents 0x55EA8AC37F0: 1024 bytes
+  Positioned 0x55F5BCB6520: 1024 bytes
+  Render 0x55EADA253D0: 1024 bytes
+entity 0x55F1BC84680 id 3221225921 Metadata/MiscellaneousObjects/DoodadNoBlocking at 7668.9 11145.8 -151.1: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C5A130: 1024 bytes
+  BaseEvents 0x55EA8AC90D0: 1024 bytes
+  Positioned 0x55F5BCB0AD0: 1024 bytes
+  Render 0x55EAD9BD360: 1024 bytes
+entity 0x55EC00BB700 id 3221226371 Metadata/MiscellaneousObjects/Doodad at 5818.8 11469.8 -143.4: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F06084830: 1024 bytes
+  BaseEvents 0x55F1B700650: 1024 bytes
+  Positioned 0x55F1A997860: 1024 bytes
+  Render 0x55EADA8F960: 1024 bytes
+entity 0x55F1BC8E180 id 3221225983 Metadata/MiscellaneousObjects/Doodad at 5322.5 10838 -5.3: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C67A30: 1024 bytes
+  BaseEvents 0x55EA8AC0B50: 1024 bytes
+  Positioned 0x55F8C570B20: 1024 bytes
+  Render 0x55EADA376A0: 1024 bytes
+entity 0x55E99657280 id 1329 Metadata/Effects/PermanentServerEffect at 5538 9505.4 -127.7: 1024 bytes, details 0x55E3E053D90 1024 bytes
+  Animated 0x55F915B9630: 1024 bytes
+  BaseEvents 0x55EAAEFB1E0: 1024 bytes
+  Positioned 0x55F8C539940: 1024 bytes
+  Render 0x55EADA987B0: 1024 bytes
+entity 0x55F060D6500 id 3221226542 Metadata/MiscellaneousObjects/DoodadNoBlocking at 7625 9500 -219.8: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55F1A701EB0: 1024 bytes
+  BaseEvents 0x55F1B702660: 1024 bytes
+  Positioned 0x55F0639B4D0: 1024 bytes
+  Render 0x55F03D3AB20: 1024 bytes
+entity 0x55F1BE8BA00 id 3221225662 Metadata/MiscellaneousObjects/Doodad at 6440.3 8983.9 -26.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F221E2C30: 1024 bytes
+  BaseEvents 0x55EAAEF9F50: 1024 bytes
+  Positioned 0x55F4AE5D1B0: 1024 bytes
+  Render 0x55EDC9E9020: 1024 bytes
+entity 0x55F1BC8F080 id 3221225989 Metadata/MiscellaneousObjects/Doodad at 5297.7 9830.6 -132.3: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C68F30: 1024 bytes
+  BaseEvents 0x55EA8ABF5F0: 1024 bytes
+  Positioned 0x55F8C572B00: 1024 bytes
+  Render 0x55EADA93D70: 1024 bytes
+entity 0x55E99651B00 id 1328 Metadata/Effects/PermanentServerEffect at 5364.1 9679.3 -127.7: 1024 bytes, details 0x55E3E053D90 1024 bytes
+  Animated 0x55F915D7CB0: 1024 bytes
+  BaseEvents 0x55EAAEFB330: 1024 bytes
+  Positioned 0x55F8C53BE70: 1024 bytes
+  Render 0x55EADAEA140: 1024 bytes
+entity 0x55F1BE8BF00 id 3221225664 Metadata/MiscellaneousObjects/Doodad at 6809.9 8983.9 -26.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F221E2530: 1024 bytes
+  BaseEvents 0x55EAAEFDF40: 1024 bytes
+  Positioned 0x55F4AE5DC50: 1024 bytes
+  Render 0x55EDCAA2A20: 1024 bytes
+entity 0x55E99652000 id 1327 Metadata/Effects/PermanentServerEffect at 5429.3 9538 -127.7: 1024 bytes, details 0x55E3E053D90 1024 bytes
+  Animated 0x55F915D21B0: 1024 bytes
+  BaseEvents 0x55EAAEF70D0: 1024 bytes
+  Positioned 0x55F8C52AF80: 1024 bytes
+  Render 0x55EADAD7210: 1024 bytes
+entity 0x55F1BC8CD80 id 3221225975 Metadata/MiscellaneousObjects/Doodad at 5273.5 9813.3 -136: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C65E30: 1024 bytes
+  BaseEvents 0x55EA8AC6FA0: 1024 bytes
+  Positioned 0x55F8C56E0A0: 1024 bytes
+  Render 0x55EADA14390: 1024 bytes
+entity 0x55E9965CC80 id 1330 Metadata/Effects/PermanentServerEffect at 5472.8 9472.8 -127.7: 1024 bytes, details 0x55E3E053D90 1024 bytes
+  Animated 0x55F1A7160B0: 1024 bytes
+  BaseEvents 0x55EAAEFC650: 1024 bytes
+  Positioned 0x55F4AE3E3A0: 1024 bytes
+  Render 0x55EADA3D370: 1024 bytes
+entity 0x55E9965CF00 id 1326 Metadata/Effects/PermanentServerEffect at 5385.9 9581.5 -127.7: 1024 bytes, details 0x55E3E053D90 1024 bytes
+  Animated 0x55F915B4930: 1024 bytes
+  BaseEvents 0x55EAAEFC440: 1024 bytes
+  Positioned 0x55F8C520030: 1024 bytes
+  Render 0x55EADAC0B30: 1024 bytes
+entity 0x55F060D6C80 id 3221226545 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8000 10125 -221.8: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55F1A702930: 1024 bytes
+  BaseEvents 0x55F1B7026F0: 1024 bytes
+  Positioned 0x55F0639C4C0: 1024 bytes
+  Render 0x55F03D3BDB0: 1024 bytes
+entity 0x55F1BC8A080 id 3221225957 Metadata/MiscellaneousObjects/Doodad at 8020.2 10201.1 -13.7: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C61F30: 1024 bytes
+  BaseEvents 0x55EA8AC8830: 1024 bytes
+  Positioned 0x55F8C568100: 1024 bytes
+  Render 0x55EAD9E3E20: 1024 bytes
+entity 0x55F1BC80F80 id 3221225899 Metadata/MiscellaneousObjects/Doodad at 7720.1 9456.2 -9.7: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C55430: 1024 bytes
+  BaseEvents 0x55EA8AC93A0: 1024 bytes
+  Positioned 0x55F5BCFC610: 1024 bytes
+  Render 0x55EDCA705C0: 1024 bytes
+entity 0x55EC00BC100 id 3221226375 Metadata/MiscellaneousObjects/Doodad at 5437.3 11271.9 -150: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F06085630: 1024 bytes
+  BaseEvents 0x55F1B700710: 1024 bytes
+  Positioned 0x55F1A998DA0: 1024 bytes
+  Render 0x55EADA72320: 1024 bytes
+entity 0x55F1BC8A580 id 3221225959 Metadata/MiscellaneousObjects/Doodad at 8049 10370.7 -11: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C62630: 1024 bytes
+  BaseEvents 0x55EA8ABF0B0: 1024 bytes
+  Positioned 0x55F8C568BA0: 1024 bytes
+  Render 0x55EADA37070: 1024 bytes
+entity 0x55F1BC89400 id 3221225952 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8052.7 10317.8 -26.1: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C60DB0: 1024 bytes
+  BaseEvents 0x55EA8AC11E0: 1024 bytes
+  Positioned 0x55F8C566670: 1024 bytes
+  Render 0x55EAD9EC640: 1024 bytes
+entity 0x55F1BC89E00 id 3221225956 Metadata/MiscellaneousObjects/Doodad at 8055.2 10191.4 -32.6: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C61BB0: 1024 bytes
+  BaseEvents 0x55EA8AC3CD0: 1024 bytes
+  Positioned 0x55F8C567BB0: 1024 bytes
+  Render 0x55EADA05EA0: 1024 bytes
+entity 0x55F5E742A80 id 93 Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLine at 6625 8875 -0.1: 1024 bytes, details 0x55F1B1ED8D0 1024 bytes
+  Animated 0x55F915A42B0: 1024 bytes
+  BaseEvents 0x55EAAEFDCA0: 1024 bytes
+  Positioned 0x55F8C52E9F0: 1024 bytes
+  Render 0x55EADAA2EC0: 1024 bytes
+  StateMachine 0x55E4E619F70: 1024 bytes
+entity 0x55F1AC0EF80 id 3221225887 Metadata/MiscellaneousObjects/Doodad at 8025.1 9985.9 -9.6: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F221BFC30: 1024 bytes
+  BaseEvents 0x55EA8AC5410: 1024 bytes
+  Positioned 0x55F5BCF7660: 1024 bytes
+  Render 0x55EDCA14520: 1024 bytes
+entity 0x55F1BC80080 id 3221225893 Metadata/MiscellaneousObjects/Doodad at 7757.7 9435.6 -26.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F915A5430: 1024 bytes
+  BaseEvents 0x55EA8ABF680: 1024 bytes
+  Positioned 0x55F5BCF9640: 1024 bytes
+  Render 0x55EDC9E6B00: 1024 bytes
+entity 0x55F1BC88C80 id 3221225949 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8062.1 10647.6 -69.3: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C60330: 1024 bytes
+  BaseEvents 0x55EA8AC5FB0: 1024 bytes
+  Positioned 0x55F8C565680: 1024 bytes
+  Render 0x55EADA68870: 1024 bytes
+entity 0x55F1BC88A00 id 3221225948 Metadata/MiscellaneousObjects/Doodad at 8047.4 10756 -121.5: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C5FFB0: 1024 bytes
+  BaseEvents 0x55EA8AC69A0: 1024 bytes
+  Positioned 0x55F8C565130: 1024 bytes
+  Render 0x55EADA001D0: 1024 bytes
+entity 0x55F1AC0E800 id 3221225884 Metadata/MiscellaneousObjects/Doodad at 8077.3 9972.8 -24.7: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F221C22B0: 1024 bytes
+  BaseEvents 0x55EA8AC3F10: 1024 bytes
+  Positioned 0x55F5BCF6670: 1024 bytes
+  Render 0x55EDC9C5D10: 1024 bytes
+entity 0x55F1AC0F980 id 3221225891 Metadata/MiscellaneousObjects/Doodad at 8076.3 9943.7 -69.2: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F915A6230: 1024 bytes
+  BaseEvents 0x55EA8AC0F10: 1024 bytes
+  Positioned 0x55F5BCF8BA0: 1024 bytes
+  Render 0x55EDCA412E0: 1024 bytes
+entity 0x55F1BE8BC80 id 3221225663 Metadata/MiscellaneousObjects/Doodad at 6427.8 8804.9 -65.5: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F221E28B0: 1024 bytes
+  BaseEvents 0x55EAAEFCB60: 1024 bytes
+  Positioned 0x55F4AE5D700: 1024 bytes
+  Render 0x55EDCAADD90: 1024 bytes
+entity 0x55F1BC8E400 id 3221225984 Metadata/MiscellaneousObjects/Doodad at 5420.7 9296.9 -132.3: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C67DB0: 1024 bytes
+  BaseEvents 0x55EA8AC7F30: 1024 bytes
+  Positioned 0x55F8C571070: 1024 bytes
+  Render 0x55EADA04C10: 1024 bytes
+entity 0x55F1BE8C180 id 3221225665 Metadata/MiscellaneousObjects/Doodad at 6822.4 8804.9 -65.5: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F221E21B0: 1024 bytes
+  BaseEvents 0x55EAAEFB150: 1024 bytes
+  Positioned 0x55F4AE5E1A0: 1024 bytes
+  Render 0x55EDC9E5EA0: 1024 bytes
+entity 0x55F1BC8AA80 id 3221225961 Metadata/MiscellaneousObjects/Doodad at 8014.4 11029 -149.8: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C62D30: 1024 bytes
+  BaseEvents 0x55EA8ABE060: 1024 bytes
+  Positioned 0x55F8C569640: 1024 bytes
+  Render 0x55EADA03980: 1024 bytes
+entity 0x55F1AC0DE00 id 3221225880 Metadata/MiscellaneousObjects/Doodad at 8129.7 10048 -128.7: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F221B3130: 1024 bytes
+  BaseEvents 0x55EA8AC8EF0: 1024 bytes
+  Positioned 0x55F5BCF5130: 1024 bytes
+  Render 0x55EDC9CB3B0: 1024 bytes
+entity 0x55F1AC0ED00 id 3221225886 Metadata/MiscellaneousObjects/Doodad at 8125 10016.3 -52.6: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F221B2A30: 1024 bytes
+  BaseEvents 0x55EA8ABF9B0: 1024 bytes
+  Positioned 0x55F5BCF7110: 1024 bytes
+  Render 0x55EDCAB1540: 1024 bytes
+entity 0x55F1BC82880 id 3221225909 Metadata/MiscellaneousObjects/Doodad at 8072 10914.8 -212.6: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C57730: 1024 bytes
+  BaseEvents 0x55EA8AC9430: 1024 bytes
+  Positioned 0x55F5BD01070: 1024 bytes
+  Render 0x55EDCA2A5D0: 1024 bytes
+entity 0x55F1BC8E680 id 3221225985 Metadata/MiscellaneousObjects/Doodad at 5312 9406.9 -132.9: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C68130: 1024 bytes
+  BaseEvents 0x55EA8AC1270: 1024 bytes
+  Positioned 0x55F8C5715C0: 1024 bytes
+  Render 0x55EADABF270: 1024 bytes
+entity 0x55F1AC0DB80 id 3221225879 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8123.4 9963.3 -26.1: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55F221B3F30: 1024 bytes
+  BaseEvents 0x55EA8AC1840: 1024 bytes
+  Positioned 0x55F5BCF4BE0: 1024 bytes
+  Render 0x55EDCA57FF0: 1024 bytes
+entity 0x55EC00BBE80 id 3221226374 Metadata/MiscellaneousObjects/Doodad at 5332.9 11373.4 -190: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F060852B0: 1024 bytes
+  BaseEvents 0x55F1B7006E0: 1024 bytes
+  Positioned 0x55F1A998850: 1024 bytes
+  Render 0x55EADA72950: 1024 bytes
+entity 0x55F1BC82D80 id 3221225911 Metadata/MiscellaneousObjects/Doodad at 8101.7 10881 -281.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C57E30: 1024 bytes
+  BaseEvents 0x55EA8ABEBD0: 1024 bytes
+  Positioned 0x55F5BD02060: 1024 bytes
+  Render 0x55EDC94D8C0: 1024 bytes
+entity 0x55F1BC83500 id 3221225914 Metadata/MiscellaneousObjects/Doodad at 8072.5 10976.4 -130.4: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C588B0: 1024 bytes
+  BaseEvents 0x55EA8AC3220: 1024 bytes
+  Positioned 0x55F5BD03AF0: 1024 bytes
+  Render 0x55EDC9AFC60: 1024 bytes
+entity 0x55F1BC8A800 id 3221225960 Metadata/MiscellaneousObjects/Doodad at 8193.4 10362.8 -10.9: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C629B0: 1024 bytes
+  BaseEvents 0x55EA8AC5C50: 1024 bytes
+  Positioned 0x55F8C5690F0: 1024 bytes
+  Render 0x55EAD9D7E50: 1024 bytes
+entity 0x55F1BC89900 id 3221225954 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8195.8 10319.3 -26.1: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C614B0: 1024 bytes
+  BaseEvents 0x55EA8AC2CE0: 1024 bytes
+  Positioned 0x55F8C567110: 1024 bytes
+  Render 0x55EADAC5BA0: 1024 bytes
+entity 0x55F1BC89B80 id 3221225955 Metadata/MiscellaneousObjects/Doodad at 8196 10190 -32.6: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C61830: 1024 bytes
+  BaseEvents 0x55EA8AC3B20: 1024 bytes
+  Positioned 0x55F8C567660: 1024 bytes
+  Render 0x55EADA7EF50: 1024 bytes
+entity 0x55F1BC88F00 id 3221225950 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8188.1 10646.6 -69.3: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C606B0: 1024 bytes
+  BaseEvents 0x55EA8AC5530: 1024 bytes
+  Positioned 0x55F8C565BD0: 1024 bytes
+  Render 0x55EADA17B40: 1024 bytes
+entity 0x55F1AC0EA80 id 3221225885 Metadata/MiscellaneousObjects/Doodad at 8175.3 9972.8 -24.7: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F221C1BB0: 1024 bytes
+  BaseEvents 0x55EA8ABFDA0: 1024 bytes
+  Positioned 0x55F5BCF6BC0: 1024 bytes
+  Render 0x55EDC97FD20: 1024 bytes
+entity 0x55F1BC83780 id 3221225915 Metadata/MiscellaneousObjects/Doodad at 8121.1 10935.8 -241.7: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C58C30: 1024 bytes
+  BaseEvents 0x55EA8ABECC0: 1024 bytes
+  Positioned 0x55F5BD04040: 1024 bytes
+  Render 0x55EDC9EA2B0: 1024 bytes
+entity 0x55F1AC0F200 id 3221225888 Metadata/MiscellaneousObjects/Doodad at 8165.1 9920.9 -9.6: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F915A57B0: 1024 bytes
+  BaseEvents 0x55EA8AC4F60: 1024 bytes
+  Positioned 0x55F5BCF7BB0: 1024 bytes
+  Render 0x55EDCA16410: 1024 bytes
+entity 0x55F1AC0F700 id 3221225890 Metadata/MiscellaneousObjects/Doodad at 8196.3 9967.6 -72.3: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F915A65B0: 1024 bytes
+  BaseEvents 0x55EA8AC0AC0: 1024 bytes
+  Positioned 0x55F5BCF8650: 1024 bytes
+  Render 0x55EDC9EF950: 1024 bytes
+entity 0x55F1BC8A300 id 3221225958 Metadata/MiscellaneousObjects/Doodad at 8236.6 10203 -19: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C622B0: 1024 bytes
+  BaseEvents 0x55EA8AC6130: 1024 bytes
+  Positioned 0x55F8C568650: 1024 bytes
+  Render 0x55EAD9DCEC0: 1024 bytes
+entity 0x55F1BC82380 id 3221225907 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8124.7 10984.4 -151.1: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C57030: 1024 bytes
+  BaseEvents 0x55EA8AC2080: 1024 bytes
+  Positioned 0x55F5BD005D0: 1024 bytes
+  Render 0x55EDCA7F710: 1024 bytes
+entity 0x55F1BC88780 id 3221225947 Metadata/MiscellaneousObjects/Doodad at 8199.7 10754.7 -121.5: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C5FC30: 1024 bytes
+  BaseEvents 0x55EA8ABFE00: 1024 bytes
+  Positioned 0x55F8C564BE0: 1024 bytes
+  Render 0x55EADADBC50: 1024 bytes
+entity 0x55F1BC80580 id 3221225895 Metadata/MiscellaneousObjects/Doodad at 7965.8 9436.6 -26.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F915C0D30: 1024 bytes
+  BaseEvents 0x55EA8AC28C0: 1024 bytes
+  Positioned 0x55F5BCFAB80: 1024 bytes
+  Render 0x55EDC9D6720: 1024 bytes
+entity 0x55F1BC82B00 id 3221225910 Metadata/MiscellaneousObjects/Doodad at 8169.9 10914.8 -212.6: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C57AB0: 1024 bytes
+  BaseEvents 0x55EA8AC1960: 1024 bytes
+  Positioned 0x55F5BD015C0: 1024 bytes
+  Render 0x55EDC9CE530: 1024 bytes
+entity 0x55F060D7400 id 3221226548 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8250 10125 -221.8: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55F1A7033B0: 1024 bytes
+  BaseEvents 0x55F1B702780: 1024 bytes
+  Positioned 0x55F0639D4B0: 1024 bytes
+  Render 0x55F03D3D040: 1024 bytes
+entity 0x55F1BC86C00 id 3221225936 Metadata/MiscellaneousObjects/Doodad at 8012.1 11265.2 -132.7: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C5D5B0: 1024 bytes
+  BaseEvents 0x55EA8AC4450: 1024 bytes
+  Positioned 0x55F5BCE27B0: 1024 bytes
+  Render 0x55EADA62BA0: 1024 bytes
+entity 0x55F1BC83280 id 3221225913 Metadata/MiscellaneousObjects/Doodad at 8177.7 10971.9 -130.4: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C58530: 1024 bytes
+  BaseEvents 0x55EA8AC3FA0: 1024 bytes
+  Positioned 0x55F5BD035A0: 1024 bytes
+  Render 0x55EDC9ECE00: 1024 bytes
+entity 0x55F06311180 id 3221226591 Metadata/Critters/Snake/Cobra at 8255.4 9994.6 -3.1: 1024 bytes, details 0x55F1AC19990 1024 bytes
+  Actor 0x55E356C6B30: 1024 bytes
+  Animated 0x55F1A70CA30: 1024 bytes
+  BaseEvents 0x55F1B702F90: 1024 bytes
+  Buffs 0x55F5EAC2810: 1024 bytes
+  CritterAI 0x55F065310F0: 1024 bytes
+  Life 0x55F0A6E2970: 1024 bytes
+  Pathfinding 0x55E673F6570: 1024 bytes
+  Positioned 0x55F063AB920: 1024 bytes
+  Render 0x55F03D4DA50: 1024 bytes
+  Stats 0x55F4C24B7C0: 1024 bytes
+entity 0x55F1BC83000 id 3221225912 Metadata/MiscellaneousObjects/Doodad at 8219.3 10913.1 -129.9: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C581B0: 1024 bytes
+  BaseEvents 0x55EA8AC8050: 1024 bytes
+  Positioned 0x55F5BD03050: 1024 bytes
+  Render 0x55EDCA9D9B0: 1024 bytes
+entity 0x55F1BC81200 id 3221225900 Metadata/MiscellaneousObjects/Doodad at 8087 9498.1 -4.5: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C557B0: 1024 bytes
+  BaseEvents 0x55EA8AC7CF0: 1024 bytes
+  Positioned 0x55F5BCFCB60: 1024 bytes
+  Render 0x55EDCAA42E0: 1024 bytes
+entity 0x55F1BC81980 id 3221225903 Metadata/MiscellaneousObjects/Doodad at 8050.1 9431.7 -60.4: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C56230: 1024 bytes
+  BaseEvents 0x55EA8AC6EE0: 1024 bytes
+  Positioned 0x55F5BCFE5F0: 1024 bytes
+  Render 0x55EDC988B70: 1024 bytes
+entity 0x55E57CAA980 id 104 Metadata/Terrain/Maps/Augury/Objects/GlyphPowerLine at 6625 8625 -0.1: 1024 bytes, details 0x55F1B1ED8D0 1024 bytes
+  Animated 0x55F915C9930: 1024 bytes
+  BaseEvents 0x55EAAEFB510: 1024 bytes
+  Positioned 0x55F8C555780: 1024 bytes
+  Render 0x55EADA16EE0: 1024 bytes
+  StateMachine 0x55E4E61AEA0: 1024 bytes
+entity 0x55F1BC86E80 id 3221225937 Metadata/MiscellaneousObjects/Doodad at 8090.7 11235.4 -149.8: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C5D930: 1024 bytes
+  BaseEvents 0x55EA8AC5320: 1024 bytes
+  Positioned 0x55F5BD04AE0: 1024 bytes
+  Render 0x55EADA79EE0: 1024 bytes
+entity 0x55F1BC81C00 id 3221225904 Metadata/MiscellaneousObjects/Doodad at 8099.4 9500.9 -17.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C565B0: 1024 bytes
+  BaseEvents 0x55EA8AC3BE0: 1024 bytes
+  Positioned 0x55F5BCFF5E0: 1024 bytes
+  Render 0x55EDCA92640: 1024 bytes
+entity 0x55F1BE8C400 id 3221225666 Metadata/MiscellaneousObjects/Doodad at 6440.3 8614.3 -26.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F221E1E30: 1024 bytes
+  BaseEvents 0x55EAAEFB2A0: 1024 bytes
+  Positioned 0x55F4AE5E6F0: 1024 bytes
+  Render 0x55EDCA957C0: 1024 bytes
+entity 0x55F1BE8C900 id 3221225668 Metadata/MiscellaneousObjects/Doodad at 6809.9 8614.3 -26.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F221E1730: 1024 bytes
+  BaseEvents 0x55EAAEFA5E0: 1024 bytes
+  Positioned 0x55F4AE5F190: 1024 bytes
+  Render 0x55EDCA6ED00: 1024 bytes
+entity 0x55F06313480 id 3221226605 Metadata/Critters/Snake/Cobra at 8328.9 10632.1 -3.1: 1024 bytes, details 0x55F1AC19990 1024 bytes
+  Actor 0x55E357639D0: 1024 bytes
+  Animated 0x55F1A70FB30: 1024 bytes
+  BaseEvents 0x55F1B703230: 1024 bytes
+  Buffs 0x55F5EAC2360: 1024 bytes
+  CritterAI 0x55F06531390: 1024 bytes
+  Life 0x55F0A71DE30: 1024 bytes
+  Pathfinding 0x55E673F2D30: 1024 bytes
+  Positioned 0x55F063B0380: 1024 bytes
+  Render 0x55F03D530F0: 1024 bytes
+  Stats 0x55F4C2494B0: 1024 bytes
+entity 0x55F1BC80A80 id 3221225897 Metadata/MiscellaneousObjects/Doodad at 8125.8 9452 -2.2: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F915A6930: 1024 bytes
+  BaseEvents 0x55EA8ABF740: 1024 bytes
+  Positioned 0x55F5BCFBB70: 1024 bytes
+  Render 0x55EDC9D16B0: 1024 bytes
+entity 0x55F1BC86200 id 3221225932 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8114.1 11314.3 -177: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C5C7B0: 1024 bytes
+  BaseEvents 0x55EA8AC1C60: 1024 bytes
+  Positioned 0x55F5BCFEB40: 1024 bytes
+  Render 0x55EAD9D7820: 1024 bytes
+entity 0x55F1BC85D00 id 3221225930 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8114.1 11314.3 -149: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C5C0B0: 1024 bytes
+  BaseEvents 0x55EA8AC1A20: 1024 bytes
+  Positioned 0x55F5BCB0580: 1024 bytes
+  Render 0x55EADAC9980: 1024 bytes
+entity 0x55F1BC86480 id 3221225933 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8114.1 11314.3 -138.9: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C5CB30: 1024 bytes
+  BaseEvents 0x55EA8ABE870: 1024 bytes
+  Positioned 0x55F5BCDDD50: 1024 bytes
+  Render 0x55EADA51530: 1024 bytes
+entity 0x55F1BC85F80 id 3221225931 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8114.1 11314.3 -202: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C5C430: 1024 bytes
+  BaseEvents 0x55EA8AC0370: 1024 bytes
+  Positioned 0x55F5BCE91F0: 1024 bytes
+  Render 0x55EAD9F9270: 1024 bytes
+entity 0x55F1BC85300 id 3221225926 Metadata/MiscellaneousObjects/Doodad at 7663.8 11811.9 -189.5: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C5B2B0: 1024 bytes
+  BaseEvents 0x55EA8ABE810: 1024 bytes
+  Positioned 0x55F5BCE5780: 1024 bytes
+  Render 0x55EADA5A9B0: 1024 bytes
+entity 0x55EC00BB480 id 3221226370 Metadata/MiscellaneousObjects/Doodad at 5505.7 11822.3 -143.4: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F060844B0: 1024 bytes
+  BaseEvents 0x55F1B700620: 1024 bytes
+  Positioned 0x55F1A997310: 1024 bytes
+  Render 0x55EADA93110: 1024 bytes
+entity 0x55F1BC80800 id 3221225896 Metadata/MiscellaneousObjects/Doodad at 8125 9407.6 -87.6: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F915B45B0: 1024 bytes
+  BaseEvents 0x55EA8AC92B0: 1024 bytes
+  Positioned 0x55F5BCFB620: 1024 bytes
+  Render 0x55EDC9BC260: 1024 bytes
+entity 0x55F060DF100 id 3221226578 Metadata/Critters/Snake/Cobra at 4990.6 11310 -3.1: 1024 bytes, details 0x55F1AC19990 1024 bytes
+  Actor 0x55E356B4310: 1024 bytes
+  Animated 0x55F1A709CB0: 1024 bytes
+  BaseEvents 0x55F1B702D20: 1024 bytes
+  Buffs 0x55F5EAC3F80: 1024 bytes
+  CritterAI 0x55F06530E80: 1024 bytes
+  Life 0x55F0A718370: 1024 bytes
+  Pathfinding 0x55E673F7650: 1024 bytes
+  Positioned 0x55F063A7410: 1024 bytes
+  Render 0x55F03D489E0: 1024 bytes
+  Stats 0x55F4C24B9D0: 1024 bytes
+entity 0x55F1BC87600 id 3221225940 Metadata/MiscellaneousObjects/Doodad at 7832.5 11738.2 -141.9: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C5E3B0: 1024 bytes
+  BaseEvents 0x55EA8ABE930: 1024 bytes
+  Positioned 0x55F5BCE7210: 1024 bytes
+  Render 0x55EADA07130: 1024 bytes
+entity 0x55E99655E80 id 642 Metadata/Chests/PetrosphereCluster03 at 4788 9820.7 -20.8: 1024 bytes, details 0x55E8DC15350 1024 bytes
+  Animated 0x55F915BDFB0: 1024 bytes
+  BaseEvents 0x55EAAEFABB0: 1024 bytes
+  Chest 0x55E2B598DC0: 1024 bytes
+  InteractionAction 0x55E60D537B0: 1024 bytes
+  ObjectMagicProperties 0x55F5E322900: 1024 bytes
+  Positioned 0x55F8C526FC0: 1024 bytes
+  Render 0x55EADA7AB40: 1024 bytes
+  Stats 0x55F4C24D290: 1024 bytes
+  Targetable 0x55E4E54CA30: 1024 bytes
+entity 0x55F1BC86700 id 3221225934 Metadata/MiscellaneousObjects/Doodad at 8179.3 11364.1 -199.6: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C5CEB0: 1024 bytes
+  BaseEvents 0x55EA8AC4630: 1024 bytes
+  Positioned 0x55F5BCBE9F0: 1024 bytes
+  Render 0x55EADAC9350: 1024 bytes
+entity 0x55F1BC84E00 id 3221225924 Metadata/MiscellaneousObjects/DoodadNoBlocking at 7805.6 11806.5 -151.1: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C5ABB0: 1024 bytes
+  BaseEvents 0x55EA8AC9040: 1024 bytes
+  Positioned 0x55F5BCFE0A0: 1024 bytes
+  Render 0x55EADACA5E0: 1024 bytes
+entity 0x55EC00BAF80 id 3221226368 Metadata/MiscellaneousObjects/DoodadNoBlocking at 5385.9 11831.5 -143.6: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55F06083DB0: 1024 bytes
+  BaseEvents 0x55F1B7005C0: 1024 bytes
+  Positioned 0x55F1A996870: 1024 bytes
+  Render 0x55EAD9F4200: 1024 bytes
+entity 0x55E99650700 id 641 Metadata/Chests/PetrosphereCluster02A at 4777.2 9755.4 -23.8: 1024 bytes, details 0x55E8DC1BC50 1024 bytes
+  Animated 0x55F915B0A30: 1024 bytes
+  BaseEvents 0x55EAAEFA250: 1024 bytes
+  Chest 0x55E2B598BD0: 1024 bytes
+  InteractionAction 0x55E60D53730: 1024 bytes
+  ObjectMagicProperties 0x55F5E322610: 1024 bytes
+  Positioned 0x55F8C55B1D0: 1024 bytes
+  Render 0x55EAD9E37F0: 1024 bytes
+  Stats 0x55F4C245F10: 1024 bytes
+  Targetable 0x55E4E54D250: 1024 bytes
+entity 0x55F06314380 id 3221226611 Metadata/Critters/Snake/Cobra at 8451.5 9945.1 -10.9: 1024 bytes, details 0x55F1AC19990 1024 bytes
+  Actor 0x55E356A0130: 1024 bytes
+  Animated 0x55F1A711030: 1024 bytes
+  BaseEvents 0x55F1B703350: 1024 bytes
+  Buffs 0x55F5EAC0290: 1024 bytes
+  CritterAI 0x55F065314B0: 1024 bytes
+  Life 0x55F0A6FEB10: 1024 bytes
+  Pathfinding 0x55E67403590: 1024 bytes
+  Positioned 0x55F063B2360: 1024 bytes
+  Render 0x55F03D55610: 1024 bytes
+  Stats 0x55F4C252930: 1024 bytes
+entity 0x55F1BC81480 id 3221225901 Metadata/MiscellaneousObjects/Doodad at 8259.9 9426.1 -6.4: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C55B30: 1024 bytes
+  BaseEvents 0x55EA8AC2B60: 1024 bytes
+  Positioned 0x55F5BCFD600: 1024 bytes
+  Render 0x55EDCA3D500: 1024 bytes
+entity 0x55F060D7180 id 3221226547 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8500 10125 -221.8: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55F1A703030: 1024 bytes
+  BaseEvents 0x55F1B702750: 1024 bytes
+  Positioned 0x55F0639CF60: 1024 bytes
+  Render 0x55F03D3CA10: 1024 bytes
+entity 0x55F1BC80300 id 3221225894 Metadata/MiscellaneousObjects/Doodad at 8280 9435.4 -26.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F915C25B0: 1024 bytes
+  BaseEvents 0x55EA8AC3D60: 1024 bytes
+  Positioned 0x55F5BCF9B90: 1024 bytes
+  Render 0x55EDC9DBDC0: 1024 bytes
+entity 0x55EC00BBC00 id 3221226373 Metadata/MiscellaneousObjects/Doodad at 5266.3 11811.4 -149.8: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F06084F30: 1024 bytes
+  BaseEvents 0x55F1B7006B0: 1024 bytes
+  Positioned 0x55F1A998300: 1024 bytes
+  Render 0x55EADA74E70: 1024 bytes
+entity 0x55F1BC82100 id 3221225906 Metadata/MiscellaneousObjects/Doodad at 8525.8 10020.6 -70.5: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C56CB0: 1024 bytes
+  BaseEvents 0x55EA8AC1480: 1024 bytes
+  Positioned 0x55F5BD00080: 1024 bytes
+  Render 0x55EDC95F560: 1024 bytes
+entity 0x55F1AC0E080 id 3221225881 Metadata/MiscellaneousObjects/Doodad at 8526.2 9995.8 -29.8: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F221BF1B0: 1024 bytes
+  BaseEvents 0x55EA8AC30A0: 1024 bytes
+  Positioned 0x55F5BCF5680: 1024 bytes
+  Render 0x55EDC9D0A50: 1024 bytes
+entity 0x55F1BC81700 id 3221225902 Metadata/MiscellaneousObjects/Doodad at 8364.8 9433 -60.4: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C55EB0: 1024 bytes
+  BaseEvents 0x55EA8AC6D00: 1024 bytes
+  Positioned 0x55F5BCFDB50: 1024 bytes
+  Render 0x55EDC94AD70: 1024 bytes
+entity 0x55F1AC0F480 id 3221225889 Metadata/MiscellaneousObjects/Doodad at 8531.8 9854.2 -8.8: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F915A5EB0: 1024 bytes
+  BaseEvents 0x55EA8AC7120: 1024 bytes
+  Positioned 0x55F5BCF8100: 1024 bytes
+  Render 0x55EDC9B0EF0: 1024 bytes
+entity 0x55F1BC83A00 id 3221225916 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8131.4 11684.6 -151.1: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C58FB0: 1024 bytes
+  BaseEvents 0x55EA8ABFBF0: 1024 bytes
+  Positioned 0x55F5BCFA0E0: 1024 bytes
+  Render 0x55EDCA98940: 1024 bytes
+entity 0x55F1AC0E580 id 3221225883 Metadata/MiscellaneousObjects/Doodad at 8559.8 9875 -87.6: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F221D95B0: 1024 bytes
+  BaseEvents 0x55EA8AC10F0: 1024 bytes
+  Positioned 0x55F5BCF6120: 1024 bytes
+  Render 0x55EDCAA61D0: 1024 bytes
+entity 0x55F1BC83C80 id 3221225917 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8131.4 11782.4 -151.1: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C59330: 1024 bytes
+  BaseEvents 0x55EA8ABFA10: 1024 bytes
+  Positioned 0x55F5BCE2D00: 1024 bytes
+  Render 0x55EDCA9CD50: 1024 bytes
+entity 0x55F1AC0FC00 id 3221225892 Metadata/MiscellaneousObjects/Doodad at 8488.8 9436.4 -26.1: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55F915A5B30: 1024 bytes
+  BaseEvents 0x55EA8AC0F40: 1024 bytes
+  Positioned 0x55F5BCF90F0: 1024 bytes
+  Render 0x55EDCA6D440: 1024 bytes
+entity 0x55F060D6780 id 3221226543 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8625 9750 -221.8: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55F1A702230: 1024 bytes
+  BaseEvents 0x55F1B702690: 1024 bytes
+  Positioned 0x55F0639BA20: 1024 bytes
+  Render 0x55F03D3B150: 1024 bytes
+entity 0x55F1BC87880 id 3221225941 Metadata/MiscellaneousObjects/Doodad at 8336.8 11826.2 -130: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C5E730: 1024 bytes
+  BaseEvents 0x55EA8AC7900: 1024 bytes
+  Positioned 0x55F8C562C00: 1024 bytes
+  Render 0x55EADAE94E0: 1024 bytes
+entity 0x55F1BC85580 id 3221225927 Metadata/MiscellaneousObjects/DoodadNoBlocking at 8445.1 11810.2 -151.1: 1024 bytes, details 0x55E3E053890 1024 bytes
+  Animated 0x55E34C5B630: 1024 bytes
+  BaseEvents 0x55EA8ABF770: 1024 bytes
+  Positioned 0x55F5BCC9940: 1024 bytes
+  Render 0x55EAD9F6D50: 1024 bytes
+entity 0x55F1BC87B00 id 3221225942 Metadata/MiscellaneousObjects/Doodad at 8499.5 11832.2 -130: 1024 bytes, details 0x55E3E0516D0 1024 bytes
+  Animated 0x55E34C5EAB0: 1024 bytes
+  BaseEvents 0x55EA8AC7330: 1024 bytes
+  Positioned 0x55F8C563150: 1024 bytes
+  Render 0x55EAD9FE910: 1024 bytes
+3 464 192 bytes read in all
+
+the whole pass took 391 ms

@@ -1,0 +1,465 @@
+123 tile files - 112 the area's tile lists name, 11 its fill lists, 102 laid, 11 of those named by no tile list; each with its definition followed through what it inherits, and the tile's doodad list (.tmd)
+a definition that inherits carries nothing but the reference (annalithic's Tdt.cs); a .tmd is the tile's own doodads, found beside the .tdt or beside its template
+
+=== laid, but named by no tile list - the listed files whose chain passes through it, the fill lists that name it, the listed files sharing its template
+Metadata/Terrain/Dungeon/black.tdt
+  reached by inheriting from: none
+  in a fill list: Metadata/Terrain/Maps/Augury/random_fill_tiles.gft section "BlackInsideWall" weight 1
+  shares a template with: none
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_blank_fill.tdt
+  reached by inheriting from: none
+  in a fill list: Metadata/Terrain/Maps/Augury/random_fill_tiles.gft section "SnakepitRuinGround" weight 40
+  shares a template with: none
+Metadata/Terrain/Jungle/SnakePit/Blank_01.tdt
+  reached by inheriting from: none
+  in a fill list: Metadata/Terrain/Maps/Augury/random_fill_tiles.gft section "default" weight 10
+  shares a template with: none
+Metadata/Terrain/Jungle/SnakePit/Blank_02.tdt
+  reached by inheriting from: none
+  in a fill list: Metadata/Terrain/Maps/Augury/random_fill_tiles.gft section "default" weight 10
+  shares a template with: none
+Metadata/Terrain/Jungle/SnakePit/Blank_03.tdt
+  reached by inheriting from: none
+  in a fill list: Metadata/Terrain/Maps/Augury/random_fill_tiles.gft section "default" weight 10
+  shares a template with: none
+Metadata/Terrain/Jungle/SnakePit/Blank_04.tdt
+  reached by inheriting from: none
+  in a fill list: Metadata/Terrain/Maps/Augury/random_fill_tiles.gft section "default" weight 10
+  shares a template with: none
+Metadata/Terrain/Jungle/SnakePit/Blank_05.tdt
+  reached by inheriting from: none
+  in a fill list: Metadata/Terrain/Maps/Augury/random_fill_tiles.gft section "default" weight 10
+  shares a template with: none
+Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_01.tdt
+  reached by inheriting from: none
+  in a fill list: Metadata/Terrain/Maps/Augury/random_fill_tiles.gft section "default" weight 1; Metadata/Terrain/Maps/Augury/random_fill_tiles.gft section "SnakepitRuinGround" weight 1
+  shares a template with: none
+Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_02.tdt
+  reached by inheriting from: none
+  in a fill list: Metadata/Terrain/Maps/Augury/random_fill_tiles.gft section "default" weight 1; Metadata/Terrain/Maps/Augury/random_fill_tiles.gft section "SnakepitRuinGround" weight 1
+  shares a template with: none
+Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_03.tdt
+  reached by inheriting from: none
+  in a fill list: Metadata/Terrain/Maps/Augury/random_fill_tiles.gft section "default" weight 1; Metadata/Terrain/Maps/Augury/random_fill_tiles.gft section "SnakepitRuinGround" weight 1
+  shares a template with: none
+Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_04.tdt
+  reached by inheriting from: none
+  in a fill list: Metadata/Terrain/Maps/Augury/random_fill_tiles.gft section "default" weight 1; Metadata/Terrain/Maps/Augury/random_fill_tiles.gft section "SnakepitRuinGround" weight 1
+  shares a template with: none
+
+=== every file: 'inherits' for each hop, then 'defines' (size, tag, templates) or 'not read'; 'tmd' with '| ' text lines, or 'hex' and 'strings'
+##### Metadata/Terrain/Blank.tdt  (listed)
+  defines	Metadata/Terrain/Blank.tdt	1x1	tag 	templates Art/Models/Terrain/Blank.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/black.tdt  (fill, laid)
+  defines	Metadata/Terrain/Dungeon/black.tdt	1x1	tag 	templates Art/Models/Terrain/IncaDungeon/dungeon_blackness_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_altar_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_altar_v01_01.tdt	1x1	tag altar	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_altar_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_altar_v02_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_altar_v02_01.tdt	1x1	tag altar	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_altar_v02_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_blank_fill.tdt  (fill, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_blank_fill.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_blank_fill.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_column_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_column_v01_01.tdt	1x1	tag column	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_column_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_crumbled_corner_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_crumbled_corner_v01_01.tdt	2x2	tag rubble	templates Art/Models/Terrain/Jungle/Tiles/Observatorium/dungeon_crumbled_corner_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_crumbled_wall_corner_concave_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_crumbled_wall_corner_concave_v01_01.tdt	2x2	tag debrisCc	templates Art/Models/Terrain/Jungle/Tiles/Observatorium/dungeon_crumbled_wall_corner_concave_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinedstraightwall_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinedstraightwall_v01_01.tdt	2x3	tag rootwall	templates Art/Models/Terrain/Jungle/Tiles/Observatorium/dungeon_ruinedstraightwall_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinedstraightwall_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinedstraightwall_v01_02.tdt	2x3	tag rootwall	templates Art/Models/Terrain/Jungle/Tiles/Observatorium/dungeon_ruinedstraightwall_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinedstraightwall_v02_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinedstraightwall_v02_01.tdt	1x2	tag rootwall	templates Art/Models/Terrain/Jungle/Tiles/Observatorium/dungeon_ruinedstraightwall_v02_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinedstraightwall_v02_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinedstraightwall_v02_02.tdt	1x2	tag rootwall	templates Art/Models/Terrain/Jungle/Tiles/Observatorium/dungeon_ruinedstraightwall_v02_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinroofshadow_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinroofshadow_v01_01.tdt	2x2	tag roof_hole	templates Art/Models/Terrain/Jungle/Tiles/Observatorium/dungeon_ruinroofshadow_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinroofshadow_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinroofshadow_v01_02.tdt	2x2	tag roof_hole	templates Art/Models/Terrain/Jungle/Tiles/Observatorium/dungeon_ruinroofshadow_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinroofshadow_v02_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinroofshadow_v02_01.tdt	1x2	tag roof_hole	templates Art/Models/Terrain/Jungle/Tiles/Observatorium/dungeon_ruinroofshadow_v02_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinroofshadow_v02_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinroofshadow_v02_02.tdt	1x2	tag roof_hole	templates Art/Models/Terrain/Jungle/Tiles/Observatorium/dungeon_ruinroofshadow_v02_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruin_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruin_v01_01.tdt	1x1	tag ruin	templates Art/Models/Terrain/Jungle/Tiles/Observatorium/dungeon_ruin_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruin_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruin_v01_02.tdt	1x1	tag ruin	templates Art/Models/Terrain/Jungle/Tiles/Observatorium/dungeon_ruin_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruin_v01_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruin_v01_03.tdt	1x1	tag ruin	templates Art/Models/Terrain/Jungle/Tiles/Observatorium/dungeon_ruin_v01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruin_v01_04.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruin_v01_04.tdt	1x1	tag ruin	templates Art/Models/Terrain/Jungle/Tiles/Observatorium/dungeon_ruin_v01_04.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_square_skulls.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_square_skulls.tdt	1x1	tag squareskulls	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_feature_v01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_wall_pit_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_wall_pit_v01_01.tdt	1x1	tag abyss	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_pit_v01_01.tgt
+  tmd	Metadata/Terrain/Dungeon/NextFeatures/dungeon_wall_pit_v01_01.tmd	282 bytes	text
+  | version 8
+  | 11 11 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Water/WaterPlane1x1.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 
+##### Metadata/Terrain/Dungeon/NextFeatures/dungeon_wall_post_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_wall_post_v01_01.tdt	1x1	tag post	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_post_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_floorwall_thin_height_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_floorwall_thin_height_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_floorwall_thin_height_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_corner_convex_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_corner_convex_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_floor_height_corner_convex_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_corner_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_corner_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_floor_height_corner_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_01.tdt	1x1	tag busted	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_floor_height_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_010.tdt  (listed)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_010.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_floor_height_v01_010.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_011.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_011.tdt	1x1	tag forced_rightangle	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_floor_height_v01_010.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_floor_height_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_03.tdt  (listed)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_03.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_floor_height_v01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_04.tdt  (listed)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_04.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_floor_height_v01_04.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_05.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_05.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_floor_height_v01_05.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_06.tdt  (listed)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_06.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_floor_height_v01_06.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_07.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_07.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_floor_height_v01_07.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_08.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_08.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_floor_height_v01_08.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_09.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_09.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_floor_height_v01_09.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_stairs_fill_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_stairs_fill_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_stairs_fill_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_stairs_fill_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_stairs_fill_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_stairs_fill_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_stairs_fill_v01_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_stairs_fill_v01_03.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_stairs_fill_v01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_wall_height_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_wall_height_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_height_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_wall_thin_height_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_wall_thin_height_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_height_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_wall_thin_height_v01_02.tdt  (listed)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_wall_thin_height_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_height_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextLedge/dungeon_wall_thin_height_v02_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextLedge/dungeon_wall_thin_height_v02_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_height_v02_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextStairs/dungeon_floor_height_concave_stairs_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextStairs/dungeon_floor_height_concave_stairs_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_floor_height_concave_stairs_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextStairs/dungeon_floor_height_convex_stairs_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextStairs/dungeon_floor_height_convex_stairs_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_floor_height_convex_stairs_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextStairs/dungeon_half_stairs_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextStairs/dungeon_half_stairs_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_half_stairs_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_concave_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_concave_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_stairs_concave_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_convex_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_convex_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_stairs_convex_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_straight_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_straight_v01_01.tdt	1x1	tag stairs	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_stairs_straight_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_straight_v02_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_straight_v02_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_stairs_straight_v02_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_straight_v03_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_straight_v03_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_stairs_straight_v03_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_straight_v04_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_straight_v04_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_stairs_straight_v04_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_thin_straight_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_thin_straight_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_stairs_thin_straight_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_to_ledge_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_to_ledge_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_stairs_to_ledge_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextStairs/dungeon_wall_straight_stairs_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextStairs/dungeon_wall_straight_stairs_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_straight_stairs_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_thick_to_thin_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_thick_to_thin_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_thick_to_thin_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_thick_to_thin_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_thick_to_thin_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_thick_to_thin_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_corner_concave_v02_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_corner_concave_v02_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_corner_concave_v02_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_corner_convex_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_corner_convex_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_corner_convex_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_corner_convex_v02_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_corner_convex_v02_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_corner_convex_v02_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_straight_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_straight_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v01_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v01_03.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_straight_v01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v02_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v02_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_straight_v02_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v02_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v02_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_straight_v02_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v03_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v03_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_straight_v03_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v04_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v04_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_straight_v04_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thick_X_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thick_X_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thick_X_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_corner_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_corner_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_corner_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_corner_v02_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_corner_v02_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_corner_v02_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_end_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_end_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_end_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_end_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_end_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_end_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_pillar_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_pillar_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_pillar_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_pillar_v02_01.tdt  (listed)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_pillar_v02_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_pillar_v02_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_pillar_v03_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_pillar_v03_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_pillar_v03_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_pillar_v04_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_pillar_v04_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_pillar_v04_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_thick_T_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_thick_T_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_thick_T_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_thick_X_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_thick_X_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_thick_X_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_T_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_T_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_T_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_T_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_T_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_T_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_X_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_X_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_X_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_X_v01_02.tdt  (listed)
+  defines	Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_X_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_wall_thin_X_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/Blank_01.tdt  (fill, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/Blank_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalrootsBlank_01.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/Blank_02.tdt  (fill, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/Blank_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalrootsBlank_02.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/Blank_03.tdt  (fill, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/Blank_03.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalrootsBlank_03.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/Blank_04.tdt  (fill, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/Blank_04.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalrootsBlank_04.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/Blank_05.tdt  (fill, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/Blank_05.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalrootsBlank_05.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_01.tdt  (fill, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_01.tdt	1x1	tag ruin	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/dungeon_ruin_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_02.tdt  (fill, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_02.tdt	1x1	tag ruin	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/dungeon_ruin_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_03.tdt  (fill, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_03.tdt	1x1	tag ruin	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/dungeon_ruin_v01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_04.tdt  (fill, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/Feature/dungeon_ruin_v01_04.tdt	1x1	tag ruin	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/dungeon_ruin_v01_04.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/ForcedBlank_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/ForcedBlank_01.tdt	1x1	tag blank	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalrootsForcedBlank_01.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/ForcedBlank_04.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/ForcedBlank_04.tdt	1x1	tag forcedblank	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalrootsForcedBlank_04.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/ForcedBlank_05.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/ForcedBlank_05.tdt	1x1	tag forcedblank	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalrootsForcedBlank_05.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/MapAugury/AuguryArena.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/MapAugury/AuguryArena.tdt	13x13	tag arena	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/MapAugury/AuguryArena.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/MapAugury/dungeon_entrance_thin_v01_01_boss.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Dungeon/NextFeatures/dungeon_entrance_thin_v01_01.tdt
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_entrance_thin_v01_01.tdt	1x1	tag door	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_entrance_thin_v01_01.tgt
+  tmd	Metadata/Terrain/Jungle/SnakePit/MapAugury/dungeon_entrance_thin_v01_01_boss.tmd	1040 bytes	text
+  | version 8
+  | 11 11 0 -0.00049231 0 -0 0 0 1 0 1 "Metadata/Terrain/Jungle/VaalInterior/Doors/VaalIntDoor01.ao" "" "" "Metadata/Terrain/Maps/Augury/Objects/ArenaDoor" 0
+  | 23 11 1 250 125 -0.00049231 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Jungle/VaalInterior/ThinPillar02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 0 11 1 4.54747e-13 125 -0.00049231 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Jungle/VaalInterior/ThinPillar02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+  tmd	Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_entrance_thin_v01_01.tmd	2530 bytes	text
+  | version 8
+  | 11 11 1 125 125 -0.00049231 0 -0 0 0 1 0 1 "Metadata/Terrain/Jungle/VaalInterior/Doors/VaalIntDoor01.ao" "dungeon_entrance_thin_v01_01_Door01_exact" "Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_entrance_thin_v01_01_Door01_exact.fmt" "Metadata/MiscellaneousObjects/Door"
+  | 11 11 1 125 125 -0.00049231 0 -0 0 0 1 0 1 "Metadata/Terrain/Jungle/VaalInterior/BreakableArchways/ThinDoor01.ao" "dungeon_entrance_thin_v01_01_ThickDoor_06" "Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_entrance_thin_v01_01_ThickDoor_06.fmt" "Metadata/Terrain/Jungle/VaalInterior/BreakableArchways/BreakableArchways"
+  | 23 11 1 250 125 -0.00049231 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Jungle/VaalInterior/ThinPillar02.ao" "dungeon_entrance_thin_v01_01_ThinPillar02_02_exact101" "Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_entrance_thin_v01_01_ThinPillar02_02_exact101.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 0 11 1 4.54747e-13 125 -0.00049231 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Jungle/VaalInterior/ThinPillar02.ao" "dungeon_entrance_thin_v01_01_ThinPillar02_exact" "Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_entrance_thin_v01_01_ThinPillar02_exact.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Jungle/SnakePit/MapAugury/dungeon_entrance_thin_v01_01_open.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Dungeon/NextFeatures/dungeon_entrance_thin_v03_01.tdt
+  inherits	Metadata/Terrain/Dungeon/NextFeatures/dungeon_entrance_thin_v01_01.tdt
+  defines	Metadata/Terrain/Dungeon/NextFeatures/dungeon_entrance_thin_v01_01.tdt	1x1	tag door	templates Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_entrance_thin_v01_01.tgt
+  tmd	Metadata/Terrain/Jungle/SnakePit/MapAugury/dungeon_entrance_thin_v01_01_open.tmd	732 bytes	text
+  | version 8
+  | 23 11 1 250 125 -0.00049231 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Jungle/VaalInterior/ThinPillar02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 0 11 1 4.54747e-13 125 -0.00049231 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Jungle/VaalInterior/ThinPillar02.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+  tmd	Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_entrance_thin_v01_01.tmd	2530 bytes	text
+  | version 8
+  | 11 11 1 125 125 -0.00049231 0 -0 0 0 1 0 1 "Metadata/Terrain/Jungle/VaalInterior/Doors/VaalIntDoor01.ao" "dungeon_entrance_thin_v01_01_Door01_exact" "Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_entrance_thin_v01_01_Door01_exact.fmt" "Metadata/MiscellaneousObjects/Door"
+  | 11 11 1 125 125 -0.00049231 0 -0 0 0 1 0 1 "Metadata/Terrain/Jungle/VaalInterior/BreakableArchways/ThinDoor01.ao" "dungeon_entrance_thin_v01_01_ThickDoor_06" "Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_entrance_thin_v01_01_ThickDoor_06.fmt" "Metadata/Terrain/Jungle/VaalInterior/BreakableArchways/BreakableArchways"
+  | 23 11 1 250 125 -0.00049231 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Jungle/VaalInterior/ThinPillar02.ao" "dungeon_entrance_thin_v01_01_ThinPillar02_02_exact101" "Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_entrance_thin_v01_01_ThinPillar02_02_exact101.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 0 11 1 4.54747e-13 125 -0.00049231 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Jungle/VaalInterior/ThinPillar02.ao" "dungeon_entrance_thin_v01_01_ThinPillar02_exact" "Art/Models/Terrain/Jungle/Tiles/VaalInterior/dungeon_entrance_thin_v01_01_ThinPillar02_exact.fmt" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_concave_v02_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_concave_v02_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_concave_v02_02.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_convex_thin_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_convex_thin_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_convex_thin_v01_01.tgt
+  tmd	Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_convex_thin_v01_01.tmd	654 bytes	text
+  | version 8
+  | -1 11 1 -9.09495e-13 125 -0 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Jungle/VaalInterior/ThinPillar01.ao" "vaalroots_convex_thin_v01_01_ThinPillar01_01_exact" "Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_convex_thin_v01_01_ThinPillar01_01_exact.fmt" "Metadata/MiscellaneousObjects/DoodadNoOverlap"
+  | 
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_convex_thin_v02_01.tdt  (listed)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_convex_thin_v02_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_convex_thin_v02_01.tgt
+  tmd	Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_convex_thin_v02_01.tmd	1244 bytes	text
+  | version 8
+  | 23 11 1 250.001 125 -0 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Jungle/VaalInterior/ThinPillar01.ao" "vaalroots_convex_thin_v02_01_ThinPillar01_01_exact" "Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_convex_thin_v02_01_ThinPillar01_01_exact.fmt" "Metadata/MiscellaneousObjects/DoodadNoOverlap"
+  | 11 0 1 125.001 -0 -0 3.14159 -0 0 1 5.05322e-16 0 1 "Metadata/Terrain/Jungle/VaalInterior/ThinPillar01.ao" "vaalroots_convex_thin_v02_01_ThinPillar01_exact" "Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_convex_thin_v02_01_ThinPillar01_exact.fmt" "Metadata/MiscellaneousObjects/DoodadNoOverlap"
+  | 
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_convex_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_convex_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_convex_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_convex_v02_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_convex_v02_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_convex_v02_01.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_altar_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_altar_v01_01.tdt	1x1	tag altar	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_straight_altar_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_altar_v02_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_altar_v02_01.tdt	1x1	tag altar	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_straight_altar_v02_01.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_post_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_post_v01_01.tdt	1x1	tag post	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_straight_post_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_thin_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_thin_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_straight_thin_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_thin_v01_02.tdt  (listed)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_thin_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_straight_thin_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_straight_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_straight_v01_02.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v01_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v01_03.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_straight_v01_03.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v02_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v02_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_straight_v02_01.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v02_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v02_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_straight_v02_02.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v03_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v03_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_straight_v03_01.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v04_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v04_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_straight_v04_01.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaalroots_X_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaalroots_X_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaalroots_X_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaal_to_roots_convex_thin_v01_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaal_to_roots_convex_thin_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaal_to_roots_convex_thin_v01_01.tgt
+  tmd	Art/Models/Terrain/Jungle/Tiles/SnakePit/vaal_to_roots_convex_thin_v01_01.tmd	670 bytes	text
+  | version 8
+  | -1 11 1 -6.82121e-13 125 -0 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Jungle/VaalInterior/ThinPillar01.ao" "vaal_to_roots_convex_thin_v01_01_ThinPillar01_01_exact" "Art/Models/Terrain/Jungle/Tiles/SnakePit/vaal_to_roots_convex_thin_v01_01_ThinPillar01_01_exact.fmt" "Metadata/MiscellaneousObjects/DoodadNoOverlap"
+  | 
+##### Metadata/Terrain/Jungle/SnakePit/vaal_to_roots_convex_thin_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaal_to_roots_convex_thin_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaal_to_roots_convex_thin_v01_02.tgt
+  tmd	Art/Models/Terrain/Jungle/Tiles/SnakePit/vaal_to_roots_convex_thin_v01_02.tmd	670 bytes	text
+  | version 8
+  | -1 11 1 -6.82121e-13 125 -0 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Jungle/VaalInterior/ThinPillar01.ao" "vaal_to_roots_convex_thin_v01_02_ThinPillar01_01_exact" "Art/Models/Terrain/Jungle/Tiles/SnakePit/vaal_to_roots_convex_thin_v01_02_ThinPillar01_01_exact.fmt" "Metadata/MiscellaneousObjects/DoodadNoOverlap"
+  | 
+##### Metadata/Terrain/Jungle/SnakePit/vaal_to_roots_convex_thin_v02_01.tdt  (listed)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaal_to_roots_convex_thin_v02_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaal_to_roots_convex_thin_v02_01.tgt
+  tmd	Art/Models/Terrain/Jungle/Tiles/SnakePit/vaal_to_roots_convex_thin_v02_01.tmd	1276 bytes	text
+  | version 8
+  | 23 11 1 250.001 125 -0 1.5708 -0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Jungle/VaalInterior/ThinPillar01.ao" "vaal_to_roots_convex_thin_v02_01_ThinPillar01_01_exact" "Art/Models/Terrain/Jungle/Tiles/SnakePit/vaal_to_roots_convex_thin_v02_01_ThinPillar01_01_exact.fmt" "Metadata/MiscellaneousObjects/DoodadNoOverlap"
+  | 11 0 1 125.001 -0 -0 3.14159 -0 0 1 5.05322e-16 0 1 "Metadata/Terrain/Jungle/VaalInterior/ThinPillar01.ao" "vaal_to_roots_convex_thin_v02_01_ThinPillar01_exact" "Art/Models/Terrain/Jungle/Tiles/SnakePit/vaal_to_roots_convex_thin_v02_01_ThinPillar01_exact.fmt" "Metadata/MiscellaneousObjects/DoodadNoOverlap"
+  | 
+##### Metadata/Terrain/Jungle/SnakePit/vaal_to_roots_straight_thin_v01_01.tdt  (listed)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaal_to_roots_straight_thin_v01_01.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaal_to_roots_straight_thin_v01_01.tgt
+  tmd	none
+##### Metadata/Terrain/Jungle/SnakePit/vaal_to_roots_straight_thin_v01_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Jungle/SnakePit/vaal_to_roots_straight_thin_v01_02.tdt	1x1	tag 	templates Art/Models/Terrain/Jungle/Tiles/SnakePit/vaal_to_roots_straight_thin_v01_02.tgt
+  tmd	none

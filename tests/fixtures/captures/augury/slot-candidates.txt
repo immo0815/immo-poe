@@ -1,0 +1,590 @@
+44 rooms of the area's set against 112 tiles its tilesets list - 1 master, lists Metadata/Terrain/Maps/Augury/tiles.tst
+Each kind of slot once with the tiles alike to it by the search's rule (SlotWants): the size either way round, the tag where the slot names one, every edge and ground type the slot names among the tile's. One tile alike settles the kind by the files; several is the generator's choice.
+
+summary: 0 of 44 rooms settled by the files alone (every kind of slot one tile) · arena rooms 0 of 2 · slots settled 72 of 2550 · tiles that did not read 0
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Large_Connection_01.arm  -  69 slots of 12 kinds · one tile answers 0 kinds (0 slots), several 11, none 1
+  21 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  6 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  25 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  2 slots 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: vaal_to_roots_straight_thin_v01_01, vaal_to_roots_straight_thin_v01_02, vaalroots_straight_thin_v01_01, vaalroots_straight_thin_v01_02, dungeon_thick_to_thin_v01_01, dungeon_thick_to_thin_v01_02
+  2 slots 1x1 edges [-, -, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 18 tiles
+  2 slots 1x1 edges [-, -, -, dungeon_thin_wall] grounds [-, -, -, -] -> 34 tiles
+  2 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  2 slots 1x1 edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 18 tiles
+  2 slots 1x1 edges [-, dungeon_ledge, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 5 tiles: dungeon_floor_height_corner_convex_v01_01, dungeon_floor_height_corner_v01_01, dungeon_floor_height_v01_02, dungeon_floor_height_v01_03, dungeon_wall_height_v01_01
+  3 slots 1x1 edges [-, -, dungeon_stairs, dungeon_stairs] grounds [-, -, -, -] -> 5 tiles: dungeon_stairs_concave_v01_01, dungeon_stairs_convex_v01_01, dungeon_stairs_straight_v02_02, dungeon_stairs_straight_v04_01, dungeon_stairs_thin_straight_v01_01
+  1 slot (big) 2x3 rootwall edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: dungeon_ruinedstraightwall_v01_01, dungeon_ruinedstraightwall_v01_02
+  1 slot (big) 2x2 roof_hole edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: dungeon_ruinroofshadow_v01_01, dungeon_ruinroofshadow_v01_02
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Large_Connection_02.arm  -  77 slots of 15 kinds · one tile answers 1 kinds (2 slots), several 13, none 1
+  18 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  25 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  2 slots 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: vaal_to_roots_straight_thin_v01_01, vaal_to_roots_straight_thin_v01_02, vaalroots_straight_thin_v01_01, vaalroots_straight_thin_v01_02, dungeon_thick_to_thin_v01_01, dungeon_thick_to_thin_v01_02
+  4 slots 1x1 door edges [-, -, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 2 tiles: dungeon_entrance_thin_v01_01_boss, dungeon_entrance_thin_v01_01_open
+  4 slots 1x1 edges [-, -, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 18 tiles
+  8 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  2 slots 1x1 edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 18 tiles
+  2 slots 1x1 edges [-, dungeon_ledge, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_wall_height_v01_01
+  1 slot (big) 2x2 roof_hole edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: dungeon_ruinroofshadow_v01_01, dungeon_ruinroofshadow_v01_02
+  1 slot (big) 2x3 rootwall edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: dungeon_ruinedstraightwall_v01_01, dungeon_ruinedstraightwall_v01_02
+  1 slot 1x1 edges [-, dungeon_thin_wall, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 4 tiles: dungeon_wall_thin_T_v01_01, dungeon_wall_thin_T_v01_02, dungeon_wall_thin_X_v01_01, dungeon_wall_thin_X_v01_02
+  2 slots 1x1 edges [-, -, -, dungeon_thin_wall] grounds [-, -, -, -] -> 34 tiles
+  1 slot 1x1 edges [-, dungeon_ledge, dungeon_ledge, dungeon_thin_wall] grounds [-, -, -, -] -> 4 tiles: dungeon_floorwall_thin_height_v01_01, dungeon_wall_thin_height_v01_01, dungeon_wall_thin_height_v01_02, dungeon_wall_thin_height_v02_01
+  2 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Large_Corner_01.arm  -  70 slots of 16 kinds · one tile answers 4 kinds (5 slots), several 11, none 1
+  17 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  8 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  20 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  1 slot 1x1 edges [-, -, -, dungeon_thin_wall] grounds [-, -, -, -] -> 34 tiles
+  1 slot 1x1 edges [-, -, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 18 tiles
+  1 slot 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: vaal_to_roots_straight_thin_v01_01, vaal_to_roots_straight_thin_v01_02, vaalroots_straight_thin_v01_01, vaalroots_straight_thin_v01_02, dungeon_thick_to_thin_v01_01, dungeon_thick_to_thin_v01_02
+  4 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  3 slots 1x1 edges [-, -, dungeon_stairs, dungeon_stairs] grounds [-, -, -, -] -> 5 tiles: dungeon_stairs_concave_v01_01, dungeon_stairs_convex_v01_01, dungeon_stairs_straight_v02_02, dungeon_stairs_straight_v04_01, dungeon_stairs_thin_straight_v01_01
+  2 slots 1x1 forced_rightangle edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 1 tile: dungeon_floor_height_v01_011
+  3 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+  1 slot (big) 2x2 rubble edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_crumbled_corner_v01_01
+  1 slot 1x1 squareskulls edges [-, -, -, -] grounds [-, -, -, -] -> 1 tile: dungeon_square_skulls
+  1 slot 1x1 edges [-, dungeon_stairs, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_wall_straight_stairs_v01_01
+  2 slots 1x1 post edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: vaalroots_straight_post_v01_01, dungeon_wall_post_v01_01
+  1 slot 1x1 edges [-, dungeon_stairs, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 3 tiles: dungeon_floor_height_concave_stairs_v01_01, dungeon_floor_height_convex_stairs_v01_02, dungeon_wall_straight_stairs_v01_01
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Large_Corner_02.arm  -  76 slots of 14 kinds · one tile answers 3 kinds (4 slots), several 10, none 1
+  17 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  8 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  21 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  3 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  1 slot 1x1 altar edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_straight_altar_v01_01, vaalroots_straight_altar_v02_01, dungeon_altar_v01_01, dungeon_altar_v02_01
+  1 slot (big) 2x1 roof_hole edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: dungeon_ruinroofshadow_v02_01, dungeon_ruinroofshadow_v02_02
+  2 slots 1x1 edges [-, dungeon_ledge, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 5 tiles: dungeon_floor_height_corner_convex_v01_01, dungeon_floor_height_corner_v01_01, dungeon_floor_height_v01_02, dungeon_floor_height_v01_03, dungeon_wall_height_v01_01
+  4 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  3 slots 1x1 edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 18 tiles
+  1 slot 1x1 edges [-, -, dungeon_stairs, dungeon_stairs] grounds [-, -, -, -] -> 5 tiles: dungeon_stairs_concave_v01_01, dungeon_stairs_convex_v01_01, dungeon_stairs_straight_v02_02, dungeon_stairs_straight_v04_01, dungeon_stairs_thin_straight_v01_01
+  11 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+  1 slot (big) 2x2 rubble edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_crumbled_corner_v01_01
+  1 slot 1x1 stairs edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 1 tile: dungeon_stairs_straight_v01_01
+  2 slots 1x1 abyss edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_wall_pit_v01_01
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Large_Corner_03.arm  -  83 slots of 15 kinds · one tile answers 0 kinds (0 slots), several 14, none 1
+  17 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  9 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  24 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  4 slots 1x1 edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 18 tiles
+  6 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  2 slots 1x1 edges [-, -, dungeon_stairs, dungeon_stairs] grounds [-, -, -, -] -> 5 tiles: dungeon_stairs_concave_v01_01, dungeon_stairs_convex_v01_01, dungeon_stairs_straight_v02_02, dungeon_stairs_straight_v04_01, dungeon_stairs_thin_straight_v01_01
+  2 slots 1x1 edges [-, -, -, dungeon_thin_wall] grounds [-, -, -, -] -> 34 tiles
+  1 slot (big) 1x2 rootwall edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: dungeon_ruinedstraightwall_v02_01, dungeon_ruinedstraightwall_v02_02
+  6 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+  2 slots 1x1 edges [-, dungeon_ledge, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 5 tiles: dungeon_floor_height_corner_convex_v01_01, dungeon_floor_height_corner_v01_01, dungeon_floor_height_v01_02, dungeon_floor_height_v01_03, dungeon_wall_height_v01_01
+  2 slots 1x1 altar edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_straight_altar_v01_01, vaalroots_straight_altar_v02_01, dungeon_altar_v01_01, dungeon_altar_v02_01
+  2 slots 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, -, black_inside_wall] -> 13 tiles
+  1 slot 1x1 edges [dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, black_inside_wall] -> 3 tiles: vaal_to_roots_convex_thin_v02_01, vaalroots_convex_thin_v02_01, dungeon_wall_thin_thick_X_v01_01
+  1 slot 1x1 door edges [-, -, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 2 tiles: dungeon_entrance_thin_v01_01_boss, dungeon_entrance_thin_v01_01_open
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Large_Open_01.arm  -  63 slots of 7 kinds · one tile answers 0 kinds (0 slots), several 6, none 1
+  4 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  8 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  28 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  8 slots 1x1 edges [-, -, -, dungeon_thin_wall] grounds [-, -, -, -] -> 34 tiles
+  10 slots 1x1 edges [-, -, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 18 tiles
+  1 slot (big) 2x2 roof_hole edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: dungeon_ruinroofshadow_v01_01, dungeon_ruinroofshadow_v01_02
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Large_Side_01.arm  -  57 slots of 10 kinds · one tile answers 1 kinds (1 slots), several 8, none 1
+  19 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  7 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  19 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  1 slot (big) 1x2 roof_hole edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: dungeon_ruinroofshadow_v02_01, dungeon_ruinroofshadow_v02_02
+  1 slot (big) 2x2 roof_hole edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: dungeon_ruinroofshadow_v01_01, dungeon_ruinroofshadow_v01_02
+  2 slots 1x1 edges [-, -, -, dungeon_thin_wall] grounds [-, -, -, -] -> 34 tiles
+  1 slot (big) 3x2 rootwall edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: dungeon_ruinedstraightwall_v01_01, dungeon_ruinedstraightwall_v01_02
+  1 slot (big) 2x2 rubble edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_crumbled_corner_v01_01
+  2 slots 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: vaal_to_roots_straight_thin_v01_01, vaal_to_roots_straight_thin_v01_02, vaalroots_straight_thin_v01_01, vaalroots_straight_thin_v01_02, dungeon_thick_to_thin_v01_01, dungeon_thick_to_thin_v01_02
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Large_Side_02.arm  -  91 slots of 11 kinds · one tile answers 1 kinds (2 slots), several 9, none 1
+  11 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  14 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  26 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  10 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  6 slots 1x1 edges [-, dungeon_ledge, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 5 tiles: dungeon_floor_height_corner_convex_v01_01, dungeon_floor_height_corner_v01_01, dungeon_floor_height_v01_02, dungeon_floor_height_v01_03, dungeon_wall_height_v01_01
+  6 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  2 slots 1x1 edges [-, dungeon_stairs, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 3 tiles: dungeon_floor_height_concave_stairs_v01_01, dungeon_floor_height_convex_stairs_v01_02, dungeon_wall_straight_stairs_v01_01
+  9 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+  4 slots 1x1 edges [-, -, dungeon_stairs, dungeon_stairs] grounds [-, -, -, -] -> 5 tiles: dungeon_stairs_concave_v01_01, dungeon_stairs_convex_v01_01, dungeon_stairs_straight_v02_02, dungeon_stairs_straight_v04_01, dungeon_stairs_thin_straight_v01_01
+  2 slots 1x1 squareskulls edges [-, -, -, -] grounds [-, -, -, -] -> 1 tile: dungeon_square_skulls
+  1 slot 1x1 ruin edges [-, -, -, -] grounds [-, -, -, -] -> 4 tiles: dungeon_ruin_v01_01, dungeon_ruin_v01_02, dungeon_ruin_v01_03, dungeon_ruin_v01_04
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Large_Side_03.arm  -  90 slots of 19 kinds · one tile answers 4 kinds (9 slots), several 14, none 1
+  23 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  7 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  19 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  2 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  5 slots 1x1 edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 18 tiles
+  6 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  1 slot 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, -, black_inside_wall] -> 13 tiles
+  1 slot 1x1 door edges [-, -, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 2 tiles: dungeon_entrance_thin_v01_01_boss, dungeon_entrance_thin_v01_01_open
+  1 slot 1x1 edges [-, -, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 18 tiles
+  1 slot 1x1 edges [-, dungeon_ledge, dungeon_ledge, dungeon_thin_wall] grounds [-, -, -, -] -> 4 tiles: dungeon_floorwall_thin_height_v01_01, dungeon_wall_thin_height_v01_01, dungeon_wall_thin_height_v01_02, dungeon_wall_thin_height_v02_01
+  4 slots 1x1 column edges [-, -, -, -] grounds [-, -, -, -] -> 1 tile: dungeon_column_v01_01
+  10 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+  1 slot 1x1 busted edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 1 tile: dungeon_floor_height_v01_01
+  1 slot 1x1 edges [-, dungeon_ledge, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 5 tiles: dungeon_floor_height_corner_convex_v01_01, dungeon_floor_height_corner_v01_01, dungeon_floor_height_v01_02, dungeon_floor_height_v01_03, dungeon_wall_height_v01_01
+  1 slot (big) 2x2 roof_hole edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: dungeon_ruinroofshadow_v01_01, dungeon_ruinroofshadow_v01_02
+  2 slots 1x1 edges [-, -, dungeon_stairs, dungeon_stairs] grounds [-, -, -, -] -> 5 tiles: dungeon_stairs_concave_v01_01, dungeon_stairs_convex_v01_01, dungeon_stairs_straight_v02_02, dungeon_stairs_straight_v04_01, dungeon_stairs_thin_straight_v01_01
+  3 slots 1x1 edges [-, dungeon_ledge, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_wall_height_v01_01
+  1 slot (big) 2x2 rubble edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_crumbled_corner_v01_01
+  1 slot (big) 2x1 rootwall edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: dungeon_ruinedstraightwall_v02_01, dungeon_ruinedstraightwall_v02_02
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Long_Open_01.arm  -  41 slots of 7 kinds · one tile answers 0 kinds (0 slots), several 6, none 1
+  6 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  12 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  8 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  6 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  2 slots 1x1 edges [-, dungeon_stairs, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 3 tiles: dungeon_floor_height_concave_stairs_v01_01, dungeon_floor_height_convex_stairs_v01_02, dungeon_wall_straight_stairs_v01_01
+  1 slot 1x1 edges [-, -, dungeon_stairs, dungeon_stairs] grounds [-, -, -, -] -> 5 tiles: dungeon_stairs_concave_v01_01, dungeon_stairs_convex_v01_01, dungeon_stairs_straight_v02_02, dungeon_stairs_straight_v04_01, dungeon_stairs_thin_straight_v01_01
+  6 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Long_Side_01.arm  -  45 slots of 6 kinds · one tile answers 1 kinds (2 slots), several 4, none 1
+  14 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  5 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  14 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  9 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+  1 slot 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  2 slots 1x1 column edges [-, -, -, -] grounds [-, -, -, -] -> 1 tile: dungeon_column_v01_01
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Long_Side_02.arm  -  44 slots of 10 kinds · one tile answers 2 kinds (3 slots), several 7, none 1
+  14 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  5 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  9 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  8 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+  1 slot 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  2 slots 1x1 edges [-, dungeon_ledge, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_wall_height_v01_01
+  2 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  1 slot 1x1 abyss edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_wall_pit_v01_01
+  1 slot 1x1 edges [-, -, dungeon_stairs, dungeon_stairs] grounds [-, -, -, -] -> 5 tiles: dungeon_stairs_concave_v01_01, dungeon_stairs_convex_v01_01, dungeon_stairs_straight_v02_02, dungeon_stairs_straight_v04_01, dungeon_stairs_thin_straight_v01_01
+  1 slot (big) 2x1 rootwall edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: dungeon_ruinedstraightwall_v02_01, dungeon_ruinedstraightwall_v02_02
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Mid_Connection_01.arm  -  59 slots of 14 kinds · one tile answers 1 kinds (1 slots), several 12, none 1
+  10 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  8 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  16 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  2 slots 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: vaal_to_roots_straight_thin_v01_01, vaal_to_roots_straight_thin_v01_02, vaalroots_straight_thin_v01_01, vaalroots_straight_thin_v01_02, dungeon_thick_to_thin_v01_01, dungeon_thick_to_thin_v01_02
+  2 slots 1x1 door edges [-, -, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 2 tiles: dungeon_entrance_thin_v01_01_boss, dungeon_entrance_thin_v01_01_open
+  2 slots 1x1 edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 18 tiles
+  2 slots 1x1 edges [-, dungeon_ledge, dungeon_ledge, dungeon_thin_wall] grounds [-, -, -, -] -> 4 tiles: dungeon_floorwall_thin_height_v01_01, dungeon_wall_thin_height_v01_01, dungeon_wall_thin_height_v01_02, dungeon_wall_thin_height_v02_01
+  2 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  1 slot 1x1 forced_rightangle edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 1 tile: dungeon_floor_height_v01_011
+  3 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+  5 slots 1x1 edges [-, -, dungeon_stairs, dungeon_stairs] grounds [-, -, -, -] -> 5 tiles: dungeon_stairs_concave_v01_01, dungeon_stairs_convex_v01_01, dungeon_stairs_straight_v02_02, dungeon_stairs_straight_v04_01, dungeon_stairs_thin_straight_v01_01
+  1 slot (big) 1x2 rootwall edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: dungeon_ruinedstraightwall_v02_01, dungeon_ruinedstraightwall_v02_02
+  1 slot (big) 2x1 roof_hole edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: dungeon_ruinroofshadow_v02_01, dungeon_ruinroofshadow_v02_02
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Mid_Corner_01.arm  -  44 slots of 10 kinds · one tile answers 1 kinds (1 slots), several 8, none 1
+  15 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  6 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  14 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  3 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  1 slot 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: vaal_to_roots_straight_thin_v01_01, vaal_to_roots_straight_thin_v01_02, vaalroots_straight_thin_v01_01, vaalroots_straight_thin_v01_02, dungeon_thick_to_thin_v01_01, dungeon_thick_to_thin_v01_02
+  1 slot 1x1 edges [-, -, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 18 tiles
+  1 slot 1x1 edges [-, -, -, dungeon_thin_wall] grounds [-, -, -, -] -> 34 tiles
+  1 slot (big) 2x3 rootwall edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: dungeon_ruinedstraightwall_v01_01, dungeon_ruinedstraightwall_v01_02
+  1 slot (big) 2x2 roof_hole edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: dungeon_ruinroofshadow_v01_01, dungeon_ruinroofshadow_v01_02
+  1 slot (big) 2x2 rubble edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_crumbled_corner_v01_01
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Mid_Corner_02.arm  -  62 slots of 13 kinds · one tile answers 3 kinds (3 slots), several 9, none 1
+  18 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  8 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  15 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  1 slot (big) 2x1 roof_hole edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: dungeon_ruinroofshadow_v02_01, dungeon_ruinroofshadow_v02_02
+  2 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  1 slot 1x1 edges [-, dungeon_ledge, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_wall_height_v01_01
+  4 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  3 slots 1x1 edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 18 tiles
+  6 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+  1 slot 1x1 forced_rightangle edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 1 tile: dungeon_floor_height_v01_011
+  1 slot 1x1 ruin edges [-, -, -, -] grounds [-, -, -, -] -> 4 tiles: dungeon_ruin_v01_01, dungeon_ruin_v01_02, dungeon_ruin_v01_03, dungeon_ruin_v01_04
+  1 slot (big) 2x2 debrisCc edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 1 tile: dungeon_crumbled_wall_corner_concave_v01_01
+  1 slot 1x1 edges [-, dungeon_ledge, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 5 tiles: dungeon_floor_height_corner_convex_v01_01, dungeon_floor_height_corner_v01_01, dungeon_floor_height_v01_02, dungeon_floor_height_v01_03, dungeon_wall_height_v01_01
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Mid_Open_01.arm  -  36 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 3, none 1
+  4 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  8 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  20 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Mid_Side_01.arm  -  49 slots of 11 kinds · one tile answers 2 kinds (4 slots), several 8, none 1
+  11 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  6 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  18 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  2 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  2 slots 1x1 edges [-, dungeon_ledge, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_wall_height_v01_01
+  2 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  2 slots 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: vaal_to_roots_straight_thin_v01_01, vaal_to_roots_straight_thin_v01_02, vaalroots_straight_thin_v01_01, vaalroots_straight_thin_v01_02, dungeon_thick_to_thin_v01_01, dungeon_thick_to_thin_v01_02
+  2 slots 1x1 edges [dungeon_stairs, dungeon_stairs, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 1 tile: dungeon_stairs_thin_straight_v01_01
+  2 slots 1x1 edges [-, -, -, dungeon_thin_wall] grounds [-, -, -, -] -> 34 tiles
+  1 slot 1x1 edges [-, -, dungeon_stairs, dungeon_stairs] grounds [-, -, -, -] -> 5 tiles: dungeon_stairs_concave_v01_01, dungeon_stairs_convex_v01_01, dungeon_stairs_straight_v02_02, dungeon_stairs_straight_v04_01, dungeon_stairs_thin_straight_v01_01
+  1 slot (big) 2x1 roof_hole edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: dungeon_ruinroofshadow_v02_01, dungeon_ruinroofshadow_v02_02
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Overlays/boss_entrance_blank.arm  (arena)  -  12 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 2, none 1
+  2 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  1 slot 1x1 post edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: vaalroots_straight_post_v01_01, dungeon_wall_post_v01_01
+  9 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Overlays/ledge_intersection_1.arm  -  6 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  2 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  1 slot 1x1 edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 18 tiles
+  3 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Small_Corner_01.arm  -  22 slots of 6 kinds · one tile answers 1 kinds (1 slots), several 4, none 1
+  10 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  1 slot (big) 2x2 rubble edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_crumbled_corner_v01_01
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  2 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+  1 slot 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Small_Corner_02.arm  -  24 slots of 6 kinds · one tile answers 0 kinds (0 slots), several 5, none 1
+  10 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  5 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  1 slot (big) 2x1 rootwall edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: dungeon_ruinedstraightwall_v02_01, dungeon_ruinedstraightwall_v02_02
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  3 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+  1 slot 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Small_End_01.arm  -  25 slots of 4 kinds · one tile answers 1 kinds (1 slots), several 2, none 1
+  19 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  1 slot 1x1 abyss edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_wall_pit_v01_01
+  1 slot 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Small_End_02.arm  -  25 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 3, none 1
+  19 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  1 slot 1x1 altar edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_straight_altar_v01_01, vaalroots_straight_altar_v02_01, dungeon_altar_v01_01, dungeon_altar_v02_01
+  1 slot 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Small_Open_01.arm  -  24 slots of 6 kinds · one tile answers 0 kinds (0 slots), several 5, none 1
+  4 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  8 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  3 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+  1 slot (big) 2x1 roof_hole edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: dungeon_ruinroofshadow_v02_01, dungeon_ruinroofshadow_v02_02
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Small_Side_01.arm  -  20 slots of 6 kinds · one tile answers 0 kinds (0 slots), several 5, none 1
+  7 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  6 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  3 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  1 slot (big) 2x3 rootwall edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: dungeon_ruinedstraightwall_v01_01, dungeon_ruinedstraightwall_v01_02
+  2 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  1 slot 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Small_Side_02.arm  -  25 slots of 7 kinds · one tile answers 0 kinds (0 slots), several 6, none 1
+  7 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  6 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  3 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  2 slots 1x1 post edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: vaalroots_straight_post_v01_01, dungeon_wall_post_v01_01
+  4 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 101 tiles
+  2 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  1 slot 1x1 altar edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_straight_altar_v01_01, vaalroots_straight_altar_v02_01, dungeon_altar_v01_01, dungeon_altar_v02_01
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/boss_01.arm  (arena)  -  261 slots of 6 kinds · one tile answers 1 kinds (1 slots), several 3, none 2
+  216 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  24 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  8 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  8 slots 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, -, black_inside_wall] -> 13 tiles
+  4 slots 1x1 door_boss edges [-, -, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 0 tiles
+  1 slot (big) 13x13 arena edges [dungeon_corridor, dungeon_corridor, dungeon_corridor, dungeon_corridor] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: AuguryArena
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/entrance_01.arm  -  39 slots of 9 kinds · one tile answers 1 kinds (1 slots), several 7, none 1
+  8 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  7 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  10 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  2 slots 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: vaal_to_roots_straight_thin_v01_01, vaal_to_roots_straight_thin_v01_02, vaalroots_straight_thin_v01_01, vaalroots_straight_thin_v01_02, dungeon_thick_to_thin_v01_01, dungeon_thick_to_thin_v01_02
+  4 slots 1x1 door edges [-, -, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 2 tiles: dungeon_entrance_thin_v01_01_boss, dungeon_entrance_thin_v01_01_open
+  2 slots 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, -, black_inside_wall] -> 13 tiles
+  4 slots 1x1 post edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: vaalroots_straight_post_v01_01, dungeon_wall_post_v01_01
+  1 slot 1x1 altar edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_straight_altar_v01_01, vaalroots_straight_altar_v02_01, dungeon_altar_v01_01, dungeon_altar_v02_01
+  1 slot 1x1 abyss edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_wall_pit_v01_01
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/lever_01.arm  -  34 slots of 6 kinds · one tile answers 0 kinds (0 slots), several 5, none 1
+  13 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  12 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  2 slots 1x1 post edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: vaalroots_straight_post_v01_01, dungeon_wall_post_v01_01
+  2 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  1 slot 1x1 altar edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_straight_altar_v01_01, vaalroots_straight_altar_v02_01, dungeon_altar_v01_01, dungeon_altar_v02_01
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/lever_01_flip.arm  -  34 slots of 6 kinds · one tile answers 0 kinds (0 slots), several 5, none 1
+  13 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  12 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  2 slots 1x1 post edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: vaalroots_straight_post_v01_01, dungeon_wall_post_v01_01
+  2 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  1 slot 1x1 altar edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_straight_altar_v01_01, vaalroots_straight_altar_v02_01, dungeon_altar_v01_01, dungeon_altar_v02_01
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/lever_02.arm  -  34 slots of 5 kinds · one tile answers 0 kinds (0 slots), several 4, none 1
+  13 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  12 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  3 slots 1x1 post edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: vaalroots_straight_post_v01_01, dungeon_wall_post_v01_01
+  2 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/lever_02_flip.arm  -  34 slots of 5 kinds · one tile answers 0 kinds (0 slots), several 4, none 1
+  13 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  12 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  3 slots 1x1 post edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: vaalroots_straight_post_v01_01, dungeon_wall_post_v01_01
+  2 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/lever_03.arm  -  34 slots of 5 kinds · one tile answers 0 kinds (0 slots), several 4, none 1
+  6 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  14 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  9 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  1 slot 1x1 altar edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_straight_altar_v01_01, vaalroots_straight_altar_v02_01, dungeon_altar_v01_01, dungeon_altar_v02_01
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/lever_03_flip.arm  -  34 slots of 5 kinds · one tile answers 0 kinds (0 slots), several 4, none 1
+  6 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  14 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  9 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  1 slot 1x1 altar edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_straight_altar_v01_01, vaalroots_straight_altar_v02_01, dungeon_altar_v01_01, dungeon_altar_v02_01
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/Mission_Large_Connection_01.arm  -  69 slots of 12 kinds · one tile answers 0 kinds (0 slots), several 10, none 2
+  21 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  6 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  25 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  2 slots 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: vaal_to_roots_straight_thin_v01_01, vaal_to_roots_straight_thin_v01_02, vaalroots_straight_thin_v01_01, vaalroots_straight_thin_v01_02, dungeon_thick_to_thin_v01_01, dungeon_thick_to_thin_v01_02
+  2 slots 1x1 edges [-, -, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 18 tiles
+  2 slots 1x1 edges [-, -, -, dungeon_thin_wall] grounds [-, -, -, -] -> 34 tiles
+  2 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  2 slots 1x1 edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 18 tiles
+  2 slots 1x1 edges [-, dungeon_ledge, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 5 tiles: dungeon_floor_height_corner_convex_v01_01, dungeon_floor_height_corner_v01_01, dungeon_floor_height_v01_02, dungeon_floor_height_v01_03, dungeon_wall_height_v01_01
+  1 slot (big) 3x3 missiontile edges [-, -, -, -] grounds [-, -, -, -] -> 0 tiles
+  3 slots 1x1 edges [-, -, dungeon_stairs, dungeon_stairs] grounds [-, -, -, -] -> 5 tiles: dungeon_stairs_concave_v01_01, dungeon_stairs_convex_v01_01, dungeon_stairs_straight_v02_02, dungeon_stairs_straight_v04_01, dungeon_stairs_thin_straight_v01_01
+  1 slot (big) 2x3 rootwall edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: dungeon_ruinedstraightwall_v01_01, dungeon_ruinedstraightwall_v01_02
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/Mission_Large_Connection_02.arm  -  75 slots of 12 kinds · one tile answers 1 kinds (2 slots), several 9, none 2
+  18 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  26 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  2 slots 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: vaal_to_roots_straight_thin_v01_01, vaal_to_roots_straight_thin_v01_02, vaalroots_straight_thin_v01_01, vaalroots_straight_thin_v01_02, dungeon_thick_to_thin_v01_01, dungeon_thick_to_thin_v01_02
+  7 slots 1x1 edges [-, -, -, dungeon_thin_wall] grounds [-, -, -, -] -> 34 tiles
+  8 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  2 slots 1x1 edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 18 tiles
+  2 slots 1x1 edges [-, dungeon_ledge, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_wall_height_v01_01
+  2 slots (big) 3x3 missiontile edges [-, -, -, -] grounds [-, -, -, -] -> 0 tiles
+  2 slots 1x1 post edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: vaalroots_straight_post_v01_01, dungeon_wall_post_v01_01
+  1 slot 1x1 door edges [-, -, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 2 tiles: dungeon_entrance_thin_v01_01_boss, dungeon_entrance_thin_v01_01_open
+  1 slot 1x1 edges [-, dungeon_ledge, dungeon_ledge, dungeon_thin_wall] grounds [-, -, -, -] -> 4 tiles: dungeon_floorwall_thin_height_v01_01, dungeon_wall_thin_height_v01_01, dungeon_wall_thin_height_v01_02, dungeon_wall_thin_height_v02_01
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/Mission_Large_Corner_01.arm  -  70 slots of 14 kinds · one tile answers 5 kinds (8 slots), several 7, none 2
+  17 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  8 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  21 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  2 slots (big) 3x3 missiontile edges [-, -, -, -] grounds [-, -, -, -] -> 0 tiles
+  4 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  3 slots 1x1 edges [-, -, dungeon_stairs, dungeon_stairs] grounds [-, -, -, -] -> 5 tiles: dungeon_stairs_concave_v01_01, dungeon_stairs_convex_v01_01, dungeon_stairs_straight_v02_02, dungeon_stairs_straight_v04_01, dungeon_stairs_thin_straight_v01_01
+  2 slots 1x1 forced_rightangle edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 1 tile: dungeon_floor_height_v01_011
+  3 slots 1x1 blank edges [-, -, -, -] grounds [-, -, -, -] -> 1 tile: ForcedBlank_01
+  1 slot (big) 2x2 rubble edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_crumbled_corner_v01_01
+  1 slot 1x1 squareskulls edges [-, -, -, -] grounds [-, -, -, -] -> 1 tile: dungeon_square_skulls
+  1 slot 1x1 edges [-, dungeon_stairs, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_wall_straight_stairs_v01_01
+  2 slots 1x1 post edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: vaalroots_straight_post_v01_01, dungeon_wall_post_v01_01
+  1 slot 1x1 edges [-, dungeon_stairs, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 3 tiles: dungeon_floor_height_concave_stairs_v01_01, dungeon_floor_height_convex_stairs_v01_02, dungeon_wall_straight_stairs_v01_01
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/Mission_Large_Corner_02.arm  -  75 slots of 14 kinds · one tile answers 3 kinds (13 slots), several 9, none 2
+  17 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  8 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  21 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  3 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  1 slot (big) 3x3 missiontile edges [-, -, -, -] grounds [-, -, -, -] -> 0 tiles
+  1 slot 1x1 altar edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_straight_altar_v01_01, vaalroots_straight_altar_v02_01, dungeon_altar_v01_01, dungeon_altar_v02_01
+  2 slots 1x1 edges [-, dungeon_ledge, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 5 tiles: dungeon_floor_height_corner_convex_v01_01, dungeon_floor_height_corner_v01_01, dungeon_floor_height_v01_02, dungeon_floor_height_v01_03, dungeon_wall_height_v01_01
+  4 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  3 slots 1x1 edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 18 tiles
+  1 slot 1x1 edges [-, -, dungeon_stairs, dungeon_stairs] grounds [-, -, -, -] -> 5 tiles: dungeon_stairs_concave_v01_01, dungeon_stairs_convex_v01_01, dungeon_stairs_straight_v02_02, dungeon_stairs_straight_v04_01, dungeon_stairs_thin_straight_v01_01
+  11 slots 1x1 blank edges [-, -, -, -] grounds [-, -, -, -] -> 1 tile: ForcedBlank_01
+  1 slot (big) 2x2 rubble edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_crumbled_corner_v01_01
+  1 slot 1x1 stairs edges [-, -, dungeon_ledge, dungeon_ledge] grounds [-, -, -, -] -> 1 tile: dungeon_stairs_straight_v01_01
+  1 slot (big) 2x1 rootwall edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: dungeon_ruinedstraightwall_v02_01, dungeon_ruinedstraightwall_v02_02
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/Mission_Large_Side_01.arm  -  58 slots of 9 kinds · one tile answers 1 kinds (1 slots), several 6, none 2
+  19 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  7 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  19 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  4 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  3 slots (big) 3x3 missiontile edges [-, -, -, -] grounds [-, -, -, -] -> 0 tiles
+  2 slots 1x1 edges [-, -, -, dungeon_thin_wall] grounds [-, -, -, -] -> 34 tiles
+  1 slot (big) 3x2 rootwall edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: dungeon_ruinedstraightwall_v01_01, dungeon_ruinedstraightwall_v01_02
+  1 slot (big) 2x2 rubble edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_crumbled_corner_v01_01
+  2 slots 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: vaal_to_roots_straight_thin_v01_01, vaal_to_roots_straight_thin_v01_02, vaalroots_straight_thin_v01_01, vaalroots_straight_thin_v01_02, dungeon_thick_to_thin_v01_01, dungeon_thick_to_thin_v01_02
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/Mission_Large_Side_02.arm  -  83 slots of 10 kinds · one tile answers 1 kinds (3 slots), several 7, none 2
+  11 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  14 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  26 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  10 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  6 slots 1x1 edges [-, dungeon_ledge, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 5 tiles: dungeon_floor_height_corner_convex_v01_01, dungeon_floor_height_corner_v01_01, dungeon_floor_height_v01_02, dungeon_floor_height_v01_03, dungeon_wall_height_v01_01
+  6 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  2 slots 1x1 edges [-, dungeon_stairs, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 3 tiles: dungeon_floor_height_concave_stairs_v01_01, dungeon_floor_height_convex_stairs_v01_02, dungeon_wall_straight_stairs_v01_01
+  1 slot (big) 3x3 missiontile edges [-, -, -, -] grounds [-, -, -, -] -> 0 tiles
+  3 slots 1x1 blank edges [-, -, -, -] grounds [-, -, -, -] -> 1 tile: ForcedBlank_01
+  4 slots 1x1 edges [-, -, dungeon_stairs, dungeon_stairs] grounds [-, -, -, -] -> 5 tiles: dungeon_stairs_concave_v01_01, dungeon_stairs_convex_v01_01, dungeon_stairs_straight_v02_02, dungeon_stairs_straight_v04_01, dungeon_stairs_thin_straight_v01_01
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/Mission_Mid_Corner_01.arm  -  44 slots of 10 kinds · one tile answers 1 kinds (1 slots), several 7, none 2
+  15 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  6 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  14 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  3 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  1 slot 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: vaal_to_roots_straight_thin_v01_01, vaal_to_roots_straight_thin_v01_02, vaalroots_straight_thin_v01_01, vaalroots_straight_thin_v01_02, dungeon_thick_to_thin_v01_01, dungeon_thick_to_thin_v01_02
+  1 slot 1x1 edges [-, -, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 18 tiles
+  1 slot 1x1 edges [-, -, -, dungeon_thin_wall] grounds [-, -, -, -] -> 34 tiles
+  1 slot (big) 2x3 rootwall edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: dungeon_ruinedstraightwall_v01_01, dungeon_ruinedstraightwall_v01_02
+  1 slot (big) 3x3 missiontile edges [-, -, -, -] grounds [-, -, -, -] -> 0 tiles
+  1 slot (big) 2x2 rubble edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_crumbled_corner_v01_01
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/Mission_Mid_Side_01.arm  -  47 slots of 9 kinds · one tile answers 1 kinds (2 slots), several 6, none 2
+  11 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  6 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  19 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  2 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, -, black_inside_wall] -> 50 tiles
+  2 slots 1x1 edges [-, dungeon_ledge, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 1 tile: dungeon_wall_height_v01_01
+  2 slots 1x1 edges [-, -, dungeon_ledge, dungeon_stairs] grounds [-, -, -, -] -> 3 tiles: dungeon_half_stairs_v01_01, dungeon_stairs_straight_v03_01, dungeon_stairs_to_ledge_v01_01
+  3 slots 1x1 edges [-, -, dungeon_stairs, dungeon_stairs] grounds [-, -, -, -] -> 5 tiles: dungeon_stairs_concave_v01_01, dungeon_stairs_convex_v01_01, dungeon_stairs_straight_v02_02, dungeon_stairs_straight_v04_01, dungeon_stairs_thin_straight_v01_01
+  1 slot (big) 3x3 missiontile edges [-, -, -, -] grounds [-, -, -, -] -> 0 tiles
+  1 slot 1x1 altar edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_straight_altar_v01_01, vaalroots_straight_altar_v02_01, dungeon_altar_v01_01, dungeon_altar_v02_01
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/rare_01.arm  -  261 slots of 6 kinds · one tile answers 1 kinds (1 slots), several 3, none 2
+  216 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+  24 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, -, black_inside_wall, black_inside_wall] -> 35 tiles
+  8 slots 1x1 edges [-, -, dungeon_thick_wall, dungeon_thick_wall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 4 tiles: vaalroots_convex_v01_01, vaalroots_convex_v02_01, dungeon_wall_corner_convex_v01_01, dungeon_wall_corner_convex_v02_01
+  8 slots 1x1 edges [-, dungeon_thick_wall, dungeon_thick_wall, dungeon_thin_wall] grounds [-, -, -, black_inside_wall] -> 13 tiles
+  4 slots 1x1 door_boss edges [-, -, dungeon_thin_wall, dungeon_thin_wall] grounds [-, -, -, -] -> 0 tiles
+  1 slot (big) 13x13 arena edges [dungeon_corridor, dungeon_corridor, dungeon_corridor, dungeon_corridor] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: AuguryArena
+
+##### Metadata/Terrain/Maps/Augury/Rooms/Unique/void.arm  -  25 slots of 1 kinds · one tile answers 0 kinds (0 slots), several 0, none 1
+  25 slots 1x1 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 0 tiles
+
+##### the tilesets' tiles, each as a room's slot asks about it - tab-separated, or why it did not read (112)
+path	width	height	tag	edge down	edge right	edge up	edge left	ground down-left	ground down-right	ground up-right	ground up-left
+Metadata/Terrain/Blank.tdt	1	1									
+Metadata/Terrain/Jungle/SnakePit/MapAugury/AuguryArena.tdt	13	13	arena	Metadata/Terrain/Dungeon/Walls/dungeon_corridor.et	Metadata/Terrain/Dungeon/Walls/dungeon_corridor.et	Metadata/Terrain/Dungeon/Walls/dungeon_corridor.et	Metadata/Terrain/Dungeon/Walls/dungeon_corridor.et	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Jungle/SnakePit/MapAugury/dungeon_entrance_thin_v01_01_boss.tdt	1	1	door		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et				
+Metadata/Terrain/Jungle/SnakePit/MapAugury/dungeon_entrance_thin_v01_01_open.tdt	1	1	door		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et				
+Metadata/Terrain/Jungle/SnakePit/vaalroots_X_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Jungle/SnakePit/vaal_to_roots_convex_thin_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/black_inside_wall.gt		
+Metadata/Terrain/Jungle/SnakePit/vaal_to_roots_convex_thin_v01_02.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/black_inside_wall.gt		
+Metadata/Terrain/Jungle/SnakePit/vaal_to_roots_convex_thin_v02_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Jungle/SnakePit/vaal_to_roots_straight_thin_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Jungle/SnakePit/vaal_to_roots_straight_thin_v01_02.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Jungle/SnakePit/vaalroots_concave_v02_02.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et				Metadata/Terrain/black_inside_wall.gt		
+Metadata/Terrain/Jungle/SnakePit/vaalroots_convex_thin_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/black_inside_wall.gt		
+Metadata/Terrain/Jungle/SnakePit/vaalroots_convex_thin_v02_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Jungle/SnakePit/vaalroots_convex_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Jungle/SnakePit/vaalroots_convex_v02_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_altar_v01_01.tdt	1	1	altar	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_altar_v02_01.tdt	1	1	altar	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_post_v01_01.tdt	1	1	post	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_thin_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_thin_v01_02.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v01_02.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v01_03.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v02_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v02_02.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v03_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Jungle/SnakePit/vaalroots_straight_v04_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Jungle/SnakePit/ForcedBlank_01.tdt	1	1	blank								
+Metadata/Terrain/Jungle/SnakePit/ForcedBlank_04.tdt	1	1	forcedblank								
+Metadata/Terrain/Jungle/SnakePit/ForcedBlank_05.tdt	1	1	forcedblank								
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_altar_v01_01.tdt	1	1	altar	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_altar_v02_01.tdt	1	1	altar	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_column_v01_01.tdt	1	1	column								
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_crumbled_corner_v01_01.tdt	2	2	rubble	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_crumbled_wall_corner_concave_v01_01.tdt	2	2	debrisCc		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et				Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruin_v01_01.tdt	1	1	ruin					Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt	Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt	Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt	Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruin_v01_02.tdt	1	1	ruin					Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt	Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt	Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt	Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruin_v01_03.tdt	1	1	ruin					Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt	Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt	Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt	Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruin_v01_04.tdt	1	1	ruin					Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt	Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt	Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt	Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinroofshadow_v01_01.tdt	2	2	roof_hole								
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinroofshadow_v01_02.tdt	2	2	roof_hole								
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinroofshadow_v02_01.tdt	1	2	roof_hole								
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinroofshadow_v02_02.tdt	1	2	roof_hole								
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinedstraightwall_v01_01.tdt	2	3	rootwall	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinedstraightwall_v01_02.tdt	2	3	rootwall	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinedstraightwall_v02_01.tdt	1	2	rootwall	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_ruinedstraightwall_v02_02.tdt	1	2	rootwall	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/Dungeon/Machinarium/VaalRoofHole.gt
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_square_skulls.tdt	1	1	squareskulls								
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_wall_pit_v01_01.tdt	1	1	abyss	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextFeatures/dungeon_wall_post_v01_01.tdt	1	1	post	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextWalls/dungeon_thick_to_thin_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextWalls/dungeon_thick_to_thin_v01_02.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_corner_concave_v02_02.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et				Metadata/Terrain/black_inside_wall.gt		
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_corner_convex_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_corner_convex_v02_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v01_02.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v01_03.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v02_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v02_02.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v03_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_straight_v04_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thick_X_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_corner_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et						
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_corner_v02_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et						
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_end_v01_01.tdt	1	1			Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et						
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_end_v01_02.tdt	1	1			Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et						
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_pillar_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et					
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_pillar_v02_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et					
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_pillar_v03_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et			Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et				
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_pillar_v04_01.tdt	1	1					Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et				
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_thick_T_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/black_inside_wall.gt		
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_thick_X_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_T_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et				
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_T_v01_02.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et				
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_v01_01.tdt	1	1			Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et				
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_v01_02.tdt	1	1			Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et				
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_X_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et				
+Metadata/Terrain/Dungeon/NextWalls/dungeon_wall_thin_X_v01_02.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et				
+Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_corner_convex_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_corner_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/black_inside_wall.gt			
+Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_01.tdt	1	1	busted		Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et		Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et				
+Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_02.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/black_inside_wall.gt			
+Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_03.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et		Metadata/Terrain/black_inside_wall.gt		
+Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_04.tdt	1	1				Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et				
+Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_05.tdt	1	1		Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et		Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et					
+Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_06.tdt	1	1				Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et				
+Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_07.tdt	1	1			Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et		Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et				
+Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_08.tdt	1	1			Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et		Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et				
+Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_09.tdt	1	1			Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et		Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et				
+Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_010.tdt	1	1				Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et				
+Metadata/Terrain/Dungeon/NextLedge/dungeon_floor_height_v01_011.tdt	1	1	forced_rightangle			Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et				
+Metadata/Terrain/Dungeon/NextLedge/dungeon_floorwall_thin_height_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et				
+Metadata/Terrain/Dungeon/NextLedge/dungeon_stairs_fill_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et						
+Metadata/Terrain/Dungeon/NextLedge/dungeon_stairs_fill_v01_02.tdt	1	1		Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et						
+Metadata/Terrain/Dungeon/NextLedge/dungeon_stairs_fill_v01_03.tdt	1	1		Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et						
+Metadata/Terrain/Dungeon/NextLedge/dungeon_wall_height_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Dungeon/NextLedge/dungeon_wall_thin_height_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et					
+Metadata/Terrain/Dungeon/NextLedge/dungeon_wall_thin_height_v01_02.tdt	1	1		Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et					
+Metadata/Terrain/Dungeon/NextLedge/dungeon_wall_thin_height_v02_01.tdt	1	1			Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et				
+Metadata/Terrain/Dungeon/NextStairs/dungeon_floor_height_concave_stairs_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Dungeon/NextStairs/dungeon_floor_height_convex_stairs_v01_02.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/black_inside_wall.gt			
+Metadata/Terrain/Dungeon/NextStairs/dungeon_half_stairs_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et						
+Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_concave_v01_01.tdt	1	1				Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et	Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et				
+Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_convex_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et	Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et						
+Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_straight_v01_01.tdt	1	1	stairs		Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et		Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et				
+Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_straight_v02_02.tdt	1	1		Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et		Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et					
+Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_straight_v03_01.tdt	1	1		Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et		Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et					
+Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_straight_v04_01.tdt	1	1		Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et		Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et					
+Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_thin_straight_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et	Metadata/Terrain/Dungeon/Walls/dungeon_thin_wall.et	Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et				
+Metadata/Terrain/Dungeon/NextStairs/dungeon_stairs_to_ledge_v01_01.tdt	1	1				Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et	Metadata/Terrain/Dungeon/Ledge/dungeon_ledge.et				
+Metadata/Terrain/Dungeon/NextStairs/dungeon_wall_straight_stairs_v01_01.tdt	1	1		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et		Metadata/Terrain/Dungeon/Walls/dungeon_thick_wall.et	Metadata/Terrain/Dungeon/Stairs/dungeon_stairs.et		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	

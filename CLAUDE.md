@@ -265,9 +265,10 @@ in the Monster Book - draws each piece's doodads so (`LaidRoomModels.TileDoodads
 not hung on the tile's mesh, whose sub-tile rows run down -y while the cells run down +y; turned, not
 mirrored, since an entity carries an angle only; the height above the piece's own lift (the level, as
 measured, or the fit to the ground where the piece is drawn fitted); and the `.tdt`'s list taken where
-there are two - DECIDED, not measured, and the line under the picture says so. Five captures are committed under
+there are two - DECIDED, not measured, and the line under the picture says so. Six captures are committed under
 `tests/fixtures/captures/` (its README says why each), and `CaptureFixtureTests` holds the orientation
-rule, the origin rule and the settled slots against them on every build. Two captures of one area forty
+rule, the origin rule, the settled slots, the fill rule, the tile doodads' frame and height and the one
+laid word against them on every build. Two captures of one area forty
 minutes apart are how it was learned that the power-line pieces and checkpoints come and go
 with play while the plain props never move; hold a finder change against a capture before
 asking for a screenshot. The reason they come and go is the network bubble: a scripted

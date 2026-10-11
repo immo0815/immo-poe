@@ -1,0 +1,42 @@
+capture  2026-10-11 13:18:22 local, PoEformance v0.1.188 · 1228476
+area     Augury (MapAugury), act 10, level 70, hash 0xF21793AA, state InGame
+light    Metadata/EnvironmentSettings/Maps/Augury.env
+screen   game client at 0, 0, 3440 x 1440
+player   world 6581.521 10364.13 -87.825, terrain height 0, level 96
+         grid cell 605, 953, tile 26, 41
+         the grid's height there -0, the tile's level -0
+tile     Metadata/Terrain/Dungeon/NextFeatures/dungeon_blank_fill.tdt, laid 6, piece 0, 0
+camera   1.105 1.983 0.477 0.467 -1.105 1.983 0.477 0.467 0 -2.462 0.769 0.751 4178.573 -33445.98 -5932.682 -5724.86
+terrain  1219 x 1219 cells, 53 x 53 tiles
+
+=== rooms around the player
+  here   lever_02_flip  at tile 24, 36, 5 x 9, turned 90, mirrored  (Metadata/Terrain/Maps/Augury/Rooms/Unique/lever_02_flip.arm)
+  2 off  Large_Connection_02  at tile 28, 36, 9 x 13, turned 90  (Metadata/Terrain/Maps/Augury/Rooms/Large_Connection_02.arm)
+  2 off  Long_Open_01  at tile 20, 36, 5 x 9, turned 180, mirrored  (Metadata/Terrain/Maps/Augury/Rooms/Long_Open_01.arm)
+  3 off  Small_Corner_01  at tile 20, 44, 5 x 5, turned 180  (Metadata/Terrain/Maps/Augury/Rooms/Small_Corner_01.arm)
+  3 off  lever_02_flip  at tile 24, 30, 5 x 9, turned 90  (Metadata/Terrain/Maps/Augury/Rooms/Unique/lever_02_flip.arm)
+
+=== what this capture holds
+  entities.txt  48 entities, nearest first
+  loaded-files.txt  1417 files
+  environments.txt  the area's environment (Metadata/EnvironmentSettings/Maps/Augury.env) and those of 4 rooms
+  room-files.txt  44 room files the area may lay - the loaded list's and every room of the sets its files and the install's masters name
+  tile-identities.txt  102 tile files laid in the area, each as a room's slot asks about it - tab-separated, or why it did not read
+  slot-candidates.txt  44 rooms of the area's set against 112 tiles its tilesets list - 1 master, lists Metadata/Terrain/Maps/Augury/tiles.tst
+  tileset-lists.txt  1 tile list of 1 master, 112 tile lines - each list whole: an optional weight, the tile, then the words after it
+  tile-files.txt  123 tile files - 112 the area's tile lists name, 11 its fill lists, 102 laid, 11 of those named by no tile list; each with its definition followed through what it inherits, and the tile's doodad list (.tmd)
+  area-masters.txt  1 master of the area and 10 files they name or the area loaded, each whole - a tile list by name only, being whole in tileset-lists.txt
+  rooms.txt  5 rooms within 3 tiles, their doodads' lights and the pieces attached to them, and the file of each room the player stands in
+  rooms-arranged.txt  not written: the rooms stand by their doodads - see rooms-placed.txt
+  doodads.txt  doodads: 1031 entities stand where the rooms name a doodad, on 7 paths - sleeping map 1021 of 1021 walked, awake 222, 1243 with a path, read in 181 ms, 34 remembered from the bubble since
+  rooms-placed.txt  rooms: 19 placed by their doodads at 36 places, 25 with no place
+  room-pick.txt  not written: nothing there when the key went down
+  routes.txt  not written: nothing there when the key went down
+  scene-light.txt  not written: nothing there when the key went down
+  model-probe.txt  not written: nothing there when the key went down
+  dissector.txt  not written: nothing there when the key went down
+  atlas-log.txt  not written: nothing there when the key went down
+  memory.rec  839 KB: the overlay's own reads for 90 reader ticks and one pass reading the world with every switch on, the loaded files, both entity maps with every named entity's model, every monster's mods, the raw bytes of the roots, one hop beyond them and the components around you from nothing - replay with --replay; memory.txt says what the pass read where
+  monsters.txt  written by the pass inside the recording - memory.txt says what it holds
+  off: game-picture, overlay-picture
+  2026-10-11 13-18-22 Augury.zip  beside this folder: every file here, packed to send
