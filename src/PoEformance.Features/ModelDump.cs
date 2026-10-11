@@ -1392,13 +1392,11 @@ public static partial class ModelDump
     /// half and half.
     /// </remarks>
     private static string Channels(Mipmaps? sheet)
-    {
-        if (sheet is null)
-        {
-            return "(not decoded)" + Environment.NewLine;
-        }
+        => sheet is null ? "(not decoded)" + Environment.NewLine : Channels(sheet.Top);
 
-        GamePicture top = sheet.Top;
+    /// <summary>The same, of one decoded picture - for a caller that has the picture and no use for its mipmaps.</summary>
+    internal static string Channels(GamePicture top)
+    {
         byte[] rgba = top.Rgba;
         int texels = top.Width * top.Height;
         var counts = new int[4 * 256];

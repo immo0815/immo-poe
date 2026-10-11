@@ -65,7 +65,7 @@ public class GameArtTests
     /// encoder - so what these check is everything around the decode: the layout, the stride,
     /// and which byte is which colour. Pfim decodes the compressed ones into the same shape.
     /// </remarks>
-    private static byte[] Dds(int width, int height, byte[] bgra)
+    internal static byte[] Dds(int width, int height, byte[] bgra)
     {
         using var stream = new MemoryStream();
         using var write = new BinaryWriter(stream);

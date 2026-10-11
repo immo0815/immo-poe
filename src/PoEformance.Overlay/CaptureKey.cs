@@ -547,8 +547,22 @@ internal sealed class CaptureKey
                 Part(CaptureReport.GroundFile, () =>
                 {
                     string ground = CaptureGround.Write(
-                        read, run.Snapshot.Terrain is TerrainGrid { Tiles: { } laid } ? laid : null, run.Loaded, run.Masters, shaders);
+                        read, run.Snapshot.Terrain is TerrainGrid { Tiles: { } laid } ? laid : null, run.Loaded, run.Masters, shaders,
+                        out IReadOnlyList<GroundMask> masks);
                     File.WriteAllText(At(CaptureReport.GroundFile), ground);
+
+                    // EACH MASK'S CHANNELS AS PICTURES beside it - the blend reads red and green apart, so each is its own.
+                    foreach (GroundMask mask in masks)
+                    {
+                        if (mask.Picture is { } picture)
+                        {
+                            for (var channel = 0; channel < 4; channel++)
+                            {
+                                Channel(picture, channel, At(mask.FileOf("rgba"[channel])));
+                            }
+                        }
+                    }
+
                     return ground[..ground.IndexOf('\n')];
                 });
             }
@@ -690,6 +704,21 @@ internal sealed class CaptureKey
         {
             run.LeftOut = [$"everything ({failed.Message})"];
         }
+    }
+
+    /// <summary>One channel of a decoded texture as a grey PNG.</summary>
+    private static void Channel(GamePicture picture, int channel, string path)
+    {
+        int texels = picture.Width * picture.Height;
+        var grey = new byte[texels];
+        byte[] rgba = picture.Rgba;
+        for (var at = 0; at < texels; at++)
+        {
+            grey[at] = rgba[(at * 4) + channel];
+        }
+
+        using Image<L8> image = Image.LoadPixelData<L8>(grey, picture.Width, picture.Height);
+        image.SaveAsPng(path);
     }
 
     private static string Png(byte[]? pixels, ClientRect client, string path, string what)
