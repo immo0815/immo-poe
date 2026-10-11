@@ -11,6 +11,7 @@ namespace PoEformance.Game.Files;
 /// <param name="FlowIntensity">water.flow_intensity: how fast the surface's pattern moves, a factor.</param>
 /// <param name="HeightOffset">water.height_offset: how far the surface is moved off its planes, in world units along z (up is minus).</param>
 /// <param name="Said">Where each value came from, for the line under a picture.</param>
+/// <param name="Reflectiveness">water.reflectiveness: the surface's specular colour, the share of light it reflects head on - InitWaterSurfaceData's <c>specular_color</c>.</param>
 /// <remarks>
 /// AN AREA'S FILE OR THE ENGINE'S OWN DEFAULT, per value. Most areas set no water colour - Port sets
 /// only its flow and a height offset - and what the engine draws them with is written in no file: it
@@ -27,7 +28,7 @@ namespace PoEformance.Game.Files;
 /// <c>water_color_open</c> (water.txt, v0.1.217). Those are material uniforms; the pass's own is still not
 /// read itself, but its default and its alpha's meaning no longer rest on names alone.
 /// </remarks>
-public readonly record struct WaterLook(Vector3 OpenColour, float Murkiness, float FlowIntensity, float HeightOffset, string Said)
+public readonly record struct WaterLook(Vector3 OpenColour, float Murkiness, float FlowIntensity, float HeightOffset, string Said, float Reflectiveness = WaterLook.DefaultReflectiveness)
 {
     /// <summary>The engine's open water colour where a file sets none - ParsedEnvironment.WaterOpenColor, measured in Port, Clearfell and The Red Vale.</summary>
     public static readonly Vector3 DefaultOpenColour = new(0.1f, 0.19f, 0.22f);
@@ -37,6 +38,9 @@ public readonly record struct WaterLook(Vector3 OpenColour, float Murkiness, flo
 
     /// <summary>The engine's height offset where a file sets none - ParsedEnvironment.WaterHeightOffset, Clearfell's.</summary>
     public const float DefaultHeightOffset = 0f;
+
+    /// <summary>The engine's reflectiveness where a file sets none - ParsedEnvironment.WaterReflectiveness, measured in Port, Clearfell and The Red Vale.</summary>
+    public const float DefaultReflectiveness = 0.03f;
 
     /// <summary>
     /// The flow where a file sets none: none.
@@ -57,8 +61,8 @@ public readonly record struct WaterLook(Vector3 OpenColour, float Murkiness, flo
         MathF.Pow(Math.Clamp(OpenColour.Z, 0f, 1f), 2.2f),
         MathF.Max(0f, Murkiness));
 
-    /// <summary>The flow the program reads, in x.</summary>
-    public Vector4 FlowRegister => new(FlowIntensity, 0f, HeightOffset, 0f);
+    /// <summary>The flow the program reads, in x, the reflectiveness in y and the height offset in z.</summary>
+    public Vector4 FlowRegister => new(FlowIntensity, MathF.Max(0f, Reflectiveness), HeightOffset, 0f);
 
     /// <summary>An area's water: each value its file sets, the engine's default for the rest.</summary>
     public static WaterLook Of(EnvironmentSettings? environment)
@@ -69,8 +73,8 @@ public readonly record struct WaterLook(Vector3 OpenColour, float Murkiness, flo
         }
 
         Vector3 colour = DefaultOpenColour;
-        float murkiness = DefaultMurkiness, flow = NoFlow, height = DefaultHeightOffset;
-        var set = new List<string>(4);
+        float murkiness = DefaultMurkiness, flow = NoFlow, height = DefaultHeightOffset, reflectiveness = DefaultReflectiveness;
+        var set = new List<string>(5);
         foreach (EnvironmentValue value in env.Water)
         {
             switch (value.Key)
@@ -91,16 +95,21 @@ public readonly record struct WaterLook(Vector3 OpenColour, float Murkiness, flo
                     height = value.Values[0];
                     set.Add("height offset");
                     break;
+                case "reflectiveness" when value.Values.Count >= 1:
+                    reflectiveness = value.Values[0];
+                    set.Add("reflectiveness");
+                    break;
             }
         }
 
         return new WaterLook(
             colour, murkiness, flow, height,
-            set.Count == 0 ? "every value the engine's default" : $"{string.Join(", ", set)} from the file, the rest the engine's default");
+            set.Count == 0 ? "every value the engine's default" : $"{string.Join(", ", set)} from the file, the rest the engine's default",
+            reflectiveness);
     }
 
     /// <summary>The numbers and where they came from, for the line under a picture.</summary>
     public string Line() => string.Create(
         CultureInfo.InvariantCulture,
-        $"water ({OpenColour.X:0.###} {OpenColour.Y:0.###} {OpenColour.Z:0.###}) murkiness {Murkiness:0.####} flow {FlowIntensity:0.##} - {Said}");
+        $"water ({OpenColour.X:0.###} {OpenColour.Y:0.###} {OpenColour.Z:0.###}) murkiness {Murkiness:0.####} flow {FlowIntensity:0.##} reflectiveness {Reflectiveness:0.###} - {Said}");
 }

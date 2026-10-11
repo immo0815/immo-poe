@@ -76,6 +76,38 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
                 Time: 2f),
             program => program.HasAlpha || program.UsesDepth);
 
+    /// <summary>
+    /// The water's waves, glinting in the sun and reflecting the ambient, laid over the solid floor as the processor lays them - the engine's octaves, the glints' lobe and the reflection, on the card.
+    /// </summary>
+    [GpuFact]
+    public void THEWATERSWavesAreLitByTheCardAsTheProcessorLightsThem()
+    {
+        ModelGpu? gpu = card.Gpu;
+        Assert.True(gpu is not null, card.Why);
+        using ModelTarget target = gpu.Target(Side);
+        var light = new SceneLight([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1.4f, 1.3f, 1.1f),
+            SunDirection = Vector3.Normalize(new Vector3(0.4f, -1f, 0.3f)),
+            FlatAmbient = 0.3f,
+            Exposure = 1.2f,
+            WaterGlints = true,
+            WaterReflection = true,
+        };
+        ShadeProgram waves = ShadeProgram.Water().Glossy!;
+        var scene = new ModelScene(
+            Hill(layered: true),
+            Turn: 0.25f,
+            Tilt: 0.55f,
+            Skins: [Ramp("floor"), null],
+            Blends: [MaterialBlend.Opaque, MaterialBlend.Alpha],
+            Shades: [null, waves],
+            Light: light,
+            Time: 2f,
+            Water: WaterLook.EngineDefault with { FlowIntensity = 1.5f });
+        Assert.Null(Mismatch(gpu, target, scene));
+    }
+
     /// <summary>A material cut out on the alpha its graphs leave.</summary>
     [GpuFact]
     public void ACUTOUTMaterialIsCutWhereTheProcessorCutsIt()
@@ -143,7 +175,7 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
 
     private static string? Mismatch(ModelGpu gpu, ModelTarget target, ModelScene scene)
     {
-        var canvas = new MeshPicture.Canvas(Side) { Light = scene.Light, Time = scene.Time };
+        var canvas = new MeshPicture.Canvas(Side) { Light = scene.Light, Time = scene.Time, Water = scene.Water ?? WaterLook.EngineDefault };
         byte[] cpu = [.. MeshPicture.Of(
             scene.Mesh, canvas, scene.Turn, scene.Tilt, scene.Ink, scene.Skin, scene.Zoom, scene.Pan, scene.Skins, scene.Blends, scene.Shades).Rgba];
         if (!Ready(gpu, scene, out string why) || !gpu.Draw(target, scene, out why))

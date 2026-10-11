@@ -1756,6 +1756,7 @@ public static class MeshPicture
                                 out float cover,
                                 out Vector3 mixedSpecular,
                                 out float mixedGloss,
+                                out Vector3 mixedWaves,
                                 tinted ? (first * v0) + (second * v1) + (third * v2) : default,
                                 held);
 
@@ -1783,7 +1784,7 @@ public static class MeshPicture
 
                             _stamps[at] = owner;
                             Vector3 lit = scened
-                                ? Scened(program, mixed, mixedSpecular, mixedGloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2))
+                                ? Scened(program, mixed, mixedSpecular, mixedGloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), mixedWaves)
                                 : Lit(program, mixed, mixedSpecular, mixedGloss, (first * f0) + (second * f1) + (third * f2));
                             Over(at, blend, new Vector4(lit, cover));
                             if (here)
@@ -1813,6 +1814,7 @@ public static class MeshPicture
                     Vector3 colour = _ink;
                     Vector3 specular = default;
                     float gloss = 0f;
+                    Vector3 waves = default;
                     if (program is not null)
                     {
                         // A CUT-OUT SHAPE IS CUT ON THE ALPHA ITS GRAPHS LEAVE where they set one - the
@@ -1839,6 +1841,7 @@ public static class MeshPicture
                             out float alpha,
                             out specular,
                             out gloss,
+                            out waves,
                             tinted ? (first * v0) + (second * v1) + (third * v2) : default);
                         if ((cut && program.HasAlpha && alpha < CutoutAlpha) || float.IsNegativeInfinity(alpha))
                         {
@@ -1892,7 +1895,7 @@ public static class MeshPicture
                     }
 
                     Vector3 shown = scened
-                        ? Scened(program, colour, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2))
+                        ? Scened(program, colour, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves)
                         : Lit(program, colour, specular, gloss, (first * f0) + (second * f1) + (third * f2));
                     _pixels[at * 4] = Byte(shown.X);
                     _pixels[(at * 4) + 1] = Byte(shown.Y);
@@ -1919,7 +1922,9 @@ public static class MeshPicture
 
             // A SPECULAR COLOUR IS LIGHT TOO - a metal's albedo is black and its colour is all
             // in it. The glossy program is lit the game's way, the other flat; see Glossed and Flat.
-            if (program is { HasSpecular: true })
+            // The water's waves are the game light's alone (ShadeProgram.HasWaves): under the lamp it
+            // is drawn as it was before it had them.
+            if (program is { HasSpecular: true, HasWaves: false })
             {
                 if (program.HasGloss)
                 {
@@ -1939,12 +1944,13 @@ public static class MeshPicture
         /// <param name="gloss">The program's gloss.</param>
         /// <param name="place">The pixel's place in model space, interpolated.</param>
         /// <param name="turn">Its normal in model space, interpolated.</param>
+        /// <param name="waves">The normal the program hands its specular light, or nought - ShadeProgram.HasWaves.</param>
         /// <remarks>
         /// TWO-SIDED LIKE THE PICTURE'S OWN LIGHT: a normal turned from the eye is turned round, which
         /// is what a two-sided material does in the game and what keeps a face seen from behind from
         /// going black. A specular colour without a gloss is laid on the albedo as <see cref="Flat"/> lays it.
         /// </remarks>
-        private Vector3 Scened(ShadeProgram? program, Vector3 colour, Vector3 specular, float gloss, Vector3 place, Vector3 turn)
+        private Vector3 Scened(ShadeProgram? program, Vector3 colour, Vector3 specular, float gloss, Vector3 place, Vector3 turn, Vector3 waves = default)
         {
             Vector3 normal = turn.LengthSquared() > 1e-12f ? Vector3.Normalize(turn) : _toEye;
             if (Vector3.Dot(normal, _toEye) < 0f)
@@ -1960,7 +1966,7 @@ public static class MeshPicture
             }
 
             float sun = _shadow?.Lit(place, normal) ?? 1f;
-            Vector3 lit = _scene!.Shade(albedo, place, normal, _toEye, sun, glossy, specular, gloss);
+            Vector3 lit = _scene!.Shade(albedo, place, normal, _toEye, sun, glossy, specular, gloss, waves);
             return new Vector3(ShadeProgram.Srgb(lit.X), ShadeProgram.Srgb(lit.Y), ShadeProgram.Srgb(lit.Z));
         }
 

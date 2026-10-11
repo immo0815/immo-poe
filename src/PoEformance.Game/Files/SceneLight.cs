@@ -332,6 +332,27 @@ public sealed class SceneLight
     /// <summary>The diffuse cube, where <see cref="Ambient"/> is <see cref="SceneAmbient.Cube"/>.</summary>
     public CubeMap? Cube { get; init; }
 
+    /// <summary>
+    /// The environment's specular cube, read along a reflection - the water's (see <see cref="WaterReflection"/>); the diffuse cube stands in where it is null.
+    /// </summary>
+    public CubeMap? Mirror { get; init; }
+
+    /// <summary>
+    /// Whether the water's waves glint: every light's GGX lobe worked out with the normal its program hands over (ShadeProgram.HasWaves).
+    /// </summary>
+    public bool WaterGlints { get; init; }
+
+    /// <summary>
+    /// Whether the water's waves reflect the environment: <see cref="Mirror"/> read along the view turned about the waves' normal, as the surround is lit, and weighed by the split sum's Fresnel.
+    /// </summary>
+    /// <remarks>
+    /// THE ENGINE'S WATER SPECULAR IS ITS OWN SURFACE'S: InitWaterSurfaceData sets the reflected direction
+    /// from the waves' normal, the specular colour to the area's reflectiveness and the glossiness to
+    /// 0.99, and ComputeEnvironmentLighting reads the environment that way. Every other glossy material
+    /// here still takes the surround's average (see <see cref="Shade(Vector3, Vector3, Vector3, Vector3, float, bool, Vector3, float)"/>).
+    /// </remarks>
+    public bool WaterReflection { get; init; }
+
     /// <summary>env_map_rotation: what a normal is put through before the cube is read - the world's axes as the cube's unless the environment turns it, see <see cref="CubeTurnFrom"/>.</summary>
     public Matrix4x4 CubeTurn { get; init; } = CubeSwap;
 
@@ -464,17 +485,44 @@ public sealed class SceneLight
     /// <param name="specular">The material's specular colour, linear.</param>
     /// <param name="gloss">Its gloss.</param>
     public Vector3 Shade(Vector3 albedo, Vector3 place, Vector3 normal, Vector3 toEye, float sunShadow, bool glossy, Vector3 specular, float gloss)
+        => Shade(albedo, place, normal, toEye, sunShadow, glossy, specular, gloss, default);
+
+    /// <summary>
+    /// One pixel lit, its specular light worked out with a normal of its program's own where it hands one - the water's waves.
+    /// </summary>
+    /// <param name="albedo">The surface's colour, linear.</param>
+    /// <param name="place">Where the pixel is, model space.</param>
+    /// <param name="normal">Its normal, unit length, turned to face the eye - what the diffuse light and the surround are worked out with.</param>
+    /// <param name="toEye">The way to the eye, unit length.</param>
+    /// <param name="sunShadow">How much of the sun reaches it, nought to one.</param>
+    /// <param name="glossy">Whether the material's specular light is worked out - its program has a gloss.</param>
+    /// <param name="specular">The material's specular colour, linear.</param>
+    /// <param name="gloss">Its gloss.</param>
+    /// <param name="waves">The normal its program hands the specular light, unit length, or nought for none - then the light is <see cref="WaterGlints"/>' and <see cref="WaterReflection"/>'s to give.</param>
+    public Vector3 Shade(Vector3 albedo, Vector3 place, Vector3 normal, Vector3 toEye, float sunShadow, bool glossy, Vector3 specular, float gloss, Vector3 waves)
     {
         Vector3 diffuse = Vector3.Zero;
         Vector3 shine = Vector3.Zero;
         Vector3 total = Vector3.Zero;
         float facing = MathF.Max(Vector3.Dot(normal, toEye), 1e-4f);
 
+        // THE WAVES' OWN SPECULAR: the lobes with their normal where the glints are asked for, none of the
+        // mesh's normal's, and the environment along their reflection where that is.
+        bool waved = waves != Vector3.Zero;
+        bool glints = waved && glossy && WaterGlints;
+        float wavesFacing = waved ? MathF.Max(Vector3.Dot(waves, toEye), 1e-4f) : facing;
+        bool lobes = glossy && !waved;
+
         if (SunColour != Vector3.Zero && sunShadow > 0f)
         {
             Vector3 light = SunColour * sunShadow;
             Vector3 towards = -SunDirection;
-            Lit(light, towards, normal, toEye, facing, glossy, specular, gloss, ref diffuse, ref shine);
+            Lit(light, towards, normal, toEye, facing, lobes, specular, gloss, ref diffuse, ref shine);
+            if (glints)
+            {
+                Glinted(light, towards, waves, toEye, wavesFacing, specular, gloss, ref shine);
+            }
+
             total += light;
         }
 
@@ -505,7 +553,12 @@ public sealed class SceneLight
 
                     Vector3 light = one.Colour * attenuation;
                     Vector3 towards = distance > 1e-4f ? offset / distance : normal;
-                    Lit(light, towards, normal, toEye, facing, glossy, specular, gloss, ref diffuse, ref shine);
+                    Lit(light, towards, normal, toEye, facing, lobes, specular, gloss, ref diffuse, ref shine);
+                    if (glints)
+                    {
+                        Glinted(light, towards, waves, toEye, wavesFacing, specular, gloss, ref shine);
+                    }
+
                     total += light;
                 }
             }
@@ -531,15 +584,56 @@ public sealed class SceneLight
 
         // THE ENVIRONMENT'S SPECULAR, as the unlit picture works it out - a uniform environment as
         // bright as the ambient - since the specular cube is not read yet.
-        if (glossy)
+        if (lobes)
         {
             GlossLight.Environment(facing, gloss, out float bias, out float scale);
             float level = (surround.X + surround.Y + surround.Z) / 3f;
             shine += new Vector3(level * bias) + (level * scale * specular);
         }
 
+        // THE WAVES' REFLECTION: the specular cube along the view turned about their normal, lit as the
+        // surround is, weighed by the same split sum.
+        if (waved && glossy && WaterReflection)
+        {
+            GlossLight.Environment(wavesFacing, gloss, out float bias, out float scale);
+            Vector3 reflected = (2f * Vector3.Dot(waves, toEye) * waves) - toEye;
+            Vector3 seen = Reflected(reflected, total);
+            shine += (seen * bias) + (seen * scale * specular);
+        }
+
         Vector3 exposed = (colour + shine) * Exposure;
         return Grade is null ? exposed : Grade.Apply(exposed);
+    }
+
+    /// <summary>The environment's light coming from one way, as the surround is lit: the specular cube where there is one, the diffuse cube where not, the flat ambient or nothing as the ambient is.</summary>
+    private Vector3 Reflected(Vector3 direction, Vector3 total)
+    {
+        switch (Ambient)
+        {
+            case SceneAmbient.Cube when Cube is not null:
+                return ((Mirror ?? Cube).Sample(Vector3.TransformNormal(direction, CubeTurn))
+                    * (new Vector3(CubeBrightness) + (total * DirectLightEnvRatio)) * (1f - GiEnvOcclusion))
+                    + new Vector3(FlatAmbient * GiEnvOcclusion);
+            case SceneAmbient.Flat:
+            case SceneAmbient.Cube:
+                return new Vector3(FlatAmbient);
+            default:
+                return Vector3.Zero;
+        }
+    }
+
+    /// <summary>One light's GGX lobe on the waves - <see cref="Lit"/>'s specular share, with their normal.</summary>
+    private static void Glinted(Vector3 light, Vector3 towards, Vector3 waves, Vector3 toEye, float facing, Vector3 specular, float gloss, ref Vector3 shine)
+    {
+        if (Vector3.Dot(waves, towards) <= 0f)
+        {
+            return;
+        }
+
+        Vector3 half = Vector3.Normalize(toEye + towards);
+        float lobe = GlossLight.Lobe(waves, facing, towards, half, gloss);
+        float fresnel = GlossLight.Fresnel(Math.Clamp(Vector3.Dot(toEye, half), 0f, 1f));
+        shine += light * lobe * (new Vector3(fresnel) + (specular * (1f - fresnel)));
     }
 
     /// <summary>One light's diffuse and specular share at one pixel - ComputeDiffuse and the GGX lobe of ComputeLight.</summary>

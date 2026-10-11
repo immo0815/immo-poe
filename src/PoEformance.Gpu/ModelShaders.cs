@@ -37,8 +37,11 @@ internal static class ModelShaders
     /// <summary>The slot the solid depth behind is read from by a mixed program - see ModelTarget.Behind.</summary>
     public const int BehindSlot = 7;
 
+    /// <summary>The slot the specular cube is read from, for the water's reflection - SceneLight.Mirror.</summary>
+    public const int MirrorSlot = 8;
+
     /// <summary>The slot a program's first sheet is read from; the rest follow.</summary>
-    public const int FirstSheet = 8;
+    public const int FirstSheet = 9;
 
     /// <summary>
     /// What every shader here shares: the constants, the resources, the vertex shader, and the light - the picture's lamp and the game's.
@@ -74,7 +77,7 @@ internal static class ModelShaders
             float4 SunTravels;  // xyz: the way its light travels; w: one where its shadow map is read
             float4 ToEye;       // xyz: the way to the eye
             float4 Surround;    // x: the flat ambient; y: cube brightness; z: direct light env ratio; w: gi env occlusion
-            float4 Finish;      // x: the exposure
+            float4 Finish;      // x: the exposure; y: one where the waves glint; z: one where they reflect; w: the specular cube's side, nought for none
             float4 CellLeast;   // xyz: the light grid's corner; w: a cell's side
             float4 ShadowU;     // xyz: the shadow map's x axis; w: its corner along it
             float4 ShadowV;     // xyz: its y axis; w: its corner along it
@@ -93,6 +96,7 @@ internal static class ModelShaders
         Buffer<float> Grade : register(t5);
         Texture2D<float> Shadow : register(t6);
         Texture2D<float> Behind : register(t{{BehindSlot}});
+        Buffer<float> Mirror : register(t{{MirrorSlot}});
         SamplerState Wrap : register(s0);
 
         // THE TABLES, one after another in Tabled - ModelGpu.Tables lays them out.
@@ -280,7 +284,8 @@ internal static class ModelShaders
             return float3(Cube.Load(at * 3), Cube.Load((at * 3) + 1), Cube.Load((at * 3) + 2));
         }
 
-        float3 CubeRead(float3 direction)
+        // CubeMap.Sample's face and place: where a direction lands on a cube size texels across, the four texels it lies between.
+        bool CubeSpot(float3 direction, int size, out int start, out int x0, out int y0, out int x1, out int y1, out float fx, out float fy)
         {
             float3 size3 = abs(direction);
             int face;
@@ -309,23 +314,78 @@ internal static class ModelShaders
                 ma = size3.z;
             }
 
+            start = 0;
+            x0 = 0;
+            y0 = 0;
+            x1 = 0;
+            y1 = 0;
+            fx = 0.0;
+            fy = 0.0;
             if (!(ma > 0.0))
+            {
+                return false;
+            }
+
+            float u = clamp((((sc / ma) + 1.0) * 0.5 * size) - 0.5, 0.0, size - 1.0);
+            float v = clamp((((tc / ma) + 1.0) * 0.5 * size) - 0.5, 0.0, size - 1.0);
+            x0 = (int)u;
+            y0 = (int)v;
+            x1 = min(x0 + 1, size - 1);
+            y1 = min(y0 + 1, size - 1);
+            fx = u - x0;
+            fy = v - y0;
+            start = face * size * size;
+            return true;
+        }
+
+        float3 CubeRead(float3 direction)
+        {
+            int size = Ambient.z;
+            int start;
+            int x0;
+            int y0;
+            int x1;
+            int y1;
+            float fx;
+            float fy;
+            if (!CubeSpot(direction, size, start, x0, y0, x1, y1, fx, fy))
             {
                 return float3(0.0, 0.0, 0.0);
             }
 
-            int size = Ambient.z;
-            float u = clamp((((sc / ma) + 1.0) * 0.5 * size) - 0.5, 0.0, size - 1.0);
-            float v = clamp((((tc / ma) + 1.0) * 0.5 * size) - 0.5, 0.0, size - 1.0);
-            int x0 = (int)u;
-            int y0 = (int)v;
-            int x1 = min(x0 + 1, size - 1);
-            int y1 = min(y0 + 1, size - 1);
-            float fx = u - x0;
-            float fy = v - y0;
-            int start = face * size * size;
             float3 top = lerp(CubeTexel(start + (y0 * size) + x0), CubeTexel(start + (y0 * size) + x1), fx);
             float3 bottom = lerp(CubeTexel(start + (y1 * size) + x0), CubeTexel(start + (y1 * size) + x1), fx);
+            return lerp(top, bottom, fy);
+        }
+
+        float3 MirrorTexel(int at)
+        {
+            return float3(Mirror.Load(at * 3), Mirror.Load((at * 3) + 1), Mirror.Load((at * 3) + 2));
+        }
+
+        // SceneLight.Reflected's cube: the specular cube where one is bound, the diffuse cube where not.
+        float3 MirrorRead(float3 direction)
+        {
+            int size = (int)Finish.w;
+            if (size <= 0)
+            {
+                return CubeRead(direction);
+            }
+
+            int start;
+            int x0;
+            int y0;
+            int x1;
+            int y1;
+            float fx;
+            float fy;
+            if (!CubeSpot(direction, size, start, x0, y0, x1, y1, fx, fy))
+            {
+                return float3(0.0, 0.0, 0.0);
+            }
+
+            float3 top = lerp(MirrorTexel(start + (y0 * size) + x0), MirrorTexel(start + (y0 * size) + x1), fx);
+            float3 bottom = lerp(MirrorTexel(start + (y1 * size) + x0), MirrorTexel(start + (y1 * size) + x1), fx);
             return lerp(top, bottom, fy);
         }
 
@@ -404,17 +464,52 @@ internal static class ModelShaders
             }
         }
 
-        // SceneLight.Shade: every light, the surround, a glossy material's environment, the exposure, the grade.
-        float3 Lighted(float3 albedo, float3 place, float3 normal, float sun, bool glossy, float3 specular, float gloss)
+        // SceneLight.Glinted: one light's GGX lobe on the water's waves.
+        void Glinted(float3 light, float3 towards, float3 waves, float facing, float3 specular, float gloss, inout float3 shine)
+        {
+            if (dot(waves, towards) <= 0.0)
+            {
+                return;
+            }
+
+            float3 halfway = normalize(ToEye.xyz + towards);
+            float lobe = GlossLobe(waves, facing, towards, halfway, gloss);
+            float fresnel = GlossFresnel(saturate(dot(ToEye.xyz, halfway)));
+            shine += light * lobe * (fresnel + (specular * (1.0 - fresnel)));
+        }
+
+        // SceneLight.Reflected: the environment's light from one way, as the surround is lit.
+        float3 Reflected(float3 direction, float3 total)
+        {
+            if (Ambient.x == 2)
+            {
+                return (MirrorRead(mul(float4(direction, 0.0), CubeTurn).xyz) * (Surround.y + (total * Surround.z)) * (1.0 - Surround.w))
+                    + (Surround.x * Surround.w);
+            }
+
+            return Ambient.x == 1 ? Surround.xxx : float3(0.0, 0.0, 0.0);
+        }
+
+        // SceneLight.Shade: every light, the surround, a glossy material's environment, the waves' own specular, the exposure, the grade.
+        float3 Lighted(float3 albedo, float3 place, float3 normal, float sun, bool glossy, float3 specular, float gloss, float3 waves)
         {
             float3 diffuse = float3(0.0, 0.0, 0.0);
             float3 shine = float3(0.0, 0.0, 0.0);
             float3 total = float3(0.0, 0.0, 0.0);
             float facing = max(dot(normal, ToEye.xyz), 1e-4);
+            bool waved = any(waves != 0.0);
+            bool glints = waved && glossy && Finish.y > 0.5;
+            float wavesFacing = waved ? max(dot(waves, ToEye.xyz), 1e-4) : facing;
+            bool lobes = glossy && !waved;
             if (SunColour.w > 0.5 && sun > 0.0)
             {
                 float3 light = SunColour.rgb * sun;
-                Light(light, -SunTravels.xyz, normal, facing, glossy, specular, gloss, diffuse, shine);
+                Light(light, -SunTravels.xyz, normal, facing, lobes, specular, gloss, diffuse, shine);
+                if (glints)
+                {
+                    Glinted(light, -SunTravels.xyz, waves, wavesFacing, specular, gloss, shine);
+                }
+
                 total += light;
             }
 
@@ -453,7 +548,12 @@ internal static class ModelShaders
 
                             float3 light = tint.rgb * attenuation;
                             float3 towards = distance > 1e-4 ? offset / distance : normal;
-                            Light(light, towards, normal, facing, glossy, specular, gloss, diffuse, shine);
+                            Light(light, towards, normal, facing, lobes, specular, gloss, diffuse, shine);
+                            if (glints)
+                            {
+                                Glinted(light, towards, waves, wavesFacing, specular, gloss, shine);
+                            }
+
                             total += light;
                         }
                     }
@@ -473,13 +573,23 @@ internal static class ModelShaders
             }
 
             colour += surround * albedo;
-            if (glossy)
+            if (lobes)
             {
                 float bias;
                 float scale;
                 GlossEnvironment(facing, gloss, bias, scale);
                 float level = (surround.x + surround.y + surround.z) / 3.0;
                 shine += (level * bias).xxx + (level * scale * specular);
+            }
+
+            if (waved && glossy && Finish.z > 0.5)
+            {
+                float bias;
+                float scale;
+                GlossEnvironment(wavesFacing, gloss, bias, scale);
+                float3 reflected = (2.0 * dot(waves, ToEye.xyz) * waves) - ToEye.xyz;
+                float3 seen = Reflected(reflected, total);
+                shine += (seen * bias) + (seen * scale * specular);
             }
 
             float3 exposed = (colour + shine) * Finish.x;
@@ -553,7 +663,7 @@ internal static class ModelShaders
 
             float3 normal = Toward(pixel.turn);
             float sun = SunTravels.w > 0.5 ? SunReaches(pixel.place, normal) : 1.0;
-            return float4(Srgb(Lighted(Linear(colour), pixel.place, normal, sun, false, float3(0.0, 0.0, 0.0), 0.0)), 1.0);
+            return float4(Srgb(Lighted(Linear(colour), pixel.place, normal, sun, false, float3(0.0, 0.0, 0.0), 0.0, float3(0.0, 0.0, 0.0))), 1.0);
         }
 
         // THE SUN'S SHADOW MAP - ShadowMap.Build: the mesh drawn along the light onto the map's texels,
@@ -618,7 +728,7 @@ internal static class ModelShaders
         {
             float3 normal;
             float shade = LampShade(facing, normal);
-            if (ShadeHasSpecular)
+            if (ShadeHasSpecular && !ShadeHasWaves)
             {
                 if (ShadeHasGloss)
                 {
@@ -632,7 +742,7 @@ internal static class ModelShaders
         }
 
         // MeshPicture.Drawing.Scened with a program.
-        float3 SceneLit(float3 colour, float3 specular, float gloss, float3 place, float3 turn)
+        float3 SceneLit(float3 colour, float3 specular, float gloss, float3 place, float3 turn, float3 waves)
         {
             float3 normal = Toward(turn);
             float3 albedo = Linear(colour);
@@ -642,7 +752,7 @@ internal static class ModelShaders
             }
 
             float sun = SunTravels.w > 0.5 ? SunReaches(place, normal) : 1.0;
-            return Srgb(Lighted(albedo, place, normal, sun, ShadeHasSpecular && ShadeHasGloss, specular, gloss));
+            return Srgb(Lighted(albedo, place, normal, sun, ShadeHasSpecular && ShadeHasGloss, specular, gloss, ShadeHasWaves ? waves : float3(0.0, 0.0, 0.0)));
         }
 
         float4 Solidly(Pixel pixel, bool scened)
@@ -661,7 +771,7 @@ internal static class ModelShaders
             }
 
             float3 shown = scened
-                ? SceneLit(said.colour, said.specular, said.gloss, pixel.place, pixel.turn)
+                ? SceneLit(said.colour, said.specular, said.gloss, pixel.place, pixel.turn, said.waves)
                 : LampLit(said.colour, said.specular, said.gloss, pixel.facing);
             return float4(shown, 1.0);
         }
@@ -677,7 +787,7 @@ internal static class ModelShaders
             }
 
             float3 shown = scened
-                ? SceneLit(said.colour, said.specular, said.gloss, pixel.place, pixel.turn)
+                ? SceneLit(said.colour, said.specular, said.gloss, pixel.place, pixel.turn, said.waves)
                 : LampLit(said.colour, said.specular, said.gloss, pixel.facing);
             float alpha = saturate(cover);
             return float4(shown * alpha, alpha);

@@ -78,6 +78,9 @@ public sealed partial class ModelGpu
         int ambient = light.Ambient == SceneAmbient.Cube && light.Cube is not null ? 2
             : light.Ambient is SceneAmbient.Flat or SceneAmbient.Cube ? 1
             : 0;
+
+        // THE WATER'S REFLECTION reads the specular cube where it is asked for and the cube ambient is on - SceneLight.Reflected.
+        CubeMap? mirror = ambient == 2 && light.WaterReflection ? light.Mirror : null;
         Written(_scene, new SceneConstants
         {
             CubeTurn = light.CubeTurn,
@@ -85,7 +88,7 @@ public sealed partial class ModelGpu
             SunTravels = new Vector4(light.SunDirection, map is null ? 0f : 1f),
             ToEye = new Vector4(toEye, 0f),
             Surround = new Vector4(light.FlatAmbient, light.CubeBrightness, light.DirectLightEnvRatio, light.GiEnvOcclusion),
-            Finish = new Vector4(light.Exposure, 0f, 0f, 0f),
+            Finish = new Vector4(light.Exposure, light.WaterGlints ? 1f : 0f, light.WaterReflection ? 1f : 0f, mirror?.Size ?? 0),
             CellLeast = new Vector4(cells.Least, cells.Size),
             ShadowU = new Vector4(frame.U, frame.Least.X),
             ShadowV = new Vector4(frame.V, frame.Least.Y),
@@ -110,6 +113,7 @@ public sealed partial class ModelGpu
         context.PSSetShaderResource(2, points?.Points.View!);
         context.PSSetShaderResource(3, points?.Reach.View!);
         context.PSSetShaderResource(4, ambient == 2 ? Read(light.Cube!, light.Cube!.Texels).View : null!);
+        context.PSSetShaderResource(ModelShaders.MirrorSlot, mirror is null ? null! : Read(mirror, mirror.Texels).View);
         context.PSSetShaderResource(5, grade is null ? null! : Read(grade, MemoryMarshal.Cast<Vector3, float>(grade.Texels)).View);
         context.PSSetShaderResource(6, map?.View!);
     }

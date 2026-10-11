@@ -12,8 +12,11 @@ namespace PoEformance.Game.Files;
 /// 178 of 179 - and the one exception, black_cube.dds, 32-bit colour with the old header's masks.
 /// Both are read; anything else says what it is and is not drawn.
 ///
-/// ONLY THE TOP LEVEL. The game reads the diffuse cube at level nought (SAMPLE_TEXCUBELOD with a
-/// level of 0 in AddDiffuseEnvironmentLight), so the top level is the one that lights a surface.
+/// ONE LEVEL, THE TOP ONE BY DEFAULT. The game reads the diffuse cube at level nought (SAMPLE_TEXCUBELOD
+/// with a level of 0 in AddDiffuseEnvironmentLight), so the top level is the one that lights a surface. A
+/// reader may ask for a smaller one the file stores - the water's reflection takes the specular cube's
+/// level of 128 (SceneLight.Mirror), a sixteenth of the top level's texels for a reflection that is three
+/// parts in a hundred of the light.
 ///
 /// THE FACES ARE DIRECT3D'S: +x, -x, +y, -y, +z, -z one after another, each with its levels, and
 /// a direction picks its face and its place on it by the table every graphics card follows - the
@@ -50,7 +53,8 @@ public sealed class CubeMap
     /// <summary>The cube, or null with why not.</summary>
     /// <param name="dds">The file's bytes, unpacked - GameArt.ReadRaw.</param>
     /// <param name="why">Why there is no cube, or empty.</param>
-    public static CubeMap? Read(byte[]? dds, out string why)
+    /// <param name="largest">The most texels a face is read across: the first level the file holds that fits - the top one unless a smaller is asked for and stored.</param>
+    public static CubeMap? Read(byte[]? dds, out string why, int largest = LargestFace)
     {
         why = string.Empty;
         if (dds is null || dds.Length < HeaderBytes || dds[0] != (byte)'D' || dds[1] != (byte)'D' || dds[2] != (byte)'S' || dds[3] != (byte)' ')
@@ -70,7 +74,15 @@ public sealed class CubeMap
             return null;
         }
 
+        // THE LEVEL READ: the first that fits, where the file holds it.
+        int skip = 0;
         int size = width;
+        while (size > largest && skip + 1 < levels)
+        {
+            skip++;
+            size = Math.Max(1, size / 2);
+        }
+
         var texels = new float[6 * size * size * 3];
         bool dx10 = (flags & 0x4) != 0 && dds[84] == (byte)'D' && dds[85] == (byte)'X' && dds[86] == (byte)'1' && dds[87] == (byte)'0';
         if (dx10)
@@ -97,8 +109,14 @@ public sealed class CubeMap
 
             bool signed = format == Bc6hSigned;
             int faceBytes = 0;
-            for (int level = 0, side = size; level < levels; level++, side = Math.Max(1, side / 2))
+            int levelAt = 0;
+            for (int level = 0, side = width; level < levels; level++, side = Math.Max(1, side / 2))
             {
+                if (level == skip)
+                {
+                    levelAt = faceBytes;
+                }
+
                 faceBytes += Blocks(side) * Blocks(side) * Bc6h.BlockBytes;
             }
 
@@ -113,7 +131,7 @@ public sealed class CubeMap
             int across = Blocks(size);
             for (int face = 0; face < 6; face++)
             {
-                int from = start + (face * faceBytes);
+                int from = start + (face * faceBytes) + levelAt;
                 for (int by = 0; by < across; by++)
                 {
                     for (int bx = 0; bx < across; bx++)
@@ -160,8 +178,14 @@ public sealed class CubeMap
 
         uint red = BitConverter.ToUInt32(dds, 92), green = BitConverter.ToUInt32(dds, 96), blue = BitConverter.ToUInt32(dds, 100);
         int levelPixels = 0;
-        for (int level = 0, side = size; level < levels; level++, side = Math.Max(1, side / 2))
+        int pixelsAt = 0;
+        for (int level = 0, side = width; level < levels; level++, side = Math.Max(1, side / 2))
         {
+            if (level == skip)
+            {
+                pixelsAt = levelPixels;
+            }
+
             levelPixels += side * side;
         }
 
@@ -173,7 +197,7 @@ public sealed class CubeMap
 
         for (int face = 0; face < 6; face++)
         {
-            int from = HeaderBytes + (face * levelPixels * 4);
+            int from = HeaderBytes + (((face * levelPixels) + pixelsAt) * 4);
             for (int pixel = 0; pixel < size * size; pixel++)
             {
                 uint value = BitConverter.ToUInt32(dds, from + (pixel * 4));
