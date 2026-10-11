@@ -337,6 +337,12 @@ public class RoomLayoutTests
 
         // Zero is the usual, which places both.
         Assert.Equal(2, RoomModels.Of(p => files.GetValueOrDefault(p), path, doodads: 0).Parts);
+
+        // AND A STAGE'S "EVERY DOODAD" places everything and says nothing was left out - its triangles fit a long.
+        MonsterModel every = RoomModels.Of(p => files.GetValueOrDefault(p), path, doodads: RoomModels.EveryDoodad);
+        Assert.Equal(2, every.Parts);
+        Assert.DoesNotContain("left out to keep it turnable", every.Move, StringComparison.Ordinal);
+        Assert.All(every.DoodadFiles, file => Assert.Equal(0, file.Capped));
     }
 
     [Fact]

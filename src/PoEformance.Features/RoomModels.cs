@@ -42,6 +42,17 @@ public static class RoomModels
     public const int MostDoodads = 5000;
 
     /// <summary>
+    /// No cap: every doodad and every tile piece a room names is placed, whatever triangles they come to - a stage's.
+    /// </summary>
+    /// <remarks>
+    /// ASKED FOR FROM THE LIVE CLIENT after model-panes.txt (v0.1.202) counted Port's boss room: 2.25 million triangles,
+    /// the ship alone 355,726 of the usual 500,000, so the usual cap laid 56 of its 554 doodads and left out six of its 29
+    /// tile pieces - all 48 water planes among what went, which is why the harbour stood drained. A stage is one picture
+    /// of one boss, and its cap is what the room needs. Times <see cref="TrianglesPerDoodad"/> it still fits a long.
+    /// </remarks>
+    public const int EveryDoodad = int.MaxValue;
+
+    /// <summary>
     /// Triangles allowed per doodad allowed. The renderer is on the processor; past the product, turning stutters.
     /// </summary>
     /// <remarks>
