@@ -203,6 +203,18 @@ public static class StagedModels
 
         var pile = new ModelPile();
         pile.Add(tile, Matrix4x4.Identity, stage);
+
+        // THE PIECES' OWN NAMES KEPT where the stage has them - a laid or built room names every shape's tile piece, its
+        // ground and its doodads. Named all for the room, the probe said "from Boss_01.arm" of Port's white pier, which is
+        // the one question it was clicked to answer.
+        for (var shape = 0; shape < tile.ShapeSources.Count && shape < tile.Mesh.Shapes.Count; shape++)
+        {
+            if (tile.ShapeSources[shape].Length > 0)
+            {
+                pile.Sources[shape] = tile.ShapeSources[shape];
+            }
+        }
+
         int first = tile.Mesh.Positions.Length;
         pile.Add(actor, place, ActorSource);
         SkinnedMesh joined = SkinnedMesh.Joined(pile.Joins);

@@ -153,6 +153,33 @@ public class StagedModelsTests
         Assert.Equal(0f, facing.Y, 3);
     }
 
+    /// <summary>
+    /// A room that names every shape's piece - a tile, its ground, a doodad - keeps those names on the stage, where the probe reads
+    /// them; a shape it leaves unnamed is the stage's.
+    /// </summary>
+    [Fact]
+    public void ASTAGEDRoomKeepsTheNamesOfItsPiecesForTheProbe()
+    {
+        SkinnedMesh room = SkinnedMesh.Joined(
+        [
+            new MeshJoin(Square(400f, 10f, "deck")),
+            new MeshJoin(Square(400f, 12f, "ground")),
+            new MeshJoin(Square(40f, -20f, "boat")),
+        ]);
+        var tile = new MonsterModel(room, null, "room.arm", string.Empty, string.Empty)
+        {
+            Kind = ModelKind.Room,
+            ShapeSources = ["Port_Boss_01.tdt at tile 3, 4", "ground of Port_Boss_01.tdt at tile 3, 4", string.Empty],
+        };
+        var actor = new MonsterModel(Box(5f, 20f), null, "monster.smd", string.Empty, string.Empty);
+
+        MonsterModel staged = StagedModels.Staged(actor, tile, modelSize: 0, "Metadata/Terrain/Rooms/boss_01.arm");
+
+        Assert.Equal(
+            ["Port_Boss_01.tdt at tile 3, 4", "ground of Port_Boss_01.tdt at tile 3, 4", "Metadata/Terrain/Rooms/boss_01.arm", StagedModels.ActorSource],
+            staged.ShapeSources);
+    }
+
     [Fact]
     public void WithNothingFacingUpUnderTheMiddleTheMonsterStandsAtTheTilesLowestPoint()
     {
