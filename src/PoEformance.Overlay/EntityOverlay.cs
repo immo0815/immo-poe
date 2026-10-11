@@ -1249,6 +1249,9 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         {
             ArgumentNullException.ThrowIfNull(value);
             _environmentFiles = value;
+
+            // AND THE CAPTURE'S, whose water part reads every one's water section - see CaptureWater.
+            _capture.Environments = value;
         }
     }
 

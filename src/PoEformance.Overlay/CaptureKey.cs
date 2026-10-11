@@ -151,6 +151,9 @@ internal sealed class CaptureKey
     /// <summary>The install's shader sources, as its walk found them - empty until it has run. For the ground part's search.</summary>
     public IReadOnlyList<string> Shaders { get; set; } = [];
 
+    /// <summary>The install's environments (<c>.env</c>), as its walk found them - empty until it has run. For the water part.</summary>
+    public IReadOnlyList<string> Environments { get; set; } = [];
+
     /// <summary>
     /// Starts the memory half of a capture - the recording, and the pass inside it that reads what the ask says - or null where one is already running. Set by whoever owns the reader.
     /// </summary>
@@ -368,11 +371,12 @@ internal sealed class CaptureKey
         Func<string, byte[]?>? read = Read;
         string version = _version();
         IReadOnlyList<string> shaders = Shaders;
-        run.Writing = Task.Run(() => Write(run, read, version, shaders));
+        IReadOnlyList<string> environments = Environments;
+        run.Writing = Task.Run(() => Write(run, read, version, shaders, environments));
     }
 
     /// <summary>Every ticked part of the capture, each on its own so one failing loses only itself.</summary>
-    private static void Write(Run run, Func<string, byte[]?>? read, string version, IReadOnlyList<string> shaders)
+    private static void Write(Run run, Func<string, byte[]?>? read, string version, IReadOnlyList<string> shaders, IReadOnlyList<string> environments)
     {
         var parts = new List<string>();
         void Part(string file, Func<string> write)
@@ -583,6 +587,23 @@ internal sealed class CaptureKey
                     }
 
                     return ground[..ground.IndexOf('\n')];
+                });
+            }
+        }
+
+        if (On(CaptureParts.Water))
+        {
+            if (read is null)
+            {
+                parts.Add($"{CaptureReport.WaterFile}  not written: no install to read the water from");
+            }
+            else
+            {
+                Part(CaptureReport.WaterFile, () =>
+                {
+                    string water = CaptureWater.Write(read, environments, shaders);
+                    File.WriteAllText(At(CaptureReport.WaterFile), water);
+                    return water[..water.IndexOf('\n')].TrimEnd('\r');
                 });
             }
         }

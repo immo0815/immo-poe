@@ -90,6 +90,9 @@ public static class CaptureReport
     /// <summary>What the laid tiles' ground is made of - see CaptureGround.</summary>
     public const string GroundFile = "ground.txt";
 
+    /// <summary>What the water is drawn from - see CaptureWater.</summary>
+    public const string WaterFile = "water.txt";
+
     /// <summary>The survey of the entity maps for the rooms' doodads, and every sighting.</summary>
     public const string DoodadsFile = "doodads.txt";
 

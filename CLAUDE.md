@@ -189,7 +189,14 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   500,000 - so a Monster Book stage now lays every doodad and tile piece (`RoomModels.EveryDoodad`).
   Laid, the planes came out white, so the part writes the materials under the last probe click and those
   drawn plain whole too, with what each compiles to, what drawing it left out and its graphs
-  (`CaptureMaterials`, shared with the ground's part).
+  (`CaptureMaterials`, shared with the ground's part). That capture (v0.1.204) said why: the planes stand where
+  they should (the probe put them over the harbour's sunken bricks and the ocean's floor, under nothing), but
+  `nvidian_Ocean.mat` is no ordinary material - `"shadertype":"Ocean"`, `"splashywater":true` - and its graph
+  writes as albedo only a constant, (0.53, 0, 0, 0.608) off the minimap, a mark in the frame's buffers. Water is
+  the engine's own pass (`common.ffx`: `PASS_TYPE_WATER`, `water_color_open`, `water_color_terrain`,
+  `water_clarity` and more as pass uniforms; `WaterComputeSurface`, `WaterComputeRefraction`), while Port.env's
+  water section names only its flow and a height offset. `water.txt` (`CaptureWater`) writes every
+  environment's water keys and the water pass's sources whole - read it before the water is given a colour.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
