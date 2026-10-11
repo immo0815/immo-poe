@@ -273,5 +273,11 @@ public class RoomBuilderTests
 
         // A stage key naming a tileset goes to the build, which without an install says so.
         Assert.Contains("no install", StagedModels.LaidRoom(null, written, () => null).Why, StringComparison.Ordinal);
+
+        // THE FOLDER, which tells two built rooms of one file name apart in a line: Port's boss_01 from Flotsam's.
+        Assert.Equal("Port", new RoomKey("Metadata/Terrain/Maps/Port/Rooms/Unique/boss_01.arm", Built: "Metadata/Terrain/Maps/Port/master.tsi").BuiltIn);
+        Assert.Equal("4_2_2", new RoomKey("x.arm", Built: "Metadata\\Terrain\\Gallows\\Act4\\4_2_2\\master.tsi").BuiltIn);
+        Assert.Equal("Oasis", key.BuiltIn);
+        Assert.Equal(string.Empty, new RoomKey("x.arm").BuiltIn);
     }
 }

@@ -587,8 +587,13 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
     /// </remarks>
     public Func<string, RoomsLaid>? RoomsBuiltIn { get; set; }
 
-    /// <summary>The arena rooms built from the tileset last worked out with <see cref="_arenas"/>, each with its key.</summary>
-    private IReadOnlyList<(string Room, string Key)> _built = [];
+    /// <summary>The arena rooms built from the tileset last worked out with <see cref="_arenas"/>, each with its key and the area it is built for.</summary>
+    /// <remarks>
+    /// THE MAP GOES ON THE ROW because the file names do not tell the rooms apart: most bosses' rooms are called boss_01.arm,
+    /// so a boss of two maps - Malgor of Port and of Flotsam - listed two rows reading the same. The folder the tileset's
+    /// master sits in, not the area's id, being short enough for the combo (RoomKey.BuiltIn); the id is in the row's tooltip.
+    /// </remarks>
+    private IReadOnlyList<(string Room, string Key, string Area)> _built = [];
 
     /// <summary>The arenas last worked out, what they were worked out for, and the line saying how - a few file reads, kept while the combo is open.</summary>
     /// <remarks>
@@ -652,7 +657,7 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
             string currentPath = StagedModels.PathOf(current);
             string shown = current.Length == 0
                 ? "none"
-                : Tail(currentPath) + (!TileBook.IsRoom(currentPath) ? string.Empty : RoomKey.Read(current).Built.Length > 0 ? " (built from the tileset)" : " (laid in play)");
+                : Tail(currentPath) + (!TileBook.IsRoom(currentPath) ? string.Empty : RoomKey.Read(current).Built.Length > 0 ? " (built, " + RoomKey.Read(current).BuiltIn + ")" : " (laid in play)");
             ImGui.SetNextItemWidth(MathF.Max(120f, ImGui.GetContentRegionAvail().X * 0.6f));
             if (ImGui.BeginCombo("stands on##monster-stage", ImGuiText.Escape(shown)))
             {
@@ -673,9 +678,10 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
                 }
 
                 // AND THE ROOMS BUILT FROM THE MAP'S TILESET, from anywhere: valid tiles, not any one instance's.
-                foreach ((string room, string key) in _built)
+                foreach ((string room, string key, string area) in _built)
                 {
-                    Offer(model, "built from the tileset: " + Tail(room), key, room + " - a tile alike to each slot, laid the measured way round; the arena slot is settled, the ring chosen");
+                    Offer(model, "built · " + RoomKey.Read(key).BuiltIn + ": " + Tail(room), key,
+                        room + " - built from " + area + "'s tileset: a tile alike to each slot, laid the measured way round; the arena slot is settled, the ring chosen");
                 }
 
                 string pick = TileChoice?.Invoke() ?? string.Empty;
@@ -811,7 +817,7 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
         _laid = laid;
 
         // THE ROOMS BUILT FROM THE TILESET, from the install alone - every area the game lists him the boss of.
-        var built = new List<(string Room, string Key)>();
+        var built = new List<(string Room, string Key, string Area)>();
         var builtSaid = string.Empty;
         foreach (string area in areas)
         {
@@ -824,7 +830,7 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
             {
                 if (seen.Add("built:" + key))
                 {
-                    built.Add((room, key));
+                    built.Add((room, key, area));
                 }
             }
 

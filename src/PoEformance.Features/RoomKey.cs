@@ -35,6 +35,24 @@ public readonly record struct RoomKey(
     /// <summary>What starts the word naming the tileset a room is built from.</summary>
     public const string BuiltWord = "built=";
 
+    /// <summary>
+    /// The folder the tileset <see cref="Built"/> names sits in - "Port" for Maps/Port/master.tsi - or empty where the room is not built.
+    /// </summary>
+    /// <remarks>
+    /// WHAT TELLS TWO BUILT ROOMS APART IN A LINE: most bosses' rooms are called boss_01.arm, so a boss of two maps - Malgor of
+    /// Port and of Flotsam - listed two rows reading the same, and the area's own id ran past the stage combo's width.
+    /// </remarks>
+    public string BuiltIn
+    {
+        get
+        {
+            string built = Built.Replace('\\', '/').TrimEnd('/');
+            int file = built.LastIndexOf('/');
+            int folder = file > 0 ? built.LastIndexOf('/', file - 1) : -1;
+            return file > 0 ? built[(folder + 1)..file] : built;
+        }
+    }
+
     /// <summary>The deepest cut the slider offers, in world units.</summary>
     public const int MostCut = 2000;
 
