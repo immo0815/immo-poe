@@ -32,6 +32,11 @@ recordings/
 *.rec
 !tests/fixtures/*.rec
 
+# A committed capture keeps its recording - the terrain every replay reads - but not what the
+# replays write beside it when POEF_CAPTURE points at it.
+!tests/fixtures/captures/*/memory.rec
+tests/fixtures/captures/*/*-replay.txt
+
 # Somebody else's game art. scripts\fetch-minimap-icons.ps1 rebuilds this folder
 # from data/minimap-icons.urls.txt, so the recipe is committed and the 2.6 MB of
 # icons are not.

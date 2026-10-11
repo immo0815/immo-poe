@@ -403,6 +403,65 @@ public class CaptureReportTests
             File.Delete(path);
         }
     }
+
+    /// <summary>
+    /// The install of a small area shaped like Sulphuric Caverns' boss room: a listed tile that inherits the
+    /// file laid in its place, and a listed tile whose .tmd names a variant no list does.
+    /// </summary>
+    internal static byte[]? TileFilesInstall(string path) => path switch
+    {
+        "Metadata/Terrain/Maps/Test/master.tsi" => Encoding.UTF8.GetBytes("version 2\nTileSet \"tiles.tst\"\n"),
+        "Metadata/Terrain/Maps/Test/tiles.tst" => Encoding.UTF8.GetBytes(
+            "\"Metadata/Terrain/Test/Murky/Fill_01.tdt\"\n\"Metadata/Terrain/Test/Lava/Fill_01.tdt\"\n"),
+        "Metadata/Terrain/Test/Murky/Fill_01.tdt" => TileFilesTests.Tdt(inherits: "Metadata/Terrain/Test/Fill_01.tdt"),
+        "Metadata/Terrain/Test/Fill_01.tdt" or "Metadata/Terrain/Test/Lava/Fill_01.tdt" or "Metadata/Terrain/Test/Lava/Fill_02.tdt" => TileFilesTests.Tdt(),
+        "Metadata/Terrain/Test/Lava/Fill_01.tmd" => [0xFF, 0xFE, .. Encoding.Unicode.GetBytes("version 1\r\n\"Metadata/Terrain/Test/Lava/Fill_02.tdt\"\r\n")],
+        "Metadata/Terrain/Test/Fill_01.tmd" => [1, 0, 0, 0, .. Encoding.Unicode.GetBytes("Thing"), 0, 0, 7],
+        _ => null,
+    };
+
+    /// <summary>The laid half of that area: the inherited file, a listed one, and the variant.</summary>
+    internal static TerrainTiles TileFilesLaid() => new(
+        ["Metadata/Terrain/Test/Fill_01.tdt", "Metadata/Terrain/Test/Lava/Fill_01.tdt", "Metadata/Terrain/Test/Lava/Fill_02.tdt"],
+        [0, 1, 2, 0], new byte[4], new byte[4], new sbyte[4], 2, 2);
+
+    /// <summary>
+    /// Every listed or laid file once, its chain hop by hop and its .tmd as text or bytes; a laid file no list names is
+    /// put beside the listed file whose chain reaches it and the one whose .tmd names it.
+    /// </summary>
+    [Fact]
+    public void TILEFILESFollowEachChainAndPrintTheTmdBesideIt()
+    {
+        string said = CaptureReport.TileFiles(TileFilesInstall, ["Metadata/Terrain/Maps/Test/master.tsi"], null, TileFilesLaid())
+            .ReplaceLineEndings("\n");
+        string[] lines = said.Split('\n');
+
+        Assert.Equal("4 tile files - 2 the area's lists name, 3 laid, 2 of those named by no list; each with its definition followed through what it inherits, and the .tmd beside it", lines[0]);
+        Assert.Contains(
+            "Metadata/Terrain/Test/Fill_01.tdt\n  reached by inheriting from: Metadata/Terrain/Test/Murky/Fill_01.tdt\n  its path in the .tmd of: none\n  its name alone in the .tmd of: none\n",
+            said,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Metadata/Terrain/Test/Lava/Fill_02.tdt\n  reached by inheriting from: none\n  its path in the .tmd of: Metadata/Terrain/Test/Lava/Fill_01.tdt\n",
+            said,
+            StringComparison.Ordinal);
+
+        // The chain: the listed file inherits, the file it names defines.
+        Assert.Contains(
+            "##### Metadata/Terrain/Test/Murky/Fill_01.tdt  (listed)\n  inherits\tMetadata/Terrain/Test/Fill_01.tdt\n"
+            + "  defines\tMetadata/Terrain/Test/Fill_01.tdt\t2x1\ttag arena_tag\ttemplates Art/Models/Terrain/Test/Arena.tgt\n  tmd\tnone\n",
+            said,
+            StringComparison.Ordinal);
+
+        // A text .tmd whole; a binary one as its bytes and its strings.
+        Assert.Contains(
+            "##### Metadata/Terrain/Test/Lava/Fill_01.tdt  (listed, laid)\n  defines\tMetadata/Terrain/Test/Lava/Fill_01.tdt\t2x1\ttag arena_tag\ttemplates Art/Models/Terrain/Test/Arena.tgt\n"
+            + "  tmd\tMetadata/Terrain/Test/Lava/Fill_01.tmd\t" + (2 + Encoding.Unicode.GetByteCount("version 1\r\n\"Metadata/Terrain/Test/Lava/Fill_02.tdt\"\r\n")) + " bytes\ttext\n"
+            + "  | version 1\n  | \"Metadata/Terrain/Test/Lava/Fill_02.tdt\"\n",
+            said,
+            StringComparison.Ordinal);
+        Assert.Contains("  tmd\tMetadata/Terrain/Test/Fill_01.tmd\t17 bytes\tbinary\n  hex\t010000005400680069006E006700000007\n  strings\t\"Thing\"\n", said, StringComparison.Ordinal);
+    }
 }
 
 /// <summary>

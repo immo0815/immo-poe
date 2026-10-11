@@ -496,6 +496,25 @@ internal sealed class CaptureKey
             }
         }
 
+        if (On(CaptureParts.TileFiles))
+        {
+            if (read is null)
+            {
+                parts.Add($"{CaptureReport.TileFilesFile}  not written: no install to read the tile files from");
+            }
+            else
+            {
+                // The laid half only where the terrain was read; the listed half needs nothing but the install.
+                Part(CaptureReport.TileFilesFile, () =>
+                {
+                    string files = CaptureReport.TileFiles(
+                        read, run.Loaded, run.Masters, run.Snapshot.Terrain is TerrainGrid { Tiles: { } laid } ? laid : null);
+                    File.WriteAllText(At(CaptureReport.TileFilesFile), files);
+                    return files[..files.IndexOf('\n')];
+                });
+            }
+        }
+
         if (On(CaptureParts.RoomsNear))
         {
             if (read is null)

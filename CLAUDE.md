@@ -204,7 +204,19 @@ optional and what the generator takes for a missing one is in its code, not a fi
 answer one slot, over any number of captures at once (`POEF_CAPTURES=<folder>:<folder>`, the
 platform's path separator between). Whether a tagged tile such as `forced_blank` is drawn for a slot
 not asking its tag is open - Stronghold lays it in most empty one-by-one slots, Steppe also in big
-slots no draw by size could reach - so the replay prints both readings. Two captures of one area forty
+slots no draw by size could reach - so the replay prints both readings. Over eleven captures the
+estimate for an unwritten weight is about 1 (best 0.7 to 1.4 by reading, 95% within 0.47 to 2.5;
+10 and 100 far outside), while Steppe's samples, all of them `forced_blank` against `Blank` (300),
+want about 75 - so Steppe measures the tag question, not the default. The build still takes 0 until
+that is decided. Every area also LAYS TILE FILES NO LIST NAMES - one to twenty a capture: Sulphuric
+Caverns' boss room lays `Thickwall/Fill_01` where its list names `Murky/Thickwall/Fill_01`, and an
+`Abyss/Lava/Fill_02` beside the list's `Fill_01`, so 17 of its 39 settled slots can never come out the
+game's file. A definition may inherit another, and some tiles load with a `.tmd` of their name that
+no reference reads; `tile-files.txt` writes both halves for every listed and laid file, and
+`tile-files-replay.txt` counts which one explains each laid file - read it before giving the build a
+rule for either. Four captures are committed under `tests/fixtures/captures/` (its README says why
+each), and `CaptureFixtureTests` holds the orientation rule, the origin rule and the settled slots
+against them on every build. Two captures of one area forty
 minutes apart are how it was learned that the power-line pieces and checkpoints come and go
 with play while the plain props never move; hold a finder change against a capture before
 asking for a screenshot. The reason they come and go is the network bubble: a scripted

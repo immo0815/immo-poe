@@ -1,0 +1,2214 @@
+52 room files the area may lay - the loaded list's and every room of the sets its files and the install's masters name
+
+##### Metadata/Terrain/Gallows/Leagues/Expedition/encounter.arm
+version 36
+1
+"forcedblank"
+3 1
+1 1
+"missiontile"
+1 0
+k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 0 0 0 0 0 0 0 0 0 0
+0 0 0
+0 0 0
+0 0 0
+0 0 0
+-1
+-1
+-1
+-1
+-1
+43 34 3.19746 "expedition_npc"
+-1
+""
+f 1 f 1 f 1
+f 1 f 1 f 1
+f 1 f 1 f 1
+36 18 0 -1.57081 0 0 -0.70711 0.707104 0 0 0 1 "Metadata/Terrain/Doodads/Leagues/Expedition/plunger.ao" "Metadata/MiscellaneousObjects/Expedition/ExpeditionDetonator" 0
+23 52 1 257.232 569.789 1.46294 0 0 0.667966 0.744192 1 0 0 1 "Metadata/Terrain/Doodads/Leagues/Expedition/Encampment/ExpWoodPile_03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+41 45 1 447.604 489.919 3.11759 0 0 0.999928 0.0120002 1 0 0 1 "Metadata/Terrain/Doodads/Leagues/Expedition/Encampment/ExpBench_02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+39 45 1 434.135 493.079 -0.0725499 0 0 -0.036267 0.999342 1 0 1 -76 0.7 "Metadata/Terrain/Doodads/Oriath/Estates/EstatesBookScatter/ScatterBooks13.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+47 43 0 1.5708 0 0 0.707107 0.707107 0 0 0 1 "Metadata/Terrain/Doodads/Islands/TwilightOrder/TwilightTents/ExpeditionTent07.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+56 48 1 612.082 528.621 -0 0 0 0 1 0 0 0 0.95 "Metadata/Terrain/Doodads/Leagues/Expedition/Encampment/ExpProps_08.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+57 39 0 -0 0 0 0 1 0 0 0 1 "Metadata/Terrain/Doodads/Leagues/Expedition/Encampment/ExpJar.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+48 41 1 528.039 456.378 2.15924 0 0 0.881779 0.471663 1 0 0 1 "Metadata/Terrain/Doodads/Leagues/Expedition/Encampment/ExpBucket_02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+54 39 0 -0.683026 0 0 -0.334913 0.942249 0 0 0 1.1 "Metadata/Terrain/Doodads/Leagues/Expedition/Encampment/ExpJar.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+62 54 1 679.531 588.105 1.63253 0 0 0.728594 0.684946 0 0 0 1 "Metadata/Terrain/Doodads/Leagues/Expedition/Encampment/ExpSack_01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+61 46 1 673.443 501.931 1.81618 0 0 0.788331 0.615251 0 0 0 1 "Metadata/Terrain/Doodads/Leagues/Expedition/Encampment/ExpSack_01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+33 41 1 359.925 445.654 -0.101691 0 0 -0.0508235 0.998708 0 0 0 0.85 "Metadata/Terrain/Doodads/Leagues/Expedition/Encampment/ExpStool.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+40 53 0 -0 0 0 0 1 0 0 0 1 "Metadata/Terrain/Doodads/Leagues/Expedition/Encampment/ExpChest_02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+59 40 1 644.512 440.044 -0.105121 -0.592751 -0.230737 0.119558 0.762307 1 0 1 -58 1 "Metadata/Terrain/Doodads/Woods/Village/HandTool04.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+-1
+-1
+-1
+0
+"expedition_no_spawning" 8 8 64 66 "" "" 0
+"expedition_no_placement" 10 21 64 66 "" "" 0
+-1
+0
+
+##### Metadata/Terrain/Gallows/Leagues/Incursion/ExtraTerrainFeatures/IncursionWaygate_Generic.arm
+version 36
+1
+"waygate"
+3 1
+1 1
+"missiontile"
+1 0
+k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 0 0 0 0 0 0 0 0 0 0
+0 0 0
+0 0 0
+0 0 0
+0 0 0
+-1
+-1
+-1
+-1
+-1
+-1
+""
+k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 0 0 0 0 0 0 0 0 1 0 n n
+n n n
+n n n
+15 32 0 1.91783 0 0 0.81857 0.574407 0 0 0 1 "Metadata/NPC/League/Incursion/TreasureHunter.ao" "Metadata/NPC/League/Incursion/AlvaIncursionWild" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Tri_04.arm
+version 36
+5
+"Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et"
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et"
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et"
+7 1
+1 1
+""
+0 1
+k 7 7 0 3 5 2 21 21 21 21 21 21 21 21 0 0 4 0 1 1 0 0 0 0
+0 1 1
+3 0 0 1 0
+5 0 0 1 0
+2 0 0 0 0
+-1
+51 126 3.81487 ""
+-1
+73 61 0 ""
+-1
+-1
+-1
+-1
+""
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 0 1 0 2 9 9 4 9 9 9 4 9 0 0 0 0 1 1 0 0 0 1 k 3 3 0 3 5 1 9 9 4 9 4 9 4 9 0 0 4 0 1 1 0 0 0 0 n n k 3 3 0 3 0 3 9 9 4 9 9 9 4 9 0 0 4 4 1 1 0 0 0 0 n
+n n n n n n n
+n n n n n n n
+s s k 3 3 5 0 5 0 4 9 9 9 4 9 9 9 0 4 4 0 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 4 4 4 4 0 0 0 0 0 0 n
+s s n n n n n
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Tri_05.arm
+version 36
+5
+"Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et"
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et"
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et"
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+""
+0 1
+k 7 7 5 2 4 0 21 21 21 21 21 21 21 21 0 0 3 0 0 1 0 0 0 0
+5 0 0 0 0
+2 0 0 1 0
+4 0 0 1 0
+0 0 0
+-1
+52 89 3.7794 ""
+-1
+104 52 1.25549 ""
+-1
+-1
+-1
+-1
+""
+s s n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s n n k 3 3 5 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 2 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s k 3 3 1 2 4 0 4 9 4 9 4 9 9 9 0 0 3 0 0 1 0 0 0 0 n n k 3 3 0 2 0 2 9 9 4 9 9 9 4 9 0 0 3 3 1 1 0 0 0 0 n
+s s n n n n n
+s s n n n n n
+s s k 3 3 4 0 4 0 4 9 9 9 4 9 9 9 0 3 3 0 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 3 3 3 3 0 0 0 0 0 0 n
+s s n n n n n
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Tri_06.arm
+version 36
+5
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et"
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+"Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et"
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et"
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+""
+0 1
+k 7 7 5 4 0 1 21 21 21 21 21 21 21 21 0 0 2 2 0 1 0 0 0 0
+5 0 0 0 0
+4 0 0 1 0
+0 0 0
+1 0 0 1 0
+-1
+126 50 0 ""
+-1
+33 52 0 ""
+-1
+-1
+-1
+-1
+""
+s s n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s n n k 3 3 5 0 3 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 2 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 2 2 0 0 0 0 0 1 k 3 3 3 4 0 1 4 9 4 9 9 9 4 9 0 0 2 2 0 1 0 0 0 0 n n k 3 3 0 4 0 4 9 9 4 9 9 9 4 9 0 0 2 2 1 1 0 0 0 0 n
+n n n n n n n
+n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 2 2 2 2 0 0 0 0 0 1 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 2 2 2 2 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 2 2 2 2 0 0 0 0 0 0 n
+n n n n n n n
+97 58 0 2.95101 0 0 0.995463 0.0951494 0 0 0 1 "Metadata/Terrain/Doodads/Foliage/Woods/Trees/BeechTreeBush02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+54 61 0 0.840549 0 0 0.408011 0.912977 0 0 0 1 "Metadata/Terrain/Doodads/Foliage/Woods/Trees/BeechTreeBush01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+81 25 1 885.029 274.031 1.93799 0 0 0.824317 0.566129 0 0 1 -150.25 1 "Metadata/Terrain/Doodads/Foliage/Woods/Trees/BeechTreeBush02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+99 39 0 -1.54488 0 0 -0.697885 0.71621 0 0 0 1 "Metadata/Terrain/Doodads/Foliage/Woods/Trees/BeechTreeBush02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_cliff_Cc_02.arm
+version 36
+2
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et"
+7 1
+1 1
+""
+0 1
+k 7 7 2 2 0 0 21 21 21 21 21 21 21 21 1 0 1 1 0 0 0 0 0 0
+2 0 0 1 0
+2 0 0 0 0
+0 0 0
+0 0 0
+-1
+106 34 0.605396 ""
+-1
+-1
+-1
+-1
+-1
+""
+n n n n n s s
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 2 0 2 0 4 9 9 9 4 9 9 9 1 0 0 1 0 0 0 0 0 2 s s
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 2 2 0 0 4 9 4 9 9 9 9 9 1 0 1 1 0 0 0 0 0 0 n n k 3 3 0 2 0 2 9 9 4 9 9 9 4 9 0 0 1 1 0 0 0 0 0 0 n
+n n n n n n n
+n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n
+n n n n n n n
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_cliff_Cv_02.arm
+version 36
+2
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et"
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+7 1
+1 1
+""
+0 1
+k 7 7 1 1 0 0 21 21 21 21 21 21 21 21 0 2 0 0 0 0 0 0 0 0
+1 0 0 0 0
+1 0 0 1 0
+0 0 0
+0 0 0
+-1
+-1
+54 71 0 ""
+-1
+-1
+-1
+-1
+""
+s s n n n n n
+s s n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 2 2 0 0 0 0 0 0 2 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 2 2 2 2 0 0 0 0 0 3 n
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 2 0 0 0 0 0 0 0 0 n n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 2 2 0 0 0 0 0 0 0 0 n
+s s n n n n n
+s s n n n n n
+s s s s s s s
+s s s s s s s
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_cliff_St_02.arm
+version 36
+2
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et"
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+7 1
+1 1
+""
+0 1
+k 7 7 1 0 1 0 21 21 21 21 21 21 21 21 0 2 2 0 0 0 0 0 0 0
+1 0 0 0 0
+0 0 0
+1 0 0 1 0
+0 0 0
+-1
+-1
+-1
+-1
+-1
+-1
+""
+s s n n n n n
+s s n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 2 2 0 0 0 0 0 0 2 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 2 2 2 2 0 0 0 0 0 3 n
+s s k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 2 2 0 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 2 2 2 2 0 0 0 0 0 0 n
+s s n n n n n
+s s n n n n n
+s s k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 2 2 0 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 2 2 2 2 0 0 0 0 0 0 n
+s s n n n n n
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_cliff_St_03.arm
+version 36
+2
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et"
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+7 1
+1 1
+""
+0 1
+k 7 7 1 0 1 0 21 21 21 21 21 21 21 21 0 2 2 0 0 0 0 0 0 0
+1 0 0 0 0
+0 0 0
+1 0 0 1 0
+0 0 0
+-1
+118 111 4.6226 ""
+-1
+48 46 4.88956 ""
+-1
+-1
+-1
+-1
+""
+s s n n n n n
+s s n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 2 2 0 0 0 0 0 0 2 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 2 2 2 2 0 0 0 0 0 3 n
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 2 0 0 0 0 0 0 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 2 2 2 0 0 0 0 0 0 0 n
+s s n n n n n
+s s n n n n n
+s s k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 2 0 0 0 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 2 2 2 0 0 0 0 0 0 n
+s s n n n n n
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_cliff_St_04.arm
+version 36
+3
+"forcedblank"
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et"
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+7 1
+1 1
+""
+0 1
+k 7 7 2 0 2 0 21 21 21 21 21 21 21 21 0 3 3 0 0 0 0 0 0 0
+2 0 0 0 0
+0 0 0
+2 0 0 1 0
+0 0 0
+-1
+122 48 -1.48101 ""
+-1
+114 122 4.95006 ""
+-1
+-1
+-1
+-1
+""
+s s n n n n n
+s s n n k 3 3 2 2 0 0 4 9 4 9 9 9 9 9 0 3 0 0 0 0 0 0 0 2 k 3 3 0 0 2 2 9 9 9 9 4 9 4 9 3 3 3 0 0 0 0 0 0 3 n
+s s f 1 f 1 f 1 k 3 3 2 0 2 0 4 9 9 9 4 9 9 9 0 3 3 0 0 0 0 0 0 0 n
+s s f 1 f 1 f 1 n n
+s s f 1 f 1 f 1 n n
+s s k 3 3 0 2 2 0 9 9 4 9 4 9 9 9 0 0 3 0 0 0 0 0 0 0 n n k 3 3 2 0 0 2 4 9 9 9 9 9 4 9 0 3 3 3 0 0 0 0 0 0 n
+s s n n n n n
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_ledge_Cc_01.arm
+version 36
+2
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et"
+7 1
+1 1
+""
+0 1
+k 7 7 2 2 0 0 21 21 21 21 21 21 21 21 1 0 1 1 0 1 0 0 0 0
+2 0 0 0 0
+2 0 0 1 0
+0 0 0
+0 0 0
+-1
+-1
+-1
+-1
+-1
+-1
+""
+n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 2 0 2 0 4 9 9 9 4 9 9 9 1 0 0 1 0 1 1 0 0 2 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 2 2 0 0 4 9 4 9 9 9 9 9 1 0 1 1 0 1 0 0 0 0 n n k 3 3 0 2 0 2 9 9 4 9 9 9 4 9 0 0 1 1 1 1 0 0 0 0 n
+n n n n n n n
+n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n
+n n n n n n n
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_ledge_Cv_01.arm
+version 36
+2
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et"
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+7 1
+1 1
+""
+0 1
+k 7 7 1 1 0 0 21 21 21 21 21 21 21 21 0 2 0 0 1 0 1 1 0 0
+1 0 0 1 0
+1 0 0 0 0
+0 1 1
+0 1 1
+-1
+100 112 2.95956 ""
+-1
+47 29 4.53522 ""
+-1
+-1
+-1
+-1
+""
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n n n n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 2 2 0 1 0 0 1 0 2 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 2 2 2 2 0 0 0 0 0 3 n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 2 0 0 1 0 1 1 0 0 n n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 2 2 0 0 0 0 1 1 0 0 n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n n n n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n n n n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_ledge_St_01.arm
+version 36
+2
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et"
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+7 1
+1 1
+""
+0 1
+k 7 7 1 0 1 0 21 21 21 21 21 21 21 21 0 2 2 0 1 0 0 1 0 0
+1 0 0 1 0
+0 0 1
+1 0 0 0 0
+0 1 1
+-1
+-1
+48 31 4.53522 ""
+-1
+-1
+-1
+-1
+""
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n n n n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 2 2 0 1 0 0 1 0 2 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 2 2 2 2 0 0 0 0 0 3 n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 2 2 0 1 0 0 1 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 2 2 2 2 0 0 0 0 0 0 n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n n n n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n n n n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 2 2 0 1 0 0 1 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 2 2 2 2 0 0 0 0 0 0 n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n n n n
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_ledge_St_02.arm
+version 36
+2
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et"
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+7 1
+1 1
+""
+0 1
+k 7 7 1 0 1 0 21 21 21 21 21 21 21 21 0 2 2 0 1 0 0 1 0 0
+1 0 0 1 0
+0 0 1
+1 0 0 0 0
+0 1 1
+-1
+115 117 -1.37956 ""
+-1
+49 28 4.66321 ""
+-1
+-1
+-1
+-1
+""
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n n n n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 2 2 0 1 0 0 1 0 2 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 2 2 2 2 0 0 0 0 0 3 n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 2 0 0 1 0 1 1 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 2 2 2 0 0 0 0 1 0 0 n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n n n n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n n n n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 2 0 1 1 0 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 2 2 2 1 0 0 0 0 0 n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n n n n
+66 92 0 2.18839 0 0 0.88856 0.45876 0 0 0 1 "Metadata/Terrain/Doodads/Foliage/Woods/Trees/BeechTreeBush01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+54 44 0 1.0433 0 0 0.498311 0.866998 0 0 0 1 "Metadata/Terrain/Doodads/Foliage/Woods/Trees/BeechTreeBush02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+112 104 0 2.34492 0 0 0.921708 0.387885 0 0 0 1 "Metadata/Terrain/Doodads/Foliage/Woods/Trees/BeechTreeBush01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+85 131 0 2.18839 0 0 0.88856 0.45876 0 0 0 1 "Metadata/Terrain/Doodads/Foliage/Woods/Trees/BeechTreeBush02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_ledge_St_03.arm
+version 36
+3
+"forcedblank"
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et"
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+7 1
+1 1
+""
+0 1
+k 7 7 2 0 2 0 21 21 21 21 21 21 21 21 0 3 3 0 1 0 0 1 0 0
+2 0 0 1 0
+0 0 1
+2 0 0 0 0
+0 1 1
+-1
+118 105 -0.836399 ""
+-1
+110 44 3.78428 ""
+-1
+-1
+-1
+-1
+""
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n n n n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n k 3 3 2 2 0 0 4 9 4 9 9 9 9 9 0 3 0 0 1 0 1 1 0 2 k 3 3 0 0 2 2 9 9 9 9 4 9 4 9 3 3 3 0 0 0 0 1 0 3 n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 1 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 1 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 1 0 k 3 3 2 0 2 0 4 9 9 9 4 9 9 9 0 3 3 0 1 0 0 1 0 0 n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 1 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 1 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 1 0 n n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 1 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 1 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 1 0 n n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 3 3 0 2 2 0 9 9 4 9 4 9 9 9 0 0 3 0 1 1 0 1 0 0 n n k 3 3 2 0 0 2 4 9 9 9 9 9 4 9 0 3 3 3 1 0 0 0 0 0 n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n n n n
+39 75 1 425.005 818.359 -0 0 0 0 1 0 0 0 1 "Metadata/Terrain/Doodads/Maps/Steppe/BeechTreeBush01_01.ao" "Metadata/MiscellaneousObjects/DoodadLayerDoodad" 0
+39 75 1 425.005 818.359 -0 0 0 0 1 0 0 0 1 "Metadata/Terrain/Doodads/Maps/Steppe/BeechTreeBush01_02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+38 48 1 423.348 528.413 -0 0 0 0 1 0 0 0 1 "Metadata/Terrain/Doodads/Maps/Steppe/BeechTreeBush02_01.ao" "Metadata/MiscellaneousObjects/DoodadLayerDoodad" 0
+38 48 1 423.348 528.413 -0 0 0 0 1 0 0 0 1 "Metadata/Terrain/Doodads/Maps/Steppe/BeechTreeBush02_02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/2x2_ground_fill_01.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+2 2
+""
+0 1
+k 13 13 0 0 0 0 39 39 39 39 39 39 39 39 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+-1
+52 102 -1.48101 ""
+-1
+181 128 4.53522 ""
+-1
+-1
+-1
+-1
+""
+n n n n n n n n n n n s s
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 s s
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 0 1 1 1 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 1 0 1 1 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 0 n
+n n n n n n n n n n n n n
+n n n n n n n n n n n n n
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 2 1 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 2 0 0 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 1 1 0 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+n n n n n n n n n n n n n
+n n n n n n n n n n n n n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 2 1 0 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 2 1 0 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 0 n
+n n n n n n n n n n n n n
+n n n n n n n n n n n n n
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+s s n n n n n n n n n n n
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/2x2_ground_fill_02.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+2 2
+""
+0 1
+k 13 13 0 0 0 0 39 39 39 39 39 39 39 39 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+-1
+187 119 -1.48101 ""
+-1
+43 101 4.53522 ""
+-1
+-1
+-1
+-1
+""
+n n n n n n n n n n n s s
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 s s
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 0 1 1 1 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 1 0 1 1 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 0 n
+n n n n n n n n n n n n n
+n n n n n n n n n n n n n
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 2 1 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 2 0 0 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 1 1 0 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+n n n n n n n n n n n n n
+n n n n n n n n n n n n n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 2 1 0 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 2 1 0 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 0 n
+n n n n n n n n n n n n n
+n n n n n n n n n n n n n
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+s s n n n n n n n n n n n
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/2x2_ground_fill_03.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+2 2
+""
+0 1
+k 13 13 0 0 0 0 39 39 39 39 39 39 39 39 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+-1
+58 127 -1.48101 ""
+-1
+166 142 4.53522 ""
+-1
+-1
+-1
+-1
+""
+s s n n n n n n n n n n n
+s s n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 3 n
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 2 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 2 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 0 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+n n n n n n n n n n n n n
+n n n n n n n n n n n n n
+n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 1 k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 1 2 2 1 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 2 1 2 2 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 2 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 0 n
+n n n n n n n n n n n n n
+n n n n n n n n n n n n n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 2 1 0 0 0 n n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 2 2 1 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 2 1 0 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+n n n n n n n n n n n n n
+n n n n n n n n n n n n n
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 1 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n n s s
+s s n n n n n n n n n s s
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/2x3_ground_fill_01.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+3 2
+""
+0 1
+k 19 13 0 0 0 0 57 57 39 39 57 57 39 39 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+-1
+257 139 -1.48101 ""
+-1
+46 113 4.53522 ""
+-1
+-1
+-1
+-1
+""
+n n n n n n n n n n n s s s n n n n n
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 s s s n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 3 n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 2 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 2 0 0 n n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 0 0 1 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 0 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 2 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 2 2 2 0 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 2 1 1 2 0 0 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 1 1 2 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 2 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 2 1 0 0 0 n n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 2 2 1 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 2 1 0 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 2 1 0 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 2 1 0 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 1 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n n s s
+s s n n n n n n n n n n n n n n n s s
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/2x3_ground_fill_02.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+3 2
+""
+0 1
+k 19 13 0 0 0 0 57 57 39 39 57 57 39 39 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+-1
+258 94 -1.48101 ""
+117 171 -1.48101 ""
+-1
+256 244 4.53522 ""
+183 77 4.53522 ""
+-1
+-1
+-1
+-1
+""
+s s n n n n n n n n n s s s n n n n n
+s s n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 0 0 1 1 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 s s s n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 3 n
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 2 1 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 2 0 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 1 0 0 1 0 0 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 0 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 2 1 0 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 2 1 2 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 2 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 0 1 1 1 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 1 0 1 1 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 0 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 2 1 0 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 2 1 0 1 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 0 0 0 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 1 1 0 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n n s s
+n n n n n n n n n n n n n n n n n s s
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/3x3_ground_fill_01.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+3 3
+""
+0 1
+k 19 19 0 0 0 0 57 57 57 57 57 57 57 57 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+-1
+252 226 -1.48101 ""
+117 109 -1.48101 ""
+-1
+116 300 4.53522 ""
+309 97 4.53522 ""
+-1
+-1
+-1
+-1
+""
+s s n n n n n n s s s n n n n n n s s
+s s n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 s s s n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 s s
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 0 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 0 0 1 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 0 1 1 1 0 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 1 0 0 1 0 0 n n s s
+n n n n n n n n n n n n n n n n n s s
+n n n n n n n n n n n n n n n n n s s
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 2 1 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 2 0 0 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 1 1 2 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 2 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+s s k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 1 2 1 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 2 1 1 1 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 1 2 1 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 2 1 0 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+s s n n n n n n n n n n n n n n n n n
+s s n n n n n n n n n n n n n n n n n
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 1 k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 0 1 1 1 0 0 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 1 1 2 1 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 2 0 0 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 1 1 0 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 0 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 1 2 1 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 2 1 0 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 1 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n n s s s s s s s s
+s s n n n n n n n n n s s s s s s s s
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/3x3_ground_fill_02.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+3 3
+""
+0 1
+k 19 19 0 0 0 0 57 57 57 57 57 57 57 57 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+-1
+246 305 -1.48101 ""
+112 109 -1.48101 ""
+-1
+258 95 4.53522 ""
+182 322 4.53522 ""
+-1
+-1
+-1
+-1
+""
+s s n n n n n n n n n n n n n n n n n
+s s n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 3 n
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 0 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 0 1 1 1 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 1 0 1 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 0 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 2 1 0 0 n n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 1 1 2 2 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 2 0 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 1 0 0 1 0 0 n n s s
+n n n n n n n n n n n n n n n n n s s
+n n n n n n n n n n n n n n n n n s s
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 1 k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 0 1 1 1 0 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 1 2 2 1 0 0 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 2 2 1 2 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 2 1 0 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 1 k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 1 1 2 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 2 1 2 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 2 1 1 1 0 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 1 0 0 1 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 2 1 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 2 1 1 1 0 0 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 1 1 0 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 0 n n s s
+n n n n n n n n n n n n n n n n n s s
+n n n n n n n n n n n n n n n n n s s
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 1 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n n s s
+s s n n n n n n n n n n n n n n n s s
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/3x3_ground_fill_03.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+3 3
+""
+0 1
+k 19 19 0 0 0 0 57 57 57 57 57 57 57 57 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+-1
+114 107 -1.48101 ""
+121 310 -1.48101 ""
+-1
+293 243 4.53522 ""
+47 182 4.53522 ""
+-1
+-1
+-1
+-1
+""
+s s n n n n n n n n n n n n n n n s s
+s s n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 0 0 1 1 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 s s
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 0 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 2 1 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 2 0 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 1 0 0 1 0 0 n n s s
+n n n n n n n n n n n n n n n n n s s
+n n n n n n n n n n n n n n n n n s s
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 2 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 2 3 2 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 2 1 2 3 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 2 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 0 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 2 1 0 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 2 3 2 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 3 2 2 2 0 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 2 1 1 2 0 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 1 0 0 1 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 -1 0 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 0 -1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 2 1 0 0 0 n n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 2 2 1 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 2 1 0 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 -1 0 1 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 -1 0 1 0 0 0 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 0 1 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 0 0 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 1 0 0 1 0 0 n n s s
+n n n n n n n n n n n n n n n n n s s
+n n n n n n n n n n n n n n n n n s s
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n n s s
+n n n n n n n n n n n n n n n n n s s
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/ground_fill_01.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+""
+0 1
+k 7 7 0 0 0 0 21 21 21 21 21 21 21 21 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+-1
+-1
+-1
+-1
+-1
+-1
+""
+n n n n n s s
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 s s
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 0 n
+n n n n n n n
+n n n n n n n
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+s s n n n n n
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/ground_fill_02.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+""
+0 1
+k 7 7 0 0 0 0 21 21 21 21 21 21 21 21 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+-1
+-1
+-1
+-1
+-1
+-1
+""
+s s n n n n n
+s s n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 3 n
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 1 k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 0 1 1 1 0 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 1 0 0 1 0 0 n
+n n n n n n n
+n n n n n n n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 1 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+n n n n n n n
+52 47 1 566.748 520.355 -0.507154 0 0 -0.250868 0.968021 1 0 1 22.1875 1 "Metadata/Terrain/Doodads/Woods/Broadleaf/Boulder7.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/ground_fill_03.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+""
+0 1
+k 7 7 0 0 0 0 21 21 21 21 21 21 21 21 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+-1
+74 114 3.74941 ""
+-1
+-1
+-1
+-1
+-1
+""
+s s n n n n n
+s s n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 3 n
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+s s n n n n n
+s s n n n n n
+s s s s s s s
+s s s s s s s
+81 110 1 889.553 1199.01 -0.0222535 0 0 -0.0111265 0.999938 1 0 0 1 "Metadata/Terrain/Doodads/Woods/Broadleaf/Boulder6.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/ground_fill_04.arm
+version 36
+1
+"forcedblank"
+7 1
+1 1
+""
+0 1
+k 7 7 0 0 0 0 21 21 21 21 21 21 21 21 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+-1
+95 57 2.01828 ""
+-1
+75 63 4.14726 ""
+-1
+-1
+-1
+-1
+""
+s s s s s s s
+s s s s s s s
+s s f 1 f 1 f 1 s s
+s s f 1 f 1 f 1 s s
+s s f 1 f 1 f 1 s s
+s s s s s s s
+s s s s s s s
+89 69 0 2.57398 0 0 0.959996 0.280014 1 0 0 1 "Metadata/Terrain/Doodads/Woods/Broadleaf/Boulder5.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+82 58 1 896.636 636.639 1.97716 0 0 0.835246 0.549876 1 0 0 1 "Metadata/Terrain/Doodads/Woods/Broadleaf/Boulder6.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/innercliff_fill_01.arm
+version 31
+1
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+7 1
+1 1
+""
+0 0
+k 7 7 0 0 0 0 21 21 21 21 21 21 21 21 1 1 1 1 0 0 0 0 0 0
+0 0 0
+0 0 0
+0 0 0
+0 0 0
+0
+0
+0
+0
+0
+0
+n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 3 n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n
+n n n n n n n
+n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n
+n n n n n n n
+0
+0
+0
+0
+0
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/smallfill_05.arm
+version 36
+0
+3 0
+1 1
+""
+0 1
+k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 0 0 0 0 0 0 0 0 0 0
+0 0 0
+0 0 0
+0 0 0
+0 0 0
+-1
+-1
+-1
+-1
+-1
+-1
+""
+s s s
+s s s
+s s s
+46 59 1 502.038 649.278 -2.74812 0 0 -0.98071 0.195468 0 0 1 38 0.75 "Metadata/Terrain/Doodads/Woods/Broadleaf/Boulder7.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+48 52 1 523.526 571.892 -1.22874 0 0 -0.576442 0.817138 0 0 0 1 "Metadata/Terrain/Doodads/Foliage/Woods/Trees/BeechTreeBush02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+36 13 1 394.901 150.945 -0.298479 0 0 -0.148686 0.988884 0 0 0 1 "Metadata/Terrain/Doodads/Foliage/Woods/Trees/BeechTreeBush02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+38 11 1 419.097 129.084 -0.684624 0 0 -0.335666 0.941981 0 0 1 16 0.65 "Metadata/Terrain/Doodads/Woods/Broadleaf/Boulder8.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+54 51 1 589.828 559.434 1.26519 0 0 0.591238 0.806497 0 0 1 28 0.8 "Metadata/Terrain/Doodads/Woods/Broadleaf/Boulder7.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+12 35 1 136.798 384.689 -0.298479 0 0 -0.148686 0.988884 0 0 0 1 "Metadata/Terrain/Doodads/Foliage/Woods/Trees/BeechTreeBush01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+15 33 1 171.181 369.504 1.39235 0 0 0.641287 0.767301 0 0 1 16 0.65 "Metadata/Terrain/Doodads/Woods/Broadleaf/Boulder6.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+12 42 1 138.229 461.478 -0.358948 0 0 -0.178512 0.983938 0 0 1 16 0.65 "Metadata/Terrain/Doodads/Woods/Broadleaf/Boulder8.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/Cc_01.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+""
+0 1
+k 7 7 0 0 1 1 21 21 21 21 21 21 21 21 0 0 0 0 1 1 1 0 0 0
+0 1 1
+0 1 1
+1 0 0 1 0
+1 0 0 0 0
+-1
+-1
+-1
+-1
+-1
+-1
+""
+n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 1 1 2 1 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 2 0 2 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 2 1 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 2 1 2 1 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 2 0 0 n
+n n n n n n n
+n n n n n n n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 2 1 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 2 1 1 1 0 0 n
+n n n n n n n
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/Cc_02.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+""
+0 1
+k 7 7 0 0 1 1 21 21 21 21 21 21 21 21 0 0 0 0 1 1 1 0 0 0
+0 1 1
+0 1 1
+1 0 0 1 0
+1 0 0 0 0
+-1
+-1
+-1
+-1
+-1
+-1
+""
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n n n n
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 1 1 2 1 0 2 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 2 0 3 n
+n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 1 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 2 1 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 2 1 1 1 0 0 n
+n n n n n n n
+n n n n n n n
+s s k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 0 n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/Cc_03.arm
+version 36
+2
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+"forcedblank"
+7 1
+1 1
+""
+0 1
+k 7 7 0 0 1 1 21 21 21 21 21 21 21 21 0 0 0 0 1 1 1 0 0 0
+0 1 1
+0 1 1
+1 0 0 1 0
+1 0 0 0 0
+-1
+-1
+71 82 4.53522 ""
+-1
+-1
+-1
+-1
+""
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 0 0 1 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 2 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 2 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 2 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 2 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 2 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 2 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 0 0 0 n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+70 114 1 762.117 1241.23 -2.45607 0 0 -0.941831 0.336087 1 0 1 -210 1 "Metadata/Terrain/Doodads/Woods/Broadleaf/Boulder5.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+47 74 1 521.05 804.695 0.334438 0 0 0.166441 0.986051 1 0 1 -220 1 "Metadata/Terrain/Doodads/Woods/Broadleaf/Boulder6.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/Cv_01.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+""
+0 1
+k 7 7 1 1 0 0 21 21 21 21 21 21 21 21 0 0 0 0 0 1 0 0 0 0
+1 0 0 0 0
+1 0 0 1 0
+0 0 1
+0 0 1
+-1
+119 51 -1.48101 ""
+-1
+-1
+-1
+-1
+-1
+""
+n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 0 1 1 1 0 2 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 0 0 0 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 1 1 0 1 0 0 n
+n n n n n n n
+n n n n n n n
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+s s n n n n n
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/Cv_02.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+""
+0 1
+k 7 7 1 1 0 0 21 21 21 21 21 21 21 21 0 0 0 0 0 1 0 0 0 0
+1 0 0 0 0
+1 0 0 1 0
+0 0 1
+0 0 1
+-1
+41 49 -0.59426 ""
+-1
+117 118 1.96765 ""
+-1
+-1
+-1
+-1
+""
+s s n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 2 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 1 1 0 0 0 0 n
+s s n n n n n
+s s n n n n n
+s s s s s s s
+s s s s s s s
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/Cv_03.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+""
+0 1
+k 7 7 1 1 0 0 21 21 21 21 21 21 21 21 0 0 0 0 0 1 0 0 0 0
+1 0 0 0 0
+1 0 0 1 0
+0 0 1
+0 0 1
+-1
+-1
+-1
+-1
+-1
+-1
+""
+s s n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 2 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 0 n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 1 1 0 1 0 0 n
+s s n n n n n
+s s n n n n n
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+s s n n n n n
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/St_01.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+""
+0 1
+k 7 7 1 0 1 0 21 21 21 21 21 21 21 21 0 0 0 0 0 1 1 0 0 0
+1 0 0 0 0
+0 1 1
+1 0 0 1 0
+0 0 0
+-1
+-1
+-1
+-1
+-1
+-1
+""
+n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 0 1 1 1 0 2 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 0 0 0 n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 0 n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/St_02.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+""
+0 1
+k 7 7 1 0 1 0 21 21 21 21 21 21 21 21 0 0 0 0 0 1 1 0 0 0
+1 0 0 0 0
+0 1 1
+1 0 0 1 0
+0 0 1
+-1
+-1
+-1
+-1
+-1
+-1
+""
+n n n n n n n
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 0 1 2 1 0 2 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 2 0 3 n
+n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 1 k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 1 2 1 1 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 2 1 1 1 0 0 n
+n n n n n n n
+n n n n n n n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 1 1 1 0 0 0 n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/St_03.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+""
+0 1
+k 7 7 1 0 1 0 21 21 21 21 21 21 21 21 0 0 0 0 0 1 1 0 0 0
+1 0 0 0 0
+0 1 1
+1 0 0 1 0
+0 0 1
+-1
+-1
+41 112 2.73306 ""
+-1
+-1
+-1
+-1
+""
+s s n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 2 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 0 n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 0 n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/St_03_plain.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+"plain"
+1 1
+k 7 7 1 0 1 0 21 21 21 21 21 21 21 21 0 0 0 0 0 1 1 0 0 0
+1 0 0 0 0
+0 1 1
+1 0 0 1 0
+0 0 0
+-1
+-1
+-1
+-1
+-1
+-1
+""
+s s n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 2 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 0 n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 0 n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+s s n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/checkpoint_01.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+"checkpoint"
+1 1
+k 7 7 0 0 0 0 21 21 21 21 21 21 21 21 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+-1
+-1
+-1
+-1
+101 90 0.296634 "checkpoint"
+-1
+-1
+""
+n n n n n s s
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 s s
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 0 n
+n n n n n n n
+n n n n n n n
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+s s n n n n n
+99 103 1 1078.59 1121.09 0.139461 0 0 0.069674 0.99757 0 0 1 -204.938 1 "Metadata/Terrain/Doodads/Checkpoints/EzomyteCheckpointBaseless.ao" "Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/checkpoint_02.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+"checkpoint"
+1 1
+k 7 7 0 0 0 0 21 21 21 21 21 21 21 21 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+-1
+-1
+-1
+-1
+78 82 0.296634 "checkpoint"
+-1
+-1
+""
+s s n n n n n
+s s n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 3 n
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 1 k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 0 1 1 1 0 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 1 0 0 1 0 0 n
+n n n n n n n
+n n n n n n n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 1 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+n n n n n n n
+52 47 1 566.748 520.355 -0.507154 0 0 -0.250868 0.968021 1 0 1 22.1875 1 "Metadata/Terrain/Doodads/Woods/Broadleaf/Boulder7.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+76 95 1 828.587 1034.13 0.139461 0 0 0.069674 0.99757 0 0 0 1 "Metadata/Terrain/Doodads/Checkpoints/EzomyteCheckpointBaseless.ao" "Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/checkpoint_03.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+"checkpoint"
+1 1
+k 7 7 0 0 0 0 21 21 21 21 21 21 21 21 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+-1
+-1
+-1
+-1
+96 105 1.50327 "checkpoint"
+-1
+-1
+""
+s s n n n n n
+s s n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 3 n
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+s s n n n n n
+s s n n n n n
+s s s s s s s
+s s s s s s s
+81 110 1 889.553 1199.01 -0.0222535 0 0 -0.0111265 0.999938 1 0 0 1 "Metadata/Terrain/Doodads/Woods/Broadleaf/Boulder6.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+89 105 1 968.279 1149.99 1.65155 0 0 0.735072 0.677989 0 0 0 1 "Metadata/Terrain/Doodads/Checkpoints/EzomyteCheckpointBaseless.ao" "Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/entrance1.arm
+version 36
+1
+"forcedblank"
+7 1
+1 1
+"entrance1"
+1 0
+k 7 7 0 0 0 0 21 21 21 21 21 21 21 21 0 0 0 0 0 0 0 0 0 0
+0 0 0
+0 0 0
+0 0 0
+0 0 0
+-1
+-1
+-1
+-1
+78 80 0.947571 "default"
+102 73 0.296634 "checkpoint"
+-1
+-1
+""
+s s s s s s s
+s s s s s s s
+s s f 1 f 1 f 1 s s
+s s f 1 f 1 f 1 s s
+s s f 1 f 1 f 1 s s
+s s s s s s s
+s s s s s s s
+63 90 0 1.05038 0 0 0.501377 0.865229 0 0 0 1 "Metadata/Effects/Spells/portal/portal2.ao" "Metadata/MiscellaneousObjects/MapReturnPortal" 0
+100 86 1 1089.46 936.304 0.139461 0 0 0.069674 0.99757 0 0 0 1 "Metadata/Terrain/Doodads/Checkpoints/EzomyteCheckpointBaseless.ao" "Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/entrance2.arm
+version 36
+3
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et"
+"forcedblank"
+7 1
+2 2
+"entrance_cnr"
+1 0
+k 13 13 2 2 0 0 39 39 39 39 39 39 39 39 1 0 1 1 0 1 0 0 0 0
+2 0 0 0 0
+0 1 0
+0 1 0
+2 0 0 1 1
+0 0 0
+0 0 0
+0 0 0
+0 0 0
+226 74 0 "killzone=7"
+-1
+-1
+-1
+-1
+202 99 0.802753 "default"
+222 118 1.08203 "checkpoint"
+-1
+-1
+""
+n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 2 0 2 0 4 9 9 9 4 9 9 9 1 0 0 1 0 1 1 0 0 2 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 2 2 0 0 4 9 4 9 9 9 9 9 1 0 1 1 0 1 0 0 0 0 n n k 3 3 0 0 2 2 9 9 9 9 4 9 4 9 0 0 0 1 1 1 1 0 0 0 n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 3 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 3 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 3 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 3 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 3 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 3 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 3 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 3 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 3 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 2 2 0 0 4 9 4 9 9 9 9 9 1 0 1 1 0 1 0 0 0 0 n n k 3 3 0 0 2 2 9 9 9 9 4 9 4 9 0 0 0 1 1 1 1 0 0 0 n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 2 2 0 0 4 9 4 9 9 9 9 9 1 0 1 1 0 1 0 0 0 0 n n k 3 3 0 2 0 2 9 9 4 9 9 9 4 9 0 0 1 1 1 1 0 0 0 0 n
+n n n n n n n n n n n n n
+n n n n n n n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n
+n n n n n n n n n n n n n
+189 111 1 2057.61 1212.28 0.905562 0 0 0.437468 0.899234 0 0 0 1 "Metadata/Effects/Spells/portal/portal2.ao" "Metadata/MiscellaneousObjects/MapReturnPortal" 0
+212 125 1 2305.37 1363.98 0.924859 0 0 0.446124 0.894971 0 0 0 1 "Metadata/Terrain/Doodads/Checkpoints/EzomyteCheckpointBaseless.ao" "Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame" 0
+231 71 1 2514.4 772.046 1.96069 0 0 0.830689 0.556737 1 0 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/EntranceLeagueContentMarker" 0
+252 106 1 2746.53 1155.14 1.96069 0 0 0.830689 0.556737 1 0 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/EntranceLeagueContentMarker" 0
+200 58 1 2184.45 638.883 1.96069 0 0 0.830689 0.556737 1 0 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/EntranceLeagueContentMarker" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/entrance3.arm
+version 36
+3
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et"
+"forcedblank"
+7 1
+2 2
+"entrance_cnr"
+1 0
+k 13 13 2 2 0 0 39 39 39 39 39 39 39 39 1 0 1 1 0 0 0 0 0 0
+2 0 0 1 1
+0 0 0
+0 0 0
+2 0 0 0 1
+0 0 0
+0 0 0
+0 0 0
+0 0 0
+226 74 0 "killzone=7"
+-1
+-1
+-1
+-1
+199 98 0.947571 "default"
+211 118 1.08203 "checkpoint"
+-1
+-1
+""
+n n n n n s s s s s s s s
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 2 0 2 0 4 9 9 9 4 9 9 9 1 0 0 1 0 0 0 0 0 2 s s s s s s s s
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 2 2 0 0 4 9 4 9 9 9 9 9 1 0 1 1 0 0 0 0 0 0 n n k 3 3 0 0 2 2 9 9 9 9 4 9 4 9 0 0 0 1 0 0 0 0 0 0 n n f 3 f 3 f 3 s s
+n n n n n n n n f 3 f 3 f 3 s s
+n n n n n n n n f 3 f 3 f 3 s s
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 2 2 0 0 4 9 4 9 9 9 9 9 1 0 1 1 0 0 0 0 0 0 n n k 3 3 0 0 2 2 9 9 9 9 4 9 4 9 0 0 0 1 0 0 0 0 0 0 n n s s
+n n n n n n n n n n n s s
+n n n n n n n n n n n s s
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 2 2 0 0 4 9 4 9 9 9 9 9 1 0 1 1 0 0 0 0 0 0 n n k 3 3 0 2 0 2 9 9 4 9 9 9 4 9 0 0 1 1 0 0 0 0 0 0 n
+n n n n n n n n n n n n n
+n n n n n n n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n
+n n n n n n n n n n n n n
+184 108 0 1.05038 0 0 0.501377 0.865229 0 0 0 1 "Metadata/Effects/Spells/portal/portal2.ao" "Metadata/MiscellaneousObjects/MapReturnPortal" 0
+201 125 1 2185.8 1363.98 0.924859 0 0 0.446124 0.894971 0 0 0 1 "Metadata/Terrain/Doodads/Checkpoints/EzomyteCheckpointBaseless.ao" "Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame" 0
+222 73 1 2413.39 796.818 2.22249 0 0 0.896251 0.443547 1 0 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/EntranceLeagueContentMarker" 0
+247 93 1 2691.33 1011.71 2.22249 0 0 0.896251 0.443547 1 0 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/EntranceLeagueContentMarker" 0
+195 53 1 2129.15 582.797 2.22249 0 0 0.896251 0.443547 1 0 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/EntranceLeagueContentMarker" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/mission_01.arm
+version 36
+1
+"missiontile"
+7 1
+1 1
+"mission"
+1 1
+k 7 7 0 0 0 0 21 21 21 21 21 21 21 21 0 0 0 0 0 0 0 0 0 0
+0 0 0
+0 0 0
+0 0 0
+0 0 0
+-1
+-1
+-1
+-1
+-1
+-1
+""
+s s s s s s s
+s s s s s s s
+s s k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 0 0 0 0 0 0 0 0 1 0 n n s s
+s s n n n s s
+s s n n n s s
+s s s s s s s
+s s s s s s s
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/mission_02.arm
+version 36
+2
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+"missiontile"
+7 1
+1 1
+"mission"
+1 1
+k 7 7 0 0 0 0 21 21 21 21 21 21 21 21 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+-1
+-1
+-1
+-1
+-1
+-1
+""
+n n n n n n n
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 0 0 1 1 0 2 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 3 n
+n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 0 1 1 0 0 1 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 0 0 0 0 1 1 1 1 2 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 1 0 0 1 0 0 n
+n n n n n n n
+n n n n n n n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 1 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+n n n n n n n
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/rare_01.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+"rare"
+1 1
+k 7 7 0 0 0 0 21 21 21 21 21 21 21 21 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+115 111 4.71239 "rare"
+-1
+-1
+-1
+-1
+101 90 0.296634 "checkpoint"
+-1
+-1
+""
+n n n n n s s
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 2 s s
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 1 1 1 1 4 9 4 9 4 9 4 9 0 0 0 0 1 0 1 0 0 0 n n k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 0 n
+n n n n n n n
+n n n n n n n
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+s s n n n n n
+99 103 1 1078.59 1121.09 0.139461 0 0 0.069674 0.99757 0 0 1 -204.938 1 "Metadata/Terrain/Doodads/Checkpoints/EzomyteCheckpointBaseless.ao" "Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/rare_02.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+"rare"
+1 1
+k 7 7 0 0 0 0 21 21 21 21 21 21 21 21 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+98 103 0 "rare"
+-1
+-1
+-1
+-1
+78 82 0.296634 "checkpoint"
+-1
+-1
+""
+s s n n n n n
+s s n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 3 n
+n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 1 k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 0 1 1 1 0 0 n n k 3 3 1 0 1 0 4 9 9 9 4 9 9 9 0 0 0 0 1 0 0 1 0 0 n
+n n n n n n n
+n n n n n n n
+n k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 1 k 3 3 0 1 0 1 9 9 4 9 9 9 4 9 0 0 0 0 1 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+n n n n n n n
+52 47 1 566.748 520.355 -0.507154 0 0 -0.250868 0.968021 1 0 1 22.1875 1 "Metadata/Terrain/Doodads/Woods/Broadleaf/Boulder7.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+76 95 1 828.587 1034.13 0.139461 0 0 0.069674 0.99757 0 0 0 1 "Metadata/Terrain/Doodads/Checkpoints/EzomyteCheckpointBaseless.ao" "Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/rare_03.arm
+version 36
+1
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+7 1
+1 1
+"rare"
+1 1
+k 7 7 0 0 0 0 21 21 21 21 21 21 21 21 0 0 0 0 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+111 49 3.66519 "rare"
+-1
+74 114 3.74941 ""
+-1
+-1
+-1
+96 105 1.50327 "checkpoint"
+-1
+-1
+""
+s s n n n n n
+s s n n k 3 3 0 1 1 0 9 9 4 9 4 9 9 9 0 0 0 0 0 0 1 0 0 2 k 3 3 0 0 1 1 9 9 9 9 4 9 4 9 0 0 0 0 0 0 0 1 0 3 n
+s s k 3 3 1 1 0 0 4 9 4 9 9 9 9 9 0 0 0 0 0 1 0 0 0 0 n n k 3 3 1 0 0 1 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n
+s s n n n n n
+s s n n n n n
+s s s s s s s
+s s s s s s s
+81 110 1 889.553 1199.01 -0.0222535 0 0 -0.0111265 0.999938 1 0 0 1 "Metadata/Terrain/Doodads/Woods/Broadleaf/Boulder6.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+89 105 1 968.279 1149.99 1.65155 0 0 0.735072 0.677989 0 0 0 1 "Metadata/Terrain/Doodads/Checkpoints/EzomyteCheckpointBaseless.ao" "Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame" 0
+-1
+-1
+-1
+0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/Steppe.arm
+version 36
+4
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et"
+"Metadata/Terrain/wildcard.et"
+"SteppeAreba_03"
+7 1
+4 4
+"map_boss"
+1 0
+k 25 25 0 2 2 0 75 75 75 75 75 75 75 75 1 1 0 1 0 0 1 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+2 0 1 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+2 0 1 1 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+290 304 2.19453 "mapboss"
+-1
+-1
+-1
+-1
+427 394 5.40464 "checkpoint"
+-1
+-1
+""
+n n n n n n n n n n n n n n n n n n n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 3 n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 21 21 0 2 2 3 63 63 22 63 40 63 61 63 1 1 0 1 0 0 1 0 4 0 n n n n n n n n n n n n n n n n n n n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 n n n n n n n n n n n n n n n n n n n n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 n n n n n n n n n n n n n n n n n n n n n k 3 3 0 2 0 2 9 9 4 9 9 9 4 9 1 1 0 0 0 0 1 1 0 0 n
+n n n n n n n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 n n n n n n n n n n n n n n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n n n n n n n n n n n n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n n n n n n n n n n n n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 n n n n n n n n n n n n n n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n n n n n n n n n n n n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n n n n n n n n n n n n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 n n n n n n n n n n n n n n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n n n n n n n n n n n n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n n n n n n n n n n n n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 n n n n n n n n n n n n n n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n n n n n n n n n n n n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n n n n n n n n n n n n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 2 0 2 0 4 9 9 9 4 9 9 9 1 0 0 1 0 1 1 0 0 0 n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+n n n n n n n n n n n k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0 k 1 1 0 0 0 0 3 3 3 3 3 3 3 3 0 0 0 0 1 1 1 1 0 0
+421 372 1 4582.43 4049.37 0.465152 0 0 0.230485 0.973076 0 0 1 -259.62 1 "Metadata/Terrain/Doodads/Checkpoints/unique/EzomyteCheckpointBaseless.ao" "Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame_Boss" 0
+402 379 1 4379.93 4128.04 2.35529 0 0 0.923707 0.3831 0 0 1 -304.69 1 "Metadata/Effects/Environment/act1/tutorial/twilight_strand/force_wall/force_wall_extra_width.ao" "Metadata/MiscellaneousObjects/BossForceFieldDoorVisuals" 0
+331 324 1 3606.03 3524.06 2.30274 0 0 0.913323 0.407237 0 0 1 -250 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaController" 0
+405 376 1 4409.56 4097.04 0.731905 0 0 0.357839 0.933783 0 0 1 -250 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+409 372 1 4453.12 4048.52 0.731905 0 0 0.357839 0.933783 0 0 1 -250 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+401 381 1 4366 4145.48 0.731905 0 0 0.357839 0.933783 0 0 1 -250 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+397 385 1 4322.34 4194.06 0.731905 0 0 0.357839 0.933783 0 0 1 -250 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+393 390 1 4278.79 4242.58 0.731905 0 0 0.357839 0.933783 0 0 1 -250 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+414 367 1 4502.25 3995.75 0.731905 0 0 0.357839 0.933783 0 0 1 -250 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+389 394 1 4237.32 4287.29 0.731905 0 0 0.357839 0.933783 0 0 1 -250 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+321 277 0 3.12414 0 0 0.999962 0.00872656 0 0 1 -351.562 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/BossLeagueContentMarkerMain" 0
+270 345 1 2944.08 3753.38 1.83259 0 0 0.793353 0.608762 0 0 1 -367.188 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/BossLeagueContentMarker" 0
+333 364 1 3624.32 3957.25 1.5708 0 0 0.707107 0.707107 0 0 1 -367.188 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/BossLeagueContentMarker" 0
+350 307 1 3813.1 3345.57 2.87979 0 0 0.991445 0.130526 0 0 1 -359.375 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/BossLeagueContentMarker" 0
+272 308 1 2965.6 3356.26 2.87979 0 0 0.991445 0.130526 0 0 1 -359.375 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/BossLeagueContentMarker" 0
+315 305 1 3433.29 3318.84 0.0449178 0 0 0.022457 0.999748 0 0 1 -359.375 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Construct_01.ao" "Metadata/MiscellaneousObjects/BossLeaguePrecursorBeacon" 0
+-1
+-1
+-1
+0
+"hide_teleports" 213 232 427 421 "Metadata/MiscellaneousObjects/SectorDisableInstantTeleports" "" 0
+"no_critters" 49 49 522 550 "" "" 0
+"boss_sector" 222 239 423 368 "" "" 0
+"boss_sector" 233 368 391 407 "" "" 0
+"boss_sector" 391 368 406 383 "" "" 0
+"boss_sector" 391 383 398 390 "" "" 0
+"boss_sector" 406 368 413 375 "" "" 0
+"no_movement_skills" 214 397 392 400 "" "" 0
+"no_movement_skills" 214 232 217 400 "" "" 0
+"no_movement_skills" 214 232 416 235 "" "" 0
+"no_movement_skills" 413 232 416 371 "" "" 0
+"no_movement_skills" 410 368 416 371 "" "" 0
+"no_movement_skills" 410 368 413 374 "" "" 0
+"no_movement_skills" 407 371 413 374 "" "" 0
+"no_movement_skills" 407 371 410 377 "" "" 0
+"no_movement_skills" 404 374 410 377 "" "" 0
+"no_movement_skills" 404 374 407 380 "" "" 0
+"no_movement_skills" 401 377 407 380 "" "" 0
+"no_movement_skills" 401 377 404 383 "" "" 0
+"no_movement_skills" 398 380 404 383 "" "" 0
+"no_movement_skills" 398 380 401 386 "" "" 0
+"no_movement_skills" 395 383 401 386 "" "" 0
+"no_movement_skills" 395 383 398 389 "" "" 0
+"no_movement_skills" 392 386 398 389 "" "" 0
+"no_movement_skills" 392 386 395 392 "" "" 0
+"no_movement_skills" 389 389 395 392 "" "" 0
+"no_movement_skills" 389 389 392 400 "" "" 0
+-1
+0
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/Steppe2.arm
+version 36
+7
+"Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt"
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et"
+"Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et"
+"Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et"
+"Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et"
+"Metadata/Terrain/wildcard.et"
+"SteppeAreba_03"
+7 1
+4 4
+"map_boss"
+1 0
+k 25 25 0 4 4 0 75 75 75 75 75 75 75 75 1 1 0 1 0 0 0 0 0 0
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+4 0 1 1 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+4 0 1 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+0 0 1
+221 235 2.19453 "mapboss"
+-1
+-1
+-1
+-1
+358 325 5.40464 "checkpoint"
+-1
+-1
+""
+n n n n n n n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n n n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 3 n
+n n n n n n n n n n n n n n n n n n n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n n k 3 3 0 4 3 2 9 9 4 9 4 9 4 9 1 1 0 0 0 0 0 1 0 0 n n k 3 3 0 0 4 4 9 9 9 9 4 9 4 9 1 1 1 0 0 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n n k 3 3 3 0 5 0 4 9 9 9 4 9 9 9 0 0 0 0 1 0 0 1 0 0 n n k 3 3 4 4 0 0 4 9 4 9 9 9 9 9 0 1 0 0 0 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n n k 3 3 5 0 5 0 4 9 9 9 4 9 9 9 0 0 0 0 1 0 0 1 0 0 n n s s
+n n n n n n n n n n n n n n n n n n n n n n n s s
+n n n n n n n n n n n n n n n n n n n n n n n s s
+n n n n n n n n n n n n n n n n n n n n k 3 3 5 0 5 0 4 9 9 9 4 9 9 9 0 0 0 0 1 0 0 1 0 0 n n s s
+n n n n n n n n n n n n n n n n n n n n n n n s s
+n n n n n n n n n n n n n n n n n n n n n n n s s
+n n n n n n n n n n n n n n n n n n n n k 3 3 5 0 5 0 4 9 9 9 4 9 9 9 0 0 0 0 1 0 0 1 0 0 n n s s
+n n n n n n n n n n n n n n n n n n n n n n n s s
+n n n n n n n n n n n n n n n n n n n k 21 21 0 2 2 6 63 63 22 63 40 63 61 63 1 1 0 1 0 0 1 0 7 2 n n n s s
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 2 3 4 0 4 9 4 9 4 9 9 9 1 0 0 1 0 1 0 0 0 0 n n k 3 3 0 5 0 3 9 9 4 9 9 9 4 9 0 0 0 0 1 1 0 0 0 0 n n k 3 3 0 5 0 5 9 9 4 9 9 9 4 9 0 0 0 0 1 1 0 0 0 0 n n k 3 3 0 5 0 5 9 9 4 9 9 9 4 9 0 0 0 0 1 1 0 0 0 0 n n k 3 3 0 5 0 5 9 9 4 9 9 9 4 9 0 0 0 0 1 1 0 0 0 0 n n k 3 3 5 0 0 5 4 9 9 9 9 9 4 9 0 0 0 0 1 0 0 0 0 0 n n s s
+n n n n n n n n n n n n n n n n n n n n n n n s s
+n n n n n n n n n n n n n n n n n n n n n n n s s
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n n k 3 3 4 4 0 0 4 9 4 9 9 9 9 9 1 0 1 1 0 0 0 0 0 0 n n k 3 3 0 0 4 4 9 9 9 9 4 9 4 9 0 0 0 1 0 0 0 0 0 0 n n s s s s s s s s s s s s s s
+n n n n n n n n n n n s s s s s s s s s s s s s s
+352 303 1 3832.43 3299.37 0.465152 0 0 0.230485 0.973076 0 0 1 -259.62 1 "Metadata/Terrain/Doodads/Checkpoints/unique/EzomyteCheckpointBaseless.ao" "Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame_Boss" 0
+333 310 1 3629.93 3378.04 2.35529 0 0 0.923707 0.3831 0 0 1 -304.69 1 "Metadata/Effects/Environment/act1/tutorial/twilight_strand/force_wall/force_wall_extra_width.ao" "Metadata/MiscellaneousObjects/BossForceFieldDoorVisuals" 0
+262 255 1 2856.03 2774.06 2.30274 0 0 0.913323 0.407237 0 0 1 -250 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaController" 0
+336 307 1 3659.56 3347.04 0.731905 0 0 0.357839 0.933783 0 0 1 -250 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+340 303 1 3703.12 3298.52 0.731905 0 0 0.357839 0.933783 0 0 1 -250 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+332 312 1 3616 3395.48 0.731905 0 0 0.357839 0.933783 0 0 1 -250 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+328 316 1 3572.34 3444.06 0.731905 0 0 0.357839 0.933783 0 0 1 -250 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+324 321 1 3528.79 3492.58 0.731905 0 0 0.357839 0.933783 0 0 1 -250 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+345 298 1 3752.25 3245.75 0.731905 0 0 0.357839 0.933783 0 0 1 -250 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+320 325 1 3487.32 3537.29 0.731905 0 0 0.357839 0.933783 0 0 1 -250 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+250 207 0 3.12414 0 0 0.999962 0.00872656 0 0 1 -351.562 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/BossLeagueContentMarkerMain" 0
+202 273 1 2197.19 2972.93 1.83259 0 0 0.793353 0.608762 0 0 1 -367.188 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/BossLeagueContentMarker" 0
+285 249 1 3099.1 2711.9 1.5708 0 0 0.707107 0.707107 0 0 1 -367.188 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/BossLeagueContentMarker" 0
+235 296 1 2560.97 3223.53 2.87979 0 0 0.991445 0.130526 0 0 1 -359.375 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/BossLeagueContentMarker" 0
+197 242 1 2143.75 2635.75 2.87979 0 0 0.991445 0.130526 0 0 1 -359.375 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/BossLeagueContentMarker" 0
+246 236 1 2683.29 2568.84 0.0449178 0 0 0.022457 0.999748 0 0 1 -359.375 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Construct_01.ao" "Metadata/MiscellaneousObjects/BossLeaguePrecursorBeacon" 0
+-1
+-1
+-1
+0
+"hide_teleports" 144 163 358 352 "Metadata/MiscellaneousObjects/SectorDisableInstantTeleports" "" 0
+"no_critters" -20 -20 453 481 "" "" 0
+"boss_sector" 153 170 354 299 "" "" 0
+"boss_sector" 164 299 322 338 "" "" 0
+"boss_sector" 322 299 337 314 "" "" 0
+"boss_sector" 322 314 329 321 "" "" 0
+"boss_sector" 337 299 344 306 "" "" 0
+"no_movement_skills" 145 328 323 331 "" "" 0
+"no_movement_skills" 145 163 148 331 "" "" 0
+"no_movement_skills" 145 163 347 166 "" "" 0
+"no_movement_skills" 344 163 347 302 "" "" 0
+"no_movement_skills" 341 299 347 302 "" "" 0
+"no_movement_skills" 341 299 344 305 "" "" 0
+"no_movement_skills" 338 302 344 305 "" "" 0
+"no_movement_skills" 338 302 341 308 "" "" 0
+"no_movement_skills" 335 305 341 308 "" "" 0
+"no_movement_skills" 335 305 338 311 "" "" 0
+"no_movement_skills" 332 308 338 311 "" "" 0
+"no_movement_skills" 332 308 335 314 "" "" 0
+"no_movement_skills" 329 311 335 314 "" "" 0
+"no_movement_skills" 329 311 332 317 "" "" 0
+"no_movement_skills" 326 314 332 317 "" "" 0
+"no_movement_skills" 326 314 329 320 "" "" 0
+"no_movement_skills" 323 317 329 320 "" "" 0
+"no_movement_skills" 323 317 326 323 "" "" 0
+"no_movement_skills" 320 320 326 323 "" "" 0
+"no_movement_skills" 320 320 323 331 "" "" 0
+-1
+0
+

@@ -1,0 +1,77 @@
+9 monsters among 319 entities, read fresh inside the recording with every switch on, nearest the player first; distance and position in world units
+mods are the game's own ids off ObjectMagicProperties, named where its Mods table names them; buffs carry their clocks; targetable is the game's own byte
+a marked place within 100 of a monster is listed under it - an essence prison stands on its monster and carries the icon the monster does not
+
+### 1226.1  Unknown CircleOfPower  (Metadata/Monsters/Anomalies/CircleOfPower)  id 2551  at 0x55E59BF9200
+  position 8342.4 6798.9 -7.8   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 1855.4  Rare Bloom Serpent  (Metadata/Monsters/SnakeFlowerMan/BloomSerpent1@75)  id 1425  at 0x55E594EF680
+  position 8581.5 9864.1 -359.3   life 193534/193534 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: MonsterRare, MonsterRare1, MonsterRare2, MonsterRare3, MonsterRare4, MonsterRare5, MonsterRare6, MonsterRare7, MonsterRare8, MonsterRare9, MonsterRare10, MonsterRare11, MonsterRare12, MonsterRare13, MonsterRare14, MonsterRare15, MonsterRare16, MonsterExtraArmour1 "of Endurance", MonsterImmuneAura2 "TBD", MonsterProximalTangibility1 "Ethereal", MonsterIncreasedAccuracy1 "of Precision"
+  buffs: proximal_intangibility_visuals (permanent) x1, proximal_intangibility (permanent) x1, visual_archnemesis_mod_display_buff (permanent) x1, incursion_world_monster (permanent) x1, monster_rare_effect_buff (permanent) x1
+### 1909.8  Normal Pack Werewolf  (Metadata/Monsters/Werewolves/WerewolfPack1@75)  id 1424  at 0x55E594E4A00
+  position 8657.6 9907.6 -295.3   life 19539/19539 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: (none readable on its ObjectMagicProperties)
+  buffs: incursion_world_monster (permanent) x1
+### 1932.3  Normal Bloom Serpent  (Metadata/Monsters/SnakeFlowerMan/BloomSerpent1@75)  id 1430  at 0x55E70473000
+  position 8592.4 9940.2 -351.2   life 54152/54152 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: RareMonsterPack, MonsterImmuneAuraMinion2 "TBD", MonsterIncreasedAccuracy1 "of Precision"
+  buffs: visual_display_buff_not_hidden (permanent) x1, visual_archnemesis_mod_display_buff (permanent) x1, incursion_world_monster (permanent) x1
+### 1957.2  Normal Bloom Serpent  (Metadata/Monsters/SnakeFlowerMan/BloomSerpent1@75)  id 1431  at 0x55E70478500
+  position 8527.2 9972.8 -358.3   life 54152/54152 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: RareMonsterPack, MonsterImmuneAuraMinion2 "TBD", MonsterIncreasedAccuracy1 "of Precision"
+  buffs: visual_display_buff_not_hidden (permanent) x1, visual_archnemesis_mod_display_buff (permanent) x1, incursion_world_monster (permanent) x1
+### 1963.5  Normal Bloom Serpent  (Metadata/Monsters/SnakeFlowerMan/BloomSerpent1@75)  id 1428  at 0x55E594EE500
+  position 8472.8 9983.7 -342.7   life 54152/54152 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: RareMonsterPack, MonsterImmuneAuraMinion2 "TBD", MonsterIncreasedAccuracy1 "of Precision"
+  buffs: visual_display_buff_not_hidden (permanent) x1, visual_archnemesis_mod_display_buff (permanent) x1, incursion_world_monster (permanent) x1
+### 1970.2  Normal Bloom Serpent  (Metadata/Monsters/SnakeFlowerMan/BloomSerpent1@75)  id 1433  at 0x55E70470800
+  position 8548.9 9983.7 -339.5   life 54152/54152 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: RareMonsterPack, MonsterImmuneAuraMinion2 "TBD", MonsterIncreasedAccuracy1 "of Precision"
+  buffs: visual_display_buff_not_hidden (permanent) x1, visual_archnemesis_mod_display_buff (permanent) x1, incursion_world_monster (permanent) x1
+### 2005.1  Normal Pack Werewolf  (Metadata/Monsters/Werewolves/WerewolfPack1@75)  id 1422  at 0x55E594E4280
+  position 8712 9994.6 -298.1   life 19539/19539 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: (none readable on its ObjectMagicProperties)
+  buffs: incursion_world_monster (permanent) x1
+### 2036  Magic Bloom Serpent  (Metadata/Monsters/SnakeFlowerMan/BloomSerpent1@75)  id 1414  at 0x55E3498CF00
+  position 9027.2 9940.2 -354.3   life 46150/46150 (100%)   targetable yes   hidden no   friendly no   effect no
+  mods: MonsterMagic, MonsterMagic1, MonsterMagic2, MonsterMagic3, MonsterMagic4, MonsterMagic5, MonsterMagic6, MonsterMagic7, MonsterMagic8, MonsterMagic9, MonsterMagic10, MonsterMagic11, MonsterMagic12, MonsterMagic13, MonsterMagic14, MonsterDamageGainedAsChaos1 "of Armageddon"
+  buffs: visual_archnemesis_mod_display_buff (permanent) x1, incursion_world_monster (permanent) x1, monster_magic_effect_buff (permanent) x1
+
+=== 34 marked places - every entity the game gives a map icon, nearest the player first
+distance	icon	present	id	address	x	y	z	path	name
+89.9	AbyssPitInactive	unread	1301	0x55E59AE2B00	8250	8000	-257.1	Metadata/MiscellaneousObjects/Abyss/AbyssFinalNodeBase	
+288.2	AbyssCrackInactive	unread	1314	0x55E5FC5A680	8250	7750	-265.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+337.3	AbyssCrackInactive	unread	1328	0x55E59AEEB80	8000	8000	-235.3	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+409.2	AbyssCrackInactive	unread	1313	0x55E57CA8B80	8250	7625	-262.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+472.1	AbyssCrackInactive	unread	1327	0x55E59AE5F80	7875	8125	-249.4	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+526.4	AbyssCrackInactive	unread	1312	0x55E57CAD900	8375	7500	-257.3	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+527.2	ExpeditionDetonator	yes	65	0x55E59AE0300	8646.7	8451.1	-340	Metadata/MiscellaneousObjects/Expedition/ExpeditionDetonator	
+559.2	Strongbox	unread	1342	0x55E5FC55680	8875	7875	-247.5	Metadata/Chests/StrongBoxes/MartialStrongboxExpedition	Blacksmith's Strongbox
+594.8	AbyssCrackInactive	unread	1326	0x55E59AEDA00	7750	8125	-243.1	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+651.1	AbyssCrackInactive	unread	1311	0x55F0AC47E80	8375	7375	-231.4	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+746.1	AbyssCrackInactive	unread	1325	0x55E59AE6480	7625	8250	-265.1	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+792.1	AbyssCrackInactive	unread	1310	0x55F0AC4B300	8500	7250	-206.5	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+866.1	AbyssCrackInactive	unread	1324	0x55E59AE0080	7500	8250	-262.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+914.7	AbyssCrackInactive	unread	1309	0x55E65AAFC80	8500	7125	-149.3	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+937.1	Expedition2RemnantActive	yes	1345	0x55F3FA57780	9059.8	7429.3	-134.8	Metadata/MiscellaneousObjects/Expedition2/Expedition2Encounter	
+961.7	AbyssCrackInactive	unread	1322	0x55E57432C80	7375	8000	-194.1	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+966.5	AbyssCrackInactive	unread	1323	0x55E57437780	7375	8125	-233.8	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1064.9	AbyssCrackInactive	unread	1308	0x55E65AA0780	8625	7000	-140.1	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1086.6	AbyssCrackInactive	unread	1321	0x55E5743B880	7250	8000	-204	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1185.7	AbyssCrackInactive	unread	1307	0x55E65AA9600	8625	6875	-153.3	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1220.6	AbyssCrackInactive	unread	1320	0x55E63FCAC80	7125	7875	-93.2	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1340.4	AbyssCrackInactive	unread	1306	0x55E60E95700	8750	6750	-229.9	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1343.4	Expedition2RemnantActive	yes	1347	0x55F3FA55200	9679.3	7994.6	-220.8	Metadata/MiscellaneousObjects/Expedition2/Expedition2Encounter	
+1344.7	AbyssCrackInactive	unread	1319	0x55E63FCAF00	7000	7875	-149.3	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1384.1	AbyssCrackInactive	unread	1305	0x55E65AAD200	8875	6750	-256.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1487	AbyssCrackInactive	unread	1318	0x55F0B483180	6875	7750	-194.8	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1500	AbyssCrackInactive	unread	1304	0x55F0A514780	8875	6625	-231.4	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1560.9	Strongbox	unread	1344	0x55E5FC50900	9755.4	7375	-303.2	Metadata/Chests/StrongBoxes/OrnateStrongboxExpedition	Ornate Strongbox
+1610	AbyssCrackInactive	unread	1317	0x55F0B487C80	6750	7750	-227.5	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1663.1	AbyssCrackInactive	unread	1303	0x55F0A51C200	9000	6500	-229.9	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1716.8	AbyssCrackInactive	unread	1302	0x55F0A518600	9125	6500	-192.9	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1757.5	AbyssCrackInactive	unread	1316	0x55E59BF4480	6625	7625	-249.4	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1879.4	AbyssCrackInactive	unread	1315	0x55E59BF0380	6500	7625	-243.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+2037.6	Expedition2RemnantActive	yes	1349	0x55F3FA5E800	10190.2	7179.3	-213	Metadata/MiscellaneousObjects/Expedition2/Expedition2Encounter	

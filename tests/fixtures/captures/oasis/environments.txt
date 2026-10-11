@@ -1,0 +1,120 @@
+=== environments
+1114 files the area loaded, 1 of them tilesets
+--- loaded .tsi Metadata/Terrain/Maps/Oasis/master.tsi
+
+=== .env Metadata/EnvironmentSettings/Gallows/2_11.env  (the area's own: its WorldAreas row's Environments row)
+{
+  "directional_light": {
+    "shadows_enabled": true,
+    "colour": [
+      0.35863,
+      0.32929,
+      0.31387
+    ],
+    "cam_extra_z": 1000.0,
+    "cam_min_offset": -800.0,
+    "cam_max_offset": 420.0,
+    "multiplier": 5.0,
+    "penumbra_radius": 2.5,
+    "penumbra_dist": 0.3,
+    "phi": 2.09436,
+    "theta": 0.52359
+  },
+  "player_light": {
+    "colour": [
+      0.65236,
+      0.63428,
+      0.62453
+    ]
+  },
+  "environment_mapping": {
+    "diffuse_cube": "Art/2DArt/Cubemaps/G2-11v1_diffuse.dds",
+    "specular_cube": "Art/2DArt/Cubemaps/G2-11v1_specular.dds",
+    "direct_light_env_ratio": 0.0,
+    "env_brightness": 0.3,
+    "gi_additional_env_light": 0.0,
+    "hor_angle": -2.96705,
+    "vert_angle": 0.0
+  },
+  "screenspace_fog": {
+    "ssf_color_alpha": 0.1
+  },
+  "area": {
+    "dust_color": [
+      0.14198,
+      0.14198,
+      0.14198
+    ],
+    "ground_scale": 0.004,
+    "rotate_player_env_ao_with_wind_dir": true,
+    "player_environment_ao": "Metadata/Effects/weather_attachments/G2_11/weather_attachment.ao",
+    "wind_direction_angle": 1.30899,
+    "wind_intensity": 200.0
+  },
+  "clouds": {
+    "clouds_scale": 0.33,
+    "clouds_intensity": 1.0,
+    "clouds_midpoint": 0.6,
+    "clouds_sharpness": 0.2,
+    "clouds_speed": 50.0,
+    "clouds_angle": 1.30899,
+    "clouds_pre_fade": 0.05,
+    "clouds_post_fade": 0.05
+  },
+  "camera": {
+    "far_plane": 3200.0,
+    "near_plane": 200.0,
+    "exposure": 1.0
+  },
+  "post_transform": {
+    "texture": "Metadata/EnvironmentSettings/Gallows/2_11.env.post.dds"
+  },
+  "audio": {
+    "env_bank_name": "General_Environment.bank",
+    "env_event_name": "/Environment/Endgame/Maps/Oasis/Map_Oasis.env",
+    "music": "FourMap_Oasis",
+    "ambient_sound": "event:/Sound Effects/Ambient/4.0/Endgame/Maps/Oasis/MapOasis",
+    "ambient_bank": "Amb7.bank",
+    "footstep_materials": [
+      {
+        "material": "Art/Textures/Environment/desert/Oasis/FossilizedTree/FossilisedTrees01c.mat",
+        "audio_id": "Gravel"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Oasis/GroundMaterials/G_DWake_Mud.mat",
+        "audio_id": "RoughStone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Oasis/GroundMaterials/G_DWake_Mud_2.mat",
+        "audio_id": "RoughStone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Oasis/GroundMaterials/G_DWake_Mud_Grass.mat",
+        "audio_id": "RoughStone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Oasis/GroundMaterials/G_DWake_Mud_Tiles.mat",
+        "audio_id": "RoughStone"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Oasis/GroundMaterials/G_FossilisedGround.mat",
+        "audio_id": "Gravel"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Oasis/GroundMaterials/G_PlateuMud.mat",
+        "audio_id": "Rock2"
+      },
+      {
+        "material": "Art/Textures/Environment/desert/Oasis/GroundMaterials/G_Rock_Dusty.mat",
+        "audio_id": "RoughStone"
+      }
+    ],
+    "audio_environment_ao": "Metadata/Terrain/Tools/AudioTools/Endgame/Maps/Oasis/Map_OasisScatterer.ao"
+  },
+  "global_illumination": {
+    "thickness_angle": 18.0,
+    "gi_multiplier": 3.5
+  }
+}
+diffuse_cube Art/2DArt/Cubemaps/G2-11v1_diffuse.dds: 32x32 · 6 levels · pixel format flags 0x4 · fourCC DX10 · DXGI format 95 (BC6H_UF16) · cube x1
+specular_cube Art/2DArt/Cubemaps/G2-11v1_specular.dds: 512x512 · 10 levels · pixel format flags 0x4 · fourCC DX10 · DXGI format 95 (BC6H_UF16) · cube x1

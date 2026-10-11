@@ -81,6 +81,9 @@ public static class CaptureReport
     /// <summary>The area's tile lists whole, includes followed - the weights and the words beside each tile.</summary>
     public const string TilesetListsFile = "tileset-lists.txt";
 
+    /// <summary>Every listed or laid tile file's definition chain and the .tmd beside it - see <see cref="TileFiles"/>.</summary>
+    public const string TileFilesFile = "tile-files.txt";
+
     /// <summary>The survey of the entity maps for the rooms' doodads, and every sighting.</summary>
     public const string DoodadsFile = "doodads.txt";
 
@@ -737,34 +740,7 @@ public static class CaptureReport
         ArgumentNullException.ThrowIfNull(read);
         ArgumentNullException.ThrowIfNull(loaded);
         var said = new StringBuilder();
-
-        // THE TILES THE AREA'S TILESETS OFFER, each once in the order the lists name them.
-        List<string> named = AreaRoomSet.Masters(loaded, masters);
-        var tiles = new List<string>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var lists = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        var sets = new List<string>();
-        foreach (string master in named)
-        {
-            byte[]? bytes = read(master.Replace('\\', '/').Trim());
-            string? set = TilesetFile.Value(bytes is { Length: > 0 } ? StatDescriptionFiles.Decode(bytes) : null, "TileSet");
-            if (set is not { Length: > 0 })
-            {
-                continue;
-            }
-
-            string tst = TilesetFile.Beside(master, set);
-            sets.Add(tst);
-            foreach (string tile in TilesetIndex.TilesOf(read, tst, lists))
-            {
-                string path = tile.Replace('\\', '/').Trim();
-                if (seen.Add(path))
-                {
-                    tiles.Add(path);
-                }
-            }
-        }
-
+        (List<string> tiles, List<string> sets, List<string> named) = Listed(read, loaded, masters);
         List<string> rooms = AreaRoomSet.Files(loaded, read, masters);
         said.Append(Say(rooms.Count)).Append(" rooms of the area's set against ").Append(Say(tiles.Count)).Append(" tiles its tilesets list - ")
             .Append(Say(named.Count)).Append(named.Count == 1 ? " master" : " masters").Append(sets.Count > 0 ? ", lists " + string.Join(", ", sets) : ", none naming a tileset").AppendLine();
@@ -838,6 +814,258 @@ public static class CaptureReport
 
     /// <summary>A tile's file name without folder or extension, for the candidate lists - the table at the end has the whole path.</summary>
     private static string TileName(string path) => Path.GetFileNameWithoutExtension(path.Replace('\\', '/'));
+
+    /// <summary>
+    /// The tiles the area's tilesets offer, each once in the order the lists name them, with the lists they were read from and the area's masters.
+    /// </summary>
+    private static (List<string> Tiles, List<string> Sets, List<string> Masters) Listed(
+        Func<string, byte[]?> read, IReadOnlyList<string> loaded, IReadOnlyList<string>? masters)
+    {
+        List<string> named = AreaRoomSet.Masters(loaded, masters);
+        var tiles = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var lists = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        var sets = new List<string>();
+        foreach (string master in named)
+        {
+            byte[]? bytes = read(master.Replace('\\', '/').Trim());
+            string? set = TilesetFile.Value(bytes is { Length: > 0 } ? StatDescriptionFiles.Decode(bytes) : null, "TileSet");
+            if (set is not { Length: > 0 })
+            {
+                continue;
+            }
+
+            string tst = TilesetFile.Beside(master, set);
+            sets.Add(tst);
+            foreach (string tile in TilesetIndex.TilesOf(read, tst, lists))
+            {
+                string path = tile.Replace('\\', '/').Trim();
+                if (seen.Add(path))
+                {
+                    tiles.Add(path);
+                }
+            }
+        }
+
+        return (tiles, sets, named);
+    }
+
+    /// <summary>
+    /// Every tile file the area's lists name or its terrain laid, each with its definition followed hop by hop through what it inherits and the .tmd beside it - the laid files no list names first, with the listed files that reach them.
+    /// </summary>
+    /// <remarks>
+    /// EVERY AREA LAYS FILES NO LIST NAMES - one to twenty in each of the first eleven captures. In
+    /// Sulphuric Caverns' boss room the list's Murky/Thickwall/Fill_01 lies as Thickwall/Fill_01, and
+    /// beside the list's Abyss/Lava/Fill_01 lies a Fill_02 no list names; a room built from the list can
+    /// never come out the game's file there, and the build replay calls those slots settled but different.
+    /// Two readings were open and both need the files, which no part carried. A definition that INHERITS
+    /// carries nothing but the reference (annalithic's Tdt.cs), so the laid file may be where the listed
+    /// one's chain ends. And the loaded list pairs some tiles with a .tmd of the same name
+    /// ("Fill_01.tmd;Fill_01.tdt;"), a format neither poe_data_tools nor poeformats reads, which may name
+    /// variants. This writes both halves for every file, so either reading is held against the laid
+    /// files offline (CaptureReplayTests) rather than argued.
+    ///
+    /// A .tmd IS WRITTEN AS IT IS: whole where it decodes as text, else its opening bytes and the strings
+    /// in it. Nothing here knows its layout, and a layout guessed at would print a wrong answer that
+    /// reads like a right one.
+    /// </remarks>
+    /// <param name="read">How to get a file out of the install, by path.</param>
+    /// <param name="loaded">The files the area loaded - for its masters.</param>
+    /// <param name="masters">Every master the install has, as its index lists them - see AreaRoomSet.</param>
+    /// <param name="laid">The tiles the area laid, or null where the terrain was not read - then only the listed files.</param>
+    public static string TileFiles(Func<string, byte[]?> read, IReadOnlyList<string> loaded, IReadOnlyList<string>? masters, TerrainTiles? laid)
+    {
+        ArgumentNullException.ThrowIfNull(read);
+        ArgumentNullException.ThrowIfNull(loaded);
+        (List<string> tiles, _, _) = Listed(read, loaded, masters);
+        var listed = new HashSet<string>(tiles, StringComparer.OrdinalIgnoreCase);
+        var onGround = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string path in laid?.Paths ?? [])
+        {
+            if (path.Length > 0)
+            {
+                onGround.Add(path.Replace('\\', '/').Trim());
+            }
+        }
+
+        var every = new SortedSet<string>(listed, StringComparer.OrdinalIgnoreCase);
+        every.UnionWith(onGround);
+
+        // EACH FILE ONCE, both halves: the chain's hops and the .tmd, kept for the cross-reference below.
+        var chains = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        var tmds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var body = new StringBuilder();
+        foreach (string path in every)
+        {
+            body.Append("##### ").Append(path).Append("  (")
+                .Append(listed.Contains(path) ? (onGround.Contains(path) ? "listed, laid" : "listed") : "laid").AppendLine(")");
+            chains[path] = Chain(body, read, path);
+
+            // Searched with forward slashes, as every path here is written - the game's own files spell them either way.
+            tmds[path] = Tmd(body, read, path).Replace('\\', '/');
+        }
+
+        List<string> unlisted = [.. onGround.Where(path => !listed.Contains(path)).Order(StringComparer.OrdinalIgnoreCase)];
+        var said = new StringBuilder();
+        said.Append(Say(every.Count)).Append(" tile files - ").Append(Say(listed.Count)).Append(" the area's lists name, ")
+            .Append(laid is null ? "the terrain not read" : Say(onGround.Count) + " laid, " + Say(unlisted.Count) + " of those named by no list")
+            .AppendLine("; each with its definition followed through what it inherits, and the .tmd beside it");
+        said.AppendLine("a definition that inherits carries nothing but the reference (annalithic's Tdt.cs); a .tmd is written as it is, since no reference reads its layout");
+        said.AppendLine();
+        said.AppendLine("=== laid, but named by no list - and the listed files whose chain passes through it, or whose .tmd names it");
+        foreach (string path in unlisted)
+        {
+            string name = Path.GetFileName(path);
+            said.Append(path).AppendLine();
+            said.Append("  reached by inheriting from: ").AppendLine(Joined(tiles.Where(one => chains[one].Skip(1).Contains(path, StringComparer.OrdinalIgnoreCase))));
+            said.Append("  its path in the .tmd of: ").AppendLine(Joined(tiles.Where(one => tmds[one].Contains(path, StringComparison.OrdinalIgnoreCase))));
+            said.Append("  its name alone in the .tmd of: ").AppendLine(Joined(tiles.Where(one =>
+                !tmds[one].Contains(path, StringComparison.OrdinalIgnoreCase) && tmds[one].Contains(name, StringComparison.OrdinalIgnoreCase))));
+        }
+
+        if (unlisted.Count == 0)
+        {
+            said.AppendLine(laid is null ? "(the terrain was not read)" : "(none)");
+        }
+
+        said.AppendLine();
+        said.AppendLine("=== every file: 'inherits' for each hop, then 'defines' (size, tag, templates) or 'not read'; 'tmd' with '| ' text lines, or 'hex' and 'strings'");
+        said.Append(body);
+        return said.ToString();
+
+        static string Joined(IEnumerable<string> paths)
+        {
+            string joined = string.Join(", ", paths);
+            return joined.Length > 0 ? joined : "none";
+        }
+    }
+
+    /// <summary>
+    /// Writes a tile file's definition hop by hop - an 'inherits' line for each file it inherits, then the one that defines it - and returns every file of the chain, its own first.
+    /// </summary>
+    private static List<string> Chain(StringBuilder said, Func<string, byte[]?> read, string path)
+    {
+        var hops = new List<string>();
+        string at = path;
+        for (var hop = 0; hop <= TileModels.MostHops; hop++)
+        {
+            if (hops.Contains(at, StringComparer.OrdinalIgnoreCase))
+            {
+                said.Append("  loop\t").AppendLine(at);
+                return hops;
+            }
+
+            hops.Add(at);
+            TileDefinition one = TileDefinition.Read(read(at));
+            if (!one.Ready)
+            {
+                said.Append("  not read\t").Append(at).Append('\t').AppendLine(one.Why);
+                return hops;
+            }
+
+            if (one.Inherits.Length == 0)
+            {
+                said.Append(CultureInfo.InvariantCulture, $"  defines\t{at}\t{one.Width}x{one.Height}\ttag {one.Tag}\ttemplates {string.Join(';', one.Templates)}").AppendLine();
+                return hops;
+            }
+
+            at = one.Inherits.Replace('\\', '/').Trim();
+            said.Append("  inherits\t").AppendLine(at);
+        }
+
+        said.Append("  past ").Append(Say(TileModels.MostHops)).AppendLine(" hops");
+        return hops;
+    }
+
+    /// <summary>The longest .tmd written whole as text; a longer one is cut, and says so.</summary>
+    private const int TmdTextMost = 16_384;
+
+    /// <summary>How many of a binary .tmd's opening bytes are written in hex.</summary>
+    private const int TmdHexMost = 256;
+
+    /// <summary>
+    /// Writes the .tmd beside a tile file - whole as text where it is text, else its opening bytes and its strings - and returns what can be searched in it: the text, or the strings.
+    /// </summary>
+    private static string Tmd(StringBuilder said, Func<string, byte[]?> read, string path)
+    {
+        string tmd = Path.ChangeExtension(path, ".tmd");
+        byte[]? bytes = read(tmd);
+        if (bytes is not { Length: > 0 })
+        {
+            said.AppendLine("  tmd\tnone");
+            return string.Empty;
+        }
+
+        string text = StatDescriptionFiles.Decode(bytes);
+        if (!text.Any(c => c < ' ' && c is not ('\r' or '\n' or '\t')))
+        {
+            said.Append(CultureInfo.InvariantCulture, $"  tmd\t{tmd}\t{bytes.Length} bytes\ttext").AppendLine();
+            string shown = text.Length > TmdTextMost ? text[..TmdTextMost] : text;
+            foreach (string line in shown.Split('\n'))
+            {
+                said.Append("  | ").AppendLine(line.TrimEnd('\r'));
+            }
+
+            if (text.Length > TmdTextMost)
+            {
+                said.Append(CultureInfo.InvariantCulture, $"  | ... cut at {TmdTextMost} of {text.Length} characters").AppendLine();
+            }
+
+            return text;
+        }
+
+        said.Append(CultureInfo.InvariantCulture, $"  tmd\t{tmd}\t{bytes.Length} bytes\tbinary").AppendLine();
+        said.Append("  hex\t").AppendLine(Convert.ToHexString(bytes, 0, Math.Min(bytes.Length, TmdHexMost)));
+        string strings = string.Join(" ", Strings(bytes).Select(one => "\"" + one + "\""));
+        said.Append("  strings\t").AppendLine(strings);
+        return strings;
+    }
+
+    /// <summary>The printable runs of four characters or more in a binary file, read both as UTF-16 and as single bytes, each once.</summary>
+    private static List<string> Strings(byte[] bytes)
+    {
+        var found = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var run = new StringBuilder();
+        void Close()
+        {
+            if (run.Length >= 4 && seen.Add(run.ToString()))
+            {
+                found.Add(run.ToString());
+            }
+
+            run.Clear();
+        }
+
+        for (var at = 0; at + 1 < bytes.Length; at += 2)
+        {
+            char c = (char)(bytes[at] | (bytes[at + 1] << 8));
+            if (c is >= ' ' and < (char)0x7F)
+            {
+                run.Append(c);
+            }
+            else
+            {
+                Close();
+            }
+        }
+
+        Close();
+        foreach (byte b in bytes)
+        {
+            if (b is >= 0x20 and < 0x7F)
+            {
+                run.Append((char)b);
+            }
+            else
+            {
+                Close();
+            }
+        }
+
+        Close();
+        return found;
+    }
 
     /// <summary>
     /// The area's tile lists whole, each master's and every list it includes, under their paths - the weights the generator draws by and the words after each tile, which poe_data_tools reads as rotations and no further.

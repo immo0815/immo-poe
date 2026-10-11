@@ -1,0 +1,291 @@
+=== environments
+1330 files the area loaded, 0 of them tilesets
+
+=== .env Metadata/EnvironmentSettings/Maps/Steppe.env  (the area's own: its WorldAreas row's Environments row)
+{
+  "directional_light": {
+    "shadows_enabled": true,
+    "colour": [
+      0.38376,
+      0.23262,
+      0.14722
+    ],
+    "cam_extra_z": 2000.0,
+    "cam_min_offset": -1000.0,
+    "cam_max_offset": 500.0,
+    "multiplier": 5.0,
+    "penumbra_radius": 2.5,
+    "penumbra_dist": 0.34999,
+    "phi": 2.11184,
+    "theta": 1.9024
+  },
+  "player_light": {
+    "colour": [
+      1.0,
+      0.85683,
+      0.75928
+    ],
+    "intensity": 1.1368
+  },
+  "environment_mapping": {
+    "diffuse_cube": "Art/2DArt/Cubemaps/G1-13-1v3_diffuse.dds",
+    "specular_cube": "Art/2DArt/Cubemaps/G1-13-1v3_specular.dds",
+    "env_brightness": 0.4,
+    "gi_additional_env_light": 0.0,
+    "hor_angle": 1.37881,
+    "vert_angle": 0.0
+  },
+  "screenspace_fog": {
+    "ssf_color": [
+      0.61206,
+      0.53886,
+      0.48543
+    ],
+    "ssf_color_alpha": 0.00499,
+    "ssf_layer_count": 8.0,
+    "ssf_thickness": 40.0,
+    "ssf_turbulence": 10.0,
+    "ssf_disperse_radius": 1200.0,
+    "ssf_feathering": 0.44999
+  },
+  "area": {
+    "dust_color": [
+      0.23815,
+      0.17418,
+      0.13481
+    ],
+    "ground_scale": 0.004,
+    "player_environment_ao": "Metadata/Effects/weather_attachments/act1/Village_Road/Village_Road_screenfog.ao",
+    "wind_direction_angle": 3.14159,
+    "wind_intensity": 10.0
+  },
+  "clouds": {
+    "clouds_scale": 0.71398,
+    "clouds_intensity": 0.78298,
+    "clouds_midpoint": 0.55,
+    "clouds_sharpness": 0.3,
+    "clouds_speed": 10.0,
+    "clouds_angle": 3.14159,
+    "clouds_fade_radius": 474.694,
+    "clouds_pre_fade": 0.3,
+    "clouds_post_fade": 0.3
+  },
+  "camera": {
+    "far_plane": 4200.0,
+    "far_plane_zoomed": 5000.0,
+    "near_plane": 200.0,
+    "exposure": 1.0
+  },
+  "audio": {
+    "env_bank_name": "General_Environment.bank",
+    "env_event_name": "/Environment/Endgame/Maps/Steppe/Map_Steppe.env",
+    "music": "FourMap_Steppe",
+    "ambient_sound": "event:/Sound Effects/Ambient/4.0/Endgame/Maps/Steppe/MapSteppe",
+    "ambient_bank": "Amb7.bank",
+    "footstep_materials": [
+      {
+        "material": "Art/Textures/Environment/Woods/GroundMaterials/BeachPebbles.mat",
+        "audio_id": "Gravel"
+      },
+      {
+        "material": "Art/Textures/Misc/blackc.mat",
+        "audio_id": "Mud2"
+      },
+      {
+        "material": "Art/Models/Terrain/Islands/Tiles/BloodFever/Textures/BLF_DirtMuddySlope01_MCFc.mat",
+        "audio_id": "Mud"
+      },
+      {
+        "material": "Art/Models/Terrain/Islands/Tiles/BloodFever/Textures/BLF_DirtMuddySlope01c.mat",
+        "audio_id": "Mud2"
+      },
+      {
+        "material": "Art/Models/Terrain/Foliage/Woods/Textures/Chamomile01c.mat",
+        "audio_id": "G2_4_1_Stone"
+      },
+      {
+        "material": "Art/Models/Terrain/Jungle/Tiles/Jungle/Textures/Dung01c.mat",
+        "audio_id": "Mud"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/GroundMaterials/ForestLeafGround.mat",
+        "audio_id": "WetGrassShort"
+      },
+      {
+        "material": "Art/Models/Terrain/Islands/Tiles/BloodFever/Textures/G_BLF_DirtMuddy01.mat",
+        "audio_id": "Mud"
+      },
+      {
+        "material": "Art/Models/Terrain/Islands/Tiles/BloodFever/Textures/G_BLF_DirtMuddy02.mat",
+        "audio_id": "Mud2"
+      },
+      {
+        "material": "Art/Models/Terrain/Islands/Tiles/BloodFever/Textures/G_BLF_DirtMuddy03.mat",
+        "audio_id": "Mud"
+      },
+      {
+        "material": "Art/Models/Terrain/Islands/Tiles/BloodFever/Textures/G_BLF_DirtMuddyPuddles01.mat",
+        "audio_id": "Mud2"
+      },
+      {
+        "material": "Art/Models/Terrain/Islands/Tiles/BloodFever/Textures/G_BLF_GrassMuddy01.mat",
+        "audio_id": "GrassMud"
+      },
+      {
+        "material": "Art/Models/Terrain/Islands/Tiles/BloodFever/Textures/G_BLF_GrassMuddy02.mat",
+        "audio_id": "GrassMud"
+      },
+      {
+        "material": "Art/Models/Terrain/Islands/Tiles/BloodFever/Textures/G_BLF_GrassMuddy03.mat",
+        "audio_id": "GrassMud"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/GroundMaterials/OghamVillage/G_OGV_Puddles01.mat",
+        "audio_id": "Mud"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/GroundMaterials/OghamVillage/G_OGV_Puddles02.mat",
+        "audio_id": "Mud"
+      },
+      {
+        "material": "Art\\Textures\\Environment\\Woods\\Road\\Ground\\G_VLR_AnimalMuck01.mat",
+        "audio_id": "Mud2"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/Road/Ground/G_VLR_AnimalMuck01.mat",
+        "audio_id": "Mud"
+      },
+      {
+        "material": "Art\\Textures\\Environment\\Woods\\Road\\Ground\\G_VLR_AnimalMuck02.mat",
+        "audio_id": "Mud2"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/Road/Ground/G_VLR_AnimalMuck02.mat",
+        "audio_id": "Mud"
+      },
+      {
+        "material": "Art\\Textures\\Environment\\Woods\\Road\\Ground\\G_VLR_FieldDirt01.mat",
+        "audio_id": "Dirt"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/Road/Ground/G_VLR_FieldDirt01.mat",
+        "audio_id": "Dirt"
+      },
+      {
+        "material": "Art\\Textures\\Environment\\Woods\\Road\\Ground\\G_VLR_HarvestedSoil01.mat",
+        "audio_id": "GrassMud"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/Road/Ground/G_VLR_HarvestedSoil01.mat",
+        "audio_id": "SoftFoliage"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/Road/Ground/G_VLR_HarvestedSoil02.mat",
+        "audio_id": "SoftFoliage"
+      },
+      {
+        "material": "Art\\Textures\\Environment\\Woods\\Road\\Ground\\G_VLR_HarvestedSoil02.mat",
+        "audio_id": "GrassMud"
+      },
+      {
+        "material": "Art\\Textures\\Environment\\Woods\\Road\\Ground\\G_VLR_PlantedSoil01.mat",
+        "audio_id": "GrassMud"
+      },
+      {
+        "material": "Art\\Textures\\Environment\\Woods\\Road\\Ground\\G_VLR_PlantedSoil02.mat",
+        "audio_id": "GrassMud"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/Road/Ground/G_VLR_PloughedSoil01.mat",
+        "audio_id": "Dirt"
+      },
+      {
+        "material": "Art\\Textures\\Environment\\Woods\\Road\\Ground\\G_VLR_PloughedSoil01.mat",
+        "audio_id": "GrassMud"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/Road/Ground/G_VLR_PloughedSoil02.mat",
+        "audio_id": "Dirt"
+      },
+      {
+        "material": "Art\\Textures\\Environment\\Woods\\Road\\Ground\\G_VLR_PloughedSoil02.mat",
+        "audio_id": "Dirt"
+      },
+      {
+        "material": "Art\\Textures\\Environment\\Woods\\Road\\Ground\\G_VLR_WildGrass01.mat",
+        "audio_id": "GrassMud"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/Road/Ground/G_VLR_WildGrass02.mat",
+        "audio_id": "GrassMud"
+      },
+      {
+        "material": "Art\\Textures\\Environment\\Woods\\Road\\Ground\\G_VLR_WildGrass02.mat",
+        "audio_id": "GrassMud"
+      },
+      {
+        "material": "Art\\Textures\\Environment\\Woods\\Road\\Ground\\G_VLR_WildGrass03.mat",
+        "audio_id": "GrassMud"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/Road/Ground/G_VLR_WildGrass03.mat",
+        "audio_id": "GrassMud"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/GroundMaterials/GrassWild_rm5kpip0.mat",
+        "audio_id": "WetGrassShort"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/GroundMaterials/GrassWild_sbnklbp0_DoubleTiled.mat",
+        "audio_id": "WetGrassShort"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/GroundMaterials/GroundForest_ompjv0_DoubleTiled.mat",
+        "audio_id": "WetGrassShort"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/GroundMaterials/GroundForest_tb3hfg2g.mat",
+        "audio_id": "WetGrassShort"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/WetForest/Ivy_rmyxkc.mat",
+        "audio_id": "GrassMud"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/GroundMaterials/MossRock.mat",
+        "audio_id": "Rock"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/GroundMaterials/MossyGround_thbjbhpr.mat",
+        "audio_id": "Mulch"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/GroundMaterials/OldForestParkGround_11.mat",
+        "audio_id": "WetGrassShort"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/GroundMaterials/OldForestParkGround_11_HalfTiled.mat",
+        "audio_id": "WetGrassShort"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/GroundMaterials/OldForestParkGround_6.mat",
+        "audio_id": "WetGrassShort"
+      },
+      {
+        "material": "Art/Textures/Environment/forest/soilcns.mat",
+        "audio_id": "Clay"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/GroundMaterials/SoilDried_sbgkwxp0_wet.mat",
+        "audio_id": "Clay"
+      }
+    ],
+    "audio_environment_ao": "Metadata/Terrain/Tools/AudioTools/Endgame/Maps/Steppe/Map_SteppeScatterer.ao"
+  },
+  "global_illumination": {
+    "thickness_angle": 25.0,
+    "gi_multiplier": 2.0
+  }
+}
+diffuse_cube Art/2DArt/Cubemaps/G1-13-1v3_diffuse.dds: 32x32 · 6 levels · pixel format flags 0x4 · fourCC DX10 · DXGI format 95 (BC6H_UF16) · cube x1
+specular_cube Art/2DArt/Cubemaps/G1-13-1v3_specular.dds: 512x512 · 10 levels · pixel format flags 0x4 · fourCC DX10 · DXGI format 95 (BC6H_UF16) · cube x1

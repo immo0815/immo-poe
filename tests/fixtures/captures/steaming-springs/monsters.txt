@@ -1,0 +1,140 @@
+33 monsters among 146 entities, read fresh inside the recording with every switch on, nearest the player first; distance and position in world units
+mods are the game's own ids off ObjectMagicProperties, named where its Mods table names them; buffs carry their clocks; targetable is the game's own byte
+a marked place within 100 of a monster is listed under it - an essence prison stands on its monster and carries the icon the monster does not
+
+### 153.4  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1291  at 0x55F0B030B00
+  position 3929.3 4135.9 -132.8   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 167.5  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1294  at 0x55F0B03BA00
+  position 4005.4 4059.8 -132.8   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 243  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1289  at 0x55E5FC5C200
+  position 3896.7 4244.6 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 256.9  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1299  at 0x55E57CA6880
+  position 4103.3 4016.3 -132.8   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 289.7  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1311  at 0x55E2BE65D00
+  position 3777.2 4288 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 290.7  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1309  at 0x55E2BE61700
+  position 3679.3 4244.6 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 353.9  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1287  at 0x55F0B034980
+  position 3918.5 4353.3 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 357.4  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1314  at 0x55E2BE62100
+  position 3842.4 4364.1 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 357.4  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1313  at 0x55E2BE66C00
+  position 3842.4 4364.1 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 365.5  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1304  at 0x55F0B03E480
+  position 4212 4016.3 -132.8   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 365.5  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1301  at 0x55F0B03DA80
+  position 4212 4016.3 -132.8   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 371.4  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1307  at 0x55F0B03CE00
+  position 3570.7 4255.4 -132.8   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 454.6  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1285  at 0x55F0B038080
+  position 3983.7 4440.2 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 455.5  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1312  at 0x55E2BE67380
+  position 3864.1 4462 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 467.6  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1296  at 0x55F0B037400
+  position 4309.8 4070.7 -132.8   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 472.7  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1303  at 0x55F0B037180
+  position 3483.7 4309.8 -132.8   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 541.4  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1283  at 0x55E594EB080
+  position 4081.5 4494.6 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 549.6  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1292  at 0x55F0B039E80
+  position 4375 4157.6 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 563.9  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1310  at 0x55E2BE67880
+  position 3842.4 4570.7 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 570.8  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1298  at 0x55F0B033080
+  position 3440.2 4407.6 -132.8   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 589.1  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1293  at 0x55F0B031A00
+  position 4429.3 4092.4 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 593.8  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1297  at 0x55F0B03BF00
+  position 4440.2 3994.6 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 596.7  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1284  at 0x55F0B03B780
+  position 4190.2 4494.6 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 604.9  Unknown CircleOfPower  (Metadata/Monsters/Anomalies/CircleOfPower)  id 1316  at 0x55E57CA3180
+  position 4135.9 4538 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 608.3  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1290  at 0x55E57CA4A80
+  position 4396.7 4266.3 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 626.4  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1286  at 0x55F0B038D00
+  position 4288 4451.1 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 635.2  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1288  at 0x55F0B034E80
+  position 4364.1 4375 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 646.6  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1302  at 0x55F0B034480
+  position 4483.7 3896.7 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 663  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1295  at 0x55F0B033F80
+  position 4483.7 4190.2 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 742.5  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1306  at 0x55F0B03D080
+  position 4570.7 3842.4 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 755.3  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1300  at 0x55E57CAB600
+  position 4559.8 4255.4 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 851  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1308  at 0x55E2BE61C00
+  position 4679.3 3831.5 -132.8   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+### 861.9  Unknown Firewall  (Metadata/Monsters/Anomalies/Firewall)  id 1305  at 0x55F0B03B000
+  position 4668.5 4266.3 -125   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
+
+=== 1 marked places - every entity the game gives a map icon, nearest the player first
+distance	icon	present	id	address	x	y	z	path	name
+2779.4	BossCheckpointActive	yes	47	0x55E4F038B00	4994.6	6538	-96	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame_Boss	Checkpoint
