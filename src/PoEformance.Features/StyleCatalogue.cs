@@ -88,6 +88,10 @@ public static class StyleCatalogue
 
         // ── The map itself ──────────────────────────────────────────────────
         new("terrain.outline", "Map", "Area layout", Line, Rgb(150, 200, 255)),
+
+        // The ground a projectile crosses and a body cannot, as a sheet under the layout (ShotLayer). Colour only: its
+        // alpha is the sheet's opacity, as the page's slider sets it. Yields to the page the way the layout does.
+        new("terrain.shots", "Map", "Where only projectiles pass", StyleTraits.Colour, Rgb(224, 160, 64, 77)),
         new("map.unwalked", "Map", "Still to walk", StyleTraits.Colour | StyleTraits.Scale, Rgb(120, 150, 190, 140)),
 
         // The room names read AGAINST the layout rather than over it, so this is deliberately
@@ -249,6 +253,7 @@ public static class StyleCatalogue
         public const string PlaceLabel = "poi.label";
         public const string RouteArrow = "route.arrow";
         public const string Terrain = "terrain.outline";
+        public const string Shots = "terrain.shots";
         public const string Unwalked = "map.unwalked";
         public const string Heat = "map.heat";
         public const string Room = "map.room";
@@ -290,7 +295,7 @@ public static class StyleCatalogue
         /// <summary>All of them, for the test that keeps them honest.</summary>
         public static IReadOnlyList<string> All { get; } =
         [
-            DotOutline, DotLabel, Player, PlaceLabel, RouteArrow, Terrain, Unwalked, Heat, Room, Ground,
+            DotOutline, DotLabel, Player, PlaceLabel, RouteArrow, Terrain, Shots, Unwalked, Heat, Room, Ground,
             RoomOutline, RoomOutlineName, RoomOutlinePlate, RoomOutlineCorner, RoomOutlineTile, RoomOutlineJoin,
             PreloadBannerBack, PreloadListBack, PreloadCard,
             AtlasLabel, AtlasPlate, AtlasContent, AtlasWeb, AtlasRoute, AtlasEntry,

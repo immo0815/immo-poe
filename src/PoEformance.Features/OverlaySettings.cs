@@ -28,6 +28,14 @@ public sealed record OverlaySettings(
     // as a tangle of lines beside it. Opacity is a percentage; zero is no fill.
     [property: JsonPropertyName("terrainFillColour")] string TerrainFillColour = "#0B1B2B",
     [property: JsonPropertyName("terrainFillOpacity")] int TerrainFillOpacity = 70,
+
+    // The ground a projectile crosses and a body cannot - a chasm, the foot of a wall - as a sheet of its own under the
+    // layout (ShotLayer): the difference between the terrain's two grids. ON by default, asked for so; its own switch
+    // beside the layout's, since either reads alone. A warm colour against the layout's cool ones, and light, because in
+    // an area over an abyss (the Titan Grotto) nearly all the map's rectangle is such ground. Opacity is a percentage.
+    [property: JsonPropertyName("showShots")] bool ShowShots = true,
+    [property: JsonPropertyName("shotsColour")] string ShotsColour = "#E0A040",
+    [property: JsonPropertyName("shotsOpacity")] int ShotsOpacity = 30,
     [property: JsonPropertyName("hideNoise")] bool HideNoise = true,
     [property: JsonPropertyName("rememberOutOfRange")] bool RememberOutOfRange = true,
     [property: JsonPropertyName("showPoi")] bool ShowPoi = true,
@@ -376,6 +384,9 @@ public sealed record OverlaySettings(
             TerrainRim = sent.TerrainRim,
             TerrainFillColour = sent.TerrainFillColour,
             TerrainFillOpacity = sent.TerrainFillOpacity,
+            ShowShots = sent.ShowShots,
+            ShotsColour = sent.ShotsColour,
+            ShotsOpacity = sent.ShotsOpacity,
         };
     }
 
@@ -398,6 +409,8 @@ public sealed record OverlaySettings(
             TerrainColour = ParseColour(TerrainColour) == 0 ? Default.TerrainColour : TerrainColour,
             TerrainFillColour = ParseColour(TerrainFillColour) == 0 ? Default.TerrainFillColour : TerrainFillColour,
             TerrainFillOpacity = Math.Clamp(TerrainFillOpacity, 0, 100),
+            ShotsColour = ParseColour(ShotsColour) == 0 ? Default.ShotsColour : ShotsColour,
+            ShotsOpacity = Math.Clamp(ShotsOpacity, 0, 100),
 
             // Left null when it is null, rather than filled in with the defaults: an untouched
             // file gains no key, and the defaults keep coming from the code where a correction
@@ -484,6 +497,10 @@ public sealed record OverlaySettings(
     /// <summary>The fill as the overlay takes it: colour and opacity in one ABGR value.</summary>
     [JsonIgnore]
     public uint TerrainFillPacked => WithOpacity(ParseColour(TerrainFillColour), TerrainFillOpacity);
+
+    /// <summary>The projectile sheet as the overlay takes it: colour and opacity in one ABGR value.</summary>
+    [JsonIgnore]
+    public uint ShotsPacked => WithOpacity(ParseColour(ShotsColour), ShotsOpacity);
 
     /// <summary>Writes an ImGui colour out as <c>#RRGGBB</c>, dropping the alpha.</summary>
     /// <remarks>

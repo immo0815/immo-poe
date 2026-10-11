@@ -26,6 +26,9 @@ public sealed class TerrainGrid
     private readonly IReadOnlyList<TerrainLandmark> _landmarks;
     private readonly IReadOnlyList<TerrainRoom> _rooms;
 
+    // GridLandscapeData, the projectiles' grid - the walkable grid's packing and stride, or null where it was not read.
+    private readonly byte[]? _shots;
+
     public TerrainGrid(
         byte[] cells, int bytesPerRow, int rows,
         long totalTilesX = 0, long totalTilesY = 0, float[]? tileHeights = null,
@@ -47,10 +50,19 @@ public sealed class TerrainGrid
         IReadOnlyList<string>? roomProbe = null,
         TerrainGroundTypes? ground = null,
         string groundNote = "",
-        TerrainTiles? tiles = null)
+        TerrainTiles? tiles = null,
+        byte[]? shots = null,
+        string shotNote = "")
     {
         ArgumentNullException.ThrowIfNull(cells);
         _cells = cells;
+
+        // ONE SHAPE OR NONE: read by the walkable grid's stride, a second grid of another length would put every cell's
+        // answer on another cell - the reader refuses one already, and a grid built by hand is held to the same.
+        _shots = shots is not null && shots.Length == cells.Length ? shots : null;
+        ShotNote = shots is not null && _shots is null
+            ? $"the projectiles' grid is {shots.Length} bytes and the walkable one {cells.Length} - not one shape"
+            : shotNote;
         Tiles = tiles;
         _landmarks = landmarks ?? [];
         _rooms = rooms ?? [];
@@ -361,7 +373,45 @@ public sealed class TerrainGrid
     }
 
     /// <summary>True when this cell can be walked on. Outside the grid counts as solid.</summary>
-    public bool IsWalkable(int x, int y)
+    public bool IsWalkable(int x, int y) => IsSet(_cells, x, y);
+
+    /// <summary>
+    /// True when the projectiles' grid was read beside the walkable one - see <see cref="CanShootOver"/>.
+    /// </summary>
+    public bool HasShotGrid => _shots is not null;
+
+    /// <summary>Why the projectiles' grid is not here, or empty - the readouts' answer to a projectile layer that draws nothing.</summary>
+    public string ShotNote { get; }
+
+    /// <summary>
+    /// True when a projectile passes over this cell: GridLandscapeData's nibble is not nought. False outside the grid, and
+    /// everywhere when <see cref="HasShotGrid"/> is false.
+    /// </summary>
+    /// <remarks>
+    /// MEASURED, not assumed (v0.1.213, Traitor's Passage and the Titan Grotto, pinned by
+    /// CaptureFixtureTests.THESECONDGridIsWhereProjectilesStop): a wall is nought in it and a chasm is not, and no
+    /// walkable cell is nought - so where a body can stand a projectile can pass, and the difference is the ground
+    /// nobody stands on that does not stop a shot.
+    /// </remarks>
+    public bool CanShootOver(int x, int y) => _shots is not null && IsSet(_shots, x, y);
+
+    /// <summary>
+    /// True when this cell cannot be walked on and a projectile passes over it - a chasm, the foot of a wall. False
+    /// without the projectiles' grid.
+    /// </summary>
+    public bool IsShotOnly(int x, int y) => _shots is not null && !IsSet(_cells, x, y) && IsSet(_shots, x, y);
+
+    /// <summary>The walkable grid's packed bytes, for a pass over every cell that a call per cell would make slow - see TerrainOutline.Shots.</summary>
+    internal byte[] WalkableBytes => _cells;
+
+    /// <summary>The projectiles' grid's packed bytes, or null - see <see cref="WalkableBytes"/>.</summary>
+    internal byte[]? ShotBytes => _shots;
+
+    /// <summary>Bytes to a row of both grids.</summary>
+    internal int BytesPerRow => _bytesPerRow;
+
+    /// <summary>A cell's nibble in one of the two grids is not nought. Outside the area counts as nought.</summary>
+    private bool IsSet(byte[] grid, int x, int y)
     {
         if ((uint)x >= (uint)Width || (uint)y >= (uint)Height)
         {
@@ -369,12 +419,12 @@ public sealed class TerrainGrid
         }
 
         int index = (y * _bytesPerRow) + (x >> 1);
-        if ((uint)index >= (uint)_cells.Length)
+        if ((uint)index >= (uint)grid.Length)
         {
             return false;
         }
 
-        byte packed = _cells[index];
+        byte packed = grid[index];
         return ((x & 1) == 0 ? packed & 0x0F : packed >> 4) != 0;
     }
 
@@ -387,19 +437,35 @@ public sealed class TerrainGrid
     /// and it decodes the same nibbles this class does - 0 blocked, 1-5 walkable.
     ///
     /// WHAT THIS IS NOT, and the limit is worth stating because it is invisible from the
-    /// result: the game has no readable "can this be seen" grid, so WALKABILITY is standing in
-    /// for sight. The two agree on the case that matters - a wall blocks both - and part ways
-    /// on ground that cannot be stood on but can be shot across. A chasm, a ledge, a gap over
-    /// water all read as blocked here, so a monster on the far side of one reads as out of
-    /// sight when a projectile would have reached it. That is the conservative direction: the
-    /// failure is a skill not cast, never a skill cast into a wall.
+    /// result: WALKABILITY is standing in for sight. The two agree on the case that matters - a
+    /// wall blocks both - and part ways on ground that cannot be stood on but can be shot across.
+    /// A chasm, a ledge, a gap over water all read as blocked here, so a monster on the far side
+    /// of one reads as out of sight when a projectile would have reached it. That is the
+    /// conservative direction: the failure is a skill not cast, never a skill cast into a wall.
+    /// The projectiles' own line is <see cref="IsClearShot"/>, over the grid that says where a
+    /// projectile stops.
     ///
     /// BOTH ENDS ARE TESTED, like the reference. A point is not a body, and the game does not
     /// let anything stand inside a wall, so the cells under the player and under a monster are
     /// walkable in practice; excluding them would be a tolerance invented to fix a problem
     /// nothing has shown.
     /// </remarks>
-    public bool IsClearLine(int x0, int y0, int x1, int y1)
+    public bool IsClearLine(int x0, int y0, int x1, int y1) => IsClear(_cells, x0, y0, x1, y1);
+
+    /// <summary>
+    /// Whether a projectile flies from one cell to the other: an unbroken run of cells the projectiles' grid lets one over.
+    /// False without that grid - see <see cref="HasShotGrid"/>.
+    /// </summary>
+    /// <remarks>
+    /// The same Bresenham as <see cref="IsClearLine"/>, over GridLandscapeData instead of the walkable grid - so a chasm
+    /// between the player and a monster no longer hides it, while a wall still does. Every walkable cell is open in the
+    /// projectiles' grid too (measured, see <see cref="CanShootOver"/>), so a line clear for walking is clear for shooting
+    /// and this only ever finds more.
+    /// </remarks>
+    public bool IsClearShot(int x0, int y0, int x1, int y1) => _shots is not null && IsClear(_shots, x0, y0, x1, y1);
+
+    /// <summary>Bresenham over one of the two grids, both ends tested.</summary>
+    private bool IsClear(byte[] grid, int x0, int y0, int x1, int y1)
     {
         int dx = Math.Abs(x1 - x0);
         int dy = Math.Abs(y1 - y0);
@@ -411,7 +477,7 @@ public sealed class TerrainGrid
         int y = y0;
         while (true)
         {
-            if (!IsWalkable(x, y))
+            if (!IsSet(grid, x, y))
             {
                 return false;
             }
@@ -579,6 +645,7 @@ public sealed class TerrainReader
     private readonly IMemoryReader _reader;
     private readonly int _terrainMetadata;
     private readonly int _walkableData;
+    private readonly int _landscapeData;
     private readonly int _cornerData;
     private readonly int _groundTypeFiles;
     private readonly int _bytesPerRow;
@@ -622,6 +689,7 @@ public sealed class TerrainReader
 
         StructDef terrain = schema.Structs["TerrainMetadata"];
         _walkableData = terrain.OffsetOf("GridWalkableData");
+        _landscapeData = terrain.OffsetOf("GridLandscapeData");
         _cornerData = terrain.OffsetOf("TileCornerData");
         _groundTypeFiles = terrain.OffsetOf("GroundTypeFiles");
         _bytesPerRow = terrain.OffsetOf("BytesPerRow");
@@ -842,9 +910,37 @@ public sealed class TerrainReader
         TerrainGroundTypes? ground = ReadGroundTypes(terrainBase, tilesX, tilesY);
         _walkable = null;
 
+        (byte[]? shots, string shotNote) = ReadShots(terrainBase, dataSize);
         return new TerrainGrid(
             cells, stride, (int)rows, tilesX, tilesY, heights, _heightNote, _landmarks, _rooms,
-            _probe, ground, _groundNote, _tiles);
+            _probe, ground, _groundNote, _tiles, shots, shotNote);
+    }
+
+    /// <summary>
+    /// GridLandscapeData beside the walkable grid - the projectiles' grid (TerrainLayers) - or null and why.
+    /// </summary>
+    /// <remarks>
+    /// THE WALKABLE GRID'S LENGTH OR NOTHING, and a refusal costs only what the grid adds: the rules' clear shot
+    /// (TerrainGrid.IsClearShot) answers nothing, the projectile layer draws nothing, and every reader of the walkable
+    /// grid goes on as before. Read once per area with the rest - it is as large as the walkable grid and as fixed.
+    /// </remarks>
+    private (byte[]? Shots, string Note) ReadShots(ulong terrainBase, long walkableSize)
+    {
+        ulong first = _reader.ReadPointer(terrainBase + (ulong)_landscapeData);
+        ulong last = _reader.ReadPointer(terrainBase + (ulong)_landscapeData + 8);
+        if (first == 0 || last <= first)
+        {
+            return (null, $"no projectiles' grid at +0x{_landscapeData:X2}");
+        }
+
+        long size = (long)(last - first);
+        if (size != walkableSize)
+        {
+            return (null, $"the projectiles' grid is {size} bytes and the walkable one {walkableSize} - not one shape");
+        }
+
+        var shots = new byte[size];
+        return _reader.TryRead(first, shots) ? (shots, string.Empty) : (null, $"the projectiles' grid is unreadable at {first:X}");
     }
 
     /// <summary>

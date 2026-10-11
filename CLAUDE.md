@@ -468,7 +468,17 @@ Measured on the committed captures (`lattice-replay.txt`, `joins-replay.txt`, `o
   in it on every cell (2875 of 2875) and a chasm five (395 of 395; 3413 of 3413 over the Grotto's abyss); no walkable
   cell is ever nought. And both grids are the same kind of value: nought where they stop a body or a projectile, then
   counting up from the noughts to a cap of five - the walkable grid's 1 to 5 are a distance from the nearest unwalkable
-  cell, not a flag. Whether a diagonal step counts as one is not settled. Nothing reads the second grid yet.
+  cell, not a flag. Whether a diagonal step counts as one is not settled.
+  `TerrainReader` reads it beside the walkable grid (`TerrainGrid.CanShootOver`, `IsClearShot`, `IsShotOnly`; the walkable
+  grid's length or nothing, `ShotNote` says why), and two things read it (v0.1.218): the rule fact `MonsterCountInShot`,
+  `MonsterCountInSight`'s line over the projectiles' grid - beside it, not instead of it, so every rule written keeps its
+  meaning; the aim and `IsTargetable` take each line fact's own grid - and the map sheet `ShotLayer`, the difference
+  between the two grids (`TerrainOutline.Shots`). The sheet is DRAWN AT THE HEIGHT OF THE NEAREST WALKABLE GROUND: a
+  chasm's own height is its walkable neighbour's at the edge and falls away inside - the Grotto's abyss up to 85 cells of
+  displacement below the paths - so at its own height, or flat, the sheet sat tens of cells off the outline; and it is
+  GATHERED per pixel rather than scattered per cell, since a cell pushed by a lift twenty cells from its neighbour's
+  tore black wedges into the picture. `THEPROJECTILESheetMeetsTheFloorItBorders` pins it against both captures. Over an
+  abyss nearly the whole map's rectangle is such ground (the Grotto: 7.6 million cells to 336 thousand walkable).
 
 ## Raise the version on every push
 

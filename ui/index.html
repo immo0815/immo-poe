@@ -112,6 +112,21 @@
       </div>
       <p class="dim">Terrain: <span id="ov-terrain-state">–</span> — it loads well after the
         area does, so "loading" right after a portal is normal.</p>
+
+      <div class="cfg-row">
+        <label><input type="checkbox" id="ov-shots"> Show where only projectiles pass on the map</label>
+      </div>
+      <div class="cfg-row">
+        <label for="ov-shots-colour">Colour</label>
+        <input type="color" id="ov-shots-colour" value="#E0A040">
+        <label for="ov-shots-opacity">Opacity</label>
+        <input type="range" id="ov-shots-opacity" min="0" max="100" step="5" value="30">
+        <span id="ov-shots-opacity-value" class="dim">30 %</span>
+      </div>
+      <p class="dim">The ground a projectile crosses and nobody can stand on — chasms, abysses,
+        the foot of a wall — from the game's own projectile grid beside the walkable one. Walls
+        stop both and stay clear. Over an abyss most of the map is such ground, so keep it light.
+        Projectiles: <span id="ov-shots-state">–</span></p>
     </section>
 
     <!--

@@ -216,9 +216,26 @@ public sealed record RuleState
     /// "MonsterCountInSight &lt; 1" as a stand-still condition - and there a confident 0 during
     /// the first minute of a map is a rule acting on a guess.
     /// </remarks>
-    public int? MonsterCountInSight(double distance)
+    public int? MonsterCountInSight(double distance) => CountInLine(distance, shot: false);
+
+    /// <summary>
+    /// How many live monsters are within a distance AND a projectile fired from the player reaches them.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="MonsterCountInSight"/> over the projectiles' grid (TerrainGrid.IsClearShot): a wall still hides a
+    /// monster, a chasm no longer does. Its own fact rather than a change to the sight one, because the two are different
+    /// questions - a melee or movement skill wants ground it can cross, a projectile only air - and every rule already
+    /// written keeps the meaning it was written with.
+    ///
+    /// NULL where the projectiles' grid was not read, as while the terrain is loading - for the same reason: a 0 would say
+    /// every line is blocked when the truth is that the grid is missing.
+    /// </remarks>
+    public int? MonsterCountInShot(double distance) => CountInLine(distance, shot: true);
+
+    /// <summary>The two line-of-fire counts: the walkable grid's line, or the projectiles'.</summary>
+    private int? CountInLine(double distance, bool shot)
     {
-        if (Terrain is not TerrainGrid grid || PlayerAt is not (float px, float py))
+        if (Terrain is not TerrainGrid grid || (shot && !grid.HasShotGrid) || PlayerAt is not (float px, float py))
         {
             return null;
         }
@@ -236,7 +253,7 @@ public sealed record RuleState
             }
 
             (int toX, int toY) = Cell(monster.WorldX, monster.WorldY);
-            if (grid.IsClearLine(fromX, fromY, toX, toY))
+            if (shot ? grid.IsClearShot(fromX, fromY, toX, toY) : grid.IsClearLine(fromX, fromY, toX, toY))
             {
                 total++;
             }
@@ -582,7 +599,8 @@ public sealed record RuleState
     /// without saying which monsters, and the rule has already said: the 'within' conditions
     /// it is grouped with name a centre, a radius, a rarity and whether a wall is in the way.
     /// So IsTargetable asks exactly the monsters those count - beside RareOrUniqueCountWithin
-    /// only the rares and uniques, beside MonsterCountInSight only the reachable ones - and
+    /// only the rares and uniques, beside MonsterCountInSight only the reachable ones, beside
+    /// MonsterCountInShot only those a projectile reaches - and
     /// holds when one of them answers yes. Any of them: a rule wired as "A or B" is a rule
     /// about either region, and so is the question.
     ///
@@ -756,14 +774,16 @@ public sealed record RuleState
     /// <summary>Offers the monsters a player-centred range fact counts.</summary>
     private void OfferWithin(RuleFact fact, double distance, ref Search search)
     {
-        bool inSight = fact == RuleFact.MonsterCountInSight;
+        // EACH LINE FACT ITS OWN GRID: the aim and IsTargetable ask the monsters the leaf counts, so beside
+        // MonsterCountInShot a monster across a chasm is a candidate and beside MonsterCountInSight it is not.
+        bool shot = fact == RuleFact.MonsterCountInShot;
         TerrainGrid? grid = null;
         int fromX = 0, fromY = 0;
-        if (inSight)
+        if (shot || fact == RuleFact.MonsterCountInSight)
         {
-            // The same answer MonsterCountInSight gives while the terrain is loading: nothing
-            // is in sight, so there is nothing to offer.
-            if (Terrain is not TerrainGrid loaded || PlayerAt is not (float px, float py))
+            // The same answer the count gives while the terrain is loading, or without the
+            // projectiles' grid: nothing is in line, so there is nothing to offer.
+            if (Terrain is not TerrainGrid loaded || (shot && !loaded.HasShotGrid) || PlayerAt is not (float px, float py))
             {
                 return;
             }
@@ -785,10 +805,10 @@ public sealed record RuleState
                 continue;
             }
 
-            if (grid is TerrainGrid walkable)
+            if (grid is TerrainGrid terrain)
             {
                 (int toX, int toY) = Cell(monster.WorldX, monster.WorldY);
-                if (!walkable.IsClearLine(fromX, fromY, toX, toY))
+                if (!(shot ? terrain.IsClearShot(fromX, fromY, toX, toY) : terrain.IsClearLine(fromX, fromY, toX, toY)))
                 {
                     continue;
                 }
