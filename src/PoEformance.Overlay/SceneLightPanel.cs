@@ -115,6 +115,11 @@ public sealed class SceneLightPanel : IMovableSun
     private string _loadedPath = "\0";
     private string _dustPath = "\0";
     private Vector3 _dust = EnvironmentSettings.AssumedDust;
+
+    /// <summary>The environment <see cref="_water"/> was worked out for - null until asked.</summary>
+    private string? _waterPath;
+
+    private WaterLook _water = WaterLook.EngineDefault;
     private EnvironmentSettings _environment = EnvironmentSettings.None;
     private CubeMap? _cube;
     private string _cubeSaid = string.Empty;
@@ -856,6 +861,26 @@ public sealed class SceneLightPanel : IMovableSun
         }
 
         return _dust;
+    }
+
+    /// <summary>
+    /// The open water an Ocean material is drawn with: the environment in use's water section over the engine's measured defaults - whether the game's light is on or not. See WaterLook.
+    /// </summary>
+    /// <remarks>Worked out once per environment, like the dust: it is asked every frame.</remarks>
+    public WaterLook Water()
+    {
+        string path = Chosen();
+        if (!string.Equals(path, _waterPath, StringComparison.OrdinalIgnoreCase))
+        {
+            _waterPath = path;
+            _water = path.Length == 0 || _read is null
+                ? WaterLook.EngineDefault
+                : WaterLook.Of(string.Equals(path, _loadedPath, StringComparison.OrdinalIgnoreCase)
+                    ? _environment
+                    : EnvironmentSettings.Read(path, _read(path.Replace('\\', '/').Trim())));
+        }
+
+        return _water;
     }
 
     /// <summary>The .env in use: the picked one, else the area's.</summary>

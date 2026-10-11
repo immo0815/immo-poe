@@ -323,6 +323,12 @@ public static class MeshPicture
         public Vector3 Dust { get; set; } = EnvironmentSettings.AssumedDust;
 
         /// <summary>
+        /// The area's open water for the next drawing - what the water program reads. See ShadeProgram.WaterColour.
+        /// </summary>
+        /// <remarks>The caller's, like the dust: the area's .env where it sets the water, the engine's measured default where it does not.</remarks>
+        public WaterLook Water { get; set; } = WaterLook.EngineDefault;
+
+        /// <summary>
         /// A pixel the next whole drawing records every fragment of, or null - see <see cref="PixelProbe"/>.
         /// </summary>
         /// <remarks>Cleared and filled by each whole drawing while it is set; <see cref="Again"/> leaves it alone.</remarks>
@@ -696,6 +702,7 @@ public static class MeshPicture
         float[] shadeLevels = canvas.ShadeLevels;
         float time = canvas.Time;
         Vector3 dust = canvas.Dust;
+        WaterLook water = canvas.Water;
         Sliced(canvas, triangles, (from, upto) =>
         {
             Span<Vector4> scratch = shaded ? stackalloc Vector4[ShadeProgram.MostRegisters] : default;
@@ -742,7 +749,7 @@ public static class MeshPicture
                     ShadeProgram program = programs[shadeOf[one]];
                     if (!ReferenceEquals(program, preset))
                     {
-                        program.Preset(scratch, time, default, dust);
+                        program.Preset(scratch, time, default, dust, water);
                         preset = program;
                     }
 
@@ -838,6 +845,7 @@ public static class MeshPicture
         float[] shadeLevels = canvas.ShadeLevels;
         float time = canvas.Time;
         Vector3 dust = canvas.Dust;
+        WaterLook water = canvas.Water;
         Sliced(canvas, drawn.Clocked, (from, upto) =>
         {
             Span<Vector4> scratch = stackalloc Vector4[ShadeProgram.MostRegisters];
@@ -862,7 +870,7 @@ public static class MeshPicture
                 ShadeProgram program = drawn.Programs[shadeOf[one]];
                 if (!ReferenceEquals(program, preset))
                 {
-                    program.Preset(scratch, time, default, dust);
+                    program.Preset(scratch, time, default, dust, water);
                     preset = program;
                 }
 
@@ -1444,6 +1452,7 @@ public static class MeshPicture
         private readonly ShadeProgram[] _programs;
         private readonly float _time;
         private readonly Vector3 _dust;
+        private readonly WaterLook _water;
         private readonly Vector4 _eye;
         private readonly int[] _shades;
         private readonly float[] _shadeLevels;
@@ -1479,6 +1488,7 @@ public static class MeshPicture
             _probeAt = probe is null ? -1 : (probe.Y * canvas.Size) + probe.X;
             _time = canvas.Time;
             _dust = canvas.Dust;
+            _water = canvas.Water;
             _eye = drawn.Eye;
             _programs = drawn.Programs;
             _shades = canvas.Shades;
@@ -1643,7 +1653,7 @@ public static class MeshPicture
             ReadOnlySpan<float> shadeLevels = program is null
                 ? default
                 : new ReadOnlySpan<float>(_shadeLevels, one * _stride, program.Samples);
-            program?.Preset(registers, _time, _eye, _dust);
+            program?.Preset(registers, _time, _eye, _dust, _water);
             Vector3 p0 = default, p1 = default, p2 = default, n0 = default, n1 = default, n2 = default;
             Vector4 v0 = default, v1 = default, v2 = default;
             bool tinted = program is { UsesVertexColour: true };

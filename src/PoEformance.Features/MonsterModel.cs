@@ -2620,6 +2620,22 @@ public static class MonsterModels
         /// <summary>Material file by its path, with the selector taken off.</summary>
         public Dictionary<string, MaterialFile> Files { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>One material file by its path, the selector taken off - read once.</summary>
+        public MaterialFile Paint(Func<string, byte[]?> read, string file)
+        {
+            if (!Files.TryGetValue(file, out MaterialFile? paint))
+            {
+                paint = MaterialFile.Read(read(file.Replace('\\', '/').Trim()));
+                Files[file] = paint;
+            }
+
+            return paint;
+        }
+
+        /// <summary>Whether the engine draws a material in its own water pass - see ShadeProgram.OceanShader.</summary>
+        public static bool IsWater(MaterialFile paint)
+            => string.Equals(paint.ShaderType, ShadeProgram.OceanShader, StringComparison.OrdinalIgnoreCase);
+
         /// <summary>Blend modes by material file, the first graph's and the last's, worked out once. See <see cref="Modes"/>.</summary>
         private readonly Dictionary<string, (string First, string Last)> _modes = new(StringComparer.OrdinalIgnoreCase);
 
@@ -2661,6 +2677,14 @@ public static class MonsterModels
 
             string first = paint.Blend;
             string last = paint.Blend;
+            if (IsWater(paint))
+            {
+                // THE ENGINE'S WATER PASS, said as the word MaterialBlends takes for it - see ShadeProgram.Water.
+                first = last = "water";
+                _modes[file] = (first, last);
+                return (first, last);
+            }
+
             if (paint.Blend.Length == 0)
             {
                 foreach (string parent in paint.Parents)
@@ -2735,6 +2759,17 @@ public static class MonsterModels
             if (_compiled.TryGetValue(file, out (ShadeCompile, IReadOnlyList<string>) known))
             {
                 return known;
+            }
+
+            // AN OCEAN IS THE ENGINE'S WATER PASS, not its graphs: they write no colour the picture can draw
+            // (nvidian_Ocean's reads an albedo nothing wrote), and the area's water is what it is drawn with.
+            if (IsWater(Paint(read, file)))
+            {
+                (ShadeCompile, IReadOnlyList<string>) water = (
+                    new ShadeCompile(ShadeProgram.Water(), [$"the material's graphs, its shadertype being {ShadeProgram.OceanShader}: drawn as the area's water"]),
+                    []);
+                _compiled[file] = water;
+                return water;
             }
 
             var chain = new List<(ShaderInstance, ShaderGraph)>();

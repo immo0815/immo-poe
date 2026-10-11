@@ -67,6 +67,11 @@ public sealed class MaterialFile
     /// </remarks>
     public string Blend { get; private init; } = string.Empty;
 
+    /// <summary>
+    /// The material's <c>shadertype</c>, or empty where it names none - <c>Ocean</c> is the engine's own water pass. See ShadeProgram.Water.
+    /// </summary>
+    public string ShaderType { get; private init; } = string.Empty;
+
     /// <summary>Every texture the file lists, in the order it lists them.</summary>
     public IReadOnlyList<MaterialTexture> Textures { get; private init; }
 
@@ -254,6 +259,7 @@ public sealed class MaterialFile
         var graphs = new List<IReadOnlyDictionary<string, string>>();
         var parents = new List<string>();
         var blend = string.Empty;
+        var shaderType = string.Empty;
 
         try
         {
@@ -267,7 +273,7 @@ public sealed class MaterialFile
                     CommentHandling = JsonCommentHandling.Skip,
                 });
 
-            Walk(ref reader, textures, slots, graphs, parents, ref blend);
+            Walk(ref reader, textures, slots, graphs, parents, ref blend, ref shaderType);
         }
         catch (JsonException)
         {
@@ -281,19 +287,20 @@ public sealed class MaterialFile
         // three graphs and not one texture, and its graphs are what say the shape is never drawn - so
         // what it names is kept. Dropped as "nothing read", the ship in Port's boss room wore it as
         // black slabs across its hull.
-        return textures.Count == 0 && slots.Count == 0 && parents.Count == 0 && blend.Length == 0
+        return textures.Count == 0 && slots.Count == 0 && parents.Count == 0 && blend.Length == 0 && shaderType.Length == 0
             ? None
-            : new MaterialFile { Textures = textures, Slots = slots, Graphs = graphs, Parents = parents, Blend = blend };
+            : new MaterialFile { Textures = textures, Slots = slots, Graphs = graphs, Parents = parents, Blend = blend, ShaderType = shaderType };
     }
 
-    /// <summary>The top-level object, taking the two members that name files.</summary>
+    /// <summary>The top-level object, taking the two members that name files, the blend and the shader type.</summary>
     private static void Walk(
         ref Utf8JsonReader reader,
         List<MaterialTexture> textures,
         Dictionary<string, string> slots,
         List<IReadOnlyDictionary<string, string>> graphs,
         List<string> parents,
-        ref string blend)
+        ref string blend,
+        ref string shaderType)
     {
         if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
         {
@@ -325,6 +332,14 @@ public sealed class MaterialFile
             {
                 reader.Read();
                 blend = Blended(ref reader);
+                continue;
+            }
+
+            if (reader.ValueTextEquals("shadertype"u8))
+            {
+                reader.Read();
+                shaderType = reader.TokenType == JsonTokenType.String ? reader.GetString() ?? string.Empty : string.Empty;
+                reader.Skip();
                 continue;
             }
 

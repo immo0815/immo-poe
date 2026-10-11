@@ -119,7 +119,7 @@ public sealed record ShadeCompile(ShadeProgram? Program, IReadOnlyList<string> S
 /// arithmetic runs on light rather than on display values, and the result is put back into sRGB
 /// before the renderer's own shading - which is what a plain texture is drawn as.
 /// </remarks>
-public sealed class ShadeProgram
+public sealed partial class ShadeProgram
 {
     /// <summary>Most registers one program may use - it lives on the stack while a triangle is drawn.</summary>
     public const int MostRegisters = 192;
@@ -190,8 +190,21 @@ public sealed class ShadeProgram
     /// </remarks>
     internal const int Dust = 11;
 
+    /// <summary>
+    /// The area's open water colour, linear, in xyz and its density in w - set per drawing. See WaterLook and <see cref="Water"/>.
+    /// </summary>
+    /// <remarks>
+    /// THE ENGINE'S <c>water_color_open</c>, a per-pass uniform (common.ffx), handed in like the dust: one
+    /// water material is drawn under every area's water, and most areas' files set none - the engine's
+    /// own default stands then, measured in its parsed environment.
+    /// </remarks>
+    internal const int WaterColour = 12;
+
+    /// <summary>The area's water flow in x and its height offset in z - set per drawing. See WaterLook.FlowRegister.</summary>
+    internal const int WaterFlow = 13;
+
     /// <summary>How many registers are the mesh's own, before any a program allocates.</summary>
-    private const int Fixed = 12;
+    private const int Fixed = 14;
 
     /// <summary>Stands in for FixModelTBN's basis, which only ParallaxUvSpace takes - see <see cref="Basis"/>.</summary>
     private const int FixedBasis = -3;
@@ -773,10 +786,13 @@ public sealed class ShadeProgram
     /// <param name="time">The clock - see <see cref="Clock"/>.</param>
     /// <param name="eye">The way into the picture and the origin's depth - see <see cref="Eye"/>.</param>
     /// <param name="dust">The area's dust colour - see <see cref="Dust"/>.</param>
-    internal void Preset(Span<Vector4> registers, float time, Vector4 eye, Vector3 dust)
+    internal void Preset(Span<Vector4> registers, float time, Vector4 eye, Vector3 dust, WaterLook? water = null)
     {
         registers[Clock] = new Vector4(time);
         registers[Dust] = new Vector4(dust, 0f);
+        WaterLook look = water ?? WaterLook.EngineDefault;
+        registers[WaterColour] = look.ColourRegister;
+        registers[WaterFlow] = look.FlowRegister;
         registers[Behind] = new Vector4(float.MaxValue);
         registers[Eye] = eye;
         registers[Tangent] = Vector4.Zero;

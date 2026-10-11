@@ -3534,6 +3534,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 Book = "monster",
                 SceneLit = lighting.For,
                 SceneDust = lighting.Dust,
+                SceneWater = lighting.Water,
                 Sun = lighting,
             },
 
@@ -3752,6 +3753,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 Loaded = () => LoadedFiles?.Invoke() ?? [],
                 SceneLit = lighting.For,
                 SceneDust = lighting.Dust,
+                SceneWater = lighting.Water,
                 Sun = lighting,
             },
         };
