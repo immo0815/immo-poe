@@ -491,35 +491,7 @@ public static class CaptureGround
         {
             said.AppendLine().Append("##### ").AppendLine(material);
             said.Append("offered as: ").AppendLine(string.Join(", ", offeredBy[material]));
-            byte[]? content = read(material);
-            if (content is not { Length: > 0 })
-            {
-                said.AppendLine("(not in the install)");
-                continue;
-            }
-
-            foreach (string line in StatDescriptionFiles.Decode(content).TrimEnd().Split('\n'))
-            {
-                said.Append("  | ").AppendLine(line.TrimEnd('\r'));
-            }
-
-            (ShadeCompile compiled, IReadOnlyList<string> inputs) = paints.Compiled(read, material);
-            said.Append("graphs name: ").AppendLine(inputs.Count > 0 ? string.Join(", ", inputs) : "no Input node");
-            said.Append("program: ").AppendLine(compiled.Program switch
-            {
-                null => "none - " + (compiled.Skipped.Count > 0 ? string.Join("; ", compiled.Skipped) : "no graph compiled"),
-                { Plain: >= 0 } plain => "a plain read of " + plain.Textures[plain.Plain].Path,
-                { } program => Say(program.Textures.Count) + " textures read: " + string.Join(", ", program.Textures.Select(texture => texture.Path))
-                    + (compiled.Skipped.Count > 0 ? " · left out: " + string.Join("; ", compiled.Skipped) : string.Empty),
-            });
-
-            foreach (string graph in MaterialFile.Read(content).Parents)
-            {
-                if (graph.Length > 0 && seen.Add(Clean(graph)))
-                {
-                    graphs.Add(Clean(graph));
-                }
-            }
+            CaptureMaterials.Material(read, material, paints, said, graphs, seen);
         }
 
         if (materials.Count > MostMaterials)
@@ -527,12 +499,7 @@ public static class CaptureGround
             said.Append(CultureInfo.InvariantCulture, $"{materials.Count - MostMaterials} more ground materials not written").AppendLine();
         }
 
-        foreach (string graph in graphs)
-        {
-            said.AppendLine().Append("##### ").Append(graph).AppendLine("  (a graph the ground materials are instances of)");
-            byte[]? text = read(graph);
-            said.AppendLine(text is { Length: > 0 } ? StatDescriptionFiles.Decode(text).TrimEnd() : "(not in the install)");
-        }
+        CaptureMaterials.Graphs(read, graphs, "a graph the ground materials are instances of", said);
     }
 
     /// <summary>

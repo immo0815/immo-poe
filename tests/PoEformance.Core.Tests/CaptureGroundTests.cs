@@ -214,7 +214,7 @@ public sealed class CaptureGroundTests
     };
 
     /// <summary>A file of tests/fixtures/shaders, by its install path - the real ground material and its graph.</summary>
-    private static byte[]? Fixture(string path)
+    internal static byte[]? Fixture(string path)
     {
         DirectoryInfo? dir = new(AppContext.BaseDirectory);
         while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "tests", "fixtures")))

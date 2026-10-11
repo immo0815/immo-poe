@@ -1419,6 +1419,8 @@ public sealed class MonsterPortrait
         _probing = !_probing;
         _probeAt = null;
         _probeLines = [];
+        _probedShapes = [];
+        _probeCopied = false;
         _layerLines = [];
 
         // DRAWN AGAIN AT ONCE, so the layers' lines are there without waiting for a turn.
@@ -1441,10 +1443,15 @@ public sealed class MonsterPortrait
         {
             if (!HasProbe)
             {
-                ImGuiText.Wrapped(OverlayInk.Quiet, "probe: click the picture to see what that pixel is made of");
+                ImGuiText.Wrapped(OverlayInk.Quiet, "probe: click the picture to see what that pixel is made of - its lines go to the clipboard too");
             }
             else
             {
+                if (_probeCopied)
+                {
+                    ImGuiText.Wrapped(OverlayInk.Quiet, "copied to the clipboard - paste it anywhere");
+                }
+
                 foreach (string line in _probeLines)
                 {
                     ImGuiText.Wrapped(OverlayInk.Quiet, ImGuiText.Escape(line));
@@ -1474,7 +1481,16 @@ public sealed class MonsterPortrait
     /// </summary>
     /// <remarks>The lines as the info fold has them, the escape ImGui needs for a percent sign taken off again.</remarks>
     public CapturePane? PaneReport()
-        => _model.Ready ? new CapturePane(Book, [.. _status.Select(line => line.Replace("%%", "%", StringComparison.Ordinal))], _model) : null;
+        => _model.Ready
+            ? new CapturePane(Book, [.. _status.Select(line => line.Replace("%%", "%", StringComparison.Ordinal))], _model)
+            {
+                Probed = HasProbe ? _probedShapes : [],
+                Shades = ShadesOf(_model),
+            }
+            : null;
+
+    /// <summary>The shapes under the last probe click, nearest first - see <see cref="PaneReport"/>.</summary>
+    private IReadOnlyList<int> _probedShapes = [];
 
     /// <summary>Whether the probe has lines about the model shown - the frame's own question, asked without building the text.</summary>
     private bool HasProbe => _probing && ReferenceEquals(_probedModel, _model) && _probeLines.Count + _layerLines.Count > 0;
@@ -4117,16 +4133,34 @@ public sealed class MonsterPortrait
         {
             _probedModel = _model;
             _probeLines = [];
+            _probedShapes = [];
+            _probeCopied = false;
         }
 
+        bool clicked = false;
         if (canvas.Probe is { Drawn: true } probe)
         {
             _probeLines = PictureProbe.Lines(probe, _model, shades);
+
+            // THE SHAPES UNDER IT TOO, nearest first, for the capture: their materials are written whole (CapturePanes).
+            _probedShapes = [.. probe.Fragments.OrderBy(one => one.Depth).Select(one => PictureProbe.ShapeOf(_model.Mesh, one.Triangle)).Where(shape => shape >= 0).Distinct()];
+            clicked = true;
         }
 
         _layerLines = PictureProbe.Layers(_tally, _model, shades);
         canvas.Probe = null;
+
+        // EACH CLICK'S LINES INTO THE CLIPBOARD as well, asked for from the live client: one click and they are ready to paste,
+        // without a capture. Only on a click - a redraw for a turn or the clock recounts the layers and copies nothing.
+        if (clicked)
+        {
+            ImGui.SetClipboardText(string.Join('\n', _probeLines.Concat(_layerLines)));
+            _probeCopied = true;
+        }
     }
+
+    /// <summary>Whether the last click's lines went into the clipboard - said at the top of the probe's box.</summary>
+    private bool _probeCopied;
 
     /// <summary>
     /// One picture shrunk to a sheet cell, as pixels.

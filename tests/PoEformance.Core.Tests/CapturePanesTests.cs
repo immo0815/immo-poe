@@ -64,6 +64,38 @@ public sealed class CapturePanesTests
         Assert.Contains("##### " + Water + "  (did not draw)\n  (no install to read it from)", text.ReplaceLineEndings("\n"), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The materials under the probe first and those drawn plain after, each whole with what it compiles to and how it is drawn - and their graphs once, whole.
+    /// </summary>
+    [Fact]
+    public void THEMATERIALSUnderTheProbeAndThoseDrawnPlainAreWrittenWhole()
+    {
+        const string Sand = "Art/Textures/Environment/desert/Shore/Ground/G_VST_Sand01.mat";
+        const string Gone = "Art/Textures/Test/gone.mat";
+        Vector3[] positions = [new(0f, 0f, 0f), new(1f, 0f, 0f), new(0f, 1f, 0f), new(1f, 1f, 0f), new(2f, 1f, 0f), new(1f, 2f, 0f)];
+        SkinnedMesh mesh = SkinnedMesh.Of(
+            positions, [.. positions.Select(_ => -Vector3.UnitZ)], [0, 1, 2, 3, 4, 5], Vector3.Zero, new Vector3(2f, 2f, 0f), null,
+            [new MeshShape("0", 0, 3), new MeshShape("1", 3, 3)]);
+        var model = new MonsterModel(mesh, null, "room.arm", string.Empty, string.Empty)
+        {
+            ShapeMaterials = [Sand + ":0", Gone],
+            ShapeSources = ["Metadata/Terrain/Doodads/Water/WaterPlane3x3.ao", "Metadata/Doodads/Gone.ao"],
+        };
+
+        string text = CapturePanes.Write(CaptureGroundTests.Fixture, [new CapturePane("monster", [], model) { Probed = [0] }]).ReplaceLineEndings("\n");
+
+        Assert.Contains("=== the materials under the probe and those drawn plain, whole (2 of 2; 2 drawn plain)", text, StringComparison.Ordinal);
+
+        // THE PROBED ONE FIRST, its graph selector taken off, then the plain one the probe did not name.
+        int probed = text.IndexOf("##### " + Sand + "  (under the probe in the monster book's pane · plain · from Metadata/Terrain/Doodads/Water/WaterPlane3x3.ao)", StringComparison.Ordinal);
+        int plain = text.IndexOf("##### " + Gone + "  (drawn plain in the monster book's pane · 1 triangles · from Metadata/Doodads/Gone.ao)\n(not in the install)", StringComparison.Ordinal);
+        Assert.True(probed >= 0 && plain > probed, text);
+        Assert.Matches("graphs name: [^\\n]*InputUV", text);
+        Assert.Contains("\nprogram: ", text, StringComparison.Ordinal);
+        Assert.Contains("\ndrawn: ", text, StringComparison.Ordinal);
+        Assert.Contains("##### Metadata/Materials/Ground/PBRGroundBN.fxgraph  (a graph these materials are instances of)", text, StringComparison.Ordinal);
+    }
+
     private static byte[]? Install(string path) => path switch
     {
         Water => Encoding.UTF8.GetBytes("version 3\nextends \"" + Parent + "\"\nclient\n{\n\tWaterPlane\n\t{\n\t\tsize = 3\n\t}\n}\n"),
