@@ -1214,6 +1214,9 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         {
             ArgumentNullException.ThrowIfNull(value);
             _shaderFiles = value;
+
+            // AND THE CAPTURE'S, whose ground part searches them - see CaptureGround.
+            _capture.Shaders = value;
         }
     }
 

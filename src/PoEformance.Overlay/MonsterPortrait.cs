@@ -1423,6 +1423,10 @@ public sealed class MonsterPortrait
     }
 
     /// <summary>The probe's lines under the picture - see <see cref="ProbeToggled"/>; the capture key writes them, see <see cref="ProbeReport"/>.</summary>
+    /// <remarks>
+    /// IN A BOX OF ITS OWN HEIGHT, scrolled inside it: the picture is sized round it once, when the probe is switched on
+    /// (see Chrome), and does not jump with every click as one fragment or eight come back.
+    /// </remarks>
     private void Probed()
     {
         if (!_probing)
@@ -1430,22 +1434,34 @@ public sealed class MonsterPortrait
             return;
         }
 
-        if (!HasProbe)
+        if (ImGui.BeginChild("##monster-probe", new Vector2(0f, ProbeHeight()), ImGuiChildFlags.Borders))
         {
-            ImGuiText.Wrapped(OverlayInk.Quiet, "probe: click the picture to see what that pixel is made of");
-            return;
+            if (!HasProbe)
+            {
+                ImGuiText.Wrapped(OverlayInk.Quiet, "probe: click the picture to see what that pixel is made of");
+            }
+            else
+            {
+                foreach (string line in _probeLines)
+                {
+                    ImGuiText.Wrapped(OverlayInk.Quiet, ImGuiText.Escape(line));
+                }
+
+                foreach (string line in _layerLines)
+                {
+                    ImGuiText.Wrapped(OverlayInk.Quiet, ImGuiText.Escape(line));
+                }
+            }
         }
 
-        foreach (string line in _probeLines)
-        {
-            ImGuiText.Wrapped(OverlayInk.Quiet, ImGuiText.Escape(line));
-        }
-
-        foreach (string line in _layerLines)
-        {
-            ImGuiText.Wrapped(OverlayInk.Quiet, ImGuiText.Escape(line));
-        }
+        ImGui.EndChild();
     }
+
+    /// <summary>How many lines the probe's box shows before it scrolls.</summary>
+    private const int ProbeRows = 8;
+
+    /// <summary>The probe's box: its rows and its padding.</summary>
+    private static float ProbeHeight() => (ImGui.GetTextLineHeightWithSpacing() * ProbeRows) + (ImGui.GetStyle().WindowPadding.Y * 2f);
 
     /// <summary>The probe's lines as they stand - the pixel's surfaces, then the layers' counts - for the capture key; null while the probe is off, has not been clicked, or is about another model.</summary>
     public string? ProbeReport() => HasProbe ? string.Join('\n', _probeLines.Concat(_layerLines)) : null;
@@ -2090,6 +2106,14 @@ public sealed class MonsterPortrait
     private float Chrome(float wide)
     {
         float chrome = _pose is not null && _model.Moves ? ImGui.GetFrameHeightWithSpacing() : 0f;
+
+        // THE PROBE'S BOX TOO, while probing - see Probed. Left out, its lines went under a picture sized to the pane's
+        // height, out of the window: a click in the Monster Book's stage "did nothing" while the capture had its answer.
+        if (_probing)
+        {
+            chrome += ProbeHeight() + ImGui.GetStyle().ItemSpacing.Y;
+        }
+
         if (_status.Count == 0)
         {
             return chrome;

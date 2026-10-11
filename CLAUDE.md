@@ -272,6 +272,15 @@ PLACE: its `.arm` carries point-of-interest groups (poe_data_tools' `poi`: `x y 
 second boss 0 units from it (8 at the cell's corner). So a stage sets the monster there, turned the
 point's way, on the floor round it rather than at it, a throne's seat being at it (`LaidRoomModels.BossSpotOf`,
 `StagedModels`). Which of a room's several boss places belongs to which boss is not read; the first is taken.
+THE GROUND IS DRAWN WHITE, and what stands before a painted one is in `ground.txt` (`CaptureGround`): every
+laid template's ground blocks by vertex format, the fields the reader steps over as bytes AND as halves; each
+corner's ground by name with the master's MaterialsList group for it, the ground materials and their graphs;
+and the install's shader sources naming `tile_ground_tiling`, `ground_scalemove`, `TileGroundUVs` or
+`GetGroundTBN`, whole. The block carries no texture coordinates while every ground graph reads `InputUV`, so
+the engine makes them - "uv = tile_ground_tiling * pos * ground_scalemove_uv.xy" was once caught without its
+fragment - and how is to be read there, not guessed (a ground scale from WorldProjectUVs' 0.001 would be a
+guess). `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
+77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
 Six captures are committed under
 `tests/fixtures/captures/` (its README says why each), and `CaptureFixtureTests` holds the orientation
 rule, the origin rule, the settled slots, the fill rule, the tile doodads' frame and height and the one

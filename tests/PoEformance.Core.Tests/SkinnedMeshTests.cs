@@ -311,10 +311,13 @@ public class SkinnedMeshTests
         Assert.True(plain.Ready);
         Assert.Equal(string.Empty, plain.Facts.Extras);
 
-        // Four vertices, the first FF 80 00 FF and the rest FF 40 00 FF: two values, and each byte's range.
+        // Four vertices, the first FF 80 00 FF and the rest FF 40 00 FF: two values, and each byte's range. As halves the
+        // first pair is 0x80FF (a tiny negative) and 0x40FF (2.498); the second is 0xFF00, not a number, so it has no range.
         SkinnedMesh sixth = SkinnedMesh.Read(Built(sixth: true));
         Assert.True(sixth.Ready);
-        Assert.Equal("bit 6: first FF 80 00 FF · 2 distinct over 4 vertices · bytes 255..255 64..128 0..0 255..255", sixth.Facts.Extras);
+        Assert.Equal(
+            "bit 6: first FF 80 00 FF · 2 distinct over 4 vertices · bytes 255..255 64..128 0..0 255..255 · as halves -1.52E-05..2.498 -",
+            sixth.Facts.Extras);
     }
 
     [Theory]
