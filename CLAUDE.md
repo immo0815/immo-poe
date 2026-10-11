@@ -149,8 +149,12 @@ the part that is expensive to rediscover.
 
 **Every offset found goes into the schema in the push that finds it** (asked for from the live
 client, 2026-10-11) - one a capture part measured as much as one the tool reads, and one not yet
-named as a field with what it holds and why it is unnamed (`ParsedEnvironment.Colour390`). A
+named as a field with what it holds and why it is unnamed (`ParsedEnvironment.Colour3A0`). A
 measurement that lives only in a capture's text or in this file is lost the moment that capture is.
+
+**Before every commit, look at the repository as it stands** (asked for from the live client,
+2026-10-11): fetch, then check main, the other branches and the open pull requests - other sessions
+work on this repository at the same time.
 
 ## Record, then diagnose offline
 
@@ -230,7 +234,10 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   ssf_color (+0x3B0) two colours Port's file does not set, (0.1, 0.19, 0.22) at +0x390 and (0.1015, 0.09106, 0.05037)
   at +0x3A0. Which is the open water's is NOT read from their order: `light-hunt.txt` maps every value the area's file
   sets to its slot (`LightHunt.Layout`), and `water.txt` lists every environment's water section file by file, so one
-  capture in an area whose file sets the water's colours names the slots.
+  capture in an area whose file sets the water's colours names the slots. Clearfell Encampment named it (v0.1.211):
+  its file sets open_water_color, found at +0x390 with a one - so PORT'S OPEN WATER IS (0.1, 0.19, 0.22), the engine's
+  default (`ParsedEnvironment.WaterOpenColor`). Its density - water_color_open.a, likely open_water_murkiness - is one of
+  the water floats' defaults not yet named; The Riverbank's file sets open_water_murkiness 0.02999.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
