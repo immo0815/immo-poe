@@ -515,6 +515,23 @@ internal sealed class CaptureKey
             }
         }
 
+        if (On(CaptureParts.Masters))
+        {
+            if (read is null)
+            {
+                parts.Add($"{CaptureReport.MastersFile}  not written: no install to read the masters from");
+            }
+            else
+            {
+                Part(CaptureReport.MastersFile, () =>
+                {
+                    string files = CaptureReport.Masters(read, run.Loaded, run.Masters);
+                    File.WriteAllText(At(CaptureReport.MastersFile), files);
+                    return files[..files.IndexOf('\n')];
+                });
+            }
+        }
+
         if (On(CaptureParts.RoomsNear))
         {
             if (read is null)

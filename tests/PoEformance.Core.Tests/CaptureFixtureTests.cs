@@ -92,6 +92,23 @@ public partial class CaptureFixtureTests
         Assert.Equal(settled.Groups[1].Value, settled.Groups[2].Value);
     }
 
+    /// <summary>
+    /// Marrow's laid files no tile list names: none inherited, the plain Cavepassage tile sharing its template with the listed
+    /// _feature one, and the four mine_abyss_fill tiles explained by nothing a v0.1.183 capture carries.
+    /// </summary>
+    /// <remarks>
+    /// THE COUNT OF THE UNEXPLAINED IS PINNED ON PURPOSE: it is the open question. When the replay learns where they come
+    /// from - a master's fill list is the next place to look, and Marrow's capture predates area-masters.txt - this is the
+    /// line that has to change, and it should change with a reason.
+    /// </remarks>
+    [Fact]
+    public void THETILEFILESOfMarrowLeaveOnlyTheFillsUnexplained()
+    {
+        string replay = CaptureReplayTests.TileFilesReplay(Capture("marrow"));
+        Assert.StartsWith("tile files: 5 laid files no tile list names: 0 reached by inheriting, 0 in a fill list, 1 sharing a template with a listed file, 4 not explained", replay, StringComparison.Ordinal);
+        Assert.Contains("Cavepassage_blacknessNoFog_v01_01: shares a template with Metadata/Terrain/Desert/CavePath/Features/Cavepassage_blacknessNoFog_v01_01_feature.tdt", replay, StringComparison.Ordinal);
+    }
+
     [GeneratedRegex(@"room way (\d), tile way (\d): edges (\d+) agree, (\d+) disagree")]
     private static partial Regex Pair();
 

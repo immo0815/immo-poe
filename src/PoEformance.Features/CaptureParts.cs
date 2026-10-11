@@ -110,8 +110,11 @@ public static class CaptureParts
     /// <summary>The area's tile lists whole.</summary>
     public const string TilesetLists = "tileset-lists";
 
-    /// <summary>Every tile file the lists name or the area laid, its definition followed hop by hop, and the .tmd beside it.</summary>
+    /// <summary>Every tile file the lists name or the area laid, its definition followed hop by hop, and its doodad list (.tmd).</summary>
     public const string TileFiles = "tile-files";
+
+    /// <summary>The area's masters whole, and every file they name.</summary>
+    public const string Masters = "masters";
 
     /// <summary>The survey of the area's entity maps for the rooms' doodads, every sighting listed.</summary>
     public const string Doodads = "doodads";
@@ -194,8 +197,12 @@ public static class CaptureParts
             "The area's tile lists (.tst) whole, each master's and every list it includes: the weight the generator draws each tile by and the "
             + "words after it. What a room is built from without the area, and where the words' meaning is to be read rather than guessed."),
         new(TileFiles, "Area files", "the tile files' chains", CaptureReport.TileFilesFile,
-            "Every tile file the lists name or the area laid: its definition followed through every file it inherits, and the .tmd beside it "
-            + "whole (text, or its opening bytes and strings). Every area lays files no list names - this is what says where they come from."),
+            "Every tile file the tile lists or fill lists name or the area laid: its definition followed through every file it inherits, "
+            + "and the tile's own doodad list (.tmd, beside the .tdt or its template) whole. Every area lays files no tile list names - "
+            + "this says for each whether a listed file inherits it, a fill list names it or a listed file shares its template."),
+        new(Masters, "Area files", "the area's masters", CaptureReport.MastersFile,
+            "Every master (.tsi) of the area whole, and every file it names - room set, fill list (FillTiles), anything else - whole too; "
+            + "a tile list by name, being whole in tileset-lists.txt. The keys of a master this tool does not read yet are where to look."),
 
         new(Doodads, "Rooms by doodads", "the doodads found", CaptureReport.DoodadsFile,
             "The survey of the area's entity maps for the rooms' doodads: each room's share, each path found and how many stand, "

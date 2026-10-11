@@ -267,4 +267,29 @@ public class TilesetFilesTests
         Assert.Equal(only, TileKey.Read(only.ToString()));
         Assert.Equal(new TileKey("Metadata/Terrain/A.tdt"), TileKey.Read("Metadata/Terrain/A.tdt"));
     }
+
+    /// <summary>
+    /// A fill list in both of poe_data_tools' versions: version 1 counts its sections and each section's files, version 2 does
+    /// not; a section is a quoted name with an optional number, a file a weight, a quoted .tdt or .arm and its words.
+    /// </summary>
+    [Fact]
+    public void AFillListReadsItsSectionsAndFilesInEitherVersion()
+    {
+        FillList one = FillList.Parse(
+            "version 1\n2\n\"walls\" 3\n1\n// a comment\n10 \"Metadata/Terrain/A/fill_01.tdt\"\n\"rooms\"\n1\n5\t\"Metadata/Terrain/A/Rooms/gap.arm\" R90 R270\n");
+        Assert.Equal(1, one.Version);
+        Assert.Equal(["walls", "rooms"], one.Sections);
+        Assert.Equal(
+            [
+                new FillListEntry("walls", 10, "Metadata/Terrain/A/fill_01.tdt", []),
+                new FillListEntry("rooms", 5, "Metadata/Terrain/A/Rooms/gap.arm", ["R90", "R270"]),
+            ],
+            one.Entries,
+            (left, right) => left.Section == right.Section && left.Weight == right.Weight && left.Path == right.Path && left.Words.SequenceEqual(right.Words));
+
+        FillList two = FillList.Parse("version 2\n\"abyss\"\n3 \"Metadata\\Terrain\\A\\fill_02.tdt\"\n");
+        Assert.Equal(2, two.Version);
+        Assert.Equal(new FillListEntry("abyss", 3, "Metadata/Terrain/A/fill_02.tdt", []).Path, Assert.Single(two.Entries).Path);
+        Assert.Same(FillList.None, FillList.Parse(string.Empty));
+    }
 }

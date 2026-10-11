@@ -405,62 +405,90 @@ public class CaptureReportTests
     }
 
     /// <summary>
-    /// The install of a small area shaped like Sulphuric Caverns' boss room: a listed tile that inherits the
-    /// file laid in its place, and a listed tile whose .tmd names a variant no list does.
+    /// The install of a small area with every road a laid file can come by: a listed tile inheriting the file laid in
+    /// its place (Sulphuric Caverns' Murky/Thickwall/Fill_01), a fill list naming a tile no tile list does (Marrow's
+    /// mine_abyss_fill), a listed feature tile sharing its template with the laid plain one (Marrow's Cavepassage), and a
+    /// laid file nothing explains. Doodad lists sit beside a .tdt, beside a template, and one is binary.
     /// </summary>
     internal static byte[]? TileFilesInstall(string path) => path switch
     {
-        "Metadata/Terrain/Maps/Test/master.tsi" => Encoding.UTF8.GetBytes("version 2\nTileSet \"tiles.tst\"\n"),
+        "Metadata/Terrain/Maps/Test/master.tsi" => Encoding.UTF8.GetBytes("version 2\nTileSet \"tiles.tst\"\nFillTiles \"fills.gft\"\n"),
         "Metadata/Terrain/Maps/Test/tiles.tst" => Encoding.UTF8.GetBytes(
-            "\"Metadata/Terrain/Test/Murky/Fill_01.tdt\"\n\"Metadata/Terrain/Test/Lava/Fill_01.tdt\"\n"),
+            "\"Metadata/Terrain/Test/Murky/Fill_01.tdt\"\n\"Metadata/Terrain/Test/Lava/Fill_01.tdt\"\n\"Metadata/Terrain/Test/Features/Passage_feature.tdt\"\n"),
+        "Metadata/Terrain/Maps/Test/fills.gft" => Encoding.UTF8.GetBytes(
+            "version 2\n\"abyss\"\n10 \"Metadata/Terrain/Test/Lava/Fill_02.tdt\"\n5 \"Metadata/Terrain/Maps/Test/Rooms/Fills/gap.arm\" R90\n"),
         "Metadata/Terrain/Test/Murky/Fill_01.tdt" => TileFilesTests.Tdt(inherits: "Metadata/Terrain/Test/Fill_01.tdt"),
-        "Metadata/Terrain/Test/Fill_01.tdt" or "Metadata/Terrain/Test/Lava/Fill_01.tdt" or "Metadata/Terrain/Test/Lava/Fill_02.tdt" => TileFilesTests.Tdt(),
-        "Metadata/Terrain/Test/Lava/Fill_01.tmd" => [0xFF, 0xFE, .. Encoding.Unicode.GetBytes("version 1\r\n\"Metadata/Terrain/Test/Lava/Fill_02.tdt\"\r\n")],
+        "Metadata/Terrain/Test/Fill_01.tdt" => TileFilesTests.Tdt(template: "Art/Models/Terrain/Test/Fill_01.tgt"),
+        "Metadata/Terrain/Test/Lava/Fill_01.tdt" => TileFilesTests.Tdt(template: "Art/Models/Terrain/Test/Lava_Fill_01.tgt"),
+        "Metadata/Terrain/Test/Lava/Fill_02.tdt" => TileFilesTests.Tdt(template: "Art/Models/Terrain/Test/Lava_Fill_02.tgt"),
+        "Metadata/Terrain/Test/Features/Passage_feature.tdt" or "Metadata/Terrain/Test/Passage.tdt" => TileFilesTests.Tdt(template: "Art/Models/Terrain/Test/Passage.tgt"),
+        "Metadata/Terrain/Test/Alone.tdt" => TileFilesTests.Tdt(template: "Art/Models/Terrain/Test/Alone.tgt"),
+        "Metadata/Terrain/Test/Lava/Fill_01.tmd" => [0xFF, 0xFE, .. Encoding.Unicode.GetBytes("version 8\r\n1 1 0 0 0 0 0 0 1 0 1 \"Metadata/Test/rock.ao\" \"\" \"\" \"Metadata/MiscellaneousObjects/Doodad\" 0\r\n")],
+        "Art/Models/Terrain/Test/Passage.tmd" => Encoding.UTF8.GetBytes("version 8\n"),
         "Metadata/Terrain/Test/Fill_01.tmd" => [1, 0, 0, 0, .. Encoding.Unicode.GetBytes("Thing"), 0, 0, 7],
         _ => null,
     };
 
-    /// <summary>The laid half of that area: the inherited file, a listed one, and the variant.</summary>
+    /// <summary>The laid half of that area: the inherited file, a listed one, the fill, the plain twin of the feature and the one nothing explains.</summary>
     internal static TerrainTiles TileFilesLaid() => new(
-        ["Metadata/Terrain/Test/Fill_01.tdt", "Metadata/Terrain/Test/Lava/Fill_01.tdt", "Metadata/Terrain/Test/Lava/Fill_02.tdt"],
-        [0, 1, 2, 0], new byte[4], new byte[4], new sbyte[4], 2, 2);
+        ["Metadata/Terrain/Test/Fill_01.tdt", "Metadata/Terrain/Test/Lava/Fill_01.tdt", "Metadata/Terrain/Test/Lava/Fill_02.tdt", "Metadata/Terrain/Test/Passage.tdt", "Metadata/Terrain/Test/Alone.tdt"],
+        [0, 1, 2, 3, 4, 0], new byte[6], new byte[6], new sbyte[6], 3, 2);
 
     /// <summary>
-    /// Every listed or laid file once, its chain hop by hop and its .tmd as text or bytes; a laid file no list names is
-    /// put beside the listed file whose chain reaches it and the one whose .tmd names it.
+    /// Every listed, filled or laid file once, its chain hop by hop and its doodad lists as text or bytes; a laid file no tile
+    /// list names is put beside the listed file whose chain reaches it, the fill list naming it and the listed files sharing its template.
     /// </summary>
     [Fact]
-    public void TILEFILESFollowEachChainAndPrintTheTmdBesideIt()
+    public void TILEFILESFollowEachChainAndPrintTheDoodadLists()
     {
         string said = CaptureReport.TileFiles(TileFilesInstall, ["Metadata/Terrain/Maps/Test/master.tsi"], null, TileFilesLaid())
             .ReplaceLineEndings("\n");
         string[] lines = said.Split('\n');
 
-        Assert.Equal("4 tile files - 2 the area's lists name, 3 laid, 2 of those named by no list; each with its definition followed through what it inherits, and the .tmd beside it", lines[0]);
+        Assert.Equal("7 tile files - 3 the area's tile lists name, 1 its fill lists, 5 laid, 4 of those named by no tile list; each with its definition followed through what it inherits, and the tile's doodad list (.tmd)", lines[0]);
         Assert.Contains(
-            "Metadata/Terrain/Test/Fill_01.tdt\n  reached by inheriting from: Metadata/Terrain/Test/Murky/Fill_01.tdt\n  its path in the .tmd of: none\n  its name alone in the .tmd of: none\n",
+            "Metadata/Terrain/Test/Fill_01.tdt\n  reached by inheriting from: Metadata/Terrain/Test/Murky/Fill_01.tdt\n  in a fill list: none\n  shares a template with: Metadata/Terrain/Test/Murky/Fill_01.tdt\n",
             said,
             StringComparison.Ordinal);
         Assert.Contains(
-            "Metadata/Terrain/Test/Lava/Fill_02.tdt\n  reached by inheriting from: none\n  its path in the .tmd of: Metadata/Terrain/Test/Lava/Fill_01.tdt\n",
+            "Metadata/Terrain/Test/Lava/Fill_02.tdt\n  reached by inheriting from: none\n  in a fill list: Metadata/Terrain/Maps/Test/fills.gft section \"abyss\" weight 10\n  shares a template with: none\n",
             said,
             StringComparison.Ordinal);
+        Assert.Contains("Metadata/Terrain/Test/Passage.tdt\n  reached by inheriting from: none\n  in a fill list: none\n  shares a template with: Metadata/Terrain/Test/Features/Passage_feature.tdt\n", said, StringComparison.Ordinal);
+        Assert.Contains("Metadata/Terrain/Test/Alone.tdt\n  reached by inheriting from: none\n  in a fill list: none\n  shares a template with: none\n", said, StringComparison.Ordinal);
 
-        // The chain: the listed file inherits, the file it names defines.
+        // The chain: the listed file inherits, the file it names defines; neither place has a doodad list.
         Assert.Contains(
             "##### Metadata/Terrain/Test/Murky/Fill_01.tdt  (listed)\n  inherits\tMetadata/Terrain/Test/Fill_01.tdt\n"
-            + "  defines\tMetadata/Terrain/Test/Fill_01.tdt\t2x1\ttag arena_tag\ttemplates Art/Models/Terrain/Test/Arena.tgt\n  tmd\tnone\n",
+            + "  defines\tMetadata/Terrain/Test/Fill_01.tdt\t2x1\ttag arena_tag\ttemplates Art/Models/Terrain/Test/Fill_01.tgt\n  tmd\tnone\n",
             said,
             StringComparison.Ordinal);
 
-        // A text .tmd whole; a binary one as its bytes and its strings.
+        // A doodad list beside the .tdt, whole; one beside the template; a binary one as its bytes and its strings.
         Assert.Contains(
-            "##### Metadata/Terrain/Test/Lava/Fill_01.tdt  (listed, laid)\n  defines\tMetadata/Terrain/Test/Lava/Fill_01.tdt\t2x1\ttag arena_tag\ttemplates Art/Models/Terrain/Test/Arena.tgt\n"
-            + "  tmd\tMetadata/Terrain/Test/Lava/Fill_01.tmd\t" + (2 + Encoding.Unicode.GetByteCount("version 1\r\n\"Metadata/Terrain/Test/Lava/Fill_02.tdt\"\r\n")) + " bytes\ttext\n"
-            + "  | version 1\n  | \"Metadata/Terrain/Test/Lava/Fill_02.tdt\"\n",
+            "##### Metadata/Terrain/Test/Lava/Fill_01.tdt  (listed, laid)\n  defines\tMetadata/Terrain/Test/Lava/Fill_01.tdt\t2x1\ttag arena_tag\ttemplates Art/Models/Terrain/Test/Lava_Fill_01.tgt\n"
+            + "  tmd\tMetadata/Terrain/Test/Lava/Fill_01.tmd\t",
             said,
             StringComparison.Ordinal);
+        Assert.Contains("  | version 8\n  | 1 1 0 0 0 0 0 0 1 0 1 \"Metadata/Test/rock.ao\" \"\" \"\" \"Metadata/MiscellaneousObjects/Doodad\" 0\n", said, StringComparison.Ordinal);
+        Assert.Contains("##### Metadata/Terrain/Test/Features/Passage_feature.tdt  (listed)\n  defines\tMetadata/Terrain/Test/Features/Passage_feature.tdt\t2x1\ttag arena_tag\ttemplates Art/Models/Terrain/Test/Passage.tgt\n  tmd\tArt/Models/Terrain/Test/Passage.tmd\t10 bytes\ttext\n", said, StringComparison.Ordinal);
+        Assert.Contains("##### Metadata/Terrain/Test/Lava/Fill_02.tdt  (fill, laid)\n", said, StringComparison.Ordinal);
         Assert.Contains("  tmd\tMetadata/Terrain/Test/Fill_01.tmd\t17 bytes\tbinary\n  hex\t010000005400680069006E006700000007\n  strings\t\"Thing\"\n", said, StringComparison.Ordinal);
+    }
+
+    /// <summary>A master is written whole with every file it names: the room set or fill list whole, a tile list by name only.</summary>
+    [Fact]
+    public void MASTERSAreWrittenWholeWithTheFilesTheyName()
+    {
+        string said = CaptureReport.Masters(TileFilesInstall, ["Metadata/Terrain/Maps/Test/master.tsi"], null).ReplaceLineEndings("\n");
+
+        Assert.StartsWith("1 master of the area and 2 files they name or the area loaded, each whole - a tile list by name only, being whole in tileset-lists.txt\n\n", said, StringComparison.Ordinal);
+        Assert.Contains("##### Metadata/Terrain/Maps/Test/master.tsi  (master)\n  | version 2\n  | TileSet \"tiles.tst\"\n  | FillTiles \"fills.gft\"\n", said, StringComparison.Ordinal);
+        Assert.Contains("##### Metadata/Terrain/Maps/Test/tiles.tst  (TileSet of Metadata/Terrain/Maps/Test/master.tsi)\n  (a tile list - whole in tileset-lists.txt)\n", said, StringComparison.Ordinal);
+        Assert.Contains(
+            "##### Metadata/Terrain/Maps/Test/fills.gft  (FillTiles of Metadata/Terrain/Maps/Test/master.tsi)\n  fill list: version 2, 1 sections, 1 tiles, 1 rooms\n  | version 2\n  | \"abyss\"\n",
+            said,
+            StringComparison.Ordinal);
     }
 }
 
