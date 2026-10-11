@@ -511,47 +511,10 @@ public static class CaptureGround
     /// </remarks>
     private static string Shaders(Func<string, byte[]?> read, IReadOnlyList<string>? shaders, StringBuilder said)
     {
-        said.AppendLine().Append("=== shader sources naming ").AppendLine(string.Join(", ", Words));
-        if (shaders is not { Count: > 0 })
-        {
-            said.AppendLine("(no shader sources: the install walk found none, or it had not run when the key went down)");
-            return "no shader sources to search";
-        }
-
-        var found = new List<(string Path, string Text, string Words)>();
-        foreach (string path in shaders.Order(StringComparer.OrdinalIgnoreCase))
-        {
-            if (read(Clean(path)) is not { Length: > 0 } bytes)
-            {
-                continue;
-            }
-
-            string text = StatDescriptionFiles.Decode(bytes);
-            string[] named = [.. Words.Where(word => text.Contains(word, StringComparison.OrdinalIgnoreCase))];
-            if (named.Length > 0)
-            {
-                found.Add((Clean(path), text, string.Join(", ", named)));
-            }
-        }
-
-        said.Append(CultureInfo.InvariantCulture, $"{found.Count} of {shaders.Count} sources name one").AppendLine();
-        foreach ((string path, _, string words) in found)
-        {
-            said.Append("  ").Append(path).Append("  (").Append(words).AppendLine(")");
-        }
-
-        foreach ((string path, string text, _) in found.Take(MostShaders))
-        {
-            said.AppendLine().Append("##### ").AppendLine(path);
-            said.AppendLine(text.TrimEnd());
-        }
-
-        if (found.Count > MostShaders)
-        {
-            said.AppendLine().Append(CultureInfo.InvariantCulture, $"{found.Count - MostShaders} more not written whole - named above").AppendLine();
-        }
-
-        return string.Create(CultureInfo.InvariantCulture, $"{found.Count} of {shaders.Count} shader sources name the ground's coordinates");
+        int found = CaptureSources.Naming(read, shaders, Words, MostShaders, said);
+        return found < 0
+            ? "no shader sources to search"
+            : string.Create(CultureInfo.InvariantCulture, $"{found} of {shaders!.Count} shader sources name the ground's coordinates");
     }
 
     /// <summary>One ground vertex: its own coordinates, its height, and the first ground shape of its block that uses it.</summary>

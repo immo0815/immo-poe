@@ -119,6 +119,9 @@ public static class CaptureParts
     /// <summary>What the laid tiles' ground is made of: its blocks, its materials, and the shader sources naming its coordinates.</summary>
     public const string Ground = "ground";
 
+    /// <summary>What the water is drawn from: every environment's water keys, and the shader sources of the water pass.</summary>
+    public const string Water = "water";
+
     /// <summary>The survey of the area's entity maps for the rooms' doodads, every sighting listed.</summary>
     public const string Doodads = "doodads";
 
@@ -216,6 +219,11 @@ public static class CaptureParts
             + "the ground materials and their graphs; the install's shader sources that name where the ground's texture "
             + "coordinates come from and how its materials are blended, whole; and every laid template whole. What stands "
             + "between the rooms' white ground and a painted one."),
+        new(Water, "Area files", "the water's makings", CaptureReport.WaterFile,
+            "What the water is drawn from, as the files say: every key the install's environments write in their water "
+            + "sections, how many files carry it and what values, and the shader sources of the engine's water pass whole - "
+            + "the colours, the waves, the refraction. Water materials are no ordinary ones (\"shadertype\": \"Ocean\"), and "
+            + "this is what stands between a white water plane and one drawn as the game does."),
 
         new(Doodads, "Rooms by doodads", "the doodads found", CaptureReport.DoodadsFile,
             "The survey of the area's entity maps for the rooms' doodads: each room's share, each path found and how many stand, "
