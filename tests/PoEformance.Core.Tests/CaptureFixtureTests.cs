@@ -180,6 +180,25 @@ public partial class CaptureFixtureTests
     }
 
     /// <summary>
+    /// Built from the tile list and the master's fill list, Sulphuric Caverns' boss room comes out the game's file in every
+    /// slot one tile settles - the fifteen asking BlackInsideWall all round from the fill list among them.
+    /// </summary>
+    /// <remarks>
+    /// THE FILL LIST'S RULE (RoomBuilder): before it, those fifteen took the tile list's Murky/Thickwall/Fill_01, a file the
+    /// area lays nowhere, and 24 of the 39 settled slots came out the game's file.
+    /// </remarks>
+    [Fact]
+    public void THEFILLListFillsSulphuricsBossRoomAsTheGameDid()
+    {
+        string replay = CaptureReplayTests.BuildReplay(Capture("sulphuric-caverns"));
+        Match settled = Settled().Match(replay);
+        Assert.True(settled.Success);
+        Assert.Equal("39", settled.Groups[1].Value);
+        Assert.Equal(settled.Groups[1].Value, settled.Groups[2].Value);
+        Assert.Contains("15 filled from the master's fill list (15 the game's file)", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// A tile doodad's z counts from its tile's level: Sulphuric Caverns lays tiles at -203, and every doodad found there
     /// stands at its line's z plus that level - as every one on a tile at nought stands at its line's z - while the tile's
     /// frame, as authored then the game's placement, finds every doodad it puts down.

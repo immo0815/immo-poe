@@ -585,9 +585,16 @@ public class CaptureReplayTests
             return said.ToString();
         }
 
+        Dictionary<string, IReadOnlyList<RoomBuildTile>> fills = Fills(folder, pool, out string fillsHow);
+        said.AppendLine(fillsHow);
         Placing placing = Place(folder);
-        int rooms = 0, slots = 0, sameFile = 0, sameWay = 0, otherWay = 0, settledSame = 0, settled = 0, chosen = 0, unfilled = 0;
+        int rooms = 0, slots = 0, sameFile = 0, sameWay = 0, otherWay = 0, settledSame = 0, settled = 0, chosen = 0, unfilled = 0, filled = 0, filledSame = 0;
         var byPath = pool.ToDictionary(tile => tile.Path, StringComparer.OrdinalIgnoreCase);
+        foreach (RoomBuildTile tile in fills.Values.SelectMany(section => section))
+        {
+            byPath.TryAdd(tile.Path, tile);
+        }
+
         var body = new StringBuilder();
         for (var one = 0; one < placing.Rooms.Count; one++)
         {
@@ -597,7 +604,7 @@ public class CaptureReplayTests
                 continue;
             }
 
-            RoomBuild build = RoomBuilder.Build(layout, pool);
+            RoomBuild build = RoomBuilder.Build(layout, pool, fills);
             rooms++;
             body.AppendLine();
             body.Append("=== ").Append(Short(room)).Append(": ").AppendLine(build.Said);
@@ -656,19 +663,21 @@ public class CaptureReplayTests
                     sameWay += way ? 1 : 0;
                     otherWay += allowed ? 1 : 0;
                     settledSame += slot.Candidates == 1 && file ? 1 : 0;
+                    filled += slot.FromFillList ? 1 : 0;
+                    filledSame += slot.FromFillList && file ? 1 : 0;
                     string verdict = !file
                         ? (slot.Candidates == 1 ? "SETTLED BUT DIFFERENT" : $"another of {slot.Candidates} valid")
                         : way ? "same file, same way"
                         : allowed ? $"same file, another way the sides allow (laid {laidPlacement}, {gameWay} in the room, meeting {gameFits}/{slot.Named})"
                         : $"same file, LAID placement {laidPlacement} ({gameWay} in the room, meeting {gameFits}/{slot.Named}) where the build's {slot.Placement} under the room's turn gives {expected}";
-                    body.AppendLine(CultureInfo.InvariantCulture, $"    slot {slot.Column}, {slot.Line} ({slot.Width}x{slot.Height}, {slot.Candidates} alike, fits {slot.Fits}/{slot.Named}): built {Short(slot.Tile)} placement {slot.Placement} - laid {Short(laidPath)} placement {laidPlacement}: {verdict}");
+                    body.AppendLine(CultureInfo.InvariantCulture, $"    slot {slot.Column}, {slot.Line} ({slot.Width}x{slot.Height}, {slot.Candidates} alike{(slot.FromFillList ? " in the fill list" : string.Empty)}, fits {slot.Fits}/{slot.Named}): built {Short(slot.Tile)} placement {slot.Placement} - laid {Short(laidPath)} placement {laidPlacement}: {verdict}");
                 }
             }
         }
 
         said.AppendLine();
         said.AppendLine(CultureInfo.InvariantCulture,
-            $"{rooms} rooms built and held against their places: {slots} slots, {settled} settled by one tile ({settledSame} the game's file), {chosen} chosen among several ({sameFile - settledSame} the game's file), {unfilled} with no tile alike; of the {sameFile} slots with the game's file, {sameWay} lie the game's way and {otherWay} another way the slot's sides allow as well");
+            $"{rooms} rooms built and held against their places: {slots} slots, {settled} settled by one tile ({settledSame} the game's file), {chosen} chosen among several ({sameFile - settledSame} the game's file), {unfilled} with no tile alike; of the {sameFile} slots with the game's file, {sameWay} lie the game's way and {otherWay} another way the slot's sides allow as well; {filled} filled from the master's fill list ({filledSame} the game's file)");
         said.Append(body);
         return said.ToString();
     }
@@ -700,6 +709,95 @@ public class CaptureReplayTests
         }
 
         return -1;
+    }
+
+    /// <summary>
+    /// The master's fill list by the ground type each section fills, as RoomBuilder takes it: each section's name joined to a
+    /// <c>.gt</c> by the ground types area-masters.txt writes whole, each tile's identity from the pool or tile-identities.txt.
+    /// </summary>
+    /// <remarks>
+    /// WHAT CANNOT BE JOINED IS SAID, not guessed: a section whose ground type the capture does not write whole (before
+    /// v0.1.190 only the master's OuterGroundType is), and a tile with no identity in the capture (a fill tile neither listed
+    /// nor laid), are counted and left out.
+    /// </remarks>
+    private static Dictionary<string, IReadOnlyList<RoomBuildTile>> Fills(string folder, List<RoomBuildTile> pool, out string how)
+    {
+        var fills = new Dictionary<string, IReadOnlyList<RoomBuildTile>>(StringComparer.OrdinalIgnoreCase);
+        List<FillListEntry> entries = FillEntries(folder);
+        if (entries.Count == 0)
+        {
+            how = $"no fill list in {CaptureReport.MastersFile} - the build takes the tile lists alone";
+            return fills;
+        }
+
+        // EACH GROUND TYPE WRITTEN WHOLE: its path, then its first line - the name a section is keyed by.
+        var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        string ground = string.Empty;
+        foreach (string raw in File.ReadLines(Path.Combine(folder, CaptureReport.MastersFile)))
+        {
+            string line = raw.TrimEnd('\r');
+            if (line.StartsWith("##### ", StringComparison.Ordinal))
+            {
+                int flags = line.IndexOf("  (", StringComparison.Ordinal);
+                string path = flags > 6 ? line[6..flags] : line[6..];
+                ground = path.EndsWith(".gt", StringComparison.OrdinalIgnoreCase) ? path : string.Empty;
+            }
+            else if (ground.Length > 0 && line.StartsWith("  | ", StringComparison.Ordinal) && line[4..].Trim().Length > 0)
+            {
+                names[ground] = line[4..].Trim();
+                ground = string.Empty;
+            }
+        }
+
+        var identities = pool.ToDictionary(tile => tile.Path, tile => tile.Identity, StringComparer.OrdinalIgnoreCase);
+        string laid = Path.Combine(folder, CaptureReport.TileIdentitiesFile);
+        foreach (string raw in File.Exists(laid) ? File.ReadLines(laid) : [])
+        {
+            string[] cells = raw.TrimEnd('\r').Split('\t');
+            if (cells.Length >= 12
+                && int.TryParse(cells[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int width)
+                && int.TryParse(cells[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out int height))
+            {
+                identities.TryAdd(cells[0], new TileIdentity(width, height, cells[3], cells[4..8], cells[8..12]));
+            }
+        }
+
+        int joined = 0, unknown = 0;
+        var sections = entries.Select(entry => entry.Section).Distinct(StringComparer.Ordinal).ToList();
+        var unjoined = new List<string>();
+        foreach (string section in sections)
+        {
+            string[] grounds = [.. names.Where(one => string.Equals(one.Value, section, StringComparison.Ordinal)).Select(one => one.Key)];
+            if (grounds.Length == 0)
+            {
+                unjoined.Add(section);
+                continue;
+            }
+
+            var tiles = new List<RoomBuildTile>();
+            foreach (FillListEntry entry in entries.Where(entry => string.Equals(entry.Section, section, StringComparison.Ordinal)))
+            {
+                string path = entry.Path.Replace('\\', '/').Trim();
+                if (identities.TryGetValue(path, out TileIdentity? identity))
+                {
+                    tiles.Add(new RoomBuildTile(path, identity, entry.Weight, entry.Words));
+                }
+                else
+                {
+                    unknown++;
+                }
+            }
+
+            foreach (string path in grounds)
+            {
+                fills[path] = tiles;
+                joined++;
+            }
+        }
+
+        how = string.Create(CultureInfo.InvariantCulture,
+            $"fill list: {sections.Count} sections, {joined} joined to a ground type the capture writes whole ({string.Join(", ", fills.Select(one => $"{one.Key} - {one.Value.Count} tiles"))}){(unjoined.Count > 0 ? $"; not joined: {string.Join(", ", unjoined)}" : string.Empty)}{(unknown > 0 ? $"; {unknown} tiles with no identity in the capture" : string.Empty)}");
+        return fills;
     }
 
     /// <summary>The tileset's tiles with their identities out of slot-candidates.txt's table, weighted from tileset-lists.txt where the capture has it - or null and why.</summary>

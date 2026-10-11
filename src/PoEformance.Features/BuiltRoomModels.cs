@@ -17,6 +17,11 @@ namespace PoEformance.Features;
 /// FOR THE MONSTER BOOK, where a map boss's arena room is wanted without standing in the map: the
 /// arena slot is settled by one tagged tile, the ring round it is valid tiles chosen by weight. The
 /// lines under the picture say how many slots were settled, chosen, or left unmet - see RoomBuild.Said.
+///
+/// BUILT FROM A MASTER, THE MASTER'S FILL LIST COMES TOO: a slot asking one ground all round takes that
+/// ground's section of it (RoomBuilder's remarks say what measured it), joined by the name each <c>.gt</c>
+/// the room's slots name carries - the key a section is written under. Built from a bare tile list, as a
+/// key from before v0.1.190 names one, there is no master to name a fill list and the room is built as before.
 /// </remarks>
 public static class BuiltRoomModels
 {
@@ -57,15 +62,19 @@ public static class BuiltRoomModels
         }
 
         string tst = Slashed(tileset);
+        string master = string.Empty;
+        string? masterText = null;
         if (!tst.EndsWith(TileList.Extension, StringComparison.OrdinalIgnoreCase))
         {
-            byte[]? master = read(tst);
-            string? set = TilesetFile.Value(master is { Length: > 0 } ? StatDescriptionFiles.Decode(master) : null, "TileSet");
+            byte[]? bytes = read(tst);
+            masterText = bytes is { Length: > 0 } ? StatDescriptionFiles.Decode(bytes) : null;
+            string? set = TilesetFile.Value(masterText, "TileSet");
             if (set is not { Length: > 0 })
             {
                 return MonsterModel.None with { Why = $"the master names no tileset: {tst}" };
             }
 
+            master = tst;
             tst = Slashed(TilesetFile.Beside(tst, set));
         }
 
@@ -110,7 +119,8 @@ public static class BuiltRoomModels
             return MonsterModel.None with { Why = $"the tileset lists no tile that reads: {tst}{(unread > 0 ? $" ({unread} did not read)" : string.Empty)}" };
         }
 
-        RoomBuild build = RoomBuilder.Build(room, pool);
+        (Dictionary<string, IReadOnlyList<RoomBuildTile>> fills, string fillsSaid) = FillsOf(read, master, masterText, room, pool);
+        RoomBuild build = RoomBuilder.Build(room, pool, fills);
         if (build.Tiles is not { } tiles)
         {
             return MonsterModel.None with { Why = build.Why };
@@ -129,10 +139,91 @@ public static class BuiltRoomModels
 
         MonsterModel model = LaidRoomModels.Of(
             read, path, grid, build.X, build.Y, 0, shaded, doodads, tools, atLevel: true, progress: progress, heights: heights);
-        string said = build.Said + $" ({pool.Count} tiles in the pool{(unread > 0 ? $", {unread} did not read" : string.Empty)})";
+        string said = build.Said + $" ({pool.Count} tiles in the pool{(unread > 0 ? $", {unread} did not read" : string.Empty)}{fillsSaid})";
         return model.Ready
             ? model with { Move = said + "; " + model.Move }
             : model with { Why = said + "; " + model.Why };
+    }
+
+    /// <summary>
+    /// The master's fill list by the ground each section fills, keyed by the <c>.gt</c> as the room's slots name it - empty
+    /// where the master names none - and what of it was joined, for the line under the picture.
+    /// </summary>
+    private static (Dictionary<string, IReadOnlyList<RoomBuildTile>> Fills, string Said) FillsOf(
+        Func<string, byte[]?> read, string master, string? masterText, RoomLayout room, IReadOnlyList<RoomBuildTile> pool)
+    {
+        var fills = new Dictionary<string, IReadOnlyList<RoomBuildTile>>(StringComparer.OrdinalIgnoreCase);
+        if (master.Length == 0 || TilesetFile.Value(masterText, "FillTiles") is not { Length: > 0 } named)
+        {
+            return (fills, string.Empty);
+        }
+
+        // AS WRITTEN, THEN BESIDE THE MASTER - the first that reads, as the capture's masters part resolves it.
+        FillList list = FillList.None;
+        foreach (string candidate in MasterFile.Candidates(master, named))
+        {
+            list = FillList.Read(read(candidate));
+            if (list.Entries.Count > 0)
+            {
+                break;
+            }
+        }
+
+        if (list.Entries.Count == 0)
+        {
+            return (fills, $", the master's fill list {named} did not read");
+        }
+
+        // EACH GROUND THE ROOM'S SLOTS NAME, by its name: a section is written under the name, a slot names the file.
+        var grounds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (RoomSlot slot in room.Slots)
+        {
+            for (var corner = 0; corner < 4; corner++)
+            {
+                if (Slashed(room.Named(slot.Ground(corner))) is { Length: > 0 } ground)
+                {
+                    grounds.Add(ground);
+                }
+            }
+        }
+
+        var identities = pool.ToDictionary(tile => tile.Path, tile => tile.Identity, StringComparer.OrdinalIgnoreCase);
+        int tiles = 0, unread = 0;
+        foreach (string ground in grounds)
+        {
+            string name = GroundType.Name(read(ground));
+            var section = new List<RoomBuildTile>();
+            foreach (FillListEntry entry in list.Entries)
+            {
+                if (name.Length == 0 || !string.Equals(entry.Section, name, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                string path = Slashed(entry.Path);
+                if (!identities.TryGetValue(path, out TileIdentity? identity))
+                {
+                    identity = TileIdentity.Of(TileModels.Defined(read, path).Definition);
+                    if (identity is null)
+                    {
+                        unread++;
+                        continue;
+                    }
+
+                    identities[path] = identity;
+                }
+
+                section.Add(new RoomBuildTile(path, identity, entry.Weight, entry.Words));
+            }
+
+            if (section.Count > 0)
+            {
+                fills[ground] = section;
+                tiles += section.Count;
+            }
+        }
+
+        return (fills, $", the master's fill list: {tiles} tiles for {fills.Count} of the room's {grounds.Count} grounds{(unread > 0 ? $", {unread} did not read" : string.Empty)}");
     }
 
     private static string Slashed(string path) => path.Replace('\\', '/').Trim();

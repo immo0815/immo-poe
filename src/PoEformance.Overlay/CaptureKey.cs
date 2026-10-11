@@ -525,7 +525,7 @@ internal sealed class CaptureKey
             {
                 Part(CaptureReport.MastersFile, () =>
                 {
-                    string files = CaptureReport.Masters(read, run.Loaded, run.Masters);
+                    string files = CaptureReport.Masters(read, run.Loaded, run.Masters, run.Snapshot.Terrain is TerrainGrid { Ground: { } ground } ? ground.Types : null);
                     File.WriteAllText(At(CaptureReport.MastersFile), files);
                     return files[..files.IndexOf('\n')];
                 });

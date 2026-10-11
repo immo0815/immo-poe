@@ -133,6 +133,49 @@ public class RoomBuilderTests
         Assert.Contains("1 with no tile alike", short_.Said, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A slot asking one ground at every corner and no edge takes that ground's section of the master's fill list - the
+    /// heaviest of it alike to the slot - over the tile list; a slot asking anything else, or a section with no tile alike,
+    /// is left to the tile list.
+    /// </summary>
+    /// <remarks>
+    /// AS SULPHURIC CAVERNS' BOSS ROOM AND AUGURY LAY THEM (RoomBuilder's remarks): the tile list answers such a slot too -
+    /// every floor tile of one ground is alike to it - and the game laid the fill list's tile all the same.
+    /// </remarks>
+    [Fact]
+    public void ASlotAskingOneGroundAllRoundIsFilledFromTheFillList()
+    {
+        RoomLayout room = RoomLayout.Parse(TwoSlots.Replace(
+            "k 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0",
+            "k 1 1 0 0 0 0 0 0 0 0 0 0 0 0 3 3 3 3 0 0 0 0 0",
+            StringComparison.Ordinal));
+        Assert.True(room.Ready, room.Why);
+        Assert.Equal(Ground, RoomBuilder.OneGround(room, room.SlotAt(1, 0)));
+        Assert.Null(RoomBuilder.OneGround(room, room.SlotAt(0, 0)));
+
+        RoomBuildTile heavy = Tile("heavy", 10, Edge, Edge, Edge, Edge);
+        RoomBuildTile corner = Tile("corner", 1, Wall, Edge, string.Empty, string.Empty);
+        RoomBuildTile light = Tile("fill_light", 1, string.Empty, string.Empty, string.Empty, string.Empty);
+        RoomBuildTile weighty = Tile("fill_weighty", 5, string.Empty, string.Empty, string.Empty, string.Empty);
+        var fills = new Dictionary<string, IReadOnlyList<RoomBuildTile>>(StringComparer.OrdinalIgnoreCase) { [Ground] = [light, weighty] };
+
+        RoomBuild build = RoomBuilder.Build(room, [corner, heavy], fills);
+        Assert.Equal(corner.Path, build.Slots[0].Tile);
+        Assert.False(build.Slots[0].FromFillList);
+        Assert.Equal(weighty.Path, build.Slots[1].Tile);
+        Assert.True(build.Slots[1].FromFillList);
+        Assert.Equal(2, build.Slots[1].Candidates);
+        Assert.Equal(weighty.Path, build.Tiles!.PathAt(1, 0));
+        Assert.Contains("1 of them from the master's fill list", build.Said, StringComparison.Ordinal);
+
+        // WITHOUT THE FILL LIST, or with a section no tile of which is alike, the tile list answers as before.
+        Assert.Equal(heavy.Path, RoomBuilder.Build(room, [corner, heavy]).Slots[1].Tile);
+        RoomBuildTile big = Tile("fill_big", 9, string.Empty, string.Empty, string.Empty, string.Empty, width: 2, height: 2);
+        RoomBuild unlike = RoomBuilder.Build(room, [corner, heavy], new Dictionary<string, IReadOnlyList<RoomBuildTile>> { [Ground] = [big] });
+        Assert.Equal(heavy.Path, unlike.Slots[1].Tile);
+        Assert.False(unlike.Slots[1].FromFillList);
+    }
+
     [Fact]
     public void ASlotWiderThanTallTakesItsTileAsFiledOrTurnedOverToFit()
     {

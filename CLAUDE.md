@@ -221,14 +221,24 @@ Cavepassage tile and four `mine_abyss_fill` tiles from its `Rooms/Fills` folder.
 its fill list is sectioned by GROUND TYPE - `default` Blank, `BlackInsideWall` `Thickwall/Fill_01`,
 `CoralAbyss` `Abyss/Lava/Fill_01` (50) and `Fill_02` (25, with the words `I FR270`) - and every one of the
 boss room's fifteen slots asking for BlackInsideWall all round got the fill list's tile, while the tile
-list's `Murky/Thickwall/Fill_01` is laid nowhere in the area. The build does not read fill lists yet.
-`tile-files.txt` writes for every listed, filled and laid file its chain, its doodad lists and its
+list's `Murky/Thickwall/Fill_01` is laid nowhere in the area. Augury (v0.1.188) lays its fill list's
+`black.tdt` in 571 one-by-one slots asking BlackInsideWall all round that no tile of its list answers at all,
+and Port its fill tile in all fifteen such slots. So THE BUILD FILLS A SLOT ASKING ONE GROUND AT EVERY CORNER
+AND NO EDGE FROM THAT GROUND'S SECTION (`RoomBuilder.OneGround`), joined by the `.gt`'s name - the key a
+section is written under, while a slot names the file; a master's part writes the area's ground types whole
+from v0.1.190, before which only the OuterGroundType is joined offline. The build replay: Sulphuric's boss
+room 39 of 39 settled slots the game's file (24 before), Augury's single-placed rooms 327 of 351 fill slots
+(the rest on a rim a neighbouring room's walls cover), Port 15 of 15. A slot naming NOTHING is not filled so:
+Augury lays fill-list tiles in most of those too (`dungeon_blank_fill`), but which section a bare slot draws
+from is its own question, not yet measured. `tile-files.txt` writes for every listed, filled and laid file its chain, its doodad lists and its
 flags, `area-masters.txt` every master and every file it names whole, and `tile-files-replay.txt`
 counts what explains each laid file no tile list names (inherited, in a fill list, a shared template,
 nothing) - read it before giving the build a rule for any of them. A tile list's words appeared for the
 first time in Marrow (`I`, `R90`, `R180`, `R270`, on its cave entrance and its boss arena); poe_data_tools
 reads them as strings and says nothing of what they mean, so what they do to a tile's placement is to
-be measured on a laid one before the build obeys them. A tile's doodads ARE entities: Marrow's recording
+be measured on a laid one before the build obeys them. The first laid one, Augury's arena (`I`), lay as
+authored (placement 3) in a room laid as written - one sample, which `I` as "identity" fits but does not
+settle; a fill list carries words too (Sulphuric's `Fill_02`: `I FR270`). A tile's doodads ARE entities: Marrow's recording
 holds 238 `TileUpperDoodad` and 6321 `DoodadNoBlocking` (the plain `Doodad` lines mostly not), and
 `tile-doodads-replay.txt` puts every laid tile's doodads (`TileDoodadList`, its own grammar - the height
 before the angle, one bool, four strings) into the area under all sixteen readings of how a tile's frame
@@ -245,7 +255,10 @@ different amount per model at one place. Marrow's tiles were all at level nought
 put 41 found doodads on tiles at -203, every one at its line's z plus the level (364 of 364, and 645 of
 645 in Marrow). A tile may carry TWO lists - beside the `.tdt` and beside the template,
 of overlapping doodads - and whether the game lays both
-or one instead of the other waits for a laid tile carrying both; the replay counts the two apart. A line
+or one instead of the other waits for a laid tile carrying both; the replay counts the two apart. Augury
+laid two such (its doors' `_open` and `_boss` variants): the doodads both lists share stand, and the lines
+only the template's list carries are a `Door` and a `BreakableArchways` - server objects, whose absence from
+the client proves nothing, so it is still open. A line
 naming a set (`_set.ao`) stands in the game as one member of the set, so matching by model misses it:
 7221 such lines found nothing, the seven plain ones all. A laid room's picture - an area's, a built one's
 in the Monster Book - draws each piece's doodads so (`LaidRoomModels.TileDoodadsOf`): placed as measured,
