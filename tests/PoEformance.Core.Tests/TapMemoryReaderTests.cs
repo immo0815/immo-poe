@@ -1,3 +1,4 @@
+using PoEformance.Core.Diagnostics;
 using PoEformance.Core.Memory;
 
 namespace PoEformance.Core.Tests;
@@ -55,6 +56,52 @@ public class TapMemoryReaderTests
 
         tap.Dispose();
         Assert.Equal(1, live.Disposed);
+    }
+
+    /// <summary>
+    /// A search reads past a running recording: none of its chunks land in the file, which still holds the overlay's own read
+    /// - the capture's light hunt went through the recorder once and crawled at its compressor's pace.
+    /// </summary>
+    [Fact]
+    public async Task ASEARCHPastTheTapIsNotRecorded()
+    {
+        var bytes = new byte[2 * HeapScan.ChunkBytes];
+        BitConverter.TryWriteBytes(bytes.AsSpan(0x40), 7.25f);
+        var live = new Spaced(new FakeMemoryReader().Place(0x1000_0000, bytes).Place(0x1000, 8UL), new MemoryRegion(0x1000_0000, (ulong)bytes.Length));
+        using var tap = new TapMemoryReader(live);
+        var file = new MemoryStream();
+        Task<long> done = Assert.IsType<Task<long>>(tap.Start(file, Statics, new TapRecording(1) { MaxReadBytes = RecordingFormat.MaxReadLength }));
+
+        FloatHuntResult found = FloatHunt.Run(tap.Untapped, Assert.IsAssignableFrom<IMemoryRegions>(tap.Untapped), [new FloatNeedle("v", [7.25f], 0f)]);
+        Assert.Equal(8UL, tap.Read<ulong>(0x1000));
+        tap.MarkFrame();
+        tap.MarkFrame();
+        await done;
+
+        Assert.Equal(0x1000_0040UL, Assert.Single(found.Sightings).At);
+        using var replay = ReplayMemoryReader.Load(new MemoryStream(file.ToArray()));
+        Assert.Equal(8UL, replay.Read<ulong>(0x1000));
+        Assert.DoesNotContain(replay.Regions(), region => region.Address >= 0x1000_0000);
+    }
+
+    /// <summary>A reader with regions, as the live one is.</summary>
+    private sealed class Spaced(FakeMemoryReader inner, params MemoryRegion[] regions) : IMemoryReader, IMemoryRegions
+    {
+        public bool IsAttached => true;
+
+        public int ProcessId => inner.ProcessId;
+
+        public ulong ModuleBase => 0;
+
+        public uint ModuleSize => 0;
+
+        public bool TryRead(ulong address, Span<byte> destination) => inner.TryRead(address, destination);
+
+        public IEnumerable<MemoryRegion> Regions() => regions;
+
+        public void Dispose()
+        {
+        }
     }
 
     private sealed class CountedReader : IMemoryReader

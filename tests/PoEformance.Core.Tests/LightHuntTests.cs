@@ -57,6 +57,25 @@ public class LightHuntTests
         Assert.Equal([Base + (ulong)across, Base + (ulong)HeapScan.ChunkBytes + 0x40], result.Sightings.Select(one => one.At).Order());
     }
 
+    /// <summary>
+    /// A needle of noughts and ones but for rounding - a turn by pi, whose sine a float makes -8.7e-8 - is not looked for: its only
+    /// other value's range took in nought, and every nought and small integer in memory was compared with it.
+    /// </summary>
+    [Fact]
+    public void ANEEDLEOfNoughtsAndOnesWithinTheToleranceIsNotLookedFor()
+    {
+        var bytes = new byte[0x400];
+        Floats(bytes, 0x80, -1f, MathF.Sin(MathF.PI), 0f);
+        Floats(bytes, 0x100, 2.5f, 1.00005f);
+        (FakeMemoryReader memory, Space space) = Memory(bytes);
+
+        FloatHuntResult result = FloatHunt.Run(
+            memory, space, [new("turned by pi", [-1f, MathF.Sin(MathF.PI), 0f], 1e-4f), new("near one", [1.00005f, -0.99999f], 1e-4f), new("kept", [2.5f, 1.00005f], 1e-4f)]);
+
+        Assert.Equal([0, 1], result.Unsearched);
+        Assert.Equal(Base + 0x100, Assert.Single(result.Sightings).At);
+    }
+
     /// <summary>A blank in a needle - a matrix row's fourth float - matches anything.</summary>
     [Fact]
     public void ABLANKInANeedleMatchesAnything()
