@@ -315,12 +315,13 @@ public sealed partial class ShadeProgram
     private readonly int _result;
     private readonly int _specular;
     private readonly int _gloss;
+    private readonly int _waves;
     private readonly int[] _sampleTexture;
     private readonly Mipmaps?[] _sheets;
 
     private ShadeProgram(
         Step[] steps, int[] constantAt, Vector4[] constants, int registers, int result, int specular, int gloss,
-        ShadeTexture[] textures, int[] sampleTexture, int plain, IReadOnlyList<string> graphs, Mipmaps?[] sheets, bool hasAlpha)
+        ShadeTexture[] textures, int[] sampleTexture, int plain, IReadOnlyList<string> graphs, Mipmaps?[] sheets, bool hasAlpha, int waves = -1)
     {
         HasAlpha = hasAlpha;
         _steps = steps;
@@ -330,6 +331,7 @@ public sealed partial class ShadeProgram
         _result = result;
         _specular = specular;
         _gloss = gloss;
+        _waves = waves;
         Textures = textures;
         _sampleTexture = sampleTexture;
         Plain = plain;
@@ -401,6 +403,9 @@ public sealed partial class ShadeProgram
 
         /// <summary>ParallaxUvSpace: the coordinates and the distance along the view where the ray meets the height texture - B is the read, like Sample's.</summary>
         Parallax,
+
+        /// <summary>GetFlowSurfaceField: the water's surface at A's x and y, drifting at B's x and y a second, at C's clock - its normal in xyz, its height in w. See <see cref="Ripples"/>.</summary>
+        Waves,
     }
 
     /// <summary>The stages a colour is assembled across, in the order they are run.</summary>
@@ -485,6 +490,18 @@ public sealed partial class ShadeProgram
 
     /// <summary>Whether a run also leaves the glossiness the graphs wrote, beside the specular colour.</summary>
     public bool HasGloss => _gloss >= 0;
+
+    /// <summary>
+    /// Whether a run also leaves a normal of its own for the specular light - the water's waves (see <see cref="Water"/>).
+    /// </summary>
+    /// <remarks>
+    /// THE SPECULAR LIGHT ONLY. The engine's water lights its surface with the waves' normal and its
+    /// medium by what lies behind; the picture lights the colour with the mesh's normal as it lights
+    /// every colour, and the sun's glints and the environment's reflection - the two the waves are seen
+    /// by - with this one, each where the game light asks for it (SceneLight.WaterGlints and
+    /// WaterReflection). The picture's own lamp draws such a program as it drew it before it had one.
+    /// </remarks>
+    public bool HasWaves => _waves >= 0;
 
     /// <summary>
     /// The same colour with the glossiness worked out too, for the game's own lighting; null where it is this program.
@@ -763,6 +780,9 @@ public sealed partial class ShadeProgram
     /// <summary>The register the gloss is left in, or below nought for none.</summary>
     internal int GlossRegister => _gloss;
 
+    /// <summary>The register the waves' normal is left in, or below nought for none - see <see cref="HasWaves"/>.</summary>
+    internal int WavesRegister => _waves;
+
     /// <summary>This program with its textures in hand, one per entry of <see cref="Textures"/>.</summary>
     public ShadeProgram With(IReadOnlyList<Mipmaps?> sheets)
     {
@@ -776,7 +796,7 @@ public sealed partial class ShadeProgram
         // NOT THE GLOSSY ONE: it reads a texture this does not, and is bound on its own - see Glossy.
         return new ShadeProgram(
             _steps, _constantAt, _constants, Registers, _result, _specular, _gloss,
-            [.. Textures], _sampleTexture, Plain, Graphs, bound, HasAlpha);
+            [.. Textures], _sampleTexture, Plain, Graphs, bound, HasAlpha, _waves);
     }
 
     /// <summary>
@@ -874,6 +894,14 @@ public sealed partial class ShadeProgram
     internal Vector3 Colour(
         Span<Vector4> registers, Vector2 coordinates, Vector3 position, Vector3 normal, ReadOnlySpan<float> levels,
         out float alpha, out Vector3 specular, out float gloss, Vector4 vertexColour = default, float behind = float.MaxValue)
+        => Colour(registers, coordinates, position, normal, levels, out alpha, out specular, out gloss, out _, vertexColour, behind);
+
+    /// <summary>
+    /// The colour at one pixel, its alpha, its specular colour and gloss, and the normal it hands the specular light - nought where <see cref="HasWaves"/> says it hands none.
+    /// </summary>
+    internal Vector3 Colour(
+        Span<Vector4> registers, Vector2 coordinates, Vector3 position, Vector3 normal, ReadOnlySpan<float> levels,
+        out float alpha, out Vector3 specular, out float gloss, out Vector3 waves, Vector4 vertexColour = default, float behind = float.MaxValue)
     {
         registers[Coordinates] = new Vector4(coordinates, 0f, 0f);
         if (UsesDepth)
@@ -907,6 +935,7 @@ public sealed partial class ShadeProgram
         alpha = Discards && registers[Dropped].X > 0f ? float.NegativeInfinity : colour.W;
         specular = _specular >= 0 ? new Vector3(registers[_specular].X, registers[_specular].Y, registers[_specular].Z) : default;
         gloss = _gloss >= 0 ? registers[_gloss].X : 0f;
+        waves = _waves >= 0 ? new Vector3(registers[_waves].X, registers[_waves].Y, registers[_waves].Z) : default;
         return new Vector3(Srgb(colour.X), Srgb(colour.Y), Srgb(colour.Z));
     }
 
@@ -1169,6 +1198,14 @@ public sealed partial class ShadeProgram
                     break;
                 }
 
+                case Op.Waves:
+                {
+                    float height = Ripples(
+                        new Vector2(r[step.A].X, r[step.A].Y), new Vector2(r[step.B].X, r[step.B].Y), r[step.C].X, out Vector2 slope);
+                    r[step.To] = new Vector4(Vector3.Normalize(new Vector3(-slope.X, -slope.Y, -1f)), height);
+                    break;
+                }
+
                 case Op.Vibrance:
                     r[step.To] = Vibrant(r[step.A].X, r[step.B]);
                     break;
@@ -1404,13 +1441,14 @@ public sealed partial class ShadeProgram
     internal const float Dielectric = 0.04f;
 
     private static ShadeProgram? Finish(
-        Builder build, int result, int specular, int gloss, List<string> graphs, bool hasAlpha, bool plainable)
+        Builder build, int result, int specular, int gloss, List<string> graphs, bool hasAlpha, bool plainable, int waves = -1)
     {
         List<Step> steps = build.Steps;
         var live = new bool[build.Next];
         live[result] = true;
         Live(live, specular);
         Live(live, gloss);
+        Live(live, waves);
         var keep = new bool[steps.Count];
         for (int at = steps.Count - 1; at >= 0; at--)
         {
@@ -1512,7 +1550,7 @@ public sealed partial class ShadeProgram
         ShadeTexture[] named = [.. textures];
         return new ShadeProgram(
             [.. kept], [.. constantAt], [.. constants], next, map[result], Mapped(map, specular), Mapped(map, gloss),
-            named, [.. sampleTextures], plain >= 0 ? textureMap[plain] : -1, graphs, new Mipmaps?[named.Length], hasAlpha);
+            named, [.. sampleTextures], plain >= 0 ? textureMap[plain] : -1, graphs, new Mipmaps?[named.Length], hasAlpha, Mapped(map, waves));
     }
 
     private static void Live(bool[] live, int register)

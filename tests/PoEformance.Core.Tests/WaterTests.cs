@@ -135,6 +135,158 @@ public class WaterTests
         blends: [MaterialBlend.Opaque, MaterialBlend.Alpha],
         shades: [null, ShadeProgram.Water()]);
 
+    /// <summary>The waves' slope is their height's own: worked out exactly, it agrees with the height's differences everywhere it is asked.</summary>
+    [Fact]
+    public void THEWAVESSlopeIsTheirHeightsOwn()
+    {
+        const float h = 0.05f;
+        Vector2[] drifts = [Vector2.Zero, ShadeProgram.WaveDrift * 1.5f, new(-40f, 90f)];
+        float[] clocks = [0f, 0.7f, 2.9f, 13.25f];
+        var checkedOnes = 0;
+        foreach (Vector2 drift in drifts)
+        {
+            foreach (float clock in clocks)
+            {
+                for (var x = -900f; x <= 900f; x += 137f)
+                {
+                    for (var y = -700f; y <= 700f; y += 151f)
+                    {
+                        ShadeProgram.Ripples(new Vector2(x, y), drift, clock, out Vector2 slope);
+                        float dx = (ShadeProgram.Ripples(new Vector2(x + h, y), drift, clock, out _) - ShadeProgram.Ripples(new Vector2(x - h, y), drift, clock, out _)) / (2f * h);
+                        float dy = (ShadeProgram.Ripples(new Vector2(x, y + h), drift, clock, out _) - ShadeProgram.Ripples(new Vector2(x, y - h), drift, clock, out _)) / (2f * h);
+                        Assert.True(MathF.Abs(slope.X - dx) < 2e-3f + (0.02f * MathF.Abs(dx)), $"at ({x}, {y}) t {clock}: slope x {slope.X}, differences {dx}");
+                        Assert.True(MathF.Abs(slope.Y - dy) < 2e-3f + (0.02f * MathF.Abs(dy)), $"at ({x}, {y}) t {clock}: slope y {slope.Y}, differences {dy}");
+                        checkedOnes++;
+                    }
+                }
+            }
+        }
+
+        Assert.True(checkedOnes > 1000);
+    }
+
+    /// <summary>The waves move with the clock even where nothing drifts - the engine's octaves fade in and out - and they lean, so the light sees them.</summary>
+    [Fact]
+    public void THEWAVESMoveWithTheClockAndLean()
+    {
+        var place = new Vector2(310f, -145f);
+        float still = ShadeProgram.Ripples(place, Vector2.Zero, 0.3f, out _);
+        Assert.NotEqual(still, ShadeProgram.Ripples(place, Vector2.Zero, 1.1f, out _));
+        Assert.NotEqual(
+            ShadeProgram.Ripples(place, ShadeProgram.WaveDrift * 1.5f, 1.1f, out _),
+            ShadeProgram.Ripples(place, Vector2.Zero, 1.1f, out _));
+
+        float steepest = 0f;
+        for (var x = 0f; x < 2000f; x += 25f)
+        {
+            ShadeProgram.Ripples(new Vector2(x, x * 0.37f), ShadeProgram.WaveDrift * 1.5f, 4f, out Vector2 slope);
+            steepest = MathF.Max(steepest, slope.Length());
+        }
+
+        // A FEW DEGREES AT PORT'S FLOW: steep enough for a glint to move about, not a choppy sea.
+        Assert.InRange(steepest, 0.01f, 0.5f);
+    }
+
+    /// <summary>The water carries a glossy twin with the waves - its specular the area's reflectiveness, its gloss the engine's - and only the twin reads them.</summary>
+    [Fact]
+    public void THEWATERSGlossyTwinCarriesTheWaves()
+    {
+        ShadeProgram water = ShadeProgram.Water();
+        Assert.False(water.HasWaves);
+        Assert.False(water.HasSpecular);
+
+        ShadeProgram? waves = water.Glossy;
+        Assert.NotNull(waves);
+        Assert.True(waves.HasWaves);
+        Assert.True(waves.HasSpecular);
+        Assert.True(waves.HasGloss);
+        Assert.True(waves.HasAlpha);
+        Assert.True(waves.UsesDepth);
+        Assert.True(waves.UsesTime);
+        Assert.Empty(waves.Textures);
+
+        string plain = ShadeHlsl.Of(water, 9);
+        Assert.Contains("static const bool ShadeHasWaves = false;", plain, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShadeWaves(", plain, StringComparison.Ordinal);
+        Assert.Contains("said.waves = float3(0.0, 0.0, 0.0);", plain, StringComparison.Ordinal);
+
+        string wavy = ShadeHlsl.Of(waves, 9);
+        Assert.Contains("static const bool ShadeHasWaves = true;", wavy, StringComparison.Ordinal);
+        Assert.Contains("float4 ShadeWaves(float2 place, float2 drift, float clock)", wavy, StringComparison.Ordinal);
+        Assert.Contains("said.waves = r", wavy, StringComparison.Ordinal);
+
+        // THE TURNS ARE THE PROCESSOR'S NUMBERS, to the bit.
+        Assert.Contains(ShadeHlsl.Number(MathF.Cos(0.5f)), wavy, StringComparison.Ordinal);
+    }
+
+    /// <summary>An area's reflectiveness is its file's where it sets one, the engine's 0.03 where not, and reaches the program in the flow's y.</summary>
+    [Fact]
+    public void ANAREASReflectivenessIsItsFilesOrTheEngines()
+    {
+        WaterLook set = WaterLook.Of(EnvironmentSettings.Read("set.env", Encoding.UTF8.GetBytes("""{ "water": { "reflectiveness": 0.126 } }""")));
+        Assert.Equal(0.126f, set.Reflectiveness);
+        Assert.Equal(0.126f, set.FlowRegister.Y);
+        Assert.Contains("reflectiveness", set.Said, StringComparison.Ordinal);
+        Assert.Equal(WaterLook.DefaultReflectiveness, WaterLook.EngineDefault.Reflectiveness);
+        Assert.Equal(0.03f, WaterLook.EngineDefault.FlowRegister.Y);
+    }
+
+    /// <summary>
+    /// Under the game light the waves glint and reflect where the switches say, and with both off - or under the picture's lamp - the water is drawn as it was without them.
+    /// </summary>
+    [Fact]
+    public void THEWAVESGlintAndReflectByTheSwitchesAndOnlyUnderTheGameLight()
+    {
+        SkinnedMesh scene = Scene(40f, 300f);
+        ShadeProgram plain = ShadeProgram.Water();
+        ShadeProgram waves = plain.Glossy!;
+        WaterLook port = WaterLook.EngineDefault with { FlowIntensity = 1.5f };
+        SceneLight Light(bool glints, bool reflection) => new([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(2f),
+            SunDirection = Vector3.UnitZ,
+            Ambient = SceneAmbient.Flat,
+            FlatAmbient = 0.4f,
+            WaterGlints = glints,
+            WaterReflection = reflection,
+        };
+
+        byte[] Drawn(ShadeProgram program, SceneLight? light) => [.. MeshPicture.Of(
+            scene, new MeshPicture.Canvas(Size) { Water = port, Light = light, Time = 2f }, tilt: Down,
+            skins: [Sheet(220, 30, 30), null],
+            blends: [MaterialBlend.Opaque, MaterialBlend.Alpha],
+            shades: [null, program]).Rgba];
+
+        byte[] none = Drawn(plain, Light(glints: false, reflection: false));
+        Assert.Equal(none, Drawn(waves, Light(glints: false, reflection: false)));
+        Assert.Equal(Drawn(plain, null), Drawn(waves, null));
+
+        long Brightness(byte[] rgba)
+        {
+            long sum = 0;
+            for (var at = 0; at < rgba.Length; at += 4)
+            {
+                sum += rgba[at] + rgba[at + 1] + rgba[at + 2];
+            }
+
+            return sum;
+        }
+
+        Assert.True(Brightness(Drawn(waves, Light(glints: true, reflection: false))) > Brightness(none), "the sun straight down does not glint on the waves");
+        Assert.True(Brightness(Drawn(waves, Light(glints: false, reflection: true))) > Brightness(none), "the flat ambient is not reflected");
+    }
+
+    /// <summary>An ocean's paints carry the waves in the twin the game light draws with.</summary>
+    [Fact]
+    public void THEPAINTSLightAnOceanWithItsWaves()
+    {
+        byte[]? Read(string path) => path.EndsWith("ocean.mat", StringComparison.OrdinalIgnoreCase) ? Encoding.UTF8.GetBytes(Ocean) : null;
+        var paints = new MonsterModels.Paints();
+        ShadeProgram? lit = paints.Shade(Read, "Art/ocean.mat").Glossy;
+        Assert.NotNull(lit);
+        Assert.True(lit.HasWaves);
+    }
+
     /// <summary>The red where a point of the scene lands.</summary>
     private static byte RedAt(GamePicture picture, SkinnedMesh scene, Vector3 point)
     {
