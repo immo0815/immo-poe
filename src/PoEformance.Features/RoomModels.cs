@@ -198,6 +198,7 @@ public static class RoomModels
             Move = string.Join("; ", said),
             Lights = lights.Lights,
             LightsSaid = lights.Said(),
+            DoodadFiles = laid.Files,
         };
 
         // THE GRAPHS ONCE, OVER THE JOINED ROOM: every doodad's materials are in the one list, and a
@@ -214,6 +215,9 @@ public static class RoomModels
 
         /// <summary>Doodads loaded for another place of their file, and not laid at this one because it could not be seen there.</summary>
         public int Unseen { get; init; }
+
+        /// <summary>Every doodad file and what became of its lines, in the order first named - see <see cref="DoodadFile"/>.</summary>
+        public IReadOnlyList<DoodadFile> Files { get; init; } = [];
 
         /// <summary>The lines under the picture about what did not draw, and why.</summary>
         public IEnumerable<string> Said()
@@ -269,7 +273,9 @@ public static class RoomModels
         DoodadSieve? sieve = null,
         IReadOnlyList<(RoomDoodad One, Matrix4x4 Place)>? also = null)
     {
-        var models = new Dictionary<string, MonsterModel>(StringComparer.OrdinalIgnoreCase);
+        // ONE TALLY PER FILE, which also holds its model once loaded: a room places the same tree dozens of times.
+        var files = new Dictionary<string, Tally>(StringComparer.OrdinalIgnoreCase);
+        var named = new List<Tally>();
         float size = CellSize;
         long triangles = 0;
         int placed = 0, missing = 0, capped = 0, hidden = 0, unloaded = 0, unseen = 0;
@@ -278,22 +284,26 @@ public static class RoomModels
         string firstMissing = string.Empty;
 
         // WHERE EACH GOES FIRST, and whether it could be seen there at all.
-        var laid = new List<(RoomDoodad One, Matrix4x4 Place)>(room.Doodads.Count + (also?.Count ?? 0));
-        HashSet<string>? wanted = sieve is null ? null : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var laid = new List<(RoomDoodad One, Matrix4x4 Place, Tally File)>(room.Doodads.Count + (also?.Count ?? 0));
         void Take(RoomDoodad one, Matrix4x4 place)
         {
             // THE LIGHTS WHETHER OR NOT THE DOODAD DRAWS: a light can be all a doodad is -
             // grimtangle_ambientlight.ao has no mesh - and a doodad left out to keep the picture
             // turnable, or because the camera cannot see it, still lights the room in the game.
             lights?.Add(one.Ao, place);
-            laid.Add((one, place));
-            if (wanted is not null && !wanted.Contains(one.Ao))
+            if (!files.TryGetValue(one.Ao, out Tally? file))
             {
-                var half = new Vector3(sieve!.Margin * (one.Scale > 0f ? one.Scale : 1f));
-                if (sieve.Kept(place.Translation - half, place.Translation + half))
-                {
-                    wanted.Add(one.Ao);
-                }
+                file = new Tally(one.Ao, place.Translation);
+                files[one.Ao] = file;
+                named.Add(file);
+            }
+
+            file.Lines++;
+            laid.Add((one, place, file));
+            if (sieve is not null && !file.Wanted)
+            {
+                var half = new Vector3(sieve.Margin * (one.Scale > 0f ? one.Scale : 1f));
+                file.Wanted = sieve.Kept(place.Translation - half, place.Translation + half);
             }
         }
 
@@ -347,24 +357,21 @@ public static class RoomModels
         }
 
         using ModelProgress.Step step = ModelProgress.Begin(paints.Progress, "laying the doodads", laid.Count);
-        foreach ((RoomDoodad one, Matrix4x4 place) in laid)
+        foreach ((RoomDoodad one, Matrix4x4 place, Tally file) in laid)
         {
             step.Advance();
-            if (wanted is not null && !wanted.Contains(one.Ao))
+            if (sieve is not null && !file.Wanted)
             {
                 unloaded++;
+                file.Unseen++;
                 continue;
             }
 
-            if (!models.TryGetValue(one.Ao, out MonsterModel? model))
-            {
-                model = MonsterModels.OfFiles(counted, [one.Ao], wearing: true, paints);
-                models[one.Ao] = model;
-            }
-
+            MonsterModel model = file.Model ??= MonsterModels.OfFiles(counted, [one.Ao], wearing: true, paints);
             if (!model.Ready)
             {
                 missing++;
+                file.Missing++;
                 if (firstMissing.Length == 0)
                 {
                     firstMissing = $"{one.Ao} - {model.Why}";
@@ -379,6 +386,7 @@ public static class RoomModels
                 if (!sieve.Kept(low, high))
                 {
                     unseen++;
+                    file.Unseen++;
                     continue;
                 }
             }
@@ -386,19 +394,46 @@ public static class RoomModels
             if (placed >= mostDoodads || triangles + model.Mesh.Triangles > mostTriangles)
             {
                 capped++;
+                file.Capped++;
                 continue;
             }
 
             pile.Add(model, place, one.Ao);
             triangles += model.Mesh.Triangles;
             placed++;
+            file.Laid++;
         }
 
-        return new Doodads(placed, missing, capped, hidden, firstMissing, mostDoodads, mostTriangles, models.Values)
+        return new Doodads(
+            placed, missing, capped, hidden, firstMissing, mostDoodads, mostTriangles, [.. named.Where(one => one.Model is not null).Select(one => one.Model!)])
         {
             Unloaded = unloaded,
             Unseen = unseen,
+            Files = [.. named.Select(one => one.Said())],
         };
+    }
+
+    /// <summary>One doodad file's lines as they are laid, and its model once loaded - see <see cref="DoodadFile"/>.</summary>
+    private sealed class Tally(string ao, Vector3 first)
+    {
+        public MonsterModel? Model;
+        public bool Wanted;
+        public int Lines;
+        public int Laid;
+        public int Missing;
+        public int Capped;
+        public int Unseen;
+
+        public DoodadFile Said() => Model is { Ready: true } model
+            ? new DoodadFile(ao, Lines, Laid, Missing, Capped, Unseen, string.Empty, first)
+            {
+                Triangles = model.Mesh.Triangles,
+                Least = model.Mesh.Least,
+                Most = model.Mesh.Most,
+                Materials = model.ShapeMaterials,
+                Modes = model.Modes,
+            }
+            : new DoodadFile(ao, Lines, Laid, Missing, Capped, Unseen, Model?.Why ?? string.Empty, first);
     }
 
     /// <summary>A box through a transform, by its eight corners - a turned box's corners are not the old corners turned.</summary>
@@ -446,3 +481,37 @@ public static class RoomModels
 /// <param name="Kept">Whether anything in a box, in the pile's frame, may be seen - false leaves what is in it out.</param>
 /// <param name="Margin">How far round a place the box reaches before the doodad's own size is known, in world units, times its scale.</param>
 internal sealed record DoodadSieve(Func<Vector3, Vector3, bool> Kept, float Margin);
+
+/// <summary>
+/// One doodad file of a room and what became of its lines - laid, not drawn, left out by the cap or unseen - with its mesh's facts where it loaded.
+/// </summary>
+/// <remarks>
+/// PER FILE, FOR THE CAPTURE (CaptureReport.Panes): Port's harbour tile brings 31 lines of one water plane, the Monster Book's
+/// stage showed no water, and the line under the picture said only how many doodads in all were left out and which ONE did not
+/// draw first - not whether the water was among them, nor which cause it met.
+/// </remarks>
+/// <param name="Ao">The file, as the lines name it.</param>
+/// <param name="Lines">How many lines name it, the room's and its tiles' together - the level editor's tools not counted where hidden.</param>
+/// <param name="Laid">How many were laid into the picture.</param>
+/// <param name="Missing">How many were not because the file did not draw - see <paramref name="Why"/>.</param>
+/// <param name="Capped">How many were left out to keep the picture turnable - see RoomModels.UsualDoodads.</param>
+/// <param name="Unseen">How many were left out because the game's camera could not see them there, loaded or not.</param>
+/// <param name="Why">Why the file did not draw, or empty.</param>
+/// <param name="First">Where its first line puts it, in the picture's frame.</param>
+public sealed record DoodadFile(string Ao, int Lines, int Laid, int Missing, int Capped, int Unseen, string Why, Vector3 First)
+{
+    /// <summary>Its mesh's triangles, where it loaded.</summary>
+    public int Triangles { get; init; }
+
+    /// <summary>Its mesh's box in its own frame, where it loaded.</summary>
+    public Vector3 Least { get; init; }
+
+    /// <summary>See <see cref="Least"/>.</summary>
+    public Vector3 Most { get; init; }
+
+    /// <summary>Each shape's material, where it loaded.</summary>
+    public IReadOnlyList<string> Materials { get; init; } = [];
+
+    /// <summary>Each shape's blend as its material spells it, where it loaded - see MonsterModel.Modes.</summary>
+    public IReadOnlyList<string> Modes { get; init; } = [];
+}

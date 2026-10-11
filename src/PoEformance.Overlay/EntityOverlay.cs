@@ -2409,6 +2409,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         // THE PANES' PROBE is offered here rather than where each book is attached: there are four
         // panes and one part, and the books arrive in any order.
         _capture.Offer(CaptureParts.ModelProbe, ProbeReports);
+        _capture.OfferPanes(PaneReports);
 
         // The entry card takes its plates from the same cache the markers use, so a picture
         // that cannot be loaded is reported in one place and given up on once.
@@ -2526,6 +2527,21 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     {
         get => _capture.RecordMemory;
         set => _capture.RecordMemory = value;
+    }
+
+    /// <summary>Every model pane showing a model - the capture's model-panes part; see CapturePanes.</summary>
+    private List<CapturePane> PaneReports()
+    {
+        var panes = new List<CapturePane>(4);
+        foreach (MonsterPortrait? pane in (MonsterPortrait?[])[_monsterBook?.Model, _itemBook?.Model, _tileBook?.Model, _effectBook?.Model])
+        {
+            if (pane?.PaneReport() is { } shown)
+            {
+                panes.Add(shown);
+            }
+        }
+
+        return panes;
     }
 
     /// <summary>Every model pane's probe lines, each under its book's name - the capture's model-probe part; null where no pane is probing.</summary>

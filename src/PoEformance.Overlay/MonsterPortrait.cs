@@ -527,6 +527,9 @@ public sealed class MonsterPortrait
 
     /// <summary>The line about the stage the monster stands on, or why there is none - see MonsterModel.StageSaid.</summary>
     private string _stage = string.Empty;
+
+    /// <summary>A room stage's own lines, or empty - see MonsterModel.StageMove.</summary>
+    private string _stageMove = string.Empty;
     private Vector3[] _posed = [];
     private Vector3[] _posedNormals = [];
 
@@ -1466,6 +1469,13 @@ public sealed class MonsterPortrait
     /// <summary>The probe's lines as they stand - the pixel's surfaces, then the layers' counts - for the capture key; null while the probe is off, has not been clicked, or is about another model.</summary>
     public string? ProbeReport() => HasProbe ? string.Join('\n', _probeLines.Concat(_layerLines)) : null;
 
+    /// <summary>
+    /// The model shown and the lines under it, for the capture key's model-panes part - null where nothing is shown. See CapturePanes.
+    /// </summary>
+    /// <remarks>The lines as the info fold has them, the escape ImGui needs for a percent sign taken off again.</remarks>
+    public CapturePane? PaneReport()
+        => _model.Ready ? new CapturePane(Book, [.. _status.Select(line => line.Replace("%%", "%", StringComparison.Ordinal))], _model) : null;
+
     /// <summary>Whether the probe has lines about the model shown - the frame's own question, asked without building the text.</summary>
     private bool HasProbe => _probing && ReferenceEquals(_probedModel, _model) && _probeLines.Count + _layerLines.Count > 0;
 
@@ -2064,6 +2074,11 @@ public sealed class MonsterPortrait
             _status.Add(_stage);
         }
 
+        if (_stageMove.Length > 0)
+        {
+            _status.Add(_stageMove);
+        }
+
         // WHERE THE FILES WENT, and it stays up until the next export rather than flashing: the
         // whole point of the button is that somebody then goes and finds what it wrote.
         if (_exported.Length > 0)
@@ -2623,6 +2638,7 @@ public sealed class MonsterPortrait
         _still = still.Length > 0 ? "still: " + ImGuiText.Escape(still) : string.Empty;
 
         _stage = _model.StageSaid.Length > 0 ? ImGuiText.Escape(_model.StageSaid) : string.Empty;
+        _stageMove = _model.StageMove.Length > 0 ? "the stage's own lines: " + ImGuiText.Escape(_model.StageMove) : string.Empty;
 
         _shaders = ShowShaders && _model.Shaders.Count > 0
             ? "shaders: " + ImGuiText.Escape(string.Join(", ", _model.Shaders.Select(Tail)))

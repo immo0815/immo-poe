@@ -262,6 +262,10 @@ public static class StagedModels
             ActorPlace = place,
             Stage = stage,
             StageSaid = said,
+
+            // A ROOM'S OWN ACCOUNT, kept beside the monster's: what of its pieces, ground and doodads drew is said nowhere else.
+            StageMove = tile.Kind == ModelKind.Room ? tile.Move : string.Empty,
+            DoodadFiles = tile.DoodadFiles,
         };
     }
 

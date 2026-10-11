@@ -176,6 +176,13 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   `tests/fixtures/`.
 - **Print both halves.** A part that measures writes what the tool computed AND what it computed it
   from (the raw identities, the lines, the entities), so a disagreement can be settled from the file.
+- **A picture's own lines are in it too.** `model-panes.txt` writes every model pane's lines under its
+  picture - a room stage's own among them (`MonsterModel.StageMove`; before v0.1.202 a staged monster
+  dropped them) - and every doodad file of the room shown with what became of its lines (laid, not drawn,
+  capped, unseen), its box, where its first line puts it and its materials; a file that did not draw is
+  written whole with what it extends. Built when Port's harbour stood without its water - 31
+  `WaterPlane3x3.ao` lines in its `.tmd`, the probe over the water finding only the ocean's floor - and the
+  stage said nothing of why.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

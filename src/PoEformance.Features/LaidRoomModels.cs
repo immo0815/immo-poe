@@ -360,6 +360,7 @@ public static class LaidRoomModels
             Move = string.Join("; ", said),
             Lights = lights.Lights,
             LightsSaid = lights.Said(),
+            DoodadFiles = laid.Files,
             AreaOrigin = origin,
             BossSpot = BossSpotOf(room, laying),
         };

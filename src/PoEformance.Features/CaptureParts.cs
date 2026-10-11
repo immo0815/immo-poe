@@ -134,6 +134,9 @@ public static class CaptureParts
     /// <summary>The model panes' probe lines.</summary>
     public const string ModelProbe = "model-probe";
 
+    /// <summary>The model panes' lines under their pictures, and every doodad file of a room shown with what became of it.</summary>
+    public const string ModelPanes = "model-panes";
+
     /// <summary>The Memory Dissector's places, route and last search.</summary>
     public const string Dissector = "dissector";
 
@@ -231,6 +234,11 @@ public static class CaptureParts
         new(ModelProbe, "Windows", "the model probe", CaptureReport.ProbeFile,
             "What the last probe click in a model pane listed under that pixel, and how each translucent layer came out over the "
             + "picture - for every book whose probe is on. Nothing where none is."),
+        new(ModelPanes, "Windows", "the model panes' lines", CaptureReport.PanesFile,
+            "Every model pane showing a model: its lines under the picture, a room stage's own among them, and every doodad file "
+            + "of the room it shows with what became of its lines - laid, not drawn, left out by the cap, unseen - its box, where "
+            + "its first line puts it and its materials; each file that did not draw written whole with what it extends. "
+            + "Nothing where no pane shows a model."),
         new(Dissector, "Windows", "the dissector", CaptureReport.DissectorFile,
             "The places the Memory Dissector has open, the route walked to them, and what its last search found with the bytes "
             + "round each place. Nothing where it is untouched."),

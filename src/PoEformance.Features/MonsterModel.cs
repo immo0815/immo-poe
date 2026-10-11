@@ -198,6 +198,9 @@ public sealed record MonsterModel(
     /// <summary>What reading those lights came to, for the line under a lit picture - see RoomLights.Gathered.</summary>
     public string LightsSaid { get; init; } = string.Empty;
 
+    /// <summary>A room's doodad files and what became of each one's lines - see <see cref="DoodadFile"/>. Empty for anything but a room.</summary>
+    public IReadOnlyList<DoodadFile> DoodadFiles { get; init; } = [];
+
     /// <summary>
     /// Where the model's origin is in the area, in world units, where the model is drawn as the area laid it - else null.
     /// </summary>
@@ -378,6 +381,16 @@ public sealed record MonsterModel(
 
     /// <summary>What became of the stage asked for: where the monster stands on it, or why there is none.</summary>
     public string StageSaid { get; init; } = string.Empty;
+
+    /// <summary>
+    /// A room stage's own lines under its picture, as it stood alone - its pieces, ground and doodads - or empty.
+    /// </summary>
+    /// <remarks>
+    /// APART FROM <see cref="Move"/>, which on a staged model is the monster's. Until v0.1.202 the room's lines were dropped
+    /// there, and the Monster Book could not say why Port's harbour stood without its water: the tile doodads' count, what
+    /// did not draw and what the cap left out were said only where the room was drawn alone.
+    /// </remarks>
+    public string StageMove { get; init; } = string.Empty;
 
     /// <summary>Whether this is a monster standing on a stage. See <see cref="Actor"/>.</summary>
     public bool Staged => Actor is not null;

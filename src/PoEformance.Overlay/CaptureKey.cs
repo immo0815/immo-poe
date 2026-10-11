@@ -84,6 +84,9 @@ internal sealed class CaptureKey
     /// <summary>The windows' diagnoses, by part key - each asked for its text as the key goes down. See <see cref="Offer"/>.</summary>
     private readonly Dictionary<string, Func<string?>> _offers = new(StringComparer.Ordinal);
 
+    /// <summary>The model panes, asked for as the key goes down - see <see cref="OfferPanes"/>.</summary>
+    private Func<IReadOnlyList<CapturePane>>? _panes;
+
     private bool _wasDown;
     private bool _listening;
     private Run? _run;
@@ -173,6 +176,16 @@ internal sealed class CaptureKey
         ArgumentException.ThrowIfNullOrEmpty(key);
         ArgumentNullException.ThrowIfNull(report);
         _offers[key] = report;
+    }
+
+    /// <summary>
+    /// The model panes showing a model, asked for on the frame the key goes down - the model-panes part, whose files are read with the rest. See CapturePanes.
+    /// </summary>
+    /// <param name="panes">The panes as they stand.</param>
+    public void OfferPanes(Func<IReadOnlyList<CapturePane>> panes)
+    {
+        ArgumentNullException.ThrowIfNull(panes);
+        _panes = panes;
     }
 
     /// <summary>
@@ -284,6 +297,12 @@ internal sealed class CaptureKey
             {
                 run.Reports.Add((part, report()));
             }
+        }
+
+        // THE PANES AS THEY STAND, their models immutable - the files they name are read with the rest, off this thread.
+        if (On(CaptureParts.ModelPanes) && _panes is { } panes)
+        {
+            run.Panes = panes();
         }
 
         if (!On(CaptureParts.Memory))
@@ -640,6 +659,23 @@ internal sealed class CaptureKey
             }
         }
 
+        if (On(CaptureParts.ModelPanes))
+        {
+            if (run.Panes is not { Count: > 0 } panes)
+            {
+                parts.Add($"{CaptureReport.PanesFile}  not written: no model pane showed a model when the key went down");
+            }
+            else
+            {
+                Part(CaptureReport.PanesFile, () =>
+                {
+                    string text = CapturePanes.Write(read, panes);
+                    File.WriteAllText(At(CaptureReport.PanesFile), text);
+                    return text[..text.IndexOf('\n')];
+                });
+            }
+        }
+
         // THE WINDOWS' DIAGNOSES, as they stood on the press - see Offer.
         foreach ((CapturePart part, string? text) in run.Reports)
         {
@@ -911,6 +947,9 @@ internal sealed class CaptureKey
 
         /// <summary>The windows' diagnoses as they stood on the press, one per ticked part that offers one - null text for nothing there.</summary>
         public List<(CapturePart Part, string? Text)> Reports { get; } = [];
+
+        /// <summary>The model panes showing a model on the press, or null where the part is off or none was offered - see OfferPanes.</summary>
+        public IReadOnlyList<CapturePane>? Panes { get; set; }
 
         public Task<string>? Memory { get; set; }
 

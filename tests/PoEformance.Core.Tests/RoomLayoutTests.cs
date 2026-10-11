@@ -329,6 +329,12 @@ public class RoomLayoutTests
         Assert.Equal(1, one.Parts);
         Assert.Contains("1 more left out to keep it turnable - 1 doodads or 1000 triangles", one.Move, StringComparison.Ordinal);
 
+        // AND WHICH FILE THE CAP TOOK, per file: the rock laid, the tree - named second - left out, its mesh's facts kept.
+        Assert.Equal(
+            [("Metadata/Doodads/Rock.ao", 1, 1, 0), ("Metadata/Doodads/Tree.ao", 1, 0, 1)],
+            one.DoodadFiles.Select(file => (file.Ao, file.Lines, file.Laid, file.Capped)));
+        Assert.All(one.DoodadFiles, file => Assert.Equal(2, file.Triangles));
+
         // Zero is the usual, which places both.
         Assert.Equal(2, RoomModels.Of(p => files.GetValueOrDefault(p), path, doodads: 0).Parts);
     }
@@ -510,6 +516,13 @@ public class RoomLayoutTests
         Assert.True(model.Ready, model.Why);
         Assert.Equal(1, model.Parts);
         Assert.Contains("1 doodads did not draw", model.Move, StringComparison.Ordinal);
+
+        // AND THE FILE THAT DID NOT, with its reason and where its line puts it - the tree's at cell 30, 20.
+        DoodadFile tree = model.DoodadFiles.Single(file => file.Ao == "Metadata/Doodads/Tree.ao");
+        Assert.Equal((1, 0, 1), (tree.Lines, tree.Laid, tree.Missing));
+        Assert.NotEqual(string.Empty, tree.Why);
+        Assert.Equal(30f * RoomModels.CellSize, tree.First.X, 3);
+        Assert.Equal(0, tree.Triangles);
     }
 
     [Fact]
