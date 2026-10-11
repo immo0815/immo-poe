@@ -39,8 +39,25 @@ public sealed class CaptureGroundTests
         Assert.Contains("bit 1: first 00 3C 00 00 · 1 distinct over 4 vertices", said, StringComparison.Ordinal);
         Assert.Contains("as halves 1..1 0..0", said, StringComparison.Ordinal);
 
-        // The template once, though two files lay it - with its mask.
-        Assert.Contains($"  {Template}  1x1  ground in 1 of 1  format 0x3  coordinates in 0  mask Art/Models/Terrain/Test/Mask.dds  laid as edge, floor", said, StringComparison.Ordinal);
+        // The template once, though two files lay it - with its ground shapes and its mask.
+        Assert.Contains(
+            $"  {Template}  1x1  ground in 1 of 1  format 0x3  ground shapes 1..1 a sub-tile  coordinates in 0  mask Art/Models/Terrain/Test/Mask.dds  laid as edge, floor",
+            said,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Each laid template whole, once - what the template reader steps past included, since a tile's ground may be named there.
+    /// </summary>
+    [Fact]
+    public void THETEMPLATESAreWrittenWholeOnce()
+    {
+        string said = Written();
+
+        Assert.Contains("=== the templates whole (1)", said, StringComparison.Ordinal);
+        Assert.Contains("##### " + Template + "\n  | version 3\n  | Size 1 1\n", said, StringComparison.Ordinal);
+        Assert.Contains("  | GroundMask \"Art/Models/Terrain/Test/Mask.dds\"", said, StringComparison.Ordinal);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(said, "##### " + System.Text.RegularExpressions.Regex.Escape(Template)));
     }
 
     /// <summary>

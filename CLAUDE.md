@@ -275,11 +275,19 @@ point's way, on the floor round it rather than at it, a throne's seat being at i
 THE GROUND IS DRAWN WHITE, and what stands before a painted one is in `ground.txt` (`CaptureGround`): every
 laid template's ground blocks by vertex format, the fields the reader steps over as bytes AND as halves; each
 corner's ground by name with the master's MaterialsList group for it, the ground materials and their graphs;
-and the install's shader sources naming `tile_ground_tiling`, `ground_scalemove`, `TileGroundUVs` or
-`GetGroundTBN`, whole. The block carries no texture coordinates while every ground graph reads `InputUV`, so
-the engine makes them - "uv = tile_ground_tiling * pos * ground_scalemove_uv.xy" was once caught without its
-fragment - and how is to be read there, not guessed (a ground scale from WorldProjectUVs' 0.001 would be a
-guess). `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
+and the install's shader sources naming the ground's coordinates and its blending, whole; and every laid
+template whole, MaterialSlots and the triples' first numbers included, which `TileTemplate` reads past. Port
+(v0.1.195) settled three things. Its ground blocks DO carry coordinates - 891 of 893 at format 0x238, small
+(0.18..0.21 in one sub-tile), more like a place in the template's ground mask than a material's tiling; only
+the blank tiles' (0x30) carry none. The materials' coordinates are the engine's, from the world position
+(`internalonly.ffx`, `CreateProjectedCoords`): `uv = (world.xy + ground_scalemove_uv.zw) * ground_scalemove_uv.xy`,
+a pass uniform no file holds - every area's environment carries `"ground_scale": 0.004` (one per tile) in the
+block whose `dust_color` is that uniform's neighbour, which makes it the likely value and not yet a measured one.
+And the white pier under Malgor IS the harbour tile's ground block (the probe, "ground of Port_Boss_01.tdt"),
+whose corners name IslandOcean and IslandTownUnwalkableFill - black and cobblestone - where the game draws wood,
+and whose own doodad list carries no planks. So the corners' MaterialsList is not all a ground is drawn with;
+what else is (the template's slots, its ground mask, the blend's up to four materials) is the next capture's.
+`ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
 Six captures are committed under
 `tests/fixtures/captures/` (its README says why each), and `CaptureFixtureTests` holds the orientation

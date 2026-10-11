@@ -775,7 +775,7 @@ public sealed class TileBookWindow : BookWindow<TileBook>
         if (ImGui.IsItemHovered())
         {
             ImGui.SetTooltip("The tile's ground block, drawn plain. A tileset's MaterialsList names the ground textures - the dump lists them -"
-                + " but the ground has no texture coordinates, and how the engine makes them is not yet known."
+                + " but which the game draws where, mixed by its masks, is still being read: see ground.txt in a capture."
                 + " Off shows the props alone, where the ground rises around them.");
         }
 

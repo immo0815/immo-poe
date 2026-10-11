@@ -210,8 +210,9 @@ public static class CaptureParts
         new(Ground, "Area files", "the ground's makings", CaptureReport.GroundFile,
             "What the laid tiles' ground is made of, as the files say: every template's ground blocks by vertex format, with what "
             + "the fields the reader steps over hold; each corner's ground by name and what the master's MaterialsList draws it with, "
-            + "the ground materials and their graphs; and the install's shader sources that name where the ground's texture "
-            + "coordinates come from, whole. What stands between the rooms' white ground and a painted one."),
+            + "the ground materials and their graphs; the install's shader sources that name where the ground's texture "
+            + "coordinates come from and how its materials are blended, whole; and every laid template whole. What stands "
+            + "between the rooms' white ground and a painted one."),
 
         new(Doodads, "Rooms by doodads", "the doodads found", CaptureReport.DoodadsFile,
             "The survey of the area's entity maps for the rooms' doodads: each room's share, each path found and how many stand, "
