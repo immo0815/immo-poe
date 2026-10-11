@@ -24,9 +24,10 @@ namespace PoEformance.Features;
 /// material's tiling), while the engine's own CreateProjectedCoords makes the materials' from the world position:
 /// uv = (world.xy + ground_scalemove_uv.zw) * ground_scalemove_uv.xy, a pass uniform no file holds. And the probe said
 /// Port's white pier IS the harbour tile's ground block - whose corners name IslandOcean and IslandTownUnwalkableFill,
-/// black and cobblestone, where the game draws wood. So the template is written whole too (its MaterialSlots and the
-/// triples' first numbers are read past by TileTemplate), each template's ground shapes and coordinates are counted,
-/// and the sources of the ground's blending - up to four materials by engine and user masks - are searched for.
+/// black and cobblestone, and the game draws it cobblestone. How a tile of two grounds is split between them is the
+/// engine's blend - up to four materials by engine and user masks - so the sources of that blending are searched for,
+/// the template is written whole (its MaterialSlots and the triples' first numbers are read past by TileTemplate), and
+/// each template's ground shapes and coordinates are counted.
 ///
 /// The Tile Book's tile dump answers the same for ONE tile from a window; this answers it for every tile the area laid,
 /// and stays in the capture with the pictures and the recording.
