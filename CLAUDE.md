@@ -289,7 +289,11 @@ cobblestone with dirt between the stones (the in-game picture), which is IslandT
 `G_IHLT_CobblestoneDirt01`; the water round it is the tile's own doodads (31 `WaterPlane3x3` in its `.tmd`) over the
 ocean's black. So the corners' MaterialsList does name what the pier is drawn with; what is open is how a tile of
 two grounds is split between them - the engine's and the template's masks, up to four materials (`internalonly.ffx`,
-`GroundGenerateWeights_*`) - and that is the next capture's. "The game draws wood there" was written here once from
+`GroundGenerateWeights_*`) - and that is the next capture's. The blend's texture (`ground.ffx`, `user_blend`) is read
+red for the engine's mask, through an atlas of eight placed by two per-tile transforms (`GenerateBlendUVs`, 512 the
+atlas's size, x doubled), and green for the user's, through the block's own coordinates; and Port's three template
+masks (`newmask.dds`, `mask_3x3.dds`, `mask_ground.dds`) are all 256x512 R8G8_UNORM - two channels, red and green,
+which Pfim does not read and `GameArt` now does itself. "The game draws wood there" was written here once from
 a picture not looked at closely: the gangway and the ship are wood, the pier is not - look before writing it down.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.

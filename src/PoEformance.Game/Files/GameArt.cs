@@ -200,6 +200,11 @@ public static class GameArt
             return null;
         }
 
+        if (TwoChannels(dds) is { } paired)
+        {
+            return paired;
+        }
+
         try
         {
             using var stream = new MemoryStream(dds, writable: false);
@@ -223,6 +228,50 @@ public static class GameArt
             // stash that fails to open.
             return null;
         }
+    }
+
+    /// <summary>The DXGI format number of two unsigned bytes a texel, red then green.</summary>
+    private const uint R8G8Unorm = 49;
+
+    /// <summary>
+    /// A DDS of DXGI's R8G8_UNORM, read here because Pfim does not: its top level as a graphics card reads it, (r, g, 0, 1) - or null for any other.
+    /// </summary>
+    /// <remarks>
+    /// THE GROUND'S BLEND MASKS ARE THIS FORMAT - Port's newmask.dds, mask_3x3.dds and mask_ground.dds, all 256x512 - and
+    /// the engine reads red and green apart (ground.ffx: GetEngineMask the red, GetUserMask the green), so the two channels
+    /// are the whole of what is in them. Uncompressed and tightly packed, two bytes a texel, right after the DX10 header.
+    /// </remarks>
+    private static GamePicture? TwoChannels(byte[] dds)
+    {
+        const int header = 128;
+        const int dx10 = 20;
+        if (dds.Length < header + dx10
+            || !dds.AsSpan(0, 4).SequenceEqual("DDS "u8)
+            || (BitConverter.ToUInt32(dds, 80) & 0x4) == 0
+            || !dds.AsSpan(84, 4).SequenceEqual("DX10"u8)
+            || BitConverter.ToUInt32(dds, header) != R8G8Unorm)
+        {
+            return null;
+        }
+
+        int height = BitConverter.ToInt32(dds, 12);
+        int width = BitConverter.ToInt32(dds, 16);
+        if (width is <= 0 or > WidestPicture || height is <= 0 or > WidestPicture
+            || dds.Length < header + dx10 + ((long)width * height * 2))
+        {
+            return null;
+        }
+
+        var rgba = new byte[width * height * 4];
+        ReadOnlySpan<byte> texels = dds.AsSpan(header + dx10, width * height * 2);
+        for (var at = 0; at < width * height; at++)
+        {
+            rgba[at * 4] = texels[at * 2];
+            rgba[(at * 4) + 1] = texels[(at * 2) + 1];
+            rgba[(at * 4) + 3] = 255;
+        }
+
+        return new GamePicture(width, height, rgba);
     }
 
     /// <summary>
