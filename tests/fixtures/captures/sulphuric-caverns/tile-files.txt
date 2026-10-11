@@ -1,0 +1,993 @@
+186 tile files - 184 the area's tile lists name, 4 its fill lists, 80 laid, 1 of those named by no tile list; each with its definition followed through what it inherits, and the tile's doodad list (.tmd)
+a definition that inherits carries nothing but the reference (annalithic's Tdt.cs); a .tmd is the tile's own doodads, found beside the .tdt or beside its template
+
+=== laid, but named by no tile list - the listed files whose chain passes through it, the fill lists that name it, the listed files sharing its template
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Fill_01.tdt
+  reached by inheriting from: none
+  in a fill list: metadata/terrain/maps/sulphuriccaverns/random_fill_tiles.gft section "BlackInsideWall" weight 1
+  shares a template with: Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Fill_01.tdt
+
+=== every file: 'inherits' for each hop, then 'defines' (size, tag, templates) or 'not read'; 'tmd' with '| ' text lines, or 'hex' and 'strings'
+##### Metadata/Terrain/Blank.tdt  (listed, fill, laid)
+  defines	Metadata/Terrain/Blank.tdt	1x1	tag 	templates Art/Models/Terrain/Blank.tgt
+  tmd	none
+##### Metadata/Terrain/forced_blank.tdt  (listed, laid)
+  defines	Metadata/Terrain/forced_blank.tdt	1x1	tag forcedblank	templates Art/Models/Terrain/ForcedBlank.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/Cc_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Cc_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Cc_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Abyss/Cc_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/Cc_01.tmd	316 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/Cv_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Cv_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Cv_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Abyss/Cv_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/Cv_01.tmd	316 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/Fill_01.tdt  (listed, fill, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Fill_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Fill_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Abyss/Fill_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/Fill_01.tmd	316 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/Fill_02.tdt  (fill)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Fill_02.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Fill_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Abysswall/Fill_02.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/Fill_02.tmd	316 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/St_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/St_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/St_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Abyss/St_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/St_01.tmd	316 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/X_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/X_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/X_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Abyss/X_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/X_01.tmd	316 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssCc_CvM_Fissure_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/AbyssCc_CvM_Fissure_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/AbyssCc_CvM_Fissure_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/AbyssNarrow/AbyssCc_CvM_Fissure_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssCc_CvM_Fissure_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssCc_CvM_Fissure_02.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/AbyssCc_CvM_Fissure_02.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/AbyssCc_CvM_Fissure_02.tdt	3x3	tag bridge	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/AbyssNarrow/AbyssCc_CvM_Fissure_02.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssCc_CvM_Fissure_02.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssCc_CvW_Fissure_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/AbyssCc_CvW_Fissure_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/AbyssCc_CvW_Fissure_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/AbyssNarrow/AbyssCc_CvW_Fissure_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssCc_CvW_Fissure_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssCc_Fissure_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/AbyssCc_Fissure_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/AbyssCc_Fissure_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/AbyssNarrow/AbyssCc_Fissure_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssCc_Fissure_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssCc_Fissure_02.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/AbyssCc_Fissure_02.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/AbyssCc_Fissure_02.tdt	3x3	tag bridge	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/AbyssNarrow/AbyssCc_Fissure_02.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssCc_Fissure_02.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssSt_Fissure_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/AbyssSt_Fissure_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/AbyssSt_Fissure_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/AbyssNarrow/AbyssSt_Fissure_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssSt_Fissure_01.tmd	346 bytes	text
+  | version 8
+  | 34 34 1 374.991 375.028 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/FissureCnr_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/FissureCnr_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/FissureCnr_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/AbyssNarrow/FissureCnr_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/FissureCnr_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/FissureSt_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/FissureSt_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/FissureSt_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/AbyssNarrow/FissureSt_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/FissureSt_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/StMM_Fissure_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/StMM_Fissure_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/StMM_Fissure_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/AbyssNarrow/StMM_Fissure_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/StMM_Fissure_01.tmd	346 bytes	text
+  | version 8
+  | 34 34 1 375.012 375.031 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Lava/Cc_Ledge_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Cc_Ledge_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Cc_Ledge_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Cc_Ledge_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Lava/Cc_Ledge_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Lava/Cc_Ledge_02.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Cc_Ledge_02.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Cc_Ledge_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Cc_Ledge_02.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Lava/Cc_Ledge_02.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Lava/Cc_Ledge_03.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Cc_Ledge_03.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Cc_Ledge_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Cc_Ledge_03.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Lava/Cc_Ledge_03.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Lava/St_Ledge_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/St_Ledge_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/St_Ledge_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/St_Ledge_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Lava/St_Ledge_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvMM_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvMM_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvMM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvMM_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvMM_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvM_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvM_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvM_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvM_01.tmd	316 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvM_02.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvM_02.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvM_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvM_02.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvM_02.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvM_CvM_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvM_CvM_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvM_CvM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvM_CvM_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvM_CvM_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvM_CvW_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvM_CvW_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvM_CvW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvM_CvW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvM_CvW_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvM_End_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvM_End_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvM_End_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvM_End_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvM_End_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvWM_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvWM_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvWM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvWM_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvWM_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvWW_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvWW_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvWW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvWW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvWW_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvW_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvW_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvW_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvW_02.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvW_02.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvW_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvW_02.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvW_02.tmd	316 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvW_CvW_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvW_CvW_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvW_CvW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvW_CvW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvW_CvW_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvW_End_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvW_End_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvW_End_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_CvW_End_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvW_End_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_StM_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_StM_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_StM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_StM_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_StM_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_StW_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_StW_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_StW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cc_StW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_StW_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cv_Cv_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cv_Cv_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cv_Cv_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Cv_Cv_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cv_Cv_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/St_CvM_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/St_CvM_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/St_CvM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/St_CvM_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/St_CvM_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/St_CvW_01.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/St_CvW_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/St_CvW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/St_CvW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/St_CvW_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/Lava/Cc_Cc_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/Cc_Cc_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/Cc_Cc_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/Cc_Cc_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/Lava/Cc_Cc_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/Lava/Cc_End_01.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/Cc_End_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/Cc_End_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/Cc_End_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/Lava/Cc_End_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/Lava/St_End_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/St_End_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/St_End_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/St_End_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/Lava/St_End_01.tmd	314 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/Lava/Cc_01.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/Cc_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/Cc_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Abysswall/Cc_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/Lava/Cc_01.tmd	316 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/Lava/Cv_01.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/Cv_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/Cv_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Abysswall/Cv_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/Lava/Cv_01.tmd	316 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/Lava/St_01.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/St_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/St_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Abysswall/St_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/Lava/St_01.tmd	316 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/Lava/X_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/X_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/X_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Abysswall/X_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/Lava/X_01.tmd	316 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_01.tdt	6x6	tag goblin_holes	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Features/GoblinCaveFeature_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_010.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_010.tdt	6x3	tag goblin_holes	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Features/GoblinCaveFeature_010.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_011.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_011.tdt	6x6	tag goblin_holes	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Features/GoblinCaveFeature_011.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_02.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_02.tdt	6x6	tag goblin_holes	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Features/GoblinCaveFeature_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_03.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_03.tdt	6x6	tag goblin_holes	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Features/GoblinCaveFeature_03.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_04.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_04.tdt	6x6	tag goblin_holes	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Features/GoblinCaveFeature_04.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_05.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_05.tdt	6x6	tag goblin_holes	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Features/GoblinCaveFeature_05.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_06.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_06.tdt	6x6	tag goblin_holes	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Features/GoblinCaveFeature_06.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_07.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_07.tdt	6x6	tag goblin_holes	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Features/GoblinCaveFeature_07.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_08.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_08.tdt	6x6	tag goblin_holes	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Features/GoblinCaveFeature_08.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_09.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_09.tdt	6x3	tag goblin_holes	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Features/GoblinCaveFeature_09.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCaveArena/GoblinCaveArena_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCaveArena/GoblinCaveArena_01.tdt	12x15	tag arena	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Features/GoblinCaveArena_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCaveArena/GoblinCaveArena_01.tmd	5962 bytes	text
+  | version 8
+  | 34 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 103 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 172 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 241 34 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 241 103 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 172 103 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 103 103 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 34 103 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 34 172 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 103 172 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 172 172 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 241 172 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 241 241 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 172 241 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 103 241 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 34 241 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 34 310 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 103 310 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 241 310 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 172 310 0 0 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCaveEntrance_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCaveEntrance_01.tdt	9x9	tag entrance	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Features/GoblinCaveEntrance_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Cc_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Cc_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Ledge/Cc_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Cv_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Cv_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Ledge/Cv_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Goblins/Cc_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Goblins/Cc_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Ledge/Cc_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Goblins/Cv_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Goblins/Cv_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Ledge/Cv_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Goblins/St_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Goblins/St_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Ledge/St_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Goblins/St_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Goblins/St_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Ledge/St_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Goblins/X_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Goblins/X_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/Ledge/X_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/St_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/St_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Ledge/St_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/X_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/X_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Ledge/X_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CcMM_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CcMM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CcMM_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CcMM_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CcMM_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CcMM_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CcMW_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CcMW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CcMW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CcMW_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CcMW_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CcMW_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CcWW_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CcWW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CcWW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvMM_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvMM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMM_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvMM_01.tmd	1056 bytes	text
+  | version 8
+  | 24 20 1 262.744 225.523 0 0.521061 0 0 0.257593 0.966254 1 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile01.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 41 44 1 453.801 483.484 0 1.83259 0 0 0.793353 0.608762 1 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile07.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 20 25 1 223.384 272.595 0 -0.609546 0 0 -0.300077 0.953915 1 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile06.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvMM_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvMM_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMM_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvMW_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvMW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvMW_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvMW_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMW_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvMW_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvMW_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMW_03.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvWW_02.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvWW_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvWW_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Fill_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Fill_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CcMM_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CcMM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/Volcano/VolcanoInterior/ThickWalls/CcMM_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CcMM_01.tmd	364 bytes	text
+  | version 8
+  | 45 16 1 495.433 176.763 0 -2.3562 0 0 -0.92388 0.382682 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile14.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CcMM_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CcMM_02.tdt	3x3	tag 	templates Art/Models/Terrain/Maps/SulphuricCaverns/CcMM_02.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CcMM_02.tmd	1672 bytes	text
+  | version 8
+  | 28 23 1 305.852 252.491 -7.8125 -0.786374 0 0 -0.383134 0.923693 0 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 28 23 1 305.852 252.491 -7.8125 0.773629 0 0 0.37724 0.926115 0 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 44 50 1 479.204 548.914 -247.813 -1.39672 0 0 -0.642962 0.765898 0 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 44 50 1 479.204 548.914 -247.813 0.163351 0 0 0.0815846 0.996666 0 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_grd_med.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CcMW_01.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CcMW_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CcMW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CcMW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CcMW_02.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CcMW_02.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CcMW_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CcMW_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CcWW_01.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CcWW_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CcWW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CcWW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CvMM_02.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMM_02.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMM_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMM_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CvMM_03.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMM_03.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMM_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMM_03.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CvMM_03.tmd	1816 bytes	text
+  | version 8
+  | 34 34 0 -550 -0 0 0 0 -1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_4"
+  | 30 37 1 326.108 406.3 104.06 0.000976801 0 0 -0.0004884 -1 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 30 36 1 332.019 398.411 39.063 -2.67203 -0.113155 0.364044 0.88049 -0.281789 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 36 25 1 400.655 280.035 7.8125 1.05407 0 0 -0.502975 -0.864301 1 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile01.ao" "" "" "Metadata/MiscellaneousObjects/Doodad"
+  | 32 22 1 351.893 249.333 0 -0 0 0 0 -1 1 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile09.ao" "" "" "Metadata/MiscellaneousObjects/Doodad"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CvMW_01.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMW_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CvMW_01.tmd	2368 bytes	text
+  | version 8
+  | 19 41 1 214.177 447.727 -90 0.362264 0 0 0.180143 0.98364 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 19 41 1 214.177 447.727 -90 0.362264 0 0 0.180143 0.98364 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_grd_med.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 12 59 1 140.057 650.417 -275 0.362264 0 0 0.180143 0.98364 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 12 59 1 140.057 650.417 -275 0.362264 0 0 0.180143 0.98364 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 44 40 1 487.726 441.437 -7.8125 -2.67518 0 0 -0.972931 0.231097 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile02.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 14 22 1 157.359 242.644 0 -0.560278 0 0 -0.276489 0.961017 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile22.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CvMW_02.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMW_02.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMW_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMW_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CvWW_01.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvWW_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvWW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvWW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CvWW_01.tmd	1206 bytes	text
+  | version 8
+  | 37 35 1 405.544 389.152 -55 -0.675721 0 0 0.331469 -0.943466 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 37 35 1 405.544 389.152 70 -0.0249976 0.380521 0.22769 0.0847429 0.892289 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/densesmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 34 34 0 -550 1.5708 0 0 0.707107 0.707107 1 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_4" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CvWW_03.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvWW_03.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvWW_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvWW_03.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CvWW_03.tmd	1204 bytes	text
+  | version 8
+  | 30 43 1 333.387 475.327 65 -3.04113 0 0 0.998739 -0.0502124 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 30 43 1 333.387 475.327 65 -3.04113 0.0192153 0.382201 0.922714 -0.0463897 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/densesmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 34 34 0 -550 -3.14158 0 0 1 -4.55976e-06 1 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_4" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StMM_01.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StMM_02.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_02.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_02.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StMM_02.tmd	2354 bytes	text
+  | version 8
+  | 39 50 1 428.441 545.238 -30 0.100458 0 0 0.0502079 0.998739 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 39 50 1 428.441 545.238 -30 0.100458 0 0 0.0502079 0.998739 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/densesmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 20 65 1 228.164 707.662 -270 0.432843 0 0 0.214736 0.976672 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 20 65 1 228.164 707.662 -270 0.432843 0 0 0.214736 0.976672 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 50 29 1 548.583 318.166 -7.8125 -0.261799 0 0 -0.130526 0.991445 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile08.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 25 20 1 278.158 226.615 0 0.261799 0 0 0.130526 0.991445 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile22.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StMM_03.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_03.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_03.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StMM_03.tmd	1532 bytes	text
+  | version 8
+  | 38 34 1 422.708 376.666 93.75 1.5708 0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 38 34 1 422.708 376.666 93.75 3.12968 -0.00225087 0.382677 0.923863 0.00551347 0 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 53 27 1 578.085 302.945 0 -3.14159 0 0 -1 0 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile02.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 19 21 1 208.633 234.737 0 2.86032 0 0 0.990127 0.140173 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile07.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StMW_01.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMW_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StMW_01.tmd	832 bytes	text
+  | version 8
+  | 25 47 1 281.535 517.827 -80 -0.624064 0 0 -0.306993 0.951712 0 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 25 47 1 281.535 517.827 -80 -0.624064 0 0 -0.306993 0.951712 0 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StMW_03.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMW_03.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMW_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMW_03.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StMW_03.tmd	1910 bytes	text
+  | version 8
+  | 39 40 1 428.276 437.776 104.063 1.57178 0 0 0.707453 0.70676 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 39 44 1 429.838 484.232 39.0625 0.0117696 0.258815 -0.00152466 0.00568381 0.965909 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 48 21 1 524.596 229.623 0 3.01629 0 0 0.998038 0.0626091 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile22.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 39 46 1 424.343 501.195 39.0625 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile43.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 34 34 0 -550 -1.57079 0 0 -0.707103 0.707111 1 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_4" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StWW_01.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StWW_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StWW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StWW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StWW_01.tmd	1664 bytes	text
+  | version 8
+  | 38 38 1 421.787 416.012 -40 -0.161308 0 0 -0.0805665 0.996749 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 38 38 1 421.787 416.012 -40 -0.0241205 0 0 -0.01206 0.999927 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/densesmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 48 43 1 523.394 477.982 -280 -2.77933 0 0 0.983641 -0.180141 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 48 43 1 523.394 477.982 -280 -0.22438 0 0 -0.111955 0.993713 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_grd_med.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Lava/CvMM_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Lava/CvMM_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMM_03.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Lava/CvMM_03.tmd	1204 bytes	text
+  | version 8
+  | 34 34 0 -550 8.74228e-08 0 0 4.37114e-08 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_4"
+  | 28 37 1 310.497 405.149 104.06 2.61701 0 0 0.965799 0.259292 0 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 28 36 1 313.566 398.288 39.063 -2.26412 -0.189856 0.327249 0.804559 -0.457765 0 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Lava/CvWW_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Lava/CvWW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvWW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Lava/CvWW_01.tmd	1156 bytes	text
+  | version 8
+  | 34 34 0 -550 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_4"
+  | 37 35 1 404.713 391.131 60 -3.04113 0 0 0.998739 -0.050212 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 37 35 1 404.713 391.131 60 -3.04113 0.0173005 0.344116 0.937584 -0.0471374 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Lava/CvWW_03.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Lava/CvWW_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvWW_03.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Lava/CvWW_03.tmd	1156 bytes	text
+  | version 8
+  | 34 34 0 -550 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_4"
+  | 27 41 1 298.777 451.481 70 -3.04113 0 0 0.998739 -0.050212 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 27 41 1 298.777 451.481 70 -3.04113 0.0192153 0.382201 0.922714 -0.0463898 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Lava/StMW_03.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Lava/StMW_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMW_03.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Lava/StMW_03.tmd	1154 bytes	text
+  | version 8
+  | 34 34 0 -550 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_4"
+  | 39 39 1 424.761 432.95 -40 0.134131 0 0 0.0670152 0.997752 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 39 39 1 424.761 432.95 45 0.134131 0.381823 -0.0256456 0.0619139 0.921803 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StMM_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StMM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StMM_02.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StMM_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StMM_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StMM_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_03.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StMM_03.tmd	1210 bytes	text
+  | version 8
+  | 38 33 1 415.438 362.359 368.75 3.14062 0 0 1 0.000488238 0 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 38 32 1 421.536 357.946 193.75 3.13017 -0.000809739 0.378338 0.925649 0.0058364 0 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 34 34 0 -550 1.57079 0 0 0.707104 0.70711 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_4" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StMW_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StMW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StWW_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StWW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StWW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StWW_02.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StWW_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StWW_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StWW_03.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StWW_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StWW_03.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MM_MM_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MM_MM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/X_MM_MM_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MM_MM_01.tmd	746 bytes	text
+  | version 8
+  | 28 40 1 310.195 441.165 -7.8125 -0.0434988 0 0 -0.0217477 0.999763 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 24 39 1 262.813 433.2 -7.8125 -0.323506 0 0 -0.161049 0.986947 0 2 "Metadata/Terrain/Doodads/Tools/invisible_blocker_round.ao" "" "" "Metadata/MiscellaneousObjects/Doodad"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MM_WW_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MM_WW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/X_MM_WW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MM_WW_01.tmd	392 bytes	text
+  | version 8
+  | 35 22 1 389.967 243.667 -7.8125 0.785398 0 0 0.382683 0.92388 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile08.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MW_MM_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MW_MM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/X_MW_MM_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MW_MM_01.tmd	378 bytes	text
+  | version 8
+  | 40 55 1 443.203 598.319 -7.8125 0.856257 0 0 0.415169 0.909744 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile07.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MW_MW_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MW_MW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/X_MW_MW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MW_MW_01.tmd	390 bytes	text
+  | version 8
+  | 23 47 1 254.946 518.034 -7.8125 0.402879 0 0 0.20008 0.97978 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MW_WM_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MW_WM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/X_MW_WM_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MW_WM_01.tmd	366 bytes	text
+  | version 8
+  | 43 24 1 470.145 268.976 0 -2.12778 0 0 -0.87425 0.485475 1 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile07.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MW_WW_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MW_WW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/X_MW_WW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_WW_WW_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_WW_WW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/X_WW_WW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CcCvMM_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CcCvMM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CcCvMM_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CcCvMW_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CcCvMW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CcCvMW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CcCvWW_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CcCvWW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CcCvWW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CcCvWW_01.tmd	368 bytes	text
+  | version 8
+  | 56 8 1 615.05 88.2227 -7.8125 -2.698 0 0 -0.975503 0.219984 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile20.ao" "" "" "Metadata/MiscellaneousObjects/Doodad"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvCvMM_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvCvMM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CvCvMM_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvCvMM_01.tmd	378 bytes	text
+  | version 8
+  | 41 16 1 456.344 180.31 -7.8125 0.86317 0 0 0.418311 0.908304 0 0.8 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile15.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvCvMW_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvCvMW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CvCvMW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvCvWW_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvCvWW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CvCvWW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMM_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CvMM_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMM_01_blocked.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMM_01_blocked.tdt	3x3	tag blocked	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CvMM_01_blocked.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMM_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMM_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CvMM_02.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMM_02.tmd	380 bytes	text
+  | version 8
+  | 50 19 1 549.262 208.434 -203.125 0.780063 0 0 0.380218 0.924897 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile04.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMM_02_blocked.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMM_02_blocked.tdt	3x3	tag blocked	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CvMM_02_blocked.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMW_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CvMW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMW_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMW_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CvMW_02.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMW_02.tmd	370 bytes	text
+  | version 8
+  | 57 21 1 628.786 238.842 -7.8125 1.5708 0 0 0.707107 0.707107 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile07.ao" "" "" "Metadata/MiscellaneousObjects/Doodad"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMW_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMW_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CvMW_03.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMW_03_blocked.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMW_03_blocked.tdt	3x3	tag blocked	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CvMW_03_blocked.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMW_04.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMW_04.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CvMW_04.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvWW_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvWW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CvWW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvWW_01_blocked.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvWW_01_blocked.tdt	3x3	tag blocked	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CvWW_01_blocked.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvWW_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvWW_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CvWW_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvWW_02_blocked.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvWW_02_blocked.tdt	3x3	tag blocked	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/CvWW_02_blocked.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StMM_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StMM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/StMM_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StMW_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StMW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/StMW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StMW_01_blocked.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StMW_01_blocked.tdt	3x3	tag blocked	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/StMW_01_blocked.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StMW_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StMW_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/StMW_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StWW_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StWW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/StWW_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StWW_01_blocked.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StWW_01_blocked.tdt	3x3	tag blocked	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/StWW_01_blocked.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/X_CvCvM_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/X_CvCvM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallLedge/X_CvCvM_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/CvMM_Cc_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/CvMM_Cc_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallThinwall/CvMM_Cc_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/CvMW_Cc_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/CvMW_Cc_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallThinwall/CvMW_Cc_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/CvMW_End_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/CvMW_End_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallThinwall/CvMW_End_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/CvWM_End_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/CvWM_End_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallThinwall/CvWM_End_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/CvWM_End_01.tmd	380 bytes	text
+  | version 8
+  | 35 34 1 381.624 373.033 -15.625 -2.66207 0 0 -0.971394 0.237473 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile26.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvMM_Thinwall_02.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Goblins/CvMM_02.tdt
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMM_02.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMM_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMM_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvMM_Thinwall_03.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Lava/CvMM_03.tdt
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMM_03.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMM_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMM_03.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvMM_Thinwall_03.tmd	1640 bytes	text
+  | version 8
+  | 29 37 1 322.43 410.821 102 -3.04114 0 0 -0.998739 0.0502034 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 31 43 1 347.752 475.509 170 -3.04112 -0.0192159 -0.382201 -0.922714 0.0463906 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/densesmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 27 34 1 301.014 375.042 170 -3.04112 -0.0192159 -0.382201 -0.922714 0.0463906 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/densesmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 34 34 0 -550 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_4" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvMW_Thinwall_01.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Goblins/CvMW_01.tdt
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMW_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvMW_Thinwall_01.tmd	2808 bytes	text
+  | version 8
+  | 18 40 1 205.418 441.533 -67.8125 0.406274 0 0 0.201743 0.979438 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 19 41 1 209.282 447.992 -67.8125 0.416694 -0.00501381 0.00029901 0.206844 0.978361 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/densesmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 13 59 1 149.061 650.727 -272.813 0.447853 0 0 0.22206 0.975033 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 14 60 1 152.653 657.342 -272.813 0.456567 0.0321794 0.00445849 0.22653 0.973462 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_grd_med.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 49 40 1 539.632 438.355 0 0.47057 0 0 0.23312 0.972448 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 23 27 1 251.681 295.241 0 2.95958 0 0 0.995862 0.090881 1 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile02.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 42 41 1 466.818 448.978 -7.8125 -0.957964 0 0 -0.460876 0.887465 0 3 "Metadata/Terrain/Doodads/Tools/invisible_blocker_round.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvMW_Thinwall_02.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Goblins/CvMW_02.tdt
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMW_02.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMW_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvMW_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvWW_End_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThickwallThinwall/CvWW_End_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThickwallThinwall/CvWW_End_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallThinwall/CvWW_End_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvWW_End_01.tmd	1100 bytes	text
+  | version 8
+  | 34 34 0 10 2.73586 0 0 0.979493 0.201476 0 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 34 34 0 -550 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_4" 0
+  | 34 34 0 135 -2.19897 0.0872214 -0.424344 -0.75144 0.497657 0 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/densesmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvWW_Thinwall_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Lava/CvWW_01.tdt
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvWW_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvWW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvWW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvWW_Thinwall_01.tmd	710 bytes	text
+  | version 8
+  | 32 33 1 354.123 362.989 32 -3.04118 0 0 -0.99874 0.0501832 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 34 34 0 -550 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_4" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvWW_Thinwall_03.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Lava/CvWW_03.tdt
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvWW_03.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvWW_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/CvWW_03.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvWW_Thinwall_03.tmd	1168 bytes	text
+  | version 8
+  | 29 41 1 320.146 455.689 10 0.308444 0 0 0.153611 0.988131 0 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 34 34 0 -550 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_4" 0
+  | 29 41 1 320.146 455.689 135 -0.313794 0.332554 -0.293338 -0.246234 0.861817 0 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/densesmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/StMM_Thinwall_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Goblins/StMM_01.tdt
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/StMM_Thinwall_02.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Goblins/StMM_02.tdt
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_02.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/StMM_Thinwall_03.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Lava/StMM_03.tdt
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_03.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMM_03.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/StMM_Thinwall_03.tmd	1208 bytes	text
+  | version 8
+  | 40 35 1 439.325 390.293 70 1.47031 -0.256669 -0.28384 -0.619652 -0.685264 0 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 40 35 1 439.325 390.293 70 1.47034 0 0 -0.670714 -0.741716 0 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 34 34 0 -550 9.11951e-06 0 0 -4.55976e-06 -1 1 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_4" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/StMW_Thinwall_01.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Goblins/StMW_01.tdt
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMW_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StMW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/StMW_Thinwall_01.tmd	1538 bytes	text
+  | version 8
+  | 25 45 1 277.932 497.2 -90 -0.624067 0 0 -0.306995 0.951711 0 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 25 45 1 272.997 495.213 -90 -0.624067 0 0 -0.306995 0.951711 0 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 22 28 1 248.853 313.578 -7.8125 1.94774 0 0 0.827068 0.562102 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile42.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 19 23 1 216.679 259.551 -7.8125 1.5708 0 0 0.707107 0.707107 1 3 "Metadata/Terrain/Doodads/Tools/invisible_blocker_round.ao" "" "" "Metadata/MiscellaneousObjects/Doodad"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/StWW_Thinwall_01.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Goblins/StWW_01.tdt
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StWW_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StWW_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/StWW_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/StWW_Thinwall_01.tmd	1650 bytes	text
+  | version 8
+  | 38 32 1 415.428 356.233 -45 -0.100466 0 0 0.0502119 -0.998739 0 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 38 32 1 415.428 356.233 -45 -0.100466 0 0 0.0502119 -0.998739 0 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/densesmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 48 38 1 522.028 421.087 -280 -0.362266 0 0 0.180144 -0.98364 0 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 48 38 1 522.028 421.087 -280 -0.362266 0 0 0.180144 -0.98364 0 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_grd_med.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/StMW_End_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/StMW_End_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallThinwall/StMW_End_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/StWW_End_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/StWW_End_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThickwallThinwall/StWW_End_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/StWW_End_01.tmd	688 bytes	text
+  | version 8
+  | 42 20 1 463.375 226.787 -17.8125 0.370661 0 0 0.184272 0.982875 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile31.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 51 18 1 561.483 202.605 0 -0 0 0 0 1 0 2 "Metadata/Terrain/Doodads/Tools/invisible_blocker_round.ao" "" "" "Metadata/MiscellaneousObjects/Doodad"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Cc_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Cc_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/Cc_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Cc_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Cc_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/Cc_03.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/End_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/End_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/End_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/End_01.tmd	774 bytes	text
+  | version 8
+  | 37 29 1 408.399 323.069 -15.625 -2.25918 0 0 -0.904238 0.427029 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile07.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 17 37 1 194.422 410.219 -7.8125 1.82549 0 0 0.791184 0.611578 1 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile22.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/End_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/End_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/End_02.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/End_02.tmd	750 bytes	text
+  | version 8
+  | 38 48 1 414.804 528.894 7.8125 1.12072 0 0 0.531491 0.847064 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile20.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 28 42 1 313.25 456.795 7.8125 -0.839169 0 0 -0.407381 0.913258 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile21.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/End_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/End_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/End_03.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/End_03.tmd	378 bytes	text
+  | version 8
+  | 27 22 1 300.333 248.55 -7.8125 -1.86139 0 0 -0.802036 0.597276 1 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile09.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Lava/Cc_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Lava/Cc_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/Cc_02.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Lava/Cc_02.tmd	1188 bytes	text
+  | version 8
+  | 34 34 0 -550 8.74228e-08 0 0 4.37114e-08 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_3"
+  | 27 49 1 302.983 537.988 90 -2.77934 0 0 0.983641 -0.18014 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 27 49 1 302.983 537.988 90 -2.04125 -0.171209 0.346399 0.74548 -0.543097 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/lightsmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Lava/St_Door_03.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Lava/St_Door_03.tdt	3x3	tag door	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/St_Door_03.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Lava/Tri_03.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Lava/Tri_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/Tri_03.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/St_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_02.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/St_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_03.tdt  (listed, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/St_03.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_04.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_04.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/St_04.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_Door_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_Door_01.tdt	3x3	tag door	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/St_Door_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_Door_02.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_Door_02.tdt	3x3	tag door	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/St_Door_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Tri_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Tri_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/Tri_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Tri_02.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Tri_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/Tri_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/X_01.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/X_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/X_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/X_02.tdt  (listed)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/X_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thinwall/X_02.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/X_02.tmd	852 bytes	text
+  | version 8
+  | 16 36 1 178.043 399.648 150 -1.20854 0 0 0.568161 -0.822917 1 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 14 37 1 159.01 409.278 55 -1.21144 -0.22355 0.322784 0.523633 -0.756072 1 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/densesmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/Cc_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/Cc_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/Cc_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/Cc_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/Cc_02.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/Cc_02.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/Cc_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/Cc_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/Cv_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/Cv_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/Cv_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/Cv_01.tgt
+  tmd	Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/Cv_01.tmd	2214 bytes	text
+  | version 8
+  | 34 34 0 -550 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/Volcano/Lava/VolcanoLava_3x3.ao" "" "" "Metadata/MiscellaneousObjects/Doodad_Distant_4"
+  | 40 29 1 441.353 325.911 115 -0.362258 0 0 -0.18014 0.983641 0 1 "Metadata/Terrain/Doodads/Lights/GoblinMines_LavaAmbientLight_Green.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 40 29 1 441.353 325.911 115 -0.240614 0.382899 -0.0112907 -0.134105 0.913935 0 1 "Metadata/Effects/Spells/environment_effects/Act4_FOUR/sulphur_vents/ao/densesmoke_plume.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 32 19 1 358.1 215.596 112.188 -0 0 0 0 1 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile22.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 45 23 1 496.343 253.178 132.188 -2.59804 0 0 -0.963296 0.268442 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile21.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking"
+  | 11 59 1 129.212 649.708 -203.125 1.8326 0 0 0.793353 0.608761 0 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile09.ao" "" "" "Metadata/MiscellaneousObjects/Doodad"
+  | 
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/Cv_02.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/Cv_02.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/Cv_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/Cv_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/St_01.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/St_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/St_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/St_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/St_01_door.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/Goblins/St_01.tdt
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/St_01.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/St_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/St_01.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/St_02.tdt  (listed, laid)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/St_02.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/St_02.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/St_02.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/St_03.tdt  (listed)
+  inherits	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/St_03.tdt
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/St_03.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/ThinwallLedge/St_03.tgt
+  tmd	none
+##### Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Fill_01.tdt  (fill, laid)
+  defines	Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Fill_01.tdt	3x3	tag 	templates Art/Models/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Fill_01.tgt
+  tmd	none
+##### Metadata/Terrain/Maps/SulphuricCaverns/Tiles/Features/SulphuricCaverns_Boss_01.tdt  (listed, laid)
+  defines	Metadata/Terrain/Maps/SulphuricCaverns/Tiles/Features/SulphuricCaverns_Boss_01.tdt	18x18	tag boss	templates Art/Models/Terrain/Maps/SulphuricCaverns/SulphuricCaverns_Boss_01.tgt
+  tmd	Metadata/Terrain/Maps/SulphuricCaverns/Tiles/Features/SulphuricCaverns_Boss_01.tmd	3736 bytes	text
+  | version 8
+  | 263 361 1 2860.2 3930.54 500 0.686119 0 0 0.33637 0.94173 1 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile21.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 310 342 1 3371.07 3724.02 500 1.38829 0 0 0.63973 0.7686 1 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile22.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 281 359 1 3055.85 3908.81 484.375 -0.948902 0 0 -0.45685 0.889544 1 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile19.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 45 393 1 490.638 4278.37 -78.125 1.26807 0 0 0.5924 0.805644 1 0.8 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile24.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 46 297 1 501.507 3234.89 304.688 1.55874 0 0 0.70283 0.711358 0 0.75 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile32.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 88 363 1 958.029 3952.28 78.125 2.59577 0 0 0.96299 0.269537 1 1 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile26.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 23 157 1 251.507 1713.15 242.188 2.27359 0 0 0.90729 0.420505 1 0.85 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile25.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 67 44 1 729.768 484.893 -148.438 2.75296 0 0 0.98118 0.193095 1 1.2 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile21.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 252 51 1 2740.64 560.98 200 -0.399246 0 0 -0.1983 0.980141 1 0.55 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile33.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 329 191 1 3577.59 2082.72 367.19 -0 0 0 0 1 1 0.7 "Metadata/Terrain/Doodads/Islands/WhaleStranding/BonePile34.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+  | 

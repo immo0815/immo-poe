@@ -16,7 +16,8 @@ namespace PoEformance.Game.Files;
 ///
 /// x and y in the tile's cells, 23 to a tile, as a room's doodad lines count them - negative and past the tile's
 /// edge as well; a counted run of float pairs, the first the exact place in world units (as a room line's from version
-/// 34: 251.163 for cell 23); z in the area's own frame, up being minus - every TileUpperDoodad sits at -250; the angle
+/// 34: 251.163 for cell 23); z above the tile's own level, up being minus - every TileUpperDoodad sits at -250, and the
+/// entity the game makes stands at the level plus it (its Render TerrainHeight, CaptureFixtureTests); the angle
 /// in radians with its quaternion after it (half the angle, as the lines bear out); one bool; the scale; then FOUR
 /// quoted strings - the .ao (a spawner's "x.fmt;y.ao"), one always empty, the .fmt a spawner draws, and the entity
 /// type the game makes of it (DoodadNoBlocking, TileUpperDoodad, WallSeals, ...) - and one number. Laid against a

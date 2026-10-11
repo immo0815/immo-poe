@@ -9,13 +9,14 @@ capture) - nothing the replays read is in them.
 |---|---|---|
 | `oasis` | Oasis (MapOasis), `0x07D66EE7` | where the orientation and origin rules were first read; 14 rooms placed by their doodads |
 | `steppe` | Steppe (MapSteppe), `0xE9FD7267` | the open `forced_blank` question; its list weights tiles 1, 20 and 300 |
-| `sulphuric-caverns` | Sulphuric Caverns (MapSulphuricCaverns), `0x03EB5F7D` | the boss room lays tile files no list names (`Thickwall/Fill_01` for the list's `Murky/Thickwall/Fill_01`, and an `Abyss/Lava/Fill_02`) - 17 of its 39 settled slots |
+| `sulphuric-caverns` | Sulphuric Caverns (MapSulphuricCaverns), `0x6C3D3F29` | v0.1.188: the fill list sectioned by ground type, whose BlackInsideWall tile (`Thickwall/Fill_01`) the boss room lays in all fifteen slots asking for that ground all round, where the tile list names `Murky/Thickwall/Fill_01`; tiles at level -203, which settled that a tile doodad stands at its line's z above its tile's level. It replaced a v0.1.179 capture of another instance, which lacked the masters and the doodad lists |
 | `steaming-springs` | Steaming Springs (MapSteamingSprings), `0x6FC87FF1` | the most weight samples (57) and 15 placed rooms; every settled slot comes out the game's file |
 | `marrow` | Marrow (MapMarrow), `0x193FC4A6` | v0.1.186, the first with `area-masters.txt`: the five laid tiles no tile list names all in the master's fill list (`random_fill_tiles.gft`); `.tmd` read as a tile's doodad list, and its wall tops (`TileUpperDoodad`) are how a tile's frame reaches the world and which of a top's directional lines the game puts down (`TileDoodadList.Shown`, 514 of 514); the first tile-list words (`I`, `R90`, `R180`, `R270`), none laid. It replaced a v0.1.183 capture of the same area, which lacked the masters |
 
-The first four were taken with v0.1.179 and carry neither `tile-files.txt` nor `area-masters.txt`
-(v0.1.184); Marrow's says a master's fill list is where its unlisted tiles come from, and a capture of
-one of the first four's areas from that build on is what says whether that holds there too.
+Oasis, Steppe and Steaming Springs were taken with v0.1.179 and carry neither `tile-files.txt` nor
+`area-masters.txt` (v0.1.184); Marrow's and Sulphuric's say a master's fill list is where their unlisted
+tiles come from, and a capture of one of the other three from that build on is what says whether that
+holds there too.
 
 Run every replay over one of them, from the repository's root - the path has to be absolute, since the
 tests run in their own bin folder:

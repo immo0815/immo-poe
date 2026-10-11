@@ -1,48 +1,13 @@
-1 monsters among 283 entities, read fresh inside the recording with every switch on, nearest the player first; distance and position in world units
+1 monsters among 85 entities, read fresh inside the recording with every switch on, nearest the player first; distance and position in world units
 mods are the game's own ids off ObjectMagicProperties, named where its Mods table names them; buffs carry their clocks; targetable is the game's own byte
 a marked place within 100 of a monster is listed under it - an essence prison stands on its monster and carries the icon the monster does not
 
-### 1376.3  Normal Manifested Demon  (Metadata/Monsters/LeagueDelirium/DeliriumDemonFireSword_@70)  id 3569  at 0x55E3364F780
-  position 18103.3 18266.3 -116.7   life 11148/11148 (100%)   targetable yes   hidden yes   friendly no   effect no
-  mods: MonsterNoDropsOrExperience
-  buffs: hidden_monster (permanent) x1
+### 693.8  Unknown CircleOfPower  (Metadata/Monsters/Anomalies/CircleOfPower)  id 2823  at 0x55E7047F080
+  position 4864.1 5462 0   life 1/1 (100%)   targetable unread   hidden no   friendly yes   effect yes
+  mods: (no ObjectMagicProperties)
+  buffs: (not read)
 
-=== 37 marked places - every entity the game gives a map icon, nearest the player first
+=== 2 marked places - every entity the game gives a map icon, nearest the player first
 distance	icon	present	id	address	x	y	z	path	name
-51.6	AbyssCrackInactive	unread	688	0x55E5F74E880	19000	19250	-14.5	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-149.5	AbyssCrackInactive	unread	687	0x55E59AE8780	19000	19125	-14.5	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-201.7	AbyssPitInactive	unread	683	0x55E57437F00	19250	19250	-7	Metadata/MiscellaneousObjects/Abyss/AbyssFinalNodeBase	
-206.8	AbyssChestInactive	unread	3524	0x55E65261B00	19255.4	19255.4	-70	Metadata/Chests/Abyss/AbyssChestCurrency	Abyssal Coffer
-224.1	AbyssCrackInactive	unread	686	0x55E59AE4E00	18875	19125	-12.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-400.3	AbyssCrackInactive	unread	685	0x55E59AE1200	18750	19000	-15.1	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-437.6	AbyssCrackInactive	unread	708	0x55E5F74A780	18625	19375	-15.1	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-484.1	AbyssCrackInactive	unread	707	0x55F0BF9E380	18625	19500	-13.2	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-500.6	AbyssCrackInactive	unread	684	0x55F6430BD80	18625	19000	-12.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-549.2	AbyssCrackInactive	unread	709	0x55E5F749B00	18500	19250	-12.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-645.8	AbyssCrackInactive	unread	690	0x55E61BC5B00	19125	18625	-13.2	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-674.1	AbyssCrackInactive	unread	710	0x55E5F740500	18375	19250	-14.5	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-674.1	AbyssCrackInactive	unread	702	0x55E64E42D80	18500	18875	-15.1	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-688.6	AbyssCrackInactive	unread	711	0x55F6430A700	18375	19125	-15.1	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-753.6	AbyssCrackInactive	unread	703	0x55E64E42600	18500	18750	-12.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-768.7	AbyssCrackInactive	unread	704	0x55E64EC8C00	18625	18625	-15.1	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-792.2	AbyssCrackInactive	unread	691	0x55F0B31B680	19250	18500	-13.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-842.1	AbyssCrackInactive	unread	712	0x55F64304F80	18250	19000	-12.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-875.7	AbyssCrackInactive	unread	705	0x55E64ECF280	18625	18500	-12.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-889.6	AbyssCrackInactive	unread	713	0x55E64E4C880	18250	18875	-15.1	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-894.5	AbyssCrackInactive	unread	692	0x55E61BC5880	19125	18375	-12.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-1019.1	AbyssCrackInactive	unread	693	0x55E61BCD580	19125	18250	-15.1	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-1024.5	AbyssCrackInactive	unread	715	0x55E65266100	18250	18625	-12.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-1046.8	AbyssCrackInactive	unread	706	0x55E64EC1680	18500	18375	-15.1	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-1058.4	AbyssCrackInactive	unread	714	0x55E64E43F00	18125	18750	-13.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-1142.4	AbyssCrackInactive	unread	694	0x55E61BCFB00	19000	18125	-12.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-1193.3	AbyssChestActive	unread	3696	0x55E5907C800	18255.4	18375	-70	Metadata/Chests/Abyss/AbyssChestArmour	Abyssal Armoury
-1196.9	AbyssPitInactive	unread	689	0x55E65263400	18250	18375	-6.7	Metadata/MiscellaneousObjects/Abyss/AbyssFinalNodeBase	
-1267.2	AbyssCrackInactive	unread	695	0x55E61BCC400	19000	18000	-14.5	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-1278.2	AbyssCrackInactive	unread	696	0x55E5F170A80	18875	18000	-15.1	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-1380.2	AbyssCrackInactive	unread	699	0x55E64ECE880	18500	18000	-12.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-1393.1	AbyssCrackInactive	unread	701	0x55E65CE5680	18250	18125	-12.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-1423.1	AbyssCrackInactive	unread	697	0x55E5F17A580	18750	17875	-12.6	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-1434.5	AbyssCrackInactive	unread	700	0x55E65CE4780	18375	18000	-15.1	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-1454.5	AbyssCrackInactive	unread	698	0x55E64EC0280	18625	17875	-15.1	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
-2520.8	BossCheckpointActive	yes	82	0x55E8835DB80	17472.8	17298.9	-120.1	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame_Boss	Checkpoint
-22042.6	NPC	no	957	0x55F0A511A80	2418.5	4798.9	-94.3	Metadata/NPC/League/Affliction/ElderMadoxMapIntro	Elder Madox
+1768.9	BossCheckpointActive	yes	82	0x55E56F8CF00	6701.1	6527.2	-120.1	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame_Boss	Checkpoint
+9916.5	NPC	no	859	0x55F0A510680	10385.9	13853.3	-94.3	Metadata/NPC/League/Affliction/ElderMadoxMapIntro	Elder Madox

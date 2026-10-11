@@ -1050,7 +1050,12 @@ public static class CaptureReport
     /// <param name="read">How to get a file out of the install, by path.</param>
     /// <param name="loaded">The files the area loaded - for its masters and the room sets it loaded itself.</param>
     /// <param name="masters">Every master the install has, as its index lists them - see AreaRoomSet.</param>
-    public static string Masters(Func<string, byte[]?> read, IReadOnlyList<string> loaded, IReadOnlyList<string>? masters)
+    /// <param name="grounds">
+    /// The area's ground types as its terrain lists them (TerrainGroundTypes.Types), each written whole after the masters -
+    /// or null. A fill list's sections are named by a ground type's NAME, its first line, while a room's slot names the
+    /// <c>.gt</c> file; without the files whole, a replay can join the two only for the master's own OuterGroundType.
+    /// </param>
+    public static string Masters(Func<string, byte[]?> read, IReadOnlyList<string> loaded, IReadOnlyList<string>? masters, IReadOnlyList<string>? grounds = null)
     {
         ArgumentNullException.ThrowIfNull(read);
         ArgumentNullException.ThrowIfNull(loaded);
@@ -1121,6 +1126,18 @@ public static class CaptureReport
             {
                 files++;
                 body.Append("##### ").Append(path).AppendLine("  (loaded)");
+                Whole(body, bytes);
+            }
+        }
+
+        // THE AREA'S GROUND TYPES, whole and small: the name a fill list's section is keyed by.
+        foreach (string ground in grounds ?? [])
+        {
+            string path = ground.Replace('\\', '/').Trim();
+            if (path.Length > 0 && written.Add(path) && read(path) is { Length: > 0 } bytes)
+            {
+                files++;
+                body.Append("##### ").Append(path).AppendLine("  (a ground type of the area)");
                 Whole(body, bytes);
             }
         }

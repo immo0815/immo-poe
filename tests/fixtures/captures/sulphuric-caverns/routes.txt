@@ -1,2 +1,0 @@
-you: x 19049  y 19266
-The Bone Colossus: x 18620  y 18620  -  72 walk

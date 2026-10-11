@@ -12,10 +12,11 @@ namespace PoEformance.Core.Tests;
 /// changes, and every count below moves with them; what must not move is which reading the rooms agree
 /// with. So each check is that the rule's reading leads, and by how much where a margin is the point.
 ///
-/// THE CAPTURES (v0.1.179, pictures left out): Oasis, where the orientation and origin rules were first
-/// read; Steppe, the forced_blank question and the weights 1, 20 and 300; Sulphuric Caverns, whose boss
-/// room lays tile files no list names (see CaptureReport.TileFiles); Steaming Springs, the most weight
-/// samples and fifteen placed rooms; and Marrow (v0.1.186), the fill lists, the words and the tile doodads.
+/// THE CAPTURES (pictures left out): Oasis, where the orientation and origin rules were first read; Steppe,
+/// the forced_blank question and the weights 1, 20 and 300; Steaming Springs, the most weight samples and
+/// fifteen placed rooms - those three v0.1.179; Marrow (v0.1.186), the fill lists, the words and the wall
+/// tops; Sulphuric Caverns (v0.1.188), the fill list's tiles in its boss room and the tiles above level
+/// nought that settled a tile doodad's height.
 /// tests/fixtures/captures/README.md says more.
 /// </remarks>
 public partial class CaptureFixtureTests
@@ -51,7 +52,7 @@ public partial class CaptureFixtureTests
     /// </summary>
     /// <remarks>
     /// MOST, NOT ALL: the readings that miss stand inside their footprint rather than at another corner - a room placed a
-    /// tile off - and their share is what the margin allows (Oasis 2 of 170, Steaming Springs 11 of 345, Sulphuric Caverns 7 of 63).
+    /// tile off - and their share is what the margin allows (Oasis 2 of 170, Steaming Springs 11 of 345, Sulphuric Caverns 7 of 61).
     /// </remarks>
     [Theory]
     [InlineData("oasis")]
@@ -79,10 +80,10 @@ public partial class CaptureFixtureTests
 
     /// <summary>A slot one tile answers comes out the game's file, in an area whose laid files the lists name.</summary>
     /// <remarks>
-    /// STEAMING SPRINGS ALONE: Sulphuric Caverns' boss room lays files no list names (Thickwall/Fill_01 for the
-    /// list's Murky/Thickwall/Fill_01, and a Fill_02), which a build from the list cannot come out as - the open
-    /// question CaptureReport.TileFiles was added to answer - and Oasis' boss room lays one MudBorder_Cc_01 where
-    /// its slot asks for a straight.
+    /// STEAMING SPRINGS ALONE: Sulphuric Caverns' boss room lays its fill list's BlackInsideWall tile
+    /// (Thickwall/Fill_01) in all fifteen slots that ask for that ground all round, where a build from the tile list
+    /// takes Murky/Thickwall/Fill_01 - a file laid nowhere in the area - and Oasis' boss room lays one
+    /// MudBorder_Cc_01 where its slot asks for a straight.
     /// </remarks>
     [Fact]
     public void THESETTLEDSlotsComeOutTheGamesFile()
@@ -165,6 +166,72 @@ public partial class CaptureFixtureTests
         Assert.All(grounds, ground => Assert.True(ground.Groups[1].Value.Length == 0, "a line's z is not its entity's ground: " + ground.Value));
     }
 
+    /// <summary>
+    /// Sulphuric Caverns' one laid file no tile list names is in its master's fill list - under the section of the
+    /// ground it fills, BlackInsideWall.
+    /// </summary>
+    [Fact]
+    public void THETILEFILESOfSulphuricComeFromItsFillList()
+    {
+        string replay = CaptureReplayTests.TileFilesReplay(Capture("sulphuric-caverns"));
+        Assert.StartsWith("tile files: 1 laid files no tile list names: 0 reached by inheriting, 1 in a fill list, 0 sharing a template with a listed file, 0 not explained", replay, StringComparison.Ordinal);
+        Assert.Contains("fill list metadata/terrain/maps/sulphuriccaverns/random_fill_tiles.gft: version 2, 3 sections, 4 tiles (3 laid)", replay, StringComparison.Ordinal);
+        Assert.Contains("Fill_01: in a fill list - Metadata/Terrain/Islands/Tiles/CoralDungeon/Thickwall/Fill_01.tdt", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Built from the tile list and the master's fill list, Sulphuric Caverns' boss room comes out the game's file in every
+    /// slot one tile settles - the fifteen asking BlackInsideWall all round from the fill list among them.
+    /// </summary>
+    /// <remarks>
+    /// THE FILL LIST'S RULE (RoomBuilder): before it, those fifteen took the tile list's Murky/Thickwall/Fill_01, a file the
+    /// area lays nowhere, and 24 of the 39 settled slots came out the game's file.
+    /// </remarks>
+    [Fact]
+    public void THEFILLListFillsSulphuricsBossRoomAsTheGameDid()
+    {
+        string replay = CaptureReplayTests.BuildReplay(Capture("sulphuric-caverns"));
+        Match settled = Settled().Match(replay);
+        Assert.True(settled.Success);
+        Assert.Equal("39", settled.Groups[1].Value);
+        Assert.Equal(settled.Groups[1].Value, settled.Groups[2].Value);
+        Assert.Contains("15 filled from the master's fill list (15 the game's file)", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A tile doodad's z counts from its tile's level: Sulphuric Caverns lays tiles at -203, and every doodad found there
+    /// stands at its line's z plus that level - as every one on a tile at nought stands at its line's z - while the tile's
+    /// frame, as authored then the game's placement, finds every doodad it puts down.
+    /// </summary>
+    /// <remarks>
+    /// THE OPEN HALF OF MARROW'S MEASUREMENT, where every tile under a found doodad was at nought and the two readings
+    /// could not be told apart. Pinned as a rule over every type found, and with a level other than nought among them, so
+    /// that a capture without one cannot pass it by agreeing trivially.
+    /// </remarks>
+    [Fact]
+    public void THETILEDOODADSOfSulphuricCountTheirHeightFromTheTilesLevel()
+    {
+        string replay = CaptureReplayTests.TileDoodadsReplay(Capture("sulphuric-caverns"));
+
+        var readings = new Dictionary<(int Way, string Turn), (int Found, int Put)>();
+        foreach (Match reading in Readings().Matches(replay))
+        {
+            readings[(int.Parse(reading.Groups[1].Value, CultureInfo.InvariantCulture), reading.Groups[2].Value)] =
+                (int.Parse(reading.Groups[3].Value, CultureInfo.InvariantCulture), int.Parse(reading.Groups[4].Value, CultureInfo.InvariantCulture));
+        }
+
+        Assert.Equal(16, readings.Count);
+        (int found, int put) = readings[(3, "after")];
+        Assert.True(put > 300, $"only {put} doodads put");
+        Assert.Equal(put, found);
+        Assert.All(readings.Where(one => one.Key.Way != 3), one => Assert.True(one.Value.Found < found / 2, $"way {one.Key.Way}, turn {one.Key.Turn} finds {one.Value.Found}"));
+
+        Assert.Matches(Raised(), replay);
+        MatchCollection levels = Level().Matches(replay);
+        Assert.True(levels.Count >= 3);
+        Assert.All(levels, level => Assert.True(level.Groups[1].Value.Length == 0, "a doodad does not stand at its line's z above its tile's level: " + level.Value));
+    }
+
     [GeneratedRegex(@"room way (\d), tile way (\d): edges (\d+) agree, (\d+) disagree")]
     private static partial Regex Pair();
 
@@ -182,4 +249,13 @@ public partial class CaptureFixtureTests
 
     [GeneratedRegex(@"entity ground - line z: -?0 x\d+([^\r\n]*)")]
     private static partial Regex Ground();
+
+    [GeneratedRegex(@"way (\d) \([^)]*\), the game's turn (after|before): (\d+) / \d+ / \d+ of (\d+)")]
+    private static partial Regex Readings();
+
+    [GeneratedRegex(@"entity ground - line z: [^\r\n]*-203 x\d+")]
+    private static partial Regex Raised();
+
+    [GeneratedRegex(@"entity ground - line z - the tile's level: -?0 x\d+([^\r\n]*)")]
+    private static partial Regex Level();
 }

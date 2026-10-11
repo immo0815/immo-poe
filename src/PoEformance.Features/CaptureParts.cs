@@ -202,7 +202,8 @@ public static class CaptureParts
             + "this says for each whether a listed file inherits it, a fill list names it or a listed file shares its template."),
         new(Masters, "Area files", "the area's masters", CaptureReport.MastersFile,
             "Every master (.tsi) of the area whole, and every file it names - room set, fill list (FillTiles), anything else - whole too; "
-            + "a tile list by name, being whole in tileset-lists.txt. The keys of a master this tool does not read yet are where to look."),
+            + "a tile list by name, being whole in tileset-lists.txt; then the area's ground types whole, whose names a fill list's sections "
+            + "are keyed by. The keys of a master this tool does not read yet are where to look."),
 
         new(Doodads, "Rooms by doodads", "the doodads found", CaptureReport.DoodadsFile,
             "The survey of the area's entity maps for the rooms' doodads: each room's share, each path found and how many stand, "

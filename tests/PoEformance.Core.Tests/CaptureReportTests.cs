@@ -413,6 +413,7 @@ public class CaptureReportTests
     internal static byte[]? TileFilesInstall(string path) => path switch
     {
         "Metadata/Terrain/Maps/Test/master.tsi" => Encoding.UTF8.GetBytes("version 2\nTileSet \"tiles.tst\"\nFillTiles \"fills.gft\"\n"),
+        "Metadata/Terrain/Test/abyss.gt" => Encoding.UTF8.GetBytes("abyss\n0 1 0 0\n"),
         "Metadata/Terrain/Maps/Test/tiles.tst" => Encoding.UTF8.GetBytes(
             "\"Metadata/Terrain/Test/Murky/Fill_01.tdt\"\n\"Metadata/Terrain/Test/Lava/Fill_01.tdt\"\n\"Metadata/Terrain/Test/Features/Passage_feature.tdt\"\n"),
         "Metadata/Terrain/Maps/Test/fills.gft" => Encoding.UTF8.GetBytes(
@@ -489,6 +490,14 @@ public class CaptureReportTests
             "##### Metadata/Terrain/Maps/Test/fills.gft  (FillTiles of Metadata/Terrain/Maps/Test/master.tsi)\n  fill list: version 2, 1 sections, 1 tiles, 1 rooms\n  | version 2\n  | \"abyss\"\n",
             said,
             StringComparison.Ordinal);
+        Assert.DoesNotContain("a ground type of the area", said, StringComparison.Ordinal);
+
+        // THE AREA'S GROUND TYPES, whole after the masters: the name a fill list's section is keyed by. One the install lacks is left out.
+        string grounds = CaptureReport.Masters(
+            TileFilesInstall, ["Metadata/Terrain/Maps/Test/master.tsi"], null, ["Metadata\\Terrain\\Test\\abyss.gt", "Metadata/Terrain/Test/gone.gt"]).ReplaceLineEndings("\n");
+        Assert.StartsWith("1 master of the area and 3 files", grounds, StringComparison.Ordinal);
+        Assert.Contains("##### Metadata/Terrain/Test/abyss.gt  (a ground type of the area)\n  | abyss\n", grounds, StringComparison.Ordinal);
+        Assert.DoesNotContain("gone.gt", grounds, StringComparison.Ordinal);
     }
 }
 

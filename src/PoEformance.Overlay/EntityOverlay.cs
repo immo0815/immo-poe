@@ -933,14 +933,15 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             return new MonsterBookWindow.RoomsLaid([], "the install's tile index is not walked yet - open the combo again in a moment");
         }
 
+        // THE MASTER, NOT ITS TILE LIST: the build reads both the tile list and the fill list out of it (BuiltRoomModels).
         List<string> masters = AreaRoomSet.MastersIn(folders, TileSets);
         string? tileset = null;
         foreach (string master in masters)
         {
             byte[]? bytes = readFile(master);
-            if (TilesetFile.Value(bytes is { Length: > 0 } ? StatDescriptionFiles.Decode(bytes) : null, "TileSet") is { Length: > 0 } set)
+            if (TilesetFile.Value(bytes is { Length: > 0 } ? StatDescriptionFiles.Decode(bytes) : null, "TileSet") is { Length: > 0 })
             {
-                tileset = TilesetFile.Beside(master, set);
+                tileset = master;
                 break;
             }
         }

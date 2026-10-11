@@ -642,10 +642,11 @@ public static class LaidRoomModels
     /// down +y in the cells, so a doodad hung on the mesh would stand mirrored; set as the game sets it, a doodad that misses
     /// its wall says the mesh is off, not the doodad.
     ///
-    /// THE HEIGHT IN THE TILE'S FRAME: the line's z above the piece's own lift, so a raised piece takes its doodads with it.
-    /// DECIDED, NOT MEASURED - every tile under a found doodad in Marrow sat at level nought, where this and the area's nought
-    /// agree; the line's z itself is the entity's TerrainHeight there, exactly. The other two readings stay for comparison,
-    /// as they do for a room's doodads (DoodadHeight).
+    /// THE HEIGHT IN THE TILE'S FRAME, MEASURED: the game stands a tile's doodad at its line's z above the tile's own level -
+    /// its entity's TerrainHeight is the two summed, every doodad found in Sulphuric Caverns, 41 of them on tiles at -203
+    /// (CaptureFixtureTests). Drawn above the piece's lift, which is that level or the fit to the area's ground, whichever
+    /// the piece itself is drawn at, so a doodad stays on the mesh it belongs to. The other two readings stay for
+    /// comparison, as they do for a room's doodads (DoodadHeight).
     ///
     /// TURNED, NOT MIRRORED: an entity carries an angle and no mirror, so a doodad of a mirrored tile is turned to the way its
     /// line faces once laid - the facing TileDoodadList.Shown reads, (sin a, -cos a) - rather than mirrored with the tile.

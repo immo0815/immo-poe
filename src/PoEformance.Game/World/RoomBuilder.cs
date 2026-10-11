@@ -23,7 +23,11 @@ public sealed record RoomBuildTile(string Path, TileIdentity Identity, int Weigh
 /// <param name="Placement">How the tile was laid, 0 to 7 - see TileOrientation.Placement - or -1 where none was.</param>
 /// <param name="Fits">How many of the slot's named sides and corners the tile meets with the same type, laid that way.</param>
 /// <param name="Named">How many sides and corners the slot names.</param>
-public sealed record RoomBuildSlot(int Column, int Line, int Left, int Top, int Width, int Height, string Said, int Candidates, string Tile, int Placement, int Fits, int Named);
+public sealed record RoomBuildSlot(int Column, int Line, int Left, int Top, int Width, int Height, string Said, int Candidates, string Tile, int Placement, int Fits, int Named)
+{
+    /// <summary>Whether the tile came from the master's fill list rather than the tile list - see RoomBuilder's remarks.</summary>
+    public bool FromFillList { get; init; }
+}
 
 /// <summary>A room built from a pool of tiles - its grid as an area would hold it, and what each slot got.</summary>
 /// <param name="Tiles">The tiles laid, as the area's own grid holds them - the room's grid and every footprint that reaches past it - or null where nothing could be built.</param>
@@ -49,13 +53,16 @@ public sealed record RoomBuild(TerrainTiles? Tiles, IReadOnlyList<RoomBuildSlot>
     /// <summary>Slots whose tile, laid every way, still leaves a named side or corner unmet - the type families the sets allow and the sides do not.</summary>
     public int Unmet => Slots.Count(one => one.Tile.Length > 0 && one.Fits < one.Named);
 
+    /// <summary>Slots filled from the master's fill list.</summary>
+    public int FromFillList => Slots.Count(one => one.FromFillList);
+
     /// <summary>The build in a line.</summary>
     public string Said
         => Why.Length > 0
             ? Why
             : string.Create(
                 CultureInfo.InvariantCulture,
-                $"built from the tileset: {Filled} of {Slots.Count} slots filled, {Settled} settled by one tile, {Slots.Count - Settled - Unfilled} chosen among several by weight{(Unmet > 0 ? $", {Unmet} laid with a named side unmet" : string.Empty)}{(Unfilled > 0 ? $", {Unfilled} with no tile alike" : string.Empty)}");
+                $"built from the tileset: {Filled} of {Slots.Count} slots filled, {Settled} settled by one tile, {Slots.Count - Settled - Unfilled} chosen among several by weight{(FromFillList > 0 ? $", {FromFillList} of them from the master's fill list" : string.Empty)}{(Unmet > 0 ? $", {Unmet} laid with a named side unmet" : string.Empty)}{(Unfilled > 0 ? $", {Unfilled} with no tile alike" : string.Empty)}");
 }
 
 /// <summary>
@@ -84,6 +91,15 @@ public sealed record RoomBuild(TerrainTiles? Tiles, IReadOnlyList<RoomBuildSlot>
 /// grid, so the grid is grown to hold every footprint whole and RoomBuild.X and Y say where the room's
 /// own first column and line lie in it. So the room is drawn by the laid-room drawing on a grid of its
 /// own, without a line of it changed - what the area knows, built here instead of read.
+///
+/// A SLOT THAT ASKS ONE GROUND ALL ROUND IS FILLED FROM THE MASTER'S FILL LIST, measured before it was built:
+/// a fill list (FillList) is sectioned by ground type, and the generator lays the section of that ground in
+/// such a slot, not the tile list's tile - Sulphuric Caverns' boss room (v0.1.188) put the fill list's
+/// BlackInsideWall tile in all fifteen of its slots asking that ground at every corner and no edge, while the
+/// tile list's own (Murky/Thickwall/Fill_01) is laid nowhere in the area; Augury put its fill list's black.tdt
+/// in 571 one-by-one such slots no tile of its list answers at all. A section none of whose tiles is alike to
+/// the slot leaves it to the tile list. A slot naming nothing is NOT taken to be one - Augury fills most of
+/// those from a fill list too, but which section is a question of its own, not yet measured.
 /// </remarks>
 public static class RoomBuilder
 {
@@ -103,7 +119,11 @@ public static class RoomBuilder
     /// </summary>
     /// <param name="room">The room, read with its slots.</param>
     /// <param name="pool">The tiles the tileset offers, each with its identity.</param>
-    public static RoomBuild Build(RoomLayout room, IReadOnlyList<RoomBuildTile> pool)
+    /// <param name="fills">
+    /// The master's fill list by the ground type each section fills - keyed by the <c>.gt</c> as a slot names it, each
+    /// tile with its section's weight - or null where the master names none. See the remarks.
+    /// </param>
+    public static RoomBuild Build(RoomLayout room, IReadOnlyList<RoomBuildTile> pool, IReadOnlyDictionary<string, IReadOnlyList<RoomBuildTile>>? fills = null)
     {
         ArgumentNullException.ThrowIfNull(room);
         ArgumentNullException.ThrowIfNull(pool);
@@ -117,10 +137,11 @@ public static class RoomBuilder
             return new RoomBuild(null, [], room.SlotsWhy.Length > 0 ? $"the room's grid did not read: {room.SlotsWhy}" : "the room has no slot grid");
         }
 
-        var wants = new SlotWant?[pool.Count];
-        for (var at = 0; at < pool.Count; at++)
+        SlotWant?[] wants = WantsOf(pool);
+        var fillWants = new Dictionary<string, (IReadOnlyList<RoomBuildTile> Tiles, SlotWant?[] Wants)>(StringComparer.OrdinalIgnoreCase);
+        foreach ((string ground, IReadOnlyList<RoomBuildTile> tiles) in fills ?? new Dictionary<string, IReadOnlyList<RoomBuildTile>>())
         {
-            wants[at] = SlotWants.Of(pool[at].Identity);
+            fillWants[Clean(ground)] = (tiles, WantsOf(tiles));
         }
 
         // THE CHOICES FIRST, the grid after: a footprint may reach past the room's grid (RoomSlot.Corner),
@@ -142,20 +163,13 @@ public static class RoomBuilder
                 }
 
                 SlotWant want = SlotWants.Of(room, slot);
-                int best = -1;
-                int bestWeight = int.MinValue;
-                var candidates = 0;
-                for (var at = 0; at < pool.Count; at++)
+                IReadOnlyList<RoomBuildTile> from = pool;
+                (int best, int candidates) = Heaviest(want, pool, wants);
+                if (OneGround(room, slot) is { } ground && fillWants.TryGetValue(ground, out var section)
+                    && Heaviest(want, section.Tiles, section.Wants) is { Best: >= 0 } filled)
                 {
-                    if (wants[at] is { } tile && SlotWants.IsAlike(want, tile))
-                    {
-                        candidates++;
-                        if (pool[at].Weight > bestWeight)
-                        {
-                            best = at;
-                            bestWeight = pool[at].Weight;
-                        }
-                    }
+                    from = section.Tiles;
+                    (best, candidates) = filled;
                 }
 
                 string said = SlotWants.Said(want);
@@ -167,19 +181,22 @@ public static class RoomBuilder
                     continue;
                 }
 
-                (int placement, int fits, int named) = Placement(room, slot, pool[best].Identity);
-                if (!pathIds.TryGetValue(pool[best].Path, out int id))
+                (int placement, int fits, int named) = Placement(room, slot, from[best].Identity);
+                if (!pathIds.TryGetValue(from[best].Path, out int id))
                 {
                     id = paths.Count;
-                    paths.Add(pool[best].Path);
-                    pathIds[pool[best].Path] = id;
+                    paths.Add(from[best].Path);
+                    pathIds[from[best].Path] = id;
                 }
 
                 leastX = Math.Min(leastX, left);
                 leastY = Math.Min(leastY, top);
                 mostX = Math.Max(mostX, left + slot.Width - 1);
                 mostY = Math.Max(mostY, top + slot.Height - 1);
-                slots.Add(new RoomBuildSlot(column, line, left, top, slot.Width, slot.Height, said, candidates, pool[best].Path, placement, fits, named));
+                slots.Add(new RoomBuildSlot(column, line, left, top, slot.Width, slot.Height, said, candidates, from[best].Path, placement, fits, named)
+                {
+                    FromFillList = !ReferenceEquals(from, pool),
+                });
                 chosenIds.Add(id);
             }
         }
@@ -227,6 +244,61 @@ public static class RoomBuilder
         }
 
         return new RoomBuild(new TerrainTiles(paths, ids, subX, subY, placements, width, height), slots, string.Empty) { X = -leastX, Y = -leastY };
+    }
+
+    /// <summary>Each tile's wants, once.</summary>
+    private static SlotWant?[] WantsOf(IReadOnlyList<RoomBuildTile> tiles)
+    {
+        var wants = new SlotWant?[tiles.Count];
+        for (var at = 0; at < tiles.Count; at++)
+        {
+            wants[at] = SlotWants.Of(tiles[at].Identity);
+        }
+
+        return wants;
+    }
+
+    /// <summary>The heaviest tile alike to the slot, the first of equals, and how many are alike - -1 where none is.</summary>
+    private static (int Best, int Candidates) Heaviest(SlotWant want, IReadOnlyList<RoomBuildTile> tiles, SlotWant?[] wants)
+    {
+        int best = -1, bestWeight = int.MinValue, candidates = 0;
+        for (var at = 0; at < tiles.Count; at++)
+        {
+            if (wants[at] is { } tile && SlotWants.IsAlike(want, tile))
+            {
+                candidates++;
+                if (tiles[at].Weight > bestWeight)
+                {
+                    best = at;
+                    bestWeight = tiles[at].Weight;
+                }
+            }
+        }
+
+        return (best, candidates);
+    }
+
+    /// <summary>
+    /// The one ground a slot asks at every corner, naming no edge - the slot a fill list fills - or null.
+    /// </summary>
+    public static string? OneGround(RoomLayout room, RoomSlot slot)
+    {
+        ArgumentNullException.ThrowIfNull(room);
+        string ground = Clean(room.Named(slot.Ground(0)));
+        if (ground.Length == 0)
+        {
+            return null;
+        }
+
+        for (var side = 0; side < 4; side++)
+        {
+            if (room.Named(slot.Edge(side)).Length > 0 || !string.Equals(Clean(room.Named(slot.Ground(side))), ground, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+        }
+
+        return ground;
     }
 
     /// <summary>
