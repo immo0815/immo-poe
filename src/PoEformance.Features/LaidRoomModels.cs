@@ -86,6 +86,7 @@ public static class LaidRoomModels
     /// <param name="camera">The game's camera as last read, for what it can see of the room - see CameraSight - or null.</param>
     /// <param name="sight">Whether what the camera cannot see from anywhere the player can stand is left out - see <see cref="Hiding"/>.</param>
     /// <param name="cut">How far under the area's ground, in world units, everything is left out; nought or less leaves nothing out - see <see cref="Hiding"/>.</param>
+    /// <param name="master">The area's master (<c>.tsi</c>), whose MaterialsList paints the ground - empty for the one beside the room's <c>Rooms/</c> (see GroundPainter).</param>
     public static MonsterModel Of(
         Func<string, byte[]?>? read,
         string? path,
@@ -102,7 +103,8 @@ public static class LaidRoomModels
         IReadOnlyList<WorldEntity>? entities = null,
         CameraShot? camera = null,
         bool sight = false,
-        int cut = 0)
+        int cut = 0,
+        string master = "")
     {
         if (read is null)
         {
@@ -145,6 +147,10 @@ public static class LaidRoomModels
         // each is read, which is while the pieces are found: that is where the files are opened.
         var paints = new MonsterModels.Paints { Progress = progress };
         var made = new Dictionary<int, Made>();
+
+        // THE GROUND'S PAINTER, from the area's MaterialsList - the master given, or the one beside the room's Rooms/.
+        (GroundPainter? painter, string unpainted) = GroundPainter.For(Counted, master.Length > 0 ? master : GroundPainter.MasterBeside(read, path), paints);
+        var grounds = new List<MonsterModel>();
         ModelProgress.Step reading = ModelProgress.Begin(progress, "reading the tile files", Distinct(tiles, x, y, wide, tall));
         Made Of(int id)
         {
@@ -263,7 +269,15 @@ public static class LaidRoomModels
 
             if (one.Ground.Ready)
             {
-                pile.AddPlain(one.Ground, place, "ground of " + called);
+                if (painter?.Paint(tiles.Paths[piece.Id], one.Ground, place, "ground of " + called) is { Ready: true } painted)
+                {
+                    pile.Add(painted, place, "ground of " + called);
+                    grounds.Add(painted);
+                }
+                else
+                {
+                    pile.AddPlain(one.Ground, place, "ground of " + called);
+                }
             }
 
             used.Add(piece.Id);
@@ -329,6 +343,7 @@ public static class LaidRoomModels
                 + (bothLists > 0 ? string.Create(CultureInfo.InvariantCulture, $"; {bothLists} files carry a list beside the .tdt and one beside the template - the .tdt's taken, which no capture has measured yet") : string.Empty));
         }
 
+        said.Add(painter?.Said() ?? "ground: plain - " + unpainted);
         said.AddRange(laid.Said());
         said.AddRange(hiding.Said());
         string held = HeightsSaid(room, laying, x, y, grid, entities);
@@ -337,7 +352,7 @@ public static class LaidRoomModels
             said.Add(held);
         }
 
-        MonsterModel model = RoomModels.Piled(joined, pile, path, made.Values.Select(one => one.Props).Concat(laid.Models)) with
+        MonsterModel model = RoomModels.Piled(joined, pile, path, made.Values.Select(one => one.Props).Concat(grounds).Concat(laid.Models)) with
         {
             Parts = laidPieces + laid.Placed,
             Bytes = bytes,

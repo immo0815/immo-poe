@@ -297,9 +297,15 @@ which Pfim does not read and `GameArt` now does itself. Decoded (v0.1.199), the 
 engine's atlas, four by eight cells of 64 pixels: curved edges, corners, two straight ramps, cloudy blends - while the
 greens differ (`newmask` and `mask_ground` near the atlas again, `mask_3x3` blobs of its own). Which atlas cell a tile
 gets is the engine's (its transforms are in no file); whether a tile of two grounds is split by red or by green is
-what `ground.txt` now measures, each template's green read at its ground's own vertices and set against their height
-and shape - green that follows height on Port's harbour (pier above, sea floor below) would mean it is split by its
-own mask and can be painted from the files. "The game draws wood there" was written here once from
+what `ground.txt` measures, each template's green read at its ground's own vertices and set against their height
+and shape. It follows height (v0.1.200): the harbour r 0.78, its sea floor all 1 and its pier mostly under a half;
+the seven ocean-edge walls r 1.00; the twelve coasts too. So two grounds are split by the template mask's green at the
+block's own coordinates (`GroundGenerateWeights_1a1b`), and in all three of Port's families the ground at green nought
+is the one the MaterialsList lists FIRST (Town fill, then Ocean, then Tropical - neither the names' order nor the
+terrain's list fits) - one area's evidence, which another area's capture is to confirm. A laid or built room now
+paints its ground so (`GroundPainter`): one ground in its group's heaviest choice, two split by triangle on the
+green, three or four plain; the materials' coordinates the placed position times 0.004; the master given, or
+`master.tsi` beside the room's `Rooms/`. The line under the picture says each of those decisions. "The game draws wood there" was written here once from
 a picture not looked at closely: the gangway and the ship are wood, the pier is not - look before writing it down.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
