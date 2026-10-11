@@ -1,29 +1,30 @@
-capture  2026-10-11 11:04:40 local, PoEformance v0.1.183 · b8f635b
+capture  2026-10-11 11:50:20 local, PoEformance v0.1.186 · 3b0eb4a
 area     Marrow (MapMarrow), act 10, level 70, hash 0x193FC4A6, state InGame
 light    Metadata/EnvironmentSettings/Maps/Marrow.env
 screen   game client at 0, 0, 3440 x 1440
-player   world 3353.261 15744.56 -87.825, terrain height 0, level 96
-         grid cell 308, 1448, tile 13, 62
+player   world 15288.04 3222.826 -87.825, terrain height 0, level 96
+         grid cell 1406, 296, tile 61, 12
          the grid's height there -0, the tile's level -0
-tile     Metadata/Terrain/Desert/CavePath/Forced_Blank_01_02.tdt, laid 2, piece 0, 0
-camera   1.105 1.983 0.476 0.467 -1.105 1.983 0.476 0.467 0 -2.462 0.766 0.751 13688.43 -37713.92 -6962.816 -6728.915
+tile     Metadata/Terrain/Desert/CavePath/Blank_01_01.tdt, laid 3, piece 0, 0
+camera   1.105 1.983 0.476 0.467 -1.105 1.983 0.476 0.467 0 -2.462 0.766 0.751 -13328.21 -36549.93 -6683.614 -6455.082
 terrain  1771 x 1771 cells, 77 x 77 tiles
 
 === rooms around the player
-(none laid within 3 tiles)
+  here   boss_01  at tile 58, 10, 9 x 17, turned 90  (Metadata/Terrain/Maps/Marrow/Rooms/Unique/boss_01.arm)
 
 === what this capture holds
   entities.txt  5 entities, nearest first
-  loaded-files.txt  1457 files
-  environments.txt  the area's environment (Metadata/EnvironmentSettings/Maps/Marrow.env) and those of 0 rooms
+  loaded-files.txt  843 files
+  environments.txt  the area's environment (Metadata/EnvironmentSettings/Maps/Marrow.env) and those of 1 rooms
   room-files.txt  25 room files the area may lay - the loaded list's and every room of the sets its files and the install's masters name
   tile-identities.txt  47 tile files laid in the area, each as a room's slot asks about it - tab-separated, or why it did not read
   slot-candidates.txt  25 rooms of the area's set against 171 tiles its tilesets list - 1 master, lists metadata/terrain/maps/marrow/tiles.tst
   tileset-lists.txt  1 tile list of 1 master, 172 tile lines - each list whole: an optional weight, the tile, then the words after it
-  tile-files.txt  176 tile files - 171 the area's lists name, 47 laid, 5 of those named by no list; each with its definition followed through what it inherits, and the .tmd beside it
-  rooms.txt  0 rooms within 3 tiles, their doodads' lights and the pieces attached to them, and the file of each room the player stands in
+  tile-files.txt  177 tile files - 171 the area's tile lists name, 7 its fill lists, 47 laid, 5 of those named by no tile list; each with its definition followed through what it inherits, and the tile's doodad list (.tmd)
+  area-masters.txt  1 master of the area and 12 files they name or the area loaded, each whole - a tile list by name only, being whole in tileset-lists.txt
+  rooms.txt  1 rooms within 3 tiles, their doodads' lights and the pieces attached to them, and the file of each room the player stands in
   rooms-arranged.txt  not written: the rooms stand by their doodads - see rooms-placed.txt
-  doodads.txt  doodads: 5 entities stand where the rooms name a doodad, on 2 paths - sleeping map 6552 of 6552 walked, awake 462, 7014 with a path, read in 76 ms
+  doodads.txt  doodads: 6 entities stand where the rooms name a doodad, on 3 paths - sleeping map 6552 of 6552 walked, awake 449, 7001 with a path, read in 86 ms
   rooms-placed.txt  rooms: 0 placed by their doodads at 0 places, 1 by their tiles at 1 places, 24 with no place
   room-pick.txt  not written: nothing there when the key went down
   routes.txt  not written: nothing there when the key went down
@@ -31,7 +32,7 @@ terrain  1771 x 1771 cells, 77 x 77 tiles
   model-probe.txt  not written: nothing there when the key went down
   dissector.txt  not written: nothing there when the key went down
   atlas-log.txt  not written: nothing there when the key went down
-  memory.rec  1352 KB: the overlay's own reads for 90 reader ticks and one pass reading the world with every switch on, the loaded files, both entity maps with every named entity's model, every monster's mods, the raw bytes of the roots, one hop beyond them and the components around you from nothing - replay with --replay; memory.txt says what the pass read where
+  memory.rec  1363 KB: the overlay's own reads for 90 reader ticks and one pass reading the world with every switch on, the loaded files, both entity maps with every named entity's model, every monster's mods, the raw bytes of the roots, one hop beyond them and the components around you from nothing - replay with --replay; memory.txt says what the pass read where
   monsters.txt  written by the pass inside the recording - memory.txt says what it holds
   off: game-picture, overlay-picture
-  2026-10-11 11-04-40 Marrow.zip  beside this folder: every file here, packed to send
+  2026-10-11 11-50-20 Marrow.zip  beside this folder: every file here, packed to send

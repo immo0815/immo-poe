@@ -265,7 +265,8 @@ public class LaidRoomModelsTests
         bool atLevel = false,
         string? doodads = null,
         IReadOnlyList<WorldEntity>? entities = null,
-        DoodadHeight doodadHeights = DoodadHeight.Ground)
+        DoodadHeight doodadHeights = DoodadHeight.Ground,
+        IReadOnlyDictionary<string, string>? texts = null)
     {
         var ids = new int[TilesX * TilesY];
         Array.Fill(ids, -1);
@@ -311,6 +312,11 @@ public class LaidRoomModelsTests
         if (doodads is not null)
         {
             files[RoomPath] = Text(WithDoodads(doodads));
+        }
+
+        foreach ((string path, string text) in texts ?? new Dictionary<string, string>())
+        {
+            files[path] = Text(text);
         }
 
         return LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, atLevel: atLevel, heights: doodadHeights, entities: entities);
@@ -375,6 +381,78 @@ public class LaidRoomModelsTests
             "; 1 with a stub's name in another path, such as Metadata/Other/Pot@2",
             Laid(placement: 3, selector: 0, lies: 3, flat: true, doodads: doodads, entities: [far, spelt]).Move,
             StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A tile's own doodads stand where Marrow's game has them: the large convex wall piece laid mirrored and turned a
+    /// quarter (placement 4) puts its wall top a quarter tile up and left of its middle, turned to face the camera, and
+    /// leaves out the two tops that face away.
+    /// </summary>
+    /// <remarks>
+    /// THE LINES ARE abysswall_CvLarge_02's OWN, and the game had only the third: at area tile 32, 11 it stood at 8125,
+    /// 3125 - the piece's middle, 8250, 3000, less a quarter tile across and plus one down. Here the piece is moved to area
+    /// tile 1, 1 with the room's corner there, so the same arithmetic gives 125, 375 from the corner, at 250 over the
+    /// piece's lift. Its facing once laid is 225 degrees - (sin a, -cos a) - so it is turned -45 degrees, not mirrored.
+    /// </remarks>
+    [Fact]
+    public void ATILESOwnDoodadsStandWhereTheGameHasThemAndTheFarTopsAreLeftOut()
+    {
+        TileDoodadList list = TileDoodadList.Parse("""
+            version 8
+            11 34 1 125 375 -250 0.785398 -0 0 0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Abysswall_Upper_CvLarge_2a.ao" "a" "a.fmt" "Metadata/MiscellaneousObjects/TileUpperDoodad"
+            11 34 1 125 375 -250 -0.785398 -0 0 -0.382683 0.92388 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Abysswall_Upper_CvLarge_2b.ao" "b" "b.fmt" "Metadata/MiscellaneousObjects/TileUpperDoodad"
+            11 34 1 125 375 -250 2.35619 -0 0 0.92388 0.382683 0 1 "Metadata/Terrain/Desert/CavePath/TallWalls/Abysswall_Upper_CvLarge_2c.ao" "c" "c.fmt" "Metadata/MiscellaneousObjects/TileUpperDoodad"
+            """);
+        Assert.Equal(3, list.Doodads.Count);
+        var grid = new TerrainGrid(new byte[((TilesX * Cells) + 1) / 2 * TilesY * Cells], ((TilesX * Cells) + 1) / 2, TilesY * Cells, TilesX, TilesY, heights: null);
+        var into = new List<(RoomDoodad One, Matrix4x4 Place)>();
+
+        int away = LaidRoomModels.TileDoodadsOf(
+            new TilePiece(0, 4, 1, 1, 2, 2, Whole: true), new TileDoodads(list.Doodads, Both: false), 2, 2, 1, 1, 40f, grid, DoodadHeight.File, into);
+
+        Assert.Equal(2, away);
+        (RoomDoodad top, Matrix4x4 place) = Assert.Single(into);
+        Assert.EndsWith("Abysswall_Upper_CvLarge_2c.ao", top.Ao, StringComparison.Ordinal);
+        Assert.Equal(new Vector3(125f, 375f, -210f), place.Translation);
+        Assert.Equal(MathF.Cos(-MathF.PI / 4f), place.M11, 3);
+        Assert.Equal(MathF.Sin(-MathF.PI / 4f), place.M12, 3);
+        Assert.True(place.GetDeterminant() > 0f, "a tile doodad is turned, never mirrored");
+    }
+
+    /// <summary>
+    /// The line under a laid room counts the tile doodads and the wall tops left out - and where a tile carries a list
+    /// beside its .tdt and one beside its template, takes the .tdt's and says that this is not yet measured.
+    /// </summary>
+    [Fact]
+    public void THELINEUnderALaidRoomCountsTheTilesOwnDoodads()
+    {
+        const string list = """
+            version 8
+            11 11 1 125 125 -250 0 -0 0 0 1 0 1 "Metadata/Test/Top.ao" "top" "top.fmt" "Metadata/MiscellaneousObjects/TileUpperDoodad"
+            11 11 1 125 125 -250 3.14159 -0 0 1 0 0 1 "Metadata/Test/Top.ao" "top" "top.fmt" "Metadata/MiscellaneousObjects/TileUpperDoodad"
+            5 5 0 0 0 0 0 0 1 0 1 "Metadata/Test/Rock.ao" "" "" "Metadata/MiscellaneousObjects/Doodad" 0
+            """;
+        var own = new Dictionary<string, string> { ["Metadata/Terrain/Test/slope.tmd"] = list };
+        MonsterModel room = Laid(placement: 3, selector: 0, lies: 3, flat: true, texts: own);
+        Assert.Contains("tile doodads: 2 from the doodad lists of 1 tile files, 1 wall tops facing away from the camera left out as the game leaves them", room.Move, StringComparison.Ordinal);
+        Assert.DoesNotContain("a list beside the .tdt and one beside the template", room.Move, StringComparison.Ordinal);
+
+        // BESIDE THE TEMPLATE ALONE, it is taken.
+        var template = new Dictionary<string, string> { ["Art/Models/Terrain/Test/Slope.tmd"] = list };
+        Assert.Contains("tile doodads: 2 from the doodad lists of 1 tile files", Laid(placement: 3, selector: 0, lies: 3, flat: true, texts: template).Move, StringComparison.Ordinal);
+
+        // BOTH: the .tdt's taken - one line here - and said.
+        var both = new Dictionary<string, string>
+        {
+            ["Metadata/Terrain/Test/slope.tmd"] = "version 8\n5 5 0 0 0 0 0 0 1 0 1 \"Metadata/Test/Rock.ao\" \"\" \"\" \"Metadata/MiscellaneousObjects/Doodad\" 0\n",
+            ["Art/Models/Terrain/Test/Slope.tmd"] = list,
+        };
+        string said = Laid(placement: 3, selector: 0, lies: 3, flat: true, texts: both).Move;
+        Assert.Contains("tile doodads: 1 from the doodad lists of 1 tile files, 0 wall tops", said, StringComparison.Ordinal);
+        Assert.Contains("1 files carry a list beside the .tdt and one beside the template - the .tdt's taken, which no capture has measured yet", said, StringComparison.Ordinal);
+
+        // NO LIST, NO LINE.
+        Assert.DoesNotContain("tile doodads:", Laid(placement: 3, selector: 0, lies: 3, flat: true).Move, StringComparison.Ordinal);
     }
 
     /// <summary>

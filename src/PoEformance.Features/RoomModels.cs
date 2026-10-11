@@ -266,7 +266,8 @@ public static class RoomModels
         Func<RoomDoodad, Matrix4x4>? beyond,
         DoodadHeight heights = DoodadHeight.File,
         RoomLights.Gathered? lights = null,
-        DoodadSieve? sieve = null)
+        DoodadSieve? sieve = null,
+        IReadOnlyList<(RoomDoodad One, Matrix4x4 Place)>? also = null)
     {
         var models = new Dictionary<string, MonsterModel>(StringComparer.OrdinalIgnoreCase);
         float size = CellSize;
@@ -277,8 +278,25 @@ public static class RoomModels
         string firstMissing = string.Empty;
 
         // WHERE EACH GOES FIRST, and whether it could be seen there at all.
-        var laid = new List<(RoomDoodad One, Matrix4x4 Place)>(room.Doodads.Count);
+        var laid = new List<(RoomDoodad One, Matrix4x4 Place)>(room.Doodads.Count + (also?.Count ?? 0));
         HashSet<string>? wanted = sieve is null ? null : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        void Take(RoomDoodad one, Matrix4x4 place)
+        {
+            // THE LIGHTS WHETHER OR NOT THE DOODAD DRAWS: a light can be all a doodad is -
+            // grimtangle_ambientlight.ao has no mesh - and a doodad left out to keep the picture
+            // turnable, or because the camera cannot see it, still lights the room in the game.
+            lights?.Add(one.Ao, place);
+            laid.Add((one, place));
+            if (wanted is not null && !wanted.Contains(one.Ao))
+            {
+                var half = new Vector3(sieve!.Margin * (one.Scale > 0f ? one.Scale : 1f));
+                if (sieve.Kept(place.Translation - half, place.Translation + half))
+                {
+                    wanted.Add(one.Ao);
+                }
+            }
+        }
+
         foreach (RoomDoodad one in room.Doodads)
         {
             if (one.Ao.Length == 0)
@@ -307,19 +325,25 @@ public static class RoomModels
                 place *= Matrix4x4.CreateTranslation(0f, 0f, height);
             }
 
-            // THE LIGHTS WHETHER OR NOT THE DOODAD DRAWS: a light can be all a doodad is -
-            // grimtangle_ambientlight.ao has no mesh - and a doodad left out to keep the picture
-            // turnable, or because the camera cannot see it, still lights the room in the game.
-            lights?.Add(one.Ao, place);
-            laid.Add((one, place));
-            if (wanted is not null && !wanted.Contains(one.Ao))
+            Take(one, place);
+        }
+
+        // THE TILES' OWN DOODADS AFTER THE ROOM'S, placed already by whoever laid the tiles: where the doodads slider
+        // runs out it is a fill tile's bones that are left out, not the room's own props.
+        foreach ((RoomDoodad one, Matrix4x4 place) in also ?? [])
+        {
+            if (one.Ao.Length == 0)
             {
-                var half = new Vector3(sieve!.Margin * scale);
-                if (sieve.Kept(place.Translation - half, place.Translation + half))
-                {
-                    wanted.Add(one.Ao);
-                }
+                continue;
             }
+
+            if (!tools && IsTool(one))
+            {
+                hidden++;
+                continue;
+            }
+
+            Take(one, place);
         }
 
         using ModelProgress.Step step = ModelProgress.Begin(paints.Progress, "laying the doodads", laid.Count);

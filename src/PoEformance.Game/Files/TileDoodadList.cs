@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Numerics;
+using PoEformance.Game.World;
 
 namespace PoEformance.Game.Files;
 
@@ -36,6 +37,40 @@ public sealed record TileDoodadList(int Version, IReadOnlyList<RoomDoodad> Dooda
 
     /// <summary>Why the file read short - the first line refused, and how many were - or empty.</summary>
     public string Why { get; init; } = string.Empty;
+
+    /// <summary>The entity type of a tall wall's top - the one type whose lines the game puts down by the way they face.</summary>
+    public const string WallTop = "Metadata/MiscellaneousObjects/TileUpperDoodad";
+
+    /// <summary>
+    /// Whether the game puts this line down on a tile laid <paramref name="placed"/>: every line but a wall top, and a wall
+    /// top only where it faces the camera's side once laid.
+    /// </summary>
+    /// <remarks>
+    /// MEASURED, NOT REASONED (Marrow, v0.1.186, tile-doodads-replay.txt): a wall top's list carries a line for every way the
+    /// top may face - one place, two to six lines differing in angle and model, the .fmt named "directional" - and the game
+    /// puts down only some. Turned by the tile's placement and read as the entities' own angles are (RotationCurrent: nought
+    /// along -y, so the facing is (sin a, -cos a)), the lines put down face 180, 225 or 270 degrees and no others: 214 of
+    /// 214 there, 300 of 300 at the other five not, lone lines and groups alike, mirrored tiles and turned. The other way
+    /// of reading the angle, (cos a, sin a), splits too, but needs one set of facings for mirrored tiles and another for
+    /// turned ones - which is how the convention was told. So a top is put down where its facing has no part along +x or
+    /// +y: down the screen, since the map draws both axes upwards - towards the camera, which is to say on a far wall,
+    /// where it hides nothing.
+    /// </remarks>
+    public static bool Shown(RoomDoodad doodad, TileOrientation placed)
+    {
+        if (!doodad.Stub.Equals(WallTop, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        (int xx, int xy, int yx, int yy) = placed.Turn;
+        (float sin, float cos) = MathF.SinCos(doodad.Turn);
+        float x = (xx * sin) - (xy * cos), y = (yx * sin) - (yy * cos);
+        return x < Leaning && y < Leaning;
+    }
+
+    /// <summary>How far a facing may lean along +x or +y and still count as not leaning there - a float's slack, far under any angle the files carry.</summary>
+    private const float Leaning = 0.01f;
 
     /// <summary>Reads a file's bytes, through the game's shared text decode. Never throws.</summary>
     public static TileDoodadList Read(byte[]? content)

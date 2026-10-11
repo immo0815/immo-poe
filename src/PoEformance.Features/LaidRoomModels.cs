@@ -150,8 +150,8 @@ public static class LaidRoomModels
         {
             if (!made.TryGetValue(id, out Made? one))
             {
-                (MonsterModel props, SkinnedMesh ground, int across, int down) = TileModels.Apart(Counted, tiles.Paths[id], walls: true, paints);
-                one = Made.Of(props, ground, across, down);
+                (MonsterModel props, SkinnedMesh ground, int across, int down, TileDoodads lines) = TileModels.Apart(Counted, tiles.Paths[id], walls: true, paints);
+                one = Made.Of(props, ground, across, down, lines);
                 made[id] = one;
                 reading.Advance();
             }
@@ -200,6 +200,9 @@ public static class LaidRoomModels
         int fitsFitted = 0, fitsAtLevel = 0;
         var above = new List<float>(pieces.Count);
         var used = new HashSet<int>();
+        var tileDoodads = new List<(RoomDoodad One, Matrix4x4 Place)>();
+        int facingAway = 0, bothLists = 0;
+        var withLines = new HashSet<int>();
         foreach (TilePiece piece in pieces)
         {
             Made one = Of(piece.Id);
@@ -241,6 +244,14 @@ public static class LaidRoomModels
 
             float lift = atLevel ? level : height.Fitted;
             Matrix4x4 place = Spatial(flat) * Matrix4x4.CreateTranslation(0f, 0f, lift);
+            if (one.Doodads.Lines.Count > 0)
+            {
+                facingAway += TileDoodadsOf(piece, one.Doodads, one.Width, one.Height, x, y, lift, grid, heights, tileDoodads);
+                if (withLines.Add(piece.Id) && one.Doodads.Both)
+                {
+                    bothLists++;
+                }
+            }
 
             // NAMED BY FILE AND TILE, so the probe can say which piece a pixel belongs to - one string
             // per piece, shared by all of its shapes.
@@ -281,7 +292,7 @@ public static class LaidRoomModels
                 _ => ground,
             };
             return beyondFlat * Matrix4x4.CreateTranslation(0f, 0f, z);
-        }, heights, lights, hiding.Sieve);
+        }, heights, lights, hiding.Sieve, tileDoodads);
 
         SkinnedMesh joined = hiding.Keep(SkinnedMesh.Joined(pile.Joins), pile);
         if (!joined.Ready)
@@ -309,6 +320,13 @@ public static class LaidRoomModels
         {
             said.Add(string.Create(CultureInfo.InvariantCulture,
                 $"sub-tiles: of {several} pieces several tiles across, {fromTop} have every tile where the area's own index puts it counting the file's rows from the top, {fromBottom} counting them from the bottom"));
+        }
+
+        if (withLines.Count > 0)
+        {
+            said.Add(string.Create(CultureInfo.InvariantCulture,
+                $"tile doodads: {tileDoodads.Count} from the doodad lists of {withLines.Count} tile files, {facingAway} wall tops facing away from the camera left out as the game leaves them")
+                + (bothLists > 0 ? string.Create(CultureInfo.InvariantCulture, $"; {bothLists} files carry a list beside the .tdt and one beside the template - the .tdt's taken, which no capture has measured yet") : string.Empty));
         }
 
         said.AddRange(laid.Said());
@@ -613,6 +631,73 @@ public static class LaidRoomModels
     }
 
     /// <summary>A flat placement as a placement in space, the height left alone.</summary>
+    /// <summary>
+    /// One laid piece's own doodads, each where the game puts it, into <paramref name="into"/> - and how many wall tops were
+    /// left out for facing away from the camera.
+    /// </summary>
+    /// <remarks>
+    /// WHERE, AS MEASURED (CaptureFixtureTests, Marrow): a line's place in the tile's own cells - its exact pair where it has
+    /// one - about the tile's middle, through the game's placement as TileOrientation reads it, out to the middle of the area
+    /// tiles the piece covers. NOT through the mesh's own matrix: a sub-tile's rows run down -y in the mesh (TileModels) and
+    /// down +y in the cells, so a doodad hung on the mesh would stand mirrored; set as the game sets it, a doodad that misses
+    /// its wall says the mesh is off, not the doodad.
+    ///
+    /// THE HEIGHT IN THE TILE'S FRAME: the line's z above the piece's own lift, so a raised piece takes its doodads with it.
+    /// DECIDED, NOT MEASURED - every tile under a found doodad in Marrow sat at level nought, where this and the area's nought
+    /// agree; the line's z itself is the entity's TerrainHeight there, exactly. The other two readings stay for comparison,
+    /// as they do for a room's doodads (DoodadHeight).
+    ///
+    /// TURNED, NOT MIRRORED: an entity carries an angle and no mirror, so a doodad of a mirrored tile is turned to the way its
+    /// line faces once laid - the facing TileDoodadList.Shown reads, (sin a, -cos a) - rather than mirrored with the tile.
+    /// </remarks>
+    /// <param name="piece">The laid piece.</param>
+    /// <param name="doodads">Its file's doodad lists.</param>
+    /// <param name="width">The file's size in tiles across, as its template has it.</param>
+    /// <param name="height">The file's size in tiles down.</param>
+    /// <param name="x">The room's lowest area tile across - the picture's origin.</param>
+    /// <param name="y">The room's lowest area tile down.</param>
+    /// <param name="lift">How far the piece itself is raised.</param>
+    /// <param name="grid">The area, for its ground where the doodads are set on it.</param>
+    /// <param name="heights">How high a doodad is set - see DoodadHeight.</param>
+    /// <param name="into">Where each doodad goes, with its line.</param>
+    internal static int TileDoodadsOf(
+        TilePiece piece, TileDoodads doodads, int width, int height, int x, int y, float lift, TerrainGrid grid, DoodadHeight heights, List<(RoomDoodad One, Matrix4x4 Place)> into)
+    {
+        TileOrientation placed = TileOrientation.OfPlacement(piece.Placement);
+        (int xx, int xy, int yx, int yy) = placed.IsPlacement ? placed.Turn : (1, 0, 0, 1);
+        var middle = new Vector2((piece.MinX + piece.MaxX + 1) / 2f, (piece.MinY + piece.MaxY + 1) / 2f) * TileModels.Side;
+        var half = new Vector2(width, height) * (TileModels.Side / 2f);
+        var corner = new Vector2(x, y) * TileModels.Side;
+        int away = 0;
+        foreach (RoomDoodad line in doodads.Lines)
+        {
+            if (!TileDoodadList.Shown(line, placed))
+            {
+                away++;
+                continue;
+            }
+
+            Vector2 local = (line.Exact ?? (new Vector2(line.X, line.Y) * RoomModels.CellSize)) - half;
+            Vector2 world = middle + new Vector2((xx * local.X) + (xy * local.Y), (yx * local.X) + (yy * local.Y));
+            (float sin, float cos) = MathF.SinCos(line.Turn);
+            float facingX = (xx * sin) - (xy * cos), facingY = (yx * sin) - (yy * cos);
+            float ground = grid.HeightAt((int)(world.X / RoomModels.CellSize), (int)(world.Y / RoomModels.CellSize));
+            float z = heights switch
+            {
+                DoodadHeight.File => lift + (line.Height ?? 0f),
+                DoodadHeight.Added => ground + (line.Height ?? 0f),
+                _ => ground,
+            };
+
+            Vector2 inRoom = world - corner;
+            into.Add((line, Matrix4x4.CreateScale(line.Scale > 0f ? line.Scale : 1f)
+                * Matrix4x4.CreateRotationZ(MathF.Atan2(facingX, -facingY))
+                * Matrix4x4.CreateTranslation(inRoom.X, inRoom.Y, z)));
+        }
+
+        return away;
+    }
+
     private static Matrix4x4 Spatial(Matrix3x2 flat) => new(
         flat.M11, flat.M12, 0f, 0f,
         flat.M21, flat.M22, 0f, 0f,
@@ -625,7 +710,10 @@ public static class LaidRoomModels
         /// <summary>The middle of the box, which a piece is turned about.</summary>
         public Vector2 Middle => (Least + Most) / 2f;
 
-        public static Made Of(MonsterModel props, SkinnedMesh ground, int across, int down)
+        /// <summary>The doodads the tile brings with it - see TileModels.DoodadsOf.</summary>
+        public TileDoodads Doodads { get; init; } = TileDoodads.None;
+
+        public static Made Of(MonsterModel props, SkinnedMesh ground, int across, int down, TileDoodads doodads)
         {
             (Vector3 least, Vector3 most) = ground.Ready
                 ? (ground.Least, ground.Most)
@@ -637,7 +725,10 @@ public static class LaidRoomModels
                 Math.Max(1, across),
                 Math.Max(1, down),
                 new Vector2(least.X, least.Y),
-                new Vector2(most.X, most.Y));
+                new Vector2(most.X, most.Y))
+            {
+                Doodads = doodads,
+            };
         }
     }
 

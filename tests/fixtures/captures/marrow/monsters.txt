@@ -1,13 +1,8 @@
-1 monsters among 396 entities, read fresh inside the recording with every switch on, nearest the player first; distance and position in world units
+0 monsters among 362 entities, read fresh inside the recording with every switch on, nearest the player first; distance and position in world units
 mods are the game's own ids off ObjectMagicProperties, named where its Mods table names them; buffs carry their clocks; targetable is the game's own byte
 a marked place within 100 of a monster is listed under it - an essence prison stands on its monster and carries the icon the monster does not
 
-### 17247.6  Unique Zar Wali, the Bone Tyrant  (Metadata/Monsters/GiantSnakeSkeletonBoss/GiantSkeletonSnakeBossMap@70)  id 179  at 0x55F8C66F300
-  position 15625 3625 -182.8   life 969876/969876 (100%)   targetable yes   hidden yes   friendly no   effect no
-  mods: MonsterUnique, MonsterUnique1, MonsterUnique2, MonsterUnique3, MonsterUnique4, MonsterUnique5, MonsterUnique6, MonsterUnique7, MonsterUnique8, MonsterUnique9, MonsterUnique10, MonsterUnique11, MonsterUnique12, MonsterUnique13, MonsterUnique14, MonsterUniqueT2Boss, LargeBossLightStunThreshold
-  buffs: hidden_monster (permanent) x1
 
-=== 2 marked places - every entity the game gives a map icon, nearest the player first
+=== 1 marked places - every entity the game gives a map icon, nearest the player first
 distance	icon	present	id	address	x	y	z	path	name
-250	Portal	yes	640	0x55F0B036A00	3103.3	15744.6	-166.9	Metadata/Effects/Microtransactions/Town_Portals/RustKingPortal/RustKingPortal	Canal Hideout
-912.3	CheckpointNotActive	yes	8	0x55F0B032900	4233.7	15983.7	-114	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame	Checkpoint
+0	Portal	yes	1332	0x55F3FDDF100	15288	3222.8	-166.9	Metadata/Effects/Microtransactions/Town_Portals/RustKingPortal/RustKingPortal	Canal Hideout

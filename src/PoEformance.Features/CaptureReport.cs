@@ -1190,7 +1190,12 @@ public static class CaptureReport
     }
 
     /// <summary>The longest file written whole as text; a longer one is cut, and says so.</summary>
-    private const int WholeTextMost = 16_384;
+    /// <remarks>
+    /// RAISED FROM 16384 when Marrow's boss arena carried a doodad list of 16949 characters: cut, its last line read as a
+    /// refused line in the replay - the parser doing its job on a file the capture had broken. A boss arena's list is the
+    /// longest a tile carries, and the lists are what the tile-doodad replay reads.
+    /// </remarks>
+    private const int WholeTextMost = 65_536;
 
     /// <summary>How many of a binary file's opening bytes are written in hex.</summary>
     private const int WholeHexMost = 256;

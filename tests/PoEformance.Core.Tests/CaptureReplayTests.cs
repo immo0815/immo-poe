@@ -1198,7 +1198,7 @@ public class CaptureReplayTests
     public static string TileDoodadsReplay(string folder)
     {
         var said = new StringBuilder();
-        (Dictionary<string, (int Width, int Height, List<RoomDoodad> Doodads)> files, string filesHow) = TileDoodads(folder);
+        (Dictionary<string, (int Width, int Height, List<TileLine> Doodads)> files, string filesHow) = TileDoodads(folder);
         TerrainGrid? grid = Terrain(folder, out string how);
         (List<DoodadSighting> entities, string entitiesHow) = Entities(folder);
         int lines = files.Values.Sum(file => file.Doodads.Count);
@@ -1214,25 +1214,25 @@ public class CaptureReplayTests
         List<TilePiece> pieces = [.. laid.Pieces(0, 0, laid.Width, laid.Height, Size).Where(piece => piece.Whole && files.ContainsKey(laid.Paths[piece.Id]))];
 
         // EVERY READING: (way the file lies, the game's turn after it or before it).
-        var readings = new List<(int Way, bool TurnAfter, int[] Found, double Off, List<string> Lines)>();
+        var readings = new List<(int Way, bool TurnAfter, int[] Found, double Off, List<TilePut> Puts)>();
         for (var way = 0; way < 8; way++)
         {
             foreach (bool turnAfter in (bool[])[true, false])
             {
                 int[] found = new int[Within.Length];
                 double off = 0;
-                var printed = new List<string>();
+                var puts = new List<TilePut>();
                 foreach (TilePiece piece in pieces)
                 {
-                    (int width, int height, List<RoomDoodad> doodads) = files[laid.Paths[piece.Id]];
+                    (int width, int height, List<TileLine> doodads) = files[laid.Paths[piece.Id]];
                     var middle = new Vector2((piece.MinX + piece.MaxX + 1) * TileModels.Side / 2f, (piece.MinY + piece.MaxY + 1) * TileModels.Side / 2f);
-                    foreach (RoomDoodad doodad in doodads)
+                    (int, int, int, int) frame = Frame(way, piece.Placement, turnAfter);
+                    foreach (TileLine line in doodads)
                     {
+                        RoomDoodad doodad = line.Doodad;
                         Vector2 local = (doodad.Exact ?? new Vector2(doodad.X, doodad.Y) * (TileModels.Side / RoomModels.CellsPerTile))
                             - new Vector2(width * TileModels.Side / 2f, height * TileModels.Side / 2f);
-                        Vector2 lies = Apply(TileOrientation.OfPlacement(way).Turn, local);
-                        Vector2 turned = Apply(TileOrientation.OfPlacement(piece.Placement).Turn, turnAfter ? lies : local);
-                        Vector2 world = middle + (turnAfter ? turned : Apply(TileOrientation.OfPlacement(way).Turn, turned));
+                        Vector2 world = middle + Apply(frame, local);
                         (DoodadSighting? nearest, float distance) = Nearest(byType, doodad, world);
                         for (var within = 0; within < Within.Length; within++)
                         {
@@ -1240,45 +1240,226 @@ public class CaptureReplayTests
                         }
 
                         off += distance <= Within[^1] ? distance : 0;
-                        string seen = nearest is { } entity
-                            ? string.Create(CultureInfo.InvariantCulture, $"nearest {Short(entity.Model)} at {entity.X:0}, {entity.Y:0}, z {entity.Z:0}, {distance:0} off")
-                            : "no entity of its type";
-                        printed.Add(string.Create(CultureInfo.InvariantCulture,
-                            $"  {Short(laid.Paths[piece.Id])} at {piece.MinX}, {piece.MinY} placement {piece.Placement}: {Short(doodad.Ao)} cell {doodad.X}, {doodad.Y} z {doodad.Height} -> {world.X:0}, {world.Y:0}; {seen}"));
+                        puts.Add(new TilePut(piece, laid.Paths[piece.Id], line, local, world, nearest, distance));
                     }
                 }
 
-                readings.Add((way, turnAfter, found, found[^1] > 0 ? off / found[^1] : double.NaN, printed));
+                readings.Add((way, turnAfter, found, found[^1] > 0 ? off / found[^1] : double.NaN, puts));
             }
         }
 
-        int predicted = readings[0].Lines.Count;
+        int predicted = readings[0].Puts.Count;
         said.AppendLine(CultureInfo.InvariantCulture, $"{pieces.Count} whole laid pieces carry them, {predicted} doodads put into the area under each reading; entities by type: {byType.Count}");
 
         // BOTH HALVES OF THE TYPES: what the tiles' lines name, and what the recording holds - a type on one side only finds nothing.
-        var named = files.Values.SelectMany(file => file.Doodads).GroupBy(doodad => doodad.Stub, StringComparer.OrdinalIgnoreCase);
+        var named = files.Values.SelectMany(file => file.Doodads).GroupBy(line => line.Doodad.Stub, StringComparer.OrdinalIgnoreCase);
         said.AppendLine("  the doodad lists' types, lines: " + string.Join(", ", named.OrderByDescending(group => group.Count())
             .Select(group => $"{group.Key} x{group.Count()} ({(byType.TryGetValue(group.Key, out List<DoodadSighting>? held) ? held.Count : 0)} entities)")));
         said.AppendLine("  the recording's types, entities: " + string.Join(", ", byType.OrderByDescending(one => one.Value.Count).Select(one => $"{one.Key} x{one.Value.Count}")));
-        said.AppendLine("readings, best first - found within " + string.Join(" / ", Within.Select(one => one.ToString(CultureInfo.InvariantCulture))) + " units, and the mean distance of those within the last:");
+
+        // BY TYPE, because one type can carry a reading the others do not tell apart: a doodad in a tile's middle lands
+        // there under every reading, and a wall top at a piece's middle only tells WHICH piece.
+        string[] measured = [.. readings[0].Puts.Select(put => put.Line.Doodad.Stub).Where(byType.ContainsKey).Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(stub => byType[stub].Count)];
+        said.AppendLine("readings, best first - found within " + string.Join(" / ", Within.Select(one => one.ToString(CultureInfo.InvariantCulture)))
+            + " units, the mean distance of those within the last, and by type found within " + Within[0].ToString(CultureInfo.InvariantCulture) + " of those put:");
         var ordered = readings.OrderByDescending(one => one.Found[0]).ThenByDescending(one => one.Found[1]).ThenByDescending(one => one.Found[2]).ToList();
-        foreach ((int way, bool turnAfter, int[] found, double off, _) in ordered)
+        foreach ((int way, bool turnAfter, int[] found, double off, List<TilePut> puts) in ordered)
         {
+            string types = string.Join(", ", measured.Select(stub =>
+            {
+                List<TilePut> ofType = [.. puts.Where(put => put.Line.Doodad.Stub.Equals(stub, StringComparison.OrdinalIgnoreCase))];
+                return string.Create(CultureInfo.InvariantCulture, $"{Short(stub)} {ofType.Count(put => put.Distance <= Within[0])}/{ofType.Count}");
+            }));
             said.AppendLine(CultureInfo.InvariantCulture,
-                $"  way {way} ({TileOrientation.OfPlacement(way)}), the game's turn {(turnAfter ? "after" : "before")}: {string.Join(" / ", found)} of {predicted}, mean {off:0.#}");
+                $"  way {way} ({TileOrientation.OfPlacement(way)}), the game's turn {(turnAfter ? "after" : "before")}: {string.Join(" / ", found)} of {predicted}, mean {off:0.#} - {types}");
         }
+
+        List<TilePut> best = ordered[0].Puts;
+        said.AppendLine();
+        Sides(said, best);
+        said.AppendLine();
+        Directions(said, best, ordered[0].Way, ordered[0].TurnAfter);
+        said.AppendLine();
+        Heights(said, best, grid, byType);
 
         said.AppendLine();
         said.AppendLine("the best reading's doodads, both halves:");
-        foreach (string line in ordered[0].Lines)
+        foreach (TilePut put in best)
+        {
+            string seen = put.Entity is { } entity
+                ? string.Create(CultureInfo.InvariantCulture, $"nearest {Short(entity.Model)} at {entity.X:0}, {entity.Y:0}, z {entity.Z:0}, ground {entity.TerrainHeight:0}, bounds {entity.ModelBoundsZ:0}, {put.Distance:0} off")
+                : "no entity of its type";
+            said.AppendLine(CultureInfo.InvariantCulture,
+                $"  {Short(put.File)} at {put.Piece.MinX}, {put.Piece.MinY} placement {put.Piece.Placement}: {Short(put.Line.Doodad.Ao)} cell {put.Line.Doodad.X}, {put.Line.Doodad.Y} z {put.Line.Doodad.Height} angle {put.Line.Doodad.Turn:0.###} ({(put.Line.BesideTemplate ? "template's list" : "tile's list")}) -> {put.World.X:0}, {put.World.Y:0}; {seen}");
+        }
+
+        return said.ToString();
+    }
+
+    /// <summary>One line of a tile's doodad list, and whether the list sat beside the tile's template rather than its .tdt.</summary>
+    private readonly record struct TileLine(RoomDoodad Doodad, bool BesideTemplate);
+
+    /// <summary>One tile doodad put into the area under one reading, and the nearest entity of its type and model.</summary>
+    private readonly record struct TilePut(TilePiece Piece, string File, TileLine Line, Vector2 Local, Vector2 World, DoodadSighting? Entity, float Distance);
+
+    /// <summary>A turn as the tile's frame reaches the world: the way the file lies on its template, the game's placement after it or before it.</summary>
+    private static (int Xx, int Xy, int Yx, int Yy) Frame(int way, int placement, bool turnAfter)
+    {
+        (int Xx, int Xy, int Yx, int Yy) lies = TileOrientation.OfPlacement(way).Turn;
+        (int Xx, int Xy, int Yx, int Yy) game = TileOrientation.OfPlacement(placement).Turn;
+        return turnAfter ? Compose(game, lies) : Compose(lies, game);
+
+        // The product a * b: b applied first.
+        static (int, int, int, int) Compose((int Xx, int Xy, int Yx, int Yy) a, (int Xx, int Xy, int Yx, int Yy) b)
+            => ((a.Xx * b.Xx) + (a.Xy * b.Yx), (a.Xx * b.Xy) + (a.Xy * b.Yy), (a.Yx * b.Xx) + (a.Yy * b.Yx), (a.Yx * b.Xy) + (a.Yy * b.Yy));
+    }
+
+    private static Vector2 Apply((int Xx, int Xy, int Yx, int Yy) turn, Vector2 point)
+        => new((turn.Xx * point.X) + (turn.Xy * point.Y), (turn.Yx * point.X) + (turn.Yy * point.Y));
+
+    /// <summary>
+    /// The two lists a tile can carry - beside its .tdt and beside its template - counted apart: whether the game puts down
+    /// both, or one in place of the other, is what a laid tile carrying both settles.
+    /// </summary>
+    private static void Sides(StringBuilder said, List<TilePut> best)
+    {
+        var both = best.GroupBy(put => put.File, StringComparer.OrdinalIgnoreCase)
+            .Where(file => file.Any(put => put.Line.BesideTemplate) && file.Any(put => !put.Line.BesideTemplate)).ToList();
+        said.AppendLine(CultureInfo.InvariantCulture, $"the two lists: {both.Count} laid files carry a list beside the .tdt AND one beside the template");
+        foreach (var file in both)
+        {
+            int tile = file.Count(put => !put.Line.BesideTemplate), template = file.Count(put => put.Line.BesideTemplate);
+            said.AppendLine(CultureInfo.InvariantCulture,
+                $"  {Short(file.Key)}: the tile's list {file.Count(put => !put.Line.BesideTemplate && put.Distance <= Within[0])} of {tile} found, the template's {file.Count(put => put.Line.BesideTemplate && put.Distance <= Within[0])} of {template}");
+        }
+    }
+
+    /// <summary>
+    /// Lines of one tile standing at one place and differing in angle (and model) - the "directional" doodads - and which of
+    /// them the game put down, against the way each faces once the tile is laid.
+    /// </summary>
+    /// <remarks>
+    /// THE ENTITY'S OWN ANGLE IS NOT IN THE RECORDING (Render's rotation is a separate read the survey does not make), so
+    /// what is counted is presence: a line is there when an entity of its model stands within the first tolerance of its
+    /// place. Two lines of one model at one place cannot be told apart that way, so only lines whose model is alone in
+    /// their group are tallied. The angle's own convention is unknown too, so it is turned as both: (cos a, sin a) and
+    /// the entities' (sin a, -cos a) - under a mirror the two differ, and only the right one keeps mirrored and unmirrored
+    /// tiles agreeing.
+    /// </remarks>
+    private static void Directions(StringBuilder said, List<TilePut> best, int way, bool turnAfter)
+    {
+        var places = best.GroupBy(put => (put.Piece, put.Line.Doodad.Stub, X: MathF.Round(put.Local.X), Y: MathF.Round(put.Local.Y))).ToList();
+        var groups = places.Where(group => group.Count() > 1 && group.Select(put => put.Line.Doodad.Turn).Distinct().Count() > 1).ToList();
+        var directional = groups.Select(group => group.Key.Stub).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // EVERY LINE OF A TYPE THAT HAS DIRECTIONAL PLACES, the lone ones too: a rule that only the groups obey is a rule about
+        // groups, and one every line obeys is a rule about the type.
+        var tally = new SortedDictionary<string, (int There, int Not)>(StringComparer.Ordinal);
+        foreach (var place in places.Where(place => directional.Contains(place.Key.Stub)))
+        {
+            var models = place.GroupBy(put => put.Line.Doodad.Ao, StringComparer.OrdinalIgnoreCase).ToDictionary(model => model.Key, model => model.Count(), StringComparer.OrdinalIgnoreCase);
+            string kind = (TileOrientation.OfPlacement(place.Key.Piece.Placement).Mirrored ? "mirrored" : "turned") + (place.Count() > 1 ? " several" : " alone");
+            foreach (TilePut put in place.Where(put => models[put.Line.Doodad.Ao] == 1))
+            {
+                (int facingA, int facingB) = Facings(put);
+                foreach (string key in (string[])[$"{Short(place.Key.Stub)} (cos, sin) {kind} {facingA,3}", $"{Short(place.Key.Stub)} (sin, -cos) {kind} {facingB,3}"])
+                {
+                    (int t, int n) = tally.GetValueOrDefault(key);
+                    tally[key] = put.Distance <= Within[0] ? (t + 1, n) : (t, n + 1);
+                }
+            }
+        }
+
+        said.AppendLine(CultureInfo.InvariantCulture,
+            $"directional lines: {groups.Count} places where one tile's lines differ in angle; every line of their types whose model is alone at its place, how many the game put down by the way each faces once laid (degrees, each convention; mirrored or turned tile; several lines at the place or alone):");
+        foreach ((string key, (int there, int not)) in tally)
+        {
+            said.AppendLine(CultureInfo.InvariantCulture, $"  {key}: {there} there, {not} not");
+        }
+
+        // THE RULE AS THE TOOL HOLDS IT, against the same lines: every one it gets wrong is printed.
+        int agree = 0, held = 0;
+        var against = new List<string>();
+        foreach (var place in places.Where(place => place.Key.Stub.Equals(TileDoodadList.WallTop, StringComparison.OrdinalIgnoreCase)))
+        {
+            var models = place.GroupBy(put => put.Line.Doodad.Ao, StringComparer.OrdinalIgnoreCase).ToDictionary(model => model.Key, model => model.Count(), StringComparer.OrdinalIgnoreCase);
+            foreach (TilePut put in place.Where(put => models[put.Line.Doodad.Ao] == 1))
+            {
+                bool shown = TileDoodadList.Shown(put.Line.Doodad, TileOrientation.OfPlacement(put.Piece.Placement));
+                held++;
+                agree += shown == put.Distance <= Within[0] ? 1 : 0;
+                if (shown != put.Distance <= Within[0] && against.Count < 12)
+                {
+                    against.Add(string.Create(CultureInfo.InvariantCulture,
+                        $"    {Short(put.File)} at {put.Piece.MinX}, {put.Piece.MinY} placement {put.Piece.Placement}: {Short(put.Line.Doodad.Ao)} angle {put.Line.Doodad.Turn:0.###} - the rule says {(shown ? "shown" : "not")}, the game {(shown ? "has none" : "has it")}"));
+                }
+            }
+        }
+
+        said.AppendLine(CultureInfo.InvariantCulture, $"  the rule (TileDoodadList.Shown): {agree} of {held} wall-top lines alone in their model at their place agree with the game");
+        foreach (string line in against)
         {
             said.AppendLine(line);
         }
 
-        return said.ToString();
+        said.AppendLine("  each place of several - the line's model, its angle -> facing (cos, sin)/(sin, -cos), and whether it is there:");
+        foreach (var group in groups.Take(80))
+        {
+            TileOrientation placed = TileOrientation.OfPlacement(group.Key.Piece.Placement);
+            said.Append(CultureInfo.InvariantCulture, $"  {Short(group.First().File)} at {group.Key.Piece.MinX}, {group.Key.Piece.MinY} placement {group.Key.Piece.Placement} ({placed}): ");
+            said.AppendLine(string.Join("; ", group.Select(put =>
+                {
+                    (int facingA, int facingB) = Facings(put);
+                    return string.Create(CultureInfo.InvariantCulture, $"{Short(put.Line.Doodad.Ao)} {put.Line.Doodad.Turn * 180f / MathF.PI:0} -> {facingA}/{facingB} {(put.Distance <= Within[0] ? "THERE" : "not")}");
+                })));
+        }
 
-        static Vector2 Apply((int Xx, int Xy, int Yx, int Yy) turn, Vector2 point)
-            => new((turn.Xx * point.X) + (turn.Xy * point.Y), (turn.Yx * point.X) + (turn.Yy * point.Y));
+        (int A, int B) Facings(TilePut put)
+        {
+            float angle = put.Line.Doodad.Turn;
+            (int, int, int, int) frame = Frame(way, put.Piece.Placement, turnAfter);
+            return (Degrees(Apply(frame, new Vector2(MathF.Cos(angle), MathF.Sin(angle)))), Degrees(Apply(frame, new Vector2(MathF.Sin(angle), -MathF.Cos(angle)))));
+        }
+
+        static int Degrees(Vector2 facing) => ((((int)MathF.Round(MathF.Atan2(facing.Y, facing.X) * 180f / MathF.PI / 45f) * 45) % 360) + 360) % 360;
+    }
+
+    /// <summary>
+    /// A found doodad's z both ways: the line's own, and what the entity stands at - with the entity's ground and model
+    /// height and the grid's height there beside them, so the frame the line's z counts in can be read off.
+    /// </summary>
+    private static void Heights(StringBuilder said, List<TilePut> best, TerrainGrid grid, Dictionary<string, List<DoodadSighting>> byType)
+    {
+        // THE RECORDING'S OWN HALF FIRST: for which types an entity's z is its ground - where the two differ, a line's z can
+        // be held against only one of them, and which one is the question.
+        said.AppendLine("entities whose z is their ground (within 1), by type: " + string.Join(", ", byType.OrderByDescending(one => one.Value.Count)
+            .Select(one => string.Create(CultureInfo.InvariantCulture, $"{Short(one.Key)} {one.Value.Count(entity => MathF.Abs(entity.Z - entity.TerrainHeight) < 1f)}/{one.Value.Count}"))));
+
+        said.AppendLine(CultureInfo.InvariantCulture, $"heights of the doodads found within {Within[0]}: the entity's z less the line's, less the entity's ground, less the grid's height there - the commonest of each:");
+        foreach (var type in best.Where(put => put.Distance <= Within[0] && put.Entity is not null).GroupBy(put => put.Line.Doodad.Stub, StringComparer.OrdinalIgnoreCase))
+        {
+            string Commonest(Func<TilePut, float> of) => string.Join(", ", type.GroupBy(put => MathF.Round(of(put))).OrderByDescending(one => one.Count()).Take(5)
+                .Select(one => string.Create(CultureInfo.InvariantCulture, $"{one.Key} x{one.Count()}")));
+            float Ground(TilePut put) => grid.HeightAt((int)(put.World.X * RoomModels.CellsPerTile / TileModels.Side), (int)(put.World.Y * RoomModels.CellsPerTile / TileModels.Side));
+            said.AppendLine(CultureInfo.InvariantCulture, $"  {Short(type.Key)}, {type.Count()} found:");
+            said.AppendLine("    entity ground - line z: " + Commonest(put => put.Entity!.Value.TerrainHeight - (put.Line.Doodad.Height ?? 0f)));
+
+            // THE TILE'S LEVEL, which the pictures lift a piece by: a line's z counted from it and a z counted from the area's
+            // nought read alike wherever the level is nought, so this says whether the area could tell them apart at all.
+            said.AppendLine("    the tile's level under it: " + Commonest(put => grid.LevelAt((int)(put.World.X / TileModels.Side), (int)(put.World.Y / TileModels.Side))));
+            said.AppendLine("    entity z - line z: " + Commonest(put => put.Entity!.Value.Z - (put.Line.Doodad.Height ?? 0f)));
+            said.AppendLine("    entity z - entity ground: " + Commonest(put => put.Entity!.Value.Z - put.Entity!.Value.TerrainHeight));
+            said.AppendLine("    entity z - grid height: " + Commonest(put => put.Entity!.Value.Z - Ground(put)));
+            said.AppendLine("    entity z - line z - grid height: " + Commonest(put => put.Entity!.Value.Z - (put.Line.Doodad.Height ?? 0f) - Ground(put)));
+            said.AppendLine("    entity ground - grid height: " + Commonest(put => put.Entity!.Value.TerrainHeight - Ground(put)));
+            said.AppendLine("    entity model height: " + Commonest(put => put.Entity!.Value.ModelBoundsZ));
+            foreach (TilePut put in type.Take(6))
+            {
+                said.AppendLine(CultureInfo.InvariantCulture,
+                    $"    e.g. {Short(put.Line.Doodad.Ao)}: line z {put.Line.Doodad.Height}, entity z {put.Entity!.Value.Z:0.#}, its ground {put.Entity!.Value.TerrainHeight:0.#}, model {put.Entity!.Value.ModelBoundsZ:0.#}, grid {Ground(put):0.#}");
+            }
+        }
     }
 
     /// <summary>The nearest entity of a doodad's type whose model is the doodad's .ao (or unread), and how far.</summary>
@@ -1310,9 +1491,9 @@ public class CaptureReplayTests
     }
 
     /// <summary>Each tile file's size and doodad lists out of tile-files.txt, by path, read with TileDoodadList - and how many lists did not read whole.</summary>
-    private static (Dictionary<string, (int Width, int Height, List<RoomDoodad> Doodads)> Files, string How) TileDoodads(string folder)
+    private static (Dictionary<string, (int Width, int Height, List<TileLine> Doodads)> Files, string How) TileDoodads(string folder)
     {
-        var files = new Dictionary<string, (int Width, int Height, List<RoomDoodad> Doodads)>(StringComparer.OrdinalIgnoreCase);
+        var files = new Dictionary<string, (int Width, int Height, List<TileLine> Doodads)>(StringComparer.OrdinalIgnoreCase);
         string path = Path.Combine(folder, CaptureReport.TileFilesFile);
         if (!File.Exists(path))
         {
@@ -1321,16 +1502,16 @@ public class CaptureReplayTests
 
         string current = string.Empty;
         (int Width, int Height) size = (1, 1);
-        var doodads = new List<RoomDoodad>();
+        var doodads = new List<TileLine>();
         var text = new StringBuilder();
-        bool inTmd = false;
+        bool inTmd = false, besideTemplate = false;
         int lists = 0, refused = 0;
         void CloseTmd()
         {
             if (inTmd)
             {
                 TileDoodadList list = TileDoodadList.Parse(text.ToString());
-                doodads.AddRange(list.Doodads);
+                doodads.AddRange(list.Doodads.Select(doodad => new TileLine(doodad, besideTemplate)));
                 lists++;
                 refused += list.Why.Length > 0 ? 1 : 0;
             }
@@ -1372,6 +1553,10 @@ public class CaptureReplayTests
             {
                 CloseTmd();
                 inTmd = line.EndsWith("\ttext", StringComparison.Ordinal);
+
+                // Beside the .tdt the list shares the tile's own path, the extension aside; anything else sat beside a template.
+                string tmd = line.Split('\t')[1];
+                besideTemplate = !Path.ChangeExtension(tmd, null).Equals(Path.ChangeExtension(current, null), StringComparison.OrdinalIgnoreCase);
             }
             else if (inTmd && line.StartsWith("  | ", StringComparison.Ordinal))
             {

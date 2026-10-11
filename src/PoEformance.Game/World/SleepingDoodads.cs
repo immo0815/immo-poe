@@ -18,6 +18,17 @@ public readonly record struct DoodadSighting(uint Id, string Path, string Model,
 {
     /// <summary>Whether it comes from the frame's read of the network bubble at some earlier moment rather than from the survey's walk - see DoodadMemory.</summary>
     public bool Remembered { get; init; }
+
+    /// <summary>The Render component's TerrainHeight - read with the position, so it costs nothing.</summary>
+    /// <remarks>
+    /// FOR A TILE'S DOODAD IT IS THE Z ITS LINE GIVES, exactly - 645 of 645 in Marrow, of three types - where <see cref="Z"/>
+    /// is that less part of the model, a different amount for each model at one place. Carried for that measurement
+    /// (CaptureReplayTests.TileDoodadsReplay).
+    /// </remarks>
+    public float TerrainHeight { get; init; }
+
+    /// <summary>The Render component's model height (RenderComponent.ModelBoundsZ) - read with the position, so it costs nothing.</summary>
+    public float ModelBoundsZ { get; init; }
 }
 
 /// <summary>What one read of the area's entity maps for the rooms' doodads came to - see <see cref="SleepingDoodads"/>.</summary>
@@ -164,7 +175,11 @@ public static class SleepingDoodads
             Entity entity = readers.Entities.Read(known);
             if (readers.Render.Read(entity.Component("Render")) is { } at)
             {
-                found.Add(new DoodadSighting(id, known.Path, Model(readers, entity.Component("Animated")), at.X, at.Y, at.Z, asleep));
+                found.Add(new DoodadSighting(id, known.Path, Model(readers, entity.Component("Animated")), at.X, at.Y, at.Z, asleep)
+                {
+                    TerrainHeight = at.TerrainHeight,
+                    ModelBoundsZ = at.ModelBoundsZ,
+                });
             }
         }
 

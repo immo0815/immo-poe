@@ -214,11 +214,12 @@ Caverns' boss room lays `Thickwall/Fill_01` where its list names `Murky/Thickwal
 game's file. A `.tmd` is NOT a list of variants, as was first thought: Marrow's are text, `version 8`
 then a line a doodad (position, rotation, an `.ao`, an entity type such as `TileUpperDoodad`) - the
 doodads a TILE brings, beside the room's own - and one sits beside the `.tdt` or beside its template
-(`.tgt`). Marrow inherits nothing either; what it showed is a laid plain tile sharing its template with
-the listed `_feature` one, and four `mine_abyss_fill` tiles from its `Rooms/Fills` folder that no tile
-list and no room names. A master is a key-value file of any keys, and besides `TileSet` and `RoomSet`
-it may name `FillTiles`, a `.gft` fill list (`FillList`, poe_data_tools' `gft`) - the next place to
-look. `tile-files.txt` writes for every listed, filled and laid file its chain, its doodad lists and its
+(`.tgt`). Marrow inherits nothing either. A master is a key-value file of any keys, and besides `TileSet`
+and `RoomSet` it may name `FillTiles`, a `.gft` fill list (`FillList`, poe_data_tools' `gft`) - and
+Marrow's five laid tiles that no tile list names are all in its fill list (v0.1.186): the plain
+Cavepassage tile and four `mine_abyss_fill` tiles from its `Rooms/Fills` folder. So the fill list is a
+road to the laid files beside the tile lists; whether it explains Sulphuric's needs a capture of it from
+v0.1.184 on. `tile-files.txt` writes for every listed, filled and laid file its chain, its doodad lists and its
 flags, `area-masters.txt` every master and every file it names whole, and `tile-files-replay.txt`
 counts what explains each laid file no tile list names (inherited, in a fill list, a shared template,
 nothing) - read it before giving the build a rule for any of them. A tile list's words appeared for the
@@ -228,9 +229,26 @@ be measured on a laid one before the build obeys them. A tile's doodads ARE enti
 holds 238 `TileUpperDoodad` and 6321 `DoodadNoBlocking` (the plain `Doodad` lines mostly not), and
 `tile-doodads-replay.txt` puts every laid tile's doodads (`TileDoodadList`, its own grammar - the height
 before the angle, one bool, four strings) into the area under all sixteen readings of how a tile's frame
-reaches the world, against the unfiltered entities. Marrow cannot tell them apart - its only matches stand
-in a tile's middle, where every reading lands - and a doodad's `.tmd` height (635) is not the entity's z
-(106); the wall tops off the middle, in lists beside the templates, are what will. Five captures are committed under
+reaches the world, against the unfiltered entities. The wall tops told them apart (v0.1.186), each in
+the middle of one PIECE of a big tile: a tile's frame reaches the world as authored, then the game's
+placement (262 tops found, the next reading 224). A top's list carries a line for every way it may
+face, one place and two to six angles, and the game puts down only those facing the camera's side once
+laid - read as the entities' own angles are (nought along -y, so the facing is (sin a, -cos a)), 180 to
+270 degrees, no part along +x or +y: 514 of 514 lines, lone and grouped, mirrored tiles and turned
+(`TileDoodadList.Shown`). Read as (cos a, sin a) the lines split too, but mirrored and turned tiles
+want different facings, which is how the convention was told. A line's z is the entity's Render
+`TerrainHeight` exactly, 645 of 645 - not its z, which is the ground less some of the model, a different
+amount per model at one place. Whether that z counts from the tile's level is open: every tile under a
+found doodad was at level nought. A tile may carry TWO lists - beside the `.tdt` and beside the template,
+of overlapping doodads - and whether the game lays both
+or one instead of the other waits for a laid tile carrying both; the replay counts the two apart. A line
+naming a set (`_set.ao`) stands in the game as one member of the set, so matching by model misses it:
+7221 such lines found nothing, the seven plain ones all. A laid room's picture - an area's, a built one's
+in the Monster Book - draws each piece's doodads so (`LaidRoomModels.TileDoodadsOf`): placed as measured,
+not hung on the tile's mesh, whose sub-tile rows run down -y while the cells run down +y; turned, not
+mirrored, since an entity carries an angle only; the height above the piece's own lift and the `.tdt`'s
+list taken where there are two - both DECIDED, not measured, and the line under the picture says the
+second. Five captures are committed under
 `tests/fixtures/captures/` (its README says why each), and `CaptureFixtureTests` holds the orientation
 rule, the origin rule and the settled slots against them on every build. Two captures of one area forty
 minutes apart are how it was learned that the power-line pieces and checkpoints come and go

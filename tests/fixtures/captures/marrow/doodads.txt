@@ -1,4 +1,4 @@
-doodads: 5 entities stand where the rooms name a doodad, on 2 paths - sleeping map 6552 of 6552 walked, awake 462, 7014 with a path, read in 76 ms
+doodads: 6 entities stand where the rooms name a doodad, on 3 paths - sleeping map 6552 of 6552 walked, awake 449, 7001 with a path, read in 86 ms
 1open_02: 3 of its 3 doodad lines name a path found in the area, 4 such entities over 1 paths
 1open_04: 1 of its 1 doodad lines name a path found in the area, 4 such entities over 1 paths
 2open_corner_01: its doodad lines name no stub
@@ -18,20 +18,22 @@ cavern_gapfill_1: its doodad lines name no stub
 cavern_gapfill_2: its doodad lines name no stub
 cavern_gapfill_3: its doodad lines name no stub
 overlay_abyssedge_2x1_st_01: its doodad lines name no stub
-boss_01: 0 of its 27 doodad lines name a path found in the area, 0 such entities over 9 paths
-checkpoint_01: 1 of its 1 doodad lines name a path found in the area, 1 such entities over 1 paths
-checkpoint_02: 1 of its 1 doodad lines name a path found in the area, 1 such entities over 1 paths
-entrance_01: 1 of its 5 doodad lines name a path found in the area, 1 such entities over 3 paths
+boss_01: 2 of its 27 doodad lines name a path found in the area, 2 such entities over 9 paths
+checkpoint_01: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+checkpoint_02: 0 of its 1 doodad lines name a path found in the area, 0 such entities over 1 paths
+entrance_01: 0 of its 5 doodad lines name a path found in the area, 0 such entities over 3 paths
 mission_01: its doodad lines name no stub
 mission_02: its doodad lines name no stub
 Metadata/MiscellaneousObjects/Doodad: 4 entities, 4 asleep
-Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame: 1 entities, 0 asleep
-found nowhere: Metadata/MiscellaneousObjects/BossArenaBlocker, Metadata/MiscellaneousObjects/BossArenaController, Metadata/MiscellaneousObjects/BossForceFieldDoorVisuals, Metadata/MiscellaneousObjects/BossLeagueContentMarker, Metadata/MiscellaneousObjects/BossLeagueContentMarkerMain, Metadata/MiscellaneousObjects/BossLeaguePrecursorBeacon, Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame_Boss, Metadata/MiscellaneousObjects/EntranceLeagueContentMarker, Metadata/MiscellaneousObjects/MapReturnPortal, Metadata/Terrain/Gallows/Act2/2_9_2/Objects/GiantSnakeArenaMiddleMap, Metadata/Terrain/Gallows/Act2/2_9_2/Objects/SpearWallCentre
+Metadata/MiscellaneousObjects/BossForceFieldDoorVisuals: 1 entities, 0 asleep
+Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame_Boss: 1 entities, 1 asleep
+found nowhere: Metadata/MiscellaneousObjects/BossArenaBlocker, Metadata/MiscellaneousObjects/BossArenaController, Metadata/MiscellaneousObjects/BossLeagueContentMarker, Metadata/MiscellaneousObjects/BossLeagueContentMarkerMain, Metadata/MiscellaneousObjects/BossLeaguePrecursorBeacon, Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame, Metadata/MiscellaneousObjects/EntranceLeagueContentMarker, Metadata/MiscellaneousObjects/MapReturnPortal, Metadata/Terrain/Gallows/Act2/2_9_2/Objects/GiantSnakeArenaMiddleMap, Metadata/Terrain/Gallows/Act2/2_9_2/Objects/SpearWallCentre
 
-5 sightings; position in world units, z the game's way up
+6 sightings; position in world units, z the game's way up
 id	path	model	x	y	z	map
 3221225496	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/Badlands/GroundClutter/GroundBones01.ao	13907.61	11592.39	-10.601	sleeping
 3221225498	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/Badlands/GroundClutter/BoneSigils02.ao	14320.65	9711.957	-17.599	sleeping
 3221225497	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Desert/Badlands/GroundClutter/BoneSigils02.ao	10929.35	9711.957	-17.599	sleeping
+14	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame_Boss	Metadata/Terrain/Doodads/Checkpoints/unique/MarakethCheckpoint01_nobase.ao	15907.61	5114.13	-113.962	sleeping
 3221232871	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Mtx/equip_preview_backdrop_act3.ao	0	0	0	sleeping
-8	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame	Metadata/Terrain/Doodads/Checkpoints/MarakethCheckpoint01_nobase.ao	4233.696	15983.7	-113.962	awake
+23	Metadata/MiscellaneousObjects/BossForceFieldDoorVisuals	Metadata/Effects/Environment/act1/tutorial/twilight_strand/force_wall/force_wall.ao	15603.26	4625	-181.639	awake
