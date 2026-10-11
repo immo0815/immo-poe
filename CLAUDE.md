@@ -238,15 +238,24 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   its file sets open_water_color, found at +0x390 with a one - so PORT'S OPEN WATER IS (0.1, 0.19, 0.22), the engine's
   default (`ParsedEnvironment.WaterOpenColor`). The Red Vale named its density (v0.1.212): open_water_murkiness at +0x228,
   Port's default 0.01, with reflectiveness 0.03 (+0x230), refraction_index 1.33 (+0x238) and subsurface_scattering 1
-  (+0x240) beside it. That water_color_open.a IS the murkiness is what the names say, not a measurement of the uniform.
+  (+0x240) beside it. That water_color_open.a IS the murkiness the shaders say themselves (v0.1.217's water.txt):
+  legacy.ffx's water materials declare their medium colour `"R G B Density"` defaulting to `0.1 0.19 0.22 0.01` - the
+  colour and murkiness measured - and hand it to water_color_open; a material's uniform, not the pass's, read.
   SO AN OCEAN MATERIAL IS NOW DRAWN AS THE AREA'S WATER (`ShadeProgram.Water`, `WaterLook`): a medium over the solid
   surface behind, covering by `1 - exp(-depth * murkiness)` along the view, its colour `pow(open_water_color, 2.2)` lit
   as any colour is - the area's file's values where it sets them, the measured defaults where it does not, handed in
   per drawing like the dust (two fixed registers, `WaterColour` and `WaterFlow`). MEASURED: the colour and the density.
   CHOSEN, and said under the picture: the moving pattern (value noise, a cell every 120 units, 0.85 to 1.15 of the
   colour, drifting at the flow) standing for the engine's waves; still water where a file sets no flow, the engine's
-  flow default never having stood in a capture. NOT DONE: the height offset (water.ffx adds it to the surface's
-  displacement), the terrain water colour, reflections.
+  flow default never having stood in a capture. The first capture of it (v0.1.217, Port's harbour staged) put the probe's
+  water 583 units along the view over the ocean's black floor, and 94% of the water's pixels over 100: deep water at 0.01
+  covers whole, so the harbour comes out one dark teal - as the formula says, the engine's too. TAKEN FROM THE PASS'S
+  SOURCE (v0.1.219): the shore. WaterComputeRefraction thins the density by `saturate(gap * 0.03)` (`ShadeProgram.ShoreFade`)
+  and discards the water at the floor; the thirtyfold its formula keeps for terrain water is nought on this path
+  (`GetFlowingWaterPlanarStateWorld`). NOT DONE: the height offset (water.ffx adds it to the surface's displacement), the
+  terrain water colour, reflections (Fresnel by the reflectiveness, 0.03 in Port, the sun's highlight, the environment's
+  cube, screen-space), the refraction's bend, foam and the waves' normals - the last being what makes the engine's
+  surface glint; a flat plane would show one highlight at most.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

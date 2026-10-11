@@ -18,10 +18,14 @@ namespace PoEformance.Game.Files;
 /// stands as the engine's default with a flag of nought (ParsedEnvironment in the offset schema). The
 /// colour's slot was named by Clearfell Encampment's file, the murkiness's by The Red Vale's.
 ///
-/// THE MURKINESS IS THE DENSITY by the names: water.ffx takes the medium's density from
-/// <c>water_color_open.a</c> and lights the medium with <c>water_color_open.rgb</c>, and the file's two keys
-/// beside each other are <c>open_water_color</c> and <c>open_water_murkiness</c>. That the engine puts the one
-/// into the other's alpha is what the names say, not a reading of the uniform itself.
+/// THE MURKINESS IS THE DENSITY: water.ffx takes the medium's density from <c>water_color_open.a</c> and
+/// lights the medium with <c>water_color_open.rgb</c>, the file's two keys beside each other are
+/// <c>open_water_color</c> and <c>open_water_murkiness</c>, and the shaders' own water materials say so
+/// in their defaults - legacy.ffx declares <c>medium_color</c>, <c>water_uv_color_open</c> and
+/// <c>refalpha_medium_color</c> as <c>"R G B Density"</c> defaulting to <c>0.1 0.19 0.22 0.01</c>, the very
+/// colour and murkiness measured as the engine's in the parsed environment, and hands them to the water's
+/// <c>water_color_open</c> (water.txt, v0.1.217). Those are material uniforms; the pass's own is still not
+/// read itself, but its default and its alpha's meaning no longer rest on names alone.
 /// </remarks>
 public readonly record struct WaterLook(Vector3 OpenColour, float Murkiness, float FlowIntensity, float HeightOffset, string Said)
 {
