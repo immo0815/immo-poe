@@ -876,6 +876,171 @@ public class CaptureReplayTests
         Assert.Contains("samples", replay, StringComparison.Ordinal);
     }
 
+    /// <summary>Holds every laid file no tile list names against the listed files' chains and .tmd files, from a capture's tile-files.txt; writes the table beside the capture's files.</summary>
+    [Fact]
+    public void THETILEFILESExplainTheLaidFilesNoListNamesFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder)
+        {
+            return;
+        }
+
+        string replay = TileFilesReplay(folder);
+        File.WriteAllText(Path.Combine(folder, "tile-files-replay.txt"), replay);
+        Assert.StartsWith("tile files", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>A tile-files.txt written and read back: each laid file no list names is explained the way the area is built.</summary>
+    [Fact]
+    public void THETILEFILESReplayReadsWhatTheCaptureWrites()
+    {
+        string folder = Path.Combine(Path.GetTempPath(), $"poeformance-tile-files-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(folder);
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(folder, CaptureReport.TileFilesFile),
+                CaptureReport.TileFiles(CaptureReportTests.TileFilesInstall, ["Metadata/Terrain/Maps/Test/master.tsi"], null, CaptureReportTests.TileFilesLaid()));
+
+            string replay = TileFilesReplay(folder).ReplaceLineEndings("\n");
+            Assert.Contains("2 laid files no list names: 1 reached by inheriting, 1 by its path in a .tmd, 0 by its name alone in one, 0 not explained", replay, StringComparison.Ordinal);
+            Assert.Contains("Fill_01: inherited - Metadata/Terrain/Test/Murky/Fill_01.tdt lies as Metadata/Terrain/Test/Fill_01.tdt", replay, StringComparison.Ordinal);
+            Assert.Contains("Fill_02: in the .tmd of Metadata/Terrain/Test/Lava/Fill_01.tdt", replay, StringComparison.Ordinal);
+            Assert.Contains("listed files: 2, 1 inheriting, 1 with a .tmd (1 text, 0 binary)", replay, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// tile-files-replay.txt: every laid file no tile list names, and what explains it - a listed file whose
+    /// chain passes through it, a listed file's .tmd naming its path, or its name alone - read back from
+    /// tile-files.txt, so a changed reading of either half runs again over a capture without the game.
+    /// </summary>
+    /// <remarks>
+    /// WHY BOTH HALVES. Sulphuric Caverns' boss room lays Thickwall/Fill_01 where its list names
+    /// Murky/Thickwall/Fill_01, and Abyss/Lava/Fill_02 beside the list's Fill_01; a definition may inherit
+    /// another (annalithic's Tdt.cs) and some tiles load with a .tmd of their name, which neither reference
+    /// reads. Which of the two lays a file no list names is what this counts, so the build's pool can follow
+    /// the one the files show rather than the one that sounds right. The .tmd's own text is printed for the
+    /// first files it explains, since its layout is still to be read.
+    /// </remarks>
+    public static string TileFilesReplay(string folder)
+    {
+        var said = new StringBuilder();
+        string path = Path.Combine(folder, CaptureReport.TileFilesFile);
+        if (!File.Exists(path))
+        {
+            said.AppendLine(CultureInfo.InvariantCulture, $"tile files: no {CaptureReport.TileFilesFile} in the capture - a capture from 0.1.183 on carries it");
+            return said.ToString();
+        }
+
+        // THE BLOCKS: each file's flags, its chain (itself first) and the searchable .tmd - text lines, or the strings of a binary one.
+        var listed = new List<string>();
+        var laid = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var chains = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        var tmds = new Dictionary<string, (bool Text, StringBuilder Body)>(StringComparer.OrdinalIgnoreCase);
+        string current = string.Empty;
+        foreach (string raw in File.ReadLines(path))
+        {
+            string line = raw.TrimEnd('\r');
+            if (line.StartsWith("##### ", StringComparison.Ordinal))
+            {
+                int flags = line.LastIndexOf("  (", StringComparison.Ordinal);
+                current = line[6..flags];
+                string kinds = line[(flags + 3)..^1];
+                if (kinds.Contains("listed", StringComparison.Ordinal))
+                {
+                    listed.Add(current);
+                }
+
+                if (kinds.Contains("laid", StringComparison.Ordinal))
+                {
+                    laid.Add(current);
+                }
+
+                chains[current] = [current];
+                continue;
+            }
+
+            if (current.Length == 0)
+            {
+                continue;
+            }
+
+            if (line.StartsWith("  inherits\t", StringComparison.Ordinal))
+            {
+                chains[current].Add(line[11..]);
+            }
+            else if (line.StartsWith("  tmd\t", StringComparison.Ordinal) && !line.EndsWith("\tnone", StringComparison.Ordinal))
+            {
+                tmds[current] = (line.EndsWith("\ttext", StringComparison.Ordinal), new StringBuilder());
+            }
+            else if ((line.StartsWith("  | ", StringComparison.Ordinal) || line.StartsWith("  strings\t", StringComparison.Ordinal)) && tmds.TryGetValue(current, out var tmd))
+            {
+                tmd.Body.AppendLine((line.StartsWith("  | ", StringComparison.Ordinal) ? line[4..] : line[10..]).Replace('\\', '/'));
+            }
+        }
+
+        var listedSet = new HashSet<string>(listed, StringComparer.OrdinalIgnoreCase);
+        List<string> unlisted = [.. laid.Where(one => !listedSet.Contains(one)).Order(StringComparer.OrdinalIgnoreCase)];
+        int inherited = 0, byPath = 0, byName = 0, unexplained = 0;
+        var lines = new StringBuilder();
+        var shown = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string file in unlisted)
+        {
+            string name = Path.GetFileName(file);
+            List<string> heirs = [.. listed.Where(one => chains[one].Skip(1).Contains(file, StringComparer.OrdinalIgnoreCase))];
+            List<string> naming = [.. listed.Where(one => tmds.TryGetValue(one, out var tmd) && tmd.Body.ToString().Contains(file, StringComparison.OrdinalIgnoreCase))];
+            List<string> named = [.. listed.Where(one => !naming.Contains(one) && tmds.TryGetValue(one, out var tmd) && tmd.Body.ToString().Contains(name, StringComparison.OrdinalIgnoreCase))];
+            if (heirs.Count > 0)
+            {
+                inherited++;
+                lines.AppendLine(CultureInfo.InvariantCulture, $"  {Short(file)}: inherited - {string.Join(", ", heirs)} lies as {file}");
+            }
+            else if (naming.Count > 0)
+            {
+                byPath++;
+                lines.AppendLine(CultureInfo.InvariantCulture, $"  {Short(file)}: in the .tmd of {string.Join(", ", naming)}");
+            }
+            else if (named.Count > 0)
+            {
+                byName++;
+                lines.AppendLine(CultureInfo.InvariantCulture, $"  {Short(file)}: its name alone in the .tmd of {string.Join(", ", named)} - {file}");
+            }
+            else
+            {
+                unexplained++;
+                lines.AppendLine(CultureInfo.InvariantCulture, $"  {Short(file)}: NOT EXPLAINED - {file}");
+                continue;
+            }
+
+            // THE .tmd THAT EXPLAINS IT, whole, the first few times: its layout is still to be read.
+            foreach (string one in naming.Concat(named))
+            {
+                if (shown.Count < 6 && shown.Add(one))
+                {
+                    lines.AppendLine(CultureInfo.InvariantCulture, $"    the .tmd of {one} ({(tmds[one].Text ? "text" : "binary - its strings")}):");
+                    foreach (string text in tmds[one].Body.ToString().Split('\n'))
+                    {
+                        lines.Append("    | ").AppendLine(text.TrimEnd('\r'));
+                    }
+                }
+            }
+        }
+
+        int inheriting = listed.Count(one => chains[one].Count > 1);
+        int withTmd = listed.Count(tmds.ContainsKey);
+        int textTmd = listed.Count(one => tmds.TryGetValue(one, out var tmd) && tmd.Text);
+        said.AppendLine(CultureInfo.InvariantCulture, $"tile files: {unlisted.Count} laid files no list names: {inherited} reached by inheriting, {byPath} by its path in a .tmd, {byName} by its name alone in one, {unexplained} not explained");
+        said.AppendLine(CultureInfo.InvariantCulture, $"listed files: {listed.Count}, {inheriting} inheriting, {withTmd} with a .tmd ({textTmd} text, {withTmd - textTmd} binary)");
+        said.AppendLine();
+        said.Append(lines);
+        return said.ToString();
+    }
+
     /// <summary>The captures to read together: POEF_CAPTURES, several folders split by the platform's path separator - else POEF_CAPTURE alone, else none.</summary>
     private static string[] Folders()
     {

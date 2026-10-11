@@ -1,0 +1,315 @@
+52 rooms of the area's set against 72 tiles its tilesets list - 1 master, lists metadata/terrain/maps/steppe/tiles.tst
+Each kind of slot once with the tiles alike to it by the search's rule (SlotWants): the size either way round, the tag where the slot names one, every edge and ground type the slot names among the tile's. One tile alike settles the kind by the files; several is the generator's choice.
+
+summary: 0 of 52 rooms settled by the files alone (every kind of slot one tile) · arena rooms 0 of 0 · slots settled 37 of 842 · tiles that did not read 0
+
+##### Metadata/Terrain/Gallows/Leagues/Expedition/encounter.arm  -  the room's grid holds no slot that asks for a tile
+
+##### Metadata/Terrain/Gallows/Leagues/Incursion/ExtraTerrainFeatures/IncursionWaygate_Generic.arm  -  1 slots of 1 kinds · one tile answers 0 kinds (0 slots), several 0, none 1
+  1 slot (big) 3x3 waygate edges [-, -, -, -] grounds [-, -, -, -] -> 0 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Tri_04.arm  -  19 slots of 6 kinds · one tile answers 0 kinds (0 slots), several 5, none 1
+  14 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  1 slot (big) 3x3 edges [-, -, island_lower_ledge, island_slope] grounds [-, -, -, -] -> 5 tiles: Cc_to_LowerLedge_01, Cv_to_LowerLedge_01, SlopeLowerLedge_CcMM_01, SlopeLowerLedge_CvMM_01, St_to_LowerLedge_01
+  1 slot (big) 3x3 edges [-, island_lower_ledge, island_unwalkable_cliff, island_unwalkable_ledge] grounds [-, -, -, island_inner_cliff] -> 4 tiles: UnwalkableLedge_UnwalkableCliff_CvCc_01, UnwalkableLedge_UnwalkableCliff_CvCv_01, UnwalkableLedge_UnwalkableCliff_StSt_01, UnwalkableLedge_UnwalkableCliff_to_Walkable_X_01
+  1 slot (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 6 tiles: UnwalkableCliff_CcMM_01, UnwalkableCliff_CcMM_02, UnwalkableCliff_StMM_01, UnwalkableCliff_StMM_02, UnwalkableCliff_to_Walkable_CcCv_01, UnwalkableCliff_XMM_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [island_inner_cliff, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 0 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Tri_05.arm  -  9 slots of 6 kinds · one tile answers 0 kinds (0 slots), several 5, none 1
+  4 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  1 slot (big) 3x3 edges [-, -, island_lower_ledge, island_slope] grounds [-, -, -, -] -> 5 tiles: Cc_to_LowerLedge_01, Cv_to_LowerLedge_01, SlopeLowerLedge_CcMM_01, SlopeLowerLedge_CvMM_01, St_to_LowerLedge_01
+  1 slot (big) 3x3 edges [-, island_lower_ledge, island_unwalkable_cliff, island_unwalkable_ledge] grounds [-, -, -, island_inner_cliff] -> 4 tiles: UnwalkableLedge_UnwalkableCliff_CvCc_01, UnwalkableLedge_UnwalkableCliff_CvCv_01, UnwalkableLedge_UnwalkableCliff_StSt_01, UnwalkableLedge_UnwalkableCliff_to_Walkable_X_01
+  1 slot (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 6 tiles: UnwalkableCliff_CcMM_01, UnwalkableCliff_CcMM_02, UnwalkableCliff_StMM_01, UnwalkableCliff_StMM_02, UnwalkableCliff_to_Walkable_CcCv_01, UnwalkableCliff_XMM_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [island_inner_cliff, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 0 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Tri_06.arm  -  11 slots of 6 kinds · one tile answers 1 kinds (1 slots), several 4, none 1
+  4 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  1 slot (big) 3x3 edges [-, -, island_lower_ledge, island_slope] grounds [-, -, -, -] -> 5 tiles: Cc_to_LowerLedge_01, Cv_to_LowerLedge_01, SlopeLowerLedge_CcMM_01, SlopeLowerLedge_CvMM_01, St_to_LowerLedge_01
+  1 slot (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 6 tiles: UnwalkableCliff_CcMM_01, UnwalkableCliff_CcMM_02, UnwalkableCliff_StMM_01, UnwalkableCliff_StMM_02, UnwalkableCliff_to_Walkable_CcCv_01, UnwalkableCliff_XMM_01
+  1 slot (big) 3x3 edges [-, island_lower_ledge, island_unwalkable_cliff, island_unwalkable_ledge] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 1 tile: UnwalkableLedge_UnwalkableCliff_StSt_01
+  1 slot (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 7 tiles
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [island_inner_cliff, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 0 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_cliff_Cc_02.arm  -  8 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 2, none 1
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [island_inner_cliff, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 0 tiles
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 6 tiles: UnwalkableCliff_CcMM_01, UnwalkableCliff_CcMM_02, UnwalkableCliff_StMM_01, UnwalkableCliff_StMM_02, UnwalkableCliff_to_Walkable_CcCv_01, UnwalkableCliff_XMM_01
+  1 slot (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 2 tiles: UnwalkableCliff_CcMM_01, UnwalkableCliff_CcMM_02
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_cliff_Cv_02.arm  -  4 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 2, none 1
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 6 tiles: UnwalkableCliff_CcMM_01, UnwalkableCliff_CcMM_02, UnwalkableCliff_StMM_01, UnwalkableCliff_StMM_02, UnwalkableCliff_to_Walkable_CcCv_01, UnwalkableCliff_XMM_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [island_inner_cliff, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 0 tiles
+  1 slot (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, -, -, island_inner_cliff] -> 8 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_cliff_St_02.arm  -  6 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 1, none 1
+  3 slots (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 6 tiles: UnwalkableCliff_CcMM_01, UnwalkableCliff_CcMM_02, UnwalkableCliff_StMM_01, UnwalkableCliff_StMM_02, UnwalkableCliff_to_Walkable_CcCv_01, UnwalkableCliff_XMM_01
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [island_inner_cliff, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 0 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_cliff_St_03.arm  -  6 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 3, none 1
+  1 slot (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 6 tiles: UnwalkableCliff_CcMM_01, UnwalkableCliff_CcMM_02, UnwalkableCliff_StMM_01, UnwalkableCliff_StMM_02, UnwalkableCliff_to_Walkable_CcCv_01, UnwalkableCliff_XMM_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [island_inner_cliff, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 0 tiles
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, -, -, island_inner_cliff] -> 8 tiles
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 2 tiles: UnwalkableCliff_CcMM_01, UnwalkableCliff_CcMM_02
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_cliff_St_04.arm  -  5 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, -, -, island_inner_cliff] -> 8 tiles
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 2 tiles: UnwalkableCliff_CcMM_01, UnwalkableCliff_CcMM_02
+  1 slot (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 6 tiles: UnwalkableCliff_CcMM_01, UnwalkableCliff_CcMM_02, UnwalkableCliff_StMM_01, UnwalkableCliff_StMM_02, UnwalkableCliff_to_Walkable_CcCv_01, UnwalkableCliff_XMM_01
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_ledge_Cc_01.arm  -  12 slots of 4 kinds · one tile answers 1 kinds (1 slots), several 2, none 1
+  4 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [island_inner_cliff, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 0 tiles
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 1 tile: UnwalkableLedge_CcMM_01
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_ledge_Cv_01.arm  -  28 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 3, none 1
+  24 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [island_inner_cliff, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 0 tiles
+  1 slot (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, -, -, island_inner_cliff] -> 14 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_ledge_St_01.arm  -  20 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 2, none 1
+  14 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  3 slots (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 7 tiles
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [island_inner_cliff, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 0 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_ledge_St_02.arm  -  20 slots of 5 kinds · one tile answers 1 kinds (2 slots), several 3, none 1
+  14 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  1 slot (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [island_inner_cliff, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 0 tiles
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, -, -, island_inner_cliff] -> 14 tiles
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 1 tile: UnwalkableLedge_CcMM_01
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Cliff/Unwalkable_ledge_St_03.arm  -  28 slots of 5 kinds · one tile answers 2 kinds (11 slots), several 3, none 0
+  14 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, -, -, island_inner_cliff] -> 14 tiles
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 1 tile: UnwalkableLedge_CcMM_01
+  9 slots 1x1 forcedblank edges [-, -, -, -] grounds [-, -, -, -] -> 1 tile: forced_blank
+  1 slot (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/2x2_ground_fill_01.arm  -  23 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  18 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  5 slots (big) 3x3 edges [island_slope, island_slope, island_slope, island_slope] grounds [-, -, -, -] -> 10 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/2x2_ground_fill_02.arm  -  23 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  18 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  5 slots (big) 3x3 edges [island_slope, island_slope, island_slope, island_slope] grounds [-, -, -, -] -> 10 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/2x2_ground_fill_03.arm  -  22 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  16 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  6 slots (big) 3x3 edges [island_slope, island_slope, island_slope, island_slope] grounds [-, -, -, -] -> 10 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/2x3_ground_fill_01.arm  -  32 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  22 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  10 slots (big) 3x3 edges [island_slope, island_slope, island_slope, island_slope] grounds [-, -, -, -] -> 10 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/2x3_ground_fill_02.arm  -  32 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  24 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  8 slots (big) 3x3 edges [island_slope, island_slope, island_slope, island_slope] grounds [-, -, -, -] -> 10 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/3x3_ground_fill_01.arm  -  40 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  32 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  8 slots (big) 3x3 edges [island_slope, island_slope, island_slope, island_slope] grounds [-, -, -, -] -> 10 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/3x3_ground_fill_02.arm  -  44 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  34 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  10 slots (big) 3x3 edges [island_slope, island_slope, island_slope, island_slope] grounds [-, -, -, -] -> 10 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/3x3_ground_fill_03.arm  -  44 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  26 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  18 slots (big) 3x3 edges [island_slope, island_slope, island_slope, island_slope] grounds [-, -, -, -] -> 10 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/ground_fill_01.arm  -  7 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  6 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  1 slot (big) 3x3 edges [island_slope, island_slope, island_slope, island_slope] grounds [-, -, -, -] -> 10 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/ground_fill_02.arm  -  8 slots of 1 kinds · one tile answers 0 kinds (0 slots), several 1, none 0
+  8 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/ground_fill_03.arm  -  4 slots of 1 kinds · one tile answers 0 kinds (0 slots), several 1, none 0
+  4 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/ground_fill_04.arm  -  the room's grid holds no slot that asks for a tile
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/innercliff_fill_01.arm  -  9 slots of 1 kinds · one tile answers 0 kinds (0 slots), several 0, none 1
+  9 slots (big) 3x3 edges [-, -, -, -] grounds [island_inner_cliff, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 0 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Fills/smallfill_05.arm  -  the room's grid holds no slot that asks for a tile
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/Cc_01.arm  -  12 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  4 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  5 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  3 slots (big) 3x3 edges [island_slope, island_slope, island_slope, island_slope] grounds [-, -, -, -] -> 10 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/Cc_02.arm  -  14 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  8 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  5 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  1 slot (big) 3x3 edges [island_slope, island_slope, island_slope, island_slope] grounds [-, -, -, -] -> 10 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/Cc_03.arm  -  36 slots of 3 kinds · one tile answers 1 kinds (6 slots), several 2, none 0
+  27 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  3 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  6 slots 1x1 forcedblank edges [-, -, -, -] grounds [-, -, -, -] -> 1 tile: forced_blank
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/Cv_01.arm  -  11 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  4 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  7 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/Cv_02.arm  -  7 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  4 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  3 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/Cv_03.arm  -  9 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  4 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  5 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/St_01.arm  -  19 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  14 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  5 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/St_02.arm  -  12 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  7 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  1 slot (big) 3x3 edges [island_slope, island_slope, island_slope, island_slope] grounds [-, -, -, -] -> 10 tiles
+  4 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/St_03.arm  -  17 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  14 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  3 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Slope/St_03_plain.arm  -  17 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  14 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  3 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/checkpoint_01.arm  -  7 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  6 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  1 slot (big) 3x3 edges [island_slope, island_slope, island_slope, island_slope] grounds [-, -, -, -] -> 10 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/checkpoint_02.arm  -  8 slots of 1 kinds · one tile answers 0 kinds (0 slots), several 1, none 0
+  8 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/checkpoint_03.arm  -  4 slots of 1 kinds · one tile answers 0 kinds (0 slots), several 1, none 0
+  4 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/entrance1.arm  -  the room's grid holds no slot that asks for a tile
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/entrance2.arm  -  56 slots of 6 kinds · one tile answers 2 kinds (12 slots), several 3, none 1
+  28 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  12 slots (big) 3x3 edges [-, -, -, -] grounds [island_inner_cliff, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 0 tiles
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 7 tiles
+  3 slots (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 1 tile: UnwalkableLedge_CcMM_01
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, -, -, island_inner_cliff] -> 14 tiles
+  9 slots 1x1 forcedblank edges [-, -, -, -] grounds [-, -, -, -] -> 1 tile: forced_blank
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/entrance3.arm  -  19 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 3, none 1
+  12 slots (big) 3x3 edges [-, -, -, -] grounds [island_inner_cliff, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 0 tiles
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 6 tiles: UnwalkableCliff_CcMM_01, UnwalkableCliff_CcMM_02, UnwalkableCliff_StMM_01, UnwalkableCliff_StMM_02, UnwalkableCliff_to_Walkable_CcCv_01, UnwalkableCliff_XMM_01
+  3 slots (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 2 tiles: UnwalkableCliff_CcMM_01, UnwalkableCliff_CcMM_02
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, -, -, island_inner_cliff] -> 8 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/mission_01.arm  -  1 slots of 1 kinds · one tile answers 0 kinds (0 slots), several 0, none 1
+  1 slot (big) 3x3 missiontile edges [-, -, -, -] grounds [-, -, -, -] -> 0 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/mission_02.arm  -  9 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 1, none 1
+  8 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  1 slot (big) 3x3 missiontile edges [-, -, -, -] grounds [-, -, -, -] -> 0 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/rare_01.arm  -  7 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  6 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  1 slot (big) 3x3 edges [island_slope, island_slope, island_slope, island_slope] grounds [-, -, -, -] -> 10 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/rare_02.arm  -  8 slots of 1 kinds · one tile answers 0 kinds (0 slots), several 1, none 0
+  8 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/rare_03.arm  -  4 slots of 1 kinds · one tile answers 0 kinds (0 slots), several 1, none 0
+  4 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/Steppe.arm  -  76 slots of 4 kinds · one tile answers 1 kinds (1 slots), several 2, none 1
+  21 slots (big) 3x3 edges [-, -, -, -] grounds [island_inner_cliff, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 0 tiles
+  1 slot (big) 21x21 SteppeAreba_03 edges [-, island_unwalkable_ledge, island_unwalkable_ledge, wildcard] grounds [-, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 1 tile: SteppeArena03
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_ledge, island_unwalkable_ledge] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 7 tiles
+  52 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+
+##### Metadata/Terrain/Maps/Steppe/Rooms/Unique/Steppe2.arm  -  24 slots of 7 kinds · one tile answers 2 kinds (3 slots), several 4, none 1
+  8 slots (big) 3x3 edges [-, -, -, -] grounds [island_inner_cliff, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 0 tiles
+  2 slots (big) 3x3 edges [-, island_lower_ledge, island_unwalkable_cliff, island_unwalkable_ledge] grounds [-, -, island_inner_cliff, island_inner_cliff] -> 1 tile: UnwalkableLedge_UnwalkableCliff_StSt_01
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 2 tiles: UnwalkableCliff_CcMM_01, UnwalkableCliff_CcMM_02
+  2 slots (big) 3x3 edges [-, -, island_lower_ledge, island_slope] grounds [-, -, -, -] -> 5 tiles: Cc_to_LowerLedge_01, Cv_to_LowerLedge_01, SlopeLowerLedge_CcMM_01, SlopeLowerLedge_CvMM_01, St_to_LowerLedge_01
+  2 slots (big) 3x3 edges [-, -, island_unwalkable_cliff, island_unwalkable_cliff] grounds [-, -, -, island_inner_cliff] -> 8 tiles
+  7 slots (big) 3x3 edges [-, -, island_slope, island_slope] grounds [-, -, -, -] -> 32 tiles
+  1 slot (big) 21x21 SteppeAreba_03 edges [-, island_unwalkable_ledge, island_unwalkable_ledge, wildcard] grounds [-, island_inner_cliff, island_inner_cliff, island_inner_cliff] -> 1 tile: SteppeArena03
+
+##### the tilesets' tiles, each as a room's slot asks about it - tab-separated, or why it did not read (72)
+path	width	height	tag	edge down	edge right	edge up	edge left	ground down-left	ground down-right	ground up-right	ground up-left
+Metadata/Terrain/Blank.tdt	1	1									
+Metadata/Terrain/forced_blank.tdt	1	1	forcedblank								
+Metadata/Terrain/Maps/Steppe/Tiles/SteppeArena01.tdt	12	12		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et						
+Metadata/Terrain/Maps/Steppe/Tiles/SteppeArena02.tdt	21	21	SteppeArena_metatile	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope_virtual.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope_virtual.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope_virtual.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope_virtual.et				
+Metadata/Terrain/Maps/Steppe/Tiles/SteppeArena03.tdt	21	21	SteppeAreba_03	Metadata/Terrain/wildcard.et		Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	
+Metadata/Terrain/Maps/Steppe/Tiles/Arena/SteppeArena03.tdt	21	21	steppe_noboss	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope_virtual.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope_virtual.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope_virtual.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope_virtual.et				
+Metadata/Terrain/Maps/Steppe/Tiles/UnwalkableCliff_CcMM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et			Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt		Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Maps/Steppe/Tiles/UnwalkableCliff_CcMM_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et			Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt		Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Maps/Steppe/Tiles/UnwalkableCliff_CvMM_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et				Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Maps/Steppe/Tiles/UnwalkableCliff_CvMM_02.tdt	3	3				Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et				Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Maps/Steppe/Tiles/UnwalkableCliff_StMM_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et		Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et			Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Maps/Steppe/Tiles/UnwalkableCliff_StMM_02.tdt	3	3			Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et		Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et			Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/UnwalkableCliff_to_Walkable_CcCc_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/WalkableCliff/island_walkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/CliffTop/island_cliff_top.et		Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt			Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/UnwalkableCliff_to_Walkable_CcCv_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/CliffTop/island_cliff_top.et	Metadata/Terrain/Islands/Tiles/Island/CliffTop/island_cliff_top.et	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt		Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/UnwalkableCliff_to_Walkable_CcSt_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/WalkableCliff/island_walkable_cliff.et		Metadata/Terrain/Islands/Tiles/Island/CliffTop/island_cliff_top.et	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt			
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/UnwalkableCliff_to_Walkable_StSt_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/Island/WalkableCliff/island_walkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/CliffTop/island_cliff_top.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et				Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/UnwalkableCliff_XMM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et		Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt		Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/UnwalkableLedge_CcMM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et			Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/UnwalkableLedge_CvMM_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt		Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/UnwalkableLedge_StMM_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et		Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt	Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/UnwalkableLedge_UnwalkableCliff_CvCc_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt		Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/UnwalkableLedge_UnwalkableCliff_CvCv_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et		Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt	Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt		Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/UnwalkableLedge_UnwalkableCliff_StSt_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et		Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt	Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/UnwalkableLedge_UnwalkableCliff_to_Walkable_StSt_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et	Metadata/Terrain/Islands/Tiles/Island/WalkableCliff/island_walkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/CliffTop/island_cliff_top.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt	Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt		Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/UnwalkableLedge_UnwalkableCliff_to_Walkable_X_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/WalkableCliff/island_walkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et	Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt		
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/UnwalkableLedge_Walkable_CcCv_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/CliffTop/island_cliff_top.et			Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/UnwalkableLedge_Walkable_CcSt_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et		Metadata/Terrain/Islands/Tiles/Island/CliffTop/island_cliff_top.et		Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/UnwalkableLedge_Walkable_StSt_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et	Metadata/Terrain/Islands/Tiles/Island/CliffTop/island_cliff_top.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt	Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt		Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/UnwalkableLedge_XMM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/UnwalkableLedge_Walkable_UnwalkableLedge_St_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et		Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et		Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/Cc_blank_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et			Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/Cc_to_LowerLedge_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et			Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et				
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/Cv_blank_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/Cv_to_LowerLedge_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/Slope_UnwalkableLedge_UnwalkableCliff_CvCv_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/Island/UnwalkableCliff/island_unwalkable_cliff.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et			Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/SlopeLowerLedge_CcMM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et	Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et		Metadata/Terrain/Islands/Tiles/Island/island_cliff_inner_trim.gt		
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/SlopeLowerLedge_CvMM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et	Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et				
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/SlopeUnwalkableLedge_CvMM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et				Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/SlopeUnwalkableLedge_CvMM_02.tdt	3	3			Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et				Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/SlopeUnwalkableLedge_CvMM_03.tdt	3	3				Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et				Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/SlopeUnwalkableLedge_CvStMM_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et				Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/SlopeUnwalkableLedge_X_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et			Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/SlopeUnwalkableLedge_X_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt			
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/SlopeUnwalkableLedge_X_03.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt		Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/SlopeUnwalkableLedge_St_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et		Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et			Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/SlopeUnwalkableLedge_St_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et		Metadata/Terrain/Islands/Tiles/Island/UnwalkableLedge/island_unwalkable_ledge.et			Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt	Metadata/Terrain/Islands/Tiles/Island/island_inner_cliff.gt
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/St_blank_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/St_to_LowerLedge_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/Island/LowerLedge/island_lower_ledge.et		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/X_blank_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Islands/Tiles/Island/Slope/Blank/X_CvCc_MM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/Cc_blank_01a.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et			Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/Cc_blank_01b.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et			Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/Cv_blank_01a.tdt	3	3				Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/Cv_blank_01b.tdt	3	3				Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/Cv_blank_01c.tdt	3	3				Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/Cv_blank_01d.tdt	3	3				Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/Cv_blank_01e.tdt	3	3				Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/St_blank_01a.tdt	3	3			Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/St_blank_01b.tdt	3	3			Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/St_blank_01c.tdt	3	3			Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/St_blank_01d.tdt	3	3			Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/X_blank_01a.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/X_blank_01b.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/X_blank_01c.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/X_blank_01d.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/X_CvCc_MM_01a.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/X_CvCc_MM_01b.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/X_CvCc_MM_01c.tdt	3	3		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/Cc_blank_01.tdt	3	3	blank	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et			Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/Cv_blank_01.tdt	3	3	blank			Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/St_blank_01.tdt	3	3	blank		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et		Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				
+Metadata/Terrain/Maps/Steppe/Tiles/Steppe/X_blank_01.tdt	3	3	blank	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et	Metadata/Terrain/Islands/Tiles/Island/Slope/island_slope.et				

@@ -1,0 +1,11 @@
+0 monsters among 128 entities, read fresh inside the recording with every switch on, nearest the player first; distance and position in world units
+mods are the game's own ids off ObjectMagicProperties, named where its Mods table names them; buffs carry their clocks; targetable is the game's own byte
+a marked place within 100 of a monster is listed under it - an essence prison stands on its monster and carries the icon the monster does not
+
+
+=== 4 marked places - every entity the game gives a map icon, nearest the player first
+distance	icon	present	id	address	x	y	z	path	name
+974.2	Portal	no	7962	0x55E634DED80	7722.8	14233.7	-166.9	Metadata/Effects/Microtransactions/Town_Portals/RustKingPortal/RustKingPortal	Return to the Map Device
+9070.7	Expedition2RemnantDeactivated	no	1119	0x55E3364A280	12766.3	5951.1	-127	Metadata/MiscellaneousObjects/Expedition2/Expedition2Encounter	
+9426.1	Expedition2RemnantDeactivated	no	1117	0x55E3364A000	12798.9	5570.7	-127	Metadata/MiscellaneousObjects/Expedition2/Expedition2Encounter	
+10171	Expedition2RemnantDeactivated	no	1115	0x55E33649D80	12505.4	4625	-127	Metadata/MiscellaneousObjects/Expedition2/Expedition2Encounter	

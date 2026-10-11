@@ -1,0 +1,1084 @@
+138 rooms of the area's set against 123 tiles its tilesets list - 1 master, lists Metadata/Terrain/Maps/Oasis/tiles.tst
+Each kind of slot once with the tiles alike to it by the search's rule (SlotWants): the size either way round, the tag where the slot names one, every edge and ground type the slot names among the tile's. One tile alike settles the kind by the files; several is the generator's choice.
+
+summary: 5 of 138 rooms settled by the files alone (every kind of slot one tile) · arena rooms 0 of 3 · slots settled 300 of 1867 · tiles that did not read 0
+
+##### Metadata/Terrain/Gallows/Leagues/Expedition/encounter.arm  -  the room's grid holds no slot that asks for a tile
+
+##### Metadata/Terrain/Gallows/Leagues/Incursion/ExtraTerrainFeatures/IncursionWaygate_Generic.arm  -  1 slots of 1 kinds · one tile answers 0 kinds (0 slots), several 0, none 1
+  1 slot (big) 3x3 waygate edges [-, -, -, -] grounds [-, -, -, -] -> 0 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/BorderOpen/unwalkableborder_cc_1.arm  -  8 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/BorderOpen/unwalkableborder_cc_torooms_1.arm  -  8 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 4, none 0
+  3 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/BorderOpen/unwalkableborder_cc_torooms_2.arm  -  7 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  3 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/BorderOpen/unwalkableborder_cvcv_1.arm  -  7 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 4, none 0
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  3 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/BorderOpen/unwalkableborder_cvcv_2.arm  -  7 slots of 3 kinds · one tile answers 1 kinds (1 slots), several 2, none 0
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  4 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  1 slot (big) 3x3 edges [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 1 tile: XMMMM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/BorderOpen/unwalkableborder_cv_1.arm  -  4 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/BorderOpen/unwalkableborder_cv_1b.arm  -  3 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/BorderOpen/unwalkableborder_mud_x_1.arm  -  8 slots of 5 kinds · one tile answers 2 kinds (3 slots), several 3, none 0
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  1 slot (big) 3x3 edges [mudborder, mudborder, unwalkableborder, unwalkableborder] grounds [-, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudEdge_X_Border_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/BorderOpen/unwalkableborder_st_1.arm  -  6 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  3 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/BorderOpen/unwalkableborder_st_1b.arm  -  6 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 4, none 0
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/BorderOpen/unwalkableborder_st_1c.arm  -  6 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 4, none 0
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/BorderOpen/unwalkableborder_st_1d.arm  -  5 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/BorderOpen/unwalkableborder_st_2.arm  -  6 slots of 4 kinds · one tile answers 1 kinds (2 slots), several 3, none 0
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, unwalkableborder, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_Cv_01
+  2 slots (big) 3x3 edges [-, mudborder, mudpool_edge, unwalkableborder] grounds [-, -, mudpool, unwalkableborder] -> 4 tiles: MudEdge_To_BorderCv_01, MudEdge_To_BorderCv_02, MudEdge_To_BorderSt_01, ruinwall_MudEdge_Border_Combo_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/BorderOpen/unwalkableborder_st_torooms_1.arm  -  5 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/DreadnoughtRoad/open1.arm  -  8 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  4 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  4 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/DreadnoughtRoad/open1a.arm  -  9 slots of 3 kinds · one tile answers 1 kinds (1 slots), several 2, none 0
+  6 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  1 slot (big) 3x3 edges [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 1 tile: XMMMM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/DreadnoughtRoad/open1b.arm  -  33 slots of 12 kinds · one tile answers 3 kinds (4 slots), several 9, none 0
+  10 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  6 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  3 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  2 slots (big) 3x3 edges [-, oasis_ruin_thinwall, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 3 tiles: ruinwall_to_border_Cc_01, ruinwall_to_border_Cc_02, ruinwall_to_border_St_01
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  1 slot (big) 3x3 edges [-, mudborder, mudpool_edge, unwalkableborder] grounds [-, mudpool, mudpool, unwalkableborder] -> 1 tile: MudEdge_To_BorderCv_01
+  1 slot (big) 3x3 edges [mudpool_edge, mudpool_edge, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 2 tiles: ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_Cc_feature_01
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 1 tile: ruinwall_to_border_St_01
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/DreadnoughtRoad/open2.arm  -  23 slots of 13 kinds · one tile answers 5 kinds (6 slots), several 8, none 0
+  7 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  2 slots (big) 3x3 edges [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 1 tile: XMMMM_01
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  1 slot (big) 3x3 edges [-, mudborder, mudpool_edge, unwalkableborder] grounds [-, -, mudpool, unwalkableborder] -> 4 tiles: MudEdge_To_BorderCv_01, MudEdge_To_BorderCv_02, MudEdge_To_BorderSt_01, ruinwall_MudEdge_Border_Combo_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, unwalkableborder, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_Cv_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 mud_island edges [-, -, -, wildcard_double] grounds [mudpool, mudpool, mudpool, mudpool] -> 1 tile: MudIsland_06
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/DreadnoughtRoad/open3.arm  -  24 slots of 13 kinds · one tile answers 7 kinds (9 slots), several 6, none 0
+  7 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  3 slots (big) 3x3 edges [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 1 tile: XMMMM_01
+  1 slot (big) 3x3 edges [mudborder, mudborder, unwalkableborder, unwalkableborder] grounds [-, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudEdge_X_Border_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, unwalkableborder, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_Cv_01
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  1 slot (big) 3x3 edges [-, mudborder, mudpool_edge, unwalkableborder] grounds [-, mudpool, mudpool, unwalkableborder] -> 1 tile: MudEdge_To_BorderCv_01
+  1 slot (big) 3x3 mud_island edges [-, -, -, wildcard_double] grounds [mudpool, mudpool, mudpool, mudpool] -> 1 tile: MudIsland_06
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/DreadnoughtRoad/open4.arm  -  24 slots of 10 kinds · one tile answers 3 kinds (5 slots), several 7, none 0
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  5 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  3 slots (big) 3x3 edges [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 1 tile: XMMMM_01
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 edges [-, mudborder, mudpool_edge, unwalkableborder] grounds [-, mudpool, mudpool, unwalkableborder] -> 1 tile: MudEdge_To_BorderCv_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/DreadnoughtRoad/open5.arm  -  24 slots of 13 kinds · one tile answers 5 kinds (6 slots), several 8, none 0
+  5 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  5 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  2 slots (big) 3x3 edges [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 1 tile: XMMMM_01
+  1 slot (big) 3x3 edges [mudborder, mudborder, unwalkableborder, unwalkableborder] grounds [-, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudEdge_X_Border_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, unwalkableborder, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_Cv_01
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  1 slot (big) 3x3 edges [-, mudborder, mudpool_edge, unwalkableborder] grounds [-, mudpool, mudpool, unwalkableborder] -> 1 tile: MudEdge_To_BorderCv_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/DreadnoughtRoad/trail_straight_1.arm  -  13 slots of 3 kinds · one tile answers 2 kinds (3 slots), several 1, none 0
+  10 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  2 slots (big) 3x3 tracks_short edges [-, -, wildcard, wildcard] grounds [-, -, -, -] -> 1 tile: DreadnoughtsWakeTracks_Short_1
+  1 slot (big) 9x3 tracks_long edges [-, -, wildcard, wildcard] grounds [-, -, -, -] -> 1 tile: DreadnoughtsWakeTracks_Long_1
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/fill_01.arm  -  the room's grid holds no slot that asks for a tile
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/fill_03.arm  -  the room's grid holds no slot that asks for a tile
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/fill_04.arm  -  the room's grid holds no slot that asks for a tile
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/mudpool_island_1.arm  -  1 slots of 1 kinds · one tile answers 1 kinds (1 slots), several 0, none 0 · settled by the files alone
+  1 slot (big) 3x3 mud_island edges [-, -, -, wildcard_double] grounds [mudpool, mudpool, mudpool, mudpool] -> 1 tile: MudIsland_06
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/mudpool_island_2.arm  -  1 slots of 1 kinds · one tile answers 1 kinds (1 slots), several 0, none 0 · settled by the files alone
+  1 slot (big) 3x3 mud_island edges [-, -, -, wildcard_double] grounds [mudpool, mudpool, mudpool, mudpool] -> 1 tile: MudIsland_06
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/mudpool_small_01.arm  -  1 slots of 1 kinds · one tile answers 1 kinds (1 slots), several 0, none 0 · settled by the files alone
+  1 slot (big) 3x3 mudpool2 edges [-, -, -, wildcard] grounds [-, -, -, -] -> 1 tile: MudPool_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/mudpool_small_02.arm  -  1 slots of 1 kinds · one tile answers 1 kinds (1 slots), several 0, none 0 · settled by the files alone
+  1 slot (big) 3x3 mudpool3 edges [-, -, -, wildcard] grounds [-, -, -, -] -> 1 tile: MudPool_03
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/mudpool_small_03.arm  -  1 slots of 1 kinds · one tile answers 1 kinds (1 slots), several 0, none 0 · settled by the files alone
+  1 slot (big) 3x3 mudpool1 edges [-, -, -, wildcard] grounds [-, -, -, -] -> 1 tile: MudPool_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/outer_fill.arm  -  9 slots of 1 kinds · one tile answers 0 kinds (0 slots), several 1, none 0
+  9 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_01.arm  -  21 slots of 6 kinds · one tile answers 4 kinds (8 slots), several 2, none 0
+  9 slots (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+  4 slots (big) 3x3 edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 6 tiles: ruinwall_Tri_01, ruinwall_XMM_01, ruinwall_X_MMMM_02, ruinwall_X_MMMM_01, ruinwall_Tri_MMM_feature_01, ruinwall_Tri_MMM_02
+  4 slots (big) 3x3 corner_open edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_02
+  2 slots (big) 3x3 tri_connect edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_Tri_MMM_02
+  1 slot (big) 3x3 doorway edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_02
+  1 slot (big) 3x3 straightwall edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_02.arm  -  11 slots of 6 kinds · one tile answers 5 kinds (8 slots), several 1, none 0
+  2 slots (big) 3x3 corner edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_01
+  1 slot (big) 3x3 straightwall edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_01
+  1 slot (big) 3x3 broken edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_end_feature_01
+  1 slot (big) 3x3 tri_connect edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_Tri_MMM_02
+  3 slots (big) 3x3 doorway edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_02
+  3 slots (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_03.arm  -  14 slots of 8 kinds · one tile answers 4 kinds (5 slots), several 4, none 0
+  1 slot (big) 3x3 broken edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_end_feature_01
+  2 slots (big) 3x3 straightwall edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_01
+  3 slots (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+  2 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 corner edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_01
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 blocked edges [mudpool_edge, mudpool_edge, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 1 tile: ruinwall_to_MudEdge_Cc_feature_01
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 6 tiles: ruinwall_Tri_01, ruinwall_XMM_01, ruinwall_X_MMMM_02, ruinwall_X_MMMM_01, ruinwall_Tri_MMM_feature_01, ruinwall_Tri_MMM_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_04.arm  -  12 slots of 7 kinds · one tile answers 4 kinds (6 slots), several 3, none 0
+  3 slots (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 6 tiles: ruinwall_Tri_01, ruinwall_XMM_01, ruinwall_X_MMMM_02, ruinwall_X_MMMM_01, ruinwall_Tri_MMM_feature_01, ruinwall_Tri_MMM_02
+  1 slot (big) 3x3 straightwall edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_01
+  2 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  3 slots (big) 3x3 doorway edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_02
+  1 slot (big) 3x3 ruin_fill edges [-, -, -, -] grounds [-, -, -, -] -> 1 tile: planter_fill_02
+  1 slot (big) 3x3 tri_connect edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_Tri_MMM_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_05.arm  -  19 slots of 6 kinds · one tile answers 4 kinds (6 slots), several 2, none 0
+  9 slots (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+  2 slots (big) 3x3 doorway edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_02
+  1 slot (big) 3x3 blocked edges [oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall, wildcard] grounds [-, -, -, -] -> 1 tile: ruinwall_Tri_MMM_feature_01
+  4 slots (big) 3x3 edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 6 tiles: ruinwall_Tri_01, ruinwall_XMM_01, ruinwall_X_MMMM_02, ruinwall_X_MMMM_01, ruinwall_Tri_MMM_feature_01, ruinwall_Tri_MMM_02
+  1 slot (big) 3x3 broken edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_end_feature_01
+  2 slots (big) 3x3 straightwall edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_06.arm  -  19 slots of 6 kinds · one tile answers 5 kinds (15 slots), several 1, none 0
+  4 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  4 slots (big) 3x3 blocked edges [oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall, wildcard] grounds [-, -, -, -] -> 1 tile: ruinwall_Tri_MMM_feature_01
+  5 slots (big) 3x3 doorway edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_02
+  2 slots (big) 3x3 straightwall edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_01
+  2 slots (big) 3x3 corner edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_01
+  2 slots (big) 3x3 tri_connect edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_Tri_MMM_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_07.arm  -  3 slots of 2 kinds · one tile answers 1 kinds (1 slots), several 1, none 0
+  2 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 corner edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_08.arm  -  4 slots of 3 kinds · one tile answers 1 kinds (1 slots), several 2, none 0
+  2 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+  1 slot (big) 3x3 corner edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_09.arm  -  8 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  6 slots (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+  2 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_10.arm  -  31 slots of 8 kinds · one tile answers 5 kinds (13 slots), several 3, none 0
+  7 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  10 slots (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+  4 slots (big) 3x3 straightwall edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_01
+  5 slots (big) 3x3 corner_open edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_02
+  2 slots (big) 3x3 tri_connect edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_Tri_MMM_02
+  1 slot (big) 3x3 ruin_fill edges [-, -, -, -] grounds [-, -, -, -] -> 1 tile: planter_fill_02
+  1 slot (big) 3x3 doorway edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_02
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 6 tiles: ruinwall_Tri_01, ruinwall_XMM_01, ruinwall_X_MMMM_02, ruinwall_X_MMMM_01, ruinwall_Tri_MMM_feature_01, ruinwall_Tri_MMM_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_11.arm  -  19 slots of 9 kinds · one tile answers 5 kinds (10 slots), several 4, none 0
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  2 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 blocked edges [mudpool_edge, mudpool_edge, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 1 tile: ruinwall_to_MudEdge_Cc_feature_01
+  2 slots (big) 3x3 doorway edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_02
+  2 slots (big) 3x3 tri_connect edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_Tri_MMM_02
+  2 slots (big) 3x3 edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 6 tiles: ruinwall_Tri_01, ruinwall_XMM_01, ruinwall_X_MMMM_02, ruinwall_X_MMMM_01, ruinwall_Tri_MMM_feature_01, ruinwall_Tri_MMM_02
+  2 slots (big) 3x3 broken edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_end_feature_01
+  3 slots (big) 3x3 straightwall edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_01
+  2 slots (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_12.arm  -  6 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  3 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  2 slots (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 6 tiles: ruinwall_Tri_01, ruinwall_XMM_01, ruinwall_X_MMMM_02, ruinwall_X_MMMM_01, ruinwall_Tri_MMM_feature_01, ruinwall_Tri_MMM_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_13.arm  -  5 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  2 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  3 slots (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_14.arm  -  4 slots of 3 kinds · one tile answers 1 kinds (1 slots), several 2, none 0
+  2 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 corner_open edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_02
+  1 slot (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_15.arm  -  6 slots of 4 kinds · one tile answers 1 kinds (1 slots), several 3, none 0
+  2 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 3 tiles: ruinwall_XMM_01, ruinwall_X_MMMM_02, ruinwall_X_MMMM_01
+  2 slots (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+  1 slot (big) 3x3 corner_open edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_16.arm  -  4 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  2 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  2 slots (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_17.arm  -  2 slots of 1 kinds · one tile answers 0 kinds (0 slots), several 1, none 0
+  2 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_18.arm  -  6 slots of 3 kinds · one tile answers 1 kinds (1 slots), several 2, none 0
+  3 slots (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+  2 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 corner_open edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_19.arm  -  8 slots of 4 kinds · one tile answers 1 kinds (1 slots), several 3, none 0
+  3 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 corner_open edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_02
+  3 slots (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 6 tiles: ruinwall_Tri_01, ruinwall_XMM_01, ruinwall_X_MMMM_02, ruinwall_X_MMMM_01, ruinwall_Tri_MMM_feature_01, ruinwall_Tri_MMM_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Fills/ruin_20.arm  -  5 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  4 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 3 tiles: ruinwall_XMM_01, ruinwall_X_MMMM_02, ruinwall_X_MMMM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeborder_cc_1.arm  -  9 slots of 4 kinds · one tile answers 2 kinds (3 slots), several 2, none 0
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, unwalkableborder, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_Cv_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeborder_cv_1.arm  -  9 slots of 3 kinds · one tile answers 2 kinds (3 slots), several 1, none 0
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, unwalkableborder, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_Cv_01
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  6 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeborder_st_1.arm  -  9 slots of 3 kinds · one tile answers 1 kinds (3 slots), several 2, none 0
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  3 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_cc_1.arm  -  4 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_cc_2.arm  -  4 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_cc_3.arm  -  3 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_cc_combo_border_cv_1.arm  -  7 slots of 5 kinds · one tile answers 0 kinds (0 slots), several 5, none 0
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_cc_combo_border_cv_2.arm  -  7 slots of 5 kinds · one tile answers 1 kinds (1 slots), several 4, none 0
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  1 slot (big) 3x3 edges [mudpool_edge, mudpool_edge, unwalkableborder, unwalkableborder] grounds [-, -, mudpool, unwalkableborder] -> 1 tile: MudEdgeCc_To_BorderCc_01
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_cc_combo_border_cv_3.arm  -  7 slots of 5 kinds · one tile answers 0 kinds (0 slots), several 5, none 0
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  2 slots (big) 3x3 edges [-, oasis_ruin_thinwall, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 3 tiles: ruinwall_to_border_Cc_01, ruinwall_to_border_Cc_02, ruinwall_to_border_St_01
+  1 slot (big) 3x3 edges [mudpool_edge, mudpool_edge, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 2 tiles: ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_Cc_feature_01
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_cv_1.arm  -  9 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  6 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_cv_2.arm  -  8 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_cv_3.arm  -  9 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  6 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_cv_combo_lakeborder_cv_1.arm  -  8 slots of 5 kinds · one tile answers 2 kinds (3 slots), several 3, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, unwalkableborder, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_Cv_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_cv_combo_lakeborder_cv_2.arm  -  8 slots of 7 kinds · one tile answers 3 kinds (3 slots), several 4, none 0
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [mudborder, mudborder, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, unwalkableborder] -> 1 tile: MudEdgeCv_BorderCc_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, unwalkableborder, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_Cv_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_cv_combo_lakeborder_cv_3.arm  -  8 slots of 4 kinds · one tile answers 2 kinds (3 slots), several 2, none 0
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  2 slots (big) 3x3 edges [mudborder, mudborder, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, unwalkableborder] -> 1 tile: MudEdgeCv_BorderCc_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, unwalkableborder, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_Cv_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_mud_x.arm  -  7 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 4, none 0
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_st_1.arm  -  6 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_st_2.arm  -  6 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 4, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_st_3.arm  -  6 slots of 4 kinds · one tile answers 1 kinds (1 slots), several 3, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  1 slot (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, mudpool, mudpool] -> 1 tile: ruinwall_to_MudEdge_St_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_st_4.arm  -  8 slots of 5 kinds · one tile answers 0 kinds (0 slots), several 5, none 0
+  2 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_toborder_cv_1.arm  -  6 slots of 6 kinds · one tile answers 1 kinds (1 slots), several 5, none 0
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  1 slot (big) 3x3 edges [-, mudborder, mudpool_edge, unwalkableborder] grounds [-, -, mudpool, unwalkableborder] -> 4 tiles: MudEdge_To_BorderCv_01, MudEdge_To_BorderCv_02, MudEdge_To_BorderSt_01, ruinwall_MudEdge_Border_Combo_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_toborder_cv_2.arm  -  8 slots of 6 kinds · one tile answers 2 kinds (2 slots), several 4, none 0
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  1 slot (big) 3x3 edges [-, mudborder, mudpool_edge, unwalkableborder] grounds [-, mudpool, mudpool, unwalkableborder] -> 1 tile: MudEdge_To_BorderCv_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lakeside_toborder_st_1.arm  -  8 slots of 6 kinds · one tile answers 2 kinds (2 slots), several 4, none 0
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, mudborder, mudpool_edge, unwalkableborder] grounds [-, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudEdge_To_BorderSt_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside/lake_1.arm  -  9 slots of 1 kinds · one tile answers 0 kinds (0 slots), several 1, none 0
+  9 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cc_1.arm  -  12 slots of 8 kinds · one tile answers 3 kinds (5 slots), several 5, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  3 slots (big) 3x3 corner edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_01
+  2 slots (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 4 tiles: ruinwall_to_MudEdge_Cc_01, ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_St_01, ruinwall_to_MudEdge_Cc_feature_01
+  1 slot (big) 3x3 edges [mudpool_edge, mudpool_edge, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 8 tiles
+  1 slot (big) 3x3 doorway edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_02
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 straightwall edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cc_1a.arm  -  13 slots of 10 kinds · one tile answers 3 kinds (3 slots), several 7, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  2 slots (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+  2 slots (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 4 tiles: ruinwall_to_MudEdge_Cc_01, ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_St_01, ruinwall_to_MudEdge_Cc_feature_01
+  1 slot (big) 3x3 x_mudpool edges [mudpool_edge, mudpool_edge, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 1 tile: MudEdge_X_01
+  1 slot (big) 3x3 doorway edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_02
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 6 tiles: ruinwall_Tri_01, ruinwall_XMM_01, ruinwall_X_MMMM_02, ruinwall_X_MMMM_01, ruinwall_Tri_MMM_feature_01, ruinwall_Tri_MMM_02
+  1 slot (big) 3x3 straightwall edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_01
+  1 slot (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cc_2.arm  -  14 slots of 5 kinds · one tile answers 1 kinds (1 slots), several 4, none 0
+  6 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  4 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  1 slot (big) 3x3 mud_island edges [-, -, -, wildcard_double] grounds [mudpool, mudpool, mudpool, mudpool] -> 1 tile: MudIsland_06
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cc_2a.arm  -  15 slots of 6 kinds · one tile answers 1 kinds (1 slots), several 5, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  4 slots (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 4 tiles: ruinwall_to_MudEdge_Cc_01, ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_St_01, ruinwall_to_MudEdge_Cc_feature_01
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 mudpool2 edges [-, -, -, wildcard] grounds [-, -, -, -] -> 1 tile: MudPool_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cc_3.arm  -  16 slots of 5 kinds · one tile answers 0 kinds (0 slots), several 5, none 0
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  4 slots (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 4 tiles: ruinwall_to_MudEdge_Cc_01, ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_St_01, ruinwall_to_MudEdge_Cc_feature_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_combo_lakeborder_st_1.arm  -  20 slots of 4 kinds · one tile answers 1 kinds (5 slots), several 3, none 0
+  5 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  5 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_combo_lakeborder_st_2.arm  -  22 slots of 5 kinds · one tile answers 1 kinds (5 slots), several 4, none 0
+  7 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  5 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_combo_lakeborder_st_3.arm  -  24 slots of 5 kinds · one tile answers 1 kinds (5 slots), several 4, none 0
+  11 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  5 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_combo_lakeborder_st_4.arm  -  21 slots of 7 kinds · one tile answers 3 kinds (6 slots), several 4, none 0
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  7 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, mudpool, mudpool] -> 1 tile: ruinwall_to_MudEdge_St_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  4 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_combo_lakeborder_st_5.arm  -  21 slots of 7 kinds · one tile answers 3 kinds (4 slots), several 4, none 0
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  11 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, mudpool, mudpool] -> 1 tile: ruinwall_to_MudEdge_St_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_combo_lakeborder_st_6.arm  -  19 slots of 8 kinds · one tile answers 3 kinds (6 slots), several 5, none 0
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  4 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 edges [mudborder, mudborder, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, unwalkableborder] -> 1 tile: MudEdgeCv_BorderCc_01
+  4 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  1 slot (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, mudpool, mudpool] -> 1 tile: ruinwall_to_MudEdge_St_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_combo_lakeborder_st_7.arm  -  18 slots of 7 kinds · one tile answers 2 kinds (3 slots), several 5, none 0
+  5 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  7 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_combo_lakeborder_st_8.arm  -  16 slots of 6 kinds · one tile answers 2 kinds (3 slots), several 4, none 0
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  6 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cv_1.arm  -  24 slots of 6 kinds · one tile answers 2 kinds (3 slots), several 4, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  14 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 corner edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_01
+  2 slots (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, mudpool, mudpool] -> 1 tile: ruinwall_to_MudEdge_St_01
+  1 slot (big) 3x3 edges [mudpool_edge, mudpool_edge, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 2 tiles: ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_Cc_feature_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cv_2.arm  -  19 slots of 7 kinds · one tile answers 3 kinds (3 slots), several 4, none 0
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  11 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 4 tiles: ruinwall_to_MudEdge_Cc_01, ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_St_01, ruinwall_to_MudEdge_Cc_feature_01
+  1 slot (big) 3x3 straightwall edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_St_feature_01
+  1 slot (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, mudpool, mudpool] -> 1 tile: ruinwall_to_MudEdge_St_01
+  1 slot (big) 6x6 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 1 tile: MudEdge_Cv_Overlay_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cv_2a.arm  -  22 slots of 8 kinds · one tile answers 4 kinds (6 slots), several 4, none 0
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  9 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 broken edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_end_feature_01
+  1 slot (big) 3x3 tri_connect edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_Tri_MMM_02
+  2 slots (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, mudpool, mudpool] -> 1 tile: ruinwall_to_MudEdge_St_01
+  2 slots (big) 3x3 corner edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_01
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cv_3.arm  -  18 slots of 6 kinds · one tile answers 1 kinds (1 slots), several 5, none 0
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  10 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  2 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 mudpool1 edges [-, -, -, wildcard] grounds [-, -, -, -] -> 1 tile: MudPool_01
+  1 slot (big) 6x6 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 2 tiles: MudEdge_St_Overlay_01, MudEdge_Cv_Overlay_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cv_3a.arm  -  22 slots of 7 kinds · one tile answers 2 kinds (2 slots), several 5, none 0
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  11 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  2 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 ruin_fill edges [-, -, -, -] grounds [-, -, -, -] -> 1 tile: planter_fill_02
+  1 slot (big) 3x3 mudpool1 edges [-, -, -, wildcard] grounds [-, -, -, -] -> 1 tile: MudPool_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cv_combo_lakeborder_cv_1.arm  -  24 slots of 6 kinds · one tile answers 2 kinds (7 slots), several 4, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  11 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  4 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  3 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, unwalkableborder, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_Cv_01
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cv_combo_lakeborder_cv_1a.arm  -  24 slots of 7 kinds · one tile answers 3 kinds (5 slots), several 4, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  14 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, unwalkableborder, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_Cv_01
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cv_combo_lakeborder_cv_1b.arm  -  24 slots of 6 kinds · one tile answers 2 kinds (3 slots), several 4, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  17 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cv_combo_lakeborder_cv_2.arm  -  22 slots of 6 kinds · one tile answers 2 kinds (3 slots), several 4, none 0
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  13 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cv_combo_lakeborder_cv_2a.arm  -  23 slots of 9 kinds · one tile answers 4 kinds (6 slots), several 5, none 0
+  1 slot (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  10 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, mudpool, mudpool] -> 1 tile: ruinwall_to_MudEdge_St_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, unwalkableborder, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_Cv_01
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cv_combo_lakeborder_cv_2b.arm  -  22 slots of 6 kinds · one tile answers 2 kinds (7 slots), several 4, none 0
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  7 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  4 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  3 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, unwalkableborder, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_Cv_01
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cv_combo_lakeborder_cv_3.arm  -  20 slots of 8 kinds · one tile answers 3 kinds (8 slots), several 5, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 mudpool3 edges [-, -, -, wildcard] grounds [-, -, -, -] -> 1 tile: MudPool_03
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  4 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  3 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, unwalkableborder, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_Cv_01
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cv_combo_lakeborder_cv_3a.arm  -  20 slots of 9 kinds · one tile answers 4 kinds (6 slots), several 5, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 mudpool3 edges [-, -, -, wildcard] grounds [-, -, -, -] -> 1 tile: MudPool_03
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, unwalkableborder, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_Cv_01
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_cv_combo_lakeborder_cv_3b.arm  -  20 slots of 8 kinds · one tile answers 3 kinds (4 slots), several 5, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  8 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 mudpool3 edges [-, -, -, wildcard] grounds [-, -, -, -] -> 1 tile: MudPool_03
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_mud_1.arm  -  15 slots of 2 kinds · one tile answers 0 kinds (0 slots), several 2, none 0
+  10 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_mud_10.arm  -  21 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 4, none 0
+  6 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  11 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_mud_11.arm  -  19 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 4, none 0
+  8 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_mud_12.arm  -  17 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 4, none 0
+  7 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_mud_13.arm  -  12 slots of 7 kinds · one tile answers 0 kinds (0 slots), several 7, none 0
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  4 slots (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 4 tiles: ruinwall_to_MudEdge_Cc_01, ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_St_01, ruinwall_to_MudEdge_Cc_feature_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  1 slot (big) 3x3 edges [mudpool_edge, mudpool_edge, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 8 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_mud_2.arm  -  18 slots of 5 kinds · one tile answers 1 kinds (1 slots), several 4, none 0
+  1 slot (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  8 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, mudpool, mudpool] -> 1 tile: ruinwall_to_MudEdge_St_01
+  7 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_mud_3.arm  -  19 slots of 5 kinds · one tile answers 1 kinds (1 slots), several 4, none 0
+  5 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  3 slots (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 4 tiles: ruinwall_to_MudEdge_Cc_01, ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_St_01, ruinwall_to_MudEdge_Cc_feature_01
+  1 slot (big) 3x3 tri_connect edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_Tri_MMM_02
+  6 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_mud_4.arm  -  21 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  6 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  13 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_mud_5.arm  -  23 slots of 7 kinds · one tile answers 3 kinds (5 slots), several 4, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  8 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  2 slots (big) 3x3 corner edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_01
+  2 slots (big) 3x3 blocked edges [mudpool_edge, mudpool_edge, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 1 tile: ruinwall_to_MudEdge_Cc_feature_01
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 x_mudpool edges [mudpool_edge, mudpool_edge, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 1 tile: MudEdge_X_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_mud_6.arm  -  23 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  17 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_mud_7.arm  -  21 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  13 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  6 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_mud_8.arm  -  19 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  8 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  9 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_mud_9.arm  -  19 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 4, none 0
+  8 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  7 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_x_1.arm  -  15 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 4, none 0
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  6 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_x_2.arm  -  12 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  6 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  4 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_x_3.arm  -  8 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_x_4.arm  -  21 slots of 6 kinds · one tile answers 1 kinds (1 slots), several 5, none 0
+  5 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  8 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, mudpool, mudpool] -> 1 tile: ruinwall_to_MudEdge_St_01
+  1 slot (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_x_5.arm  -  23 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 4, none 0
+  7 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  5 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  9 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_mud_x_6.arm  -  15 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 4, none 0
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  6 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_st_1.arm  -  20 slots of 8 kinds · one tile answers 3 kinds (3 slots), several 5, none 0
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  8 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 mudpool1 edges [-, -, -, wildcard] grounds [-, -, -, -] -> 1 tile: MudPool_01
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 mud_island edges [-, -, -, wildcard_double] grounds [mudpool, mudpool, mudpool, mudpool] -> 1 tile: MudIsland_06
+  1 slot (big) 3x3 corner edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_01
+  2 slots (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 4 tiles: ruinwall_to_MudEdge_Cc_01, ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_St_01, ruinwall_to_MudEdge_Cc_feature_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_st_2.arm  -  17 slots of 6 kinds · one tile answers 2 kinds (2 slots), several 4, none 0
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  9 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  1 slot (big) 6x6 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 1 tile: MudEdge_Cv_Overlay_01
+  1 slot (big) 3x3 mudpool3 edges [-, -, -, wildcard] grounds [-, -, -, -] -> 1 tile: MudPool_03
+  2 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_st_3.arm  -  18 slots of 9 kinds · one tile answers 2 kinds (2 slots), several 7, none 0
+  2 slots (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+  1 slot (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  3 slots (big) 3x3 edges [-, oasis_ruin_thinwall, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 3 tiles: ruinwall_to_border_Cc_01, ruinwall_to_border_Cc_02, ruinwall_to_border_St_01
+  1 slot (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, mudpool, mudpool] -> 1 tile: ruinwall_to_MudEdge_St_01
+  1 slot (big) 3x3 edges [mudpool_edge, mudpool_edge, unwalkableborder, unwalkableborder] grounds [-, -, mudpool, unwalkableborder] -> 1 tile: MudEdgeCc_To_BorderCc_01
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  1 slot (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 4 tiles: ruinwall_to_MudEdge_Cc_01, ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_St_01, ruinwall_to_MudEdge_Cc_feature_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_st_3a.arm  -  18 slots of 9 kinds · one tile answers 2 kinds (2 slots), several 7, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  9 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, mudborder, mudpool_edge, unwalkableborder] grounds [-, -, mudpool, unwalkableborder] -> 4 tiles: MudEdge_To_BorderCv_01, MudEdge_To_BorderCv_02, MudEdge_To_BorderSt_01, ruinwall_MudEdge_Border_Combo_01
+  1 slot (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, mudpool, unwalkableborder] -> 1 tile: MudBorder_Cc_01
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 3 tiles: ruinwall_to_border_Cc_01, ruinwall_to_border_Cc_02, ruinwall_to_border_St_01
+  1 slot (big) 3x3 edges [-, mudborder, mudpool_edge, unwalkableborder] grounds [-, mudpool, mudpool, unwalkableborder] -> 1 tile: MudEdge_To_BorderCv_01
+  1 slot (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+  1 slot (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 4 tiles: ruinwall_to_MudEdge_Cc_01, ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_St_01, ruinwall_to_MudEdge_Cc_feature_01
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_st_4.arm  -  19 slots of 8 kinds · one tile answers 2 kinds (2 slots), several 6, none 0
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  6 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+  1 slot (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, mudpool, mudpool] -> 1 tile: ruinwall_to_MudEdge_St_01
+  1 slot (big) 3x3 tri_connect edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_Tri_MMM_02
+  2 slots (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 4 tiles: ruinwall_to_MudEdge_Cc_01, ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_St_01, ruinwall_to_MudEdge_Cc_feature_01
+  2 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Lakeside_2x2/lakeside_st_4a.arm  -  19 slots of 8 kinds · one tile answers 2 kinds (2 slots), several 6, none 0
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  7 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 15 tiles
+  2 slots (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 4 tiles: ruinwall_to_MudEdge_Cc_01, ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_St_01, ruinwall_to_MudEdge_Cc_feature_01
+  1 slot (big) 3x3 tri_connect edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_Tri_MMM_02
+  1 slot (big) 3x3 broken edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_end_feature_01
+  3 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Unique/bossman.arm  (arena)  -  42 slots of 12 kinds · one tile answers 4 kinds (5 slots), several 8, none 0
+  5 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  17 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  1 slot (big) 3x3 tracks_short edges [-, -, wildcard, wildcard] grounds [-, -, -, -] -> 1 tile: DreadnoughtsWakeTracks_Short_1
+  1 slot (big) 21x15 arena edges [-, -, unwalkableborder_facingvirtual, wildcard_double] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 1 tile: OasisArena01
+  5 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  3 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  2 slots (big) 3x3 edges [-, oasis_ruin_thinwall, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 3 tiles: ruinwall_to_border_Cc_01, ruinwall_to_border_Cc_02, ruinwall_to_border_St_01
+  2 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  1 slot (big) 3x3 edges [-, mudborder, mudpool_edge, unwalkableborder] grounds [-, mudpool, mudpool, unwalkableborder] -> 1 tile: MudEdge_To_BorderCv_01
+  1 slot (big) 3x3 edges [mudpool_edge, mudpool_edge, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 2 tiles: ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_Cc_feature_01
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Unique/entrance1.arm  -  45 slots of 6 kinds · one tile answers 2 kinds (4 slots), several 4, none 0
+  12 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  8 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  15 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  6 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  3 slots (big) 3x9 tracks_long edges [-, -, wildcard, wildcard] grounds [-, -, -, -] -> 1 tile: DreadnoughtsWakeTracks_Long_1
+  1 slot (big) 3x3 tracks_short edges [-, -, wildcard, wildcard] grounds [-, -, -, -] -> 1 tile: DreadnoughtsWakeTracks_Short_1
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Unique/mini_boss.arm  (arena)  -  23 slots of 6 kinds · one tile answers 2 kinds (2 slots), several 4, none 0
+  8 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  7 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  5 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 1 tile: ruinwall_to_border_St_01
+  1 slot (big) 3x3 edges [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 1 tile: XMMMM_01
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 3 tiles: ruinwall_to_border_Cc_01, ruinwall_to_border_Cc_02, ruinwall_to_border_St_01
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Unique/mini_boss2.arm  (arena)  -  23 slots of 8 kinds · one tile answers 1 kinds (1 slots), several 7, none 0
+  1 slot (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  3 slots (big) 3x3 edges [-, mudpool_edge, mudpool_edge, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 4 tiles: ruinwall_to_MudEdge_Cc_01, ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_St_01, ruinwall_to_MudEdge_Cc_feature_01
+  6 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, mudpool, mudpool, mudpool] -> 3 tiles: MudEdge_CvSS_01, MudEdge_CvMM_01, MudEdge_CvSM_01
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, -, mudpool] -> 23 tiles
+  2 slots (big) 3x3 edges [mudpool_edge, mudpool_edge, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, mudpool] -> 2 tiles: ruinwall_to_MudEdge_Cc_02, ruinwall_to_MudEdge_Cc_feature_01
+  4 slots (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+  1 slot (big) 3x3 corner edges [-, -, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 1 tile: ruinwall_CcMM_01
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Unique/noman.arm  -  74 slots of 10 kinds · one tile answers 3 kinds (7 slots), several 7, none 0
+  8 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  7 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  45 slots (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  3 slots (big) 3x3 tracks_short edges [-, -, wildcard, wildcard] grounds [-, -, -, -] -> 1 tile: DreadnoughtsWakeTracks_Short_1
+  3 slots (big) 3x3 edges [-, -, mudborder, mudborder] grounds [mudpool, mudpool, unwalkableborder, unwalkableborder] -> 1 tile: MudBorder_St_01
+  1 slot (big) 3x3 edges [mudborder, mudpool_edge, oasis_ruin_thinwall, unwalkableborder] grounds [-, -, mudpool, unwalkableborder] -> 1 tile: ruinwall_MudEdge_Border_Combo_01
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 3 tiles: ruinwall_to_border_Cc_01, ruinwall_to_border_Cc_02, ruinwall_to_border_St_01
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [mudpool, mudpool, mudpool, mudpool] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, mudpool_edge, mudpool_edge] grounds [-, -, mudpool, mudpool] -> 16 tiles
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Unique/rare_edge_01.arm  -  9 slots of 5 kinds · one tile answers 0 kinds (0 slots), several 5, none 0
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  3 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 6 tiles: ruinwall_Tri_01, ruinwall_XMM_01, ruinwall_X_MMMM_02, ruinwall_X_MMMM_01, ruinwall_Tri_MMM_feature_01, ruinwall_Tri_MMM_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Unique/rare_edge_01a.arm  -  8 slots of 6 kinds · one tile answers 1 kinds (1 slots), several 5, none 0
+  3 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 1 tile: ruinwall_to_border_St_01
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 3 tiles: ruinwall_to_border_Cc_01, ruinwall_to_border_Cc_02, ruinwall_to_border_St_01
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Unique/rare_edge_02.arm  -  8 slots of 6 kinds · one tile answers 1 kinds (1 slots), several 5, none 0
+  3 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 1 tile: ruinwall_to_border_St_01
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 3 tiles: ruinwall_to_border_Cc_01, ruinwall_to_border_Cc_02, ruinwall_to_border_St_01
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [unwalkableborder, unwalkableborder, unwalkableborder, unwalkableborder] -> 2 tiles: fill_01, fill_02
+
+##### Metadata/Terrain/Maps/Oasis/Rooms/Unique/rare_edge_02a.arm  -  9 slots of 5 kinds · one tile answers 0 kinds (0 slots), several 5, none 0
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, unwalkableborder, unwalkableborder, unwalkableborder] -> 6 tiles: CvMM_01, CvMW_01, CvSM_01, CvSS_01, CvSW_01, CvWW_01
+  2 slots (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, -, unwalkableborder] -> 24 tiles
+  3 slots (big) 3x3 edges [-, -, -, oasis_ruin_thinwall] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, -, unwalkableborder, unwalkableborder] grounds [-, -, unwalkableborder, unwalkableborder] -> 15 tiles
+  1 slot (big) 3x3 edges [-, oasis_ruin_thinwall, oasis_ruin_thinwall, oasis_ruin_thinwall] grounds [-, -, -, -] -> 6 tiles: ruinwall_Tri_01, ruinwall_XMM_01, ruinwall_X_MMMM_02, ruinwall_X_MMMM_01, ruinwall_Tri_MMM_feature_01, ruinwall_Tri_MMM_02
+
+##### the tilesets' tiles, each as a room's slot asks about it - tab-separated, or why it did not read (123)
+path	width	height	tag	edge down	edge right	edge up	edge left	ground down-left	ground down-right	ground up-right	ground up-left
+Metadata/Terrain/Blank.tdt	1	1									
+Metadata/Terrain/forced_blank.tdt	1	1	forcedblank								
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_St_Overlay_01.tdt	6	6		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et			Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_To_BorderCv_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/Oasis/MudPool/mudborder.et		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_To_BorderCv_02.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/Oasis/MudPool/mudborder.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_To_BorderSt_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudFill_01.tdt	3	3						Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudPool_01.tdt	3	3	mudpool1	Metadata/Terrain/wildcard.et				Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudPool_02.tdt	3	3	mudpool2	Metadata/Terrain/wildcard.et				Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudPool_03.tdt	3	3	mudpool3	Metadata/Terrain/wildcard.et				Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudPool_04.tdt	6	6	mudpool4	Metadata/Terrain/wildcard.et							
+Metadata/Terrain/Desert/Oasis/MudPool/MudPool_05.tdt	6	6	mudpool5	Metadata/Terrain/wildcard.et							
+Metadata/Terrain/Desert/Oasis/MudPool/MudIsland_01.tdt	3	3						Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudIsland_02.tdt	3	3						Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudIsland_03.tdt	3	3						Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudIsland_04.tdt	3	3						Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudIsland_05.tdt	3	3						Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudIsland_06.tdt	3	3	mud_island	Metadata/Terrain/wildcard_double.et				Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudBorder_Cc_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudborder.et	Metadata/Terrain/Desert/Oasis/MudPool/mudborder.et			Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudBorder_Cv_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudborder.et	Metadata/Terrain/Desert/Oasis/MudPool/mudborder.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudBorder_St_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudborder.et		Metadata/Terrain/Desert/Oasis/MudPool/mudborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_X_02.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_X_01.tdt	3	3	x_mudpool	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdgeCv_BorderCc_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudborder.et	Metadata/Terrain/Desert/Oasis/MudPool/mudborder.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_X_Border_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudborder.et	Metadata/Terrain/Desert/Oasis/MudPool/mudborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdgeCc_To_BorderCc_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_CcSS_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et			Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_CvSS_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et			Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_CcSM_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et			Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt		
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_CcMM_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et				Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt		
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_CvMM_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et			Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt		Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_CvSM_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et			Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_StSS_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et		Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_StMM_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et			Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_StSM_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et		Metadata/Terrain/Desert/Oasis/MudPool/mudpooltrim.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_X_SMMM_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt		Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_X_SSMM_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt		Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_X_SSMM_02.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt		Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_X_SSMM_03.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt		Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_X_SSSM_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt		Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_X_MMMM_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt		Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	
+Metadata/Terrain/Desert/Oasis/Features/OasisArena01.tdt	15	21	arena	Metadata/Terrain/wildcard_double.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder_facingvirtual.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt
+Metadata/Terrain/Desert/Oasis/Tracks/tracks_st_01.tdt	3	3			Metadata/Terrain/Desert/Oasis/Tracks/DreadnaughtTracks.et		Metadata/Terrain/Desert/Oasis/Tracks/DreadnaughtTracks.et				
+Metadata/Terrain/Desert/Oasis/Tracks/tracks_end_01.tdt	3	3					Metadata/Terrain/Desert/Oasis/Tracks/DreadnaughtTracks.et				
+Metadata/Terrain/Desert/Oasis/Tracks/DreadnoughtsWakeTracks_Short_1.tdt	3	3	tracks_short		Metadata/Terrain/wildcard.et		Metadata/Terrain/wildcard.et				
+Metadata/Terrain/Desert/Oasis/Tracks/DreadnoughtsWakeTracks_Long_1.tdt	9	3	tracks_long		Metadata/Terrain/wildcard.et		Metadata/Terrain/wildcard.et				
+Metadata/Terrain/Desert/FarudinCarts/DestroyedCarts/DestroyedCart01.tdt	5	5									
+Metadata/Terrain/Desert/FarudinCarts/DestroyedCarts/DestroyedCart02.tdt	5	7									
+Metadata/Terrain/Desert/FarudinCarts/DestroyedCarts/DestroyedCart03.tdt	8	8									
+Metadata/Terrain/Desert/UnwalkableBorder/fill_01.tdt	3	3						Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt
+Metadata/Terrain/Desert/UnwalkableBorder/fill_02.tdt	3	3						Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt
+Metadata/Terrain/Desert/UnwalkableBorder/CcMM_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt			
+Metadata/Terrain/Desert/UnwalkableBorder/CcMW_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt			
+Metadata/Terrain/Desert/UnwalkableBorder/CcSM_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt			
+Metadata/Terrain/Desert/UnwalkableBorder/CcSS_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt			
+Metadata/Terrain/Desert/UnwalkableBorder/CcSW_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt			
+Metadata/Terrain/Desert/UnwalkableBorder/CcWW_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt			
+Metadata/Terrain/Desert/UnwalkableBorder/CvMM_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt
+Metadata/Terrain/Desert/UnwalkableBorder/CvMW_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt
+Metadata/Terrain/Desert/UnwalkableBorder/CvSM_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt
+Metadata/Terrain/Desert/UnwalkableBorder/CvSS_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt
+Metadata/Terrain/Desert/UnwalkableBorder/CvSW_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt
+Metadata/Terrain/Desert/UnwalkableBorder/CvWW_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt
+Metadata/Terrain/Desert/UnwalkableBorder/StMM_01.tdt	3	3			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt		
+Metadata/Terrain/Desert/UnwalkableBorder/StMW_01.tdt	3	3			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt		
+Metadata/Terrain/Desert/UnwalkableBorder/StSM_01.tdt	3	3			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt		
+Metadata/Terrain/Desert/UnwalkableBorder/StSS_01.tdt	3	3			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt		
+Metadata/Terrain/Desert/UnwalkableBorder/StSW_01.tdt	3	3			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt		
+Metadata/Terrain/Desert/UnwalkableBorder/StWW_01.tdt	3	3			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt		
+Metadata/Terrain/Desert/UnwalkableBorder/XMMMM_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	
+Metadata/Terrain/Desert/UnwalkableBorder/ReplacesCurves/Curve_CcMM_01.tdt	6	6		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt			
+Metadata/Terrain/Desert/UnwalkableBorder/ReplacesCurves/Curve_CvMM_01.tdt	6	6		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt
+Metadata/Terrain/Desert/UnwalkableBorder/ReplacesCurves/Curve_CvMM_02.tdt	9	6				Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	
+Metadata/Terrain/Desert/UnwalkableBorder/ReplacesCurves/Curve_StMM_01.tdt	6	6			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt		
+Metadata/Terrain/Desert/UnwalkableBorder/ReplacesCurves/Curve_StMM_02.tdt	9	6			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt		
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_to_MudEdge_St_Long_01.tdt	12	3	long2						Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_to_border_St_Long_01.tdt	12	3	long1					Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt
+Metadata/Terrain/Desert/Oasis/Ruins/planter_fill_01.tdt	6	3	ruin_fill2								
+Metadata/Terrain/Desert/Oasis/Ruins/planter_fill_02.tdt	3	3	ruin_fill								
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_Cc_01.tdt	3	3			Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et					
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_CcMM_01.tdt	3	3	corner		Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et					
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_CcMM_02.tdt	3	3	corner_open		Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et					
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_end_01.tdt	3	3			Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et						
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_St_M_end_01.tdt	3	3			Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et						
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_St_M_end_feature_01.tdt	3	3	clean		Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et						
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_end_feature_01.tdt	3	3	broken		Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et						
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_MudEdge_Border_Combo_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/Oasis/MudPool/mudborder.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_to_border_Cc_01.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et		Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt			
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_to_border_Cc_02.tdt	3	3		Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt			
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_to_border_St_01.tdt	3	3			Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.et	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt	Metadata/Terrain/Desert/UnwalkableBorder/unwalkableborder.gt		
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_to_MudEdge_Cc_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et		Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et		Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt		
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_to_MudEdge_Cc_02.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et		Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt		
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_to_MudEdge_St_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et		Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_St_feature_01.tdt	3	3	straightwall		Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et		Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et				
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_St_feature_02.tdt	3	3	doorway		Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et		Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et				
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_St_01.tdt	3	3			Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et		Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et				
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_Tri_01.tdt	3	3		Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et					
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_XMM_01.tdt	3	3	cross_wall	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et				
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_X_MMMM_02.tdt	3	3		Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et				
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_X_MMMM_01.tdt	3	3	blocked	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et				
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_Tri_MMM_feature_01.tdt	3	3	blocked	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/wildcard.et				
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_Tri_MMM_02.tdt	3	3	tri_connect		Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et				
+Metadata/Terrain/Desert/Oasis/Ruins/ruinwall_to_MudEdge_Cc_feature_01.tdt	3	3	blocked	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et	Metadata/Terrain/Desert/Oasis/Ruins/oasis_ruin_thinwall.et		Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt		
+Metadata/Terrain/Desert/Oasis/RandomFills/DesertCactus_Fill_02.tdt	1	1	cacti								
+Metadata/Terrain/Desert/Oasis/RandomFills/DesertCactus_Fill_03.tdt	1	1	cacti								
+Metadata/Terrain/Desert/Oasis/RandomFills/DesertCactus_Fill_04.tdt	1	1	cacti								
+Metadata/Terrain/Desert/Oasis/RandomFills/DesertCactus_Fill_05.tdt	1	1	cacti								
+Metadata/Terrain/Desert/Oasis/RandomFills/DesertCactus_Fill_06.tdt	1	1	cacti								
+Metadata/Terrain/Desert/Oasis/RandomFills/DesertCactus_Fill_01.tdt	1	1	cacti								
+Metadata/Terrain/Desert/Oasis/RandomFills/DamagedTentFill_05.tdt	3	2	tent								
+Metadata/Terrain/Desert/Oasis/RandomFills/DamagedTentFill_06.tdt	4	4	tent								
+Metadata/Terrain/Desert/Oasis/RandomFills/DamagedTentFill_07.tdt	4	4	tent								
+Metadata/Terrain/Desert/Oasis/RandomFills/DamagedTentFill_08.tdt	3	3	tent								
+Metadata/Terrain/Desert/Oasis/RandomFills/DamagedTentFill_09.tdt	4	3	tent								
+Metadata/Terrain/Desert/Oasis/RandomFills/DamagedTentFill_10.tdt	4	3	tent								
+Metadata/Terrain/Desert/Oasis/RandomFills/DamagedTentFill_11.tdt	4	3	tent								
+Metadata/Terrain/Desert/Oasis/RandomFills/DamagedTentFill_12.tdt	4	2	tent								
+Metadata/Terrain/Desert/Oasis/RandomFills/DamagedTentFill_01.tdt	2	2	tent								
+Metadata/Terrain/Desert/Oasis/RandomFills/DamagedTentFill_02.tdt	3	2	tent								
+Metadata/Terrain/Desert/Oasis/RandomFills/DamagedTentFill_03.tdt	2	2	tent								
+Metadata/Terrain/Desert/Oasis/RandomFills/DamagedTentFill_04.tdt	3	2	tent								
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_Cc_Overlay_01.tdt	6	6		Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et				Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt		
+Metadata/Terrain/Desert/Oasis/MudPool/MudEdge_Cv_Overlay_01.tdt	6	6				Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool_edge.et	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	Metadata/Terrain/Desert/Oasis/MudPool/mudpool.gt	

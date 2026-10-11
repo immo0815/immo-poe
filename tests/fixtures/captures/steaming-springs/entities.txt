@@ -1,0 +1,89 @@
+87 entities, 15 of them remembered rather than listed this read; distance and position in world units
+distance	kind	id	address	x	y	z	terrain	bounds z	remembered	path	name
+0	Player	767	0x55F0AC48380	3846.552	4006.763	-212.825	-125	87.466	no	Metadata/Characters/Int/IntFourb	Sorceress
+153.375	Monster	1291	0x55F0B030B00	3929.348	4135.87	-132.813	-132.813	0	no	Metadata/Monsters/Anomalies/Firewall	
+167.496	Monster	1294	0x55F0B03BA00	4005.435	4059.782	-132.813	-132.813	0	no	Metadata/Monsters/Anomalies/Firewall	
+243.04	Monster	1289	0x55E5FC5C200	3896.739	4244.565	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+256.886	Monster	1299	0x55E57CA6880	4103.261	4016.304	-132.813	-132.813	0	no	Metadata/Monsters/Anomalies/Firewall	
+275.868	Effect	34	0x55E67477500	3625	3842.391	-156.659	-125	31.659	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2	
+289.711	Monster	1311	0x55E2BE65D00	3777.174	4288.043	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+290.701	Monster	1309	0x55E2BE61700	3679.348	4244.565	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+295.984	Effect	27	0x55E67479D00	3690.217	3755.435	-178.018	-125	45.205	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot1	
+315.592	Effect	32	0x55E67471D80	3559.782	3875	-172.807	-125	32.182	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot4	
+319.611	Effect	33	0x55E67473B80	3527.174	3994.565	-174.28	-125	48.943	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot1	
+321.907	Effect	26	0x55E332C4C00	3788.043	3690.217	-164.995	-125	39.995	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot4	
+353.885	Monster	1287	0x55F0B034980	3918.478	4353.261	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+357.392	Monster	1314	0x55E2BE62100	3842.391	4364.13	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+357.392	Monster	1313	0x55E2BE66C00	3842.391	4364.13	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+365.387	Effect	36	0x55E317E4700	4179.348	4157.608	-140.313	-140	0.313	no	Metadata/Monsters/SerpentClanMonster/objects/ground_rune	
+365.387	WorldItem	1327	0x55E4F43AA00	4179.348	4157.608	-146.922	-140.625	6.297	no	Metadata/MiscellaneousObjects/WorldItem	
+365.387	WorldItem	1322	0x55E4F43D480	4179.348	4157.608	-146.922	-140.625	6.297	no	Metadata/MiscellaneousObjects/WorldItem	
+365.387	WorldItem	1325	0x55E4F436E00	4179.348	4157.608	-152.7	-140.625	12.075	no	Metadata/MiscellaneousObjects/WorldItem	
+365.387	WorldItem	1328	0x55E4F43A280	4179.348	4157.608	-146.922	-140.625	6.297	no	Metadata/MiscellaneousObjects/WorldItem	Chaw Mongrel
+365.387	WorldItem	1326	0x55E4F43C800	4179.348	4157.608	-149.08	-140.625	8.455	no	Metadata/MiscellaneousObjects/WorldItem	
+365.529	Monster	1304	0x55F0B03E480	4211.957	4016.304	-132.813	-132.813	0	no	Metadata/Monsters/Anomalies/Firewall	
+365.529	Monster	1301	0x55F0B03DA80	4211.957	4016.304	-132.813	-132.813	0	no	Metadata/Monsters/Anomalies/Firewall	
+366.71	Effect	28	0x55E317E3A80	3483.696	4059.782	-160.565	-125	27.753	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2	
+371.428	Monster	1307	0x55F0B03CE00	3570.652	4255.435	-132.813	-132.813	0	no	Metadata/Monsters/Anomalies/Firewall	
+387.542	WorldItem	1320	0x55E4F435500	4211.957	4135.87	-141.482	-140.625	0.627	no	Metadata/MiscellaneousObjects/WorldItem	Ancestral Headtaker
+389.566	WorldItem	1324	0x55E4F432A80	4190.217	4190.217	-141.482	-140.625	0.627	no	Metadata/MiscellaneousObjects/WorldItem	
+395.316	WorldItem	1321	0x55E4F434B00	4211.957	4157.608	-141.482	-140.625	0.627	no	Metadata/MiscellaneousObjects/WorldItem	
+404.111	WorldItem	1323	0x55E4F433C00	4211.957	4179.348	-141.482	-140.625	0.627	no	Metadata/MiscellaneousObjects/WorldItem	
+406.611	Effect	21	0x55E332CF100	3896.739	3603.261	-178.018	-125	45.205	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot1	
+454.633	Monster	1285	0x55F0B038080	3983.696	4440.217	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+455.533	Monster	1312	0x55E2BE67380	3864.13	4461.957	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+464.474	Effect	23	0x55E332CC400	3972.826	3559.782	-181.924	-125	41.299	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot1	
+467.616	Monster	1296	0x55F0B037400	4309.783	4070.652	-132.813	-132.813	0	no	Metadata/Monsters/Anomalies/Firewall	
+472.743	Monster	1303	0x55F0B037180	3483.696	4309.783	-132.813	-132.813	0	no	Metadata/Monsters/Anomalies/Firewall	
+480.773	Effect	24	0x55E332CCE00	4048.913	3570.652	-160.565	-125	27.753	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2	
+541.444	Monster	1283	0x55E594EB080	4081.522	4494.565	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+549.556	Monster	1292	0x55F0B039E80	4375	4157.608	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+550.044	Effect	31	0x55E7047C880	3592.391	4494.565	-164.472	-125	23.846	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2	
+563.905	Monster	1310	0x55E2BE67880	3842.391	4570.652	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+567.613	Effect	30	0x55E7047E400	3646.739	4538.043	-181.924	-125	41.299	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot1	Bloodrite Guard
+570.776	Monster	1298	0x55F0B033080	3440.217	4407.608	-132.813	-132.813	0	no	Metadata/Monsters/Anomalies/Firewall	
+589.053	Monster	1293	0x55F0B031A00	4429.348	4092.391	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+592.881	Effect	29	0x55E70474180	3701.087	4581.521	-168.901	-125	36.088	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot4	
+593.791	Monster	1297	0x55F0B03BF00	4440.217	3994.565	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+595.79	Effect	22	0x55E332CB000	4168.478	3505.435	-174.28	-125	48.943	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot1	
+596.705	Monster	1284	0x55F0B03B780	4190.217	4494.565	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+604.95	Monster	1316	0x55E57CA3180	4135.87	4538.043	-125	-125	0	no	Metadata/Monsters/Anomalies/CircleOfPower	
+608.332	Monster	1290	0x55E57CA4A80	4396.739	4266.304	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+626.369	Monster	1286	0x55F0B038D00	4288.043	4451.087	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+633.411	Effect	25	0x55E332C5100	4233.696	3505.435	-156.659	-125	31.659	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2	
+635.206	Monster	1288	0x55F0B034E80	4364.13	4375	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+646.574	Monster	1302	0x55F0B034480	4483.696	3896.739	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+663.029	Monster	1295	0x55F0B033F80	4483.696	4190.217	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+698.04	Effect	40	0x55E65CE9C80	3918.478	4701.087	-155.565	-115	22.753	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2	
+717.433	Effect	38	0x55E65CEBD00	4027.174	4701.087	-164.112	-105	39.112	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot1	
+742.522	Monster	1306	0x55F0B03D080	4570.652	3842.391	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+755.338	Monster	1300	0x55E57CAB600	4559.783	4255.435	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+760.688	Effect	39	0x55E65CEBA80	4103.261	4722.826	-160.565	-125	27.753	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2	
+823.33	Effect	41	0x55E65CE9F00	4211.957	4744.565	-181.713	-135	33.276	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot4	
+851.034	Monster	1308	0x55E2BE61C00	4679.348	3831.522	-132.813	-132.813	0	no	Metadata/Monsters/Anomalies/Firewall	
+861.931	Monster	1305	0x55F0B03B000	4668.478	4266.304	-125	-125	0	no	Metadata/Monsters/Anomalies/Firewall	
+876.578	Effect	45	0x55E332CB500	4722.826	3983.696	-176.713	-125	28.276	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot4	
+880.876	Effect	37	0x55E6747EF80	4711.957	3842.391	-168.901	-125	36.088	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot4	
+899.877	Effect	42	0x55E317E9700	4733.696	4157.608	-173.018	-115	40.205	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot1	
+905.852	Effect	35	0x55E67478B80	4722.826	3777.174	-156.659	-125	31.659	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2	
+910.428	Effect	43	0x55E317E1500	4755.435	4059.782	-164.472	-125	23.846	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2	
+992.474	Effect	44	0x55E317EC680	4744.565	4429.348	-156.659	-125	31.659	no	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2	
+1052.4	Object	58	0x55E65CEEA00	4690.217	4635.87	-314.451	-132.813	181.639	no	Metadata/MiscellaneousObjects/BossForceFieldDoorVisuals	
+2779.445	Object	47	0x55E4F038B00	4994.565	6538.043	-96.032	2.188	88.22	no	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame_Boss	Checkpoint
+2850.601	WorldItem	1281	0x55E332C9C00	4711.957	6722.826	-0.857	0	0.627	no	Metadata/MiscellaneousObjects/WorldItem	
+3409.311	WorldItem	1268	0x55E33A9AB00	4809.783	7277.174	-8.811	-7.813	0.629	yes	Metadata/MiscellaneousObjects/WorldItem	
+3413.68	WorldItem	1267	0x55E33A92900	4788.043	7288.043	-8.811	-7.813	0.629	yes	Metadata/MiscellaneousObjects/WorldItem	
+5310.673	WorldItem	1240	0x55E70470080	8266.304	6951.087	-3.129	0	3.129	yes	Metadata/MiscellaneousObjects/WorldItem	
+5554.287	WorldItem	1319	0x55E4F437080	0	0	0	-140.625	0	no	Metadata/MiscellaneousObjects/WorldItem	
+5554.287	WorldItem	1190	0x55E302EA480	0	0	0	0	0	yes	Metadata/MiscellaneousObjects/WorldItem	
+5554.287	WorldItem	1233	0x55E634D0A00	0	0	0	0	0	yes	Metadata/MiscellaneousObjects/WorldItem	
+5554.287	WorldItem	1244	0x55E30640800	0	0	0	0	0	yes	Metadata/MiscellaneousObjects/WorldItem	
+5554.287	WorldItem	1145	0x55F4C208B80	0	0	0	0	0	yes	Metadata/MiscellaneousObjects/WorldItem	
+6865.927	WorldItem	1224	0x55E2B8D3B80	10494.57	5722.826	-118.045	-117.188	0.627	yes	Metadata/MiscellaneousObjects/WorldItem	
+9328.969	WorldItem	1105	0x55E4F115500	12168.48	8222.826	-0.999	0	0.629	yes	Metadata/MiscellaneousObjects/WorldItem	
+10061.2	WorldItem	1090	0x55E4F119600	12396.74	9309.782	-86.098	-78.125	7.973	yes	Metadata/MiscellaneousObjects/WorldItem	
+10273.65	WorldItem	1151	0x55E61BC2B80	13407.61	7766.304	-0.999	0	0.629	yes	Metadata/MiscellaneousObjects/WorldItem	
+10953.27	WorldItem	1141	0x55E338F4080	13581.52	9027.174	-10.975	0	10.975	yes	Metadata/MiscellaneousObjects/WorldItem	
+11521.14	WorldItem	1026	0x55E65260200	13168.48	10777.17	-16.624	-15.625	0.629	yes	Metadata/MiscellaneousObjects/WorldItem	
+16183.68	Terrain	233	0x55F0AE69600	18125	11625	-17.448	0	17.448	yes	Metadata/Terrain/Gallows/Leagues/StoneCircle/Objects/RuneRock_Controller	
+16285.17	Object	99	0x55E2B8DAC00	18375	11364.13	-91.256	0	91.256	yes	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame	Checkpoint

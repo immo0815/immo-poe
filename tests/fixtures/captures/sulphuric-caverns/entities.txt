@@ -1,0 +1,127 @@
+125 entities, 36 of them remembered rather than listed this read; distance and position in world units
+distance	kind	id	address	x	y	z	terrain	bounds z	remembered	path	name
+0	Player	955	0x55F0A6D6A00	19048.91	19266.3	-87.825	0	87.466	no	Metadata/Characters/Int/IntFourb	Sorceress
+21.74	WorldItem	3478	0x55E65CE2480	19070.65	19266.3	-8.508	0	8.508	no	Metadata/MiscellaneousObjects/WorldItem	Malice
+24.305	WorldItem	3482	0x55E4F2B3100	19059.78	19288.04	0	0	0	no	Metadata/MiscellaneousObjects/WorldItem	
+51.558	Object	688	0x55E5F74E880	19000	19250	-14.455	0	14.455	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+149.531	Object	687	0x55E59AE8780	19000	19125	-14.455	0	14.455	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+201.748	Object	683	0x55E57437F00	19250	19250	-6.994	0	6.994	no	Metadata/MiscellaneousObjects/Abyss/AbyssFinalNodeBase	
+201.748	Object	3525	0x55E6526AC00	19250	19250	-0.582	0	0.582	no	Metadata/MiscellaneousObjects/Abyss/AbyssPlinth	Lightless Vengewing
+206.807	Chest	3524	0x55E65261B00	19255.43	19255.43	-70	0	70	no	Metadata/Chests/Abyss/AbyssChestCurrency	Blood-fevered Wisewoman
+206.807	WorldItem	3698	0x55E632EF100	19255.43	19255.43	-5.121	0	5.121	no	Metadata/MiscellaneousObjects/WorldItem	
+206.807	WorldItem	3699	0x55E317E5B00	19255.43	19255.43	-4.682	0	4.682	no	Metadata/MiscellaneousObjects/WorldItem	
+206.807	WorldItem	3700	0x55E317E0600	19255.43	19255.43	-3.797	0	3.797	no	Metadata/MiscellaneousObjects/WorldItem	Turmoil
+224.081	Object	686	0x55E59AE4E00	18875	19125	-12.627	0	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+258.367	WorldItem	3554	0x55E59FBFB00	19146.74	19027.17	-6.297	0	6.297	no	Metadata/MiscellaneousObjects/WorldItem	Blood-fevered Wisewoman
+258.367	WorldItem	3562	0x55E33649880	19146.74	19027.17	-4.984	0	4.984	no	Metadata/MiscellaneousObjects/WorldItem	
+258.367	WorldItem	3555	0x55E63C99C00	19146.74	19027.17	-5.606	0	5.606	no	Metadata/MiscellaneousObjects/WorldItem	Turmoil
+272.607	WorldItem	3547	0x55E2A0FD880	19157.61	19016.3	-7.447	0	7.447	no	Metadata/MiscellaneousObjects/WorldItem	
+310.878	WorldItem	3521	0x55E6526F980	19298.91	19081.52	-7.325	0	7.325	no	Metadata/MiscellaneousObjects/WorldItem	
+310.878	WorldItem	3522	0x55E65264080	19298.91	19081.52	-6.297	0	6.297	no	Metadata/MiscellaneousObjects/WorldItem	
+382.913	WorldItem	3257	0x55F5EB3A200	19266.3	18951.09	-2.448	0	2.448	no	Metadata/MiscellaneousObjects/WorldItem	
+400.333	Object	685	0x55E59AE1200	18750	19000	-15.071	0	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+437.626	Object	708	0x55E5F74A780	18625	19375	-15.071	0	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+484.061	Object	707	0x55F0BF9E380	18625	19500	-13.171	0	13.171	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+500.619	Object	684	0x55F6430BD80	18625	19000	-12.627	0	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+511.334	WorldItem	3677	0x55F0A5F6180	19559.78	19244.56	-17.851	0	17.851	no	Metadata/MiscellaneousObjects/WorldItem	Vaal Embalmed Rogue
+549.154	Object	709	0x55E5F749B00	18500	19250	-12.627	0	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+576.496	WorldItem	3374	0x55E88299780	18472.83	19288.04	-10.299	0	10.299	no	Metadata/MiscellaneousObjects/WorldItem	
+645.803	Object	690	0x55E61BC5B00	19125	18625	-13.171	0	13.171	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+674.109	Object	710	0x55E5F740500	18375	19250	-14.455	0	14.455	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+674.11	Object	702	0x55E64E42D80	18500	18875	-15.071	0	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+688.567	Object	711	0x55F6430A700	18375	19125	-15.071	0	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+727.043	WorldItem	3358	0x55E634D6B80	18429.35	18885.87	-0.999	0	0.629	no	Metadata/MiscellaneousObjects/WorldItem	Feral Primate
+753.575	Object	703	0x55E64E42600	18500	18750	-12.627	0	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+768.748	Object	704	0x55E64EC8C00	18625	18625	-15.071	0	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+792.25	Object	691	0x55F0B31B680	19250	18500	-13.618	0	13.618	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+808.743	WorldItem	3688	0x55E5907CD00	18396.74	18788.04	-0.999	0	0.629	no	Metadata/MiscellaneousObjects/WorldItem	
+842.128	Object	712	0x55F64304F80	18250	19000	-12.627	0	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	Feral Primate
+871.262	WorldItem	3596	0x55F0ACA7100	18570.65	18538.04	-4.682	0	4.682	no	Metadata/MiscellaneousObjects/WorldItem	
+875.742	Object	705	0x55E64ECF280	18625	18500	-12.627	0	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+889.595	Object	713	0x55E64E4C880	18250	18875	-15.071	0	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	Spite
+894.547	Object	692	0x55E61BC5880	19125	18375	-12.627	0	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+933.328	WorldItem	3679	0x55E6747E080	18635.87	18429.35	-0.857	0	0.627	no	Metadata/MiscellaneousObjects/WorldItem	Disgust
+1007.591	WorldItem	3507	0x55E65260980	18364.13	18527.17	-0.857	0	0.627	no	Metadata/MiscellaneousObjects/WorldItem	Blood-fevered Wisewoman
+1019.149	Object	693	0x55E61BCD580	19125	18250	-15.071	0	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1024.467	Object	715	0x55E65266100	18250	18625	-12.627	0	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1025.029	WorldItem	3594	0x55E33642300	18472.83	18418.48	-0.999	0	0.629	no	Metadata/MiscellaneousObjects/WorldItem	
+1045.402	WorldItem	3490	0x55E4F2B6580	18298.91	18538.04	-13.833	0	13.833	no	Metadata/MiscellaneousObjects/WorldItem	
+1046.771	Object	706	0x55E64EC1680	18500	18375	-15.071	0	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1058.387	Object	714	0x55E64E43F00	18125	18750	-13.618	0	13.618	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1060.771	WorldItem	3580	0x55E57CA9800	18288.04	18527.17	-5.689	0	5.689	no	Metadata/MiscellaneousObjects/WorldItem	
+1061.05	WorldItem	3508	0x55E65264580	18396.74	18429.35	-14.945	0	14.945	no	Metadata/MiscellaneousObjects/WorldItem	
+1101.264	WorldItem	3666	0x55E6526CF00	18222.83	18538.04	-7.973	0	7.973	no	Metadata/MiscellaneousObjects/WorldItem	
+1142.352	Object	694	0x55E61BCFB00	19000	18125	-12.627	0	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1193.328	Chest	3696	0x55E5907C800	18255.43	18375	-70	0	70	no	Metadata/Chests/Abyss/AbyssChestArmour	
+1196.948	Object	689	0x55E65263400	18250	18375	-6.703	0	6.703	no	Metadata/MiscellaneousObjects/Abyss/AbyssFinalNodeBase	
+1207.892	Object	3697	0x55E59075A00	18233.7	18375	-0.582	0	0.582	no	Metadata/MiscellaneousObjects/Abyss/AbyssPlinth	
+1213.552	WorldItem	3682	0x55F0A5F2580	18429.35	18222.83	-0.857	0	0.627	no	Metadata/MiscellaneousObjects/WorldItem	
+1222.282	WorldItem	3430	0x55E332C8A80	18853.26	18059.78	-0.857	0	0.627	no	Metadata/MiscellaneousObjects/WorldItem	
+1239.75	WorldItem	3690	0x55E5907B180	18396.74	18211.96	-0.999	0	0.629	no	Metadata/MiscellaneousObjects/WorldItem	
+1265.08	WorldItem	3529	0x55E65262C80	18081.52	18451.09	-0.999	0	0.629	no	Metadata/MiscellaneousObjects/WorldItem	
+1267.249	Object	695	0x55E61BCC400	19000	18000	-14.455	0	14.455	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1274.893	WorldItem	3673	0x55E4F434100	18059.78	18461.96	-0.857	0	0.627	no	Metadata/MiscellaneousObjects/WorldItem	Lightless Serpent
+1278.191	Object	696	0x55E5F170A80	18875	18000	-15.071	0	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	Fungal Zombie
+1354.907	WorldItem	3687	0x55F0A5F7300	18038.04	18364.13	-3.993	0	3.993	no	Metadata/MiscellaneousObjects/WorldItem	
+1361.433	WorldItem	3689	0x55E59074600	18201.09	18201.09	-8.59	0	8.59	no	Metadata/MiscellaneousObjects/WorldItem	
+1370.256	WorldItem	3693	0x55E59074B00	18135.87	18244.56	-0.857	0	0.627	no	Metadata/MiscellaneousObjects/WorldItem	
+1376.321	Monster	3569	0x55E3364F780	18103.26	18266.3	-116.744	0	116.744	no	Metadata/Monsters/LeagueDelirium/DeliriumDemonFireSword_@70	Manifested Demon
+1376.321	WorldItem	3691	0x55E59079380	18103.26	18266.3	-3.391	0	3.391	no	Metadata/MiscellaneousObjects/WorldItem	
+1376.321	WorldItem	3694	0x55E59076E00	18103.26	18266.3	-6.297	0	6.297	no	Metadata/MiscellaneousObjects/WorldItem	
+1376.321	WorldItem	3692	0x55E5907F780	18103.26	18266.3	-8.295	0	8.295	no	Metadata/MiscellaneousObjects/WorldItem	
+1380.156	Object	699	0x55E64ECE880	18500	18000	-12.627	0	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1393.139	Object	701	0x55E65CE5680	18250	18125	-12.627	0	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1423.052	Object	697	0x55E5F17A580	18750	17875	-12.627	0	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1434.463	Object	700	0x55E65CE4780	18375	18000	-15.071	0	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1454.452	Object	698	0x55E64EC0280	18625	17875	-15.071	0	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1799.529	Object	83	0x55E5907F000	17907.61	17875	-181.639	0	181.639	no	Metadata/MiscellaneousObjects/BossForceFieldDoorVisuals	Boulder
+2520.849	Object	82	0x55E8835DB80	17472.83	17298.91	-120.116	0	119.711	no	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame_Boss	Checkpoint
+4377.632	Object	729	0x55E65AA9880	16000	16125	-16.534	-3.907	12.627	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+4386.624	Object	726	0x55E64EC8480	15750	16375	-12.627	0	12.627	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+4401.774	Object	725	0x55F5EB3B100	15625	16500	-15.071	0	15.071	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+4468.178	Object	730	0x55E65AA2080	16000	16000	-15.071	0	15.071	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+4470.002	Object	727	0x55E64ECAC80	15750	16250	-14.455	0	14.455	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+4499.691	Object	724	0x55E64EC6400	15500	16500	-12.627	0	12.627	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+4630.058	Object	746	0x55E332CEE80	17250	15000	-12.627	0	12.627	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+4675.176	Object	723	0x55E64EC4D80	15375	16375	-15.071	0	15.071	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+4684.215	WorldItem	2803	0x55E32399000	17418.48	14875	-1.778	0	1.778	yes	Metadata/MiscellaneousObjects/WorldItem	
+4774.031	Object	722	0x55E64ECB680	15250	16375	-12.627	0	12.627	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+4816.533	Object	744	0x55E332CB280	17375	14750	-12.627	0	12.627	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+4895.366	Object	719	0x55E5FC54C80	16250	15250	-6.703	0	6.703	yes	Metadata/MiscellaneousObjects/Abyss/AbyssFinalNodeBase	
+5094.482	Object	742	0x55E332C1000	17250	14500	-12.627	0	12.627	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+5160.4	WorldItem	3169	0x55F5E07BA80	16059.78	15059.78	-5.974	0	5.974	yes	Metadata/MiscellaneousObjects/WorldItem	
+5256.073	Object	741	0x55E59FB8D00	17125	14375	-15.071	0	15.071	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+7579.267	WorldItem	2568	0x55E64ECC080	12701.09	15125	-0.999	0	0.629	yes	Metadata/MiscellaneousObjects/WorldItem	
+8094.588	Object	801	0x55E5F741E00	13125	13750	-14.455	0	14.455	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+8382.457	WorldItem	2558	0x55E64EC6E00	12505.43	14027.17	-10.918	0	10.918	yes	Metadata/MiscellaneousObjects/WorldItem	Fury
+8386.466	WorldItem	2571	0x55E64E4A080	12625	13875	-2.439	0	2.439	yes	Metadata/MiscellaneousObjects/WorldItem	
+8386.466	WorldItem	2574	0x55E64E48280	12625	13875	-6.933	0	6.933	yes	Metadata/MiscellaneousObjects/WorldItem	
+8386.466	WorldItem	2573	0x55E64E4EB80	12625	13875	-6.637	0	6.637	yes	Metadata/MiscellaneousObjects/WorldItem	
+8386.466	Object	774	0x55E64E45800	12625	13875	-6.703	0	6.703	yes	Metadata/MiscellaneousObjects/Abyss/AbyssFinalNodeBase	
+8387.819	Object	2562	0x55E64E43500	12614.13	13885.87	-0.582	0	0.582	yes	Metadata/MiscellaneousObjects/Abyss/AbyssPlinth	
+8412.299	WorldItem	2549	0x55E6719C600	12711.96	13733.7	-8.291	0	8.291	yes	Metadata/MiscellaneousObjects/WorldItem	
+8579.468	Object	821	0x55E64E43000	12375	13875	-14.455	0	14.455	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+8632.318	Object	787	0x55E64E4B700	12625	13500	-14.455	0	14.455	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+8902.167	Object	785	0x55E65262C80	12375	13375	-15.071	0	15.071	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+8985.378	Object	784	0x55E65266880	12375	13250	-12.627	0	12.627	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+18722.53	Object	892	0x55E63C9EE80	5125	6750	-12.627	0	12.627	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+22042.61	Npc	957	0x55F0A511A80	2418.478	4798.913	-94.305	0	94.305	no	Metadata/NPC/League/Affliction/ElderMadoxMapIntro	Elder Madox
+22162.16	Terrain	956	0x55E33F04880	2364.13	4679.348	-245	-120	125	yes	Metadata/Terrain/Gallows/Leagues/Delirium/Objects/DeliriumInitiator	
+22379.99	Object	18	0x55F0A6DB780	2179.348	4559.783	-120.116	0	119.711	yes	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame	Checkpoint
+27093.39	WorldItem	3260	0x55F5EB3B880	0	0	0	0	0	no	Metadata/MiscellaneousObjects/WorldItem	
+27093.39	WorldItem	3564	0x55E3364F500	0	0	0	0	0	no	Metadata/MiscellaneousObjects/WorldItem	
+27093.39	WorldItem	3444	0x55F5E075680	0	0	0	0	0	no	Metadata/MiscellaneousObjects/WorldItem	
+27093.39	WorldItem	3520	0x55E6526A200	0	0	0	0	0	no	Metadata/MiscellaneousObjects/WorldItem	
+27093.39	WorldItem	3434	0x55E65CEB300	0	0	0	0	0	no	Metadata/MiscellaneousObjects/WorldItem	
+27093.39	WorldItem	3669	0x55E4F43B900	0	0	0	0	0	no	Metadata/MiscellaneousObjects/WorldItem	
+27093.39	WorldItem	3349	0x55E489B6D00	0	0	0	0	0	no	Metadata/MiscellaneousObjects/WorldItem	Rage
+27093.39	WorldItem	3426	0x55E332CC680	0	0	0	0	0	no	Metadata/MiscellaneousObjects/WorldItem	
+27093.39	WorldItem	3667	0x55E6526CC80	0	0	0	0	0	no	Metadata/MiscellaneousObjects/WorldItem	
+27093.39	WorldItem	3680	0x55F0A5F4B00	0	0	0	0	0	no	Metadata/MiscellaneousObjects/WorldItem	Daemon
+27093.39	WorldItem	3423	0x55F34E84200	0	0	0	0	0	no	Metadata/MiscellaneousObjects/WorldItem	
+27093.39	WorldItem	3435	0x55E65CE5180	0	0	0	0	0	no	Metadata/MiscellaneousObjects/WorldItem	
+27093.39	WorldItem	2219	0x55F0A510E00	0	0	0	0	0	yes	Metadata/MiscellaneousObjects/WorldItem	
+27093.39	WorldItem	1866	0x55E634D9B00	0	0	0	0	0	yes	Metadata/MiscellaneousObjects/WorldItem	
+27093.39	WorldItem	3051	0x55E632ED800	0	0	0	0	0	yes	Metadata/MiscellaneousObjects/WorldItem	Disgust
+27093.39	WorldItem	2410	0x55E67192600	0	0	0	0	0	yes	Metadata/MiscellaneousObjects/WorldItem	
+27093.39	WorldItem	2576	0x55E64E4D000	0	0	0	0	0	yes	Metadata/MiscellaneousObjects/WorldItem	

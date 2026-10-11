@@ -110,6 +110,9 @@ public static class CaptureParts
     /// <summary>The area's tile lists whole.</summary>
     public const string TilesetLists = "tileset-lists";
 
+    /// <summary>Every tile file the lists name or the area laid, its definition followed hop by hop, and the .tmd beside it.</summary>
+    public const string TileFiles = "tile-files";
+
     /// <summary>The survey of the area's entity maps for the rooms' doodads, every sighting listed.</summary>
     public const string Doodads = "doodads";
 
@@ -190,6 +193,9 @@ public static class CaptureParts
         new(TilesetLists, "Area files", "the tile lists", CaptureReport.TilesetListsFile,
             "The area's tile lists (.tst) whole, each master's and every list it includes: the weight the generator draws each tile by and the "
             + "words after it. What a room is built from without the area, and where the words' meaning is to be read rather than guessed."),
+        new(TileFiles, "Area files", "the tile files' chains", CaptureReport.TileFilesFile,
+            "Every tile file the lists name or the area laid: its definition followed through every file it inherits, and the .tmd beside it "
+            + "whole (text, or its opening bytes and strings). Every area lays files no list names - this is what says where they come from."),
 
         new(Doodads, "Rooms by doodads", "the doodads found", CaptureReport.DoodadsFile,
             "The survey of the area's entity maps for the rooms' doodads: each room's share, each path found and how many stand, "

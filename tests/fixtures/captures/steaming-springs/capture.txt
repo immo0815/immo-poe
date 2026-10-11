@@ -1,0 +1,38 @@
+capture  2026-10-11 08:14:34 local, PoEformance v0.1.179 · 5dc98b8
+area     Steaming Springs (MapSteamingSprings), act 10, level 70, hash 0x6FC87FF1, state InGame
+light    Metadata/EnvironmentSettings/Maps/SteamingSprings.env
+screen   game client at 0, 0, 3440 x 1440
+player   world 3846.552 4006.763 -212.825, terrain height -125, level 96
+         grid cell 353, 368, tile 15, 16
+         the grid's height there -125, the tile's level -0
+tile     Metadata/Terrain/Maps/SteamingSprings/Tiles/SteamingSprings_boss_01.tdt, laid 6, piece 3, 4
+camera   1.105 1.983 0.487 0.467 -1.105 1.983 0.487 0.467 0 -2.462 0.784 0.751 176.982 -15722.91 -1658.924 -1389.074
+terrain  1932 x 1794 cells, 84 x 78 tiles
+
+=== rooms around the player
+(none laid within 3 tiles)
+
+=== what this capture holds
+  game.png  3440 x 1440, the game alone, the overlay hidden for 125 ms
+  overlay.png  3440 x 1440, the game with the overlay, as the key went down
+  entities.txt  87 entities, nearest first
+  loaded-files.txt  1615 files
+  environments.txt  the area's environment (Metadata/EnvironmentSettings/Maps/SteamingSprings.env) and those of 0 rooms
+  room-files.txt  212 room files the area may lay - the loaded list's and every room of the sets its files and the install's masters name
+  tile-identities.txt  96 tile files laid in the area, each as a room's slot asks about it - tab-separated, or why it did not read
+  slot-candidates.txt  212 rooms of the area's set against 243 tiles its tilesets list - 2 masters, lists metadata/terrain/maps/steamingsprings/tiles.tst, metadata/terrain/gallows/act4/4_1_1/tiles.tst
+  tileset-lists.txt  2 tile lists of 2 masters, 245 tile lines - each list whole: an optional weight, the tile, then the words after it
+  rooms.txt  0 rooms within 3 tiles, their doodads' lights and the pieces attached to them, and the file of each room the player stands in
+  rooms-arranged.txt  not written: the rooms stand by their doodads - see rooms-placed.txt
+  doodads.txt  doodads: 724 entities stand where the rooms name a doodad, on 10 paths - sleeping map 1157 of 1157 walked, awake 305, 1462 with a path, read in 152 ms, 27 remembered from the bubble since
+  rooms-placed.txt  rooms: 15 placed by their doodads at 27 places, 2 by their tiles at 2 places, 197 with no place
+  room-pick.txt  not written: nothing there when the key went down
+  routes.txt  2 lines
+  scene-light.txt  not written: nothing there when the key went down
+  model-probe.txt  not written: nothing there when the key went down
+  dissector.txt  not written: nothing there when the key went down
+  atlas-log.txt  not written: nothing there when the key went down
+  memory.rec  1051 KB: the overlay's own reads for 90 reader ticks and one pass reading the world with every switch on, the loaded files, both entity maps with every named entity's model, every monster's mods, the raw bytes of the roots, one hop beyond them and the components around you from nothing - replay with --replay; memory.txt says what the pass read where
+  monsters.txt  written by the pass inside the recording - memory.txt says what it holds
+  every part of the catalogue was on
+  2026-10-11 08-14-34 Steaming Springs.zip  beside this folder: every file here, packed to send

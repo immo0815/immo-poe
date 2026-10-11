@@ -1,0 +1,963 @@
+77 rooms of the area's set against 184 tiles its tilesets list - 1 master, lists metadata/terrain/maps/sulphuriccaverns/tiles.tst
+Each kind of slot once with the tiles alike to it by the search's rule (SlotWants): the size either way round, the tag where the slot names one, every edge and ground type the slot names among the tile's. One tile alike settles the kind by the files; several is the generator's choice.
+
+summary: 1 of 77 rooms settled by the files alone (every kind of slot one tile) · arena rooms 0 of 2 · slots settled 872 of 2861 · tiles that did not read 0
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Cc_01.arm  -  16 slots of 4 kinds · one tile answers 1 kinds (8 slots), several 3, none 0
+  8 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  2 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Cc_02.arm  -  16 slots of 4 kinds · one tile answers 1 kinds (8 slots), several 3, none 0
+  8 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thinwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 2 tiles: CvMM_Cc_01, CvMW_Cc_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Cc_03.arm  -  16 slots of 6 kinds · one tile answers 1 kinds (5 slots), several 5, none 0
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Cc_04.arm  -  16 slots of 6 kinds · one tile answers 1 kinds (7 slots), several 5, none 0
+  7 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_ledge, coral_thinwall] grounds [-, -, -, -] -> 8 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Cc_05.arm  -  16 slots of 6 kinds · one tile answers 1 kinds (5 slots), several 5, none 0
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  2 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/St_01.arm  -  16 slots of 6 kinds · one tile answers 1 kinds (6 slots), several 5, none 0
+  6 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/St_02.arm  -  16 slots of 6 kinds · one tile answers 1 kinds (4 slots), several 5, none 0
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  4 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/St_03.arm  -  16 slots of 4 kinds · one tile answers 1 kinds (4 slots), several 3, none 0
+  8 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  2 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  4 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  2 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/St_04.arm  -  16 slots of 6 kinds · one tile answers 1 kinds (2 slots), several 5, none 0
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  2 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  2 slots (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/St_05.arm  -  16 slots of 5 kinds · one tile answers 1 kinds (6 slots), several 4, none 0
+  6 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  3 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Tri_01.arm  -  16 slots of 6 kinds · one tile answers 1 kinds (4 slots), several 5, none 0
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  4 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Tri_02.arm  -  16 slots of 7 kinds · one tile answers 1 kinds (2 slots), several 6, none 0
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Tri_03.arm  -  15 slots of 5 kinds · one tile answers 1 kinds (3 slots), several 4, none 0
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  2 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/Tri_04.arm  -  16 slots of 8 kinds · one tile answers 1 kinds (3 slots), several 7, none 0
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  2 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_ledge, coral_thinwall] grounds [-, -, -, -] -> 8 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  1 slot (big) 3x3 edges [coral_ledge, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 6 tiles: CvCvMM_01, CvCvMW_01, CvCvWW_01, CcCvMM_01, CcCvMW_01, CcCvWW_01
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/X_01.arm  -  14 slots of 4 kinds · one tile answers 1 kinds (2 slots), several 3, none 0
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  2 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/X_02.arm  -  16 slots of 6 kinds · one tile answers 1 kinds (2 slots), several 5, none 0
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  4 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  1 slot (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  1 slot (big) 3x3 edges [coral_thinwall, coral_thinwall, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 2 tiles: X_01, X_02
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/1x1/X_03.arm  -  15 slots of 7 kinds · one tile answers 1 kinds (1 slots), several 6, none 0
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  1 slot (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_2_01.arm  -  55 slots of 10 kinds · one tile answers 1 kinds (25 slots), several 9, none 0
+  25 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  2 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_ledge, coral_thinwall] grounds [-, -, -, -] -> 8 tiles
+  2 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  9 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_2_02.arm  -  64 slots of 10 kinds · one tile answers 1 kinds (24 slots), several 8, none 1
+  24 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  10 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 door edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 0 tiles
+  18 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_ledge, coral_thinwall] grounds [-, -, -, -] -> 8 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_2_03.arm  -  56 slots of 7 kinds · one tile answers 1 kinds (30 slots), several 6, none 0
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  30 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  9 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_2_04.arm  -  49 slots of 5 kinds · one tile answers 1 kinds (36 slots), several 4, none 0
+  36 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  3 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thinwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 2 tiles: CvMM_Cc_01, CvMW_Cc_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_2_05.arm  -  57 slots of 9 kinds · one tile answers 1 kinds (18 slots), several 8, none 0
+  8 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  9 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  18 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  4 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  9 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_ledge, coral_thinwall] grounds [-, -, -, -] -> 8 tiles
+  3 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_2_06.arm  -  47 slots of 8 kinds · one tile answers 1 kinds (24 slots), several 7, none 0
+  24 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  8 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  8 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  2 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_ledge, coral_thinwall] grounds [-, -, -, -] -> 8 tiles
+  1 slot (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_2_07.arm  -  48 slots of 7 kinds · one tile answers 1 kinds (31 slots), several 6, none 0
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  31 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 edges [coral_ledge, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 6 tiles: CvCvMM_01, CvCvMW_01, CvCvWW_01, CcCvMM_01, CcCvMW_01, CcCvWW_01
+  1 slot (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_2_08.arm  -  49 slots of 8 kinds · one tile answers 1 kinds (28 slots), several 7, none 0
+  28 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  8 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  3 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_3_01.arm  -  65 slots of 13 kinds · one tile answers 1 kinds (14 slots), several 12, none 0
+  9 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  8 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  14 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  4 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  3 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  18 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  1 slot (big) 3x3 edges [coral_ledge, coral_ledge, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 4 tiles: Cc_01, Cv_01, St_01, St_01_door
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  1 slot (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_3_02.arm  -  49 slots of 12 kinds · one tile answers 1 kinds (19 slots), several 11, none 0
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  19 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  2 slots (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  3 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  4 slots (big) 3x3 edges [-, coral_ledge, coral_ledge, coral_thinwall] grounds [-, -, -, -] -> 8 tiles
+  1 slot (big) 3x3 edges [coral_ledge, coral_ledge, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 4 tiles: Cc_01, Cv_01, St_01, St_01_door
+  1 slot (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 blocked edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_01_blocked, StWW_01_blocked
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_3_03.arm  -  49 slots of 12 kinds · one tile answers 1 kinds (12 slots), several 11, none 0
+  9 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  12 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  3 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_ledge, coral_thinwall] grounds [-, -, -, -] -> 8 tiles
+  5 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  2 slots (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  2 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  3 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_3_04.arm  -  48 slots of 10 kinds · one tile answers 1 kinds (19 slots), several 9, none 0
+  19 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  11 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  1 slot (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  3 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_3_05.arm  -  57 slots of 13 kinds · one tile answers 1 kinds (19 slots), several 12, none 0
+  19 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  9 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  3 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  9 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  2 slots (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  1 slot (big) 3x3 edges [coral_ledge, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 6 tiles: CvCvMM_01, CvCvMW_01, CvCvWW_01, CcCvMM_01, CcCvMW_01, CcCvWW_01
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  2 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_4_01.arm  -  47 slots of 10 kinds · one tile answers 1 kinds (19 slots), several 9, none 0
+  19 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  9 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  8 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  1 slot (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_4_02.arm  -  49 slots of 9 kinds · one tile answers 1 kinds (15 slots), several 8, none 0
+  14 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  2 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  2 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  15 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_4_03.arm  -  57 slots of 14 kinds · one tile answers 1 kinds (17 slots), several 12, none 1
+  17 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  11 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_ledge, coral_thinwall] grounds [-, -, -, -] -> 8 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  1 slot (big) 3x3 door edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 0 tiles
+  9 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  1 slot (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  1 slot (big) 3x3 edges [coral_ledge, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 6 tiles: CvCvMM_01, CvCvMW_01, CvCvWW_01, CcCvMM_01, CcCvMW_01, CcCvWW_01
+  1 slot (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_4_04.arm  -  48 slots of 12 kinds · one tile answers 1 kinds (19 slots), several 11, none 0
+  11 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  19 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  3 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  2 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_ledge, coral_thinwall] grounds [-, -, -, -] -> 8 tiles
+  1 slot (big) 3x3 edges [coral_ledge, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 6 tiles: CvCvMM_01, CvCvMW_01, CvCvWW_01, CcCvMM_01, CcCvMW_01, CcCvWW_01
+  1 slot (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_5_01.arm  -  57 slots of 10 kinds · one tile answers 1 kinds (12 slots), several 9, none 0
+  12 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  14 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  9 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  4 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  9 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  4 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  1 slot (big) 3x3 blocked edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  2 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_5_02.arm  -  49 slots of 7 kinds · one tile answers 1 kinds (17 slots), several 6, none 0
+  17 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  17 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  5 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/2x2/Ledges_8_01.arm  -  65 slots of 12 kinds · one tile answers 1 kinds (8 slots), several 11, none 0
+  15 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  8 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  1 slot (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  4 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  4 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  1 slot (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  3 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  18 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  2 slots (big) 3x3 edges [coral_ledge, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 6 tiles: CvCvMM_01, CvCvMW_01, CvCvWW_01, CcCvMM_01, CcCvMW_01, CcCvWW_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_1_01.arm  -  47 slots of 7 kinds · one tile answers 1 kinds (20 slots), several 6, none 0
+  20 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  9 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  4 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  3 slots (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_1_02.arm  -  48 slots of 12 kinds · one tile answers 1 kinds (22 slots), several 11, none 0
+  22 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  8 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [coral_ledge, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 6 tiles: CvCvMM_01, CvCvMW_01, CvCvWW_01, CcCvMM_01, CcCvMW_01, CcCvWW_01
+  2 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_ledge, coral_thinwall] grounds [-, -, -, -] -> 8 tiles
+  2 slots (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_1_03.arm  -  46 slots of 5 kinds · one tile answers 1 kinds (15 slots), several 4, none 0
+  8 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  12 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  15 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  10 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_1_04.arm  -  42 slots of 5 kinds · one tile answers 1 kinds (15 slots), several 4, none 0
+  15 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  12 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  8 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_1_05.arm  -  47 slots of 7 kinds · one tile answers 1 kinds (5 slots), several 6, none 0
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  12 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  13 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  8 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_2_01.arm  -  47 slots of 14 kinds · one tile answers 1 kinds (7 slots), several 12, none 1
+  11 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  4 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_ledge, coral_thinwall] grounds [-, -, -, -] -> 8 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  1 slot (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  1 slot (big) 3x3 door edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 0 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  7 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_2_02.arm  -  64 slots of 12 kinds · one tile answers 1 kinds (1 slots), several 10, none 1
+  10 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  18 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  4 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  3 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 door edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 0 tiles
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  18 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_ledge, coral_thinwall] grounds [-, -, -, -] -> 8 tiles
+  2 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_2_03.arm  -  45 slots of 10 kinds · one tile answers 1 kinds (18 slots), several 9, none 0
+  8 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  3 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  18 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_ledge, coral_thinwall] grounds [-, -, -, -] -> 8 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_2_04.arm  -  48 slots of 10 kinds · one tile answers 1 kinds (12 slots), several 9, none 0
+  12 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  12 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  8 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  2 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_2_05.arm  -  45 slots of 8 kinds · one tile answers 1 kinds (6 slots), several 7, none 0
+  12 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  13 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  2 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  6 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  1 slot (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_3_01.arm  -  49 slots of 10 kinds · one tile answers 1 kinds (6 slots), several 9, none 0
+  11 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  11 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  4 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  6 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  2 slots (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  4 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  3 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  5 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_3_02.arm  -  48 slots of 8 kinds · one tile answers 1 kinds (9 slots), several 7, none 0
+  11 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  9 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  9 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  2 slots (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  5 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_3_03.arm  -  47 slots of 9 kinds · one tile answers 1 kinds (5 slots), several 8, none 0
+  13 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  11 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  4 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  3 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_3_04.arm  -  48 slots of 14 kinds · one tile answers 1 kinds (3 slots), several 13, none 0
+  11 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  11 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  6 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  1 slot (big) 3x3 edges [coral_ledge, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 6 tiles: CvCvMM_01, CvCvMW_01, CvCvWW_01, CcCvMM_01, CcCvMW_01, CcCvWW_01
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_ledge, coral_thinwall] grounds [-, -, -, -] -> 8 tiles
+  1 slot (big) 3x3 edges [coral_thinwall, coral_thinwall, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 2 tiles: X_01, X_02
+  2 slots (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  2 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thinwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 2 tiles: CvMM_Cc_01, CvMW_Cc_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_4_01.arm  -  47 slots of 7 kinds · one tile answers 1 kinds (5 slots), several 6, none 0
+  11 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  15 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  10 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  2 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/CnrLarge_4_02.arm  -  64 slots of 12 kinds · one tile answers 1 kinds (3 slots), several 10, none 1
+  12 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  8 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  7 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_ledge, coral_thinwall] grounds [-, -, -, -] -> 8 tiles
+  1 slot (big) 3x3 door edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 0 tiles
+  7 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  18 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [coral_ledge, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 6 tiles: CvCvMM_01, CvCvMW_01, CvCvWW_01, CcCvMM_01, CcCvMW_01, CcCvWW_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/Cnr_01.arm  -  14 slots of 5 kinds · one tile answers 0 kinds (0 slots), several 5, none 0
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/Cnr_02.arm  -  16 slots of 6 kinds · one tile answers 1 kinds (3 slots), several 5, none 0
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  2 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/Cnr_03.arm  -  15 slots of 6 kinds · one tile answers 1 kinds (2 slots), several 5, none 0
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  2 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/Cnr_04.arm  -  16 slots of 7 kinds · one tile answers 1 kinds (1 slots), several 6, none 0
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  2 slots (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  1 slot (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thinwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 2 tiles: CvMM_Cc_01, CvMW_Cc_01
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/Cnr_05.arm  -  16 slots of 4 kinds · one tile answers 1 kinds (8 slots), several 3, none 0
+  8 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  2 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/StLarge_1_01.arm  -  49 slots of 11 kinds · one tile answers 1 kinds (12 slots), several 10, none 0
+  9 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  10 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  5 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  2 slots (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  12 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  3 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  2 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  1 slot (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/StLarge_1_02.arm  -  47 slots of 9 kinds · one tile answers 1 kinds (18 slots), several 7, none 1
+  11 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  8 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  18 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  2 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 door edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 0 tiles
+  1 slot (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/StLarge_1_03.arm  -  46 slots of 8 kinds · one tile answers 1 kinds (9 slots), several 7, none 0
+  13 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  12 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  9 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  2 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  1 slot (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thinwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 2 tiles: CvMM_Cc_01, CvMW_Cc_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/StLarge_2_01.arm  -  47 slots of 11 kinds · one tile answers 1 kinds (4 slots), several 10, none 0
+  11 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  13 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  4 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  4 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  3 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  3 slots (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+  1 slot (big) 3x3 edges [coral_ledge, coral_ledge, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 4 tiles: Cc_01, Cv_01, St_01, St_01_door
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/StLarge_2_02.arm  -  61 slots of 8 kinds · one tile answers 1 kinds (14 slots), several 6, none 1
+  14 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  9 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  10 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  4 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  18 slots 1x1 edges [-, -, -, -] grounds [-, -, -, -] -> 2 tiles: Blank, forced_blank
+  4 slots (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  1 slot (big) 3x3 door edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 0 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/StLarge_2_03.arm  -  47 slots of 14 kinds · one tile answers 1 kinds (5 slots), several 13, none 0
+  10 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  12 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 8 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  1 slot (big) 3x3 edges [coral_ledge, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 6 tiles: CvCvMM_01, CvCvMW_01, CvCvWW_01, CcCvMM_01, CcCvMW_01, CcCvWW_01
+  3 slots (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 25 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  1 slot (big) 3x3 edges [coral_ledge, coral_ledge, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 4 tiles: Cc_01, Cv_01, St_01, St_01_door
+  1 slot (big) 3x3 edges [-, -, coral_ledge, coral_ledge] grounds [-, -, -, -] -> 24 tiles
+  5 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  1 slot (big) 3x3 edges [coral_thickwall, coral_thickwall, coral_thinwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 2 tiles: CvMM_Cc_01, CvMW_Cc_01
+  1 slot (big) 3x3 edges [-, coral_ledge, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 6 tiles: StMM_01, StMW_01, StMW_01_blocked, StMW_02, StWW_01, StWW_01_blocked
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/St_01.arm  -  13 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 4, none 0
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/St_02.arm  -  15 slots of 5 kinds · one tile answers 0 kinds (0 slots), several 5, none 0
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  2 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/St_03.arm  -  16 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  8 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/St_04.arm  -  16 slots of 3 kinds · one tile answers 0 kinds (0 slots), several 3, none 0
+  6 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  8 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  2 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Abyss/St_05.arm  -  13 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 4, none 0
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/insidewall_01.arm  -  16 slots of 1 kinds · one tile answers 1 kinds (16 slots), several 0, none 0 · settled by the files alone
+  16 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Unique/boss.arm  (arena)  -  65 slots of 11 kinds · one tile answers 5 kinds (39 slots), several 6, none 0
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  15 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  10 slots (big) 3x3 edges [-, -, coral_abysswall, coral_abysswall] grounds [black_inside_wall, black_inside_wall, black_inside_wall, coral_abyss] -> 1 tile: Cc_01
+  14 slots (big) 3x3 edges [-, -, coral_abysswall, coral_abysswall] grounds [black_inside_wall, black_inside_wall, coral_abyss, coral_abyss] -> 2 tiles: St_01, X_01
+  1 slot (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  2 slots (big) 3x3 edges [-, coral_abyss, coral_abyss, coral_thinwall] grounds [-, -, -, coral_abyss] -> 3 tiles: Cc_Cc_01, Cc_End_01, St_End_01
+  2 slots (big) 3x3 edges [-, coral_abyss, coral_abysswall, coral_thickwall] grounds [-, black_inside_wall, coral_abyss, coral_abyss] -> 2 tiles: St_CvM_01, St_CvW_01
+  7 slots (big) 3x3 edges [-, -, coral_abysswall, coral_abysswall] grounds [black_inside_wall, coral_abyss, coral_abyss, coral_abyss] -> 1 tile: Cv_01
+  6 slots (big) 3x3 edges [-, -, -, -] grounds [coral_abyss, coral_abyss, coral_abyss, coral_abyss] -> 1 tile: Fill_01
+  1 slot (big) 18x18 boss edges [-, -, coral_abyss, coral_abyss] grounds [-, coral_abyss, coral_abyss, coral_abyss] -> 1 tile: SulphuricCaverns_Boss_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Unique/checkpoint_cnr_01.arm  -  14 slots of 5 kinds · one tile answers 0 kinds (0 slots), several 5, none 0
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Unique/checkpoint_st_01.arm  -  13 slots of 4 kinds · one tile answers 0 kinds (0 slots), several 4, none 0
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, -, -, coral_thinwall] grounds [-, -, -, -] -> 38 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Unique/entrance.arm  -  27 slots of 6 kinds · one tile answers 1 kinds (11 slots), several 5, none 0
+  11 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  7 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  2 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Unique/forced_rare_01.arm  -  49 slots of 14 kinds · one tile answers 7 kinds (32 slots), several 7, none 0
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  20 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  1 slot (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  2 slots (big) 3x3 edges [-, coral_abyss, coral_abyss, coral_thinwall] grounds [-, -, -, coral_abyss] -> 3 tiles: Cc_Cc_01, Cc_End_01, St_End_01
+  1 slot (big) 3x3 edges [-, coral_abyss, coral_abysswall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, coral_abyss] -> 2 tiles: Cc_StM_01, Cc_StW_01
+  1 slot (big) 3x3 edges [coral_abyss, coral_abyss, coral_abyss, coral_abyss] grounds [-, -, coral_abyss, coral_abyss] -> 1 tile: X_01
+  1 slot (big) 3x3 edges [coral_abyss, coral_abyss, coral_abysswall, coral_abysswall] grounds [-, black_inside_wall, coral_abyss, coral_abyss] -> 1 tile: Cv_Cv_01
+  5 slots (big) 3x3 edges [-, -, coral_abysswall, coral_abysswall] grounds [black_inside_wall, black_inside_wall, coral_abyss, coral_abyss] -> 2 tiles: St_01, X_01
+  4 slots (big) 3x3 edges [-, -, coral_abysswall, coral_abysswall] grounds [black_inside_wall, black_inside_wall, black_inside_wall, coral_abyss] -> 1 tile: Cc_01
+  1 slot (big) 3x3 edges [-, coral_abyss, coral_abysswall, coral_thickwall] grounds [-, black_inside_wall, coral_abyss, coral_abyss] -> 2 tiles: St_CvM_01, St_CvW_01
+  2 slots (big) 3x3 edges [-, -, coral_abyss, coral_abyss] grounds [-, coral_abyss, coral_abyss, coral_abyss] -> 1 tile: Cv_01
+  3 slots (big) 3x3 edges [-, -, -, -] grounds [coral_abyss, coral_abyss, coral_abyss, coral_abyss] -> 1 tile: Fill_01
+  1 slot (big) 3x3 edges [-, -, coral_abysswall, coral_abysswall] grounds [black_inside_wall, coral_abyss, coral_abyss, coral_abyss] -> 1 tile: Cv_01
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Unique/mission_01.arm  -  16 slots of 7 kinds · one tile answers 1 kinds (1 slots), several 5, none 1
+  5 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  3 slots (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 2 tiles: StMW_End_01, StWW_End_01
+  1 slot (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  2 slots (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  1 slot (big) 3x3 edges [-, coral_thickwall, coral_thickwall, coral_thinwall] grounds [-, -, -, black_inside_wall] -> 7 tiles
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  1 slot (big) 3x3 missiontile edges [-, -, -, -] grounds [-, -, -, -] -> 0 tiles
+
+##### Metadata/Terrain/Maps/SulphuricCaverns/Rooms/Unique/noboss.arm  (arena)  -  99 slots of 18 kinds · one tile answers 7 kinds (67 slots), several 11, none 0
+  3 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, black_inside_wall] -> 10 tiles
+  4 slots (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, black_inside_wall] -> 49 tiles
+  15 slots (big) 3x3 edges [-, -, -, -] grounds [black_inside_wall, black_inside_wall, black_inside_wall, black_inside_wall] -> 1 tile: Fill_01
+  14 slots (big) 3x3 edges [-, -, coral_abysswall, coral_abysswall] grounds [black_inside_wall, black_inside_wall, black_inside_wall, coral_abyss] -> 1 tile: Cc_01
+  12 slots (big) 3x3 edges [-, -, coral_abysswall, coral_abysswall] grounds [black_inside_wall, black_inside_wall, coral_abyss, coral_abyss] -> 2 tiles: St_01, X_01
+  1 slot (big) 3x3 edges [-, -, coral_thinwall, coral_thinwall] grounds [-, -, -, -] -> 22 tiles
+  2 slots (big) 3x3 edges [-, coral_abyss, coral_abyss, coral_thinwall] grounds [-, -, -, coral_abyss] -> 3 tiles: Cc_Cc_01, Cc_End_01, St_End_01
+  2 slots (big) 3x3 edges [-, coral_abyss, coral_abysswall, coral_thickwall] grounds [-, black_inside_wall, coral_abyss, coral_abyss] -> 2 tiles: St_CvM_01, St_CvW_01
+  27 slots (big) 3x3 edges [-, -, -, -] grounds [coral_abyss, coral_abyss, coral_abyss, coral_abyss] -> 1 tile: Fill_01
+  8 slots (big) 3x3 edges [-, -, coral_abysswall, coral_abysswall] grounds [black_inside_wall, coral_abyss, coral_abyss, coral_abyss] -> 1 tile: Cv_01
+  1 slot (big) 3x3 edges [coral_abyss, coral_abyss, coral_abyss, coral_abyss] grounds [-, -, coral_abyss, coral_abyss] -> 1 tile: X_01
+  1 slot (big) 3x3 edges [coral_abyss, coral_abyss, coral_thickwall, coral_thickwall] grounds [-, -, black_inside_wall, coral_abyss] -> 3 tiles: Cc_CvMM_01, Cc_CvWM_01, Cc_CvWW_01
+  2 slots (big) 3x3 edges [-, -, coral_abyss, coral_abyss] grounds [-, -, -, coral_abyss] -> 18 tiles
+  1 slot (big) 3x3 edges [-, -, coral_thickwall, coral_thickwall] grounds [-, -, -, black_inside_wall] -> 97 tiles
+  2 slots (big) 3x3 edges [-, coral_abyss, coral_abysswall, coral_thickwall] grounds [-, black_inside_wall, black_inside_wall, coral_abyss] -> 2 tiles: Cc_StM_01, Cc_StW_01
+  2 slots (big) 3x3 edges [-, -, coral_abyss, coral_abyss] grounds [-, -, coral_abyss, coral_abyss] -> 7 tiles
+  1 slot (big) 3x3 edges [coral_abyss, coral_abyss, coral_abysswall, coral_abysswall] grounds [-, black_inside_wall, coral_abyss, coral_abyss] -> 1 tile: Cv_Cv_01
+  1 slot (big) 3x3 edges [-, -, coral_abyss, coral_abyss] grounds [-, coral_abyss, coral_abyss, coral_abyss] -> 1 tile: Cv_01
+
+##### the tilesets' tiles, each as a room's slot asks about it - tab-separated, or why it did not read (184)
+path	width	height	tag	edge down	edge right	edge up	edge left	ground down-left	ground down-right	ground up-right	ground up-left
+Metadata/Terrain/Blank.tdt	1	1									
+Metadata/Terrain/forced_blank.tdt	1	1	forcedblank								
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Fill_01.tdt	3	3						Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Maps/SulphuricCaverns/Tiles/Features/SulphuricCaverns_Boss_01.tdt	18	18	boss	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCaveEntrance_01.tdt	9	9	entrance		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_01.tdt	6	6	goblin_holes	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_02.tdt	6	6	goblin_holes			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_03.tdt	6	6	goblin_holes		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge_thickwall_ridge.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_04.tdt	6	6	goblin_holes	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge_thickwall_trough.et			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_05.tdt	6	6	goblin_holes	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_06.tdt	6	6	goblin_holes	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_corridor.et			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_corridor.et	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_07.tdt	6	6	goblin_holes		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_08.tdt	6	6	goblin_holes	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_corridor.et	Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_09.tdt	6	3	goblin_holes		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_010.tdt	6	3	goblin_holes	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCave/GoblinCaveFeature_011.tdt	6	6	goblin_holes	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Features/GoblinCaveArena/GoblinCaveArena_01.tdt	12	15	arena	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_bridge_virtual.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CcMM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CcMM_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CcMW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CcMW_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CcWW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CvMM_02.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CvMM_03.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CvMW_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CvMW_02.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CvWW_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/CvWW_03.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StMM_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StMM_02.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StMM_03.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StMW_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StMW_03.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Goblins/StWW_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Lava/CvMM_03.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Lava/CvWW_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Lava/CvWW_03.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/Lava/StMW_03.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CcMM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CcMM_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CcMW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CcMW_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CcWW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvMM_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvMM_02.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvMW_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvMW_02.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvMW_03.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/CvWW_02.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StMM_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StMM_02.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StMM_03.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StMW_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StWW_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StWW_02.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/StWW_03.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MM_MM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MM_WW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MW_MM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MW_MW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MW_WM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_MW_WW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thickwall/X_WW_WW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvMM_Thinwall_02.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvMM_Thinwall_03.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvMW_Thinwall_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvMW_Thinwall_02.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvWW_Thinwall_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvWW_Thinwall_03.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/CvWW_End_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/StMM_Thinwall_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/StMM_Thinwall_02.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/StMM_Thinwall_03.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/StMW_Thinwall_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/Goblins/StWW_Thinwall_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/CvMM_Cc_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/CvMW_Cc_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/CvMW_End_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/CvWM_End_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/StMW_End_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallThinwall/StWW_End_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Cc_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Cc_03.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/End_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et					
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/End_02.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et					
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/End_03.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et					
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et					
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et					
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_03.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et					
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_04.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et					
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_Door_01.tdt	3	3	door	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et					
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/St_Door_02.tdt	3	3	door	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et					
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Tri_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Tri_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/X_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/X_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Lava/Cc_02.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Lava/St_Door_03.tdt	3	3	door	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et					
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/Thinwall/Lava/Tri_03.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/Cc_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/Cc_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et					
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/Cv_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/Cv_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/St_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/St_01_door.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/St_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThinwallLedge/Goblins/St_03.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/Cc_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/Cv_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/St_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/X_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Abyss/Lava/Fill_01.tdt	3	3						Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Lava/Cc_Ledge_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Lava/Cc_Ledge_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Lava/Cc_Ledge_03.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssLedge/Lava/St_Ledge_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssCc_CvM_Fissure_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyssfissure.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssCc_CvM_Fissure_02.tdt	3	3	bridge	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyssfissure.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssCc_CvW_Fissure_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyssfissure.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssCc_Fissure_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyssfissure.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssCc_Fissure_02.tdt	3	3	bridge	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyssfissure.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/AbyssSt_Fissure_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyssfissure.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/FissureCnr_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyssfissure.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyssfissure.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/FissureSt_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyssfissure.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyssfissure.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssFissure/Lava/StMM_Fissure_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyssfissure.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss_trim.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/Lava/Cc_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/Lava/Cv_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/Lava/St_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssWall/Lava/X_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt			Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvM_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt			Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvM_End_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt			Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt			Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvW_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt			Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvW_End_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt			Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_StM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_StW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cv_Cv_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/St_CvM_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/St_CvW_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvM_CvM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvM_CvW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvW_CvW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abysswall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvMM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvWM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThickwall/Lava/Cc_CvWW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		Metadata/Terrain/black_inside_wall.gt	
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/Lava/Cc_Cc_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/Lava/Cc_End_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		
+Metadata/Terrain/Islands/Tiles/CoralDungeon/AbyssThinwall/Lava/St_End_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thinwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_abyss.gt		
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Cc_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et						
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Cv_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/St_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/X_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Goblins/Cc_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et						
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Goblins/Cv_01.tdt	3	3				Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Goblins/St_01.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Goblins/St_02.tdt	3	3			Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Ledge/Goblins/X_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et				
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvCvMM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/black_inside_wall.gt		
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvCvMW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/black_inside_wall.gt		
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvCvWW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/black_inside_wall.gt		
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CcCvMM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CcCvMW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CcCvWW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMM_01_blocked.tdt	3	3	blocked	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMM_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMM_02_blocked.tdt	3	3	blocked	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMW_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMW_03.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMW_03_blocked.tdt	3	3	blocked	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvMW_04.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvWW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvWW_01_blocked.tdt	3	3	blocked	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvWW_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/CvWW_02_blocked.tdt	3	3	blocked	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et				Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StMM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StMW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StMW_01_blocked.tdt	3	3	blocked	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StMW_02.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StWW_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/StWW_01_blocked.tdt	3	3	blocked	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_ledge.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et			Metadata/Terrain/black_inside_wall.gt	Metadata/Terrain/black_inside_wall.gt
+Metadata/Terrain/Islands/Tiles/CoralDungeon/Murky/ThickwallLedge/X_CvCvM_01.tdt	3	3		Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et	Metadata/Terrain/Islands/Tiles/CoralDungeon/coral_thickwall.et		Metadata/Terrain/black_inside_wall.gt		Metadata/Terrain/black_inside_wall.gt

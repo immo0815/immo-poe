@@ -1,0 +1,951 @@
+doodads: 724 entities stand where the rooms name a doodad, on 10 paths - sleeping map 1157 of 1157 walked, awake 305, 1462 with a path, read in 152 ms, 27 remembered from the bubble since
+cliff_cc_01: its doodad lines name no stub
+cliff_cv_01: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+cliff_cv_02: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+cliff_st_01: its doodad lines name no stub
+cliff_st_02: its doodad lines name no stub
+cliff_x_01: its doodad lines name no stub
+large_cliff_bend_01: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_bend_02: 4 of its 4 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_bend_03: its doodad lines name no stub
+large_cliff_bend_04: its doodad lines name no stub
+large_cliff_cc_01: 3 of its 3 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cc_02: 4 of its 4 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cc_03: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cc_04: 3 of its 3 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cc_05: 3 of its 3 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cc_06: its doodad lines name no stub
+large_cliff_cc_07: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cc_08: its doodad lines name no stub
+large_cliff_cv_01: 4 of its 4 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cv_02: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cv_03: 4 of its 4 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cv_04: 3 of its 3 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cv_05: 4 of its 4 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cv_06: 3 of its 3 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cv_07: its doodad lines name no stub
+large_cliff_cv_08: its doodad lines name no stub
+large_cliff_cv_09: its doodad lines name no stub
+large_cliff_st_01: 3 of its 3 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_st_02: 4 of its 4 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_st_03: 3 of its 3 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_st_04: 4 of its 4 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_st_05: its doodad lines name no stub
+large_cliff_st_06: its doodad lines name no stub
+large_cliff_st_07: its doodad lines name no stub
+creek_cnr_01: its doodad lines name no stub
+creek_cnr_02: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+creek_cnr_03: its doodad lines name no stub
+creek_cnr_04: its doodad lines name no stub
+creek_end_01: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+creek_end_02: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+creek_st_01: its doodad lines name no stub
+creek_st_02: its doodad lines name no stub
+creek_tri_01: its doodad lines name no stub
+creek_tri_02: its doodad lines name no stub
+innercliff_fill_01: its doodad lines name no stub
+open_fill_01: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+open_fill_02: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+open_fill_03: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+open_fill_04: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+open_fill_05: its doodad lines name no stub
+open_fill_06: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+open_fill_07: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+open_fill_08: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+water_fill_01: its doodad lines name no stub
+water_fill_02: its doodad lines name no stub
+goblincity_cc_01: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+goblincity_cv_01: 4 of its 4 doodad lines name a path found in the area, 686 such entities over 1 paths
+goblincity_open_01: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+goblincity_st_01: 3 of its 3 doodad lines name a path found in the area, 686 such entities over 1 paths
+goblincity_to_cliff_v1_01: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+goblincity_to_cliff_v1_02: 3 of its 3 doodad lines name a path found in the area, 686 such entities over 1 paths
+goblincity_to_cliff_v2_01: 3 of its 3 doodad lines name a path found in the area, 686 such entities over 1 paths
+goblincity_to_cliff_v2_02: its doodad lines name no stub
+goblincity_to_cliff_v3_01: its doodad lines name no stub
+goblincliff_cc_01: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+goblincliff_cv_01: 4 of its 4 doodad lines name a path found in the area, 686 such entities over 1 paths
+goblincliff_cv_02: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+goblincliff_cv_03: its doodad lines name no stub
+goblincliff_st_01: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+goblincliff_st_02: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+goblincliff_x_01: its doodad lines name no stub
+border_cc_01: its doodad lines name no stub
+border_cv_01: its doodad lines name no stub
+border_end_01: its doodad lines name no stub
+border_st_01: its doodad lines name no stub
+void_cc_01: its doodad lines name no stub
+void_st_01: its doodad lines name no stub
+CraterEdge_CcOverlay_02: its doodad lines name no stub
+CraterEdge_StOverlay_02: its doodad lines name no stub
+shoreline_cc_01: its doodad lines name no stub
+shoreline_cv_01: its doodad lines name no stub
+shoreline_end_01: its doodad lines name no stub
+shoreline_end_02: its doodad lines name no stub
+shoreline_end_03: its doodad lines name no stub
+shoreline_st_01: its doodad lines name no stub
+arena_01: 19 of its 78 doodad lines name a path found in the area, 686 such entities over 6 paths
+arena_02: 19 of its 78 doodad lines name a path found in the area, 686 such entities over 6 paths
+arena_03: 19 of its 78 doodad lines name a path found in the area, 686 such entities over 6 paths
+arena_04: 19 of its 78 doodad lines name a path found in the area, 686 such entities over 6 paths
+delve_01: 0 of its 3 doodad lines name a path found in the area, 0 such entities over 3 paths
+entrance_01: 2 of its 10 doodad lines name a path found in the area, 686 such entities over 9 paths
+entrance_02: 2 of its 10 doodad lines name a path found in the area, 686 such entities over 9 paths
+exit_01: 9 of its 12 doodad lines name a path found in the area, 686 such entities over 4 paths
+exit_02: 9 of its 12 doodad lines name a path found in the area, 686 such entities over 4 paths
+map_piece_01: 8 of its 12 doodad lines name a path found in the area, 686 such entities over 5 paths
+rhoacamp_1_01: its doodad lines name no stub
+rhoacamp_1_02: its doodad lines name no stub
+rhoacamp_1_03: its doodad lines name no stub
+rhoacamp_2_01: 0 of its 3 doodad lines name a path found in the area, 0 such entities over 3 paths
+sulphite_01: 6 of its 59 doodad lines name a path found in the area, 686 such entities over 5 paths
+sulphite_02: 6 of its 59 doodad lines name a path found in the area, 686 such entities over 5 paths
+cliff_cc_01: 15 of its 15 doodad lines name a path found in the area, 686 such entities over 1 paths
+cliff_cv_01: 26 of its 26 doodad lines name a path found in the area, 694 such entities over 2 paths
+cliff_st_01: its doodad lines name no stub
+cliff_x_01: 16 of its 16 doodad lines name a path found in the area, 694 such entities over 2 paths
+large_cliff_bend_01: 18 of its 18 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_bend_02: 20 of its 20 doodad lines name a path found in the area, 694 such entities over 2 paths
+large_cliff_bend_03: 20 of its 20 doodad lines name a path found in the area, 694 such entities over 2 paths
+large_cliff_bend_04: 5 of its 5 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cc_01: 23 of its 23 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cc_02: 9 of its 9 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cc_03: 20 of its 20 doodad lines name a path found in the area, 694 such entities over 2 paths
+large_cliff_cc_04: 6 of its 6 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cc_05: 17 of its 17 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cc_06: 24 of its 24 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cc_07: 31 of its 31 doodad lines name a path found in the area, 694 such entities over 2 paths
+large_cliff_cc_08: 16 of its 16 doodad lines name a path found in the area, 694 such entities over 2 paths
+large_cliff_cv_01: 35 of its 35 doodad lines name a path found in the area, 694 such entities over 2 paths
+large_cliff_cv_02: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cv_03: 18 of its 18 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cv_04: 6 of its 6 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cv_05: 32 of its 32 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cv_06: 22 of its 22 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cv_07: 23 of its 23 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cv_08: 22 of its 22 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_cv_09: 21 of its 21 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_st_01: 17 of its 17 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_st_02: 13 of its 13 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_st_03: 15 of its 15 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_st_04: 4 of its 4 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_cliff_st_05: its doodad lines name no stub
+large_cliff_st_06: its doodad lines name no stub
+large_cliff_st_07: its doodad lines name no stub
+connection_Forest_01: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+connection_Forest_01_checkpoint: 2 of its 2 doodad lines name a path found in the area, 688 such entities over 2 paths
+connection_Forest_02: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+connection_Forest_02_checkpoint: 2 of its 2 doodad lines name a path found in the area, 688 such entities over 2 paths
+Forest_Cliff_cc_01: its doodad lines name no stub
+Forest_Cliff_cv_01: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+Forest_Cliff_end_01: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+Forest_Cliff_st_01: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+creek_cnr_01: its doodad lines name no stub
+creek_cnr_02: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+creek_cnr_03: its doodad lines name no stub
+creek_cnr_04: its doodad lines name no stub
+creek_end_01: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+creek_end_02: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+creek_st_01: its doodad lines name no stub
+creek_st_02: its doodad lines name no stub
+creek_tri_01: its doodad lines name no stub
+creek_tri_02: its doodad lines name no stub
+forest_fill_01: its doodad lines name no stub
+innercliff_fill_01: its doodad lines name no stub
+open_fill_01: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+open_fill_02: 11 of its 11 doodad lines name a path found in the area, 694 such entities over 2 paths
+open_fill_03: 14 of its 14 doodad lines name a path found in the area, 686 such entities over 1 paths
+open_fill_04: 15 of its 15 doodad lines name a path found in the area, 686 such entities over 1 paths
+open_fill_05: 11 of its 11 doodad lines name a path found in the area, 694 such entities over 2 paths
+open_fill_06: 7 of its 7 doodad lines name a path found in the area, 686 such entities over 1 paths
+open_fill_07: 7 of its 7 doodad lines name a path found in the area, 686 such entities over 1 paths
+open_fill_08: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+trees_fill_03: 10 of its 10 doodad lines name a path found in the area, 686 such entities over 1 paths
+trees_fill_08: 23 of its 24 doodad lines name a path found in the area, 686 such entities over 2 paths
+trees_fill_11: 20 of its 22 doodad lines name a path found in the area, 686 such entities over 2 paths
+forest_cc_01: its doodad lines name no stub
+forest_cv_01: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+forest_st_01: its doodad lines name no stub
+forest_x_01: its doodad lines name no stub
+large_forest_bend_01: 23 of its 23 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_bend_02: 11 of its 11 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_bend_03: 9 of its 9 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_bend_04: 9 of its 9 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_cc_01: 10 of its 10 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_cc_02: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_cc_03: 9 of its 9 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_cc_04: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_cc_05: its doodad lines name no stub
+large_forest_cc_06: its doodad lines name no stub
+large_forest_cc_07: its doodad lines name no stub
+large_forest_cc_08: its doodad lines name no stub
+large_forest_cc_09: its doodad lines name no stub
+large_forest_cv_01: 4 of its 4 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_cv_02: 1 of its 1 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_cv_03: 7 of its 7 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_cv_04: 3 of its 3 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_cv_05: 7 of its 7 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_cv_06: 3 of its 3 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_cv_07: its doodad lines name no stub
+large_forest_cv_08: its doodad lines name no stub
+large_forest_cv_09: its doodad lines name no stub
+large_forest_st_01: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_st_02: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_st_03: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_st_04: 2 of its 2 doodad lines name a path found in the area, 686 such entities over 1 paths
+large_forest_st_05: its doodad lines name no stub
+large_forest_st_06: its doodad lines name no stub
+large_forest_st_07: its doodad lines name no stub
+large_forest_u_01: its doodad lines name no stub
+Forest_Overlay_01: its doodad lines name no stub
+boss_01: 61 of its 77 doodad lines name a path found in the area, 714 such entities over 13 paths
+checkpoint1_forest_cc_01: 3 of its 3 doodad lines name a path found in the area, 688 such entities over 2 paths
+checkpoint1_forest_cc_02 : 3 of its 3 doodad lines name a path found in the area, 688 such entities over 2 paths
+checkpoint2_forest_cc_01: 11 of its 11 doodad lines name a path found in the area, 688 such entities over 2 paths
+checkpoint3_forest_cv_01: 1 of its 1 doodad lines name a path found in the area, 2 such entities over 1 paths
+checkpoint4_cliff_cc_01: 24 of its 24 doodad lines name a path found in the area, 688 such entities over 2 paths
+checkpoint4_cliff_cc_02: 10 of its 10 doodad lines name a path found in the area, 688 such entities over 2 paths
+checkpoint4_cliff_cc_03: 21 of its 21 doodad lines name a path found in the area, 696 such entities over 3 paths
+entrance_01: 12 of its 16 doodad lines name a path found in the area, 688 such entities over 4 paths
+forced_rare_01: 1 of its 1 doodad lines name a path found in the area, 2 such entities over 1 paths
+forced_rare_02: 12 of its 12 doodad lines name a path found in the area, 696 such entities over 3 paths
+forced_rare_03: 12 of its 12 doodad lines name a path found in the area, 696 such entities over 3 paths
+no_boss_01: 16 of its 16 doodad lines name a path found in the area, 688 such entities over 2 paths
+Metadata/MiscellaneousObjects/Doodad: 686 entities, 500 asleep
+Metadata/Monsters/SerpentClanMonster/objects/SnakePot2: 10 entities, 0 asleep
+Metadata/MiscellaneousObjects/Doodad_Distant_Max: 8 entities, 3 asleep
+Metadata/Monsters/SerpentClanMonster/objects/SnakePot1: 8 entities, 0 asleep
+Metadata/Monsters/SerpentClanMonster/objects/SnakePot4: 6 entities, 0 asleep
+Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame: 2 entities, 0 asleep
+Metadata/MiscellaneousObjects/BossForceFieldDoorVisuals: 1 entities, 0 asleep
+Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame_Boss: 1 entities, 0 asleep
+Metadata/Monsters/SerpentClanMonster/objects/ground_rune: 1 entities, 0 asleep
+Metadata/Terrain/Tools/AudioTools/G2_4_1/KabalaHiss: 1 entities, 1 asleep
+found nowhere: Metadata/Chests/QuestChests/IslandMap/IslandMapFragment01, Metadata/MiscellaneousObjects/AreaTransitionDelete, Metadata/MiscellaneousObjects/AreaTransition_Animate, Metadata/MiscellaneousObjects/BossArenaBlocker, Metadata/MiscellaneousObjects/BossArenaController, Metadata/MiscellaneousObjects/BossLeagueContentMarker, Metadata/MiscellaneousObjects/BossLeagueContentMarkerMain, Metadata/MiscellaneousObjects/BossLeaguePrecursorBeacon, Metadata/MiscellaneousObjects/Checkpoint, Metadata/MiscellaneousObjects/CheckpointBoss, Metadata/MiscellaneousObjects/DoodadInvisible, Metadata/MiscellaneousObjects/EntranceLeagueContentMarker, Metadata/MiscellaneousObjects/MapReturnPortal, Metadata/MiscellaneousObjects/RowBoatEnd, Metadata/MiscellaneousObjects/RowBoatStart, Metadata/Monsters/Goblins/Beast/BossRoomMinimapIcon, Metadata/Monsters/Goblins/objects/ArenaCrowd, Metadata/Monsters/Goblins/objects/BossArenaController, Metadata/NPC/Four_Act4/KaruiFirstMate/KaruiFirstMateDinghyShore, Metadata/NPC/Four_Act4/LilyRothsCrew/LilyRothsCrewBrawnShore, Metadata/NPC/Four_Act4/NikoGlyph, Metadata/Terrain/Gallows/Act4/4_1_1/Objects/BeastEncounterSpawner, Metadata/Terrain/Gallows/Act4/4_1_1/Objects/SecretRoomMinimapIcon, Metadata/Terrain/Gallows/Act4/4_1_1/Objects/SecretRoomMinimapIcon2, Metadata/Terrain/Gallows/Act4/4_1_1/Objects/SecretRoomMinimapIcon3, Metadata/Terrain/Gallows/Act4/4_1_1/Objects/SecretRoomMinimapIcon4, Metadata/Terrain/Gallows/Act4/4_1_1/Objects/SubsceneEntrance, Metadata/Terrain/Gallows/Act4/4_1_1/Objects/SulphiteElementalSpawnerMajor, Metadata/Terrain/Gallows/Act4/4_1_1/Objects/SulphiteElementalSpawnerMinor, Metadata/Terrain/Gallows/Act4/4_1_1/Objects/VolcanicWarrensEntranceQuestFlag, Metadata/Terrain/Tools/AudioTools/G4_1_1/IsleOfKinShoreAudio
+
+724 sightings; position in world units, z the game's way up
+id	path	model	x	y	z	map
+3221225984	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	9690.218	9298.913	-52.743	sleeping
+3221225856	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	7385.87	11744.57	-24.52	sleeping
+3221225728	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	4548.913	8570.652	-72.802	sleeping
+3221225920	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree08.ao	8253.275	8359.833	-109.06	sleeping
+3221225610	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	12201.09	13059.78	-51.173	sleeping
+3221225792	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	4146.739	10440.22	-37.834	sleeping
+3221225952	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	7951.087	7657.609	-37.834	sleeping
+3221226048	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Island/RockMedium_02.ao	12027.17	14135.87	-46.618	sleeping
+3221225664	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	15516.3	15179.35	-37.834	sleeping
+3221225760	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	6059.783	12451.09	-84.709	sleeping
+3221225824	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke01.ao	6972.826	6157.609	-89.746	sleeping
+3221225872	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	7951.087	14940.22	-52.743	sleeping
+3221225904	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	7972.826	8907.608	-52.743	sleeping
+3221225936	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk01.ao	8331.521	7320.652	-199.753	sleeping
+3221225968	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree08.ao	7875	7592.391	-109.06	sleeping
+3221226112	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Island/IslandRocks_Debris_08.ao	13831.52	5364.13	-6.397	sleeping
+3221225504	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	5875	4016.304	125.625	sleeping
+3221225568	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	8668.479	1211.957	-148.438	sleeping
+3221225640	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	6603.261	8385.869	-79.294	sleeping
+3221225712	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Manuka01.ao	3440.217	8472.826	-291.292	sleeping
+3221225750	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_03.ao	6755.435	13505.43	140.625	sleeping
+3221225784	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	12625	5820.652	-52.743	sleeping
+3221225808	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrassSquare01_01.ao	2451.087	12451.09	-4.771	sleeping
+3221225840	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	7016.304	10744.57	-27.998	sleeping
+3221225864	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree03.ao	7038.043	12190.22	-110.139	sleeping
+3221225880	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	6864.13	14548.91	-36.688	sleeping
+3221225896	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	8357.829	8457.96	-40.8	sleeping
+3221225912	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	7233.696	8798.913	-24.52	sleeping
+3221225928	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	7831.521	7135.87	-27.998	sleeping
+3221225944	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	8646.739	7788.043	-51.688	sleeping
+3221225960	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	8059.783	7711.957	-27.998	sleeping
+3221225976	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	8699.441	6910.679	-31.035	sleeping
+3221226032	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	12331.52	13646.74	-83.817	sleeping
+3221226080	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	14092.39	4548.913	-41.027	sleeping
+3221226173	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	17168.88	14882.46	-51.688	sleeping
+3221225496	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	14581.52	3461.957	-101.563	sleeping
+3221225520	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	5461.957	5125	-176.688	sleeping
+3221225552	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	4353.261	13353.26	-163.527	sleeping
+3221225584	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	7940.217	12201.09	-51.173	sleeping
+3221225632	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	5907.608	10548.91	-168.361	sleeping
+3221225648	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_02.ao	13146.74	15005.43	121.094	sleeping
+3221225704	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	2233.696	8320.652	-41.027	sleeping
+3221225720	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	3733.696	8418.479	-151.748	sleeping
+3221225732	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	4875	8353.261	-24.52	sleeping
+3221225756	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	5777.174	12864.13	-64.238	sleeping
+3221225776	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke03.ao	12255.43	6135.87	-343.888	sleeping
+3221225788	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke05.ao	4092.391	10320.65	-200.802	sleeping
+3221225800	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	2559.783	12527.17	-51.688	sleeping
+3221225816	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	7179.348	6646.739	-40.8	sleeping
+3221225832	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	8081.521	6429.348	-24.52	sleeping
+3221225848	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	6777.174	10548.91	-24.52	sleeping
+3221225868	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke03.ao	8114.13	14907.61	-203.263	sleeping
+3221225876	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	7701.087	14635.87	-41.027	sleeping
+3221225884	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_03.ao	8059.783	14875	-10.488	sleeping
+3221225892	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk04.ao	7994.565	8451.087	-81.384	sleeping
+3221225900	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	8190.217	8309.782	-27.998	sleeping
+3221225908	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	7081.521	8592.392	-28.184	sleeping
+3221225916	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_01.ao	8233.695	8407.608	-4.771	sleeping
+3221225924	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk04.ao	7831.521	6929.348	-81.384	sleeping
+3221225932	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk03.ao	8222.826	7255.435	-135.52	sleeping
+3221225948	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	8701.087	8038.043	-24.52	sleeping
+3221225956	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Island/IslandRocks_Debris_04.ao	7559.783	7940.217	-12.219	sleeping
+3221225964	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_04.ao	7635.87	8059.783	-7.271	sleeping
+3221225972	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	8921.548	7305.839	-24.52	sleeping
+3221225980	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke03.ao	9657.608	9135.869	-203.263	sleeping
+3221225992	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	9298.913	10385.87	-36.688	sleeping
+3221226008	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	10396.74	10407.61	-46.035	sleeping
+3221226024	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	11407.61	14614.13	-50.243	sleeping
+3221226040	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	12146.74	13907.61	-37.834	sleeping
+3221226064	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_03.ao	12222.83	10885.87	-7.988	sleeping
+3221226096	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	13885.87	3907.609	-50.243	sleeping
+3221226124	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_07.ao	13657.61	6211.957	-9.565	sleeping
+3221225500	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	3190.218	5690.217	125.625	sleeping
+3221225512	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	3668.478	6103.261	125.625	sleeping
+3221225528	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Manuka01.ao	5331.521	5027.174	-231.917	sleeping
+3221225544	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_02.ao	4505.435	11994.57	140.625	sleeping
+3221225560	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	1429.348	12809.78	-41.027	sleeping
+3221225576	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	8657.608	12929.35	-137.938	sleeping
+3221225588	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	7331.521	12983.7	-60.491	sleeping
+3221225624	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_02.ao	5233.696	9733.695	140.625	sleeping
+3221225636	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	5755.435	10527.17	-201.005	sleeping
+3221225644	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	9385.869	15483.7	-41.027	sleeping
+3221225650	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_03.ao	15016.3	15777.17	140.625	sleeping
+3221225696	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Island/RockMedium_02.ao	1331.522	8918.479	-44.118	sleeping
+3221225708	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_02.ao	3125	9005.435	140.625	sleeping
+3221225716	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	3451.087	8396.739	-145.185	sleeping
+3221225724	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	4211.957	7777.174	-138.681	sleeping
+3221225730	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	4614.13	8646.739	-109.933	sleeping
+3221225734	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_02.ao	11255.43	5375	140.625	sleeping
+3221225752	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Manuka01.ao	5711.957	12809.78	-213.167	sleeping
+3221225758	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	5353.261	11972.83	-52.743	sleeping
+3221225762	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	5907.608	12766.3	-60.773	sleeping
+3221225781	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	13146.74	6059.783	-37.834	sleeping
+3221225786	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	12168.48	6005.435	-165.8	sleeping
+3221225790	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	3538.043	10059.78	-161.942	sleeping
+3221225796	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	3690.217	10798.91	-43.361	sleeping
+3221225804	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	2320.652	12418.48	-24.52	sleeping
+3221225812	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk02.ao	8027.174	6429.348	-94.531	sleeping
+3221225820	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTree03.ao	6875	6483.696	-208.952	sleeping
+3221225828	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	7592.391	6429.348	-24.52	sleeping
+3221225844	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	7375	11157.61	-42.442	sleeping
+3221225852	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	6994.565	11081.52	-30.927	sleeping
+3221225858	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_01.ao	7385.87	10972.83	-9.186	sleeping
+3221225862	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree01.ao	6853.261	12418.48	-174.691	sleeping
+3221225866	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree06.ao	7418.479	12407.61	-38.352	sleeping
+3221225870	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	7744.565	14309.78	-81.317	sleeping
+3221225874	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	7798.913	14440.22	-37.834	sleeping
+3221225878	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	7070.652	14472.83	-27.998	sleeping
+3221225882	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	6798.913	14375	-37.834	sleeping
+3221225886	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_03.ao	6929.348	14385.87	-7.988	sleeping
+3221225890	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk02.ao	7951.087	8353.261	-94.531	sleeping
+3221225894	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTree04.ao	8646.739	8364.131	-175.42	sleeping
+3221225898	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	8005.435	8385.869	-46.035	sleeping
+3221225902	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke01.ao	8646.739	8581.521	-89.746	sleeping
+3221225906	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Manuka01.ao	7070.652	8505.435	-116.605	sleeping
+3221225910	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	7331.521	8385.869	-46.035	sleeping
+3221225918	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_05.ao	7081.521	8494.565	-4.152	sleeping
+3221225922	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTree03.ao	7885.87	6896.739	-208.952	sleeping
+3221225926	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	7690.217	7114.13	-37.834	sleeping
+3221225930	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	7896.739	6940.217	-52.743	sleeping
+3221225934	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	8211.956	7353.261	-24.52	sleeping
+3221225938	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	8331.521	7146.739	-35.943	sleeping
+3221225942	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_01.ao	8320.652	7266.304	-12.086	sleeping
+3221225946	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	8451.087	7690.217	-43.361	sleeping
+3221225950	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Island/IslandRocks_Debris_08.ao	7951.087	7657.609	-6.397	sleeping
+3221225954	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	7646.739	7972.826	-43.361	sleeping
+3221225958	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	7625	7831.521	-46.035	sleeping
+3221225962	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	7777.174	7570.652	-46.035	sleeping
+3221225966	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_07.ao	8538.043	8103.261	-5.627	sleeping
+3221225970	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	8918.877	7382.457	-51.688	sleeping
+3221225974	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	8617.609	6933.7	-37.834	sleeping
+3221225978	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_01.ao	8885.869	7364.13	-10.488	sleeping
+3221225982	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	9059.782	9505.435	-81.317	sleeping
+3221225988	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	9385.869	9548.913	-41.027	sleeping
+3221225996	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_03.ao	9625	9190.218	-10.488	sleeping
+3221226004	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	10135.87	10342.39	-50.243	sleeping
+3221226012	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage_Grouped/CabbageTreeFlax02.ao	10988.33	13869.31	-213.365	sleeping
+3221226020	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree08.ao	10615.52	13821.85	-109.06	sleeping
+3221226028	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	11342.39	14353.26	-46.035	sleeping
+3221226036	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	12396.74	13570.65	-24.52	sleeping
+3221226044	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	11635.87	14038.04	-52.743	sleeping
+3221226056	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	12296.27	10843.02	-68.817	sleeping
+3221226072	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	12896.74	5005.435	-24.52	sleeping
+3221226088	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree01.ao	13396.74	5581.522	-174.691	sleeping
+3221226100	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	14146.74	3842.391	-46.035	sleeping
+3221226120	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	13875	5483.696	-41.027	sleeping
+3221226126	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_05.ao	13635.87	5614.13	-5.199	sleeping
+3221225498	Metadata/Terrain/Tools/AudioTools/G2_4_1/KabalaHiss	Metadata/Terrain/Tools/AudioTools/G2_4_1/KabalaHiss.ao	4099.39	3974.48	-212.052	sleeping
+3221225502	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	4788.043	2538.043	125.625	sleeping
+3221225508	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	6070.652	5940.217	125.625	sleeping
+3221225516	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	5483.696	5820.652	-160.548	sleeping
+3221225524	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	5494.565	5711.957	-137.373	sleeping
+3221225548	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	4255.435	13364.13	-160.334	sleeping
+3221225556	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CabbageTree01.ao	1798.913	13125	-351.405	sleeping
+3221225564	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	1983.696	13135.87	-40.145	sleeping
+3221225572	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Manuka02.ao	8353.261	12994.57	-345.136	sleeping
+3221225580	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	7625	13179.35	-126.348	sleeping
+3221225586	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	7788.043	12157.61	-27.998	sleeping
+3221225592	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	7233.696	12885.87	-37.834	sleeping
+3221225620	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	12222.83	13331.52	-59.5	sleeping
+3221225628	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	6657.608	7114.13	-111.339	sleeping
+3221225634	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke01.ao	6581.521	7972.826	-182.495	sleeping
+3221225638	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	6114.13	10559.78	-165.8	sleeping
+3221225642	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	9711.957	15581.52	-82.938	sleeping
+3221225646	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	8668.479	4038.043	-148.438	sleeping
+3221225649	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	14679.35	16429.35	125	sleeping
+3221225663	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	15309.78	15375	-91.629	sleeping
+3221225693	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Island/RockMedium_01.ao	1896.739	8527.174	-83.971	sleeping
+3221225700	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	1831.522	8809.782	-43.361	sleeping
+3221225706	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	2211.957	8211.957	-51.688	sleeping
+3221225710	Metadata/MiscellaneousObjects/Doodad_Distant_Max	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/NikauPalm02.ao	3505.435	8527.174	-666.188	sleeping
+3221225714	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	3940.217	8429.348	-159.394	sleeping
+3221225718	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	4070.652	8483.695	-140.75	sleeping
+3221225722	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	4396.739	8940.218	-171.688	sleeping
+3221225726	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	3951.087	7755.435	-108.535	sleeping
+3221225729	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke01.ao	4201.087	8635.869	-205.463	sleeping
+3221225731	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	4766.304	8385.869	-37.834	sleeping
+3221225733	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	4331.521	7722.826	-82.938	sleeping
+3221225735	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	11233.7	5875	140.625	sleeping
+3221225751	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Manuka03.ao	5603.261	12896.74	-325.752	sleeping
+3221225754	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke01.ao	6331.521	12516.3	-190.306	sleeping
+3221225757	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	5646.739	12809.78	-138.504	sleeping
+3221225759	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	5516.304	12005.43	-77.285	sleeping
+3221225761	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	5429.348	11951.09	-32.333	sleeping
+3221225764	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	5875	13027.17	-60.556	sleeping
+3221225777	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke05.ao	13092.39	6179.348	-146.115	sleeping
+3221225782	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	13016.3	6038.043	-24.52	sleeping
+3221225785	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	12690.22	5701.087	-43.361	sleeping
+3221225787	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke03.ao	3255.435	10364.13	-312.638	sleeping
+3221225789	Metadata/MiscellaneousObjects/Doodad_Distant_Max	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CabbageTree03.ao	3592.391	10135.87	-466.622	sleeping
+3221225791	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	3657.609	10157.61	-108.535	sleeping
+3221225794	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	3570.652	10570.65	-53.848	sleeping
+3221225798	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Volcano/PetrifiedTree_05.ao	2451.087	12559.78	-42.234	sleeping
+3221225802	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	2429.348	12679.35	-43.361	sleeping
+3221225806	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	2320.652	12625	-24.52	sleeping
+3221225810	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk02.ao	8081.521	6375	-94.531	sleeping
+3221225814	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTree04.ao	7190.217	6548.913	-263.13	sleeping
+3221225818	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTree02.ao	6896.739	6135.87	-209.318	sleeping
+3221225822	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTree01.ao	7896.739	6146.739	-216.576	sleeping
+3221225826	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	6929.348	6440.217	-37.834	sleeping
+3221225830	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	7994.565	6353.261	-51.688	sleeping
+3221225838	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_04.ao	6929.348	6222.826	-7.314	sleeping
+3221225842	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke02.ao	7331.521	11864.13	-134.592	sleeping
+3221225846	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	6994.565	10646.74	-24.52	sleeping
+3221225850	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	7179.205	11677.06	-22.843	sleeping
+3221225854	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	7451.087	11842.39	-41.027	sleeping
+3221225857	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_03.ao	6875	10690.22	-10.488	sleeping
+3221225859	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_03.ao	7364.13	11820.65	-7.988	sleeping
+3221225863	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree02.ao	6983.696	12114.13	-182.749	sleeping
+3221225865	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree04.ao	7385.87	12375	-139.653	sleeping
+3221225867	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	8005.435	14733.7	-27.998	sleeping
+3221225869	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke02.ao	6885.87	14418.48	-134.592	sleeping
+3221225871	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	7592.391	14375	-42.442	sleeping
+3221225873	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	8103.261	14755.43	-24.52	sleeping
+3221225875	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	8201.087	14972.83	-24.52	sleeping
+3221225877	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	7072.94	14570.79	-22.02	sleeping
+3221225879	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	7668.479	14755.43	-27.02	sleeping
+3221225881	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	6907.609	14298.91	-41.027	sleeping
+3221225883	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	7005.435	14364.13	-24.52	sleeping
+3221225885	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_01.ao	7777.174	14364.13	-9.186	sleeping
+3221225889	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk01.ao	8255.435	8353.261	-190.241	sleeping
+3221225891	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk03.ao	8081.521	8407.608	-135.52	sleeping
+3221225893	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk01.ao	8320.652	8364.131	-190.241	sleeping
+3221225895	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTree03.ao	8701.087	8592.392	-250.742	sleeping
+3221225897	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTree01.ao	8668.479	8646.739	-173.261	sleeping
+3221225899	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	8016.304	8494.565	-24.52	sleeping
+3221225901	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	8690.218	8744.565	-52.743	sleeping
+3221225903	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	8581.521	8701.087	-24.52	sleeping
+3221225905	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	7809.783	8864.131	-46.035	sleeping
+3221225907	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	7103.261	8396.739	-51.688	sleeping
+3221225909	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	7353.261	8679.348	-26.484	sleeping
+3221225911	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	7244.565	8929.348	-51.688	sleeping
+3221225913	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	7353.261	8907.608	-37.834	sleeping
+3221225915	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_05.ao	8635.869	8614.131	-4.152	sleeping
+3221225917	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_01.ao	7288.043	8885.869	-10.488	sleeping
+3221225919	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree06.ao	7994.565	8418.479	-38.352	sleeping
+3221225923	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk02.ao	7864.13	6983.696	-94.531	sleeping
+3221225925	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	7766.304	6929.348	-43.361	sleeping
+3221225927	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	7581.522	6951.087	-24.52	sleeping
+3221225929	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	7820.652	7059.783	-46.035	sleeping
+3221225931	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk01.ao	8375	7288.043	-190.241	sleeping
+3221225933	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk04.ao	8385.869	7233.696	-97.661	sleeping
+3221225935	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke03.ao	8309.782	7266.304	-152.447	sleeping
+3221225937	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	8309.782	7385.87	-38.975	sleeping
+3221225939	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	8233.695	7168.479	-24.52	sleeping
+3221225941	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_03.ao	7831.521	6983.696	-7.988	sleeping
+3221225943	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	8603.261	7646.739	-37.834	sleeping
+3221225945	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	8527.174	8135.87	-46.035	sleeping
+3221225947	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	8527.174	7842.391	-41.027	sleeping
+3221225949	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	8527.174	8059.783	-27.998	sleeping
+3221225951	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Island/IslandRocks_Debris_08.ao	7614.13	7831.521	-6.397	sleeping
+3221225953	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	7831.521	7657.609	-24.52	sleeping
+3221225955	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Island/IslandRocks_Debris_07.ao	8581.521	7722.826	-15.124	sleeping
+3221225957	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	7625	8135.87	-24.52	sleeping
+3221225959	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	7733.696	7875	-41.027	sleeping
+3221225961	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	8320.652	7614.13	-24.52	sleeping
+3221225963	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_07.ao	8461.957	7657.609	-9.565	sleeping
+3221225965	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_05.ao	7864.13	7635.87	-5.199	sleeping
+3221225967	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree06.ao	8592.392	8125	-38.352	sleeping
+3221225969	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	8593.02	7046.268	-68.817	sleeping
+3221225971	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CabbageTree01.ao	8914.973	7352.166	-351.405	sleeping
+3221225973	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	8820.251	7334.374	-52.743	sleeping
+3221225975	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	8744.204	6974.611	-24.52	sleeping
+3221225977	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_03.ao	8635.869	6972.826	-7.988	sleeping
+3221225979	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	9483.695	9244.565	-27.998	sleeping
+3221225981	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke02.ao	9168.479	10364.13	-134.592	sleeping
+3221225983	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	9125	9657.608	-42.442	sleeping
+3221225986	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	9190.218	9451.087	-37.834	sleeping
+3221225990	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	9222.826	10179.35	-27.998	sleeping
+3221225994	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	9125	10451.09	-37.834	sleeping
+3221225998	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_03.ao	9135.869	10320.65	-7.988	sleeping
+3221226002	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke03.ao	10309.78	10331.52	-203.263	sleeping
+3221226006	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	10407.61	10222.83	-27.998	sleeping
+3221226014	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_06.ao	10189.68	13911.36	-4.771	sleeping
+3221226018	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree02.ao	11051.09	13965.17	-187.749	sleeping
+3221226022	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke03.ao	11418.48	14440.22	-203.263	sleeping
+3221226026	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	11527.17	14342.39	-27.998	sleeping
+3221226035	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	12472.83	13614.13	-41.027	sleeping
+3221226038	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	12385.87	14146.74	-24.52	sleeping
+3221226042	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	11603.26	13940.22	-24.52	sleeping
+3221226052	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_03.ao	12070.65	14114.13	-10.488	sleeping
+3221226062	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	12224.61	10994.2	-24.52	sleeping
+3221226068	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke02.ao	14114.13	4668.478	-134.592	sleeping
+3221226076	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	13927.06	4820.795	-22.02	sleeping
+3221226084	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_01.ao	13222.83	4614.13	-9.186	sleeping
+3221226092	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree06.ao	12831.52	5592.391	-38.352	sleeping
+3221226098	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	14157.61	4027.174	-27.998	sleeping
+3221226107	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	13690.22	6201.087	-43.361	sleeping
+3221226117	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Island/IslandRocks_Debris_04.ao	13940.22	5309.783	-12.219	sleeping
+3221226122	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	13614.13	6070.652	-24.52	sleeping
+3221226125	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_04.ao	14059.78	5385.87	-7.271	sleeping
+3221226176	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	17070.25	14834.37	-52.743	sleeping
+3221225497	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	17668.48	15288.04	-117.188	sleeping
+3221225499	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	2625	4983.696	125.625	sleeping
+3221225501	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	4342.392	4961.957	-23.125	sleeping
+3221225503	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	5635.87	3179.348	125.625	sleeping
+3221225506	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	5657.609	4581.521	125.625	sleeping
+3221225510	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	2864.13	3168.478	125.625	sleeping
+3221225514	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	5027.174	5842.392	-166.027	sleeping
+3221225518	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	5016.305	5418.479	-169.931	sleeping
+3221225522	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	5483.696	5288.043	-141.708	sleeping
+3221225526	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	5390.39	5108.45	-153.376	sleeping
+3221225530	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	3983.696	1396.739	125.625	sleeping
+3221225542	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	8668.479	5711.957	-101.563	sleeping
+3221225546	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke03.ao	3929.348	13342.39	-336.075	sleeping
+3221225550	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	4320.652	13081.52	-94.611	sleeping
+3221225554	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	4668.479	13733.7	-117.177	sleeping
+3221225558	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	1809.783	13027.17	-52.743	sleeping
+3221225562	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	1896.739	13135.87	-59.5	sleeping
+3221225566	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	17668.48	17538.04	-148.438	sleeping
+3221225570	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	8375	13483.7	140.625	sleeping
+3221225574	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	8418.479	12951.09	-170.647	sleeping
+3221225578	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	7951.087	12885.87	-118.896	sleeping
+3221225582	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	7766.304	12994.57	-77.267	sleeping
+3221225585	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	7788.043	12277.17	-60.556	sleeping
+3221225587	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	8048.913	12255.43	-77.285	sleeping
+3221225590	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke01.ao	7798.913	13135.87	-205.463	sleeping
+3221225594	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	7668.479	12222.83	-51.688	sleeping
+3221225612	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	12157.61	13211.96	-27.998	sleeping
+3221225622	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	10266.3	7940.218	140.625	sleeping
+3221225626	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_03.ao	7472.826	9788.043	140.625	sleeping
+3221225630	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	6516.304	7668.479	-184.5	sleeping
+3221225633	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	6657.608	8146.739	-24.52	sleeping
+3221225635	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	5983.696	10418.48	-177.743	sleeping
+3221225637	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	5940.217	10711.96	-168.875	sleeping
+3221225639	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	6516.304	8146.739	-60.285	sleeping
+3221225641	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	9842.392	15809.78	-48.613	sleeping
+3221225643	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	10005.43	16125	-37.834	sleeping
+3221225645	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	10114.13	16255.43	-24.52	sleeping
+3221225647	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_03.ao	13483.7	17266.3	140.625	sleeping
+3221225666	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	15396.74	15244.57	-24.52	sleeping
+3221225694	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Island/RockMedium_06.ao	1994.565	8157.609	-115.575	sleeping
+3221225698	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	1429.348	9005.435	-83.817	sleeping
+3221225702	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke01.ao	2103.261	8288.043	-112.182	sleeping
+3221225705	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	2277.174	8179.348	-24.52	sleeping
+3221225707	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Manuka01.ao	1798.913	8722.826	-174.105	sleeping
+3221225709	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	3625	8983.695	140.625	sleeping
+3221225711	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Manuka02.ao	3646.739	8494.565	-345.136	sleeping
+3221225713	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	3581.522	8451.087	-170.647	sleeping
+3221225715	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	3342.391	8429.348	-137.938	sleeping
+3221225717	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	4048.913	8385.869	-118.896	sleeping
+3221225719	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	4375	8679.348	-126.348	sleeping
+3221225721	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	4233.696	8494.565	-77.267	sleeping
+3221225723	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	4059.783	7701.087	-129.298	sleeping
+3221225725	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	4211.957	7657.609	-59.248	sleeping
+3221225727	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	4668.479	8483.695	-57.16	sleeping
+3221225753	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Manuka02.ao	5744.565	12744.57	-235.761	sleeping
+3221225755	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	6461.957	12614.13	-74.611	sleeping
+3221225763	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	6375	12668.48	-52.442	sleeping
+3221225783	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	12570.65	5929.348	-53.848	sleeping
+3221225793	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	4016.304	10461.96	-24.52	sleeping
+3221225795	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	3625	10679.35	-60.556	sleeping
+3221225797	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	3168.478	10494.57	-165.8	sleeping
+3221225799	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke03.ao	2440.217	12418.48	-203.263	sleeping
+3221225801	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	2614.13	12407.61	-50.243	sleeping
+3221225803	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	2342.391	12527.17	-27.998	sleeping
+3221225805	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	2353.261	12342.39	-46.035	sleeping
+3221225809	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke04.ao	7994.565	6190.217	-203.303	sleeping
+3221225811	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk01.ao	7951.087	6288.043	-190.241	sleeping
+3221225813	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk03.ao	7320.652	6625	-135.52	sleeping
+3221225815	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTree03.ao	7266.304	6722.826	-208.952	sleeping
+3221225817	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	7277.174	6505.435	-83.817	sleeping
+3221225819	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTree04.ao	7005.435	6114.13	-175.42	sleeping
+3221225821	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTree03.ao	7570.652	6451.087	-208.952	sleeping
+3221225823	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	7853.261	6244.565	-40.8	sleeping
+3221225825	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	6864.13	6190.217	-41.027	sleeping
+3221225827	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	7592.391	6505.435	-41.027	sleeping
+3221225829	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	7538.043	6461.957	-41.432	sleeping
+3221225831	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	8114.13	6309.783	-46.035	sleeping
+3221225833	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	7320.652	6701.087	-24.52	sleeping
+3221225837	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_06.ao	7353.261	6625	-4.771	sleeping
+3221225839	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_05.ao	8081.521	6309.783	-8.936	sleeping
+3221225841	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke03.ao	6842.391	10635.87	-203.263	sleeping
+3221225843	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	7440.217	11005.43	-81.317	sleeping
+3221225845	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	6809.783	10798.91	-52.743	sleeping
+3221225847	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	7309.783	10951.09	-37.834	sleeping
+3221225849	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	7114.13	11048.91	-41.027	sleeping
+3221225851	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	7277.174	11679.35	-27.998	sleeping
+3221225853	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	7201.087	11885.87	-36.688	sleeping
+3221225855	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	7375	11951.09	-37.834	sleeping
+3221225985	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	9505.435	9146.739	-24.52	sleeping
+3221225987	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	9722.826	9048.913	-24.52	sleeping
+3221225989	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	9320.795	10177.06	-22.02	sleeping
+3221225991	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	9505.435	9581.521	-27.02	sleeping
+3221225993	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	9048.913	10342.39	-41.027	sleeping
+3221225995	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	9114.131	10244.57	-24.52	sleeping
+3221225997	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_01.ao	9114.131	9472.826	-9.186	sleeping
+3221226001	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Volcano/PetrifiedTree_05.ao	10298.91	10190.22	-42.234	sleeping
+3221226003	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	10190.22	10222.83	-51.688	sleeping
+3221226005	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	10320.65	10070.65	-43.361	sleeping
+3221226007	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	10429.35	10331.52	-24.52	sleeping
+3221226009	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	10429.35	10125	-24.52	sleeping
+3221226011	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrassSquare01_01.ao	10298.91	10298.91	-4.771	sleeping
+3221226013	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage_Grouped/GardenDoodad01.ao	10378.1	14002	-362.139	sleeping
+3221226015	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_04.ao	11087	13767.99	-7.314	sleeping
+3221226017	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree08.ao	10660.82	13978.37	-109.06	sleeping
+3221226019	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree01.ao	11239.9	13954.13	-177.191	sleeping
+3221226021	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Volcano/PetrifiedTree_05.ao	11559.78	14451.09	-42.234	sleeping
+3221226023	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	11527.17	14559.78	-51.688	sleeping
+3221226025	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	11679.35	14429.35	-43.361	sleeping
+3221226027	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	11418.48	14320.65	-24.52	sleeping
+3221226029	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	11625	14320.65	-24.52	sleeping
+3221226031	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrassSquare01_01.ao	11451.09	14451.09	-4.771	sleeping
+3221226033	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	12418.48	13679.35	-46.035	sleeping
+3221226039	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke01.ao	12070.65	14016.3	-112.182	sleeping
+3221226041	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	11929.35	13907.61	-43.361	sleeping
+3221226043	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	11918.48	14005.43	-46.035	sleeping
+3221226045	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	12222.83	14005.43	-27.998	sleeping
+3221226050	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	12211.96	14103.26	-41.027	sleeping
+3221226055	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_02.ao	11625	14005.43	-6.487	sleeping
+3221226061	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	12183.7	10867.61	-37.834	sleeping
+3221226063	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	12160.68	10949.44	-31.035	sleeping
+3221226066	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	12994.57	4983.696	-27.998	sleeping
+3221226070	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	13407.61	4625	-42.442	sleeping
+3221226074	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	12798.91	5222.826	-24.52	sleeping
+3221226078	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	13331.52	5005.435	-30.927	sleeping
+3221226082	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	13994.57	4614.13	-24.52	sleeping
+3221226090	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree03.ao	13211.96	5809.783	-110.139	sleeping
+3221226094	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke03.ao	14059.78	3918.478	-203.263	sleeping
+3221226097	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	14070.65	4179.348	-43.361	sleeping
+3221226099	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	14179.35	3918.478	-24.52	sleeping
+3221226111	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Island/IslandRocks_Debris_08.ao	13657.61	5701.087	-6.397	sleeping
+3221226114	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	13657.61	5581.521	-24.52	sleeping
+3221226118	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	14135.87	5375	-24.52	sleeping
+3221226121	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	13711.96	5809.783	-27.998	sleeping
+3221226123	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	13570.65	5527.174	-46.035	sleeping
+3221226129	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree08.ao	13592.39	5625	-109.06	sleeping
+3221226174	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CabbageTree01.ao	17164.97	14852.17	-351.405	sleeping
+3221226181	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_01.ao	17135.87	14864.13	-10.488	sleeping
+3221225505	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	6331.521	3385.87	125.625	sleeping
+3221225507	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	6005.435	5277.174	125.625	sleeping
+3221225509	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	2538.043	4211.957	125.625	sleeping
+3221225511	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	3766.304	2548.913	125.625	sleeping
+3221225513	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	5103.261	5983.696	-162.834	sleeping
+3221225515	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	5027.174	5929.348	-200.435	sleeping
+3221225517	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	5494.565	5222.826	-166.027	sleeping
+3221225519	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	5027.174	5722.826	-173.613	sleeping
+3221225521	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	5233.696	4929.348	-160.81	sleeping
+3221225523	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke01.ao	5016.305	5288.043	-201.324	sleeping
+3221225525	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	5407.609	5885.87	-149.521	sleeping
+3221225527	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	5081.521	5201.087	-147.44	sleeping
+3221225529	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	2994.565	1820.652	125.625	sleeping
+3221225531	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	1711.957	3711.957	125.625	sleeping
+3221225543	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_03.ao	3842.391	12625	78.125	sleeping
+3221225545	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	2407.609	14070.65	140.625	sleeping
+3221225547	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	4157.608	13375	-202.411	sleeping
+3221225549	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	4168.479	13592.39	-156.428	sleeping
+3221225551	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	4266.305	13592.39	-171.035	sleeping
+3221225553	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	4418.479	13277.17	-150.498	sleeping
+3221225555	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CabbageTree02.ao	1375	12853.26	-388.504	sleeping
+3221225557	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	1505.435	12929.35	-43.361	sleeping
+3221225559	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	1375	12701.09	-37.834	sleeping
+3221225561	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	1527.174	12798.91	-24.52	sleeping
+3221225563	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	1918.478	13038.04	-27.998	sleeping
+3221225565	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	1440.218	12581.52	-46.035	sleeping
+3221225567	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	14581.52	1211.957	-148.438	sleeping
+3221225569	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_02.ao	8875	13505.43	140.625	sleeping
+3221225571	Metadata/MiscellaneousObjects/Doodad_Distant_Max	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/NikauPalm02.ao	8494.565	13027.17	-666.188	sleeping
+3221225573	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Manuka01.ao	8559.783	12972.83	-291.292	sleeping
+3221225575	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	8059.783	12929.35	-159.394	sleeping
+3221225577	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	8548.913	12896.74	-145.185	sleeping
+3221225579	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	7929.348	12983.7	-140.75	sleeping
+3221225581	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	8266.305	12918.48	-151.748	sleeping
+3221225583	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	7603.261	13440.22	-171.688	sleeping
+3221225589	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	7451.087	13070.65	-72.802	sleeping
+3221225591	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	7385.87	13146.74	-109.933	sleeping
+3221225593	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	7125	12853.26	-24.52	sleeping
+3221225611	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	12277.17	13211.96	-68.368	sleeping
+3221225613	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	12255.43	12951.09	-77.285	sleeping
+3221225623	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	5451.087	7418.479	140.625	sleeping
+3221225625	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_02.ao	8494.565	10494.57	140.625	sleeping
+3221225627	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTree01.ao	6005.435	10516.3	-341.576	sleeping
+3221225629	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	6570.652	7288.043	-224.442	sleeping
+3221225631	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	5994.565	10635.87	-171.035	sleeping
+3221225665	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	15461.96	15353.26	-30.911	sleeping
+3221225695	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Island/RockMedium_07.ao	2146.739	8059.783	-51.419	sleeping
+3221225697	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CabbageTree01.ao	1538.043	8918.479	-351.405	sleeping
+3221225699	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	1625	8961.957	-37.834	sleeping
+3221225701	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	1733.696	8853.261	-24.52	sleeping
+3221225703	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	2157.609	8407.608	-46.035	sleeping
+3221226049	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	12135.87	14211.96	-46.035	sleeping
+3221226051	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	11875	14135.87	-24.52	sleeping
+3221226053	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_01.ao	12494.57	13614.13	-4.771	sleeping
+3221226067	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke03.ao	12885.87	5157.609	-203.263	sleeping
+3221226069	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	13255.43	4559.783	-81.317	sleeping
+3221226071	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	13048.91	5190.217	-52.743	sleeping
+3221226073	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	13201.09	4690.217	-37.834	sleeping
+3221226075	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	13298.91	4885.87	-48.839	sleeping
+3221226077	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	13929.35	4722.826	-27.998	sleeping
+3221226079	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	14135.87	4798.913	-36.688	sleeping
+3221226081	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	14201.09	4625	-37.834	sleeping
+3221226083	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_03.ao	12940.22	5125	-10.488	sleeping
+3221226085	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_03.ao	14070.65	4635.87	-7.988	sleeping
+3221226089	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree02.ao	13266.3	5885.87	-182.749	sleeping
+3221226091	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree04.ao	12864.13	5625	-139.653	sleeping
+3221226093	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Volcano/PetrifiedTree_05.ao	14048.91	4059.783	-42.234	sleeping
+3221226095	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	13940.22	4027.174	-51.688	sleeping
+3221226101	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	14179.35	4125	-24.52	sleeping
+3221226103	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrassSquare01_01.ao	14048.91	3951.087	-4.771	sleeping
+3221226113	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	13657.61	5701.087	-37.834	sleeping
+3221226115	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	13972.83	5396.739	-43.361	sleeping
+3221226119	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	13831.52	5375	-46.035	sleeping
+3221226175	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	17171.55	14805.84	-24.52	sleeping
+3221226891	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Mtx/equip_preview_backdrop_act3.ao	0	0	0	sleeping
+3221226154	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	14190.22	8277.174	-24.52	awake
+3221226108	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	13842.39	6277.174	-41.027	awake
+3221225670	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Manuka02.ao	15103.26	10744.57	-345.136	awake
+3221226144	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	14201.09	6657.609	-41.027	awake
+3221226204	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk04.ao	18983.7	11114.13	-97.661	awake
+3221225599	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Manuka01.ao	12972.83	12440.22	-291.293	awake
+3221225684	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	14538.04	9907.608	-59.248	awake
+3221226127	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_07.ao	14103.26	6288.043	-5.627	awake
+3221226149	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_03.ao	14114.13	6679.348	-7.988	awake
+3221226186	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	17320.65	11429.35	-43.361	awake
+3221225609	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	13440.22	13396.74	-171.688	awake
+3221225676	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	14701.09	10635.87	-118.896	awake
+3221225745	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	16733.7	12614.13	-48.839	awake
+3221226110	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	14059.78	6277.174	-27.998	awake
+3221226139	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	13864.13	7451.087	-41.027	awake
+3221226146	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	14135.87	6755.435	-24.52	awake
+3221226165	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_06.ao	15439.68	14588.64	-4.771	awake
+3221226192	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrassSquare01_01.ao	17548.91	11451.09	-4.771	awake
+3221226209	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	18896.74	11168.48	-35.943	awake
+3221225493	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	18603.26	8918.479	-43.361	awake
+3221225604	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	12885.87	13048.91	-118.896	awake
+3221225621	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_03.ao	13461.96	10559.78	140.625	awake
+3221225672	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	15168.48	10701.09	-170.647	awake
+3221225682	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	14690.22	9951.087	-129.299	awake
+3221225690	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	13983.7	10635.87	-53.459	awake
+3221225780	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	12657.61	6342.391	-108.535	awake
+3221226109	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	14038.04	6451.087	-24.52	awake
+3221226116	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Island/IslandRocks_Debris_07.ao	13722.83	6331.521	-15.124	awake
+3221226134	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	14125	7342.391	-42.442	awake
+3221226141	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	14027.17	6820.652	-27.998	awake
+3221226145	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	14125	6548.913	-37.834	awake
+3221226148	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_01.ao	14135.87	7527.174	-9.186	awake
+3221226153	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	13657.61	8429.348	-46.035	awake
+3221226159	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	14222.83	9114.131	-27.998	awake
+3221226177	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	16867.61	14433.7	-37.834	awake
+3221226190	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	17375	11320.65	-24.52	awake
+3221226196	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	18679.35	11733.7	-43.361	awake
+3221226207	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk03.ao	19070.65	11168.48	-142.296	awake
+3221226213	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_01.ao	19016.3	11179.35	-12.086	awake
+3221225486	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	18570.65	8809.782	-37.834	awake
+3221225495	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	17798.91	10005.43	-47.958	awake
+3221225602	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	12929.35	12342.39	-137.938	awake
+3221225607	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	12918.48	12733.7	-151.748	awake
+3221225615	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	13070.65	13548.91	-80.614	awake
+3221225661	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	13277.17	14168.48	-136.708	awake
+3221225671	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Manuka01.ao	15309.78	10722.83	-291.292	awake
+3221225674	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	15407.61	10679.35	-137.938	awake
+3221225679	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	15016.3	10668.48	-151.748	awake
+3221225683	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	14538.04	10027.17	-138.681	awake
+3221225686	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	14081.52	10733.7	-57.16	awake
+3221225738	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTree03.ao	16777.17	12831.52	-193.234	awake
+3221225768	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	14494.57	12657.61	-53.848	awake
+3221226060	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	12584.37	11070.25	-52.743	awake
+3221226132	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke02.ao	14081.52	6635.87	-134.592	awake
+3221226136	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	13744.57	7853.261	-24.52	awake
+3221226140	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	13929.21	6822.94	-22.02	awake
+3221226143	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	13951.09	6614.13	-36.688	awake
+3221226147	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_03.ao	13625	7809.783	-10.488	awake
+3221226152	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage_Grouped/LargeGardenDoodad02.ao	14125	8766.305	-239.73	awake
+3221226157	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	14168.48	8451.087	-28.376	awake
+3221226162	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_05.ao	13733.7	8635.869	-6.652	awake
+3221226168	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree08.ao	15910.82	14521.63	-109.06	awake
+3221226183	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke03.ao	17581.52	11440.22	-203.263	awake
+3221226188	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	17581.52	11320.65	-24.52	awake
+3221226194	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk02.ao	18733.7	11635.87	-94.531	awake
+3221226202	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk01.ao	19038.04	11125	-190.241	awake
+3221226206	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke03.ao	19016.3	11190.22	-152.447	awake
+3221226208	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	19135.87	11190.22	-38.975	awake
+99	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame	Metadata/Terrain/Doodads/Checkpoints/EzomyteCheckpointBaseless.ao	18375	11364.13	-91.256	awake
+3221225490	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	18798.91	9646.739	-65.8	awake
+3221225494	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	18461.96	8842.392	-41.027	awake
+3221225597	Metadata/MiscellaneousObjects/Doodad_Distant_Max	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/NikauPalm02.ao	13027.17	12505.43	-666.188	awake
+3221225600	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	12951.09	12581.52	-170.647	awake
+3221225603	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	12896.74	12451.09	-145.185	awake
+3221225605	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	12983.7	13070.65	-140.75	awake
+3221225608	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	12994.57	13233.7	-77.267	awake
+3221225614	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	12983.7	13668.48	-68.303	awake
+3221225617	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	13146.74	13614.13	-121.652	awake
+3221225655	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	13570.65	14440.22	-149.521	awake
+3221225668	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	15125	11233.7	140.625	awake
+3221225673	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	14809.78	10679.35	-163.301	awake
+3221225675	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	15298.91	10646.74	-145.185	awake
+3221225677	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	14679.35	10733.7	-136.844	awake
+3221225680	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	14516.3	10744.57	-81.173	awake
+3221225685	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	14798.91	10005.43	-108.535	awake
+3221225688	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke01.ao	14548.91	10885.87	-201.557	awake
+3221225692	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	14418.48	9972.826	-82.938	awake
+3221225741	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	16125	12831.52	-48.613	awake
+3221225765	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	14548.91	12918.48	-107.255	awake
+3221225773	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	14364.13	13211.96	-24.52	awake
+3221226058	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CabbageTree01.ao	12602.17	11164.97	-351.405	awake
+3221226105	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	13788.04	6396.739	-51.688	awake
+3221226130	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	13766.3	7755.435	-27.998	awake
+3221226133	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	14190.22	7494.565	-81.317	awake
+3221226135	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	13559.78	7701.087	-52.743	awake
+3221226137	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	14059.78	7548.913	-37.834	awake
+3221226142	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	13744.57	7418.479	-27.02	awake
+3221226156	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	13701.09	8266.305	-27.998	awake
+3221226158	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	14081.52	8820.652	-51.688	awake
+3221226161	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_04.ao	13701.09	9168.479	-7.314	awake
+3221226164	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage_Grouped/GardenDoodad01.ao	15628.1	14498	-362.139	awake
+3221226166	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_04.ao	16337	14732.01	-7.314	awake
+3221226170	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree01.ao	16489.9	14545.87	-177.191	awake
+3221226179	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	16949.44	14410.68	-31.035	awake
+3221226184	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	17472.83	11559.78	-51.688	awake
+3221226187	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	17472.83	11342.39	-27.998	awake
+3221226189	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	17657.61	11353.26	-46.035	awake
+3221226193	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTree03.ao	18646.74	11614.13	-208.952	awake
+3221226195	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk04.ao	18679.35	11668.48	-81.384	awake
+3221226200	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	18809.78	11679.35	-46.035	awake
+3221226203	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk03.ao	19005.44	11277.17	-135.52	awake
+3221226205	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	19103.26	11288.04	-24.52	awake
+3221226210	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	18918.48	11266.3	-24.52	awake
+3221226212	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_03.ao	18733.7	11668.48	-7.988	awake
+16	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame	Metadata/Terrain/Doodads/Checkpoints/EzomyteCheckpoint.ao	17788.04	9081.521	-89.72	awake
+3221225485	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke04.ao	18755.44	8907.608	-260.323	awake
+3221225488	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	18831.52	10048.91	-51.688	awake
+3221225492	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Manuka01.ao	18798.91	9125	-170.511	awake
+3221225595	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_02.ao	13505.43	12125	93.75	awake
+3221225598	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Manuka02.ao	12994.57	12646.74	-345.136	awake
+3221225601	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	12929.35	12940.22	-159.394	awake
+3221225606	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	13179.35	13375	-126.348	awake
+3221225616	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke01.ao	13135.87	13201.09	-205.463	awake
+3221225618	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	12885.87	13766.3	-37.834	awake
+3221225653	Metadata/MiscellaneousObjects/Doodad_Distant_Max	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CabbageTree04.ao	13244.57	14527.17	-506.942	awake
+3221225659	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	13179.35	14440.22	-137.802	awake
+3221225667	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_02.ao	15625	11255.43	140.625	awake
+3221225669	Metadata/MiscellaneousObjects/Doodad_Distant_Max	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/NikauPalm02.ao	15244.57	10777.17	-666.188	awake
+3221225678	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	14375	10929.35	-122.442	awake
+3221225681	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	14353.26	11190.22	-171.688	awake
+3221225687	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	14201.09	10820.65	-72.802	awake
+3221225689	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	14135.87	10896.74	-109.933	awake
+3221225691	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	13875	10603.26	-1.083	awake
+3221225737	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTree01.ao	16722.83	12994.57	-247.826	awake
+3221225740	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk02.ao	16179.35	12940.22	-135	awake
+3221225743	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	16635.87	13081.52	-114.188	awake
+3221225748	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	16233.7	12907.61	-107.431	awake
+3221225767	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	14429.35	12885.87	-58.094	awake
+3221225771	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	14331.52	13103.26	-70.8	awake
+3221225778	Metadata/MiscellaneousObjects/Doodad_Distant_Max	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CabbageTree03.ao	12592.39	6364.13	-458.81	awake
+3221226046	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFern01.ao	12614.13	13625	-40.8	awake
+3221226059	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	12555.84	11171.55	-24.52	awake
+3221226104	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	13646.74	6353.261	-37.834	awake
+3221226106	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	14135.87	6277.174	-46.035	awake
+3221226128	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree06.ao	14125	6342.392	-38.352	awake
+3221226131	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke03.ao	13592.39	7864.13	-203.263	awake
+3221226138	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	13527.17	7951.087	-24.52	awake
+3221226155	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	14027.17	8505.435	-52.743	awake
+3221226160	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	14103.26	9440.218	-24.52	awake
+3221226163	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage_Grouped/CabbageTreeFlax02.ao	16238.33	14630.69	-213.365	awake
+3221226169	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree02.ao	16301.09	14534.83	-187.749	awake
+3221226171	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Maps/SteamingSprings/Doodads/LushPetrifiedTree08.ao	15865.52	14678.15	-109.06	awake
+3221226178	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	16994.2	14474.61	-24.52	awake
+3221226182	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Islands/Volcano/PetrifiedTree_05.ao	17440.22	11451.09	-42.234	awake
+3221226185	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	17592.39	11614.13	-50.243	awake
+3221226198	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	18701.09	11918.48	-24.52	awake
+3221226201	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	18690.22	11603.26	-52.743	awake
+3221225487	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	18744.57	9864.131	-83.817	awake
+3221225489	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	18722.83	9146.739	-65.768	awake
+3221225491	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTree04.ao	18885.87	9766.305	-183.232	awake
+3221225596	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	13483.7	12625	140.625	awake
+3221225619	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	12853.26	13875	-24.52	awake
+3221225652	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	13472.83	14418.48	-177.743	awake
+3221225654	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	13353.26	14527.17	-186.272	awake
+3221225657	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	13657.61	14418.48	-174.942	awake
+3221225660	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	13255.43	14081.52	-165.647	awake
+3221225662	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	13353.26	14070.65	-149.317	awake
+3221225736	Metadata/MiscellaneousObjects/Doodad	Metadata/Effects/Environment/Act4_FOUR/G4_1_1/lakeSmoke/ao/smoke_01.ao	17733.7	13027.17	140.625	awake
+3221225739	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/BlackFernTrunk03.ao	16668.48	13027.17	-162.395	awake
+3221225742	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	16614.13	12918.48	-99.442	awake
+3221225744	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax03.ao	16788.04	12722.83	-61.661	awake
+3221225746	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	16711.96	12896.74	-53.459	awake
+3221225749	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	16244.57	12788.04	-24.52	awake
+3221225766	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	14461.96	13364.13	-53.459	awake
+3221225769	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern01.ao	14516.3	12777.17	-60.556	awake
+3221225772	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	14320.65	12994.57	-27.998	awake
+3221225774	Metadata/MiscellaneousObjects/Doodad_Distant_Max	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CabbageTree02.ao	14418.48	13038.04	-451.004	awake
+3221225779	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	12538.04	6440.217	-185.379	awake
+3221226034	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	12516.3	14125	-43.361	awake
+3221226057	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	12632.46	11168.88	-51.688	awake
+3221226065	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_01.ao	12614.13	11135.87	-10.488	awake
+3221226172	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax01.ao	16843.02	14546.27	-68.817	awake
+3221226180	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/LargeScatterGrass01_03.ao	16885.87	14472.83	-7.988	awake
+3221226197	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern02.ao	18864.13	11809.78	-37.834	awake
+3221226199	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	18885.87	11668.48	-27.998	awake
+3221225651	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Flax02.ao	13646.74	14516.3	-207.938	awake
+3221225656	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Harakeke01.ao	13929.35	14711.96	-176.401	awake
+3221225658	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern01.ao	13777.17	14516.3	-242.953	awake
+3221225747	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/GroundFern03.ao	16722.83	12788.04	-32.333	awake
+3221225770	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern02.ao	14364.13	13277.17	-48.839	awake
+3221225775	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/Manuka01.ao	14451.09	13244.57	-181.917	awake
+3221226037	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/Islands_Foliage/CrownFern03.ao	12603.26	14016.3	-27.998	awake
+3221226054	Metadata/MiscellaneousObjects/Doodad	Metadata/Terrain/Doodads/Foliage/ScatterGrass/ScatterGrass01_01.ao	12538.04	14092.39	-10.488	awake
+47	Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame_Boss		4994.565	6538.043	-96.032	remembered
+30	Metadata/Monsters/SerpentClanMonster/objects/SnakePot1		3646.739	4538.043	-181.924	remembered
+29	Metadata/Monsters/SerpentClanMonster/objects/SnakePot4		3701.087	4581.521	-168.901	remembered
+39	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2		4103.261	4722.826	-160.565	remembered
+38	Metadata/Monsters/SerpentClanMonster/objects/SnakePot1		4027.174	4701.087	-164.112	remembered
+40	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2		3918.478	4701.087	-155.565	remembered
+58	Metadata/MiscellaneousObjects/BossForceFieldDoorVisuals		4690.217	4635.87	-314.451	remembered
+41	Metadata/Monsters/SerpentClanMonster/objects/SnakePot4		4211.957	4744.565	-181.713	remembered
+31	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2		3592.391	4494.565	-164.472	remembered
+44	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2		4744.565	4429.348	-156.659	remembered
+36	Metadata/Monsters/SerpentClanMonster/objects/ground_rune		4179.348	4157.608	-140.313	remembered
+43	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2		4755.435	4059.782	-164.472	remembered
+42	Metadata/Monsters/SerpentClanMonster/objects/SnakePot1		4733.696	4157.608	-173.018	remembered
+32	Metadata/Monsters/SerpentClanMonster/objects/SnakePot4		3559.782	3875	-172.807	remembered
+34	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2		3625	3842.391	-156.659	remembered
+27	Metadata/Monsters/SerpentClanMonster/objects/SnakePot1		3690.217	3755.435	-178.018	remembered
+33	Metadata/Monsters/SerpentClanMonster/objects/SnakePot1		3527.174	3994.565	-174.28	remembered
+35	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2		4722.826	3777.174	-156.659	remembered
+37	Metadata/Monsters/SerpentClanMonster/objects/SnakePot4		4711.957	3842.391	-168.901	remembered
+45	Metadata/Monsters/SerpentClanMonster/objects/SnakePot4		4722.826	3983.696	-176.713	remembered
+23	Metadata/Monsters/SerpentClanMonster/objects/SnakePot1		3972.826	3559.782	-181.924	remembered
+21	Metadata/Monsters/SerpentClanMonster/objects/SnakePot1		3896.739	3603.261	-178.018	remembered
+25	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2		4233.696	3505.435	-156.659	remembered
+22	Metadata/Monsters/SerpentClanMonster/objects/SnakePot1		4168.478	3505.435	-174.28	remembered
+24	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2		4048.913	3570.652	-160.565	remembered
+26	Metadata/Monsters/SerpentClanMonster/objects/SnakePot4		3788.043	3690.217	-164.995	remembered
+28	Metadata/Monsters/SerpentClanMonster/objects/SnakePot2		3483.696	4059.782	-160.565	remembered

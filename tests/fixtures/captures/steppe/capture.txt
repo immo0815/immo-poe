@@ -1,0 +1,38 @@
+capture  2026-10-11 01:47:49 local, PoEformance v0.1.179 · 5dc98b8
+area     Steppe (MapSteppe), act 10, level 75, hash 0xE9FD7267, state InGame
+light    Metadata/EnvironmentSettings/Maps/Steppe.env
+screen   game client at 0, 0, 3440 x 1440
+player   world 8336.338 8024.978 -334.363, terrain height -246.538, level 96
+         grid cell 766, 738, tile 33, 32
+         the grid's height there -250, the tile's level -0
+tile     Metadata/Terrain/Maps/Steppe/Tiles/Steppe/Cc_blank_01a.tdt, laid 1, piece 0, 2
+camera   1.105 1.924 0.507 0.484 -1.105 1.924 0.507 0.484 0 -2.555 0.764 0.729 -343.953 -31986.13 -6278.651 -5790.64
+terrain  1587 x 1587 cells, 69 x 69 tiles
+
+=== rooms around the player
+  1 off  encounter  at tile 33, 33, 3 x 3, as written  (Metadata/Terrain/Gallows/Leagues/Expedition/encounter.arm)
+
+=== what this capture holds
+  game.png  3440 x 1440, the game alone, the overlay hidden for 141 ms
+  overlay.png  3440 x 1440, the game with the overlay, as the key went down
+  entities.txt  164 entities, nearest first
+  loaded-files.txt  1330 files
+  environments.txt  the area's environment (Metadata/EnvironmentSettings/Maps/Steppe.env) and those of 1 rooms
+  room-files.txt  52 room files the area may lay - the loaded list's and every room of the sets its files and the install's masters name
+  tile-identities.txt  33 tile files laid in the area, each as a room's slot asks about it - tab-separated, or why it did not read
+  slot-candidates.txt  52 rooms of the area's set against 72 tiles its tilesets list - 1 master, lists metadata/terrain/maps/steppe/tiles.tst
+  tileset-lists.txt  1 tile list of 1 master, 72 tile lines - each list whole: an optional weight, the tile, then the words after it
+  rooms.txt  1 rooms within 3 tiles, their doodads' lights and the pieces attached to them, and the file of each room the player stands in
+  rooms-arranged.txt  not written: the rooms stand by their doodads - see rooms-placed.txt
+  doodads.txt  doodads: 1479 entities stand where the rooms name a doodad, on 4 paths - sleeping map 1537 of 1537 walked, awake 68, 1605 with a path, read in 201 ms, 1 remembered from the bubble since
+  rooms-placed.txt  rooms: 4 placed by their doodads at 9 places, 8 by their tiles at 9 places, 45 with no place
+  room-pick.txt  not written: nothing there when the key went down
+  routes.txt  not written: nothing there when the key went down
+  scene-light.txt  not written: nothing there when the key went down
+  model-probe.txt  not written: nothing there when the key went down
+  dissector.txt  not written: nothing there when the key went down
+  atlas-log.txt  not written: nothing there when the key went down
+  memory.rec  1142 KB: the overlay's own reads for 90 reader ticks and one pass reading the world with every switch on, the loaded files, both entity maps with every named entity's model, every monster's mods, the raw bytes of the roots, one hop beyond them and the components around you from nothing - replay with --replay; memory.txt says what the pass read where
+  monsters.txt  written by the pass inside the recording - memory.txt says what it holds
+  every part of the catalogue was on
+  2026-10-11 01-47-49 Steppe.zip  beside this folder: every file here, packed to send

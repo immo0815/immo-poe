@@ -1,0 +1,4 @@
+##### 1 off  encounter  at tile 33, 33, 3 x 3, as written  (Metadata/Terrain/Gallows/Leagues/Expedition/encounter.arm)
+=== doodad lights
+12 doodad files read (attached pieces included), 0 with lights; 12 more carry only an empty Lights block
+

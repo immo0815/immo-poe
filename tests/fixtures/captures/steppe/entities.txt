@@ -1,0 +1,166 @@
+164 entities, 29 of them remembered rather than listed this read; distance and position in world units
+distance	kind	id	address	x	y	z	terrain	bounds z	remembered	path	name
+0	Player	1412	0x55E3012B900	8336.338	8024.978	-334.363	-246.538	87.466	no	Metadata/Characters/Int/IntFourb	Sorceress
+89.878	Object	1301	0x55E59AE2B00	8250	8000	-257.05	-250	7.05	no	Metadata/MiscellaneousObjects/Abyss/AbyssFinalNodeBase	
+93.83	Object	2593	0x55F0ACAA580	8244.565	8005.435	-250.582	-250	0.582	no	Metadata/MiscellaneousObjects/Abyss/AbyssPlinth	
+203.329	WorldItem	2407	0x55E351A5480	8211.956	7864.13	-260.872	-250	10.872	no	Metadata/MiscellaneousObjects/WorldItem	
+203.329	WorldItem	2404	0x55E351AE080	8211.956	7864.13	-254.82	-250	4.82	no	Metadata/MiscellaneousObjects/WorldItem	
+228.658	WorldItem	2538	0x55E63FC8700	8233.695	7820.652	-255.974	-250	5.974	no	Metadata/MiscellaneousObjects/WorldItem	
+228.658	WorldItem	2540	0x55E63FC9B00	8233.695	7820.652	-263.234	-250	13.234	no	Metadata/MiscellaneousObjects/WorldItem	
+228.658	WorldItem	2541	0x55E63FC5C80	8233.695	7820.652	-256.79	-250	6.79	no	Metadata/MiscellaneousObjects/WorldItem	
+288.214	Object	1314	0x55E5FC5A680	8250	7750	-265.574	-250	15.574	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+337.264	Object	1328	0x55E59AEEB80	8000	8000	-235.283	-222.656	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+409.19	Object	1313	0x55E57CA8B80	8250	7625	-262.627	-250	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+472.056	Object	1327	0x55E59AE5F80	7875	8125	-249.446	-234.375	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+504.255	Object	1352	0x55F0AE6A280	8755.435	7744.565	-179.957	-109.375	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+526.4	Object	1312	0x55E57CAD900	8375	7500	-257.258	-242.188	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+527.179	Object	65	0x55E59AE0300	8646.739	8451.087	-340	-250	90	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionDetonator	
+550.255	Object	1394	0x55F0AE61680	8809.782	7744.565	-164.332	-93.75	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+559.151	Chest	1342	0x55E5FC55680	8875	7875	-247.516	-164.063	83.454	no	Metadata/Chests/StrongBoxes/MartialStrongboxExpedition	
+594.808	Object	1326	0x55E59AEDA00	7750	8125	-243.095	-230.469	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+651.127	Object	1311	0x55F0AC47E80	8375	7375	-231.377	-218.75	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+663.663	Object	1393	0x55F0AE6D480	8994.565	7940.217	-320.497	-179.688	140.81	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+674.386	Object	1380	0x55F0AE6F280	8766.304	7505.435	-133.082	-62.5	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+711.279	Object	1369	0x55E5FC5DB00	8994.565	7755.435	-140.894	-70.313	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+723.046	WorldItem	2526	0x55E338F5200	7614.13	8059.782	-228.727	-218.75	9.977	no	Metadata/MiscellaneousObjects/WorldItem	
+738.827	Object	1404	0x55F0AE63200	9059.782	7875	-226.832	-156.25	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+746.081	Object	1325	0x55E59AE6480	7625	8250	-265.071	-250	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+750.67	Object	1377	0x55F6430E300	8994.565	8385.869	-320.582	-250	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+765.819	WorldItem	2380	0x55E88296D00	7679.348	8418.479	-243.186	-242.188	0.629	no	Metadata/MiscellaneousObjects/WorldItem	
+784.549	WorldItem	2379	0x55E88291580	7657.608	8418.479	-227.561	-226.563	0.629	no	Metadata/MiscellaneousObjects/WorldItem	
+792.071	Object	1310	0x55F0AC4B300	8500	7250	-206.477	-191.406	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+802.938	Object	1360	0x55F0AE68480	9135.869	7951.087	-242.457	-171.875	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+833.452	Object	1337	0x55F0AE67D00	9125	7755.435	-164.243	-78.125	86.118	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+841.292	Object	1381	0x55F5E74A280	8994.565	8548.913	-320.582	-250	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+843.054	Object	1353	0x55F4C2A2C80	9179.348	8016.304	-273.707	-203.125	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+847.122	Object	1332	0x55F0AE64600	9005.435	7505.435	-69.984	0	69.984	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+866.081	Object	1324	0x55E59AE0080	7500	8250	-262.627	-250	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+902.486	Object	1383	0x55E65AA1680	8679.348	7190.217	-156.519	-85.938	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+914.22	Object	1362	0x55F5E74F780	9114.13	8505.435	-312.769	-242.188	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+914.738	Object	1309	0x55E65AAFC80	8500	7125	-149.346	-136.719	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+937.095	Object	1345	0x55F3FA57780	9059.782	7429.348	-134.837	-7.813	127.024	no	Metadata/MiscellaneousObjects/Expedition2/Expedition2Encounter	
+961.662	Object	1322	0x55E57432C80	7375	8000	-194.142	-179.688	14.455	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+966.527	Object	1323	0x55E57437780	7375	8125	-233.821	-218.75	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+972.118	WorldItem	2067	0x55E33766100	8570.652	7081.521	-98.295	-93.75	4.545	no	Metadata/MiscellaneousObjects/WorldItem	
+972.118	WorldItem	2065	0x55E33761880	8570.652	7081.521	-104.725	-93.75	10.975	no	Metadata/MiscellaneousObjects/WorldItem	
+992.775	Object	1368	0x55F0B441F00	8755.435	7125	-281.435	-140.625	140.81	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+994.096	Object	1395	0x55F0AE6C300	9320.652	7885.87	-179.957	-109.375	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1034.461	Object	1385	0x55F64301880	9309.782	8375	-273.707	-203.125	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1043.467	Object	1338	0x55F4C2A5200	9375	8125	-227.006	-148.438	78.568	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1046.106	Object	1370	0x55F5E747800	8701.087	9005.435	-320.582	-250	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1049.713	Object	1367	0x55F4C2AC500	9385.869	8005.435	-203.394	-132.813	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1052.529	Object	1358	0x55F5E745780	9201.087	8625	-304.957	-234.375	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1064.85	Object	1308	0x55E65AA0780	8625	7000	-140.071	-125	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1086.625	Object	1321	0x55E5743B880	7250	8000	-204.033	-191.406	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1105.116	WorldItem	2391	0x55E60E9E080	7233.695	7951.087	-172.874	-171.875	0.629	no	Metadata/MiscellaneousObjects/WorldItem	Zealous Pillarcrusher
+1106.359	Object	1375	0x55F64304D00	9385.869	8375	-203.394	-132.813	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1126.146	WorldItem	2390	0x55E60E97F00	7211.957	7961.957	-172.874	-171.875	0.629	no	Metadata/MiscellaneousObjects/WorldItem	
+1130.192	Object	1371	0x55F0B44BF00	9005.435	7114.13	-242.457	-171.875	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1174.013	Object	1339	0x55E634D0280	9255.435	8755.435	-297.318	-218.75	78.568	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1185.654	Object	1307	0x55E65AA9600	8625	6875	-153.252	-140.625	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1220.587	Object	1320	0x55E63FCAC80	7125	7875	-93.196	-78.125	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1226.08	Monster	2551	0x55E59BF9200	8342.392	6798.913	-7.813	-7.813	0	no	Metadata/Monsters/Anomalies/CircleOfPower	
+1240.284	Object	1374	0x55F0B449980	9201.087	7135.87	-203.394	-132.813	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1258.286	Object	1331	0x55F5E746400	9125	9005.435	-334.982	-242.188	92.794	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1292.538	Object	1335	0x55F4C2A1600	9625	8125	-121.172	-31.25	89.922	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1308.402	Object	1401	0x55E634D8C00	9375	8820.652	-226.832	-156.25	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1314.624	Object	1407	0x55E634D4D80	9429.348	8755.435	-211.207	-140.625	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1324.065	WorldItem	2083	0x55E596F1280	9483.695	7364.13	-194.139	-179.688	14.451	no	Metadata/MiscellaneousObjects/WorldItem	
+1340.405	Object	1306	0x55E60E95700	8750	6750	-229.914	-214.844	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1343.354	Object	1347	0x55F3FA55200	9679.348	7994.565	-220.774	-93.75	127.024	no	Metadata/MiscellaneousObjects/Expedition2/Expedition2Encounter	
+1344.728	Object	1319	0x55E63FCAF00	7000	7875	-149.345	-136.719	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1353.162	Object	1409	0x55F7552EC00	8875	9266.304	-390.81	-250	140.81	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1356.589	Object	1357	0x55F5E740000	9048.913	9179.348	-312.769	-242.188	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1366.254	Object	1399	0x55E634DAF00	9298.913	8994.565	-250.269	-179.688	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1384.098	Object	1305	0x55E65AAD200	8875	6750	-256.642	-242.188	14.455	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1385.878	Object	1408	0x55F5E740A00	8994.565	9244.565	-320.582	-250	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1398.393	Object	1392	0x55F6430D680	9690.217	8375	-78.394	-7.813	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1399.432	Object	1382	0x55E5F17D780	9625	8570.652	-86.207	-15.625	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1425.599	Object	1389	0x55E634DDE80	9429.348	8940.217	-187.769	-117.188	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1445.387	WorldItem	2276	0x55E57435C00	9516.304	7190.217	-179.2	-171.875	7.325	no	Metadata/MiscellaneousObjects/WorldItem	
+1454.807	Chest	224	0x55F64308180	8298.913	6570.652	-54.833	-39.063	15.77	no	Metadata/Chests/KaruiChest_08	
+1464.267	Object	1364	0x55F6430EA80	9755.435	8385.869	-70.582	0	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1469.234	Object	1376	0x55E634D0F00	9440.217	8994.565	-195.582	-125	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1472.949	Chest	248	0x55E65AAF500	7494.565	9233.695	-84.082	-62.5	21.582	no	Metadata/Chests/MossyBoulder3	Boulder
+1481.289	Object	1336	0x55E4F115C80	9625	8755.435	-109.555	-23.438	86.118	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1482.585	Object	1387	0x55F5E743E80	9179.348	9244.565	-375.185	-234.375	140.81	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1486.984	Object	1318	0x55F0B483180	6875	7750	-194.758	-179.688	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1500.032	Object	1304	0x55F0A514780	8875	6625	-231.377	-218.75	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1511.973	Object	1400	0x55F0B009A00	9809.782	8364.13	-70.582	0	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1513.418	Object	1397	0x55E63FCF000	9364.13	9135.869	-219.019	-148.438	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1517.745	Object	1386	0x55F6430BD80	9766.304	7516.304	-320.582	-250	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1527.226	Object	1388	0x55E4F11ED80	9516.304	8994.565	-125.27	-54.688	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1544.833	WorldItem	2401	0x55E594E3880	6809.783	7788.043	-189.278	-187.5	1.778	no	Metadata/MiscellaneousObjects/WorldItem	
+1560.867	Chest	1344	0x55E5FC50900	9755.435	7375	-303.159	-242.188	60.972	no	Metadata/Chests/StrongBoxes/OrnateStrongboxExpedition	Ornate Strongbox
+1562.294	Object	1379	0x55E63FC4600	9516.304	9048.913	-156.52	-85.938	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1576.333	Object	1390	0x55E63FCF780	9570.652	9005.435	-109.644	-39.063	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1600.84	Object	1391	0x55F7552C400	9179.348	9385.869	-304.957	-234.375	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1609.994	Object	1317	0x55F0B487C80	6750	7750	-227.47	-214.844	12.627	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1623.884	Object	1398	0x55E5FC58600	9766.304	7255.435	-281.52	-210.938	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1636.847	Object	1378	0x55F75526280	9364.13	9298.913	-289.247	-148.438	140.81	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1637.82	Object	1355	0x55F6430BB00	9951.087	8298.913	-70.582	0	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1656.53	Object	1363	0x55F6430DE00	9929.348	7570.652	-289.332	-218.75	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1663.131	Object	1303	0x55F0A51C200	9000	6500	-229.915	-214.844	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1672.091	Object	1366	0x55F0AE61E00	10005.43	8125	-78.394	-7.813	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1706.82	Object	1372	0x55F0B009F00	9994.565	8429.348	-70.582	0	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1716.842	Object	1302	0x55F0A518600	9125	6500	-192.859	-179.688	13.171	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1725.337	Object	1373	0x55E4F11D480	9798.913	8940.217	-70.582	0	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1731.348	Object	1361	0x55F0AE64B00	10059.78	8190.217	-70.582	0	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1736.871	Object	1333	0x55E5F171480	10005.43	8505.435	-92.868	0	92.868	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1738.203	Object	1405	0x55E63FCFA00	9635.869	9179.348	-94.019	-23.438	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1757.458	Object	1316	0x55E59BF4480	6625	7625	-249.446	-234.375	15.071	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1791.188	Object	1340	0x55E5FC57980	10005.43	7375	-249.672	-179.688	69.984	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1799.868	Object	1365	0x55F0AE6F000	10135.87	8059.782	-94.019	-23.438	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1807.997	Object	168	0x55E70472100	8625	9809.782	-276.402	-253.5	18.59	no	Metadata/MiscellaneousObjects/LeagueIncursionNew/IncursionPedestalCrystal_1	
+1833.334	Object	1406	0x55E5F178C80	10048.91	8679.348	-70.582	0	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1855.423	Monster	1425	0x55E594EF680	8581.521	9864.13	-359.282	-242.188	117.095	no	Metadata/Monsters/SnakeFlowerMan/BloomSerpent1@75	Bloom Serpent
+1879.393	Object	1315	0x55E59BF0380	6500	7625	-243.64	-230.469	13.171	no	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+1886.11	Object	1351	0x55E4F111400	10070.65	8766.304	-70.582	0	70.582	no	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1909.846	Monster	1424	0x55E594E4A00	8657.608	9907.608	-295.312	-242.188	53.125	no	Metadata/Monsters/Werewolves/WerewolfPack1@75	Pack Werewolf
+1919.116	Object	1396	0x55E33760980	10255.43	8016.304	-86.207	-15.625	70.582	yes	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+1932.279	Monster	1430	0x55E70473000	8592.392	9940.217	-351.238	-242.188	109.051	no	Metadata/Monsters/SnakeFlowerMan/BloomSerpent1@75	Bloom Serpent
+1937.052	Object	169	0x55E594E6300	8353.261	9961.956	-271.423	-253.5	13.61	no	Metadata/MiscellaneousObjects/LeagueIncursionNew/IncursionPedestalCrystal_2	Bloom Serpent
+1957.174	Monster	1431	0x55E70478500	8527.174	9972.826	-358.315	-242.188	116.127	no	Metadata/Monsters/SnakeFlowerMan/BloomSerpent1@75	Feral Primate
+1963.467	Monster	1428	0x55E594EE500	8472.826	9983.695	-342.685	-242.188	100.498	no	Metadata/Monsters/SnakeFlowerMan/BloomSerpent1@75	Bloom Serpent
+1970.219	Monster	1433	0x55E70470800	8548.913	9983.695	-339.478	-242.188	97.29	no	Metadata/Monsters/SnakeFlowerMan/BloomSerpent1@75	Bloom Serpent
+2005.084	Monster	1422	0x55E594E4280	8711.956	9994.565	-298.108	-242.188	55.921	no	Metadata/Monsters/Werewolves/WerewolfPack1@75	Bloom Serpent
+2016.416	Object	173	0x55E34986880	8896.739	9961.956	-270.574	-253.5	12.762	no	Metadata/MiscellaneousObjects/LeagueIncursionNew/IncursionPedestalCrystal_6	
+2036.024	Monster	1414	0x55E3498CF00	9027.174	9940.217	-354.299	-250	104.299	no	Metadata/Monsters/SnakeFlowerMan/BloomSerpent1@75	Bloom Serpent
+2037.635	Object	1349	0x55F3FA5E800	10190.22	7179.348	-212.962	-85.938	127.024	no	Metadata/MiscellaneousObjects/Expedition2/Expedition2Encounter	
+2044.171	Object	1334	0x55E3376FC00	10375	7875	-86.381	-7.813	78.568	yes	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+2052.529	Object	1356	0x55E3376D180	10385.87	8135.87	-140.81	0	140.81	yes	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+2169.711	Object	1359	0x55E33769800	10440.22	7494.565	-78.394	-7.813	70.582	yes	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+2225.231	Object	1402	0x55E70470D00	10559.78	8114.13	-78.394	-7.813	70.582	yes	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+2284.59	Object	1403	0x55E70471200	10614.13	8201.087	-86.207	-15.625	70.582	yes	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+2288.678	Object	1410	0x55E4F11A500	10625	8016.304	-86.207	-15.625	70.582	yes	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+2299.795	Object	1354	0x55E70472B00	10635.87	8059.782	-117.457	-46.875	70.582	yes	Metadata/MiscellaneousObjects/Expedition/ExpeditionMarker	
+2454.086	Object	1278	0x55E66DFC400	6375	9500	-478.015	-464.844	13.171	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+2531.189	Object	1279	0x55E66DF6780	6375	9625	-499.446	-484.375	15.071	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+2562.323	WorldItem	1568	0x55F0B488400	6831.521	5951.087	-493.186	-492.188	0.629	yes	Metadata/MiscellaneousObjects/WorldItem	
+2706.579	WorldItem	1860	0x55E65AA8480	9429.348	5548.913	-102.561	-101.563	0.629	yes	Metadata/MiscellaneousObjects/WorldItem	
+2707.122	Object	1280	0x55E317E9700	6250	9750	-512.627	-500	12.627	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+2788.438	Object	1281	0x55E594E6580	6250	9875	-507.258	-492.188	15.071	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+2964.916	Object	1282	0x55E4FA0BD80	6125	10000	-477.471	-464.844	12.627	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+3049.608	Object	1283	0x55E4FA09F80	6125	10125	-413.508	-398.438	15.071	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+3110.72	WorldItem	1863	0x55E65CEF180	9516.304	5146.739	-71.311	-70.313	0.629	yes	Metadata/MiscellaneousObjects/WorldItem	
+3226.329	Object	1284	0x55F0ACAEE00	6000	10250	-329.033	-316.406	12.627	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+3317.967	Object	1285	0x55F0ACACD80	5875	10250	-245.539	-230.469	15.071	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+3356.382	WorldItem	1518	0x55E317E2B80	6505.435	5211.957	-250.857	-250	0.627	yes	Metadata/MiscellaneousObjects/WorldItem	
+3359.217	WorldItem	1516	0x55E317E3300	6483.695	5222.826	-250.857	-250	0.627	yes	Metadata/MiscellaneousObjects/WorldItem	
+3359.217	WorldItem	1517	0x55E317E2180	6483.695	5222.826	-250	-250	0	yes	Metadata/MiscellaneousObjects/WorldItem	
+3359.217	WorldItem	1519	0x55E317E8300	6483.695	5222.826	-252.818	-250	2.818	yes	Metadata/MiscellaneousObjects/WorldItem	
+3494.531	Object	1286	0x55F0ACAC380	5750	10375	-204.033	-191.406	12.627	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+3588.03	Object	1287	0x55F0ACA5A80	5625	10375	-147.267	-132.813	14.455	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+3671.115	Object	1288	0x55E57CAB100	5625	10500	-179.133	-164.063	15.071	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+3847.717	Object	1289	0x55E57CAC780	5500	10625	-90.752	-78.125	12.627	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+3940.766	Object	1290	0x55E4F115A00	5375	10625	-54.133	-39.063	15.071	yes	Metadata/MiscellaneousObjects/Abyss/AbyssCrack	
+11571.29	WorldItem	2132	0x55F0ACA4E00	0	0	0	-117.188	0	no	Metadata/MiscellaneousObjects/WorldItem	
+11571.29	Terrain	1341	0x55F0B31C580	0	0	0	-164.063	0	no	Metadata/Terrain/Gallows/Leagues/Expedition/Objects/ExplodingFill_StrongBox	
+11571.29	WorldItem	2398	0x55F3F99CE80	0	0	0	-242.188	0	no	Metadata/MiscellaneousObjects/WorldItem	
+11571.29	WorldItem	2470	0x55F3F996300	0	0	0	-234.375	0	no	Metadata/MiscellaneousObjects/WorldItem	
+11571.29	WorldItem	2587	0x55F0ACAAA80	0	0	0	-242.188	0	no	Metadata/MiscellaneousObjects/WorldItem	
+11571.29	Terrain	1343	0x55F0B31A780	0	0	0	-242.188	0	no	Metadata/Terrain/Gallows/Leagues/Expedition/Objects/ExplodingFill_StrongBox	
+11571.29	WorldItem	2382	0x55E594EBA80	0	0	0	-234.375	0	no	Metadata/MiscellaneousObjects/WorldItem	
+11571.29	WorldItem	2539	0x55E63FC8200	0	0	0	-250	0	no	Metadata/MiscellaneousObjects/WorldItem	Bramble Ape
+11571.29	WorldItem	2197	0x55F4C2A9580	0	0	0	-156.25	0	no	Metadata/MiscellaneousObjects/WorldItem	
+11571.29	WorldItem	1858	0x55E59FB9200	0	0	0	-210.938	0	yes	Metadata/MiscellaneousObjects/WorldItem	

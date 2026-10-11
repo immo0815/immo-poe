@@ -1,0 +1,105 @@
+=== environments
+1915 files the area loaded, 0 of them tilesets
+
+=== .env Metadata/EnvironmentSettings/Maps/Murky.env  (the area's own: its WorldAreas row's Environments row)
+{
+  "directional_light": {
+    "multiplier": 0.0
+  },
+  "player_light": {
+    "colour": [
+      0.98602,
+      1.0,
+      0.94896
+    ],
+    "intensity": 1.53927
+  },
+  "environment_mapping": {
+    "diffuse_cube": "Art/2DArt/Cubemaps/cavev2_diffuse.dds",
+    "specular_cube": "Art/2DArt/Cubemaps/cavev2_specular.dds",
+    "direct_light_env_ratio": 0.0,
+    "env_brightness": 0.1,
+    "gi_additional_env_light": 0.0,
+    "hor_angle": -2.28638,
+    "vert_angle": -0.13962
+  },
+  "screenspace_fog": {
+    "ssf_color": [
+      0.16364,
+      0.19043,
+      0.08461
+    ],
+    "ssf_color_alpha": 0.3,
+    "ssf_layer_count": 6.0,
+    "ssf_thickness": 40.0,
+    "ssf_turbulence": 35.0,
+    "ssf_disperse_radius": 1200.0,
+    "ssf_feathering": 0.55
+  },
+  "area": {
+    "dust_color": [
+      0.19045,
+      0.17756,
+      0.13085
+    ],
+    "ground_scale": 0.004,
+    "player_environment_ao": "Metadata/Effects/weather_attachments/Map_Seepage/weather_attachment.ao",
+    "wind_intensity": 0.8
+  },
+  "clouds": {
+    "clouds_intensity": 0.0
+  },
+  "camera": {
+    "far_plane": 4600.0,
+    "near_plane": 200.0,
+    "exposure": 1.0
+  },
+  "post_transform": {
+    "texture": "Metadata/EnvironmentSettings/Maps/Murky.env.post.dds"
+  },
+  "audio": {
+    "env_bank_name": "General_Environment.bank",
+    "env_event_name": "/Environment/Endgame/Maps/SulphuricCaverns/Map_SulphuricCaverns.env",
+    "music": "FourMap_SulphuricCaverns",
+    "ambient_sound": "event:/Sound Effects/Ambient/4.0/Endgame/Maps/SulphuricCaverns/MapSulphuricCaverns",
+    "ambient_bank": "Amb7.bank",
+    "footstep_materials": [
+      {
+        "material": "Art/Textures/Environment/Woods/CryptDungeon/CryptFloor01.mat",
+        "audio_id": "Stone"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/CryptDungeon/CryptFloor02.mat",
+        "audio_id": "Stone"
+      },
+      {
+        "material": "Art/Textures/Environment/Woods/CryptDungeon/CryptFloor03.mat",
+        "audio_id": "Stone"
+      },
+      {
+        "material": "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/G_VOL_CooledLava01.mat",
+        "audio_id": "Stone"
+      },
+      {
+        "material": "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/G_VOL_CooledLava01_mcfc.mat",
+        "audio_id": "Stone"
+      },
+      {
+        "material": "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/G_VOL_CooledLava02.mat",
+        "audio_id": "Stone"
+      },
+      {
+        "material": "Art/Models/Terrain/Islands/Tiles/Volcano/Textures/Volcano/G_VOL_CooledLava03.mat",
+        "audio_id": "Gravel"
+      }
+    ],
+    "audio_environment_ao": "Metadata/Terrain/Tools/AudioTools/Endgame/Maps/SulphuricCaverns/Map_SulphuricCavernsScatterer.ao"
+  },
+  "global_illumination": {
+    "thickness_angle": 50.0,
+    "gi_env_occlusion": 1.0,
+    "gi_multiplier": 3.0
+  }
+}
+diffuse_cube Art/2DArt/Cubemaps/cavev2_diffuse.dds: 32x32 · 6 levels · pixel format flags 0x4 · fourCC DX10 · DXGI format 95 (BC6H_UF16) · cube x1
+specular_cube Art/2DArt/Cubemaps/cavev2_specular.dds: 512x512 · 10 levels · pixel format flags 0x4 · fourCC DX10 · DXGI format 95 (BC6H_UF16) · cube x1
