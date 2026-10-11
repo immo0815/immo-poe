@@ -1,5 +1,6 @@
 using System.Text;
 using PoEformance.Features;
+using PoEformance.Game.Files;
 using PoEformance.Game.World;
 using Xunit;
 
@@ -21,6 +22,7 @@ public sealed class CaptureGroundTests
     private const string Rock = "Metadata/Terrain/Maps/Test/rock.gt";
     private const string SandMaterial = "Art/Textures/Environment/desert/Shore/Ground/G_VST_Sand01.mat";
     private const string GroundShader = "Shaders/Renderer/Ground.ffx";
+    private const string MaskPath = "Art/Models/Terrain/Test/Mask.dds";
 
     /// <summary>
     /// The block's format, its two unnamed fields as halves, and that it carries no texture coordinates - the three things a painted ground waits on.
@@ -102,7 +104,36 @@ public sealed class CaptureGroundTests
         Assert.Contains("  " + GroundShader + "  (tile_ground_tiling, ground_scalemove)", said, StringComparison.Ordinal);
         Assert.Contains("float2 GroundUv(float3 pos)", said, StringComparison.Ordinal);
         Assert.DoesNotContain("float4 Unrelated", said, StringComparison.Ordinal);
-        Assert.StartsWith("2 tile files laid over 4 cells, 1 templates, 1 of their 1 sub-tile meshes read; 3 cells under one ground all round, 1 mixed; 1 MaterialsLists, 2 ground materials; 1 of 2 shader sources name the ground's coordinates", said, StringComparison.Ordinal);
+        Assert.StartsWith("2 tile files laid over 4 cells, 1 templates, 1 of their 1 sub-tile meshes read, 1 ground masks; 3 cells under one ground all round, 1 mixed; 1 MaterialsLists, 2 ground materials; 1 of 2 shader sources name the ground's coordinates", said, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A ground mask the templates name is decoded once, described channel by channel, and handed on for its pictures.
+    /// </summary>
+    [Fact]
+    public void AGROUNDMaskIsDecodedOnceAndHandedOnForItsPictures()
+    {
+        int[] ids = [0, 0, 0, 1];
+        var tiles = new TerrainTiles([Floor, Edge], ids, new byte[4], new byte[4], new sbyte[4], 2, 2);
+
+        string said = CaptureGround.Write(Install, tiles, [Master], null, [], out IReadOnlyList<GroundMask> masks).ReplaceLineEndings("\n");
+
+        GroundMask mask = Assert.Single(masks);
+        Assert.Equal(1, mask.Number);
+        Assert.Equal(MaskPath, mask.Path);
+        Assert.Equal([Template], mask.Templates);
+        Assert.Equal("ground-mask-1-Mask-g.png", mask.FileOf('g'));
+
+        // Red runs 0..255 across the four texels, green stands at 128: the decode keeps the channels apart.
+        GamePicture picture = Assert.NotNull(mask.Picture);
+        Assert.Equal([0, 85, 170, 255], Enumerable.Range(0, 4).Select(at => (int)picture.Rgba[at * 4]));
+        Assert.All(Enumerable.Range(0, 4), at => Assert.Equal(128, picture.Rgba[(at * 4) + 1]));
+
+        Assert.Contains("=== the ground masks (1)", said, StringComparison.Ordinal);
+        Assert.Contains("1. " + MaskPath + " - named by 1 templates", said, StringComparison.Ordinal);
+        Assert.Contains("   header: 2x2", said, StringComparison.Ordinal);
+        Assert.Contains("   pictures: ground-mask-1-Mask-r.png, ground-mask-1-Mask-g.png, ground-mask-1-Mask-b.png, ground-mask-1-Mask-a.png", said, StringComparison.Ordinal);
+        Assert.Contains("1 ground masks;", said, StringComparison.Ordinal);
     }
 
     /// <summary>No shader list and no terrain are said, not passed over.</summary>
@@ -131,6 +162,7 @@ public sealed class CaptureGroundTests
         Floor => Tdt(Template, [Sand, Sand, Sand, Sand]),
         Edge => Tdt(Template, [Sand, Sand, Rock, Rock]),
         Template => Text("version 3\nSize 1 1\nTileMeshRoot \"Art/Models/Terrain/Test/Floor\"\nGroundMask \"Art/Models/Terrain/Test/Mask.dds\"\n"),
+        MaskPath => GameArtTests.Dds(2, 2, [0, 128, 0, 255, 0, 128, 85, 255, 0, 128, 170, 255, 0, 128, 255, 255]),
         Mesh => Tgm(),
         Sand => Text("Sand\n1 1 0 0\n"),
         Rock => Text("Rock\n1 1 0 0\n"),

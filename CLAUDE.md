@@ -284,9 +284,13 @@ the blank tiles' (0x30) carry none. The materials' coordinates are the engine's,
 a pass uniform no file holds - every area's environment carries `"ground_scale": 0.004` (one per tile) in the
 block whose `dust_color` is that uniform's neighbour, which makes it the likely value and not yet a measured one.
 And the white pier under Malgor IS the harbour tile's ground block (the probe, "ground of Port_Boss_01.tdt"),
-whose corners name IslandOcean and IslandTownUnwalkableFill - black and cobblestone - where the game draws wood,
-and whose own doodad list carries no planks. So the corners' MaterialsList is not all a ground is drawn with;
-what else is (the template's slots, its ground mask, the blend's up to four materials) is the next capture's.
+whose corners name IslandOcean and IslandTownUnwalkableFill - black and cobblestone. The game draws the pier as
+cobblestone with dirt between the stones (the in-game picture), which is IslandTownUnwalkableFill's one material,
+`G_IHLT_CobblestoneDirt01`; the water round it is the tile's own doodads (31 `WaterPlane3x3` in its `.tmd`) over the
+ocean's black. So the corners' MaterialsList does name what the pier is drawn with; what is open is how a tile of
+two grounds is split between them - the engine's and the template's masks, up to four materials (`internalonly.ffx`,
+`GroundGenerateWeights_*`) - and that is the next capture's. "The game draws wood there" was written here once from
+a picture not looked at closely: the gangway and the ship are wood, the pier is not - look before writing it down.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
 Six captures are committed under

@@ -5,6 +5,18 @@ using PoEformance.Game.World;
 
 namespace PoEformance.Features;
 
+/// <summary>A ground mask the laid templates name, decoded once - see <see cref="CaptureGround.Write(Func{string, byte[]}, TerrainTiles, IReadOnlyList{string}, IReadOnlyList{string}, IReadOnlyList{string}, out IReadOnlyList{GroundMask})"/>.</summary>
+/// <param name="Number">Its number in ground.txt, from one - the PNGs beside it are named by it.</param>
+/// <param name="Path">The texture as the templates name it.</param>
+/// <param name="Picture">The decoded picture, or null where it would not decode.</param>
+/// <param name="Templates">The templates naming it.</param>
+public sealed record GroundMask(int Number, string Path, GamePicture? Picture, IReadOnlyList<string> Templates)
+{
+    /// <summary>The PNG one channel (r, g, b or a) of it is written to, beside ground.txt.</summary>
+    public string FileOf(char channel)
+        => string.Create(CultureInfo.InvariantCulture, $"ground-mask-{Number}-{System.IO.Path.GetFileNameWithoutExtension(Path)}-{channel}.png");
+}
+
 /// <summary>
 /// What the ground under the area's laid tiles is made of, as far as the files say: what its blocks carry, what the
 /// area's MaterialsList draws each corner's ground with, and the shader sources that name where its coordinates come from.
@@ -24,9 +36,10 @@ namespace PoEformance.Features;
 /// material's tiling), while the engine's own CreateProjectedCoords makes the materials' from the world position:
 /// uv = (world.xy + ground_scalemove_uv.zw) * ground_scalemove_uv.xy, a pass uniform no file holds. And the probe said
 /// Port's white pier IS the harbour tile's ground block - whose corners name IslandOcean and IslandTownUnwalkableFill,
-/// black and cobblestone, where the game draws wood. So the template is written whole too (its MaterialSlots and the
-/// triples' first numbers are read past by TileTemplate), each template's ground shapes and coordinates are counted,
-/// and the sources of the ground's blending - up to four materials by engine and user masks - are searched for.
+/// black and cobblestone, and the game draws it cobblestone. How a tile of two grounds is split between them is the
+/// engine's blend - up to four materials by engine and user masks - so the sources of that blending are searched for,
+/// the template is written whole (its MaterialSlots and the triples' first numbers are read past by TileTemplate), and
+/// each template's ground shapes and coordinates are counted.
 ///
 /// The Tile Book's tile dump answers the same for ONE tile from a window; this answers it for every tile the area laid,
 /// and stays in the capture with the pictures and the recording.
@@ -58,6 +71,9 @@ public static class CaptureGround
     /// <summary>Most templates written whole; more are named.</summary>
     public const int MostTemplatesWhole = 96;
 
+    /// <summary>Most ground masks decoded and handed on as pictures; more are named.</summary>
+    public const int MostMasks = 8;
+
     /// <summary>
     /// The whole text of the part. Never throws for a file that will not read - it is named instead.
     /// </summary>
@@ -72,6 +88,25 @@ public static class CaptureGround
         IReadOnlyList<string> loaded,
         IReadOnlyList<string>? masters,
         IReadOnlyList<string>? shaders)
+        => Write(read, tiles, loaded, masters, shaders, out _);
+
+    /// <summary>
+    /// The whole text of the part, and the ground masks the laid templates name, decoded - for the caller to write each
+    /// channel beside it as a picture (<see cref="GroundMask.FileOf"/>), which no line of text can stand in for.
+    /// </summary>
+    /// <remarks>
+    /// WHY THE MASKS AS PICTURES: the engine blends a tile's grounds by one texture's channels - red sampled through an
+    /// atlas of eight transitions, green through the ground block's own coordinates (ground.ffx, user_blend and
+    /// blend_uv_generation) - and whether a template's GroundMask is that texture, and what its channels hold, is to be
+    /// looked at before any blend is built on it.
+    /// </remarks>
+    public static string Write(
+        Func<string, byte[]?> read,
+        TerrainTiles? tiles,
+        IReadOnlyList<string> loaded,
+        IReadOnlyList<string>? masters,
+        IReadOnlyList<string>? shaders,
+        out IReadOnlyList<GroundMask> masks)
     {
         ArgumentNullException.ThrowIfNull(read);
         ArgumentNullException.ThrowIfNull(loaded);
@@ -116,14 +151,16 @@ public static class CaptureGround
         }
 
         var texts = new List<(string Path, string Text)>();
-        int opened = Blocks(read, templates, body, texts, out int subTiles);
+        var named = new SortedDictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        int opened = Blocks(read, templates, body, texts, named, out int subTiles);
+        masks = Masks(read, named, body);
         string groundsSaid = Corners(read, laid, cells, corners, NameOf, loaded, masters, body);
         string shadersSaid = Shaders(read, shaders, body);
         Whole(texts, body);
 
         var said = new StringBuilder();
         said.Append(CultureInfo.InvariantCulture,
-            $"{laid.Count} tile files laid over {cells.Values.Sum()} cells, {templates.Count} templates, {opened} of their {subTiles} sub-tile meshes read; {groundsSaid}; {shadersSaid}")
+            $"{laid.Count} tile files laid over {cells.Values.Sum()} cells, {templates.Count} templates, {opened} of their {subTiles} sub-tile meshes read, {named.Count} ground masks; {groundsSaid}; {shadersSaid}")
             .AppendLine();
         if (tiles is null)
         {
@@ -136,7 +173,12 @@ public static class CaptureGround
 
     /// <summary>The ground blocks of every template, by vertex format - then one line a template. Returns how many sub-tile meshes were read.</summary>
     private static int Blocks(
-        Func<string, byte[]?> read, SortedDictionary<string, List<string>> templates, StringBuilder said, List<(string Path, string Text)> texts, out int subTiles)
+        Func<string, byte[]?> read,
+        SortedDictionary<string, List<string>> templates,
+        StringBuilder said,
+        List<(string Path, string Text)> texts,
+        SortedDictionary<string, List<string>> masks,
+        out int subTiles)
     {
         var formats = new SortedDictionary<uint, Format>();
         var lines = new StringBuilder();
@@ -151,6 +193,18 @@ public static class CaptureGround
             if (raw is { Length: > 0 })
             {
                 texts.Add((template, StatDescriptionFiles.Decode(raw)));
+            }
+
+            if (layout.Ready && layout.GroundMask.Length > 0)
+            {
+                string mask = Clean(layout.GroundMask);
+                if (!masks.TryGetValue(mask, out List<string>? naming))
+                {
+                    naming = [];
+                    masks[mask] = naming;
+                }
+
+                naming.Add(template);
             }
 
             lines.Append("  ").Append(template);
@@ -517,6 +571,43 @@ public static class CaptureGround
         }
 
         return string.Create(CultureInfo.InvariantCulture, $"{found.Count} of {shaders.Count} shader sources name the ground's coordinates");
+    }
+
+    /// <summary>The ground masks the templates name, each decoded once and described: header, size, every channel's spread.</summary>
+    private static List<GroundMask> Masks(Func<string, byte[]?> read, SortedDictionary<string, List<string>> named, StringBuilder said)
+    {
+        var masks = new List<GroundMask>();
+        said.AppendLine().Append(CultureInfo.InvariantCulture, $"=== the ground masks ({named.Count}) - each channel beside this file as a picture, ground-mask-N-name-r/g/b/a.png").AppendLine();
+        foreach ((string path, List<string> templates) in named)
+        {
+            if (masks.Count == MostMasks)
+            {
+                said.Append("  ").Append(path).AppendLine("  (not decoded: past the part's limit)");
+                continue;
+            }
+
+            byte[]? raw = GameArt.ReadRaw(read, path);
+            GamePicture? picture = GameArt.Decode(raw);
+            var mask = new GroundMask(masks.Count + 1, path, picture is { Ready: true } ? picture : null, templates);
+            masks.Add(mask);
+            said.AppendLine().Append(CultureInfo.InvariantCulture, $"{mask.Number}. {path} - named by {templates.Count} templates").AppendLine();
+            said.Append("   header: ").AppendLine(ModelDump.Header(raw));
+            if (mask.Picture is { } decoded)
+            {
+                foreach (string line in ModelDump.Channels(decoded).TrimEnd().Split('\n'))
+                {
+                    said.Append("   ").AppendLine(line.TrimEnd('\r'));
+                }
+
+                said.Append("   pictures: ").AppendLine(string.Join(", ", "rgba".Select(mask.FileOf)));
+            }
+            else
+            {
+                said.AppendLine("   (did not decode)");
+            }
+        }
+
+        return masks;
     }
 
     /// <summary>
