@@ -165,6 +165,52 @@ public sealed class CaptureGroundTests
         Assert.Contains("by ground shape: 0: 4 at z -100..0, green 0.50 (50% at a half or more), red 0.00;", said, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Each masked template's ground shapes are written sub-tile by sub-tile with their ordinal and the green at their vertices, the
+    /// template is drawn from above - shapes, green, height - and the tile definition's bytes past what is read are written as they stand.
+    /// </summary>
+    [Fact]
+    public void THESHAPESAreWrittenWithTheirOrdinalsAndDrawnFromAbove()
+    {
+        const string Raised = "Metadata/Terrain/Maps/Test/raised.tdt";
+        const string RaisedTemplate = "Art/Models/Terrain/Test/Raised.tgt";
+        byte[]? Read(string path) => path switch
+        {
+            Raised => Tdt(RaisedTemplate, [Sand, Sand, Rock, Rock]),
+            RaisedTemplate => Text("version 3\nSize 1 1\nTileMeshRoot \"Art/Models/Terrain/Test/Raised\"\nGroundMask \"" + MaskPath + "\"\n"),
+            "Art/Models/Terrain/Test/Raised.tgm" => Tgm([0f, 0f, -100f, -100f], [(0.25f, 0.25f), (0.25f, 0.25f), (0.75f, 0.75f), (0.75f, 0.75f)]),
+            MaskPath => GameArtTests.Dds(2, 2, [0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 255, 0, 255]),
+            _ => Install(path),
+        };
+
+        var tiles = new TerrainTiles([Raised], [0], new byte[1], new byte[1], new sbyte[1], 1, 1);
+        string said = CaptureGround.Write(Read, tiles, [Master], null, [], out _, out IReadOnlyList<(string File, GamePicture Picture)> shapes)
+            .ReplaceLineEndings("\n");
+
+        Assert.Contains("=== the ground shapes sub-tile by sub-tile", said, StringComparison.Ordinal);
+        Assert.Contains($"  {RaisedTemplate}  (Mask)  1x1 · 1 sub-tiles with a ground · ordinals: 0 in 1 shapes (2 triangles) · picture ground-shapes-1-Raised.png", said, StringComparison.Ordinal);
+        Assert.Contains("    c1r1 · header 0 shapes, word 0, byte 0, 0 tails\n", said, StringComparison.Ordinal);
+        Assert.Contains("      shape 0 · ordinal 0 · 2 triangles, 4 vertices · z -100..0 · u 0.25..0.75 v 0.25..0.75 · green 0.50 (50% at a half or more) · cells 0,0", said, StringComparison.Ordinal);
+
+        // FORTY PIXELS A SUB-TILE, three panels four apart; row 1's far side (y 250, raised, green whole) at the top.
+        (string file, GamePicture picture) = Assert.Single(shapes);
+        Assert.Equal("ground-shapes-1-Raised.png", file);
+        Assert.Equal((3 * 40) + 8, picture.Width);
+        Assert.Equal(40, picture.Height);
+        byte Red(int column, int row) => picture.Rgba[((row * picture.Width) + column) * 4];
+        Assert.Equal(240, Red(20, 20));                     // the shape's ordinal, the first hue
+        Assert.True(Red(44 + 20, 1) > 200);                 // the green, whole where the ground is raised
+        Assert.True(Red(44 + 20, 34) < 60);                 // and nought on the floor
+        Assert.True(Red(88 + 20, 5) > Red(88 + 20, 34));    // the raised ground lighter than the floor
+
+        // THE DEFINITION PAST ITS CORNERS: the test file's 48 bytes of nought, with its strings.
+        Assert.Contains("=== the laid tile definitions past what is read", said, StringComparison.Ordinal);
+        Assert.Contains($"##### {Raised}  version 7 · ", said, StringComparison.Ordinal);
+        Assert.Contains(" · 48 past\n", said, StringComparison.Ordinal);
+        Assert.Contains($"\"{RaisedTemplate}\"", said, StringComparison.Ordinal);
+        Assert.Contains("  00000: " + new string('0', 64) + "\n  00020: " + new string('0', 32) + "\n", said, StringComparison.Ordinal);
+    }
+
     /// <summary>A linear, wrapping read lands on a texel's own value at its middle, halfway between two at their edge, and wraps past the side.</summary>
     [Fact]
     public void ASAMPLEIsLinearAndWraps()

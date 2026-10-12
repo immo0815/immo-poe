@@ -591,7 +591,18 @@ cobblestone would stand over the black almost everywhere but where the mask is w
 for from the live client, 2026-10-12): two grounds are to be mixed the way the engine mixes them, not split by triangle - so a
 tile that still falls back to the split is a gap to close, and the height blending is the rest of the engine's mix, built into
 the mixing step of `ShadeProgram.Grounds` (each ground's height beside its colour, as its graphs hand it - InputHeight) once a
-picture asks for it. "The game draws wood there" was written here once from
+picture asks for it. THE CHECKERBOARD (v0.1.246's ground-mix probe line, three captures of Port's harbour): mixed per pixel, the
+boss's harbour tile came out in squares of black and cobblestone with straight, stepped sides - on the shallow floor and on a path
+under the bridge alike - the dark square at green 1.000 and the light one beside it 0.004, in neighbouring sub-tiles of the one
+tile. Height blending would not mend it (a weight of nought stays nought). ground.ffx's `first_ground` and `second_ground` are only
+the material SLOTS 0 and 1 (`float4(1,0,0,0)`, `float4(0,1,0,0)`) and `invert_g_mask` is an object uniform, so which two materials
+the engine binds to a piece of ground, and whether it inverts the green there, is in no shader - and three things in the files are
+read by nothing: each ground shape's u16 before its box (poe_data_tools' ordinal; a sub-tile's ground is one to five shapes), the
+tile mesh's unnamed header word and byte and its tail entries, and the tile definition past its corners (zao's side offsets,
+sub-tile blocks and ground grid). `ground.txt` writes all three from v0.1.247 (`CaptureGround.Shapes`), each shape with the green
+at its vertices and the mask's 64-texel cells it falls in, and draws the biggest masked templates from above,
+`ground-shapes-N-name.png`: the shapes by ordinal, the green as the mix reads it, the height. Read it before the mix is given a
+rule for which ground a piece of a tile gets. "The game draws wood there" was written here once from
 a picture not looked at closely: the gangway and the ship are wood, the pier is not - look before writing it down.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.

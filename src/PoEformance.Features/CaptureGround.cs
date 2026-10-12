@@ -47,7 +47,7 @@ public sealed record GroundMask(int Number, string Path, GamePicture? Picture, I
 /// READ ONCE A TEMPLATE. Tile files share templates, and a template is read with every sub-tile mesh it names - Port's boss
 /// harbour is 315 - so each is read once whichever files lay it, up to <see cref="MostSubTiles"/> in all.
 /// </remarks>
-public static class CaptureGround
+public static partial class CaptureGround
 {
     /// <summary>Most sub-tile meshes read over the whole area - past it the templates are named, not opened.</summary>
     public const int MostSubTiles = 4096;
@@ -107,6 +107,20 @@ public static class CaptureGround
         IReadOnlyList<string>? masters,
         IReadOnlyList<string>? shaders,
         out IReadOnlyList<GroundMask> masks)
+        => Write(read, tiles, loaded, masters, shaders, out masks, out _);
+
+    /// <summary>
+    /// The whole text of the part, the ground masks decoded, and a picture of every masked template's ground from above - its
+    /// shapes by their unnamed ordinal, the mask's green as the mix reads it, and its height (<see cref="ShapePictures"/>).
+    /// </summary>
+    public static string Write(
+        Func<string, byte[]?> read,
+        TerrainTiles? tiles,
+        IReadOnlyList<string> loaded,
+        IReadOnlyList<string>? masters,
+        IReadOnlyList<string>? shaders,
+        out IReadOnlyList<GroundMask> masks,
+        out IReadOnlyList<(string File, GamePicture Picture)> shapes)
     {
         ArgumentNullException.ThrowIfNull(read);
         ArgumentNullException.ThrowIfNull(loaded);
@@ -153,12 +167,15 @@ public static class CaptureGround
         var texts = new List<(string Path, string Text)>();
         var named = new SortedDictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         var spots = new SortedDictionary<string, Spots>(StringComparer.OrdinalIgnoreCase);
-        int opened = Blocks(read, templates, body, texts, named, spots, out int subTiles);
+        var pieces = new SortedDictionary<string, Pieces>(StringComparer.OrdinalIgnoreCase);
+        int opened = Blocks(read, templates, body, texts, named, spots, pieces, out int subTiles);
         masks = Masks(read, named, body);
         AtVertices(spots, masks, body);
+        shapes = ShapePictures(pieces, masks, body);
         string groundsSaid = Corners(read, laid, cells, corners, NameOf, loaded, masters, body);
         string shadersSaid = Shaders(read, shaders, body);
         Whole(texts, body);
+        Rests(read, laid, body);
 
         var said = new StringBuilder();
         said.Append(CultureInfo.InvariantCulture,
@@ -181,6 +198,7 @@ public static class CaptureGround
         List<(string Path, string Text)> texts,
         SortedDictionary<string, List<string>> masks,
         SortedDictionary<string, Spots> spots,
+        SortedDictionary<string, Pieces> pieces,
         out int subTiles)
     {
         var formats = new SortedDictionary<uint, Format>();
@@ -249,6 +267,17 @@ public static class CaptureGround
                     if (!ground.Ready)
                     {
                         continue;
+                    }
+
+                    if (layout.GroundMask.Length > 0)
+                    {
+                        if (!pieces.TryGetValue(template, out Pieces? kept))
+                        {
+                            kept = new Pieces(Clean(layout.GroundMask), layout.Width, layout.Height);
+                            pieces[template] = kept;
+                        }
+
+                        kept.All.Add((x, y, part));
                     }
 
                     grounds++;

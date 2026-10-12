@@ -186,11 +186,24 @@ public class TileFilesTests
         Dolm(write, ground, new Vector3(0f, 0f, 5f));
         for (var one = 0; one < ground; one++)
         {
-            write.Write((ushort)one);
+            write.Write((ushort)(40 + one));
             write.Write(new byte[24]);
         }
 
-        write.Write(new byte[(tails * 87) + extra]);
+        // EACH TAIL ENTRY TELLS ITS FIELDS APART: its number as the first word, the floats 1 to 12, 9 as the second word, 31 bytes of 0xAB.
+        for (var one = 0; one < tails; one++)
+        {
+            write.Write((uint)one);
+            for (var value = 1; value <= 12; value++)
+            {
+                write.Write((float)value);
+            }
+
+            write.Write(9u);
+            write.Write(Enumerable.Repeat((byte)0xAB, 31).ToArray());
+        }
+
+        write.Write(new byte[extra]);
         return stream.ToArray();
     }
 
@@ -312,6 +325,28 @@ public class TileFilesTests
         Assert.Equal(4, read.Props.Triangles);
         Assert.Equal(2, read.Props.Shapes.Count);
         Assert.Equal(2, read.Ground.Triangles);
+    }
+
+    /// <summary>
+    /// What the reader steps over is kept for the capture: the header's shape count, word and byte, each ground shape's ordinal, and
+    /// the tail entries as poe_data_tools reads them.
+    /// </summary>
+    [Fact]
+    public void ANDItKeepsTheGroundShapesOrdinalsAndTheTailEntries()
+    {
+        TileMesh read = TileMesh.Read(Tgm(props: 1, ground: 2, version: 12, tails: 2));
+
+        Assert.True(read.Exact);
+        Assert.Equal(1, read.HeaderShapes);
+        Assert.Equal(0, read.HeaderWord);
+        Assert.Equal(0, read.HeaderByte);
+        Assert.Equal([40, 41], read.GroundOrdinals);
+        Assert.Equal(2 * TileMesh.TailEntryBytes, read.TailData.Length);
+        (uint first, float[] floats, uint second, byte[] bytes) = read.Tail(1);
+        Assert.Equal(1u, first);
+        Assert.Equal(Enumerable.Range(1, 12).Select(value => (float)value), floats);
+        Assert.Equal(9u, second);
+        Assert.Equal(Enumerable.Repeat((byte)0xAB, 31), bytes);
     }
 
     [Fact]
