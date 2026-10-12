@@ -32,7 +32,9 @@ already cost real time on this project.
   in the capture's zip, beside every other diagnosis the tool can give — ask for that capture
   before theorising about why a tile or room looks wrong. Each probe click also puts its lines in
   the clipboard (asked for from the live client, v0.1.204) - the one copy the capture rule below
-  allows, because it is the probe's own result and not a diagnosis kept out of the catalogue.
+  allows, because it is the probe's own result and not a diagnosis kept out of the catalogue. Only the
+  click's drawing is the processor's (v0.1.238): left on the processor while the probe stood on, a room
+  with running water drew at five frames a second on every core, and a capture pressed then took ages.
 - **`adamthedash/poe_data_tools`** is to the game's FILE formats what GameHelper2 is to its
   memory: working parsers for `.ao`, `.sm`, `.smd`, `.fmt`, `.mat` and `.ast`. Clone it and
   read the parser, not a diagram of it — `crates/poe_data_tools-lib/src/file_parsers/`.
@@ -403,6 +405,17 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   translucent runs after. Unlifted water blends as before. The probe's water line now says whether the sun reaches the pixel
   (`ProbeWater.Sun`): a straight edge where the waves seemed to stop beside the ship was either a seam where the drawing order
   flipped between two planes or the ship's shadow taking the glints - probe it on the new build to tell.
+  THE ROCKS FLOODED (said from the live client, v0.1.238, with three in-game shots): by Port's pier a thick sheet of white foam
+  runs in over the rocks in surges and floods them up to the sand, while the Monster Book's water ends where its planes meet the
+  beach. That is not the planes' pass: water.ffx has three waves that move their own vertices over the shore - BreakingWavesVertex
+  and FloodWaveVertex (both `engineonly`) and CrashingWavesVertex - over meshes the engine makes and textures it binds itself
+  (`wave_shape_precomp_tex`, `wave_coord_noise_tex`, `foam_color_tex`, `foam_normal_tex`, `ripple_normal_tex`), the beach waves'
+  constants in `beach_waves` (500 units a wave, 200 a second, the shoreline half a wave in) and their place from the shore field's
+  world distances (`GetShoreFieldData`, divided by the pass's `dist_to_color`). Port's ocean material says only `"splashywater":true`;
+  the program names the graphs, `BreakingOceanWaves.fxgraph` and `BreakingOceanWavesWetness.fxgraph`, and a debug graph for the
+  flood waves' markup. So the water textures part writes them whole (v0.1.241, `CaptureWaves`): every graph the program names for
+  them and every graph they name, the textures they name with their headers; `waves-replay.txt` parses each again offline, its
+  nodes and which the compile knows. Read it before the beach waves are built: their mesh and `dist_to_color` stay unread.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

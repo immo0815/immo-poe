@@ -94,7 +94,8 @@ public static class CaptureWaterTextures
         string strings = Programs(programs, body, out List<string> named);
         string looked = Lookups(read, textures, named, body, out List<WaterLookupFile> files);
         lookups = files;
-        return listed + "; " + strings + "; " + looked + Environment.NewLine + body;
+        string waves = CaptureWaves.Write(read, textures, named, body);
+        return listed + "; " + strings + "; " + looked + "; " + waves + Environment.NewLine + body;
     }
 
     /// <summary>

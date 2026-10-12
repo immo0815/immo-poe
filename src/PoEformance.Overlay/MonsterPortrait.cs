@@ -1438,9 +1438,12 @@ public sealed class MonsterPortrait
     }
 
     /// <summary>
-    /// The probe switched: while it is on, a click on the picture lists what that pixel is made of, and every drawing counts how its translucent layers came out.
+    /// The probe switched: while it is on, a click on the picture lists what that pixel is made of and how the translucent layers came out over that drawing.
     /// </summary>
     /// <remarks>
+    /// THE CLICK'S DRAWING IS THE PROCESSOR'S, the one that records fragments and counts layers; every other is the card's
+    /// where it can draw (see OnCard), so the lines stand for the last click while the picture moves on.
+    ///
     /// A DIAGNOSIS ASKED FOR, NOT A FEATURE LEFT RUNNING: off, a drawing does not look at either. See
     /// PictureProbe for what it answers, and MeshPicture's PixelProbe for how it is recorded.
     /// </remarks>
@@ -2007,8 +2010,8 @@ public sealed class MonsterPortrait
                 ImGui.SetTooltip((_probing ? "Debug probe on. " : "Debug probe. ")
                     + "Click the picture to list every surface under that pixel, nearest first: material, blend,\n"
                     + "what drew it, where it came from, and for a mixed layer how far in front of the solid behind it lies and its alpha.\n"
-                    + "While on, every drawing also counts how each translucent material came out over the whole picture.\n"
-                    + "The capture key writes the lines to model-probe.txt.");
+                    + "The click's drawing also counts how each translucent material came out over the whole picture.\n"
+                    + "That one drawing is the processor's; the rest stay on the card. The capture key writes the lines to model-probe.txt.");
                 break;
             case ClockSide:
                 ImGui.SetTooltip(_playing
@@ -3454,9 +3457,12 @@ public sealed class MonsterPortrait
             return false;
         }
 
-        if (_probing || Grey)
+        // THE PROBE'S OWN DRAWING ALONE ON THE PROCESSOR - the click's, or the switch's for the layers' counts - and every
+        // other on the card: drawn on the processor while the probe stood on, a room with running water came out at five
+        // frames a second and held every core, and a capture pressed then took ages (said from the live client, v0.1.237).
+        if ((_probing && _probeAsked) || Grey)
         {
-            _cardWhy = _probing ? "the probe reads the processor's drawing" : "the grey is laid on the processor's pixels";
+            _cardWhy = Grey ? "the grey is laid on the processor's pixels" : "the probe reads the processor's drawing";
             return false;
         }
 
