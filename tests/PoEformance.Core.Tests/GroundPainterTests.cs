@@ -6,8 +6,9 @@ using Xunit;
 namespace PoEformance.Core.Tests;
 
 /// <summary>
-/// The ground painted from the area's MaterialsList: one ground all round in its material, two split by the template mask's
-/// green at the block's own coordinates - the MaterialsList's first ground at green nought - and three left plain.
+/// The ground painted from the area's MaterialsList: one ground all round in its material, two mixed per pixel by the template
+/// mask's green at the block's own coordinates - the MaterialsList's first ground at green nought - or split by triangle where
+/// they cannot be mixed, and three left plain.
 /// </summary>
 public sealed class GroundPainterTests
 {
@@ -45,7 +46,24 @@ public sealed class GroundPainterTests
     }
 
     [Fact]
-    public void ATILEOfTwoGroundsIsSplitByItsMasksGreenTheListsFirstAtNought()
+    public void ATILEOfTwoGroundsIsMixedPerPixelTheListsFirstAtNought()
+    {
+        GroundPainter painter = Painter(Mixable);
+        Matrix4x4 place = Matrix4x4.CreateTranslation(500f, 250f, 0f);
+
+        MonsterModel? painted = painter.Paint("two.tdt", Ground(), place, "ground of two.tdt");
+
+        // ONE SHAPE WEARING BOTH, Rock - listed before Sand - at green nought; the block keeping its own coordinates for the mask.
+        Assert.NotNull(painted);
+        Assert.Equal([GroundBlend.Name("Art/rock.mat", "Art/sand2.mat", Mask)], painted!.ShapeMaterials);
+        Assert.Single(painted.Mesh.Shapes);
+        Assert.Equal(Ground().Coordinates, painted.Mesh.Coordinates);
+        Assert.Contains("0 pieces of one ground, 1 of two mixed per pixel", painter.Said(), StringComparison.Ordinal);
+        Assert.DoesNotContain("split by triangle", painter.Said(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ATILEOfTwoGroundsThatCannotBeMixedIsSplitByItsMasksGreenAndSaysWhy()
     {
         GroundPainter painter = Painter();
 
@@ -56,7 +74,8 @@ public sealed class GroundPainterTests
         Assert.Equal(["Art/rock.mat", "Art/sand2.mat"], painted!.ShapeMaterials);
         Assert.Equal([0, 1, 2], painted.Mesh.Indices[..3]);
         Assert.Equal([3, 4, 5], painted.Mesh.Indices[3..6]);
-        Assert.Contains("0 pieces of one ground, 1 of two", painter.Said(), StringComparison.Ordinal);
+        Assert.Contains("0 pieces of one ground, 0 of two mixed per pixel", painter.Said(), StringComparison.Ordinal);
+        Assert.Contains("1 of two split by triangle where the green averages a half - mixing them could not be: 1 a ground whose graphs did not compile: Art/rock.mat", painter.Said(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -78,9 +97,9 @@ public sealed class GroundPainterTests
         Assert.Equal("no master to name a MaterialsList", why);
     }
 
-    private static GroundPainter Painter()
+    private static GroundPainter Painter(Func<string, byte[]?>? read = null)
     {
-        (GroundPainter? painter, string why) = GroundPainter.For(Install, Master, new MonsterModels.Paints());
+        (GroundPainter? painter, string why) = GroundPainter.For(read ?? Install, Master, new MonsterModels.Paints());
         Assert.True(painter is not null, why);
         Assert.Equal("Metadata/Terrain/Maps/Test/materials.mtd", painter!.From);
         return painter;
@@ -101,6 +120,22 @@ public sealed class GroundPainterTests
             positions, [.. positions.Select(_ => -Vector3.UnitZ)], [0, 1, 2, 3, 4, 5], Vector3.Zero, new Vector3(250f, 250f, 0f), coordinates,
             [new MeshShape("0", 0, 6)]);
     }
+
+    /// <summary>The install with the rock's and the sand's materials in it, each a constant colour - so the two grounds can be mixed.</summary>
+    private static byte[]? Mixable(string path) => path switch
+    {
+        "Art/rock.mat" => CaptureGroundTests.Text("""{"version":4,"graphinstances":[{"parent":"Metadata/Grey.fxgraph"}]}"""),
+        "Art/sand2.mat" => CaptureGroundTests.Text("""{"version":4,"graphinstances":[{"parent":"Metadata/Grey.fxgraph"}]}"""),
+        "Metadata/Grey.fxgraph" => CaptureGroundTests.Text(
+            """
+            {"nodes":[
+              {"type":"ConstantPixel3","index":0,"parameters":[{"value":[0.5,0.5,0.5]}]},
+              {"type":"AlbedoColor","index":0,"stage":"Texturing_Init"}],
+             "links":[
+              {"src":{"type":"ConstantPixel3","index":0,"variable":"output"},"dst":{"type":"AlbedoColor","index":0,"stage":"Texturing_Init","variable":"input","swizzle":"xyz"}}]}
+            """),
+        _ => Install(path),
+    };
 
     private static byte[]? Install(string path) => path switch
     {

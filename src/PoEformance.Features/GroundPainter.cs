@@ -26,9 +26,16 @@ namespace PoEformance.Features;
 ///                         beside dust_color, the uniform's neighbour - taken as it, likely and not measured
 ///     which choice        a group of several materials is drawn by weight per tile in the game; the heaviest is taken
 ///
-/// SPLIT BY TRIANGLE, NOT BLENDED BY PIXEL: a triangle wears the second ground where its three vertices' green averages
-/// a half or more. The picture draws one material a shape, so the game's soft edge comes out as a hard one along the
-/// block's own triangles. Three or four grounds (the engine's red atlas, placed by transforms no file holds) stay plain.
+/// MIXED PER PIXEL, as the engine mixes them (v0.1.244): one shape wearing both grounds, the mask's green read at the block's
+/// own coordinates and the two materials run and mixed by it (ShadeProgram.Grounds, MonsterModels.Paints.Grounds) - the
+/// mesh keeps the block's coordinates and the program works the materials' out of the place. Before, a triangle wore the
+/// second ground where its three vertices' green averaged a half or more, and Port's harbour showed the ocean's black in
+/// patches with straight, toothed edges on its beach (said from the live client, v0.1.242's probe on one: blackc.mat under
+/// a thin sea and a thin beach film). That split stays where the two cannot be run as one program, and the line under the
+/// picture says why. NOT DRAWN, DECIDED from the live client (2026-10-12): the engine's height blending
+/// (GROUND_HEIGHT_BLENDING, which Port's ground graph PBRGroundBN.fxgraph turns on - the weights sharpened by the materials'
+/// height maps, blackc.mat's height nought). Three or four grounds (the engine's red atlas, placed by transforms no file
+/// holds) stay plain.
 /// </remarks>
 internal sealed class GroundPainter
 {
@@ -45,8 +52,10 @@ internal sealed class GroundPainter
     private readonly Dictionary<string, GamePicture?> _masks = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Plan> _plans = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _plain = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> _split = new(StringComparer.Ordinal);
     private int _one;
     private int _two;
+    private int _mixed;
 
     private GroundPainter(Func<string, byte[]?> read, GroundMaterials list, string from, MonsterModels.Paints paints)
     {
@@ -130,18 +139,33 @@ internal sealed class GroundPainter
             return null;
         }
 
-        // THE ENGINE'S COORDINATES, from where the piece lies - so a pattern runs on across the pieces as the game's does.
-        var coordinates = new Vector2[ground.Positions.Length];
-        for (var vertex = 0; vertex < coordinates.Length; vertex++)
+        // THE ENGINE'S COORDINATES, from where the piece lies - so a pattern runs on across the pieces as the game's does. Two
+        // grounds mixed keep the block's own, for the mask, and their program works these out of the place (ShadeProgram.Grounds).
+        Vector2[] coordinates;
+        if (plan.Mixed)
         {
-            Vector3 laid = Vector3.Transform(ground.Positions[vertex], place);
-            coordinates[vertex] = new Vector2(laid.X, laid.Y) * GroundScale;
+            coordinates = ground.Coordinates;
+        }
+        else
+        {
+            coordinates = new Vector2[ground.Positions.Length];
+            for (var vertex = 0; vertex < coordinates.Length; vertex++)
+            {
+                Vector3 laid = Vector3.Transform(ground.Positions[vertex], place);
+                coordinates[vertex] = new Vector2(laid.X, laid.Y) * GroundScale;
+            }
         }
 
         SkinnedMesh painted = SkinnedMesh.Of(
             ground.Positions, ground.Normals, plan.Indices, ground.Least, ground.Most, coordinates, plan.Shapes, ground.Facts);
-        _one += plan.Shapes.Count == 1 ? 1 : 0;
-        _two += plan.Shapes.Count == 2 ? 1 : 0;
+        _one += plan.Shapes.Count == 1 && !plan.Mixed ? 1 : 0;
+        _mixed += plan.Mixed ? 1 : 0;
+        if (plan.Shapes.Count == 2)
+        {
+            _two++;
+            _split[plan.Split] = _split.GetValueOrDefault(plan.Split) + 1;
+        }
+
         return MonsterModels.Worn(_read, painted, plan.Named, paintTheRest: false, source, "a tile's ground is static", _paints);
     }
 
@@ -150,14 +174,23 @@ internal sealed class GroundPainter
     {
         string plain = _plain.Count == 0 ? "none"
             : string.Join(", ", _plain.OrderByDescending(one => one.Value).Select(one => string.Create(CultureInfo.InvariantCulture, $"{one.Value} {one.Key}")));
+        string split = _two == 0 ? string.Empty
+            : string.Create(CultureInfo.InvariantCulture, $", {_two} of two split by triangle where the green averages a half - mixing them could not be: ")
+                + string.Join(", ", _split.OrderByDescending(one => one.Value).Select(one => string.Create(CultureInfo.InvariantCulture, $"{one.Value} {one.Key}")));
         return string.Create(CultureInfo.InvariantCulture,
-            $"ground: painted from {From} - {_one} pieces of one ground, {_two} of two split by the template mask's green at the block's own coordinates (the MaterialsList's first ground at green nought, as Port's three families agree - one area), plain: {plain}; the materials' coordinates the world times {GroundScale} (the environments' ground_scale, likely and not measured), a group's heaviest choice where the game draws by weight, and two grounds split by triangle where the game blends");
+            $"ground: painted from {From} - {_one} pieces of one ground, {_mixed} of two mixed per pixel by the template mask's green at the block's own coordinates as the engine mixes them (GroundGenerateWeights_1a1b; the MaterialsList's first ground at green nought, as Port's three families agree - one area; its height blending not drawn, DECIDED){split}, plain: {plain}; the materials' coordinates the world times {GroundScale} (the environments' ground_scale, likely and not measured), a group's heaviest choice where the game draws by weight");
     }
 
     /// <summary>How a tile's ground is painted, worked out once whatever number of pieces lay it.</summary>
     private sealed record Plan(int[] Indices, IReadOnlyList<MeshShape> Shapes, IReadOnlyList<(string Shape, string Material)> Named, string Why)
     {
         public static Plan Plain(string why) => new([], [], [], why);
+
+        /// <summary>Whether the two grounds are mixed per pixel, the block keeping its own coordinates - see the class's remarks.</summary>
+        public bool Mixed { get; init; }
+
+        /// <summary>Why two grounds are split by triangle instead, where they are.</summary>
+        public string Split { get; init; } = string.Empty;
     }
 
     private Plan Planned(string tile, SkinnedMesh ground)
@@ -228,7 +261,13 @@ internal sealed class GroundPainter
             return Plan.Plain("of two grounds whose block carries no coordinates into its mask");
         }
 
-        // EACH TRIANGLE TO THE GROUND ITS VERTICES' GREEN AVERAGES TO, the first's then the second's.
+        // MIXED PER PIXEL as the engine mixes them, where the two grounds' programs run as one - see the remarks.
+        if (_paints.Grounds(_read, first, second, Clean(mask), GroundScale, out string unmixed) is { } mixed)
+        {
+            return new Plan(ground.Indices, [new MeshShape("0", 0, ground.Indices.Length)], [("0", mixed)], string.Empty) { Mixed = true };
+        }
+
+        // ELSE EACH TRIANGLE TO THE GROUND ITS VERTICES' GREEN AVERAGES TO, the first's then the second's.
         var green = new float[ground.Positions.Length];
         for (var vertex = 0; vertex < green.Length; vertex++)
         {
@@ -250,7 +289,7 @@ internal sealed class GroundPainter
             ordered,
             [new MeshShape("0", 0, firsts.Count), new MeshShape("1", firsts.Count, seconds.Count)],
             [("0", first), ("1", second)],
-            string.Empty);
+            string.Empty) { Split = unmixed };
     }
 
     /// <summary>A group's heaviest choice - its only one where it has one.</summary>
@@ -306,4 +345,47 @@ internal sealed class GroundPainter
     }
 
     private static string Clean(string path) => path.Replace('\\', '/').Trim();
+}
+
+/// <summary>
+/// The name a tile's ground of two grounds wears as its material when the two are mixed per pixel - see GroundPainter and
+/// MonsterModels.Paints.Grounds - and how a picture's lines say it.
+/// </summary>
+/// <remarks>
+/// A NAME, NOT A FILE: every list a shape's material travels through - the pile, the join, the stage, the probe, the capture - carries
+/// it as it carries a material's path, and the paint cache that made the program answers for it.
+/// </remarks>
+internal static class GroundBlend
+{
+    private const string With = " mixed with ";
+
+    private const string By = " by the green of ";
+
+    /// <summary>The name for two grounds mixed by a mask.</summary>
+    public static string Name(string first, string second, string mask) => first + With + second + By + mask;
+
+    /// <summary>The two grounds and the mask a name says, or false where it is a material's own path.</summary>
+    public static bool Parts(string material, out string first, out string second, out string mask)
+    {
+        first = second = mask = string.Empty;
+        int with = material.IndexOf(With, StringComparison.Ordinal);
+        int by = material.LastIndexOf(By, StringComparison.Ordinal);
+        if (with <= 0 || by <= with)
+        {
+            return false;
+        }
+
+        first = material[..with];
+        second = material[(with + With.Length)..by];
+        mask = material[(by + By.Length)..];
+        return true;
+    }
+
+    /// <summary>The name as a picture's lines say it - the three files' own names.</summary>
+    public static string Short(string material)
+        => Parts(material, out string first, out string second, out string mask)
+            ? $"{Tail(first)} + {Tail(second)} by {Tail(mask)}'s green"
+            : Tail(material);
+
+    private static string Tail(string path) => path[(path.LastIndexOfAny(['/', '\\']) + 1)..];
 }

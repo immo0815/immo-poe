@@ -2840,6 +2840,93 @@ public static class MonsterModels
         }
 
         /// <summary>
+        /// The name a tile's ground of two grounds wears when they are mixed per pixel by its mask's green (ShadeProgram.Grounds) -
+        /// its program registered under it for <see cref="Shade"/>, and opaque for <see cref="Modes"/> - or null and why not.
+        /// </summary>
+        /// <param name="read">How to get a file out of the install, by path.</param>
+        /// <param name="first">The ground at green nought.</param>
+        /// <param name="second">The ground at green one.</param>
+        /// <param name="mask">The template's ground mask.</param>
+        /// <param name="scale">The ground materials' tiling - see ShadeProgram.Grounds.</param>
+        /// <param name="why">Why there is none, where there is none.</param>
+        public string? Grounds(Func<string, byte[]?> read, string first, string second, string mask, float scale, out string why)
+        {
+            string name = GroundBlend.Name(first, second, mask);
+            if (_shades.ContainsKey(name))
+            {
+                why = string.Empty;
+                return name;
+            }
+
+            if (_unmixed.TryGetValue(name, out string? known))
+            {
+                why = known;
+                return null;
+            }
+
+            (ShadeProgram? flatFirst, ShadeProgram? shineFirst, string whyFirst) = Bound(read, first);
+            (ShadeProgram? flatSecond, ShadeProgram? shineSecond, string whySecond) = Bound(read, second);
+            Mipmaps? sheet = Sheet(read, mask);
+            var texture = new ShadeTexture(mask, false);
+            ShadeProgram? flat = flatFirst is null || flatSecond is null || sheet is null
+                ? null
+                : ShadeProgram.Grounds(flatFirst, flatSecond, texture, sheet, scale);
+            if (flat is null)
+            {
+                why = flatFirst is null ? whyFirst
+                    : flatSecond is null ? whySecond
+                    : sheet is null ? "its mask did not read: " + mask
+                    : "the two grounds' programs cannot be run as one (more registers than a program takes, or one reads the triangle's tangent frame)";
+                _unmixed[name] = why;
+                return null;
+            }
+
+            ShadeProgram? shine = shineFirst is not null || shineSecond is not null
+                ? ShadeProgram.Grounds(shineFirst ?? flatFirst!, shineSecond ?? flatSecond!, texture, sheet, scale)
+                : null;
+            _shades[name] = new Shade(flat, null, [], shine);
+            _modes[name] = (string.Empty, string.Empty);
+            why = string.Empty;
+            return name;
+        }
+
+        /// <summary>The pairs of grounds that could not be mixed as one program, with why - asked once each.</summary>
+        private readonly Dictionary<string, string> _unmixed = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>One material's program and its glossy twin with their textures in hand - even where its colour is one plain read - or null and why.</summary>
+        private (ShadeProgram? Flat, ShadeProgram? Glossy, string Why) Bound(Func<string, byte[]?> read, string material)
+        {
+            if (Compiled(read, material).Compiled.Program is not { } program)
+            {
+                return (null, null, "a ground whose graphs did not compile: " + material);
+            }
+
+            var sheets = new Mipmaps?[program.Textures.Count];
+            for (var one = 0; one < sheets.Length; one++)
+            {
+                sheets[one] = Sheet(read, program.Textures[one].Path);
+                if (sheets[one] is null)
+                {
+                    return (null, null, "a ground's texture that did not read: " + program.Textures[one].Path);
+                }
+            }
+
+            ShadeProgram? shine = null;
+            if (program.Glossy is { } glossy)
+            {
+                var more = new Mipmaps?[glossy.Textures.Count];
+                for (var one = 0; one < more.Length; one++)
+                {
+                    more[one] = Sheet(read, glossy.Textures[one].Path);
+                }
+
+                shine = glossy.With(more) is { Bound: true } lit ? lit : null;
+            }
+
+            return (program.With(sheets), shine, string.Empty);
+        }
+
+        /// <summary>
         /// What one material's graphs compute for its colour - see MonsterModels.Shaded.
         /// </summary>
         public Shade Shade(Func<string, byte[]?> read, string material)

@@ -249,9 +249,20 @@ public static class CapturePanes
             MonsterModel model = pane.Model;
             foreach (int shape in pane.Probed)
             {
-                if (MaterialOf(model, shape) is { Length: > 0 } material && named.Add(material))
+                if (MaterialOf(model, shape) is not { Length: > 0 } worn)
                 {
-                    picked.Add((material, $"under the probe in the {pane.Book} book's pane · {Drawn(pane, shape)}{From(model, shape)}"));
+                    continue;
+                }
+
+                // TWO GROUNDS MIXED ARE WRITTEN AS THE TWO MATERIALS THEY ARE, the name they are worn under being no file.
+                string[] materials = GroundBlend.Parts(worn, out string first, out string second, out string mask) ? [first, second] : [worn];
+                string mixed = materials.Length == 2 ? $" · mixed per pixel by {mask}'s green" : string.Empty;
+                foreach (string material in materials)
+                {
+                    if (named.Add(material))
+                    {
+                        picked.Add((material, $"under the probe in the {pane.Book} book's pane · {Drawn(pane, shape)}{mixed}{From(model, shape)}"));
+                    }
                 }
             }
 

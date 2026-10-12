@@ -575,9 +575,19 @@ the seven ocean-edge walls r 1.00; the twelve coasts too. So two grounds are spl
 block's own coordinates (`GroundGenerateWeights_1a1b`), and in all three of Port's families the ground at green nought
 is the one the MaterialsList lists FIRST (Town fill, then Ocean, then Tropical - neither the names' order nor the
 terrain's list fits) - one area's evidence, which another area's capture is to confirm. A laid or built room now
-paints its ground so (`GroundPainter`): one ground in its group's heaviest choice, two split by triangle on the
-green, three or four plain; the materials' coordinates the placed position times 0.004; the master given, or
-`master.tsi` beside the room's `Rooms/`. The line under the picture says each of those decisions. "The game draws wood there" was written here once from
+paints its ground so (`GroundPainter`): one ground in its group's heaviest choice, two mixed per pixel by the green,
+three or four plain; the materials' coordinates the placed position times 0.004; the master given, or
+`master.tsi` beside the room's `Rooms/`. The line under the picture says each of those decisions. TWO GROUNDS ARE MIXED
+PER PIXEL AS THE ENGINE MIXES THEM (v0.1.244, `ShadeProgram.Grounds`, `MonsterModels.Paints.Grounds`, worn under a name of
+their own, `GroundBlend`): the mesh keeps the block's own coordinates for the mask, the program reads its green there, works
+the materials' coordinates out of the place (CreateProjectedCoords) and runs both grounds, mixing them by
+`lerp(first, second, green)` (GroundGenerateWeights_1a1b). Until then a triangle took the second ground where its vertices'
+green averaged a half, and Port's beach showed the ocean's black (`blackc.mat`) in patches with straight, toothed edges under
+the thin sea and beach film (v0.1.242's probe on one, said from the live client). The split by triangle stays only where the two
+cannot run as one program, and the line under the picture says why. NOT DRAWN, DECIDED from the live client: the engine's
+height blending (GROUND_HEIGHT_BLENDING, which Port's PBRGroundBN.fxgraph turns on with EnableGroundHeightBlending: each weight
+times `1 / (1 + (max_height - height) / 0.01)`, a material's height its texture's, blackc.mat's nought) - with it the
+cobblestone would stand over the black almost everywhere but where the mask is wholly green. "The game draws wood there" was written here once from
 a picture not looked at closely: the gangway and the ship are wood, the pier is not - look before writing it down.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
