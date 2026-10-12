@@ -252,14 +252,10 @@ public sealed record OverlaySettings(
     // book, since it is the same question in each. See MonsterPortrait.FlatLight.
     [property: JsonPropertyName("modelFlatLight")] bool ModelFlatLight = false,
 
-    // Whether the model panes draw on the graphics card where it can draw the same picture as the
-    // processor. ON, the usual: it is the same picture, faster. One for every book. See CardPictures.
-    [property: JsonPropertyName("modelCard")] bool ModelCard = true,
-
-    // Whether the card reads textures anisotropically - the one picture it draws that the processor
-    // does not. ON, the usual: it is what the game does, and a surface seen at a slant stays sharp
-    // along it where a trilinear read goes soft. Off is the processor's read, for comparing. One for
-    // every book; a right-click on the card button. See ModelGpu and CardPictures.Sharp.
+    // Whether the card reads textures anisotropically. ON, the usual: it is what the game does, and a
+    // surface seen at a slant stays sharp along it where a trilinear read goes soft. One for every
+    // book; the card button. See ModelGpu and CardPictures.Sharp. (The card draws where it can, with
+    // no switch to the processor - "modelCard" is gone, and an older settings file's is ignored.)
     [property: JsonPropertyName("modelCardSharp")] bool ModelCardSharp = true,
 
     // Whether the monster book's facet rail has a pane of its own. ON by default, because a rail
