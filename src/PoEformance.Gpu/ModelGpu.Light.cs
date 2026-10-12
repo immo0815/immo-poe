@@ -36,22 +36,24 @@ public sealed partial class ModelGpu
     /// <param name="plan">Its runs.</param>
     /// <param name="view">The camera's turn - the way into the picture is its third column.</param>
     /// <param name="placed">The vertices the picture is drawn from, the pose's where it moves.</param>
-    /// <param name="still">Whether those are the mesh's own, so a map drawn from them may be kept.</param>
-    private void Lit(SceneLight light, MeshBuffers buffers, Plan plan, Matrix4x4 view, Vector3[] placed, bool still)
+    /// <param name="pose">Which those are: nought the mesh's own, a pose's key, -1 a pose nothing is known of - a map is kept for the first two.</param>
+    /// <param name="from">The first vertex the pose moves - <see cref="ModelScene.PoseFrom"/> - or nought.</param>
+    private void Lit(SceneLight light, MeshBuffers buffers, Plan plan, Matrix4x4 view, Vector3[] placed, long pose, int from)
     {
         ID3D11DeviceContext context = _context;
         ShadowTarget? map = null;
         ShadowFrame frame = default;
         var drawn = false;
+        int split = -1;
         if (light.SunShadows && light.SunColour != Vector3.Zero)
         {
-            if (still && buffers.ShadowFor is { } was && was.Direction == light.SunDirection && was.Side == light.ShadowSide
-                && buffers.Shadow is not null)
+            if (pose >= 0 && buffers.ShadowFor is { } was && was.Direction == light.SunDirection && was.Side == light.ShadowSide
+                && was.Pose == pose && ReferenceEquals(was.Plan, plan) && buffers.Shadow is not null)
             {
                 map = buffers.Shadow;
                 frame = was.Frame;
             }
-            else if (ShadowMap.Framed(placed, light.SunDirection, light.ShadowSide) is { } framed)
+            else if (Framed(buffers, placed, light, from, out split) is { } framed)
             {
                 frame = framed;
                 if (buffers.Shadow is not { } kept || kept.Side != framed.Side)
@@ -62,7 +64,7 @@ public sealed partial class ModelGpu
 
                 map = buffers.Shadow;
                 drawn = true;
-                buffers.ShadowFor = still ? (light.SunDirection, light.ShadowSide, framed) : null;
+                buffers.ShadowFor = pose >= 0 ? (light.SunDirection, light.ShadowSide, framed, pose, plan) : null;
             }
             else
             {
@@ -86,7 +88,7 @@ public sealed partial class ModelGpu
             CubeTurn = light.CubeTurn,
             SunColour = new Vector4(light.SunColour, light.SunColour != Vector3.Zero ? 1f : 0f),
             SunTravels = new Vector4(light.SunDirection, map is null ? 0f : 1f),
-            ToEye = new Vector4(toEye, 0f),
+            ToEye = new Vector4(toEye, light.WaterReflection && light.WaterScene ? 1f : 0f),
             Surround = new Vector4(light.FlatAmbient, light.CubeBrightness, light.DirectLightEnvRatio, light.GiEnvOcclusion),
             Finish = new Vector4(light.Exposure, light.WaterGlints ? 1f : 0f, light.WaterReflection ? 1f : 0f, mirror?.Size ?? 0),
             CellLeast = new Vector4(cells.Least, cells.Size),
@@ -104,9 +106,13 @@ public sealed partial class ModelGpu
         // TAKEN OFF BEFORE IT IS DRAWN INTO - a texture bound for reading is unbound as a target by the
         // runtime, with a warning, and the other way round.
         context.PSSetShaderResource(6, null!);
-        if (drawn)
+        if (drawn && split > 0)
         {
-            Cast(map!, plan);
+            Staged(map!, buffers, plan, frame, split);
+        }
+        else if (drawn)
+        {
+            Cast(map!, plan, plan.Casts, clear: true);
         }
 
         LightBuffers? points = light.PointCount > 0 ? Points(light) : null;
@@ -118,24 +124,82 @@ public sealed partial class ModelGpu
         context.PSSetShaderResource(6, map?.View!);
     }
 
-    /// <summary>The sun's shadow map drawn: every caster along the light, each texel keeping its nearest depth.</summary>
-    private void Cast(ShadowTarget map, Plan plan)
+    /// <summary>How many shadow maps were drawn as a kept stage and the monster cast over it - see <see cref="Staged"/>; for the tests.</summary>
+    internal long ShadowsStaged { get; private set; }
+
+    /// <summary>
+    /// The frame the sun's map is drawn in - from every vertex, or where a pose moves only a monster's, from the stage's bounds kept and his scanned - and the triangle the stage's casters end at where the monster stands inside the stage's frame, else -1.
+    /// </summary>
+    private static ShadowFrame? Framed(MeshBuffers buffers, Vector3[] placed, SceneLight light, int from, out int split)
+    {
+        split = from > 0 && from < placed.Length ? buffers.Split(from) : -1;
+        if (split <= 0)
+        {
+            return ShadowMap.Framed(placed, light.SunDirection, light.ShadowSide);
+        }
+
+        ShadowBounds stage = buffers.StageBounds(from, light.SunDirection);
+        ShadowBounds whole = stage.With(ShadowMap.Bounded(placed.AsSpan(from), light.SunDirection));
+        if (whole != stage)
+        {
+            split = -1;
+        }
+
+        return ShadowMap.Framed(whole, light.SunDirection, light.ShadowSide);
+    }
+
+    /// <summary>
+    /// The sun's map of a monster posed on a stage: the stage's own casters drawn once into a map of their own and kept, copied in, and the monster's cast over it.
+    /// </summary>
+    /// <remarks>
+    /// THE SAME MAP TO THE BIT as every caster drawn at once: each texel keeps the least depth drawn
+    /// into it whatever the order, and the monster standing inside the stage's frame leaves the frame
+    /// the stage's alone (<see cref="Framed(MeshBuffers, Vector3[], SceneLight, int, out int)"/>). A
+    /// playing animation recast a room of two million triangles every frame for a monster's worth of moved ones.
+    /// </remarks>
+    private void Staged(ShadowTarget map, MeshBuffers buffers, Plan plan, ShadowFrame frame, int split)
+    {
+        (Run[] stage, Run[] moving) = buffers.Parted(plan, split);
+        if (buffers.StageShadow is not { } kept || kept.Side != frame.Side
+            || buffers.StageShadowFor is not { } was || !ReferenceEquals(was.Plan, plan) || was.Frame != frame || was.Split != split)
+        {
+            if (buffers.StageShadow is not { } had || had.Side != frame.Side)
+            {
+                buffers.StageShadow?.Dispose();
+                buffers.StageShadow = new ShadowTarget(_device, frame.Side);
+            }
+
+            Cast(buffers.StageShadow, plan, stage, clear: true);
+            buffers.StageShadowFor = (plan, frame, split);
+        }
+
+        _context.CopyResource(map.Texture, buffers.StageShadow.Texture);
+        Cast(map, plan, moving, clear: false);
+        ShadowsStaged++;
+    }
+
+    /// <summary>The sun's shadow map drawn: these casters along the light, each texel keeping its nearest depth - over a cleared map or over what it holds.</summary>
+    private void Cast(ShadowTarget map, Plan plan, Run[] casts, bool clear)
     {
         ID3D11DeviceContext context = _context;
-        context.ClearRenderTargetView(map.Target, new Color4(float.MaxValue, float.MaxValue, float.MaxValue, float.MaxValue));
+        if (clear)
+        {
+            context.ClearRenderTargetView(map.Target, new Color4(float.MaxValue, float.MaxValue, float.MaxValue, float.MaxValue));
+        }
+
         context.OMSetRenderTargets(map.Target, null);
         context.RSSetViewport(new Viewport(0f, 0f, map.Side, map.Side, 0f, 1f));
         context.OMSetBlendState(_least);
         context.OMSetDepthStencilState(_ignores);
         context.VSSetShader(_casting);
         context.PSSetShader(_away);
-        foreach (Run run in plan.Casts)
+        foreach (Run run in casts)
         {
             // ONLY A CUT-OUT ONE READS ITS TEXTURE - ShadowMap.Build cuts nothing else.
             Mipmaps? worn = run.Blend == MaterialBlend.Cutout ? plan.Palette[run.Wears] : null;
             ID3D11ShaderResourceView? view = worn is null ? null : Skin(worn).View;
             context.PSSetShaderResource(0, view!);
-            Written(_part, new Vector4(view is null ? 0f : 1f, view is null ? -1f : MeshPicture.CutoutAlpha, 0f, 0f));
+            Part(new Vector4(view is null ? 0f : 1f, view is null ? -1f : MeshPicture.CutoutAlpha, 0f, 0f));
             context.DrawIndexed(run.Count * 3, run.First * 3, 0);
         }
 
@@ -364,18 +428,18 @@ public sealed partial class ModelGpu
     /// <summary>The sun's shadow map on the card: one float a texel, the nearest depth.</summary>
     private sealed class ShadowTarget : IDisposable
     {
-        private readonly ID3D11Texture2D _texture;
-
         public ShadowTarget(ID3D11Device device, int side)
         {
             Side = side;
-            _texture = device.CreateTexture2D(new Texture2DDescription(
+            Texture = device.CreateTexture2D(new Texture2DDescription(
                 Format.R32_Float, side, side, 1, 1, BindFlags.RenderTarget | BindFlags.ShaderResource));
-            Target = device.CreateRenderTargetView(_texture);
-            View = device.CreateShaderResourceView(_texture);
+            Target = device.CreateRenderTargetView(Texture);
+            View = device.CreateShaderResourceView(Texture);
         }
 
         public int Side { get; }
+
+        public ID3D11Texture2D Texture { get; }
 
         public ID3D11RenderTargetView Target { get; }
 
@@ -385,7 +449,7 @@ public sealed partial class ModelGpu
         {
             View.Dispose();
             Target.Dispose();
-            _texture.Dispose();
+            Texture.Dispose();
         }
     }
 }

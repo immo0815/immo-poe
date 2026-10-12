@@ -431,10 +431,14 @@ public sealed class BundleIndex
         return new WalkedNames(found, inside.Length > 0 ? inside[0] : []);
     }
 
-    /// <summary>One place a walk keeps paths from: a folder, and what a kept path may end with.</summary>
+    /// <summary>One place a walk keeps paths from: a folder, what a kept path may end with, and words one of which it must hold.</summary>
     /// <param name="Folder">A path prefix, e.g. <c>Shaders/</c>. EMPTY MEANS ANYWHERE, and then an extension is required.</param>
     /// <param name="Extensions">What a kept path may end with. An empty one keeps every path in the folder.</param>
-    public readonly record struct WalkPlace(string Folder, IReadOnlyList<string> Extensions);
+    /// <param name="Words">
+    /// Null or empty for any path; else a path is kept only where it holds one of them, whatever their case - tested
+    /// on the path's bytes, so the hundreds of thousands it rejects are never made strings.
+    /// </param>
+    public readonly record struct WalkPlace(string Folder, IReadOnlyList<string> Extensions, IReadOnlyList<string>? Words = null);
 
     /// <summary>
     /// Every path in each of several places, in one walk - a list per place, in the order asked.
@@ -499,6 +503,7 @@ public sealed class BundleIndex
 
         var starts = new byte[places.Count][];
         var ends = new byte[places.Count][][];
+        var words = new byte[places.Count][][];
         var live = new bool[places.Count];
         var anyPlace = false;
         for (var one = 0; one < places.Count; one++)
@@ -506,6 +511,7 @@ public sealed class BundleIndex
             WalkPlace place = places[one];
             starts[one] = string.IsNullOrWhiteSpace(place.Folder) ? [] : System.Text.Encoding.UTF8.GetBytes(place.Folder);
             ends[one] = [.. (place.Extensions ?? []).Select(end => System.Text.Encoding.UTF8.GetBytes(end ?? string.Empty))];
+            words[one] = [.. (place.Words ?? []).Where(word => !string.IsNullOrEmpty(word)).Select(word => System.Text.Encoding.UTF8.GetBytes(word.ToLowerInvariant()))];
 
             // ANYWHERE KEEPS ONLY WHAT AN EXTENSION NAMES - an empty one there would match every path.
             if (starts[one].Length == 0)
@@ -543,7 +549,8 @@ public sealed class BundleIndex
                 if (live[one]
                     && path.Length >= start.Length
                     && path[..start.Length].SequenceEqual(start, CaseBlind)
-                    && Ends(path, start.Length, ends[one]))
+                    && Ends(path, start.Length, ends[one])
+                    && Holds(path, words[one]))
                 {
                     inside[one].Add(System.Text.Encoding.UTF8.GetString(path));
                 }
@@ -560,6 +567,32 @@ public sealed class BundleIndex
         }
 
         return (found, inside);
+    }
+
+    /// <summary>Whether a path holds one of the words, lower case - its letters lowered as it is tested; true where there are none.</summary>
+    private static bool Holds(ReadOnlySpan<byte> path, byte[][] words)
+    {
+        if (words.Length == 0)
+        {
+            return true;
+        }
+
+        Span<byte> lowered = path.Length <= LongestPath ? stackalloc byte[path.Length] : new byte[path.Length];
+        for (var at = 0; at < path.Length; at++)
+        {
+            byte one = path[at];
+            lowered[at] = one is >= (byte)'A' and <= (byte)'Z' ? (byte)(one + 32) : one;
+        }
+
+        foreach (byte[] word in words)
+        {
+            if (lowered.IndexOf(word) >= 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Whether a path past its folder ends in one of the extensions.</summary>

@@ -269,6 +269,9 @@ public static class ShadeHlsl
         }
         """;
 
+    /// <summary>The slot the ripple texture is read from - ShadeProgram.RippleSheet, bound by the drawing for the pixel and the vertex shaders alike.</summary>
+    public const int RippleSlot = 10;
+
     /// <summary>
     /// ShadeProgram.Ripples and Ripple, line for line, for a program with a <c>Waves</c> step - their turns written in as the processor's numbers, to the bit.
     /// </summary>
@@ -396,50 +399,35 @@ public static class ShadeHlsl
         string ratio = string.Join(", ", new[] { 0f, 1f / 3.001f, 2f / 3.001f, 3f / 3.001f }.Select(Number));
         string cos = string.Join(", ", ShadeProgram.OctaveCos.Select(Number));
         string sin = string.Join(", ", ShadeProgram.OctaveSin.Select(Number));
-        string texels = Number(4f / ShadeProgram.RippleCell);
-        string range = Number(0.70710677f);
+        int side = ShadeProgram.RippleSide;
         string turnCos = Number(ShadeProgram.TurnCos);
         string turnSin = Number(ShadeProgram.TurnSin);
         return $$"""
-            float2 ShadeRippleGradient(int cx, int cy)
-            {
-                uint3 h = ShadePcg(asuint(int3(cx, cy, 0)));
-                float2 grad = float2(ShadeHashUnit(h.x) - 0.5, ShadeHashUnit(h.y) - 0.5);
-                return grad / sqrt(max(dot(grad, grad), 1e-12));
-            }
+            Texture2D<float4> ShadeRipples : register(t{{RippleSlot}});
 
+            // ShadeProgram.Ripple: the four nearest texels' centres of the ripple texture, mixed by hand.
             float ShadeRipple(float qx, float qy, out float gx, out float gy)
             {
-                float sx = qx * {{texels}};
-                float sy = qy * {{texels}};
+                float sx = (qx * 4.0) - 0.5;
+                float sy = (qy * 4.0) - 0.5;
                 float fx0 = floor(sx);
                 float fy0 = floor(sy);
-                int ix = (int)fx0;
-                int iy = (int)fy0;
                 float fx = sx - fx0;
                 float fy = sy - fy0;
-                float2 ga = ShadeRippleGradient(ix, iy);
-                float2 gb = ShadeRippleGradient(ix + 1, iy);
-                float2 gc = ShadeRippleGradient(ix, iy + 1);
-                float2 gd = ShadeRippleGradient(ix + 1, iy + 1);
-                float a = (ga.x * fx) + (ga.y * fy);
-                float b = (gb.x * (fx - 1.0)) + (gb.y * fy);
-                float c = (gc.x * fx) + (gc.y * (fy - 1.0));
-                float d = (gd.x * (fx - 1.0)) + (gd.y * (fy - 1.0));
-                float u = fx * fx * (3.0 - (2.0 * fx));
-                float v = fy * fy * (3.0 - (2.0 * fy));
-                float du = 6.0 * fx * (1.0 - fx);
-                float dv = 6.0 * fy * (1.0 - fy);
-                float k1 = b - a;
-                float k2 = c - a;
-                float k3 = a - b - c + d;
-                float noise = a + (u * k1) + (v * k2) + (u * v * k3);
-                float nx = ga.x + (u * (gb.x - ga.x)) + (v * (gc.x - ga.x)) + (u * v * (ga.x - gb.x - gc.x + gd.x)) + (du * (k1 + (v * k3)));
-                float ny = ga.y + (u * (gb.y - ga.y)) + (v * (gc.y - ga.y)) + (u * v * (ga.y - gb.y - gc.y + gd.y)) + (dv * (k2 + (u * k3)));
-                float rise = 3.0 * 0.5 / {{range}};
-                gx = nx * rise * {{texels}};
-                gy = ny * rise * {{texels}};
-                return ((0.5 + (0.5 * noise / {{range}})) - 0.4) * 3.0;
+                int x0 = ((int)fx0) & {{side - 1}};
+                int y0 = ((int)fy0) & {{side - 1}};
+                int x1 = (x0 + 1) & {{side - 1}};
+                int y1 = (y0 + 1) & {{side - 1}};
+                float3 a = ShadeRipples.Load(int3(x0, y0, 0)).xyz;
+                float3 b = ShadeRipples.Load(int3(x1, y0, 0)).xyz;
+                float3 c = ShadeRipples.Load(int3(x0, y1, 0)).xyz;
+                float3 d = ShadeRipples.Load(int3(x1, y1, 0)).xyz;
+                float3 top = a + ((b - a) * fx);
+                float3 bottom = c + ((d - c) * fx);
+                float3 mixed = top + ((bottom - top) * fy);
+                gx = mixed.y * 12.0;
+                gy = mixed.z * 12.0;
+                return (mixed.x - 0.4) * 3.0;
             }
 
             static const float ShadeOctaveRatio[4] = { {{ratio}} };

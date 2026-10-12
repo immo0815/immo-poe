@@ -260,8 +260,12 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   never loaded before, its level of 128 - `CubeMap.Read`'s `largest`), each by a switch in the light panel's "water" row;
   the colour and the diffuse light keep the mesh's normal, and the lamp draws the water as before. TAKEN FROM THE SOURCE:
   the octaves, the gloss, the specular. CHOSEN, and said under the picture: the ripple texture the octaves read
-  (`surface_tex_sampler`, a pass texture the engine binds, named nowhere) stands as gradient noise read as the engine
-  reads its texture, a cell every 16 texels (`ShadeProgram.RippleCell`) - `Ripple` alone changes when it is found; the
+  (`surface_tex_sampler`, a pass texture the engine binds, named nowhere) stands as a texture of gradient noise made once,
+  128 texels a side as the engine's, a cell every 16 texels (`ShadeProgram.RippleSheet`, `RippleCell`), and READ AS THE
+  ENGINE READS ITS OWN from v0.1.225 - linear and wrapping, four texels a unit of the octave, the height `(r - 0.4) * 3` and
+  the texels' slope mixed, not the mixed height's; the card loads it at t10, four loads an octave, where it hashed noise
+  per pixel and vertex before, and the processor's `Ripples` went from 630 to 331 ns - its texels alone change when the
+  engine's is found; the
   drift (the engine's flow map is made at run time) is the colour pattern's, (18, 12) a unit of flow. At Port's flow they
   lean 2.7 degrees at the median, 8.7 at most, so the sun glints only where its mirror image falls near - real glitter.
   Seen from the side the sea stood flat (asked for from the live client), and so does the engine's: its ocean planes are
@@ -270,8 +274,23 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   (v0.1.223, `SceneLight.WaterLift`, the light panel's "lift", one the engine's height, up to five): a room's water shapes
   are split to edges of 48 (`SkinnedMesh.Refined`, `RoomModels.Watered`, by the blend word "water") and their vertices
   lifted by `Ripples` times the lift - the card's `PlacedWaves`, the processor's `MeshPicture.Lifted`, which also keeps a
-  lifted drawing from `Again`. NOT DONE: the height offset (water.ffx adds it to the surface's displacement), the
-  terrain water colour, screen-space reflections, the refraction's bend, foam.
+  lifted drawing from `Again`. THE SCENE IN THE WATER (v0.1.224, the water row's "scene"): the engine's own screen-space
+  reflection, `CastScreenRay` as written (`ScreenReflection`) - the view turned about the waves' normal and kept above the
+  water's own surface, marched in twenty steps of a fiftieth of the picture over the SOLID part's depth, a hit where a
+  surface lies in front of the ray by under fifty units, its colour the solid part's (the engine's opaque framebuffer:
+  the card copies the solid pass, `ModelTarget.Saw`; the processor draws every band's solid part before any band's water,
+  `Drawing.Reflects`), the cube's share `pow((step + 0.5) / 20, 5)`. READINGS, said under the picture: the dither
+  (`GetBayerNoise16` named, not read - a 4 by 4 Bayer) and the reflected colour's alpha as the cube's share
+  (`ComputeEnvironmentLighting` unread); `water.txt` asks for both sources from v0.1.224. The reflected light is added
+  after the exposure and grade, having been drawn with them. NOT ON THIS PATH, read from water.ffx (v0.1.228): the
+  height offset - `water_height_offset` is added only by the beach, crashing and flood waves (`BreakingWavesVertex`,
+  `CrashingWavesVertex`, `FloodWaveVertex`, their water depth and the beach foam's height fade), never on an ocean plane's,
+  so Port's -15 moves nothing the harbour draws. NOT DONE: the terrain water colour, the refraction's bend, foam - and the waves' own look: the ripple
+  texture's texels and the flow map that drive them are not read, so they look and move otherwise than the game's (said from the
+  live client, v0.1.223). `water-textures.txt` (`CaptureWaterTextures`, v0.1.227) looks for the texture: every install
+  texture whose path names the water (the startup walk keeps only those, `WalkPlace.Words`) with its size and format, those
+  128 square marked, the likeliest decoded channel by channel beside it, and the game program's own strings naming one -
+  read it before the stand-in's texels are replaced.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

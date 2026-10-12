@@ -125,6 +125,9 @@ public static class CaptureParts
     /// <summary>What the water is drawn from: every environment's water keys, and the shader sources of the water pass.</summary>
     public const string Water = "water";
 
+    /// <summary>Where the engine's ripple texture may be: the textures whose paths name the water, the likeliest decoded, and the program's strings naming one.</summary>
+    public const string WaterTextures = "water-textures";
+
     /// <summary>The survey of the area's entity maps for the rooms' doodads, every sighting listed.</summary>
     public const string Doodads = "doodads";
 
@@ -240,6 +243,11 @@ public static class CaptureParts
             + "area by what its file sets - and the shader sources of the engine's water pass whole - "
             + "the colours, the waves, the refraction. Water materials are no ordinary ones (\"shadertype\": \"Ocean\"), and "
             + "this is what stands between a white water plane and one drawn as the game does."),
+        new(WaterTextures, "Area files", "the water's textures", CaptureReport.WaterTexturesFile,
+            "Where the engine's ripple texture may be - the one its waves' eight octaves read, 128 texels a side, red the height and "
+            + "green and blue its slope, which no shader source names: every texture whose path names the water with its size and "
+            + "format, those 128 square marked, the likeliest decoded channel by channel as pictures beside it, and the strings the "
+            + "game's own program holds that name one. What stands between the tool's stand-in waves and the game's."),
 
         new(Doodads, "Rooms by doodads", "the doodads found", CaptureReport.DoodadsFile,
             "The survey of the area's entity maps for the rooms' doodads: each room's share, each path found and how many stand, "

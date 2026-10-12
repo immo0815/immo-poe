@@ -109,6 +109,7 @@ public sealed class SceneLightPanel : IMovableSun
     private bool _grade = true;
     private bool _glints = true;
     private bool _reflection = true;
+    private bool _mirroring = true;
     private float _lift = 1f;
     private int _ambient = (int)SceneAmbient.Cube;
     private int _cubeReading;
@@ -243,6 +244,7 @@ public sealed class SceneLightPanel : IMovableSun
             Mirror = _mirror,
             WaterGlints = _glints,
             WaterReflection = _reflection,
+            WaterScene = _mirroring,
             WaterLift = _lift,
             CubeTurn = SceneLight.CubeTurnFrom(env.HorAngle ?? 0f, env.VertAngle ?? 0f, (SceneLight.CubeReading)_cubeReading),
             CubeBrightness = env.EnvBrightness ?? 1f,
@@ -304,7 +306,11 @@ public sealed class SceneLightPanel : IMovableSun
             + " tool's own: the engine's ripple texture is not read.", row, "reflection");
         Switch("reflection##scene-reflection", ref _reflection,
             "The waves' reflection: the environment's specular cube (environment_mapping.specular_cube, its level of 128) along the view turned about"
-            + " the waves' normal, lit as the cube ambient is and weighed by the gloss's Fresnel. With the flat ambient it reflects the flat ambient.", row, null);
+            + " the waves' normal, lit as the cube ambient is and weighed by the gloss's Fresnel. With the flat ambient it reflects the flat ambient.", row, "scene");
+        Switch("scene##scene-mirror", ref _mirroring,
+            "The waves' reflection takes in the picture itself where its ray meets it - the engine's screen-space reflection (CastScreenRay):"
+            + " twenty steps of a fiftieth of the picture, a surface hit where it lies in front of the ray by less than fifty units, its share fading"
+            + " into the cube's the farther the hit. The ship and the pier in the water. Only with reflection on.", row, null);
         float liftWidth = ImGui.GetFontSize() * 7f;
         OverlayLayout.Flow(ImGui.CalcTextSize("lift").X + ImGui.GetStyle().ItemSpacing.X + liftWidth, right, start);
         Named("lift");

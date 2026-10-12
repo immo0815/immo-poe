@@ -242,6 +242,20 @@ public static class MeshPicture
         /// <summary>The still part's pixels, depth and winners, as the drawing that kept them left them.</summary>
         internal byte[] KeptPixels { get; private set; } = [];
 
+        /// <summary>The solid part of the last drawing that reflects the scene, before anything translucent was laid on it - the engine's opaque framebuffer. See ScreenReflection.</summary>
+        internal byte[] OpaquePixels { get; private set; } = [];
+
+        /// <summary>Makes room for <see cref="OpaquePixels"/>.</summary>
+        internal byte[] Opaque()
+        {
+            if (OpaquePixels.Length != Size * Size * 4)
+            {
+                OpaquePixels = new byte[Size * Size * 4];
+            }
+
+            return OpaquePixels;
+        }
+
         /// <inheritdoc cref="KeptPixels"/>
         internal float[] KeptDepth { get; private set; } = [];
 
@@ -789,7 +803,9 @@ public static class MeshPicture
         // THE CLOCK'S TRIANGLES APART where the canvas keeps the still part - see Again. A triangle
         // runs its program only where it is solid or cut out, so only those can be the clock's. Not where
         // the water is lifted: its vertices move with the clock, and Again keeps them where they were.
-        bool[] ticking = canvas.Keeps && !lifting && Array.Exists(programs, one => one.UsesTime)
+        SceneLight? scene = canvas.Light;
+        bool mirrors = translucent && scene is { WaterReflection: true, WaterScene: true } && Array.Exists(programs, one => one.HasWaves);
+        bool[] ticking = canvas.Keeps && !lifting && !mirrors && Array.Exists(programs, one => one.UsesTime)
             ? Array.ConvertAll(programs, one => one.UsesTime)
             : [];
         int clocked = Binned(canvas, triangles, ticking);
@@ -800,7 +816,6 @@ public static class MeshPicture
 
         // A POINT'S DEPTH IS THE VIEW'S THIRD COLUMN, the way into the picture - see ShadeProgram.Eye.
         var eye = new Vector4(view.M13, view.M23, view.M33, view.M43);
-        SceneLight? scene = canvas.Light;
         ShadowMap? shadow = scene is { SunShadows: true } && scene.SunColour != Vector3.Zero
             ? Shadowed(canvas, mesh, places, positions == mesh.Positions, triangles, scene.SunDirection, scene.ShadowSide, palette)
             : null;
@@ -808,6 +823,9 @@ public static class MeshPicture
         {
             Scene = scene,
             Shadow = shadow,
+            View = view,
+            Scale = scale,
+            Opaque = mirrors ? canvas.Opaque() : null,
         };
         PixelProbe? probe = canvas.Probe is { } asked && asked.X >= 0 && asked.X < size && asked.Y >= 0 && asked.Y < size ? asked : null;
         probe?.Clear();
@@ -971,6 +989,22 @@ public static class MeshPicture
     /// </remarks>
     private static void InBands(Canvas canvas, Drawing drawing, bool again, LayerTally? tally)
     {
+        // A DRAWING THAT REFLECTS ITSELF draws every band's solid part first, keeps it, then every band's
+        // translucent part: a ray from the water reads rows other bands draw - see ScreenReflection.
+        if (drawing.Reflects)
+        {
+            InBands(canvas, drawing, again, null, phase: 1);
+            drawing.Keep();
+            InBands(canvas, drawing, again, tally, phase: 2);
+            return;
+        }
+
+        InBands(canvas, drawing, again, tally, phase: 0);
+    }
+
+    /// <summary>The bands, all of a drawing or one phase of it - see <see cref="Drawing.Band"/>.</summary>
+    private static void InBands(Canvas canvas, Drawing drawing, bool again, LayerTally? tally, int phase)
+    {
         int size = canvas.Size;
         int bands = Bands(size);
         if (canvas.Threads == 1)
@@ -978,7 +1012,7 @@ public static class MeshPicture
             int[]? counts = tally is null ? null : new int[tally.Shapes * LayerTally.Slots];
             for (var band = 0; band < bands; band++)
             {
-                drawing.Band(band, band * BandRows, Math.Min(size, (band + 1) * BandRows), again, counts);
+                drawing.Band(band, band * BandRows, Math.Min(size, (band + 1) * BandRows), again, counts, phase);
             }
 
             if (counts is not null)
@@ -991,7 +1025,7 @@ public static class MeshPicture
             Parallel.For(
                 0, bands,
                 new ParallelOptions { MaxDegreeOfParallelism = canvas.Threads },
-                band => drawing.Band(band, band * BandRows, Math.Min(size, (band + 1) * BandRows), again, counts: null));
+                band => drawing.Band(band, band * BandRows, Math.Min(size, (band + 1) * BandRows), again, counts: null, phase));
         }
         else
         {
@@ -1003,7 +1037,7 @@ public static class MeshPicture
                 () => new int[slots],
                 (band, _, counts) =>
                 {
-                    drawing.Band(band, band * BandRows, Math.Min(size, (band + 1) * BandRows), again, counts);
+                    drawing.Band(band, band * BandRows, Math.Min(size, (band + 1) * BandRows), again, counts, phase);
                     return counts;
                 },
                 tally.Add);
@@ -1052,6 +1086,15 @@ public static class MeshPicture
 
         /// <summary>The sun's shadow map, where the scene's sun casts shadows.</summary>
         public ShadowMap? Shadow { get; init; }
+
+        /// <summary>The camera's turn - a ray's way in the picture is its third row's and columns' - see ScreenReflection.</summary>
+        public Matrix4x4 View { get; init; } = Matrix4x4.Identity;
+
+        /// <summary>Pixels per world unit across the picture.</summary>
+        public float Scale { get; init; } = 1f;
+
+        /// <summary>Where the solid part is kept for the water to reflect, or null where nothing reflects the scene - see ScreenReflection.</summary>
+        public byte[]? Opaque { get; init; }
     }
 
     /// <summary>
@@ -1532,6 +1575,9 @@ public static class MeshPicture
         /// <summary>The winner buffer where the drawing keeps its still part, else null - see <see cref="Again"/>.</summary>
         private readonly int[]? _winners;
         private readonly byte[] _keptPixels;
+        private readonly byte[]? _opaque;
+        private readonly Matrix4x4 _view;
+        private readonly float _scale;
         private readonly float[] _keptDepth;
         private readonly int[] _keptWinners;
         private readonly int[] _binStarts;
@@ -1567,6 +1613,9 @@ public static class MeshPicture
             _mesh = mesh;
             _winners = drawn.Clocked > 0 ? canvas.Winners : null;
             _keptPixels = canvas.KeptPixels;
+            _opaque = drawn.Opaque;
+            _view = drawn.View;
+            _scale = drawn.Scale;
             _keptDepth = canvas.KeptDepth;
             _keptWinners = canvas.KeptWinners;
             _binStarts = canvas.BinStarts;
@@ -1615,28 +1664,39 @@ public static class MeshPicture
         /// <param name="end">The row after its last.</param>
         /// <param name="again">True to put the kept still part back and draw only the clock's triangles and the translucent ones - see <see cref="Again"/>.</param>
         /// <param name="counts">This thread's counts of how the translucent shapes came out, or null - see <see cref="LayerTally"/>.</param>
-        public void Band(int band, int top, int end, bool again, int[]? counts)
+        /// <param name="phase">Nought for the whole band, one for its solid part alone, two for its translucent part alone - see <see cref="Reflects"/>.</param>
+        public void Band(int band, int top, int end, bool again, int[]? counts, int phase = 0)
         {
-            if (again)
+            if (phase != 2)
             {
-                Kept(top, end, back: true);
-            }
-            else
-            {
-                // A KEEPING DRAWING DRAWS THE STILL PART FIRST, and keeps it before the clock's.
-                Pass(1, band, top, end, counts);
-                if (_winners is not null)
+                if (again)
                 {
-                    Kept(top, end, back: false);
+                    Kept(top, end, back: true);
                 }
+                else
+                {
+                    // A KEEPING DRAWING DRAWS THE STILL PART FIRST, and keeps it before the clock's.
+                    Pass(1, band, top, end, counts);
+                    if (_winners is not null)
+                    {
+                        Kept(top, end, back: false);
+                    }
+                }
+
+                Pass(2, band, top, end, counts);
             }
 
-            Pass(2, band, top, end, counts);
-            if (_translucent)
+            if (_translucent && phase != 1)
             {
                 Pass(3, band, top, end, counts);
             }
         }
+
+        /// <summary>Whether the water reflects the picture, so the solid part must be whole before anything translucent is drawn.</summary>
+        public bool Reflects => _opaque is not null;
+
+        /// <summary>Keeps the solid part, whole, for the water's rays to read.</summary>
+        public void Keep() => Array.Copy(_pixels, _opaque!, _opaque!.Length);
 
         /// <summary>Draws one pass's triangles that reach the band, in the mesh's order - see <see cref="Binned"/>.</summary>
         private void Pass(int kind, int band, int top, int end, int[]? counts)
@@ -1852,7 +1912,7 @@ public static class MeshPicture
 
                             _stamps[at] = owner;
                             Vector3 lit = scened
-                                ? Scened(program, mixed, mixedSpecular, mixedGloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), mixedWaves)
+                                ? Scened(program, mixed, mixedSpecular, mixedGloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), mixedWaves, x, y, away)
                                 : Lit(program, mixed, mixedSpecular, mixedGloss, (first * f0) + (second * f1) + (third * f2));
                             Over(at, blend, new Vector4(lit, cover));
                             if (here)
@@ -2013,12 +2073,17 @@ public static class MeshPicture
         /// <param name="place">The pixel's place in model space, interpolated.</param>
         /// <param name="turn">Its normal in model space, interpolated.</param>
         /// <param name="waves">The normal the program hands its specular light, or nought - ShadeProgram.HasWaves.</param>
+        /// <param name="x">The pixel's column, where the waves reflect the picture.</param>
+        /// <param name="y">The pixel's row.</param>
+        /// <param name="away">The pixel's depth along the view.</param>
         /// <remarks>
         /// TWO-SIDED LIKE THE PICTURE'S OWN LIGHT: a normal turned from the eye is turned round, which
         /// is what a two-sided material does in the game and what keeps a face seen from behind from
         /// going black. A specular colour without a gloss is laid on the albedo as <see cref="Flat"/> lays it.
         /// </remarks>
-        private Vector3 Scened(ShadeProgram? program, Vector3 colour, Vector3 specular, float gloss, Vector3 place, Vector3 turn, Vector3 waves = default)
+        private Vector3 Scened(
+            ShadeProgram? program, Vector3 colour, Vector3 specular, float gloss, Vector3 place, Vector3 turn, Vector3 waves = default,
+            int x = 0, int y = 0, float away = 0f)
         {
             Vector3 normal = turn.LengthSquared() > 1e-12f ? Vector3.Normalize(turn) : _toEye;
             if (Vector3.Dot(normal, _toEye) < 0f)
@@ -2034,8 +2099,44 @@ public static class MeshPicture
             }
 
             float sun = _shadow?.Lit(place, normal) ?? 1f;
-            Vector3 lit = _scene!.Shade(albedo, place, normal, _toEye, sun, glossy, specular, gloss, waves);
+            float environment = 1f;
+            Vector3 mirrored = Vector3.Zero;
+            if (_opaque is not null && glossy && waves != Vector3.Zero && _scene!.WaterReflection && _scene.WaterScene)
+            {
+                mirrored = Mirrored(waves, normal, x, y, away, specular, gloss, out environment);
+            }
+
+            // THE PICTURE'S OWN LIGHT IS ADDED AS IT WAS DRAWN, exposed and graded already.
+            Vector3 lit = _scene!.Shade(albedo, place, normal, _toEye, sun, glossy, specular, gloss, waves, environment) + mirrored;
             return new Vector3(ShadeProgram.Srgb(lit.X), ShadeProgram.Srgb(lit.Y), ShadeProgram.Srgb(lit.Z));
+        }
+
+        /// <summary>
+        /// The picture's solid part as the waves reflect it - the engine's CastScreenRay over the kept solid part - and the environment's share of the rest.
+        /// </summary>
+        /// <remarks>
+        /// THE VIEW TURNED ABOUT THE WAVES' NORMAL, kept from going under the water's own surface
+        /// (<c>reflected + base_normal * max(0, -dot(reflected, base_normal))</c>), marched across the picture, and the
+        /// colour where it first meets a surface, linear, weighed by the split sum as the cube is.
+        /// </remarks>
+        private Vector3 Mirrored(Vector3 waves, Vector3 normal, int x, int y, float away, Vector3 specular, float gloss, out float environment)
+        {
+            environment = 1f;
+            Vector3 reflected = (2f * Vector3.Dot(waves, _toEye) * waves) - _toEye;
+            reflected += normal * MathF.Max(0f, -Vector3.Dot(reflected, normal));
+            Vector3 inView = Vector3.TransformNormal(reflected, _view);
+            int step = ScreenReflection.March(x, y, away, new Vector2(inView.X, inView.Y) * _scale, inView.Z, _size, _depth, out int hitX, out int hitY);
+            if (step < 0)
+            {
+                return Vector3.Zero;
+            }
+
+            environment = ScreenReflection.EnvironmentShare(step);
+            int at = ((hitY * _size) + hitX) * 4;
+            var seen = new Vector3(
+                ShadeProgram.Linear(_opaque![at] / 255f), ShadeProgram.Linear(_opaque[at + 1] / 255f), ShadeProgram.Linear(_opaque[at + 2] / 255f));
+            GlossLight.Environment(MathF.Max(Vector3.Dot(waves, _toEye), 1e-4f), gloss, out float bias, out float scale);
+            return ((seen * bias) + (seen * scale * specular)) * (1f - environment);
         }
 
         /// <summary>

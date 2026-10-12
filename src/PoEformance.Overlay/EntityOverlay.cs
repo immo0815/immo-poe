@@ -1264,6 +1264,20 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     private IReadOnlyList<string> _environmentFiles = [];
 
     /// <summary>
+    /// Every texture the install has whose path names the water (CaptureWaterTextures.Words), for the capture's water textures part.
+    /// </summary>
+    /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
+    public IReadOnlyList<string> WaterTextureFiles
+    {
+        get => _capture.WaterTextures;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _capture.WaterTextures = value;
+        }
+    }
+
+    /// <summary>
     /// How many rooms of the current area each tile file builds, by path - a NEW dictionary only when
     /// the area's terrain changes, which is what tells the tile book to rebuild.
     /// </summary>

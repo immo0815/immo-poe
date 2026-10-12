@@ -135,13 +135,51 @@ public class WaterTests
         blends: [MaterialBlend.Opaque, MaterialBlend.Alpha],
         shades: [null, ShadeProgram.Water()]);
 
-    /// <summary>The waves' slope is their height's own: worked out exactly, it agrees with the height's differences everywhere it is asked.</summary>
+    /// <summary>
+    /// The ripple texture's green and blue are its red's slope a texel, as the engine's texture's are: they agree with the red's differences at every texel, across the wrap too.
+    /// </summary>
+    [Fact]
+    public void THERIPPLETexturesSlopeIsItsRedsOwn()
+    {
+        const int side = ShadeProgram.RippleSide;
+        ReadOnlySpan<float> texels = ShadeProgram.RippleSheet;
+        Assert.Equal(side * side * 4, texels.Length);
+        float Red(int x, int y) => ShadeProgram.RippleSheet[((((y + side) % side) * side) + ((x + side) % side)) * 4];
+        float steepest = 0f, worst = 0f, lowest = 1f, highest = 0f;
+        for (var y = 0; y < side; y++)
+        {
+            for (var x = 0; x < side; x++)
+            {
+                int at = ((y * side) + x) * 4;
+                float dx = (Red(x + 1, y) - Red(x - 1, y)) / 2f, dy = (Red(x, y + 1) - Red(x, y - 1)) / 2f;
+                worst = MathF.Max(worst, MathF.Max(MathF.Abs(texels[at + 1] - dx), MathF.Abs(texels[at + 2] - dy)));
+                steepest = MathF.Max(steepest, MathF.Max(MathF.Abs(texels[at + 1]), MathF.Abs(texels[at + 2])));
+                lowest = MathF.Min(lowest, texels[at]);
+                highest = MathF.Max(highest, texels[at]);
+                Assert.Equal(1f, texels[at + 3]);
+            }
+        }
+
+        Assert.True(steepest > 0.01f, $"steepest {steepest}");
+        Assert.True(worst < 0.05f * steepest, $"worst {worst} of {steepest}");
+        Assert.InRange(lowest, 0f, 0.3f);
+        Assert.InRange(highest, 0.7f, 1f);
+    }
+
+    /// <summary>
+    /// The waves' slope is their height's own over the texture's texels: the texels' slope mixed, as the engine mixes it, agrees with the height's differences a few units apart everywhere it is asked.
+    /// </summary>
+    /// <remarks>
+    /// Not to the bit: a linear read's height is flat-sided between texel centres while its mixed slope is not, so the two part by
+    /// a little inside a texel - the engine's own surface does the same - and the differences are taken across a finest texel.
+    /// </remarks>
     [Fact]
     public void THEWAVESSlopeIsTheirHeightsOwn()
     {
-        const float h = 0.05f;
+        const float h = 1.5f;
         Vector2[] drifts = [Vector2.Zero, ShadeProgram.WaveDrift * 1.5f, new(-40f, 90f)];
         float[] clocks = [0f, 0.7f, 2.9f, 13.25f];
+        double errors = 0, slopes = 0;
         var checkedOnes = 0;
         foreach (Vector2 drift in drifts)
         {
@@ -154,8 +192,8 @@ public class WaterTests
                         ShadeProgram.Ripples(new Vector2(x, y), drift, clock, out Vector2 slope);
                         float dx = (ShadeProgram.Ripples(new Vector2(x + h, y), drift, clock, out _) - ShadeProgram.Ripples(new Vector2(x - h, y), drift, clock, out _)) / (2f * h);
                         float dy = (ShadeProgram.Ripples(new Vector2(x, y + h), drift, clock, out _) - ShadeProgram.Ripples(new Vector2(x, y - h), drift, clock, out _)) / (2f * h);
-                        Assert.True(MathF.Abs(slope.X - dx) < 2e-3f + (0.02f * MathF.Abs(dx)), $"at ({x}, {y}) t {clock}: slope x {slope.X}, differences {dx}");
-                        Assert.True(MathF.Abs(slope.Y - dy) < 2e-3f + (0.02f * MathF.Abs(dy)), $"at ({x}, {y}) t {clock}: slope y {slope.Y}, differences {dy}");
+                        errors += ((slope.X - dx) * (slope.X - dx)) + ((slope.Y - dy) * (slope.Y - dy));
+                        slopes += (slope.X * slope.X) + (slope.Y * slope.Y);
                         checkedOnes++;
                     }
                 }
@@ -163,6 +201,8 @@ public class WaterTests
         }
 
         Assert.True(checkedOnes > 1000);
+        double share = Math.Sqrt(errors / slopes);
+        Assert.True(share < 0.15, $"the slope parts from the differences by {share:P1}");
     }
 
     /// <summary>The waves move with the clock even where nothing drifts - the engine's octaves fade in and out - and they lean, so the light sees them.</summary>
@@ -341,6 +381,105 @@ public class WaterTests
             shades: [waves, null]).Rgba];
 
         Assert.NotEqual(Drawn(Light(0f)), Drawn(Light(3f)));
+    }
+
+    /// <summary>
+    /// The engine's march over the solid depth: a fiftieth of the picture a step, a surface hit where it lies in front of the ray by less than fifty units, and the cube's share growing with the step.
+    /// </summary>
+    [Fact]
+    public void THERAYMeetsTheFirstSurfaceInFrontOfItWithinItsThickness()
+    {
+        const int size = 100;
+        var depth = new float[size * size];
+        Array.Fill(depth, float.MaxValue);
+
+        // A WALL down column 70, at depth 100: the ray runs right along row 10 and deeper by one a unit.
+        for (var y = 0; y < size; y++)
+        {
+            depth[(y * size) + 70] = 100f;
+        }
+
+        // A STEP IS TWO PIXELS here, so from column 10 the ray reaches column 70 at its thirtieth step - past twenty.
+        Assert.True(ScreenReflection.March(10, 10, 80f, new Vector2(1f, 0f), 1f, size, depth, out _, out _) < 0);
+
+        // FROM COLUMN 40 it reaches the wall between its fifteenth and sixteenth step, ray depth about 110: hit.
+        int step = ScreenReflection.March(40, 10, 80f, new Vector2(1f, 0f), 1f, size, depth, out int hitX, out int hitY);
+        Assert.InRange(step, 14, 15);
+        Assert.Equal(70, hitX);
+        Assert.Equal(10, hitY);
+
+        // TOO FAR BEHIND THE WALL - more than fifty - or in front of it, no hit.
+        Assert.True(ScreenReflection.March(40, 10, 30f, new Vector2(1f, 0f), 1f, size, depth, out _, out _) < 0);
+        Assert.True(ScreenReflection.March(40, 10, 10f, new Vector2(1f, 0f), 1f, size, depth, out _, out _) < 0);
+
+        // STRAIGHT AT THE EYE it moves nowhere in the picture, and finds nothing.
+        Assert.True(ScreenReflection.March(40, 10, 80f, Vector2.Zero, -1f, size, depth, out _, out _) < 0);
+
+        Assert.Equal(1f, ScreenReflection.EnvironmentShare(-1));
+        Assert.Equal(MathF.Pow(0.025f, 5f), ScreenReflection.EnvironmentShare(0), 9);
+        Assert.Equal(MathF.Pow(19.5f / 20f, 5f), ScreenReflection.EnvironmentShare(19), 6);
+    }
+
+    /// <summary>
+    /// A red wall rising behind the water shows in it where the scene is reflected, and not where only the cube is - its hue, not more light.
+    /// </summary>
+    [Fact]
+    public void THESCENEShowsInTheWaterWhereItIsReflected()
+    {
+        SkinnedMesh scene = Walled();
+        ShadeProgram waves = ShadeProgram.Water().Glossy!;
+        SceneLight Light(bool mirroring) => new([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1.5f),
+            SunDirection = Vector3.Normalize(new Vector3(0.3f, 0.2f, 1f)),
+            Ambient = SceneAmbient.Flat,
+            FlatAmbient = 0.3f,
+            WaterReflection = true,
+            WaterScene = mirroring,
+        };
+
+        byte[] Drawn(bool mirroring) => [.. MeshPicture.Of(
+            scene, new MeshPicture.Canvas(Size) { Light = Light(mirroring), Time = 2f }, turn: 0f, tilt: 0.3f,
+            skins: [null, Sheet(30, 30, 30), Sheet(240, 20, 20)],
+            blends: [MaterialBlend.Alpha, MaterialBlend.Opaque, MaterialBlend.Opaque],
+            shades: [waves, null, null]).Rgba];
+
+        // THE WALL'S HUE IN THE WATER: where a ray meets it, the wall's red stands in for the flat ambient's grey,
+        // so red leads green by more - the wall being no brighter than the ambient, it does not add red.
+        byte[] cube = Drawn(mirroring: false);
+        byte[] mirrored = Drawn(mirroring: true);
+        long cubeLead = 0, mirroredLead = 0;
+        for (var at = 0; at < cube.Length; at += 4)
+        {
+            if (cube[at + 1] > 60)
+            {
+                cubeLead += cube[at] - cube[at + 1];
+                mirroredLead += mirrored[at] - mirrored[at + 1];
+            }
+        }
+
+        Assert.True(mirroredLead > cubeLead + 1000, $"the wall does not show in the water: red leads green by {mirroredLead}, {cubeLead} with the cube alone");
+    }
+
+    /// <summary>The water quad over its floor, and a red wall rising from the water on its far side - minus y, away from the camera at no turn.</summary>
+    private static SkinnedMesh Walled()
+    {
+        Vector3[] places =
+        [
+            new(-375f, -375f, -60f), new(375f, -375f, -60f), new(375f, 375f, -60f), new(-375f, 375f, -60f),
+            new(-400f, -400f, 0f), new(400f, -400f, 0f), new(400f, 400f, 0f), new(-400f, 400f, 0f),
+            new(-375f, -375f, 0f), new(375f, -375f, 0f), new(375f, -375f, -500f), new(-375f, -375f, -500f),
+        ];
+        Vector3[] normals =
+        [
+            .. Enumerable.Repeat(new Vector3(0f, 0f, -1f), 8),
+            .. Enumerable.Repeat(new Vector3(0f, 1f, 0f), 4),
+        ];
+        Vector2[] spots = [.. places.Select(one => new Vector2((one.X + 400f) / 800f, (one.Y + 400f) / 800f))];
+        int[] indices = [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11];
+        return SkinnedMesh.Of(
+            places, normals, indices, new Vector3(-400f, -400f, -500f), new Vector3(400f, 400f, 0f),
+            spots, [new MeshShape("Water", 0, 6), new MeshShape("Floor", 6, 6), new MeshShape("Wall", 12, 6)]);
     }
 
     /// <summary>A water quad 750 a side - two triangles - 60 units over a floor triangle of its own shape.</summary>
