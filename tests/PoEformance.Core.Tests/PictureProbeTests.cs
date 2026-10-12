@@ -149,6 +149,65 @@ public class PictureProbeTests
         Assert.Contains(" · dropped 0%", layers[1], StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A pixel the sun does not reach says so and names what casts the shadow, and how far towards the sun - the roof over the floor's
+    /// middle, seen beside it from straight above. A dark patch on Port's sand (v0.1.242) could not be told from a film or a sea without it.
+    /// </summary>
+    [Fact]
+    public void ASHADEDPixelNamesWhatCastsItsShadow()
+    {
+        Vector3[] places =
+        [
+            new(-400f, -400f, 0f), new(400f, -400f, 0f), new(400f, 400f, 0f), new(-400f, 400f, 0f),
+            new(100f, -100f, -200f), new(300f, -100f, -200f), new(300f, 100f, -200f), new(100f, 100f, -200f),
+        ];
+        var normals = new Vector3[places.Length];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+        var scene = SkinnedMesh.Of(
+            places, normals, [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7], new Vector3(-400f, -400f, -200f), new Vector3(400f, 400f, 0f),
+            shapes: [new MeshShape("Floor", 0, 6), new MeshShape("Roof", 6, 6)]);
+        var model = new MonsterModel(scene, null, "scene", string.Empty, string.Empty)
+        {
+            Modes = [string.Empty, string.Empty],
+            ShapeMaterials = ["Art/Floor.mat", "Art/Roof.mat"],
+            ShapeSources = ["ground of Metadata/Test/tile.tdt at tile 1, 2", "Metadata/Test/Roof.ao"],
+        };
+
+        // THE SUN FROM UP AND +X, travelling down and towards -x: the floor's middle is under the roof's along it.
+        var light = new SceneLight([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1.5f),
+            SunDirection = Vector3.Normalize(new Vector3(-1f, 0f, 1f)),
+            SunShadows = true,
+            Ambient = SceneAmbient.Flat,
+            FlatAmbient = 0.3f,
+        };
+
+        PixelProbe Probed(Vector3 point)
+        {
+            (int x, int y) = PixelOf(scene, point);
+            var probe = new PixelProbe(x, y);
+            _ = MeshPicture.Of(scene, new MeshPicture.Canvas(Size) { Light = light, Probe = probe }, tilt: Down, blends: [MaterialBlend.Opaque, MaterialBlend.Opaque]);
+            return probe;
+        }
+
+        PixelProbe shaded = Probed(Vector3.Zero);
+        ProbeSun sun = Assert.Single(shaded.Suns);
+        Assert.Equal(0f, sun.Sun);
+        Assert.InRange(sun.Caster, 2, 3);
+        Assert.InRange(sun.CasterAway, 280f, 286f);
+        Assert.Contains(
+            "in the sun's shadow, 0.00 of it reaching · cast by Roof.mat (- -> opaque, plain) · shape 1 · from Metadata/Test/Roof.ao, 28",
+            PictureProbe.Lines(shaded, model, null)[^1],
+            StringComparison.Ordinal);
+
+        // OUT OF ITS SHADOW the sun reaches whole, and nothing is looked for.
+        PixelProbe open = Probed(new Vector3(-300f, 0f, 0f));
+        Assert.Equal(1f, Assert.Single(open.Suns).Sun);
+        Assert.Equal(-1, open.Suns[0].Caster);
+        Assert.EndsWith(" · in the sun", PictureProbe.Lines(open, model, null)[^1], StringComparison.Ordinal);
+    }
+
     /// <summary>The room's model of the scene: the floor a tile's ground, the layer a doodad's mud.</summary>
     private static MonsterModel Model(SkinnedMesh scene) => new(scene, null, "scene", string.Empty, string.Empty)
     {

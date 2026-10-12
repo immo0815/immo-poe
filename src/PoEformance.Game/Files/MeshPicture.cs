@@ -872,6 +872,10 @@ public static class MeshPicture
         {
             probe.Final = depth[(probe.Y * size) + probe.X];
             probe.Drawn = true;
+            if (shadow is not null)
+            {
+                Shaders(canvas, mesh, places, triangles, shadow, probe, palette);
+            }
         }
         if (clocked > 0)
         {
@@ -1075,7 +1079,9 @@ public static class MeshPicture
         // translucent part: a ray from the water reads rows other bands draw - see ScreenReflection.
         if (drawing.Reflects)
         {
-            InBands(canvas, drawing, again, null, phase: 1);
+            // COUNTED IN BOTH PHASES: the solid part counts nothing, but the beach is drawn with it (Drawing's Laid) - the
+            // tally of v0.1.242 left the beach out wherever the scene was reflected.
+            InBands(canvas, drawing, again, tally, phase: 1);
             drawing.Keep();
             InBands(canvas, drawing, again, tally, phase: 2);
             return;
@@ -1192,6 +1198,108 @@ public static class MeshPicture
     /// KEPT ONLY FOR A MESH STANDING STILL: a pose arrives in the canvas's one buffer, the same array
     /// every frame with new numbers in it, so a map keyed on it could not tell one pose from the next.
     /// </remarks>
+    /// <summary>Names what cast the shadow on every probed fragment the sun did not wholly reach - see <see cref="ProbeSun"/>.</summary>
+    /// <remarks>
+    /// THE ONE RAY FROM THE FRAGMENT TOWARDS THE SUN, through every triangle that casts as the map was drawn (solid, shadow-only, and
+    /// cut-out where its texture keeps the texel), the nearest hit taken - started off the surface as the map's own test starts
+    /// (ShadowMap.Lit). Every triangle once a probed fragment, in slices on every core: a click's cost, never a drawing's.
+    /// </remarks>
+    private static void Shaders(Canvas canvas, SkinnedMesh mesh, Vector3[] places, int triangles, ShadowMap shadow, PixelProbe probe, Mipmaps?[] palette)
+    {
+        MaterialBlend[] blends = canvas.Blends;
+        int[] wears = canvas.Wears;
+        int[] indices = mesh.Indices;
+        Vector2[] coordinates = mesh.Coordinates;
+        bool coordinated = mesh.Coordinated;
+        Vector3 toSun = -Vector3.Normalize(shadow.Direction);
+        for (var at = 0; at < probe.Suns.Count; at++)
+        {
+            ProbeSun sun = probe.Suns[at];
+            if (sun.Sun >= 1f)
+            {
+                continue;
+            }
+
+            Vector3 from = sun.Place + (sun.Normal * (shadow.Texel * 1.5f));
+            int best = -1;
+            float nearest = float.MaxValue;
+            var gate = new object();
+            Sliced(canvas, triangles, (first, upto) =>
+            {
+                int localBest = -1;
+                float localNearest = float.MaxValue;
+                for (int one = first; one < upto; one++)
+                {
+                    MaterialBlend blend = blends[one];
+                    if (Translucent(blend) || one == sun.Triangle)
+                    {
+                        continue;
+                    }
+
+                    int i0 = indices[one * 3], i1 = indices[(one * 3) + 1], i2 = indices[(one * 3) + 2];
+                    if (!Crossed(from, toSun, places[i0], places[i1], places[i2], out float away, out float u, out float v) || away >= localNearest)
+                    {
+                        continue;
+                    }
+
+                    if (blend == MaterialBlend.Cutout && coordinated && palette[wears[one]] is { } skin
+                        && Sample4(skin, ((1f - u - v) * coordinates[i0]) + (u * coordinates[i1]) + (v * coordinates[i2]), 0f).W < CutoutAlpha)
+                    {
+                        continue;
+                    }
+
+                    localNearest = away;
+                    localBest = one;
+                }
+
+                if (localBest >= 0)
+                {
+                    lock (gate)
+                    {
+                        if (localNearest < nearest || (localNearest == nearest && localBest < best))
+                        {
+                            nearest = localNearest;
+                            best = localBest;
+                        }
+                    }
+                }
+            });
+
+            probe.Cast(at, best, best >= 0 ? nearest : 0f);
+        }
+    }
+
+    /// <summary>Where a ray crosses a triangle, either face - Moller and Trumbore's test - past a hair of its start.</summary>
+    private static bool Crossed(Vector3 from, Vector3 way, Vector3 a, Vector3 b, Vector3 c, out float away, out float u, out float v)
+    {
+        away = u = v = 0f;
+        Vector3 ab = b - a, ac = c - a;
+        Vector3 p = Vector3.Cross(way, ac);
+        float det = Vector3.Dot(ab, p);
+        if (MathF.Abs(det) < 1e-9f)
+        {
+            return false;
+        }
+
+        float inv = 1f / det;
+        Vector3 t = from - a;
+        u = Vector3.Dot(t, p) * inv;
+        if (u < 0f || u > 1f)
+        {
+            return false;
+        }
+
+        Vector3 q = Vector3.Cross(t, ab);
+        v = Vector3.Dot(way, q) * inv;
+        if (v < 0f || u + v > 1f)
+        {
+            return false;
+        }
+
+        away = Vector3.Dot(ac, q) * inv;
+        return away > 1e-3f;
+    }
+
     private static ShadowMap? Shadowed(
         Canvas canvas, SkinnedMesh mesh, Vector3[] places, bool still, int triangles, Vector3 direction, int side, Mipmaps?[] palette)
     {
@@ -2167,8 +2275,13 @@ public static class MeshPicture
                             }
 
                             _stamps[at] = owner;
+                            if (here && program.Beaches)
+                            {
+                                ProbedBeach(one, away, held, (first * p0) + (second * p1) + (third * p2), cover);
+                            }
+
                             Vector3 lit = scened
-                                ? Scened(program, mixed, mixedSpecular, mixedGloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), mixedWaves, x, y, away)
+                                ? Scened(program, mixed, mixedSpecular, mixedGloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), mixedWaves, x, y, away, here ? one : -1)
                                 : Lit(program, mixed, mixedSpecular, mixedGloss, (first * f0) + (second * f1) + (third * f2));
                             Over(at, blend, new Vector4(lit, cover));
                             if (laid)
@@ -2283,7 +2396,7 @@ public static class MeshPicture
                     }
 
                     Vector3 shown = scened
-                        ? Scened(program, colour, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves)
+                        ? Scened(program, colour, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves, away: away, fragment: here ? one : -1)
                         : Lit(program, colour, specular, gloss, (first * f0) + (second * f1) + (third * f2));
                     _pixels[at * 4] = Byte(shown.X);
                     _pixels[(at * 4) + 1] = Byte(shown.Y);
@@ -2291,6 +2404,19 @@ public static class MeshPicture
                     _pixels[(at * 4) + 3] = 255;
                 }
             }
+        }
+
+        /// <summary>The probed pixel's beach: what its program just worked out there, and the shore and the waves' lift at its place - see <see cref="ProbeBeach"/>.</summary>
+        private void ProbedBeach(int one, float away, float held, Vector3 place, float cover)
+        {
+            ShadeProgram.BeachLook look = ShadeProgram.LastBeach;
+            ShoreField? shore = _water.Shore;
+            var flat = new Vector2(place.X, place.Y);
+            float distance = 0f;
+            shore?.At(flat, out distance, out _);
+            _probe!.Add(new ProbeBeach(
+                one, away, place, ShadeProgram.BeachLift(flat, _time, _water.FlowRegister.Z, shore), distance, look.Foam, look.Thickness,
+                MathF.Max(held - away, 0f), cover, new Vector3(look.Colour.X, look.Colour.Y, look.Colour.Z)));
         }
 
         /// <summary>One pixel's colour under the picture's light - the solid pass's and a mixed program's alike.</summary>
@@ -2336,6 +2462,7 @@ public static class MeshPicture
         /// <param name="x">The pixel's column, where the waves reflect the picture.</param>
         /// <param name="y">The pixel's row.</param>
         /// <param name="away">The pixel's depth along the view.</param>
+        /// <param name="fragment">The probed fragment's triangle, which then says what the sun did there (ProbeSun) - -1 where nobody probes.</param>
         /// <remarks>
         /// TWO-SIDED LIKE THE PICTURE'S OWN LIGHT: a normal turned from the eye is turned round, which
         /// is what a two-sided material does in the game and what keeps a face seen from behind from
@@ -2343,7 +2470,7 @@ public static class MeshPicture
         /// </remarks>
         private Vector3 Scened(
             ShadeProgram? program, Vector3 colour, Vector3 specular, float gloss, Vector3 place, Vector3 turn, Vector3 waves = default,
-            int x = 0, int y = 0, float away = 0f)
+            int x = 0, int y = 0, float away = 0f, int fragment = -1)
         {
             // THE BEACH'S OWN SURFACE FOR ALL ITS LIGHT, the normal its program hands over (ShadeProgram.Beaches) - not the water's waves.
             if (program is { Beaches: true })
@@ -2366,6 +2493,11 @@ public static class MeshPicture
             }
 
             float sun = _shadow?.Lit(place, normal) ?? 1f;
+            if (fragment >= 0)
+            {
+                _probe!.Add(new ProbeSun(fragment, away, place, normal, sun));
+            }
+
             float environment = 1f;
             Vector3 mirrored = Vector3.Zero;
             // THE PROBE'S PIXEL SAYS WHAT ITS WATER DID - one compare a pixel where nobody probes.

@@ -90,8 +90,11 @@ public sealed partial class ShadeProgram
             : BeachNoise with { Said = BeachNoiseStandIn });
     }
 
-    /// <summary>What the beach waves hand their graph: the colour and how much it covers, linear, the surface's normal and its gloss.</summary>
-    public readonly record struct BeachLook(Vector4 Colour, Vector3 Normal, float Gloss);
+    /// <summary>
+    /// What the beach waves hand their graph: the colour and how much it covers, linear, the surface's normal and its gloss - and, for
+    /// the probe, the foam's share of the cover and the film's thickness under it.
+    /// </summary>
+    public readonly record struct BeachLook(Vector4 Colour, Vector3 Normal, float Gloss, float Foam = 0f, float Thickness = 0f);
 
     /// <summary>How the beach waves read their three textures: a sheet's texel at coordinates at its top level, and its average.</summary>
     public interface IBeachTextures : ISprayTextures
@@ -116,6 +119,9 @@ public sealed partial class ShadeProgram
 
     [ThreadStatic]
     private static BeachLook s_beach;
+
+    /// <summary>The last beach step this thread ran - the probed pixel's, read straight after its program ran there (MeshPicture's probe).</summary>
+    internal static BeachLook LastBeach => s_beach;
 
     /// <summary>The beach step's outputs, in its Extra's top byte: the colour and its cover.</summary>
     internal const int BeachColour = 0;
@@ -320,7 +326,7 @@ public sealed partial class ShadeProgram
         Vector3 albedo = cover > 0f
             ? ((new Vector3(surface.Colour.X, surface.Colour.Y, surface.Colour.Z) * foam) + (water * film)) / cover
             : Vector3.Zero;
-        return new BeachLook(new Vector4(albedo, cover), normal, Saturated(1f - surface.Rough));
+        return new BeachLook(new Vector4(albedo, cover), normal, Saturated(1f - surface.Rough), foam, thickness);
     }
 
     /// <summary>GetBeachWaveFront: the two foam waves and the two geometry waves at a place - the foam's only where asked for.</summary>
