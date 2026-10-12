@@ -171,7 +171,21 @@ public static partial class CaptureGround
         int opened = Blocks(read, templates, body, texts, named, spots, pieces, out int subTiles);
         masks = Masks(read, named, body);
         AtVertices(spots, masks, body);
-        shapes = ShapePictures(pieces, masks, body);
+        var definitions = new Dictionary<string, TileDefinition?>(StringComparer.OrdinalIgnoreCase);
+        TileDefinition? DefinitionOf(string template)
+        {
+            if (!definitions.TryGetValue(template, out TileDefinition? definition))
+            {
+                definition = templates.TryGetValue(template, out List<string>? users) && users.Count > 0
+                    ? TileModels.Defined(read, users[0]).Definition is { Ready: true } one ? one : null
+                    : null;
+                definitions[template] = definition;
+            }
+
+            return definition;
+        }
+
+        shapes = ShapePictures(pieces, masks, DefinitionOf, body);
         string groundsSaid = Corners(read, laid, cells, corners, NameOf, loaded, masters, body);
         string shadersSaid = Shaders(read, shaders, body);
         Whole(texts, body);

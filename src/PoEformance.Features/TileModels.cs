@@ -128,11 +128,12 @@ public static class TileModels
     /// MonsterModel.None where the tile is ground and nothing else - a floor tile - with its ground
     /// still given. One paint cache for every tile of a room, as a room's doodads share one.
     /// </remarks>
-    internal static (MonsterModel Props, SkinnedMesh Ground, int Width, int Height, TileDoodads Doodads) Apart(
+    internal static (MonsterModel Props, SkinnedMesh Ground, int Width, int Height, TileDoodads Doodads, IReadOnlyList<GroundPiece> Pieces) Apart(
         Func<string, byte[]?> read, string path, bool walls, MonsterModels.Paints paints)
     {
-        (MonsterModel model, SkinnedMesh ground, int wide, int tall, IReadOnlyList<string> templates) = Built(read, path, true, walls, false, null, string.Empty, default, paints, apart: true);
-        return (model, ground, wide, tall, DoodadsOf(read, path, templates));
+        (MonsterModel model, SkinnedMesh ground, int wide, int tall, IReadOnlyList<string> templates, IReadOnlyList<GroundPiece> pieces) =
+            Built(read, path, true, walls, false, null, string.Empty, default, paints, apart: true);
+        return (model, ground, wide, tall, DoodadsOf(read, path, templates), pieces);
     }
 
     /// <summary>
@@ -162,7 +163,7 @@ public static class TileModels
     }
 
     /// <summary>The walk behind <see cref="Of"/> and <see cref="Apart"/>.</summary>
-    private static (MonsterModel Model, SkinnedMesh Ground, int Width, int Height, IReadOnlyList<string> Templates) Built(
+    private static (MonsterModel Model, SkinnedMesh Ground, int Width, int Height, IReadOnlyList<string> Templates, IReadOnlyList<GroundPiece> Pieces) Built(
         Func<string, byte[]?> read,
         string path,
         bool ground,
@@ -196,7 +197,7 @@ public static class TileModels
                 Why = why.Length > 0 ? why : $"the tile names no template: {path}",
                 Bytes = bytes,
                 Files = files,
-            }, SkinnedMesh.None, 0, 0, []);
+            }, SkinnedMesh.None, 0, 0, [], []);
         }
 
         int wide = 0;
@@ -204,6 +205,7 @@ public static class TileModels
 
         var joins = new List<MeshJoin>();
         var grounds = new List<MeshJoin>();
+        var pieces = new List<GroundPiece>();
         var named = new List<(string Shape, string Material)>();
         var swapped = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var said = new List<string>();
@@ -262,6 +264,7 @@ public static class TileModels
                     if (ground && part.Ground.Ready)
                     {
                         grounds.Add(new MeshJoin(part.Ground, null, null, place));
+                        pieces.Add(new GroundPiece(x, y, part.Ground.Indices.Length / 3));
                     }
                 }
             }
@@ -291,7 +294,7 @@ public static class TileModels
                     : said.Count > 0 ? said[0] : $"the tile's sub-tiles hold no geometry: {path}",
                 Bytes = bytes,
                 Files = files,
-            }, groundApart, wide, tall, definition.Templates);
+            }, groundApart, wide, tall, definition.Templates, pieces);
         }
 
         // A WALK THAT DID NOT END AT THE END OF THE FILE IS SAID, not hidden: the props drew because
@@ -321,7 +324,7 @@ public static class TileModels
         // THE WALLS GO BEFORE THE GRAPHS ARE READ, so a material only the walls wear is not compiled
         // for nothing.
         model = walls ? model : Unwalled(model);
-        return (shaded ? MonsterModels.Shaded(Counted, model, paints) : model, groundApart, wide, tall, definition.Templates);
+        return (shaded ? MonsterModels.Shaded(Counted, model, paints) : model, groundApart, wide, tall, definition.Templates, pieces);
     }
 
     /// <summary>
@@ -554,3 +557,9 @@ public static class TileModels
 
     private static string Slashed(string path) => path.Replace('\\', '/').Trim();
 }
+
+/// <summary>
+/// One sub-tile's ground in a tile's joined ground block: which sub-tile, as its mesh is numbered (<c>c{x}r{y}</c>), and how many
+/// triangles it brings - in the order the block joins them, so each sub-tile's triangles can be found again (GroundPainter).
+/// </summary>
+internal readonly record struct GroundPiece(int X, int Y, int Triangles);

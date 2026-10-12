@@ -188,14 +188,14 @@ public sealed class CaptureGroundTests
             .ReplaceLineEndings("\n");
 
         Assert.Contains("=== the ground shapes sub-tile by sub-tile", said, StringComparison.Ordinal);
-        Assert.Contains($"  {RaisedTemplate}  (Mask)  1x1 · 1 sub-tiles with a ground · ordinals: 0 in 1 shapes (2 triangles) · picture ground-shapes-1-Raised.png", said, StringComparison.Ordinal);
+        Assert.Contains($"  {RaisedTemplate}  (Mask)  1x1 · 1 sub-tiles with a ground · ordinals: 0 in 1 shapes (2 triangles) · grid none: no run of 4 ground references past the corners · picture ground-shapes-1-Raised.png", said, StringComparison.Ordinal);
         Assert.Contains("    c1r1 · header 0 shapes, word 0, byte 0, 0 tails\n", said, StringComparison.Ordinal);
         Assert.Contains("      shape 0 · ordinal 0 · 2 triangles, 4 vertices · z -100..0 · u 0.25..0.75 v 0.25..0.75 · green 0.50 (50% at a half or more) · cells 0,0", said, StringComparison.Ordinal);
 
         // FORTY PIXELS A SUB-TILE, three panels four apart; row 1's far side (y 250, raised, green whole) at the top.
         (string file, GamePicture picture) = Assert.Single(shapes);
         Assert.Equal("ground-shapes-1-Raised.png", file);
-        Assert.Equal((3 * 40) + 8, picture.Width);
+        Assert.Equal((4 * 40) + 12, picture.Width);
         Assert.Equal(40, picture.Height);
         byte Red(int column, int row) => picture.Rgba[((row * picture.Width) + column) * 4];
         Assert.Equal(240, Red(20, 20));                     // the shape's ordinal, the first hue
@@ -207,6 +207,7 @@ public sealed class CaptureGroundTests
         Assert.Contains("=== the laid tile definitions past what is read", said, StringComparison.Ordinal);
         Assert.Contains($"##### {Raised}  version 7 · ", said, StringComparison.Ordinal);
         Assert.Contains(" · 48 past\n", said, StringComparison.Ordinal);
+        Assert.Contains("  ground grid: none - no run of 4 ground references past the corners\n", said, StringComparison.Ordinal);
         Assert.Contains($"\"{RaisedTemplate}\"", said, StringComparison.Ordinal);
         Assert.Contains("  00000: " + new string('0', 64) + "\n  00020: " + new string('0', 32) + "\n", said, StringComparison.Ordinal);
     }
