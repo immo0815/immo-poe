@@ -282,8 +282,10 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   `Drawing.Reflects`), the cube's share `pow((step + 0.5) / 20, 5)`. READINGS, said under the picture: the dither
   (`GetBayerNoise16` named, not read - a 4 by 4 Bayer) and the reflected colour's alpha as the cube's share
   (`ComputeEnvironmentLighting` unread); `water.txt` asks for both sources from v0.1.224. The reflected light is added
-  after the exposure and grade, having been drawn with them. NOT DONE: the height offset (water.ffx adds it to the
-  surface's displacement), the terrain water colour, the refraction's bend, foam - and the waves' own look: the ripple
+  after the exposure and grade, having been drawn with them. NOT ON THIS PATH, read from water.ffx (v0.1.227): the
+  height offset - `water_height_offset` is added only by the beach, crashing and flood waves (`BreakingWavesVertex`,
+  `CrashingWavesVertex`, `FloodWaveVertex`, their water depth and the beach foam's height fade), never on an ocean plane's,
+  so Port's -15 moves nothing the harbour draws. NOT DONE: the terrain water colour, the refraction's bend, foam - and the waves' own look: the ripple
   texture's texels and the flow map that drive them are not read, so they look and move otherwise than the game's (said from the
   live client, v0.1.223). `water-textures.txt` (`CaptureWaterTextures`, v0.1.227) looks for the texture: every install
   texture whose path names the water (the startup walk keeps only those, `WalkPlace.Words`) with its size and format, those

@@ -9,7 +9,10 @@ namespace PoEformance.Game.Files;
 /// <param name="OpenColour">water.open_water_color, as the file writes it - in gamma, the engine raising it to 2.2 (water.ffx).</param>
 /// <param name="Murkiness">water.open_water_murkiness: how much of the light a unit of water takes - the density.</param>
 /// <param name="FlowIntensity">water.flow_intensity: how fast the surface's pattern moves, a factor.</param>
-/// <param name="HeightOffset">water.height_offset: how far the surface is moved off its planes, in world units along z (up is minus).</param>
+/// <param name="HeightOffset">
+/// water.height_offset: how far the surface is moved off its planes, in world units along z (up is minus) - by the beach, crashing and
+/// flood waves alone (water.ffx's <c>water_height_offset</c>: BreakingWavesVertex and its kin), never an ocean plane, so it is carried and not drawn.
+/// </param>
 /// <param name="Said">Where each value came from, for the line under a picture.</param>
 /// <param name="Reflectiveness">water.reflectiveness: the surface's specular colour, the share of light it reflects head on - InitWaterSurfaceData's <c>specular_color</c>.</param>
 /// <remarks>
