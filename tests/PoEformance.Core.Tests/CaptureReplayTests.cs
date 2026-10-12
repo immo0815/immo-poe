@@ -54,6 +54,143 @@ public partial class CaptureReplayTests
         Assert.Contains("\nrooms: ", replay, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Every laid tile's ground grid held against the ground types the game keeps at the same corners in memory - written beside the
+    /// capture's files as ground-grid-replay.txt.
+    /// </summary>
+    [Fact]
+    public void THEGROUNDGridIsHeldAgainstTheGamesCorners()
+    {
+        if (Folder is not { Length: > 0 } folder)
+        {
+            return;
+        }
+
+        string replay = GroundGridReplay(folder);
+        File.WriteAllText(Path.Combine(folder, "ground-grid-replay.txt"), replay);
+        Assert.StartsWith("terrain ", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The definitions' ground grids (ground.txt, from v0.1.248) beside the area's corner ground types in the recording (TileCornerData):
+    /// every piece several tiles across, the game's corners over its footprint and its definition's grid as filed, a letter a type.
+    /// </summary>
+    /// <remarks>
+    /// WHAT A GRID'S "NONE" BECOMES IN THE GAME is the question it was written for (v0.1.248's capture): Port's pier lies on sub-tiles whose
+    /// every corner the grid leaves unnamed, and the game draws cobblestone there. Its first run answered it for the harbour: the game holds
+    /// the list's null slot exactly where the grid names none, the two maps alike but mirrored by the piece's laying. The grid is written as
+    /// filed, not turned; a corner-by-corner comparison under the laying is still to be built.
+    /// </remarks>
+    public static string GroundGridReplay(string folder)
+    {
+        var said = new StringBuilder();
+        TerrainGrid? grid = Terrain(folder, out string how);
+        said.AppendLine(how);
+        if (grid is not { Ground: { } ground, Tiles: { } tiles })
+        {
+            said.AppendLine("nothing to hold against without the ground types and the laid tiles");
+            return said.ToString();
+        }
+
+        // THE GRIDS AS ground.txt WRITES THEM: the defining file's header, then "ground grid WxH" and a row of short names a line.
+        string groundFile = Path.Combine(folder, CaptureReport.GroundFile);
+        var grids = new Dictionary<string, string[][]>(StringComparer.OrdinalIgnoreCase);
+        if (File.Exists(groundFile))
+        {
+            string[] lines = File.ReadAllLines(groundFile);
+            for (var at = 0; at < lines.Length; at++)
+            {
+                Match header = Regex.Match(lines[at], @"^##### (\S+\.tdt)(?:  \(for (\S+)\))?  version");
+                if (!header.Success || at + 2 >= lines.Length)
+                {
+                    continue;
+                }
+
+                Match size = Regex.Match(lines[at + 2], @"^  ground grid (\d+)x(\d+),");
+                if (!size.Success)
+                {
+                    continue;
+                }
+
+                int rows = int.Parse(size.Groups[2].Value, CultureInfo.InvariantCulture);
+                var grid2 = new string[rows][];
+                for (var row = 0; row < rows; row++)
+                {
+                    grid2[row] = lines[at + 3 + row].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                }
+
+                grids[header.Groups[1].Value] = grid2;
+                if (header.Groups[2].Success)
+                {
+                    grids[header.Groups[2].Value] = grid2;
+                }
+            }
+        }
+
+        said.AppendLine(CultureInfo.InvariantCulture, $"{grids.Count} definitions' grids from {CaptureReport.GroundFile}; the game's ground types: {string.Join(", ", ground.Types.Select((one, at) => string.Create(CultureInfo.InvariantCulture, $"{at} {(one.Length > 0 ? Path.GetFileNameWithoutExtension(one) : "(null)")}")))}");
+        char Letter(string name)
+        {
+            for (var at = 1; at < ground.Types.Count; at++)
+            {
+                if (string.Equals(Path.GetFileNameWithoutExtension(ground.Types[at]), name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return "-abcdefghijklmnopqrstuvwxyz"[Math.Min(at, 26)];
+                }
+            }
+
+            return name == "-" ? '-' : '?';
+        }
+
+        // EVERY PIECE SEVERAL TILES ACROSS, its footprint's corners as the game holds them - a letter a type - for the grid to be held
+        // against by eye and every way round.
+        var letters = "-abcdefghijklmnopqrstuvwxyz";
+        var shown = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (TilePiece piece in tiles.Pieces(0, 0, tiles.Width, tiles.Height, id => grids.TryGetValue(tiles.Paths[id].Replace('\\', '/'), out string[][]? g) ? (g[0].Length - 1, g.Length - 1) : (1, 1)))
+        {
+            if (piece.Width * piece.Height < 9 || !shown.Add(tiles.Paths[piece.Id]))
+            {
+                continue;
+            }
+
+            said.AppendLine();
+            said.AppendLine(CultureInfo.InvariantCulture, $"=== {Path.GetFileNameWithoutExtension(tiles.Paths[piece.Id])} at {piece.MinX}, {piece.MinY}, {piece.Width} x {piece.Height}, placement {piece.Placement}: the game's corners, area row by row from its least y, a letter a type (- the null slot)");
+            for (int cy = piece.MinY; cy <= piece.MaxY + 1; cy++)
+            {
+                var row = new StringBuilder("    ");
+                for (int cx = piece.MinX; cx <= piece.MaxX + 1; cx++)
+                {
+                    int value = ground.At(cx, cy);
+                    row.Append(value >= 0 && value < letters.Length ? letters[value] : '?');
+                }
+
+                said.AppendLine(row.ToString());
+            }
+
+            if (grids.TryGetValue(tiles.Paths[piece.Id].Replace('\\', '/'), out string[][]? own))
+            {
+                said.AppendLine("  its definition's grid, row nought at the template's least y, in the same letters - as filed, not turned to the laying:");
+                foreach (string[] cells in own)
+                {
+                    said.AppendLine("    " + string.Concat(cells.Select(name => Letter(name))));
+                }
+            }
+
+            said.Append("  its tiles' own places (sx,sy):");
+            for (int cy = piece.MinY; cy <= Math.Min(piece.MaxY, piece.MinY + 2); cy++)
+            {
+                for (int cx = piece.MinX; cx <= Math.Min(piece.MaxX, piece.MinX + 2); cx++)
+                {
+                    (int sx, int sy) = tiles.SubAt(cx, cy);
+                    said.Append(CultureInfo.InvariantCulture, $" ({cx - piece.MinX},{cy - piece.MinY})={sx},{sy}");
+                }
+            }
+
+            said.AppendLine();
+        }
+
+        return said.ToString();
+    }
+
     /// <summary>Searches every room of the capture over its recording's terrain and writes the result, with each doodad place's rank, beside the capture's files.</summary>
     [Fact]
     public void THESEARCHRunsAgainFromACapture()
