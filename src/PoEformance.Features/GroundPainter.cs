@@ -492,6 +492,13 @@ internal sealed class GroundPainter
         return (subTiles, mask, mask.Length > 0 ? MaskOf(mask) : null);
     }
 
+    /// <summary>Whether the MaterialsList has a group for a ground type (<c>.gt</c>), by the name its file spells.</summary>
+    internal bool Lists(string groundType)
+    {
+        string name = NameOf(groundType);
+        return name.Length > 0 && _list.Groups.Any(group => string.Equals(group.Name, name, StringComparison.OrdinalIgnoreCase));
+    }
+
     /// <summary>A group's heaviest choice - its only one where it has one.</summary>
     private static string Heaviest(GroundGroup group)
     {

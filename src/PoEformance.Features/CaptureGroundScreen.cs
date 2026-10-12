@@ -48,7 +48,8 @@ public static class CaptureGroundScreen
     /// </summary>
     /// <param name="read">The install.</param>
     /// <param name="snapshot">The world as the key went down: the terrain, its tiles, the camera.</param>
-    /// <param name="masters">The area's masters, whose MaterialsList names the grounds - the first that paints is taken.</param>
+    /// <param name="loaded">The files the area loaded, which the area's masters are found from - see AreaRoomSet.Masters.</param>
+    /// <param name="masters">Every master (<c>.tsi</c>) the install has, as its index lists them.</param>
     /// <param name="bgr">The game's picture, three bytes a pixel blue first, top row first - or null for a black one.</param>
     /// <param name="width">The picture's width, which is the screen's.</param>
     /// <param name="height">Its height.</param>
@@ -57,6 +58,7 @@ public static class CaptureGroundScreen
     public static string Write(
         Func<string, byte[]?> read,
         WorldSnapshot snapshot,
+        IReadOnlyList<string> loaded,
         IReadOnlyList<string> masters,
         byte[]? bgr,
         int width,
@@ -66,6 +68,7 @@ public static class CaptureGroundScreen
     {
         ArgumentNullException.ThrowIfNull(read);
         ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(loaded);
         ArgumentNullException.ThrowIfNull(masters);
         picture = null;
         if (snapshot.Terrain is not { Tiles: not null } grid)
@@ -78,36 +81,35 @@ public static class CaptureGroundScreen
             return "ground on screen: no player, camera or screen to project with\n";
         }
 
-        var paints = new MonsterModels.Paints();
-        GroundPainter? painter = null;
-        string unpainted = "no master";
-        foreach (string master in masters)
-        {
-            (painter, unpainted) = GroundPainter.For(read, master, paints);
-            if (painter is not null)
-            {
-                break;
-            }
-        }
-
-        if (painter is null)
-        {
-            return "ground on screen: no MaterialsList to name the grounds - " + unpainted + "\n";
-        }
-
         (int x0, int y0, int x1, int y1) = Block(matrix, player, grid, width, height);
         List<LaidGround> laid = LaidRoomModels.GroundsOver(read, grid, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
 
+        // THE GROUND TYPES AT THE LAID PIECES' CORNERS, which the MaterialsList painting them must name.
+        var types = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string path in laid.Select(one => one.Path).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            (TileDefinition definition, _) = TileModels.Defined(read, path);
+            types.UnionWith(definition.Grounds.Concat(definition.GroundGrid).Where(corner => corner.Length > 0));
+        }
+
+        (GroundPainter? painter, string chosen, IReadOnlyList<string> weighed) = MasterOf(read, AreaRoomSet.Masters(loaded, masters), types, new MonsterModels.Paints());
+        if (painter is null)
+        {
+            return "ground on screen: no master of the area names a MaterialsList to name the grounds with\n"
+                + string.Concat(weighed.Select(line => "  " + line + "\n"));
+        }
+
         var canvas = new Canvas(width, height, bgr);
         var body = new StringBuilder();
+        var lines = new StringBuilder();
         int mixed = 0, wideOnes = 0, offScreen = 0;
         foreach (LaidGround one in laid)
         {
             int triangles = one.Ground.Indices.Length / 3;
             (IReadOnlyList<SubTileGrounds> subTiles, string mask, GamePicture? maskPicture) = painter.SubTilesOf(one.Path, one.Pieces, triangles);
-            body.Append("== ").Append(one.Path)
-                .Append(string.Create(CultureInfo.InvariantCulture, $" at tile {one.Piece.MinX}, {one.Piece.MinY}, {one.Piece.Width} x {one.Piece.Height}, placement {one.Piece.Placement}"))
-                .Append(" · mask ").AppendLine(mask.Length == 0 ? "none" : mask + (maskPicture is { } decoded ? string.Create(CultureInfo.InvariantCulture, $" ({decoded.Width} x {decoded.Height})") : " (did not read)"));
+            lines.Clear();
+            int oneGround = 0, several = 0, away = 0;
+            var plain = new SortedDictionary<string, int>(StringComparer.Ordinal);
 
             int from = 0;
             for (var at = 0; at < one.Pieces.Count && at < subTiles.Count; at++)
@@ -116,15 +118,23 @@ public static class CaptureGroundScreen
                 SubTileGrounds grounds = subTiles[at];
                 int first = from;
                 from += piece.Triangles;
-                bool several = grounds.Grounds.Count >= 2 || grounds.Why.StartsWith("of three", StringComparison.Ordinal);
-                if (!several)
+                if (grounds.Grounds.Count == 1)
                 {
+                    oneGround++;
                     continue;
                 }
 
+                if (grounds.Grounds.Count == 0 && !grounds.Why.StartsWith("of three", StringComparison.Ordinal))
+                {
+                    plain[grounds.Why] = plain.GetValueOrDefault(grounds.Why) + 1;
+                    continue;
+                }
+
+                several++;
                 (Vector3[] corners, Vector3 middle) = Outline(one, piece, grid);
                 if (!Screen(matrix, middle, width, height, out Vector2 centre) || centre.X < 0 || centre.Y < 0 || centre.X >= width || centre.Y >= height)
                 {
+                    away++;
                     offScreen++;
                     continue;
                 }
@@ -155,18 +165,28 @@ public static class CaptureGroundScreen
                 canvas.Label(name, (int)centre.X, (int)centre.Y);
 
                 int tileX = (int)MathF.Floor(middle.X / TileModels.Side), tileY = (int)MathF.Floor(middle.Y / TileModels.Side);
-                body.Append("  ").Append(name)
+                lines.Append("  ").Append(name)
                     .Append(string.Create(CultureInfo.InvariantCulture, $" · area tile {tileX}, {tileY} · on screen {centre.X:F0}, {centre.Y:F0}"))
                     .Append(" · grid corners ").Append(string.Join(", ", grounds.Corners.Select(Short)))
                     .Append(" → ").Append(grounds.Grounds.Count > 0 ? string.Join(" + ", grounds.Grounds.Select(group => group.Length > 0 ? group : "(the group with no name)")) : grounds.Why)
                     .Append(" · the game's corners there ").AppendLine(GameCorners(grid, tileX, tileY));
                 foreach (ShapeSeen shape in shapes)
                 {
-                    body.Append(string.Create(CultureInfo.InvariantCulture,
+                    lines.Append(string.Create(CultureInfo.InvariantCulture,
                         $"    shape {shape.Index} · {shape.Triangles} triangles · z {shape.Low:F0}..{shape.High:F0} · green {shape.Green:F2} · the mask's coordinates span {shape.SpanU:F0} x {shape.SpanV:F0} texels over {shape.Cells} cells"))
                         .AppendLine(shape.Wide ? " · ACROSS THE ATLAS (drawn)" : string.Empty);
                 }
             }
+
+            // EVERY SUB-TILE ACCOUNTED FOR on the piece's own line: of one ground, of several (and how many of those off the screen), or
+            // plain and why - so a piece that draws nothing says which it was, not merely nothing.
+            body.Append("== ").Append(one.Path)
+                .Append(string.Create(CultureInfo.InvariantCulture, $" at tile {one.Piece.MinX}, {one.Piece.MinY}, {one.Piece.Width} x {one.Piece.Height}, placement {one.Piece.Placement}"))
+                .Append(" · mask ").Append(mask.Length == 0 ? "none" : mask + (maskPicture is { } decoded ? string.Create(CultureInfo.InvariantCulture, $" ({decoded.Width} x {decoded.Height})") : " (did not read)"))
+                .Append(string.Create(CultureInfo.InvariantCulture, $" · sub-tiles: {oneGround} of one ground, {several} of two or more"))
+                .Append(away > 0 ? string.Create(CultureInfo.InvariantCulture, $" ({away} off the screen)") : string.Empty)
+                .AppendLine(string.Concat(plain.Select(why => string.Create(CultureInfo.InvariantCulture, $", {why.Value} plain {why.Key}"))));
+            body.Append(lines);
         }
 
         picture = canvas.Picture;
@@ -175,6 +195,13 @@ public static class CaptureGroundScreen
             $"ground on screen: {mixed} sub-tiles of two or more grounds on the screen, {wideOnes} of them with ground shapes across the mask's atlas; {laid.Count} pieces over tiles {x0}..{x1}, {y0}..{y1}"))
             .Append(offScreen > 0 ? string.Create(CultureInfo.InvariantCulture, $", {offScreen} such sub-tiles off the screen") : string.Empty)
             .Append(" - over ").AppendLine(pictureSaid);
+        said.Append("grounds named by ").Append(chosen).Append("'s MaterialsList (").Append(painter.From)
+            .AppendLine(") - of the area's masters, the one whose list names the most of the ground types at the laid pieces' corners:");
+        foreach (string line in weighed)
+        {
+            said.Append("  ").AppendLine(line);
+        }
+
         said.AppendLine();
         said.AppendLine("Each sub-tile of two grounds is outlined white (orange: three or four) and named as ground.txt names its mesh, cXrY; the ground shapes in it whose");
         said.AppendLine("coordinates span a cell of the mask's atlas or more are drawn magenta, triangle by triangle - where the tool's mix reads the atlas's cells as squares.");
@@ -184,6 +211,45 @@ public static class CaptureGroundScreen
         said.AppendLine();
         said.Append(body);
         return said.ToString();
+    }
+
+    /// <summary>
+    /// Of the area's masters, the one whose MaterialsList names the most of the given ground types - the first on a tie - and what
+    /// each came to, a line a master.
+    /// </summary>
+    /// <remarks>
+    /// THE AREA'S OWN, AND NOT THE FIRST. v0.1.251 took the first master of the install's whole index that named any list, a list of
+    /// another tileset, and every sub-tile came out plain - nought sub-tiles of two grounds in five areas. And among an area's own the
+    /// first is not it either: Act 4's areas list worldmaps/act4/master.tsi first, whose MaterialsList holds the unnamed group alone,
+    /// while the area's own (gallows/act4/4_3_1, 4_10, 4_13) names its grounds (v0.1.251's captures of Whakapanu Island, The
+    /// Excavation and Plunder's Point). Which list the game paints an area's ground from is the engine's; the one naming the grounds
+    /// laid is the one that can.
+    /// </remarks>
+    internal static (GroundPainter? Painter, string Master, IReadOnlyList<string> Weighed) MasterOf(
+        Func<string, byte[]?> read, IEnumerable<string> masters, IReadOnlyCollection<string> types, MonsterModels.Paints paints)
+    {
+        GroundPainter? best = null;
+        string chosen = string.Empty;
+        int most = -1;
+        var weighed = new List<string>();
+        foreach (string master in masters)
+        {
+            (GroundPainter? painter, string why) = GroundPainter.For(read, master, paints);
+            if (painter is null)
+            {
+                weighed.Add(master + ": " + why);
+                continue;
+            }
+
+            int named = types.Count(painter.Lists);
+            weighed.Add(string.Create(CultureInfo.InvariantCulture, $"{master}: its MaterialsList {painter.From} names {named} of {types.Count}"));
+            if (named > most)
+            {
+                (best, chosen, most) = (painter, master, named);
+            }
+        }
+
+        return (best, chosen, weighed);
     }
 
     /// <summary>One ground shape of a sub-tile, as the mask sees it.</summary>

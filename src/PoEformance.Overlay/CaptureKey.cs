@@ -757,7 +757,7 @@ internal sealed class CaptureKey
                     (byte[]? shot, string over) = run.Game is not null ? (run.Game, "the game alone")
                         : run.Overlay is not null ? (run.Overlay, "the game with the overlay - tick \"the game alone\" for a clean picture")
                         : ((byte[]?)null, "black - no picture of the game was taken");
-                    string said = CaptureGroundScreen.Write(read, run.Snapshot, run.Masters, shot, client.Width, client.Height, over, out GamePicture? picture);
+                    string said = CaptureGroundScreen.Write(read, run.Snapshot, run.Loaded, run.Masters, shot, client.Width, client.Height, over, out GamePicture? picture);
                     File.WriteAllText(At(CaptureReport.GroundScreenFile), said);
                     if (picture is { } drawn)
                     {
