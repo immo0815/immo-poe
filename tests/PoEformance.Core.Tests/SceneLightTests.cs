@@ -370,6 +370,38 @@ public class SceneLightTests
         Assert.True(low.X < -0.9f && low.Z > 0f);
     }
 
+    /// <summary>
+    /// A shadow map's frame from a stage's bounds joined with a monster's is the frame of every vertex at once, to the bit - so the card may scan only the monster, and keep the stage's map where he stays inside it.
+    /// </summary>
+    [Fact]
+    public void ASHADOWFrameFromBoundsGatheredApartIsTheWholeMeshs()
+    {
+        var places = new Vector3[5000];
+        var random = new Random(31);
+        for (var one = 0; one < places.Length; one++)
+        {
+            places[one] = new Vector3((random.NextSingle() * 800f) - 400f, (random.NextSingle() * 600f) - 300f, random.NextSingle() * -200f);
+        }
+
+        Vector3 direction = Vector3.Normalize(new Vector3(0.4f, -0.3f, 0.85f));
+        ShadowFrame? whole = ShadowMap.Framed(places, direction, ShadowMap.Usual);
+        ShadowBounds stage = ShadowMap.Bounded(places.AsSpan(0, 4200), direction);
+        ShadowBounds monster = ShadowMap.Bounded(places.AsSpan(4200), direction);
+        Assert.NotNull(whole);
+        Assert.Equal(whole, ShadowMap.Framed(stage.With(monster), direction, ShadowMap.Usual));
+        Assert.Equal(whole, ShadowMap.Framed(monster.With(stage), direction, ShadowMap.Usual));
+
+        // A monster inside the stage's bounds leaves them as they are - the card's test for keeping the stage's map.
+        Vector3 middle = Vector3.Zero;
+        foreach (Vector3 one in places.AsSpan(0, 4200))
+        {
+            middle += one / 4200f;
+        }
+
+        Assert.Equal(stage, stage.With(ShadowMap.Bounded([middle], direction)));
+        Assert.Null(ShadowMap.Framed(ShadowMap.Bounded([], direction), direction, ShadowMap.Usual));
+    }
+
     // ---- the picture ----
 
     /// <summary>A floor under a point light is brightest under the light, and no light leaves the picture as it was.</summary>

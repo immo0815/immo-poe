@@ -15,4 +15,8 @@
   <ItemGroup>
     <ProjectReference Include="..\PoEformance.Game\PoEformance.Game.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- For counts a test reads and the overlay has no use for, such as how many shadows were cast over a kept stage. -->
+    <InternalsVisibleTo Include="PoEformance.Gpu.Tests" />
+  </ItemGroup>
 </Project>

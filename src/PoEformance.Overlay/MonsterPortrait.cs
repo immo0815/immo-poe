@@ -541,6 +541,20 @@ public sealed class MonsterPortrait
     private Vector3[] _posed = [];
     private Vector3[] _posedNormals = [];
 
+    /// <summary>
+    /// What <see cref="_posed"/> was last posed for - the model, its keyframes and the frame - and the key the card is told it by (ModelScene.PoseKey), new for every pose.
+    /// </summary>
+    /// <remarks>
+    /// A PAUSED MONSTER WAS POSED AGAIN ON EVERY REDRAW - a drag, an orbit, a light's slider - and the
+    /// card sent the whole stage and cast its shadow again each time, for a pose that had not moved.
+    /// </remarks>
+    private (MonsterModel Model, AnimationTracks Tracks, float Frame)? _posedFor;
+
+    private long _poseKey;
+
+    /// <summary>The keys handed out, one counter for every pane, so two panes' poses never share one.</summary>
+    private static long _poseKeys;
+
     /// <summary>The monster's own vertices posed, where he stands on a stage - written over his slice of the above. See <see cref="Posed"/>.</summary>
     private Vector3[] _actorPosed = [];
     private Vector3[] _actorNormals = [];
@@ -3007,6 +3021,7 @@ public sealed class MonsterPortrait
         }
 
         _pose = SkeletonPose.Of(_model.Rig);
+        _posedFor = null;
         if (_pose is null)
         {
             _stillWhy = "the skeleton's bone tree does not hold together";
@@ -3361,9 +3376,16 @@ public sealed class MonsterPortrait
             bool moving = posed && _pose is not null && _tracks is not null;
             if (moving)
             {
-                _pose!.Take(_tracks!, _frame);
-                Posed();
-                lowest = Lowest(_posed);
+                if (_posedFor is not { } was || !ReferenceEquals(was.Model, _model) || !ReferenceEquals(was.Tracks, _tracks) || was.Frame != _frame)
+                {
+                    _pose!.Take(_tracks!, _frame);
+                    Posed();
+                    _posedFor = (_model, _tracks!, _frame);
+                    _poseKey = Interlocked.Increment(ref _poseKeys);
+                }
+
+                // ON A STAGE THE LOWEST POINT IS NOT ASKED FOR (Planted), and finding it is a scan of the whole stage.
+                lowest = _model.Staged ? 0f : Lowest(_posed);
             }
             else
             {
@@ -3450,7 +3472,8 @@ public sealed class MonsterPortrait
 
         var scene = new ModelScene(
             _model.Mesh, _turn, _tilt, Ink, _model.Skin, _zoom, _pan, _model.Skins, Blends(),
-            moving ? _posed : null, moving ? _posedNormals : null, _drawnLight, ShadesOf(_model), _clock, _drawnDust, card.Sharp, _drawnWater);
+            moving ? _posed : null, moving ? _posedNormals : null, _drawnLight, ShadesOf(_model), _clock, _drawnDust, card.Sharp, _drawnWater,
+            PoseFrom: moving && _model.Actor is not null ? _model.ActorFirst : 0, PoseKey: moving ? _poseKey : 0);
         if (!gpu.Can(scene, out string why))
         {
             // A MATERIAL'S SHADER STILL COMPILING is the usual no: the picture is the processor's until
@@ -3579,13 +3602,27 @@ public sealed class MonsterPortrait
         Matrix4x4 place = _model.ActorPlace;
         int first = _model.ActorFirst;
         int count = Math.Min(_actorPosed.Length, _posed.Length - first);
-        for (var one = 0; one < count; one++)
+        Vector3[] own = _actorPosed, ownNormals = _actorNormals, posed = _posed, posedNormals = _posedNormals;
+        void Placed(int from, int to)
         {
-            _posed[first + one] = Vector3.Transform(_actorPosed[one], place);
-            Vector3 turned = Vector3.TransformNormal(_actorNormals[one], place);
-            float length = turned.Length();
-            _posedNormals[first + one] = length > 1e-6f ? turned / length : _actorNormals[one];
+            for (int one = from; one < to; one++)
+            {
+                posed[first + one] = Vector3.Transform(own[one], place);
+                Vector3 turned = Vector3.TransformNormal(ownNormals[one], place);
+                float length = turned.Length();
+                posedNormals[first + one] = length > 1e-6f ? turned / length : ownNormals[one];
+            }
         }
+
+        // ON EVERY CORE, as the skinning before it - each vertex is its own.
+        int pieces = Math.Min(Environment.ProcessorCount, count / 4096);
+        if (pieces < 2)
+        {
+            Placed(0, count);
+            return;
+        }
+
+        Parallel.For(0, pieces, piece => Placed((int)((long)count * piece / pieces), (int)((long)count * (piece + 1) / pieces)));
     }
 
     /// <summary>The largest z among the points, which is the lowest: the model's up is -z.</summary>
@@ -4127,6 +4164,10 @@ public sealed class MonsterPortrait
         {
             _pose.Take(_tracks, _frame);
             Posed();
+
+            // THE ARRAYS NOW HOLD THIS POSE, whatever the frame's said - see _posedFor.
+            _posedFor = (_model, _tracks, _frame);
+            _poseKey = Interlocked.Increment(ref _poseKeys);
             return MeshPicture.Of(
                 _model.Mesh, Clocked(canvas), _posed, _posedNormals, _turn, _tilt, Ink,
                 _model.Skin, _zoom, _pan, _model.Skins, Blends(), ShadesOf(_model));

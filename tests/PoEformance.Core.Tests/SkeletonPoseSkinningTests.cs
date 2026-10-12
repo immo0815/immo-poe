@@ -158,6 +158,34 @@ public class SkeletonPoseSkinningTests
             $"blended {positions[2]} but the weighted mean is {expected}");
     }
 
+    /// <summary>A mesh large enough to be moved on every core is moved to the bit as on one - every vertex is its own.</summary>
+    [Fact]
+    public void ALARGEMeshIsMovedOnEveryCoreAsOnOne()
+    {
+        (_, SkeletonPose pose, AnimationTracks tracks) = Ready();
+        pose.Take(tracks, tracks.Frames / 3f);
+        int bones = pose.BindModel.Count;
+        var vertices = new Packed.Vertex[50_000];
+        for (var one = 0; one < vertices.Length; one++)
+        {
+            var place = new Vector3((one % 97) - 48f, ((one / 97) % 89) - 44f, one % 61);
+            vertices[one] = new Packed.Vertex(
+                place, [(byte)(one % bones), (byte)((one * 7) % bones), 0, 0], [(byte)(255 - (one % 128)), (byte)(one % 128), 0, 0]);
+        }
+
+        SkinnedMesh mesh = SkinnedMesh.Read(Packed.Mesh(vertices));
+        Assert.True(mesh.Ready, mesh.Why);
+        var everyCore = new Vector3[mesh.Positions.Length];
+        var everyCoreNormals = new Vector3[mesh.Positions.Length];
+        var oneCore = new Vector3[mesh.Positions.Length];
+        var oneCoreNormals = new Vector3[mesh.Positions.Length];
+        pose.Move(mesh, everyCore, everyCoreNormals);
+        pose.Move(mesh, oneCore.AsSpan(), oneCoreNormals.AsSpan());
+        Assert.Equal(oneCore, everyCore);
+        Assert.Equal(oneCoreNormals, everyCoreNormals);
+        Assert.Contains(everyCore, one => one != Vector3.Zero);
+    }
+
     /// <summary>The highest weighted bone is reported, and a zero-weight index does not count.</summary>
     [Fact]
     public void TheHighestWeightedBoneIsWhatCounts()
