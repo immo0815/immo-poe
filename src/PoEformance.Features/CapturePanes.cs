@@ -234,16 +234,20 @@ public static class CapturePanes
             }
         }
 
+        var paints = new MonsterModels.Paints();
+        int found = picked.Count;
+        List<(string Material, string Why)> shore = read is null ? [] : ShoreOnes(read, panes, paints, named);
+        picked.AddRange(shore.Take(MostShore));
         if (picked.Count == 0)
         {
             return;
         }
 
         body.AppendLine().Append(CultureInfo.InvariantCulture,
-            $"=== the materials under the probe and those drawn plain, whole ({Math.Min(picked.Count, MostMaterials)} of {picked.Count}; {plainInAll} drawn plain)").AppendLine();
+            $"=== the materials under the probe and those drawn plain, whole ({Math.Min(found, MostMaterials)} of {found}; {plainInAll} drawn plain), then those naming a shore's node or with nodes the compile left out ({Math.Min(shore.Count, MostShore)} of {shore.Count})").AppendLine();
         if (read is null)
         {
-            foreach ((string material, string why) in picked.Take(MostMaterials))
+            foreach ((string material, string why) in picked.Take(Math.Min(found, MostMaterials)))
             {
                 body.AppendLine().Append("##### ").Append(material).Append("  (").Append(why).AppendLine(")").AppendLine("  (no install to read it from)");
             }
@@ -251,10 +255,9 @@ public static class CapturePanes
             return;
         }
 
-        var paints = new MonsterModels.Paints();
         var graphs = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach ((string material, string why) in picked.Take(MostMaterials))
+        foreach ((string material, string why) in picked.Take(Math.Min(found, MostMaterials)).Concat(picked.Skip(found)))
         {
             body.AppendLine().Append("##### ").Append(material).Append("  (").Append(why).AppendLine(")");
             if (!CaptureMaterials.Material(read, material, paints, body, graphs, seen))
@@ -290,6 +293,99 @@ public static class CapturePanes
 
     /// <summary>Most materials written whole.</summary>
     private const int MostMaterials = 24;
+
+    /// <summary>Most materials written whole for naming a shore's node or for what their compile left out.</summary>
+    private const int MostShore = 32;
+
+    /// <summary>
+    /// The graph nodes the engine puts the sea onto what stands in it with (effects.ffx): the foam and the wet streaks on rocks, the
+    /// beach's, the crashing and the flood waves, their spray - a material's own graph's, not the water pass's.
+    /// </summary>
+    public static IReadOnlyList<string> ShoreNodes { get; } =
+        ["CrashingFoamSurface", "BeachFoamSurface", "CrashingWaves", "BreakingWaves", "FloodWave", "SprayTrigger", "Wetness", "shoreline"];
+
+    /// <summary>
+    /// Every material a pane draws, not yet written, that names one of <see cref="ShoreNodes"/> in its file or the graphs it is an
+    /// instance of, or whose compile left a node out - the shore's first, then by the triangles they cover.
+    /// </summary>
+    /// <remarks>
+    /// WRITTEN WHEN THE GAME'S ROCKS BY THE SEA SHOWED WHITE STREAKS OF WATER RUNNING DOWN THEM (asked for from the live client,
+    /// v0.1.233) and the viewer's did not: the engine draws that in the rock's own material (CrashingFoamSurface, a triplanar foam
+    /// scrolling down the face on the crashing wave's phase), so the question is which materials use it and what the compile made
+    /// of them - answered here for every material of the room, with no probe click needed.
+    /// </remarks>
+    private static List<(string Material, string Why)> ShoreOnes(
+        Func<string, byte[]?> read, IReadOnlyList<CapturePane> panes, MonsterModels.Paints paints, HashSet<string> named)
+    {
+        var graphNodes = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var found = new List<(string Material, string Why, bool Shore, long Triangles)>();
+        foreach (CapturePane pane in panes)
+        {
+            MonsterModel model = pane.Model;
+            var covered = new Dictionary<string, (long Triangles, int Shape)>(StringComparer.OrdinalIgnoreCase);
+            for (var shape = 0; shape < model.Mesh.Shapes.Count; shape++)
+            {
+                if (MaterialOf(model, shape) is not { Length: > 0 } material || named.Contains(material))
+                {
+                    continue;
+                }
+
+                long triangles = model.Mesh.Shapes[shape].Count / 3;
+                covered[material] = covered.TryGetValue(material, out (long Triangles, int Shape) had) ? (had.Triangles + triangles, had.Shape) : (triangles, shape);
+            }
+
+            foreach ((string material, (long triangles, int shape)) in covered)
+            {
+                string[] nodes = NodesOf(read, material, graphNodes);
+                IReadOnlyList<string> left = paints.Compiled(read, material).Compiled.Skipped;
+                if (nodes.Length == 0 && left.Count == 0 || !named.Add(material))
+                {
+                    continue;
+                }
+
+                string why = (nodes.Length > 0 ? "names " + string.Join(", ", nodes) + " · " : string.Empty)
+                    + (left.Count > 0 ? string.Create(CultureInfo.InvariantCulture, $"the compile left out {left.Count} · ") : string.Empty)
+                    + string.Create(CultureInfo.InvariantCulture, $"{Drawn(pane, shape)} in the {pane.Book} book's pane · {triangles} triangles{From(model, shape)}");
+                found.Add((material, why, nodes.Length > 0, triangles));
+            }
+        }
+
+        return [.. found.OrderByDescending(one => one.Shore).ThenByDescending(one => one.Triangles).Select(one => (one.Material, one.Why))];
+    }
+
+    /// <summary>The shore's nodes a material names in its file or in the graphs it is an instance of - each graph read once.</summary>
+    private static string[] NodesOf(Func<string, byte[]?> read, string material, Dictionary<string, string[]> graphNodes)
+    {
+        byte[]? content = read(MaterialFile.Bare(material).Replace('\\', '/').Trim());
+        if (content is not { Length: > 0 })
+        {
+            return [];
+        }
+
+        var nodes = new SortedSet<string>(Named(StatDescriptionFiles.Decode(content)), StringComparer.Ordinal);
+        foreach (string graph in MaterialFile.Read(content).Parents)
+        {
+            string path = graph.Replace('\\', '/').Trim();
+            if (path.Length == 0)
+            {
+                continue;
+            }
+
+            if (!graphNodes.TryGetValue(path, out string[]? inGraph))
+            {
+                byte[]? text = read(path);
+                inGraph = text is { Length: > 0 } ? [.. Named(StatDescriptionFiles.Decode(text))] : [];
+                graphNodes[path] = inGraph;
+            }
+
+            nodes.UnionWith(inGraph);
+        }
+
+        return [.. nodes];
+    }
+
+    private static IEnumerable<string> Named(string text)
+        => ShoreNodes.Where(node => text.Contains(node, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>A room's doodad files, a line each: the counts, the box and first place, the materials, and why it did not draw.</summary>
     private static void Files(StringBuilder body, IReadOnlyList<DoodadFile> files)

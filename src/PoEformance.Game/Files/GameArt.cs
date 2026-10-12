@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Text;
 
 namespace PoEformance.Game.Files;
@@ -205,6 +206,11 @@ public static class GameArt
             return paired;
         }
 
+        if (TwoWideChannels(dds) is { } wide)
+        {
+            return wide;
+        }
+
         try
         {
             using var stream = new MemoryStream(dds, writable: false);
@@ -272,6 +278,88 @@ public static class GameArt
         }
 
         return new GamePicture(width, height, rgba);
+    }
+
+    /// <summary>
+    /// A DDS of two 16-bit channels a texel, red then green - unsigned and normalised, or halves - read here before Pfim, which reads none
+    /// of them (or a 32-bit one as four bytes): its top level as a card reads it, (r, g, 0, 1) at a byte a channel, a half held to nought
+    /// and one. Null for any other.
+    /// </summary>
+    /// <remarks>
+    /// WRITTEN FOR THE ROCKS' SPRAY (CrashingFoamSurface), whose wave noise is <c>flow_muddle_blur_01_R16G16.dds</c> in a folder named
+    /// <c>16bit</c> - the name says the channels and not which of the formats spelling them its header uses, so every one is read by
+    /// what the header says: DXGI's R16G16_UNORM (35) and R16G16_FLOAT (34) after a DX10 header; the old Direct3D numbers in the
+    /// four-character code, D3DFMT_G16R16 (34) and D3DFMT_G16R16F (112); and the old uncompressed header of 32 bits, red in the low
+    /// half and green in the high, no blue and no alpha. The noise is read at its green, a byte of which is a 255th of a wave.
+    /// </remarks>
+    private static GamePicture? TwoWideChannels(byte[] dds)
+    {
+        const int header = 128;
+        const int dx10 = 20;
+        if (dds.Length < header || !dds.AsSpan(0, 4).SequenceEqual("DDS "u8))
+        {
+            return null;
+        }
+
+        uint flags = BitConverter.ToUInt32(dds, 80);
+        uint code = BitConverter.ToUInt32(dds, 84);
+        bool? halves = null;
+        int offset = header;
+        if ((flags & 0x4) != 0)
+        {
+            if (dds.AsSpan(84, 4).SequenceEqual("DX10"u8) && dds.Length >= header + dx10)
+            {
+                uint format = BitConverter.ToUInt32(dds, header);
+                halves = format switch { 35 => false, 34 => true, _ => null };
+                offset = header + dx10;
+            }
+            else
+            {
+                halves = code switch { 34 => false, 112 => true, _ => null };
+            }
+        }
+        else if ((flags & 0x40) != 0
+                 && BitConverter.ToUInt32(dds, 88) == 32
+                 && BitConverter.ToUInt32(dds, 92) == 0x0000FFFFu
+                 && BitConverter.ToUInt32(dds, 96) == 0xFFFF0000u
+                 && BitConverter.ToUInt32(dds, 100) == 0
+                 && BitConverter.ToUInt32(dds, 104) == 0)
+        {
+            halves = false;
+        }
+
+        int height = BitConverter.ToInt32(dds, 12);
+        int width = BitConverter.ToInt32(dds, 16);
+        if (halves is not { } half
+            || width is <= 0 or > WidestPicture || height is <= 0 or > WidestPicture
+            || dds.Length < offset + ((long)width * height * 4))
+        {
+            return null;
+        }
+
+        var rgba = new byte[width * height * 4];
+        ReadOnlySpan<byte> texels = dds.AsSpan(offset, width * height * 4);
+        for (var at = 0; at < width * height; at++)
+        {
+            ReadOnlySpan<byte> one = texels.Slice(at * 4, 4);
+            rgba[at * 4] = Wide(one[..2], half);
+            rgba[(at * 4) + 1] = Wide(one[2..], half);
+            rgba[(at * 4) + 3] = 255;
+        }
+
+        return new GamePicture(width, height, rgba);
+    }
+
+    /// <summary>A 16-bit channel at a byte: an unsigned one rounded from 65,535ths, a half held to nought and one.</summary>
+    private static byte Wide(ReadOnlySpan<byte> two, bool half)
+    {
+        if (!half)
+        {
+            return (byte)(((BinaryPrimitives.ReadUInt16LittleEndian(two) * 255) + 32767) / 65535);
+        }
+
+        float value = (float)BinaryPrimitives.ReadHalfLittleEndian(two);
+        return (byte)MathF.Round((value > 0f ? (value < 1f ? value : 1f) : 0f) * 255f);
     }
 
     /// <summary>

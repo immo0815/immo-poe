@@ -2129,7 +2129,8 @@ public sealed class MonsterPortrait
                     + " panel's wind; the swell rolling in to the shore the engine's formula over a shore made here from the room's ground, CHOSEN"
                     + " until the engine's is read - " + ShadeProgram.Swells.Said + "; its foam the engine's trail foam (GetFoamColor3) from the"
                     + " cross-section's green and alpha, none where the stand-in stands, its leading edge's textured layers and the orbit's"
-                    + " offsets not drawn; their glints and reflection under the game light, by the light"
+                    + " offsets not drawn; what stands in it sprayed and wetted as its own material says (CrashingFoamSurface: a crashing wave"
+                    + " every five seconds running up from the water's line, over the same CHOSEN shore); their glints and reflection under the game light, by the light"
                     + " panel's water switches - the scene reflected by the engine's screen ray, its dither a 4 by 4 Bayer, a reading - and the surface"
                     + " lifted by them times its lift - which the engine does per pixel only"
                     + (water.HeightOffset != 0f ? "; its height offset not applied - it moves the beach and flood waves alone)" : ")"));

@@ -271,8 +271,9 @@ public static class CaptureParts
         new(ModelPanes, "Windows", "the model panes' lines", CaptureReport.PanesFile,
             "Every model pane showing a model: its lines under the picture, a room stage's own among them, and every doodad file "
             + "of the room it shows with what became of its lines - laid, not drawn, left out by the cap, unseen - its box, where "
-            + "its first line puts it and its materials; each file that did not draw written whole with what it extends. "
-            + "Nothing where no pane shows a model."),
+            + "its first line puts it and its materials; each file that did not draw written whole with what it extends; the materials "
+            + "under the probe, those drawn plain and those naming a shore's node or with nodes left out, whole, each program texture's "
+            + "header beside them. Nothing where no pane shows a model."),
         new(Dissector, "Windows", "the dissector", CaptureReport.DissectorFile,
             "The places the Memory Dissector has open, the route walked to them, and what its last search found with the bytes "
             + "round each place. Nothing where it is untouched."),
