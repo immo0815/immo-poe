@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace PoEformance.Game.Files;
 
 /// <summary>What became of one triangle's fragment at a probed pixel - see <see cref="PixelProbe"/>.</summary>
@@ -37,6 +39,31 @@ public enum Seen : byte
 public readonly record struct ProbeFragment(int Triangle, Seen Seen, float Depth, float Behind, float Cover);
 
 /// <summary>
+/// What a water surface lit the game's way did at a probed pixel: where it stood, its waves and what its reflection of the picture met.
+/// </summary>
+/// <remarks>
+/// WRITTEN WHEN SAND-COLOURED PATCHES SHOWED IN THE WATER BETWEEN THE SWELL'S CRESTS (asked for from the live client, v0.1.234), which
+/// a picture cannot tell apart: the sea floor seen where a lifted trough drops below it (the water then dropped, a fragment
+/// <see cref="Seen.Discarded"/>), or the shore reflected by the screen ray off a wave's face. This says the second's half: the
+/// waves' normal, the view turned about it, and where the ray met the solid picture and what colour it took from there.
+/// </remarks>
+/// <param name="Depth">The water fragment's depth along the view.</param>
+/// <param name="Place">Where it stands, lifted as drawn.</param>
+/// <param name="Normal">The mesh's own normal there, the water's surface the ray is kept above.</param>
+/// <param name="Waves">The waves' normal the light and the ray take.</param>
+/// <param name="Reflected">The view turned about the waves' normal and kept above the surface; zero where the ray was not cast.</param>
+/// <param name="Step">The step the ray met a surface at, -1 for none (the environment alone), -2 where it was not cast.</param>
+/// <param name="HitX">Where it met it, the picture's column.</param>
+/// <param name="HitY">Where it met it, the picture's row.</param>
+/// <param name="HitDepth">The solid depth there.</param>
+/// <param name="HitColour">The solid picture's colour there, as stored.</param>
+/// <param name="Environment">The environment's share of the reflection.</param>
+/// <param name="Added">The light the reflection added, linear.</param>
+public readonly record struct ProbeWater(
+    float Depth, Vector3 Place, Vector3 Normal, Vector3 Waves, Vector3 Reflected, int Step, int HitX, int HitY, float HitDepth,
+    Vector3 HitColour, float Environment, Vector3 Added);
+
+/// <summary>
 /// Every fragment one pixel of a drawing was made of, in the order the drawing met them.
 /// </summary>
 /// <remarks>
@@ -54,6 +81,7 @@ public readonly record struct ProbeFragment(int Triangle, Seen Seen, float Depth
 public sealed class PixelProbe
 {
     private readonly List<ProbeFragment> _fragments = [];
+    private readonly List<ProbeWater> _waters = [];
 
     /// <param name="x">The pixel's column, from the left.</param>
     /// <param name="y">The pixel's row, from the top.</param>
@@ -78,11 +106,17 @@ public sealed class PixelProbe
     /// <summary>Whether a drawing has been through it since it was set.</summary>
     public bool Drawn { get; internal set; }
 
+    /// <summary>Every water surface lit the game's way at the pixel, in the drawing's order - see <see cref="ProbeWater"/>.</summary>
+    public IReadOnlyList<ProbeWater> Waters => _waters;
+
     internal void Add(ProbeFragment fragment) => _fragments.Add(fragment);
+
+    internal void Add(ProbeWater water) => _waters.Add(water);
 
     internal void Clear()
     {
         _fragments.Clear();
+        _waters.Clear();
         Final = float.MaxValue;
         Drawn = false;
     }

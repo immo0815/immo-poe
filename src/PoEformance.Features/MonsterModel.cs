@@ -577,8 +577,16 @@ public static class MonsterModels
             }
         }
 
+        // WHAT STANDS IN THE SEA JOINS THE SHORE now that the materials say which shapes the sea breaks on - see RoomModels.ShoreOf.
+        ShoreField? shore = model.Shore;
+        if (shore is not null && Array.Exists(shades, one => one is { Sprays: true }))
+        {
+            shore = RoomModels.ShoreOf(model.Mesh, model.Modes, model.ShapeSources, shades) ?? shore;
+        }
+
         return model with
         {
+            Shore = shore,
             Shades = shades,
             GlossShades = shines ? glossy : shades,
             Skins = skins ?? model.Skins,

@@ -40,8 +40,12 @@ public sealed class ShoreField
 
     private readonly float[] _texels;
 
-    private ShoreField(float left, float top, float cell, int width, int height, float[] texels, float level, int land, int waterTriangles, int groundTriangles)
+    private ShoreField(
+        float left, float top, float cell, int width, int height, float[] texels, float level, int land, int waterTriangles, int groundTriangles,
+        int standingTriangles, int standingCells)
     {
+        StandingTriangles = standingTriangles;
+        StandingCells = standingCells;
         Left = left;
         Top = top;
         CellSize = cell;
@@ -65,6 +69,12 @@ public sealed class ShoreField
 
     /// <summary>How many ground triangles.</summary>
     public int GroundTriangles { get; }
+
+    /// <summary>How many triangles of what stands in the sea - the rocks, see <see cref="Of"/>.</summary>
+    public int StandingTriangles { get; }
+
+    /// <summary>How many cells were land by what stands in the sea alone, the ground under them being water.</summary>
+    public int StandingCells { get; }
 
     /// <summary>The box's least x.</summary>
     public float Left { get; }
@@ -129,7 +139,14 @@ public sealed class ShoreField
     /// <param name="mesh">The room joined.</param>
     /// <param name="water">Whether a shape is water.</param>
     /// <param name="ground">Whether a shape is the room's ground.</param>
-    public static ShoreField? Of(SkinnedMesh mesh, Func<int, bool> water, Func<int, bool> ground)
+    /// <param name="standing">Whether a shape stands in the sea and the sea breaks on it - land where it rises above the water, as the ground is; null for none.</param>
+    /// <remarks>
+    /// WHAT STANDS IN THE SEA (v0.1.236, asked for from the live client: "the waves run on over the rocks in the game, through them
+    /// here"): CHOSEN, the shapes whose own material carries the sea's spray (CrashingFoamSurface) - the game's rocks by the sea and
+    /// the pier's stones, authored to have the sea crash on them; the ship's timbers carry none, and the game draws no breaking
+    /// round its hull. The engine marks its shore in a field it makes itself; which of the room's doodads it counts is read nowhere.
+    /// </remarks>
+    public static ShoreField? Of(SkinnedMesh mesh, Func<int, bool> water, Func<int, bool> ground, Func<int, bool>? standing = null)
     {
         ArgumentNullException.ThrowIfNull(mesh);
         ArgumentNullException.ThrowIfNull(water);
@@ -170,12 +187,21 @@ public sealed class ShoreField
         // THE HIGHEST WATER AND GROUND AT EACH CELL'S MIDDLE - up is minus z, so the least z.
         float[] waterTop = Covered(mesh, water, least, cell, width, height, out int waterTriangles);
         float[] groundTop = Covered(mesh, ground, least, cell, width, height, out int groundTriangles);
+        int standingTriangles = 0;
+        float[]? standingTop = standing is null ? null : Covered(mesh, standing, least, cell, width, height, out standingTriangles);
         var land = new bool[width * height];
         var lands = 0;
+        var standingCells = 0;
         for (var at = 0; at < land.Length; at++)
         {
             float surface = float.IsNaN(waterTop[at]) ? level : waterTop[at];
             land[at] = !float.IsNaN(groundTop[at]) && groundTop[at] < surface - 1f;
+            if (!land[at] && standingTop is not null && !float.IsNaN(standingTop[at]) && standingTop[at] < surface - 1f)
+            {
+                land[at] = true;
+                standingCells++;
+            }
+
             lands += land[at] ? 1 : 0;
         }
 
@@ -195,7 +221,7 @@ public sealed class ShoreField
             texels[(at * 2) + 1] = 1f - shore;
         }
 
-        return new ShoreField(least.X, least.Y, cell, width, height, texels, level, lands, waterTriangles, groundTriangles);
+        return new ShoreField(least.X, least.Y, cell, width, height, texels, level, lands, waterTriangles, groundTriangles, standingTriangles, standingCells);
     }
 
     /// <summary>The least z of a set of shapes at each cell's middle, NaN where none covers it.</summary>

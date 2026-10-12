@@ -129,21 +129,6 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
             WaterLift = 2f,
         };
 
-        // A QUAY ALONG x FROM 50 ON over the hill's middle, the sea towards minus x - the field's own frame is the scene's.
-        Vector3[] places =
-        [
-            new(-800f, -800f, 0f), new(800f, -800f, 0f), new(800f, 800f, 0f), new(-800f, 800f, 0f),
-            new(-800f, -800f, 300f), new(50f, -800f, 300f), new(50f, 800f, 300f), new(-800f, 800f, 300f),
-            new(50f, -800f, -100f), new(800f, -800f, -100f), new(800f, 800f, -100f), new(50f, 800f, -100f),
-        ];
-        var normals = new Vector3[places.Length];
-        Array.Fill(normals, new Vector3(0f, 0f, -1f));
-        SkinnedMesh bay = SkinnedMesh.Of(
-            places, normals, [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11], new Vector3(-800f, -800f, -100f), new Vector3(800f, 800f, 300f),
-            [.. places.Select(one => new Vector2(one.X, one.Y))],
-            [new MeshShape("Water", 0, 6), new MeshShape("Sea floor", 6, 6), new MeshShape("Quay", 12, 6)]);
-        ShoreField? shore = ShoreField.Of(bay, shape => shape == 0, shape => shape > 0);
-        Assert.NotNull(shore);
         var scene = new ModelScene(
             Hill(layered: true),
             Turn: 0.25f,
@@ -153,15 +138,20 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
             Shades: [null, ShadeProgram.Water().Glossy!],
             Light: light,
             Time: 3.5f,
-            Water: WaterLook.EngineDefault with { Shore = shore });
+            Water: WaterLook.EngineDefault with { Shore = BayShore() });
         Assert.Null(Mismatch(gpu, target, scene));
     }
 
-    /// <summary>A material cut out on the alpha its graphs leave.</summary>
+    /// <summary>
+    /// A material cut out on the alpha its graphs leave - over a shore, half a second in, since a rock's alpha is the sea's spray on it
+    /// (CrashingFoamSurface) and without a shore nothing of it stands: 49% of the picture drawn on the processor at this moment.
+    /// </summary>
     [GpuFact]
     public void ACUTOUTMaterialIsCutWhereTheProcessorCutsIt()
         => Every(
-            program => new ModelScene(Hill(layered: false), Turn: 0.4f, Tilt: 0.5f, Blends: [MaterialBlend.Cutout], Shades: [program]),
+            program => new ModelScene(
+                Hill(layered: false), Turn: 0.4f, Tilt: 0.5f, Blends: [MaterialBlend.Cutout], Shades: [program], Time: 0.5f,
+                Water: WaterLook.EngineDefault with { Shore = BayShore() }),
             program => program.HasAlpha);
 
     /// <summary>A material's compiled shaders are kept in the folder handed in, and a new card reads them back rather than compiling again.</summary>
@@ -352,6 +342,26 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
     /// <summary>
     /// A rolling sheet <see cref="Scale"/> either way of the middle facing the camera, with coordinates tiled half again, normals that turn every way and a vertex colour that ramps - and where asked a second sheet a little in front of it, a shape of its own.
     /// </summary>
+    /// <summary>A quay along x from 50 on over the hill's middle, the sea towards minus x - the field's own frame is the scene's.</summary>
+    private static ShoreField BayShore()
+    {
+        Vector3[] places =
+        [
+            new(-800f, -800f, 0f), new(800f, -800f, 0f), new(800f, 800f, 0f), new(-800f, 800f, 0f),
+            new(-800f, -800f, 300f), new(50f, -800f, 300f), new(50f, 800f, 300f), new(-800f, 800f, 300f),
+            new(50f, -800f, -100f), new(800f, -800f, -100f), new(800f, 800f, -100f), new(50f, 800f, -100f),
+        ];
+        var normals = new Vector3[places.Length];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+        SkinnedMesh bay = SkinnedMesh.Of(
+            places, normals, [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11], new Vector3(-800f, -800f, -100f), new Vector3(800f, 800f, 300f),
+            [.. places.Select(one => new Vector2(one.X, one.Y))],
+            [new MeshShape("Water", 0, 6), new MeshShape("Sea floor", 6, 6), new MeshShape("Quay", 12, 6)]);
+        ShoreField? shore = ShoreField.Of(bay, shape => shape == 0, shape => shape > 0);
+        Assert.NotNull(shore);
+        return shore;
+    }
+
     private static SkinnedMesh Hill(bool layered)
     {
         const int cells = 24;

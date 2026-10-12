@@ -322,6 +322,43 @@ public class WaterTests
         Assert.Null(ShoreField.Of(Bay(), shape => false, shape => true));
     }
 
+    /// <summary>
+    /// What stands in the sea is land where it rises above the water - a rock 200 across in the open bay becomes a shore of its own,
+    /// counted apart; without it the rock is water, a colour unit from any shore. The ground's own shore is where it was.
+    /// </summary>
+    [Fact]
+    public void WHATSTANDSInTheSeaIsAShoreOfItsOwn()
+    {
+        SkinnedMesh bay = Bay();
+        Vector3[] rock = [new(-1100f, -100f, -150f), new(-900f, -100f, -150f), new(-900f, 100f, -150f), new(-1100f, 100f, -150f)];
+        Vector3[] places = [.. bay.Positions, .. rock];
+        int at = bay.Positions.Length;
+        int[] indices = [.. bay.Indices, at, at + 1, at + 2, at, at + 2, at + 3];
+        var normals = new Vector3[places.Length];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+        SkinnedMesh rocky = SkinnedMesh.Of(
+            places, normals, indices, new Vector3(-3000f, -3000f, -150f), new Vector3(3000f, 3000f, 300f),
+            [.. places.Select(one => new Vector2(one.X, one.Y))],
+            [.. bay.Shapes, new MeshShape("Rock", bay.Indices.Length, 6)]);
+
+        ShoreField? standing = ShoreField.Of(rocky, shape => shape == 0, shape => shape is 1 or 2, shape => shape == 3);
+        ShoreField? plain = ShoreField.Of(rocky, shape => shape == 0, shape => shape is 1 or 2);
+        Assert.NotNull(standing);
+        Assert.NotNull(plain);
+
+        standing.At(new Vector2(-1000f, 0f), out float onRock, out _);
+        standing.At(new Vector2(-1300f, 0f), out float byRock, out _);
+        plain.At(new Vector2(-1300f, 0f), out float byRockPlain, out _);
+        standing.At(new Vector2(990f, 0f), out float quay, out _);
+        Assert.True(onRock < 0f, $"on the rock {onRock}");
+        Assert.InRange(byRock, 0.05f, 0.15f);
+        Assert.True(byRockPlain > 1f - 0.01f, $"without the rock {byRockPlain}");
+        Assert.InRange(quay, -0.02f, 0.03f);
+        Assert.Equal(2, standing.StandingTriangles);
+        Assert.True(standing.StandingCells > 40, $"{standing.StandingCells} cells by the rock");
+        Assert.Equal(0, plain.StandingCells);
+    }
+
     /// <summary>The swell's crests roll in to the shore - the nearest crest to a place moves towards the quay as the clock runs.</summary>
     [Fact]
     public void THESWELLRollsInToTheShore()
@@ -642,6 +679,47 @@ public class WaterTests
         }
 
         Assert.True(mirroredLead > cubeLead + 1000, $"the wall does not show in the water: red leads green by {mirroredLead}, {cubeLead} with the cube alone");
+    }
+
+    /// <summary>
+    /// The probe says what a water pixel's reflection did: the waves' normal, the ray, and where it met the solid picture and in what
+    /// colour - or that it was not cast. Written for the sand-coloured patches between the swell's crests (v0.1.234).
+    /// </summary>
+    [Fact]
+    public void APROBEDWaterPixelSaysWhatItsReflectionMet()
+    {
+        SkinnedMesh scene = Walled();
+        ShadeProgram waves = ShadeProgram.Water().Glossy!;
+        ProbeWater Probed(bool mirroring, int x, int y)
+        {
+            var light = new SceneLight([], SceneLight.PointShape.Penumbra, null)
+            {
+                SunColour = new Vector3(1.5f),
+                SunDirection = Vector3.Normalize(new Vector3(0.3f, 0.2f, 1f)),
+                Ambient = SceneAmbient.Flat,
+                FlatAmbient = 0.3f,
+                WaterReflection = true,
+                WaterScene = mirroring,
+            };
+            var probe = new PixelProbe(x, y);
+            _ = MeshPicture.Of(
+                scene, new MeshPicture.Canvas(Size) { Light = light, Time = 2f, Probe = probe }, turn: 0f, tilt: 0.3f,
+                skins: [null, Sheet(30, 30, 30), Sheet(240, 20, 20)],
+                blends: [MaterialBlend.Alpha, MaterialBlend.Opaque, MaterialBlend.Opaque],
+                shades: [waves, null, null]);
+            return Assert.Single(probe.Waters);
+        }
+
+        // THE NEAR EDGE OF THE WATER, below the middle of the picture: its ray runs up the picture to the wall.
+        ProbeWater hit = Probed(mirroring: true, Size / 2, (Size * 3) / 4);
+        Assert.True(hit.Step >= 0, PoEformance.Features.PictureProbe.Watered(hit));
+        Assert.True(hit.HitColour.X > hit.HitColour.Y + 50f, PoEformance.Features.PictureProbe.Watered(hit));
+        Assert.Contains("met the solid picture", PoEformance.Features.PictureProbe.Watered(hit), StringComparison.Ordinal);
+
+        // NOT CAST where the scene is not reflected - the cube alone.
+        ProbeWater cube = Probed(mirroring: false, Size / 2, (Size * 3) / 4);
+        Assert.Equal(-2, cube.Step);
+        Assert.Contains("not cast", PoEformance.Features.PictureProbe.Watered(cube), StringComparison.Ordinal);
     }
 
     /// <summary>The water quad over its floor, and a red wall rising from the water on its far side - minus y, away from the camera at no turn.</summary>
