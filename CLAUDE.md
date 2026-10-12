@@ -282,7 +282,7 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   `Drawing.Reflects`), the cube's share `pow((step + 0.5) / 20, 5)`. READINGS, said under the picture: the dither
   (`GetBayerNoise16` named, not read - a 4 by 4 Bayer) and the reflected colour's alpha as the cube's share
   (`ComputeEnvironmentLighting` unread); `water.txt` asks for both sources from v0.1.224. The reflected light is added
-  after the exposure and grade, having been drawn with them. NOT ON THIS PATH, read from water.ffx (v0.1.227): the
+  after the exposure and grade, having been drawn with them. NOT ON THIS PATH, read from water.ffx (v0.1.228): the
   height offset - `water_height_offset` is added only by the beach, crashing and flood waves (`BreakingWavesVertex`,
   `CrashingWavesVertex`, `FloodWaveVertex`, their water depth and the beach foam's height fade), never on an ocean plane's,
   so Port's -15 moves nothing the harbour draws. NOT DONE: the terrain water colour, the refraction's bend, foam - and the waves' own look: the ripple
