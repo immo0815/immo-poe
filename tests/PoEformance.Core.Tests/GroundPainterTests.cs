@@ -43,7 +43,7 @@ public sealed class GroundPainterTests
         Assert.Equal(new Vector2(500f, 250f) * GroundPainter.GroundScale, painted.Mesh.Coordinates[0]);
         Assert.Equal(new Vector2(750f, 500f) * GroundPainter.GroundScale, painted.Mesh.Coordinates[4]);
         Assert.Contains("1 sub-tiles of one ground, 0 of two", painter.Said(), StringComparison.Ordinal);
-        Assert.Contains("(0 pieces; 1 from the tile's four corners, their definition carrying no grid)", painter.Said(), StringComparison.Ordinal);
+        Assert.Contains("(0 pieces; 1 from the tile's four corners, their definition carrying no grid; 0 sub-tiles", painter.Said(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -111,6 +111,31 @@ public sealed class GroundPainterTests
         Assert.Contains("1 sub-tiles of one ground, 1 of two mixed per pixel", said, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A corner the grid leaves unnamed takes the MaterialsList's group with no name - the game holds its null slot there: a sub-tile
+    /// of sand and unnamed corners mixes the two, the unnamed group listed first, and one with no corner named wears the group alone.
+    /// </summary>
+    [Fact]
+    public void ACORNERTheGridLeavesUnnamedTakesTheGroupWithNoName()
+    {
+        const string Gridded = "unnamed.tdt", GridSand = "Metadata/Terrain/Test/sand.gt";
+        byte[]? Read(string path) => path switch
+        {
+            Gridded => TileFilesTests.Tdt(template: Template, grounds: true, grid: [5, -1, -1, 5, -1, -1]),
+            GridSand => CaptureGroundTests.Text("Sand\n1 1 0 0\n"),
+            _ => Mixable(path),
+        };
+
+        GroundPainter painter = Painter(Read);
+        MonsterModel? painted = painter.Paint(Gridded, TwoSubTiles(), [new GroundPiece(1, 1, 2), new GroundPiece(2, 1, 2)], Matrix4x4.Identity, "ground of unnamed.tdt");
+
+        Assert.NotNull(painted);
+        Assert.Equal([GroundBlend.Name("Art/cobble.mat", "Art/sand2.mat", Mask), "Art/cobble.mat"], painted!.ShapeMaterials);
+        string said = painter.Said();
+        Assert.Contains("2 sub-tiles with a corner the grid leaves unnamed, taken as the MaterialsList's group with no name", said, StringComparison.Ordinal);
+        Assert.Contains("1 sub-tiles of one ground, 1 of two mixed per pixel", said, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void ATILEOfThreeGroundsStaysPlainAndIsSaid()
     {
@@ -173,6 +198,7 @@ public sealed class GroundPainterTests
     {
         "Art/rock.mat" => CaptureGroundTests.Text("""{"version":4,"graphinstances":[{"parent":"Metadata/Grey.fxgraph"}]}"""),
         "Art/sand2.mat" => CaptureGroundTests.Text("""{"version":4,"graphinstances":[{"parent":"Metadata/Grey.fxgraph"}]}"""),
+        "Art/cobble.mat" => CaptureGroundTests.Text("""{"version":4,"graphinstances":[{"parent":"Metadata/Grey.fxgraph"}]}"""),
         "Metadata/Grey.fxgraph" => CaptureGroundTests.Text(
             """
             {"nodes":[
@@ -188,7 +214,7 @@ public sealed class GroundPainterTests
     {
         Master => CaptureGroundTests.Text("version 3\nMaterialsList\t\"materials.mtd\"\n"),
         "Metadata/Terrain/Maps/Test/materials.mtd" => CaptureGroundTests.Text(
-            "version 5\n\"Rock\" 1 0 \"Art/rock.mat\"\n\"Sand\" 2 0\n\"Art/sand1.mat\"\n\"Art/sand2.mat\"\n30 70 16\n\"Moss\" 1 0 \"Art/moss.mat\"\n"),
+            "version 5\n1 0 \"Art/cobble.mat\"\n\"Rock\" 1 0 \"Art/rock.mat\"\n\"Sand\" 2 0\n\"Art/sand1.mat\"\n\"Art/sand2.mat\"\n30 70 16\n\"Moss\" 1 0 \"Art/moss.mat\"\n"),
         "one.tdt" => CaptureGroundTests.Tdt(Template, [Sand, Sand, Sand, Sand]),
         "two.tdt" => CaptureGroundTests.Tdt(Template, [Sand, Sand, Rock, Rock]),
         "three.tdt" => CaptureGroundTests.Tdt(Template, [Sand, Rock, Moss, Moss]),
