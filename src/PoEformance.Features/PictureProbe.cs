@@ -235,7 +235,7 @@ public static class PictureProbe
         }
 
         string material = shape < model.ShapeMaterials.Count && model.ShapeMaterials[shape].Length > 0
-            ? Tail(MaterialFile.Bare(model.ShapeMaterials[shape]))
+            ? GroundBlend.Short(MaterialFile.Bare(model.ShapeMaterials[shape]))
             : "no material";
         string mode = shape < model.Modes.Count && model.Modes[shape].Length > 0 ? model.Modes[shape] : "-";
         string blend = shape < model.Blends.Count ? model.Blends[shape].ToString().ToLowerInvariant() : "opaque";

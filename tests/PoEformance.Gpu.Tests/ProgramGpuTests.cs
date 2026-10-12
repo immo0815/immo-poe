@@ -212,6 +212,46 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
     }
 
     /// <summary>
+    /// Two of the fixtures' grounds mixed per pixel by a mask's green (ShadeProgram.Grounds) - the mask read at the mesh's own coordinates,
+    /// the grounds at the place's - drawn alike by both, under the picture's lamp and the game's light.
+    /// </summary>
+    [GpuFact]
+    public void TWOGroundsMixedOnTheCardAsOnTheProcessor()
+    {
+        ModelGpu? gpu = card.Gpu;
+        Assert.True(gpu is not null, card.Why);
+        using ModelTarget target = gpu.Target(Side);
+        ShadeProgram[] grounds =
+        [
+            .. Programs().Where(one => one.Name.Contains("G_VST_Sand01", StringComparison.Ordinal) || one.Name.Contains("TallDune1c", StringComparison.Ordinal))
+                .Where(one => !one.Name.EndsWith("(glossy)", StringComparison.Ordinal))
+                .Select(one => Bound(one.Program)),
+        ];
+        Assert.Equal(2, grounds.Length);
+        ShadeProgram? mixed = ShadeProgram.Grounds(grounds[0], grounds[1], new ShadeTexture("mask", false), Ramp("mask"), 1f / 600f);
+        Assert.NotNull(mixed);
+        var light = new SceneLight([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1.4f, 1.3f, 1.1f),
+            SunDirection = Vector3.Normalize(new Vector3(0.3f, 0.2f, 1f)),
+            FlatAmbient = 0.3f,
+        };
+
+        // THE BLOCK'S OWN COORDINATES, nought to one across the quad - the mask's - while the grounds take the place's.
+        Vector3[] places = [new(-400f, -400f, 0f), new(400f, -400f, 0f), new(400f, 400f, 0f), new(-400f, 400f, 0f)];
+        var normals = new Vector3[places.Length];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+        SkinnedMesh quad = SkinnedMesh.Of(
+            places, normals, [0, 1, 2, 0, 2, 3], new Vector3(-400f, -400f, 0f), new Vector3(400f, 400f, 0f),
+            [.. places.Select(one => new Vector2((one.X + 400f) / 800f, (one.Y + 400f) / 800f))]);
+        foreach (SceneLight? lit in new[] { null, light })
+        {
+            var scene = new ModelScene(quad, Turn: 0.3f, Tilt: 0.9f, Skins: [null], Blends: [MaterialBlend.Opaque], Shades: [mixed], Light: lit);
+            Assert.Null(Mismatch(gpu, target, scene));
+        }
+    }
+
+    /// <summary>
     /// A beach rising a tenth a unit along x out of water standing at nought - its ground, and the beach waves' sheet over it in the shore's
     /// band (ShoreField.Beach) - with its shore. Up is minus z.
     /// </summary>
