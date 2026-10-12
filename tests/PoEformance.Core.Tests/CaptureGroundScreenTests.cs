@@ -60,10 +60,43 @@ public class CaptureGroundScreenTests
     {
         var snapshot = new WorldSnapshot(true, null, [], new float[16]);
 
-        string said = CaptureGroundScreen.Write(_ => null, snapshot, [], null, 100, 100, "black", out GamePicture? picture);
+        string said = CaptureGroundScreen.Write(_ => null, snapshot, [], [], null, 100, 100, "black", out GamePicture? picture);
 
         Assert.Equal("ground on screen: the area's tiles were not read\n", said);
         Assert.Null(picture);
+    }
+
+    /// <summary>
+    /// Of the area's masters, the one whose MaterialsList names the laid grounds paints them - not the first, whose list here holds the
+    /// unnamed group alone, as Act 4's world-map master does - and every master's count is said.
+    /// </summary>
+    [Fact]
+    public void THEAREASMasterNamingTheMostOfItsLaidGroundsIsTheOneThatPaints()
+    {
+        const string World = "Metadata/Terrain/WorldMaps/Act4/master.tsi", Own = "Metadata/Terrain/Gallows/Act4/4_3_1/master.tsi";
+        const string Sand = "Metadata/Terrain/Islands/sand.gt", Ocean = "Metadata/Terrain/Islands/ocean.gt";
+        byte[]? Read(string path) => path switch
+        {
+            World or Own => CaptureGroundTests.Text("version 3\nMaterialsList\t\"materials.mtd\"\n"),
+            "Metadata/Terrain/WorldMaps/Act4/materials.mtd" => CaptureGroundTests.Text("version 5\n1 0 \"Art/black.mat\"\n"),
+            "Metadata/Terrain/Gallows/Act4/4_3_1/materials.mtd" => CaptureGroundTests.Text(
+                "version 5\n1 0 \"Art/cobble.mat\"\n\"Sand\" 1 0 \"Art/sand.mat\"\n\"Ocean\" 1 0 \"Art/ocean.mat\"\n"),
+            Sand => CaptureGroundTests.Text("Sand\n1 1 0 0\n"),
+            Ocean => CaptureGroundTests.Text("Ocean\n1 1 0 0\n"),
+            _ => null,
+        };
+
+        (GroundPainter? painter, string master, IReadOnlyList<string> weighed) =
+            CaptureGroundScreen.MasterOf(Read, [World, Own], [Sand, Ocean], new MonsterModels.Paints());
+
+        Assert.NotNull(painter);
+        Assert.Equal(Own, master);
+        Assert.Equal(
+            [
+                World + ": its MaterialsList Metadata/Terrain/WorldMaps/Act4/materials.mtd names 0 of 2",
+                Own + ": its MaterialsList Metadata/Terrain/Gallows/Act4/4_3_1/materials.mtd names 2 of 2",
+            ],
+            weighed);
     }
 
     private static byte[] Pixel(CaptureGroundScreen.Canvas canvas, int x, int y)

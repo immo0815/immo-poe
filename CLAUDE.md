@@ -633,7 +633,14 @@ picture: `ground-on-screen.png` (`CaptureGroundScreen`, v0.1.251) lays every sub
 picture where the Monster Book has it (`LaidRoomModels.GroundsOver`, the room's own placing), named as ground.txt names it, its
 shapes across the atlas drawn magenta, and `ground-on-screen.txt` gives each sub-tile's grid corners and grounds beside the game's
 own corner types there, and each shape's height, green and reach across the mask. It has no offline reader: the meshes are the
-install's, which a capture does not carry.
+install's, which a capture does not carry. v0.1.251 counted nought in five areas: it painted from the first master of the install's
+whole index (`CaptureKey`'s masters are the index, not the area's), a list of another tileset that named none of the laid grounds.
+From v0.1.252 it takes, of the area's masters (`AreaRoomSet.Masters`), the one whose MaterialsList names the most of the ground types
+at the laid pieces' corners (`CaptureGroundScreen.MasterOf`) - not the first even of those: Act 4's areas list
+`worldmaps/act4/master.tsi` first, whose list holds the unnamed group alone - and says every master's count and, per piece, how many
+sub-tiles came to one ground, several, or none and why. Those captures' ground.txt (Whakapanu Island, The Excavation, Plunder's
+Point) name where to measure: The Excavation's `Digsite_Entrance_01` has 18 sub-tiles of two grounds with shapes across the atlas and
+its ledges 4 each, Whakapanu's `TropicalCliff_Cv_Cove_01` 22; Plunder's Point's shores none.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
 Eight captures are committed under

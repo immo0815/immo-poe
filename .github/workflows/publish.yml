@@ -27,7 +27,7 @@ jobs:
     # AOT is the case that genuinely cannot cross-compile, which is why its gate in ci.yml
     # is on windows-latest. If this job ever does come back to Windows, the shell in the
     # steps below has to come back to pwsh with it.
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LINUX_RUNNER && fromJSON(vars.LINUX_RUNNER) || 'ubuntu-latest' }}
     steps:
       # FULL HISTORY, not the default single commit. The release notes are the changelog the
       # tool's own update tab shows, and building one means listing the commits between the
@@ -38,6 +38,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+        # ON A SELF-HOSTED RUNNER the default install folder (/usr/share/dotnet, C:\Program Files\dotnet)
+        # is not the runner's to write - see the runner note in ci.yml. Its own tool cache is, and keeps
+        # the SDK between runs. Empty on GitHub's machines, which leaves the default as it was.
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.environment == 'self-hosted' && format('{0}/dotnet', runner.tool_cache) || '' }}
 
       # BEFORE the build, because it reads what the release holds RIGHT NOW - the build that
       # is about to be replaced. That sha is the "since" of the changelog below, and it is the

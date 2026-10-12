@@ -18,6 +18,17 @@ name: CI
 #   That is a trade, chosen deliberately: an AOT or GPU break now shows on main after the merge
 #   instead of on the pull request. Run this workflow by hand on a branch (workflow_dispatch)
 #   when a change is likely to touch either - ILC-sensitive dependencies, the shaders.
+#   A hand run on a branch that has a pull request runs the Windows jobs AND repeats the test
+#   job the pull request already ran - so it is for those changes only, not every push: run
+#   after every push, it used up the month's allowance on 2026-10-12.
+#
+# WHERE THE JOBS RUN is a repository variable, not this file (asked for from the live client,
+# 2026-10-12, when that allowance ran out): LINUX_RUNNER and WINDOWS_RUNNER, each a JSON list of
+# runner labels - ["self-hosted","Linux","X64"] for a runner in WSL on the developer's machine,
+# ["self-hosted","Windows","X64"] for one on the same machine's Windows - and GitHub's own
+# ubuntu-latest and windows-latest where unset. Self-hosted runners cost no minutes. Deleting
+# the variables (Settings, Secrets and variables, Actions, Variables) puts every job back on
+# GitHub's machines; publish.yml and bake-boss-icons.yml read the same LINUX_RUNNER.
 on:
   push:
     branches: [main]
@@ -28,12 +39,17 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LINUX_RUNNER && fromJSON(vars.LINUX_RUNNER) || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+        # ON A SELF-HOSTED RUNNER the default install folder (/usr/share/dotnet, C:\Program Files\dotnet)
+        # is not the runner's to write - see the runner note in ci.yml. Its own tool cache is, and keeps
+        # the SDK between runs. Empty on GitHub's machines, which leaves the default as it was.
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.environment == 'self-hosted' && format('{0}/dotnet', runner.tool_cache) || '' }}
       # EnableWindowsTargeting in Directory.Build.props lets the net10.0-windows
       # projects compile here too, so the whole solution is checked on every push.
       - run: dotnet build --nologo
@@ -49,12 +65,17 @@ jobs:
     needs: test
     # Not on pull requests - see the minutes note at the top.
     if: github.event_name != 'pull_request'
-    runs-on: windows-latest
+    runs-on: ${{ vars.WINDOWS_RUNNER && fromJSON(vars.WINDOWS_RUNNER) || 'windows-latest' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+        # ON A SELF-HOSTED RUNNER the default install folder (/usr/share/dotnet, C:\Program Files\dotnet)
+        # is not the runner's to write - see the runner note in ci.yml. Its own tool cache is, and keeps
+        # the SDK between runs. Empty on GitHub's machines, which leaves the default as it was.
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.environment == 'self-hosted' && format('{0}/dotnet', runner.tool_cache) || '' }}
       - run: dotnet test tests/PoEformance.Gpu.Tests --nologo
 
   # THE Native AOT gate - the deployment risk this project carries, measured on every
@@ -78,15 +99,23 @@ jobs:
     needs: test
     # Not on pull requests - see the minutes note at the top.
     if: github.event_name != 'pull_request'
-    runs-on: windows-latest
+    runs-on: ${{ vars.WINDOWS_RUNNER && fromJSON(vars.WINDOWS_RUNNER) || 'windows-latest' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+        # ON A SELF-HOSTED RUNNER the default install folder (/usr/share/dotnet, C:\Program Files\dotnet)
+        # is not the runner's to write - see the runner note in ci.yml. Its own tool cache is, and keeps
+        # the SDK between runs. Empty on GitHub's machines, which leaves the default as it was.
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.environment == 'self-hosted' && format('{0}/dotnet', runner.tool_cache) || '' }}
       - run: dotnet publish src/PoEformance.App -c Release -r win-x64 -p:PublishAot=true
       - name: Show what AOT produced
-        shell: pwsh
+        # Windows PowerShell, not pwsh: a self-hosted runner's service runs as the network service,
+        # which does not see a PowerShell 7 installed for one user ("pwsh: command not found" after a
+        # green ILC compile). 5.1 ships with every Windows, GitHub's machines included, and runs this.
+        shell: powershell
         run: |
           $out = "src/PoEformance.App/bin/Release/net10.0-windows/win-x64/publish"
           Get-ChildItem $out -Recurse -File | Select-Object @{n='file';e={$_.FullName.Substring($out.Length+1)}}, @{n='KB';e={[math]::Round($_.Length/1KB)}} | Format-Table -AutoSize
