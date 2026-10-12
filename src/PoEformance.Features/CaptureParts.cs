@@ -249,7 +249,9 @@ public static class CaptureParts
             + "format, those 128 square marked, the likeliest decoded channel by channel as pictures beside it, and the strings the "
             + "game's own program holds that name one. And the engine's lookups (Art/2DArt/Lookup/) the walk or the program names - the "
             + "ripple texture, the swell's profiles and gradient - read as floats, each written whole beside it, with what the water "
-            + "takes of them and why. What stands between the tool's stand-in waves and the game's."),
+            + "takes of them and why. What stands between the tool's stand-in waves and the game's. And the engine's beach waves - the "
+            + "foam that floods the rocks: the graphs the program names for them (BreakingOceanWaves and its kin) whole, every graph "
+            + "they name, and the textures they name with their headers."),
 
         new(Doodads, "Rooms by doodads", "the doodads found", CaptureReport.DoodadsFile,
             "The survey of the area's entity maps for the rooms' doodads: each room's share, each path found and how many stand, "
