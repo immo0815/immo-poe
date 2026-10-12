@@ -72,6 +72,11 @@ public static class PictureProbe
             lines.Add(Watered(water));
         }
 
+        foreach (ProbeGround ground in probe.Grounds)
+        {
+            lines.Add(Grounded(ground));
+        }
+
         foreach (ProbeBeach beach in probe.Beaches)
         {
             lines.Add(Beached(beach));
@@ -83,6 +88,15 @@ public static class PictureProbe
         }
 
         return lines;
+    }
+
+    /// <summary>Two grounds mixed at the pixel: the mask's green, each ground's colour and what the mix made of them - see <see cref="ProbeGround"/>.</summary>
+    public static string Grounded(ProbeGround ground)
+    {
+        Vector3 mixed = Vector3.Lerp(ground.First, ground.Second, ground.Green);
+        return Say($"  ground mix at depth {Number(ground.Depth)} · the mask's green {ground.Green:F3}, the second ground's share")
+            + Say($" · the first ground {ground.First.X:F3}, {ground.First.Y:F3}, {ground.First.Z:F3}, the second {ground.Second.X:F3}, {ground.Second.Y:F3}, {ground.Second.Z:F3}")
+            + Say($" · mixed {mixed.X:F3}, {mixed.Y:F3}, {mixed.Z:F3} linear, before the light · the engine's height blending not drawn");
     }
 
     /// <summary>

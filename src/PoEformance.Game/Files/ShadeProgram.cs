@@ -847,7 +847,10 @@ public sealed partial class ShadeProgram
         // NOT THE GLOSSY ONE: it reads a texture this does not, and is bound on its own - see Glossy.
         return new ShadeProgram(
             _steps, _constantAt, _constants, Registers, _result, _specular, _gloss,
-            [.. Textures], _sampleTexture, Plain, Graphs, bound, HasAlpha, _waves);
+            [.. Textures], _sampleTexture, Plain, Graphs, bound, HasAlpha, _waves)
+        {
+            Mix = Mix,
+        };
     }
 
     /// <summary>
