@@ -108,6 +108,8 @@ public sealed partial class ModelGpu : IDisposable
     private readonly bool _owns;
     private readonly ID3D11VertexShader _placed;
     private readonly ID3D11VertexShader _placedWaves;
+    private readonly ID3D11Texture2D _ripples;
+    private readonly ID3D11ShaderResourceView _rippled;
     private readonly ID3D11PixelShader _solid;
     private readonly ID3D11PixelShader _mixed;
     private readonly ID3D11PixelShader _added;
@@ -148,6 +150,7 @@ public sealed partial class ModelGpu : IDisposable
         _owns = owns;
         _placed = compiled.Placed;
         _placedWaves = compiled.PlacedWaves;
+        (_ripples, _rippled) = Ripples(device);
         _solid = compiled.Solid;
         _mixed = compiled.Mixed;
         _added = compiled.Added;
@@ -464,6 +467,10 @@ public sealed partial class ModelGpu : IDisposable
         context.PSSetSampler(0, scene.Sharp ? _sharp : _wrap);
         context.PSSetShaderResource(1, _tables.View);
 
+        // THE RIPPLE TEXTURE the waves read, in the pixel and the vertex shader alike - ShadeProgram.RippleSheet.
+        context.PSSetShaderResource(ModelShaders.RippleSlot, _rippled);
+        context.VSSetShaderResource(ModelShaders.RippleSlot, _rippled);
+
         // THE SUN'S SHADOW MAP BEFORE THE PICTURE, into its own target - see Lit.
         if (light is not null)
         {
@@ -620,6 +627,8 @@ public sealed partial class ModelGpu : IDisposable
         _added.Dispose();
         _mixed.Dispose();
         _solid.Dispose();
+        _rippled.Dispose();
+        _ripples.Dispose();
         _placedWaves.Dispose();
         _placed.Dispose();
         if (_owns)
@@ -1118,6 +1127,25 @@ public sealed partial class ModelGpu : IDisposable
             Coordinates.Dispose();
             Normals.Dispose();
             Positions.Dispose();
+        }
+    }
+
+    /// <summary>The ripple texture on the card, made once: ShadeProgram.RippleSheet's texels as they are, read with loads.</summary>
+    private static (ID3D11Texture2D Texture, ID3D11ShaderResourceView View) Ripples(ID3D11Device device)
+    {
+        float[] texels = ShadeProgram.RippleSheet.ToArray();
+        GCHandle pinned = GCHandle.Alloc(texels, GCHandleType.Pinned);
+        try
+        {
+            ID3D11Texture2D texture = device.CreateTexture2D(
+                new Texture2DDescription(
+                    Format.R32G32B32A32_Float, ShadeProgram.RippleSide, ShadeProgram.RippleSide, 1, 1, BindFlags.ShaderResource, ResourceUsage.Immutable),
+                [new SubresourceData(pinned.AddrOfPinnedObject(), ShadeProgram.RippleSide * 16, 0)]);
+            return (texture, device.CreateShaderResourceView(texture));
+        }
+        finally
+        {
+            pinned.Free();
         }
     }
 

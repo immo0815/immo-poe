@@ -260,8 +260,12 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   never loaded before, its level of 128 - `CubeMap.Read`'s `largest`), each by a switch in the light panel's "water" row;
   the colour and the diffuse light keep the mesh's normal, and the lamp draws the water as before. TAKEN FROM THE SOURCE:
   the octaves, the gloss, the specular. CHOSEN, and said under the picture: the ripple texture the octaves read
-  (`surface_tex_sampler`, a pass texture the engine binds, named nowhere) stands as gradient noise read as the engine
-  reads its texture, a cell every 16 texels (`ShadeProgram.RippleCell`) - `Ripple` alone changes when it is found; the
+  (`surface_tex_sampler`, a pass texture the engine binds, named nowhere) stands as a texture of gradient noise made once,
+  128 texels a side as the engine's, a cell every 16 texels (`ShadeProgram.RippleSheet`, `RippleCell`), and READ AS THE
+  ENGINE READS ITS OWN from v0.1.225 - linear and wrapping, four texels a unit of the octave, the height `(r - 0.4) * 3` and
+  the texels' slope mixed, not the mixed height's; the card loads it at t10, four loads an octave, where it hashed noise
+  per pixel and vertex before, and the processor's `Ripples` went from 630 to 331 ns - its texels alone change when the
+  engine's is found; the
   drift (the engine's flow map is made at run time) is the colour pattern's, (18, 12) a unit of flow. At Port's flow they
   lean 2.7 degrees at the median, 8.7 at most, so the sun glints only where its mirror image falls near - real glitter.
   Seen from the side the sea stood flat (asked for from the live client), and so does the engine's: its ocean planes are
@@ -280,7 +284,7 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   (`ComputeEnvironmentLighting` unread); `water.txt` asks for both sources from v0.1.224. The reflected light is added
   after the exposure and grade, having been drawn with them. NOT DONE: the height offset (water.ffx adds it to the
   surface's displacement), the terrain water colour, the refraction's bend, foam - and the waves' own look: the ripple
-  texture and the flow map that drive them are not read, so they look and move otherwise than the game's (said from the
+  texture's texels and the flow map that drive them are not read, so they look and move otherwise than the game's (said from the
   live client, v0.1.223).
 
 Its zip holds the pictures, every

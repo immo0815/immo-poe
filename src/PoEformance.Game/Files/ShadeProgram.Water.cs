@@ -122,6 +122,9 @@ public sealed partial class ShadeProgram
     /// </remarks>
     public static readonly Vector2 WaveDrift = new(18f, 12f);
 
+    /// <summary>The ripple texture's side in texels - the engine's <c>textureSize</c> (GetWaterVolumeStateFieldOctave).</summary>
+    public const int RippleSide = 128;
+
     /// <summary>
     /// How many texels of the stand-in ripple texture one noise cell spans - CHOSEN; the engine's texture is not read.
     /// </summary>
@@ -129,15 +132,23 @@ public sealed partial class ShadeProgram
     /// THE ENGINE'S SURFACE IS ONE TEXTURE READ EIGHT TIMES: <c>surface_tex_sampler</c>, "ripple heightfield and
     /// gradient", a pass texture the engine binds itself, 128 texels a tile (GetWaterVolumeStateFieldOctave),
     /// its red the height and its green and blue the height's slope a texel. No shader source names its file
-    /// and no capture's loaded files list it, so it stands as gradient noise with the same reading - the
+    /// and no capture's loaded files list it, so it stands as a texture of gradient noise read the same way - the
     /// height <c>(r - 0.4) * 3</c>, the slope three times the red's a texel, four texels a unit of the octave's
-    /// coordinates - a cell every sixteen texels, eight across the engine's tile. The texture, once found,
-    /// replaces <see cref="Ripple"/> alone.
+    /// coordinates - a cell every sixteen texels, eight across the tile and wrapping with it. The texture, once
+    /// found, replaces <see cref="RippleSheet"/>'s texels alone.
     /// </remarks>
     public const float RippleCell = 16f;
 
     /// <summary>The largest a two-dimensional gradient noise of unit gradients reaches, <c>sqrt(2) / 2</c> - what takes it to nought to one.</summary>
     private const float RippleRange = 0.70710677f;
+
+    /// <summary>The stand-in ripple texture: 128 by 128 texels, row by row, four floats each - the height's red, its slope a texel along x and y, and one.</summary>
+    private static readonly float[] RippleTexels = Rippled();
+
+    /// <summary>
+    /// The stand-in ripple texture's texels, row by row, four floats each - what the card is handed to read, as <see cref="Ripple"/> reads them here.
+    /// </summary>
+    public static ReadOnlySpan<float> RippleSheet => RippleTexels;
 
     /// <summary>
     /// The engine's flowing water surface at a place: its height, and its slope along x and y - GetFlowSurfaceField, eight octaves, on <see cref="Ripple"/>.
@@ -198,37 +209,72 @@ public sealed partial class ShadeProgram
     }
 
     /// <summary>
-    /// One octave's read of the stand-in ripple texture at the octave's own coordinates: the height, and its slope along them - GetWaterVolumeStateFieldOctave's.
+    /// One octave's read of the ripple texture at the octave's own coordinates: the height, and its slope along them - GetWaterVolumeStateFieldOctave's.
     /// </summary>
     /// <remarks>
-    /// TWO-DIMENSIONAL GRADIENT NOISE with its slope worked out exactly rather than by differences - one
-    /// read an octave, as the texture's green and blue are - its gradients hashed as PerlinNoise31's are,
-    /// so the processor and the card agree to the bit on which way each points.
+    /// A LINEAR, WRAPPING READ AT LEVEL NOUGHT, as the engine's SAMPLE_TEX2DLOD through SamplerLinearWrap is - the
+    /// four nearest texels' centres, mixed by hand, so the card's ShadeRipple (four loads, the same arithmetic)
+    /// comes out the same to the bit rather than by its filter's own fixed-point weights. Four texels a unit of the
+    /// octave's coordinates: <c>uv = q / 128 * 4</c>. The slope is the texels' slope mixed, as the engine's is -
+    /// not the slope of the mixed height.
     /// </remarks>
     internal static float Ripple(float qx, float qy, out float gx, out float gy)
     {
-        const float Texels = 4f / RippleCell;
-        float sx = qx * Texels, sy = qy * Texels;
+        float sx = (qx * 4f) - 0.5f, sy = (qy * 4f) - 0.5f;
         float fx0 = MathF.Floor(sx), fy0 = MathF.Floor(sy);
-        int ix = (int)fx0, iy = (int)fy0;
         float fx = sx - fx0, fy = sy - fy0;
-        Vector2 ga = RippleGradient(ix, iy), gb = RippleGradient(ix + 1, iy), gc = RippleGradient(ix, iy + 1), gd = RippleGradient(ix + 1, iy + 1);
-        float a = (ga.X * fx) + (ga.Y * fy);
-        float b = (gb.X * (fx - 1f)) + (gb.Y * fy);
-        float c = (gc.X * fx) + (gc.Y * (fy - 1f));
-        float d = (gd.X * (fx - 1f)) + (gd.Y * (fy - 1f));
-        float u = fx * fx * (3f - (2f * fx)), v = fy * fy * (3f - (2f * fy));
-        float du = 6f * fx * (1f - fx), dv = 6f * fy * (1f - fy);
-        float k1 = b - a, k2 = c - a, k3 = a - b - c + d;
-        float noise = a + (u * k1) + (v * k2) + (u * v * k3);
-        float nx = ga.X + (u * (gb.X - ga.X)) + (v * (gc.X - ga.X)) + (u * v * (ga.X - gb.X - gc.X + gd.X)) + (du * (k1 + (v * k3)));
-        float ny = ga.Y + (u * (gb.Y - ga.Y)) + (v * (gc.Y - ga.Y)) + (u * v * (ga.Y - gb.Y - gc.Y + gd.Y)) + (dv * (k2 + (u * k3)));
+        int x0 = (int)fx0 & (RippleSide - 1), y0 = (int)fy0 & (RippleSide - 1);
+        int x1 = (x0 + 1) & (RippleSide - 1), y1 = (y0 + 1) & (RippleSide - 1);
+        float[] texels = RippleTexels;
+        int a = ((y0 * RippleSide) + x0) * 4, b = ((y0 * RippleSide) + x1) * 4;
+        int c = ((y1 * RippleSide) + x0) * 4, d = ((y1 * RippleSide) + x1) * 4;
+        float Mixed(int part)
+        {
+            float top = texels[a + part] + ((texels[b + part] - texels[a + part]) * fx);
+            float bottom = texels[c + part] + ((texels[d + part] - texels[c + part]) * fx);
+            return top + ((bottom - top) * fy);
+        }
 
-        // THE TEXTURE'S READING: red = 0.5 + 0.5 * noise / range, height (red - 0.4) * 3.
-        const float Rise = 3f * 0.5f / RippleRange;
-        gx = nx * Rise * Texels;
-        gy = ny * Rise * Texels;
-        return ((0.5f + (0.5f * noise / RippleRange)) - 0.4f) * 3f;
+        gx = Mixed(1) * 12f;
+        gy = Mixed(2) * 12f;
+        return (Mixed(0) - 0.4f) * 3f;
+    }
+
+    /// <summary>
+    /// The stand-in ripple texture, made once: gradient noise wrapping every eight cells, its red <c>0.5 + 0.5 * noise / range</c> at each texel's centre, its green and blue the red's slope a texel, worked out exactly.
+    /// </summary>
+    private static float[] Rippled()
+    {
+        const int cells = (int)(RippleSide / RippleCell);
+        var texels = new float[RippleSide * RippleSide * 4];
+        for (var y = 0; y < RippleSide; y++)
+        {
+            for (var x = 0; x < RippleSide; x++)
+            {
+                float sx = (x + 0.5f) / RippleCell, sy = (y + 0.5f) / RippleCell;
+                int ix = (int)MathF.Floor(sx), iy = (int)MathF.Floor(sy);
+                float fx = sx - ix, fy = sy - iy;
+                Vector2 ga = RippleGradient(ix % cells, iy % cells), gb = RippleGradient((ix + 1) % cells, iy % cells);
+                Vector2 gc = RippleGradient(ix % cells, (iy + 1) % cells), gd = RippleGradient((ix + 1) % cells, (iy + 1) % cells);
+                float a = (ga.X * fx) + (ga.Y * fy);
+                float b = (gb.X * (fx - 1f)) + (gb.Y * fy);
+                float c = (gc.X * fx) + (gc.Y * (fy - 1f));
+                float d = (gd.X * (fx - 1f)) + (gd.Y * (fy - 1f));
+                float u = fx * fx * (3f - (2f * fx)), v = fy * fy * (3f - (2f * fy));
+                float du = 6f * fx * (1f - fx), dv = 6f * fy * (1f - fy);
+                float k1 = b - a, k2 = c - a, k3 = a - b - c + d;
+                float noise = a + (u * k1) + (v * k2) + (u * v * k3);
+                float nx = ga.X + (u * (gb.X - ga.X)) + (v * (gc.X - ga.X)) + (u * v * (ga.X - gb.X - gc.X + gd.X)) + (du * (k1 + (v * k3)));
+                float ny = ga.Y + (u * (gb.Y - ga.Y)) + (v * (gc.Y - ga.Y)) + (u * v * (ga.Y - gb.Y - gc.Y + gd.Y)) + (dv * (k2 + (u * k3)));
+                int at = ((y * RippleSide) + x) * 4;
+                texels[at] = 0.5f + (0.5f * noise / RippleRange);
+                texels[at + 1] = 0.5f / RippleRange * nx / RippleCell;
+                texels[at + 2] = 0.5f / RippleRange * ny / RippleCell;
+                texels[at + 3] = 1f;
+            }
+        }
+
+        return texels;
     }
 
     /// <summary>A cell's gradient: two of PerlinNoise31's hashes, normalised.</summary>

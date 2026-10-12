@@ -135,13 +135,51 @@ public class WaterTests
         blends: [MaterialBlend.Opaque, MaterialBlend.Alpha],
         shades: [null, ShadeProgram.Water()]);
 
-    /// <summary>The waves' slope is their height's own: worked out exactly, it agrees with the height's differences everywhere it is asked.</summary>
+    /// <summary>
+    /// The ripple texture's green and blue are its red's slope a texel, as the engine's texture's are: they agree with the red's differences at every texel, across the wrap too.
+    /// </summary>
+    [Fact]
+    public void THERIPPLETexturesSlopeIsItsRedsOwn()
+    {
+        const int side = ShadeProgram.RippleSide;
+        ReadOnlySpan<float> texels = ShadeProgram.RippleSheet;
+        Assert.Equal(side * side * 4, texels.Length);
+        float Red(int x, int y) => ShadeProgram.RippleSheet[((((y + side) % side) * side) + ((x + side) % side)) * 4];
+        float steepest = 0f, worst = 0f, lowest = 1f, highest = 0f;
+        for (var y = 0; y < side; y++)
+        {
+            for (var x = 0; x < side; x++)
+            {
+                int at = ((y * side) + x) * 4;
+                float dx = (Red(x + 1, y) - Red(x - 1, y)) / 2f, dy = (Red(x, y + 1) - Red(x, y - 1)) / 2f;
+                worst = MathF.Max(worst, MathF.Max(MathF.Abs(texels[at + 1] - dx), MathF.Abs(texels[at + 2] - dy)));
+                steepest = MathF.Max(steepest, MathF.Max(MathF.Abs(texels[at + 1]), MathF.Abs(texels[at + 2])));
+                lowest = MathF.Min(lowest, texels[at]);
+                highest = MathF.Max(highest, texels[at]);
+                Assert.Equal(1f, texels[at + 3]);
+            }
+        }
+
+        Assert.True(steepest > 0.01f, $"steepest {steepest}");
+        Assert.True(worst < 0.05f * steepest, $"worst {worst} of {steepest}");
+        Assert.InRange(lowest, 0f, 0.3f);
+        Assert.InRange(highest, 0.7f, 1f);
+    }
+
+    /// <summary>
+    /// The waves' slope is their height's own over the texture's texels: the texels' slope mixed, as the engine mixes it, agrees with the height's differences a few units apart everywhere it is asked.
+    /// </summary>
+    /// <remarks>
+    /// Not to the bit: a linear read's height is flat-sided between texel centres while its mixed slope is not, so the two part by
+    /// a little inside a texel - the engine's own surface does the same - and the differences are taken across a finest texel.
+    /// </remarks>
     [Fact]
     public void THEWAVESSlopeIsTheirHeightsOwn()
     {
-        const float h = 0.05f;
+        const float h = 1.5f;
         Vector2[] drifts = [Vector2.Zero, ShadeProgram.WaveDrift * 1.5f, new(-40f, 90f)];
         float[] clocks = [0f, 0.7f, 2.9f, 13.25f];
+        double errors = 0, slopes = 0;
         var checkedOnes = 0;
         foreach (Vector2 drift in drifts)
         {
@@ -154,8 +192,8 @@ public class WaterTests
                         ShadeProgram.Ripples(new Vector2(x, y), drift, clock, out Vector2 slope);
                         float dx = (ShadeProgram.Ripples(new Vector2(x + h, y), drift, clock, out _) - ShadeProgram.Ripples(new Vector2(x - h, y), drift, clock, out _)) / (2f * h);
                         float dy = (ShadeProgram.Ripples(new Vector2(x, y + h), drift, clock, out _) - ShadeProgram.Ripples(new Vector2(x, y - h), drift, clock, out _)) / (2f * h);
-                        Assert.True(MathF.Abs(slope.X - dx) < 2e-3f + (0.02f * MathF.Abs(dx)), $"at ({x}, {y}) t {clock}: slope x {slope.X}, differences {dx}");
-                        Assert.True(MathF.Abs(slope.Y - dy) < 2e-3f + (0.02f * MathF.Abs(dy)), $"at ({x}, {y}) t {clock}: slope y {slope.Y}, differences {dy}");
+                        errors += ((slope.X - dx) * (slope.X - dx)) + ((slope.Y - dy) * (slope.Y - dy));
+                        slopes += (slope.X * slope.X) + (slope.Y * slope.Y);
                         checkedOnes++;
                     }
                 }
@@ -163,6 +201,8 @@ public class WaterTests
         }
 
         Assert.True(checkedOnes > 1000);
+        double share = Math.Sqrt(errors / slopes);
+        Assert.True(share < 0.15, $"the slope parts from the differences by {share:P1}");
     }
 
     /// <summary>The waves move with the clock even where nothing drifts - the engine's octaves fade in and out - and they lean, so the light sees them.</summary>

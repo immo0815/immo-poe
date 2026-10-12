@@ -43,8 +43,11 @@ internal static class ModelShaders
     /// <summary>The slot the solid part of the picture is read from, for the water's reflection of it - ScreenReflection.</summary>
     public const int OpaqueSlot = 9;
 
+    /// <summary>The slot the ripple texture is read from, by the waves' pixel and vertex shaders - ShadeHlsl.RippleSlot.</summary>
+    public const int RippleSlot = ShadeHlsl.RippleSlot;
+
     /// <summary>The slot a program's first sheet is read from; the rest follow.</summary>
-    public const int FirstSheet = 10;
+    public const int FirstSheet = 11;
 
     /// <summary>
     /// What every shader here shares: the constants, the resources, the vertex shader, and the light - the picture's lamp and the game's.
