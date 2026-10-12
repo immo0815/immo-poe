@@ -39,6 +39,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+        # ON A SELF-HOSTED RUNNER the default install folder (/usr/share/dotnet, C:\Program Files\dotnet)
+        # is not the runner's to write - see the runner note in ci.yml. Its own tool cache is, and keeps
+        # the SDK between runs. Empty on GitHub's machines, which leaves the default as it was.
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.environment == 'self-hosted' && format('{0}/dotnet', runner.tool_cache) || '' }}
 
       - name: Start from main, with the exports from the branch
         run: |
