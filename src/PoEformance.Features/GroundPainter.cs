@@ -5,8 +5,8 @@ using PoEformance.Game.Files;
 namespace PoEformance.Features;
 
 /// <summary>
-/// Paints a laid tile's ground block from the area's MaterialsList: one ground all round in its material, two grounds split
-/// by the template's mask - or says why a piece stays plain.
+/// Paints a laid tile's ground block from the area's MaterialsList, sub-tile by sub-tile: one ground in its material, two grounds
+/// mixed by the template's mask - or says why a sub-tile stays plain.
 /// </summary>
 /// <remarks>
 /// WHAT IS MEASURED AND WHAT IS NOT, from Port's captures (v0.1.195 to v0.1.200):
@@ -14,6 +14,9 @@ namespace PoEformance.Features;
 ///     the materials       the master's MaterialsList keys a group by the ground type's name (the .gt's first line); a
 ///                         tile's corners name the grounds. MEASURED: Port's harbour is cobblestone where its corners'
 ///                         IslandTownUnwalkableFill names G_IHLT_CobblestoneDirt01
+///     whose corners       each SUB-TILE's own, from the definition's ground grid (TileDefinition.GroundGrid, v0.1.248) -
+///                         MEASURED: Port's harbour names two grounds at its corners and four in its grid; the tile's four
+///                         corners stand for every sub-tile only where a definition carries no grid
 ///     two grounds         the engine weighs them by its mask's green read at the ground block's own coordinates
 ///                         (ground.ffx, GetUserMask; GroundGenerateWeights_1a1b: lerp(first, second, green)). MEASURED:
 ///                         read so at its vertices, green follows height on the harbour (r 0.78, the sea floor all 1),
@@ -56,6 +59,8 @@ internal sealed class GroundPainter
     private int _one;
     private int _two;
     private int _mixed;
+    private int _gridded;
+    private int _cornered;
 
     private GroundPainter(Func<string, byte[]?> read, GroundMaterials list, string from, MonsterModels.Paints paints)
     {
@@ -118,54 +123,66 @@ internal sealed class GroundPainter
     }
 
     /// <summary>
-    /// The tile's ground painted for one piece, or null where it stays plain - counted either way for <see cref="Said"/>.
+    /// The tile's ground painted for one piece with its four corners standing for every sub-tile - see the other overload.
+    /// </summary>
+    public MonsterModel? Paint(string tile, SkinnedMesh ground, Matrix4x4 place, string source) => Paint(tile, ground, [], place, source);
+
+    /// <summary>
+    /// The tile's ground painted for one piece, or null where all of it stays plain - counted sub-tile by sub-tile for <see cref="Said"/>.
     /// </summary>
     /// <param name="tile">The tile's <c>.tdt</c>.</param>
     /// <param name="ground">Its ground block, as the tile's walk joined it - its coordinates the mask's.</param>
+    /// <param name="pieces">Which sub-tile each run of the block's triangles is, in the block's order - or none, and the tile's four corners stand for all.</param>
     /// <param name="place">Where the piece is laid, which the materials' coordinates are worked out from.</param>
     /// <param name="source">What the piece is called, for the probe.</param>
-    public MonsterModel? Paint(string tile, SkinnedMesh ground, Matrix4x4 place, string source)
+    public MonsterModel? Paint(string tile, SkinnedMesh ground, IReadOnlyList<GroundPiece> pieces, Matrix4x4 place, string source)
     {
         ArgumentNullException.ThrowIfNull(ground);
+        ArgumentNullException.ThrowIfNull(pieces);
         if (!_plans.TryGetValue(tile, out Plan? plan))
         {
-            plan = Planned(tile, ground);
+            plan = Planned(tile, ground, pieces);
             _plans[tile] = plan;
         }
 
-        if (plan.Why.Length > 0)
+        _one += plan.One;
+        _mixed += plan.Mixed;
+        _two += plan.Split;
+        _gridded += plan.Gridded ? 1 : 0;
+        _cornered += plan.Gridded ? 0 : 1;
+        foreach ((string why, int count) in plan.Plain)
         {
-            _plain[plan.Why] = _plain.GetValueOrDefault(plan.Why) + 1;
+            _plain[why] = _plain.GetValueOrDefault(why) + count;
+        }
+
+        foreach ((string why, int count) in plan.Splits)
+        {
+            _split[why] = _split.GetValueOrDefault(why) + count;
+        }
+
+        if (plan.Named.Count == 0)
+        {
             return null;
         }
 
-        // THE ENGINE'S COORDINATES, from where the piece lies - so a pattern runs on across the pieces as the game's does. Two
-        // grounds mixed keep the block's own, for the mask, and their program works these out of the place (ShadeProgram.Grounds).
-        Vector2[] coordinates;
-        if (plan.Mixed)
+        // THE ENGINE'S COORDINATES, from where the piece lies - so a pattern runs on across the pieces as the game's does. A sub-tile
+        // of two grounds mixed keeps the block's own, for the mask, and its program works these out of the place (ShadeProgram.Grounds).
+        // A sub-tile's vertices are its own - the block joins the sub-tiles' meshes whole - so each takes its sub-tile's kind.
+        var coordinates = new Vector2[ground.Positions.Length];
+        for (var vertex = 0; vertex < coordinates.Length; vertex++)
         {
-            coordinates = ground.Coordinates;
-        }
-        else
-        {
-            coordinates = new Vector2[ground.Positions.Length];
-            for (var vertex = 0; vertex < coordinates.Length; vertex++)
+            if (plan.Own[vertex])
             {
-                Vector3 laid = Vector3.Transform(ground.Positions[vertex], place);
-                coordinates[vertex] = new Vector2(laid.X, laid.Y) * GroundScale;
+                coordinates[vertex] = ground.Coordinates[vertex];
+                continue;
             }
+
+            Vector3 laid = Vector3.Transform(ground.Positions[vertex], place);
+            coordinates[vertex] = new Vector2(laid.X, laid.Y) * GroundScale;
         }
 
         SkinnedMesh painted = SkinnedMesh.Of(
             ground.Positions, ground.Normals, plan.Indices, ground.Least, ground.Most, coordinates, plan.Shapes, ground.Facts);
-        _one += plan.Shapes.Count == 1 && !plan.Mixed ? 1 : 0;
-        _mixed += plan.Mixed ? 1 : 0;
-        if (plan.Shapes.Count == 2)
-        {
-            _two++;
-            _split[plan.Split] = _split.GetValueOrDefault(plan.Split) + 1;
-        }
-
         return MonsterModels.Worn(_read, painted, plan.Named, paintTheRest: false, source, "a tile's ground is static", _paints);
     }
 
@@ -178,32 +195,206 @@ internal sealed class GroundPainter
             : string.Create(CultureInfo.InvariantCulture, $", {_two} of two split by triangle where the green averages a half - mixing them could not be: ")
                 + string.Join(", ", _split.OrderByDescending(one => one.Value).Select(one => string.Create(CultureInfo.InvariantCulture, $"{one.Value} {one.Key}")));
         return string.Create(CultureInfo.InvariantCulture,
-            $"ground: painted from {From} - {_one} pieces of one ground, {_mixed} of two mixed per pixel by the template mask's green at the block's own coordinates as the engine mixes them (GroundGenerateWeights_1a1b; the MaterialsList's first ground at green nought, as Port's three families agree - one area; its height blending not drawn, DECIDED){split}, plain: {plain}; the materials' coordinates the world times {GroundScale} (the environments' ground_scale, likely and not measured), a group's heaviest choice where the game draws by weight");
+            $"ground: painted from {From}, each sub-tile from its own corners in its definition's ground grid ({_gridded} pieces; {_cornered} from the tile's four corners, their definition carrying no grid) - {_one} sub-tiles of one ground, {_mixed} of two mixed per pixel by the template mask's green at the block's own coordinates as the engine mixes them (GroundGenerateWeights_1a1b; the MaterialsList's first ground at green nought, as Port's three families agree - one area; its height blending not drawn, DECIDED){split}, plain: {plain}; the materials' coordinates the world times {GroundScale} (the environments' ground_scale, likely and not measured), a group's heaviest choice where the game draws by weight");
     }
 
-    /// <summary>How a tile's ground is painted, worked out once whatever number of pieces lay it.</summary>
-    private sealed record Plan(int[] Indices, IReadOnlyList<MeshShape> Shapes, IReadOnlyList<(string Shape, string Material)> Named, string Why)
+    /// <summary>How a tile's ground is painted, worked out once whatever number of pieces lay it - and what it comes to, sub-tile by sub-tile.</summary>
+    private sealed record Plan(int[] Indices, IReadOnlyList<MeshShape> Shapes, IReadOnlyList<(string Shape, string Material)> Named, bool[] Own)
     {
-        public static Plan Plain(string why) => new([], [], [], why);
+        /// <summary>Sub-tiles of one ground.</summary>
+        public int One { get; init; }
 
-        /// <summary>Whether the two grounds are mixed per pixel, the block keeping its own coordinates - see the class's remarks.</summary>
-        public bool Mixed { get; init; }
+        /// <summary>Sub-tiles of two grounds mixed per pixel - see the class's remarks.</summary>
+        public int Mixed { get; init; }
 
-        /// <summary>Why two grounds are split by triangle instead, where they are.</summary>
-        public string Split { get; init; } = string.Empty;
+        /// <summary>Sub-tiles of two grounds split by triangle, the two being unable to run as one program.</summary>
+        public int Split { get; init; }
+
+        /// <summary>Whether the sub-tiles took their own corners from the definition's ground grid.</summary>
+        public bool Gridded { get; init; }
+
+        /// <summary>Sub-tiles left plain, by why.</summary>
+        public IReadOnlyDictionary<string, int> Plain { get; init; } = new Dictionary<string, int>();
+
+        /// <summary>Sub-tiles split by triangle, by why the two could not be mixed.</summary>
+        public IReadOnlyDictionary<string, int> Splits { get; init; } = new Dictionary<string, int>();
+
+        public static Plan Plained(string why, int subTiles) => new([], [], [], []) { Plain = new Dictionary<string, int> { [why] = subTiles } };
     }
 
-    private Plan Planned(string tile, SkinnedMesh ground)
+    /// <summary>The triangles of the block whose sub-tiles name one set of grounds.</summary>
+    private sealed class Run(List<(int Order, GroundGroup Group)> grounds, string why)
+    {
+        public List<(int Order, GroundGroup Group)> Grounds { get; } = grounds;
+
+        public string Why { get; } = why;
+
+        public List<int> Triangles { get; } = [];
+
+        public int SubTiles { get; set; }
+    }
+
+    /// <summary>
+    /// A tile's ground worked out sub-tile by sub-tile: each sub-tile's grounds from its own corners in the definition's ground grid
+    /// (TileDefinition.GroundGrid) - the tile's four corners where it has none - and the sub-tiles naming one set painted alike.
+    /// </summary>
+    /// <remarks>
+    /// THE GRID, NOT THE TILE'S CORNERS (v0.1.248). Port's harbour names two grounds at its corners and four in its grid: its land
+    /// stands on PortTownTrim and the tropical fill, and its ground shapes there carry coordinates laid across the mask a third a
+    /// sub-tile - read through newmask.dds, an atlas of transitions, they came out as a checkerboard of black and cobblestone
+    /// (v0.1.247's capture, ground-shapes-12-Port_Boss_01.png). A sub-tile whose corners name one ground is drawn in it, its mask
+    /// unread, as the engine's GroundGenerateWeights_1a draws one; two are mixed as before, in the list's order.
+    /// </remarks>
+    private Plan Planned(string tile, SkinnedMesh ground, IReadOnlyList<GroundPiece> pieces)
     {
         (TileDefinition definition, string why) = TileModels.Defined(_read, tile);
         if (!definition.Ready)
         {
-            return Plan.Plain("whose definition did not read: " + why);
+            return Plan.Plained("whose definition did not read: " + why, Math.Max(1, pieces.Count));
         }
 
-        // THE GROUNDS BY NAME, in the MaterialsList's order - the order the engine's weights follow (see the remarks).
+        // EACH SUB-TILE'S OWN CORNERS where the block's pieces add up to it and the definition has its grid; else one run, the tile's corners.
+        int triangles = ground.Indices.Length / 3;
+        bool gridded = definition.GroundGrid.Count > 0 && pieces.Count > 0 && pieces.Sum(one => one.Triangles) == triangles;
+        List<(int Triangles, IReadOnlyList<string> Corners)> subTiles = gridded
+            ? [.. pieces.Select(one => (one.Triangles, definition.CornersOf(one.X, one.Y)))]
+            : [(triangles, definition.Grounds)];
+
+        var runs = new Dictionary<string, Run>(StringComparer.Ordinal);
+        var order = new List<Run>();
+        var at = 0;
+        foreach ((int count, IReadOnlyList<string> corners) in subTiles)
+        {
+            (string key, List<(int Order, GroundGroup Group)> grounds, string setWhy) = SetOf(corners);
+            if (!runs.TryGetValue(key, out Run? run))
+            {
+                run = new Run(grounds, setWhy);
+                runs[key] = run;
+                order.Add(run);
+            }
+
+            run.SubTiles++;
+            for (var one = 0; one < count; one++)
+            {
+                run.Triangles.Add(at + one);
+            }
+
+            at += count;
+        }
+
+        string mask = definition.Templates.Count > 0 ? TileTemplate.Read(_read(Clean(definition.Templates[0]))).GroundMask : string.Empty;
+        var indices = new List<int>(ground.Indices.Length);
+        var shapes = new List<MeshShape>();
+        var named = new List<(string Shape, string Material)>();
+        var own = new bool[ground.Positions.Length];
+        var plain = new Dictionary<string, int>(StringComparer.Ordinal);
+        var splits = new Dictionary<string, int>(StringComparer.Ordinal);
+        int oneGround = 0, mixedGrounds = 0, splitGrounds = 0;
+
+        void Shape(IEnumerable<int> triangleList, string? material)
+        {
+            int from = indices.Count;
+            foreach (int triangle in triangleList)
+            {
+                indices.AddRange([ground.Indices[triangle * 3], ground.Indices[(triangle * 3) + 1], ground.Indices[(triangle * 3) + 2]]);
+            }
+
+            string name = shapes.Count.ToString(CultureInfo.InvariantCulture);
+            shapes.Add(new MeshShape(name, from, indices.Count - from));
+            if (material is not null)
+            {
+                named.Add((name, material));
+            }
+        }
+
+        void Plain(Run run, string reason)
+        {
+            plain[reason] = plain.GetValueOrDefault(reason) + run.SubTiles;
+            Shape(run.Triangles, null);
+        }
+
+        foreach (Run run in order)
+        {
+            if (run.Why.Length > 0)
+            {
+                Plain(run, run.Why);
+                continue;
+            }
+
+            string first = Heaviest(run.Grounds[0].Group);
+            if (run.Grounds.Count == 1)
+            {
+                oneGround += run.SubTiles;
+                Shape(run.Triangles, first);
+                continue;
+            }
+
+            string second = Heaviest(run.Grounds[1].Group);
+            if (mask.Length == 0 || MaskOf(mask) is not { } picture)
+            {
+                Plain(run, "of two grounds whose template names no mask that reads");
+                continue;
+            }
+
+            if (!ground.Coordinated)
+            {
+                Plain(run, "of two grounds whose block carries no coordinates into its mask");
+                continue;
+            }
+
+            // MIXED PER PIXEL as the engine mixes them, where the two grounds' programs run as one - see the remarks.
+            if (_paints.Grounds(_read, first, second, Clean(mask), GroundScale, out string unmixed) is { } mixed)
+            {
+                mixedGrounds += run.SubTiles;
+                foreach (int triangle in run.Triangles)
+                {
+                    own[ground.Indices[triangle * 3]] = own[ground.Indices[(triangle * 3) + 1]] = own[ground.Indices[(triangle * 3) + 2]] = true;
+                }
+
+                Shape(run.Triangles, mixed);
+                continue;
+            }
+
+            // ELSE EACH TRIANGLE TO THE GROUND ITS VERTICES' GREEN AVERAGES TO, the first's then the second's.
+            splitGrounds += run.SubTiles;
+            splits[unmixed] = splits.GetValueOrDefault(unmixed) + run.SubTiles;
+            var firsts = new List<int>(run.Triangles.Count);
+            var seconds = new List<int>(run.Triangles.Count / 2);
+            foreach (int triangle in run.Triangles)
+            {
+                float mean = 0f;
+                for (var corner = 0; corner < 3; corner++)
+                {
+                    Vector2 uv = ground.Coordinates[ground.Indices[(triangle * 3) + corner]];
+                    mean += Sample(picture, 1, uv.X, uv.Y) / 3f;
+                }
+
+                (mean >= Half ? seconds : firsts).Add(triangle);
+            }
+
+            Shape(firsts, first);
+            Shape(seconds, second);
+        }
+
+        return new Plan([.. indices], shapes, named, own)
+        {
+            One = oneGround,
+            Mixed = mixedGrounds,
+            Split = splitGrounds,
+            Gridded = gridded,
+            Plain = plain,
+            Splits = splits,
+        };
+    }
+
+    /// <summary>
+    /// The grounds a sub-tile's corners name, by name in the MaterialsList's order - the order the engine's weights follow (see the
+    /// remarks) - with a key the sub-tiles naming the same set share; or why it stays plain.
+    /// </summary>
+    private (string Key, List<(int Order, GroundGroup Group)> Grounds, string Why) SetOf(IReadOnlyList<string> corners)
+    {
         var grounds = new List<(int Order, GroundGroup Group)>();
-        foreach (string corner in definition.Grounds)
+        foreach (string corner in corners)
         {
             if (corner.Length == 0)
             {
@@ -223,7 +414,7 @@ internal sealed class GroundPainter
 
             if (order < 0)
             {
-                return Plan.Plain("with a ground the MaterialsList does not list");
+                return Plained("with a ground the MaterialsList does not list");
             }
 
             if (!grounds.Exists(one => one.Order == order))
@@ -233,63 +424,14 @@ internal sealed class GroundPainter
         }
 
         grounds.Sort((one, other) => one.Order.CompareTo(other.Order));
-        if (grounds.Count == 0)
+        return grounds.Count switch
         {
-            return Plan.Plain("whose corners name no ground");
-        }
+            0 => Plained("whose corners name no ground"),
+            > 2 => Plained("of three or four grounds (the engine's atlas, placed by transforms no file holds)"),
+            _ => (string.Join(",", grounds.Select(one => one.Order.ToString(CultureInfo.InvariantCulture))), grounds, string.Empty),
+        };
 
-        if (grounds.Count > 2)
-        {
-            return Plan.Plain("of three or four grounds (the engine's atlas, placed by transforms no file holds)");
-        }
-
-        string first = Heaviest(grounds[0].Group);
-        if (grounds.Count == 1)
-        {
-            return new Plan(ground.Indices, [new MeshShape("0", 0, ground.Indices.Length)], [("0", first)], string.Empty);
-        }
-
-        string second = Heaviest(grounds[1].Group);
-        string mask = definition.Templates.Count > 0 ? TileTemplate.Read(_read(Clean(definition.Templates[0]))).GroundMask : string.Empty;
-        if (mask.Length == 0 || MaskOf(mask) is not { } picture)
-        {
-            return Plan.Plain("of two grounds whose template names no mask that reads");
-        }
-
-        if (!ground.Coordinated)
-        {
-            return Plan.Plain("of two grounds whose block carries no coordinates into its mask");
-        }
-
-        // MIXED PER PIXEL as the engine mixes them, where the two grounds' programs run as one - see the remarks.
-        if (_paints.Grounds(_read, first, second, Clean(mask), GroundScale, out string unmixed) is { } mixed)
-        {
-            return new Plan(ground.Indices, [new MeshShape("0", 0, ground.Indices.Length)], [("0", mixed)], string.Empty) { Mixed = true };
-        }
-
-        // ELSE EACH TRIANGLE TO THE GROUND ITS VERTICES' GREEN AVERAGES TO, the first's then the second's.
-        var green = new float[ground.Positions.Length];
-        for (var vertex = 0; vertex < green.Length; vertex++)
-        {
-            Vector2 uv = ground.Coordinates[vertex];
-            green[vertex] = Sample(picture, 1, uv.X, uv.Y);
-        }
-
-        int[] indices = ground.Indices;
-        var firsts = new List<int>(indices.Length);
-        var seconds = new List<int>(indices.Length / 2);
-        for (var at = 0; at + 2 < indices.Length; at += 3)
-        {
-            float mean = (green[indices[at]] + green[indices[at + 1]] + green[indices[at + 2]]) / 3f;
-            (mean >= Half ? seconds : firsts).AddRange([indices[at], indices[at + 1], indices[at + 2]]);
-        }
-
-        int[] ordered = [.. firsts, .. seconds];
-        return new Plan(
-            ordered,
-            [new MeshShape("0", 0, firsts.Count), new MeshShape("1", firsts.Count, seconds.Count)],
-            [("0", first), ("1", second)],
-            string.Empty) { Split = unmixed };
+        static (string, List<(int, GroundGroup)>, string) Plained(string why) => ("plain: " + why, [], why);
     }
 
     /// <summary>A group's heaviest choice - its only one where it has one.</summary>

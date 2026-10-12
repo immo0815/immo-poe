@@ -42,7 +42,8 @@ public sealed class GroundPainterTests
         // The engine's coordinates: where the vertex lies, times the ground scale.
         Assert.Equal(new Vector2(500f, 250f) * GroundPainter.GroundScale, painted.Mesh.Coordinates[0]);
         Assert.Equal(new Vector2(750f, 500f) * GroundPainter.GroundScale, painted.Mesh.Coordinates[4]);
-        Assert.Contains("1 pieces of one ground, 0 of two", painter.Said(), StringComparison.Ordinal);
+        Assert.Contains("1 sub-tiles of one ground, 0 of two", painter.Said(), StringComparison.Ordinal);
+        Assert.Contains("(0 pieces; 1 from the tile's four corners, their definition carrying no grid)", painter.Said(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -58,7 +59,7 @@ public sealed class GroundPainterTests
         Assert.Equal([GroundBlend.Name("Art/rock.mat", "Art/sand2.mat", Mask)], painted!.ShapeMaterials);
         Assert.Single(painted.Mesh.Shapes);
         Assert.Equal(Ground().Coordinates, painted.Mesh.Coordinates);
-        Assert.Contains("0 pieces of one ground, 1 of two mixed per pixel", painter.Said(), StringComparison.Ordinal);
+        Assert.Contains("0 sub-tiles of one ground, 1 of two mixed per pixel", painter.Said(), StringComparison.Ordinal);
         Assert.DoesNotContain("split by triangle", painter.Said(), StringComparison.Ordinal);
     }
 
@@ -74,8 +75,40 @@ public sealed class GroundPainterTests
         Assert.Equal(["Art/rock.mat", "Art/sand2.mat"], painted!.ShapeMaterials);
         Assert.Equal([0, 1, 2], painted.Mesh.Indices[..3]);
         Assert.Equal([3, 4, 5], painted.Mesh.Indices[3..6]);
-        Assert.Contains("0 pieces of one ground, 0 of two mixed per pixel", painter.Said(), StringComparison.Ordinal);
+        Assert.Contains("0 sub-tiles of one ground, 0 of two mixed per pixel", painter.Said(), StringComparison.Ordinal);
         Assert.Contains("1 of two split by triangle where the green averages a half - mixing them could not be: 1 a ground whose graphs did not compile: Art/rock.mat", painter.Said(), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Each sub-tile takes its own corners from the definition's ground grid: one all sand is drawn in sand with the world's coordinates,
+    /// one of sand and rock mixed by the mask with the block's own - though the tile's four corners name sand and rock both.
+    /// </summary>
+    [Fact]
+    public void EACHSUBTileIsPaintedFromItsOwnCornersInTheGrid()
+    {
+        const string Gridded = "gridded.tdt", GridSand = "Metadata/Terrain/Test/sand.gt", GridRock = "Metadata/Terrain/Test/rock.gt";
+        byte[]? Read(string path) => path switch
+        {
+            // Two sub-tiles across: the left one's four corners sand, the right one's two sand and two rock.
+            Gridded => TileFilesTests.Tdt(template: Template, grounds: true, grid: [5, 5, 6, 5, 5, 6]),
+            GridSand => CaptureGroundTests.Text("Sand\n1 1 0 0\n"),
+            GridRock => CaptureGroundTests.Text("Rock\n1 1 0 0\n"),
+            _ => Mixable(path),
+        };
+
+        GroundPainter painter = Painter(Read);
+        SkinnedMesh ground = TwoSubTiles();
+        Matrix4x4 place = Matrix4x4.CreateTranslation(500f, 250f, 0f);
+
+        MonsterModel? painted = painter.Paint(Gridded, ground, [new GroundPiece(1, 1, 2), new GroundPiece(2, 1, 2)], place, "ground of gridded.tdt");
+
+        Assert.NotNull(painted);
+        Assert.Equal(["Art/sand2.mat", GroundBlend.Name("Art/rock.mat", "Art/sand2.mat", Mask)], painted!.ShapeMaterials);
+        Assert.Equal(new Vector2(500f, 250f) * GroundPainter.GroundScale, painted.Mesh.Coordinates[0]);
+        Assert.Equal(ground.Coordinates[6], painted.Mesh.Coordinates[6]);
+        string said = painter.Said();
+        Assert.Contains("(1 pieces; 0 from the tile's four corners", said, StringComparison.Ordinal);
+        Assert.Contains("1 sub-tiles of one ground, 1 of two mixed per pixel", said, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -119,6 +152,20 @@ public sealed class GroundPainterTests
         return SkinnedMesh.Of(
             positions, [.. positions.Select(_ => -Vector3.UnitZ)], [0, 1, 2, 3, 4, 5], Vector3.Zero, new Vector3(250f, 250f, 0f), coordinates,
             [new MeshShape("0", 0, 6)]);
+    }
+
+    /// <summary>Two sub-tiles side by side, each a square of two triangles with its own vertices, the block's coordinates on every vertex.</summary>
+    private static SkinnedMesh TwoSubTiles()
+    {
+        Vector3[] positions =
+        [
+            new(0f, 0f, 0f), new(250f, 0f, 0f), new(0f, 250f, 0f), new(250f, 0f, 0f), new(250f, 250f, 0f), new(0f, 250f, 0f),
+            new(250f, 0f, 0f), new(500f, 0f, 0f), new(250f, 250f, 0f), new(500f, 0f, 0f), new(500f, 250f, 0f), new(250f, 250f, 0f),
+        ];
+        Vector2[] coordinates = [.. positions.Select((_, at) => new Vector2(0.1f + (at * 0.05f), 0.25f))];
+        return SkinnedMesh.Of(
+            positions, [.. positions.Select(_ => -Vector3.UnitZ)], [.. Enumerable.Range(0, 12)], Vector3.Zero, new Vector3(500f, 250f, 0f), coordinates,
+            [new MeshShape("0", 0, 6), new MeshShape("1", 6, 6)]);
     }
 
     /// <summary>The install with the rock's and the sand's materials in it, each a constant colour - so the two grounds can be mixed.</summary>

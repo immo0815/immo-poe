@@ -26,8 +26,8 @@ public static partial class CaptureGround
     /// <summary>Most templates drawn from above; the biggest first.</summary>
     public const int MostShapePictures = 12;
 
-    /// <summary>Most bytes of one tile definition written past what is read.</summary>
-    public const int MostRestBytes = 32768;
+    /// <summary>Most bytes of one tile definition written past what is read - Port's harbour has 41,526.</summary>
+    public const int MostRestBytes = 65536;
 
     /// <summary>Most bytes of tile definitions written past what is read, over the area.</summary>
     public const int MostRestsBytes = 1 << 20;
@@ -58,16 +58,17 @@ public static partial class CaptureGround
     /// Every masked template's ground shapes sub-tile by sub-tile, written; and the biggest templates drawn from above.
     /// </summary>
     private static List<(string File, GamePicture Picture)> ShapePictures(
-        SortedDictionary<string, Pieces> pieces, IReadOnlyList<GroundMask> masks, StringBuilder said)
+        SortedDictionary<string, Pieces> pieces, IReadOnlyList<GroundMask> masks, Func<string, TileDefinition?> definitionOf, StringBuilder said)
     {
         said.AppendLine().AppendLine(
             "=== the ground shapes sub-tile by sub-tile - for every template with a ground mask: each sub-tile mesh's header (its shape count, "
             + "its unnamed word and byte, its tail entries) and each ground shape's ordinal, the u16 before its box that neither reference "
             + "names, with its triangles, heights (up being minus), the mask's green at its vertices as GetUserMask reads it, its coordinates "
             + "and the mask's 64-texel cells they fall in (column, row); then each tail entry as poe_data_tools reads it - a word, twelve "
-            + "floats, a word, 31 bytes. The biggest templates are drawn from above beside this file, ground-shapes-N-name.png: the shapes "
-            + "coloured by ordinal, the green as the mix reads it per pixel, and the height light where high - row 1 at the top, "
-            + "sub-tiles ruled");
+            + "floats, a word, 31 bytes; and each sub-tile's four corners in the ground grid of the first definition laying the template "
+            + "(TileDefinition.GroundGrid: least x and y first). The biggest templates are drawn from above beside this file, "
+            + "ground-shapes-N-name.png: the shapes coloured by ordinal, the green as the mix reads it per pixel, the height light where "
+            + "high, and each sub-tile's grounds by the grid, a colour a set - row 1 at the top, sub-tiles ruled");
         var decoded = masks.Where(mask => mask.Picture is not null)
             .ToDictionary(mask => mask.Path, mask => mask.Picture!.Value, StringComparer.OrdinalIgnoreCase);
         var drawnFirst = new HashSet<string>(
@@ -78,6 +79,7 @@ public static partial class CaptureGround
         foreach ((string template, Pieces taken) in pieces)
         {
             GamePicture? mask = decoded.TryGetValue(taken.Mask, out GamePicture found) ? found : null;
+            TileDefinition? definition = definitionOf(template);
             var tally = new SortedDictionary<int, (int Shapes, int Triangles)>();
             foreach ((_, _, TileMesh mesh) in taken.All)
             {
@@ -92,17 +94,43 @@ public static partial class CaptureGround
             said.AppendLine().Append(CultureInfo.InvariantCulture,
                 $"  {template}  ({Short(taken.Mask)}{(mask is null ? ", not decoded" : string.Empty)})  {taken.Width}x{taken.Height} · {taken.All.Count} sub-tiles with a ground · ordinals: ")
                 .Append(string.Join(", ", tally.Select(pair => string.Create(CultureInfo.InvariantCulture, $"{pair.Key} in {pair.Value.Shapes} shapes ({pair.Value.Triangles} triangles)"))));
+            // EACH SET OF GROUNDS THE GRID GIVES A SUB-TILE, numbered in the order met - its colour in the picture's fourth panel.
+            var sets = new List<string>();
+            string SetOf(int x, int y)
+            {
+                string set = string.Join(" + ", (definition?.CornersOf(x, y) ?? []).Where(one => one.Length > 0)
+                    .Select(one => Path.GetFileNameWithoutExtension(one)).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase));
+                set = set.Length > 0 ? set : "none named";
+                if (!sets.Contains(set, StringComparer.Ordinal))
+                {
+                    sets.Add(set);
+                }
+
+                return set;
+            }
+
+            foreach ((int x, int y, _) in taken.All)
+            {
+                SetOf(x, y);
+            }
+
+            said.Append(" · grid ").Append(definition is null ? "(no definition)" : definition.GroundGrid.Count > 0 ? "of " + definition.Width + "x" + definition.Height : "none: " + definition.GridWhy);
+            if (definition?.GroundGrid.Count > 0)
+            {
+                said.Append(" · sets ").Append(string.Join("; ", sets.Select((set, at) => string.Create(CultureInfo.InvariantCulture, $"{at} {set}"))));
+            }
+
             if (drawnFirst.Contains(template))
             {
                 string file = ShapesFile(drawn.Count + 1, template);
-                drawn.Add((file, Drawn(taken, mask, tally.Keys)));
+                drawn.Add((file, Drawn(taken, mask, tally.Keys, (x, y) => definition?.GroundGrid.Count > 0 ? sets.IndexOf(SetOf(x, y)) : -1)));
                 said.Append(" · picture ").Append(file);
             }
 
             said.AppendLine();
             foreach ((int x, int y, TileMesh mesh) in taken.All)
             {
-                SubTile(x, y, mesh, mask, said);
+                SubTile(x, y, mesh, mask, definition, said);
             }
         }
 
@@ -110,13 +138,18 @@ public static partial class CaptureGround
     }
 
     /// <summary>One sub-tile mesh's header, its ground shapes and its tail entries.</summary>
-    private static void SubTile(int x, int y, TileMesh mesh, GamePicture? mask, StringBuilder said)
+    private static void SubTile(int x, int y, TileMesh mesh, GamePicture? mask, TileDefinition? definition, StringBuilder said)
     {
         SkinnedMesh ground = mesh.Ground;
         int tails = mesh.TailData.Length / TileMesh.TailEntryBytes;
         said.Append(CultureInfo.InvariantCulture,
-            $"    c{x}r{y} · header {mesh.HeaderShapes} shapes, word {mesh.HeaderWord}, byte {mesh.HeaderByte}, {tails} tails{(mesh.Exact ? string.Empty : " · NOT EXACT to the file's end")}")
-            .AppendLine();
+            $"    c{x}r{y} · header {mesh.HeaderShapes} shapes, word {mesh.HeaderWord}, byte {mesh.HeaderByte}, {tails} tails{(mesh.Exact ? string.Empty : " · NOT EXACT to the file's end")}");
+        if (definition?.CornersOf(x, y) is { Count: > 0 } corners)
+        {
+            said.Append(" · corners ").Append(string.Join(", ", corners.Select(one => one.Length > 0 ? Path.GetFileNameWithoutExtension(one) : "-")));
+        }
+
+        said.AppendLine();
 
         var seen = new bool[ground.Positions.Length];
         for (var shape = 0; shape < ground.Shapes.Count; shape++)
@@ -205,7 +238,7 @@ public static partial class CaptureGround
     /// drawn at the top. The green is interpolated as a card interpolates the block's coordinates and read as GetUserMask reads it,
     /// bilinear and wrapped (GroundPainter.Sample) - the same as the mix draws it in the model pane.
     /// </remarks>
-    private static GamePicture Drawn(Pieces taken, GamePicture? mask, IEnumerable<int> ordinals)
+    private static GamePicture Drawn(Pieces taken, GamePicture? mask, IEnumerable<int> ordinals, Func<int, int, int> setOf)
     {
         float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue, maxY = float.MinValue;
         float lowZ = float.MaxValue, highZ = float.MinValue;
@@ -255,7 +288,7 @@ public static partial class CaptureGround
             hues[ordinal] = Hue((index++ * 0.618034f) % 1f);
         }
 
-        int full = (width * 3) + (PanelGap * 2);
+        int full = (width * 4) + (PanelGap * 3);
         var rgba = new byte[full * height * 4];
         float span = MathF.Max(1f, highZ - lowZ);
         for (var row = 0; row < height; row++)
@@ -275,12 +308,20 @@ public static partial class CaptureGround
                 Put(rgba, full, column, row, ruled ? ((byte)0, (byte)0, (byte)0) : shapeColour);
                 Put(rgba, full, width + PanelGap + column, row, ruled && (column + row) % 2 == 0 ? ((byte)255, (byte)0, (byte)0) : (greenGrey, greenGrey, greenGrey));
                 Put(rgba, full, (2 * (width + PanelGap)) + column, row, ruled && (column + row) % 2 == 0 ? ((byte)255, (byte)0, (byte)0) : (heightGrey, heightGrey, heightGrey));
+
+                // THE SUB-TILE'S GROUNDS BY THE GRID, wherever its square lies - drawn where the ground is.
+                int subX = (int)MathF.Floor(worldX / TileModels.Side) + 1;
+                int subY = (int)MathF.Floor((TileModels.Side - worldY) / TileModels.Side) + 1;
+                int set = empty ? -1 : setOf(subX, subY);
+                (byte r, byte g, byte b) setColour = set < 0 ? ((byte)24, (byte)24, (byte)24) : Hue(((set * 0.618034f) + 0.5f) % 1f);
+                Put(rgba, full, (3 * (width + PanelGap)) + column, row, ruled ? ((byte)0, (byte)0, (byte)0) : setColour);
             }
 
             for (var gap = 0; gap < PanelGap; gap++)
             {
                 Put(rgba, full, width + gap, row, (255, 255, 255));
                 Put(rgba, full, (2 * width) + PanelGap + gap, row, (255, 255, 255));
+                Put(rgba, full, (3 * width) + (2 * PanelGap) + gap, row, (255, 255, 255));
             }
         }
 
@@ -424,6 +465,20 @@ public static partial class CaptureGround
             }
 
             said.AppendLine();
+            if (definition.GroundGrid.Count == 0)
+            {
+                said.Append("  ground grid: none - ").AppendLine(definition.GridWhy);
+            }
+            else
+            {
+                said.Append(CultureInfo.InvariantCulture, $"  ground grid {definition.Width + 1}x{definition.Height + 1}, row nought at the template's least y:").AppendLine();
+                for (var row = 0; row <= definition.Height; row++)
+                {
+                    said.Append("    ").AppendLine(string.Join(" ", definition.GroundGrid.Skip(row * (definition.Width + 1)).Take(definition.Width + 1)
+                        .Select(one => one.Length > 0 ? Path.GetFileNameWithoutExtension(one) : "-")));
+                }
+            }
+
             if (written >= MostRestsBytes)
             {
                 said.AppendLine("  (bytes not written: past the part's limit)");

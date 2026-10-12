@@ -59,6 +59,50 @@ public sealed class TileDefinition
     public IReadOnlyList<string> Grounds { get; private init; } = [];
 
     /// <summary>
+    /// The ground type at every sub-tile corner, as <c>.gt</c> paths, empty where the file says none: (Width + 1) a row, Height + 1
+    /// rows - or empty, and <see cref="GridWhy"/> says why. See <see cref="CornersOf"/> for which corners a sub-tile takes.
+    /// </summary>
+    /// <remarks>
+    /// MEASURED ON PORT (v0.1.247's capture, every laid definition written past its corners): after the side offsets and the
+    /// sub-tile blocks - variable in length, read by nothing here - a definition carries (Width + 1) x (Height + 1) u32, each a
+    /// string reference to a <c>.gt</c> or 0xFFFFFFFF, just before its <c>.tmd</c> reference where it has one. All 69 laid 3x3
+    /// definitions carry one such run of 16 and only one, and it is what the tile's own corners do not say: the boss's harbour
+    /// names four grounds in its strings (the ocean, the town fill, the tropical fill and PortTownTrim) while its corners name
+    /// two. Row nought lies at the template's least y: the coast's ocean row stands at the sub-tiles of its last mesh row, the
+    /// deep ones, and its ocean corner at column three by the third column's deepest sub-tile.
+    ///
+    /// FOUND RATHER THAN STEPPED TO, because the sub-tile blocks before it are not read: the one place in the bytes past the
+    /// corners where that many words in a row are every one a <c>.gt</c> reference or none, at least one a reference. A string
+    /// reference must begin a string (the table's own rule) and the string must end in <c>.gt</c>, so a run of other words does
+    /// not pass; where no place or more than one fits, there is no grid and the tile's four corners stand for every sub-tile.
+    /// </remarks>
+    public IReadOnlyList<string> GroundGrid { get; private init; } = [];
+
+    /// <summary>Why <see cref="GroundGrid"/> is empty, or empty where it was found.</summary>
+    public string GridWhy { get; private init; } = string.Empty;
+
+    /// <summary>
+    /// The four corners' ground types of one sub-tile, numbered as its mesh is (<c>c{x}r{y}</c>, from one, row one at the top) -
+    /// least x and least y first, then greatest x, least y, then least x, greatest y, then both greatest; empty where the
+    /// definition has no grid.
+    /// </summary>
+    /// <remarks>
+    /// Mesh row y lies at template y from -(y - 1) x 250 to -(y - 2) x 250 (TileModels), so its corners are the grid's rows
+    /// Height - y and Height - y + 1, and mesh column x the grid's columns x - 1 and x.
+    /// </remarks>
+    public IReadOnlyList<string> CornersOf(int x, int y)
+    {
+        if (GroundGrid.Count == 0 || x < 1 || x > Width || y < 1 || y > Height)
+        {
+            return [];
+        }
+
+        int across = Width + 1;
+        int low = Height - y, high = Height - y + 1;
+        return [GroundGrid[(low * across) + x - 1], GroundGrid[(low * across) + x], GroundGrid[(high * across) + x - 1], GroundGrid[(high * across) + x]];
+    }
+
+    /// <summary>
     /// The edge type on each side, as <c>.et</c> paths: down, right, up, left. Empty where unsaid.
     /// </summary>
     /// <remarks>
@@ -190,6 +234,7 @@ public sealed class TileDefinition
             }
         }
 
+        (string[] grid, string gridWhy) = grounds.Length > 0 ? Grid(file, at, table, width, height) : ([], "the file names no corner grounds");
         return new TileDefinition
         {
             Version = version,
@@ -200,7 +245,63 @@ public sealed class TileDefinition
             Grounds = grounds,
             Edges = edges,
             End = at,
+            GroundGrid = grid,
+            GridWhy = gridWhy,
         };
+    }
+
+    /// <summary>The sub-tile corners' ground grid past <paramref name="from"/>, found as <see cref="GroundGrid"/> says - or why not.</summary>
+    private static (string[] Grid, string Why) Grid(ReadOnlySpan<byte> file, int from, Table table, int width, int height)
+    {
+        Dictionary<uint, string> grounds = table.Ending(".gt");
+        if (grounds.Count == 0)
+        {
+            return ([], "the string table holds no .gt");
+        }
+
+        int count = (width + 1) * (height + 1);
+        int found = -1;
+        int places = 0;
+        for (int at = from; at + (count * 4) <= file.Length; at++)
+        {
+            var named = false;
+            var fits = true;
+            for (var one = 0; one < count; one++)
+            {
+                uint word = BinaryPrimitives.ReadUInt32LittleEndian(file[(at + (one * 4))..]);
+                if (grounds.ContainsKey(word))
+                {
+                    named = true;
+                }
+                else if (word != uint.MaxValue)
+                {
+                    fits = false;
+                    break;
+                }
+            }
+
+            if (fits && named)
+            {
+                places++;
+                found = at;
+            }
+        }
+
+        if (places != 1)
+        {
+            return ([], places == 0
+                ? string.Create(CultureInfo.InvariantCulture, $"no run of {count} ground references past the corners")
+                : string.Create(CultureInfo.InvariantCulture, $"{places} places past the corners fit {count} ground references"));
+        }
+
+        var grid = new string[count];
+        for (var one = 0; one < count; one++)
+        {
+            uint word = BinaryPrimitives.ReadUInt32LittleEndian(file[(found + (one * 4))..]);
+            grid[one] = grounds.GetValueOrDefault(word, string.Empty);
+        }
+
+        return (grid, string.Empty);
     }
 
     private static uint Next(ReadOnlySpan<byte> file, ref int at)
@@ -244,6 +345,33 @@ public sealed class TileDefinition
             }
 
             return System.Text.Encoding.Unicode.GetString(_bytes[(int)at..end]);
+        }
+
+        /// <summary>Every string of the table ending in <paramref name="suffix"/>, by the character offset it begins at.</summary>
+        public Dictionary<uint, string> Ending(string suffix)
+        {
+            var found = new Dictionary<uint, string>();
+            var start = 0;
+            for (var at = 0; at + 2 <= _bytes.Length; at += 2)
+            {
+                if (BinaryPrimitives.ReadUInt16LittleEndian(_bytes[at..]) != 0)
+                {
+                    continue;
+                }
+
+                if (at > start)
+                {
+                    string text = System.Text.Encoding.Unicode.GetString(_bytes[start..at]);
+                    if (text.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        found[(uint)(start / 2)] = text;
+                    }
+                }
+
+                start = at + 2;
+            }
+
+            return found;
         }
     }
 }

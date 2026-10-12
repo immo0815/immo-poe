@@ -156,8 +156,9 @@ public static class LaidRoomModels
         {
             if (!made.TryGetValue(id, out Made? one))
             {
-                (MonsterModel props, SkinnedMesh ground, int across, int down, TileDoodads lines) = TileModels.Apart(Counted, tiles.Paths[id], walls: true, paints);
-                one = Made.Of(props, ground, across, down, lines);
+                (MonsterModel props, SkinnedMesh ground, int across, int down, TileDoodads lines, IReadOnlyList<GroundPiece> subTiles) =
+                    TileModels.Apart(Counted, tiles.Paths[id], walls: true, paints);
+                one = Made.Of(props, ground, across, down, lines) with { Pieces = subTiles };
                 made[id] = one;
                 reading.Advance();
             }
@@ -269,7 +270,7 @@ public static class LaidRoomModels
 
             if (one.Ground.Ready)
             {
-                if (painter?.Paint(tiles.Paths[piece.Id], one.Ground, place, RoomModels.GroundSource + called) is { Ready: true } painted)
+                if (painter?.Paint(tiles.Paths[piece.Id], one.Ground, one.Pieces, place, RoomModels.GroundSource + called) is { Ready: true } painted)
                 {
                     pile.Add(painted, place, RoomModels.GroundSource + called);
                     grounds.Add(painted);
@@ -779,6 +780,9 @@ public static class LaidRoomModels
 
         /// <summary>The doodads the tile brings with it - see TileModels.DoodadsOf.</summary>
         public TileDoodads Doodads { get; init; } = TileDoodads.None;
+
+        /// <summary>Which sub-tile each run of the ground block's triangles is - see GroundPiece.</summary>
+        public IReadOnlyList<GroundPiece> Pieces { get; init; } = [];
 
         public static Made Of(MonsterModel props, SkinnedMesh ground, int across, int down, TileDoodads doodads)
         {

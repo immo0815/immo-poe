@@ -602,7 +602,19 @@ tile mesh's unnamed header word and byte and its tail entries, and the tile defi
 sub-tile blocks and ground grid). `ground.txt` writes all three from v0.1.247 (`CaptureGround.Shapes`), each shape with the green
 at its vertices and the mask's 64-texel cells it falls in, and draws the biggest masked templates from above,
 `ground-shapes-N-name.png`: the shapes by ordinal, the green as the mix reads it, the height. Read it before the mix is given a
-rule for which ground a piece of a tile gets. "The game draws wood there" was written here once from
+rule for which ground a piece of a tile gets. ITS FIRST CAPTURE ANSWERED (v0.1.247): the ordinal is only the shape's own index,
+and the header's word the ground's shape count; but the tile definition carries, just before its `.tmd` reference, a GROUND
+GRID - (Width + 1) x (Height + 1) words, each a `.gt` reference or 0xFFFFFFFF, a ground type at every SUB-TILE corner, row nought
+at the template's least y (`TileDefinition.GroundGrid`, `CornersOf`; one such run and only one in all 69 laid 3x3 definitions,
+the coast's ocean row by its deep sub-tiles). Port's harbour names two grounds at its corners and four in its strings (the ocean,
+the town fill, the tropical fill, PortTownTrim), and its picture showed the checkerboard exactly where its land's ground shapes
+carry coordinates laid across the mask a third a sub-tile - a plain projection, read through newmask.dds's atlas of transitions -
+while its two-ground shapes point into one uniform cell each (green 0.02 or 1.00). So THE GROUND IS PAINTED SUB-TILE BY SUB-TILE
+from v0.1.248 (`GroundPainter`, `GroundPiece`): each sub-tile's grounds from its own four corners in the grid, one ground drawn
+plain with the world's coordinates (the engine's GroundGenerateWeights_1a reads no mask), two mixed as before; the tile's four
+corners stand for every sub-tile only where a definition carries no grid. The harbour's own grid lay past that capture's 32 KB
+cut of the bytes (41,526 past its corners); the cut is 64 KB from v0.1.248, and `ground.txt` writes every definition's grid by
+name and each sub-tile's corners, the pictures a fourth panel of each sub-tile's grounds. "The game draws wood there" was written here once from
 a picture not looked at closely: the gangway and the ship are wood, the pier is not - look before writing it down.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.

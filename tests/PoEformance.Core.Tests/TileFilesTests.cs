@@ -23,7 +23,7 @@ public class TileFilesTests
 {
     /// <summary>A version 7 definition: a string table, then the references and the size. Shared with the capture's tests, which print one.</summary>
     internal static byte[] Tdt(string inherits = "", string template = "Art/Models/Terrain/Test/Arena.tgt",
-        int width = 2, int height = 1, int version = 7, bool grounds = false, string edge = "edge")
+        int width = 2, int height = 1, int version = 7, bool grounds = false, string edge = "edge", int[]? grid = null)
     {
         // THE TABLE STARTS WITH AN EMPTY STRING, so offset zero means "nothing" the way the game's
         // own files use it, and every other offset lands where a string begins.
@@ -74,7 +74,23 @@ public class TileFilesTests
             write.Write(starts[5]);
             write.Write(starts[6]);
             write.Write(starts[6] + 3);
-            write.Write(new byte[48]);
+            if (grid is null)
+            {
+                write.Write(new byte[48]);
+                return stream.ToArray();
+            }
+
+            // THE GROUND GRID AS PORT'S FILES CARRY IT: past the side offsets and some sub-tile bytes, a word a corner - a string
+            // of the table (5 sand, 6 rock) or none - then the .tmd's reference (here the empty string) and more bytes.
+            write.Write(new byte[12]);
+            write.Write(new byte[] { 0x2B, 0x01, 0x00, 0x08, 0x18 });
+            foreach (int corner in grid)
+            {
+                write.Write(corner < 0 ? uint.MaxValue : starts[corner]);
+            }
+
+            write.Write(0u);
+            write.Write(new byte[8]);
             return stream.ToArray();
         }
 
@@ -728,6 +744,35 @@ public class TileFilesTests
         TileDefinition grounded = TileDefinition.Read(Tdt(grounds: true));
         Assert.True(grounded.Ready, grounded.Why);
         Assert.Equal(["Metadata/Terrain/Test/sand.gt", "Metadata/Terrain/Test/sand.gt", "Metadata/Terrain/Test/rock.gt", ""], grounded.Grounds);
+    }
+
+    /// <summary>
+    /// The ground grid past the corners: a ground type at every sub-tile corner, row nought at the least y, so a sub-tile takes the grid's
+    /// rows Height - y and Height - y + 1 - found as the one run of ground references there, and none where two runs fit.
+    /// </summary>
+    [Fact]
+    public void ADEFINITIONReadsItsGroundGridAndGivesEachSubTileItsOwnCorners()
+    {
+        // Two sub-tiles across, one down: a grid of three corners by two, the right-hand top corner none.
+        TileDefinition read = TileDefinition.Read(Tdt(grounds: true, grid: [5, 5, 6, 5, -1, 6]));
+
+        Assert.True(read.Ready, read.Why);
+        Assert.Equal(string.Empty, read.GridWhy);
+        const string Sand = "Metadata/Terrain/Test/sand.gt", Rock = "Metadata/Terrain/Test/rock.gt";
+        Assert.Equal([Sand, Sand, Rock, Sand, string.Empty, Rock], read.GroundGrid);
+        Assert.Equal([Sand, Sand, Sand, string.Empty], read.CornersOf(1, 1));
+        Assert.Equal([Sand, Rock, string.Empty, Rock], read.CornersOf(2, 1));
+        Assert.Empty(read.CornersOf(3, 1));
+
+        // A file whose rest holds no such run, or two, has no grid - and says why.
+        TileDefinition none = TileDefinition.Read(Tdt(grounds: true));
+        Assert.Empty(none.GroundGrid);
+        Assert.Equal("no run of 6 ground references past the corners", none.GridWhy);
+        byte[] once = Tdt(grounds: true, grid: [5, 5, 6, 5, -1, 6]);
+        byte[] twice = [.. once, .. once[^36..^12]];
+        TileDefinition ambiguous = TileDefinition.Read(twice);
+        Assert.Empty(ambiguous.GroundGrid);
+        Assert.Equal("2 places past the corners fit 6 ground references", ambiguous.GridWhy);
     }
 
     /// <summary>
