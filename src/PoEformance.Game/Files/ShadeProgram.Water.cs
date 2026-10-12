@@ -94,7 +94,7 @@ public sealed partial class ShadeProgram
         // THE WAVES, for the game light's glints and reflection: the same colour, and the surface the
         // engine lights - the ocean's ripples in the area's wind, its specular the area's reflectiveness,
         // its gloss the engine's (InitWaterSurfaceData) - see HasWaves.
-        int waves = build.Emit(Op.Waves, Position, WaterWind, Clock);
+        int waves = build.Emit(Op.Waves, Position, WaterWind, Clock, WaterShore, WaterSwell);
         int specular = build.Emit(Op.Swizzle, WaterFlow, extra: AllFrom(1));
         int gloss = build.Constant(new Vector4(WaterGloss));
         water.Glossy = Finish(build, colour, specular, gloss, [WaterGraph], hasAlpha: true, plainable: false, waves)
@@ -136,11 +136,13 @@ public sealed partial class ShadeProgram
     public static ReadOnlySpan<float> RippleSheet => RippleTexels;
 
     /// <summary>
-    /// The engine's ocean surface at a place: its height, and its slope along x and y - GetOceanWaterPlanarState's, of which the wind's ripples are drawn.
+    /// The engine's ocean surface at a place: its height, and its slope along x and y - GetOceanWaterPlanarState's, its swell over the room's shore and the wind's ripples on top.
     /// </summary>
     /// <param name="place">Where on the water, in world units.</param>
     /// <param name="wind">The area's wind - WaterLook.WindRegister.</param>
+    /// <param name="swell">The area's swell - WaterLook.SwellRegister.</param>
     /// <param name="clock">The clock, in seconds.</param>
+    /// <param name="shore">The room's shore, or null where there is none - the swell then stands still and the ripples run whole.</param>
     /// <param name="slope">The height's rise along x and y.</param>
     /// <remarks>
     /// THE OCEAN'S PATH, NOT THE RIVER'S. The engine draws its water through two surfaces (internalonly.ffx):
@@ -149,19 +151,149 @@ public sealed partial class ShadeProgram
     /// along the flow and fade back to their start every 1.4 to 3 seconds. The second was drawn first
     /// (v0.1.221), and at Port's flow it read as a two-second film looped (said from the live client,
     /// v0.1.228) - while the game draws crests rolling in to the harbour. The ocean's own reads no flow at
-    /// all: a swell travelling towards the shore over a shoreline field the engine makes at run time, and
-    /// the wind's ripples on top, times <c>shallowRippleMult * foamRippleMult * 2</c>. Which surface an
-    /// "Ocean" material takes is in no file read; the names and the game's picture say this one.
+    /// all. Which surface an "Ocean" material takes is in no file read; the names and the game's picture say this one.
     ///
-    /// DRAWN: the ripples, at full strength - the shoreline field that thins them at the shore
-    /// (<c>shallowRippleMult</c>) and the swell are not read. NOT DRAWN: the swell and its foam.
+    /// THE SWELL AS WRITTEN (GetTidalWaterPlanarState, a beach): the tide's phase from the distance out to sea, 25
+    /// periods over 2 pi a colour unit, rolling in at 1.1 a second; a smooth noise of the clock wobbling it; slowed and
+    /// hurried within a quarter of a colour unit of the shore; its shape read from the cross-section at that phase and
+    /// the shore's distance (<see cref="Swell"/>), times the swell's height, less over ground under water; its slope the
+    /// cross-section's own along the phase's. The ripples on top thinned to nothing at the shoreline,
+    /// <c>1 - (1 - |shoreDist|)^10</c>, and twice the ripples' own. NOT DRAWN: the swell's foam and the orbit that carries
+    /// the ripples to and fro with it (the cross-section's blue and the distortion texture, neither read), and the rocky
+    /// shore's clashing state - the shore is all beach.
     /// </remarks>
-    public static float Ocean(Vector2 place, Vector4 wind, float clock, out Vector2 slope)
+    public static float Ocean(Vector2 place, Vector4 wind, Vector4 swell, float clock, ShoreField? shore, out Vector2 slope)
     {
-        float height = WindRipples(place, wind, clock, out slope) * 2f;
-        slope *= 2f;
+        float height = 0f;
+        slope = Vector2.Zero;
+        float ripples = 2f;
+        var groundWater = false;
+        if (shore is not null)
+        {
+            shore.Fields(place, out float shoreDist, out float oceanDist, out Vector2 oceanSlope);
+            const float pi = 3.1415f;
+            float swellHeight = swell.X, period = swell.Y, intensity = swell.Z;
+            float periods = 1f / period;
+            float underGround = 1f - Saturated(1f + ((shoreDist + 0.05f) * 10f));
+            float tide = 1f - Fractional((((1f - oceanDist) * periods) + (clock * 1.1f / (period * 25f))) / (2f * pi));
+
+            // THE SHORE'S LENGTH IS NOUGHT here, so the noise runs on the clock alone and the swell's angle adds nothing.
+            float noise = (SmoothNoise(clock * 0.1f, clock * 0.15f) * 0.5f) + 0.5f;
+            float reduction = Saturated(noise);
+            float slowdown = 1f - (shoreDist * 4f), hurry = 1f - (shoreDist * 5.5f);
+            float offset = (MathF.Pow(Saturated(slowdown), 1.1f) * 0.5f) - (MathF.Pow(Saturated(hurry), 1.1f) * 0.75f);
+            tide = Fractional((noise * 0.2f) + tide + (offset * 0.8f) + 10f);
+            float effective = Saturated(1f - shoreDist);
+            effective = MathF.Pow(effective, 1f / ((Saturated(1f - (reduction * 0.4f)) * intensity * 0.8f) + 0.2f));
+            float cross = Swell(tide, effective, out float rise);
+
+            // (-oceanDist.gradient) / periodColorLength, the field's slope being given negated.
+            Vector2 phaseSlope = -oceanSlope * (periods / (2f * pi));
+            float kept = 1f - underGround;
+            height = (cross - 0.5f) * swellHeight * kept;
+            slope = rise * phaseSlope * swellHeight * kept;
+            groundWater = underGround > 0.5f;
+            ripples = (1f - MathF.Pow(Saturated(1f - MathF.Abs(shoreDist)), 10f)) * 2f;
+        }
+
+        height += WindRipples(place, wind, clock, groundWater, out Vector2 rippleSlope) * ripples;
+        slope += rippleSlope * ripples;
         return height;
     }
+
+    /// <summary>How many phases the swell's cross-section is drawn at - <see cref="SwellSheet"/>'s width.</summary>
+    public const int SwellPhases = 256;
+
+    /// <summary>How many distances from the shore it is drawn at - its height.</summary>
+    public const int SwellShores = 16;
+
+    /// <summary>The swell's cross-section, made once: row by row from the open sea to the shore, two floats a texel - its height nought to one, and that height's rise a unit of phase.</summary>
+    private static readonly float[] SwellTexels = Swelled();
+
+    /// <summary>The swell's cross-section's texels - what the card is handed to read, as <see cref="Swell"/> reads them here.</summary>
+    public static ReadOnlySpan<float> SwellSheet => SwellTexels;
+
+    /// <summary>
+    /// The swell's cross-section at a phase and a distance from the shore: its height, nought to one, and that height's rise a unit of phase - the engine's <c>wave_data_sampler</c> and <c>wave_gradient_sampler</c>, CHOSEN.
+    /// </summary>
+    /// <remarks>
+    /// THE ENGINE'S TWO TEXTURES ARE ITS OWN - pass textures, "wave cross-section" and its gradient, named in no file read
+    /// - so they stand as a trochoid read the same way (wrapping along the phase, held at the ends along the shore's
+    /// distance, the four nearest texels' centres mixed): its crest sharpening from a steepness of 0.2 out at sea to 0.8 at
+    /// the shore and its height growing from half to whole, crest at the half phase. Only <see cref="SwellSheet"/>
+    /// changes when the engine's are found.
+    /// </remarks>
+    internal static float Swell(float phase, float shore, out float rise)
+    {
+        float sx = (phase * SwellPhases) - 0.5f;
+        float sy = Math.Clamp((shore * SwellShores) - 0.5f, 0f, SwellShores - 1);
+        float fx0 = MathF.Floor(sx);
+        float fx = sx - fx0;
+        int x0 = (int)fx0 & (SwellPhases - 1), x1 = (x0 + 1) & (SwellPhases - 1);
+        int y0 = (int)sy, y1 = Math.Min(y0 + 1, SwellShores - 1);
+        float fy = sy - y0;
+        float[] texels = SwellTexels;
+        int a = ((y0 * SwellPhases) + x0) * 2, b = ((y0 * SwellPhases) + x1) * 2;
+        int c = ((y1 * SwellPhases) + x0) * 2, d = ((y1 * SwellPhases) + x1) * 2;
+        float Mixed(int part)
+        {
+            float top = texels[a + part] + ((texels[b + part] - texels[a + part]) * fx);
+            float bottom = texels[c + part] + ((texels[d + part] - texels[c + part]) * fx);
+            return top + ((bottom - top) * fy);
+        }
+
+        rise = Mixed(1);
+        return Mixed(0);
+    }
+
+    /// <summary>The cross-section made: at each phase the trochoid's angle found by Newton's method, its height and that height's rise along the phase.</summary>
+    private static float[] Swelled()
+    {
+        var texels = new float[SwellPhases * SwellShores * 2];
+        for (var row = 0; row < SwellShores; row++)
+        {
+            float near = (row + 0.5f) / SwellShores;
+            float steep = 0.2f + (0.6f * near), tall = 0.5f + (0.5f * near);
+            for (var column = 0; column < SwellPhases; column++)
+            {
+                // phase = (angle - steep * sin(angle)) / 2 pi, the crest at the half.
+                double phase = (column + 0.5) / SwellPhases, angle = phase * 2.0 * Math.PI;
+                for (var step = 0; step < 12; step++)
+                {
+                    angle -= (angle - (steep * Math.Sin(angle)) - (phase * 2.0 * Math.PI)) / (1.0 - (steep * Math.Cos(angle)));
+                }
+
+                int at = ((row * SwellPhases) + column) * 2;
+                texels[at] = (float)(0.5 - (tall * 0.5 * Math.Cos(angle)));
+                texels[at + 1] = (float)(tall * Math.PI * Math.Sin(angle) / (1.0 - (steep * Math.Cos(angle))));
+            }
+        }
+
+        return texels;
+    }
+
+    /// <summary>GetSmoothNoise's value: a smooth step between four of Hash's corners, from minus one to one as the engine returns it.</summary>
+    internal static float SmoothNoise(float x, float y)
+    {
+        float ix = MathF.Floor(x), iy = MathF.Floor(y);
+        float fx = x - ix, fy = y - iy;
+        float seed = ix + (iy * 57f);
+        float v00 = Hash(seed), v01 = Hash(seed + 1f), v10 = Hash(seed + 57f), v11 = Hash(seed + 58f);
+        float u = (3f * fx * fx) - (2f * fx * fx * fx), v = (3f * fy * fy) - (2f * fy * fy * fy);
+        return ((v00 + ((v01 - v00) * u) + ((v10 - v00) * v) + ((v00 - v01 + v11 - v10) * u * v)) * 2f) - 1f;
+    }
+
+    /// <summary>The engine's Hash (Dave Hoskins'), as water.ffx writes it.</summary>
+    private static float Hash(float p)
+    {
+        float px = Fractional(p * 4.438975f), py = Fractional(p * 3.972973f);
+        float dot = (py * (px + 19.19f)) + (px * (py + 19.19f));
+        px += dot;
+        py += dot;
+        return Fractional(px * py);
+    }
+
+    private static float Fractional(float x) => x - MathF.Floor(x);
 
     /// <summary>
     /// The wind's ripples on the ocean at a place: their height, and their slope along x and y - GetWindRippleSurfaceField3, three octaves on <see cref="Ripple"/>.
@@ -169,10 +301,10 @@ public sealed partial class ShadeProgram
     /// <param name="place">Where on the water, in world units.</param>
     /// <param name="wind">The wind's way (radians), the ripples' height, their speed and how much they line up with the wind - WaterLook.WindRegister.</param>
     /// <param name="clock">The clock, in seconds.</param>
+    /// <param name="overGround">Whether the water stands over ground (the swell's ground water ratio past a half) - <c>ground_params_ratio</c>.</param>
     /// <param name="slope">The height's rise along x and y.</param>
     /// <remarks>
-    /// THE ENGINE'S OCTAVES AS WRITTEN (water.ffx), on open water (no ground under it, so
-    /// <c>ground_params_ratio</c> nought): three octaves, the first 0.16 of a frequency through a phase
+    /// THE ENGINE'S OCTAVES AS WRITTEN (water.ffx), on open water: three octaves, the first 0.16 of a frequency through a phase
     /// matrix of 0.12 turned to the wind, each stretched along one axis, turned from the last and finer by
     /// <c>lerp(1.5, 3.04, directionness)</c>, its height less by <c>lerp(0.9, 0.22, directionness)</c>; each
     /// SCROLLED STEADILY, <c>(1 + 2.5t) * (0.5, 1.5) * speed * frequency</c> along its own coordinates, and
@@ -180,11 +312,13 @@ public sealed partial class ShadeProgram
     /// whole is divided by 0.4, as the engine does. The wind's way is the angle's (cos, sin), the
     /// conversion being in no file read.
     /// </remarks>
-    public static float WindRipples(Vector2 place, Vector4 wind, float clock, out Vector2 slope)
+    public static float WindRipples(Vector2 place, Vector4 wind, float clock, bool overGround, out Vector2 slope)
     {
-        float directionness = wind.W;
-        float frequency = 0.16f;
-        float amplitude = wind.Y * Lerp(0.2f, 1f, directionness);
+        // OVER GROUND UNDER WATER (ground_params_ratio one): twice as fine, no direction, far lower and half as quick.
+        float ground = overGround ? 1f : 0f;
+        float directionness = Lerp(wind.W, 0f, ground);
+        float frequency = 0.16f * Lerp(1f, 2f, ground);
+        float amplitude = wind.Y * Lerp(0.2f, 1f, directionness) * Lerp(1f, 0.15f, ground);
         float time = 1f + (clock * 2.5f);
         float step = Lerp(1.5f, 1.9f * 1.6f, directionness);
         float turn = Lerp(2f, 0.2f, directionness);
@@ -193,7 +327,7 @@ public sealed partial class ShadeProgram
 
         // mul(I * 0.12, float2x2(w.x, w.y, -w.y, w.x)).
         float p00 = 0.12f * windX, p01 = 0.12f * windY, p10 = -0.12f * windY, p11 = 0.12f * windX;
-        float scroll = Lerp(2.5f, 1.25f, directionness) * wind.Z;
+        float scroll = Lerp(2.5f, 1.25f, directionness) * wind.Z * Lerp(1f, 0.5f, ground);
         float stretch = Lerp(0.7f, 0.225f, directionness);
         float falloff = Lerp(0.9f, 0.22f, directionness);
         float height = 0f;

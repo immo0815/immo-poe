@@ -492,6 +492,9 @@ public static class RoomModels
         return any ? joined.Refined(fine, WaterEdge) : joined;
     }
 
+    /// <summary>What a laid tile's ground is named as the source of its shapes - LaidRoomModels' <c>"ground of " + tile</c>.</summary>
+    internal const string GroundSource = "ground of ";
+
     /// <summary>A pile joined into a room's model, with the shaders and meshes of the models in it.</summary>
     internal static MonsterModel Piled(SkinnedMesh joined, ModelPile pile, string path, IEnumerable<MonsterModel> models)
     {
@@ -506,6 +509,12 @@ public static class RoomModels
             // left out, every room shape read "tex -" whether it was textured or not.
             ShapeTextures = pile.Textures,
             ShapeSources = pile.Sources,
+
+            // THE SHORE FROM THE ROOM'S OWN WATER AND GROUND - the engine makes its own at run time; see ShoreField.
+            Shore = ShoreField.Of(
+                joined,
+                shape => shape < pile.Modes.Count && pile.Modes[shape] == "water",
+                shape => shape < pile.Sources.Count && pile.Sources[shape].StartsWith(GroundSource, StringComparison.Ordinal)),
             BodyLeast = joined.Least,
             BodyMost = joined.Most,
             Kind = ModelKind.Room,

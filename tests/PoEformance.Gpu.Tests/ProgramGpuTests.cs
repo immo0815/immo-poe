@@ -110,6 +110,53 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
         Assert.Null(Mismatch(gpu, target, scene));
     }
 
+    /// <summary>
+    /// The ocean's swell over a room's shore - the shore field and the swell's cross-section read on the card as the processor reads them, the ripples thinning at the shoreline.
+    /// </summary>
+    [GpuFact]
+    public void THEOCEANSSwellOverAShoreIsDrawnByTheCardAsByTheProcessor()
+    {
+        ModelGpu? gpu = card.Gpu;
+        Assert.True(gpu is not null, card.Why);
+        using ModelTarget target = gpu.Target(Side);
+        var light = new SceneLight([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1.4f, 1.3f, 1.1f),
+            SunDirection = Vector3.Normalize(new Vector3(0.4f, -1f, 0.3f)),
+            FlatAmbient = 0.3f,
+            WaterGlints = true,
+            WaterReflection = true,
+            WaterLift = 2f,
+        };
+
+        // A QUAY ALONG x FROM 50 ON over the hill's middle, the sea towards minus x - the field's own frame is the scene's.
+        Vector3[] places =
+        [
+            new(-800f, -800f, 0f), new(800f, -800f, 0f), new(800f, 800f, 0f), new(-800f, 800f, 0f),
+            new(-800f, -800f, 300f), new(50f, -800f, 300f), new(50f, 800f, 300f), new(-800f, 800f, 300f),
+            new(50f, -800f, -100f), new(800f, -800f, -100f), new(800f, 800f, -100f), new(50f, 800f, -100f),
+        ];
+        var normals = new Vector3[places.Length];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+        SkinnedMesh bay = SkinnedMesh.Of(
+            places, normals, [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11], new Vector3(-800f, -800f, -100f), new Vector3(800f, 800f, 300f),
+            [.. places.Select(one => new Vector2(one.X, one.Y))],
+            [new MeshShape("Water", 0, 6), new MeshShape("Sea floor", 6, 6), new MeshShape("Quay", 12, 6)]);
+        ShoreField? shore = ShoreField.Of(bay, shape => shape == 0, shape => shape > 0);
+        Assert.NotNull(shore);
+        var scene = new ModelScene(
+            Hill(layered: true),
+            Turn: 0.25f,
+            Tilt: 0.55f,
+            Skins: [Ramp("floor"), null],
+            Blends: [MaterialBlend.Opaque, MaterialBlend.Alpha],
+            Shades: [null, ShadeProgram.Water().Glossy!],
+            Light: light,
+            Time: 3.5f,
+            Water: WaterLook.EngineDefault with { Shore = shore });
+        Assert.Null(Mismatch(gpu, target, scene));
+    }
+
     /// <summary>A material cut out on the alpha its graphs leave.</summary>
     [GpuFact]
     public void ACUTOUTMaterialIsCutWhereTheProcessorCutsIt()

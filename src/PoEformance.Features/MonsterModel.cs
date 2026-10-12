@@ -310,6 +310,11 @@ public sealed record MonsterModel(
     /// </remarks>
     public IReadOnlyList<string> ShapeSources { get; init; } = [];
 
+    /// <summary>
+    /// The room's shore, for the ocean's swell - made from its water and its ground (ShoreField.Of, CHOSEN); null where it has no water, no ground over it, or is no room.
+    /// </summary>
+    public ShoreField? Shore { get; init; }
+
     /// <summary>How many of a tile's black-wall shapes were left out. See TileModels.BlackWall.</summary>
     public int Walls { get; init; }
 

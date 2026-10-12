@@ -311,8 +311,23 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   (light-hunt.txt, v0.1.208), and a capture in an area whose file sets the keys (the Blank Sea and Yaochi hideouts set
   all of them) names their slots. DRAWN from v0.1.229: the ripples (`ShadeProgram.Ocean`, `WindRipples`, the
   `WaterWind` register from `WaterLook.WindRegister`), a wind way turned by the light panel's "wind"; at the former
-  constants they stand -4.8 to 9.4 and lean 1.8 degrees at the median, 8.4 at most, at 118 ns a read. NOT YET: the swell
-  and the shoreline field it needs.
+  constants they stand -4.8 to 9.4 and lean 1.8 degrees at the median, 8.4 at most, at 118 ns a read. THE SWELL (v0.1.230,
+  asked for from the live client: "approximate it, and measure once Port is captured"): `GetTidalWaterPlanarState` as
+  written (`ShadeProgram.Ocean`) - the tide's phase from the distance out to sea, rolling in at 1.1 a second, the clock's
+  smooth noise (the engine's Hash and GetSmoothNoise), slowed and hurried near the shore, the cross-section read at the phase
+  and the shore's distance times `water_swell_height`, its slope the cross-section's along the phase's (the engine leaves
+  the shore's own slope out - 22% of the differences on a bay), less over ground under water; the ripples thinned to
+  nothing at the shoreline. CHOSEN, and said under the picture and in `model-panes.txt`: the SHORELINE FIELD (`ShoreField`,
+  `MonsterModel.Shore`, made in `RoomModels.Piled` from the room's water shapes and its "ground of" shapes: a cell is land
+  where the ground rises above the water over it; the shore's distance the grid's exact Euclidean distance, 2,000 units a
+  colour unit so the 25 periods put crests 500 apart, the beach waves' own length; the distance out to sea one less; the
+  shore's length nought and its strength one - all beach, no clashing state), and the CROSS-SECTION (`Swell`,
+  `SwellSheet`, standing for `wave_data_sampler` and `wave_gradient_sampler`: a trochoid steepening from 0.2 to 0.8 and
+  growing from half to whole height towards the shore). The card reads the field at t11 and the cross-section at t12 (program
+  sheets from t13); `WaterShore` and `WaterSwell` are fixed registers. `model-panes.txt` writes each room's field - what it
+  was made from and what came of it - and `shore.png` beside it; `water-textures.txt` also looks for shore, coast, swell,
+  tide and distortion textures. NOT DRAWN: the swell's foam, its orbit carrying the ripples to and fro (the cross-section's
+  blue, the distortion texture), the rocky shore's clashing state, the spray.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

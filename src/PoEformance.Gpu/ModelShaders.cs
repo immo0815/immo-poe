@@ -46,8 +46,14 @@ internal static class ModelShaders
     /// <summary>The slot the ripple texture is read from, by the waves' pixel and vertex shaders - ShadeHlsl.RippleSlot.</summary>
     public const int RippleSlot = ShadeHlsl.RippleSlot;
 
+    /// <summary>The slot the room's shore is read from, by the waves' shaders - ShadeHlsl.ShoreSlot.</summary>
+    public const int ShoreSlot = ShadeHlsl.ShoreSlot;
+
+    /// <summary>The slot the swell's cross-section is read from, by the waves' shaders - ShadeHlsl.SwellSlot.</summary>
+    public const int SwellSlot = ShadeHlsl.SwellSlot;
+
     /// <summary>The slot a program's first sheet is read from; the rest follow.</summary>
-    public const int FirstSheet = 11;
+    public const int FirstSheet = 13;
 
     /// <summary>
     /// What every shader here shares: the constants, the resources, the vertex shader, and the light - the picture's lamp and the game's.
@@ -68,6 +74,8 @@ internal static class ModelShaders
             float4 Water;     // xyz: the area's open water, linear; w: its density - ShadeProgram.WaterColour
             float4 Flow;      // x: the area's water flow; y: its reflectiveness; z: its height offset - ShadeProgram.WaterFlow; w: the lift, SceneLight.WaterLift
             float4 Wind;      // the ocean ripples' wind: its way's angle, their height, their speed, their directionness - ShadeProgram.WaterWind
+            float4 Shore;     // the room's shore's box: its least x and y, world units a texel, one where there is a shore - ShadeProgram.WaterShore
+            float4 Swell;     // the ocean's swell: its height, its period, its intensity - ShadeProgram.WaterSwell
         };
 
         cbuffer Part : register(b1)
@@ -713,7 +721,7 @@ internal static class ModelShaders
         // vertex's x and y in the area's wind, times the lift, taken off z (up is minus z).
         Pixel PlacedWaves(Corner corner)
         {
-            corner.position.z -= ShadeWaves(corner.position.xy, Wind, Clock.x).w * Flow.w;
+            corner.position.z -= ShadeWaves(corner.position.xy, Wind, Clock.x, Shore, Swell).w * Flow.w;
             return Placed(corner);
         }
         """;
@@ -741,7 +749,7 @@ internal static class ModelShaders
         ShadeOut Ran(Pixel pixel, bool translucent)
         {
             float behind = translucent && ShadeUsesDepth ? BehindAt(pixel.position) : 3.40282347e38;
-            return ShadeRun(Wrap, pixel.spot, pixel.place, pixel.turn, pixel.tint, behind, Clock.x, Eye, Dust.xyz, Water, Flow, Wind);
+            return ShadeRun(Wrap, pixel.spot, pixel.place, pixel.turn, pixel.tint, behind, Clock.x, Eye, Dust.xyz, Water, Flow, Wind, Shore, Swell);
         }
 
         // MeshPicture.Drawing.Lit with a program.

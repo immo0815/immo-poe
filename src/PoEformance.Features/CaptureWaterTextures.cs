@@ -32,13 +32,13 @@ public static class CaptureWaterTextures
 {
     /// <summary>The words a texture's path is kept by at the install's walk - and a string in the program.</summary>
     public static IReadOnlyList<string> Words { get; } =
-        ["ripple", "water", "ocean", "wave", "caustic", "foam", "flowmap", "river", "splash", "surface", "noise"];
+        ["ripple", "water", "ocean", "wave", "caustic", "foam", "flowmap", "river", "splash", "surface", "noise", "shore", "coast", "swell", "tide", "distortion"];
 
     /// <summary>How strongly each word says "the ripple texture", first the strongest - the order headers are read and pictures chosen in.</summary>
     private static readonly (string Word, int Weight)[] Weights =
     [
-        ("ripple", 8), ("water", 5), ("ocean", 5), ("wave", 4), ("surface", 3), ("caustic", 2), ("foam", 2), ("flowmap", 2),
-        ("river", 2), ("splash", 1), ("noise", 1),
+        ("ripple", 8), ("water", 5), ("ocean", 5), ("wave", 4), ("swell", 4), ("shore", 3), ("tide", 3), ("surface", 3), ("caustic", 2),
+        ("foam", 2), ("flowmap", 2), ("distortion", 2), ("coast", 2), ("river", 2), ("splash", 1), ("noise", 1),
     ];
 
     /// <summary>Most textures read for their header.</summary>

@@ -19,6 +19,9 @@ namespace PoEformance.Game.Files;
 /// <param name="WindIntensity">water.wind_intensity: how high the ocean's ripples stand - <c>water_wind_intensity</c>.</param>
 /// <param name="WindSpeed">water.wind_speed: how fast they roll - <c>water_wind_speed</c>.</param>
 /// <param name="Directionness">water.directionness: how much they line up with the wind, nought to one - <c>water_directionness</c>.</param>
+/// <param name="SwellHeight">water.swell_height: how high the ocean's swell stands, crest to trough - <c>water_swell_height</c>.</param>
+/// <param name="SwellPeriod">water.swell_period: one over the swell's periods a colour unit - <c>water_swell_period</c>.</param>
+/// <param name="SwellIntensity">water.swell_intensity: how soon the swell takes its shore's shape - <c>water_swell_intensity</c>.</param>
 /// <remarks>
 /// AN AREA'S FILE OR THE ENGINE'S OWN DEFAULT, per value. Most areas set no water colour - Port sets
 /// only its flow and a height offset - and what the engine draws them with is written in no file: it
@@ -45,7 +48,10 @@ public readonly record struct WaterLook(
     float WindAngle = WaterLook.DefaultWindAngle,
     float WindIntensity = WaterLook.DefaultWindIntensity,
     float WindSpeed = WaterLook.DefaultWindSpeed,
-    float Directionness = WaterLook.DefaultDirectionness)
+    float Directionness = WaterLook.DefaultDirectionness,
+    float SwellHeight = WaterLook.DefaultSwellHeight,
+    float SwellPeriod = WaterLook.DefaultSwellPeriod,
+    float SwellIntensity = WaterLook.DefaultSwellIntensity)
 {
     /// <summary>The engine's open water colour where a file sets none - ParsedEnvironment.WaterOpenColor, measured in Port, Clearfell and The Red Vale.</summary>
     public static readonly Vector3 DefaultOpenColour = new(0.1f, 0.19f, 0.22f);
@@ -84,6 +90,22 @@ public readonly record struct WaterLook(
     /// <summary>How much the ripples line up with the wind where a file sets none - CHOSEN, the former constants' own; see <see cref="DefaultWindIntensity"/>.</summary>
     public const float DefaultDirectionness = 1f;
 
+    /// <summary>The swell's height where a file sets none - CHOSEN: the old tracer's constant, <c>0.5e2 * 0.75</c>, which the parsed environment's unnamed floats also hold.</summary>
+    public const float DefaultSwellHeight = 0.5e2f * 0.75f;
+
+    /// <summary>The swell's period where a file sets none - CHOSEN: one over the old tracer's 25 periods, which the parsed environment's unnamed floats also hold.</summary>
+    public const float DefaultSwellPeriod = 1f / 25f;
+
+    /// <summary>
+    /// How soon the swell takes its shore's shape where a file sets none - CHOSEN: one, the old tracer having no such number; most files that set it set one.
+    /// </summary>
+    public const float DefaultSwellIntensity = 1f;
+
+    /// <summary>
+    /// The room's shore, for the ocean's swell - see ShoreField; null where the room has none, or nothing made one. Not the area's: it is the drawing's.
+    /// </summary>
+    public ShoreField? Shore { get; init; }
+
     /// <summary>
     /// The flow where a file sets none: none.
     /// </summary>
@@ -109,6 +131,12 @@ public readonly record struct WaterLook(
     /// <summary>The wind the ocean's ripples read: its way's angle in x, their height in y, their speed in z and how much they line up in w - see ShadeProgram.WindRipples.</summary>
     public Vector4 WindRegister => new(WindAngle, WindIntensity, WindSpeed, Directionness);
 
+    /// <summary>The swell the ocean reads: its height in x, its period in y, its intensity in z - see ShadeProgram.Ocean.</summary>
+    public Vector4 SwellRegister => new(SwellHeight, SwellPeriod, SwellIntensity, 0f);
+
+    /// <summary>The shore's box the ocean reads - ShoreField.Register, nought where there is no shore.</summary>
+    public Vector4 ShoreRegister => Shore?.Register ?? Vector4.Zero;
+
     /// <summary>An area's water: each value its file sets, the engine's default for the rest.</summary>
     public static WaterLook Of(EnvironmentSettings? environment)
     {
@@ -120,7 +148,8 @@ public readonly record struct WaterLook(
         Vector3 colour = DefaultOpenColour;
         float murkiness = DefaultMurkiness, flow = NoFlow, height = DefaultHeightOffset, reflectiveness = DefaultReflectiveness;
         float windAngle = DefaultWindAngle, windIntensity = DefaultWindIntensity, windSpeed = DefaultWindSpeed, directionness = DefaultDirectionness;
-        var set = new List<string>(9);
+        float swellHeight = DefaultSwellHeight, swellPeriod = DefaultSwellPeriod, swellIntensity = DefaultSwellIntensity;
+        var set = new List<string>(12);
         foreach (EnvironmentValue value in env.Water)
         {
             switch (value.Key)
@@ -161,17 +190,29 @@ public readonly record struct WaterLook(
                     directionness = value.Values[0];
                     set.Add("directionness");
                     break;
+                case "swell_height" when value.Values.Count >= 1:
+                    swellHeight = value.Values[0];
+                    set.Add("swell's height");
+                    break;
+                case "swell_period" when value.Values.Count >= 1 && value.Values[0] > 0f:
+                    swellPeriod = value.Values[0];
+                    set.Add("swell's period");
+                    break;
+                case "swell_intensity" when value.Values.Count >= 1:
+                    swellIntensity = value.Values[0];
+                    set.Add("swell's intensity");
+                    break;
             }
         }
 
         return new WaterLook(
             colour, murkiness, flow, height,
             set.Count == 0 ? "every value the engine's default" : $"{string.Join(", ", set)} from the file, the rest the engine's default",
-            reflectiveness, windAngle, windIntensity, windSpeed, directionness);
+            reflectiveness, windAngle, windIntensity, windSpeed, directionness, swellHeight, swellPeriod, swellIntensity);
     }
 
     /// <summary>The numbers and where they came from, for the line under a picture.</summary>
     public string Line() => string.Create(
         CultureInfo.InvariantCulture,
-        $"water ({OpenColour.X:0.###} {OpenColour.Y:0.###} {OpenColour.Z:0.###}) murkiness {Murkiness:0.####} flow {FlowIntensity:0.##} reflectiveness {Reflectiveness:0.###} wind {WindAngle * 180f / MathF.PI:0}° x{WindIntensity:0.###} speed {WindSpeed:0.##} directionness {Directionness:0.##} - {Said}");
+        $"water ({OpenColour.X:0.###} {OpenColour.Y:0.###} {OpenColour.Z:0.###}) murkiness {Murkiness:0.####} flow {FlowIntensity:0.##} reflectiveness {Reflectiveness:0.###} wind {WindAngle * 180f / MathF.PI:0}° x{WindIntensity:0.###} speed {WindSpeed:0.##} directionness {Directionness:0.##} swell {SwellHeight:0.#} period {SwellPeriod:0.###} intensity {SwellIntensity:0.##} - {Said}");
 }

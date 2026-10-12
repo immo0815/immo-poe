@@ -869,7 +869,9 @@ public static class MeshPicture
         }
 
         Vector3[] lifted = canvas.Own(places);
-        Vector4 wind = canvas.Water.WindRegister;
+        WaterLook look = canvas.Water;
+        Vector4 wind = look.WindRegister, swell = look.SwellRegister;
+        ShoreField? shore = look.Shore;
         float time = canvas.Time;
         Sliced(canvas, water.Length, (from, upto) =>
         {
@@ -878,7 +880,7 @@ public static class MeshPicture
                 if (water[point])
                 {
                     Vector3 at = lifted[point];
-                    lifted[point] = at with { Z = at.Z - (ShadeProgram.Ocean(new Vector2(at.X, at.Y), wind, time, out _) * lift) };
+                    lifted[point] = at with { Z = at.Z - (ShadeProgram.Ocean(new Vector2(at.X, at.Y), wind, swell, time, shore, out _) * lift) };
                 }
             }
         });
