@@ -360,6 +360,24 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   and the distortion's offsets, the rocky shore's clashing state and its GetFoamColor2, the spray (particles). A code block
   offered from elsewhere (2026-10-12) drew foam from a height threshold, `noise_worley_low.dds`, the walkable grid and a
   pulsing sine - none of it in the engine's source, which is in `water.txt` whole: read it there.
+  THE ROCKS' SPRAY (v0.1.234, asked for from the live client: "the water and foam running down the rocks"). It is not the
+  water pass's: Port's shore rocks (`ISL_Rock*.mat`) and the pier's bricks are instances of `OceanSprayFoam.fxgraph` beside their
+  stone, whose node CrashingFoamSurface (effects.ffx) the compile left out - so the model panes' capture part writes every material
+  naming a shore's node (`CapturePanes.ShoreNodes`) and each program texture's header (`CaptureMaterials`), and
+  `materials-replay.txt` (`CaptureReplayTests.Materials`) compiles a capture's materials again from its own files. Now compiled
+  (`ShadeProgram.Spraying`, `Op.Spray`, `ShadeHlsl.SprayLibrary`) as written, line for line against the source: a 1,000-unit wave
+  rolling in at 200 a second off the distance out to sea (GetFieldWaveGeom's `wave_coord`, its advected and stationary noise the
+  noise texture's green), the spray's phase and strength, a band of height (`saturate(0.8 + z / spray_height) * saturate((150 - z)
+  / 100)`, the place lifted 75 by the graph and the band 350 high, within 200 of the shore), and the foam read three ways
+  (GetTriplanarScrollingFoam) scrolling down the face and towards the shore as the spray peaks; its wetness darkens the stone and
+  wets its gloss by the graph's own nodes. The node's three outputs are one sum (`SprayKey` on the processor, one variable on the
+  card). hash33Stable is PCG's rounds over the float's bits over 2^32, not HashUToF - a first port had that wrong, and a review
+  from elsewhere (2026-10-12) that called the rotation, frac, the sign bit and RgToGradYFix wrong was answered from the source:
+  `mul(v, float2x2(c, s, -s, c))`, `x - floor(x)`, `asuint`, `abs(normal.z) > 1e-7`, all as written. The noise is
+  `flow_muddle_blur_01_R16G16.dds`, two 16-bit channels, which `GameArt` now reads in every header spelling them (a texture that
+  does not read leaves the whole material undrawn). CHOSEN: the shore field it reads (2,000 units a colour unit, as the swell's);
+  the normal at length one. On the processor the foam's textures are read at their top level. NOT DRAWN: the foam's own normal
+  (CombineWorldNormals is not compiled) and the screen's wetness (ReadPixelWetness, a pass of the engine's).
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

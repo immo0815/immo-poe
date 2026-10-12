@@ -284,6 +284,11 @@ public static class ShadeHlsl
     public static readonly string WavesLibrary = Waves();
 
     /// <summary>
+    /// ShadeProgram.Spraying and its helpers, line for line, for a program with a <c>Spray</c> step - after <see cref="WavesLibrary"/>, whose shore it reads.
+    /// </summary>
+    public static readonly string SprayLibrary = Sprays();
+
+    /// <summary>
     /// The program as HLSL: its sheets, <see cref="Library"/>, and <c>ShadeOut ShadeRun(...)</c> - the colour as ShadeProgram.Colour returns it.
     /// </summary>
     /// <param name="program">The program.</param>
@@ -310,13 +315,24 @@ public static class ShadeHlsl
         hlsl.Append("static const bool ShadeUsesDepth = ").Append(Truth(program.UsesDepth)).AppendLine(";");
         hlsl.Append("static const bool ShadeHasWaves = ").Append(Truth(program.HasWaves)).AppendLine(";");
         hlsl.AppendLine(Library);
+        bool sprays = false;
         foreach (ShadeProgram.Step step in program.Steps)
         {
-            if (step.Op is ShadeProgram.Op.Waves or ShadeProgram.Op.Foam)
+            sprays |= step.Op == ShadeProgram.Op.Spray;
+        }
+
+        foreach (ShadeProgram.Step step in program.Steps)
+        {
+            if (step.Op is ShadeProgram.Op.Waves or ShadeProgram.Op.Foam or ShadeProgram.Op.Spray)
             {
                 hlsl.AppendLine(WavesLibrary);
                 break;
             }
+        }
+
+        if (sprays)
+        {
+            hlsl.AppendLine(SprayLibrary);
         }
 
         hlsl.AppendLine("ShadeOut ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow, float4 wind, float4 shore, float4 swell)");
@@ -376,9 +392,23 @@ public static class ShadeHlsl
         }
 
         int parallax = 0;
+
+        // A SPRAY'S THREE OUTPUTS ARE ONE SUM, written once into a variable of its own and read by each - while none of what it
+        // was worked out from has been written since.
+        var versions = new int[program.Registers];
+        var sprayed = new Dictionary<(int, int, int, int, int, int, int, int, int), string>();
         foreach (ShadeProgram.Step step in program.Steps)
         {
-            Step(hlsl, program, step, ref parallax);
+            if (step.Op == ShadeProgram.Op.Spray)
+            {
+                Spray(hlsl, program, step, versions, sprayed);
+            }
+            else
+            {
+                Step(hlsl, program, step, ref parallax);
+            }
+
+            versions[step.To]++;
         }
 
         hlsl.AppendLine("    ShadeOut said;");
@@ -399,6 +429,222 @@ public static class ShadeHlsl
         hlsl.AppendLine("}");
         return hlsl.ToString();
     }
+
+    /// <summary><see cref="SprayLibrary"/>: CrashingFoamSurface and what it includes of the engine's - see ShadeProgram.Spraying.</summary>
+    private static string Sprays() => $$"""
+        struct ShadeSprayOut
+        {
+            float4 colour;
+            float4 normalAo;
+            float4 wetGloss;
+        };
+
+        // The engine's hash33: three fractions of a float3, no integers.
+        float3 ShadeHash33(float3 p)
+        {
+            p = frac(p * float3(0.1031, 0.1030, 0.0973));
+            p += dot(p, p.yxz + 19.19);
+            return frac((p.xxy + p.yxx) * p.zyx);
+        }
+
+        // The engine's hash33Stable of a number spread to all three: PCG's three rounds over its bits, over the largest uint.
+        float3 ShadeHashStable(float value)
+        {
+            uint3 v = asuint(float3(value, value, value));
+            v = (v * 1664525u) + 1013904223u;
+            v.x += v.y * v.z;
+            v.y += v.z * v.x;
+            v.z += v.x * v.y;
+            v ^= v >> 16u;
+            v.x += v.y * v.z;
+            v.y += v.z * v.x;
+            v.z += v.x * v.y;
+            return float3(v) * (1.0 / 4294967296.0);
+        }
+
+        // GetLinearInterpNodes.
+        void ShadeInterpNodes(float phase, out float2 phases, out float2 seeds, out float2 weights)
+        {
+            float2 nodes = float2(0.5, 0.0) + (phase * 0.5);
+            phases = nodes - floor(nodes);
+            seeds = (floor(nodes) * 2.0) + float2(0.0, 1.0);
+            weights = min(phases, 1.0 - phases) * 2.0;
+        }
+
+        // math_utils' RampNorm, Gain and SmoothStep.
+        float ShadeRampNorm(float value, float center)
+        {
+            center = clamp(center, 1e-3, 1.0 - 1e-3);
+            bool mirror = center < 0.5;
+            float mirroredValue = mirror ? value : 1.0 - value;
+            float mirroredCenter = mirror ? center : 1.0 - center;
+            float twice = 2.0 * mirroredCenter;
+            float ramp = mirroredValue / max(1e-5, (twice * twice * (1.0 - mirroredValue)) + mirroredValue);
+            return mirror ? ramp : 1.0 - ramp;
+        }
+
+        float ShadeGain(float value, float steepness)
+        {
+            steepness = clamp(steepness, -1.0 + 1e-3, 1.0 - 1e-3);
+            float power = (1.0 + steepness) / (1.0 - steepness);
+            float part = 0.5 * pow(2.0 * (value < 0.5 ? value : 1.0 - value), power);
+            return value < 0.5 ? part : 1.0 - part;
+        }
+
+        float ShadeMathSmoothStep(float value, float center, float curve)
+        {
+            float power = (2.0 / max(1e-3, 1.0 - curve)) - 1.0;
+            return saturate(1.0 - center
+                + (-pow(saturate(1.0 - max(center, value)), power) * pow(saturate(1.0 - center), -(power - 1.0)))
+                + (pow(saturate(min(center, value)), power) * pow(saturate(center), -(power - 1.0))));
+        }
+
+        // RgToGradYFix.
+        float2 ShadeRgToGradYFix(float2 rg)
+        {
+            float nx = (rg.x - 0.5) * 2.0;
+            float ny = (rg.y - 0.5) * 2.0;
+            float nz = sqrt(saturate(1.0 - ((nx * nx) + (ny * ny))));
+            float under = abs(nz) > 1e-7 ? nz : 1e-7;
+            return float2(-nx / under, ny / under);
+        }
+
+        float4 ShadeSprayRead(Texture2D sheet, bool srgb, SamplerState wrap, float2 uv)
+        {
+            float4 texel = sheet.Sample(wrap, uv);
+            return srgb ? ShadeLinearised(texel) : texel;
+        }
+
+        // GetShoreData's distances in world units: the shore's and out to sea's - ShadeProgram.ShoreWorld.
+        float ShadeShoreWorld(float2 place, float4 box, out float ocean)
+        {
+            float shore;
+            float b;
+            ShadeShoreAt(place, box, shore, b);
+            ocean = (1.0 - b) * {{Number(ShoreField.Reach)}};
+            return shore * {{Number(ShoreField.Reach)}};
+        }
+
+        // GetFoamScrollingLayer with no turbulence and seed nought - ShadeProgram.ScrollingFoam.
+        void ShadeScrollingFoam(float2 uv, float2 velocity, float phase, SamplerState wrap, Texture2D colourSheet, bool colourSrgb, Texture2D normalSheet, bool normalSrgb, out float4 colour, out float2 grad, out float ao, out float rough)
+        {
+            float2 phases;
+            float2 seeds;
+            float2 weights;
+            ShadeInterpNodes(phase, phases, seeds, weights);
+            colour = float4(0.0, 0.0, 0.0, 0.0);
+            grad = float2(0.0, 0.0);
+            ao = 0.0;
+            rough = 0.0;
+            [unroll] for (int layer = 0; layer < 2; layer++)
+            {
+                float3 hash = ShadeHash33(float3(seeds[layer], 0.0, 0.0));
+                float angle = 3.1415 * 2.0 * hash.z;
+                float s = sin(angle);
+                float c = cos(angle);
+                float2 flow = uv - (velocity * ((phases[layer] * 2.0) - 1.0)) + hash.xy;
+                float2 turned = float2((flow.x * c) - (flow.y * s), (flow.x * s) + (flow.y * c));
+                float4 foam = ShadeSprayRead(colourSheet, colourSrgb, wrap, turned);
+                float4 bumps = ShadeSprayRead(normalSheet, normalSrgb, wrap, turned);
+                float2 back = ShadeRgToGradYFix(bumps.xy);
+                float2 bent = float2((back.x * c) + (back.y * s), (back.y * c) - (back.x * s));
+                colour += foam * weights[layer];
+                grad += bent * weights[layer];
+                ao += bumps.z * weights[layer];
+                rough += bumps.w * weights[layer];
+            }
+        }
+
+        // CrashingFoamSurface - ShadeProgram.Spraying: place, normal, (curvature, spray height, clock), the shore's box.
+        ShadeSprayOut ShadeSpray(float3 place, float3 normal, float4 packed, float4 box, SamplerState wrap, Texture2D colourSheet, bool colourSrgb, Texture2D normalSheet, bool normalSrgb, Texture2D noiseSheet, bool noiseSrgb)
+        {
+            float curvature = packed.x;
+            float sprayHeight = packed.y;
+            float clock = packed.z;
+            normal = dot(normal, normal) > 1e-12 ? normalize(normal) : normal;
+
+            // GetShoreFieldData: the slope out to sea by central differences a texel apart.
+            float2 at = place.xy;
+            float eps = box.z;
+            float oceanDist;
+            float shoreDist = ShadeShoreWorld(at, box, oceanDist);
+            float xp;
+            float xn;
+            float yp;
+            float yn;
+            ShadeShoreWorld(at + float2(eps, 0.0), box, xp);
+            ShadeShoreWorld(at - float2(eps, 0.0), box, xn);
+            ShadeShoreWorld(at + float2(0.0, eps), box, yp);
+            ShadeShoreWorld(at - float2(0.0, eps), box, yn);
+            float2 oceanSlope = float2(xp - xn, yp - yn) * (0.5 / eps);
+
+            // GetFieldWaveGeom's wave_coord.
+            float2 uv = at * 0.00012;
+            float4 still = noiseSheet.SampleLevel(wrap, uv, 0.0);
+            float stationary = (noiseSrgb ? ShadeLinearised(still) : still).y;
+            float2 velocity = -oceanSlope * ({{Number(ShadeProgram.FieldWaveSpeed)}} * 0.00012 / 0.1);
+            float2 phases;
+            float2 seeds;
+            float2 weights;
+            ShadeInterpNodes(clock * 0.1, phases, seeds, weights);
+            float advected = 0.0;
+            [unroll] for (int layer = 0; layer < 2; layer++)
+            {
+                float3 hash = ShadeHashStable(seeds[layer]);
+                float2 layerUv = uv - (velocity * ((phases[layer] - 0.5) * 2.0));
+                float4 moved = noiseSheet.SampleLevel(wrap, layerUv + hash.xy, 0.0);
+                advected += (noiseSrgb ? ShadeLinearised(moved) : moved).y * weights[layer];
+            }
+
+            float waveCoord = (oceanDist * (-1.0 / {{Number(ShadeProgram.FieldWaveLength)}})) - (clock * {{Number(ShadeProgram.FieldWaveSpeed)}} / {{Number(ShadeProgram.FieldWaveLength)}}) + advected + stationary;
+            float sprayPhase = saturate(frac(waveCoord - 0.15));
+            float sprayIntensity = sprayPhase * sprayPhase * (1.0 - pow(sprayPhase, 5.0));
+            float heightFade = saturate(0.8 + (place.z / sprayHeight))
+                * saturate((150.0 - place.z) / 100.0)
+                * saturate((shoreDist + 200.0) * 0.01);
+            float fadePhase = ShadeRampNorm(heightFade, ((1.0 - sprayIntensity) * 0.9) + 0.01);
+            float foamIntensity = ShadeRampNorm(fadePhase, curvature);
+
+            float3 flow = lerp(float3(0.0, 0.0, 100.0), float3(0.0, 0.0, 50.0) + (float3(oceanSlope, 0.0) * (-{{Number(ShadeProgram.FieldWaveSpeed)}} * 0.5)), sprayIntensity);
+            float3 along = flow - (normal * (dot(normal, flow) / dot(normal, normal)));
+
+            // GetTriplanarScrollingFoam.
+            float3 foamPlace = place * 0.002;
+            float3 foamVelocity = along * 0.002;
+            float4 c0;
+            float4 c1;
+            float4 c2;
+            float2 g0;
+            float2 g1;
+            float2 g2;
+            float a0;
+            float a1;
+            float a2;
+            float s0;
+            float s1;
+            float s2;
+            ShadeScrollingFoam(foamPlace.yz, foamVelocity.yz, clock, wrap, colourSheet, colourSrgb, normalSheet, normalSrgb, c0, g0, a0, s0);
+            ShadeScrollingFoam(foamPlace.xz, foamVelocity.xz, clock, wrap, colourSheet, colourSrgb, normalSheet, normalSrgb, c1, g1, a1, s1);
+            ShadeScrollingFoam(foamPlace.xy, foamVelocity.xy, clock, wrap, colourSheet, colourSrgb, normalSheet, normalSrgb, c2, g2, a2, s2);
+            float3 grad = (float3(0.0, g0.x, g0.y) + float3(g1.x, 0.0, g1.y) + float3(g2.x, g2.y, 0.0)) * 0.8;
+            float3 square = normal * normal;
+            float3 shares = square / (square.x + square.y + square.z);
+            float3 perpendicular = grad - (normal * dot(grad, normal));
+            float3 foamNormal = (normal - perpendicular) / (dot(perpendicular, perpendicular) + 1.0);
+            float4 colour = (c0 * shares.x) + (c1 * shares.y) + (c2 * shares.z);
+            float rough = (s0 * shares.x) + (s1 * shares.y) + (s2 * shares.z);
+            float ao = (a0 * shares.x) + (a1 * shares.y) + (a2 * shares.z);
+            colour.w = ShadeMathSmoothStep(foamIntensity, 1.0 - ShadeGain(colour.w, 0.1), 0.5);
+
+            // NO SHORE, NO SPRAY - chosen after the sum rather than before it, so every read stays in the program's own flow.
+            ShadeSprayOut said;
+            bool shored = box.w > 0.5;
+            said.colour = shored ? colour : float4(0.0, 0.0, 0.0, 0.0);
+            said.normalAo = shored ? float4(foamNormal, ao) : float4(normal, 1.0);
+            said.wetGloss = shored ? float4(ShadeRampNorm(heightFade, curvature), 1.0 - rough, 0.0, 0.0) : float4(0.0, 0.0, 0.0, 0.0);
+            return said;
+        }
+        """;
 
     /// <summary>
     /// <see cref="WavesLibrary"/>: the ripple texture's read, the shore's and the swell's, the engine's noise, and the ocean's surface.
@@ -864,6 +1110,36 @@ public static class ShadeHlsl
         {
             hlsl.Append("    ").Append(to).Append(" = ").Append(to).AppendLine(".xxxx;");
         }
+    }
+
+    /// <summary>One output of a spray step - see <see cref="SprayLibrary"/>: its sum once, in a variable, and the output read from it.</summary>
+    private static void Spray(
+        StringBuilder hlsl, ShadeProgram program, ShadeProgram.Step step, int[] versions, Dictionary<(int, int, int, int, int, int, int, int, int), string> sprayed)
+    {
+        int sheets = step.Extra & 0xFFFFFF;
+        var key = (step.A, step.B, step.C, step.D, sheets, versions[step.A], versions[step.B], versions[step.C], versions[step.D]);
+        if (!sprayed.TryGetValue(key, out string? name))
+        {
+            name = "spray" + Invariant(sprayed.Count);
+            sprayed[key] = name;
+            hlsl.Append("    ShadeSprayOut ").Append(name).Append(" = ShadeSpray(")
+                .Append(R(step.A)).Append(".xyz, ").Append(R(step.B)).Append(".xyz, ").Append(R(step.C)).Append(", ").Append(R(step.D)).Append(", wrap");
+            for (var part = 0; part < 3; part++)
+            {
+                int sheet = (sheets >> (part * 8)) & 0xFF;
+                hlsl.Append(", ShadeSheet").Append(Invariant(sheet)).Append(", ").Append(Truth(program.Textures[sheet].Srgb));
+            }
+
+            hlsl.AppendLine(");");
+        }
+
+        string field = (step.Extra >> 24) switch
+        {
+            ShadeProgram.SprayColour => "colour",
+            ShadeProgram.SprayNormal => "normalAo",
+            _ => "wetGloss",
+        };
+        hlsl.Append("    ").Append(R(step.To)).Append(" = ").Append(name).Append('.').Append(field).AppendLine(";");
     }
 
     /// <summary>
