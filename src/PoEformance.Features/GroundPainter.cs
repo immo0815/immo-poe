@@ -60,6 +60,10 @@ internal sealed class GroundPainter
     private int _two;
     private int _mixed;
     private int _gridded;
+    private int _unnamed;
+
+    /// <summary>The MaterialsList's group with no name, by its place in the list, or -1 - see SetOf.</summary>
+    private readonly int _unnamedGroup;
     private int _cornered;
 
     private GroundPainter(Func<string, byte[]?> read, GroundMaterials list, string from, MonsterModels.Paints paints)
@@ -68,6 +72,11 @@ internal sealed class GroundPainter
         _list = list;
         _paints = paints;
         From = from;
+        _unnamedGroup = -1;
+        for (var at = 0; at < list.Groups.Count && _unnamedGroup < 0; at++)
+        {
+            _unnamedGroup = list.Groups[at].Name.Length == 0 ? at : -1;
+        }
     }
 
     /// <summary>The MaterialsList painted from.</summary>
@@ -149,6 +158,7 @@ internal sealed class GroundPainter
         _mixed += plan.Mixed;
         _two += plan.Split;
         _gridded += plan.Gridded ? 1 : 0;
+        _unnamed += plan.Unnamed;
         _cornered += plan.Gridded ? 0 : 1;
         foreach ((string why, int count) in plan.Plain)
         {
@@ -195,7 +205,7 @@ internal sealed class GroundPainter
             : string.Create(CultureInfo.InvariantCulture, $", {_two} of two split by triangle where the green averages a half - mixing them could not be: ")
                 + string.Join(", ", _split.OrderByDescending(one => one.Value).Select(one => string.Create(CultureInfo.InvariantCulture, $"{one.Value} {one.Key}")));
         return string.Create(CultureInfo.InvariantCulture,
-            $"ground: painted from {From}, each sub-tile from its own corners in its definition's ground grid ({_gridded} pieces; {_cornered} from the tile's four corners, their definition carrying no grid) - {_one} sub-tiles of one ground, {_mixed} of two mixed per pixel by the template mask's green at the block's own coordinates as the engine mixes them (GroundGenerateWeights_1a1b; the MaterialsList's first ground at green nought, as Port's three families agree - one area; its height blending not drawn, DECIDED){split}, plain: {plain}; the materials' coordinates the world times {GroundScale} (the environments' ground_scale, likely and not measured), a group's heaviest choice where the game draws by weight");
+            $"ground: painted from {From}, each sub-tile from its own corners in its definition's ground grid ({_gridded} pieces; {_cornered} from the tile's four corners, their definition carrying no grid; {_unnamed} sub-tiles with a corner the grid leaves unnamed, taken as the MaterialsList's group with no name - the game holds its null slot there, and that it draws this group is DECIDED) - {_one} sub-tiles of one ground, {_mixed} of two mixed per pixel by the template mask's green at the block's own coordinates as the engine mixes them (GroundGenerateWeights_1a1b; the MaterialsList's first ground at green nought, as Port's three families agree - one area; its height blending not drawn, DECIDED){split}, plain: {plain}; the materials' coordinates the world times {GroundScale} (the environments' ground_scale, likely and not measured), a group's heaviest choice where the game draws by weight");
     }
 
     /// <summary>How a tile's ground is painted, worked out once whatever number of pieces lay it - and what it comes to, sub-tile by sub-tile.</summary>
@@ -212,6 +222,9 @@ internal sealed class GroundPainter
 
         /// <summary>Whether the sub-tiles took their own corners from the definition's ground grid.</summary>
         public bool Gridded { get; init; }
+
+        /// <summary>Sub-tiles with a corner the grid leaves unnamed, which takes the MaterialsList's group with no name.</summary>
+        public int Unnamed { get; init; }
 
         /// <summary>Sub-tiles left plain, by why.</summary>
         public IReadOnlyDictionary<string, int> Plain { get; init; } = new Dictionary<string, int>();
@@ -263,9 +276,11 @@ internal sealed class GroundPainter
         var runs = new Dictionary<string, Run>(StringComparer.Ordinal);
         var order = new List<Run>();
         var at = 0;
+        var unnamedCorners = 0;
         foreach ((int count, IReadOnlyList<string> corners) in subTiles)
         {
-            (string key, List<(int Order, GroundGroup Group)> grounds, string setWhy) = SetOf(corners);
+            (string key, List<(int Order, GroundGroup Group)> grounds, string setWhy) = SetOf(corners, gridded);
+            unnamedCorners += gridded && corners.Any(corner => corner.Length == 0) ? 1 : 0;
             if (!runs.TryGetValue(key, out Run? run))
             {
                 run = new Run(grounds, setWhy);
@@ -382,6 +397,7 @@ internal sealed class GroundPainter
             Mixed = mixedGrounds,
             Split = splitGrounds,
             Gridded = gridded,
+            Unnamed = unnamedCorners,
             Plain = plain,
             Splits = splits,
         };
@@ -391,13 +407,26 @@ internal sealed class GroundPainter
     /// The grounds a sub-tile's corners name, by name in the MaterialsList's order - the order the engine's weights follow (see the
     /// remarks) - with a key the sub-tiles naming the same set share; or why it stays plain.
     /// </summary>
-    private (string Key, List<(int Order, GroundGroup Group)> Grounds, string Why) SetOf(IReadOnlyList<string> corners)
+    /// <remarks>
+    /// A CORNER THE GRID LEAVES UNNAMED takes the MaterialsList's group with no name, where <paramref name="unnamedIsDefault"/> - a
+    /// grid's corners. MEASURED (v0.1.248's capture, ground-grid-replay.txt): where Port's harbour grid names no ground, along the
+    /// pier, the game holds the null slot of its ground-type list at the same corners, and draws the pier cobblestone; the list's one
+    /// group without a name is all cobblestone. DECIDED, not measured: that the game draws that group for its null slot. A tile's own
+    /// four corners, standing in where there is no grid, keep the old reading - an unnamed one names nothing.
+    /// </remarks>
+    private (string Key, List<(int Order, GroundGroup Group)> Grounds, string Why) SetOf(IReadOnlyList<string> corners, bool unnamedIsDefault)
     {
         var grounds = new List<(int Order, GroundGroup Group)>();
         foreach (string corner in corners)
         {
             if (corner.Length == 0)
             {
+                int unnamed = unnamedIsDefault ? _unnamedGroup : -1;
+                if (unnamed >= 0 && !grounds.Exists(one => one.Order == unnamed))
+                {
+                    grounds.Add((unnamed, _list.Groups[unnamed]));
+                }
+
                 continue;
             }
 

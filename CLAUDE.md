@@ -614,7 +614,14 @@ from v0.1.248 (`GroundPainter`, `GroundPiece`): each sub-tile's grounds from its
 plain with the world's coordinates (the engine's GroundGenerateWeights_1a reads no mask), two mixed as before; the tile's four
 corners stand for every sub-tile only where a definition carries no grid. The harbour's own grid lay past that capture's 32 KB
 cut of the bytes (41,526 past its corners); the cut is 64 KB from v0.1.248, and `ground.txt` writes every definition's grid by
-name and each sub-tile's corners, the pictures a fourth panel of each sub-tile's grounds. "The game draws wood there" was written here once from
+name and each sub-tile's corners, the pictures a fourth panel of each sub-tile's grounds. Its capture (v0.1.248) drew the land
+clean - c2r4 and c3r4, the checkerboard's sub-tiles, are tropical_fill at every corner - but left the PIER white: its sub-tiles'
+corners are 0xFFFFFFFF in the grid, 24 sub-tiles naming no ground. `ground-grid-replay.txt` (`CaptureReplayTests.GroundGridReplay`,
+from the recording's TileCornerData) answered what that is: the game holds the null slot of its ground-type list at exactly those
+corners - the two maps alike, mirrored by the piece's laying. So FROM v0.1.250 A CORNER THE GRID LEAVES UNNAMED TAKES THE
+MATERIALSLIST'S GROUP WITH NO NAME (Port's: Cobblestone01 to 03 and CobblestoneDirt01) - MEASURED that the game holds null there and
+draws cobblestone; DECIDED that it draws that group; a tile's own four corners, standing in where there is no grid, still name nothing
+when unnamed. "The game draws wood there" was written here once from
 a picture not looked at closely: the gangway and the ship are wood, the pier is not - look before writing it down.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
