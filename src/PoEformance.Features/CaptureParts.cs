@@ -122,6 +122,9 @@ public static class CaptureParts
     /// <summary>What the laid tiles' ground is made of: its blocks, its materials, and the shader sources naming its coordinates.</summary>
     public const string Ground = "ground";
 
+    /// <summary>The laid tiles' sub-tiles of two grounds over the game's picture, with their ground shapes that run across the mask's atlas.</summary>
+    public const string GroundScreen = "ground-screen";
+
     /// <summary>What the water is drawn from: every environment's water keys, and the shader sources of the water pass.</summary>
     public const string Water = "water";
 
@@ -239,6 +242,13 @@ public static class CaptureParts
             + "ground shapes sub-tile by sub-tile with their unnamed ordinals and the mask's green, the biggest drawn from above "
             + "beside it; and every laid tile definition's bytes past what is read. What stands between the rooms' white ground "
             + "and a painted one."),
+        new(GroundScreen, "Area files", "the ground on the screen", CaptureReport.GroundScreenFile,
+            "The laid tiles' ground laid over the game's own picture where the Monster Book's laid room has it: every sub-tile of two "
+            + "grounds or more on the screen outlined and named as ground.txt names it, and its ground shapes whose coordinates run "
+            + "across the mask's atlas drawn - where the tool's mix comes out as a checkerboard - so which ground the game draws there "
+            + "is read off its picture (ground-on-screen.png). Each sub-tile's grid corners beside the game's own corner types at that "
+            + "place, and each shape's height, green and reach across the mask. Best with \"the game alone\" ticked: over the overlay's "
+            + "picture the overlay's own drawing is in the way."),
         new(Water, "Area files", "the water's makings", CaptureReport.WaterFile,
             "What the water is drawn from, as the files say: every key the install's environments write in their water "
             + "sections, how many files carry it and what values, every environment's water section file by file - to pick an "

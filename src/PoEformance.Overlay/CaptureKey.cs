@@ -743,6 +743,33 @@ internal sealed class CaptureKey
             }
         }
 
+        if (On(CaptureParts.GroundScreen))
+        {
+            if (read is null)
+            {
+                Not(CaptureReport.GroundScreenFile, "no install to read the ground from");
+            }
+            else
+            {
+                Part(CaptureReport.GroundScreenFile, () =>
+                {
+                    // THE GAME ALONE where it was taken; the overlay's picture else, whose own drawing is then in the way.
+                    (byte[]? shot, string over) = run.Game is not null ? (run.Game, "the game alone")
+                        : run.Overlay is not null ? (run.Overlay, "the game with the overlay - tick \"the game alone\" for a clean picture")
+                        : ((byte[]?)null, "black - no picture of the game was taken");
+                    string said = CaptureGroundScreen.Write(read, run.Snapshot, run.Masters, shot, client.Width, client.Height, over, out GamePicture? picture);
+                    File.WriteAllText(At(CaptureReport.GroundScreenFile), said);
+                    if (picture is { } drawn)
+                    {
+                        using Image<Rgba32> image = Image.LoadPixelData<Rgba32>(drawn.Rgba, drawn.Width, drawn.Height);
+                        image.SaveAsPng(At(CaptureReport.GroundScreenShot));
+                    }
+
+                    return said[..said.IndexOf('\n')];
+                });
+            }
+        }
+
         if (On(CaptureParts.Water))
         {
             if (read is null)

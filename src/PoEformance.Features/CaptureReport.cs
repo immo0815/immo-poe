@@ -90,6 +90,12 @@ public static class CaptureReport
     /// <summary>What the laid tiles' ground is made of - see CaptureGround.</summary>
     public const string GroundFile = "ground.txt";
 
+    /// <summary>The laid tiles' sub-tiles of two grounds over the game's picture - see CaptureGroundScreen.</summary>
+    public const string GroundScreenFile = "ground-on-screen.txt";
+
+    /// <summary>The picture beside it.</summary>
+    public const string GroundScreenShot = "ground-on-screen.png";
+
     /// <summary>What the water is drawn from - see CaptureWater.</summary>
     public const string WaterFile = "water.txt";
 
