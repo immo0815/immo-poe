@@ -291,6 +291,28 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   texture whose path names the water (the startup walk keeps only those, `WalkPlace.Words`) with its size and format, those
   128 square marked, the likeliest decoded channel by channel beside it, and the game program's own strings naming one -
   read it before the stand-in's texels are replaced.
+  THE OCEAN'S OWN PATH (v0.1.229). The octaves above are the RIVER'S: the engine draws water through two surfaces
+  (internalonly.ffx), WaterComputeFlowingSurface (GetFlowingSurface, GetFlowSurfaceField - slide along the flow, fade
+  back to the start every 1.4 to 3 s) and WaterComputeSurface (GetTotalWaveSurfaceNumerical over
+  `GetOceanWaterPlanarState`), and at Port's flow the first read as "a two-second film looped" (said from the live
+  client, v0.1.228) while the game draws clear crests rolling in to the harbour and spray along the quay. Which surface
+  an "Ocean" material takes is in no file read - the names and the game's picture say the second. Its parts: a SWELL
+  rolling towards the shore (`GetTidalWaterPlanarState`: a cross-section texture `wave_data_sampler` and its slope
+  `wave_gradient_sampler` read at the tide's phase and the shore's distance, over a shoreline field
+  `shoreline_coord_tex_sampler` the engine makes at run time - r one less the shore's distance, g the length along the
+  shore, b the distance out to sea, a the strength, positive a beach and negative a rocky shore that takes
+  `GetClashingWaterPlanarState` instead), the WIND'S RIPPLES on top (`GetWindRippleSurfaceField3`: three octaves on the
+  ripple texture SCROLLING STEADILY - nothing fades or starts over - in `water_wind_direction`, `_intensity`, `_speed`
+  and `water_directionness`), times `shallowRippleMult * foamRippleMult * 2`; the flow is read on the river's path alone.
+  The spray is a particle effect outside the surface (`CrashingSprayTrigger` and its kin). Port's file sets none of the
+  ocean's keys, so every one is the engine's default: CHOSEN until measured, the old full-screen tracer's constants the
+  uniforms replaced (screenspacetracer.hlsl: wind intensity 0.1 x 4 x 4 / 1.5, speed 1, directionness 1, no wind matrix;
+  swell height 37.5, period 0.04) - the parsed environment's unnamed water floats hold 1.06, 1, 37.5 and 0.04 among them
+  (light-hunt.txt, v0.1.208), and a capture in an area whose file sets the keys (the Blank Sea and Yaochi hideouts set
+  all of them) names their slots. DRAWN from v0.1.229: the ripples (`ShadeProgram.Ocean`, `WindRipples`, the
+  `WaterWind` register from `WaterLook.WindRegister`), a wind way turned by the light panel's "wind"; at the former
+  constants they stand -4.8 to 9.4 and lean 1.8 degrees at the median, 8.4 at most, at 118 ns a read. NOT YET: the swell
+  and the shoreline field it needs.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

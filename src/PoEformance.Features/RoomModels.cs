@@ -467,9 +467,9 @@ public static class RoomModels
     /// How long an edge of a water shape may be once it is split for its waves to lift it, in world units - CHOSEN.
     /// </summary>
     /// <remarks>
-    /// THE OCTAVES' CELLS RUN 400, 200, 100 AND 50 UNITS (ShadeProgram.Ripples over its noise), the coarse
-    /// ones carrying nearly all the height: edges of 48 follow the first three pairs and leave the finest
-    /// to the light's own normal. A WaterPlane3x3 - 750 a side, its diagonal 1,060 - is halved five times,
+    /// THE RIPPLES' CELLS RUN ABOUT 210, 70 AND 23 UNITS ACROSS THE WIND (ShadeProgram.Ocean over its noise,
+    /// four and a half times that along it at the engine's former directionness), the first carrying nearly
+    /// all the height: edges of 48 follow the first two and leave the finest to the light's own normal. A WaterPlane3x3 - 750 a side, its diagonal 1,060 - is halved five times,
     /// 2,048 triangles; Port's harbour's 48 such come to under 100,000.
     /// </remarks>
     public const float WaterEdge = 48f;

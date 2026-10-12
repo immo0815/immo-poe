@@ -56,12 +56,10 @@ public sealed partial class ShadeProgram
     /// not measured, and still where an area's flow is nought.
     ///
     /// THE WAVES ARE THE GLOSSY TWIN'S (<see cref="Glossy"/>, <see cref="HasWaves"/>): the same colour, and the
-    /// surface the engine lights - GetFlowSurfaceField's eight octaves (<see cref="Ripples"/>) over a noise
-    /// standing for its ripple texture, drifting with the pattern - handed to the game light's glints and
-    /// reflection, its specular the area's reflectiveness and its gloss the engine's 0.99. Under the
-    /// picture's lamp the twin draws as this program does. Not drawn: the waves lifting the surface (the
-    /// engine finds where the view meets the raised surface), foam, the refraction's bend, screen-space
-    /// reflections.
+    /// surface the engine lights - the ocean's own (<see cref="Ocean"/>: GetWindRippleSurfaceField3's three
+    /// octaves over a noise standing for its ripple texture, in the area's wind) - handed to the game light's
+    /// glints and reflection, its specular the area's reflectiveness and its gloss the engine's 0.99. Under the
+    /// picture's lamp the twin draws as this program does. Not drawn: foam, the refraction's bend.
     /// </remarks>
     public static ShadeProgram Water()
     {
@@ -94,10 +92,9 @@ public sealed partial class ShadeProgram
             ?? throw new InvalidOperationException("the water program does not fit its registers");
 
         // THE WAVES, for the game light's glints and reflection: the same colour, and the surface the
-        // engine lights - drifting with the pattern, its specular the area's reflectiveness, its gloss
-        // the engine's (InitWaterSurfaceData) - see HasWaves.
-        int drift = build.Emit(Op.Multiply, flow, build.Constant(new Vector4(WaveDrift, 0f, 0f)));
-        int waves = build.Emit(Op.Waves, Position, drift, Clock);
+        // engine lights - the ocean's ripples in the area's wind, its specular the area's reflectiveness,
+        // its gloss the engine's (InitWaterSurfaceData) - see HasWaves.
+        int waves = build.Emit(Op.Waves, Position, WaterWind, Clock);
         int specular = build.Emit(Op.Swizzle, WaterFlow, extra: AllFrom(1));
         int gloss = build.Constant(new Vector4(WaterGloss));
         water.Glossy = Finish(build, colour, specular, gloss, [WaterGraph], hasAlpha: true, plainable: false, waves)
@@ -109,18 +106,6 @@ public sealed partial class ShadeProgram
     /// The water's glossiness, the engine's: InitWaterSurfaceData's <c>lerp(0.99, 0, foam)</c> where no foam lies.
     /// </summary>
     public const float WaterGloss = 0.99f;
-
-    /// <summary>
-    /// How far the waves drift a second for each unit of the area's flow, in world units along x and y - CHOSEN, the shimmer's own drift.
-    /// </summary>
-    /// <remarks>
-    /// THE ENGINE DRIFTS THEM BY ITS FLOW MAP (GetFlowSample: <c>flowmap_tex_sampler</c> over
-    /// <c>river_flowmap_planar_aabb</c>, times <c>2 * water_flow_intensity</c>), which it makes at run time and no
-    /// file holds; for Port's harbour it is not known. This drifts them the way the colour's pattern
-    /// drifts - 0.15 and 0.1 of a 120-unit cell a second per unit of flow - so the two move together, and
-    /// the line under the picture says the way is chosen.
-    /// </remarks>
-    public static readonly Vector2 WaveDrift = new(18f, 12f);
 
     /// <summary>The ripple texture's side in texels - the engine's <c>textureSize</c> (GetWaterVolumeStateFieldOctave).</summary>
     public const int RippleSide = 128;
@@ -151,62 +136,94 @@ public sealed partial class ShadeProgram
     public static ReadOnlySpan<float> RippleSheet => RippleTexels;
 
     /// <summary>
-    /// The engine's flowing water surface at a place: its height, and its slope along x and y - GetFlowSurfaceField, eight octaves, on <see cref="Ripple"/>.
+    /// The engine's ocean surface at a place: its height, and its slope along x and y - GetOceanWaterPlanarState's, of which the wind's ripples are drawn.
     /// </summary>
     /// <param name="place">Where on the water, in world units.</param>
-    /// <param name="drift">How it drifts, in world units a second - the engine's <c>flow_intensity</c>.</param>
+    /// <param name="wind">The area's wind - WaterLook.WindRegister.</param>
     /// <param name="clock">The clock, in seconds.</param>
     /// <param name="slope">The height's rise along x and y.</param>
     /// <remarks>
-    /// THE ENGINE'S OCTAVES AS WRITTEN (water.ffx): four pairs, each octave turned half a radian from the
-    /// last and every pair twice as fine, the first a hundredth of a world unit; each octave fading in and
-    /// out over three seconds, the pair's two half a period apart, and slid along the drift - turned by
-    /// up to 0.3 radians either way - as it fades, so a slide never shows its jump back; the first pair's
-    /// height <c>0.3 * (|drift| + 3)</c>, each finer pair's less by between 0.2 and 0.9 as the drift grows
-    /// to 300, and quicker by 1.3. Its surface is <c>z = -height</c>, so its normal is
-    /// <c>normalize(-slope.x, -slope.y, -1)</c>, up being minus z - GetFlowingSurface's.
+    /// THE OCEAN'S PATH, NOT THE RIVER'S. The engine draws its water through two surfaces (internalonly.ffx):
+    /// WaterComputeSurface, GetTotalWaveSurfaceNumerical over GetOceanWaterPlanarState, and
+    /// WaterComputeFlowingSurface, GetFlowingSurface over GetFlowSurfaceField - eight octaves that slide
+    /// along the flow and fade back to their start every 1.4 to 3 seconds. The second was drawn first
+    /// (v0.1.221), and at Port's flow it read as a two-second film looped (said from the live client,
+    /// v0.1.228) - while the game draws crests rolling in to the harbour. The ocean's own reads no flow at
+    /// all: a swell travelling towards the shore over a shoreline field the engine makes at run time, and
+    /// the wind's ripples on top, times <c>shallowRippleMult * foamRippleMult * 2</c>. Which surface an
+    /// "Ocean" material takes is in no file read; the names and the game's picture say this one.
+    ///
+    /// DRAWN: the ripples, at full strength - the shoreline field that thins them at the shore
+    /// (<c>shallowRippleMult</c>) and the swell are not read. NOT DRAWN: the swell and its foam.
     /// </remarks>
-    public static float Ripples(Vector2 place, Vector2 drift, float clock, out Vector2 slope)
+    public static float Ocean(Vector2 place, Vector4 wind, float clock, out Vector2 slope)
     {
-        float speed = drift.Length();
-        float amplitude = 0.3f * (speed + 3f);
-        float drop = 0.2f + (0.7f * Math.Clamp(speed / 300f, 0f, 1f));
-        float m00 = 0.01f, m01 = 0f, m10 = 0f, m11 = 0.01f;
-        float quickness = 1f;
-        float height = 0f;
-        slope = Vector2.Zero;
-        for (var octave = 0; octave < 8; octave++)
-        {
-            float period = 3f / quickness;
-            int pair = octave / 2;
-            float phase = (clock / period) + OctaveRatio[pair] + ((octave % 2) * 0.5f);
-            phase -= MathF.Floor(phase);
-            float opacity = phase * (1f - phase) * 4f;
-
-            // mul(-drift, float2x2(c, s, -s, c)) * phase * quickness * period.
-            float c = OctaveCos[pair], s = OctaveSin[pair], along = phase * quickness * period;
-            float px = place.X + (((-drift.X * c) + (drift.Y * s)) * along);
-            float py = place.Y + (((-drift.X * s) - (drift.Y * c)) * along);
-
-            float value = Ripple((px * m00) + (py * m10), (px * m01) + (py * m11), out float gx, out float gy);
-            float weight = amplitude * opacity;
-            height += value * weight;
-            slope += new Vector2((gx * m00) + (gy * m01), (gx * m10) + (gy * m11)) * weight;
-
-            // mul(octaveMatrix, deltaRotation): every octave turned half a radian, every second one twice as fine too.
-            float grow = octave % 2 == 1 ? 2f : 1f;
-            (m00, m01, m10, m11) = (
-                ((m00 * TurnCos) - (m01 * TurnSin)) * grow, ((m00 * TurnSin) + (m01 * TurnCos)) * grow,
-                ((m10 * TurnCos) - (m11 * TurnSin)) * grow, ((m10 * TurnSin) + (m11 * TurnCos)) * grow);
-            if (octave % 2 == 1)
-            {
-                amplitude *= drop;
-                quickness *= 1.3f;
-            }
-        }
-
+        float height = WindRipples(place, wind, clock, out slope) * 2f;
+        slope *= 2f;
         return height;
     }
+
+    /// <summary>
+    /// The wind's ripples on the ocean at a place: their height, and their slope along x and y - GetWindRippleSurfaceField3, three octaves on <see cref="Ripple"/>.
+    /// </summary>
+    /// <param name="place">Where on the water, in world units.</param>
+    /// <param name="wind">The wind's way (radians), the ripples' height, their speed and how much they line up with the wind - WaterLook.WindRegister.</param>
+    /// <param name="clock">The clock, in seconds.</param>
+    /// <param name="slope">The height's rise along x and y.</param>
+    /// <remarks>
+    /// THE ENGINE'S OCTAVES AS WRITTEN (water.ffx), on open water (no ground under it, so
+    /// <c>ground_params_ratio</c> nought): three octaves, the first 0.16 of a frequency through a phase
+    /// matrix of 0.12 turned to the wind, each stretched along one axis, turned from the last and finer by
+    /// <c>lerp(1.5, 3.04, directionness)</c>, its height less by <c>lerp(0.9, 0.22, directionness)</c>; each
+    /// SCROLLED STEADILY, <c>(1 + 2.5t) * (0.5, 1.5) * speed * frequency</c> along its own coordinates, and
+    /// slower by the root of the step each octave - no fading and no starting over, so nothing loops. The
+    /// whole is divided by 0.4, as the engine does. The wind's way is the angle's (cos, sin), the
+    /// conversion being in no file read.
+    /// </remarks>
+    public static float WindRipples(Vector2 place, Vector4 wind, float clock, out Vector2 slope)
+    {
+        float directionness = wind.W;
+        float frequency = 0.16f;
+        float amplitude = wind.Y * Lerp(0.2f, 1f, directionness);
+        float time = 1f + (clock * 2.5f);
+        float step = Lerp(1.5f, 1.9f * 1.6f, directionness);
+        float turn = Lerp(2f, 0.2f, directionness);
+        float turnCos = MathF.Cos(turn), turnSin = MathF.Sin(turn);
+        float windX = MathF.Cos(wind.X), windY = MathF.Sin(wind.X);
+
+        // mul(I * 0.12, float2x2(w.x, w.y, -w.y, w.x)).
+        float p00 = 0.12f * windX, p01 = 0.12f * windY, p10 = -0.12f * windY, p11 = 0.12f * windX;
+        float scroll = Lerp(2.5f, 1.25f, directionness) * wind.Z;
+        float stretch = Lerp(0.7f, 0.225f, directionness);
+        float falloff = Lerp(0.9f, 0.22f, directionness);
+        float height = 0f;
+        slope = Vector2.Zero;
+        for (var octave = 0; octave < 3; octave++)
+        {
+            // mul(phaseMatrix, float2x2(stretch, 0, 0, 1) * frequency).
+            float m00 = p00 * stretch * frequency, m01 = p01 * frequency;
+            float m10 = p10 * stretch * frequency, m11 = p11 * frequency;
+            float shift = scroll * frequency;
+            float qx = (place.X * m00) + (place.Y * m10) - (time * 0.5f * shift);
+            float qy = (place.X * m01) + (place.Y * m11) - (time * 1.5f * shift);
+            float value = Ripple(qx, qy, out float gx, out float gy);
+            height += value * amplitude;
+            slope += new Vector2((gx * m00) + (gy * m01), (gx * m10) + (gy * m11)) * amplitude;
+
+            // mul(phaseMatrix, octaveMatrix): turned, then finer, slower and lower.
+            (p00, p01, p10, p11) = (
+                (p00 * turnCos) - (p01 * turnSin), (p00 * turnSin) + (p01 * turnCos),
+                (p10 * turnCos) - (p11 * turnSin), (p10 * turnSin) + (p11 * turnCos));
+            frequency *= step;
+            scroll /= MathF.Sqrt(step);
+            amplitude *= falloff;
+        }
+
+        slope /= 0.4f;
+        return height / 0.4f;
+    }
+
+    private static float Lerp(float from, float to, float share) => from + ((to - from) * share);
 
     /// <summary>
     /// One octave's read of the ripple texture at the octave's own coordinates: the height, and its slope along them - GetWaterVolumeStateFieldOctave's.
@@ -284,21 +301,6 @@ public sealed partial class ShadeProgram
         var grad = new Vector2(HashUnit(hx) - 0.5f, HashUnit(hy) - 0.5f);
         return grad / MathF.Sqrt(MathF.Max(Vector2.Dot(grad, grad), 1e-12f));
     }
-
-    /// <summary>Each pair's share of the octaves, <c>float(i / 2) / float(octavesCount - 1 + 1e-3)</c>.</summary>
-    private static readonly float[] OctaveRatio = [0f, 1f / 3.001f, 2f / 3.001f, 3f / 3.001f];
-
-    /// <summary>The cosine of each pair's turn of the drift, <c>lerp(-0.3, 0.3, ratio)</c> radians - worked out once, and written into the card's shader as numbers.</summary>
-    internal static readonly float[] OctaveCos = [.. OctaveRatio.Select(one => MathF.Cos(-0.3f + (0.6f * one)))];
-
-    /// <summary>The sine of each pair's turn of the drift.</summary>
-    internal static readonly float[] OctaveSin = [.. OctaveRatio.Select(one => MathF.Sin(-0.3f + (0.6f * one)))];
-
-    /// <summary>The cosine of the half radian each octave is turned from the last.</summary>
-    internal static readonly float TurnCos = MathF.Cos(0.5f);
-
-    /// <summary>The sine of the half radian each octave is turned from the last.</summary>
-    internal static readonly float TurnSin = MathF.Sin(0.5f);
 
     /// <summary>A swizzle putting one component of its source in all four.</summary>
     private static int AllFrom(int component) => (0xF << 8) | component | (component << 2) | (component << 4) | (component << 6);

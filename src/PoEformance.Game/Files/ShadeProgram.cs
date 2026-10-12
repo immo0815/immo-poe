@@ -203,8 +203,11 @@ public sealed partial class ShadeProgram
     /// <summary>The area's water flow in x and its height offset in z - set per drawing. See WaterLook.FlowRegister.</summary>
     internal const int WaterFlow = 13;
 
+    /// <summary>The wind the ocean's ripples read - set per drawing. See WaterLook.WindRegister and <see cref="WindRipples"/>.</summary>
+    internal const int WaterWind = 14;
+
     /// <summary>How many registers are the mesh's own, before any a program allocates.</summary>
-    private const int Fixed = 14;
+    private const int Fixed = 15;
 
     /// <summary>Stands in for FixModelTBN's basis, which only ParallaxUvSpace takes - see <see cref="Basis"/>.</summary>
     private const int FixedBasis = -3;
@@ -404,7 +407,7 @@ public sealed partial class ShadeProgram
         /// <summary>ParallaxUvSpace: the coordinates and the distance along the view where the ray meets the height texture - B is the read, like Sample's.</summary>
         Parallax,
 
-        /// <summary>GetFlowSurfaceField: the water's surface at A's x and y, drifting at B's x and y a second, at C's clock - its normal in xyz, its height in w. See <see cref="Ripples"/>.</summary>
+        /// <summary>The ocean's surface at A's x and y in B's wind (WaterLook.WindRegister) at C's clock - its normal in xyz, its height in w. See <see cref="Ocean"/>.</summary>
         Waves,
     }
 
@@ -813,6 +816,7 @@ public sealed partial class ShadeProgram
         WaterLook look = water ?? WaterLook.EngineDefault;
         registers[WaterColour] = look.ColourRegister;
         registers[WaterFlow] = look.FlowRegister;
+        registers[WaterWind] = look.WindRegister;
         registers[Behind] = new Vector4(float.MaxValue);
         registers[Eye] = eye;
         registers[Tangent] = Vector4.Zero;
@@ -1200,8 +1204,7 @@ public sealed partial class ShadeProgram
 
                 case Op.Waves:
                 {
-                    float height = Ripples(
-                        new Vector2(r[step.A].X, r[step.A].Y), new Vector2(r[step.B].X, r[step.B].Y), r[step.C].X, out Vector2 slope);
+                    float height = Ocean(new Vector2(r[step.A].X, r[step.A].Y), r[step.B], r[step.C].X, out Vector2 slope);
                     r[step.To] = new Vector4(Vector3.Normalize(new Vector3(-slope.X, -slope.Y, -1f)), height);
                     break;
                 }

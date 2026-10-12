@@ -489,6 +489,7 @@ public sealed partial class ModelGpu : IDisposable
             Dust = new Vector4(scene.Dust ?? EnvironmentSettings.AssumedDust, 0f),
             Water = (scene.Water ?? WaterLook.EngineDefault).ColourRegister,
             Flow = (scene.Water ?? WaterLook.EngineDefault).FlowRegister with { W = lift },
+            Wind = (scene.Water ?? WaterLook.EngineDefault).WindRegister,
         });
 
         context.RSSetState(_raster);
@@ -912,6 +913,7 @@ public sealed partial class ModelGpu : IDisposable
         public Vector4 Dust;
         public Vector4 Water;
         public Vector4 Flow;
+        public Vector4 Wind;
     }
 
     private sealed record Compiled(
