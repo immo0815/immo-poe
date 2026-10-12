@@ -587,7 +587,11 @@ the thin sea and beach film (v0.1.242's probe on one, said from the live client)
 cannot run as one program, and the line under the picture says why. NOT DRAWN, DECIDED from the live client: the engine's
 height blending (GROUND_HEIGHT_BLENDING, which Port's PBRGroundBN.fxgraph turns on with EnableGroundHeightBlending: each weight
 times `1 / (1 + (max_height - height) / 0.01)`, a material's height its texture's, blackc.mat's nought) - with it the
-cobblestone would stand over the black almost everywhere but where the mask is wholly green. "The game draws wood there" was written here once from
+cobblestone would stand over the black almost everywhere but where the mask is wholly green. KEPT FOR WHEN IT IS NEEDED (asked
+for from the live client, 2026-10-12): two grounds are to be mixed the way the engine mixes them, not split by triangle - so a
+tile that still falls back to the split is a gap to close, and the height blending is the rest of the engine's mix, built into
+the mixing step of `ShadeProgram.Grounds` (each ground's height beside its colour, as its graphs hand it - InputHeight) once a
+picture asks for it. "The game draws wood there" was written here once from
 a picture not looked at closely: the gangway and the ship are wood, the pier is not - look before writing it down.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
