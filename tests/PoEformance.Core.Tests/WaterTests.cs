@@ -343,6 +343,105 @@ public class WaterTests
         Assert.NotEqual(Drawn(Light(0f)), Drawn(Light(3f)));
     }
 
+    /// <summary>
+    /// The engine's march over the solid depth: a fiftieth of the picture a step, a surface hit where it lies in front of the ray by less than fifty units, and the cube's share growing with the step.
+    /// </summary>
+    [Fact]
+    public void THERAYMeetsTheFirstSurfaceInFrontOfItWithinItsThickness()
+    {
+        const int size = 100;
+        var depth = new float[size * size];
+        Array.Fill(depth, float.MaxValue);
+
+        // A WALL down column 70, at depth 100: the ray runs right along row 10 and deeper by one a unit.
+        for (var y = 0; y < size; y++)
+        {
+            depth[(y * size) + 70] = 100f;
+        }
+
+        // A STEP IS TWO PIXELS here, so from column 10 the ray reaches column 70 at its thirtieth step - past twenty.
+        Assert.True(ScreenReflection.March(10, 10, 80f, new Vector2(1f, 0f), 1f, size, depth, out _, out _) < 0);
+
+        // FROM COLUMN 40 it reaches the wall between its fifteenth and sixteenth step, ray depth about 110: hit.
+        int step = ScreenReflection.March(40, 10, 80f, new Vector2(1f, 0f), 1f, size, depth, out int hitX, out int hitY);
+        Assert.InRange(step, 14, 15);
+        Assert.Equal(70, hitX);
+        Assert.Equal(10, hitY);
+
+        // TOO FAR BEHIND THE WALL - more than fifty - or in front of it, no hit.
+        Assert.True(ScreenReflection.March(40, 10, 30f, new Vector2(1f, 0f), 1f, size, depth, out _, out _) < 0);
+        Assert.True(ScreenReflection.March(40, 10, 10f, new Vector2(1f, 0f), 1f, size, depth, out _, out _) < 0);
+
+        // STRAIGHT AT THE EYE it moves nowhere in the picture, and finds nothing.
+        Assert.True(ScreenReflection.March(40, 10, 80f, Vector2.Zero, -1f, size, depth, out _, out _) < 0);
+
+        Assert.Equal(1f, ScreenReflection.EnvironmentShare(-1));
+        Assert.Equal(MathF.Pow(0.025f, 5f), ScreenReflection.EnvironmentShare(0), 9);
+        Assert.Equal(MathF.Pow(19.5f / 20f, 5f), ScreenReflection.EnvironmentShare(19), 6);
+    }
+
+    /// <summary>
+    /// A red wall rising behind the water shows in it where the scene is reflected, and not where only the cube is - its hue, not more light.
+    /// </summary>
+    [Fact]
+    public void THESCENEShowsInTheWaterWhereItIsReflected()
+    {
+        SkinnedMesh scene = Walled();
+        ShadeProgram waves = ShadeProgram.Water().Glossy!;
+        SceneLight Light(bool mirroring) => new([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1.5f),
+            SunDirection = Vector3.Normalize(new Vector3(0.3f, 0.2f, 1f)),
+            Ambient = SceneAmbient.Flat,
+            FlatAmbient = 0.3f,
+            WaterReflection = true,
+            WaterScene = mirroring,
+        };
+
+        byte[] Drawn(bool mirroring) => [.. MeshPicture.Of(
+            scene, new MeshPicture.Canvas(Size) { Light = Light(mirroring), Time = 2f }, turn: 0f, tilt: 0.3f,
+            skins: [null, Sheet(30, 30, 30), Sheet(240, 20, 20)],
+            blends: [MaterialBlend.Alpha, MaterialBlend.Opaque, MaterialBlend.Opaque],
+            shades: [waves, null, null]).Rgba];
+
+        // THE WALL'S HUE IN THE WATER: where a ray meets it, the wall's red stands in for the flat ambient's grey,
+        // so red leads green by more - the wall being no brighter than the ambient, it does not add red.
+        byte[] cube = Drawn(mirroring: false);
+        byte[] mirrored = Drawn(mirroring: true);
+        long cubeLead = 0, mirroredLead = 0;
+        for (var at = 0; at < cube.Length; at += 4)
+        {
+            if (cube[at + 1] > 60)
+            {
+                cubeLead += cube[at] - cube[at + 1];
+                mirroredLead += mirrored[at] - mirrored[at + 1];
+            }
+        }
+
+        Assert.True(mirroredLead > cubeLead + 1000, $"the wall does not show in the water: red leads green by {mirroredLead}, {cubeLead} with the cube alone");
+    }
+
+    /// <summary>The water quad over its floor, and a red wall rising from the water on its far side - minus y, away from the camera at no turn.</summary>
+    private static SkinnedMesh Walled()
+    {
+        Vector3[] places =
+        [
+            new(-375f, -375f, -60f), new(375f, -375f, -60f), new(375f, 375f, -60f), new(-375f, 375f, -60f),
+            new(-400f, -400f, 0f), new(400f, -400f, 0f), new(400f, 400f, 0f), new(-400f, 400f, 0f),
+            new(-375f, -375f, 0f), new(375f, -375f, 0f), new(375f, -375f, -500f), new(-375f, -375f, -500f),
+        ];
+        Vector3[] normals =
+        [
+            .. Enumerable.Repeat(new Vector3(0f, 0f, -1f), 8),
+            .. Enumerable.Repeat(new Vector3(0f, 1f, 0f), 4),
+        ];
+        Vector2[] spots = [.. places.Select(one => new Vector2((one.X + 400f) / 800f, (one.Y + 400f) / 800f))];
+        int[] indices = [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11];
+        return SkinnedMesh.Of(
+            places, normals, indices, new Vector3(-400f, -400f, -500f), new Vector3(400f, 400f, 0f),
+            spots, [new MeshShape("Water", 0, 6), new MeshShape("Floor", 6, 6), new MeshShape("Wall", 12, 6)]);
+    }
+
     /// <summary>A water quad 750 a side - two triangles - 60 units over a floor triangle of its own shape.</summary>
     private static SkinnedMesh Quads()
     {

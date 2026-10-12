@@ -497,6 +497,12 @@ public sealed partial class ModelGpu : IDisposable
                 context.PSSetShaderResource(ModelShaders.BehindSlot, target.Behind);
             }
 
+            // AND ITS COLOUR, where the water reflects the picture itself - see ScreenReflection.
+            if (light is { WaterReflection: true, WaterScene: true } && Array.Exists(plan.Programs, one => one.HasWaves))
+            {
+                context.PSSetShaderResource(ModelShaders.OpaqueSlot, target.Saw(context));
+            }
+
             var owner = -1;
             var lifted = false;
             for (var at = 0; at < plan.Runs.Length; at++)

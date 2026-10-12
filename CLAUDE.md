@@ -270,8 +270,18 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   (v0.1.223, `SceneLight.WaterLift`, the light panel's "lift", one the engine's height, up to five): a room's water shapes
   are split to edges of 48 (`SkinnedMesh.Refined`, `RoomModels.Watered`, by the blend word "water") and their vertices
   lifted by `Ripples` times the lift - the card's `PlacedWaves`, the processor's `MeshPicture.Lifted`, which also keeps a
-  lifted drawing from `Again`. NOT DONE: the height offset (water.ffx adds it to the surface's displacement), the
-  terrain water colour, screen-space reflections, the refraction's bend, foam.
+  lifted drawing from `Again`. THE SCENE IN THE WATER (v0.1.224, the water row's "scene"): the engine's own screen-space
+  reflection, `CastScreenRay` as written (`ScreenReflection`) - the view turned about the waves' normal and kept above the
+  water's own surface, marched in twenty steps of a fiftieth of the picture over the SOLID part's depth, a hit where a
+  surface lies in front of the ray by under fifty units, its colour the solid part's (the engine's opaque framebuffer:
+  the card copies the solid pass, `ModelTarget.Saw`; the processor draws every band's solid part before any band's water,
+  `Drawing.Reflects`), the cube's share `pow((step + 0.5) / 20, 5)`. READINGS, said under the picture: the dither
+  (`GetBayerNoise16` named, not read - a 4 by 4 Bayer) and the reflected colour's alpha as the cube's share
+  (`ComputeEnvironmentLighting` unread); `water.txt` asks for both sources from v0.1.224. The reflected light is added
+  after the exposure and grade, having been drawn with them. NOT DONE: the height offset (water.ffx adds it to the
+  surface's displacement), the terrain water colour, the refraction's bend, foam - and the waves' own look: the ripple
+  texture and the flow map that drive them are not read, so they look and move otherwise than the game's (said from the
+  live client, v0.1.223).
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

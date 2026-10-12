@@ -27,6 +27,11 @@ public static class CaptureWater
     [
         "PASS_TYPE_WATER", "WaterProps", "InitWaterProps", "BuildWaterRefraction", "BuildWaterWetness",
         "GetTotalWaveSurfaceNumerical", "GetFlowingSurface", "water_color_open", "water_color_terrain", "water_clarity",
+
+        // THE SCREEN'S REFLECTION: how CastScreenRay jitters its steps, and how the environment's light takes
+        // the reflected colour's alpha (ApplyWaterSurfaceLighting's reflected_color) - asked before the
+        // water's reflection of the scene was built, and read from neither file yet.
+        "GetBayerNoise16", "ComputeEnvironmentLighting",
     ];
 
     /// <summary>Most sources written whole.</summary>

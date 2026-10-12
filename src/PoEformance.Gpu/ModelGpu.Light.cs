@@ -86,7 +86,7 @@ public sealed partial class ModelGpu
             CubeTurn = light.CubeTurn,
             SunColour = new Vector4(light.SunColour, light.SunColour != Vector3.Zero ? 1f : 0f),
             SunTravels = new Vector4(light.SunDirection, map is null ? 0f : 1f),
-            ToEye = new Vector4(toEye, 0f),
+            ToEye = new Vector4(toEye, light.WaterReflection && light.WaterScene ? 1f : 0f),
             Surround = new Vector4(light.FlatAmbient, light.CubeBrightness, light.DirectLightEnvRatio, light.GiEnvOcclusion),
             Finish = new Vector4(light.Exposure, light.WaterGlints ? 1f : 0f, light.WaterReflection ? 1f : 0f, mirror?.Size ?? 0),
             CellLeast = new Vector4(cells.Least, cells.Size),
