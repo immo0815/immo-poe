@@ -67,7 +67,9 @@ public static class MaterialBlends
         // pass over the scene, a medium the solid surface behind shows through - and the graph under
         // nvidian_Ocean.mat says BackgroundGBufferSurfaces, which this rule would take for opaque. The
         // word is MonsterModels.Paints's, given a material whose shadertype is Ocean.
-        if (mode.Contains("water", StringComparison.OrdinalIgnoreCase))
+        // THE BEACH'S SHEET IS MIXED TOO, drawn over the solid part by its own pass (ShadeProgram.Beaches) - its graph says
+        // BackgroundGBufferSurfaces as well. The word is RoomModels.Piled's.
+        if (mode.Contains("water", StringComparison.OrdinalIgnoreCase) || mode.Contains("beach", StringComparison.OrdinalIgnoreCase))
         {
             return MaterialBlend.Alpha;
         }

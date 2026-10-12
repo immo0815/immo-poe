@@ -366,12 +366,20 @@ public sealed partial class ShadeProgram
         Discards = steps.Any(one => one.Op == Op.ContactFade || (one.Op == Op.Depth && one.Extra != 0));
         UsesTime = result == Clock || specular == Clock || gloss == Clock || steps.Any(one => one.Reads(Clock));
         Sprays = steps.Any(one => one.Op == Op.Spray);
+        Beaches = steps.Any(one => one.Op == Op.Beach);
     }
 
     /// <summary>
     /// Whether the material draws the sea's spray on itself (CrashingFoamSurface) - the game's own word that the sea breaks on it; see ShoreField.Of.
     /// </summary>
     public bool Sprays { get; }
+
+    /// <summary>
+    /// Whether the program is the engine's beach waves (<see cref="Beach"/>): its vertices move with the waves whatever the light, it is
+    /// drawn over the solid part writing depth as the engine's background surfaces are, and the normal it hands over is its surface's
+    /// for all the light - not the water's waves (<see cref="HasWaves"/>).
+    /// </summary>
+    public bool Beaches { get; }
 
     internal enum Op : byte
     {
@@ -442,6 +450,13 @@ public sealed partial class ShadeProgram
         /// three sheets a byte each and in its top byte the output - see <see cref="Spraying"/> and <see cref="SprayColour"/>.
         /// </summary>
         Spray,
+
+        /// <summary>
+        /// BreakingWavesFragment at A's place, B's clock and the depth the view crosses behind (x and y), over C's shore, mixed with D's
+        /// water colour: Extra holds the three sheets a byte each and in its top byte the output - see <see cref="Beaching"/> and
+        /// <see cref="BeachColour"/>.
+        /// </summary>
+        Beach,
     }
 
     /// <summary>The stages a colour is assembled across, in the order they are run.</summary>
@@ -537,7 +552,7 @@ public sealed partial class ShadeProgram
     /// by - with this one, each where the game light asks for it (SceneLight.WaterGlints and
     /// WaterReflection). The picture's own lamp draws such a program as it drew it before it had one.
     /// </remarks>
-    public bool HasWaves => _waves >= 0;
+    public bool HasWaves => _waves >= 0 && !Beaches;
 
     /// <summary>
     /// The same colour with the glossiness worked out too, for the game's own lighting; null where it is this program.
@@ -1334,6 +1349,10 @@ public sealed partial class ShadeProgram
                 case Op.Spray:
                     r[step.To] = corner >= 0 ? Vector4.Zero : Sprayed(r, step);
                     break;
+
+                case Op.Beach:
+                    r[step.To] = corner >= 0 ? Vector4.Zero : Beached(r, step);
+                    break;
             }
 
             if (step.Splat)
@@ -1580,7 +1599,7 @@ public sealed partial class ShadeProgram
                     b = Mapped(map, b);
                 }
             }
-            else if (step.Op == Op.Spray)
+            else if (step.Op is Op.Spray or Op.Beach)
             {
                 // THREE SHEETS A BYTE EACH, the output's byte above them kept.
                 int sheets = 0;

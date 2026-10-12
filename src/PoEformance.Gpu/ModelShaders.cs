@@ -52,8 +52,14 @@ internal static class ModelShaders
     /// <summary>The slot the swell's cross-section is read from, by the waves' shaders - ShadeHlsl.SwellSlot.</summary>
     public const int SwellSlot = ShadeHlsl.SwellSlot;
 
+    /// <summary>The slot the beach waves' wave shape is read from, by the beach's pixel and vertex shaders - ShadeHlsl.BeachProfileSlot.</summary>
+    public const int BeachProfileSlot = ShadeHlsl.BeachProfileSlot;
+
+    /// <summary>The slot the beach waves' noise is read from - ShadeHlsl.BeachNoiseSlot.</summary>
+    public const int BeachNoiseSlot = ShadeHlsl.BeachNoiseSlot;
+
     /// <summary>The slot a program's first sheet is read from; the rest follow.</summary>
-    public const int FirstSheet = 13;
+    public const int FirstSheet = 15;
 
     /// <summary>
     /// What every shader here shares: the constants, the resources, the vertex shader, and the light - the picture's lamp and the game's.
@@ -724,10 +730,18 @@ internal static class ModelShaders
             corner.position.z -= ShadeWaves(corner.position.xy, Wind, float2(Clock.x, 1.0e9), Shore, Swell).w * Flow.w;
             return Placed(corner);
         }
+
+        // MeshPicture.Beached: the beach's vertices moved by BreakingWavesVertex's own displacement - ShadeProgram.BeachLift at the
+        // vertex's x and y, the area's height offset in Flow.z, added to z.
+        Pixel PlacedBeach(Corner corner)
+        {
+            corner.position.z += ShadeBeachLift(corner.position.xy, Clock.x, Flow.z, Shore);
+            return Placed(corner);
+        }
         """;
 
-    /// <summary>The fixed shaders' source: <see cref="Common"/>, the waves' helpers (ShadeHlsl's) and <see cref="Fixed"/> with <see cref="Lifting"/>.</summary>
-    public static readonly string Model = Common + ShadeHlsl.Library + ShadeHlsl.WavesLibrary + Fixed + Lifting;
+    /// <summary>The fixed shaders' source: <see cref="Common"/>, the waves' and the beach's helpers (ShadeHlsl's) and <see cref="Fixed"/> with <see cref="Lifting"/>.</summary>
+    public static readonly string Model = Common + ShadeHlsl.Library + ShadeHlsl.WavesLibrary + ShadeHlsl.FoamLibrary + ShadeHlsl.BeachLibrary + Fixed + Lifting;
 
     /// <summary>
     /// A program's entry points: MeshPicture.Drawing's solid and mixed passes running it, under the picture's lamp or the game's light.
@@ -840,7 +854,8 @@ internal static class ModelShaders
         // MeshPicture.Drawing.Scened with a program.
         float3 SceneLit(float3 colour, float3 specular, float gloss, float3 place, float3 turn, float3 waves, float4 position)
         {
-            float3 normal = Toward(turn);
+            // THE BEACH'S OWN SURFACE FOR ALL ITS LIGHT - MeshPicture.Drawing.Scened's.
+            float3 normal = Toward(ShadeBeach ? waves : turn);
             float3 albedo = Linear(colour);
             if (ShadeHasSpecular && !ShadeHasGloss)
             {

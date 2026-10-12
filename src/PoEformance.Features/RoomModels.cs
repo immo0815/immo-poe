@@ -506,10 +506,27 @@ public static class RoomModels
             shape => shape < sources.Count && sources[shape].StartsWith(GroundSource, StringComparison.Ordinal),
             shades is null ? null : shape => shape < shades.Count && shades[shape] is { Sprays: true });
 
+    /// <summary>What the beach waves' sheet is named as the source of its shape - see <see cref="Piled"/>.</summary>
+    internal const string BeachSource = "the beach waves' sheet over the shore's ground";
+
+    /// <summary>The beach's sheet's blend word - mixed (MaterialBlend.Of), drawn over the solid part by its program (ShadeProgram.Beaches).</summary>
+    internal const string BeachMode = "beach";
+
     /// <summary>A pile joined into a room's model, with the shaders and meshes of the models in it.</summary>
+    /// <remarks>
+    /// THE ENGINE'S BEACH WAVES join a room with a shore: a sheet over its ground in the shore's band (ShoreField.Beach), wearing
+    /// the engine's own graph (ShadeProgram.BeachGraph) - once, so a stage piling a room that brings its sheet keeps the one.
+    /// </remarks>
     internal static MonsterModel Piled(SkinnedMesh joined, ModelPile pile, string path, IEnumerable<MonsterModel> models)
     {
         MonsterModel[] all = [.. models];
+        ShoreField? shore = ShoreOf(joined, pile.Modes, pile.Sources, null);
+        if (shore is not null && !pile.Sources.Contains(BeachSource, StringComparer.Ordinal) && shore.Beach() is { } sheet)
+        {
+            joined = SkinnedMesh.Joined([new MeshJoin(joined, null, null, null), new MeshJoin(sheet, null, null, null)]);
+            pile.Joined(sheet, BeachMode, ShadeProgram.BeachGraph, BeachSource);
+        }
+
         return new MonsterModel(joined, pile.Skins.FirstOrDefault(one => one is not null), path, string.Empty, string.Empty)
         {
             Skins = pile.Skins,
@@ -523,7 +540,7 @@ public static class RoomModels
 
             // THE SHORE FROM THE ROOM'S OWN WATER AND GROUND - the engine makes its own at run time; see ShoreField. What stands
             // in the sea joins it once the materials are compiled (MonsterModels.Shaded).
-            Shore = ShoreOf(joined, pile.Modes, pile.Sources, null),
+            Shore = shore,
             BodyLeast = joined.Least,
             BodyMost = joined.Most,
             Kind = ModelKind.Room,

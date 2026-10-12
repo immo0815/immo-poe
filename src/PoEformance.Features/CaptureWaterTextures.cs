@@ -118,6 +118,9 @@ public static class CaptureWaterTextures
         {
             WaterLookups.RipplePath,
             WaterLookups.GradientPath,
+
+            // THE BEACH WAVES' NOISE, whose graph binds it beside its wave shape (a profile, above): sixteen bits a channel.
+            WaterLookups.BeachNoisePath,
         };
         paths.UnionWith(WaterLookups.ProfilePaths);
         foreach (string path in (textures ?? []).Concat(named))
@@ -171,7 +174,8 @@ public static class CaptureWaterTextures
             said.AppendLine(line);
         }
 
-        said.Append("now drawn: ").Append(ShadeProgram.Ripples.Said).Append("; ").AppendLine(ShadeProgram.Swells.Said);
+        said.Append("now drawn: ").Append(ShadeProgram.Ripples.Said).Append("; ").Append(ShadeProgram.Swells.Said)
+            .Append("; the beach waves' shape ").Append(ShadeProgram.BeachProfile.Said).Append(", their noise ").AppendLine(ShadeProgram.BeachNoise.Said);
         return string.Create(CultureInfo.InvariantCulture, $"{paths.Count} lookups, {decoded} read as floats - {taken.Summary}");
     }
 

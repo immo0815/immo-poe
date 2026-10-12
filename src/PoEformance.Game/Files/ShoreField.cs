@@ -40,10 +40,14 @@ public sealed class ShoreField
 
     private readonly float[] _texels;
 
+    /// <summary>Each cell's ground where it lies in the beach's band, NaN elsewhere - see <see cref="Beach"/>.</summary>
+    private readonly float[] _beach;
+
     private ShoreField(
         float left, float top, float cell, int width, int height, float[] texels, float level, int land, int waterTriangles, int groundTriangles,
-        int standingTriangles, int standingCells)
+        int standingTriangles, int standingCells, float[] beach)
     {
+        _beach = beach;
         StandingTriangles = standingTriangles;
         StandingCells = standingCells;
         Left = left;
@@ -210,6 +214,15 @@ public sealed class ShoreField
             return null;
         }
 
+        // THE BEACH'S BAND, CHOSEN: the ground from BeachDeep under the water standing over it to BeachHigh above it.
+        var beach = new float[land.Length];
+        for (var at = 0; at < beach.Length; at++)
+        {
+            float surface = float.IsNaN(waterTop[at]) ? level : waterTop[at];
+            float floor = groundTop[at];
+            beach[at] = !float.IsNaN(floor) && floor >= surface - BeachHigh && floor <= surface + BeachDeep ? floor : float.NaN;
+        }
+
         float[] toLand = Distances(land, width, height, true);
         float[] toWater = Distances(land, width, height, false);
         var texels = new float[width * height * 2];
@@ -221,7 +234,106 @@ public sealed class ShoreField
             texels[(at * 2) + 1] = 1f - shore;
         }
 
-        return new ShoreField(least.X, least.Y, cell, width, height, texels, level, lands, waterTriangles, groundTriangles, standingTriangles, standingCells);
+        return new ShoreField(
+            least.X, least.Y, cell, width, height, texels, level, lands, waterTriangles, groundTriangles, standingTriangles, standingCells, beach);
+    }
+
+    /// <summary>How far above the water the beach's sheet reaches, in world units - CHOSEN, so nothing is laid on a pier or a quay.</summary>
+    public const float BeachHigh = 100f;
+
+    /// <summary>How far under the water it reaches - CHOSEN: under so much the sea's own medium covers it whole (95% at Port's density).</summary>
+    public const float BeachDeep = 300f;
+
+    /// <summary>How far above the ground the sheet is laid - CHOSEN, so it passes the depth test over the ground it lies on.</summary>
+    public const float BeachRaise = 4f;
+
+    /// <summary>The most a sheet's square may rise from its lowest corner to its highest - CHOSEN: two cells' height, a beach and not a wall's foot.</summary>
+    public const float BeachStep = 2f * FinestCell;
+
+    /// <summary>
+    /// The sheet the engine's beach waves are drawn on, laid over the room's ground in the beach's band - or null where none of the
+    /// ground lies in it.
+    /// </summary>
+    /// <remarks>
+    /// THE ENGINE MAKES ITS OWN MESH FOR THE BEACH WAVES (BreakingWavesVertex is <c>engineonly</c>, its mesh in no file), lifts its
+    /// vertices by the waves and keeps a fragment only where it does not lie behind the scene (CustomDepthTest) - so it lies over
+    /// the beach, the waves standing up off it and the foam running over the sand. Which mesh is read nowhere, so this one is
+    /// CHOSEN (said from the live client, 2026-10-12, between laying it flat at the water and on the ground): a vertex at every
+    /// cell's middle whose ground lies from <see cref="BeachDeep"/> under the water to <see cref="BeachHigh"/> above it,
+    /// <see cref="BeachRaise"/> over that ground; two triangles to every square of four such cells whose corners rise no more
+    /// than <see cref="BeachStep"/>. Rocks and doodads are not ground, so they stand out of it. Up is minus z.
+    /// </remarks>
+    public SkinnedMesh? Beach()
+    {
+        int width = Width, height = Height;
+        float[] beach = _beach;
+        var at = new int[beach.Length];
+        var positions = new List<Vector3>();
+        var normals = new List<Vector3>();
+        var least = new Vector3(float.MaxValue);
+        var most = new Vector3(float.MinValue);
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                int cell = (y * width) + x;
+                float ground = beach[cell];
+                if (float.IsNaN(ground))
+                {
+                    at[cell] = -1;
+                    continue;
+                }
+
+                // THE GROUND'S SLOPE by the neighbours in the band, central where both are: up is minus z, so (dz/dx, dz/dy, -1).
+                float slopeX = Slope(beach, cell, x > 0 ? cell - 1 : -1, x < width - 1 ? cell + 1 : -1);
+                float slopeY = Slope(beach, cell, y > 0 ? cell - width : -1, y < height - 1 ? cell + width : -1);
+                var place = new Vector3(Left + ((x + 0.5f) * CellSize), Top + ((y + 0.5f) * CellSize), ground - BeachRaise);
+                at[cell] = positions.Count;
+                positions.Add(place);
+                normals.Add(Vector3.Normalize(new Vector3(slopeX / CellSize, slopeY / CellSize, -1f)));
+                least = Vector3.Min(least, place);
+                most = Vector3.Max(most, place);
+            }
+        }
+
+        var indices = new List<int>();
+        for (var y = 0; y < height - 1; y++)
+        {
+            for (var x = 0; x < width - 1; x++)
+            {
+                int a = (y * width) + x, b = a + 1, c = a + width, d = c + 1;
+                if (at[a] < 0 || at[b] < 0 || at[c] < 0 || at[d] < 0)
+                {
+                    continue;
+                }
+
+                float low = MathF.Min(MathF.Min(beach[a], beach[b]), MathF.Min(beach[c], beach[d]));
+                float high = MathF.Max(MathF.Max(beach[a], beach[b]), MathF.Max(beach[c], beach[d]));
+                if (high - low > BeachStep)
+                {
+                    continue;
+                }
+
+                indices.AddRange([at[a], at[b], at[d], at[a], at[d], at[c]]);
+            }
+        }
+
+        if (indices.Count == 0)
+        {
+            return null;
+        }
+
+        return SkinnedMesh.Of([.. positions], [.. normals], [.. indices], least, most, shapes: [new MeshShape("beach", 0, indices.Count)]);
+    }
+
+    /// <summary>The ground's rise a cell along one way, by the neighbours in the band - central where both are, one-sided where one is.</summary>
+    private static float Slope(float[] beach, int cell, int before, int after)
+    {
+        bool hasBefore = before >= 0 && !float.IsNaN(beach[before]), hasAfter = after >= 0 && !float.IsNaN(beach[after]);
+        return hasBefore && hasAfter ? (beach[after] - beach[before]) * 0.5f
+            : hasAfter ? beach[after] - beach[cell]
+            : hasBefore ? beach[cell] - beach[before]
+            : 0f;
     }
 
     /// <summary>The least z of a set of shapes at each cell's middle, NaN where none covers it.</summary>

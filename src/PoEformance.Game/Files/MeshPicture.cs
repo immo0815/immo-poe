@@ -720,6 +720,13 @@ public static class MeshPicture
             places = Lifted(canvas, mesh, places, programs, triangles, lift);
         }
 
+        // THE BEACH WAVES MOVE THEIR VERTICES WHATEVER THE LIGHT, at the engine's own height - see Beached.
+        bool beaching = Array.Exists(programs, one => one.Beaches);
+        if (beaching)
+        {
+            places = Beached(canvas, mesh, places, programs, triangles);
+        }
+
         Sliced(canvas, vertices, (from, upto) =>
         {
             for (int point = from; point < upto; point++)
@@ -823,18 +830,20 @@ public static class MeshPicture
         // the water is lifted: its vertices move with the clock, and Again keeps them where they were.
         SceneLight? scene = canvas.Light;
         bool mirrors = translucent && scene is { WaterReflection: true, WaterScene: true } && Array.Exists(programs, one => one.HasWaves);
-        bool[] ticking = canvas.Keeps && !lifting && !mirrors && Array.Exists(programs, one => one.UsesTime)
+        bool[] ticking = canvas.Keeps && !lifting && !beaching && !mirrors && Array.Exists(programs, one => one.UsesTime)
             ? Array.ConvertAll(programs, one => one.UsesTime)
             : [];
         // THE LIFTED WATER APART, to be drawn as one surface - see Drawing's Surface.
         bool[] surface = lifting && translucent ? Array.ConvertAll(programs, one => one.HasWaves) : [];
-        int clocked = Binned(canvas, triangles, ticking, surface, out int sea);
+        // THE BEACH APART, drawn over the solid part writing depth - see Drawing's Laid.
+        bool[] laid = beaching ? Array.ConvertAll(programs, one => one.Beaches) : [];
+        int clocked = Binned(canvas, triangles, ticking, surface, laid, out int sea, out int beach);
         if (clocked > 0)
         {
             canvas.Keeping();
         }
 
-        if (sea >= 0)
+        if (sea >= 0 || beach >= 0)
         {
             canvas.Surfacing();
         }
@@ -852,6 +861,7 @@ public static class MeshPicture
             Scale = scale,
             Opaque = mirrors ? canvas.Opaque() : null,
             Water = sea,
+            Beach = beach,
         };
         PixelProbe? probe = canvas.Probe is { } asked && asked.X >= 0 && asked.X < size && asked.Y >= 0 && asked.Y < size ? asked : null;
         probe?.Clear();
@@ -912,6 +922,50 @@ public static class MeshPicture
         });
 
         return lifted;
+    }
+
+    /// <summary>
+    /// The places with the beach's vertices moved by its waves - every vertex of a triangle whose program is the beach's (ShadeProgram.Beaches) - in the canvas's own buffer.
+    /// </summary>
+    /// <remarks>
+    /// THE CARD'S PlacedBeach, vertex for vertex: <see cref="ShadeProgram.BeachLift"/> at the vertex's x and y, added to z -
+    /// BreakingWavesVertex's own displacement, the crest's height taken off (up being minus z) and the area's height offset added.
+    /// At the engine's height, not the light's lift: the beach's vertices are the waves' own in the engine as well
+    /// (BreakingWavesVertex), where the sea's are lifted per pixel only.
+    /// </remarks>
+    private static Vector3[] Beached(Canvas canvas, SkinnedMesh mesh, Vector3[] places, ShadeProgram[] programs, int triangles)
+    {
+        int[] indices = mesh.Indices;
+        int[] shadeOf = canvas.Shades;
+        var beach = new bool[places.Length];
+        for (var one = 0; one < triangles; one++)
+        {
+            if (shadeOf[one] >= 0 && programs[shadeOf[one]].Beaches)
+            {
+                beach[indices[one * 3]] = true;
+                beach[indices[(one * 3) + 1]] = true;
+                beach[indices[(one * 3) + 2]] = true;
+            }
+        }
+
+        Vector3[] moved = canvas.Own(places);
+        WaterLook look = canvas.Water;
+        float offset = look.FlowRegister.Z;
+        ShoreField? shore = look.Shore;
+        float time = canvas.Time;
+        Sliced(canvas, beach.Length, (from, upto) =>
+        {
+            for (int point = from; point < upto; point++)
+            {
+                if (beach[point])
+                {
+                    Vector3 at = moved[point];
+                    moved[point] = at with { Z = at.Z + ShadeProgram.BeachLift(new Vector2(at.X, at.Y), time, offset, shore) };
+                }
+            }
+        });
+
+        return moved;
     }
 
     /// <summary>
@@ -1118,6 +1172,9 @@ public static class MeshPicture
         /// <summary>The camera's turn - a ray's way in the picture is its third row's and columns' - see ScreenReflection.</summary>
         public Matrix4x4 View { get; init; } = Matrix4x4.Identity;
 
+        /// <summary>The first of the beach's triangles in the mesh, or -1 - see Drawing's Laid.</summary>
+        public int Beach { get; init; } = -1;
+
         /// <summary>Pixels per world unit across the picture.</summary>
         public float Scale { get; init; } = 1f;
 
@@ -1166,7 +1223,7 @@ public static class MeshPicture
     private const int BandRows = 8;
 
     /// <summary>The bins each band has, one a kind of triangle - see <see cref="Binned"/>.</summary>
-    private const int BinKinds = 4;
+    private const int BinKinds = 5;
 
     /// <summary>How much of a colour a face turned from the lamp keeps: the picture's ambient, on the sRGB value.</summary>
     /// <remarks>Public, with <see cref="Lamp"/> and <see cref="UsualInk"/>, so the graphics card's drawing lights with the same numbers.</remarks>
@@ -1233,13 +1290,16 @@ public static class MeshPicture
     /// with the pixels drawn. Sorted once, a band walks only what reaches it, in the same order, so the
     /// picture is the same to the byte.
     ///
-    /// FOUR KINDS: the solid and cut-out triangles drawn first, the clock's where the canvas keeps (see
+    /// FIVE KINDS: the solid and cut-out triangles drawn first, the clock's where the canvas keeps (see
     /// Again), the translucent ones last - and among those the lifted water's apart, drawn as one surface
-    /// (see Drawing's Surface). A triangle off the picture, too thin to have an area, or shadow-only is in none.
+    /// (see Drawing's Surface) - and the beach's, drawn over the solid part (see Drawing's Laid). A triangle
+    /// off the picture, too thin to have an area, or shadow-only is in none.
     /// </remarks>
     /// <param name="surface">Which programs are the lifted water's, by their place in the drawing's list - empty where nothing is lifted.</param>
+    /// <param name="laid">Which programs are the beach's, likewise - empty where there is no beach.</param>
     /// <param name="water">The first of the lifted water's triangles in the mesh, or -1 for none.</param>
-    private static int Binned(Canvas canvas, int triangles, bool[] ticking, bool[] surface, out int water)
+    /// <param name="beach">The first of the beach's triangles in the mesh, or -1 for none.</param>
+    private static int Binned(Canvas canvas, int triangles, bool[] ticking, bool[] surface, bool[] laid, out int water, out int beach)
     {
         int bands = Bands(canvas.Size);
         canvas.Binning(triangles, bands, ticking.Length > 0);
@@ -1253,6 +1313,7 @@ public static class MeshPicture
 
         var clocked = 0;
         water = -1;
+        beach = -1;
         for (var one = 0; one < triangles; one++)
         {
             byte kind;
@@ -1260,6 +1321,14 @@ public static class MeshPicture
             if (tops[one] > feet[one] || blend == MaterialBlend.ShadowOnly)
             {
                 kind = 0;
+            }
+            else if (blend == MaterialBlend.Alpha && laid.Length > 0 && shades[one] >= 0 && laid[shades[one]])
+            {
+                kind = 5;
+                if (beach < 0)
+                {
+                    beach = one;
+                }
             }
             else if (blend == MaterialBlend.Alpha && surface.Length > 0 && shades[one] >= 0 && surface[shades[one]])
             {
@@ -1631,6 +1700,9 @@ public static class MeshPicture
 
         /// <summary>The first of the lifted water's triangles in the mesh, or -1 - see <see cref="Surface"/>.</summary>
         private readonly int _surfaceFrom;
+
+        /// <summary>Whether the drawing has a beach - see <see cref="Laid"/>.</summary>
+        private readonly bool _beach;
         private readonly float[] _waterNear;
         private readonly int[] _waterWinners;
 
@@ -1672,6 +1744,7 @@ public static class MeshPicture
             _binEntries = canvas.BinEntries;
             _bands = Bands(canvas.Size);
             _surfaceFrom = drawn.Water;
+            _beach = drawn.Beach >= 0;
             _waterNear = canvas.WaterNear;
             _waterWinners = canvas.WaterWinners;
             _pixels = canvas.Pixels;
@@ -1737,6 +1810,10 @@ public static class MeshPicture
                 }
 
                 Pass(2, band, top, end, counts);
+                if (_beach)
+                {
+                    Laid(band, top, end, counts);
+                }
             }
 
             if (_translucent && phase != 1)
@@ -1763,7 +1840,7 @@ public static class MeshPicture
                 int one = _binEntries[at];
                 if (surface && one > _surfaceFrom)
                 {
-                    Surface(band, top, end, counts);
+                    Surface(3, band, top, end, counts);
                     surface = false;
                 }
 
@@ -1772,9 +1849,20 @@ public static class MeshPicture
 
             if (surface)
             {
-                Surface(band, top, end, counts);
+                Surface(3, band, top, end, counts);
             }
         }
+
+        /// <summary>The beach's triangles that reach the band, as one surface over the solid part, each pixel's nearest crossing writing its depth.</summary>
+        /// <remarks>
+        /// THE ENGINE'S BACKGROUND SURFACES. BreakingOceanWaves.fxgraph is drawn into the engine's background GBuffer
+        /// (BackgroundGBufferSurfaces) behind a depth test of its own (CustomDepthTest), before the water pass - so the sea measures
+        /// its depth to the beach's surface, a crest standing out of the water hides the sea behind it, and the scene the water
+        /// reflects holds it. So it is drawn here after the solid part and before anything translucent, blended over what lies
+        /// under it as any mixed shape is, and writing its depth. A height field seen low folds over itself as the lifted sea does,
+        /// so its nearest crossing alone is drawn, as <see cref="Surface"/> draws the sea's.
+        /// </remarks>
+        private void Laid(int band, int top, int end, int[]? counts) => Surface(4, band, top, end, counts, laid: true);
 
         /// <summary>The lifted water's triangles that reach the band, as one surface: only its nearest crossing of each pixel is drawn.</summary>
         /// <remarks>
@@ -1791,9 +1879,15 @@ public static class MeshPicture
         /// crest folding over its neighbour's trough at their seam as over its own. The first walk asks nothing but depth, so the
         /// waves' colour and light, most of a water pixel's cost, are worked out once a pixel.
         /// </remarks>
-        private void Surface(int band, int top, int end, int[]? counts)
+        /// <param name="row">The bins' row: three for the lifted sea's, four for the beach's.</param>
+        /// <param name="band">Which band, from the top.</param>
+        /// <param name="top">The band's first row.</param>
+        /// <param name="end">The row after its last.</param>
+        /// <param name="counts">This thread's counts of how the translucent shapes came out, or null.</param>
+        /// <param name="laid">True for the beach, whose crossing writes its depth - see <see cref="Laid"/>.</param>
+        private void Surface(int row, int band, int top, int end, int[]? counts, bool laid = false)
         {
-            int bin = (3 * _bands) + band;
+            int bin = (row * _bands) + band;
             int from = _binStarts[bin], upto = _binStarts[bin + 1];
             if (from == upto)
             {
@@ -1812,7 +1906,7 @@ public static class MeshPicture
             for (int at = from; at < upto; at++)
             {
                 int one = _binEntries[at];
-                Rasterise(one, Math.Max(_tops[one], top), Math.Min(_feet[one], end - 1), counts, surface: true);
+                Rasterise(one, Math.Max(_tops[one], top), Math.Min(_feet[one], end - 1), counts, surface: true, laid);
             }
         }
 
@@ -1889,7 +1983,8 @@ public static class MeshPicture
         }
 
         /// <param name="surface">True for the lifted water, drawn only where <see cref="Nearest"/> found it nearest - see <see cref="Surface"/>.</param>
-        private void Rasterise(int one, int top, int foot, int[]? counts, bool surface = false)
+        /// <param name="laid">True for the beach, which writes its depth where it is drawn - see <see cref="Laid"/>.</param>
+        private void Rasterise(int one, int top, int foot, int[]? counts, bool surface = false, bool laid = false)
         {
             int i0 = _indices[one * 3];
             int i1 = _indices[(one * 3) + 1];
@@ -2076,6 +2171,10 @@ public static class MeshPicture
                                 ? Scened(program, mixed, mixedSpecular, mixedGloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), mixedWaves, x, y, away)
                                 : Lit(program, mixed, mixedSpecular, mixedGloss, (first * f0) + (second * f1) + (third * f2));
                             Over(at, blend, new Vector4(lit, cover));
+                            if (laid)
+                            {
+                                _depth[at] = away;
+                            }
                             if (here)
                             {
                                 _probe!.Add(new ProbeFragment(one, blend == MaterialBlend.Additive ? Seen.Added : Seen.Mixed, away, held, cover));
@@ -2246,6 +2345,13 @@ public static class MeshPicture
             ShadeProgram? program, Vector3 colour, Vector3 specular, float gloss, Vector3 place, Vector3 turn, Vector3 waves = default,
             int x = 0, int y = 0, float away = 0f)
         {
+            // THE BEACH'S OWN SURFACE FOR ALL ITS LIGHT, the normal its program hands over (ShadeProgram.Beaches) - not the water's waves.
+            if (program is { Beaches: true })
+            {
+                turn = waves;
+                waves = default;
+            }
+
             Vector3 normal = turn.LengthSquared() > 1e-12f ? Vector3.Normalize(turn) : _toEye;
             if (Vector3.Dot(normal, _toEye) < 0f)
             {

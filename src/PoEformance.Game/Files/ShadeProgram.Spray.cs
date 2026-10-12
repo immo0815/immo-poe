@@ -251,31 +251,14 @@ public sealed partial class ShadeProgram
     }
 
     /// <summary>
-    /// The engine's hash33Stable of a number spread to all three: its bits through PCG's three rounds (hash33UintPcg), each as a
-    /// float over the largest uint - which a float rounds to 2^32.
+    /// The engine's hash33Stable of a number spread to all three - see <see cref="HashStable(Vector3)"/>.
     /// </summary>
-    internal static Vector3 HashStable(float value)
-    {
-        uint x = BitConverter.SingleToUInt32Bits(value), y = x, z = x;
-        unchecked
-        {
-            x = (x * 1664525u) + 1013904223u;
-            y = (y * 1664525u) + 1013904223u;
-            z = (z * 1664525u) + 1013904223u;
-            x += y * z;
-            y += z * x;
-            z += x * y;
-            x ^= x >> 16;
-            y ^= y >> 16;
-            z ^= z >> 16;
-            x += y * z;
-            y += z * x;
-            z += x * y;
-        }
-
-        const float scale = 1f / 4294967296f;
-        return new Vector3((float)x * scale, (float)y * scale, (float)z * scale);
-    }
+    /// <remarks>
+    /// HashUToF, NOT A DIVISION BY THE LARGEST UINT: the fragments' hashes declaration (water.ffx) makes each a fraction of its top
+    /// 23 bits; util.hlsl's <c>float3(h) / ~0u</c> is the engine's .hlsl files', not the graphs'. v0.1.234 to v0.1.241 divided - a
+    /// difference of at most 2^-23.
+    /// </remarks>
+    public static Vector3 HashStable(float value) => HashStable(new Vector3(value));
 
     /// <summary>math_utils' RampNorm.</summary>
     internal static float RampNorm(float value, float center)

@@ -150,6 +150,52 @@ public static class CapturePanes
             .Append(CultureInfo.InvariantCulture,
                 $"the shore's distance {least:0.###} to {most:0.###} colour units, one being {ShoreField.Reach:0} - CHOSEN, the engine makes its own; picture {picture}, ")
             .AppendLine("row nought the least y, land brown by how far in, water blue by how far out, the shoreline white");
+        Beach(body, model);
+    }
+
+    /// <summary>
+    /// The beach waves' sheet: what it was laid over and how much of it there is, what its program came to, and what it reads - every
+    /// number CHOSEN or taken said beside it.
+    /// </summary>
+    private static void Beach(StringBuilder body, MonsterModel model)
+    {
+        int shape = -1;
+        for (var one = 0; one < model.ShapeSources.Count && one < model.Mesh.Shapes.Count; one++)
+        {
+            if (model.ShapeSources[one] == RoomModels.BeachSource)
+            {
+                shape = one;
+                break;
+            }
+        }
+
+        if (shape < 0)
+        {
+            body.Append(CultureInfo.InvariantCulture,
+                $"  beach	none - no ground of the room lies from {ShoreField.BeachDeep:0} under the water to {ShoreField.BeachHigh:0} above it").AppendLine();
+            return;
+        }
+
+        MeshShape sheet = model.Mesh.Shapes[shape];
+        var least = new Vector3(float.MaxValue);
+        var most = new Vector3(float.MinValue);
+        for (int at = sheet.From; at < sheet.From + sheet.Count && at < model.Mesh.Indices.Length; at++)
+        {
+            Vector3 place = model.Mesh.Positions[model.Mesh.Indices[at]];
+            least = Vector3.Min(least, place);
+            most = Vector3.Max(most, place);
+        }
+
+        ShadeProgram? program = shape < model.Shades.Count ? model.Shades[shape] : null;
+        body.Append(CultureInfo.InvariantCulture,
+                $"  beach	{sheet.Count / 3} triangles over the ground from ({least.X:0}, {least.Y:0}, {least.Z:0}) to ({most.X:0}, {most.Y:0}, {most.Z:0}), ")
+            .Append(CultureInfo.InvariantCulture,
+                $"laid {ShoreField.BeachRaise:0} over the ground where it lies from {ShoreField.BeachDeep:0} under the water to {ShoreField.BeachHigh:0} above it, no square rising past {ShoreField.BeachStep:0} - CHOSEN; ")
+            .Append(CultureInfo.InvariantCulture,
+                $"wearing {ShadeProgram.BeachGraph}: {(program is { Beaches: true } ? "drawn as the engine's beach waves" : "NOT DRAWN - its program did not compile or bind")}; ")
+            .Append(CultureInfo.InvariantCulture,
+                $"the shore's travel distance {ShadeProgram.BeachTravelShift:0} less than the field's, CHOSEN; its wave shape {ShadeProgram.BeachProfile.Said}, its noise {ShadeProgram.BeachNoise.Said}")
+            .AppendLine();
     }
 
     /// <summary>Each pane's shore as a picture, for the capture to write beside the part - named as its line names it.</summary>

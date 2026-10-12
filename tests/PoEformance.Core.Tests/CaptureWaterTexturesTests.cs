@@ -25,7 +25,7 @@ public sealed class CaptureWaterTexturesTests
                 .ReplaceLineEndings("\n");
 
             Assert.StartsWith(
-                "4 textures name the water, 3 read, 1 at the ripple's 128 square, 2 decoded; 3 strings in the program name them; 5 lookups, 0 read as floats - ",
+                "4 textures name the water, 3 read, 1 at the ripple's 128 square, 2 decoded; 3 strings in the program name them; 6 lookups, 0 read as floats - ",
                 text, StringComparison.Ordinal);
             Assert.Empty(lookups);
 
@@ -74,8 +74,8 @@ public sealed class CaptureWaterTexturesTests
                     out _, out IReadOnlyList<WaterLookupFile> lookups)
                 .ReplaceLineEndings("\n");
 
-            // EVERY LOOKUP the walk or the program names, and those the water reads, once each - the program's prefix cut off.
-            Assert.Contains("; 6 lookups, 4 read as floats - the ripples over the engine's ripple texture (surface_ripple.dds); the swell's cross-section the engine's (wave_profile.dds,", text, StringComparison.Ordinal);
+            // EVERY LOOKUP the walk or the program names, and those the water and the beach waves read, once each - the program's prefix cut off.
+            Assert.Contains("; 7 lookups, 4 read as floats - the ripples over the engine's ripple texture (surface_ripple.dds); the swell's cross-section the engine's (wave_profile.dds,", text, StringComparison.Ordinal);
             Assert.Contains("\nArt/2DArt/Lookup/noise_curl3.dds: not in the install\n", text, StringComparison.Ordinal);
             Assert.Contains("  read as 128 x 128, Direct3D format 116 (A32B32G32R32F)\n", text, StringComparison.Ordinal);
             Assert.Contains("  written whole: water-lookup-surface_ripple.dds\n", text, StringComparison.Ordinal);

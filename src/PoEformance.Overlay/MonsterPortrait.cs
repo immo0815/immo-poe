@@ -531,6 +531,9 @@ public sealed class MonsterPortrait
     /// <summary>Whether the model wears the engine's water anywhere - see ShadeProgram.Water - so the picture says what water it is drawn with.</summary>
     private bool _wearsWater;
 
+    /// <summary>Whether the model carries the engine's beach waves' sheet - see ShadeProgram.Beaches.</summary>
+    private bool _wearsBeach;
+
     /// <summary>The water line under the picture and the water it was written for - rewritten only when that changes.</summary>
     private string _waterSaid = string.Empty;
 
@@ -2138,7 +2141,16 @@ public sealed class MonsterPortrait
                     + " panel's water switches - the scene reflected by the engine's screen ray, its dither a 4 by 4 Bayer, a reading - and the surface"
                     + " lifted by them times its lift - which the engine does per pixel only - and, lifted, drawn as one surface whose"
                     + " nearest crossing of each pixel alone shows, DECIDED"
-                    + (water.HeightOffset != 0f ? "; its height offset not applied - it moves the beach and flood waves alone)" : ")"));
+                    + (water.HeightOffset != 0f ? "; its height offset not applied - it moves the beach and flood waves alone)" : ")")
+                    + (_wearsBeach
+                        ? "; the beach waves the engine's (BreakingWavesVertex and BreakingWavesFragment as written, BreakingOceanWaves.fxgraph's mix):"
+                          + " crests rolling in and breaking at the waterline, their foam running up the sand - over "
+                          + ShadeProgram.BeachProfile.Said + ", " + ShadeProgram.BeachNoise.Said + "; on a sheet over the ground from "
+                          + ShoreField.BeachDeep.ToString(CultureInfo.InvariantCulture) + " under the water to " + ShoreField.BeachHigh.ToString(CultureInfo.InvariantCulture) + " above it, the rocks standing"
+                          + " out of it, at the engine's own height (" + water.HeightOffset.ToString("0.##", CultureInfo.InvariantCulture) + " the area's offset), the sea measuring its depth to"
+                          + " it - the sheet, the shore's distances (its travel half a wave less, so the waves break at the waterline) and the film's"
+                          + " colour (the area's water) CHOSEN; its refraction, caustics, wet sand and spray not drawn"
+                        : string.Empty));
             }
 
             _status.Add(_waterSaid);
@@ -2705,6 +2717,7 @@ public sealed class MonsterPortrait
         _stage = _model.StageSaid.Length > 0 ? ImGuiText.Escape(_model.StageSaid) : string.Empty;
         _stageMove = _model.StageMove.Length > 0 ? "the stage's own lines: " + ImGuiText.Escape(_model.StageMove) : string.Empty;
         _wearsWater = _model.Shades.Any(one => one is not null && one.Graphs.Contains(ShadeProgram.WaterGraph));
+        _wearsBeach = _model.Shades.Any(one => one is { Beaches: true });
 
         _shaders = ShowShaders && _model.Shaders.Count > 0
             ? "shaders: " + ImGuiText.Escape(string.Join(", ", _model.Shaders.Select(Tail)))

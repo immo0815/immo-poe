@@ -46,14 +46,42 @@ public sealed class WaterLookups
     /// <summary>The least correlation, either way round, of a slope with its height's differences for a lookup to be taken.</summary>
     public const double Agreement = 0.8;
 
-    private WaterLookups(WaterSheet? ripples, WaterSheet? swells, string rippleSaid, string swellSaid, IReadOnlyList<string> lines)
+    /// <summary>
+    /// The beach waves' wave shape - <c>wave_shape_precomp_tex</c> of BreakingWavesVertex and BreakingWavesFragment, as
+    /// BreakingOceanWaves.fxgraph binds it (its InputTexture 6).
+    /// </summary>
+    /// <remarks>
+    /// NAMED BY THE GRAPH, NOT TOLD APART BY ITS TEXELS as the swell's are: the graph writes the path into the input that feeds the
+    /// node (the capture's water textures part, v0.1.241). Its red is the crest's sideways offset and its green its height
+    /// (GetGerstnerPositiveProfile), read at the wave's coordinate and its break phase, held at the edges.
+    /// </remarks>
+    public const string BeachProfilePath = "Art/2DArt/Lookup/gerstner_positive_wave_profile.dds";
+
+    /// <summary>The beach waves' noise - <c>wave_coord_noise_tex</c>, BreakingOceanWaves.fxgraph's InputTexture 18, R16G16_UNORM.</summary>
+    public const string BeachNoisePath = "Art/particles/FXLib/tileables/16bit/flow_muddle_blur_01_R16G16.dds";
+
+    private WaterLookups(
+        WaterSheet? ripples, WaterSheet? swells, string rippleSaid, string swellSaid, IReadOnlyList<string> lines,
+        WaterSheet? beachProfile, WaterSheet? beachNoise, string beachSaid)
     {
         Ripples = ripples;
         Swells = swells;
         RippleSaid = rippleSaid;
         SwellSaid = swellSaid;
         Lines = lines;
+        BeachProfile = beachProfile;
+        BeachNoise = beachNoise;
+        BeachSaid = beachSaid;
     }
+
+    /// <summary>The engine's beach wave shape, four floats a texel, or null where it is not taken.</summary>
+    public WaterSheet? BeachProfile { get; }
+
+    /// <summary>The engine's beach wave noise, four floats a texel - its red and green - or null where it is not taken.</summary>
+    public WaterSheet? BeachNoise { get; }
+
+    /// <summary>What the beach waves are drawn over: the engine's two lookups, or which stands in and why.</summary>
+    public string BeachSaid { get; }
 
     /// <summary>What the ripples are drawn over: the engine's texture, or the stand-in and why.</summary>
     public string RippleSaid { get; }
@@ -68,7 +96,7 @@ public sealed class WaterLookups
     public WaterSheet? Swells { get; }
 
     /// <summary>One line: what is taken, and what is not and why.</summary>
-    public string Summary => RippleSaid + "; " + SwellSaid;
+    public string Summary => RippleSaid + "; " + SwellSaid + "; " + BeachSaid;
 
     /// <summary>Every file read, its format, its channels and its checks - the capture's lines.</summary>
     public IReadOnlyList<string> Lines { get; }
@@ -80,14 +108,46 @@ public sealed class WaterLookups
         {
             return new WaterLookups(
                 null, null, "the ripples over a noise of this tool's - no install", "the swell's cross-section a trochoid of this tool's - no install",
-                ["no install to read the engine's water lookups from"]);
+                ["no install to read the engine's water lookups from"], null, null, "the beach waves stand flat - no install");
         }
 
         var lines = new List<string>();
         WaterSheet? ripples = RipplesOf(Picture(read, RipplePath, lines), lines, out string rippleSaid);
         FloatPicture? gradient = Picture(read, GradientPath, lines);
-        WaterSheet? swells = SwellsOf(read, gradient, lines, out string swellSaid);
-        return new WaterLookups(ripples, swells, rippleSaid, swellSaid, lines);
+        var decoded = new Dictionary<string, FloatPicture>(StringComparer.Ordinal);
+        WaterSheet? swells = SwellsOf(read, gradient, lines, decoded, out string swellSaid);
+        WaterSheet? beachProfile = Whole(
+            decoded.TryGetValue(BeachProfilePath, out FloatPicture? profile) ? profile : Picture(read, BeachProfilePath, lines), lines, "beach wave shape");
+        WaterSheet? beachNoise = Whole(Picture(read, BeachNoisePath, lines), lines, "beach wave noise");
+        string beachSaid = (beachProfile, beachNoise) switch
+        {
+            ({ }, { }) => "the beach waves over the engine's wave shape and noise (gerstner_positive_wave_profile.dds, flow_muddle_blur_01_R16G16.dds)",
+            (null, { }) => "the beach waves stand flat - the engine's wave shape did not read",
+            ({ }, null) => "the beach waves over the engine's wave shape, their noise a half - the engine's noise did not read",
+            _ => "the beach waves stand flat, their noise a half - neither of the engine's lookups read",
+        };
+        lines.Add("beach waves: " + beachSaid);
+        return new WaterLookups(ripples, swells, rippleSaid, swellSaid, lines, beachProfile, beachNoise, beachSaid);
+    }
+
+    /// <summary>
+    /// A lookup the graph binds by path, taken as it reads where every texel is a number - nothing to tell it apart from, so nothing else is checked.
+    /// </summary>
+    private static WaterSheet? Whole(FloatPicture? picture, List<string> lines, string what)
+    {
+        if (picture is null)
+        {
+            return null;
+        }
+
+        if (!Finite(picture.Texels))
+        {
+            lines.Add($"  not taken as the {what}: it holds a number that is none");
+            return null;
+        }
+
+        lines.Add($"  TAKEN as the {what}");
+        return new WaterSheet(picture.Width, picture.Height, 4, picture.Texels, true, what);
     }
 
     /// <summary>A lookup decoded, its format and channels said - or null, with why.</summary>
@@ -177,7 +237,8 @@ public sealed class WaterLookups
     }
 
     /// <summary>The swell's cross-section: the profile whose red's differences along its width go with the gradient's red, and that gradient.</summary>
-    private static WaterSheet? SwellsOf(Func<string, byte[]?> read, FloatPicture? gradient, List<string> lines, out string said)
+    private static WaterSheet? SwellsOf(
+        Func<string, byte[]?> read, FloatPicture? gradient, List<string> lines, Dictionary<string, FloatPicture> decoded, out string said)
     {
         const string standIn = "the swell's cross-section a trochoid of this tool's";
         if (gradient is null || !Finite(gradient.Texels))
@@ -196,6 +257,8 @@ public sealed class WaterLookups
             {
                 continue;
             }
+
+            decoded[path] = profile;
 
             if (!Finite(profile.Texels))
             {

@@ -112,6 +112,13 @@ public sealed partial class ModelGpu : IDisposable
     private readonly bool _owns;
     private readonly ID3D11VertexShader _placed;
     private readonly ID3D11VertexShader _placedWaves;
+    private readonly ID3D11VertexShader _placedBeach;
+    private ID3D11Texture2D _beachProfile;
+    private ID3D11ShaderResourceView _beachProfiled;
+    private WaterSheet _beachProfileOf;
+    private ID3D11Texture2D _beachNoise;
+    private ID3D11ShaderResourceView _beachNoised;
+    private WaterSheet _beachNoiseOf;
     private ID3D11Texture2D _ripples;
     private ID3D11ShaderResourceView _rippled;
     private WaterSheet _ripplesOf;
@@ -171,6 +178,11 @@ public sealed partial class ModelGpu : IDisposable
         _owns = owns;
         _placed = compiled.Placed;
         _placedWaves = compiled.PlacedWaves;
+        _placedBeach = compiled.PlacedBeach;
+        _beachProfileOf = ShadeProgram.BeachProfile;
+        (_beachProfile, _beachProfiled) = Sheet(device, _beachProfileOf, Format.R32G32B32A32_Float);
+        _beachNoiseOf = ShadeProgram.BeachNoise;
+        (_beachNoise, _beachNoised) = Sheet(device, _beachNoiseOf, Format.R32G32B32A32_Float);
         _ripplesOf = ShadeProgram.Ripples;
         (_ripples, _rippled) = Sheet(device, _ripplesOf, Format.R32G32B32A32_Float);
         _swellsOf = ShadeProgram.Swells;
@@ -533,6 +545,10 @@ public sealed partial class ModelGpu : IDisposable
         context.VSSetShaderResource(ModelShaders.RippleSlot, _rippled);
         context.PSSetShaderResource(ModelShaders.SwellSlot, _swelled);
         context.VSSetShaderResource(ModelShaders.SwellSlot, _swelled);
+        context.PSSetShaderResource(ModelShaders.BeachProfileSlot, _beachProfiled);
+        context.VSSetShaderResource(ModelShaders.BeachProfileSlot, _beachProfiled);
+        context.PSSetShaderResource(ModelShaders.BeachNoiseSlot, _beachNoised);
+        context.VSSetShaderResource(ModelShaders.BeachNoiseSlot, _beachNoised);
         ID3D11ShaderResourceView? shoreView = scene.Water?.Shore is { } shore ? Shored(shore).View : null;
         context.PSSetShaderResource(ModelShaders.ShoreSlot, shoreView!);
         context.VSSetShaderResource(ModelShaders.ShoreSlot, shoreView!);
@@ -568,6 +584,12 @@ public sealed partial class ModelGpu : IDisposable
             }
         }
 
+        // THE BEACH OVER THE SOLID PART, writing its depth - see Laid.
+        if (Array.Exists(plan.Runs, one => Beach(one, plan)))
+        {
+            Laid(context, target, plan, shaders, ref current);
+        }
+
         if (plan.Translucent)
         {
             // THE SOLID DEPTH, KEPT, for a ground layer to measure itself against - see ModelTarget.Behind.
@@ -593,7 +615,7 @@ public sealed partial class ModelGpu : IDisposable
             for (var at = 0; at < plan.Runs.Length; at++)
             {
                 Run run = plan.Runs[at];
-                if (run.Blend is not (MaterialBlend.Alpha or MaterialBlend.Additive))
+                if (run.Blend is not (MaterialBlend.Alpha or MaterialBlend.Additive) || Beach(run, plan))
                 {
                     continue;
                 }
@@ -649,6 +671,61 @@ public sealed partial class ModelGpu : IDisposable
         Forget();
         why = string.Empty;
         return true;
+    }
+
+    /// <summary>Whether a run is the beach's - drawn over the solid part (MeshPicture.Drawing's Laid).</summary>
+    private static bool Beach(Run run, Plan plan) => run.Blend == MaterialBlend.Alpha && run.Shade >= 0 && plan.Programs[run.Shade].Beaches;
+
+    /// <summary>
+    /// The beach's runs over the solid part, as one surface whose nearest crossing writes its depth - MeshPicture.Drawing's Laid, on the card.
+    /// </summary>
+    /// <remarks>
+    /// THE SOLID DEPTH KEPT FIRST (ModelTarget.Behind), for the film to measure its path to; then the walk that draws no colour
+    /// writes the nearest crossing into the depth, every run is drawn where its fragment is that crossing, once a pixel by the
+    /// stencil - and the depth is left as it is, the beach's, for what is drawn after it to test against and the sea to measure
+    /// to once the translucent pass keeps the depth again.
+    /// </remarks>
+    private void Laid(ID3D11DeviceContext context, ModelTarget target, Plan plan, ID3D11PixelShader?[] shaders, ref ID3D11PixelShader? current)
+    {
+        target.Kept(context);
+        context.PSSetShaderResource(ModelShaders.BehindSlot, target.Behind);
+        context.VSSetShader(_placedBeach);
+        context.PSSetShader((ID3D11PixelShader)null!);
+        current = null;
+        context.OMSetBlendState(_unseen);
+        context.OMSetDepthStencilState(_writes);
+        for (var at = 0; at < plan.Runs.Length; at++)
+        {
+            Run run = plan.Runs[at];
+            if (Beach(run, plan))
+            {
+                context.DrawIndexed(run.Count * 3, run.First * 3, 0);
+            }
+        }
+
+        context.ClearDepthStencilView(target.Depth, DepthStencilClearFlags.Stencil, 1f, 0);
+        context.OMSetDepthStencilState(_surfaced, 1);
+        context.OMSetBlendState(_mixes);
+        for (var at = 0; at < plan.Runs.Length; at++)
+        {
+            Run run = plan.Runs[at];
+            if (!Beach(run, plan))
+            {
+                continue;
+            }
+
+            ID3D11PixelShader shader = shaders[at] ?? _mixed;
+            if (!ReferenceEquals(shader, current))
+            {
+                context.PSSetShader(shader);
+                current = shader;
+            }
+
+            Drawn(run, plan);
+        }
+
+        context.ClearDepthStencilView(target.Depth, DepthStencilClearFlags.Stencil, 1f, 0);
+        context.VSSetShader(_placed);
     }
 
     /// <summary>Whether a run is the lifted water's - drawn as one surface where the light lifts it (MeshPicture.Drawing's Surface).</summary>
@@ -797,6 +874,11 @@ public sealed partial class ModelGpu : IDisposable
 
         _shores.Clear();
         _placedWaves.Dispose();
+        _placedBeach.Dispose();
+        _beachProfiled.Dispose();
+        _beachProfile.Dispose();
+        _beachNoised.Dispose();
+        _beachNoise.Dispose();
         _placed.Dispose();
         if (_owns)
         {
@@ -987,6 +1069,7 @@ public sealed partial class ModelGpu : IDisposable
             (ModelShaders.Model, "Away", "ps_4_0"),
             (ModelShaders.Resolve, "Whole", "vs_4_0"),
             (ModelShaders.Resolve, "Straight", "ps_4_0"),
+            (ModelShaders.Model, "PlacedBeach", "vs_4_0"),
         ];
 
         var blobs = new Blob?[wanted.Length];
@@ -1021,7 +1104,8 @@ public sealed partial class ModelGpu : IDisposable
                 device.CreatePixelShader(blobs[7]!),
                 device.CreateVertexShader(blobs[8]!),
                 device.CreatePixelShader(blobs[9]!),
-                device.CreateInputLayout(corners, blobs[0]!));
+                device.CreateInputLayout(corners, blobs[0]!),
+                device.CreateVertexShader(blobs[10]!));
         }
         finally
         {
@@ -1064,7 +1148,8 @@ public sealed partial class ModelGpu : IDisposable
         ID3D11PixelShader Away,
         ID3D11VertexShader Whole,
         ID3D11PixelShader Straight,
-        ID3D11InputLayout Layout)
+        ID3D11InputLayout Layout,
+        ID3D11VertexShader PlacedBeach)
     {
         /// <summary>One entry point compiled, or null and the compiler's words.</summary>
         public static Blob? Code(string source, string entry, string profile, out string why)
@@ -1477,6 +1562,24 @@ public sealed partial class ModelGpu : IDisposable
             _swells.Dispose();
             (_swells, _swelled) = Sheet(_device, swells, Format.R32G32B32A32_Float);
             _swellsOf = swells;
+        }
+
+        WaterSheet profile = ShadeProgram.BeachProfile;
+        if (!ReferenceEquals(profile, _beachProfileOf))
+        {
+            _beachProfiled.Dispose();
+            _beachProfile.Dispose();
+            (_beachProfile, _beachProfiled) = Sheet(_device, profile, Format.R32G32B32A32_Float);
+            _beachProfileOf = profile;
+        }
+
+        WaterSheet noise = ShadeProgram.BeachNoise;
+        if (!ReferenceEquals(noise, _beachNoiseOf))
+        {
+            _beachNoised.Dispose();
+            _beachNoise.Dispose();
+            (_beachNoise, _beachNoised) = Sheet(_device, noise, Format.R32G32B32A32_Float);
+            _beachNoiseOf = noise;
         }
     }
 

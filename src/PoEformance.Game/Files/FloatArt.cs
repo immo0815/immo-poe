@@ -81,8 +81,8 @@ public static class FloatArt
         return new FloatPicture(picture.Width, picture.Height, texels, srgb ? "bytes, sRGB undone" : "bytes over 255");
     }
 
-    /// <summary>A float format: its name, how many channels it holds and how wide each is in bytes.</summary>
-    private sealed record Layout(string Name, int Channels, int Width);
+    /// <summary>A float format: its name, how many channels it holds and how wide each is in bytes - and whether two bytes are a fraction of 65,535 rather than a half.</summary>
+    private sealed record Layout(string Name, int Channels, int Width, bool Unorm = false);
 
     /// <summary>The old Direct3D float formats, by number - D3DFMT_R16F to D3DFMT_A32B32G32R32F, red first in memory.</summary>
     private static Layout? Legacy(uint code) => code switch
@@ -96,16 +96,25 @@ public static class FloatArt
         _ => null,
     };
 
-    /// <summary>DXGI's float formats, by number.</summary>
+    /// <summary>
+    /// DXGI's float formats, by number - and its sixteen-bit fractions, which a byte a channel would cut to a 256th.
+    /// </summary>
+    /// <remarks>
+    /// THE BEACH WAVES' NOISE IS ONE: <c>flow_muddle_blur_01_R16G16.dds</c>, DXGI 35, whose slope the engine takes by differences
+    /// a hundredth of the texture apart (GetStationaryNoiseField) - five texels, where a byte's steps would stand as stairs.
+    /// </remarks>
     private static Layout? Dxgi(uint format) => format switch
     {
         2 => new Layout("R32G32B32A32_FLOAT", 4, 4),
         6 => new Layout("R32G32B32_FLOAT", 3, 4),
         10 => new Layout("R16G16B16A16_FLOAT", 4, 2),
+        11 => new Layout("R16G16B16A16_UNORM", 4, 2, Unorm: true),
         16 => new Layout("R32G32_FLOAT", 2, 4),
         34 => new Layout("R16G16_FLOAT", 2, 2),
+        35 => new Layout("R16G16_UNORM", 2, 2, Unorm: true),
         41 => new Layout("R32_FLOAT", 1, 4),
         54 => new Layout("R16_FLOAT", 1, 2),
+        56 => new Layout("R16_UNORM", 1, 2, Unorm: true),
         _ => null,
     };
 
@@ -130,9 +139,11 @@ public static class FloatArt
             for (var channel = 0; channel < layout.Channels; channel++)
             {
                 ReadOnlySpan<byte> bytes = one.Slice(channel * layout.Width, layout.Width);
-                texels[at + channel] = layout.Width == 2
-                    ? (float)BinaryPrimitives.ReadHalfLittleEndian(bytes)
-                    : BinaryPrimitives.ReadSingleLittleEndian(bytes);
+                texels[at + channel] = layout.Unorm
+                    ? BinaryPrimitives.ReadUInt16LittleEndian(bytes) / 65535f
+                    : layout.Width == 2
+                        ? (float)BinaryPrimitives.ReadHalfLittleEndian(bytes)
+                        : BinaryPrimitives.ReadSingleLittleEndian(bytes);
             }
         }
 
