@@ -93,6 +93,9 @@ public static class CaptureReport
     /// <summary>What the water is drawn from - see CaptureWater.</summary>
     public const string WaterFile = "water.txt";
 
+    /// <summary>Where the engine's ripple texture may be - see CaptureWaterTextures.</summary>
+    public const string WaterTexturesFile = "water-textures.txt";
+
     /// <summary>The terrain's second cell grid against the walkable one - see CaptureLandscape.</summary>
     public const string LandscapeFile = "landscape.txt";
 

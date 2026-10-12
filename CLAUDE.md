@@ -285,7 +285,10 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   after the exposure and grade, having been drawn with them. NOT DONE: the height offset (water.ffx adds it to the
   surface's displacement), the terrain water colour, the refraction's bend, foam - and the waves' own look: the ripple
   texture's texels and the flow map that drive them are not read, so they look and move otherwise than the game's (said from the
-  live client, v0.1.223).
+  live client, v0.1.223). `water-textures.txt` (`CaptureWaterTextures`, v0.1.227) looks for the texture: every install
+  texture whose path names the water (the startup walk keeps only those, `WalkPlace.Words`) with its size and format, those
+  128 square marked, the likeliest decoded channel by channel beside it, and the game program's own strings naming one -
+  read it before the stand-in's texels are replaced.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
