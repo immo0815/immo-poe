@@ -125,6 +125,50 @@ public class ShotPictureTests
     }
 
     [Fact]
+    public void THEREACHKeepsTheSheetNearSomewhereToStand()
+    {
+        // One column of floor and a chasm forty cells wide beyond it. A reach of ten cells keeps the chasm's first ten
+        // and the rest of the block of two the tenth falls in - a block is the reach's grain - and drops everything past.
+        var rows = new string[4];
+        Array.Fill(rows, "." + new string('~', 39));
+        TerrainGrid grid = Grid(rows);
+
+        ShotPlan all = TerrainOutline.Shots(grid, 2048, isoHeightShift: false);
+        ShotPlan near = TerrainOutline.Shots(grid, 2048, isoHeightShift: false, reachCells: 10);
+
+        Assert.Equal(all.Cells, near.Cells);
+        for (int y = 0; y < 4; y++)
+        {
+            Assert.All(Enumerable.Range(1, 39), x => Assert.Equal(255, all.Coverage[(y * 40) + x]));
+            Assert.All(Enumerable.Range(1, 11), x => Assert.Equal(255, near.Coverage[(y * 40) + x]));
+            Assert.All(Enumerable.Range(12, 28), x => Assert.Equal(0, near.Coverage[(y * 40) + x]));
+        }
+    }
+
+    [Fact]
+    public void THEREACHIsMeasuredFromTheFloorAsDrawn()
+    {
+        // The lifted chasm of the test above, cut to the eight cells beside its raised floor: they are still drawn where
+        // the floor is drawn, ten cells down the diagonal - the reach does not undo the lift.
+        const int cells = TerrainGrid.CellsPerTile;
+        var rows = new string[cells];
+        Array.Fill(rows, new string('.', cells) + new string('~', cells));
+        (byte[] walkable, byte[] shots, int stride) = Pack(rows);
+        float perCell = 2f * MapView.HeightToGrid;
+        var grid = new TerrainGrid(
+            walkable, stride, cells, 2, 1, TerrainHeightField.Tiles([-10 * perCell, 30 * perCell], 2, 1), shots: shots);
+
+        ShotPlan plan = TerrainOutline.Shots(grid, 2048, isoHeightShift: true, reachCells: 8);
+
+        for (int y = 0; y < cells - 10; y++)
+        {
+            int row = (y + 10) * plan.Width;
+            Assert.Equal(255, plan.Coverage[row + cells + 10]);
+            Assert.Equal(0, plan.Coverage[row + cells + 10 + 12]);
+        }
+    }
+
+    [Fact]
     public void ASHEETIsWhiteAndAsSolidAsItsCoverage()
     {
         TerrainPicture picture = TerrainPicture.Sheet([0, 128, 255], 3, 1);

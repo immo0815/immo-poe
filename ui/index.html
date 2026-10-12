@@ -123,10 +123,16 @@
         <input type="range" id="ov-shots-opacity" min="0" max="100" step="5" value="30">
         <span id="ov-shots-opacity-value" class="dim">30 %</span>
       </div>
+      <div class="cfg-row">
+        <label for="ov-shots-reach">Reach</label>
+        <input type="range" id="ov-shots-reach" min="0" max="3000" step="50" value="0">
+        <span id="ov-shots-reach-value" class="dim">no limit</span>
+      </div>
       <p class="dim">The ground a projectile crosses and nobody can stand on — chasms, abysses,
         the foot of a wall — from the game's own projectile grid beside the walkable one. Walls
-        stop both and stay clear. Over an abyss most of the map is such ground, so keep it light.
-        Projectiles: <span id="ov-shots-state">–</span></p>
+        stop both and stay clear. Over an abyss most of the map is such ground: the reach keeps the
+        sheet to what lies within that many world units of somewhere to stand (about 1000 is a
+        screen; 0 is no limit). Projectiles: <span id="ov-shots-state">–</span></p>
     </section>
 
     <!--

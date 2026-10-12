@@ -3995,6 +3995,7 @@ internal static class Program
                     overlayHandle.Overlay is PoEformance.Overlay.EntityOverlay faded
                         ? (int)Math.Round((faded.ShotsColourInUse >> 24) * 100 / 255.0)
                         : overlay.ShotsOpacity,
+                    overlay.ShotsReach,
                     DescribeShots(overlayHandle)),
                 Map: BuildMapView(snapshot, overlay.MinLootRarity),
 
@@ -4223,6 +4224,7 @@ internal static class Program
                             PoEformance.Features.OverlaySettings.ParseColour(overlay.TerrainFillColour),
                             overlay.TerrainFillOpacity);
                         live.ShowShots = overlay.ShowShots;
+                        live.ShotsReach = overlay.ShotsReach;
                         live.ChooseShotStyle(
                             PoEformance.Features.OverlaySettings.ParseColour(overlay.ShotsColour),
                             overlay.ShotsOpacity);
