@@ -363,10 +363,10 @@ public sealed class SceneLight
     /// </summary>
     /// <remarks>
     /// NOT THE ENGINE'S, and said so under the picture: its ocean planes are flat meshes, and the waves
-    /// raise the surface only per pixel (GetFlowingSurface meets the view with the plane lifted by the
-    /// height there); only the beach, crashing and flood waves move their vertices (BreakingWavesVertex and
+    /// raise the surface only per pixel (GetTotalWaveSurfaceNumerical meets the view with the plane lifted by
+    /// the height there); only the beach, crashing and flood waves move their vertices (BreakingWavesVertex and
     /// its kin). The game's camera never looks along the water, the book's does, so here a water shape's
-    /// vertices are lifted by <see cref="ShadeProgram.Ripples"/> times this - one being the engine's own
+    /// vertices are lifted by <see cref="ShadeProgram.Ocean"/> times this - one being the engine's own
     /// height - on a mesh fine enough to carry them (SkinnedMesh.Refined).
     /// </remarks>
     public float WaterLift { get; init; }

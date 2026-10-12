@@ -75,6 +75,8 @@ public static class CapturePanes
                 body.Append("  stage's own lines\t").AppendLine(model.StageMove);
             }
 
+            Shore(body, model, panes.Count > 1 ? $"shore-{pane.Book}.png" : ShoreFile);
+
             if (model.DoodadFiles.Count == 0)
             {
                 continue;
@@ -113,6 +115,73 @@ public static class CapturePanes
             .AppendLine();
         said.Append(body);
         return said.ToString();
+    }
+
+    /// <summary>The picture of a pane's shore beside the part - see <see cref="ShorePictures"/>.</summary>
+    public const string ShoreFile = "shore.png";
+
+    /// <summary>
+    /// The shore the room's swell rolls in to, as made (ShoreField, CHOSEN): what it was made from and what came of it - and where its picture lies.
+    /// </summary>
+    private static void Shore(StringBuilder body, MonsterModel model, string picture)
+    {
+        if (model.Shore is not { } shore)
+        {
+            if (model.Kind == ModelKind.Room || model.Stage.Length > 0)
+            {
+                body.AppendLine("  shore\tnone - no water, or no ground standing over it: the swell is not drawn and the ripples run whole");
+            }
+
+            return;
+        }
+
+        float least = float.MaxValue, most = float.MinValue;
+        ReadOnlySpan<float> texels = shore.Texels;
+        for (var at = 0; at < texels.Length; at += 2)
+        {
+            least = MathF.Min(least, texels[at]);
+            most = MathF.Max(most, texels[at]);
+        }
+
+        body.Append(CultureInfo.InvariantCulture,
+            $"  shore\tmade from {shore.WaterTriangles} water and {shore.GroundTriangles} ground triangles against a water level of {shore.Level:0.#}: ")
+            .Append(CultureInfo.InvariantCulture,
+                $"{shore.Width} x {shore.Height} cells of {shore.CellSize:0.#} from ({shore.Left:0}, {shore.Top:0}), {shore.LandCells} land; ")
+            .Append(CultureInfo.InvariantCulture,
+                $"the shore's distance {least:0.###} to {most:0.###} colour units, one being {ShoreField.Reach:0} - CHOSEN, the engine makes its own; picture {picture}, ")
+            .AppendLine("row nought the least y, land brown by how far in, water blue by how far out, the shoreline white");
+    }
+
+    /// <summary>Each pane's shore as a picture, for the capture to write beside the part - named as its line names it.</summary>
+    public static IReadOnlyList<(string File, GamePicture Picture)> ShorePictures(IReadOnlyList<CapturePane> panes)
+    {
+        ArgumentNullException.ThrowIfNull(panes);
+        var pictures = new List<(string, GamePicture)>();
+        foreach (CapturePane pane in panes)
+        {
+            if (pane.Model.Shore is not { } shore)
+            {
+                continue;
+            }
+
+            ReadOnlySpan<float> texels = shore.Texels;
+            var rgba = new byte[shore.Width * shore.Height * 4];
+            for (var at = 0; at < shore.Width * shore.Height; at++)
+            {
+                float distance = texels[at * 2];
+                (byte r, byte g, byte b) = MathF.Abs(distance) < 0.01f ? ((byte)255, (byte)255, (byte)255)
+                    : distance < 0f ? ((byte)(90 + (120 * -distance)), (byte)(60 + (60 * -distance)), (byte)30)
+                    : ((byte)20, (byte)(60 + (100 * (1f - distance))), (byte)(110 + (145 * (1f - distance))));
+                rgba[at * 4] = r;
+                rgba[(at * 4) + 1] = g;
+                rgba[(at * 4) + 2] = b;
+                rgba[(at * 4) + 3] = 255;
+            }
+
+            pictures.Add((panes.Count > 1 ? $"shore-{pane.Book}.png" : ShoreFile, new GamePicture(shore.Width, shore.Height, rgba)));
+        }
+
+        return pictures;
     }
 
     /// <summary>

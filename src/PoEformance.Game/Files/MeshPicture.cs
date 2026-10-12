@@ -849,8 +849,8 @@ public static class MeshPicture
     /// The places with the water's vertices lifted by its waves - every vertex of a triangle whose program has them (ShadeProgram.HasWaves) - in the canvas's own buffer.
     /// </summary>
     /// <remarks>
-    /// THE CARD'S PlacedWaves, vertex for vertex: <see cref="ShadeProgram.Ripples"/> at the vertex's x and y,
-    /// drifting at the area's flow, times the lift, taken off z - up being minus z. Never into the mesh's
+    /// THE CARD'S PlacedWaves, vertex for vertex: <see cref="ShadeProgram.Ocean"/> at the vertex's x and y,
+    /// in the area's wind, times the lift, taken off z - up being minus z. Never into the mesh's
     /// own array: the next drawing would start from a lifted sea.
     /// </remarks>
     private static Vector3[] Lifted(Canvas canvas, SkinnedMesh mesh, Vector3[] places, ShadeProgram[] programs, int triangles, float lift)
@@ -869,7 +869,9 @@ public static class MeshPicture
         }
 
         Vector3[] lifted = canvas.Own(places);
-        Vector2 drift = canvas.Water.FlowIntensity * ShadeProgram.WaveDrift;
+        WaterLook look = canvas.Water;
+        Vector4 wind = look.WindRegister, swell = look.SwellRegister;
+        ShoreField? shore = look.Shore;
         float time = canvas.Time;
         Sliced(canvas, water.Length, (from, upto) =>
         {
@@ -878,7 +880,7 @@ public static class MeshPicture
                 if (water[point])
                 {
                     Vector3 at = lifted[point];
-                    lifted[point] = at with { Z = at.Z - (ShadeProgram.Ripples(new Vector2(at.X, at.Y), drift, time, out _) * lift) };
+                    lifted[point] = at with { Z = at.Z - (ShadeProgram.Ocean(new Vector2(at.X, at.Y), wind, swell, time, shore, out _) * lift) };
                 }
             }
         });

@@ -53,6 +53,13 @@ public class WaterTests
         Assert.Equal(MathF.Pow(0.19043f, 2.2f), vale.ColourRegister.X, 5);
         Assert.Equal(0.035f, vale.ColourRegister.W);
         Assert.Equal(WaterLook.EngineDefault, WaterLook.Of(null));
+
+        // THE OCEAN'S WIND: Port sets none, so its ripples are the engine's former constants; Blank Sea's file sets all four.
+        Assert.Equal(new Vector4(0f, 0.1f * 4f * 4f / 1.5f, 1f, 1f), port.WindRegister);
+        WaterLook sea = WaterLook.Of(EnvironmentSettings.Read("sea.env", Encoding.UTF8.GetBytes(
+            """{ "water": { "directionness": 0.748, "wind_direction_angle": -2.44346, "wind_intensity": 0.822, "wind_speed": 0.75099 } }""")));
+        Assert.Equal(new Vector4(-2.44346f, 0.822f, 0.75099f, 0.748f), sea.WindRegister);
+        Assert.Equal("directionness, wind's way, wind's strength, wind's speed from the file, the rest the engine's default", sea.Said);
     }
 
     /// <summary>The water program reads the depth behind and the clock, covers by its own alpha, and carries no texture.</summary>
@@ -166,22 +173,29 @@ public class WaterTests
         Assert.InRange(highest, 0.7f, 1f);
     }
 
+    /// <summary>The engine's former constants, Blank Sea's file and Yaochi's - three winds as the areas set them.</summary>
+    private static readonly Vector4[] Winds =
+    [
+        WaterLook.EngineDefault.WindRegister,
+        new(-2.44346f, 0.822f, 0.75099f, 0.748f),
+        new(3.14159f, 4f, 0.5f, 0f),
+    ];
+
     /// <summary>
-    /// The waves' slope is their height's own over the texture's texels: the texels' slope mixed, as the engine mixes it, agrees with the height's differences a few units apart everywhere it is asked.
+    /// The ocean's slope is its height's own over the texture's texels: the texels' slope mixed, as the engine mixes it, agrees with the height's differences a texel apart everywhere it is asked.
     /// </summary>
     /// <remarks>
     /// Not to the bit: a linear read's height is flat-sided between texel centres while its mixed slope is not, so the two part by
     /// a little inside a texel - the engine's own surface does the same - and the differences are taken across a finest texel.
     /// </remarks>
     [Fact]
-    public void THEWAVESSlopeIsTheirHeightsOwn()
+    public void THEOCEANSSlopeIsItsHeightsOwn()
     {
-        const float h = 1.5f;
-        Vector2[] drifts = [Vector2.Zero, ShadeProgram.WaveDrift * 1.5f, new(-40f, 90f)];
+        const float h = 1f;
         float[] clocks = [0f, 0.7f, 2.9f, 13.25f];
         double errors = 0, slopes = 0;
         var checkedOnes = 0;
-        foreach (Vector2 drift in drifts)
+        foreach (Vector4 wind in Winds)
         {
             foreach (float clock in clocks)
             {
@@ -189,9 +203,9 @@ public class WaterTests
                 {
                     for (var y = -700f; y <= 700f; y += 151f)
                     {
-                        ShadeProgram.Ripples(new Vector2(x, y), drift, clock, out Vector2 slope);
-                        float dx = (ShadeProgram.Ripples(new Vector2(x + h, y), drift, clock, out _) - ShadeProgram.Ripples(new Vector2(x - h, y), drift, clock, out _)) / (2f * h);
-                        float dy = (ShadeProgram.Ripples(new Vector2(x, y + h), drift, clock, out _) - ShadeProgram.Ripples(new Vector2(x, y - h), drift, clock, out _)) / (2f * h);
+                        ShadeProgram.Ocean(new Vector2(x, y), wind, Swell, clock, null, out Vector2 slope);
+                        float dx = (ShadeProgram.Ocean(new Vector2(x + h, y), wind, Swell, clock, null, out _) - ShadeProgram.Ocean(new Vector2(x - h, y), wind, Swell, clock, null, out _)) / (2f * h);
+                        float dy = (ShadeProgram.Ocean(new Vector2(x, y + h), wind, Swell, clock, null, out _) - ShadeProgram.Ocean(new Vector2(x, y - h), wind, Swell, clock, null, out _)) / (2f * h);
                         errors += ((slope.X - dx) * (slope.X - dx)) + ((slope.Y - dy) * (slope.Y - dy));
                         slopes += (slope.X * slope.X) + (slope.Y * slope.Y);
                         checkedOnes++;
@@ -202,29 +216,193 @@ public class WaterTests
 
         Assert.True(checkedOnes > 1000);
         double share = Math.Sqrt(errors / slopes);
-        Assert.True(share < 0.15, $"the slope parts from the differences by {share:P1}");
+        Assert.True(share < 0.2, $"the slope parts from the differences by {share:P1}");
     }
 
-    /// <summary>The waves move with the clock even where nothing drifts - the engine's octaves fade in and out - and they lean, so the light sees them.</summary>
+    /// <summary>
+    /// The ocean's ripples roll on steadily and never start over: from frame to frame at sixty a second they change by about the same everywhere, for half a minute - the river's octaves slid and faded back to their start every one and a half to three seconds, which read as a short film looped.
+    /// </summary>
     [Fact]
-    public void THEWAVESMoveWithTheClockAndLean()
+    public void THEOCEANSRipplesRollOnWithoutStartingOver()
     {
-        var place = new Vector2(310f, -145f);
-        float still = ShadeProgram.Ripples(place, Vector2.Zero, 0.3f, out _);
-        Assert.NotEqual(still, ShadeProgram.Ripples(place, Vector2.Zero, 1.1f, out _));
-        Assert.NotEqual(
-            ShadeProgram.Ripples(place, ShadeProgram.WaveDrift * 1.5f, 1.1f, out _),
-            ShadeProgram.Ripples(place, Vector2.Zero, 1.1f, out _));
+        const float frame = 1f / 60f;
+        Vector2[] places = [new(310f, -145f), new(-820f, 433f), new(57f, 1290f)];
+        foreach (Vector4 wind in Winds)
+        {
+            foreach (Vector2 place in places)
+            {
+                float was = ShadeProgram.Ocean(place, wind, Swell, 0f, null, out _);
+                double sum = 0;
+                float most = 0f;
+                const int frames = 30 * 60;
+                for (var one = 1; one <= frames; one++)
+                {
+                    float now = ShadeProgram.Ocean(place, wind, Swell, one * frame, null, out _);
+                    float change = MathF.Abs(now - was);
+                    sum += change;
+                    most = MathF.Max(most, change);
+                    was = now;
+                }
 
+                double mean = sum / frames;
+                Assert.True(mean > 1e-4, $"{wind} at {place}: the ripples stand still");
+                Assert.True(most < mean * 8, $"{wind} at {place}: a frame jumps by {most} where they change by {mean:0.####} on average");
+            }
+        }
+    }
+
+    /// <summary>The ripples lean, so the light sees them - a few degrees under the engine's former constants, steep enough for a glint to move about, not a choppy sea.</summary>
+    [Fact]
+    public void THEOCEANSRipplesLean()
+    {
         float steepest = 0f;
         for (var x = 0f; x < 2000f; x += 25f)
         {
-            ShadeProgram.Ripples(new Vector2(x, x * 0.37f), ShadeProgram.WaveDrift * 1.5f, 4f, out Vector2 slope);
+            ShadeProgram.Ocean(new Vector2(x, x * 0.37f), WaterLook.EngineDefault.WindRegister, Swell, 4f, null, out Vector2 slope);
             steepest = MathF.Max(steepest, slope.Length());
         }
 
-        // A FEW DEGREES AT PORT'S FLOW: steep enough for a glint to move about, not a choppy sea.
-        Assert.InRange(steepest, 0.01f, 0.5f);
+        Assert.InRange(steepest, 0.02f, 0.6f);
+    }
+
+    /// <summary>The ocean's swell where a file sets none.</summary>
+    private static readonly Vector4 Swell = WaterLook.EngineDefault.SwellRegister;
+
+    /// <summary>No wind: the ripples stand at nought, so what moves is the swell alone.</summary>
+    private static readonly Vector4 Still = new(0f, 0f, 1f, 1f);
+
+    /// <summary>
+    /// A bay: water 6,000 across at nought over a sea floor 300 down, and a quay 100 up along x from 1,000 on - the shore a line at x = 1,000, the open sea towards minus x. Up is minus z.
+    /// </summary>
+    private static SkinnedMesh Bay()
+    {
+        Vector3[] places =
+        [
+            new(-3000f, -3000f, 0f), new(3000f, -3000f, 0f), new(3000f, 3000f, 0f), new(-3000f, 3000f, 0f),
+            new(-3000f, -3000f, 300f), new(1000f, -3000f, 300f), new(1000f, 3000f, 300f), new(-3000f, 3000f, 300f),
+            new(1000f, -3000f, -100f), new(3000f, -3000f, -100f), new(3000f, 3000f, -100f), new(1000f, 3000f, -100f),
+        ];
+        var normals = new Vector3[places.Length];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+        int[] indices = [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11];
+        return SkinnedMesh.Of(
+            places, normals, indices, new Vector3(-3000f, -3000f, -100f), new Vector3(3000f, 3000f, 300f),
+            [.. places.Select(one => new Vector2(one.X, one.Y))],
+            [new MeshShape("Water", 0, 6), new MeshShape("Sea floor", 6, 6), new MeshShape("Quay", 12, 6)]);
+    }
+
+    private static ShoreField BayShore()
+    {
+        ShoreField? shore = ShoreField.Of(Bay(), shape => shape == 0, shape => shape > 0);
+        Assert.NotNull(shore);
+        return shore;
+    }
+
+    /// <summary>
+    /// A room's shore is made from its own ground and water: nought at the quay's edge, a colour unit 2,000 out to sea, negative on the quay, and the distance out to sea one less - the swell rolls in square to the shore.
+    /// </summary>
+    [Fact]
+    public void AROOMSShoreIsItsGroundOverItsWater()
+    {
+        ShoreField shore = BayShore();
+        shore.At(new Vector2(-1000f, 0f), out float far, out float farOcean);
+        shore.At(new Vector2(990f, 0f), out float edge, out _);
+        shore.At(new Vector2(1500f, 0f), out float quay, out _);
+        Assert.InRange(far, 0.95f, 1.05f);
+        Assert.Equal(1f - far, farOcean, 4);
+        Assert.InRange(edge, -0.02f, 0.03f);
+        Assert.InRange(quay, -0.3f, -0.2f);
+
+        // THE SLOPE OUT TO SEA AS THE ENGINE TAKES IT, negated: the distance out to sea grows towards the shore, plus x.
+        shore.Fields(new Vector2(0f, 0f), out _, out _, out Vector2 slope);
+        Assert.True(slope.X < 0f && MathF.Abs(slope.Y) < 1e-5f, $"slope {slope}");
+
+        // NO SHORE WITHOUT LAND, AND NONE WITHOUT WATER.
+        Assert.Null(ShoreField.Of(Bay(), shape => shape == 0, shape => shape == 1));
+        Assert.Null(ShoreField.Of(Bay(), shape => false, shape => true));
+    }
+
+    /// <summary>The swell's crests roll in to the shore - the nearest crest to a place moves towards the quay as the clock runs.</summary>
+    [Fact]
+    public void THESWELLRollsInToTheShore()
+    {
+        ShoreField shore = BayShore();
+        float Crest(float clock, float near)
+        {
+            float best = near, highest = float.MinValue;
+            for (float x = near - 200f; x <= near + 200f; x += 2f)
+            {
+                float height = ShadeProgram.Ocean(new Vector2(x, 0f), Still, Swell, clock, shore, out _);
+                if (height > highest)
+                {
+                    highest = height;
+                    best = x;
+                }
+            }
+
+            return best;
+        }
+
+        float crest = Crest(3f, -500f);
+        for (var step = 1; step <= 10; step++)
+        {
+            float next = Crest(3f + (step * 0.1f), crest);
+            Assert.True(next > crest, $"at {3f + (step * 0.1f)} s the crest at {crest} went to {next}");
+            crest = next;
+        }
+
+        // AND IT STANDS: as high as the engine's height, nought over the open sea's half.
+        float lowest = float.MaxValue, highest = float.MinValue;
+        for (float x = -1500f; x <= 0f; x += 5f)
+        {
+            float height = ShadeProgram.Ocean(new Vector2(x, 0f), Still, Swell, 3f, shore, out _);
+            lowest = MathF.Min(lowest, height);
+            highest = MathF.Max(highest, height);
+        }
+
+        Assert.InRange(highest - lowest, 0.4f * Swell.X, 1.01f * Swell.X);
+    }
+
+    /// <summary>The ripples thin to nothing at the shoreline, as the engine's shallowRippleMult has them, and the swell's slope is its height's own.</summary>
+    [Fact]
+    public void THERIPPLESThinAtTheShoreAndTheSwellsSlopeIsItsOwn()
+    {
+        ShoreField shore = BayShore();
+        Vector4 wind = WaterLook.EngineDefault.WindRegister;
+        var flat = new Vector4(0f, Swell.Y, Swell.Z, 0f);
+        float Spread(float x)
+        {
+            float lowest = float.MaxValue, highest = float.MinValue;
+            for (float y = -1000f; y <= 1000f; y += 7f)
+            {
+                float height = ShadeProgram.Ocean(new Vector2(x, y), wind, flat, 2f, shore, out _);
+                lowest = MathF.Min(lowest, height);
+                highest = MathF.Max(highest, height);
+            }
+
+            return highest - lowest;
+        }
+
+        Assert.True(Spread(990f) < 0.2f * Spread(-1000f), $"at the shore {Spread(990f)}, out at sea {Spread(-1000f)}");
+
+        const float h = 1f;
+        double errors = 0, slopes = 0;
+        foreach (float clock in new[] { 0.5f, 3f, 11.7f })
+        {
+            for (var x = -1400f; x <= 900f; x += 37f)
+            {
+                var place = new Vector2(x, 13f);
+                ShadeProgram.Ocean(place, Still, Swell, clock, shore, out Vector2 slope);
+                float dx = (ShadeProgram.Ocean(place + new Vector2(h, 0f), Still, Swell, clock, shore, out _)
+                    - ShadeProgram.Ocean(place - new Vector2(h, 0f), Still, Swell, clock, shore, out _)) / (2f * h);
+                errors += (slope.X - dx) * (slope.X - dx);
+                slopes += slope.X * slope.X;
+            }
+        }
+
+        // NOT TO THE BIT: the engine's own slope leaves out the shore's slowing and the crest's sharpening, which the height has.
+        double share = Math.Sqrt(errors / slopes);
+        Assert.True(share < 0.35, $"the swell's slope parts from the differences by {share:P1}");
     }
 
     /// <summary>The water carries a glossy twin with the waves - its specular the area's reflectiveness, its gloss the engine's - and only the twin reads them.</summary>
@@ -252,11 +430,12 @@ public class WaterTests
 
         string wavy = ShadeHlsl.Of(waves, 9);
         Assert.Contains("static const bool ShadeHasWaves = true;", wavy, StringComparison.Ordinal);
-        Assert.Contains("float4 ShadeWaves(float2 place, float2 drift, float clock)", wavy, StringComparison.Ordinal);
+        Assert.Contains("float4 ShadeWaves(float2 place, float4 wind, float clock, float4 shore, float4 swell)", wavy, StringComparison.Ordinal);
         Assert.Contains("said.waves = r", wavy, StringComparison.Ordinal);
 
-        // THE TURNS ARE THE PROCESSOR'S NUMBERS, to the bit.
-        Assert.Contains(ShadeHlsl.Number(MathF.Cos(0.5f)), wavy, StringComparison.Ordinal);
+        // THE ENGINE'S STEADY SCROLL, as the processor writes it - no phase that wraps.
+        Assert.Contains("float qy = (place.x * m01) + (place.y * m11) - (time * 1.5 * shift);", wavy, StringComparison.Ordinal);
+        Assert.DoesNotContain("floor(phase)", wavy, StringComparison.Ordinal);
     }
 
     /// <summary>An area's reflectiveness is its file's where it sets one, the engine's 0.03 where not, and reaches the program in the flow's y.</summary>

@@ -809,7 +809,8 @@ public sealed class MonsterPortrait
     /// <remarks>See ShadeProgram.Water: an Ocean material is drawn as the area's water, whose file sets it or leaves the engine's default.</remarks>
     public Func<WaterLook>? SceneWater { get; set; }
 
-    private WaterLook Watered() => SceneWater?.Invoke() ?? WaterLook.EngineDefault;
+    /// <summary>The area's water, over the room's own shore where the model is a room that has one - see ShoreField.</summary>
+    private WaterLook Watered() => (SceneWater?.Invoke() ?? WaterLook.EngineDefault) with { Shore = _model.Shore };
 
     private WaterLook _drawnWater = WaterLook.EngineDefault;
 
@@ -2133,11 +2134,14 @@ public sealed class MonsterPortrait
             if (_waterSaid.Length == 0 || water != _waterSaidFor)
             {
                 _waterSaidFor = water;
-                _waterSaid = ImGuiText.Escape(water.Line() + " (its colour's pattern a moving noise; its waves the engine's eight octaves over a noise of"
-                    + " this tool's - the engine's ripple texture unread - drifting the pattern's way, which is chosen; their glints and reflection under"
-                    + " the game light, by the light panel's water switches - the scene reflected by the engine's screen ray, its dither a 4 by 4 Bayer, a"
-                    + " reading - and the surface lifted by them times its lift - which the engine does per pixel only"
-                    + (water.HeightOffset != 0f ? "; its height offset not applied - the planes stand where the tile puts them)" : ")"));
+                _waterSaid = ImGuiText.Escape(water.Line() + " (its colour's pattern a moving noise; its waves the engine's ocean ripples, three octaves"
+                    + " rolling in the wind over a noise of this tool's - the engine's ripple texture unread; the wind's way, height, speed and"
+                    + " directionness the engine's former constants where the file sets none, a reading until measured, its way turned by the light"
+                    + " panel's wind; the swell rolling in to the shore the engine's formula over a shore made here from the room's ground and a"
+                    + " cross-section chosen, both CHOSEN until the engine's are read, its foam not drawn; their glints and reflection under the game light, by the light"
+                    + " panel's water switches - the scene reflected by the engine's screen ray, its dither a 4 by 4 Bayer, a reading - and the surface"
+                    + " lifted by them times its lift - which the engine does per pixel only"
+                    + (water.HeightOffset != 0f ? "; its height offset not applied - it moves the beach and flood waves alone)" : ")"));
             }
 
             _status.Add(_waterSaid);

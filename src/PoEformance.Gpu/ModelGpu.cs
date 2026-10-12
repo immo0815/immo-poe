@@ -114,6 +114,9 @@ public sealed partial class ModelGpu : IDisposable
     private readonly ID3D11VertexShader _placedWaves;
     private readonly ID3D11Texture2D _ripples;
     private readonly ID3D11ShaderResourceView _rippled;
+    private readonly ID3D11Texture2D _swells;
+    private readonly ID3D11ShaderResourceView _swelled;
+    private readonly Dictionary<ShoreField, ShoreTexture> _shores = new(ReferenceEqualityComparer.Instance);
     private readonly ID3D11PixelShader _solid;
     private readonly ID3D11PixelShader _mixed;
     private readonly ID3D11PixelShader _added;
@@ -165,6 +168,7 @@ public sealed partial class ModelGpu : IDisposable
         _placed = compiled.Placed;
         _placedWaves = compiled.PlacedWaves;
         (_ripples, _rippled) = Ripples(device);
+        (_swells, _swelled) = Swells(device);
         _solid = compiled.Solid;
         _mixed = compiled.Mixed;
         _added = compiled.Added;
@@ -489,6 +493,9 @@ public sealed partial class ModelGpu : IDisposable
             Dust = new Vector4(scene.Dust ?? EnvironmentSettings.AssumedDust, 0f),
             Water = (scene.Water ?? WaterLook.EngineDefault).ColourRegister,
             Flow = (scene.Water ?? WaterLook.EngineDefault).FlowRegister with { W = lift },
+            Wind = (scene.Water ?? WaterLook.EngineDefault).WindRegister,
+            Shore = (scene.Water ?? WaterLook.EngineDefault).ShoreRegister,
+            Swell = (scene.Water ?? WaterLook.EngineDefault).SwellRegister,
         });
 
         context.RSSetState(_raster);
@@ -505,9 +512,14 @@ public sealed partial class ModelGpu : IDisposable
         context.PSSetSampler(0, scene.Sharp ? _sharp : _wrap);
         context.PSSetShaderResource(1, _tables.View);
 
-        // THE RIPPLE TEXTURE the waves read, in the pixel and the vertex shader alike - ShadeProgram.RippleSheet.
+        // THE RIPPLE TEXTURE, THE SWELL'S AND THE ROOM'S SHORE the waves read, in the pixel and the vertex shader alike.
         context.PSSetShaderResource(ModelShaders.RippleSlot, _rippled);
         context.VSSetShaderResource(ModelShaders.RippleSlot, _rippled);
+        context.PSSetShaderResource(ModelShaders.SwellSlot, _swelled);
+        context.VSSetShaderResource(ModelShaders.SwellSlot, _swelled);
+        ID3D11ShaderResourceView? shoreView = scene.Water?.Shore is { } shore ? Shored(shore).View : null;
+        context.PSSetShaderResource(ModelShaders.ShoreSlot, shoreView!);
+        context.VSSetShaderResource(ModelShaders.ShoreSlot, shoreView!);
 
         // THE SUN'S SHADOW MAP BEFORE THE PICTURE, into its own target - see Lit.
         if (light is not null)
@@ -679,6 +691,14 @@ public sealed partial class ModelGpu : IDisposable
         _solid.Dispose();
         _rippled.Dispose();
         _ripples.Dispose();
+        _swelled.Dispose();
+        _swells.Dispose();
+        foreach (ShoreTexture one in _shores.Values)
+        {
+            one.Dispose();
+        }
+
+        _shores.Clear();
         _placedWaves.Dispose();
         _placed.Dispose();
         if (_owns)
@@ -771,6 +791,19 @@ public sealed partial class ModelGpu : IDisposable
         _context.Unmap(buffer, 0);
     }
 
+    /// <summary>A room's shore on the card, uploaded on first use.</summary>
+    private ShoreTexture Shored(ShoreField shore)
+    {
+        if (!_shores.TryGetValue(shore, out ShoreTexture? texture))
+        {
+            texture = new ShoreTexture(_device, shore);
+            _shores[shore] = texture;
+        }
+
+        texture.Used = _draws;
+        return texture;
+    }
+
     /// <summary>A mesh's buffers, uploaded on first use.</summary>
     private MeshBuffers Buffers(SkinnedMesh mesh)
     {
@@ -813,6 +846,12 @@ public sealed partial class ModelGpu : IDisposable
             // NOR KEPT BY THE ANSWERS about it - a stage is millions of vertices.
             _canFor = null;
             _runShadersFor = null;
+        }
+
+        foreach (KeyValuePair<ShoreField, ShoreTexture> one in _shores.Where(one => _draws - one.Value.Used > Kept).ToArray())
+        {
+            one.Value.Dispose();
+            _shores.Remove(one.Key);
         }
 
         foreach (KeyValuePair<Mipmaps, SkinTexture> one in _skins.Where(one => _draws - one.Value.Used > Kept).ToArray())
@@ -912,6 +951,9 @@ public sealed partial class ModelGpu : IDisposable
         public Vector4 Dust;
         public Vector4 Water;
         public Vector4 Flow;
+        public Vector4 Wind;
+        public Vector4 Shore;
+        public Vector4 Swell;
     }
 
     private sealed record Compiled(
@@ -1316,21 +1358,50 @@ public sealed partial class ModelGpu : IDisposable
     }
 
     /// <summary>The ripple texture on the card, made once: ShadeProgram.RippleSheet's texels as they are, read with loads.</summary>
-    private static (ID3D11Texture2D Texture, ID3D11ShaderResourceView View) Ripples(ID3D11Device device)
+    private static (ID3D11Texture2D Texture, ID3D11ShaderResourceView View) Ripples(ID3D11Device device) =>
+        Floats(device, ShadeProgram.RippleSheet, ShadeProgram.RippleSide, ShadeProgram.RippleSide, Format.R32G32B32A32_Float, 4);
+
+    /// <summary>The swell's cross-section on the card, made once: ShadeProgram.SwellSheet's texels as they are, read with loads.</summary>
+    private static (ID3D11Texture2D Texture, ID3D11ShaderResourceView View) Swells(ID3D11Device device) =>
+        Floats(device, ShadeProgram.SwellSheet, ShadeProgram.SwellPhases, ShadeProgram.SwellShores, Format.R32G32_Float, 2);
+
+    /// <summary>A texture of floats on the card, one level, the texels as they are.</summary>
+    private static (ID3D11Texture2D Texture, ID3D11ShaderResourceView View) Floats(
+        ID3D11Device device, ReadOnlySpan<float> source, int width, int height, Format format, int perTexel)
     {
-        float[] texels = ShadeProgram.RippleSheet.ToArray();
+        float[] texels = source.ToArray();
         GCHandle pinned = GCHandle.Alloc(texels, GCHandleType.Pinned);
         try
         {
             ID3D11Texture2D texture = device.CreateTexture2D(
-                new Texture2DDescription(
-                    Format.R32G32B32A32_Float, ShadeProgram.RippleSide, ShadeProgram.RippleSide, 1, 1, BindFlags.ShaderResource, ResourceUsage.Immutable),
-                [new SubresourceData(pinned.AddrOfPinnedObject(), ShadeProgram.RippleSide * 16, 0)]);
+                new Texture2DDescription(format, width, height, 1, 1, BindFlags.ShaderResource, ResourceUsage.Immutable),
+                [new SubresourceData(pinned.AddrOfPinnedObject(), width * perTexel * 4, 0)]);
             return (texture, device.CreateShaderResourceView(texture));
         }
         finally
         {
             pinned.Free();
+        }
+    }
+
+    /// <summary>A room's shore on the card, uploaded the first time it is drawn and let go as the meshes are.</summary>
+    private sealed class ShoreTexture : IDisposable
+    {
+        private readonly ID3D11Texture2D _texture;
+
+        public ShoreTexture(ID3D11Device device, ShoreField shore)
+        {
+            (_texture, View) = Floats(device, shore.Texels, shore.Width, shore.Height, Format.R32G32_Float, 2);
+        }
+
+        public ID3D11ShaderResourceView View { get; }
+
+        public long Used { get; set; }
+
+        public void Dispose()
+        {
+            View.Dispose();
+            _texture.Dispose();
         }
     }
 

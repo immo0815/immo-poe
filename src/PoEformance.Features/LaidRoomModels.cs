@@ -269,14 +269,14 @@ public static class LaidRoomModels
 
             if (one.Ground.Ready)
             {
-                if (painter?.Paint(tiles.Paths[piece.Id], one.Ground, place, "ground of " + called) is { Ready: true } painted)
+                if (painter?.Paint(tiles.Paths[piece.Id], one.Ground, place, RoomModels.GroundSource + called) is { Ready: true } painted)
                 {
-                    pile.Add(painted, place, "ground of " + called);
+                    pile.Add(painted, place, RoomModels.GroundSource + called);
                     grounds.Add(painted);
                 }
                 else
                 {
-                    pile.AddPlain(one.Ground, place, "ground of " + called);
+                    pile.AddPlain(one.Ground, place, RoomModels.GroundSource + called);
                 }
             }
 

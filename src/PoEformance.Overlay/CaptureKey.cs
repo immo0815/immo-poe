@@ -868,6 +868,14 @@ internal sealed class CaptureKey
                 {
                     string text = CapturePanes.Write(read, panes);
                     File.WriteAllText(At(CaptureReport.PanesFile), text);
+
+                    // EACH ROOM'S SHORE AS A PICTURE beside it - the swell's field is made here, CHOSEN, and held against the game's water by eye.
+                    foreach ((string file, GamePicture picture) in CapturePanes.ShorePictures(panes))
+                    {
+                        using Image<Rgba32> image = Image.LoadPixelData<Rgba32>(picture.Rgba, picture.Width, picture.Height);
+                        image.SaveAsPng(At(file));
+                    }
+
                     return text[..text.IndexOf('\n')];
                 });
             }

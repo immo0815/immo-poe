@@ -203,8 +203,28 @@ public sealed partial class ShadeProgram
     /// <summary>The area's water flow in x and its height offset in z - set per drawing. See WaterLook.FlowRegister.</summary>
     internal const int WaterFlow = 13;
 
+    /// <summary>The wind the ocean's ripples read - set per drawing. See WaterLook.WindRegister and <see cref="WindRipples"/>.</summary>
+    internal const int WaterWind = 14;
+
+    /// <summary>The box of the room's shore the ocean's swell reads, nought in w where there is none - set per drawing. See WaterLook.ShoreRegister and ShoreField.</summary>
+    internal const int WaterShore = 15;
+
+    /// <summary>The swell the ocean reads - set per drawing. See WaterLook.SwellRegister and <see cref="Ocean"/>.</summary>
+    internal const int WaterSwell = 16;
+
     /// <summary>How many registers are the mesh's own, before any a program allocates.</summary>
-    private const int Fixed = 14;
+    private const int Fixed = 17;
+
+    /// <summary>
+    /// The shore of the drawing the thread is running a program for - set by <see cref="Preset"/>, read by the waves' step.
+    /// </summary>
+    /// <remarks>
+    /// A FIELD, NOT A REGISTER: the card reads it as a texture, and a register holds four numbers. Per thread, because
+    /// the drawing's bands run a program each on their own thread, and every triangle is preset on the thread that
+    /// colours its pixels.
+    /// </remarks>
+    [ThreadStatic]
+    private static ShoreField? s_shore;
 
     /// <summary>Stands in for FixModelTBN's basis, which only ParallaxUvSpace takes - see <see cref="Basis"/>.</summary>
     private const int FixedBasis = -3;
@@ -404,7 +424,7 @@ public sealed partial class ShadeProgram
         /// <summary>ParallaxUvSpace: the coordinates and the distance along the view where the ray meets the height texture - B is the read, like Sample's.</summary>
         Parallax,
 
-        /// <summary>GetFlowSurfaceField: the water's surface at A's x and y, drifting at B's x and y a second, at C's clock - its normal in xyz, its height in w. See <see cref="Ripples"/>.</summary>
+        /// <summary>The ocean's surface at A's x and y in B's wind (WaterLook.WindRegister) at C's clock, over D's shore with E's swell - its normal in xyz, its height in w. See <see cref="Ocean"/>.</summary>
         Waves,
     }
 
@@ -813,6 +833,10 @@ public sealed partial class ShadeProgram
         WaterLook look = water ?? WaterLook.EngineDefault;
         registers[WaterColour] = look.ColourRegister;
         registers[WaterFlow] = look.FlowRegister;
+        registers[WaterWind] = look.WindRegister;
+        registers[WaterShore] = look.ShoreRegister;
+        registers[WaterSwell] = look.SwellRegister;
+        s_shore = look.Shore;
         registers[Behind] = new Vector4(float.MaxValue);
         registers[Eye] = eye;
         registers[Tangent] = Vector4.Zero;
@@ -1200,8 +1224,8 @@ public sealed partial class ShadeProgram
 
                 case Op.Waves:
                 {
-                    float height = Ripples(
-                        new Vector2(r[step.A].X, r[step.A].Y), new Vector2(r[step.B].X, r[step.B].Y), r[step.C].X, out Vector2 slope);
+                    float height = Ocean(
+                        new Vector2(r[step.A].X, r[step.A].Y), r[step.B], r[step.E], r[step.C].X, r[step.D].W > 0.5f ? s_shore : null, out Vector2 slope);
                     r[step.To] = new Vector4(Vector3.Normalize(new Vector3(-slope.X, -slope.Y, -1f)), height);
                     break;
                 }
