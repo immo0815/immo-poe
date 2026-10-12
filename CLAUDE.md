@@ -623,6 +623,17 @@ MATERIALSLIST'S GROUP WITH NO NAME (Port's: Cobblestone01 to 03 and CobblestoneD
 draws cobblestone; DECIDED that it draws that group; a tile's own four corners, standing in where there is no grid, still name nothing
 when unnamed. "The game draws wood there" was written here once from
 a picture not looked at closely: the gangway and the ship are wood, the pier is not - look before writing it down.
+THE SLOPES' CHECKERBOARD (said from the live client with v0.1.250: "it comes from the ground textures"). In a sub-tile of two grounds
+most of Port's shapes point into one cell of newmask.dds (green 0.02 or 1.00, one ground or the other), but its slopes carry
+coordinates laid across the mask a third a sub-tile, and the mix reads the atlas's 64-texel cells there as squares - v0.1.248's
+ground.txt: the shore strip c1r6 to c6r6, c4r2, c5r2, c6r2 to c6r5, c14r12 and c15r12, and from v0.1.250 the pier's edge c13r10,
+c13r11 and c14r11. The engine reads the green at `uv2` alike (GetUserMask), and which coordinate fills `uv2` is wired in its own
+code (OutputUserBlendUvs takes an `in float2 uv` the shader text does not name), so what the game draws there is to be read off its
+picture: `ground-on-screen.png` (`CaptureGroundScreen`, v0.1.251) lays every sub-tile of two grounds on the screen over the game's
+picture where the Monster Book has it (`LaidRoomModels.GroundsOver`, the room's own placing), named as ground.txt names it, its
+shapes across the atlas drawn magenta, and `ground-on-screen.txt` gives each sub-tile's grid corners and grounds beside the game's
+own corner types there, and each shape's height, green and reach across the mask. It has no offline reader: the meshes are the
+install's, which a capture does not carry.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
 Eight captures are committed under

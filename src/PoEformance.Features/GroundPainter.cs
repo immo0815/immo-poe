@@ -463,6 +463,35 @@ internal sealed class GroundPainter
         static (string, List<(int, GroundGroup)>, string) Plained(string why) => ("plain: " + why, [], why);
     }
 
+    /// <summary>
+    /// Each sub-tile's corners and the grounds they come to, as <see cref="Paint"/> works them out - for the capture's picture of the
+    /// ground on the screen (CaptureGroundScreen) - and the template's mask with the picture it decodes to.
+    /// </summary>
+    /// <param name="tile">The tile's <c>.tdt</c>.</param>
+    /// <param name="pieces">Which sub-tile each run of the block's triangles is, in the block's order.</param>
+    /// <param name="triangles">The block's triangles, which the pieces must add up to for the grid to be read - as Paint asks.</param>
+    internal (IReadOnlyList<SubTileGrounds> SubTiles, string Mask, GamePicture? Picture) SubTilesOf(string tile, IReadOnlyList<GroundPiece> pieces, int triangles)
+    {
+        ArgumentNullException.ThrowIfNull(pieces);
+        (TileDefinition definition, string why) = TileModels.Defined(_read, tile);
+        if (!definition.Ready)
+        {
+            return ([.. pieces.Select(_ => new SubTileGrounds([], [], "whose definition did not read: " + why))], string.Empty, null);
+        }
+
+        bool gridded = definition.GroundGrid.Count > 0 && pieces.Count > 0 && pieces.Sum(one => one.Triangles) == triangles;
+        var subTiles = new SubTileGrounds[pieces.Count];
+        for (var at = 0; at < pieces.Count; at++)
+        {
+            IReadOnlyList<string> corners = gridded ? definition.CornersOf(pieces[at].X, pieces[at].Y) : definition.Grounds;
+            (_, List<(int Order, GroundGroup Group)> grounds, string setWhy) = SetOf(corners, gridded);
+            subTiles[at] = new SubTileGrounds(corners, [.. grounds.Select(one => one.Group.Name)], setWhy);
+        }
+
+        string mask = definition.Templates.Count > 0 ? TileTemplate.Read(_read(Clean(definition.Templates[0]))).GroundMask : string.Empty;
+        return (subTiles, mask, mask.Length > 0 ? MaskOf(mask) : null);
+    }
+
     /// <summary>A group's heaviest choice - its only one where it has one.</summary>
     private static string Heaviest(GroundGroup group)
     {
@@ -517,6 +546,12 @@ internal sealed class GroundPainter
 
     private static string Clean(string path) => path.Replace('\\', '/').Trim();
 }
+
+/// <summary>One sub-tile's ground as GroundPainter works it out - see GroundPainter.SubTilesOf.</summary>
+/// <param name="Corners">Its four corners' ground types (<c>.gt</c>), empty where unnamed - from the definition's grid, or the tile's own four.</param>
+/// <param name="Grounds">The MaterialsList groups they come to, by name in the list's order - empty for the group with none.</param>
+/// <param name="Why">Why it stays plain, or empty.</param>
+internal sealed record SubTileGrounds(IReadOnlyList<string> Corners, IReadOnlyList<string> Grounds, string Why);
 
 /// <summary>
 /// The name a tile's ground of two grounds wears as its material when the two are mixed per pixel - see GroundPainter and

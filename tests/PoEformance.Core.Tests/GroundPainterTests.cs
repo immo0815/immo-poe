@@ -136,6 +136,32 @@ public sealed class GroundPainterTests
         Assert.Contains("1 sub-tiles of one ground, 1 of two mixed per pixel", said, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The sub-tiles' grounds as the painter works them out, for the capture's picture of the ground on the screen: each sub-tile's grid
+    /// corners and the groups they come to in the list's order, and the template's mask with its picture.
+    /// </summary>
+    [Fact]
+    public void EACHSUBTilesGroundsAreGivenAsThePainterWorksThemOut()
+    {
+        const string Gridded = "unnamed.tdt", GridSand = "Metadata/Terrain/Test/sand.gt";
+        byte[]? Read(string path) => path switch
+        {
+            Gridded => TileFilesTests.Tdt(template: Template, grounds: true, grid: [5, -1, -1, 5, -1, -1]),
+            GridSand => CaptureGroundTests.Text("Sand\n1 1 0 0\n"),
+            _ => Mixable(path),
+        };
+
+        (IReadOnlyList<SubTileGrounds> subTiles, string mask, GamePicture? picture) =
+            Painter(Read).SubTilesOf(Gridded, [new GroundPiece(1, 1, 2), new GroundPiece(2, 1, 2)], 4);
+
+        Assert.Equal(2, subTiles.Count);
+        Assert.Equal(["", "Sand"], subTiles[0].Grounds);
+        Assert.Equal([GridSand, string.Empty, GridSand, string.Empty], subTiles[0].Corners);
+        Assert.Equal([""], subTiles[1].Grounds);
+        Assert.Equal(Mask, mask);
+        Assert.Equal(2, picture?.Width);
+    }
+
     [Fact]
     public void ATILEOfThreeGroundsStaysPlainAndIsSaid()
     {

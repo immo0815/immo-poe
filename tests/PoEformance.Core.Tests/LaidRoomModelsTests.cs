@@ -139,6 +139,29 @@ public class LaidRoomModelsTests
         Assert.Contains("within 8 units on 1/1 pieces at the tile's level, 1/1 fitted", fitted.Move, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The ground over a block of the area is laid where the room lays it, in world units: the room's highest ground point, moved by the
+    /// room's corner, is the block's - turned and fitted alike, the files lying the way the slope says.
+    /// </summary>
+    [Fact]
+    public void THEGROUNDOverABlockLiesWhereTheLaidRoomHasItInTheWorld()
+    {
+        (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement: 6, selector: 1, lies: 2);
+        MonsterModel room = LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0);
+
+        List<LaidGround> grounds = LaidRoomModels.GroundsOver(files.GetValueOrDefault, grid, 0, 0, TilesX, TilesY);
+
+        LaidGround laid = Assert.Single(grounds);
+        Assert.Equal(TilePath, laid.Path);
+        Assert.Single(laid.Pieces);
+        Vector3 top = laid.Ground.Positions.Select(one => Vector3.Transform(one, laid.Place)).MaxBy(one => one.Z);
+        Vector3 roomTop = Highest(room);
+        Vector2 origin = Assert.NotNull(room.AreaOrigin);
+        Assert.Equal(roomTop.X + origin.X, MathF.Round(top.X));
+        Assert.Equal(roomTop.Y + origin.Y, MathF.Round(top.Y));
+        Assert.Equal(roomTop.Z, top.Z, 0.5f);
+    }
+
     [Fact]
     public void WITHNoSlopeNothingIsSettledAndTheLineSaysSo()
     {
@@ -275,6 +298,23 @@ public class LaidRoomModelsTests
         DoodadHeight doodadHeights = DoodadHeight.Ground,
         IReadOnlyDictionary<string, string>? texts = null)
     {
+        (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement, selector, lies, flat, level, sunk);
+        if (doodads is not null)
+        {
+            files[RoomPath] = Text(WithDoodads(doodads));
+        }
+
+        foreach ((string path, string text) in texts ?? new Dictionary<string, string>())
+        {
+            files[path] = Text(text);
+        }
+
+        return LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, atLevel: atLevel, heights: doodadHeights, entities: entities);
+    }
+
+    /// <summary>The install and the area <see cref="Laid"/> lays its room over.</summary>
+    private static (Dictionary<string, byte[]> Files, TerrainGrid Grid) Area(int placement, byte selector, int lies, bool flat = false, float level = 0f, float sunk = 0f)
+    {
         var ids = new int[TilesX * TilesY];
         Array.Fill(ids, -1);
         var placements = new sbyte[ids.Length];
@@ -315,18 +355,7 @@ public class LaidRoomModelsTests
 
         int stride = ((TilesX * Cells) + 1) / 2;
         var grid = new TerrainGrid(new byte[stride * TilesY * Cells], stride, TilesY * Cells, TilesX, TilesY, heights, tiles: tiles);
-        Dictionary<string, byte[]> files = Files(sunk);
-        if (doodads is not null)
-        {
-            files[RoomPath] = Text(WithDoodads(doodads));
-        }
-
-        foreach ((string path, string text) in texts ?? new Dictionary<string, string>())
-        {
-            files[path] = Text(text);
-        }
-
-        return LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, atLevel: atLevel, heights: doodadHeights, entities: entities);
+        return (Files(sunk), grid);
     }
 
     /// <summary>The test room with these doodad lines in place of its empty doodad group - after its grid, the second k line.</summary>

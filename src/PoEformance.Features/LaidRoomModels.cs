@@ -170,34 +170,7 @@ public static class LaidRoomModels
         reading.Dispose();
         reading = default;
 
-        // THE WAY THE FILES LIE ON THE TEMPLATE, from the sloped pieces - see the remarks. As filed
-        // comes first, so it is the one kept wherever the ground cannot tell two ways apart.
-        var ways = new Way[Relations.Length];
-        for (var way = 0; way < ways.Length; way++)
-        {
-            ways[way] = new Way(Relations[way]);
-        }
-
-        foreach (TilePiece piece in pieces)
-        {
-            Made one = Of(piece.Id);
-            if (!piece.Whole || one.Lookup is null || !Way.Rises(piece, grid))
-            {
-                continue;
-            }
-
-            foreach (Way way in ways)
-            {
-                way.Weigh(piece, one, grid, x, y);
-            }
-        }
-
-        Way chosen = ways[0];
-        bool settled = ways.Any(one => one.Sloped > 0);
-        if (settled)
-        {
-            chosen = ways.MinBy(one => one.Residual)!;
-        }
+        (Way[] ways, Way chosen, bool settled) = Weighed(pieces, Of, grid, x, y);
 
         // LAID, the room's corner at the picture's origin and each piece on the area's own ground.
         var pile = new ModelPile();
@@ -367,6 +340,92 @@ public static class LaidRoomModels
         };
 
         return shaded ? MonsterModels.Shaded(Counted, model, paints) : model;
+    }
+
+    /// <summary>
+    /// The ground of every whole piece laid over a block of the area, each placed as a laid room places it - in world units, the area's
+    /// tile (0, 0) at the origin - for the capture's picture of the ground on the screen (CaptureGroundScreen).
+    /// </summary>
+    /// <remarks>
+    /// THE ROOM'S OWN ARITHMETIC, not a second copy of it: the way the files lie is weighed from the block's sloped pieces and each
+    /// piece fitted to the area's ground exactly as <see cref="Of"/> does, so what the capture draws over the game's picture is where
+    /// the Monster Book's laid room has its ground. Placed from the area's corner rather than a room's, so a point is a world point.
+    /// </remarks>
+    /// <param name="read">The install.</param>
+    /// <param name="grid">The area, its tiles read.</param>
+    /// <param name="x">The block's lowest tile across.</param>
+    /// <param name="y">The block's lowest tile down.</param>
+    /// <param name="wide">Tiles across.</param>
+    /// <param name="tall">Tiles down.</param>
+    internal static List<LaidGround> GroundsOver(Func<string, byte[]?> read, TerrainGrid grid, int x, int y, int wide, int tall)
+    {
+        var laid = new List<LaidGround>();
+        if (grid.Tiles is not { } tiles)
+        {
+            return laid;
+        }
+
+        var paints = new MonsterModels.Paints();
+        var made = new Dictionary<int, Made>();
+        Made Of(int id)
+        {
+            if (!made.TryGetValue(id, out Made? one))
+            {
+                (MonsterModel props, SkinnedMesh ground, int across, int down, TileDoodads lines, IReadOnlyList<GroundPiece> subTiles) =
+                    TileModels.Apart(read, tiles.Paths[id], walls: true, paints);
+                one = Made.Of(props, ground, across, down, lines) with { Pieces = subTiles };
+                made[id] = one;
+            }
+
+            return one;
+        }
+
+        List<TilePiece> pieces = tiles.Pieces(x, y, wide, tall, id => (Of(id).Width, Of(id).Height));
+        (_, Way chosen, _) = Weighed(pieces, Of, grid, 0, 0);
+        foreach (TilePiece piece in pieces)
+        {
+            Made one = Of(piece.Id);
+            if (!piece.Whole || !one.Ground.Ready)
+            {
+                continue;
+            }
+
+            Matrix3x2 flat = chosen.Flat(piece, one, 0, 0);
+            Height height = Way.Measure(piece, one, grid, 0, 0, flat, Level(piece, grid));
+            laid.Add(new LaidGround(tiles.Paths[piece.Id], piece, one.Ground, one.Pieces, Spatial(flat) * Matrix4x4.CreateTranslation(0f, 0f, height.Fitted)));
+        }
+
+        return laid;
+    }
+
+    /// <summary>
+    /// THE WAY THE FILES LIE ON THE TEMPLATE, from the sloped pieces - see the remarks on the class. As filed comes first, so it is
+    /// the one kept wherever the ground cannot tell two ways apart.
+    /// </summary>
+    private static (Way[] Ways, Way Chosen, bool Settled) Weighed(List<TilePiece> pieces, Func<int, Made> of, TerrainGrid grid, int x, int y)
+    {
+        var ways = new Way[Relations.Length];
+        for (var way = 0; way < ways.Length; way++)
+        {
+            ways[way] = new Way(Relations[way]);
+        }
+
+        foreach (TilePiece piece in pieces)
+        {
+            Made one = of(piece.Id);
+            if (!piece.Whole || one.Lookup is null || !Way.Rises(piece, grid))
+            {
+                continue;
+            }
+
+            foreach (Way way in ways)
+            {
+                way.Weigh(piece, one, grid, x, y);
+            }
+        }
+
+        bool settled = ways.Any(one => one.Sloped > 0);
+        return (ways, settled ? ways.MinBy(one => one.Residual)! : ways[0], settled);
     }
 
     /// <summary>What the ground said about the ways a file can lie, for the line under the picture.</summary>
@@ -1323,3 +1382,11 @@ public static class LaidRoomModels
             => _grid.HeightAt((int)MathF.Floor((x + _origin.X) / RoomModels.CellSize), (int)MathF.Floor((y + _origin.Y) / RoomModels.CellSize));
     }
 }
+
+/// <summary>One whole piece's ground as a laid room lays it, in world units - see LaidRoomModels.GroundsOver.</summary>
+/// <param name="Path">The piece's tile file.</param>
+/// <param name="Piece">Where the game laid it and which way round.</param>
+/// <param name="Ground">Its ground block, in the template's frame, its coordinates the mask's.</param>
+/// <param name="Pieces">Which sub-tile each run of the block's triangles is.</param>
+/// <param name="Place">The template's frame to the world.</param>
+internal readonly record struct LaidGround(string Path, TilePiece Piece, SkinnedMesh Ground, IReadOnlyList<GroundPiece> Pieces, Matrix4x4 Place);
