@@ -85,7 +85,8 @@ public static class PictureProbe
         var line = new StringBuilder(240);
         line.Append("  water at depth ").Append(Number(water.Depth))
             .Append(Say($" · at ({Number(water.Place.X)}, {Number(water.Place.Y)}, {Number(water.Place.Z)}) as drawn"))
-            .Append(Say($" · its waves lean {lean:F1} degrees from its surface"));
+            .Append(Say($" · its waves lean {lean:F1} degrees from its surface"))
+            .Append(water.Sun < 1f ? Say($" · in the sun's shadow, {Fraction(water.Sun)} of it reaching") : " · in the sun");
         string said = water.Step switch
         {
             -2 => " · its reflection of the picture not cast (the light's water switches, or no solid part kept)",
@@ -181,6 +182,7 @@ public static class PictureProbe
         Seen.Clear => "mixed with alpha 0",
         Seen.Mixed => "mixed, alpha " + Fraction(fragment.Cover),
         Seen.Added => "added, alpha " + Fraction(fragment.Cover),
+        Seen.Folded => "behind a nearer crossing of the lifted water, which is drawn alone",
         _ => fragment.Seen.ToString(),
     };
 

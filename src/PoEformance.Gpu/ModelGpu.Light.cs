@@ -247,6 +247,14 @@ public sealed partial class ModelGpu
     }
 
     /// <summary>The blend that keeps the smaller of what is there and what is drawn - the map's nearest depth.</summary>
+    /// <summary>A blend that writes no colour - the lifted water's walk for its nearest crossing, depth alone (ModelGpu's Surfaced).</summary>
+    private static BlendDescription Unseen()
+    {
+        BlendDescription unseen = BlendDescription.Opaque;
+        unseen.RenderTarget[0].RenderTargetWriteMask = ColorWriteEnable.None;
+        return unseen;
+    }
+
     private static BlendDescription Least()
     {
         var least = new BlendDescription(Blend.One, Blend.One, Blend.One, Blend.One);

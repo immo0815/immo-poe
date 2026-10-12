@@ -290,10 +290,28 @@ public static class MeshPicture
                 Clocked = new int[triangles];
             }
 
-            if (BinStarts.Length != (3 * bands) + 1)
+            if (BinStarts.Length != (BinKinds * bands) + 1)
             {
-                BinStarts = new int[(3 * bands) + 1];
-                BinCursors = new int[3 * bands];
+                BinStarts = new int[(BinKinds * bands) + 1];
+                BinCursors = new int[BinKinds * bands];
+            }
+        }
+
+        /// <summary>
+        /// The nearest crossing of the lifted water at each pixel and which triangle made it - see <see cref="Drawing"/>'s Surface.
+        /// </summary>
+        internal float[] WaterNear { get; private set; } = [];
+
+        /// <inheritdoc cref="WaterNear"/>
+        internal int[] WaterWinners { get; private set; } = [];
+
+        /// <summary>Room for <see cref="WaterNear"/>; each band clears its own rows before it uses them.</summary>
+        internal void Surfacing()
+        {
+            if (WaterNear.Length != Size * Size)
+            {
+                WaterNear = new float[Size * Size];
+                WaterWinners = new int[Size * Size];
             }
         }
 
@@ -808,10 +826,17 @@ public static class MeshPicture
         bool[] ticking = canvas.Keeps && !lifting && !mirrors && Array.Exists(programs, one => one.UsesTime)
             ? Array.ConvertAll(programs, one => one.UsesTime)
             : [];
-        int clocked = Binned(canvas, triangles, ticking);
+        // THE LIFTED WATER APART, to be drawn as one surface - see Drawing's Surface.
+        bool[] surface = lifting && translucent ? Array.ConvertAll(programs, one => one.HasWaves) : [];
+        int clocked = Binned(canvas, triangles, ticking, surface, out int sea);
         if (clocked > 0)
         {
             canvas.Keeping();
+        }
+
+        if (sea >= 0)
+        {
+            canvas.Surfacing();
         }
 
         // A POINT'S DEPTH IS THE VIEW'S THIRD COLUMN, the way into the picture - see ShadeProgram.Eye.
@@ -826,6 +851,7 @@ public static class MeshPicture
             View = view,
             Scale = scale,
             Opaque = mirrors ? canvas.Opaque() : null,
+            Water = sea,
         };
         PixelProbe? probe = canvas.Probe is { } asked && asked.X >= 0 && asked.X < size && asked.Y >= 0 && asked.Y < size ? asked : null;
         probe?.Clear();
@@ -1097,6 +1123,9 @@ public static class MeshPicture
 
         /// <summary>Where the solid part is kept for the water to reflect, or null where nothing reflects the scene - see ScreenReflection.</summary>
         public byte[]? Opaque { get; init; }
+
+        /// <summary>The first of the lifted water's triangles in the mesh, where the surface is drawn among the translucent ones, or -1 for none.</summary>
+        public int Water { get; init; } = -1;
     }
 
     /// <summary>
@@ -1135,6 +1164,9 @@ public static class MeshPicture
 
     /// <summary>The rows in one band - see <see cref="InBands"/>.</summary>
     private const int BandRows = 8;
+
+    /// <summary>The bins each band has, one a kind of triangle - see <see cref="Binned"/>.</summary>
+    private const int BinKinds = 4;
 
     /// <summary>How much of a colour a face turned from the lamp keeps: the picture's ambient, on the sRGB value.</summary>
     /// <remarks>Public, with <see cref="Lamp"/> and <see cref="UsualInk"/>, so the graphics card's drawing lights with the same numbers.</remarks>
@@ -1201,11 +1233,13 @@ public static class MeshPicture
     /// with the pixels drawn. Sorted once, a band walks only what reaches it, in the same order, so the
     /// picture is the same to the byte.
     ///
-    /// THREE PASSES' WORTH: the solid and cut-out triangles drawn first, the clock's where the canvas
-    /// keeps (see Again), and the translucent ones last. A triangle off the picture, too thin to have
-    /// an area, or shadow-only is in none.
+    /// FOUR KINDS: the solid and cut-out triangles drawn first, the clock's where the canvas keeps (see
+    /// Again), the translucent ones last - and among those the lifted water's apart, drawn as one surface
+    /// (see Drawing's Surface). A triangle off the picture, too thin to have an area, or shadow-only is in none.
     /// </remarks>
-    private static int Binned(Canvas canvas, int triangles, bool[] ticking)
+    /// <param name="surface">Which programs are the lifted water's, by their place in the drawing's list - empty where nothing is lifted.</param>
+    /// <param name="water">The first of the lifted water's triangles in the mesh, or -1 for none.</param>
+    private static int Binned(Canvas canvas, int triangles, bool[] ticking, bool[] surface, out int water)
     {
         int bands = Bands(canvas.Size);
         canvas.Binning(triangles, bands, ticking.Length > 0);
@@ -1215,9 +1249,10 @@ public static class MeshPicture
         MaterialBlend[] blends = canvas.Blends;
         int[] shades = canvas.Shades;
         int[] starts = canvas.BinStarts;
-        Array.Clear(starts, 0, (3 * bands) + 1);
+        Array.Clear(starts, 0, (BinKinds * bands) + 1);
 
         var clocked = 0;
+        water = -1;
         for (var one = 0; one < triangles; one++)
         {
             byte kind;
@@ -1225,6 +1260,14 @@ public static class MeshPicture
             if (tops[one] > feet[one] || blend == MaterialBlend.ShadowOnly)
             {
                 kind = 0;
+            }
+            else if (blend == MaterialBlend.Alpha && surface.Length > 0 && shades[one] >= 0 && surface[shades[one]])
+            {
+                kind = 4;
+                if (water < 0)
+                {
+                    water = one;
+                }
             }
             else if (blend is MaterialBlend.Alpha or MaterialBlend.Additive)
             {
@@ -1254,15 +1297,15 @@ public static class MeshPicture
             }
         }
 
-        for (var at = 1; at <= 3 * bands; at++)
+        for (var at = 1; at <= BinKinds * bands; at++)
         {
             starts[at] += starts[at - 1];
         }
 
-        canvas.Entries(starts[3 * bands]);
+        canvas.Entries(starts[BinKinds * bands]);
         int[] cursors = canvas.BinCursors;
         int[] entries = canvas.BinEntries;
-        Array.Copy(starts, cursors, 3 * bands);
+        Array.Copy(starts, cursors, BinKinds * bands);
         for (var one = 0; one < triangles; one++)
         {
             byte kind = kinds[one];
@@ -1586,6 +1629,11 @@ public static class MeshPicture
         private readonly int[] _binEntries;
         private readonly int _bands;
 
+        /// <summary>The first of the lifted water's triangles in the mesh, or -1 - see <see cref="Surface"/>.</summary>
+        private readonly int _surfaceFrom;
+        private readonly float[] _waterNear;
+        private readonly int[] _waterWinners;
+
         /// <summary>The pixel whose fragments are recorded, or null - see <see cref="PixelProbe"/>.</summary>
         private readonly PixelProbe? _probe;
         private readonly int _probeAt;
@@ -1623,6 +1671,9 @@ public static class MeshPicture
             _binStarts = canvas.BinStarts;
             _binEntries = canvas.BinEntries;
             _bands = Bands(canvas.Size);
+            _surfaceFrom = drawn.Water;
+            _waterNear = canvas.WaterNear;
+            _waterWinners = canvas.WaterWinners;
             _pixels = canvas.Pixels;
             _depth = canvas.Depth;
             _size = canvas.Size;
@@ -1704,10 +1755,117 @@ public static class MeshPicture
         private void Pass(int kind, int band, int top, int end, int[]? counts)
         {
             int bin = ((kind - 1) * _bands) + band;
+
+            // THE LIFTED WATER WHERE ITS FIRST TRIANGLE COMES IN THE MESH, among the translucent ones.
+            bool surface = kind == 3 && _surfaceFrom >= 0;
             for (int at = _binStarts[bin], upto = _binStarts[bin + 1]; at < upto; at++)
             {
                 int one = _binEntries[at];
+                if (surface && one > _surfaceFrom)
+                {
+                    Surface(band, top, end, counts);
+                    surface = false;
+                }
+
                 Rasterise(one, Math.Max(_tops[one], top), Math.Min(_feet[one], end - 1), counts);
+            }
+
+            if (surface)
+            {
+                Surface(band, top, end, counts);
+            }
+        }
+
+        /// <summary>The lifted water's triangles that reach the band, as one surface: only its nearest crossing of each pixel is drawn.</summary>
+        /// <remarks>
+        /// WHY. Lifted by its waves (SceneLight.WaterLift) the sea is no longer flat, and seen low across it a crest stands in front
+        /// of the trough behind it: one pixel crosses the surface two or three times - one shape at 550, 667 and 893 along the view
+        /// in Port's harbour at five times the lift (v0.1.236's probe). Drawn as any translucent shape, once per shape per pixel,
+        /// the crossing drawn was whichever triangle came first in the mesh - 667 there - and the far side of a wave showed through
+        /// its face as patches of another texture (said from the live client). A sea is one surface and the eye meets its nearest
+        /// crossing first. The engine never meets this, lifting its water per pixel only (GetFlowingSurface), so it is DECIDED
+        /// with the lift.
+        ///
+        /// SO TWO WALKS: the nearest crossing in front of the solid and which triangle made it - a tie to the first in the mesh,
+        /// as the solid pass settles one - then each triangle drawn only where it won. ONE SURFACE ACROSS SHAPES, a lifted plane's
+        /// crest folding over its neighbour's trough at their seam as over its own. The first walk asks nothing but depth, so the
+        /// waves' colour and light, most of a water pixel's cost, are worked out once a pixel.
+        /// </remarks>
+        private void Surface(int band, int top, int end, int[]? counts)
+        {
+            int bin = (3 * _bands) + band;
+            int from = _binStarts[bin], upto = _binStarts[bin + 1];
+            if (from == upto)
+            {
+                return;
+            }
+
+            // THE WINNERS NEED NO CLEARING: a pixel the second walk asks about lies inside a triangle the first walk
+            // went through, in front of the same solid depth, so the first walk wrote its winner in this band.
+            Array.Fill(_waterNear, float.MaxValue, top * _size, (end - top) * _size);
+            for (int at = from; at < upto; at++)
+            {
+                int one = _binEntries[at];
+                Nearest(one, Math.Max(_tops[one], top), Math.Min(_feet[one], end - 1));
+            }
+
+            for (int at = from; at < upto; at++)
+            {
+                int one = _binEntries[at];
+                Rasterise(one, Math.Max(_tops[one], top), Math.Min(_feet[one], end - 1), counts, surface: true);
+            }
+        }
+
+        /// <summary>A lifted water triangle's depth over its pixels, kept where it is the nearest in front of the solid - see <see cref="Surface"/>.</summary>
+        /// <remarks>
+        /// THE INSIDE TEST AND THE DEPTH ARE <see cref="Rasterise"/>'S, written the same to the operation, so the two walks agree on
+        /// every pixel to the bit: a pixel this gives a triangle that Rasterise found outside it would be drawn by nobody.
+        /// </remarks>
+        private void Nearest(int one, int top, int foot)
+        {
+            Vector3 c0 = _corners[_indices[one * 3]];
+            Vector3 c1 = _corners[_indices[(one * 3) + 1]];
+            Vector3 c2 = _corners[_indices[(one * 3) + 2]];
+            float area = Cross(c0, c1, c2);
+            float sign = area < 0f ? -1f : 1f;
+            float total = area * sign;
+            float inv = 1f / total;
+            float a0 = -(c2.Y - c1.Y) * sign;
+            float b0 = (c2.X - c1.X) * sign;
+            float k0 = (((c2.Y - c1.Y) * c1.X) - ((c2.X - c1.X) * c1.Y)) * sign;
+            float a1 = -(c0.Y - c2.Y) * sign;
+            float b1 = (c0.X - c2.X) * sign;
+            float k1 = (((c0.Y - c2.Y) * c2.X) - ((c0.X - c2.X) * c2.Y)) * sign;
+            int least = Math.Max(0, (int)MathF.Floor(Min3(c0.X, c1.X, c2.X)));
+            int most = Math.Min(_size - 1, (int)MathF.Ceiling(Max3(c0.X, c1.X, c2.X)));
+            for (int y = top; y <= foot; y++)
+            {
+                float py = y + 0.5f;
+                float px = least + 0.5f;
+                float row0 = (a0 * px) + (b0 * py) + k0;
+                float row1 = (a1 * px) + (b1 * py) + k1;
+                int at = (y * _size) + least;
+                for (int x = least; x <= most; x++, at++)
+                {
+                    float along = x - least;
+                    float w0 = row0 + (a0 * along);
+                    float w1 = row1 + (a1 * along);
+                    float w2 = total - w0 - w1;
+                    if (w0 < 0f || w1 < 0f || w2 < 0f)
+                    {
+                        continue;
+                    }
+
+                    float first = w0 * inv;
+                    float second = w1 * inv;
+                    float third = w2 * inv;
+                    float away = (first * c0.Z) + (second * c1.Z) + (third * c2.Z);
+                    if (away < _depth[at] && away < _waterNear[at])
+                    {
+                        _waterNear[at] = away;
+                        _waterWinners[at] = one;
+                    }
+                }
             }
         }
 
@@ -1730,7 +1888,8 @@ public static class MeshPicture
             }
         }
 
-        private void Rasterise(int one, int top, int foot, int[]? counts)
+        /// <param name="surface">True for the lifted water, drawn only where <see cref="Nearest"/> found it nearest - see <see cref="Surface"/>.</param>
+        private void Rasterise(int one, int top, int foot, int[]? counts, bool surface = false)
         {
             int i0 = _indices[one * 3];
             int i1 = _indices[(one * 3) + 1];
@@ -1860,13 +2019,13 @@ public static class MeshPicture
 
                     if (Translucent(blend))
                     {
-                        // ONCE PER SHAPE PER PIXEL - see Canvas.Stamps.
+                        // ONCE PER SHAPE PER PIXEL - see Canvas.Stamps - and the lifted water once a pixel, where it is nearest.
                         int owner = _owners[one];
-                        if (_stamps[at] == owner)
+                        if (surface ? _waterWinners[at] != one : _stamps[at] == owner)
                         {
                             if (here)
                             {
-                                _probe!.Add(new ProbeFragment(one, Seen.Again, away, held, 0f));
+                                _probe!.Add(new ProbeFragment(one, surface ? Seen.Folded : Seen.Again, away, held, 0f));
                             }
 
                             continue;
@@ -2106,7 +2265,7 @@ public static class MeshPicture
             // THE PROBE'S PIXEL SAYS WHAT ITS WATER DID - one compare a pixel where nobody probes.
             bool probed = _probeAt >= 0 && (y * _size) + x == _probeAt && waves != Vector3.Zero;
             ProbeWater ray = probed
-                ? new ProbeWater(away, place, normal, waves, Vector3.Zero, -2, -1, -1, float.MaxValue, Vector3.Zero, 1f, Vector3.Zero)
+                ? new ProbeWater(away, place, normal, waves, Vector3.Zero, -2, -1, -1, float.MaxValue, Vector3.Zero, 1f, Vector3.Zero, sun)
                 : default;
             if (_opaque is not null && glossy && waves != Vector3.Zero && _scene!.WaterReflection && _scene.WaterScene)
             {

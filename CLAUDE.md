@@ -390,6 +390,19 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   water then dropped, the probe's fragment "dropped by its program") or the shore reflected off a wave's face by the screen ray -
   so the probe now writes, for every water pixel lit the game's way, where it stood, how far its waves lean and what its
   reflection met (`ProbeWater`, `PictureProbe.Watered`). Pause the pane on a patch, probe it, then capture.
+  THE LIFTED SEA IS ONE SURFACE (v0.1.237). Port's capture of v0.1.236 (lift 5x, the probe on the water) crossed ONE water shape
+  three times at one pixel - 550, 667 and 893 along the view, a crest standing in front of the trough behind it - and drew 667:
+  a translucent shape blends once a pixel, the FIRST in the mesh, so wherever a plane's triangles ran from far to near the far
+  crossing showed through the wave's face, near the shore the shallow trough's floor ("a water texture sticking out of the wave",
+  sand-coloured patches with straight sides; said from the live client). The engine never meets it, lifting per pixel only, so it
+  is DECIDED with the lift: the lifted water's triangles are binned apart (`MeshPicture.Binned`, the fourth kind) and drawn where
+  the first of them comes among the translucent ones, as one surface across shapes - a walk for the nearest crossing in front of
+  the solid and the triangle that made it (`Drawing.Nearest`, a tie to the first in the mesh), then each triangle drawn only where
+  it won (`Drawing.Surface`; the probe says `Folded` for the rest). On the card (`ModelGpu.Surfaced`): a depth walk with no colour,
+  the runs drawn at LessEqual once a pixel by the stencil, then the solid depth copied back (`ModelTarget.Back`) for the
+  translucent runs after. Unlifted water blends as before. The probe's water line now says whether the sun reaches the pixel
+  (`ProbeWater.Sun`): a straight edge where the waves seemed to stop beside the ship was either a seam where the drawing order
+  flipped between two planes or the ship's shadow taking the glints - probe it on the new build to tell.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

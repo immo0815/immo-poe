@@ -28,6 +28,9 @@ public enum Seen : byte
 
     /// <summary>Added to what was behind it.</summary>
     Added,
+
+    /// <summary>The lifted water behind a nearer crossing of its own surface - see MeshPicture.Drawing's Surface.</summary>
+    Folded,
 }
 
 /// <summary>One triangle's fragment at a probed pixel.</summary>
@@ -59,9 +62,11 @@ public readonly record struct ProbeFragment(int Triangle, Seen Seen, float Depth
 /// <param name="HitColour">The solid picture's colour there, as stored.</param>
 /// <param name="Environment">The environment's share of the reflection.</param>
 /// <param name="Added">The light the reflection added, linear.</param>
+/// <param name="Sun">How much of the sun the shadow map lets through to it, nought in shadow - asked for when the waves seemed cut off
+/// along a straight line beside Port's ship (from the live client, v0.1.236): a shadow takes the sun's glints with it.</param>
 public readonly record struct ProbeWater(
     float Depth, Vector3 Place, Vector3 Normal, Vector3 Waves, Vector3 Reflected, int Step, int HitX, int HitY, float HitDepth,
-    Vector3 HitColour, float Environment, Vector3 Added);
+    Vector3 HitColour, float Environment, Vector3 Added, float Sun);
 
 /// <summary>
 /// Every fragment one pixel of a drawing was made of, in the order the drawing met them.
