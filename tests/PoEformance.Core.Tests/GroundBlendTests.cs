@@ -53,6 +53,17 @@ public sealed class GroundBlendTests
         Assert.Equal(first.AsSpan(left, 4).ToArray(), both.AsSpan(left, 4).ToArray());
         Assert.Equal(second.AsSpan(right, 4).ToArray(), both.AsSpan(right, 4).ToArray());
         Assert.InRange(both[middle + 2], (byte)(Math.Min(first[middle + 2], second[middle + 2]) + 1), (byte)(Math.Max(first[middle + 2], second[middle + 2]) - 1));
+
+        // THE PROBE SAYS WHAT THE MIX DID THERE: the mask's green and each ground's colour - the blue second whole.
+        Assert.True(split.MixesGrounds);
+        Assert.False(stripes.MixesGrounds);
+        var probe = new PixelProbe(right / 4 % Size, right / 4 / Size);
+        _ = MeshPicture.Of(quad, new MeshPicture.Canvas(Size) { Probe = probe }, tilt: Down, blends: [MaterialBlend.Opaque], shades: [split]);
+        ProbeGround ground = Assert.Single(probe.Grounds);
+        Assert.Equal(1f, ground.Green, 3);
+        Assert.Equal(new Vector3(0f, 0f, 1f), ground.Second);
+        Assert.True(ground.First.X > 0.5f);
+        Assert.Contains("the mask's green 1.000, the second ground's share", PictureProbe.Grounded(ground), StringComparison.Ordinal);
     }
 
     /// <summary>The paint cache mixes two materials under a name of their own - opaque, its program the mixed one - and says why where it cannot.</summary>

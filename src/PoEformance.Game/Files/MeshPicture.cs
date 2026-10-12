@@ -2353,6 +2353,12 @@ public static class MeshPicture
 
                             continue;
                         }
+
+                        if (here && program.MixesGrounds)
+                        {
+                            (float green, Vector3 firstGround, Vector3 secondGround) = program.Mixed(registers);
+                            _probe!.Add(new ProbeGround(one, away, green, firstGround, secondGround));
+                        }
                     }
                     else if (skinned)
                     {

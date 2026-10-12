@@ -114,7 +114,26 @@ public sealed partial class ShadeProgram
         Mipmaps?[] sheets = [.. first._sheets, .. second._sheets, maskSheet];
         return new ShadeProgram(
             [.. steps], [.. constantAt], [.. constants], next, result, specular, gloss, textures, [.. samples], -1,
-            [.. first.Graphs, .. second.Graphs], sheets, hasAlpha: false);
+            [.. first.Graphs, .. second.Graphs], sheets, hasAlpha: false)
+        {
+            Mix = (green, Moved(first._result, firstBase), Moved(second._result, secondBase)),
+        };
+    }
+
+    /// <summary>
+    /// Where a program of two grounds (<see cref="Grounds"/>) leaves the mask's green and each ground's colour - nought to one for none;
+    /// what the probe reads of a pixel it ran on (<see cref="Mixed"/>).
+    /// </summary>
+    internal (int Green, int First, int Second) Mix { get; private init; } = (-1, -1, -1);
+
+    /// <summary>Whether the program is two grounds mixed by a mask's green - see <see cref="Grounds"/>.</summary>
+    public bool MixesGrounds => Mix.Green >= 0;
+
+    /// <summary>The mask's green and the two grounds' colours, linear, as a run of this program left them in its registers.</summary>
+    internal (float Green, Vector3 First, Vector3 Second) Mixed(ReadOnlySpan<Vector4> registers)
+    {
+        Vector4 first = registers[Mix.First], second = registers[Mix.Second];
+        return (registers[Mix.Green].X, new Vector3(first.X, first.Y, first.Z), new Vector3(second.X, second.Y, second.Z));
     }
 
     /// <summary>One ground's steps and constants, its registers past the fixed ones moved to start at <paramref name="at"/> and its textures and reads after those before it.</summary>

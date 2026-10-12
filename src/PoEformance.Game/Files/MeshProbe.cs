@@ -86,6 +86,22 @@ public readonly record struct ProbeWater(
 public readonly record struct ProbeSun(int Triangle, float Depth, Vector3 Place, Vector3 Normal, float Sun, int Caster = -1, float CasterAway = 0f);
 
 /// <summary>
+/// What a tile's two grounds mixed per pixel made of a probed pixel: the mask's green there and each ground's colour before the mix.
+/// </summary>
+/// <remarks>
+/// ASKED FOR BEFORE A CAPTURE OF PORT'S BEACH (v0.1.244, "takes some getting used to", said from the live client): mixed per pixel as the engine's
+/// GroundGenerateWeights_1a1b mixes them, the beach came out dark all over, which reads as the ocean's black taking most of each
+/// pixel where the mask's green is high - and the engine's height blending, not drawn, would hand most of it back to the cobblestone.
+/// Whether that is what happened is the green and the two colours at the pixel, which this says.
+/// </remarks>
+/// <param name="Triangle">The ground's triangle.</param>
+/// <param name="Depth">Its depth along the view.</param>
+/// <param name="Green">The mask's green at the pixel - the second ground's share.</param>
+/// <param name="First">The first ground's colour there, linear.</param>
+/// <param name="Second">The second ground's colour there, linear.</param>
+public readonly record struct ProbeGround(int Triangle, float Depth, float Green, Vector3 First, Vector3 Second);
+
+/// <summary>
 /// What the beach waves made of a probed pixel: where the sheet stood, its waves' lift there, the shore's distances and the graph's mix.
 /// </summary>
 /// <remarks>
@@ -127,6 +143,7 @@ public sealed class PixelProbe
     private readonly List<ProbeWater> _waters = [];
     private readonly List<ProbeSun> _suns = [];
     private readonly List<ProbeBeach> _beaches = [];
+    private readonly List<ProbeGround> _grounds = [];
 
     /// <param name="x">The pixel's column, from the left.</param>
     /// <param name="y">The pixel's row, from the top.</param>
@@ -166,7 +183,12 @@ public sealed class PixelProbe
 
     internal void Add(ProbeSun sun) => _suns.Add(sun);
 
+    /// <summary>Every fragment of two grounds mixed at the pixel - see <see cref="ProbeGround"/>.</summary>
+    public IReadOnlyList<ProbeGround> Grounds => _grounds;
+
     internal void Add(ProbeBeach beach) => _beaches.Add(beach);
+
+    internal void Add(ProbeGround ground) => _grounds.Add(ground);
 
     /// <summary>Names what cast the shadow on one of <see cref="Suns"/>.</summary>
     internal void Cast(int sun, int caster, float away) => _suns[sun] = _suns[sun] with { Caster = caster, CasterAway = away };
@@ -177,6 +199,7 @@ public sealed class PixelProbe
         _waters.Clear();
         _suns.Clear();
         _beaches.Clear();
+        _grounds.Clear();
         Final = float.MaxValue;
         Drawn = false;
     }
