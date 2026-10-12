@@ -641,6 +641,17 @@ at the laid pieces' corners (`CaptureGroundScreen.MasterOf`) - not the first eve
 sub-tiles came to one ground, several, or none and why. Those captures' ground.txt (Whakapanu Island, The Excavation, Plunder's
 Point) name where to measure: The Excavation's `Digsite_Entrance_01` has 18 sub-tiles of two grounds with shapes across the atlas and
 its ledges 4 each, Whakapanu's `TropicalCliff_Cv_Cove_01` 22; Plunder's Point's shores none.
+THE EXCAVATION MEASURED (v0.1.255, the player on `Digsite_Entrance_01`'s piece 7, 17): 45 sub-tiles of two grounds on the screen, 17 with
+shapes across the atlas - every one of them the entrance's flat floor at the template's height nought, none a slope (the cliffs' shapes span
+21 x 21 texels, inside one cell). Their coordinates are the mask laid FLAT over the tile: u up 0.2 and v up 1/7 a sub-tile exactly (c8r1
+u 0..0.2, c9r1 0.2..0.4, c10r1 0.4..0.6), the whole of `mask_ground.dds` over five by seven sub-tiles, while its green is an atlas of four by
+eight 64-texel cells with hard edges between them - so the mix reads squares about 312 by 219 units there. The game draws even dirt under
+all 17 (`G_PCE_DirtExcavated` and `G_PCE_DirtExcavatedEdge01`, the unnamed group and IslandCliffInnerTrim, or IslandInnerCliff's gritty dirt),
+no squares; the dirt grows grittier towards the earth bank in an uneven band. Two dirts need not show their squares, so it is not yet settled:
+from v0.1.256 the part TINTS each wide shape by the green the mix reads at every pixel (blue the first ground, red the second, half seen
+through, the coordinates interpolated over the clip w as the card's are) and says how many of its pixels are the second ground's - whether
+the game's ground changes along the tint's edges is the measurement. That capture had the game's picture switched off; the player had not
+moved since the capture before it, so its picture was laid under by hand. Keep `game-picture` ticked for this part.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
 Eight captures are committed under
