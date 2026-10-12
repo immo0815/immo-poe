@@ -716,8 +716,15 @@ internal sealed class CaptureKey
                 {
                     string ground = CaptureGround.Write(
                         read, run.Snapshot.Terrain is TerrainGrid { Tiles: { } laid } ? laid : null, run.Loaded, run.Masters, shaders,
-                        out IReadOnlyList<GroundMask> masks);
+                        out IReadOnlyList<GroundMask> masks, out IReadOnlyList<(string File, GamePicture Picture)> shapes);
                     File.WriteAllText(At(CaptureReport.GroundFile), ground);
+
+                    // THE BIGGEST MASKED TEMPLATES FROM ABOVE - their shapes, the green as the mix reads it, their height.
+                    foreach ((string file, GamePicture picture) in shapes)
+                    {
+                        using Image<Rgba32> image = Image.LoadPixelData<Rgba32>(picture.Rgba, picture.Width, picture.Height);
+                        image.SaveAsPng(At(file));
+                    }
 
                     // EACH MASK'S CHANNELS AS PICTURES beside it - the blend reads red and green apart, so each is its own.
                     foreach (GroundMask mask in masks)

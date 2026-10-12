@@ -72,6 +72,12 @@ public sealed class TileDefinition
     /// <summary>Why nothing was read, or empty.</summary>
     public string Why { get; private init; } = string.Empty;
 
+    /// <summary>
+    /// Where the reading stopped, in bytes from the start - everything after it (the side offsets, the sub-tile blocks and the ground
+    /// grid zao's reader names) is read by nothing here, and the capture's ground part writes it as it stands. Nought where nothing read.
+    /// </summary>
+    public int End { get; private init; }
+
     /// <summary>Whether it read - an inheriting definition reads, with only <see cref="Inherits"/>.</summary>
     public bool Ready => Why.Length == 0;
 
@@ -193,6 +199,7 @@ public sealed class TileDefinition
             Height = height,
             Grounds = grounds,
             Edges = edges,
+            End = at,
         };
     }
 
@@ -581,8 +588,10 @@ public sealed class TileMesh
         }
 
         int at = 1 + BoxBytes;
+        int headerShapes = BinaryPrimitives.ReadUInt16LittleEndian(file[at..]);
+        int word = BinaryPrimitives.ReadUInt16LittleEndian(file[(at + 2)..]);
         at += 4;                                        // Shapes and an unnamed u16.
-        at += 1;                                        // An unnamed u8.
+        int unnamed = file[at++];                       // An unnamed u8.
         int tails = file[at++];
 
         MeshBlock props = SkinnedMesh.Block(file, at, empty: true);
@@ -603,7 +612,20 @@ public sealed class TileMesh
             return new TileMesh { Version = version, Props = main, Why = main.Ready ? string.Empty : floor.Why };
         }
 
-        at = floor.At + (Shapes(floor) * (2 + BoxBytes)) + (tails * TailBytes);
+        // EACH GROUND SHAPE'S RECORD: a u16, then its box. poe_data_tools calls the u16 the ordinal and neither reference
+        // says what it numbers - kept, with the tail entries after them, for the capture's ground part to set against the
+        // ground (see CaptureGround).
+        at = floor.At;
+        var ordinals = new int[Shapes(floor)];
+        for (var shape = 0; shape < ordinals.Length; shape++)
+        {
+            ordinals[shape] = BinaryPrimitives.ReadUInt16LittleEndian(file[at..]);
+            at += 2 + BoxBytes;
+        }
+
+        int tailEnd = at + (tails * TailBytes);
+        byte[] tailBytes = tailEnd <= file.Length ? file[at..tailEnd].ToArray() : [];
+        at = tailEnd;
 
         return new TileMesh
         {
@@ -611,7 +633,45 @@ public sealed class TileMesh
             Props = main,
             Ground = Mesh(floor),
             Exact = at == file.Length,
+            HeaderShapes = headerShapes,
+            HeaderWord = word,
+            HeaderByte = unnamed,
+            GroundOrdinals = ordinals,
+            TailData = tailBytes,
         };
+    }
+
+    /// <summary>The header's shape count - poe_data_tools' <c>num_shapes</c>.</summary>
+    public int HeaderShapes { get; private init; }
+
+    /// <summary>The header's unnamed u16 after the shape count - poe_data_tools' <c>extra_u16</c>.</summary>
+    public int HeaderWord { get; private init; }
+
+    /// <summary>The header's unnamed u8 before the tail count - poe_data_tools' <c>extra_u8</c>.</summary>
+    public int HeaderByte { get; private init; }
+
+    /// <summary>Each ground shape's u16 before its box, in shape order - poe_data_tools' <c>ordinal</c>, which neither reference explains.</summary>
+    public IReadOnlyList<int> GroundOrdinals { get; private init; } = [];
+
+    /// <summary>The tail entries the header counts, raw: <see cref="TailEntryBytes"/> bytes each - see <see cref="Tail"/>.</summary>
+    public byte[] TailData { get; private init; } = [];
+
+    /// <summary>How many bytes one tail entry takes.</summary>
+    public const int TailEntryBytes = TailBytes;
+
+    /// <summary>
+    /// One tail entry as poe_data_tools' <c>tail_entry</c> reads it: a u32, twelve floats, a u32, then 31 bytes - none of them named.
+    /// </summary>
+    public (uint First, float[] Floats, uint Second, byte[] Bytes) Tail(int entry)
+    {
+        ReadOnlySpan<byte> one = TailData.AsSpan(entry * TailBytes, TailBytes);
+        var floats = new float[12];
+        for (var at = 0; at < floats.Length; at++)
+        {
+            floats[at] = BinaryPrimitives.ReadSingleLittleEndian(one[(4 + (at * 4))..]);
+        }
+
+        return (BinaryPrimitives.ReadUInt32LittleEndian(one), floats, BinaryPrimitives.ReadUInt32LittleEndian(one[52..]), one[56..].ToArray());
     }
 
     /// <summary>How many per-shape records follow a block: one per shape of its first level, if it has one.</summary>

@@ -235,8 +235,10 @@ public static class CaptureParts
             "What the laid tiles' ground is made of, as the files say: every template's ground blocks by vertex format, with what "
             + "the fields the reader steps over hold; each corner's ground by name and what the master's MaterialsList draws it with, "
             + "the ground materials and their graphs; the install's shader sources that name where the ground's texture "
-            + "coordinates come from and how its materials are blended, whole; and every laid template whole. What stands "
-            + "between the rooms' white ground and a painted one."),
+            + "coordinates come from and how its materials are blended, whole; every laid template whole; each masked template's "
+            + "ground shapes sub-tile by sub-tile with their unnamed ordinals and the mask's green, the biggest drawn from above "
+            + "beside it; and every laid tile definition's bytes past what is read. What stands between the rooms' white ground "
+            + "and a painted one."),
         new(Water, "Area files", "the water's makings", CaptureReport.WaterFile,
             "What the water is drawn from, as the files say: every key the install's environments write in their water "
             + "sections, how many files carry it and what values, every environment's water section file by file - to pick an "
