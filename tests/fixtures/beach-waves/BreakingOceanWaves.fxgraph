@@ -1,0 +1,3165 @@
+{
+    "version": 3,
+    "render_state_overwrite": {
+        "stencil": {
+            "enable": true,
+            "ref": 8,
+            "compare": "notequal",
+            "pass": "keep",
+            "z_fail": "keep"
+        }
+    },
+    "textures": [
+        {
+            "filename": "Art/Textures/Environment/Global/StormyWater/v10/ocean_v10_P_Uncompressed.dds",
+            "format": "Uncompressed",
+            "sources": [
+                {
+                    "filename": "Textures/Environment/Global/StormyWater/v10/ocean_v10_P.png"
+                }
+            ],
+            "count": 1
+        },
+        {
+            "filename": "Art/Textures/Environment/Global/StormyWater/v10/ocean_v10_norm_Uncompressed.dds",
+            "format": "Uncompressed",
+            "sources": [
+                {
+                    "filename": "Textures/Environment/Global/StormyWater/v10/ocean_v10_norm.png"
+                }
+            ],
+            "count": 1
+        },
+        {
+            "filename": "Art/Textures/Environment/Global/StormyWater/v10/CuspMap2_Uncompressed.dds",
+            "format": "Uncompressed",
+            "sources": [
+                {
+                    "filename": "Textures/Environment/Global/StormyWater/v10/CuspMap2.png"
+                }
+            ],
+            "count": 1
+        },
+        {
+            "filename": "Art/Textures/Environment/Global/BreakingWaves/SeaFoam_colour_Uncompressed.dds",
+            "format": "Uncompressed",
+            "sources": [
+                {
+                    "filename": "Textures/Environment/Global/BreakingWaves/SeaFoam_colour.png"
+                }
+            ],
+            "count": 1
+        },
+        {
+            "filename": "Art/Textures/Environment/Global/BreakingWaves/SeaFoam_normal_Uncompressed.dds",
+            "format": "Uncompressed",
+            "sources": [
+                {
+                    "filename": "Textures/Environment/Global/BreakingWaves/SeaFoam_normal.png"
+                }
+            ],
+            "count": 1
+        },
+        {
+            "filename": "Art/Textures/General/Water/water_caustics_2_BC1.dds",
+            "format": "BC1",
+            "sources": [
+                {
+                    "filename": "Textures/General/Water/water_caustics_2.png"
+                }
+            ],
+            "count": 1
+        },
+        {
+            "filename": "Art/particles/FXLib/tileables/16bit/flow_muddle_blur_01_R16G16.dds",
+            "format": "R16G16",
+            "sources": [
+                {
+                    "filename": "particles/FXLib/tileables/16bit/flow_muddle_blur_01.png"
+                }
+            ],
+            "count": 1
+        },
+        {
+            "filename": "Art/Textures/General/Water/backwatertile_normal_DXT1.dds",
+            "format": "BC1",
+            "sources": [
+                {
+                    "filename": "Textures/General/Water/backwatertile_normal.png"
+                }
+            ],
+            "count": 1
+        }
+    ],
+    "shader_group": [
+        "Material"
+    ],
+    "overriden_lighting_model": "SpecGlossPbrMaterial",
+    "overriden_blend_mode": "BackgroundGBufferSurfaces",
+    "nodes": [
+        {
+            "type": "InputVertexPosition",
+            "index": 0,
+            "stage": "WorldTransform",
+            "ui_position": [
+                737.222412109375,
+                -463.385498046875
+            ]
+        },
+        {
+            "type": "InputTexture",
+            "index": 0,
+            "parameters": [
+                {
+                    "path": "Art/Textures/Environment/Global/StormyWater/v10/ocean_v10_P_Uncompressed.dds",
+                    "format": "Uncompressed",
+                    "srgb": false
+                }
+            ],
+            "ui_position": [
+                -382.5893859863281,
+                -610.9892578125
+            ]
+        },
+        {
+            "type": "InputTexture",
+            "index": 6,
+            "parameters": [
+                {
+                    "path": "Art/2DArt/Lookup/gerstner_positive_wave_profile.dds",
+                    "format": "Uncompressed",
+                    "srgb": false
+                }
+            ],
+            "ui_position": [
+                135.98199462890626,
+                189.01072692871095
+            ]
+        },
+        {
+            "type": "InputTexture",
+            "index": 18,
+            "parameters": [
+                {
+                    "path": "Art/particles/FXLib/tileables/16bit/flow_muddle_blur_01_R16G16.dds",
+                    "format": "R16G16",
+                    "srgb": false
+                }
+            ],
+            "ui_position": [
+                -143.88131713867188,
+                1750.6912841796876
+            ]
+        },
+        {
+            "type": "BreakingWavesVertex",
+            "index": 0,
+            "ui_position": [
+                1252.6917724609376,
+                -764.1818237304688
+            ]
+        },
+        {
+            "type": "Add3",
+            "index": 0,
+            "ui_position": [
+                1969.521240234375,
+                -529.15380859375
+            ]
+        },
+        {
+            "type": "VertexPosition",
+            "index": 0,
+            "stage": "WorldTransform",
+            "ui_position": [
+                2300.0,
+                -510.0
+            ]
+        },
+        {
+            "type": "InputWorldPos",
+            "index": 0,
+            "stage": "UVSetup",
+            "ui_position": [
+                -71.353515625,
+                110.3736801147461
+            ]
+        },
+        {
+            "type": "CustomDepthTest",
+            "index": 0,
+            "ui_position": [
+                369.4043884277344,
+                -55.20569610595703
+            ]
+        },
+        {
+            "type": "ConnectionPixel",
+            "index": 0,
+            "stage": "UVSetup",
+            "ui_position": [
+                800.0,
+                20.0
+            ]
+        },
+        {
+            "type": "WorldPos",
+            "index": 0,
+            "stage": "UVSetup",
+            "ui_position": [
+                800.0,
+                20.0
+            ]
+        },
+        {
+            "type": "GetWorldTBN",
+            "index": 0,
+            "ui_position": [
+                312.9801940917969,
+                123.45631408691406
+            ]
+        },
+        {
+            "type": "TbnBasis",
+            "index": 0,
+            "stage": "UVSetup",
+            "ui_position": [
+                800.0,
+                20.0
+            ]
+        },
+        {
+            "type": "EnableFog",
+            "index": 0,
+            "ui_position": [
+                3197.0,
+                197.0
+            ]
+        },
+        {
+            "type": "CameraPos",
+            "index": 0,
+            "ui_position": [
+                1180.921875,
+                1740.550537109375
+            ]
+        },
+        {
+            "type": "Subtract3",
+            "index": 0,
+            "ui_position": [
+                1552.1441650390626,
+                1592.884033203125
+            ]
+        },
+        {
+            "type": "Normalize3",
+            "index": 0,
+            "ui_position": [
+                1753.810546875,
+                1548.439453125
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 8,
+            "parameters": [
+                {
+                    "value": 100.0
+                }
+            ],
+            "ui_position": [
+                1593.0,
+                1836.0
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 9,
+            "parameters": [
+                {
+                    "value": 50.0
+                }
+            ],
+            "ui_position": [
+                1571.0,
+                1938.0
+            ]
+        },
+        {
+            "type": "InputTexture",
+            "index": 1,
+            "parameters": [
+                {
+                    "path": "Art/Textures/Environment/Global/StormyWater/v10/ocean_v10_norm_Uncompressed.dds",
+                    "format": "Uncompressed",
+                    "srgb": false
+                }
+            ],
+            "ui_position": [
+                104.83908081054688,
+                -400.5965270996094
+            ]
+        },
+        {
+            "type": "InputTexture",
+            "index": 2,
+            "parameters": [
+                {
+                    "path": "Art/Textures/Environment/Global/StormyWater/v10/CuspMap2_Uncompressed.dds",
+                    "format": "Uncompressed",
+                    "srgb": false
+                }
+            ],
+            "ui_position": [
+                110.98190307617188,
+                -219.7393341064453
+            ]
+        },
+        {
+            "type": "InputTexture",
+            "index": 10,
+            "parameters": [
+                {
+                    "path": "Art/Textures/Environment/Global/BreakingWaves/SeaFoam_colour_Uncompressed.dds",
+                    "format": "Uncompressed",
+                    "srgb": true
+                }
+            ],
+            "ui_position": [
+                -175.64215087890626,
+                1233.066650390625
+            ]
+        },
+        {
+            "type": "InputTexture",
+            "index": 8,
+            "parameters": [
+                {
+                    "path": "Art/Textures/Environment/Global/BreakingWaves/SeaFoam_normal_Uncompressed.dds",
+                    "format": "Uncompressed",
+                    "srgb": false
+                }
+            ],
+            "ui_position": [
+                -182.4796142578125,
+                1451.6524658203126
+            ]
+        },
+        {
+            "type": "InputTexture",
+            "index": 19,
+            "parameters": [
+                {
+                    "path": "Art/Textures/General/Water/backwatertile_normal_DXT1.dds",
+                    "format": "BC1",
+                    "srgb": false
+                }
+            ],
+            "ui_position": [
+                -341.8778381347656,
+                1005.834228515625
+            ]
+        },
+        {
+            "type": "Add3",
+            "index": 3,
+            "ui_position": [
+                -130.595947265625,
+                771.306396484375
+            ]
+        },
+        {
+            "type": "BreakingWavesFragment",
+            "index": 0,
+            "ui_position": [
+                144.18927001953126,
+                794.48779296875
+            ]
+        },
+        {
+            "type": "Lerp",
+            "index": 0,
+            "ui_position": [
+                1864.1663818359376,
+                1870.83349609375
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 10,
+            "parameters": [
+                {
+                    "value": 2.0
+                }
+            ],
+            "ui_position": [
+                1602.0,
+                2097.0
+            ]
+        },
+        {
+            "type": "MultiplyConst",
+            "index": 3,
+            "parameters": [
+                {
+                    "value": 0.699999988079071
+                }
+            ],
+            "ui_position": [
+                771.0,
+                807.0
+            ]
+        },
+        {
+            "type": "Lerp",
+            "index": 1,
+            "ui_position": [
+                1969.8331298828126,
+                2018.1668701171876
+            ]
+        },
+        {
+            "type": "Multiply3",
+            "index": 8,
+            "ui_position": [
+                2107.666748046875,
+                1757.6669921875
+            ]
+        },
+        {
+            "type": "Add3",
+            "index": 2,
+            "ui_position": [
+                2293.0,
+                1844.0
+            ]
+        },
+        {
+            "type": "ReadBayerNoise",
+            "index": 0,
+            "ui_position": [
+                2180.0,
+                2123.0
+            ]
+        },
+        {
+            "type": "WriteSubsurfacePos",
+            "index": 0,
+            "ui_position": [
+                2545.22119140625,
+                1896.4439697265626
+            ]
+        },
+        {
+            "type": "Add",
+            "index": 0,
+            "ui_position": [
+                3385.0,
+                255.0
+            ]
+        },
+        {
+            "type": "ConnectionPixel",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                3678.863037109375,
+                568.923828125
+            ]
+        },
+        {
+            "type": "OneMinus",
+            "index": 3,
+            "ui_position": [
+                1431.0,
+                -43.0
+            ]
+        },
+        {
+            "type": "Saturate",
+            "index": 5,
+            "ui_position": [
+                688.499755859375,
+                1220.3897705078126
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 18,
+            "parameters": [
+                {
+                    "value": 1.0
+                }
+            ],
+            "ui_position": [
+                590.6666259765625,
+                1435.4444580078126
+            ]
+        },
+        {
+            "type": "Power",
+            "index": 0,
+            "ui_position": [
+                950.333251953125,
+                1297.1121826171876
+            ]
+        },
+        {
+            "type": "OneMinus",
+            "index": 4,
+            "ui_position": [
+                1447.0,
+                113.0
+            ]
+        },
+        {
+            "type": "Multiply",
+            "index": 5,
+            "ui_position": [
+                1820.0,
+                12.0
+            ]
+        },
+        {
+            "type": "OneMinus",
+            "index": 5,
+            "ui_position": [
+                2175.0,
+                72.0
+            ]
+        },
+        {
+            "type": "Multiply3",
+            "index": 0,
+            "ui_position": [
+                1631.583251953125,
+                234.9168701171875
+            ]
+        },
+        {
+            "type": "Divide3",
+            "index": 0,
+            "ui_position": [
+                2371.0,
+                232.0
+            ]
+        },
+        {
+            "type": "AlbedoColor",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                3678.863037109375,
+                568.923828125
+            ]
+        },
+        {
+            "type": "Glossiness",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                3678.863037109375,
+                568.923828125
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 2,
+            "parameters": [
+                {
+                    "value": 0.05000000074505806
+                }
+            ],
+            "ui_position": [
+                3044.5830078125,
+                407.4166259765625
+            ]
+        },
+        {
+            "type": "SpecularColor",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                3678.863037109375,
+                568.923828125
+            ]
+        },
+        {
+            "type": "InputIndirectColor",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                800.0,
+                20.0
+            ]
+        },
+        {
+            "type": "IndirectColor",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                3678.863037109375,
+                568.923828125
+            ]
+        },
+        {
+            "type": "MultiplyConst",
+            "index": 1,
+            "parameters": [
+                {
+                    "value": 100.0
+                }
+            ],
+            "ui_position": [
+                1314.476806640625,
+                960.365234375
+            ]
+        },
+        {
+            "type": "AddConst",
+            "index": 0,
+            "parameters": [
+                {}
+            ],
+            "ui_position": [
+                1689.5872802734376,
+                870.4761962890625
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 14,
+            "parameters": [
+                {
+                    "value": 5.0
+                }
+            ],
+            "ui_position": [
+                2237.0,
+                741.0
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 15,
+            "parameters": [
+                {
+                    "value": 20.0
+                }
+            ],
+            "ui_position": [
+                2245.0,
+                820.0
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 5,
+            "parameters": [
+                {
+                    "value": 1.409999966621399
+                }
+            ],
+            "ui_position": [
+                1767.0,
+                1661.0
+            ]
+        },
+        {
+            "type": "RefractionDir",
+            "index": 0,
+            "ui_position": [
+                2123.0,
+                1540.0
+            ]
+        },
+        {
+            "type": "ScreenspaceRaycast",
+            "index": 0,
+            "ui_position": [
+                2052.0,
+                1321.0
+            ]
+        },
+        {
+            "type": "Subtract3",
+            "index": 3,
+            "ui_position": [
+                2079.0,
+                950.0
+            ]
+        },
+        {
+            "type": "Length3",
+            "index": 0,
+            "ui_position": [
+                2240.0,
+                890.0
+            ]
+        },
+        {
+            "type": "Multiply",
+            "index": 2,
+            "ui_position": [
+                2444.0,
+                886.0
+            ]
+        },
+        {
+            "type": "ConstantFloat4",
+            "index": 3,
+            "parameters": [
+                {
+                    "value": [
+                        0.05000000074505806,
+                        0.6000000238418579,
+                        0.8999999761581421,
+                        0.10000000149011612
+                    ]
+                }
+            ],
+            "ui_position": [
+                1345.0,
+                554.0
+            ]
+        },
+        {
+            "type": "Multiply3",
+            "index": 9,
+            "ui_position": [
+                1887.4447021484376,
+                659.0000610351563
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 11,
+            "parameters": [
+                {
+                    "value": 1.0
+                }
+            ],
+            "ui_position": [
+                1666.476318359375,
+                788.0317993164063
+            ]
+        },
+        {
+            "type": "MultiplyConst",
+            "index": 0,
+            "parameters": [
+                {}
+            ],
+            "ui_position": [
+                1414.24267578125,
+                1130.845458984375
+            ]
+        },
+        {
+            "type": "Saturate",
+            "index": 3,
+            "ui_position": [
+                1848.8094482421876,
+                1232.72607421875
+            ]
+        },
+        {
+            "type": "Lerp3",
+            "index": 2,
+            "ui_position": [
+                2182.97412109375,
+                615.3540649414063
+            ]
+        },
+        {
+            "type": "ConstantFloat4",
+            "index": 2,
+            "parameters": [
+                {
+                    "value": [
+                        1.4999998807907105,
+                        1.0,
+                        0.40000003576278689,
+                        0.004999999888241291
+                    ],
+                    "srgb": true
+                }
+            ],
+            "ui_position": [
+                1644.600830078125,
+                1030.2921142578126
+            ]
+        },
+        {
+            "type": "Multiply3",
+            "index": 10,
+            "ui_position": [
+                2312.9765625,
+                1054.364990234375
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 12,
+            "parameters": [
+                {
+                    "value": 0.10000000149011612
+                }
+            ],
+            "ui_position": [
+                2109.92041015625,
+                1175.6981201171876
+            ]
+        },
+        {
+            "type": "Multiply",
+            "index": 3,
+            "ui_position": [
+                2443.143310546875,
+                1189.9759521484376
+            ]
+        },
+        {
+            "type": "Add3",
+            "index": 4,
+            "ui_position": [
+                2575.040283203125,
+                1049.322265625
+            ]
+        },
+        {
+            "type": "GetWaterSubsurfaceColor",
+            "index": 0,
+            "ui_position": [
+                2687.77734375,
+                745.8333740234375
+            ]
+        },
+        {
+            "type": "Divide3",
+            "index": 2,
+            "ui_position": [
+                3362.0,
+                839.0
+            ]
+        },
+        {
+            "type": "SubsurfaceColor",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                3678.863037109375,
+                568.923828125
+            ]
+        },
+        {
+            "type": "SubsurfaceTranslucency3",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                3678.863037109375,
+                568.923828125
+            ]
+        },
+        {
+            "type": "ConstantFloat2",
+            "index": 1,
+            "parameters": [
+                {
+                    "value": [
+                        1.0,
+                        1.0
+                    ]
+                }
+            ],
+            "ui_position": [
+                3412.2060546875,
+                181.9601287841797
+            ]
+        },
+        {
+            "type": "CombineGroundNormals",
+            "index": 0,
+            "ui_position": [
+                3766.650390625,
+                375.29339599609377
+            ]
+        },
+        {
+            "type": "WorldNormal",
+            "index": 0,
+            "stage": "PreLighting",
+            "ui_position": [
+                4245.087890625,
+                280.06317138671877
+            ]
+        },
+        {
+            "type": "One",
+            "index": 0,
+            "ui_position": [
+                4302.87255859375,
+                547.28125
+            ]
+        },
+        {
+            "type": "Zero",
+            "index": 0,
+            "ui_position": [
+                4223.70751953125,
+                485.614501953125
+            ]
+        },
+        {
+            "type": "IndirectColor",
+            "index": 0,
+            "stage": "Lighting_Calc",
+            "ui_position": [
+                4422.86328125,
+                379.09088134765627
+            ]
+        },
+        {
+            "type": "ReadSubsurfaceLight",
+            "index": 0,
+            "ui_position": [
+                3856.0,
+                1095.0
+            ]
+        },
+        {
+            "type": "Multiply",
+            "index": 8,
+            "ui_position": [
+                1670.7459716796876,
+                381.3731689453125
+            ]
+        },
+        {
+            "type": "Lerp3",
+            "index": 4,
+            "ui_position": [
+                2499.861328125,
+                1435.1943359375
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 6,
+            "parameters": [
+                {
+                    "value": 0.10000000149011612
+                }
+            ],
+            "ui_position": [
+                2544.0,
+                1696.0
+            ]
+        },
+        {
+            "type": "ReadDispersedGBufferColor",
+            "index": 0,
+            "ui_position": [
+                2847.5,
+                1365.5
+            ]
+        },
+        {
+            "type": "Multiply3",
+            "index": 5,
+            "ui_position": [
+                3283.0,
+                1211.0
+            ]
+        },
+        {
+            "type": "Multiply3",
+            "index": 13,
+            "ui_position": [
+                3502.74560546875,
+                1138.3731689453126
+            ]
+        },
+        {
+            "type": "One",
+            "index": 6,
+            "ui_position": [
+                3820.5,
+                2130.25
+            ]
+        },
+        {
+            "type": "InputTexture",
+            "index": 17,
+            "parameters": [
+                {
+                    "path": "Art/Textures/General/Water/water_caustics_2_BC1.dds",
+                    "format": "BC1",
+                    "srgb": true
+                }
+            ],
+            "ui_position": [
+                2219.45166015625,
+                2781.484375
+            ]
+        },
+        {
+            "type": "Dummy3",
+            "index": 0,
+            "ui_position": [
+                1986.75,
+                2246.5
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 16,
+            "parameters": [
+                {
+                    "value": 0.001500000013038516
+                }
+            ],
+            "ui_position": [
+                1757.0,
+                2376.0
+            ]
+        },
+        {
+            "type": "Multiply2",
+            "index": 0,
+            "ui_position": [
+                2289.7421875,
+                2232.131103515625
+            ]
+        },
+        {
+            "type": "MultiplyConst2",
+            "index": 0,
+            "parameters": [
+                {
+                    "value": 0.10000000149011612
+                }
+            ],
+            "ui_position": [
+                1999.0,
+                2470.0
+            ]
+        },
+        {
+            "type": "Multiply2",
+            "index": 1,
+            "ui_position": [
+                2306.7421875,
+                2472.131103515625
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 17,
+            "parameters": [
+                {
+                    "value": 3.0
+                }
+            ],
+            "ui_position": [
+                2314.0,
+                2639.0
+            ]
+        },
+        {
+            "type": "Divide2",
+            "index": 0,
+            "ui_position": [
+                2710.0,
+                2357.0
+            ]
+        },
+        {
+            "type": "Time",
+            "index": 0,
+            "ui_position": [
+                2552.0,
+                2498.0
+            ]
+        },
+        {
+            "type": "Multiply",
+            "index": 4,
+            "ui_position": [
+                2774.77734375,
+                2550.4443359375
+            ]
+        },
+        {
+            "type": "SampleFlowTexture2",
+            "index": 1,
+            "ui_position": [
+                3094.427001953125,
+                2025.60888671875
+            ]
+        },
+        {
+            "type": "Zero",
+            "index": 4,
+            "ui_position": [
+                3170.60498046875,
+                2173.6953125
+            ]
+        },
+        {
+            "type": "One",
+            "index": 5,
+            "ui_position": [
+                3163.4619140625,
+                2265.75830078125
+            ]
+        },
+        {
+            "type": "ConstantFloat2",
+            "index": 0,
+            "parameters": [
+                {
+                    "value": [
+                        0.800000011920929,
+                        5.0
+                    ]
+                }
+            ],
+            "ui_position": [
+                3136.271240234375,
+                2492.472412109375
+            ]
+        },
+        {
+            "type": "FitRangeFromInput",
+            "index": 0,
+            "ui_position": [
+                3518.501953125,
+                2211.1513671875
+            ]
+        },
+        {
+            "type": "Subtract3",
+            "index": 5,
+            "ui_position": [
+                3000.5,
+                1630.2498779296876
+            ]
+        },
+        {
+            "type": "MultiplyConst",
+            "index": 2,
+            "parameters": [
+                {
+                    "value": 0.019999999552965165
+                }
+            ],
+            "ui_position": [
+                3219.25,
+                1631.5
+            ]
+        },
+        {
+            "type": "Saturate",
+            "index": 4,
+            "ui_position": [
+                3335.5,
+                1794.0
+            ]
+        },
+        {
+            "type": "Lerp",
+            "index": 2,
+            "ui_position": [
+                3965.5,
+                2174.0
+            ]
+        },
+        {
+            "type": "Multiply3",
+            "index": 14,
+            "ui_position": [
+                3755.488037109375,
+                1287.22265625
+            ]
+        },
+        {
+            "type": "Divide3",
+            "index": 1,
+            "ui_position": [
+                3838.0,
+                1169.0
+            ]
+        },
+        {
+            "type": "Add3",
+            "index": 1,
+            "ui_position": [
+                4205.0,
+                1136.0
+            ]
+        },
+        {
+            "type": "WriteSubsurfaceLight",
+            "index": 0,
+            "ui_position": [
+                4872.0,
+                947.0
+            ]
+        },
+        {
+            "type": "ConnectionPixel",
+            "index": 0,
+            "stage": "CustomLighting",
+            "ui_position": [
+                5034.86328125,
+                357.09100341796877
+            ]
+        },
+        {
+            "type": "InputAlbedoColor",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                300.0,
+                20.0
+            ]
+        },
+        {
+            "type": "InputSubsurfaceTranslucency3",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                800.0,
+                20.0
+            ]
+        },
+        {
+            "type": "InputConnectionPixel",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                800.0,
+                20.0
+            ]
+        },
+        {
+            "type": "InputGlossiness",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                800.0,
+                20.0
+            ]
+        },
+        {
+            "type": "InputSpecularColor",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                800.0,
+                20.0
+            ]
+        },
+        {
+            "type": "InputTbnBasis",
+            "index": 0,
+            "stage": "UVSetup",
+            "ui_position": [
+                -71.353515625,
+                110.3736801147461
+            ]
+        },
+        {
+            "type": "InputWorldNormal",
+            "index": 0,
+            "stage": "PreLighting",
+            "ui_position": [
+                3678.863037109375,
+                568.923828125
+            ]
+        },
+        {
+            "type": "InputSubsurfaceColor",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                800.0,
+                20.0
+            ]
+        },
+        {
+            "type": "InputConnectionPixel",
+            "index": 0,
+            "stage": "UVSetup",
+            "ui_position": [
+                -71.353515625,
+                110.3736801147461
+            ]
+        },
+        {
+            "type": "InputConnectionPixel",
+            "index": 0,
+            "stage": "CustomLighting",
+            "ui_position": [
+                4422.86328125,
+                379.09088134765627
+            ]
+        },
+        {
+            "type": "InputIndirectColor",
+            "index": 0,
+            "stage": "Lighting_Calc",
+            "ui_position": [
+                4245.087890625,
+                280.06317138671877
+            ]
+        }
+    ],
+    "links": [
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 0,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "BreakingWavesVertex",
+                "index": 0,
+                "variable": "displ_tex"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 6,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "BreakingWavesVertex",
+                "index": 0,
+                "variable": "wave_shape_precomp_tex"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 18,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "BreakingWavesVertex",
+                "index": 0,
+                "variable": "wave_coord_noise_tex"
+            }
+        },
+        {
+            "src": {
+                "type": "InputVertexPosition",
+                "index": 0,
+                "stage": "WorldTransform",
+                "variable": "output",
+                "swizzle": "xy"
+            },
+            "dst": {
+                "type": "BreakingWavesVertex",
+                "index": 0,
+                "variable": "planar_pos"
+            }
+        },
+        {
+            "src": {
+                "type": "InputVertexPosition",
+                "index": 0,
+                "stage": "WorldTransform",
+                "variable": "output",
+                "swizzle": "xy"
+            },
+            "dst": {
+                "type": "Add3",
+                "index": 0,
+                "variable": "a",
+                "swizzle": "xy"
+            }
+        },
+        {
+            "src": {
+                "type": "InputVertexPosition",
+                "index": 0,
+                "stage": "WorldTransform",
+                "variable": "output",
+                "swizzle": "z"
+            },
+            "dst": {
+                "type": "Add3",
+                "index": 0,
+                "variable": "a",
+                "swizzle": "z"
+            }
+        },
+        {
+            "src": {
+                "type": "BreakingWavesVertex",
+                "index": 0,
+                "variable": "displ"
+            },
+            "dst": {
+                "type": "Add3",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "InputVertexPosition",
+                "index": 0,
+                "stage": "WorldTransform",
+                "variable": "output",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "VertexPosition",
+                "index": 0,
+                "stage": "WorldTransform",
+                "variable": "input",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "Add3",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "xy"
+            },
+            "dst": {
+                "type": "VertexPosition",
+                "index": 0,
+                "stage": "WorldTransform",
+                "variable": "input",
+                "swizzle": "xy"
+            }
+        },
+        {
+            "src": {
+                "type": "Add3",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "z"
+            },
+            "dst": {
+                "type": "VertexPosition",
+                "index": 0,
+                "stage": "WorldTransform",
+                "variable": "input",
+                "swizzle": "z"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "CustomDepthTest",
+                "index": 0,
+                "variable": "world_pos"
+            }
+        },
+        {
+            "src": {
+                "type": "CustomDepthTest",
+                "index": 0,
+                "variable": "connection"
+            },
+            "dst": {
+                "type": "ConnectionPixel",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "WorldPos",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "GetWorldTBN",
+                "index": 0,
+                "variable": "tbn_basis"
+            },
+            "dst": {
+                "type": "TbnBasis",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Subtract3",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "CameraPos",
+                "index": 0,
+                "variable": "cam_pos"
+            },
+            "dst": {
+                "type": "Subtract3",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Subtract3",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Normalize3",
+                "index": 0,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add3",
+                "index": 3,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 1,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "normal_tex"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 2,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "thickness_tex"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 10,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "foam_color_tex"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 8,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "foam_normal_tex"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 6,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "wave_shape_precomp_tex"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 18,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "wave_coord_noise_tex"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 19,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "ripple_normal_tex"
+            }
+        },
+        {
+            "src": {
+                "type": "Add3",
+                "index": 3,
+                "variable": "output",
+                "swizzle": "xy"
+            },
+            "dst": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "planar_pos"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 8,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 9,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "subsurface"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 0,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "surface_color",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "MultiplyConst",
+                "index": 3,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 10,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 1,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "Normalize3",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply3",
+                "index": 8,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply3",
+                "index": 8,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply3",
+                "index": 8,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add3",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add3",
+                "index": 2,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Add3",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "WriteSubsurfacePos",
+                "index": 0,
+                "variable": "subsurface_world_pos"
+            }
+        },
+        {
+            "src": {
+                "type": "ReadBayerNoise",
+                "index": 0,
+                "variable": "bayer_noise"
+            },
+            "dst": {
+                "type": "WriteSubsurfacePos",
+                "index": 0,
+                "variable": "subsurface_seed"
+            }
+        },
+        {
+            "src": {
+                "type": "EnableFog",
+                "index": 0,
+                "variable": "connection"
+            },
+            "dst": {
+                "type": "Add",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "WriteSubsurfacePos",
+                "index": 0,
+                "variable": "connection"
+            },
+            "dst": {
+                "type": "Add",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Add",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "ConnectionPixel",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "OneMinus",
+                "index": 3,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "thickness"
+            },
+            "dst": {
+                "type": "Saturate",
+                "index": 5,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Power",
+                "index": 0,
+                "variable": "base"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 18,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Power",
+                "index": 0,
+                "variable": "exp"
+            }
+        },
+        {
+            "src": {
+                "type": "Power",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "OneMinus",
+                "index": 4,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "OneMinus",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 5,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "OneMinus",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 5,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "OneMinus",
+                "index": 5,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "surface_color",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "Multiply3",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply3",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply3",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Divide3",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "OneMinus",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Divide3",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "OneMinus",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "AlbedoColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "Divide3",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "AlbedoColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input",
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "glossiness"
+            },
+            "dst": {
+                "type": "Glossiness",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SpecularColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "ao"
+            },
+            "dst": {
+                "type": "IndirectColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "InputIndirectColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "IndirectColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input",
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "curvature"
+            },
+            "dst": {
+                "type": "MultiplyConst",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "AddConst",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Normalize3",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "RefractionDir",
+                "index": 0,
+                "variable": "in_ray_dir"
+            }
+        },
+        {
+            "src": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "world_normal"
+            },
+            "dst": {
+                "type": "RefractionDir",
+                "index": 0,
+                "variable": "surface_normal"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "RefractionDir",
+                "index": 0,
+                "variable": "refraction_index"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "ScreenspaceRaycast",
+                "index": 0,
+                "variable": "world_origin"
+            }
+        },
+        {
+            "src": {
+                "type": "RefractionDir",
+                "index": 0,
+                "variable": "out_ray_dir"
+            },
+            "dst": {
+                "type": "ScreenspaceRaycast",
+                "index": 0,
+                "variable": "world_dir"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Subtract3",
+                "index": 3,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceRaycast",
+                "index": 0,
+                "variable": "world_hit"
+            },
+            "dst": {
+                "type": "Subtract3",
+                "index": 3,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Subtract3",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Length3",
+                "index": 0,
+                "variable": "vec"
+            }
+        },
+        {
+            "src": {
+                "type": "Length3",
+                "index": 0,
+                "variable": "len"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Power",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 2,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat4",
+                "index": 3,
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "Multiply3",
+                "index": 9,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat4",
+                "index": 3,
+                "variable": "output",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "Multiply3",
+                "index": 9,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "subsurface"
+            },
+            "dst": {
+                "type": "MultiplyConst",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Saturate",
+                "index": 3,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply3",
+                "index": 9,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 11,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 2,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 2,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat4",
+                "index": 2,
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "Multiply3",
+                "index": 10,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat4",
+                "index": 2,
+                "variable": "output",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "Multiply3",
+                "index": 10,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 12,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 3,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 3,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply3",
+                "index": 10,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add3",
+                "index": 4,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add3",
+                "index": 4,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "AddConst",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "GetWaterSubsurfaceColor",
+                "index": 0,
+                "variable": "thin_path_length"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 14,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "GetWaterSubsurfaceColor",
+                "index": 0,
+                "variable": "thin_path_mult"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 15,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "GetWaterSubsurfaceColor",
+                "index": 0,
+                "variable": "thick_path_mult"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "GetWaterSubsurfaceColor",
+                "index": 0,
+                "variable": "optical_path_length"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp3",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "GetWaterSubsurfaceColor",
+                "index": 0,
+                "variable": "scatter_color"
+            }
+        },
+        {
+            "src": {
+                "type": "Add3",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "GetWaterSubsurfaceColor",
+                "index": 0,
+                "variable": "scatter_intensity"
+            }
+        },
+        {
+            "src": {
+                "type": "GetWaterSubsurfaceColor",
+                "index": 0,
+                "variable": "intrinsic_color"
+            },
+            "dst": {
+                "type": "Divide3",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "OneMinus",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Divide3",
+                "index": 2,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Divide3",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SubsurfaceColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "GetWaterSubsurfaceColor",
+                "index": 0,
+                "variable": "translucency"
+            },
+            "dst": {
+                "type": "SubsurfaceTranslucency3",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "world_normal"
+            },
+            "dst": {
+                "type": "CombineGroundNormals",
+                "index": 0,
+                "variable": "world_normal0"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 1,
+                "variable": "output",
+                "swizzle": "x"
+            },
+            "dst": {
+                "type": "CombineGroundNormals",
+                "index": 0,
+                "variable": "weight0"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 1,
+                "variable": "output",
+                "swizzle": "y"
+            },
+            "dst": {
+                "type": "CombineGroundNormals",
+                "index": 0,
+                "variable": "weight1"
+            }
+        },
+        {
+            "src": {
+                "type": "CombineGroundNormals",
+                "index": 0,
+                "variable": "res_world_normal"
+            },
+            "dst": {
+                "type": "WorldNormal",
+                "index": 0,
+                "stage": "PreLighting",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "One",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "IndirectColor",
+                "index": 0,
+                "stage": "Lighting_Calc",
+                "variable": "input",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "Zero",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "IndirectColor",
+                "index": 0,
+                "stage": "Lighting_Calc",
+                "variable": "input",
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "OneMinus",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 8,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Power",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 8,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 4,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceRaycast",
+                "index": 0,
+                "variable": "world_hit"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 4,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Power",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 4,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "ReadDispersedGBufferColor",
+                "index": 0,
+                "variable": "world_start_pos"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp3",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "ReadDispersedGBufferColor",
+                "index": 0,
+                "variable": "world_dst_pos"
+            }
+        },
+        {
+            "src": {
+                "type": "RefractionDir",
+                "index": 0,
+                "variable": "out_ray_dir"
+            },
+            "dst": {
+                "type": "ReadDispersedGBufferColor",
+                "index": 0,
+                "variable": "world_dir"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 6,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "ReadDispersedGBufferColor",
+                "index": 0,
+                "variable": "dispersion"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply",
+                "index": 8,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply3",
+                "index": 5,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ReadDispersedGBufferColor",
+                "index": 0,
+                "variable": "dispersed_color"
+            },
+            "dst": {
+                "type": "Multiply3",
+                "index": 5,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "GetWaterSubsurfaceColor",
+                "index": 0,
+                "variable": "absorb_mult"
+            },
+            "dst": {
+                "type": "Multiply3",
+                "index": 13,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply3",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply3",
+                "index": 13,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp3",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Dummy3",
+                "index": 0,
+                "variable": "in_value"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 0,
+                "variable": "out_value",
+                "swizzle": "xy"
+            },
+            "dst": {
+                "type": "Multiply2",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 16,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply2",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 16,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "MultiplyConst2",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "BreakingWavesFragment",
+                "index": 0,
+                "variable": "planar_wave_velocity"
+            },
+            "dst": {
+                "type": "Multiply2",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst2",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply2",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply2",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Divide2",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 17,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Divide2",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Time",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 4,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 17,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 4,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 17,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "SampleFlowTexture2",
+                "index": 1,
+                "variable": "tex"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply2",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SampleFlowTexture2",
+                "index": 1,
+                "variable": "uv"
+            }
+        },
+        {
+            "src": {
+                "type": "Divide2",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SampleFlowTexture2",
+                "index": 1,
+                "variable": "flow_vec"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SampleFlowTexture2",
+                "index": 1,
+                "variable": "phase"
+            }
+        },
+        {
+            "src": {
+                "type": "SampleFlowTexture2",
+                "index": 1,
+                "variable": "color",
+                "swizzle": "x"
+            },
+            "dst": {
+                "type": "FitRangeFromInput",
+                "index": 0,
+                "variable": "value"
+            }
+        },
+        {
+            "src": {
+                "type": "Zero",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "FitRangeFromInput",
+                "index": 0,
+                "variable": "in_min"
+            }
+        },
+        {
+            "src": {
+                "type": "One",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "FitRangeFromInput",
+                "index": 0,
+                "variable": "in_max"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "x"
+            },
+            "dst": {
+                "type": "FitRangeFromInput",
+                "index": 0,
+                "variable": "out_min"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "y"
+            },
+            "dst": {
+                "type": "FitRangeFromInput",
+                "index": 0,
+                "variable": "out_max"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp3",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Subtract3",
+                "index": 5,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Subtract3",
+                "index": 5,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Subtract3",
+                "index": 5,
+                "variable": "output",
+                "swizzle": "z"
+            },
+            "dst": {
+                "type": "MultiplyConst",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Saturate",
+                "index": 4,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "One",
+                "index": 6,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "FitRangeFromInput",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 2,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 2,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply3",
+                "index": 13,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply3",
+                "index": 14,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply3",
+                "index": 14,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply3",
+                "index": 14,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Divide3",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "OneMinus",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Divide3",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ReadSubsurfaceLight",
+                "index": 0,
+                "variable": "subsurface_light"
+            },
+            "dst": {
+                "type": "Add3",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Divide3",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add3",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Add3",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "WriteSubsurfaceLight",
+                "index": 0,
+                "variable": "subsurface_light"
+            }
+        },
+        {
+            "src": {
+                "type": "WriteSubsurfaceLight",
+                "index": 0,
+                "variable": "connection"
+            },
+            "dst": {
+                "type": "ConnectionPixel",
+                "index": 0,
+                "stage": "CustomLighting",
+                "variable": "input"
+            }
+        }
+    ]
+}
+

@@ -2682,6 +2682,13 @@ public static class MonsterModels
                 return known;
             }
 
+            // THE BEACH'S SHEET, said as the word MaterialBlends takes for it - see RoomModels.Piled.
+            if (string.Equals(file, ShadeProgram.BeachGraph, StringComparison.OrdinalIgnoreCase))
+            {
+                _modes[file] = (RoomModels.BeachMode, RoomModels.BeachMode);
+                return _modes[file];
+            }
+
             if (!Files.TryGetValue(file, out MaterialFile? paint))
             {
                 paint = MaterialFile.Read(read(file.Replace('\\', '/').Trim()));
@@ -2772,6 +2779,20 @@ public static class MonsterModels
             if (_compiled.TryGetValue(file, out (ShadeCompile, IReadOnlyList<string>) known))
             {
                 return known;
+            }
+
+            // THE BEACH'S SHEET WEARS THE ENGINE'S GRAPH ITSELF, no material: its own program over the textures the graph binds.
+            if (string.Equals(file, ShadeProgram.BeachGraph, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!_graphFiles.TryGetValue(file, out ShaderGraph? waves))
+                {
+                    waves = ShaderGraph.Read(read(file));
+                    _graphFiles[file] = waves;
+                }
+
+                (ShadeCompile, IReadOnlyList<string>) beach = (ShadeProgram.BeachOf(waves), []);
+                _compiled[file] = beach;
+                return beach;
             }
 
             // AN OCEAN IS THE ENGINE'S WATER PASS, not its graphs: they write no colour the picture can draw

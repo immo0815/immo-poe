@@ -177,6 +177,64 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
     }
 
     /// <summary>
+    /// The engine's beach waves over a beach rising out of the sea - their sheet over the ground, drawn over the solid part writing its
+    /// depth, the foam and the film as the graph mixes them - drawn alike by both, under the picture's lamp and the game's light.
+    /// </summary>
+    [GpuFact]
+    public void THEBEACHWavesOnTheCardAsOnTheProcessor()
+    {
+        ModelGpu? gpu = card.Gpu;
+        Assert.True(gpu is not null, card.Why);
+        using ModelTarget target = gpu.Target(Side);
+        (SkinnedMesh beach, ShoreField shore) = Beach();
+        ShadeProgram program = ShadeProgram.Beach(new ShadeTexture("foam", true), new ShadeTexture("foam bumps", false), new ShadeTexture("ripples", false));
+        var light = new SceneLight([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1.4f, 1.3f, 1.1f),
+            SunDirection = Vector3.Normalize(new Vector3(0.3f, 0.2f, 1f)),
+            FlatAmbient = 0.3f,
+        };
+
+        foreach ((ShadeProgram shade, SceneLight? lit) in new[] { (Bound(program), (SceneLight?)null), (Bound(program.Glossy!), light) })
+        {
+            var scene = new ModelScene(
+                beach,
+                Turn: 0.3f,
+                Tilt: 0.7f,
+                Skins: [Ramp("sand"), null],
+                Blends: [MaterialBlend.Opaque, MaterialBlend.Alpha],
+                Shades: [null, shade],
+                Light: lit,
+                Time: 1.7f,
+                Water: WaterLook.EngineDefault with { Shore = shore });
+            Assert.Null(Mismatch(gpu, target, scene));
+        }
+    }
+
+    /// <summary>
+    /// A beach rising a tenth a unit along x out of water standing at nought - its ground, and the beach waves' sheet over it in the shore's
+    /// band (ShoreField.Beach) - with its shore. Up is minus z.
+    /// </summary>
+    private static (SkinnedMesh Mesh, ShoreField Shore) Beach()
+    {
+        Vector3[] places =
+        [
+            new(-2000f, -2000f, 0f), new(2000f, -2000f, 0f), new(2000f, 2000f, 0f), new(-2000f, 2000f, 0f),
+            new(-3000f, -3000f, 300f), new(3000f, -3000f, -300f), new(3000f, 3000f, -300f), new(-3000f, 3000f, 300f),
+        ];
+        var normals = new Vector3[places.Length];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+        Vector2[] spots = [.. places.Select(one => new Vector2(one.X / 1500f, one.Y / 1500f))];
+        SkinnedMesh both = SkinnedMesh.Of(
+            places, normals, [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7], new Vector3(-3000f, -3000f, -300f), new Vector3(3000f, 3000f, 300f),
+            spots, [new MeshShape("Water", 0, 6), new MeshShape("Sand", 6, 6)]);
+        ShoreField shore = ShoreField.Of(both, shape => shape == 0, shape => shape == 1)!;
+        SkinnedMesh sand = SkinnedMesh.Of(
+            places[4..], normals[4..], [0, 1, 2, 0, 2, 3], new Vector3(-3000f, -3000f, -300f), new Vector3(3000f, 3000f, 300f), spots[4..]);
+        return (SkinnedMesh.Joined([new MeshJoin(sand, null, null, null), new MeshJoin(shore.Beach()!, null, null, null)]), shore);
+    }
+
+    /// <summary>
     /// A floor; one water shape of two sheets over it, 40 and 80 units up, the lower first; and a mixed sheet 20 up under both. Up is minus z.
     /// </summary>
     private static SkinnedMesh Stacked()

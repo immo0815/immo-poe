@@ -373,7 +373,9 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   / 100)`, the place lifted 75 by the graph and the band 350 high, within 200 of the shore), and the foam read three ways
   (GetTriplanarScrollingFoam) scrolling down the face and towards the shore as the spray peaks; its wetness darkens the stone and
   wets its gloss by the graph's own nodes. The node's three outputs are one sum (`SprayKey` on the processor, one variable on the
-  card). hash33Stable is PCG's rounds over the float's bits over 2^32, not HashUToF - a first port had that wrong, and a review
+  card). hash33Stable is PCG's rounds over the float's bits, each a fraction by HashUToF (its top 23 bits) - utilitynodes.ffx's
+  `DECLARATIONS hashes`, which the fragments include; util.hlsl's `float3(h) / ~0u` is the engine's .hlsl files' own (v0.1.234 to
+  v0.1.241 divided, a difference under 2^-23; corrected v0.1.242, `BeachTests` holds three values worked out apart), and a review
   from elsewhere (2026-10-12) that called the rotation, frac, the sign bit and RgToGradYFix wrong was answered from the source:
   `mul(v, float2x2(c, s, -s, c))`, `x - floor(x)`, `asuint`, `abs(normal.z) > 1e-7`, all as written. The noise is
   `flow_muddle_blur_01_R16G16.dds`, two 16-bit channels, which `GameArt` now reads in every header spelling them (a texture that
@@ -416,6 +418,31 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   flood waves' markup. So the water textures part writes them whole (v0.1.241, `CaptureWaves`): every graph the program names for
   them and every graph they name, the textures they name with their headers; `waves-replay.txt` parses each again offline, its
   nodes and which the compile knows. Read it before the beach waves are built: their mesh and `dist_to_color` stay unread.
+  THE BEACH WAVES ARE DRAWN (v0.1.242, asked for from the live client: "the rocks are flooded in the game"). `ShadeProgram.Beaching`
+  and `BeachLift` port beach_waves, BreakingWavesVertex and BreakingWavesFragment line for line (GetBeachWaveFront, BuildWavePhase,
+  the foam's scrolling layers, profile, dissolve and overlay, the crest off the wave shape, the ripples), and `ShadeProgram.BeachOf`
+  builds the program from the engine's graph itself (`BreakingOceanWaves.fxgraph`, a fixture under `tests/fixtures/beach-waves`): the
+  three textures it binds to the fragment, the graph's mix (the foam covering `0.7 * a`, the film under it by its thickness, specular
+  0.05, gloss `1 - roughness`). The wave shape and noise are fixed lookups (`WaterLookups.BeachProfilePath`, `BeachNoisePath`, slots
+  t13 and t14, a material's sheets from t15): `gerstner_positive_wave_profile.dds`, 256 square, two floats a texel, a fixture; and
+  `flow_muddle_blur_01_R16G16.dds`, 512 square R16G16_UNORM, which `FloatArt` now reads as sixteen-bit fractions and the water
+  textures part writes whole. THE SHEET IS CHOSEN (said from the live client, 2026-10-12, between laying it flat at the water and on
+  the ground - "auf den Boden legen"): `ShoreField.Beach`, a vertex at every shore cell's middle whose ground lies from 300 under the
+  water to 100 above it, 4 over that ground, no square rising past 50; rocks and doodads are not ground and stand out of it; joined
+  in `RoomModels.Piled` once (`BeachSource`), wearing the graph's path (`BeachMode`, mixed). It moves its vertices at the engine's
+  own height whatever the light (`MeshPicture.Beached`, the card's `PlacedBeach`), the area's height offset added - Port's -15 moves
+  it at last. IT IS DRAWN AS THE ENGINE'S BACKGROUND SURFACES ARE (`BackgroundGBufferSurfaces`, `CustomDepthTest`): after the solid
+  part and before anything translucent, its nearest crossing alone, writing its depth (`Drawing.Laid`, `ModelGpu.Laid`) - so the sea
+  measures its depth to it, a crest standing out of the water hides the sea behind it, and the screen ray reflects it; its normal is
+  its surface's for all its light (`Beaches`, `ShadeBeach`), not the water's waves. CHOSEN beside the sheet: the shore's two
+  distances one (`ocean_dist` and `shore_travel_dist` both the field's), and the travel distance half a wave less
+  (`BeachTravelShift`) - MEASURED on a beach rising a tenth a unit, with the waterline as nought the crest stood tallest 240 units up
+  the dry sand and the foam ran 300 to 600 in, against the game's foam line on the shore; shifted, the crest builds from 300 out to
+  44 tall at the waterline, rolling in at about 170 a second, and the foam runs 100 to 500 up the sand and stops by 600
+  (`BeachTests`). The film's colour is the area's water and its absorption one alpha, the graph's three channels' mean. NOT DRAWN:
+  the refraction and caustics, the wet sand (`BreakingOceanWavesWetness.fxgraph`), the spray particles, the flood and crashing
+  waves. On the processor a beach pixel costs about 5 microseconds and a vertex 1; the card is the way it is meant to be drawn.
+  `model-panes.txt` writes each room's sheet - its triangles, box, band and lookups.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

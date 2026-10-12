@@ -186,6 +186,7 @@ public sealed partial class ShadeProgram
         Volatile.Write(ref s_swells, lookups.Swells is { Channels: 4, Width: > 0, Height: > 0 } swells
             ? swells
             : Swells with { Said = lookups.SwellSaid });
+        UseBeach(lookups);
     }
 
     /// <summary>

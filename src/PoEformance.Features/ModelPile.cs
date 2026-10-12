@@ -48,6 +48,24 @@ internal sealed class ModelPile
         Triangles += model.Mesh.Triangles;
     }
 
+    /// <summary>
+    /// A mesh's shapes joined after the pile was - their blend word, what they wear and where they came from - its triangles counted;
+    /// nothing added to <see cref="Joins"/>, which the join has already read.
+    /// </summary>
+    public void Joined(SkinnedMesh mesh, string mode, string wearing, string source)
+    {
+        for (var shape = 0; shape < mesh.Shapes.Count; shape++)
+        {
+            Skins.Add(null);
+            Modes.Add(mode);
+            Wearing.Add(wearing);
+            Textures.Add(string.Empty);
+            Sources.Add(source);
+        }
+
+        Triangles += mesh.Triangles;
+    }
+
     /// <summary>An unpainted mesh, placed.</summary>
     /// <param name="mesh">The mesh.</param>
     /// <param name="place">Where it goes.</param>
