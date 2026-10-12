@@ -112,7 +112,10 @@ jobs:
           DOTNET_INSTALL_DIR: ${{ runner.environment == 'self-hosted' && format('{0}/dotnet', runner.tool_cache) || '' }}
       - run: dotnet publish src/PoEformance.App -c Release -r win-x64 -p:PublishAot=true
       - name: Show what AOT produced
-        shell: pwsh
+        # Windows PowerShell, not pwsh: a self-hosted runner's service runs as the network service,
+        # which does not see a PowerShell 7 installed for one user ("pwsh: command not found" after a
+        # green ILC compile). 5.1 ships with every Windows, GitHub's machines included, and runs this.
+        shell: powershell
         run: |
           $out = "src/PoEformance.App/bin/Release/net10.0-windows/win-x64/publish"
           Get-ChildItem $out -Recurse -File | Select-Object @{n='file';e={$_.FullName.Substring($out.Length+1)}}, @{n='KB';e={[math]::Round($_.Length/1KB)}} | Format-Table -AutoSize
