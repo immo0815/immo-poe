@@ -55,6 +55,49 @@ public class CaptureGroundScreenTests
         Assert.Equal(new byte[] { 128, 128, 128, 255 }, Pixel(canvas, 0, 0));
     }
 
+    /// <summary>
+    /// A wide shape's triangle filled half seen through by the mask's green - red where it is one, the second ground's - every pixel
+    /// whose middle it covers counted, and none outside it touched.
+    /// </summary>
+    [Fact]
+    public void ATRIANGLEIsTintedByTheMasksGreenAndItsPixelsCounted()
+    {
+        var canvas = new CaptureGroundScreen.Canvas(10, 10, [.. Enumerable.Repeat((byte)100, 10 * 10 * 3)]);
+        var mask = new GamePicture(1, 1, [0, 255, 0, 255]);
+
+        (int pixels, int second) = canvas.Tint(new Vector2(0, 0), new Vector2(10.2f, 0), new Vector2(0, 10.2f), Vector3.UnitZ, Vector3.UnitZ, Vector3.UnitZ, mask);
+
+        // The pixels whose middles lie in the triangle, none on its edge: x + y + 1 <= 10.2, row y holding 10 - y of them.
+        Assert.Equal(55, pixels);
+        Assert.Equal(pixels, second);
+        Assert.Equal(new byte[] { (100 + 255) >> 1, (100 + 40) >> 1, 100 >> 1, 255 }, Pixel(canvas, 1, 1));
+        Assert.Equal(new byte[] { 100, 100, 100, 255 }, Pixel(canvas, 9, 9));
+    }
+
+    /// <summary>
+    /// The mask's coordinates interpolate as the card's do, over the inverse of the clip w: half way across the screen between a
+    /// corner at u nought, w one and a corner at u one, w four, the coordinate is a fifth, not a half.
+    /// </summary>
+    [Fact]
+    public void THEMASKSCoordinatesAreInterpolatedOverTheInverseOfW()
+    {
+        // A mask ten texels across whose green climbs 25 a texel - read at u 0.2 it is between texels one and two, 37.5.
+        byte[] rgba = new byte[10 * 4];
+        for (var texel = 0; texel < 10; texel++)
+        {
+            rgba[(texel * 4) + 1] = (byte)(texel * 25);
+            rgba[(texel * 4) + 3] = 255;
+        }
+
+        var mask = new GamePicture(10, 1, rgba);
+        var canvas = new CaptureGroundScreen.Canvas(101, 3, null);
+
+        // A thin triangle along row one, pixel 50's middle half way between the corners at x 0.5 and x 100.5.
+        canvas.Tint(new Vector2(0.5f, 0f), new Vector2(100.5f, 1.5f), new Vector2(100.5f, -1.5f), new Vector3(0f, 0f, 1f), new Vector3(0.25f, 0f, 0.25f), new Vector3(0.25f, 0f, 0.25f), mask);
+
+        Assert.Equal((byte)((int)(255f * (37.5f / 255f)) >> 1), Pixel(canvas, 50, 0)[0]);
+    }
+
     [Fact]
     public void WITHNoTilesReadItSaysWhyAndDrawsNothing()
     {

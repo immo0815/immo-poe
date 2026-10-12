@@ -11,9 +11,10 @@ namespace PoEformance.Features;
 /// shapes in it whose coordinates run across the mask's atlas drawn - so which ground the game draws there is read off its picture.
 /// </summary>
 /// <remarks>
-/// BUILT FOR THE CHECKERBOARD (v0.1.251). A sub-tile of two grounds is mixed by the template mask's green at the block's own
-/// coordinates, as the engine's GroundGenerateWeights_1a1b mixes them. Most of Port's harbour shapes point into one cell of
-/// newmask.dds - green 0.02 or 1.00, one ground or the other - but its slopes carry coordinates laid across the mask a third a
+/// BUILT FOR THE CHECKERBOARD (v0.1.251; the wide shapes tinted by the mix's green from v0.1.256 - see Tint). A sub-tile of two
+/// grounds is mixed by the template mask's green at the block's own coordinates, as the engine's GroundGenerateWeights_1a1b mixes
+/// them. Most of Port's harbour shapes point into one cell of newmask.dds - green 0.02 or 1.00, one ground or the other - but its
+/// slopes carry coordinates laid across the mask a third a
 /// sub-tile, and read there the atlas's 64-texel cells come out as squares of the two grounds (v0.1.248's ground.txt: the shore
 /// strip c1r6 to c6r6, and from v0.1.250 the pier's edge c13r10, c13r11 and c14r11). The game draws no checkerboard there, and
 /// the shader text does not say why: which coordinate fills <c>uv2</c> is wired in the engine's own code. So the game's picture
@@ -103,6 +104,9 @@ public static class CaptureGroundScreen
         var body = new StringBuilder();
         var lines = new StringBuilder();
         int mixed = 0, wideOnes = 0, offScreen = 0;
+
+        // THE OUTLINES AND NAMES AFTER EVERY TINT, so no sub-tile's tint lies over a neighbour's name.
+        var rims = new List<(Vector3[] Corners, byte[] Colour, string Name, Vector2 Centre)>();
         foreach (LaidGround one in laid)
         {
             int triangles = one.Ground.Indices.Length / 3;
@@ -144,25 +148,15 @@ public static class CaptureGroundScreen
                 bool wide = shapes.Exists(shape => shape.Wide);
                 wideOnes += wide ? 1 : 0;
 
+                var tinted = new Dictionary<int, (int Pixels, int Second)>();
                 foreach (ShapeSeen shape in shapes.Where(shape => shape.Wide))
                 {
-                    for (int triangle = shape.First; triangle < shape.First + shape.Triangles; triangle++)
-                    {
-                        Vector3 a = Laid(one, triangle, 0), b = Laid(one, triangle, 1), c = Laid(one, triangle, 2);
-                        Edge(canvas, matrix, a, b, Magenta);
-                        Edge(canvas, matrix, b, c, Magenta);
-                        Edge(canvas, matrix, c, a, Magenta);
-                    }
-                }
-
-                byte[] rim = grounds.Grounds.Count >= 2 ? White : Orange;
-                for (var corner = 0; corner < 4; corner++)
-                {
-                    Edge(canvas, matrix, corners[corner], corners[(corner + 1) % 4], rim);
+                    tinted[shape.Index] = maskPicture is { } decodedMask ? Tint(canvas, matrix, one, shape, decodedMask) : (0, 0);
+                    Rim(canvas, matrix, one, shape);
                 }
 
                 string name = string.Create(CultureInfo.InvariantCulture, $"c{piece.X}r{piece.Y}");
-                canvas.Label(name, (int)centre.X, (int)centre.Y);
+                rims.Add((corners, grounds.Grounds.Count >= 2 ? White : Orange, name, centre));
 
                 int tileX = (int)MathF.Floor(middle.X / TileModels.Side), tileY = (int)MathF.Floor(middle.Y / TileModels.Side);
                 lines.Append("  ").Append(name)
@@ -173,8 +167,15 @@ public static class CaptureGroundScreen
                 foreach (ShapeSeen shape in shapes)
                 {
                     lines.Append(string.Create(CultureInfo.InvariantCulture,
-                        $"    shape {shape.Index} · {shape.Triangles} triangles · z {shape.Low:F0}..{shape.High:F0} · green {shape.Green:F2} · the mask's coordinates span {shape.SpanU:F0} x {shape.SpanV:F0} texels over {shape.Cells} cells"))
-                        .AppendLine(shape.Wide ? " · ACROSS THE ATLAS (drawn)" : string.Empty);
+                        $"    shape {shape.Index} · {shape.Triangles} triangles · z {shape.Low:F0}..{shape.High:F0} · green {shape.Green:F2} · the mask's coordinates span {shape.SpanU:F0} x {shape.SpanV:F0} texels over {shape.Cells} cells"));
+                    if (tinted.TryGetValue(shape.Index, out (int Pixels, int Second) tint))
+                    {
+                        lines.Append(" · ACROSS THE ATLAS (tinted)").Append(tint.Pixels > 0
+                            ? string.Create(CultureInfo.InvariantCulture, $" · {tint.Pixels} pixels on the screen, {100.0 * tint.Second / tint.Pixels:F0}% of them the second ground's")
+                            : " · no pixel on the screen");
+                    }
+
+                    lines.AppendLine();
                 }
             }
 
@@ -187,6 +188,16 @@ public static class CaptureGroundScreen
                 .Append(away > 0 ? string.Create(CultureInfo.InvariantCulture, $" ({away} off the screen)") : string.Empty)
                 .AppendLine(string.Concat(plain.Select(why => string.Create(CultureInfo.InvariantCulture, $", {why.Value} plain {why.Key}"))));
             body.Append(lines);
+        }
+
+        foreach ((Vector3[] corners, byte[] colour, string name, Vector2 centre) in rims)
+        {
+            for (var corner = 0; corner < 4; corner++)
+            {
+                Edge(canvas, matrix, corners[corner], corners[(corner + 1) % 4], colour);
+            }
+
+            canvas.Label(name, (int)centre.X, (int)centre.Y);
         }
 
         picture = canvas.Picture;
@@ -204,7 +215,9 @@ public static class CaptureGroundScreen
 
         said.AppendLine();
         said.AppendLine("Each sub-tile of two grounds is outlined white (orange: three or four) and named as ground.txt names its mesh, cXrY; the ground shapes in it whose");
-        said.AppendLine("coordinates span a cell of the mask's atlas or more are drawn magenta, triangle by triangle - where the tool's mix reads the atlas's cells as squares.");
+        said.AppendLine("coordinates span a cell of the mask's atlas or more - where the tool's mix reads the atlas's cells as squares - are outlined magenta and tinted,");
+        said.AppendLine("half seen through, by the green the tool's mix reads at each pixel: blue the sub-tile's first ground as its line names them (green nought),");
+        said.AppendLine("red its second (green one). Where the game's ground changes along the tint's edges, the game reads the mask so too; where it does not, it does not.");
         said.AppendLine("Placed as the Monster Book's laid room places the pieces (LaidRoomModels.GroundsOver), projected with the camera as the key went down.");
         said.AppendLine("The grid's corners are a sub-tile's own (least x, then most x; least y first in the template), '-' unnamed; the game's are TileCornerData's at the");
         said.AppendLine("area tile under the sub-tile's middle (x, x + 1 at y, then at y + 1), '-' its null slot - the same four names in some order where the two agree.");
@@ -355,6 +368,80 @@ public static class CaptureGroundScreen
     private static Vector3 Laid(LaidGround one, int triangle, int corner)
         => Vector3.Transform(one.Ground.Positions[one.Ground.Indices[(triangle * 3) + corner]], one.Place);
 
+    /// <summary>
+    /// A shape's triangles filled by the green the tool's mix reads at each pixel, and how many pixels that came to and how many of
+    /// them the second ground's.
+    /// </summary>
+    /// <remarks>
+    /// THE TOOL'S HALF OF THE COMPARISON, ON THE GAME'S (v0.1.256). The Excavation's capture of v0.1.255 put 17 wide shapes on its
+    /// screen, every one on Digsite_Entrance_01's floor, whose coordinates are the mask laid flat over five by seven sub-tiles - and
+    /// the game drew even dirt there. But its two grounds are two dirts, and squares of two like grounds need not show; so the tint
+    /// lays where the mix puts each over the game's own picture, and whether the game's ground changes along the tint's edges is the
+    /// measurement. The coordinates are interpolated over each triangle as the card does, by the inverse of the clip w.
+    /// </remarks>
+    private static (int Pixels, int Second) Tint(Canvas canvas, float[] matrix, LaidGround one, ShapeSeen shape, GamePicture mask)
+    {
+        int pixels = 0, second = 0;
+        SkinnedMesh ground = one.Ground;
+        Span<Vector2> at = stackalloc Vector2[3];
+        Span<Vector3> over = stackalloc Vector3[3];
+        for (int triangle = shape.First; triangle < shape.First + shape.Triangles; triangle++)
+        {
+            var seen = true;
+            for (var corner = 0; corner < 3 && seen; corner++)
+            {
+                int vertex = ground.Indices[(triangle * 3) + corner];
+                if (vertex >= ground.Coordinates.Length || !Project(matrix, Laid(one, triangle, corner), canvas.Width, canvas.Height, out at[corner], out float inverseW))
+                {
+                    seen = false;
+                    continue;
+                }
+
+                Vector2 uv = ground.Coordinates[vertex];
+                over[corner] = new Vector3(uv.X * inverseW, uv.Y * inverseW, inverseW);
+            }
+
+            if (seen)
+            {
+                (int filled, int theSecond) = canvas.Tint(at[0], at[1], at[2], over[0], over[1], over[2], mask);
+                pixels += filled;
+                second += theSecond;
+            }
+        }
+
+        return (pixels, second);
+    }
+
+    /// <summary>
+    /// A shape's outer edges - those only one of its triangles has - in magenta: its fan's inner edges would hide the game's ground
+    /// the tint is laid over.
+    /// </summary>
+    private static void Rim(Canvas canvas, float[] matrix, LaidGround one, ShapeSeen shape)
+    {
+        var edges = new Dictionary<(Vector3, Vector3), int>();
+        for (int triangle = shape.First; triangle < shape.First + shape.Triangles; triangle++)
+        {
+            for (var corner = 0; corner < 3; corner++)
+            {
+                Vector3 from = Laid(one, triangle, corner), to = Laid(one, triangle, (corner + 1) % 3);
+                (Vector3, Vector3) key = Before(from, to) ? (from, to) : (to, from);
+                edges[key] = edges.GetValueOrDefault(key) + 1;
+            }
+        }
+
+        foreach (((Vector3 from, Vector3 to), int count) in edges)
+        {
+            if (count == 1)
+            {
+                Edge(canvas, matrix, from, to, Magenta);
+            }
+        }
+    }
+
+    /// <summary>Whether one point comes before another, x then y then z - an edge's two ends in one order whichever way round it runs.</summary>
+    private static bool Before(Vector3 one, Vector3 other)
+        => one.X != other.X ? one.X < other.X : one.Y != other.Y ? one.Y < other.Y : one.Z <= other.Z;
+
     /// <summary>The game's own four corner types round an area tile, by name, '-' for its null slot.</summary>
     private static string GameCorners(TerrainGrid grid, int tileX, int tileY)
     {
@@ -371,16 +458,21 @@ public static class CaptureGroundScreen
     private static string Short(string path) => path.Length == 0 ? "-" : TerrainGroundTypes.NameFor(path.Replace('\\', '/'));
 
     /// <summary>Where a world point lands on the screen, or false behind the camera - off the screen in front of it still lands somewhere.</summary>
-    private static bool Screen(float[] matrix, Vector3 point, int width, int height, out Vector2 at)
+    private static bool Screen(float[] matrix, Vector3 point, int width, int height, out Vector2 at) => Project(matrix, point, width, height, out at, out _);
+
+    /// <summary>Where a world point lands on the screen and the inverse of its clip w, which a triangle's coordinates are weighed by; false behind the camera.</summary>
+    private static bool Project(float[] matrix, Vector3 point, int width, int height, out Vector2 at, out float inverseW)
     {
         (double x, double y, double w) = WorldToScreen.Clip(matrix, point.X, point.Y, point.Z);
         if (w <= 1e-6)
         {
             at = default;
+            inverseW = 0f;
             return false;
         }
 
         at = new Vector2((float)((((x / w) * 0.5) + 0.5) * width), (float)((0.5 - ((y / w) * 0.5)) * height));
+        inverseW = (float)(1.0 / w);
         return true;
     }
 
@@ -485,6 +577,74 @@ public static class CaptureGroundScreen
                     y0 += sy;
                 }
             }
+        }
+
+        /// <summary>
+        /// A triangle filled half seen through by the mask's green at each pixel's middle - blue at nought, red at one - and how many
+        /// pixels it filled and how many of them at a half or more.
+        /// </summary>
+        /// <param name="a">A corner on the screen.</param>
+        /// <param name="b">The next.</param>
+        /// <param name="c">The last.</param>
+        /// <param name="overA">The first corner's mask coordinates and one, each over its clip w - so they interpolate as the card's do.</param>
+        /// <param name="overB">The next's.</param>
+        /// <param name="overC">The last's.</param>
+        /// <param name="mask">The mask, its green read.</param>
+        public (int Pixels, int Second) Tint(Vector2 a, Vector2 b, Vector2 c, Vector3 overA, Vector3 overB, Vector3 overC, GamePicture mask)
+        {
+            float area = ((b.X - a.X) * (c.Y - a.Y)) - ((b.Y - a.Y) * (c.X - a.X));
+            float reach = 4f * (Width + Height);
+            if (!float.IsFinite(area) || MathF.Abs(area) < 1e-3f
+                || MathF.Max(MathF.Abs(a.X), MathF.Max(MathF.Abs(b.X), MathF.Abs(c.X))) > reach
+                || MathF.Max(MathF.Abs(a.Y), MathF.Max(MathF.Abs(b.Y), MathF.Abs(c.Y))) > reach)
+            {
+                return (0, 0);
+            }
+
+            int left = Math.Max(0, (int)MathF.Floor(MathF.Min(a.X, MathF.Min(b.X, c.X))));
+            int right = Math.Min(Width - 1, (int)MathF.Ceiling(MathF.Max(a.X, MathF.Max(b.X, c.X))));
+            int top = Math.Max(0, (int)MathF.Floor(MathF.Min(a.Y, MathF.Min(b.Y, c.Y))));
+            int bottom = Math.Min(Height - 1, (int)MathF.Ceiling(MathF.Max(a.Y, MathF.Max(b.Y, c.Y))));
+            if (left > right || top > bottom)
+            {
+                return (0, 0);
+            }
+
+            // EACH CORNER'S WEIGHT, a's the signed area of (p, b, c) over the whole's, and b's of (p, c, a) - both linear across a
+            // row, so stepped a pixel at a time.
+            float inverse = 1f / area;
+            float stepA = (b.Y - c.Y) * inverse, stepB = (c.Y - a.Y) * inverse;
+            int pixels = 0, second = 0;
+            for (int y = top; y <= bottom; y++)
+            {
+                float py = y + 0.5f, px = left + 0.5f;
+                float weightA = (((b.X - px) * (c.Y - py)) - ((b.Y - py) * (c.X - px))) * inverse;
+                float weightB = (((c.X - px) * (a.Y - py)) - ((c.Y - py) * (a.X - px))) * inverse;
+                for (int x = left; x <= right; x++, weightA += stepA, weightB += stepB)
+                {
+                    float weightC = 1f - weightA - weightB;
+                    if (weightA < 0f || weightB < 0f || weightC < 0f)
+                    {
+                        continue;
+                    }
+
+                    Vector3 over = (overA * weightA) + (overB * weightB) + (overC * weightC);
+                    if (over.Z <= 0f)
+                    {
+                        continue;
+                    }
+
+                    float green = Math.Clamp(GroundPainter.Sample(mask, 1, over.X / over.Z, over.Y / over.Z), 0f, 1f);
+                    int at = ((y * Width) + x) * 4;
+                    Rgba[at] = (byte)((Rgba[at] + (int)(255f * green)) >> 1);
+                    Rgba[at + 1] = (byte)((Rgba[at + 1] + 40) >> 1);
+                    Rgba[at + 2] = (byte)((Rgba[at + 2] + (int)(255f * (1f - green))) >> 1);
+                    pixels++;
+                    second += green >= 0.5f ? 1 : 0;
+                }
+            }
+
+            return (pixels, second);
         }
 
         /// <summary>Text centred on a point, white on a black rim so it reads over any ground.</summary>
