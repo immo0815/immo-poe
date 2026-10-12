@@ -334,10 +334,7 @@ public sealed class MonsterPortrait
     private bool _onCard;
     private string _cardWhy = string.Empty;
 
-    /// <summary>The card's switch as the last picture was drawn - a press redraws.</summary>
-    private bool _drawnCardOn;
-
-    /// <summary>The card's anisotropic read as the last picture was drawn - a right-click redraws.</summary>
+    /// <summary>The card's anisotropic read as the last picture was drawn - a press on the card button redraws.</summary>
     private bool _drawnSharp;
 
     /// <summary>
@@ -1843,14 +1840,6 @@ public sealed class MonsterPortrait
                 Pressed(which);
             }
 
-            // THE CARD BUTTON'S SECOND SWITCH IS THE RIGHT BUTTON: the anisotropic read is a question
-            // only the card is asked, so it lives on the card's button rather than in a row of its own.
-            if (which == CardSide && Card is { } card && ImGui.IsItemClicked(ImGuiMouseButton.Right))
-            {
-                card.Sharp = !card.Sharp;
-                card.SharpChanged?.Invoke(card.Sharp);
-            }
-
             if (ImGui.IsItemHovered())
             {
                 Tipped(which);
@@ -1945,7 +1934,7 @@ public sealed class MonsterPortrait
     private bool Lit(int which)
         => which switch
         {
-            CardSide => Card is { On: false },
+            CardSide => Card is { Sharp: false },
             LightSide => FlatLight,
             OrbitSide => _orbiting,
             ClockSide => !_playing,
@@ -1960,7 +1949,7 @@ public sealed class MonsterPortrait
     private string SideWord(int which)
         => which switch
         {
-            CardSide => Card is { On: true } ? "card" : "processor",
+            CardSide => Card is { Sharp: true } ? "card: sharp" : "card: trilinear",
             LightSide => FlatLight ? "flat light" : "game light",
             OrbitSide => _orbiting ? "stop" : "orbit",
             ClockSide => _playing ? "Pause" : "Play",
@@ -1973,8 +1962,8 @@ public sealed class MonsterPortrait
         switch (which)
         {
             case CardSide when Card is { } card:
-                card.On = !card.On;
-                card.Changed?.Invoke(card.On);
+                card.Sharp = !card.Sharp;
+                card.SharpChanged?.Invoke(card.Sharp);
                 break;
             case LightSide:
                 FlatLight = !FlatLight;
@@ -2138,7 +2127,9 @@ public sealed class MonsterPortrait
                     + " rolling in the wind - " + ShadeProgram.Ripples.Said + "; the wind's way, height, speed and"
                     + " directionness the engine's former constants where the file sets none, a reading until measured, its way turned by the light"
                     + " panel's wind; the swell rolling in to the shore the engine's formula over a shore made here from the room's ground, CHOSEN"
-                    + " until the engine's is read - " + ShadeProgram.Swells.Said + " - its foam not drawn; their glints and reflection under the game light, by the light"
+                    + " until the engine's is read - " + ShadeProgram.Swells.Said + "; its foam the engine's trail foam (GetFoamColor3) from the"
+                    + " cross-section's green and alpha, none where the stand-in stands, its leading edge's textured layers and the orbit's"
+                    + " offsets not drawn; their glints and reflection under the game light, by the light"
                     + " panel's water switches - the scene reflected by the engine's screen ray, its dither a 4 by 4 Bayer, a reading - and the surface"
                     + " lifted by them times its lift - which the engine does per pixel only"
                     + (water.HeightOffset != 0f ? "; its height offset not applied - it moves the beach and flood waves alone)" : ")"));
@@ -2984,9 +2975,8 @@ public sealed class MonsterPortrait
             || _drawnDust != Dusted()
             || _drawnWater != Watered()
             || (posed && (_drawnFrame != _frame || _drawnAnimation != _chosen))
-            || _drawnCardOn != (Card?.On ?? false)
             || _drawnSharp != (Card?.Sharp ?? false)
-            || (_cardWaiting && Card is { On: true } card && card.Gpu is { } gpu && gpu.Landed != _cardLanded)
+            || (_cardWaiting && Card is { } card && card.Gpu is { } gpu && gpu.Landed != _cardLanded)
             || _probeAsked;
 
         if (moved)
@@ -3370,7 +3360,6 @@ public sealed class MonsterPortrait
         _drawnLight = Lit();
         _drawnDust = Dusted();
         _drawnWater = Watered();
-        _drawnCardOn = Card?.On ?? false;
         _drawnSharp = Card?.Sharp ?? false;
         _drawing++;
 
@@ -3462,9 +3451,9 @@ public sealed class MonsterPortrait
             return false;
         }
 
-        if (!card.On || _probing || Grey)
+        if (_probing || Grey)
         {
-            _cardWhy = !card.On ? "the card is switched off" : _probing ? "the probe reads the processor's drawing" : "the grey is laid on the processor's pixels";
+            _cardWhy = _probing ? "the probe reads the processor's drawing" : "the grey is laid on the processor's pixels";
             return false;
         }
 
@@ -3533,18 +3522,22 @@ public sealed class MonsterPortrait
     }
 
     /// <summary>
-    /// The card button's tip: which of the two draws the pictures, and why the processor drew this one where the card is on.
+    /// The card button's tip: how the card reads textures, and why the processor drew this picture where it did.
     /// </summary>
+    /// <remarks>
+    /// THE CARD DRAWS, with no switch to the processor (asked for from the live client, v0.1.231): the processor
+    /// draws only what the card cannot draw the same - the probe's picture, the grey, a material whose shader is
+    /// still compiling, or no graphics device at all - and the tip says which.
+    /// </remarks>
     private void CardTip(CardPictures card)
         => ImGui.SetTooltip(
-            (card.On
-                ? "Pictures are drawn on the graphics card where it can draw the same picture as the processor, and on the processor where not."
-                : "Pictures are drawn on the processor, as before the card could draw them.")
-            + (card.On && !_onCard && _cardWhy.Length > 0 ? "\nThis one on the processor: " + _cardWhy : string.Empty)
-            + "\nThe rate in the corner says which drew the picture shown. One switch for every book."
+            "Pictures are drawn on the graphics card, and on the processor only where the card cannot draw the same picture."
+            + (!_onCard && _cardWhy.Length > 0 ? "\nThis one on the processor: " + _cardWhy : string.Empty)
+            + "\nThe rate in the corner says which drew the picture shown."
             + (card.Sharp
-                ? "\nRight-click: anisotropic texture read ON - a surface seen at a slant stays sharp along it, as in the game. The card only."
-                : "\nRight-click: anisotropic texture read OFF - the card reads textures as the processor does, trilinearly."));
+                ? "\nAnisotropic texture read ON - a surface seen at a slant stays sharp along it, as in the game. Press to read trilinearly."
+                : "\nAnisotropic texture read OFF - textures read trilinearly. Press to read them as the game does.")
+            + " One switch for every book.");
 
     /// <summary>Hands a drawn picture to the renderer in place of the one shown.</summary>
     private void Upload(GamePicture drawn)

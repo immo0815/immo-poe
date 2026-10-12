@@ -312,7 +312,7 @@ public static class ShadeHlsl
         hlsl.AppendLine(Library);
         foreach (ShadeProgram.Step step in program.Steps)
         {
-            if (step.Op == ShadeProgram.Op.Waves)
+            if (step.Op is ShadeProgram.Op.Waves or ShadeProgram.Op.Foam)
             {
                 hlsl.AppendLine(WavesLibrary);
                 break;
@@ -462,7 +462,7 @@ public static class ShadeHlsl
             }
 
             // ShadeProgram.Swell: the swell's cross-section, wrapping along the phase and held along the shore's distance, its own size.
-            float ShadeSwellAt(float phase, float near, out float rise)
+            float4 ShadeSwellAt(float phase, float near)
             {
                 uint across;
                 uint down;
@@ -478,15 +478,13 @@ public static class ShadeHlsl
                 int y0 = (int)sy;
                 int y1 = min(y0 + 1, height - 1);
                 float fy = sy - y0;
-                float2 a = ShadeSwell.Load(int3(x0, y0, 0)).xy;
-                float2 b = ShadeSwell.Load(int3(x1, y0, 0)).xy;
-                float2 c = ShadeSwell.Load(int3(x0, y1, 0)).xy;
-                float2 d = ShadeSwell.Load(int3(x1, y1, 0)).xy;
-                float2 top = a + ((b - a) * fx);
-                float2 bottom = c + ((d - c) * fx);
-                float2 mixed = top + ((bottom - top) * fy);
-                rise = mixed.y;
-                return mixed.x;
+                float4 a = ShadeSwell.Load(int3(x0, y0, 0));
+                float4 b = ShadeSwell.Load(int3(x1, y0, 0));
+                float4 c = ShadeSwell.Load(int3(x0, y1, 0));
+                float4 d = ShadeSwell.Load(int3(x1, y1, 0));
+                float4 top = a + ((b - a) * fx);
+                float4 bottom = c + ((d - c) * fx);
+                return top + ((bottom - top) * fy);
             }
 
             float ShadeFractional(float x)
@@ -576,9 +574,43 @@ public static class ShadeHlsl
                 return height / 0.4;
             }
 
-            // ShadeProgram.Ocean: GetOceanWaterPlanarState - the swell over the room's shore, and the wind's ripples on top.
-            float4 ShadeWaves(float2 place, float4 wind, float clock, float4 shore, float4 swell)
+            // ShadeProgram.TideAt: GetTidalWaterPlanarState's state at a place - the shore's fields, the tide's phase, the cross-section there.
+            void ShadeTideAt(float2 place, float4 swell, float clock, float4 shore, out float shoreDist, out float tide, out float4 profile, out float2 phaseSlope, out float underGround)
             {
+                float oceanDist;
+                float unused;
+                float alongX;
+                float alongY;
+                ShadeShoreAt(place, shore, shoreDist, oceanDist);
+                ShadeShoreAt(place + float2({{Number(ShoreField.Eps)}}, 0.0), shore, unused, alongX);
+                ShadeShoreAt(place + float2(0.0, {{Number(ShoreField.Eps)}}), shore, unused, alongY);
+                float2 oceanSlope = -float2(alongX - oceanDist, alongY - oceanDist) / {{Number(ShoreField.Eps)}};
+                float pi = 3.1415;
+                float periods = 1.0 / swell.y;
+                underGround = 1.0 - saturate(1.0 + ((shoreDist + 0.05) * 10.0));
+                tide = 1.0 - ShadeFractional((((1.0 - oceanDist) * periods) + (clock * 1.1 / (swell.y * 25.0))) / (2.0 * pi));
+                float noise = (ShadeSmoothNoise(clock * 0.1, clock * 0.15) * 0.5) + 0.5;
+                float reduction = saturate(noise);
+                float slowdown = 1.0 - (shoreDist * 4.0);
+                float hurry = 1.0 - (shoreDist * 5.5);
+                float offset = (pow(saturate(slowdown), 1.1) * 0.5) - (pow(saturate(hurry), 1.1) * 0.75);
+                tide = ShadeFractional((noise * 0.2) + tide + (offset * 0.8) + 10.0);
+                float effective = saturate(1.0 - shoreDist);
+                effective = pow(effective, 1.0 / ((saturate(1.0 - (reduction * 0.4)) * swell.z * 0.8) + 0.2));
+                profile = ShadeSwellAt(tide, effective);
+                phaseSlope = -oceanSlope * (periods / (2.0 * pi));
+            }
+
+            // ShadeProgram's Tide.Leading: isLeadingEdgeArea.
+            bool ShadeLeading(float tide, float4 profile)
+            {
+                return (tide < 0.45 && profile.w < 1.0) || (tide > 0.55 && profile.w > 0.0);
+            }
+
+            // ShadeProgram.Ocean: GetOceanWaterPlanarState - the swell over the room's shore, and the wind's ripples on top, flattened by the foam.
+            float4 ShadeWaves(float2 place, float4 wind, float2 timing, float4 shore, float4 swell)
+            {
+                float clock = timing.x;
                 float height = 0.0;
                 float2 slope = float2(0.0, 0.0);
                 float ripples = 2.0;
@@ -586,34 +618,25 @@ public static class ShadeHlsl
                 if (shore.w > 0.5)
                 {
                     float shoreDist;
-                    float oceanDist;
-                    float unused;
-                    float alongX;
-                    float alongY;
-                    ShadeShoreAt(place, shore, shoreDist, oceanDist);
-                    ShadeShoreAt(place + float2({{Number(ShoreField.Eps)}}, 0.0), shore, unused, alongX);
-                    ShadeShoreAt(place + float2(0.0, {{Number(ShoreField.Eps)}}), shore, unused, alongY);
-                    float2 oceanSlope = -float2(alongX - oceanDist, alongY - oceanDist) / {{Number(ShoreField.Eps)}};
-                    float pi = 3.1415;
-                    float periods = 1.0 / swell.y;
-                    float underGround = 1.0 - saturate(1.0 + ((shoreDist + 0.05) * 10.0));
-                    float tide = 1.0 - ShadeFractional((((1.0 - oceanDist) * periods) + (clock * 1.1 / (swell.y * 25.0))) / (2.0 * pi));
-                    float noise = (ShadeSmoothNoise(clock * 0.1, clock * 0.15) * 0.5) + 0.5;
-                    float reduction = saturate(noise);
-                    float slowdown = 1.0 - (shoreDist * 4.0);
-                    float hurry = 1.0 - (shoreDist * 5.5);
-                    float offset = (pow(saturate(slowdown), 1.1) * 0.5) - (pow(saturate(hurry), 1.1) * 0.75);
-                    tide = ShadeFractional((noise * 0.2) + tide + (offset * 0.8) + 10.0);
-                    float effective = saturate(1.0 - shoreDist);
-                    effective = pow(effective, 1.0 / ((saturate(1.0 - (reduction * 0.4)) * swell.z * 0.8) + 0.2));
-                    float rise;
-                    float cross = ShadeSwellAt(tide, effective, rise);
-                    float2 phaseSlope = -oceanSlope * (periods / (2.0 * pi));
+                    float tide;
+                    float4 profile;
+                    float2 phaseSlope;
+                    float underGround;
+                    ShadeTideAt(place, swell, clock, shore, shoreDist, tide, profile, phaseSlope, underGround);
                     float kept = 1.0 - underGround;
-                    height = (cross - 0.5) * swell.x * kept;
-                    slope = rise * phaseSlope * swell.x * kept;
+                    height = (profile.x - 0.5) * swell.x * kept;
+                    slope = profile.y * phaseSlope * swell.x * kept;
                     groundWater = underGround > 0.5;
-                    ripples = (1.0 - pow(saturate(1.0 - abs(shoreDist)), 10.0)) * 2.0;
+                    float trail = saturate(profile.z) * saturate(timing.y / 25.0);
+                    float damping = trail * trail * trail;
+                    if (ShadeLeading(tide, profile))
+                    {
+                        float held = saturate((0.8 - profile.w) / 0.8 * 2.0);
+                        damping *= held * held;
+                    }
+
+                    damping = damping + ((0.0 - damping) * underGround);
+                    ripples = (1.0 - pow(saturate(1.0 - abs(shoreDist)), 10.0)) * (1.0 - damping) * 2.0;
                 }
 
                 float2 rippleSlope;
@@ -621,6 +644,93 @@ public static class ShadeHlsl
                 height += rippleHeight * ripples;
                 slope += rippleSlope * ripples;
                 return float4(normalize(float3(-slope.x, -slope.y, -1.0)), height);
+            }
+
+            // ShadeProgram.Hash2: the engine's, two fractions of a sine.
+            float2 ShadeHash2(float2 p)
+            {
+                float r = 523.0 * sin(dot(p, float2(53.3158, 43.6143)));
+                return float2(ShadeFractional(15.32354 * r), ShadeFractional(17.25865 * r));
+            }
+
+            // ShadeProgram.Voronoi: GetVoronoiNoise.
+            float ShadeVoronoi(float2 p)
+            {
+                float nearest = 100.0;
+                float next = 100.0;
+                float2 cell = floor(p);
+                [unroll] for (int x = -1; x <= 1; x++)
+                {
+                    [unroll] for (int y = -1; y <= 1; y++)
+                    {
+                        float2 grid = cell + float2((float)x, (float)y);
+                        float2 offset = p - grid - float2(1.0, 1.0) + ShadeHash2(grid);
+                        float distance = dot(offset, offset);
+                        if (nearest > distance)
+                        {
+                            next = nearest;
+                            nearest = distance;
+                        }
+                        else if (next > distance)
+                        {
+                            next = distance;
+                        }
+                    }
+                }
+
+                return abs(sqrt(nearest) - sqrt(next));
+            }
+
+            // ShadeProgram.Foam: GetTidalWaterPlanarState's foam, GetFoamColor3's trail - its leading edge's textured layers left out.
+            float4 ShadeFoam(float2 place, float2 timing, float4 shore, float4 swell)
+            {
+                if (shore.w <= 0.5)
+                {
+                    return float4(0.0, 0.0, 0.0, 0.0);
+                }
+
+                float shoreDist;
+                float tide;
+                float4 profile;
+                float2 phaseSlope;
+                float underGround;
+                ShadeTideAt(place, swell, timing.x, shore, shoreDist, tide, profile, phaseSlope, underGround);
+                float trail = saturate(profile.z) * saturate(timing.y / 25.0);
+                float front = ShadeLeading(tide, profile) ? profile.w : 0.0;
+                float shallowFoam = -(shoreDist - 0.18) * 10.0;
+                float shallow = saturate(max(saturate(1.0 - ((shoreDist - 0.1) * 5.0)), shallowFoam));
+                front = saturate(shallowFoam < 1.0 ? front / (0.1 + (1.0 - saturate(shallowFoam))) : 1.0);
+
+                float intensity = max(0.0, saturate(trail - 0.03));
+                if (intensity <= 0.0)
+                {
+                    return float4(1.0, 1.0, 1.0, 0.0);
+                }
+
+                float2 offsetPos = place * 0.05;
+                float shallowFoamPow = pow(saturate(shallowFoam), 5.0);
+                float sumNoise = 0.0;
+                float sumMult = 0.0;
+                float amp = 1.0;
+                [unroll] for (int octave = 0; octave < 3; octave++)
+                {
+                    sumMult += amp;
+                    sumNoise += ShadeVoronoi(offsetPos * 0.25) * amp;
+                    offsetPos *= 2.0;
+                    amp *= 0.5 + ((1.3 - 0.5) * trail);
+                }
+
+                float threshold = (intensity * 0.4) + 0.05;
+                float noise = saturate(sumNoise / sumMult);
+                noise = saturate(noise + saturate(front) + shallowFoamPow);
+                noise = shallowFoam < 0.99 ? saturate(noise - ((1.0 - saturate(front)) * saturate(shallowFoamPow))) : 1.0;
+                float fade = 1.0 - pow(1.0 - intensity, 20.0);
+                float covered = fade * pow(saturate(1.0 - (noise / threshold)), 0.2 + ((1.0 - 0.2) * (1.0 - intensity)));
+                float4 large = float4(1.0, 1.0, 1.0, 0.6 * covered);
+                float grey = 0.1 + ((0.4 - 0.1) * intensity);
+                float fine = pow(saturate(intensity * (1.0 - pow(saturate(front), 3.0))), 1.3) * 0.4 * (1.0 - shallow);
+                float4 small = float4(grey, grey, grey, fine);
+                return small + ((large - small) * saturate(large.w + (1.0 - small.w)));
             }
             """;
     }
@@ -685,7 +795,8 @@ public static class ShadeHlsl
 
             // A LEVEL THAT IS NOT A NUMBER READS THE TOP ONE, and max gives the number where one is not.
             ShadeProgram.Op.SampleLod => Read(program, step.Extra, $"ShadeSheet{Invariant(step.Extra)}.SampleLevel(wrap, {a}.xy, max({b}.x, 0.0))"),
-            ShadeProgram.Op.Waves => $"ShadeWaves({a}.xy, {b}, {c}.x, {d}, {e})",
+            ShadeProgram.Op.Waves => $"ShadeWaves({a}.xy, {b}, {c}.xy, {d}, {e})",
+            ShadeProgram.Op.Foam => $"ShadeFoam({a}.xy, {b}.xy, {c}, {d})",
             _ => null,
         };
 

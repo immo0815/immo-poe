@@ -570,7 +570,6 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             ModelLight = _monsterBook?.Model?.Light ?? basis.ModelLight,
             ModelLightTarget = _monsterBook?.Model?.LightTarget ?? basis.ModelLightTarget,
             ModelFlatLight = _modelWants.ModelFlatLight,
-            ModelCard = _card.On,
             ModelCardSharp = _card.Sharp,
             ShowProjectiles = _projectiles.Enabled,
             ProjectileTrails = _projectiles.ShowTrails,
@@ -802,12 +801,6 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         // ONE CARD FOR EVERY BOOK, and one switch: every pane holds the same one, so a press in one
         // is the others' too, and only the settings need telling.
         pane.Card = _card;
-        _card.On = _modelWants.ModelCard;
-        _card.Changed = on =>
-        {
-            _modelWants = _modelWants with { ModelCard = on };
-            SettingsChanged?.Invoke();
-        };
         _card.Sharp = _modelWants.ModelCardSharp;
         _card.SharpChanged = sharp =>
         {

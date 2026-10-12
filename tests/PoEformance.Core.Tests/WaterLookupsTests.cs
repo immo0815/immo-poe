@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Numerics;
 using PoEformance.Game.Files;
 
 namespace PoEformance.Core.Tests;
@@ -58,17 +59,21 @@ public sealed class WaterLookupsTests
         // THE SECOND PROFILE GOES WITH THE GRADIENT, the first does not: the second is the swell's, at its own size.
         WaterSheet swells = lookups.Swells!;
         Assert.True(swells.Engine);
-        Assert.Equal((ProfileWidth, ProfileHeight, 2), (swells.Width, swells.Height, swells.Channels));
+        Assert.Equal((ProfileWidth, ProfileHeight, 4), (swells.Width, swells.Height, swells.Channels));
         Assert.Contains("wave_profile.dds, its rise wave_profile_gradient.dds read at its texels", swells.Said, StringComparison.Ordinal);
 
         // ITS RED THE PROFILE'S, its rise the gradient read at the profile's texel centres - the gradient being half as wide.
         int x = 10, y = 3;
-        Assert.Equal(Profile(x, y), swells.Texels[((y * ProfileWidth) + x) * 2]);
+        int at = ((y * ProfileWidth) + x) * 4;
+        Assert.Equal(Profile(x, y), swells.Texels[at]);
         float u = (x + 0.5f) / ProfileWidth;
-        Assert.Equal(Rise(u, y), swells.Texels[(((y * ProfileWidth) + x) * 2) + 1], 0.02f);
+        Assert.Equal(Rise(u, y), swells.Texels[at + 1], 0.02f);
+
+        // ITS GREEN AND ALPHA, the trail foam's strength and the front's phase, as the profile holds them.
+        Assert.Equal((0.25f, 0.75f), (swells.Texels[at + 2], swells.Texels[at + 3]));
 
         // READ AS THE CARD READS IT, wrapping along a width that is no power of two.
-        var three = new WaterSheet(3, 1, 2, [0f, 0f, 1f, 0f, 2f, 0f], true, "three");
+        var three = new WaterSheet(3, 1, 4, [0f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 2f, 0f, 0f, 0f], true, "three");
         Assert.Equal(1f, ShadeProgram.Swell(three, 0.5f, 0.5f, out _), 5);
         Assert.Equal(1f, ShadeProgram.Swell(three, 1f, 0.5f, out _), 5);   // between the last texel's centre and the first's
     }
@@ -81,6 +86,68 @@ public sealed class WaterLookupsTests
         Assert.Null(lookups.Swells);
         Assert.Contains("nothing else tells its profile apart", lookups.Summary, StringComparison.Ordinal);
         Assert.Null(WaterLookups.Read(null).Ripples);
+    }
+
+    /// <summary>
+    /// THE ENGINE'S OWN FILES (tests/fixtures/water-lookups, Port's v0.1.231 capture): the ripple texture's green and blue are its red's slope
+    /// exactly, and of the profiles the one that goes with the gradient is wave_profile.dds - not the Gerstner profile the program also names.
+    /// </summary>
+    [Fact]
+    public void THEENGINESOwnLookupsAreTakenAndTheGerstnerProfileIsNot()
+    {
+        WaterLookups lookups = WaterLookups.Read(Engine);
+
+        Assert.True(lookups.Ripples is { Engine: true, Width: 128, Height: 128, Channels: 4 });
+        Assert.Contains("  green against the red's difference a texel along x: correlation 1, green 1 of it; along y -0.002", lookups.Lines);
+        Assert.Contains("  blue against the red's difference a texel along y: correlation 1, blue 1 of it; along x -0.002", lookups.Lines);
+        Assert.True(lookups.Swells is { Engine: true, Width: 128, Height: 128, Channels: 4 });
+        Assert.Contains("TAKEN as the swell's cross-section: wave_profile.dds with wave_profile_gradient.dds", lookups.Lines);
+        Assert.Contains(lookups.Lines, line => line.StartsWith("  against wave_profile_gradient.dds: its red with this red's difference a unit of the phase 0.028", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// THE FOAM ON THE ENGINE'S PROFILE rolls in in bands: none far out where the swell stands whole, its trail behind the break within a
+    /// colour unit of the shore, none in the last tenth where the shallows clear it - and thinner over water under 25 units deep.
+    /// </summary>
+    [Fact]
+    public void THEFOAMRollsInBandsOnTheEnginesProfile()
+    {
+        WaterSheet sheet = WaterLookups.Read(Engine).Swells!;
+        ShoreField shore = ShoreField.Of(WaterTests.Bay(), shape => shape == 0, shape => shape > 0)!;
+        Vector4 swell = WaterLook.EngineDefault.SwellRegister;
+        (float Cover, float Most) Over(float out_, float depth)
+        {
+            float sum = 0f, most = 0f;
+            var count = 0;
+            for (float clock = 0f; clock < 20f; clock += 0.25f)
+            {
+                for (float y = -400f; y <= 400f; y += 50f)
+                {
+                    Vector4 foam = ShadeProgram.Foam(sheet, new Vector2(1000f - out_, y), swell, clock, depth, shore);
+                    sum += foam.W;
+                    most = MathF.Max(most, foam.W);
+                    count++;
+                }
+            }
+
+            return (sum / count, most);
+        }
+
+        Assert.InRange(Over(500f, 100f).Cover, 0.1f, 0.3f);
+        Assert.InRange(Over(500f, 100f).Most, 0.3f, 0.6f);
+        Assert.Equal(0f, Over(1500f, 100f).Cover, 3);
+        Assert.Equal(0f, Over(50f, 100f).Cover, 3);
+        Assert.True(Over(500f, 5f).Cover < Over(500f, 100f).Cover / 2f);
+
+        // THE STAND-IN CARRIES NO FOAM: nothing covered, whatever its colour.
+        Assert.Equal(0f, ShadeProgram.Foam(ShadeProgram.Swells, new Vector2(500f, 0f), swell, 3f, 100f, shore).W);
+    }
+
+    /// <summary>The engine's lookups as the capture writes them, out of tests/fixtures/water-lookups.</summary>
+    private static byte[]? Engine(string path)
+    {
+        string file = Path.Combine(ComponentSweepTests.Fixture("water-lookups"), "water-lookup-" + Path.GetFileName(path).ToLowerInvariant());
+        return File.Exists(file) ? File.ReadAllBytes(file) : null;
     }
 
     private const int ProfileWidth = 64;
@@ -102,7 +169,7 @@ public sealed class WaterLookupsTests
 
         if (Same(path, WaterLookups.ProfilePaths[1]))
         {
-            return Legacy(ProfileWidth, ProfileHeight, 116, Texels(ProfileWidth, ProfileHeight, (x, y) => (Profile(x, y), 0f, 0.5f, 0f)));
+            return Legacy(ProfileWidth, ProfileHeight, 116, Texels(ProfileWidth, ProfileHeight, (x, y) => (Profile(x, y), 0.25f, 0.5f, 0.75f)));
         }
 
         if (Same(path, WaterLookups.GradientPath))

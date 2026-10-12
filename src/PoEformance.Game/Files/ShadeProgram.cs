@@ -424,8 +424,11 @@ public sealed partial class ShadeProgram
         /// <summary>ParallaxUvSpace: the coordinates and the distance along the view where the ray meets the height texture - B is the read, like Sample's.</summary>
         Parallax,
 
-        /// <summary>The ocean's surface at A's x and y in B's wind (WaterLook.WindRegister) at C's clock, over D's shore with E's swell - its normal in xyz, its height in w. See <see cref="Ocean"/>.</summary>
+        /// <summary>The ocean's surface at A's x and y in B's wind (WaterLook.WindRegister) at C's clock (x) over water C's y deep, over D's shore with E's swell - its normal in xyz, its height in w. See <see cref="Ocean(Vector2, Vector4, Vector4, float, float, ShoreField?, out Vector2)"/>.</summary>
         Waves,
+
+        /// <summary>The swell's foam at A's x and y at B's clock (x) over water B's y deep, over C's shore with D's swell - its colour in xyz, how much it covers in w. See <see cref="Foam(Vector2, Vector4, float, float, ShoreField?)"/>.</summary>
+        Foam,
     }
 
     /// <summary>The stages a colour is assembled across, in the order they are run.</summary>
@@ -1225,10 +1228,14 @@ public sealed partial class ShadeProgram
                 case Op.Waves:
                 {
                     float height = Ocean(
-                        new Vector2(r[step.A].X, r[step.A].Y), r[step.B], r[step.E], r[step.C].X, r[step.D].W > 0.5f ? s_shore : null, out Vector2 slope);
+                        new Vector2(r[step.A].X, r[step.A].Y), r[step.B], r[step.E], r[step.C].X, r[step.C].Y, r[step.D].W > 0.5f ? s_shore : null, out Vector2 slope);
                     r[step.To] = new Vector4(Vector3.Normalize(new Vector3(-slope.X, -slope.Y, -1f)), height);
                     break;
                 }
+
+                case Op.Foam:
+                    r[step.To] = Foam(new Vector2(r[step.A].X, r[step.A].Y), r[step.D], r[step.B].X, r[step.B].Y, r[step.C].W > 0.5f ? s_shore : null);
+                    break;
 
                 case Op.Vibrance:
                     r[step.To] = Vibrant(r[step.A].X, r[step.B]);

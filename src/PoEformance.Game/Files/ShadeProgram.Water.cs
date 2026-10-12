@@ -59,7 +59,9 @@ public sealed partial class ShadeProgram
     /// surface the engine lights - the ocean's own (<see cref="Ocean"/>: GetWindRippleSurfaceField3's three
     /// octaves over its ripple texture, <see cref="Ripples"/>, in the area's wind) - handed to the game light's
     /// glints and reflection, its specular the area's reflectiveness and its gloss the engine's 0.99. Under the
-    /// picture's lamp the twin draws as this program does. Not drawn: foam, the refraction's bend.
+    /// picture's lamp the twin draws as this program does. THE FOAM (<see cref="Foam(Vector2, Vector4, float, float, ShoreField?)"/>)
+    /// laid over both as InitWaterSurfaceData lays it: its colour over the medium's, hiding what lies behind by <c>1 - (1 - a)^3</c>,
+    /// the specular lerped to 0.04 and the gloss to nought. Not drawn: the refraction's bend.
     /// </remarks>
     public static ShadeProgram Water()
     {
@@ -85,18 +87,28 @@ public sealed partial class ShadeProgram
         int pattern = build.Emit(Op.Noise, spot, extra: 0);
         int shimmer = build.Emit(Op.MultiplyAdd, pattern, build.Constant(new Vector4(0.3f)), build.Constant(new Vector4(0.85f)));
 
-        // THE COLOUR, its w the cover.
-        int colour = build.Emit(Op.Multiply, WaterColour, shimmer);
-        build.Into(colour, cover, Only(3, 0));
+        // THE FOAM, over water as deep as the view crosses (gBufferDelta): the clock and that depth in one register.
+        int timing = build.Emit(Op.Swizzle, Clock, extra: AllFrom(0));
+        build.Into(timing, crossed, Only(1, 0));
+        int foam = build.Emit(Op.Foam, Position, timing, WaterShore, WaterSwell);
+        int foamed = build.Emit(Op.Swizzle, foam, extra: AllFrom(3));
+
+        // THE COLOUR, the foam's over the medium's by how much it covers (InitWaterSurfaceData's albedo), its w the cover - the
+        // foam hiding what lies behind by 1 - (1 - a)^3 (the pass's refracted light, lerped to the absorbed).
+        int colour = build.Emit(Op.Lerp, build.Emit(Op.Multiply, WaterColour, shimmer), foam, foamed);
+        int clear = build.Emit(Op.OneMinus, foamed);
+        int hidden = build.Emit(Op.OneMinus, build.Emit(Op.Multiply, build.Emit(Op.Multiply, clear, clear), clear));
+        build.Into(colour, build.Emit(Op.Lerp, cover, build.Constant(Vector4.One), hidden), Only(3, 0));
         ShadeProgram water = Finish(build, colour, -1, -1, [WaterGraph], hasAlpha: true, plainable: false)
             ?? throw new InvalidOperationException("the water program does not fit its registers");
 
         // THE WAVES, for the game light's glints and reflection: the same colour, and the surface the
         // engine lights - the ocean's ripples in the area's wind, its specular the area's reflectiveness,
-        // its gloss the engine's (InitWaterSurfaceData) - see HasWaves.
-        int waves = build.Emit(Op.Waves, Position, WaterWind, Clock, WaterShore, WaterSwell);
-        int specular = build.Emit(Op.Swizzle, WaterFlow, extra: AllFrom(1));
-        int gloss = build.Constant(new Vector4(WaterGloss));
+        // its gloss the engine's (InitWaterSurfaceData), the foam's 0.04 and nought where it covers - see HasWaves.
+        int waves = build.Emit(Op.Waves, Position, WaterWind, timing, WaterShore, WaterSwell);
+        int specular = build.Emit(
+            Op.Lerp, build.Emit(Op.Swizzle, WaterFlow, extra: AllFrom(1)), build.Constant(new Vector4(FoamSpecular)), foamed);
+        int gloss = build.Emit(Op.Lerp, build.Constant(new Vector4(WaterGloss)), build.Constant(Vector4.Zero), foamed);
         water.Glossy = Finish(build, colour, specular, gloss, [WaterGraph], hasAlpha: true, plainable: false, waves)
             ?? throw new InvalidOperationException("the water's waves do not fit their registers");
         return water;
@@ -106,6 +118,9 @@ public sealed partial class ShadeProgram
     /// The water's glossiness, the engine's: InitWaterSurfaceData's <c>lerp(0.99, 0, foam)</c> where no foam lies.
     /// </summary>
     public const float WaterGloss = 0.99f;
+
+    /// <summary>The foam's specular colour, the engine's: InitWaterSurfaceData's <c>foam_specular</c>, the area's reflectiveness lerped to it by the foam.</summary>
+    public const float FoamSpecular = 0.04f;
 
     /// <summary>The ripple texture's side in texels - the engine's <c>textureSize</c> (GetWaterVolumeStateFieldOctave).</summary>
     public const int RippleSide = 128;
@@ -138,7 +153,7 @@ public sealed partial class ShadeProgram
     private static WaterSheet s_ripples = new(RippleSide, RippleSide, 4, Rippled(), false, RippleStandIn);
 
     /// <summary>The swell's cross-section read: the stand-in until <see cref="Use"/> hands over the engine's.</summary>
-    private static WaterSheet s_swells = new(SwellPhases, SwellShores, 2, Swelled(), false, SwellStandIn);
+    private static WaterSheet s_swells = new(SwellPhases, SwellShores, 4, Swelled(), false, SwellStandIn);
 
     /// <summary>
     /// The ripple texture the water reads, 128 by 128 texels, row by row, four floats each - the height's red, its slope a texel
@@ -147,8 +162,9 @@ public sealed partial class ShadeProgram
     public static WaterSheet Ripples => Volatile.Read(ref s_ripples);
 
     /// <summary>
-    /// The swell's cross-section the water reads, row by row from the open sea to the shore, two floats a texel - its height and that
-    /// height's rise a unit of phase: the engine's (WaterLookups) once handed over, this tool's stand-in until then.
+    /// The swell's cross-section the water reads, row by row from the open sea to the shore, four floats a texel - its height, that
+    /// height's rise a unit of phase, the trail foam's strength and the front's phase: the engine's (WaterLookups) once handed over,
+    /// this tool's stand-in until then, which carries no foam.
     /// </summary>
     public static WaterSheet Swells => Volatile.Read(ref s_swells);
 
@@ -167,7 +183,7 @@ public sealed partial class ShadeProgram
         Volatile.Write(ref s_ripples, lookups.Ripples is { Width: RippleSide, Height: RippleSide, Channels: 4 } ripples
             ? ripples
             : Ripples with { Said = lookups.RippleSaid });
-        Volatile.Write(ref s_swells, lookups.Swells is { Channels: 2, Width: > 0, Height: > 0 } swells
+        Volatile.Write(ref s_swells, lookups.Swells is { Channels: 4, Width: > 0, Height: > 0 } swells
             ? swells
             : Swells with { Said = lookups.SwellSaid });
     }
@@ -200,6 +216,13 @@ public sealed partial class ShadeProgram
     /// alpha, and the distortion texture), and the rocky shore's clashing state - the shore is all beach.
     /// </remarks>
     public static float Ocean(Vector2 place, Vector4 wind, Vector4 swell, float clock, ShoreField? shore, out Vector2 slope)
+        => Ocean(place, wind, swell, clock, Unmeasured, shore, out slope);
+
+    /// <summary>
+    /// The same over water <paramref name="depth"/> deep along the view - GetTidalWaterPlanarState's <c>gBufferDelta</c>, which
+    /// thins the swell's foam, and the foam flattens the ripples (<c>foamRippleDampening</c>).
+    /// </summary>
+    public static float Ocean(Vector2 place, Vector4 wind, Vector4 swell, float clock, float depth, ShoreField? shore, out Vector2 slope)
     {
         float height = 0f;
         slope = Vector2.Zero;
@@ -207,35 +230,186 @@ public sealed partial class ShadeProgram
         var groundWater = false;
         if (shore is not null)
         {
-            shore.Fields(place, out float shoreDist, out float oceanDist, out Vector2 oceanSlope);
-            const float pi = 3.1415f;
-            float swellHeight = swell.X, period = swell.Y, intensity = swell.Z;
-            float periods = 1f / period;
-            float underGround = 1f - Saturated(1f + ((shoreDist + 0.05f) * 10f));
-            float tide = 1f - Fractional((((1f - oceanDist) * periods) + (clock * 1.1f / (period * 25f))) / (2f * pi));
+            Tide tide = TideAt(Swells, place, swell, clock, shore);
+            height = (tide.Profile.X - 0.5f) * swell.X * tide.Kept;
+            slope = tide.Profile.Y * tide.PhaseSlope * swell.X * tide.Kept;
+            groundWater = tide.UnderGround > 0.5f;
 
-            // THE SHORE'S LENGTH IS NOUGHT here, so the noise runs on the clock alone and the swell's angle adds nothing.
-            float noise = (SmoothNoise(clock * 0.1f, clock * 0.15f) * 0.5f) + 0.5f;
-            float reduction = Saturated(noise);
-            float slowdown = 1f - (shoreDist * 4f), hurry = 1f - (shoreDist * 5.5f);
-            float offset = (MathF.Pow(Saturated(slowdown), 1.1f) * 0.5f) - (MathF.Pow(Saturated(hurry), 1.1f) * 0.75f);
-            tide = Fractional((noise * 0.2f) + tide + (offset * 0.8f) + 10f);
-            float effective = Saturated(1f - shoreDist);
-            effective = MathF.Pow(effective, 1f / ((Saturated(1f - (reduction * 0.4f)) * intensity * 0.8f) + 0.2f));
-            float cross = Swell(tide, effective, out float rise);
+            // THE FOAM FLATTENS THE RIPPLES: pow(trail, 3), held back off the leading edge, none over ground under water.
+            float trail = Saturated(tide.Profile.Z) * Saturated(depth / 25f);
+            float front = tide.Profile.W;
+            float damping = trail * trail * trail;
+            if (tide.Leading)
+            {
+                float held = Saturated((0.8f - front) / 0.8f * 2f);
+                damping *= held * held;
+            }
 
-            // (-oceanDist.gradient) / periodColorLength, the field's slope being given negated.
-            Vector2 phaseSlope = -oceanSlope * (periods / (2f * pi));
-            float kept = 1f - underGround;
-            height = (cross - 0.5f) * swellHeight * kept;
-            slope = rise * phaseSlope * swellHeight * kept;
-            groundWater = underGround > 0.5f;
-            ripples = (1f - MathF.Pow(Saturated(1f - MathF.Abs(shoreDist)), 10f)) * 2f;
+            damping = Lerp(damping, 0f, tide.UnderGround);
+            ripples = (1f - MathF.Pow(Saturated(1f - MathF.Abs(tide.ShoreDist)), 10f)) * (1f - damping) * 2f;
         }
 
         height += WindRipples(place, wind, clock, groundWater, out Vector2 rippleSlope) * ripples;
         slope += rippleSlope * ripples;
         return height;
+    }
+
+    /// <summary>The depth taken where none is known - the lift's vertices, which have no solid behind them to measure to: deep.</summary>
+    public const float Unmeasured = 1e9f;
+
+    /// <summary>The swell's state at a place: the shore's fields, the tide's phase, the cross-section read there and how much of it stands.</summary>
+    private readonly record struct Tide(float ShoreDist, float Phase, Vector4 Profile, Vector2 PhaseSlope, float UnderGround)
+    {
+        /// <summary>One less how far the place lies under ground - what keeps the swell's height.</summary>
+        public float Kept => 1f - UnderGround;
+
+        /// <summary>
+        /// Whether the place is on the swell's leading edge: before the half with the front still coming, or past it with the front begun -
+        /// GetTidalWaterPlanarState's <c>isLeadingEdgeArea</c>.
+        /// </summary>
+        public bool Leading => (Phase < 0.45f && Profile.W < 1f) || (Phase > 0.55f && Profile.W > 0f);
+    }
+
+    /// <summary>
+    /// GetTidalWaterPlanarState's state at a place, as written: the tide's phase from the distance out to sea, 25 periods over 2 pi a
+    /// colour unit, rolling in at 1.1 a second; the clock's smooth noise wobbling it; slowed and hurried within a quarter of a colour
+    /// unit of the shore; the cross-section read at that phase and the shore's distance (<see cref="Swell(WaterSheet, float, float)"/>).
+    /// </summary>
+    private static Tide TideAt(WaterSheet sheet, Vector2 place, Vector4 swell, float clock, ShoreField shore)
+    {
+        shore.Fields(place, out float shoreDist, out float oceanDist, out Vector2 oceanSlope);
+        const float pi = 3.1415f;
+        float period = swell.Y, intensity = swell.Z;
+        float periods = 1f / period;
+        float underGround = 1f - Saturated(1f + ((shoreDist + 0.05f) * 10f));
+        float tide = 1f - Fractional((((1f - oceanDist) * periods) + (clock * 1.1f / (period * 25f))) / (2f * pi));
+
+        // THE SHORE'S LENGTH IS NOUGHT here, so the noise runs on the clock alone and the swell's angle adds nothing.
+        float noise = (SmoothNoise(clock * 0.1f, clock * 0.15f) * 0.5f) + 0.5f;
+        float reduction = Saturated(noise);
+        float slowdown = 1f - (shoreDist * 4f), hurry = 1f - (shoreDist * 5.5f);
+        float offset = (MathF.Pow(Saturated(slowdown), 1.1f) * 0.5f) - (MathF.Pow(Saturated(hurry), 1.1f) * 0.75f);
+        tide = Fractional((noise * 0.2f) + tide + (offset * 0.8f) + 10f);
+        float effective = Saturated(1f - shoreDist);
+        effective = MathF.Pow(effective, 1f / ((Saturated(1f - (reduction * 0.4f)) * intensity * 0.8f) + 0.2f));
+
+        // (-oceanDist.gradient) / periodColorLength, the field's slope being given negated.
+        return new Tide(shoreDist, tide, Swell(sheet, tide, effective), -oceanSlope * (periods / (2f * pi)), underGround);
+    }
+
+    /// <summary>
+    /// The swell's foam at a place over water <paramref name="depth"/> deep along the view: its colour and how much it covers -
+    /// GetTidalWaterPlanarState's foam, GetFoamColor3's trail.
+    /// </summary>
+    /// <param name="place">Where on the water, in world units.</param>
+    /// <param name="swell">The area's swell - WaterLook.SwellRegister.</param>
+    /// <param name="clock">The clock, in seconds.</param>
+    /// <param name="depth">How much water the view crosses to the solid behind - <c>gBufferDelta</c>.</param>
+    /// <param name="shore">The room's shore, or null - no foam without one.</param>
+    /// <remarks>
+    /// AS WRITTEN, from the cross-section's green - the trail's strength, times how deep the water is to 25 units - and its alpha, the
+    /// front's phase, kept on the leading edge alone: three octaves of the engine's Voronoi noise (GetVoronoiNoise, Hash2), each twice
+    /// as fine, its weight <c>lerp(0.5, 1.3, trail)</c>; cut at <c>trail * 0.4 + 0.05</c>; faded in by <c>1 - (1 - trail)^20</c>; white,
+    /// 0.6 of it at most, over a finer grey of its own; the shore's shallows (<c>-(shoreDist - 0.18) * 10</c>) shaping it. The
+    /// cross-section's green and alpha are the engine's profile's (WaterLookups) - the stand-in carries none, so no foam stands over it.
+    /// NOT DRAWN: the leading edge's own layers, which read two textures the engine binds and no file names (<c>water_tex_sampler</c>
+    /// "for foam leading edge" and <c>distortion_sampler</c>), and the offsets the swell's orbit and that distortion carry the foam by.
+    /// </remarks>
+    public static Vector4 Foam(Vector2 place, Vector4 swell, float clock, float depth, ShoreField? shore)
+        => Foam(Swells, place, swell, clock, depth, shore);
+
+    /// <summary>The same, over a given cross-section.</summary>
+    public static Vector4 Foam(WaterSheet sheet, Vector2 place, Vector4 swell, float clock, float depth, ShoreField? shore)
+    {
+        ArgumentNullException.ThrowIfNull(sheet);
+        if (shore is null)
+        {
+            return Vector4.Zero;
+        }
+
+        Tide tide = TideAt(sheet, place, swell, clock, shore);
+        float trail = Saturated(tide.Profile.Z) * Saturated(depth / 25f);
+        float front = tide.Leading ? tide.Profile.W : 0f;
+        float shallow = Saturated(1f - ((tide.ShoreDist - 0.1f) * 5f));
+        float shallowFoam = -(tide.ShoreDist - 0.18f) * 10f;
+        shallow = Saturated(MathF.Max(shallow, shallowFoam));
+        front = Saturated(shallowFoam < 1f ? front / (0.1f + (1f - Saturated(shallowFoam))) : 1f);
+        return FoamColour(place, trail, front, 0.4f, 0.05f, 0.6f, shallow, shallowFoam);
+    }
+
+    /// <summary>GetFoamColor3, its leading edge's textured layers left out (see <see cref="Foam(Vector2, Vector4, float, float, ShoreField?)"/>) and no offset.</summary>
+    private static Vector4 FoamColour(
+        Vector2 place, float trail, float front, float thresholdMult, float constThreshold, float opacityMult, float shallow, float shallowFoam)
+    {
+        // NO TRAIL, NO FOAM: with the trail's strength at nought the fade is nought and the fine grey clear, so the formula comes
+        // out white and uncovered whatever the noise - the noise is not worked out where most of the water stands.
+        float intensity = MathF.Max(0f, Saturated(trail - 0.03f));
+        if (intensity <= 0f)
+        {
+            return new Vector4(1f, 1f, 1f, 0f);
+        }
+
+        Vector2 planar = place * 0.05f;
+        float shallowFoamPow = MathF.Pow(Saturated(shallowFoam), 5f);
+        float sumNoise = 0f, sumMult = 0f, amp = 1f;
+        Vector2 offsetPos = planar;
+        for (var octave = 0; octave < 3; octave++)
+        {
+            sumMult += amp;
+            sumNoise += Voronoi(offsetPos * 0.25f) * amp;
+            offsetPos *= 2f;
+            amp *= Lerp(0.5f, 1.3f, trail);
+        }
+
+        float threshold = (intensity * thresholdMult) + constThreshold;
+
+        // THE LEADING EDGE'S LAYERS UNREAD: its colour stays white and clear, so it adds the front's phase to the noise.
+        float noise = Saturated(sumNoise / sumMult);
+        float addNoise = Saturated(front) + shallowFoamPow;
+        noise = Saturated(noise + addNoise);
+        noise = shallowFoam < 0.99f ? Saturated(noise - ((1f - Saturated(front)) * Saturated(shallowFoamPow))) : 1f;
+
+        float fade = 1f - MathF.Pow(1f - intensity, 20f);
+        float covered = fade * MathF.Pow(Saturated(1f - (noise / threshold)), Lerp(0.2f, 1f, 1f - intensity));
+        var large = new Vector4(1f, 1f, 1f, opacityMult * covered);
+        float grey = Lerp(0.1f, 0.4f, intensity);
+        float fine = MathF.Pow(Saturated(intensity * (1f - MathF.Pow(Saturated(front), 3f))), 1.3f) * 0.4f * (1f - shallow);
+        var small = new Vector4(grey, grey, grey, fine);
+        return Vector4.Lerp(small, large, Saturated(large.W + (1f - small.W)));
+    }
+
+    /// <summary>GetVoronoiNoise: the gap between the nearest and the next nearest of the cells' points about a place.</summary>
+    internal static float Voronoi(Vector2 place)
+    {
+        float nearest = 1e2f, next = 1e2f;
+        float fx = MathF.Floor(place.X), fy = MathF.Floor(place.Y);
+        for (var x = -1; x <= 1; x++)
+        {
+            for (var y = -1; y <= 1; y++)
+            {
+                var grid = new Vector2(fx + x, fy + y);
+                Vector2 offset = place - grid - Vector2.One + Hash2(grid);
+                float distance = Vector2.Dot(offset, offset);
+                if (nearest > distance)
+                {
+                    next = nearest;
+                    nearest = distance;
+                }
+                else if (next > distance)
+                {
+                    next = distance;
+                }
+            }
+        }
+
+        return MathF.Abs(MathF.Sqrt(nearest) - MathF.Sqrt(next));
+    }
+
+    /// <summary>The engine's Hash2 (water.ffx): two fractions of a sine.</summary>
+    private static Vector2 Hash2(Vector2 point)
+    {
+        float r = 523f * MathF.Sin(Vector2.Dot(point, new Vector2(53.3158f, 43.6143f)));
+        return new Vector2(Fractional(15.32354f * r), Fractional(17.25865f * r));
     }
 
     /// <summary>How many phases the stand-in swell cross-section is drawn at - its width.</summary>
@@ -259,6 +433,14 @@ public sealed partial class ShadeProgram
     /// <summary>The same, of a given cross-section.</summary>
     public static float Swell(WaterSheet sheet, float phase, float shore, out float rise)
     {
+        Vector4 read = Swell(sheet, phase, shore);
+        rise = read.Y;
+        return read.X;
+    }
+
+    /// <summary>The cross-section's four channels at a phase and a distance from the shore: its height, its rise, the trail foam's strength and the front's phase.</summary>
+    public static Vector4 Swell(WaterSheet sheet, float phase, float shore)
+    {
         ArgumentNullException.ThrowIfNull(sheet);
         int width = sheet.Width, height = sheet.Height;
         float sx = (phase * width) - 0.5f;
@@ -269,23 +451,21 @@ public sealed partial class ShadeProgram
         int y0 = (int)sy, y1 = Math.Min(y0 + 1, height - 1);
         float fy = sy - y0;
         float[] texels = sheet.Texels;
-        int a = ((y0 * width) + x0) * 2, b = ((y0 * width) + x1) * 2;
-        int c = ((y1 * width) + x0) * 2, d = ((y1 * width) + x1) * 2;
-        float Mixed(int part)
-        {
-            float top = texels[a + part] + ((texels[b + part] - texels[a + part]) * fx);
-            float bottom = texels[c + part] + ((texels[d + part] - texels[c + part]) * fx);
-            return top + ((bottom - top) * fy);
-        }
-
-        rise = Mixed(1);
-        return Mixed(0);
+        int a = ((y0 * width) + x0) * 4, b = ((y0 * width) + x1) * 4;
+        int c = ((y1 * width) + x0) * 4, d = ((y1 * width) + x1) * 4;
+        var ta = new Vector4(texels[a], texels[a + 1], texels[a + 2], texels[a + 3]);
+        var tb = new Vector4(texels[b], texels[b + 1], texels[b + 2], texels[b + 3]);
+        var tc = new Vector4(texels[c], texels[c + 1], texels[c + 2], texels[c + 3]);
+        var td = new Vector4(texels[d], texels[d + 1], texels[d + 2], texels[d + 3]);
+        Vector4 top = ta + ((tb - ta) * fx);
+        Vector4 bottom = tc + ((td - tc) * fx);
+        return top + ((bottom - top) * fy);
     }
 
     /// <summary>The cross-section made: at each phase the trochoid's angle found by Newton's method, its height and that height's rise along the phase.</summary>
     private static float[] Swelled()
     {
-        var texels = new float[SwellPhases * SwellShores * 2];
+        var texels = new float[SwellPhases * SwellShores * 4];
         for (var row = 0; row < SwellShores; row++)
         {
             float near = (row + 0.5f) / SwellShores;
@@ -299,7 +479,8 @@ public sealed partial class ShadeProgram
                     angle -= (angle - (steep * Math.Sin(angle)) - (phase * 2.0 * Math.PI)) / (1.0 - (steep * Math.Cos(angle)));
                 }
 
-                int at = ((row * SwellPhases) + column) * 2;
+                // NO FOAM: the trail's strength and the front's phase are the engine's profile's alone.
+                int at = ((row * SwellPhases) + column) * 4;
                 texels[at] = (float)(0.5 - (tall * 0.5 * Math.Cos(angle)));
                 texels[at + 1] = (float)(tall * Math.PI * Math.Sin(angle) / (1.0 - (steep * Math.Cos(angle))));
             }
