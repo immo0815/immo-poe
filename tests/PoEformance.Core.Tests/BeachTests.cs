@@ -178,6 +178,55 @@ public sealed class BeachTests
     }
 
     /// <summary>
+    /// A picture that reflects itself draws its solid part and the beach in one phase and the rest in another: the tally counts the beach
+    /// all the same - v0.1.242's left it out, so Port's capture had no word on it - and the probe says what the beach made of its pixel.
+    /// </summary>
+    [Fact]
+    public void THEBEACHIsCountedAndProbedWhereThePictureReflectsItself()
+    {
+        Mipmaps[] sheets = [Sheet(255, 255, 255, 128), Sheet(128, 128, 255, 128), Sheet(128, 128, 255, 255)];
+        ShadeProgram beach = ShadeProgram.Beach(new ShadeTexture("foam", true), new ShadeTexture("bumps", false), new ShadeTexture("ripples", false)).Glossy!.With(sheets);
+        ShadeProgram sea = ShadeProgram.Water().Glossy!;
+        var light = new SceneLight([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1.5f),
+            SunDirection = Vector3.Normalize(new Vector3(0.3f, 0.2f, 1f)),
+            Ambient = SceneAmbient.Flat,
+            FlatAmbient = 0.3f,
+            WaterReflection = true,
+            WaterScene = true,
+        };
+
+        var probe = new PixelProbe(Size / 2, Size / 2);
+        var tally = new LayerTally();
+        _ = MeshPicture.Of(
+            Layered(), new MeshPicture.Canvas(Size) { Water = WaterLook.EngineDefault with { Shore = SlopeShore() }, Light = light, Time = 2f, Probe = probe, Tally = tally },
+            tilt: MathF.PI / 2f,
+            skins: [Sheet(200, 180, 120, 255), null, null],
+            blends: [MaterialBlend.Opaque, MaterialBlend.Alpha, MaterialBlend.Alpha],
+            shades: [null, sea, beach]);
+
+        // COUNTED: every pixel of the beach, the floor a hundred units behind it.
+        LayerCount counted = tally.Of(2);
+        Assert.True(counted.Fragments > 0);
+        Assert.Equal(counted.Fragments, counted.Behind);
+
+        // PROBED: far out at sea, no foam; the film whole over the hundred units of path to the floor, as Beaching's own test has it.
+        ProbeBeach said = Assert.Single(probe.Beaches);
+        ProbeFragment mixed = probe.Fragments.Single(one => one.Seen == Seen.Mixed);
+        Assert.Equal(mixed.Cover, said.Cover);
+        Assert.Equal(mixed.Behind - mixed.Depth, said.Path, 3);
+        Assert.Equal(0f, said.Foam, 4);
+        Assert.Equal(1f, said.Thickness, 3);
+        Assert.Equal(1f - MathF.Exp(-said.Path * ShadeProgram.BeachAbsorption), said.Cover, 3);
+        Assert.True(said.Shore > 0f);
+        Assert.Contains("units of path to the solid behind", PoEformance.Features.PictureProbe.Beached(said), StringComparison.Ordinal);
+
+        // AND THE SUN ON THE FLOOR AND ON THE BEACH - the sea under the beach is hidden, so unlit.
+        Assert.Equal(2, probe.Suns.Count);
+    }
+
+    /// <summary>
     /// A room with a shore is piled with the beach's sheet as a shape of its own, wearing the engine's graph and mixed - once: a stage
     /// piling the room again keeps the one it brings. The sheet is no water and no ground, so the shore is the room's own.
     /// </summary>

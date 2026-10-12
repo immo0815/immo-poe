@@ -442,7 +442,12 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   (`BeachTests`). The film's colour is the area's water and its absorption one alpha, the graph's three channels' mean. NOT DRAWN:
   the refraction and caustics, the wet sand (`BreakingOceanWavesWetness.fxgraph`), the spray particles, the flood and crashing
   waves. On the processor a beach pixel costs about 5 microseconds and a vertex 1; the card is the way it is meant to be drawn.
-  `model-panes.txt` writes each room's sheet - its triangles, box, band and lookups.
+  `model-panes.txt` writes each room's sheet - its triangles, box, band and lookups. THE PROBE ON THE BEACH (v0.1.243): v0.1.242's
+  capture drew the waves, but its tally left the beach out - a picture that reflects itself draws the beach with its solid part, a
+  phase nobody counted; now it is. Dark patches with straight, toothed edges lay on the sand behind the foam, which a picture cannot
+  tell from the film over a deep gap, the lifted sea or a shadow: the probe now writes the beach's own line (`ProbeBeach`: its lift,
+  the shore's distance, the foam, the film and its path) and, for every fragment the game light shaded, how much sun reached it and
+  what cast the shadow (`ProbeSun`, one ray towards the sun on a click). Probe a patch, then capture.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

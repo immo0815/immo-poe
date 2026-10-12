@@ -69,6 +69,44 @@ public readonly record struct ProbeWater(
     Vector3 HitColour, float Environment, Vector3 Added, float Sun);
 
 /// <summary>
+/// How much of the sun reached a fragment the game light shaded at a probed pixel, and - where it was shaded - what cast the shadow.
+/// </summary>
+/// <remarks>
+/// WRITTEN WHEN DARK PATCHES WITH STRAIGHT, TOOTHED EDGES LAY ON PORT'S SAND behind the beach waves' foam (v0.1.242's capture): a shadow,
+/// the beach's film over a deep gap, or the lifted sea over the sand look alike in a picture. The shadow map keeps depths only, so the
+/// caster is found by casting the one ray from the fragment towards the sun through every triangle that casts - once, on a click.
+/// </remarks>
+/// <param name="Triangle">The fragment's triangle.</param>
+/// <param name="Depth">Its depth along the view.</param>
+/// <param name="Place">Where it stands, model space, as drawn.</param>
+/// <param name="Normal">The normal it was lit with, turned to the eye.</param>
+/// <param name="Sun">How much of the sun the shadow map let through, nought in shadow.</param>
+/// <param name="Caster">The nearest triangle that casts on the way to the sun, -1 for none or not looked for.</param>
+/// <param name="CasterAway">How far towards the sun it lies.</param>
+public readonly record struct ProbeSun(int Triangle, float Depth, Vector3 Place, Vector3 Normal, float Sun, int Caster = -1, float CasterAway = 0f);
+
+/// <summary>
+/// What the beach waves made of a probed pixel: where the sheet stood, its waves' lift there, the shore's distances and the graph's mix.
+/// </summary>
+/// <remarks>
+/// THE BEACH'S HALF OF THE PIXEL (asked for by v0.1.242's capture, whose probe could not say whether a dark patch on the sand was the
+/// beach's film): the foam's share, the film's thickness and the path the view crosses under it to the solid behind - from which the
+/// film lets <c>exp(-path * thickness * absorption)</c> through (ShadeProgram.Beaching) - and the cover they came to.
+/// </remarks>
+/// <param name="Triangle">The beach's triangle.</param>
+/// <param name="Depth">Its depth along the view.</param>
+/// <param name="Place">Where it stands, model space, moved by its waves as drawn.</param>
+/// <param name="Lift">How far its waves move the sheet there along z - BreakingWavesVertex's, the area's height offset in it; up is minus z.</param>
+/// <param name="Shore">The shore field's distance there, colour units - positive at sea, negative on land.</param>
+/// <param name="Foam">The foam's share of the cover, the graph's <c>0.7 * a</c>.</param>
+/// <param name="Thickness">The film's thickness under the foam.</param>
+/// <param name="Path">How far the view crosses from the sheet to the solid behind it.</param>
+/// <param name="Cover">What the foam and the film covered together.</param>
+/// <param name="Colour">The colour mixed, linear, before the light.</param>
+public readonly record struct ProbeBeach(
+    int Triangle, float Depth, Vector3 Place, float Lift, float Shore, float Foam, float Thickness, float Path, float Cover, Vector3 Colour);
+
+/// <summary>
 /// Every fragment one pixel of a drawing was made of, in the order the drawing met them.
 /// </summary>
 /// <remarks>
@@ -87,6 +125,8 @@ public sealed class PixelProbe
 {
     private readonly List<ProbeFragment> _fragments = [];
     private readonly List<ProbeWater> _waters = [];
+    private readonly List<ProbeSun> _suns = [];
+    private readonly List<ProbeBeach> _beaches = [];
 
     /// <param name="x">The pixel's column, from the left.</param>
     /// <param name="y">The pixel's row, from the top.</param>
@@ -114,14 +154,29 @@ public sealed class PixelProbe
     /// <summary>Every water surface lit the game's way at the pixel, in the drawing's order - see <see cref="ProbeWater"/>.</summary>
     public IReadOnlyList<ProbeWater> Waters => _waters;
 
+    /// <summary>Every fragment the game light shaded at the pixel, with the sun it let through and what shaded it - see <see cref="ProbeSun"/>.</summary>
+    public IReadOnlyList<ProbeSun> Suns => _suns;
+
+    /// <summary>Every beach fragment mixed at the pixel - see <see cref="ProbeBeach"/>.</summary>
+    public IReadOnlyList<ProbeBeach> Beaches => _beaches;
+
     internal void Add(ProbeFragment fragment) => _fragments.Add(fragment);
 
     internal void Add(ProbeWater water) => _waters.Add(water);
+
+    internal void Add(ProbeSun sun) => _suns.Add(sun);
+
+    internal void Add(ProbeBeach beach) => _beaches.Add(beach);
+
+    /// <summary>Names what cast the shadow on one of <see cref="Suns"/>.</summary>
+    internal void Cast(int sun, int caster, float away) => _suns[sun] = _suns[sun] with { Caster = caster, CasterAway = away };
 
     internal void Clear()
     {
         _fragments.Clear();
         _waters.Clear();
+        _suns.Clear();
+        _beaches.Clear();
         Final = float.MaxValue;
         Drawn = false;
     }

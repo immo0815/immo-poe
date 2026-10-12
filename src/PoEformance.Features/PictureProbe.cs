@@ -72,7 +72,47 @@ public static class PictureProbe
             lines.Add(Watered(water));
         }
 
+        foreach (ProbeBeach beach in probe.Beaches)
+        {
+            lines.Add(Beached(beach));
+        }
+
+        foreach (ProbeSun sun in probe.Suns)
+        {
+            lines.Add(Sunned(sun, model, shades));
+        }
+
         return lines;
+    }
+
+    /// <summary>
+    /// The beach waves at the pixel: where the sheet stood, its waves' lift, the shore's distance, and the graph's mix - see <see cref="ProbeBeach"/>.
+    /// </summary>
+    public static string Beached(ProbeBeach beach)
+    {
+        float through = MathF.Exp(-beach.Path * beach.Thickness * ShadeProgram.BeachAbsorption);
+        string path = beach.Path < 1e30f ? Number(beach.Path) + " units of path to the solid behind" : "nothing solid behind";
+        return Say($"  beach at depth {Number(beach.Depth)} · at ({Number(beach.Place.X)}, {Number(beach.Place.Y)}, {Number(beach.Place.Z)}) as drawn")
+            + Say($" · its waves move it {Number(beach.Lift)} along z (up is minus z)")
+            + Say($" · the shore {beach.Shore:F3} colour units ({Number(beach.Shore * ShoreField.Reach)}, {(beach.Shore >= 0f ? "out at sea" : "in on land")})")
+            + Say($" · foam {Fraction(beach.Foam)}, the film {Fraction(beach.Thickness)} thick over {path}, letting through {Fraction(through)}")
+            + Say($" · cover {Fraction(beach.Cover)} · colour {beach.Colour.X:F3}, {beach.Colour.Y:F3}, {beach.Colour.Z:F3} linear");
+    }
+
+    /// <summary>How much of the sun reached a fragment, and what cast the shadow where it did not - see <see cref="ProbeSun"/>.</summary>
+    public static string Sunned(ProbeSun sun, MonsterModel model, IReadOnlyList<ShadeProgram?>? shades)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+        string head = Say($"  sun on shape {ShapeOf(model.Mesh, sun.Triangle)} at depth {Number(sun.Depth)}, ({Number(sun.Place.X)}, {Number(sun.Place.Y)}, {Number(sun.Place.Z)})");
+        if (sun.Sun >= 1f)
+        {
+            return head + " · in the sun";
+        }
+
+        string shaded = Say($" · in the sun's shadow, {Fraction(sun.Sun)} of it reaching");
+        return sun.Caster < 0
+            ? head + shaded + " · nothing casts on the way to the sun: the map's texel, not a shape"
+            : head + shaded + Say($" · cast by {Described(model, shades, ShapeOf(model.Mesh, sun.Caster))}, {Number(sun.CasterAway)} towards the sun");
     }
 
     /// <summary>

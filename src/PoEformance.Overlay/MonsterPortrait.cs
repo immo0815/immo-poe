@@ -4241,8 +4241,14 @@ public sealed class MonsterPortrait
         {
             _probeLines = PictureProbe.Lines(probe, _model, shades);
 
-            // THE SHAPES UNDER IT TOO, nearest first, for the capture: their materials are written whole (CapturePanes).
-            _probedShapes = [.. probe.Fragments.OrderBy(one => one.Depth).Select(one => PictureProbe.ShapeOf(_model.Mesh, one.Triangle)).Where(shape => shape >= 0).Distinct()];
+            // THE SHAPES UNDER IT TOO, nearest first, for the capture: their materials are written whole (CapturePanes) - and after
+            // them what cast a shadow on them (ProbeSun), so a shadow-only caster's material is in the capture as well.
+            _probedShapes =
+            [
+                .. probe.Fragments.OrderBy(one => one.Depth).Select(one => one.Triangle)
+                    .Concat(probe.Suns.Where(one => one.Caster >= 0).Select(one => one.Caster))
+                    .Select(one => PictureProbe.ShapeOf(_model.Mesh, one)).Where(shape => shape >= 0).Distinct(),
+            ];
             clicked = true;
         }
 
