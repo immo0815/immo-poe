@@ -4,7 +4,7 @@ using Vortice.Direct3D11;
 namespace PoEformance.Overlay;
 
 /// <summary>
-/// The graphics card's drawing for every book's model pane: one ModelGpu on the overlay's own device, made when first asked, and the switch that says whether to use it.
+/// The graphics card's drawing for every book's model pane: one ModelGpu on the overlay's own device, made when first asked, and how it reads textures.
 /// </summary>
 /// <remarks>
 /// MADE ON THE RENDER THREAD, THE FIRST TIME A PANE DRAWS - the books are attached before the
@@ -12,9 +12,9 @@ namespace PoEformance.Overlay;
 /// use (shaders that will not compile, say) is asked once: the reason is kept and every pane draws on
 /// the processor as before, saying why on its card button.
 ///
-/// ONE SWITCH FOR EVERY BOOK, like the flat light: a press in one pane is carried to the others and
-/// kept in the settings (<c>modelCard</c>). The anisotropic read (<see cref="Sharp"/>) is a second
-/// switch on the same button, by right-click, kept as <c>modelCardSharp</c>.
+/// THE CARD ALWAYS DRAWS where it can (asked for from the live client, v0.1.231: the switch to the
+/// processor is gone, and so is <c>modelCard</c>). The card button's one switch is the anisotropic
+/// read (<see cref="Sharp"/>), for every book like the flat light, kept as <c>modelCardSharp</c>.
 /// </remarks>
 public sealed class CardPictures : IDisposable
 {
@@ -45,17 +45,10 @@ public sealed class CardPictures : IDisposable
         _hide = hide;
     }
 
-    /// <summary>Whether the panes draw on the card where it can - what the settings keep.</summary>
-    public bool On { get; set; } = true;
-
-    /// <summary>Told when a pane's button turns the card on or off.</summary>
-    public Action<bool>? Changed { get; set; }
-
     /// <summary>Whether the card reads textures anisotropically - what the settings keep as <c>modelCardSharp</c>. See ModelScene.Sharp.</summary>
     /// <remarks>
-    /// ONE SWITCH FOR EVERY BOOK, like <see cref="On"/>, and for the same reason: it is the same
-    /// question in each pane. ON TO START, because it is what the game does and the processor's
-    /// picture is still a right-click away for comparing.
+    /// ONE SWITCH FOR EVERY BOOK, like the flat light, and for the same reason: it is the same
+    /// question in each pane. ON TO START, because it is what the game does.
     /// </remarks>
     public bool Sharp { get; set; } = true;
 

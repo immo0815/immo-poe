@@ -114,6 +114,59 @@ public class ModelGpuTests
             draws: 2);
     }
 
+    /// <summary>
+    /// A monster posed on a stage is sent alone and cast over the stage's kept shadow - and the picture is the processor's of the whole mesh, on the frame a pose arrives, on the frames it holds, and for new arrays.
+    /// </summary>
+    [GpuFact]
+    public void AMONSTERPosedOnAStageIsSentAndCastAloneAndDrawnAsTheWholeMesh()
+    {
+        var light = new SceneLight([], SceneLight.PointShape.Zero, null)
+        {
+            SunColour = new Vector3(1.6f, 1.4f, 1.2f),
+            SunDirection = Vector3.Normalize(new Vector3(1.1f, -1f, 0.6f)),
+            SunShadows = true,
+        };
+        SkinnedMesh stage = Posable(out int first);
+        IReadOnlyList<Mipmaps?> skins = [Plain(new Vector4(0.7f, 0.6f, 0.4f, 1f)), Checker(64, 8, alpha: true)];
+        IReadOnlyList<MaterialBlend> blends = [MaterialBlend.Opaque, MaterialBlend.Cutout];
+        using ModelGpu? gpu = ModelGpu.Warp(out string why);
+        Assert.True(gpu is not null, why);
+        using ModelTarget target = gpu.Target(Side);
+        Vector3[] posed = [.. stage.Positions];
+        Vector3[] normals = [.. stage.Normals];
+
+        // A POSE, HELD, ANOTHER, AND THE LAST AGAIN IN NEW ARRAYS - the four ways a pose reaches the card.
+        (Vector3 Shift, long Key, bool Fresh)[] steps =
+        [
+            (Vector3.Zero, 1, false), (Vector3.Zero, 1, false), (new Vector3(0.5f, 0.2f, -0.4f), 2, false), (new Vector3(0.5f, 0.2f, -0.4f), 3, true),
+        ];
+        foreach ((Vector3 shift, long key, bool fresh) in steps)
+        {
+            if (fresh)
+            {
+                posed = [.. posed];
+                normals = [.. normals];
+            }
+
+            for (int at = first; at < posed.Length; at++)
+            {
+                posed[at] = stage.Positions[at] + shift;
+            }
+
+            var scene = new ModelScene(
+                stage, Turn: 0.3f, Tilt: 0.2f, Skins: skins, Blends: blends, Positions: posed, Normals: normals, Light: light,
+                PoseFrom: first, PoseKey: key);
+            GamePicture expected = MeshPicture.Of(
+                stage, new MeshPicture.Canvas(Side) { Light = light }, posed, normals, 0.3f, 0.2f, default, null, 1f, default, skins, blends);
+            Assert.True(gpu.Can(scene, out why), why);
+            Assert.True(gpu.Draw(target, scene, out why), why);
+            Compared(expected.Rgba, gpu.Read(target));
+        }
+
+        // CAST OVER THE KEPT STAGE on the three frames that drew a map: the first pose's, the second's and the new arrays'.
+        Assert.Equal(3, gpu.ShadowsStaged);
+    }
+
     /// <summary>A shadow-only shape is not drawn but casts, on the coarse map the moving sun draws.</summary>
     [GpuFact]
     public void ASHADOWOnlyShapeCastsOnTheCoarseMap()
@@ -366,6 +419,27 @@ public class ModelGpuTests
         return SkinnedMesh.Of(
             positions, normals, indices, new Vector3(-2f, 0f, -2f), new Vector3(2f, 1f, 2f), spots,
             [new MeshShape("floor", 0, 6), new MeshShape("caster", 6, 6)]);
+    }
+
+    /// <summary>
+    /// <see cref="Stage"/> with a monster joined last, as StagedModels joins one: the floor's own vertices, eight corners round all the monster may reach - so he stays inside the stage's shadow frame - and the caster, his, from <paramref name="first"/> on.
+    /// </summary>
+    private static SkinnedMesh Posable(out int first)
+    {
+        first = 12;
+        Vector3[] positions =
+        [
+            new(-2f, 0f, -2f), new(2f, 0f, -2f), new(2f, 0f, 2f), new(-2f, 0f, 2f),
+            new(-2.5f, -0.5f, -2.5f), new(2.5f, -0.5f, -2.5f), new(2.5f, -0.5f, 2.5f), new(-2.5f, -0.5f, 2.5f),
+            new(-2.5f, 1.8f, -2.5f), new(2.5f, 1.8f, -2.5f), new(2.5f, 1.8f, 2.5f), new(-2.5f, 1.8f, 2.5f),
+            new(-0.6f, 1f, -0.6f), new(0.6f, 1f, -0.6f), new(0.6f, 1f, 0.6f), new(-0.6f, 1f, 0.6f),
+        ];
+        Vector3[] normals = [.. Enumerable.Repeat(Vector3.UnitY, positions.Length)];
+        Vector2[] spots = [.. Enumerable.Range(0, positions.Length).Select(at => (at % 4) switch { 0 => new Vector2(0f, 0f), 1 => new Vector2(1f, 0f), 2 => new Vector2(1f, 1f), _ => new Vector2(0f, 1f) })];
+        int[] indices = [0, 1, 2, 0, 2, 3, 12, 13, 14, 12, 14, 15];
+        return SkinnedMesh.Of(
+            positions, normals, indices, new Vector3(-2f, 0f, -2f), new Vector3(2f, 1f, 2f), spots,
+            [new MeshShape("floor", 0, 6), new MeshShape("monster", 6, 6)]);
     }
 
     /// <summary>A 32-bit colour cube by the old header's masks, each face its own ramp, so a wrong face or a wrong texel shows.</summary>

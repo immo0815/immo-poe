@@ -1,0 +1,1306 @@
+{
+    "version": 6,
+    "shader_group": [
+        "Material"
+    ],
+    "overriden_lighting_model": "SpecGlossPbrMaterial",
+    "alphatest_threshold": 0,
+    "nodes": [
+        {
+            "type": "InputWorldPos",
+            "index": 0,
+            "stage": "UVSetup",
+            "ui_position": [
+                374.857177734375,
+                9.999998092651368
+            ]
+        },
+        {
+            "type": "WorldPos",
+            "index": 0,
+            "stage": "UVSetup",
+            "ui_position": [
+                665.7142333984375,
+                -14.28571891784668
+            ]
+        },
+        {
+            "type": "InputTbnBasis",
+            "index": 0,
+            "stage": "UVSetup",
+            "ui_position": [
+                374.857177734375,
+                9.999998092651368
+            ]
+        },
+        {
+            "type": "TbnBasis",
+            "index": 0,
+            "stage": "UVSetup",
+            "ui_position": [
+                665.7142333984375,
+                -14.28571891784668
+            ]
+        },
+        {
+            "type": "InputIndirectColor",
+            "index": 0,
+            "stage": "Texturing_Final",
+            "ui_position": [
+                665.7142333984375,
+                -14.28571891784668
+            ]
+        },
+        {
+            "type": "IndirectColor",
+            "index": 0,
+            "stage": "Texturing_Final",
+            "ui_position": [
+                1737.001953125,
+                -55.00002670288086
+            ]
+        },
+        {
+            "type": "InputTexture",
+            "index": 0,
+            "parameters": [
+                {
+                    "path": "Art/Textures/Environment/Global/BreakingWaves/SeaFoam_colour_Uncompressed.dds",
+                    "srgb": true
+                }
+            ],
+            "ui_position": [
+                441.0246887207031,
+                446.3997802734375
+            ]
+        },
+        {
+            "type": "InputTexture",
+            "index": 1,
+            "parameters": [
+                {
+                    "path": "Art/Textures/Environment/Global/BreakingWaves/SeaFoam_normal_Uncompressed.dds",
+                    "srgb": false
+                }
+            ],
+            "ui_position": [
+                624.187255859375,
+                871.6522216796875
+            ]
+        },
+        {
+            "type": "InputTexture",
+            "index": 2,
+            "parameters": [
+                {
+                    "path": "Art/2DArt/Lookup/gerstner_wave_profile.dds",
+                    "srgb": false
+                }
+            ],
+            "ui_position": [
+                95.8150634765625,
+                678.510986328125
+            ]
+        },
+        {
+            "type": "InputTexture",
+            "index": 3,
+            "parameters": [
+                {
+                    "path": "Art/particles/FXLib/tileables/16bit/flow_muddle_blur_01_R16G16.dds",
+                    "srgb": false
+                }
+            ],
+            "ui_position": [
+                90.11868286132813,
+                861.6912841796875
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 5,
+            "parameters": [
+                {
+                    "value": -75.0,
+                    "layout": {
+                        "range": [
+                            {
+                                "min": -1000.0,
+                                "max": 1000.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "OceanSpray_Height",
+            "ui_position": [
+                490.611083984375,
+                704.4722290039063
+            ]
+        },
+        {
+            "type": "Add3",
+            "index": 0,
+            "ui_position": [
+                935.611083984375,
+                586.4722290039063
+            ]
+        },
+        {
+            "type": "ConstantFloat3",
+            "index": 0,
+            "parameters": [
+                {
+                    "value": [
+                        0.0,
+                        0.0,
+                        1.0
+                    ]
+                }
+            ],
+            "ui_position": [
+                468.1429443359375,
+                255.9523162841797
+            ]
+        },
+        {
+            "type": "Transform",
+            "index": 0,
+            "ui_position": [
+                1003.8572998046875,
+                321.66668701171877
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 3,
+            "parameters": [
+                {
+                    "value": 0.27410000562667849
+                }
+            ],
+            "ui_position": [
+                882.6588745117188,
+                1152.67822265625
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 1,
+            "parameters": [
+                {
+                    "value": 0.037700001150369647,
+                    "layout": {
+                        "range": [
+                            {
+                                "min": -1.0,
+                                "max": 1.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "OceanSpray_Intensity",
+            "ui_position": [
+                1035.5159912109376,
+                1364.1068115234376
+            ]
+        },
+        {
+            "type": "Lerp",
+            "index": 2,
+            "ui_position": [
+                1171.1705322265626,
+                786.72607421875
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 6,
+            "parameters": [
+                {
+                    "value": 350.0,
+                    "layout": {
+                        "range": [
+                            {
+                                "min": -500.0,
+                                "max": 500.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "Spray_MaskHeight",
+            "ui_position": [
+                808.0,
+                794.0
+            ]
+        },
+        {
+            "type": "CrashingFoamSurface",
+            "index": 0,
+            "ui_position": [
+                1219.00048828125,
+                527.42919921875
+            ]
+        },
+        {
+            "type": "InputAlbedoColor",
+            "index": 0,
+            "stage": "PreLighting_Calc",
+            "ui_position": [
+                1737.001953125,
+                -55.00002670288086
+            ]
+        },
+        {
+            "type": "MultiplyConst3",
+            "index": 0,
+            "parameters": [
+                {
+                    "value": 0.3357999920845032
+                }
+            ],
+            "ui_position": [
+                2022.5992431640626,
+                616.72607421875
+            ]
+        },
+        {
+            "type": "ConstantFloat2",
+            "index": 0,
+            "parameters": [
+                {
+                    "value": [
+                        0.027699999511241914,
+                        0.9621999859809876
+                    ]
+                }
+            ],
+            "ui_position": [
+                1301.1705322265626,
+                191.01168823242188
+            ]
+        },
+        {
+            "type": "SmoothStep",
+            "index": 0,
+            "ui_position": [
+                1669.7420654296876,
+                355.2972717285156
+            ]
+        },
+        {
+            "type": "Lerp3",
+            "index": 1,
+            "ui_position": [
+                2352.599609375,
+                559.583251953125
+            ]
+        },
+        {
+            "type": "Lerp3",
+            "index": 0,
+            "ui_position": [
+                2578.45166015625,
+                838.582763671875
+            ]
+        },
+        {
+            "type": "AlbedoColor",
+            "index": 0,
+            "stage": "PreLighting_Calc",
+            "ui_position": [
+                3405.25,
+                133.5
+            ]
+        },
+        {
+            "type": "InputWorldNormal",
+            "index": 0,
+            "stage": "PreLighting_Calc",
+            "ui_position": [
+                1737.001953125,
+                -55.00002670288086
+            ]
+        },
+        {
+            "type": "OneMinus",
+            "index": 0,
+            "ui_position": [
+                1594.980224609375,
+                907.321533203125
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 2,
+            "parameters": [
+                {
+                    "value": 2.0
+                }
+            ],
+            "ui_position": [
+                1578.194580078125,
+                1006.25
+            ]
+        },
+        {
+            "type": "Power",
+            "index": 0,
+            "ui_position": [
+                1938.551513671875,
+                919.2858276367188
+            ]
+        },
+        {
+            "type": "CombineWorldNormals",
+            "index": 0,
+            "ui_position": [
+                2315.603515625,
+                278.5001220703125
+            ]
+        },
+        {
+            "type": "WorldNormal",
+            "index": 0,
+            "stage": "PreLighting_Calc",
+            "ui_position": [
+                3405.25,
+                133.5
+            ]
+        },
+        {
+            "type": "InputGlossiness",
+            "index": 0,
+            "stage": "PreLighting_Calc",
+            "ui_position": [
+                1737.001953125,
+                -55.00002670288086
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 4,
+            "parameters": [
+                {
+                    "value": 0.8999999761581421
+                }
+            ],
+            "ui_position": [
+                1678.3133544921876,
+                209.583251953125
+            ]
+        },
+        {
+            "type": "Lerp",
+            "index": 0,
+            "ui_position": [
+                2142.028076171875,
+                220.0117950439453
+            ]
+        },
+        {
+            "type": "Glossiness",
+            "index": 0,
+            "stage": "PreLighting_Calc",
+            "ui_position": [
+                3405.25,
+                133.5
+            ]
+        },
+        {
+            "type": "One",
+            "index": 0,
+            "ui_position": [
+                2991.0,
+                541.0
+            ]
+        },
+        {
+            "type": "InputIndirectColor",
+            "index": 0,
+            "stage": "PreLighting_Calc",
+            "ui_position": [
+                1737.001953125,
+                -55.00002670288086
+            ]
+        },
+        {
+            "type": "IndirectColor",
+            "index": 0,
+            "stage": "PreLighting_Calc",
+            "ui_position": [
+                3405.25,
+                133.5
+            ]
+        },
+        {
+            "type": "InputWorldNormal",
+            "index": 0,
+            "stage": "Lighting_Calc",
+            "ui_position": [
+                3405.25,
+                133.5
+            ]
+        },
+        {
+            "type": "WorldNormal",
+            "index": 0,
+            "stage": "Lighting_Calc",
+            "ui_position": [
+                3905.25,
+                133.5
+            ]
+        },
+        {
+            "type": "InputIndirectColor",
+            "index": 0,
+            "stage": "Lighting_Calc",
+            "ui_position": [
+                3405.25,
+                133.5
+            ]
+        },
+        {
+            "type": "Lerp",
+            "index": 3,
+            "ui_position": [
+                3723.0,
+                407.0
+            ]
+        },
+        {
+            "type": "Lerp3",
+            "index": 2,
+            "ui_position": [
+                3741.0,
+                625.0
+            ]
+        },
+        {
+            "type": "IndirectColor",
+            "index": 0,
+            "stage": "Lighting_Calc",
+            "ui_position": [
+                3905.25,
+                133.5
+            ]
+        },
+        {
+            "type": "InputHighlightModifier",
+            "index": 0,
+            "stage": "Lighting_Calc",
+            "ui_position": [
+                3405.25,
+                133.5
+            ]
+        },
+        {
+            "type": "HighlightModifier",
+            "index": 0,
+            "stage": "Lighting_Calc",
+            "ui_position": [
+                3905.25,
+                133.5
+            ]
+        },
+        {
+            "type": "Multiply",
+            "index": 0,
+            "ui_position": [
+                2649.712890625,
+                641.8016357421875
+            ]
+        },
+        {
+            "type": "One",
+            "index": 1,
+            "ui_position": [
+                3972.0,
+                455.0
+            ]
+        }
+    ],
+    "links": [
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "WorldPos",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTbnBasis",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "TbnBasis",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputIndirectColor",
+                "index": 0,
+                "stage": "Texturing_Final",
+                "variable": "output",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "IndirectColor",
+                "index": 0,
+                "stage": "Texturing_Final",
+                "variable": "input",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "InputIndirectColor",
+                "index": 0,
+                "stage": "Texturing_Final",
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "IndirectColor",
+                "index": 0,
+                "stage": "Texturing_Final",
+                "variable": "input",
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add3",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add3",
+                "index": 0,
+                "variable": "b",
+                "swizzle": "z"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat3",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Transform",
+                "index": 0,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTbnBasis",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Transform",
+                "index": 0,
+                "variable": "inmatrix"
+            }
+        },
+        {
+            "src": {
+                "type": "InputIndirectColor",
+                "index": 0,
+                "stage": "Texturing_Final",
+                "variable": "output",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 2,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 2,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 0,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "foam_color_tex"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 1,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "foam_normal_tex"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 2,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "wave_shape_precomp_tex"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 3,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "wave_coord_noise_tex"
+            }
+        },
+        {
+            "src": {
+                "type": "Add3",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "world_pos"
+            }
+        },
+        {
+            "src": {
+                "type": "Transform",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "world_normal"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "curvature"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 6,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "spray_height"
+            }
+        },
+        {
+            "src": {
+                "type": "InputAlbedoColor",
+                "index": 0,
+                "stage": "PreLighting_Calc",
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "MultiplyConst3",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "x"
+            },
+            "dst": {
+                "type": "SmoothStep",
+                "index": 0,
+                "variable": "center"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "y"
+            },
+            "dst": {
+                "type": "SmoothStep",
+                "index": 0,
+                "variable": "steepness"
+            }
+        },
+        {
+            "src": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "wetness"
+            },
+            "dst": {
+                "type": "SmoothStep",
+                "index": 0,
+                "variable": "in_value"
+            }
+        },
+        {
+            "src": {
+                "type": "InputAlbedoColor",
+                "index": 0,
+                "stage": "PreLighting_Calc",
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst3",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "SmoothStep",
+                "index": 0,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 1,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp3",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "foam_color",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "foam_color",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 0,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "foam_color",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "AlbedoColor",
+                "index": 0,
+                "stage": "PreLighting_Calc",
+                "variable": "input",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp3",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "AlbedoColor",
+                "index": 0,
+                "stage": "PreLighting_Calc",
+                "variable": "input",
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "foam_color",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "OneMinus",
+                "index": 0,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "OneMinus",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Power",
+                "index": 0,
+                "variable": "base"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Power",
+                "index": 0,
+                "variable": "exp"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldNormal",
+                "index": 0,
+                "stage": "PreLighting_Calc",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "CombineWorldNormals",
+                "index": 0,
+                "variable": "world_normal0"
+            }
+        },
+        {
+            "src": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "foam_world_normal"
+            },
+            "dst": {
+                "type": "CombineWorldNormals",
+                "index": 0,
+                "variable": "world_normal1"
+            }
+        },
+        {
+            "src": {
+                "type": "Power",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "CombineWorldNormals",
+                "index": 0,
+                "variable": "weight0"
+            }
+        },
+        {
+            "src": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "foam_color",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "CombineWorldNormals",
+                "index": 0,
+                "variable": "weight1"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTbnBasis",
+                "index": 0,
+                "stage": "UVSetup",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "CombineWorldNormals",
+                "index": 0,
+                "variable": "tbn_basis"
+            }
+        },
+        {
+            "src": {
+                "type": "CombineWorldNormals",
+                "index": 0,
+                "variable": "res_world_normal"
+            },
+            "dst": {
+                "type": "WorldNormal",
+                "index": 0,
+                "stage": "PreLighting_Calc",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputGlossiness",
+                "index": 0,
+                "stage": "PreLighting_Calc",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "SmoothStep",
+                "index": 0,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 0,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Glossiness",
+                "index": 0,
+                "stage": "PreLighting_Calc",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "One",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "IndirectColor",
+                "index": 0,
+                "stage": "PreLighting_Calc",
+                "variable": "input",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "InputIndirectColor",
+                "index": 0,
+                "stage": "PreLighting_Calc",
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "IndirectColor",
+                "index": 0,
+                "stage": "PreLighting_Calc",
+                "variable": "input",
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldNormal",
+                "index": 0,
+                "stage": "Lighting_Calc",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "WorldNormal",
+                "index": 0,
+                "stage": "Lighting_Calc",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputIndirectColor",
+                "index": 0,
+                "stage": "Lighting_Calc",
+                "variable": "output",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 3,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "ao"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 3,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "foam_color",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 3,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "InputIndirectColor",
+                "index": 0,
+                "stage": "Lighting_Calc",
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "foam_color",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 2,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "IndirectColor",
+                "index": 0,
+                "stage": "Lighting_Calc",
+                "variable": "input",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp3",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "IndirectColor",
+                "index": 0,
+                "stage": "Lighting_Calc",
+                "variable": "input",
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "InputHighlightModifier",
+                "index": 0,
+                "stage": "Lighting_Calc",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "HighlightModifier",
+                "index": 0,
+                "stage": "Lighting_Calc",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputIndirectColor",
+                "index": 0,
+                "stage": "PreLighting_Calc",
+                "variable": "output",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "CrashingFoamSurface",
+                "index": 0,
+                "variable": "ao"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 0,
+                "variable": "b"
+            }
+        }
+    ],
+    "unused_links": [
+        {
+            "dst": {
+                "type": "Add3",
+                "index": 0,
+                "variable": "b",
+                "swizzle": "x"
+            }
+        },
+        {
+            "dst": {
+                "type": "Add3",
+                "index": 0,
+                "variable": "b",
+                "swizzle": "y"
+            }
+        },
+        {
+            "src": {
+                "type": "InputIndirectColor",
+                "index": 0,
+                "stage": "Lighting_Calc",
+                "variable": "output",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "InputIndirectColor",
+                "index": 0,
+                "stage": "Lighting_Calc",
+                "variable": "output",
+                "swizzle": "xyz"
+            }
+        }
+    ]
+}

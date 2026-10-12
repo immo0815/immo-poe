@@ -467,9 +467,9 @@ public static class RoomModels
     /// How long an edge of a water shape may be once it is split for its waves to lift it, in world units - CHOSEN.
     /// </summary>
     /// <remarks>
-    /// THE OCTAVES' CELLS RUN 400, 200, 100 AND 50 UNITS (ShadeProgram.Ripples over its noise), the coarse
-    /// ones carrying nearly all the height: edges of 48 follow the first three pairs and leave the finest
-    /// to the light's own normal. A WaterPlane3x3 - 750 a side, its diagonal 1,060 - is halved five times,
+    /// THE RIPPLES' CELLS RUN ABOUT 210, 70 AND 23 UNITS ACROSS THE WIND (ShadeProgram.Ocean over its noise,
+    /// four and a half times that along it at the engine's former directionness), the first carrying nearly
+    /// all the height: edges of 48 follow the first two and leave the finest to the light's own normal. A WaterPlane3x3 - 750 a side, its diagonal 1,060 - is halved five times,
     /// 2,048 triangles; Port's harbour's 48 such come to under 100,000.
     /// </remarks>
     public const float WaterEdge = 48f;
@@ -492,6 +492,20 @@ public static class RoomModels
         return any ? joined.Refined(fine, WaterEdge) : joined;
     }
 
+    /// <summary>What a laid tile's ground is named as the source of its shapes - LaidRoomModels' <c>"ground of " + tile</c>.</summary>
+    internal const string GroundSource = "ground of ";
+
+    /// <summary>
+    /// A room's shore from its water and its ground, and - once its materials are compiled - what stands in the sea: every shape whose
+    /// program draws the sea's spray on it (ShadeProgram.Sprays). See ShoreField.Of.
+    /// </summary>
+    internal static ShoreField? ShoreOf(SkinnedMesh mesh, IReadOnlyList<string> modes, IReadOnlyList<string> sources, IReadOnlyList<ShadeProgram?>? shades)
+        => ShoreField.Of(
+            mesh,
+            shape => shape < modes.Count && modes[shape] == "water",
+            shape => shape < sources.Count && sources[shape].StartsWith(GroundSource, StringComparison.Ordinal),
+            shades is null ? null : shape => shape < shades.Count && shades[shape] is { Sprays: true });
+
     /// <summary>A pile joined into a room's model, with the shaders and meshes of the models in it.</summary>
     internal static MonsterModel Piled(SkinnedMesh joined, ModelPile pile, string path, IEnumerable<MonsterModel> models)
     {
@@ -506,6 +520,10 @@ public static class RoomModels
             // left out, every room shape read "tex -" whether it was textured or not.
             ShapeTextures = pile.Textures,
             ShapeSources = pile.Sources,
+
+            // THE SHORE FROM THE ROOM'S OWN WATER AND GROUND - the engine makes its own at run time; see ShoreField. What stands
+            // in the sea joins it once the materials are compiled (MonsterModels.Shaded).
+            Shore = ShoreOf(joined, pile.Modes, pile.Sources, null),
             BodyLeast = joined.Least,
             BodyMost = joined.Most,
             Kind = ModelKind.Room,

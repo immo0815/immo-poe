@@ -334,10 +334,7 @@ public sealed class MonsterPortrait
     private bool _onCard;
     private string _cardWhy = string.Empty;
 
-    /// <summary>The card's switch as the last picture was drawn - a press redraws.</summary>
-    private bool _drawnCardOn;
-
-    /// <summary>The card's anisotropic read as the last picture was drawn - a right-click redraws.</summary>
+    /// <summary>The card's anisotropic read as the last picture was drawn - a press on the card button redraws.</summary>
     private bool _drawnSharp;
 
     /// <summary>
@@ -540,6 +537,20 @@ public sealed class MonsterPortrait
     private WaterLook _waterSaidFor;
     private Vector3[] _posed = [];
     private Vector3[] _posedNormals = [];
+
+    /// <summary>
+    /// What <see cref="_posed"/> was last posed for - the model, its keyframes and the frame - and the key the card is told it by (ModelScene.PoseKey), new for every pose.
+    /// </summary>
+    /// <remarks>
+    /// A PAUSED MONSTER WAS POSED AGAIN ON EVERY REDRAW - a drag, an orbit, a light's slider - and the
+    /// card sent the whole stage and cast its shadow again each time, for a pose that had not moved.
+    /// </remarks>
+    private (MonsterModel Model, AnimationTracks Tracks, float Frame)? _posedFor;
+
+    private long _poseKey;
+
+    /// <summary>The keys handed out, one counter for every pane, so two panes' poses never share one.</summary>
+    private static long _poseKeys;
 
     /// <summary>The monster's own vertices posed, where he stands on a stage - written over his slice of the above. See <see cref="Posed"/>.</summary>
     private Vector3[] _actorPosed = [];
@@ -795,7 +806,8 @@ public sealed class MonsterPortrait
     /// <remarks>See ShadeProgram.Water: an Ocean material is drawn as the area's water, whose file sets it or leaves the engine's default.</remarks>
     public Func<WaterLook>? SceneWater { get; set; }
 
-    private WaterLook Watered() => SceneWater?.Invoke() ?? WaterLook.EngineDefault;
+    /// <summary>The area's water, over the room's own shore where the model is a room that has one - see ShoreField.</summary>
+    private WaterLook Watered() => (SceneWater?.Invoke() ?? WaterLook.EngineDefault) with { Shore = _model.Shore };
 
     private WaterLook _drawnWater = WaterLook.EngineDefault;
 
@@ -1828,14 +1840,6 @@ public sealed class MonsterPortrait
                 Pressed(which);
             }
 
-            // THE CARD BUTTON'S SECOND SWITCH IS THE RIGHT BUTTON: the anisotropic read is a question
-            // only the card is asked, so it lives on the card's button rather than in a row of its own.
-            if (which == CardSide && Card is { } card && ImGui.IsItemClicked(ImGuiMouseButton.Right))
-            {
-                card.Sharp = !card.Sharp;
-                card.SharpChanged?.Invoke(card.Sharp);
-            }
-
             if (ImGui.IsItemHovered())
             {
                 Tipped(which);
@@ -1930,7 +1934,7 @@ public sealed class MonsterPortrait
     private bool Lit(int which)
         => which switch
         {
-            CardSide => Card is { On: false },
+            CardSide => Card is { Sharp: false },
             LightSide => FlatLight,
             OrbitSide => _orbiting,
             ClockSide => !_playing,
@@ -1945,7 +1949,7 @@ public sealed class MonsterPortrait
     private string SideWord(int which)
         => which switch
         {
-            CardSide => Card is { On: true } ? "card" : "processor",
+            CardSide => Card is { Sharp: true } ? "card: sharp" : "card: trilinear",
             LightSide => FlatLight ? "flat light" : "game light",
             OrbitSide => _orbiting ? "stop" : "orbit",
             ClockSide => _playing ? "Pause" : "Play",
@@ -1958,8 +1962,8 @@ public sealed class MonsterPortrait
         switch (which)
         {
             case CardSide when Card is { } card:
-                card.On = !card.On;
-                card.Changed?.Invoke(card.On);
+                card.Sharp = !card.Sharp;
+                card.SharpChanged?.Invoke(card.Sharp);
                 break;
             case LightSide:
                 FlatLight = !FlatLight;
@@ -2119,10 +2123,19 @@ public sealed class MonsterPortrait
             if (_waterSaid.Length == 0 || water != _waterSaidFor)
             {
                 _waterSaidFor = water;
-                _waterSaid = ImGuiText.Escape(water.Line() + " (its colour's pattern a moving noise; its waves the engine's eight octaves over a noise of"
-                    + " this tool's - the engine's ripple texture unread - drifting the pattern's way, which is chosen; their glints and reflection under"
-                    + " the game light, by the light panel's water switches, and the surface lifted by them times its lift - which the engine does per pixel only"
-                    + (water.HeightOffset != 0f ? "; its height offset not applied - the planes stand where the tile puts them)" : ")"));
+                _waterSaid = ImGuiText.Escape(water.Line() + " (its colour's pattern a moving noise; its waves the engine's ocean ripples, three octaves"
+                    + " rolling in the wind - " + ShadeProgram.Ripples.Said + "; the wind's way, height, speed and"
+                    + " directionness the engine's former constants where the file sets none, a reading until measured, its way turned by the light"
+                    + " panel's wind; the swell rolling in to the shore the engine's formula over a shore made here from the room's ground and what"
+                    + " stands in the sea (the shapes whose material sprays: the rocks and the pier's stones, not the ship), CHOSEN"
+                    + " until the engine's is read - " + ShadeProgram.Swells.Said + "; its foam the engine's trail foam (GetFoamColor3) from the"
+                    + " cross-section's green and alpha, none where the stand-in stands, its leading edge's textured layers and the orbit's"
+                    + " offsets not drawn; what stands in it sprayed and wetted as its own material says (CrashingFoamSurface: a crashing wave"
+                    + " every five seconds running up from the water's line, over the same CHOSEN shore); their glints and reflection under the game light, by the light"
+                    + " panel's water switches - the scene reflected by the engine's screen ray, its dither a 4 by 4 Bayer, a reading - and the surface"
+                    + " lifted by them times its lift - which the engine does per pixel only - and, lifted, drawn as one surface whose"
+                    + " nearest crossing of each pixel alone shows, DECIDED"
+                    + (water.HeightOffset != 0f ? "; its height offset not applied - it moves the beach and flood waves alone)" : ")"));
             }
 
             _status.Add(_waterSaid);
@@ -2965,9 +2978,8 @@ public sealed class MonsterPortrait
             || _drawnDust != Dusted()
             || _drawnWater != Watered()
             || (posed && (_drawnFrame != _frame || _drawnAnimation != _chosen))
-            || _drawnCardOn != (Card?.On ?? false)
             || _drawnSharp != (Card?.Sharp ?? false)
-            || (_cardWaiting && Card is { On: true } card && card.Gpu is { } gpu && gpu.Landed != _cardLanded)
+            || (_cardWaiting && Card is { } card && card.Gpu is { } gpu && gpu.Landed != _cardLanded)
             || _probeAsked;
 
         if (moved)
@@ -3006,6 +3018,7 @@ public sealed class MonsterPortrait
         }
 
         _pose = SkeletonPose.Of(_model.Rig);
+        _posedFor = null;
         if (_pose is null)
         {
             _stillWhy = "the skeleton's bone tree does not hold together";
@@ -3350,7 +3363,6 @@ public sealed class MonsterPortrait
         _drawnLight = Lit();
         _drawnDust = Dusted();
         _drawnWater = Watered();
-        _drawnCardOn = Card?.On ?? false;
         _drawnSharp = Card?.Sharp ?? false;
         _drawing++;
 
@@ -3360,9 +3372,16 @@ public sealed class MonsterPortrait
             bool moving = posed && _pose is not null && _tracks is not null;
             if (moving)
             {
-                _pose!.Take(_tracks!, _frame);
-                Posed();
-                lowest = Lowest(_posed);
+                if (_posedFor is not { } was || !ReferenceEquals(was.Model, _model) || !ReferenceEquals(was.Tracks, _tracks) || was.Frame != _frame)
+                {
+                    _pose!.Take(_tracks!, _frame);
+                    Posed();
+                    _posedFor = (_model, _tracks!, _frame);
+                    _poseKey = Interlocked.Increment(ref _poseKeys);
+                }
+
+                // ON A STAGE THE LOWEST POINT IS NOT ASKED FOR (Planted), and finding it is a scan of the whole stage.
+                lowest = _model.Staged ? 0f : Lowest(_posed);
             }
             else
             {
@@ -3435,9 +3454,9 @@ public sealed class MonsterPortrait
             return false;
         }
 
-        if (!card.On || _probing || Grey)
+        if (_probing || Grey)
         {
-            _cardWhy = !card.On ? "the card is switched off" : _probing ? "the probe reads the processor's drawing" : "the grey is laid on the processor's pixels";
+            _cardWhy = _probing ? "the probe reads the processor's drawing" : "the grey is laid on the processor's pixels";
             return false;
         }
 
@@ -3449,7 +3468,8 @@ public sealed class MonsterPortrait
 
         var scene = new ModelScene(
             _model.Mesh, _turn, _tilt, Ink, _model.Skin, _zoom, _pan, _model.Skins, Blends(),
-            moving ? _posed : null, moving ? _posedNormals : null, _drawnLight, ShadesOf(_model), _clock, _drawnDust, card.Sharp, _drawnWater);
+            moving ? _posed : null, moving ? _posedNormals : null, _drawnLight, ShadesOf(_model), _clock, _drawnDust, card.Sharp, _drawnWater,
+            PoseFrom: moving && _model.Actor is not null ? _model.ActorFirst : 0, PoseKey: moving ? _poseKey : 0);
         if (!gpu.Can(scene, out string why))
         {
             // A MATERIAL'S SHADER STILL COMPILING is the usual no: the picture is the processor's until
@@ -3505,18 +3525,22 @@ public sealed class MonsterPortrait
     }
 
     /// <summary>
-    /// The card button's tip: which of the two draws the pictures, and why the processor drew this one where the card is on.
+    /// The card button's tip: how the card reads textures, and why the processor drew this picture where it did.
     /// </summary>
+    /// <remarks>
+    /// THE CARD DRAWS, with no switch to the processor (asked for from the live client, v0.1.231): the processor
+    /// draws only what the card cannot draw the same - the probe's picture, the grey, a material whose shader is
+    /// still compiling, or no graphics device at all - and the tip says which.
+    /// </remarks>
     private void CardTip(CardPictures card)
         => ImGui.SetTooltip(
-            (card.On
-                ? "Pictures are drawn on the graphics card where it can draw the same picture as the processor, and on the processor where not."
-                : "Pictures are drawn on the processor, as before the card could draw them.")
-            + (card.On && !_onCard && _cardWhy.Length > 0 ? "\nThis one on the processor: " + _cardWhy : string.Empty)
-            + "\nThe rate in the corner says which drew the picture shown. One switch for every book."
+            "Pictures are drawn on the graphics card, and on the processor only where the card cannot draw the same picture."
+            + (!_onCard && _cardWhy.Length > 0 ? "\nThis one on the processor: " + _cardWhy : string.Empty)
+            + "\nThe rate in the corner says which drew the picture shown."
             + (card.Sharp
-                ? "\nRight-click: anisotropic texture read ON - a surface seen at a slant stays sharp along it, as in the game. The card only."
-                : "\nRight-click: anisotropic texture read OFF - the card reads textures as the processor does, trilinearly."));
+                ? "\nAnisotropic texture read ON - a surface seen at a slant stays sharp along it, as in the game. Press to read trilinearly."
+                : "\nAnisotropic texture read OFF - textures read trilinearly. Press to read them as the game does.")
+            + " One switch for every book.");
 
     /// <summary>Hands a drawn picture to the renderer in place of the one shown.</summary>
     private void Upload(GamePicture drawn)
@@ -3578,13 +3602,27 @@ public sealed class MonsterPortrait
         Matrix4x4 place = _model.ActorPlace;
         int first = _model.ActorFirst;
         int count = Math.Min(_actorPosed.Length, _posed.Length - first);
-        for (var one = 0; one < count; one++)
+        Vector3[] own = _actorPosed, ownNormals = _actorNormals, posed = _posed, posedNormals = _posedNormals;
+        void Placed(int from, int to)
         {
-            _posed[first + one] = Vector3.Transform(_actorPosed[one], place);
-            Vector3 turned = Vector3.TransformNormal(_actorNormals[one], place);
-            float length = turned.Length();
-            _posedNormals[first + one] = length > 1e-6f ? turned / length : _actorNormals[one];
+            for (int one = from; one < to; one++)
+            {
+                posed[first + one] = Vector3.Transform(own[one], place);
+                Vector3 turned = Vector3.TransformNormal(ownNormals[one], place);
+                float length = turned.Length();
+                posedNormals[first + one] = length > 1e-6f ? turned / length : ownNormals[one];
+            }
         }
+
+        // ON EVERY CORE, as the skinning before it - each vertex is its own.
+        int pieces = Math.Min(Environment.ProcessorCount, count / 4096);
+        if (pieces < 2)
+        {
+            Placed(0, count);
+            return;
+        }
+
+        Parallel.For(0, pieces, piece => Placed((int)((long)count * piece / pieces), (int)((long)count * (piece + 1) / pieces)));
     }
 
     /// <summary>The largest z among the points, which is the lowest: the model's up is -z.</summary>
@@ -4126,6 +4164,10 @@ public sealed class MonsterPortrait
         {
             _pose.Take(_tracks, _frame);
             Posed();
+
+            // THE ARRAYS NOW HOLD THIS POSE, whatever the frame's said - see _posedFor.
+            _posedFor = (_model, _tracks, _frame);
+            _poseKey = Interlocked.Increment(ref _poseKeys);
             return MeshPicture.Of(
                 _model.Mesh, Clocked(canvas), _posed, _posedNormals, _turn, _tilt, Ink,
                 _model.Skin, _zoom, _pan, _model.Skins, Blends(), ShadesOf(_model));

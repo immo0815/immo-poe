@@ -354,14 +354,19 @@ public sealed class SceneLight
     public bool WaterReflection { get; init; }
 
     /// <summary>
+    /// Whether the waves' reflection takes in the picture itself where its ray meets it - the engine's screen-space reflection, see <see cref="ScreenReflection"/> - and not only the environment's cube. Only with <see cref="WaterReflection"/>.
+    /// </summary>
+    public bool WaterScene { get; init; }
+
+    /// <summary>
     /// How far the water's surface is lifted by its waves, as a share of the height the engine's octaves give it - nought for a flat surface.
     /// </summary>
     /// <remarks>
     /// NOT THE ENGINE'S, and said so under the picture: its ocean planes are flat meshes, and the waves
-    /// raise the surface only per pixel (GetFlowingSurface meets the view with the plane lifted by the
-    /// height there); only the beach, crashing and flood waves move their vertices (BreakingWavesVertex and
+    /// raise the surface only per pixel (GetTotalWaveSurfaceNumerical meets the view with the plane lifted by
+    /// the height there); only the beach, crashing and flood waves move their vertices (BreakingWavesVertex and
     /// its kin). The game's camera never looks along the water, the book's does, so here a water shape's
-    /// vertices are lifted by <see cref="ShadeProgram.Ripples"/> times this - one being the engine's own
+    /// vertices are lifted by <see cref="ShadeProgram.Ocean"/> times this - one being the engine's own
     /// height - on a mesh fine enough to carry them (SkinnedMesh.Refined).
     /// </remarks>
     public float WaterLift { get; init; }
@@ -512,7 +517,10 @@ public sealed class SceneLight
     /// <param name="specular">The material's specular colour, linear.</param>
     /// <param name="gloss">Its gloss.</param>
     /// <param name="waves">The normal its program hands the specular light, unit length, or nought for none - then the light is <see cref="WaterGlints"/>' and <see cref="WaterReflection"/>'s to give.</param>
-    public Vector3 Shade(Vector3 albedo, Vector3 place, Vector3 normal, Vector3 toEye, float sunShadow, bool glossy, Vector3 specular, float gloss, Vector3 waves)
+    /// <param name="environment">The environment's share of the waves' reflection - one, less where the picture itself is reflected (<see cref="ScreenReflection.EnvironmentShare"/>).</param>
+    public Vector3 Shade(
+        Vector3 albedo, Vector3 place, Vector3 normal, Vector3 toEye, float sunShadow, bool glossy, Vector3 specular, float gloss, Vector3 waves,
+        float environment = 1f)
     {
         Vector3 diffuse = Vector3.Zero;
         Vector3 shine = Vector3.Zero;
@@ -610,7 +618,7 @@ public sealed class SceneLight
         {
             GlossLight.Environment(wavesFacing, gloss, out float bias, out float scale);
             Vector3 reflected = (2f * Vector3.Dot(waves, toEye) * waves) - toEye;
-            Vector3 seen = Reflected(reflected, total);
+            Vector3 seen = Reflected(reflected, total) * environment;
             shine += (seen * bias) + (seen * scale * specular);
         }
 

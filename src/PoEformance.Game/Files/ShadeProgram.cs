@@ -203,8 +203,28 @@ public sealed partial class ShadeProgram
     /// <summary>The area's water flow in x and its height offset in z - set per drawing. See WaterLook.FlowRegister.</summary>
     internal const int WaterFlow = 13;
 
+    /// <summary>The wind the ocean's ripples read - set per drawing. See WaterLook.WindRegister and <see cref="WindRipples"/>.</summary>
+    internal const int WaterWind = 14;
+
+    /// <summary>The box of the room's shore the ocean's swell reads, nought in w where there is none - set per drawing. See WaterLook.ShoreRegister and ShoreField.</summary>
+    internal const int WaterShore = 15;
+
+    /// <summary>The swell the ocean reads - set per drawing. See WaterLook.SwellRegister and <see cref="Ocean"/>.</summary>
+    internal const int WaterSwell = 16;
+
     /// <summary>How many registers are the mesh's own, before any a program allocates.</summary>
-    private const int Fixed = 14;
+    private const int Fixed = 17;
+
+    /// <summary>
+    /// The shore of the drawing the thread is running a program for - set by <see cref="Preset"/>, read by the waves' step.
+    /// </summary>
+    /// <remarks>
+    /// A FIELD, NOT A REGISTER: the card reads it as a texture, and a register holds four numbers. Per thread, because
+    /// the drawing's bands run a program each on their own thread, and every triangle is preset on the thread that
+    /// colours its pixels.
+    /// </remarks>
+    [ThreadStatic]
+    private static ShoreField? s_shore;
 
     /// <summary>Stands in for FixModelTBN's basis, which only ParallaxUvSpace takes - see <see cref="Basis"/>.</summary>
     private const int FixedBasis = -3;
@@ -289,6 +309,7 @@ public sealed partial class ShadeProgram
             "ModelOrigin", "GroundScroll", "Transform", "LookUpTexture",
             "Noise31", "PerlinNoise31", "Vibrance", "Rotate", "RotateUV", "RadiusToPolarNorm", "DustColor",
             "DepthDistance", "GetDepthDistance", "MaskedContactFade", "ViewDir", "FixModelTBN", "ParallaxUvSpace",
+            "CrashingFoamSurface",
         ],
         StringComparer.Ordinal);
 
@@ -344,7 +365,13 @@ public sealed partial class ShadeProgram
         UsesDepth = steps.Any(one => one.Op is Op.Depth or Op.ContactFade);
         Discards = steps.Any(one => one.Op == Op.ContactFade || (one.Op == Op.Depth && one.Extra != 0));
         UsesTime = result == Clock || specular == Clock || gloss == Clock || steps.Any(one => one.Reads(Clock));
+        Sprays = steps.Any(one => one.Op == Op.Spray);
     }
+
+    /// <summary>
+    /// Whether the material draws the sea's spray on itself (CrashingFoamSurface) - the game's own word that the sea breaks on it; see ShoreField.Of.
+    /// </summary>
+    public bool Sprays { get; }
 
     internal enum Op : byte
     {
@@ -404,8 +431,17 @@ public sealed partial class ShadeProgram
         /// <summary>ParallaxUvSpace: the coordinates and the distance along the view where the ray meets the height texture - B is the read, like Sample's.</summary>
         Parallax,
 
-        /// <summary>GetFlowSurfaceField: the water's surface at A's x and y, drifting at B's x and y a second, at C's clock - its normal in xyz, its height in w. See <see cref="Ripples"/>.</summary>
+        /// <summary>The ocean's surface at A's x and y in B's wind (WaterLook.WindRegister) at C's clock (x) over water C's y deep, over D's shore with E's swell - its normal in xyz, its height in w. See <see cref="Ocean(Vector2, Vector4, Vector4, float, float, ShoreField?, out Vector2)"/>.</summary>
         Waves,
+
+        /// <summary>The swell's foam at A's x and y at B's clock (x) over water B's y deep, over C's shore with D's swell - its colour in xyz, how much it covers in w. See <see cref="Foam(Vector2, Vector4, float, float, ShoreField?)"/>.</summary>
+        Foam,
+
+        /// <summary>
+        /// CrashingFoamSurface at A's place with B's normal, C's curvature, spray height and clock (x, y, z), over D's shore: Extra holds the
+        /// three sheets a byte each and in its top byte the output - see <see cref="Spraying"/> and <see cref="SprayColour"/>.
+        /// </summary>
+        Spray,
     }
 
     /// <summary>The stages a colour is assembled across, in the order they are run.</summary>
@@ -813,6 +849,10 @@ public sealed partial class ShadeProgram
         WaterLook look = water ?? WaterLook.EngineDefault;
         registers[WaterColour] = look.ColourRegister;
         registers[WaterFlow] = look.FlowRegister;
+        registers[WaterWind] = look.WindRegister;
+        registers[WaterShore] = look.ShoreRegister;
+        registers[WaterSwell] = look.SwellRegister;
+        s_shore = look.Shore;
         registers[Behind] = new Vector4(float.MaxValue);
         registers[Eye] = eye;
         registers[Tangent] = Vector4.Zero;
@@ -1200,11 +1240,15 @@ public sealed partial class ShadeProgram
 
                 case Op.Waves:
                 {
-                    float height = Ripples(
-                        new Vector2(r[step.A].X, r[step.A].Y), new Vector2(r[step.B].X, r[step.B].Y), r[step.C].X, out Vector2 slope);
+                    float height = Ocean(
+                        new Vector2(r[step.A].X, r[step.A].Y), r[step.B], r[step.E], r[step.C].X, r[step.C].Y, r[step.D].W > 0.5f ? s_shore : null, out Vector2 slope);
                     r[step.To] = new Vector4(Vector3.Normalize(new Vector3(-slope.X, -slope.Y, -1f)), height);
                     break;
                 }
+
+                case Op.Foam:
+                    r[step.To] = Foam(new Vector2(r[step.A].X, r[step.A].Y), r[step.D], r[step.B].X, r[step.B].Y, r[step.C].W > 0.5f ? s_shore : null);
+                    break;
 
                 case Op.Vibrance:
                     r[step.To] = Vibrant(r[step.A].X, r[step.B]);
@@ -1285,6 +1329,10 @@ public sealed partial class ShadeProgram
                     r[step.To] = corner >= 0
                         ? Vector4.Zero
                         : Read(step.Extra, new Vector2(r[step.A].X, r[step.A].Y), r[step.B].X);
+                    break;
+
+                case Op.Spray:
+                    r[step.To] = corner >= 0 ? Vector4.Zero : Sprayed(r, step);
                     break;
             }
 
@@ -1531,6 +1579,25 @@ public sealed partial class ShadeProgram
                 {
                     b = Mapped(map, b);
                 }
+            }
+            else if (step.Op == Op.Spray)
+            {
+                // THREE SHEETS A BYTE EACH, the output's byte above them kept.
+                int sheets = 0;
+                for (var part = 0; part < 3; part++)
+                {
+                    int sheet = (extra >> (part * 8)) & 0xFF;
+                    if (textureMap[sheet] < 0)
+                    {
+                        textureMap[sheet] = textures.Count;
+                        textures.Add(build.Textures[sheet]);
+                    }
+
+                    sheets |= textureMap[sheet] << (part * 8);
+                }
+
+                extra = sheets | (extra & ~0xFFFFFF);
+                b = Mapped(map, b);
             }
             else
             {
@@ -1974,6 +2041,16 @@ public sealed partial class ShadeProgram
         // THE DUST'S W IS NO SWIZZLE OF IT: the .env gives three numbers and nothing says what the
         // engine puts after them, so a link reading the w is refused rather than handed one - see Dust.
         "DustColor" => variable == "color" ? "xyz" : string.Empty,
+
+        // THREE REGISTERS, see Sprayed: the colour whole; the normal and the ao; the wetness and the gloss.
+        "CrashingFoamSurface" => variable switch
+        {
+            "foam_world_normal" => "xyz",
+            "ao" => "w",
+            "wetness" => "x",
+            "glossiness" => "y",
+            _ => string.Empty,
+        },
         _ => string.Empty,
     };
 
@@ -2491,6 +2568,11 @@ public sealed partial class ShadeProgram
                 return Paired(node, end.Variable);
             }
 
+            if (node.Type == "CrashingFoamSurface")
+            {
+                return Sprayed(node, end.Variable);
+            }
+
             if (!_open.Add(node))
             {
                 return Fail($"{node.Type} feeding itself");
@@ -2543,6 +2625,68 @@ public sealed partial class ShadeProgram
             return output == first ? registers.First
                 : output == second ? registers.Second
                 : Fail($"{node.Type} has no output called {output}");
+        }
+
+        /// <summary>
+        /// One output of CrashingFoamSurface - the foam's colour, its normal and ao, or the wetness and gloss, each its own register (see
+        /// <see cref="Implied"/>) and all three a step over one sum that the run works out once.
+        /// </summary>
+        /// <remarks>
+        /// ALL THREE ARE EMITTED THE FIRST TIME ANY IS ASKED FOR, as a pair's two reads are, and those no link reads are dropped in
+        /// Finish. <c>wave_shape_precomp_tex</c> is not read: only the wave's height and slope take it (GetGerstnerProfile), and no
+        /// output of the node does.
+        /// </remarks>
+        private int? Sprayed(ShaderNode node, string output)
+        {
+            if (_pairs.TryGetValue((node, output), out int known))
+            {
+                return known;
+            }
+
+            if (output is not ("foam_color" or "foam_world_normal" or "ao" or "glossiness" or "wetness"))
+            {
+                return Fail($"{node.Type} has no output called {output}");
+            }
+
+            if (!_open.Add(node))
+            {
+                return Fail($"{node.Type} feeding itself");
+            }
+
+            int? colourSheet = Handed(node, "foam_color_tex");
+            int? normalSheet = colourSheet is null ? null : Handed(node, "foam_normal_tex");
+            int? noiseSheet = normalSheet is null ? null : Handed(node, "wave_coord_noise_tex");
+            int? place = noiseSheet is null ? null : Port(node, "world_pos");
+            int? normal = place is null ? null : Port(node, "world_normal");
+            int? curvature = normal is null ? null : Port(node, "curvature");
+            int? height = curvature is null ? null : Port(node, "spray_height");
+            _open.Remove(node);
+            if (height is not { } spray || colourSheet is not { } colour || normalSheet is not { } bumps || noiseSheet is not { } noise)
+            {
+                return null;
+            }
+
+            if (colour > 0xFF || bumps > 0xFF || noise > 0xFF)
+            {
+                return Fail($"{node.Type} reading a texture past the 256th");
+            }
+
+            // THE CURVATURE, THE SPRAY'S HEIGHT AND THE CLOCK IN ONE REGISTER, so the step reads the shore's as its fourth.
+            int packed = build.Register();
+            build.Steps.Add(new Step(Op.Clear, packed, -1, -1, -1, -1, -1, 0));
+            build.Into(packed, curvature!.Value, Only(0, 0));
+            build.Into(packed, spray, Only(1, 0));
+            build.Into(packed, Clock, Only(2, 0));
+            int sheets = colour | (bumps << 8) | (noise << 16);
+            int colourOut = build.Emit(Op.Spray, place!.Value, normal!.Value, packed, WaterShore, extra: sheets | (SprayColour << 24));
+            int normalOut = build.Emit(Op.Spray, place.Value, normal.Value, packed, WaterShore, extra: sheets | (SprayNormal << 24));
+            int wetOut = build.Emit(Op.Spray, place.Value, normal.Value, packed, WaterShore, extra: sheets | (SprayWet << 24));
+            _pairs[(node, "foam_color")] = colourOut;
+            _pairs[(node, "foam_world_normal")] = normalOut;
+            _pairs[(node, "ao")] = normalOut;
+            _pairs[(node, "wetness")] = wetOut;
+            _pairs[(node, "glossiness")] = wetOut;
+            return _pairs[(node, output)];
         }
 
         /// <summary>SampleTexture2: one texture read at two coordinates.</summary>
@@ -3697,7 +3841,7 @@ public sealed partial class ShadeProgram
 
         /// <summary>The ports a direction of unknown length may go to: where it is normalised before use, or passed through.</summary>
         private static bool Directional(string type, string port)
-            => (type, port) is ("SampleInputTriplanar", "world_normal") or ("SampleTriplanar", "world_normal")
+            => (type, port) is ("SampleInputTriplanar", "world_normal") or ("SampleTriplanar", "world_normal") or ("CrashingFoamSurface", "world_normal")
                 || type is "Normalize2" or "Normalize3" or "Normalize4" or "Dummy3" or "Dummy4" or "DotProduct3";
 
         /// <summary>The width on the end of a node's type: 3 for Normalize3.</summary>

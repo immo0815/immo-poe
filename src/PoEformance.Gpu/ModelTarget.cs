@@ -25,11 +25,14 @@ public sealed class ModelTarget : IDisposable
     private readonly ID3D11Texture2D _depth;
     private readonly ID3D11Texture2D _behind;
     private readonly ID3D11Texture2D _shown;
+    private readonly ID3D11Device _device;
+    private ID3D11Texture2D? _opaque;
     private bool _disposed;
 
     internal ModelTarget(ID3D11Device device, int size)
     {
         Size = size;
+        _device = device;
         _accumulated = device.CreateTexture2D(new Texture2DDescription(
             Format.R32G32B32A32_Float, size, size, 1, 1, BindFlags.RenderTarget | BindFlags.ShaderResource));
         AccumulatedTarget = device.CreateRenderTargetView(_accumulated);
@@ -74,6 +77,30 @@ public sealed class ModelTarget : IDisposable
     /// <summary>Copies the depth the solid pass left into <see cref="Behind"/>.</summary>
     internal void Kept(ID3D11DeviceContext context) => context.CopyResource(_behind, _depth);
 
+    /// <summary>
+    /// Puts the solid pass's depth back from <see cref="Behind"/>, its stencil with it - once the lifted water has written its own (ModelGpu's Surfaced).
+    /// </summary>
+    internal void Back(ID3D11DeviceContext context) => context.CopyResource(_depth, _behind);
+
+    /// <summary>The solid pass's colour, copied for the water to reflect - see <see cref="Saw"/>; null until the first.</summary>
+    internal ID3D11ShaderResourceView? Opaque { get; private set; }
+
+    /// <summary>
+    /// Copies the colour the solid pass left into <see cref="Opaque"/> - the engine's opaque framebuffer, which the water's ray reads (ScreenReflection).
+    /// </summary>
+    /// <remarks>MADE THE FIRST TIME IT IS ASKED FOR: a target that never draws water reflecting its scene carries no second colour buffer.</remarks>
+    internal ID3D11ShaderResourceView Saw(ID3D11DeviceContext context)
+    {
+        if (_opaque is null)
+        {
+            _opaque = _device.CreateTexture2D(new Texture2DDescription(Format.R32G32B32A32_Float, Size, Size, 1, 1, BindFlags.ShaderResource));
+            Opaque = _device.CreateShaderResourceView(_opaque);
+        }
+
+        context.CopyResource(_opaque, _accumulated);
+        return Opaque!;
+    }
+
     /// <inheritdoc/>
     public void Dispose()
     {
@@ -83,6 +110,8 @@ public sealed class ModelTarget : IDisposable
         }
 
         _disposed = true;
+        Opaque?.Dispose();
+        _opaque?.Dispose();
         Shown.Dispose();
         ShownTarget.Dispose();
         _shown.Dispose();

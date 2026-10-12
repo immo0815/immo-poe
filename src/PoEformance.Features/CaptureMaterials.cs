@@ -50,6 +50,17 @@ internal static class CaptureMaterials
                 + (compiled.Skipped.Count > 0 ? " · left out: " + string.Join("; ", compiled.Skipped) : string.Empty),
         });
 
+        // EACH TEXTURE'S HEADER, so a texture that did not read - which leaves the whole program undrawn - says what format it is
+        // in (asked for when the rocks' spray first read a 16-bit noise, v0.1.234).
+        if (compiled.Program is { Plain: < 0 } drawn)
+        {
+            foreach (ShadeTexture texture in drawn.Textures.Concat(drawn.Glossy?.Textures ?? []).DistinctBy(one => one.Path, StringComparer.OrdinalIgnoreCase))
+            {
+                said.Append("  texture ").Append(texture.Path).Append(texture.Srgb ? " (sRGB): " : ": ")
+                    .AppendLine(ModelDump.Header(GameArt.ReadRaw(read, texture.Path)));
+            }
+        }
+
         foreach (string graph in MaterialFile.Read(content).Parents)
         {
             if (graph.Length > 0 && seen.Add(Clean(graph)))

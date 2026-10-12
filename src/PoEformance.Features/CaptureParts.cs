@@ -125,6 +125,9 @@ public static class CaptureParts
     /// <summary>What the water is drawn from: every environment's water keys, and the shader sources of the water pass.</summary>
     public const string Water = "water";
 
+    /// <summary>Where the engine's ripple texture may be: the textures whose paths name the water, the likeliest decoded, and the program's strings naming one.</summary>
+    public const string WaterTextures = "water-textures";
+
     /// <summary>The survey of the area's entity maps for the rooms' doodads, every sighting listed.</summary>
     public const string Doodads = "doodads";
 
@@ -240,6 +243,13 @@ public static class CaptureParts
             + "area by what its file sets - and the shader sources of the engine's water pass whole - "
             + "the colours, the waves, the refraction. Water materials are no ordinary ones (\"shadertype\": \"Ocean\"), and "
             + "this is what stands between a white water plane and one drawn as the game does."),
+        new(WaterTextures, "Area files", "the water's textures", CaptureReport.WaterTexturesFile,
+            "Where the engine's ripple texture may be - the one its waves' eight octaves read, 128 texels a side, red the height and "
+            + "green and blue its slope, which no shader source names: every texture whose path names the water with its size and "
+            + "format, those 128 square marked, the likeliest decoded channel by channel as pictures beside it, and the strings the "
+            + "game's own program holds that name one. And the engine's lookups (Art/2DArt/Lookup/) the walk or the program names - the "
+            + "ripple texture, the swell's profiles and gradient - read as floats, each written whole beside it, with what the water "
+            + "takes of them and why. What stands between the tool's stand-in waves and the game's."),
 
         new(Doodads, "Rooms by doodads", "the doodads found", CaptureReport.DoodadsFile,
             "The survey of the area's entity maps for the rooms' doodads: each room's share, each path found and how many stand, "
@@ -261,8 +271,9 @@ public static class CaptureParts
         new(ModelPanes, "Windows", "the model panes' lines", CaptureReport.PanesFile,
             "Every model pane showing a model: its lines under the picture, a room stage's own among them, and every doodad file "
             + "of the room it shows with what became of its lines - laid, not drawn, left out by the cap, unseen - its box, where "
-            + "its first line puts it and its materials; each file that did not draw written whole with what it extends. "
-            + "Nothing where no pane shows a model."),
+            + "its first line puts it and its materials; each file that did not draw written whole with what it extends; the materials "
+            + "under the probe, those drawn plain and those naming a shore's node or with nodes left out, whole, each program texture's "
+            + "header beside them. Nothing where no pane shows a model."),
         new(Dissector, "Windows", "the dissector", CaptureReport.DissectorFile,
             "The places the Memory Dissector has open, the route walked to them, and what its last search found with the bytes "
             + "round each place. Nothing where it is untouched."),

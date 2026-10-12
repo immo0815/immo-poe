@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace PoEformance.Game.Files;
 
 /// <summary>What became of one triangle's fragment at a probed pixel - see <see cref="PixelProbe"/>.</summary>
@@ -26,6 +28,9 @@ public enum Seen : byte
 
     /// <summary>Added to what was behind it.</summary>
     Added,
+
+    /// <summary>The lifted water behind a nearer crossing of its own surface - see MeshPicture.Drawing's Surface.</summary>
+    Folded,
 }
 
 /// <summary>One triangle's fragment at a probed pixel.</summary>
@@ -35,6 +40,33 @@ public enum Seen : byte
 /// <param name="Behind">What the depth buffer held when it arrived: the nearest solid surface drawn before it, or <see cref="float.MaxValue"/> where none was.</param>
 /// <param name="Cover">How much of it covered what was behind, for a translucent one; nought otherwise.</param>
 public readonly record struct ProbeFragment(int Triangle, Seen Seen, float Depth, float Behind, float Cover);
+
+/// <summary>
+/// What a water surface lit the game's way did at a probed pixel: where it stood, its waves and what its reflection of the picture met.
+/// </summary>
+/// <remarks>
+/// WRITTEN WHEN SAND-COLOURED PATCHES SHOWED IN THE WATER BETWEEN THE SWELL'S CRESTS (asked for from the live client, v0.1.234), which
+/// a picture cannot tell apart: the sea floor seen where a lifted trough drops below it (the water then dropped, a fragment
+/// <see cref="Seen.Discarded"/>), or the shore reflected by the screen ray off a wave's face. This says the second's half: the
+/// waves' normal, the view turned about it, and where the ray met the solid picture and what colour it took from there.
+/// </remarks>
+/// <param name="Depth">The water fragment's depth along the view.</param>
+/// <param name="Place">Where it stands, lifted as drawn.</param>
+/// <param name="Normal">The mesh's own normal there, the water's surface the ray is kept above.</param>
+/// <param name="Waves">The waves' normal the light and the ray take.</param>
+/// <param name="Reflected">The view turned about the waves' normal and kept above the surface; zero where the ray was not cast.</param>
+/// <param name="Step">The step the ray met a surface at, -1 for none (the environment alone), -2 where it was not cast.</param>
+/// <param name="HitX">Where it met it, the picture's column.</param>
+/// <param name="HitY">Where it met it, the picture's row.</param>
+/// <param name="HitDepth">The solid depth there.</param>
+/// <param name="HitColour">The solid picture's colour there, as stored.</param>
+/// <param name="Environment">The environment's share of the reflection.</param>
+/// <param name="Added">The light the reflection added, linear.</param>
+/// <param name="Sun">How much of the sun the shadow map lets through to it, nought in shadow - asked for when the waves seemed cut off
+/// along a straight line beside Port's ship (from the live client, v0.1.236): a shadow takes the sun's glints with it.</param>
+public readonly record struct ProbeWater(
+    float Depth, Vector3 Place, Vector3 Normal, Vector3 Waves, Vector3 Reflected, int Step, int HitX, int HitY, float HitDepth,
+    Vector3 HitColour, float Environment, Vector3 Added, float Sun);
 
 /// <summary>
 /// Every fragment one pixel of a drawing was made of, in the order the drawing met them.
@@ -54,6 +86,7 @@ public readonly record struct ProbeFragment(int Triangle, Seen Seen, float Depth
 public sealed class PixelProbe
 {
     private readonly List<ProbeFragment> _fragments = [];
+    private readonly List<ProbeWater> _waters = [];
 
     /// <param name="x">The pixel's column, from the left.</param>
     /// <param name="y">The pixel's row, from the top.</param>
@@ -78,11 +111,17 @@ public sealed class PixelProbe
     /// <summary>Whether a drawing has been through it since it was set.</summary>
     public bool Drawn { get; internal set; }
 
+    /// <summary>Every water surface lit the game's way at the pixel, in the drawing's order - see <see cref="ProbeWater"/>.</summary>
+    public IReadOnlyList<ProbeWater> Waters => _waters;
+
     internal void Add(ProbeFragment fragment) => _fragments.Add(fragment);
+
+    internal void Add(ProbeWater water) => _waters.Add(water);
 
     internal void Clear()
     {
         _fragments.Clear();
+        _waters.Clear();
         Final = float.MaxValue;
         Drawn = false;
     }

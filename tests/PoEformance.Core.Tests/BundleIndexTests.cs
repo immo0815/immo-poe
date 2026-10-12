@@ -540,4 +540,21 @@ public class BundleIndexTests
         // AND IT IS ONE WALK, spent like any other.
         Assert.False(index.Named);
     }
+
+    /// <summary>A place may ask for words too: a path is kept only where it holds one, whatever its case - the water textures' walk.</summary>
+    [Fact]
+    public void ANDAPlaceCanAskForWordsInThePath()
+    {
+        BundleIndex index = WithNames(20);
+
+        List<string>[] found = index.Places(
+            Packed.AsIs,
+            [
+                new BundleIndex.WalkPlace(string.Empty, [".dds"], ["BOW", "nothing-like-it"]),
+                new BundleIndex.WalkPlace(string.Empty, [".dds"], []),
+            ]);
+
+        Assert.Equal(["art/2ditems/weapons/bow.dds"], found[0]);
+        Assert.Contains("art/2ditems/weapons/quiver.dds", found[1]);
+    }
 }

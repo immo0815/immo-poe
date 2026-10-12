@@ -310,6 +310,11 @@ public sealed record MonsterModel(
     /// </remarks>
     public IReadOnlyList<string> ShapeSources { get; init; } = [];
 
+    /// <summary>
+    /// The room's shore, for the ocean's swell - made from its water and its ground (ShoreField.Of, CHOSEN); null where it has no water, no ground over it, or is no room.
+    /// </summary>
+    public ShoreField? Shore { get; init; }
+
     /// <summary>How many of a tile's black-wall shapes were left out. See TileModels.BlackWall.</summary>
     public int Walls { get; init; }
 
@@ -572,8 +577,16 @@ public static class MonsterModels
             }
         }
 
+        // WHAT STANDS IN THE SEA JOINS THE SHORE now that the materials say which shapes the sea breaks on - see RoomModels.ShoreOf.
+        ShoreField? shore = model.Shore;
+        if (shore is not null && Array.Exists(shades, one => one is { Sprays: true }))
+        {
+            shore = RoomModels.ShoreOf(model.Mesh, model.Modes, model.ShapeSources, shades) ?? shore;
+        }
+
         return model with
         {
+            Shore = shore,
             Shades = shades,
             GlossShades = shines ? glossy : shades,
             Skins = skins ?? model.Skins,

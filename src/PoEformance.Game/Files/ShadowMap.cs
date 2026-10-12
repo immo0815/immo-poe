@@ -121,29 +121,27 @@ public sealed class ShadowMap
     /// <param name="places">Every vertex, model space.</param>
     /// <param name="direction">The way the light travels.</param>
     /// <param name="side">How many texels across.</param>
-    public static ShadowFrame? Framed(ReadOnlySpan<Vector3> places, Vector3 direction, int side)
+    public static ShadowFrame? Framed(ReadOnlySpan<Vector3> places, Vector3 direction, int side) =>
+        places.Length == 0 ? null : Framed(Bounded(places, direction), direction, side);
+
+    /// <summary>
+    /// The frame a map of places with these bounds along this direction lies in - <see cref="Framed(ReadOnlySpan{Vector3}, Vector3, int)"/>'s, from bounds worked out apart.
+    /// </summary>
+    /// <remarks>
+    /// THE SAME FRAME TO THE BIT whichever way the bounds were gathered: they are a least and a most, and
+    /// a stage's bounds joined with a monster's (<see cref="ShadowBounds.With"/>) are the bounds of the
+    /// two together. So a pose that moves only the monster scans only the monster.
+    /// </remarks>
+    public static ShadowFrame? Framed(ShadowBounds bounds, Vector3 direction, int side)
     {
-        if (places.Length == 0 || !(direction.LengthSquared() > 0f) || side < 16)
+        if (!(direction.LengthSquared() > 0f) || side < 16)
         {
             return null;
         }
 
-        Vector3 w = Vector3.Normalize(direction);
-        Vector3 helper = MathF.Abs(w.Z) < 0.9f ? Vector3.UnitZ : Vector3.UnitX;
-        Vector3 u = Vector3.Normalize(Vector3.Cross(helper, w));
-        Vector3 v = Vector3.Cross(w, u);
-
-        Vector2 least = new(float.MaxValue), most = new(float.MinValue);
-        float nearest = float.MaxValue;
-        foreach (Vector3 place in places)
-        {
-            var at = new Vector2(Vector3.Dot(place, u), Vector3.Dot(place, v));
-            least = Vector2.Min(least, at);
-            most = Vector2.Max(most, at);
-            nearest = MathF.Min(nearest, Vector3.Dot(place, w));
-        }
-
-        float span = MathF.Max(most.X - least.X, most.Y - least.Y);
+        (Vector3 u, Vector3 v, Vector3 w) = Axes(direction);
+        Vector2 least = bounds.Least;
+        float span = MathF.Max(bounds.Most.X - least.X, bounds.Most.Y - least.Y);
         if (!(span > 0f) || !float.IsFinite(span))
         {
             return null;
@@ -152,8 +150,40 @@ public sealed class ShadowMap
         // A TEXEL OF MARGIN EACH SIDE, so nothing lands on the edge the reads clamp to.
         float perUnit = (side - 2) / span;
         least -= new Vector2(1f / perUnit);
-        nearest -= 1f;
-        return new ShadowFrame(u, v, w, least, perUnit, nearest, side);
+        return new ShadowFrame(u, v, w, least, perUnit, bounds.Nearest - 1f, side);
+    }
+
+    /// <summary>How far some places reach across a map along this direction and how near the light the nearest comes - see <see cref="Framed(ShadowBounds, Vector3, int)"/>.</summary>
+    /// <param name="places">The places, model space.</param>
+    /// <param name="direction">The way the light travels; any length but nought.</param>
+    public static ShadowBounds Bounded(ReadOnlySpan<Vector3> places, Vector3 direction)
+    {
+        Vector2 least = new(float.MaxValue), most = new(float.MinValue);
+        float nearest = float.MaxValue;
+        if (!(direction.LengthSquared() > 0f))
+        {
+            return new ShadowBounds(least, most, nearest);
+        }
+
+        (Vector3 u, Vector3 v, Vector3 w) = Axes(direction);
+        foreach (Vector3 place in places)
+        {
+            var at = new Vector2(Vector3.Dot(place, u), Vector3.Dot(place, v));
+            least = Vector2.Min(least, at);
+            most = Vector2.Max(most, at);
+            nearest = MathF.Min(nearest, Vector3.Dot(place, w));
+        }
+
+        return new ShadowBounds(least, most, nearest);
+    }
+
+    /// <summary>The map's axes: across, up it, and along the light.</summary>
+    private static (Vector3 U, Vector3 V, Vector3 W) Axes(Vector3 direction)
+    {
+        Vector3 w = Vector3.Normalize(direction);
+        Vector3 helper = MathF.Abs(w.Z) < 0.9f ? Vector3.UnitZ : Vector3.UnitX;
+        Vector3 u = Vector3.Normalize(Vector3.Cross(helper, w));
+        return (u, Vector3.Cross(w, u), w);
     }
 
     /// <summary>How much of the light reaches a point - one in the open, nought in full shadow, between along an edge.</summary>
@@ -254,7 +284,7 @@ public sealed class ShadowMap
     }
 }
 
-/// <summary>Where a shadow map lies - see <see cref="ShadowMap.Framed"/>.</summary>
+/// <summary>Where a shadow map lies - see <see cref="ShadowMap.Framed(ReadOnlySpan{Vector3}, Vector3, int)"/>.</summary>
 /// <param name="U">The map's x axis, model space, unit length.</param>
 /// <param name="V">Its y axis.</param>
 /// <param name="W">The way the light travels - depth grows along it.</param>
@@ -263,3 +293,14 @@ public sealed class ShadowMap
 /// <param name="Nearest">The depth the map starts at, a unit before the nearest place.</param>
 /// <param name="Side">How many texels across.</param>
 public readonly record struct ShadowFrame(Vector3 U, Vector3 V, Vector3 W, Vector2 Least, float PerUnit, float Nearest, int Side);
+
+/// <summary>How far some places reach across a shadow map and how near the light they come - see <see cref="ShadowMap.Bounded"/>.</summary>
+/// <param name="Least">The least along the map's two axes.</param>
+/// <param name="Most">The most along them.</param>
+/// <param name="Nearest">The least depth along the light.</param>
+public readonly record struct ShadowBounds(Vector2 Least, Vector2 Most, float Nearest)
+{
+    /// <summary>The bounds of these places and those together.</summary>
+    public ShadowBounds With(ShadowBounds other) =>
+        new(Vector2.Min(Least, other.Least), Vector2.Max(Most, other.Most), MathF.Min(Nearest, other.Nearest));
+}

@@ -260,8 +260,12 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   never loaded before, its level of 128 - `CubeMap.Read`'s `largest`), each by a switch in the light panel's "water" row;
   the colour and the diffuse light keep the mesh's normal, and the lamp draws the water as before. TAKEN FROM THE SOURCE:
   the octaves, the gloss, the specular. CHOSEN, and said under the picture: the ripple texture the octaves read
-  (`surface_tex_sampler`, a pass texture the engine binds, named nowhere) stands as gradient noise read as the engine
-  reads its texture, a cell every 16 texels (`ShadeProgram.RippleCell`) - `Ripple` alone changes when it is found; the
+  (`surface_tex_sampler`, a pass texture the engine binds, named nowhere) stands as a texture of gradient noise made once,
+  128 texels a side as the engine's, a cell every 16 texels (`ShadeProgram.RippleSheet`, `RippleCell`), and READ AS THE
+  ENGINE READS ITS OWN from v0.1.225 - linear and wrapping, four texels a unit of the octave, the height `(r - 0.4) * 3` and
+  the texels' slope mixed, not the mixed height's; the card loads it at t10, four loads an octave, where it hashed noise
+  per pixel and vertex before, and the processor's `Ripples` went from 630 to 331 ns - its texels alone change when the
+  engine's is found; the
   drift (the engine's flow map is made at run time) is the colour pattern's, (18, 12) a unit of flow. At Port's flow they
   lean 2.7 degrees at the median, 8.7 at most, so the sun glints only where its mirror image falls near - real glitter.
   Seen from the side the sea stood flat (asked for from the live client), and so does the engine's: its ocean planes are
@@ -270,8 +274,135 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   (v0.1.223, `SceneLight.WaterLift`, the light panel's "lift", one the engine's height, up to five): a room's water shapes
   are split to edges of 48 (`SkinnedMesh.Refined`, `RoomModels.Watered`, by the blend word "water") and their vertices
   lifted by `Ripples` times the lift - the card's `PlacedWaves`, the processor's `MeshPicture.Lifted`, which also keeps a
-  lifted drawing from `Again`. NOT DONE: the height offset (water.ffx adds it to the surface's displacement), the
-  terrain water colour, screen-space reflections, the refraction's bend, foam.
+  lifted drawing from `Again`. THE SCENE IN THE WATER (v0.1.224, the water row's "scene"): the engine's own screen-space
+  reflection, `CastScreenRay` as written (`ScreenReflection`) - the view turned about the waves' normal and kept above the
+  water's own surface, marched in twenty steps of a fiftieth of the picture over the SOLID part's depth, a hit where a
+  surface lies in front of the ray by under fifty units, its colour the solid part's (the engine's opaque framebuffer:
+  the card copies the solid pass, `ModelTarget.Saw`; the processor draws every band's solid part before any band's water,
+  `Drawing.Reflects`), the cube's share `pow((step + 0.5) / 20, 5)`. READINGS, said under the picture: the dither
+  (`GetBayerNoise16` named, not read - a 4 by 4 Bayer) and the reflected colour's alpha as the cube's share
+  (`ComputeEnvironmentLighting` unread); `water.txt` asks for both sources from v0.1.224. The reflected light is added
+  after the exposure and grade, having been drawn with them. NOT ON THIS PATH, read from water.ffx (v0.1.228): the
+  height offset - `water_height_offset` is added only by the beach, crashing and flood waves (`BreakingWavesVertex`,
+  `CrashingWavesVertex`, `FloodWaveVertex`, their water depth and the beach foam's height fade), never on an ocean plane's,
+  so Port's -15 moves nothing the harbour draws. NOT DONE: the terrain water colour, the refraction's bend, foam - and the waves' own look: the ripple
+  texture's texels and the flow map that drive them are not read, so they look and move otherwise than the game's (said from the
+  live client, v0.1.223). `water-textures.txt` (`CaptureWaterTextures`, v0.1.227) looks for the texture: every install
+  texture whose path names the water (the startup walk keeps only those, `WalkPlace.Words`) with its size and format, those
+  128 square marked, the likeliest decoded channel by channel beside it, and the game program's own strings naming one -
+  read it before the stand-in's texels are replaced.
+  THE OCEAN'S OWN PATH (v0.1.229). The octaves above are the RIVER'S: the engine draws water through two surfaces
+  (internalonly.ffx), WaterComputeFlowingSurface (GetFlowingSurface, GetFlowSurfaceField - slide along the flow, fade
+  back to the start every 1.4 to 3 s) and WaterComputeSurface (GetTotalWaveSurfaceNumerical over
+  `GetOceanWaterPlanarState`), and at Port's flow the first read as "a two-second film looped" (said from the live
+  client, v0.1.228) while the game draws clear crests rolling in to the harbour and spray along the quay. Which surface
+  an "Ocean" material takes is in no file read - the names and the game's picture say the second. Its parts: a SWELL
+  rolling towards the shore (`GetTidalWaterPlanarState`: a cross-section texture `wave_data_sampler` and its slope
+  `wave_gradient_sampler` read at the tide's phase and the shore's distance, over a shoreline field
+  `shoreline_coord_tex_sampler` the engine makes at run time - r one less the shore's distance, g the length along the
+  shore, b the distance out to sea, a the strength, positive a beach and negative a rocky shore that takes
+  `GetClashingWaterPlanarState` instead), the WIND'S RIPPLES on top (`GetWindRippleSurfaceField3`: three octaves on the
+  ripple texture SCROLLING STEADILY - nothing fades or starts over - in `water_wind_direction`, `_intensity`, `_speed`
+  and `water_directionness`), times `shallowRippleMult * foamRippleMult * 2`; the flow is read on the river's path alone.
+  The spray is a particle effect outside the surface (`CrashingSprayTrigger` and its kin). Port's file sets none of the
+  ocean's keys, so every one is the engine's default: CHOSEN until measured, the old full-screen tracer's constants the
+  uniforms replaced (screenspacetracer.hlsl: wind intensity 0.1 x 4 x 4 / 1.5, speed 1, directionness 1, no wind matrix;
+  swell height 37.5, period 0.04) - the parsed environment's unnamed water floats hold 1.06, 1, 37.5 and 0.04 among them
+  (light-hunt.txt, v0.1.208), and a capture in an area whose file sets the keys (the Blank Sea and Yaochi hideouts set
+  all of them) names their slots. DRAWN from v0.1.229: the ripples (`ShadeProgram.Ocean`, `WindRipples`, the
+  `WaterWind` register from `WaterLook.WindRegister`), a wind way turned by the light panel's "wind"; at the former
+  constants they stand -4.8 to 9.4 and lean 1.8 degrees at the median, 8.4 at most, at 118 ns a read. THE SWELL (v0.1.230,
+  asked for from the live client: "approximate it, and measure once Port is captured"): `GetTidalWaterPlanarState` as
+  written (`ShadeProgram.Ocean`) - the tide's phase from the distance out to sea, rolling in at 1.1 a second, the clock's
+  smooth noise (the engine's Hash and GetSmoothNoise), slowed and hurried near the shore, the cross-section read at the phase
+  and the shore's distance times `water_swell_height`, its slope the cross-section's along the phase's (the engine leaves
+  the shore's own slope out - 22% of the differences on a bay), less over ground under water; the ripples thinned to
+  nothing at the shoreline. CHOSEN, and said under the picture and in `model-panes.txt`: the SHORELINE FIELD (`ShoreField`,
+  `MonsterModel.Shore`, made in `RoomModels.Piled` from the room's water shapes and its "ground of" shapes: a cell is land
+  where the ground rises above the water over it; the shore's distance the grid's exact Euclidean distance, 2,000 units a
+  colour unit so the 25 periods put crests 500 apart, the beach waves' own length; the distance out to sea one less; the
+  shore's length nought and its strength one - all beach, no clashing state), and the CROSS-SECTION (`Swell`,
+  `SwellSheet`, standing for `wave_data_sampler` and `wave_gradient_sampler`: a trochoid steepening from 0.2 to 0.8 and
+  growing from half to whole height towards the shore). The card reads the field at t11 and the cross-section at t12 (program
+  sheets from t13); `WaterShore` and `WaterSwell` are fixed registers. `model-panes.txt` writes each room's field - what it
+  was made from and what came of it - and `shore.png` beside it; `water-textures.txt` also looks for shore, coast, swell,
+  tide and distortion textures. NOT DRAWN: the swell's foam, its orbit carrying the ripples to and fro (the cross-section's
+  blue, the distortion texture), the rocky shore's clashing state, the spray.
+  THE ENGINE'S LOOKUPS (v0.1.231). Port's captures of v0.1.228 and v0.1.230 found them: the game's program names three -
+  `Art/2DArt/Lookup/surface_ripple.dds` (128 square, one level, its header's code the NUMBER 116, D3DFMT_A32B32G32R32F,
+  which the bytes' decoder could not read), `gerstner_wave_profile.dds` and `wave_profile_gradient.dds` - and the lookup
+  folder holds `wave_profile.dds` and `gerstner_positive_wave_profile.dds` beside them (and `foam_shore_colour_dxt1.dds`
+  elsewhere). The sources bind by sampler name alone, so which file is which is SETTLED BY THE FILES (`WaterLookups`): the
+  ripple texture is taken where its green and blue go with its red's own differences a texel (correlation 0.8 either way
+  round), and the swell's profile is whichever of the three whose red's differences along the phase go with the gradient's
+  red - the others being the beach's. `FloatArt` reads the float formats (the old numbers 111 to 116, DXGI's float ones) as
+  a card does; `ShadeProgram.Use` hands the taken ones over as the install opens, the card making its textures again on a
+  change, the swell read at its own size (`GetDimensions`); where one is not taken the stand-in stays and the line under the
+  picture says why. `water-textures.txt` reads every lookup the walk or the program names as floats, writes each whole
+  beside it (`water-lookup-name.dds`) and what the water takes and why; `water-lookups-replay.txt` reads them again
+  offline. Port's first `shore.png` (v0.1.230) drew the pier, the quay and the bay where the game lays them.
+  MEASURED (v0.1.231, Port): `surface_ripple.dds`'s green and blue are its red's differences a texel, correlation 1 and
+  scale 1 - TAKEN; `wave_profile.dds` goes with `wave_profile_gradient.dds` at correlation 1 and scale 1 along the phase
+  (0.997 along the shore's distance) - TAKEN - while `gerstner_wave_profile.dds`, the one the program names, does not
+  (0.03): the beach's. All four are fixtures (`tests/fixtures/water-lookups`, `WaterLookupsTests`). The profile is no
+  trochoid: flat far out (its first rows), the swell standing whole about a quarter of a colour unit in, then breaking -
+  flat again by the shore with its green, the trail foam, rising along the phase to one; its blue the orbit about 0.5, its
+  alpha the front's phase from -1 to 2. THE FOAM (v0.1.233, asked for from the live client): `ShadeProgram.Foam`,
+  GetTidalWaterPlanarState's foam and GetFoamColor3's trail as written - the cross-section's green times
+  `saturate(gBufferDelta / 25)` (the depth the view crosses, the water program's own), three octaves of the engine's
+  Voronoi noise (GetVoronoiNoise, Hash2), the shallows' `-(shoreDist - 0.18) * 10` - laid as InitWaterSurfaceData lays it
+  (colour lerped to the foam's, what lies behind hidden by `1 - (1 - a)^3`, specular to 0.04, gloss to nought), and the
+  ripples flattened under it (`foamRippleDampening`, `pow(trail, 3)`). Over a bay at the shore field's 2,000 units a colour
+  unit the foam rolls in bands from 1,000 units out to 200, a fifth of the water covered (`THEFOAMRollsInBandsOnTheEnginesProfile`);
+  where that falls in Port depends on the field's scale, which is CHOSEN (the engine's `dist_to_color` and the env's
+  `shoreline_offset` and `shoreline_resolution` are unread). NOT DRAWN: the leading edge's textured layers
+  (`water_tex_sampler` "for foam leading edge" and `distortion_sampler`, bound by the engine and named nowhere), the orbit's
+  and the distortion's offsets, the rocky shore's clashing state and its GetFoamColor2, the spray (particles). A code block
+  offered from elsewhere (2026-10-12) drew foam from a height threshold, `noise_worley_low.dds`, the walkable grid and a
+  pulsing sine - none of it in the engine's source, which is in `water.txt` whole: read it there.
+  THE ROCKS' SPRAY (v0.1.234, asked for from the live client: "the water and foam running down the rocks"). It is not the
+  water pass's: Port's shore rocks (`ISL_Rock*.mat`) and the pier's bricks are instances of `OceanSprayFoam.fxgraph` beside their
+  stone, whose node CrashingFoamSurface (effects.ffx) the compile left out - so the model panes' capture part writes every material
+  naming a shore's node (`CapturePanes.ShoreNodes`) and each program texture's header (`CaptureMaterials`), and
+  `materials-replay.txt` (`CaptureReplayTests.Materials`) compiles a capture's materials again from its own files. Now compiled
+  (`ShadeProgram.Spraying`, `Op.Spray`, `ShadeHlsl.SprayLibrary`) as written, line for line against the source: a 1,000-unit wave
+  rolling in at 200 a second off the distance out to sea (GetFieldWaveGeom's `wave_coord`, its advected and stationary noise the
+  noise texture's green), the spray's phase and strength, a band of height (`saturate(0.8 + z / spray_height) * saturate((150 - z)
+  / 100)`, the place lifted 75 by the graph and the band 350 high, within 200 of the shore), and the foam read three ways
+  (GetTriplanarScrollingFoam) scrolling down the face and towards the shore as the spray peaks; its wetness darkens the stone and
+  wets its gloss by the graph's own nodes. The node's three outputs are one sum (`SprayKey` on the processor, one variable on the
+  card). hash33Stable is PCG's rounds over the float's bits over 2^32, not HashUToF - a first port had that wrong, and a review
+  from elsewhere (2026-10-12) that called the rotation, frac, the sign bit and RgToGradYFix wrong was answered from the source:
+  `mul(v, float2x2(c, s, -s, c))`, `x - floor(x)`, `asuint`, `abs(normal.z) > 1e-7`, all as written. The noise is
+  `flow_muddle_blur_01_R16G16.dds`, two 16-bit channels, which `GameArt` now reads in every header spelling them (a texture that
+  does not read leaves the whole material undrawn). CHOSEN: the shore field it reads (2,000 units a colour unit, as the swell's);
+  the normal at length one. On the processor the foam's textures are read at their top level. NOT DRAWN: the foam's own normal
+  (CombineWorldNormals is not compiled) and the screen's wetness (ReadPixelWetness, a pass of the engine's). MEASURED (v0.1.234's
+  capture): the noise's header is DXGI 35, R16G16_UNORM, and all three read; the rocks' foam "looks fantastic" (said from the live
+  client). WHAT STANDS IN THE SEA IS SHORE (v0.1.236, asked for from the live client: in the game the waves run on over the rocks,
+  here through them): `ShoreField.Of` takes a third kind of land, CHOSEN as the shapes whose own program sprays (`ShadeProgram.Sprays`
+  - the rocks and the pier's stones, not the ship, round whose hull the game breaks nothing), counted apart in `model-panes.txt`; the
+  field is made again once a room's materials are compiled (`RoomModels.ShoreOf`, `MonsterModels.Shaded`), and a stage takes its
+  tile's. The engine's own rocky shore - the field's negative strength, which takes GetClashingWaterPlanarState instead of the
+  swell - reads `distortion_sampler` throughout (its offsets and GetFoamColor2's), a pass texture named nowhere, so it is NOT DRAWN
+  and every shore stays a beach. THE PATCHES BETWEEN THE CRESTS (said from the live client, v0.1.234: "a water texture sticking out
+  of the wave", sand-coloured shapes that move with the swell) are either the sea floor where a lifted trough drops below it (the
+  water then dropped, the probe's fragment "dropped by its program") or the shore reflected off a wave's face by the screen ray -
+  so the probe now writes, for every water pixel lit the game's way, where it stood, how far its waves lean and what its
+  reflection met (`ProbeWater`, `PictureProbe.Watered`). Pause the pane on a patch, probe it, then capture.
+  THE LIFTED SEA IS ONE SURFACE (v0.1.237). Port's capture of v0.1.236 (lift 5x, the probe on the water) crossed ONE water shape
+  three times at one pixel - 550, 667 and 893 along the view, a crest standing in front of the trough behind it - and drew 667:
+  a translucent shape blends once a pixel, the FIRST in the mesh, so wherever a plane's triangles ran from far to near the far
+  crossing showed through the wave's face, near the shore the shallow trough's floor ("a water texture sticking out of the wave",
+  sand-coloured patches with straight sides; said from the live client). The engine never meets it, lifting per pixel only, so it
+  is DECIDED with the lift: the lifted water's triangles are binned apart (`MeshPicture.Binned`, the fourth kind) and drawn where
+  the first of them comes among the translucent ones, as one surface across shapes - a walk for the nearest crossing in front of
+  the solid and the triangle that made it (`Drawing.Nearest`, a tie to the first in the mesh), then each triangle drawn only where
+  it won (`Drawing.Surface`; the probe says `Folded` for the rest). On the card (`ModelGpu.Surfaced`): a depth walk with no colour,
+  the runs drawn at LessEqual once a pixel by the stencil, then the solid depth copied back (`ModelTarget.Back`) for the
+  translucent runs after. Unlifted water blends as before. The probe's water line now says whether the sun reaches the pixel
+  (`ProbeWater.Sun`): a straight edge where the waves seemed to stop beside the ship was either a seam where the drawing order
+  flipped between two planes or the ship's shadow taking the glints - probe it on the new build to tell.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

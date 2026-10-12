@@ -157,6 +157,9 @@ internal sealed class CaptureKey
     /// <summary>The install's environments (<c>.env</c>), as its walk found them - empty until it has run. For the water part.</summary>
     public IReadOnlyList<string> Environments { get; set; } = [];
 
+    /// <summary>The install's textures whose paths name the water (CaptureWaterTextures.Words), as its walk found them - empty until it has run.</summary>
+    public IReadOnlyList<string> WaterTextures { get; set; } = [];
+
     /// <summary>
     /// Starts the light hunt for the area's own environment and hands back its whole report, or null where nothing can search - the light-hunt part. Set by whoever owns the search.
     /// </summary>
@@ -494,11 +497,14 @@ internal sealed class CaptureKey
         string version = _version();
         IReadOnlyList<string> shaders = Shaders;
         IReadOnlyList<string> environments = Environments;
-        run.Writing = Task.Run(() => Write(run, read, version, shaders, environments));
+        IReadOnlyList<string> waterTextures = WaterTextures;
+        run.Writing = Task.Run(() => Write(run, read, version, shaders, environments, waterTextures));
     }
 
     /// <summary>Every ticked part of the capture, each on its own so one failing loses only itself.</summary>
-    private static void Write(Run run, Func<string, byte[]?>? read, string version, IReadOnlyList<string> shaders, IReadOnlyList<string> environments)
+    private static void Write(
+        Run run, Func<string, byte[]?>? read, string version, IReadOnlyList<string> shaders, IReadOnlyList<string> environments,
+        IReadOnlyList<string> waterTextures)
     {
         var parts = new List<string>();
 
@@ -747,6 +753,44 @@ internal sealed class CaptureKey
             }
         }
 
+        if (On(CaptureParts.WaterTextures))
+        {
+            if (read is null)
+            {
+                Not(CaptureReport.WaterTexturesFile, "no install to read the textures from");
+            }
+            else
+            {
+                Part(CaptureReport.WaterTexturesFile, () =>
+                {
+                    // THE GAME'S OWN PROGRAMS, beside the install - a texture the engine binds itself is named in one if anywhere.
+                    string? folder = GameInstall.Find(null);
+                    string[] programs = folder is null ? []
+                        : [.. GameInstall.Names.Select(name => Path.Combine(folder, name + ".exe")).Where(File.Exists)];
+                    string text = CaptureWaterTextures.Write(
+                        read, waterTextures, programs, out IReadOnlyList<WaterTexture> pictures, out IReadOnlyList<WaterLookupFile> lookups);
+                    File.WriteAllText(At(CaptureReport.WaterTexturesFile), text);
+
+                    // THE ENGINE'S LOOKUPS WHOLE beside it, for WaterLookups to read again offline (CaptureReplayTests).
+                    foreach (WaterLookupFile lookup in lookups)
+                    {
+                        File.WriteAllBytes(At(lookup.File), lookup.Bytes);
+                    }
+
+                    // EACH DECODED TEXTURE'S CHANNELS AS PICTURES beside it - the ripple's red is its height, green and blue its slope.
+                    foreach (WaterTexture texture in pictures)
+                    {
+                        for (var channel = 0; channel < 4; channel++)
+                        {
+                            Channel(texture.Picture, channel, At(texture.FileOf("rgba"[channel])));
+                        }
+                    }
+
+                    return text[..text.IndexOf('\n')].TrimEnd('\r');
+                });
+            }
+        }
+
         if (On(CaptureParts.RoomsNear))
         {
             if (read is null)
@@ -831,6 +875,14 @@ internal sealed class CaptureKey
                 {
                     string text = CapturePanes.Write(read, panes);
                     File.WriteAllText(At(CaptureReport.PanesFile), text);
+
+                    // EACH ROOM'S SHORE AS A PICTURE beside it - the swell's field is made here, CHOSEN, and held against the game's water by eye.
+                    foreach ((string file, GamePicture picture) in CapturePanes.ShorePictures(panes))
+                    {
+                        using Image<Rgba32> image = Image.LoadPixelData<Rgba32>(picture.Rgba, picture.Width, picture.Height);
+                        image.SaveAsPng(At(file));
+                    }
+
                     return text[..text.IndexOf('\n')];
                 });
             }

@@ -77,7 +77,7 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
             program => program.HasAlpha || program.UsesDepth);
 
     /// <summary>
-    /// The water's waves, glinting in the sun, reflecting the ambient and lifting the surface, laid over the solid floor as the processor lays them - the engine's octaves, the glints' lobe, the reflection and PlacedWaves, on the card.
+    /// The water's waves, glinting in the sun, reflecting the ambient and the hill, and lifting the surface, laid over the solid floor as the processor lays them - the engine's octaves, the glints' lobe, the reflection, the screen's ray and PlacedWaves, on the card.
     /// </summary>
     [GpuFact]
     public void THEWATERSWavesAreLitByTheCardAsTheProcessorLightsThem()
@@ -94,6 +94,7 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
             WaterGlints = true,
             WaterReflection = true,
             WaterLift = 3f,
+            WaterScene = true,
         };
         ShadeProgram waves = ShadeProgram.Water().Glossy!;
         var scene = new ModelScene(
@@ -109,11 +110,108 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
         Assert.Null(Mismatch(gpu, target, scene));
     }
 
-    /// <summary>A material cut out on the alpha its graphs leave.</summary>
+    /// <summary>
+    /// The ocean's swell over a room's shore - the shore field and the swell's cross-section read on the card as the processor reads them, the ripples thinning at the shoreline.
+    /// </summary>
+    [GpuFact]
+    public void THEOCEANSSwellOverAShoreIsDrawnByTheCardAsByTheProcessor()
+    {
+        ModelGpu? gpu = card.Gpu;
+        Assert.True(gpu is not null, card.Why);
+        using ModelTarget target = gpu.Target(Side);
+        var light = new SceneLight([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1.4f, 1.3f, 1.1f),
+            SunDirection = Vector3.Normalize(new Vector3(0.4f, -1f, 0.3f)),
+            FlatAmbient = 0.3f,
+            WaterGlints = true,
+            WaterReflection = true,
+            WaterLift = 2f,
+        };
+
+        var scene = new ModelScene(
+            Hill(layered: true),
+            Turn: 0.25f,
+            Tilt: 0.55f,
+            Skins: [Ramp("floor"), null],
+            Blends: [MaterialBlend.Opaque, MaterialBlend.Alpha],
+            Shades: [null, ShadeProgram.Water().Glossy!],
+            Light: light,
+            Time: 3.5f,
+            Water: WaterLook.EngineDefault with { Shore = BayShore() });
+        Assert.Null(Mismatch(gpu, target, scene));
+    }
+
+    /// <summary>
+    /// The lifted sea drawn as one surface, on the card as on the processor (MeshPicture.Drawing's Surface): two sheets of one water shape
+    /// over a floor, the lower first in the mesh, seen at a slant - each pixel the nearer sheet's - and a mixed sheet under both drawn
+    /// after them, which tests against the solid floor alone once the card has put its depth back.
+    /// </summary>
+    [GpuFact]
+    public void THELIFTEDSeaIsOneSurfaceOnTheCardAsOnTheProcessor()
+    {
+        ModelGpu? gpu = card.Gpu;
+        Assert.True(gpu is not null, card.Why);
+        using ModelTarget target = gpu.Target(Side);
+        var light = new SceneLight([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1.4f, 1.3f, 1.1f),
+            SunDirection = Vector3.Normalize(new Vector3(0.3f, 0.2f, 1f)),
+            FlatAmbient = 0.3f,
+            WaterGlints = true,
+            WaterReflection = true,
+            WaterLift = 2f,
+            WaterScene = true,
+        };
+
+        var scene = new ModelScene(
+            Stacked(),
+            Turn: 0.3f,
+            Tilt: 0.6f,
+            Skins: [Ramp("floor"), null, Ramp("glass")],
+            Blends: [MaterialBlend.Opaque, MaterialBlend.Alpha, MaterialBlend.Alpha],
+            Shades: [null, ShadeProgram.Water().Glossy!, null],
+            Light: light,
+            Time: 2f);
+        Assert.Null(Mismatch(gpu, target, scene));
+    }
+
+    /// <summary>
+    /// A floor; one water shape of two sheets over it, 40 and 80 units up, the lower first; and a mixed sheet 20 up under both. Up is minus z.
+    /// </summary>
+    private static SkinnedMesh Stacked()
+    {
+        var places = new List<Vector3> { new(-400f, -400f, 0f), new(400f, -400f, 0f), new(400f, 400f, 0f), new(-400f, 400f, 0f) };
+        foreach ((float half, float height) in (ReadOnlySpan<(float, float)>)[(375f, 40f), (375f, 80f), (200f, 20f)])
+        {
+            places.AddRange([new(-half, -half, -height), new(half, -half, -height), new(half, half, -height), new(-half, half, -height)]);
+        }
+
+        var indices = new List<int>();
+        for (var quad = 0; quad < places.Count / 4; quad++)
+        {
+            int first = quad * 4;
+            indices.AddRange([first, first + 1, first + 2, first, first + 2, first + 3]);
+        }
+
+        var normals = new Vector3[places.Count];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+        return SkinnedMesh.Of(
+            [.. places], normals, [.. indices], new Vector3(-400f, -400f, -80f), new Vector3(400f, 400f, 0f),
+            [.. places.Select(one => new Vector2((one.X + 400f) / 800f, (one.Y + 400f) / 800f))],
+            [new MeshShape("Floor", 0, 6), new MeshShape("Water", 6, 12), new MeshShape("Glass", 18, 6)]);
+    }
+
+    /// <summary>
+    /// A material cut out on the alpha its graphs leave - over a shore, half a second in, since a rock's alpha is the sea's spray on it
+    /// (CrashingFoamSurface) and without a shore nothing of it stands: 49% of the picture drawn on the processor at this moment.
+    /// </summary>
     [GpuFact]
     public void ACUTOUTMaterialIsCutWhereTheProcessorCutsIt()
         => Every(
-            program => new ModelScene(Hill(layered: false), Turn: 0.4f, Tilt: 0.5f, Blends: [MaterialBlend.Cutout], Shades: [program]),
+            program => new ModelScene(
+                Hill(layered: false), Turn: 0.4f, Tilt: 0.5f, Blends: [MaterialBlend.Cutout], Shades: [program], Time: 0.5f,
+                Water: WaterLook.EngineDefault with { Shore = BayShore() }),
             program => program.HasAlpha);
 
     /// <summary>A material's compiled shaders are kept in the folder handed in, and a new card reads them back rather than compiling again.</summary>
@@ -299,6 +397,26 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
             Sheets[path] = made;
             return made;
         }
+    }
+
+    /// <summary>A quay along x from 50 on over the hill's middle, the sea towards minus x - the field's own frame is the scene's.</summary>
+    private static ShoreField BayShore()
+    {
+        Vector3[] places =
+        [
+            new(-800f, -800f, 0f), new(800f, -800f, 0f), new(800f, 800f, 0f), new(-800f, 800f, 0f),
+            new(-800f, -800f, 300f), new(50f, -800f, 300f), new(50f, 800f, 300f), new(-800f, 800f, 300f),
+            new(50f, -800f, -100f), new(800f, -800f, -100f), new(800f, 800f, -100f), new(50f, 800f, -100f),
+        ];
+        var normals = new Vector3[places.Length];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+        SkinnedMesh bay = SkinnedMesh.Of(
+            places, normals, [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11], new Vector3(-800f, -800f, -100f), new Vector3(800f, 800f, 300f),
+            [.. places.Select(one => new Vector2(one.X, one.Y))],
+            [new MeshShape("Water", 0, 6), new MeshShape("Sea floor", 6, 6), new MeshShape("Quay", 12, 6)]);
+        ShoreField? shore = ShoreField.Of(bay, shape => shape == 0, shape => shape > 0);
+        Assert.NotNull(shore);
+        return shore;
     }
 
     /// <summary>

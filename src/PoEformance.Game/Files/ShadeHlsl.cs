@@ -269,10 +269,24 @@ public static class ShadeHlsl
         }
         """;
 
+    /// <summary>The slot the ripple texture is read from - ShadeProgram.Ripples, bound by the drawing for the pixel and the vertex shaders alike.</summary>
+    public const int RippleSlot = 10;
+
+    /// <summary>The slot the room's shore is read from - ShoreField.Texels, bound by the drawing where it has one.</summary>
+    public const int ShoreSlot = 11;
+
+    /// <summary>The slot the swell's cross-section is read from - ShadeProgram.Swells, bound with the ripple texture.</summary>
+    public const int SwellSlot = 12;
+
     /// <summary>
-    /// ShadeProgram.Ripples and Ripple, line for line, for a program with a <c>Waves</c> step - their turns written in as the processor's numbers, to the bit.
+    /// ShadeProgram.Ocean, WindRipples and Ripple, line for line, for a program with a <c>Waves</c> step.
     /// </summary>
     public static readonly string WavesLibrary = Waves();
+
+    /// <summary>
+    /// ShadeProgram.Spraying and its helpers, line for line, for a program with a <c>Spray</c> step - after <see cref="WavesLibrary"/>, whose shore it reads.
+    /// </summary>
+    public static readonly string SprayLibrary = Sprays();
 
     /// <summary>
     /// The program as HLSL: its sheets, <see cref="Library"/>, and <c>ShadeOut ShadeRun(...)</c> - the colour as ShadeProgram.Colour returns it.
@@ -280,7 +294,7 @@ public static class ShadeHlsl
     /// <param name="program">The program.</param>
     /// <param name="firstSheet">The texture slot its first sheet is read from; the rest follow.</param>
     /// <remarks>
-    /// <c>ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow)</c>:
+    /// <c>ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow, float4 wind, float4 shore, float4 swell)</c>:
     /// the coordinates, the place and the interpolated normal in the model's space, the vertex
     /// colour, the solid depth behind (<see cref="Nothing"/> where none), the clock, the way into
     /// the picture, the area's dust colour and its water - ShadeProgram's fixed registers, in its order.
@@ -301,16 +315,27 @@ public static class ShadeHlsl
         hlsl.Append("static const bool ShadeUsesDepth = ").Append(Truth(program.UsesDepth)).AppendLine(";");
         hlsl.Append("static const bool ShadeHasWaves = ").Append(Truth(program.HasWaves)).AppendLine(";");
         hlsl.AppendLine(Library);
+        bool sprays = false;
         foreach (ShadeProgram.Step step in program.Steps)
         {
-            if (step.Op == ShadeProgram.Op.Waves)
+            sprays |= step.Op == ShadeProgram.Op.Spray;
+        }
+
+        foreach (ShadeProgram.Step step in program.Steps)
+        {
+            if (step.Op is ShadeProgram.Op.Waves or ShadeProgram.Op.Foam or ShadeProgram.Op.Spray)
             {
                 hlsl.AppendLine(WavesLibrary);
                 break;
             }
         }
 
-        hlsl.AppendLine("ShadeOut ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow)");
+        if (sprays)
+        {
+            hlsl.AppendLine(SprayLibrary);
+        }
+
+        hlsl.AppendLine("ShadeOut ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow, float4 wind, float4 shore, float4 swell)");
         hlsl.AppendLine("{");
 
         // THE FIXED REGISTERS, as Colour and Preset set them.
@@ -345,6 +370,9 @@ public static class ShadeHlsl
         hlsl.AppendLine("    float4 r11 = float4(dust, 0.0);");
         hlsl.AppendLine("    float4 r12 = water;");
         hlsl.AppendLine("    float4 r13 = flow;");
+        hlsl.AppendLine("    float4 r14 = wind;");
+        hlsl.AppendLine("    float4 r15 = shore;");
+        hlsl.AppendLine("    float4 r16 = swell;");
 
         // EVERY OTHER REGISTER STARTS AT NOUGHT, as the processor's zeroed scratch does - a swizzle
         // writes part of one and leaves the rest as it found it.
@@ -364,9 +392,23 @@ public static class ShadeHlsl
         }
 
         int parallax = 0;
+
+        // A SPRAY'S THREE OUTPUTS ARE ONE SUM, written once into a variable of its own and read by each - while none of what it
+        // was worked out from has been written since.
+        var versions = new int[program.Registers];
+        var sprayed = new Dictionary<(int, int, int, int, int, int, int, int, int), string>();
         foreach (ShadeProgram.Step step in program.Steps)
         {
-            Step(hlsl, program, step, ref parallax);
+            if (step.Op == ShadeProgram.Op.Spray)
+            {
+                Spray(hlsl, program, step, versions, sprayed);
+            }
+            else
+            {
+                Step(hlsl, program, step, ref parallax);
+            }
+
+            versions[step.To]++;
         }
 
         hlsl.AppendLine("    ShadeOut said;");
@@ -388,117 +430,559 @@ public static class ShadeHlsl
         return hlsl.ToString();
     }
 
+    /// <summary><see cref="SprayLibrary"/>: CrashingFoamSurface and what it includes of the engine's - see ShadeProgram.Spraying.</summary>
+    private static string Sprays() => $$"""
+        struct ShadeSprayOut
+        {
+            float4 colour;
+            float4 normalAo;
+            float4 wetGloss;
+        };
+
+        // The engine's hash33: three fractions of a float3, no integers.
+        float3 ShadeHash33(float3 p)
+        {
+            p = frac(p * float3(0.1031, 0.1030, 0.0973));
+            p += dot(p, p.yxz + 19.19);
+            return frac((p.xxy + p.yxx) * p.zyx);
+        }
+
+        // The engine's hash33Stable of a number spread to all three: PCG's three rounds over its bits, over the largest uint.
+        float3 ShadeHashStable(float value)
+        {
+            uint3 v = asuint(float3(value, value, value));
+            v = (v * 1664525u) + 1013904223u;
+            v.x += v.y * v.z;
+            v.y += v.z * v.x;
+            v.z += v.x * v.y;
+            v ^= v >> 16u;
+            v.x += v.y * v.z;
+            v.y += v.z * v.x;
+            v.z += v.x * v.y;
+            return float3(v) * (1.0 / 4294967296.0);
+        }
+
+        // GetLinearInterpNodes.
+        void ShadeInterpNodes(float phase, out float2 phases, out float2 seeds, out float2 weights)
+        {
+            float2 nodes = float2(0.5, 0.0) + (phase * 0.5);
+            phases = nodes - floor(nodes);
+            seeds = (floor(nodes) * 2.0) + float2(0.0, 1.0);
+            weights = min(phases, 1.0 - phases) * 2.0;
+        }
+
+        // math_utils' RampNorm, Gain and SmoothStep.
+        float ShadeRampNorm(float value, float center)
+        {
+            center = clamp(center, 1e-3, 1.0 - 1e-3);
+            bool mirror = center < 0.5;
+            float mirroredValue = mirror ? value : 1.0 - value;
+            float mirroredCenter = mirror ? center : 1.0 - center;
+            float twice = 2.0 * mirroredCenter;
+            float ramp = mirroredValue / max(1e-5, (twice * twice * (1.0 - mirroredValue)) + mirroredValue);
+            return mirror ? ramp : 1.0 - ramp;
+        }
+
+        float ShadeGain(float value, float steepness)
+        {
+            steepness = clamp(steepness, -1.0 + 1e-3, 1.0 - 1e-3);
+            float power = (1.0 + steepness) / (1.0 - steepness);
+            float part = 0.5 * pow(2.0 * (value < 0.5 ? value : 1.0 - value), power);
+            return value < 0.5 ? part : 1.0 - part;
+        }
+
+        float ShadeMathSmoothStep(float value, float center, float curve)
+        {
+            float power = (2.0 / max(1e-3, 1.0 - curve)) - 1.0;
+            return saturate(1.0 - center
+                + (-pow(saturate(1.0 - max(center, value)), power) * pow(saturate(1.0 - center), -(power - 1.0)))
+                + (pow(saturate(min(center, value)), power) * pow(saturate(center), -(power - 1.0))));
+        }
+
+        // RgToGradYFix.
+        float2 ShadeRgToGradYFix(float2 rg)
+        {
+            float nx = (rg.x - 0.5) * 2.0;
+            float ny = (rg.y - 0.5) * 2.0;
+            float nz = sqrt(saturate(1.0 - ((nx * nx) + (ny * ny))));
+            float under = abs(nz) > 1e-7 ? nz : 1e-7;
+            return float2(-nx / under, ny / under);
+        }
+
+        float4 ShadeSprayRead(Texture2D sheet, bool srgb, SamplerState wrap, float2 uv)
+        {
+            float4 texel = sheet.Sample(wrap, uv);
+            return srgb ? ShadeLinearised(texel) : texel;
+        }
+
+        // GetShoreData's distances in world units: the shore's and out to sea's - ShadeProgram.ShoreWorld.
+        float ShadeShoreWorld(float2 place, float4 box, out float ocean)
+        {
+            float shore;
+            float b;
+            ShadeShoreAt(place, box, shore, b);
+            ocean = (1.0 - b) * {{Number(ShoreField.Reach)}};
+            return shore * {{Number(ShoreField.Reach)}};
+        }
+
+        // GetFoamScrollingLayer with no turbulence and seed nought - ShadeProgram.ScrollingFoam.
+        void ShadeScrollingFoam(float2 uv, float2 velocity, float phase, SamplerState wrap, Texture2D colourSheet, bool colourSrgb, Texture2D normalSheet, bool normalSrgb, out float4 colour, out float2 grad, out float ao, out float rough)
+        {
+            float2 phases;
+            float2 seeds;
+            float2 weights;
+            ShadeInterpNodes(phase, phases, seeds, weights);
+            colour = float4(0.0, 0.0, 0.0, 0.0);
+            grad = float2(0.0, 0.0);
+            ao = 0.0;
+            rough = 0.0;
+            [unroll] for (int layer = 0; layer < 2; layer++)
+            {
+                float3 hash = ShadeHash33(float3(seeds[layer], 0.0, 0.0));
+                float angle = 3.1415 * 2.0 * hash.z;
+                float s = sin(angle);
+                float c = cos(angle);
+                float2 flow = uv - (velocity * ((phases[layer] * 2.0) - 1.0)) + hash.xy;
+                float2 turned = float2((flow.x * c) - (flow.y * s), (flow.x * s) + (flow.y * c));
+                float4 foam = ShadeSprayRead(colourSheet, colourSrgb, wrap, turned);
+                float4 bumps = ShadeSprayRead(normalSheet, normalSrgb, wrap, turned);
+                float2 back = ShadeRgToGradYFix(bumps.xy);
+                float2 bent = float2((back.x * c) + (back.y * s), (back.y * c) - (back.x * s));
+                colour += foam * weights[layer];
+                grad += bent * weights[layer];
+                ao += bumps.z * weights[layer];
+                rough += bumps.w * weights[layer];
+            }
+        }
+
+        // CrashingFoamSurface - ShadeProgram.Spraying: place, normal, (curvature, spray height, clock), the shore's box.
+        ShadeSprayOut ShadeSpray(float3 place, float3 normal, float4 packed, float4 box, SamplerState wrap, Texture2D colourSheet, bool colourSrgb, Texture2D normalSheet, bool normalSrgb, Texture2D noiseSheet, bool noiseSrgb)
+        {
+            float curvature = packed.x;
+            float sprayHeight = packed.y;
+            float clock = packed.z;
+            normal = dot(normal, normal) > 1e-12 ? normalize(normal) : normal;
+
+            // GetShoreFieldData: the slope out to sea by central differences a texel apart.
+            float2 at = place.xy;
+            float eps = box.z;
+            float oceanDist;
+            float shoreDist = ShadeShoreWorld(at, box, oceanDist);
+            float xp;
+            float xn;
+            float yp;
+            float yn;
+            ShadeShoreWorld(at + float2(eps, 0.0), box, xp);
+            ShadeShoreWorld(at - float2(eps, 0.0), box, xn);
+            ShadeShoreWorld(at + float2(0.0, eps), box, yp);
+            ShadeShoreWorld(at - float2(0.0, eps), box, yn);
+            float2 oceanSlope = float2(xp - xn, yp - yn) * (0.5 / eps);
+
+            // GetFieldWaveGeom's wave_coord.
+            float2 uv = at * 0.00012;
+            float4 still = noiseSheet.SampleLevel(wrap, uv, 0.0);
+            float stationary = (noiseSrgb ? ShadeLinearised(still) : still).y;
+            float2 velocity = -oceanSlope * ({{Number(ShadeProgram.FieldWaveSpeed)}} * 0.00012 / 0.1);
+            float2 phases;
+            float2 seeds;
+            float2 weights;
+            ShadeInterpNodes(clock * 0.1, phases, seeds, weights);
+            float advected = 0.0;
+            [unroll] for (int layer = 0; layer < 2; layer++)
+            {
+                float3 hash = ShadeHashStable(seeds[layer]);
+                float2 layerUv = uv - (velocity * ((phases[layer] - 0.5) * 2.0));
+                float4 moved = noiseSheet.SampleLevel(wrap, layerUv + hash.xy, 0.0);
+                advected += (noiseSrgb ? ShadeLinearised(moved) : moved).y * weights[layer];
+            }
+
+            float waveCoord = (oceanDist * (-1.0 / {{Number(ShadeProgram.FieldWaveLength)}})) - (clock * {{Number(ShadeProgram.FieldWaveSpeed)}} / {{Number(ShadeProgram.FieldWaveLength)}}) + advected + stationary;
+            float sprayPhase = saturate(frac(waveCoord - 0.15));
+            float sprayIntensity = sprayPhase * sprayPhase * (1.0 - pow(sprayPhase, 5.0));
+            float heightFade = saturate(0.8 + (place.z / sprayHeight))
+                * saturate((150.0 - place.z) / 100.0)
+                * saturate((shoreDist + 200.0) * 0.01);
+            float fadePhase = ShadeRampNorm(heightFade, ((1.0 - sprayIntensity) * 0.9) + 0.01);
+            float foamIntensity = ShadeRampNorm(fadePhase, curvature);
+
+            float3 flow = lerp(float3(0.0, 0.0, 100.0), float3(0.0, 0.0, 50.0) + (float3(oceanSlope, 0.0) * (-{{Number(ShadeProgram.FieldWaveSpeed)}} * 0.5)), sprayIntensity);
+            float3 along = flow - (normal * (dot(normal, flow) / dot(normal, normal)));
+
+            // GetTriplanarScrollingFoam.
+            float3 foamPlace = place * 0.002;
+            float3 foamVelocity = along * 0.002;
+            float4 c0;
+            float4 c1;
+            float4 c2;
+            float2 g0;
+            float2 g1;
+            float2 g2;
+            float a0;
+            float a1;
+            float a2;
+            float s0;
+            float s1;
+            float s2;
+            ShadeScrollingFoam(foamPlace.yz, foamVelocity.yz, clock, wrap, colourSheet, colourSrgb, normalSheet, normalSrgb, c0, g0, a0, s0);
+            ShadeScrollingFoam(foamPlace.xz, foamVelocity.xz, clock, wrap, colourSheet, colourSrgb, normalSheet, normalSrgb, c1, g1, a1, s1);
+            ShadeScrollingFoam(foamPlace.xy, foamVelocity.xy, clock, wrap, colourSheet, colourSrgb, normalSheet, normalSrgb, c2, g2, a2, s2);
+            float3 grad = (float3(0.0, g0.x, g0.y) + float3(g1.x, 0.0, g1.y) + float3(g2.x, g2.y, 0.0)) * 0.8;
+            float3 square = normal * normal;
+            float3 shares = square / (square.x + square.y + square.z);
+            float3 perpendicular = grad - (normal * dot(grad, normal));
+            float3 foamNormal = (normal - perpendicular) / (dot(perpendicular, perpendicular) + 1.0);
+            float4 colour = (c0 * shares.x) + (c1 * shares.y) + (c2 * shares.z);
+            float rough = (s0 * shares.x) + (s1 * shares.y) + (s2 * shares.z);
+            float ao = (a0 * shares.x) + (a1 * shares.y) + (a2 * shares.z);
+            colour.w = ShadeMathSmoothStep(foamIntensity, 1.0 - ShadeGain(colour.w, 0.1), 0.5);
+
+            // NO SHORE, NO SPRAY - chosen after the sum rather than before it, so every read stays in the program's own flow.
+            ShadeSprayOut said;
+            bool shored = box.w > 0.5;
+            said.colour = shored ? colour : float4(0.0, 0.0, 0.0, 0.0);
+            said.normalAo = shored ? float4(foamNormal, ao) : float4(normal, 1.0);
+            said.wetGloss = shored ? float4(ShadeRampNorm(heightFade, curvature), 1.0 - rough, 0.0, 0.0) : float4(0.0, 0.0, 0.0, 0.0);
+            return said;
+        }
+        """;
+
     /// <summary>
-    /// <see cref="WavesLibrary"/>: the noise standing for the engine's ripple texture, and its eight octaves.
+    /// <see cref="WavesLibrary"/>: the ripple texture's read, the shore's and the swell's, the engine's noise, and the ocean's surface.
     /// </summary>
     private static string Waves()
     {
-        string ratio = string.Join(", ", new[] { 0f, 1f / 3.001f, 2f / 3.001f, 3f / 3.001f }.Select(Number));
-        string cos = string.Join(", ", ShadeProgram.OctaveCos.Select(Number));
-        string sin = string.Join(", ", ShadeProgram.OctaveSin.Select(Number));
-        string texels = Number(4f / ShadeProgram.RippleCell);
-        string range = Number(0.70710677f);
-        string turnCos = Number(ShadeProgram.TurnCos);
-        string turnSin = Number(ShadeProgram.TurnSin);
+        int side = ShadeProgram.RippleSide;
         return $$"""
-            float2 ShadeRippleGradient(int cx, int cy)
-            {
-                uint3 h = ShadePcg(asuint(int3(cx, cy, 0)));
-                float2 grad = float2(ShadeHashUnit(h.x) - 0.5, ShadeHashUnit(h.y) - 0.5);
-                return grad / sqrt(max(dot(grad, grad), 1e-12));
-            }
+            Texture2D<float4> ShadeRipples : register(t{{RippleSlot}});
+            Texture2D<float4> ShadeShore : register(t{{ShoreSlot}});
+            Texture2D<float4> ShadeSwell : register(t{{SwellSlot}});
 
+            // ShadeProgram.Ripple: the four nearest texels' centres of the ripple texture, mixed by hand.
             float ShadeRipple(float qx, float qy, out float gx, out float gy)
             {
-                float sx = qx * {{texels}};
-                float sy = qy * {{texels}};
+                float sx = (qx * 4.0) - 0.5;
+                float sy = (qy * 4.0) - 0.5;
                 float fx0 = floor(sx);
                 float fy0 = floor(sy);
-                int ix = (int)fx0;
-                int iy = (int)fy0;
                 float fx = sx - fx0;
                 float fy = sy - fy0;
-                float2 ga = ShadeRippleGradient(ix, iy);
-                float2 gb = ShadeRippleGradient(ix + 1, iy);
-                float2 gc = ShadeRippleGradient(ix, iy + 1);
-                float2 gd = ShadeRippleGradient(ix + 1, iy + 1);
-                float a = (ga.x * fx) + (ga.y * fy);
-                float b = (gb.x * (fx - 1.0)) + (gb.y * fy);
-                float c = (gc.x * fx) + (gc.y * (fy - 1.0));
-                float d = (gd.x * (fx - 1.0)) + (gd.y * (fy - 1.0));
-                float u = fx * fx * (3.0 - (2.0 * fx));
-                float v = fy * fy * (3.0 - (2.0 * fy));
-                float du = 6.0 * fx * (1.0 - fx);
-                float dv = 6.0 * fy * (1.0 - fy);
-                float k1 = b - a;
-                float k2 = c - a;
-                float k3 = a - b - c + d;
-                float noise = a + (u * k1) + (v * k2) + (u * v * k3);
-                float nx = ga.x + (u * (gb.x - ga.x)) + (v * (gc.x - ga.x)) + (u * v * (ga.x - gb.x - gc.x + gd.x)) + (du * (k1 + (v * k3)));
-                float ny = ga.y + (u * (gb.y - ga.y)) + (v * (gc.y - ga.y)) + (u * v * (ga.y - gb.y - gc.y + gd.y)) + (dv * (k2 + (u * k3)));
-                float rise = 3.0 * 0.5 / {{range}};
-                gx = nx * rise * {{texels}};
-                gy = ny * rise * {{texels}};
-                return ((0.5 + (0.5 * noise / {{range}})) - 0.4) * 3.0;
+                int x0 = ((int)fx0) & {{side - 1}};
+                int y0 = ((int)fy0) & {{side - 1}};
+                int x1 = (x0 + 1) & {{side - 1}};
+                int y1 = (y0 + 1) & {{side - 1}};
+                float3 a = ShadeRipples.Load(int3(x0, y0, 0)).xyz;
+                float3 b = ShadeRipples.Load(int3(x1, y0, 0)).xyz;
+                float3 c = ShadeRipples.Load(int3(x0, y1, 0)).xyz;
+                float3 d = ShadeRipples.Load(int3(x1, y1, 0)).xyz;
+                float3 top = a + ((b - a) * fx);
+                float3 bottom = c + ((d - c) * fx);
+                float3 mixed = top + ((bottom - top) * fy);
+                gx = mixed.y * 12.0;
+                gy = mixed.z * 12.0;
+                return (mixed.x - 0.4) * 3.0;
             }
 
-            static const float ShadeOctaveRatio[4] = { {{ratio}} };
-            static const float ShadeOctaveCos[4] = { {{cos}} };
-            static const float ShadeOctaveSin[4] = { {{sin}} };
-
-            float4 ShadeWaves(float2 place, float2 drift, float clock)
+            // ShoreField.At: the four nearest texels' centres of the room's shore, held at the box's edges.
+            void ShadeShoreAt(float2 place, float4 box, out float shore, out float ocean)
             {
-                float speed = length(drift);
-                float amplitude = 0.3 * (speed + 3.0);
-                float drop = 0.2 + (0.7 * saturate(speed / 300.0));
-                float m00 = 0.01;
-                float m01 = 0.0;
-                float m10 = 0.0;
-                float m11 = 0.01;
-                float quickness = 1.0;
+                uint width;
+                uint height;
+                ShadeShore.GetDimensions(width, height);
+                float sx = clamp(((place.x - box.x) / box.z) - 0.5, 0.0, (float)width - 1.0);
+                float sy = clamp(((place.y - box.y) / box.z) - 0.5, 0.0, (float)height - 1.0);
+                int x0 = (int)sx;
+                int y0 = (int)sy;
+                int x1 = min(x0 + 1, (int)width - 1);
+                int y1 = min(y0 + 1, (int)height - 1);
+                float fx = sx - x0;
+                float fy = sy - y0;
+                float2 a = ShadeShore.Load(int3(x0, y0, 0)).xy;
+                float2 b = ShadeShore.Load(int3(x1, y0, 0)).xy;
+                float2 c = ShadeShore.Load(int3(x0, y1, 0)).xy;
+                float2 d = ShadeShore.Load(int3(x1, y1, 0)).xy;
+                float2 top = a + ((b - a) * fx);
+                float2 bottom = c + ((d - c) * fx);
+                float2 mixed = top + ((bottom - top) * fy);
+                shore = mixed.x;
+                ocean = mixed.y;
+            }
+
+            // ShadeProgram.Swell: the swell's cross-section, wrapping along the phase and held along the shore's distance, its own size.
+            float4 ShadeSwellAt(float phase, float near)
+            {
+                uint across;
+                uint down;
+                ShadeSwell.GetDimensions(across, down);
+                int width = (int)across;
+                int height = (int)down;
+                float sx = (phase * (float)width) - 0.5;
+                float sy = clamp((near * (float)height) - 0.5, 0.0, (float)(height - 1));
+                float fx0 = floor(sx);
+                float fx = sx - fx0;
+                int x0 = ((((int)fx0) % width) + width) % width;
+                int x1 = (x0 + 1) % width;
+                int y0 = (int)sy;
+                int y1 = min(y0 + 1, height - 1);
+                float fy = sy - y0;
+                float4 a = ShadeSwell.Load(int3(x0, y0, 0));
+                float4 b = ShadeSwell.Load(int3(x1, y0, 0));
+                float4 c = ShadeSwell.Load(int3(x0, y1, 0));
+                float4 d = ShadeSwell.Load(int3(x1, y1, 0));
+                float4 top = a + ((b - a) * fx);
+                float4 bottom = c + ((d - c) * fx);
+                return top + ((bottom - top) * fy);
+            }
+
+            float ShadeFractional(float x)
+            {
+                return x - floor(x);
+            }
+
+            // ShadeProgram.Hash: the engine's Hash, as water.ffx writes it.
+            float ShadeHash(float p)
+            {
+                float px = ShadeFractional(p * 4.438975);
+                float py = ShadeFractional(p * 3.972973);
+                float dotted = (py * (px + 19.19)) + (px * (py + 19.19));
+                px += dotted;
+                py += dotted;
+                return ShadeFractional(px * py);
+            }
+
+            // ShadeProgram.SmoothNoise: GetSmoothNoise's value, minus one to one.
+            float ShadeSmoothNoise(float x, float y)
+            {
+                float ix = floor(x);
+                float iy = floor(y);
+                float fx = x - ix;
+                float fy = y - iy;
+                float seed = ix + (iy * 57.0);
+                float v00 = ShadeHash(seed);
+                float v01 = ShadeHash(seed + 1.0);
+                float v10 = ShadeHash(seed + 57.0);
+                float v11 = ShadeHash(seed + 58.0);
+                float u = (3.0 * fx * fx) - (2.0 * fx * fx * fx);
+                float v = (3.0 * fy * fy) - (2.0 * fy * fy * fy);
+                return ((v00 + ((v01 - v00) * u) + ((v10 - v00) * v) + ((v00 - v01 + v11 - v10) * u * v)) * 2.0) - 1.0;
+            }
+
+            // ShadeProgram.WindRipples: GetWindRippleSurfaceField3's three octaves, scrolling steadily.
+            float ShadeWindRipples(float2 place, float4 wind, float clock, bool overGround, out float2 slope)
+            {
+                float ground = overGround ? 1.0 : 0.0;
+                float directionness = wind.w + ((0.0 - wind.w) * ground);
+                float frequency = 0.16 * (1.0 + ((2.0 - 1.0) * ground));
+                float amplitude = wind.y * (0.2 + ((1.0 - 0.2) * directionness)) * (1.0 + ((0.15 - 1.0) * ground));
+                float time = 1.0 + (clock * 2.5);
+                float stepping = 1.5 + (((1.9 * 1.6) - 1.5) * directionness);
+                float turn = 2.0 + ((0.2 - 2.0) * directionness);
+                float turnCos = cos(turn);
+                float turnSin = sin(turn);
+                float windX = cos(wind.x);
+                float windY = sin(wind.x);
+                float p00 = 0.12 * windX;
+                float p01 = 0.12 * windY;
+                float p10 = -0.12 * windY;
+                float p11 = 0.12 * windX;
+                float scroll = (2.5 + ((1.25 - 2.5) * directionness)) * wind.z * (1.0 + ((0.5 - 1.0) * ground));
+                float stretch = 0.7 + ((0.225 - 0.7) * directionness);
+                float falloff = 0.9 + ((0.22 - 0.9) * directionness);
                 float height = 0.0;
-                float2 slope = float2(0.0, 0.0);
-                [unroll] for (int octave = 0; octave < 8; octave++)
+                slope = float2(0.0, 0.0);
+                [unroll] for (int octave = 0; octave < 3; octave++)
                 {
-                    float period = 3.0 / quickness;
-                    int pair = octave / 2;
-                    float phase = (clock / period) + ShadeOctaveRatio[pair] + ((octave % 2) * 0.5);
-                    phase -= floor(phase);
-                    float opacity = phase * (1.0 - phase) * 4.0;
-                    float c = ShadeOctaveCos[pair];
-                    float s = ShadeOctaveSin[pair];
-                    float along = phase * quickness * period;
-                    float px = place.x + (((-drift.x * c) + (drift.y * s)) * along);
-                    float py = place.y + (((-drift.x * s) - (drift.y * c)) * along);
+                    float m00 = p00 * stretch * frequency;
+                    float m01 = p01 * frequency;
+                    float m10 = p10 * stretch * frequency;
+                    float m11 = p11 * frequency;
+                    float shift = scroll * frequency;
+                    float qx = (place.x * m00) + (place.y * m10) - (time * 0.5 * shift);
+                    float qy = (place.x * m01) + (place.y * m11) - (time * 1.5 * shift);
                     float gx;
                     float gy;
-                    float value = ShadeRipple((px * m00) + (py * m10), (px * m01) + (py * m11), gx, gy);
-                    float weight = amplitude * opacity;
-                    height += value * weight;
-                    slope += float2((gx * m00) + (gy * m01), (gx * m10) + (gy * m11)) * weight;
-                    float grow = octave % 2 == 1 ? 2.0 : 1.0;
-                    float n00 = ((m00 * {{turnCos}}) - (m01 * {{turnSin}})) * grow;
-                    float n01 = ((m00 * {{turnSin}}) + (m01 * {{turnCos}})) * grow;
-                    float n10 = ((m10 * {{turnCos}}) - (m11 * {{turnSin}})) * grow;
-                    float n11 = ((m10 * {{turnSin}}) + (m11 * {{turnCos}})) * grow;
-                    m00 = n00;
-                    m01 = n01;
-                    m10 = n10;
-                    m11 = n11;
-                    if (octave % 2 == 1)
+                    float value = ShadeRipple(qx, qy, gx, gy);
+                    height += value * amplitude;
+                    slope += float2((gx * m00) + (gy * m01), (gx * m10) + (gy * m11)) * amplitude;
+                    float n00 = (p00 * turnCos) - (p01 * turnSin);
+                    float n01 = (p00 * turnSin) + (p01 * turnCos);
+                    float n10 = (p10 * turnCos) - (p11 * turnSin);
+                    float n11 = (p10 * turnSin) + (p11 * turnCos);
+                    p00 = n00;
+                    p01 = n01;
+                    p10 = n10;
+                    p11 = n11;
+                    frequency *= stepping;
+                    scroll /= sqrt(stepping);
+                    amplitude *= falloff;
+                }
+
+                slope = slope / 0.4;
+                return height / 0.4;
+            }
+
+            // ShadeProgram.TideAt: GetTidalWaterPlanarState's state at a place - the shore's fields, the tide's phase, the cross-section there.
+            void ShadeTideAt(float2 place, float4 swell, float clock, float4 shore, out float shoreDist, out float tide, out float4 profile, out float2 phaseSlope, out float underGround)
+            {
+                float oceanDist;
+                float unused;
+                float alongX;
+                float alongY;
+                ShadeShoreAt(place, shore, shoreDist, oceanDist);
+                ShadeShoreAt(place + float2({{Number(ShoreField.Eps)}}, 0.0), shore, unused, alongX);
+                ShadeShoreAt(place + float2(0.0, {{Number(ShoreField.Eps)}}), shore, unused, alongY);
+                float2 oceanSlope = -float2(alongX - oceanDist, alongY - oceanDist) / {{Number(ShoreField.Eps)}};
+                float pi = 3.1415;
+                float periods = 1.0 / swell.y;
+                underGround = 1.0 - saturate(1.0 + ((shoreDist + 0.05) * 10.0));
+                tide = 1.0 - ShadeFractional((((1.0 - oceanDist) * periods) + (clock * 1.1 / (swell.y * 25.0))) / (2.0 * pi));
+                float noise = (ShadeSmoothNoise(clock * 0.1, clock * 0.15) * 0.5) + 0.5;
+                float reduction = saturate(noise);
+                float slowdown = 1.0 - (shoreDist * 4.0);
+                float hurry = 1.0 - (shoreDist * 5.5);
+                float offset = (pow(saturate(slowdown), 1.1) * 0.5) - (pow(saturate(hurry), 1.1) * 0.75);
+                tide = ShadeFractional((noise * 0.2) + tide + (offset * 0.8) + 10.0);
+                float effective = saturate(1.0 - shoreDist);
+                effective = pow(effective, 1.0 / ((saturate(1.0 - (reduction * 0.4)) * swell.z * 0.8) + 0.2));
+                profile = ShadeSwellAt(tide, effective);
+                phaseSlope = -oceanSlope * (periods / (2.0 * pi));
+            }
+
+            // ShadeProgram's Tide.Leading: isLeadingEdgeArea.
+            bool ShadeLeading(float tide, float4 profile)
+            {
+                return (tide < 0.45 && profile.w < 1.0) || (tide > 0.55 && profile.w > 0.0);
+            }
+
+            // ShadeProgram.Ocean: GetOceanWaterPlanarState - the swell over the room's shore, and the wind's ripples on top, flattened by the foam.
+            float4 ShadeWaves(float2 place, float4 wind, float2 timing, float4 shore, float4 swell)
+            {
+                float clock = timing.x;
+                float height = 0.0;
+                float2 slope = float2(0.0, 0.0);
+                float ripples = 2.0;
+                bool groundWater = false;
+                if (shore.w > 0.5)
+                {
+                    float shoreDist;
+                    float tide;
+                    float4 profile;
+                    float2 phaseSlope;
+                    float underGround;
+                    ShadeTideAt(place, swell, clock, shore, shoreDist, tide, profile, phaseSlope, underGround);
+                    float kept = 1.0 - underGround;
+                    height = (profile.x - 0.5) * swell.x * kept;
+                    slope = profile.y * phaseSlope * swell.x * kept;
+                    groundWater = underGround > 0.5;
+                    float trail = saturate(profile.z) * saturate(timing.y / 25.0);
+                    float damping = trail * trail * trail;
+                    if (ShadeLeading(tide, profile))
                     {
-                        amplitude *= drop;
-                        quickness *= 1.3;
+                        float held = saturate((0.8 - profile.w) / 0.8 * 2.0);
+                        damping *= held * held;
+                    }
+
+                    damping = damping + ((0.0 - damping) * underGround);
+                    ripples = (1.0 - pow(saturate(1.0 - abs(shoreDist)), 10.0)) * (1.0 - damping) * 2.0;
+                }
+
+                float2 rippleSlope;
+                float rippleHeight = ShadeWindRipples(place, wind, clock, groundWater, rippleSlope);
+                height += rippleHeight * ripples;
+                slope += rippleSlope * ripples;
+                return float4(normalize(float3(-slope.x, -slope.y, -1.0)), height);
+            }
+
+            // ShadeProgram.Hash2: the engine's, two fractions of a sine.
+            float2 ShadeHash2(float2 p)
+            {
+                float r = 523.0 * sin(dot(p, float2(53.3158, 43.6143)));
+                return float2(ShadeFractional(15.32354 * r), ShadeFractional(17.25865 * r));
+            }
+
+            // ShadeProgram.Voronoi: GetVoronoiNoise.
+            float ShadeVoronoi(float2 p)
+            {
+                float nearest = 100.0;
+                float next = 100.0;
+                float2 cell = floor(p);
+                [unroll] for (int x = -1; x <= 1; x++)
+                {
+                    [unroll] for (int y = -1; y <= 1; y++)
+                    {
+                        float2 grid = cell + float2((float)x, (float)y);
+                        float2 offset = p - grid - float2(1.0, 1.0) + ShadeHash2(grid);
+                        float distance = dot(offset, offset);
+                        if (nearest > distance)
+                        {
+                            next = nearest;
+                            nearest = distance;
+                        }
+                        else if (next > distance)
+                        {
+                            next = distance;
+                        }
                     }
                 }
 
-                return float4(normalize(float3(-slope.x, -slope.y, -1.0)), height);
+                return abs(sqrt(nearest) - sqrt(next));
+            }
+
+            // ShadeProgram.Foam: GetTidalWaterPlanarState's foam, GetFoamColor3's trail - its leading edge's textured layers left out.
+            float4 ShadeFoam(float2 place, float2 timing, float4 shore, float4 swell)
+            {
+                if (shore.w <= 0.5)
+                {
+                    return float4(0.0, 0.0, 0.0, 0.0);
+                }
+
+                float shoreDist;
+                float tide;
+                float4 profile;
+                float2 phaseSlope;
+                float underGround;
+                ShadeTideAt(place, swell, timing.x, shore, shoreDist, tide, profile, phaseSlope, underGround);
+                float trail = saturate(profile.z) * saturate(timing.y / 25.0);
+                float front = ShadeLeading(tide, profile) ? profile.w : 0.0;
+                float shallowFoam = -(shoreDist - 0.18) * 10.0;
+                float shallow = saturate(max(saturate(1.0 - ((shoreDist - 0.1) * 5.0)), shallowFoam));
+                front = saturate(shallowFoam < 1.0 ? front / (0.1 + (1.0 - saturate(shallowFoam))) : 1.0);
+
+                float intensity = max(0.0, saturate(trail - 0.03));
+                if (intensity <= 0.0)
+                {
+                    return float4(1.0, 1.0, 1.0, 0.0);
+                }
+
+                float2 offsetPos = place * 0.05;
+                float shallowFoamPow = pow(saturate(shallowFoam), 5.0);
+                float sumNoise = 0.0;
+                float sumMult = 0.0;
+                float amp = 1.0;
+                [unroll] for (int octave = 0; octave < 3; octave++)
+                {
+                    sumMult += amp;
+                    sumNoise += ShadeVoronoi(offsetPos * 0.25) * amp;
+                    offsetPos *= 2.0;
+                    amp *= 0.5 + ((1.3 - 0.5) * trail);
+                }
+
+                float threshold = (intensity * 0.4) + 0.05;
+                float noise = saturate(sumNoise / sumMult);
+                noise = saturate(noise + saturate(front) + shallowFoamPow);
+                noise = shallowFoam < 0.99 ? saturate(noise - ((1.0 - saturate(front)) * saturate(shallowFoamPow))) : 1.0;
+                float fade = 1.0 - pow(1.0 - intensity, 20.0);
+                float covered = fade * pow(saturate(1.0 - (noise / threshold)), 0.2 + ((1.0 - 0.2) * (1.0 - intensity)));
+                float4 large = float4(1.0, 1.0, 1.0, 0.6 * covered);
+                float grey = 0.1 + ((0.4 - 0.1) * intensity);
+                float fine = pow(saturate(intensity * (1.0 - pow(saturate(front), 3.0))), 1.3) * 0.4 * (1.0 - shallow);
+                float4 small = float4(grey, grey, grey, fine);
+                return small + ((large - small) * saturate(large.w + (1.0 - small.w)));
             }
             """;
     }
 
     /// <summary>The registers the mesh and the drawing set before the program's own - ShadeProgram's Fixed.</summary>
-    private const int FixedRegisters = ShadeProgram.WaterFlow + 1;
+    private const int FixedRegisters = ShadeProgram.WaterSwell + 1;
 
     /// <summary>One step as one statement - ShadeProgram.Run's case for its op.</summary>
     private static void Step(StringBuilder hlsl, ShadeProgram program, ShadeProgram.Step step, ref int parallax)
@@ -557,7 +1041,8 @@ public static class ShadeHlsl
 
             // A LEVEL THAT IS NOT A NUMBER READS THE TOP ONE, and max gives the number where one is not.
             ShadeProgram.Op.SampleLod => Read(program, step.Extra, $"ShadeSheet{Invariant(step.Extra)}.SampleLevel(wrap, {a}.xy, max({b}.x, 0.0))"),
-            ShadeProgram.Op.Waves => $"ShadeWaves({a}.xy, {b}.xy, {c}.x)",
+            ShadeProgram.Op.Waves => $"ShadeWaves({a}.xy, {b}, {c}.xy, {d}, {e})",
+            ShadeProgram.Op.Foam => $"ShadeFoam({a}.xy, {b}.xy, {c}, {d})",
             _ => null,
         };
 
@@ -625,6 +1110,36 @@ public static class ShadeHlsl
         {
             hlsl.Append("    ").Append(to).Append(" = ").Append(to).AppendLine(".xxxx;");
         }
+    }
+
+    /// <summary>One output of a spray step - see <see cref="SprayLibrary"/>: its sum once, in a variable, and the output read from it.</summary>
+    private static void Spray(
+        StringBuilder hlsl, ShadeProgram program, ShadeProgram.Step step, int[] versions, Dictionary<(int, int, int, int, int, int, int, int, int), string> sprayed)
+    {
+        int sheets = step.Extra & 0xFFFFFF;
+        var key = (step.A, step.B, step.C, step.D, sheets, versions[step.A], versions[step.B], versions[step.C], versions[step.D]);
+        if (!sprayed.TryGetValue(key, out string? name))
+        {
+            name = "spray" + Invariant(sprayed.Count);
+            sprayed[key] = name;
+            hlsl.Append("    ShadeSprayOut ").Append(name).Append(" = ShadeSpray(")
+                .Append(R(step.A)).Append(".xyz, ").Append(R(step.B)).Append(".xyz, ").Append(R(step.C)).Append(", ").Append(R(step.D)).Append(", wrap");
+            for (var part = 0; part < 3; part++)
+            {
+                int sheet = (sheets >> (part * 8)) & 0xFF;
+                hlsl.Append(", ShadeSheet").Append(Invariant(sheet)).Append(", ").Append(Truth(program.Textures[sheet].Srgb));
+            }
+
+            hlsl.AppendLine(");");
+        }
+
+        string field = (step.Extra >> 24) switch
+        {
+            ShadeProgram.SprayColour => "colour",
+            ShadeProgram.SprayNormal => "normalAo",
+            _ => "wetGloss",
+        };
+        hlsl.Append("    ").Append(R(step.To)).Append(" = ").Append(name).Append('.').Append(field).AppendLine(";");
     }
 
     /// <summary>

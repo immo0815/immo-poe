@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Numerics;
 using System.Text;
 using PoEformance.Game.Files;
 
@@ -66,7 +67,33 @@ public static class PictureProbe
             lines.Add(line.ToString());
         }
 
+        foreach (ProbeWater water in probe.Waters)
+        {
+            lines.Add(Watered(water));
+        }
+
         return lines;
+    }
+
+    /// <summary>
+    /// A water surface lit the game's way at the pixel: where it stood, how far its waves' normal leans from its own, and what its
+    /// reflection of the picture met - see <see cref="ProbeWater"/>.
+    /// </summary>
+    public static string Watered(ProbeWater water)
+    {
+        float lean = MathF.Acos(Math.Clamp(Vector3.Dot(Vector3.Normalize(water.Normal), water.Waves), -1f, 1f)) * (180f / MathF.PI);
+        var line = new StringBuilder(240);
+        line.Append("  water at depth ").Append(Number(water.Depth))
+            .Append(Say($" · at ({Number(water.Place.X)}, {Number(water.Place.Y)}, {Number(water.Place.Z)}) as drawn"))
+            .Append(Say($" · its waves lean {lean:F1} degrees from its surface"))
+            .Append(water.Sun < 1f ? Say($" · in the sun's shadow, {Fraction(water.Sun)} of it reaching") : " · in the sun");
+        string said = water.Step switch
+        {
+            -2 => " · its reflection of the picture not cast (the light's water switches, or no solid part kept)",
+            -1 => " · its reflection met nothing: the environment alone, the ray " + Way(water.Reflected),
+            _ => Say($" · its reflection met the solid picture at step {water.Step}, pixel {water.HitX}, {water.HitY}, depth {Number(water.HitDepth)} ({Number(water.HitDepth - water.Depth)} past the water), colour {(int)water.HitColour.X}, {(int)water.HitColour.Y}, {(int)water.HitColour.Z}; the environment's share {Fraction(water.Environment)}, the light it added {water.Added.X:F3}, {water.Added.Y:F3}, {water.Added.Z:F3}; the ray ") + Way(water.Reflected),
+        };
+        return line.Append(said).ToString();
     }
 
     /// <summary>
@@ -155,6 +182,7 @@ public static class PictureProbe
         Seen.Clear => "mixed with alpha 0",
         Seen.Mixed => "mixed, alpha " + Fraction(fragment.Cover),
         Seen.Added => "added, alpha " + Fraction(fragment.Cover),
+        Seen.Folded => "behind a nearer crossing of the lifted water, which is drawn alone",
         _ => fragment.Seen.ToString(),
     };
 
@@ -183,6 +211,8 @@ public static class PictureProbe
     private static string Tail(string path) => path[(path.LastIndexOfAny(['/', '\\']) + 1)..];
 
     private static string Number(float value) => value.ToString("0.0", CultureInfo.InvariantCulture);
+
+    private static string Way(Vector3 way) => Say($"({way.X:F3}, {way.Y:F3}, {way.Z:F3})");
 
     private static string Fraction(float value) => value.ToString("0.00", CultureInfo.InvariantCulture);
 

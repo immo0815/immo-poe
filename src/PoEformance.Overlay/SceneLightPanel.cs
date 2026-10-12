@@ -109,7 +109,11 @@ public sealed class SceneLightPanel : IMovableSun
     private bool _grade = true;
     private bool _glints = true;
     private bool _reflection = true;
+    private bool _mirroring = true;
     private float _lift = 1f;
+
+    /// <summary>How far the ocean ripples' wind is turned from the area's own way, in degrees - see <see cref="Water"/>.</summary>
+    private float _windTurn;
     private int _ambient = (int)SceneAmbient.Cube;
     private int _cubeReading;
     private int _pointShape;
@@ -243,6 +247,7 @@ public sealed class SceneLightPanel : IMovableSun
             Mirror = _mirror,
             WaterGlints = _glints,
             WaterReflection = _reflection,
+            WaterScene = _mirroring,
             WaterLift = _lift,
             CubeTurn = SceneLight.CubeTurnFrom(env.HorAngle ?? 0f, env.VertAngle ?? 0f, (SceneLight.CubeReading)_cubeReading),
             CubeBrightness = env.EnvBrightness ?? 1f,
@@ -300,11 +305,15 @@ public sealed class SceneLightPanel : IMovableSun
         row = new Row(right, start);
         Switch("glints##scene-glints", ref _glints,
             "The waves' glints: every light's GGX lobe on the water, with the waves' own normal - the engine's gloss of 0.99 and the area's reflectiveness"
-            + " (water.reflectiveness, 0.03 where the file sets none) as the specular colour. The waves are the engine's eight octaves over a noise of this"
-            + " tool's own: the engine's ripple texture is not read.", row, "reflection");
+            + " (water.reflectiveness, 0.03 where the file sets none) as the specular colour. The waves are the engine's ocean ripples, three octaves"
+            + " rolling in the wind over a noise of this tool's own: the engine's ripple texture is not read.", row, "reflection");
         Switch("reflection##scene-reflection", ref _reflection,
             "The waves' reflection: the environment's specular cube (environment_mapping.specular_cube, its level of 128) along the view turned about"
-            + " the waves' normal, lit as the cube ambient is and weighed by the gloss's Fresnel. With the flat ambient it reflects the flat ambient.", row, null);
+            + " the waves' normal, lit as the cube ambient is and weighed by the gloss's Fresnel. With the flat ambient it reflects the flat ambient.", row, "scene");
+        Switch("scene##scene-mirror", ref _mirroring,
+            "The waves' reflection takes in the picture itself where its ray meets it - the engine's screen-space reflection (CastScreenRay):"
+            + " twenty steps of a fiftieth of the picture, a surface hit where it lies in front of the ray by less than fifty units, its share fading"
+            + " into the cube's the farther the hit. The ship and the pier in the water. Only with reflection on.", row, null);
         float liftWidth = ImGui.GetFontSize() * 7f;
         OverlayLayout.Flow(ImGui.CalcTextSize("lift").X + ImGui.GetStyle().ItemSpacing.X + liftWidth, right, start);
         Named("lift");
@@ -317,6 +326,19 @@ public sealed class SceneLightPanel : IMovableSun
         OverlayLayout.Hint("How far the waves lift the water's surface: one is the height the engine's octaves give it, nought a flat surface."
             + " NOT THE ENGINE'S: its ocean is a flat mesh and the waves raise it per pixel only, which the game's camera, always above, never shows"
             + " - the book's can look along the water. The water's mesh is split to edges of 48 units for it.");
+
+        float windWidth = ImGui.GetFontSize() * 7f;
+        OverlayLayout.Flow(ImGui.CalcTextSize("wind").X + ImGui.GetStyle().ItemSpacing.X + windWidth, right, start);
+        Named("wind");
+        ImGui.SetNextItemWidth(windWidth);
+        if (ImGui.SliderFloat("##scene-wind", ref _windTurn, -180f, 180f, "%.0f°"))
+        {
+            _version++;
+        }
+
+        OverlayLayout.Hint("Which way the wind rolls the ocean's ripples: the area's own way (water.wind_direction_angle) turned by this."
+            + " CHOSEN until measured: where the file sets none - Port sets none - the engine's default is not yet read, and the way the"
+            + " former constants roll them, along x, stands for it. Hold it against the game's ripples.");
 
         start = Label("ambient", column);
         ImGui.SetNextItemWidth(ComboWidth("cube ambient"));
@@ -922,7 +944,7 @@ public sealed class SceneLightPanel : IMovableSun
                     : EnvironmentSettings.Read(path, _read(path.Replace('\\', '/').Trim())));
         }
 
-        return _water;
+        return _windTurn == 0f ? _water : _water with { WindAngle = _water.WindAngle + (_windTurn * MathF.PI / 180f) };
     }
 
     /// <summary>The .env in use: the picked one, else the area's.</summary>

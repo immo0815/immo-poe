@@ -269,6 +269,10 @@ public static class StagedModels
             // A ROOM'S OWN ACCOUNT, kept beside the monster's: what of its pieces, ground and doodads drew is said nowhere else.
             StageMove = tile.Kind == ModelKind.Room ? tile.Move : string.Empty,
             DoodadFiles = tile.DoodadFiles,
+
+            // THE TILE'S SHORE, made with what stands in its sea once its materials were compiled - the monster set on the stage is
+            // no shore, and the tile lies where it was (the pile's identity).
+            Shore = tile.Shore,
         };
     }
 

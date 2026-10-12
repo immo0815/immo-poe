@@ -238,10 +238,44 @@ public sealed class SkeletonPose
             return;
         }
 
-        int count = Math.Min(mesh.Positions.Length, Math.Min(positions.Length, normals.Length));
-        int bones = _skin.Length;
+        Moved(mesh, positions, normals, 0, Math.Min(mesh.Positions.Length, Math.Min(positions.Length, normals.Length)));
+    }
 
-        for (var one = 0; one < count; one++)
+    /// <summary>
+    /// <see cref="Move(SkinnedMesh?, Span{Vector3}, Span{Vector3})"/> on every core where the mesh is large - each vertex is its own, so the pose is the same to the bit.
+    /// </summary>
+    /// <remarks>
+    /// A BOSS IS TENS OF THOUSANDS OF VERTICES, each up to four bones twice over, and this ran on the
+    /// render thread alone on every frame of a playing animation.
+    /// </remarks>
+    public void Move(SkinnedMesh? mesh, Vector3[] positions, Vector3[] normals)
+    {
+        ArgumentNullException.ThrowIfNull(positions);
+        ArgumentNullException.ThrowIfNull(normals);
+        if (mesh is not { Ready: true })
+        {
+            return;
+        }
+
+        int count = Math.Min(mesh.Positions.Length, Math.Min(positions.Length, normals.Length));
+        int pieces = Math.Min(Environment.ProcessorCount, count / ParallelVertices);
+        if (pieces < 2)
+        {
+            Moved(mesh, positions, normals, 0, count);
+            return;
+        }
+
+        Parallel.For(0, pieces, piece => Moved(mesh, positions, normals, (int)((long)count * piece / pieces), (int)((long)count * (piece + 1) / pieces)));
+    }
+
+    /// <summary>The fewest vertices a core is handed a share of - below twice this a pose is moved on the calling thread.</summary>
+    private const int ParallelVertices = 4096;
+
+    /// <summary>The vertices from one to another moved - <see cref="Move(SkinnedMesh?, Span{Vector3}, Span{Vector3})"/>'s loop.</summary>
+    private void Moved(SkinnedMesh mesh, Span<Vector3> positions, Span<Vector3> normals, int from, int to)
+    {
+        int bones = _skin.Length;
+        for (int one = from; one < to; one++)
         {
             Vector3 at = mesh.Positions[one];
             Vector3 facing = one < mesh.Normals.Length ? mesh.Normals[one] : Vector3.UnitZ;

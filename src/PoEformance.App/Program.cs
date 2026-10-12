@@ -530,6 +530,9 @@ internal static class Program
     /// <summary>What an environment is called wherever it is - the env survey reads every one.</summary>
     private const string EnvironmentExtension = ".env";
 
+    /// <summary>What a texture is called wherever it is - the capture's water textures part looks for the engine's ripple among them.</summary>
+    private const string TextureExtension = ".dds";
+
     /// <summary>What a shader source is called wherever it is - the tile dump searches them for the ground's coordinates.</summary>
     private static readonly string[] ShaderExtensions = [".ffx", ".hlsl", ".hlsli", ".fxh"];
 
@@ -2379,6 +2382,13 @@ internal static class Program
         PoEformance.Game.Files.GameFiles? installed = opening.Files;
         Console.WriteLine($"install  {opening.Why}");
 
+        // THE ENGINE'S OWN WATER LOOKUPS - its ripple texture and its swell's cross-section - read once, before anything is
+        // drawn, each taken only where it reads as the water pass's shaders read it (WaterLookups); the stand-ins stay otherwise.
+        PoEformance.Game.Files.WaterLookups waterLookups =
+            PoEformance.Game.Files.WaterLookups.Read(installed is null ? null : installed.Read);
+        PoEformance.Game.Files.ShadeProgram.Use(waterLookups);
+        Console.WriteLine($"water    {waterLookups.Summary}");
+
         // Each item's own picture. The item carries the PATH of its art, and that file is in
         // the game's own packed bundles - so the install is read for it, which needs nobody's
         // permission and works offline. poe2db is the fallback for whatever that cannot give
@@ -3429,15 +3439,21 @@ internal static class Program
                     // AND EVERY ENVIRONMENT, for the env survey: the keys a sun is given in, which no
                     // file read so far had. Only the paths again.
                     new PoEformance.Game.Files.BundleIndex.WalkPlace(string.Empty, [EnvironmentExtension]),
+
+                    // AND THE TEXTURES WHOSE PATHS NAME THE WATER, for the capture's search for the engine's ripple
+                    // texture - only those, the rest rejected on the path's bytes.
+                    new PoEformance.Game.Files.BundleIndex.WalkPlace(
+                        string.Empty, [TextureExtension], PoEformance.Features.CaptureWaterTextures.Words),
                 ]);
                 List<string> tiles = [.. found[0].Where(one => !one.EndsWith(TilesetExtension, StringComparison.OrdinalIgnoreCase))];
                 List<string> sets = [.. found[0].Where(one => one.EndsWith(TilesetExtension, StringComparison.OrdinalIgnoreCase))];
                 List<string> shaders = [.. found[1].Concat(found[2]).Distinct(StringComparer.OrdinalIgnoreCase)];
-                Console.WriteLine($"tiles: {tiles.Count} tile definitions and rooms, {sets.Count} tilesets, {shaders.Count} shader sources, {found[3].Count} materials, {found[4].Count} environments in the install");
+                Console.WriteLine($"tiles: {tiles.Count} tile definitions and rooms, {sets.Count} tilesets, {shaders.Count} shader sources, {found[3].Count} materials, {found[4].Count} environments, {found[5].Count} water textures in the install");
                 overlay.TileSets = sets;
                 overlay.ShaderFiles = shaders;
                 overlay.MaterialFiles = found[3];
                 overlay.EnvironmentFiles = found[4];
+                overlay.WaterTextureFiles = found[5];
                 overlay.TileFiles = tiles;
             });
         }

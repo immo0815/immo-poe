@@ -30,6 +30,8 @@ namespace PoEformance.Gpu;
 /// <param name="Dust">The area's dust colour a program reads, or null for the assumed one - MeshPicture.Canvas.Dust.</param>
 /// <param name="Water">The area's open water a program reads, or null for the engine's default - MeshPicture.Canvas.Water.</param>
 /// <param name="Sharp">Whether textures are read anisotropically - the one way the card is let draw a picture the processor does not; see <see cref="ModelGpu"/>.</param>
+/// <param name="PoseFrom">The first vertex a pose moves: those before it are the mesh's own in <paramref name="Positions"/> and <paramref name="Normals"/>, and stay so while the arrays are the same - a stage's, under the monster posed on it.</param>
+/// <param name="PoseKey">Which pose the arrays hold: one key on two draws of the same arrays says nothing moved between them, and nought that nothing is known - the pose is then sent whole every draw.</param>
 public readonly record struct ModelScene(
     SkinnedMesh Mesh,
     float Turn = 0f,
@@ -47,7 +49,9 @@ public readonly record struct ModelScene(
     float Time = 0f,
     Vector3? Dust = null,
     bool Sharp = false,
-    WaterLook? Water = null);
+    WaterLook? Water = null,
+    int PoseFrom = 0,
+    long PoseKey = 0);
 
 /// <summary>
 /// Pictures of models drawn on the graphics card - MeshPicture's pictures, at the card's speed.
@@ -108,6 +112,13 @@ public sealed partial class ModelGpu : IDisposable
     private readonly bool _owns;
     private readonly ID3D11VertexShader _placed;
     private readonly ID3D11VertexShader _placedWaves;
+    private ID3D11Texture2D _ripples;
+    private ID3D11ShaderResourceView _rippled;
+    private WaterSheet _ripplesOf;
+    private ID3D11Texture2D _swells;
+    private ID3D11ShaderResourceView _swelled;
+    private WaterSheet _swellsOf;
+    private readonly Dictionary<ShoreField, ShoreTexture> _shores = new(ReferenceEqualityComparer.Instance);
     private readonly ID3D11PixelShader _solid;
     private readonly ID3D11PixelShader _mixed;
     private readonly ID3D11PixelShader _added;
@@ -126,9 +137,11 @@ public sealed partial class ModelGpu : IDisposable
     private readonly ID3D11BlendState _mixes;
     private readonly ID3D11BlendState _adds;
     private readonly ID3D11BlendState _least;
+    private readonly ID3D11BlendState _unseen;
     private readonly ID3D11DepthStencilState _writes;
     private readonly ID3D11DepthStencilState _stamped;
     private readonly ID3D11DepthStencilState _ignores;
+    private readonly ID3D11DepthStencilState _surfaced;
     private readonly ID3D11RasterizerState _raster;
     private readonly ProgramShaders _programs;
     private readonly int _largest;
@@ -138,6 +151,16 @@ public sealed partial class ModelGpu : IDisposable
 
     /// <summary>Each run's program shader for the drawing in hand, kept from draw to draw so a room's thousands of runs are not an array a frame.</summary>
     private ID3D11PixelShader?[] _runShaders = [];
+
+    /// <summary>What <see cref="_runShaders"/> holds the shaders of: a plan, lit or not, as of so many landed programs.</summary>
+    private (Plan Plan, bool Lit, long Landed)? _runShadersFor;
+
+    /// <summary>The last scene <see cref="Can"/> said yes to past its light, by its lists and as of so many landed programs - see Can.</summary>
+    private (SkinnedMesh Mesh, Mipmaps? Skin, IReadOnlyList<Mipmaps?>? Skins, IReadOnlyList<MaterialBlend>? Blends, IReadOnlyList<ShadeProgram?>? Shades, bool Lit, long Landed)? _canFor;
+
+    /// <summary>What the part constants hold - written again only when a run asks for something else.</summary>
+    private Vector4? _partHeld;
+
     private long _draws;
     private bool _disposed;
 
@@ -148,6 +171,10 @@ public sealed partial class ModelGpu : IDisposable
         _owns = owns;
         _placed = compiled.Placed;
         _placedWaves = compiled.PlacedWaves;
+        _ripplesOf = ShadeProgram.Ripples;
+        (_ripples, _rippled) = Sheet(device, _ripplesOf, Format.R32G32B32A32_Float);
+        _swellsOf = ShadeProgram.Swells;
+        (_swells, _swelled) = Sheet(device, _swellsOf, Format.R32G32B32A32_Float);
         _solid = compiled.Solid;
         _mixed = compiled.Mixed;
         _added = compiled.Added;
@@ -183,6 +210,14 @@ public sealed partial class ModelGpu : IDisposable
             StencilOperation.Keep, StencilOperation.Keep, StencilOperation.Replace, ComparisonFunction.NotEqual,
             StencilOperation.Keep, StencilOperation.Keep, StencilOperation.Replace, ComparisonFunction.NotEqual));
         _ignores = device.CreateDepthStencilState(new DepthStencilDescription(false, DepthWriteMask.Zero, ComparisonFunction.Always));
+
+        // THE LIFTED WATER AS ONE SURFACE - see Surfaced: its nearest crossing written by a walk that draws no colour, then drawn
+        // where a fragment is that crossing, once a pixel.
+        _unseen = device.CreateBlendState(Unseen());
+        _surfaced = device.CreateDepthStencilState(new DepthStencilDescription(
+            true, false, ComparisonFunction.LessEqual, true, 0xFF, 0xFF,
+            StencilOperation.Keep, StencilOperation.Keep, StencilOperation.Replace, ComparisonFunction.NotEqual,
+            StencilOperation.Keep, StencilOperation.Keep, StencilOperation.Replace, ComparisonFunction.NotEqual));
         _raster = device.CreateRasterizerState(new RasterizerDescription(CullMode.None, FillMode.Solid));
         _largest = device.FeatureLevel >= FeatureLevel.Level_11_0 ? 16384 : 8192;
         FeatureLevel = device.FeatureLevel;
@@ -287,6 +322,18 @@ public sealed partial class ModelGpu : IDisposable
             return false;
         }
 
+        // THE SAME LISTS AS THE LAST YES, nothing landed since: the same answer, without walking a room's
+        // thousands of runs again every frame. A program's shader, once in, stays while its program does.
+        _programs.Pump();
+        bool lit = scene.Light is not null;
+        if (_canFor is { } was && ReferenceEquals(was.Mesh, scene.Mesh) && ReferenceEquals(was.Skin, scene.Skin)
+            && ReferenceEquals(was.Skins, scene.Skins) && ReferenceEquals(was.Blends, scene.Blends) && ReferenceEquals(was.Shades, scene.Shades)
+            && was.Lit == lit && was.Landed == _programs.Landed)
+        {
+            why = string.Empty;
+            return true;
+        }
+
         foreach (Mipmaps? one in Worn(scene))
         {
             if (one is not null && (one.Top.Width > _largest || one.Top.Height > _largest))
@@ -302,7 +349,6 @@ public sealed partial class ModelGpu : IDisposable
             return true;
         }
 
-        _programs.Pump();
         Plan plan = Buffers(mesh).Planned(scene);
 
         // A GROUND LAYER MEASURES ITSELF AGAINST A COPY OF THE DEPTH, and a depth buffer can be copied
@@ -349,6 +395,7 @@ public sealed partial class ModelGpu : IDisposable
             return false;
         }
 
+        _canFor = (mesh, scene.Skin, scene.Skins, scene.Blends, scene.Shades, lit, _programs.Landed);
         why = string.Empty;
         return true;
     }
@@ -382,9 +429,14 @@ public sealed partial class ModelGpu : IDisposable
         Vector3[] positions = mesh.Positions;
         bool posed = scene.Positions is { } moved && moved.Length == mesh.Positions.Length
             && scene.Normals is { } turned && turned.Length == mesh.Normals.Length;
+
+        // WHICH VERTICES THE PICTURE IS OF, for the shadow kept from them: nought the mesh's own, a pose
+        // by its key, and -1 a pose nothing is known of - never kept.
+        long pose = 0;
         if (posed)
         {
-            buffers.Pose(_device, context, scene.Positions!, scene.Normals!);
+            buffers.Pose(_device, context, scene.Positions!, scene.Normals!, scene.PoseFrom, scene.PoseKey);
+            pose = scene.PoseKey > 0 ? scene.PoseKey : -1;
         }
 
         Plan plan = buffers.Planned(scene);
@@ -398,21 +450,28 @@ public sealed partial class ModelGpu : IDisposable
             _runShaders = new ID3D11PixelShader?[plan.Runs.Length];
         }
 
+        // KEPT FOR THE SAME PLAN, light and landed programs - a room's thousands of runs looked up once.
         ID3D11PixelShader?[] shaders = _runShaders;
-        Array.Clear(shaders, 0, plan.Runs.Length);
-        for (var at = 0; at < plan.Runs.Length; at++)
+        if (_runShadersFor is not { } held || !ReferenceEquals(held.Plan, plan) || held.Lit != (light is not null) || held.Landed != _programs.Landed)
         {
-            Run run = plan.Runs[at];
-            if (run.Shade >= 0 && run.Blend is MaterialBlend.Opaque or MaterialBlend.Cutout or MaterialBlend.Alpha)
+            _runShadersFor = null;
+            Array.Clear(shaders, 0, plan.Runs.Length);
+            for (var at = 0; at < plan.Runs.Length; at++)
             {
-                shaders[at] = _programs.Of(plan.Programs[run.Shade], Pass(run, light), out _, out string failed);
-                if (shaders[at] is null)
+                Run run = plan.Runs[at];
+                if (run.Shade >= 0 && run.Blend is MaterialBlend.Opaque or MaterialBlend.Cutout or MaterialBlend.Alpha)
                 {
-                    Resolved(target);
-                    why = failed.Length > 0 ? failed : "a material's shader is still compiling for the card";
-                    return false;
+                    shaders[at] = _programs.Of(plan.Programs[run.Shade], Pass(run, light), out _, out string failed);
+                    if (shaders[at] is null)
+                    {
+                        Resolved(target);
+                        why = failed.Length > 0 ? failed : "a material's shader is still compiling for the card";
+                        return false;
+                    }
                 }
             }
+
+            _runShadersFor = (plan, light is not null, _programs.Landed);
         }
 
         // MESHPICTURE'S CAMERA ON THE CARD'S CLIP SPACE: a point the processor puts at pixel
@@ -448,6 +507,9 @@ public sealed partial class ModelGpu : IDisposable
             Dust = new Vector4(scene.Dust ?? EnvironmentSettings.AssumedDust, 0f),
             Water = (scene.Water ?? WaterLook.EngineDefault).ColourRegister,
             Flow = (scene.Water ?? WaterLook.EngineDefault).FlowRegister with { W = lift },
+            Wind = (scene.Water ?? WaterLook.EngineDefault).WindRegister,
+            Shore = (scene.Water ?? WaterLook.EngineDefault).ShoreRegister,
+            Swell = (scene.Water ?? WaterLook.EngineDefault).SwellRegister,
         });
 
         context.RSSetState(_raster);
@@ -464,10 +526,21 @@ public sealed partial class ModelGpu : IDisposable
         context.PSSetSampler(0, scene.Sharp ? _sharp : _wrap);
         context.PSSetShaderResource(1, _tables.View);
 
+        // THE RIPPLE TEXTURE, THE SWELL'S AND THE ROOM'S SHORE the waves read, in the pixel and the vertex shader alike -
+        // the first two made again should the engine's own have been handed over since (ShadeProgram.Use).
+        Sheets();
+        context.PSSetShaderResource(ModelShaders.RippleSlot, _rippled);
+        context.VSSetShaderResource(ModelShaders.RippleSlot, _rippled);
+        context.PSSetShaderResource(ModelShaders.SwellSlot, _swelled);
+        context.VSSetShaderResource(ModelShaders.SwellSlot, _swelled);
+        ID3D11ShaderResourceView? shoreView = scene.Water?.Shore is { } shore ? Shored(shore).View : null;
+        context.PSSetShaderResource(ModelShaders.ShoreSlot, shoreView!);
+        context.VSSetShaderResource(ModelShaders.ShoreSlot, shoreView!);
+
         // THE SUN'S SHADOW MAP BEFORE THE PICTURE, into its own target - see Lit.
         if (light is not null)
         {
-            Lit(light, buffers, plan, view, placed, still: !posed);
+            Lit(light, buffers, plan, view, placed, pose, posed ? scene.PoseFrom : 0);
         }
 
         context.OMSetRenderTargets(target.AccumulatedTarget, target.Depth);
@@ -478,12 +551,19 @@ public sealed partial class ModelGpu : IDisposable
         // ones in the mesh's order, testing it and writing none, as MeshPicture.Drawing.Band does.
         context.OMSetBlendState(_covers);
         context.OMSetDepthStencilState(_writes);
+        ID3D11PixelShader? current = null;
         for (var at = 0; at < plan.Runs.Length; at++)
         {
             Run run = plan.Runs[at];
             if (run.Blend is MaterialBlend.Opaque or MaterialBlend.Cutout)
             {
-                context.PSSetShader(shaders[at] ?? (light is null ? _solid : _scened));
+                ID3D11PixelShader shader = shaders[at] ?? (light is null ? _solid : _scened);
+                if (!ReferenceEquals(shader, current))
+                {
+                    context.PSSetShader(shader);
+                    current = shader;
+                }
+
                 Drawn(run, plan);
             }
         }
@@ -497,13 +577,37 @@ public sealed partial class ModelGpu : IDisposable
                 context.PSSetShaderResource(ModelShaders.BehindSlot, target.Behind);
             }
 
+            // AND ITS COLOUR, where the water reflects the picture itself - see ScreenReflection.
+            if (light is { WaterReflection: true, WaterScene: true } && Array.Exists(plan.Programs, one => one.HasWaves))
+            {
+                context.PSSetShaderResource(ModelShaders.OpaqueSlot, target.Saw(context));
+            }
+
             var owner = -1;
             var lifted = false;
+
+            // THE LIFTED WATER AS ONE SURFACE where its first run comes - see Surfaced. A card that cannot copy its
+            // depth back draws it as any mixed shape.
+            bool surface = lift > 0f && FeatureLevel >= FeatureLevel.Level_10_1 && Array.Exists(plan.Runs, one => Sea(one, plan));
+            var surfaced = false;
             for (var at = 0; at < plan.Runs.Length; at++)
             {
                 Run run = plan.Runs[at];
                 if (run.Blend is not (MaterialBlend.Alpha or MaterialBlend.Additive))
                 {
+                    continue;
+                }
+
+                if (surface && Sea(run, plan))
+                {
+                    if (!surfaced)
+                    {
+                        surfaced = true;
+                        Surfaced(context, target, plan, shaders, at, ref current);
+                        owner = -1;
+                        lifted = true;
+                    }
+
                     continue;
                 }
 
@@ -521,7 +625,12 @@ public sealed partial class ModelGpu : IDisposable
                 }
 
                 context.OMSetBlendState(run.Blend == MaterialBlend.Additive ? _adds : _mixes);
-                context.PSSetShader(shaders[at] ?? (run.Blend == MaterialBlend.Additive ? _added : _mixed));
+                ID3D11PixelShader shader = shaders[at] ?? (run.Blend == MaterialBlend.Additive ? _added : _mixed);
+                if (!ReferenceEquals(shader, current))
+                {
+                    context.PSSetShader(shader);
+                    current = shader;
+                }
 
                 // THE WATER LIFTED BY ITS WAVES - MeshPicture.Lifted - where the game light asks for it.
                 bool waves = lift > 0f && run.Shade >= 0 && plan.Programs[run.Shade].HasWaves;
@@ -540,6 +649,67 @@ public sealed partial class ModelGpu : IDisposable
         Forget();
         why = string.Empty;
         return true;
+    }
+
+    /// <summary>Whether a run is the lifted water's - drawn as one surface where the light lifts it (MeshPicture.Drawing's Surface).</summary>
+    private static bool Sea(Run run, Plan plan) => run.Blend == MaterialBlend.Alpha && run.Shade >= 0 && plan.Programs[run.Shade].HasWaves;
+
+    /// <summary>
+    /// The lifted water's runs from <paramref name="from"/> on, as one surface: only its nearest crossing of each pixel drawn - MeshPicture.Drawing's Surface, on the card.
+    /// </summary>
+    /// <remarks>
+    /// A WALK THAT DRAWS NO COLOUR writes the nearest crossing in front of the solid into the depth - the same vertex shader as the
+    /// drawing after it, so the same depth to the bit - then every run is drawn where its fragment is that crossing, once a pixel by
+    /// the stencil, as the processor draws only the triangle that won. Then the solid depth goes back from its copy
+    /// (ModelTarget.Behind), stencil and all, for the translucent runs after the water, which test against the solid alone as the
+    /// processor's do.
+    /// </remarks>
+    private void Surfaced(ID3D11DeviceContext context, ModelTarget target, Plan plan, ID3D11PixelShader?[] shaders, int from, ref ID3D11PixelShader? current)
+    {
+        if (!plan.Behind)
+        {
+            target.Kept(context);
+        }
+
+        context.VSSetShader(_placedWaves);
+        context.PSSetShader((ID3D11PixelShader)null!);
+        current = null;
+        context.OMSetBlendState(_unseen);
+        context.OMSetDepthStencilState(_writes);
+        for (int at = from; at < plan.Runs.Length; at++)
+        {
+            Run run = plan.Runs[at];
+            if (Sea(run, plan))
+            {
+                context.DrawIndexed(run.Count * 3, run.First * 3, 0);
+            }
+        }
+
+        context.ClearDepthStencilView(target.Depth, DepthStencilClearFlags.Stencil, 1f, 0);
+        context.OMSetDepthStencilState(_surfaced, 1);
+        context.OMSetBlendState(_mixes);
+        for (int at = from; at < plan.Runs.Length; at++)
+        {
+            Run run = plan.Runs[at];
+            if (!Sea(run, plan))
+            {
+                continue;
+            }
+
+            ID3D11PixelShader shader = shaders[at] ?? _mixed;
+            if (!ReferenceEquals(shader, current))
+            {
+                context.PSSetShader(shader);
+                current = shader;
+            }
+
+            Drawn(run, plan);
+        }
+
+        // THE DEPTH TAKEN OFF THE OUTPUT WHILE IT IS WRITTEN BACK, and bound again.
+        context.OMSetRenderTargets(target.AccumulatedTarget, null);
+        target.Back(context);
+        context.OMSetRenderTargets(target.AccumulatedTarget, target.Depth);
     }
 
     /// <summary>
@@ -593,9 +763,11 @@ public sealed partial class ModelGpu : IDisposable
         _programs.Dispose();
         DisposeLight();
         _raster.Dispose();
+        _surfaced.Dispose();
         _ignores.Dispose();
         _stamped.Dispose();
         _writes.Dispose();
+        _unseen.Dispose();
         _least.Dispose();
         _adds.Dispose();
         _mixes.Dispose();
@@ -614,6 +786,16 @@ public sealed partial class ModelGpu : IDisposable
         _added.Dispose();
         _mixed.Dispose();
         _solid.Dispose();
+        _rippled.Dispose();
+        _ripples.Dispose();
+        _swelled.Dispose();
+        _swells.Dispose();
+        foreach (ShoreTexture one in _shores.Values)
+        {
+            one.Dispose();
+        }
+
+        _shores.Clear();
         _placedWaves.Dispose();
         _placed.Dispose();
         if (_owns)
@@ -645,8 +827,20 @@ public sealed partial class ModelGpu : IDisposable
             _sheetsBound = Math.Max(_sheetsBound, sheets.Count);
         }
 
-        Written(_part, new Vector4(view is null ? 0f : 1f, run.Blend == MaterialBlend.Cutout ? MeshPicture.CutoutAlpha : -1f, 0f, 0f));
+        Part(new Vector4(view is null ? 0f : 1f, run.Blend == MaterialBlend.Cutout ? MeshPicture.CutoutAlpha : -1f, 0f, 0f));
         _context.DrawIndexed(run.Count * 3, run.First * 3, 0);
+    }
+
+    /// <summary>
+    /// The part constants a run is drawn with, written only where they change - a room's runs mostly ask for the same two, and each write was a map of the buffer.
+    /// </summary>
+    private void Part(Vector4 value)
+    {
+        if (_partHeld != value)
+        {
+            Written(_part, value);
+            _partHeld = value;
+        }
     }
 
     /// <summary>
@@ -694,6 +888,19 @@ public sealed partial class ModelGpu : IDisposable
         _context.Unmap(buffer, 0);
     }
 
+    /// <summary>A room's shore on the card, uploaded on first use.</summary>
+    private ShoreTexture Shored(ShoreField shore)
+    {
+        if (!_shores.TryGetValue(shore, out ShoreTexture? texture))
+        {
+            texture = new ShoreTexture(_device, shore);
+            _shores[shore] = texture;
+        }
+
+        texture.Used = _draws;
+        return texture;
+    }
+
     /// <summary>A mesh's buffers, uploaded on first use.</summary>
     private MeshBuffers Buffers(SkinnedMesh mesh)
     {
@@ -732,6 +939,16 @@ public sealed partial class ModelGpu : IDisposable
         {
             one.Value.Dispose();
             _meshes.Remove(one.Key);
+
+            // NOR KEPT BY THE ANSWERS about it - a stage is millions of vertices.
+            _canFor = null;
+            _runShadersFor = null;
+        }
+
+        foreach (KeyValuePair<ShoreField, ShoreTexture> one in _shores.Where(one => _draws - one.Value.Used > Kept).ToArray())
+        {
+            one.Value.Dispose();
+            _shores.Remove(one.Key);
         }
 
         foreach (KeyValuePair<Mipmaps, SkinTexture> one in _skins.Where(one => _draws - one.Value.Used > Kept).ToArray())
@@ -831,6 +1048,9 @@ public sealed partial class ModelGpu : IDisposable
         public Vector4 Dust;
         public Vector4 Water;
         public Vector4 Flow;
+        public Vector4 Wind;
+        public Vector4 Shore;
+        public Vector4 Swell;
     }
 
     private sealed record Compiled(
@@ -926,17 +1146,131 @@ public sealed partial class ModelGpu : IDisposable
         /// <summary>The sun's shadow map last drawn for this mesh - see ModelGpu.Lit.</summary>
         public ShadowTarget? Shadow { get; set; }
 
-        /// <summary>What <see cref="Shadow"/> was drawn for, kept only while the mesh stands still - the canvas's rule.</summary>
-        public (Vector3 Direction, int Side, ShadowFrame Frame)? ShadowFor { get; set; }
+        /// <summary>
+        /// What <see cref="Shadow"/> was drawn for, kept while the vertices hold still - the mesh's own (pose nought) or one pose by its key; the canvas's rule - and the casters are the same runs.
+        /// </summary>
+        public (Vector3 Direction, int Side, ShadowFrame Frame, long Pose, Plan Plan)? ShadowFor { get; set; }
 
-        /// <summary>A pose's vertices and normals written over the moving copies, made the first time.</summary>
-        public void Pose(ID3D11Device device, ID3D11DeviceContext context, Vector3[] positions, Vector3[] normals)
+        /// <summary>The stage's own shadow, without the monster posed on it - see ModelGpu.Staged.</summary>
+        public ShadowTarget? StageShadow { get; set; }
+
+        /// <summary>What <see cref="StageShadow"/> was drawn for: the runs, their frame and the first triangle that moves.</summary>
+        public (Plan Plan, ShadowFrame Frame, int Split)? StageShadowFor { get; set; }
+
+        /// <summary>The arrays and key last sent to the pose's buffers - see <see cref="Pose"/>.</summary>
+        private (Vector3[] Positions, Vector3[] Normals, long Key)? _sent;
+
+        private (int From, int Split)? _split;
+        private (Vector3 Direction, int From, ShadowBounds Bounds)? _stageBounds;
+        private (Plan Plan, int Split, Run[] Stage, Run[] Moving)? _parted;
+
+        /// <summary>
+        /// A pose's vertices and normals on the card: whole the first time and for new arrays, the moved part alone for the same arrays again, and nothing where their key says nothing moved.
+        /// </summary>
+        /// <returns>Whether anything was sent.</returns>
+        /// <remarks>
+        /// A STAGE IS MILLIONS OF VERTICES AND THE MONSTER ON IT TENS OF THOUSANDS: both arrays were sent
+        /// whole every frame - 55 megabytes a frame at Port's harbour - for the slice that alone had moved.
+        /// The buffers are the card's own (default usage), made from the arrays, and a frame writes the
+        /// slice from <paramref name="from"/> on (<see cref="ModelScene.PoseFrom"/>'s promise).
+        /// </remarks>
+        public bool Pose(ID3D11Device device, ID3D11DeviceContext context, Vector3[] positions, Vector3[] normals, int from, long key)
         {
-            int bytes = positions.Length * 12;
-            PosedPositions ??= device.CreateBuffer(bytes, BindFlags.VertexBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
-            PosedNormals ??= device.CreateBuffer(bytes, BindFlags.VertexBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
-            Copied(context, PosedPositions, positions);
-            Copied(context, PosedNormals, normals);
+            if (PosedPositions is null || PosedNormals is null)
+            {
+                PosedPositions = device.CreateBuffer<Vector3>(positions, BindFlags.VertexBuffer, ResourceUsage.Default);
+                PosedNormals = device.CreateBuffer<Vector3>(normals, BindFlags.VertexBuffer, ResourceUsage.Default);
+                _sent = (positions, normals, key);
+                return true;
+            }
+
+            bool same = _sent is { } was && ReferenceEquals(was.Positions, positions) && ReferenceEquals(was.Normals, normals);
+            if (same && key != 0 && _sent!.Value.Key == key)
+            {
+                return false;
+            }
+
+            int first = same ? Math.Clamp(from, 0, positions.Length) : 0;
+            Sent(context, PosedPositions, positions, first);
+            Sent(context, PosedNormals, normals, first);
+            _sent = (positions, normals, key);
+            return true;
+        }
+
+        /// <summary>
+        /// The first triangle of those a pose from this vertex on moves, where every triangle before it lies wholly before the vertex and every one from it wholly after - or -1 where the mesh does not part so.
+        /// </summary>
+        /// <remarks>A stage's monster is joined last (StagedModels), his vertices and triangles both - so a stage parts.</remarks>
+        public int Split(int from)
+        {
+            if (_split is { } had && had.From == from)
+            {
+                return had.Split;
+            }
+
+            int[] indices = _mesh.Indices;
+            int triangles = indices.Length / 3, split = -1;
+            for (var one = 0; one < triangles; one++)
+            {
+                int at = one * 3;
+                bool moves = indices[at] >= from || indices[at + 1] >= from || indices[at + 2] >= from;
+                if (split < 0 && moves)
+                {
+                    split = one;
+                }
+
+                if (split >= 0 && (indices[at] < from || indices[at + 1] < from || indices[at + 2] < from))
+                {
+                    split = -1;
+                    break;
+                }
+            }
+
+            split = split > 0 ? split : -1;
+            _split = (from, split);
+            return split;
+        }
+
+        /// <summary>The bounds of the stage's own vertices - those before the pose's first - along the light, worked out once a direction.</summary>
+        public ShadowBounds StageBounds(int from, Vector3 direction)
+        {
+            if (_stageBounds is { } had && had.From == from && had.Direction == direction)
+            {
+                return had.Bounds;
+            }
+
+            ShadowBounds bounds = ShadowMap.Bounded(_mesh.Positions.AsSpan(0, Math.Min(from, _mesh.Positions.Length)), direction);
+            _stageBounds = (direction, from, bounds);
+            return bounds;
+        }
+
+        /// <summary>A plan's casting runs parted at a triangle: the stage's before it, the moving ones from it on.</summary>
+        public (Run[] Stage, Run[] Moving) Parted(Plan plan, int split)
+        {
+            if (_parted is { } had && ReferenceEquals(had.Plan, plan) && had.Split == split)
+            {
+                return (had.Stage, had.Moving);
+            }
+
+            var stage = new List<Run>();
+            var moving = new List<Run>();
+            foreach (Run run in plan.Casts)
+            {
+                int end = run.First + run.Count;
+                if (run.First < split)
+                {
+                    stage.Add(run with { Count = Math.Min(end, split) - run.First });
+                }
+
+                if (end > split)
+                {
+                    int first = Math.Max(run.First, split);
+                    moving.Add(run with { First = first, Count = end - first });
+                }
+            }
+
+            _parted = (plan, split, [.. stage], [.. moving]);
+            return (_parted.Value.Stage, _parted.Value.Moving);
         }
 
         /// <summary>
@@ -1095,15 +1429,20 @@ public sealed partial class ModelGpu : IDisposable
             return tints;
         }
 
-        private static unsafe void Copied(ID3D11DeviceContext context, ID3D11Buffer buffer, Vector3[] from)
+        /// <summary>The vertices from one on, written over the card's copy - a box of the buffer, its bytes from the first's to the end.</summary>
+        private static void Sent(ID3D11DeviceContext context, ID3D11Buffer buffer, Vector3[] from, int first)
         {
-            MappedSubresource mapped = context.Map(buffer, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.None);
-            from.AsSpan().CopyTo(new Span<Vector3>((void*)mapped.DataPointer, from.Length));
-            context.Unmap(buffer, 0);
+            if (first < from.Length)
+            {
+                const int stride = 12;
+                context.UpdateSubresource<Vector3>(
+                    from.AsSpan(first), buffer, 0, 0, 0, new Box(first * stride, 0, 0, from.Length * stride, 1, 1));
+            }
         }
 
         public void Dispose()
         {
+            StageShadow?.Dispose();
             Shadow?.Dispose();
             PosedNormals?.Dispose();
             PosedPositions?.Dispose();
@@ -1112,6 +1451,72 @@ public sealed partial class ModelGpu : IDisposable
             Coordinates.Dispose();
             Normals.Dispose();
             Positions.Dispose();
+        }
+    }
+
+    /// <summary>A water lookup on the card - the ripple texture or the swell's cross-section - its texels as they are, read with loads.</summary>
+    private static (ID3D11Texture2D Texture, ID3D11ShaderResourceView View) Sheet(ID3D11Device device, WaterSheet sheet, Format format) =>
+        Floats(device, sheet.Texels, sheet.Width, sheet.Height, format, sheet.Channels);
+
+    /// <summary>The ripple texture and the swell's made again where ShadeProgram reads another since they were made - two reference checks a drawing.</summary>
+    private void Sheets()
+    {
+        WaterSheet ripples = ShadeProgram.Ripples;
+        if (!ReferenceEquals(ripples, _ripplesOf))
+        {
+            _rippled.Dispose();
+            _ripples.Dispose();
+            (_ripples, _rippled) = Sheet(_device, ripples, Format.R32G32B32A32_Float);
+            _ripplesOf = ripples;
+        }
+
+        WaterSheet swells = ShadeProgram.Swells;
+        if (!ReferenceEquals(swells, _swellsOf))
+        {
+            _swelled.Dispose();
+            _swells.Dispose();
+            (_swells, _swelled) = Sheet(_device, swells, Format.R32G32B32A32_Float);
+            _swellsOf = swells;
+        }
+    }
+
+    /// <summary>A texture of floats on the card, one level, the texels as they are.</summary>
+    private static (ID3D11Texture2D Texture, ID3D11ShaderResourceView View) Floats(
+        ID3D11Device device, ReadOnlySpan<float> source, int width, int height, Format format, int perTexel)
+    {
+        float[] texels = source.ToArray();
+        GCHandle pinned = GCHandle.Alloc(texels, GCHandleType.Pinned);
+        try
+        {
+            ID3D11Texture2D texture = device.CreateTexture2D(
+                new Texture2DDescription(format, width, height, 1, 1, BindFlags.ShaderResource, ResourceUsage.Immutable),
+                [new SubresourceData(pinned.AddrOfPinnedObject(), width * perTexel * 4, 0)]);
+            return (texture, device.CreateShaderResourceView(texture));
+        }
+        finally
+        {
+            pinned.Free();
+        }
+    }
+
+    /// <summary>A room's shore on the card, uploaded the first time it is drawn and let go as the meshes are.</summary>
+    private sealed class ShoreTexture : IDisposable
+    {
+        private readonly ID3D11Texture2D _texture;
+
+        public ShoreTexture(ID3D11Device device, ShoreField shore)
+        {
+            (_texture, View) = Floats(device, shore.Texels, shore.Width, shore.Height, Format.R32G32_Float, 2);
+        }
+
+        public ID3D11ShaderResourceView View { get; }
+
+        public long Used { get; set; }
+
+        public void Dispose()
+        {
+            View.Dispose();
+            _texture.Dispose();
         }
     }
 
