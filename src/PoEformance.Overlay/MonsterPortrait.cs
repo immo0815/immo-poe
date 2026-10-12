@@ -2133,7 +2133,8 @@ public sealed class MonsterPortrait
                     + " offsets not drawn; what stands in it sprayed and wetted as its own material says (CrashingFoamSurface: a crashing wave"
                     + " every five seconds running up from the water's line, over the same CHOSEN shore); their glints and reflection under the game light, by the light"
                     + " panel's water switches - the scene reflected by the engine's screen ray, its dither a 4 by 4 Bayer, a reading - and the surface"
-                    + " lifted by them times its lift - which the engine does per pixel only"
+                    + " lifted by them times its lift - which the engine does per pixel only - and, lifted, drawn as one surface whose"
+                    + " nearest crossing of each pixel alone shows, DECIDED"
                     + (water.HeightOffset != 0f ? "; its height offset not applied - it moves the beach and flood waves alone)" : ")"));
             }
 

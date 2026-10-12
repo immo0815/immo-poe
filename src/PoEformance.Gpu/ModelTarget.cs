@@ -77,6 +77,11 @@ public sealed class ModelTarget : IDisposable
     /// <summary>Copies the depth the solid pass left into <see cref="Behind"/>.</summary>
     internal void Kept(ID3D11DeviceContext context) => context.CopyResource(_behind, _depth);
 
+    /// <summary>
+    /// Puts the solid pass's depth back from <see cref="Behind"/>, its stencil with it - once the lifted water has written its own (ModelGpu's Surfaced).
+    /// </summary>
+    internal void Back(ID3D11DeviceContext context) => context.CopyResource(_depth, _behind);
+
     /// <summary>The solid pass's colour, copied for the water to reflect - see <see cref="Saw"/>; null until the first.</summary>
     internal ID3D11ShaderResourceView? Opaque { get; private set; }
 

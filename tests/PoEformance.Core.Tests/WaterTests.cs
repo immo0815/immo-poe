@@ -604,6 +604,64 @@ public class WaterTests
     }
 
     /// <summary>
+    /// The lifted sea is one surface: where a pixel crosses it twice its nearest crossing is drawn and the far one not at all, whichever
+    /// comes first in the mesh - Port's harbour at five times the lift crossed one shape at 550, 667 and 893, and drew 667 (v0.1.236).
+    /// </summary>
+    [Fact]
+    public void THELIFTEDSeaIsOneSurfaceItsNearestCrossingDrawn()
+    {
+        ShadeProgram waves = ShadeProgram.Water().Glossy!;
+        SceneLight Light(float lift) => new([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1.5f),
+            SunDirection = Vector3.Normalize(new Vector3(0.3f, 0.2f, 1f)),
+            Ambient = SceneAmbient.Flat,
+            FlatAmbient = 0.3f,
+            WaterLift = lift,
+        };
+
+        byte[] Drawn(bool both, float lift, PixelProbe? probe = null) => [.. MeshPicture.Of(
+            Stacked(both), new MeshPicture.Canvas(Size) { Light = Light(lift), Time = 2f, Probe = probe }, turn: 0f, tilt: Down,
+            skins: [Sheet(200, 180, 120), null],
+            blends: [MaterialBlend.Opaque, MaterialBlend.Alpha],
+            shades: [null, waves]).Rgba];
+
+        // LIFTED, two sheets of one water shape - the lower first in the mesh, a fold seen from above - are the upper alone, to the byte.
+        Assert.Equal(Drawn(both: false, 1f), Drawn(both: true, 1f));
+
+        // AND THE PROBE SAYS WHY: the lower sheet behind the upper's crossing, the upper mixed.
+        var probe = new PixelProbe(Size / 2, Size / 2);
+        _ = Drawn(both: true, 1f, probe);
+        Assert.Contains(probe.Fragments, one => one.Seen == Seen.Folded);
+        Assert.Single(probe.Fragments, one => one.Seen == Seen.Mixed);
+        Assert.Single(probe.Waters);
+
+        // UNLIFTED, a translucent shape still blends once a pixel, the first in the mesh: the lower sheet, thinner over the floor.
+        Assert.NotEqual(Drawn(both: false, 0f), Drawn(both: true, 0f));
+    }
+
+    /// <summary>A floor, and over it one water shape of a sheet 80 units up - or two, a sheet 40 up first. Up is minus z; the box is the same either way.</summary>
+    private static SkinnedMesh Stacked(bool both)
+    {
+        float[] heights = both ? [40f, 80f] : [80f];
+        var places = new List<Vector3> { new(-400f, -400f, 0f), new(400f, -400f, 0f), new(400f, 400f, 0f), new(-400f, 400f, 0f) };
+        var indices = new List<int> { 0, 1, 2, 0, 2, 3 };
+        foreach (float height in heights)
+        {
+            int first = places.Count;
+            places.AddRange([new(-375f, -375f, -height), new(375f, -375f, -height), new(375f, 375f, -height), new(-375f, 375f, -height)]);
+            indices.AddRange([first, first + 1, first + 2, first, first + 2, first + 3]);
+        }
+
+        var normals = new Vector3[places.Count];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+        Vector2[] spots = [.. places.Select(one => new Vector2((one.X + 400f) / 800f, (one.Y + 400f) / 800f))];
+        return SkinnedMesh.Of(
+            [.. places], normals, [.. indices], new Vector3(-400f, -400f, -80f), new Vector3(400f, 400f, 0f),
+            spots, [new MeshShape("Floor", 0, 6), new MeshShape("Water", 6, 6 * heights.Length)]);
+    }
+
+    /// <summary>
     /// The engine's march over the solid depth: a fiftieth of the picture a step, a surface hit where it lies in front of the ray by less than fifty units, and the cube's share growing with the step.
     /// </summary>
     [Fact]

@@ -137,9 +137,11 @@ public sealed partial class ModelGpu : IDisposable
     private readonly ID3D11BlendState _mixes;
     private readonly ID3D11BlendState _adds;
     private readonly ID3D11BlendState _least;
+    private readonly ID3D11BlendState _unseen;
     private readonly ID3D11DepthStencilState _writes;
     private readonly ID3D11DepthStencilState _stamped;
     private readonly ID3D11DepthStencilState _ignores;
+    private readonly ID3D11DepthStencilState _surfaced;
     private readonly ID3D11RasterizerState _raster;
     private readonly ProgramShaders _programs;
     private readonly int _largest;
@@ -208,6 +210,14 @@ public sealed partial class ModelGpu : IDisposable
             StencilOperation.Keep, StencilOperation.Keep, StencilOperation.Replace, ComparisonFunction.NotEqual,
             StencilOperation.Keep, StencilOperation.Keep, StencilOperation.Replace, ComparisonFunction.NotEqual));
         _ignores = device.CreateDepthStencilState(new DepthStencilDescription(false, DepthWriteMask.Zero, ComparisonFunction.Always));
+
+        // THE LIFTED WATER AS ONE SURFACE - see Surfaced: its nearest crossing written by a walk that draws no colour, then drawn
+        // where a fragment is that crossing, once a pixel.
+        _unseen = device.CreateBlendState(Unseen());
+        _surfaced = device.CreateDepthStencilState(new DepthStencilDescription(
+            true, false, ComparisonFunction.LessEqual, true, 0xFF, 0xFF,
+            StencilOperation.Keep, StencilOperation.Keep, StencilOperation.Replace, ComparisonFunction.NotEqual,
+            StencilOperation.Keep, StencilOperation.Keep, StencilOperation.Replace, ComparisonFunction.NotEqual));
         _raster = device.CreateRasterizerState(new RasterizerDescription(CullMode.None, FillMode.Solid));
         _largest = device.FeatureLevel >= FeatureLevel.Level_11_0 ? 16384 : 8192;
         FeatureLevel = device.FeatureLevel;
@@ -575,11 +585,29 @@ public sealed partial class ModelGpu : IDisposable
 
             var owner = -1;
             var lifted = false;
+
+            // THE LIFTED WATER AS ONE SURFACE where its first run comes - see Surfaced. A card that cannot copy its
+            // depth back draws it as any mixed shape.
+            bool surface = lift > 0f && FeatureLevel >= FeatureLevel.Level_10_1 && Array.Exists(plan.Runs, one => Sea(one, plan));
+            var surfaced = false;
             for (var at = 0; at < plan.Runs.Length; at++)
             {
                 Run run = plan.Runs[at];
                 if (run.Blend is not (MaterialBlend.Alpha or MaterialBlend.Additive))
                 {
+                    continue;
+                }
+
+                if (surface && Sea(run, plan))
+                {
+                    if (!surfaced)
+                    {
+                        surfaced = true;
+                        Surfaced(context, target, plan, shaders, at, ref current);
+                        owner = -1;
+                        lifted = true;
+                    }
+
                     continue;
                 }
 
@@ -621,6 +649,67 @@ public sealed partial class ModelGpu : IDisposable
         Forget();
         why = string.Empty;
         return true;
+    }
+
+    /// <summary>Whether a run is the lifted water's - drawn as one surface where the light lifts it (MeshPicture.Drawing's Surface).</summary>
+    private static bool Sea(Run run, Plan plan) => run.Blend == MaterialBlend.Alpha && run.Shade >= 0 && plan.Programs[run.Shade].HasWaves;
+
+    /// <summary>
+    /// The lifted water's runs from <paramref name="from"/> on, as one surface: only its nearest crossing of each pixel drawn - MeshPicture.Drawing's Surface, on the card.
+    /// </summary>
+    /// <remarks>
+    /// A WALK THAT DRAWS NO COLOUR writes the nearest crossing in front of the solid into the depth - the same vertex shader as the
+    /// drawing after it, so the same depth to the bit - then every run is drawn where its fragment is that crossing, once a pixel by
+    /// the stencil, as the processor draws only the triangle that won. Then the solid depth goes back from its copy
+    /// (ModelTarget.Behind), stencil and all, for the translucent runs after the water, which test against the solid alone as the
+    /// processor's do.
+    /// </remarks>
+    private void Surfaced(ID3D11DeviceContext context, ModelTarget target, Plan plan, ID3D11PixelShader?[] shaders, int from, ref ID3D11PixelShader? current)
+    {
+        if (!plan.Behind)
+        {
+            target.Kept(context);
+        }
+
+        context.VSSetShader(_placedWaves);
+        context.PSSetShader((ID3D11PixelShader)null!);
+        current = null;
+        context.OMSetBlendState(_unseen);
+        context.OMSetDepthStencilState(_writes);
+        for (int at = from; at < plan.Runs.Length; at++)
+        {
+            Run run = plan.Runs[at];
+            if (Sea(run, plan))
+            {
+                context.DrawIndexed(run.Count * 3, run.First * 3, 0);
+            }
+        }
+
+        context.ClearDepthStencilView(target.Depth, DepthStencilClearFlags.Stencil, 1f, 0);
+        context.OMSetDepthStencilState(_surfaced, 1);
+        context.OMSetBlendState(_mixes);
+        for (int at = from; at < plan.Runs.Length; at++)
+        {
+            Run run = plan.Runs[at];
+            if (!Sea(run, plan))
+            {
+                continue;
+            }
+
+            ID3D11PixelShader shader = shaders[at] ?? _mixed;
+            if (!ReferenceEquals(shader, current))
+            {
+                context.PSSetShader(shader);
+                current = shader;
+            }
+
+            Drawn(run, plan);
+        }
+
+        // THE DEPTH TAKEN OFF THE OUTPUT WHILE IT IS WRITTEN BACK, and bound again.
+        context.OMSetRenderTargets(target.AccumulatedTarget, null);
+        target.Back(context);
+        context.OMSetRenderTargets(target.AccumulatedTarget, target.Depth);
     }
 
     /// <summary>
@@ -674,9 +763,11 @@ public sealed partial class ModelGpu : IDisposable
         _programs.Dispose();
         DisposeLight();
         _raster.Dispose();
+        _surfaced.Dispose();
         _ignores.Dispose();
         _stamped.Dispose();
         _writes.Dispose();
+        _unseen.Dispose();
         _least.Dispose();
         _adds.Dispose();
         _mixes.Dispose();
