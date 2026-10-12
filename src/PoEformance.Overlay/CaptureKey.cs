@@ -767,8 +767,15 @@ internal sealed class CaptureKey
                     string? folder = GameInstall.Find(null);
                     string[] programs = folder is null ? []
                         : [.. GameInstall.Names.Select(name => Path.Combine(folder, name + ".exe")).Where(File.Exists)];
-                    string text = CaptureWaterTextures.Write(read, waterTextures, programs, out IReadOnlyList<WaterTexture> pictures);
+                    string text = CaptureWaterTextures.Write(
+                        read, waterTextures, programs, out IReadOnlyList<WaterTexture> pictures, out IReadOnlyList<WaterLookupFile> lookups);
                     File.WriteAllText(At(CaptureReport.WaterTexturesFile), text);
+
+                    // THE ENGINE'S LOOKUPS WHOLE beside it, for WaterLookups to read again offline (CaptureReplayTests).
+                    foreach (WaterLookupFile lookup in lookups)
+                    {
+                        File.WriteAllBytes(At(lookup.File), lookup.Bytes);
+                    }
 
                     // EACH DECODED TEXTURE'S CHANNELS AS PICTURES beside it - the ripple's red is its height, green and blue its slope.
                     foreach (WaterTexture texture in pictures)

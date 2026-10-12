@@ -112,10 +112,12 @@ public sealed partial class ModelGpu : IDisposable
     private readonly bool _owns;
     private readonly ID3D11VertexShader _placed;
     private readonly ID3D11VertexShader _placedWaves;
-    private readonly ID3D11Texture2D _ripples;
-    private readonly ID3D11ShaderResourceView _rippled;
-    private readonly ID3D11Texture2D _swells;
-    private readonly ID3D11ShaderResourceView _swelled;
+    private ID3D11Texture2D _ripples;
+    private ID3D11ShaderResourceView _rippled;
+    private WaterSheet _ripplesOf;
+    private ID3D11Texture2D _swells;
+    private ID3D11ShaderResourceView _swelled;
+    private WaterSheet _swellsOf;
     private readonly Dictionary<ShoreField, ShoreTexture> _shores = new(ReferenceEqualityComparer.Instance);
     private readonly ID3D11PixelShader _solid;
     private readonly ID3D11PixelShader _mixed;
@@ -167,8 +169,10 @@ public sealed partial class ModelGpu : IDisposable
         _owns = owns;
         _placed = compiled.Placed;
         _placedWaves = compiled.PlacedWaves;
-        (_ripples, _rippled) = Ripples(device);
-        (_swells, _swelled) = Swells(device);
+        _ripplesOf = ShadeProgram.Ripples;
+        (_ripples, _rippled) = Sheet(device, _ripplesOf, Format.R32G32B32A32_Float);
+        _swellsOf = ShadeProgram.Swells;
+        (_swells, _swelled) = Sheet(device, _swellsOf, Format.R32G32_Float);
         _solid = compiled.Solid;
         _mixed = compiled.Mixed;
         _added = compiled.Added;
@@ -512,7 +516,9 @@ public sealed partial class ModelGpu : IDisposable
         context.PSSetSampler(0, scene.Sharp ? _sharp : _wrap);
         context.PSSetShaderResource(1, _tables.View);
 
-        // THE RIPPLE TEXTURE, THE SWELL'S AND THE ROOM'S SHORE the waves read, in the pixel and the vertex shader alike.
+        // THE RIPPLE TEXTURE, THE SWELL'S AND THE ROOM'S SHORE the waves read, in the pixel and the vertex shader alike -
+        // the first two made again should the engine's own have been handed over since (ShadeProgram.Use).
+        Sheets();
         context.PSSetShaderResource(ModelShaders.RippleSlot, _rippled);
         context.VSSetShaderResource(ModelShaders.RippleSlot, _rippled);
         context.PSSetShaderResource(ModelShaders.SwellSlot, _swelled);
@@ -1357,13 +1363,31 @@ public sealed partial class ModelGpu : IDisposable
         }
     }
 
-    /// <summary>The ripple texture on the card, made once: ShadeProgram.RippleSheet's texels as they are, read with loads.</summary>
-    private static (ID3D11Texture2D Texture, ID3D11ShaderResourceView View) Ripples(ID3D11Device device) =>
-        Floats(device, ShadeProgram.RippleSheet, ShadeProgram.RippleSide, ShadeProgram.RippleSide, Format.R32G32B32A32_Float, 4);
+    /// <summary>A water lookup on the card - the ripple texture or the swell's cross-section - its texels as they are, read with loads.</summary>
+    private static (ID3D11Texture2D Texture, ID3D11ShaderResourceView View) Sheet(ID3D11Device device, WaterSheet sheet, Format format) =>
+        Floats(device, sheet.Texels, sheet.Width, sheet.Height, format, sheet.Channels);
 
-    /// <summary>The swell's cross-section on the card, made once: ShadeProgram.SwellSheet's texels as they are, read with loads.</summary>
-    private static (ID3D11Texture2D Texture, ID3D11ShaderResourceView View) Swells(ID3D11Device device) =>
-        Floats(device, ShadeProgram.SwellSheet, ShadeProgram.SwellPhases, ShadeProgram.SwellShores, Format.R32G32_Float, 2);
+    /// <summary>The ripple texture and the swell's made again where ShadeProgram reads another since they were made - two reference checks a drawing.</summary>
+    private void Sheets()
+    {
+        WaterSheet ripples = ShadeProgram.Ripples;
+        if (!ReferenceEquals(ripples, _ripplesOf))
+        {
+            _rippled.Dispose();
+            _ripples.Dispose();
+            (_ripples, _rippled) = Sheet(_device, ripples, Format.R32G32B32A32_Float);
+            _ripplesOf = ripples;
+        }
+
+        WaterSheet swells = ShadeProgram.Swells;
+        if (!ReferenceEquals(swells, _swellsOf))
+        {
+            _swelled.Dispose();
+            _swells.Dispose();
+            (_swells, _swelled) = Sheet(_device, swells, Format.R32G32_Float);
+            _swellsOf = swells;
+        }
+    }
 
     /// <summary>A texture of floats on the card, one level, the texels as they are.</summary>
     private static (ID3D11Texture2D Texture, ID3D11ShaderResourceView View) Floats(

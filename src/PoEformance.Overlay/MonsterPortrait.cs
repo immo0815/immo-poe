@@ -2135,10 +2135,10 @@ public sealed class MonsterPortrait
             {
                 _waterSaidFor = water;
                 _waterSaid = ImGuiText.Escape(water.Line() + " (its colour's pattern a moving noise; its waves the engine's ocean ripples, three octaves"
-                    + " rolling in the wind over a noise of this tool's - the engine's ripple texture unread; the wind's way, height, speed and"
+                    + " rolling in the wind - " + ShadeProgram.Ripples.Said + "; the wind's way, height, speed and"
                     + " directionness the engine's former constants where the file sets none, a reading until measured, its way turned by the light"
-                    + " panel's wind; the swell rolling in to the shore the engine's formula over a shore made here from the room's ground and a"
-                    + " cross-section chosen, both CHOSEN until the engine's are read, its foam not drawn; their glints and reflection under the game light, by the light"
+                    + " panel's wind; the swell rolling in to the shore the engine's formula over a shore made here from the room's ground, CHOSEN"
+                    + " until the engine's is read - " + ShadeProgram.Swells.Said + " - its foam not drawn; their glints and reflection under the game light, by the light"
                     + " panel's water switches - the scene reflected by the engine's screen ray, its dither a 4 by 4 Bayer, a reading - and the surface"
                     + " lifted by them times its lift - which the engine does per pixel only"
                     + (water.HeightOffset != 0f ? "; its height offset not applied - it moves the beach and flood waves alone)" : ")"));

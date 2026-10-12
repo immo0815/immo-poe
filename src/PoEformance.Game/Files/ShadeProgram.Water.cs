@@ -57,7 +57,7 @@ public sealed partial class ShadeProgram
     ///
     /// THE WAVES ARE THE GLOSSY TWIN'S (<see cref="Glossy"/>, <see cref="HasWaves"/>): the same colour, and the
     /// surface the engine lights - the ocean's own (<see cref="Ocean"/>: GetWindRippleSurfaceField3's three
-    /// octaves over a noise standing for its ripple texture, in the area's wind) - handed to the game light's
+    /// octaves over its ripple texture, <see cref="Ripples"/>, in the area's wind) - handed to the game light's
     /// glints and reflection, its specular the area's reflectiveness and its gloss the engine's 0.99. Under the
     /// picture's lamp the twin draws as this program does. Not drawn: foam, the refraction's bend.
     /// </remarks>
@@ -111,29 +111,66 @@ public sealed partial class ShadeProgram
     public const int RippleSide = 128;
 
     /// <summary>
-    /// How many texels of the stand-in ripple texture one noise cell spans - CHOSEN; the engine's texture is not read.
+    /// How many texels of the stand-in ripple texture one noise cell spans - CHOSEN, for where the engine's does not read.
     /// </summary>
     /// <remarks>
-    /// THE ENGINE'S SURFACE IS ONE TEXTURE READ EIGHT TIMES: <c>surface_tex_sampler</c>, "ripple heightfield and
-    /// gradient", a pass texture the engine binds itself, 128 texels a tile (GetWaterVolumeStateFieldOctave),
-    /// its red the height and its green and blue the height's slope a texel. No shader source names its file
-    /// and no capture's loaded files list it, so it stands as a texture of gradient noise read the same way - the
-    /// height <c>(r - 0.4) * 3</c>, the slope three times the red's a texel, four texels a unit of the octave's
-    /// coordinates - a cell every sixteen texels, eight across the tile and wrapping with it. The texture, once
-    /// found, replaces <see cref="RippleSheet"/>'s texels alone.
+    /// THE ENGINE'S SURFACE IS ONE TEXTURE READ OCTAVE AFTER OCTAVE: <c>surface_tex_sampler</c>, "ripple heightfield and
+    /// gradient", a pass texture the engine binds itself, 128 texels a tile (GetWaterVolumeStateFieldOctave), its red the
+    /// height and its green and blue the height's slope a texel. No shader source names its file; the game's program does -
+    /// <c>Art/2DArt/Lookup/surface_ripple.dds</c>, 128 square, four floats a texel (the capture's water textures part,
+    /// v0.1.228) - and <see cref="Use"/> hands it over as the install opens (WaterLookups). Where it does not read, it stands
+    /// as a texture of gradient noise read the same way - the height <c>(r - 0.4) * 3</c>, the slope three times the red's a
+    /// texel, four texels a unit of the octave's coordinates - a cell every sixteen texels, eight across the tile and wrapping
+    /// with it.
     /// </remarks>
     public const float RippleCell = 16f;
 
     /// <summary>The largest a two-dimensional gradient noise of unit gradients reaches, <c>sqrt(2) / 2</c> - what takes it to nought to one.</summary>
     private const float RippleRange = 0.70710677f;
 
-    /// <summary>The stand-in ripple texture: 128 by 128 texels, row by row, four floats each - the height's red, its slope a texel along x and y, and one.</summary>
-    private static readonly float[] RippleTexels = Rippled();
+    /// <summary>What the stand-in ripple texture is said to be under a picture.</summary>
+    private const string RippleStandIn = "the ripples over a noise of this tool's - the engine's ripple texture not read";
+
+    /// <summary>The stand-in swell cross-section's line.</summary>
+    private const string SwellStandIn = "the swell's cross-section a trochoid of this tool's - the engine's not read";
+
+    /// <summary>The ripple texture read: the stand-in until <see cref="Use"/> hands over the engine's.</summary>
+    private static WaterSheet s_ripples = new(RippleSide, RippleSide, 4, Rippled(), false, RippleStandIn);
+
+    /// <summary>The swell's cross-section read: the stand-in until <see cref="Use"/> hands over the engine's.</summary>
+    private static WaterSheet s_swells = new(SwellPhases, SwellShores, 2, Swelled(), false, SwellStandIn);
 
     /// <summary>
-    /// The stand-in ripple texture's texels, row by row, four floats each - what the card is handed to read, as <see cref="Ripple"/> reads them here.
+    /// The ripple texture the water reads, 128 by 128 texels, row by row, four floats each - the height's red, its slope a texel
+    /// along x and y, and a fourth: the engine's (WaterLookups) once handed over, this tool's stand-in until then.
     /// </summary>
-    public static ReadOnlySpan<float> RippleSheet => RippleTexels;
+    public static WaterSheet Ripples => Volatile.Read(ref s_ripples);
+
+    /// <summary>
+    /// The swell's cross-section the water reads, row by row from the open sea to the shore, two floats a texel - its height and that
+    /// height's rise a unit of phase: the engine's (WaterLookups) once handed over, this tool's stand-in until then.
+    /// </summary>
+    public static WaterSheet Swells => Volatile.Read(ref s_swells);
+
+    /// <summary>The ripple texture's texels, as <see cref="Ripples"/> holds them.</summary>
+    public static ReadOnlySpan<float> RippleSheet => Ripples.Texels;
+
+    /// <summary>
+    /// Hands the water the engine's own lookups where they were taken - once, as the install opens, before anything is drawn; the
+    /// card makes its textures again when it sees them change.
+    /// </summary>
+    public static void Use(WaterLookups lookups)
+    {
+        ArgumentNullException.ThrowIfNull(lookups);
+
+        // WHERE THE ENGINE'S IS NOT TAKEN the stand-in stays, saying why.
+        Volatile.Write(ref s_ripples, lookups.Ripples is { Width: RippleSide, Height: RippleSide, Channels: 4 } ripples
+            ? ripples
+            : Ripples with { Said = lookups.RippleSaid });
+        Volatile.Write(ref s_swells, lookups.Swells is { Channels: 2, Width: > 0, Height: > 0 } swells
+            ? swells
+            : Swells with { Said = lookups.SwellSaid });
+    }
 
     /// <summary>
     /// The engine's ocean surface at a place: its height, and its slope along x and y - GetOceanWaterPlanarState's, its swell over the room's shore and the wind's ripples on top.
@@ -157,10 +194,10 @@ public sealed partial class ShadeProgram
     /// periods over 2 pi a colour unit, rolling in at 1.1 a second; a smooth noise of the clock wobbling it; slowed and
     /// hurried within a quarter of a colour unit of the shore; its shape read from the cross-section at that phase and
     /// the shore's distance (<see cref="Swell"/>), times the swell's height, less over ground under water; its slope the
-    /// cross-section's own along the phase's. The ripples on top thinned to nothing at the shoreline,
-    /// <c>1 - (1 - |shoreDist|)^10</c>, and twice the ripples' own. NOT DRAWN: the swell's foam and the orbit that carries
-    /// the ripples to and fro with it (the cross-section's blue and the distortion texture, neither read), and the rocky
-    /// shore's clashing state - the shore is all beach.
+    /// cross-section's own along the phase's (<see cref="Swells"/>: the engine's profile and gradient once handed over). The
+    /// ripples on top thinned to nothing at the shoreline, <c>1 - (1 - |shoreDist|)^10</c>, and twice the ripples' own. NOT
+    /// DRAWN: the swell's foam and the orbit that carries the ripples to and fro with it (the cross-section's green, blue and
+    /// alpha, and the distortion texture), and the rocky shore's clashing state - the shore is all beach.
     /// </remarks>
     public static float Ocean(Vector2 place, Vector4 wind, Vector4 swell, float clock, ShoreField? shore, out Vector2 slope)
     {
@@ -201,40 +238,39 @@ public sealed partial class ShadeProgram
         return height;
     }
 
-    /// <summary>How many phases the swell's cross-section is drawn at - <see cref="SwellSheet"/>'s width.</summary>
+    /// <summary>How many phases the stand-in swell cross-section is drawn at - its width.</summary>
     public const int SwellPhases = 256;
 
-    /// <summary>How many distances from the shore it is drawn at - its height.</summary>
+    /// <summary>How many distances from the shore the stand-in is drawn at - its height.</summary>
     public const int SwellShores = 16;
 
-    /// <summary>The swell's cross-section, made once: row by row from the open sea to the shore, two floats a texel - its height nought to one, and that height's rise a unit of phase.</summary>
-    private static readonly float[] SwellTexels = Swelled();
-
-    /// <summary>The swell's cross-section's texels - what the card is handed to read, as <see cref="Swell"/> reads them here.</summary>
-    public static ReadOnlySpan<float> SwellSheet => SwellTexels;
-
     /// <summary>
-    /// The swell's cross-section at a phase and a distance from the shore: its height, nought to one, and that height's rise a unit of phase - the engine's <c>wave_data_sampler</c> and <c>wave_gradient_sampler</c>, CHOSEN.
+    /// The swell's cross-section at a phase and a distance from the shore: its height, nought to one, and that height's rise a unit of phase - the engine's <c>wave_data_sampler</c> and <c>wave_gradient_sampler</c>.
     /// </summary>
     /// <remarks>
-    /// THE ENGINE'S TWO TEXTURES ARE ITS OWN - pass textures, "wave cross-section" and its gradient, named in no file read
-    /// - so they stand as a trochoid read the same way (wrapping along the phase, held at the ends along the shore's
-    /// distance, the four nearest texels' centres mixed): its crest sharpening from a steepness of 0.2 out at sea to 0.8 at
-    /// the shore and its height growing from half to whole, crest at the half phase. Only <see cref="SwellSheet"/>
-    /// changes when the engine's are found.
+    /// READ AS THE ENGINE READS ITS OWN (SamplerLinearWrapClampWrap at level nought): wrapping along the phase, held at the ends
+    /// along the shore's distance, the four nearest texels' centres mixed, the sheet's own size whatever it is - the card's
+    /// ShadeSwellAt the same arithmetic. The engine's two lookups (WaterLookups: a profile's red and wave_profile_gradient.dds's)
+    /// once taken; until then, or where they do not read, a trochoid CHOSEN: its crest sharpening from a steepness of 0.2 out at
+    /// sea to 0.8 at the shore and its height growing from half to whole, crest at the half phase.
     /// </remarks>
-    internal static float Swell(float phase, float shore, out float rise)
+    internal static float Swell(float phase, float shore, out float rise) => Swell(Swells, phase, shore, out rise);
+
+    /// <summary>The same, of a given cross-section.</summary>
+    public static float Swell(WaterSheet sheet, float phase, float shore, out float rise)
     {
-        float sx = (phase * SwellPhases) - 0.5f;
-        float sy = Math.Clamp((shore * SwellShores) - 0.5f, 0f, SwellShores - 1);
+        ArgumentNullException.ThrowIfNull(sheet);
+        int width = sheet.Width, height = sheet.Height;
+        float sx = (phase * width) - 0.5f;
+        float sy = Math.Clamp((shore * height) - 0.5f, 0f, height - 1);
         float fx0 = MathF.Floor(sx);
         float fx = sx - fx0;
-        int x0 = (int)fx0 & (SwellPhases - 1), x1 = (x0 + 1) & (SwellPhases - 1);
-        int y0 = (int)sy, y1 = Math.Min(y0 + 1, SwellShores - 1);
+        int x0 = (((int)fx0 % width) + width) % width, x1 = (x0 + 1) % width;
+        int y0 = (int)sy, y1 = Math.Min(y0 + 1, height - 1);
         float fy = sy - y0;
-        float[] texels = SwellTexels;
-        int a = ((y0 * SwellPhases) + x0) * 2, b = ((y0 * SwellPhases) + x1) * 2;
-        int c = ((y1 * SwellPhases) + x0) * 2, d = ((y1 * SwellPhases) + x1) * 2;
+        float[] texels = sheet.Texels;
+        int a = ((y0 * width) + x0) * 2, b = ((y0 * width) + x1) * 2;
+        int c = ((y1 * width) + x0) * 2, d = ((y1 * width) + x1) * 2;
         float Mixed(int part)
         {
             float top = texels[a + part] + ((texels[b + part] - texels[a + part]) * fx);
@@ -376,7 +412,7 @@ public sealed partial class ShadeProgram
         float fx = sx - fx0, fy = sy - fy0;
         int x0 = (int)fx0 & (RippleSide - 1), y0 = (int)fy0 & (RippleSide - 1);
         int x1 = (x0 + 1) & (RippleSide - 1), y1 = (y0 + 1) & (RippleSide - 1);
-        float[] texels = RippleTexels;
+        float[] texels = Volatile.Read(ref s_ripples).Texels;
         int a = ((y0 * RippleSide) + x0) * 4, b = ((y0 * RippleSide) + x1) * 4;
         int c = ((y1 * RippleSide) + x0) * 4, d = ((y1 * RippleSide) + x1) * 4;
         float Mixed(int part)
@@ -392,7 +428,7 @@ public sealed partial class ShadeProgram
     }
 
     /// <summary>
-    /// The stand-in ripple texture, made once: gradient noise wrapping every eight cells, its red <c>0.5 + 0.5 * noise / range</c> at each texel's centre, its green and blue the red's slope a texel, worked out exactly.
+    /// The stand-in ripple texture, made once for where the engine's does not read: gradient noise wrapping every eight cells, its red <c>0.5 + 0.5 * noise / range</c> at each texel's centre, its green and blue the red's slope a texel, worked out exactly.
     /// </summary>
     private static float[] Rippled()
     {

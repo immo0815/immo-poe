@@ -2382,6 +2382,13 @@ internal static class Program
         PoEformance.Game.Files.GameFiles? installed = opening.Files;
         Console.WriteLine($"install  {opening.Why}");
 
+        // THE ENGINE'S OWN WATER LOOKUPS - its ripple texture and its swell's cross-section - read once, before anything is
+        // drawn, each taken only where it reads as the water pass's shaders read it (WaterLookups); the stand-ins stay otherwise.
+        PoEformance.Game.Files.WaterLookups waterLookups =
+            PoEformance.Game.Files.WaterLookups.Read(installed is null ? null : installed.Read);
+        PoEformance.Game.Files.ShadeProgram.Use(waterLookups);
+        Console.WriteLine($"water    {waterLookups.Summary}");
+
         // Each item's own picture. The item carries the PATH of its art, and that file is in
         // the game's own packed bundles - so the install is read for it, which needs nobody's
         // permission and works offline. poe2db is the fallback for whatever that cannot give
