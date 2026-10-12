@@ -109,6 +109,7 @@ public sealed class SceneLightPanel : IMovableSun
     private bool _grade = true;
     private bool _glints = true;
     private bool _reflection = true;
+    private float _lift = 1f;
     private int _ambient = (int)SceneAmbient.Cube;
     private int _cubeReading;
     private int _pointShape;
@@ -242,6 +243,7 @@ public sealed class SceneLightPanel : IMovableSun
             Mirror = _mirror,
             WaterGlints = _glints,
             WaterReflection = _reflection,
+            WaterLift = _lift,
             CubeTurn = SceneLight.CubeTurnFrom(env.HorAngle ?? 0f, env.VertAngle ?? 0f, (SceneLight.CubeReading)_cubeReading),
             CubeBrightness = env.EnvBrightness ?? 1f,
             DirectLightEnvRatio = env.DirectLightEnvRatio ?? 0f,
@@ -303,6 +305,18 @@ public sealed class SceneLightPanel : IMovableSun
         Switch("reflection##scene-reflection", ref _reflection,
             "The waves' reflection: the environment's specular cube (environment_mapping.specular_cube, its level of 128) along the view turned about"
             + " the waves' normal, lit as the cube ambient is and weighed by the gloss's Fresnel. With the flat ambient it reflects the flat ambient.", row, null);
+        float liftWidth = ImGui.GetFontSize() * 7f;
+        OverlayLayout.Flow(ImGui.CalcTextSize("lift").X + ImGui.GetStyle().ItemSpacing.X + liftWidth, right, start);
+        Named("lift");
+        ImGui.SetNextItemWidth(liftWidth);
+        if (ImGui.SliderFloat("##scene-lift", ref _lift, 0f, 5f, "%.1fx"))
+        {
+            _version++;
+        }
+
+        OverlayLayout.Hint("How far the waves lift the water's surface: one is the height the engine's octaves give it, nought a flat surface."
+            + " NOT THE ENGINE'S: its ocean is a flat mesh and the waves raise it per pixel only, which the game's camera, always above, never shows"
+            + " - the book's can look along the water. The water's mesh is split to edges of 48 units for it.");
 
         start = Label("ambient", column);
         ImGui.SetNextItemWidth(ComboWidth("cube ambient"));

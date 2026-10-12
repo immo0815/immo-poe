@@ -444,6 +444,23 @@ public static class MeshPicture
             return Places;
         }
 
+        /// <summary>The places in the canvas's own buffer - a pose's already are, the mesh's own are copied - for a drawing to move.</summary>
+        internal Vector3[] Own(Vector3[] places)
+        {
+            if (ReferenceEquals(places, Places))
+            {
+                return Places;
+            }
+
+            if (Places.Length < places.Length)
+            {
+                Places = new Vector3[places.Length];
+            }
+
+            places.CopyTo(Places, 0);
+            return Places;
+        }
+
         /// <summary>The same for the normals. See <see cref="Placed"/>.</summary>
         internal Vector3[] Turned(ReadOnlySpan<Vector3> normals, Vector3[] own)
         {
@@ -659,6 +676,18 @@ public static class MeshPicture
         Vector3[] facings = canvas.Facings;
         Vector3[] places = canvas.Placed(positions, mesh.Positions);
         Vector3[] turns = canvas.Turned(normals, mesh.Normals);
+
+        // WHICH TRIANGLES RUN A SHADE PROGRAM - see ShadeProgram - known before the vertices are placed,
+        // since the water's are lifted by its waves (SceneLight.WaterLift). Most models have none, and
+        // then nothing below changes by so much as a branch per pixel.
+        ShadeProgram[] programs = Programmed(mesh, shades, canvas.Shades, triangles);
+        float lift = canvas.Light?.WaterLift ?? 0f;
+        bool lifting = lift > 0f && Array.Exists(programs, one => one.HasWaves);
+        if (lifting)
+        {
+            places = Lifted(canvas, mesh, places, programs, triangles, lift);
+        }
+
         Sliced(canvas, vertices, (from, upto) =>
         {
             for (int point = from; point < upto; point++)
@@ -681,9 +710,6 @@ public static class MeshPicture
             canvas.Stamped();
         }
 
-        // AND WHICH TRIANGLES RUN A SHADE PROGRAM - see ShadeProgram. Most models have none, and then
-        // nothing below changes by so much as a branch per pixel.
-        ShadeProgram[] programs = Programmed(mesh, shades, canvas.Shades, triangles);
         int stride = 0;
         foreach (ShadeProgram one in programs)
         {
@@ -761,8 +787,9 @@ public static class MeshPicture
         });
 
         // THE CLOCK'S TRIANGLES APART where the canvas keeps the still part - see Again. A triangle
-        // runs its program only where it is solid or cut out, so only those can be the clock's.
-        bool[] ticking = canvas.Keeps && Array.Exists(programs, one => one.UsesTime)
+        // runs its program only where it is solid or cut out, so only those can be the clock's. Not where
+        // the water is lifted: its vertices move with the clock, and Again keeps them where they were.
+        bool[] ticking = canvas.Keeps && !lifting && Array.Exists(programs, one => one.UsesTime)
             ? Array.ConvertAll(programs, one => one.UsesTime)
             : [];
         int clocked = Binned(canvas, triangles, ticking);
@@ -798,6 +825,47 @@ public static class MeshPicture
         }
 
         return new GamePicture(size, size, pixels);
+    }
+
+    /// <summary>
+    /// The places with the water's vertices lifted by its waves - every vertex of a triangle whose program has them (ShadeProgram.HasWaves) - in the canvas's own buffer.
+    /// </summary>
+    /// <remarks>
+    /// THE CARD'S PlacedWaves, vertex for vertex: <see cref="ShadeProgram.Ripples"/> at the vertex's x and y,
+    /// drifting at the area's flow, times the lift, taken off z - up being minus z. Never into the mesh's
+    /// own array: the next drawing would start from a lifted sea.
+    /// </remarks>
+    private static Vector3[] Lifted(Canvas canvas, SkinnedMesh mesh, Vector3[] places, ShadeProgram[] programs, int triangles, float lift)
+    {
+        int[] indices = mesh.Indices;
+        int[] shadeOf = canvas.Shades;
+        var water = new bool[places.Length];
+        for (var one = 0; one < triangles; one++)
+        {
+            if (shadeOf[one] >= 0 && programs[shadeOf[one]].HasWaves)
+            {
+                water[indices[one * 3]] = true;
+                water[indices[(one * 3) + 1]] = true;
+                water[indices[(one * 3) + 2]] = true;
+            }
+        }
+
+        Vector3[] lifted = canvas.Own(places);
+        Vector2 drift = canvas.Water.FlowIntensity * ShadeProgram.WaveDrift;
+        float time = canvas.Time;
+        Sliced(canvas, water.Length, (from, upto) =>
+        {
+            for (int point = from; point < upto; point++)
+            {
+                if (water[point])
+                {
+                    Vector3 at = lifted[point];
+                    lifted[point] = at with { Z = at.Z - (ShadeProgram.Ripples(new Vector2(at.X, at.Y), drift, time, out _) * lift) };
+                }
+            }
+        });
+
+        return lifted;
     }
 
     /// <summary>

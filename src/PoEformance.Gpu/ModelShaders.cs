@@ -60,7 +60,7 @@ internal static class ModelShaders
             float4 Depth;     // x: the reach the depth buffer was laid over
             float4 Dust;      // xyz: the area's dust colour - ShadeProgram.Dust
             float4 Water;     // xyz: the area's open water, linear; w: its density - ShadeProgram.WaterColour
-            float4 Flow;      // x: the area's water flow; z: its height offset - ShadeProgram.WaterFlow
+            float4 Flow;      // x: the area's water flow; y: its reflectiveness; z: its height offset - ShadeProgram.WaterFlow; w: the lift, SceneLight.WaterLift
         };
 
         cbuffer Part : register(b1)
@@ -697,8 +697,22 @@ internal static class ModelShaders
         }
         """;
 
-    /// <summary>The fixed shaders' source: <see cref="Common"/> and <see cref="Fixed"/>.</summary>
-    public static readonly string Model = Common + Fixed;
+    /// <summary>
+    /// The water's vertex shader: MeshPicture.Lifted, vertex for vertex - the area's flow in Flow.x, the lift in Flow.w.
+    /// </summary>
+    public static readonly string Lifting = $$"""
+        // MeshPicture.Lifted: the water's vertices lifted by its waves - ShadeProgram.Ripples at the
+        // vertex's x and y, drifting at the area's flow, times the lift, taken off z (up is minus z).
+        Pixel PlacedWaves(Corner corner)
+        {
+            float2 drift = Flow.x * float2({{ShadeHlsl.Number(ShadeProgram.WaveDrift.X)}}, {{ShadeHlsl.Number(ShadeProgram.WaveDrift.Y)}});
+            corner.position.z -= ShadeWaves(corner.position.xy, drift, Clock.x).w * Flow.w;
+            return Placed(corner);
+        }
+        """;
+
+    /// <summary>The fixed shaders' source: <see cref="Common"/>, the waves' helpers (ShadeHlsl's) and <see cref="Fixed"/> with <see cref="Lifting"/>.</summary>
+    public static readonly string Model = Common + ShadeHlsl.Library + ShadeHlsl.WavesLibrary + Fixed + Lifting;
 
     /// <summary>
     /// A program's entry points: MeshPicture.Drawing's solid and mixed passes running it, under the picture's lamp or the game's light.

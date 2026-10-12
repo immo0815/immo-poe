@@ -636,6 +636,160 @@ public sealed class SkinnedMesh
         };
     }
 
+    /// <summary>
+    /// The same mesh with the triangles of the marked shapes split until no edge is longer than asked - every shape in its place, every other triangle as it was.
+    /// </summary>
+    /// <param name="fine">Per shape, whether its triangles are split.</param>
+    /// <param name="longest">The longest an edge of a split triangle may be, in the mesh's units.</param>
+    /// <remarks>
+    /// INTO FOUR AT ITS EDGES' MIDDLES, a triangle as many times as its own longest edge needs, the middle
+    /// of an edge two triangles share made once and shared - so the two halves of a quad, split alike, meet
+    /// without a seam however the vertices are moved after. A new vertex takes the mean of its edge's two:
+    /// place, normal (normalised), coordinates, colour; bones and weights are its first end's.
+    /// </remarks>
+    public SkinnedMesh Refined(bool[] fine, float longest)
+    {
+        ArgumentNullException.ThrowIfNull(fine);
+        if (!(longest > 0f) || !Array.Exists(fine, one => one))
+        {
+            return this;
+        }
+
+        int vertices = Positions.Length;
+        bool skinned = Bones.Length == vertices * 4 && Weights.Length == vertices * 4;
+        bool coloured = Colours.Length == vertices * 4;
+        bool some = Coloured.Length == vertices;
+        var positions = new List<Vector3>(Positions);
+        var normals = new List<Vector3>(Normals);
+        var coordinates = new List<Vector2>(Coordinates.Length == vertices ? Coordinates : new Vector2[vertices]);
+        var bones = new List<byte>(skinned ? Bones : []);
+        var weights = new List<byte>(skinned ? Weights : []);
+        var colours = new List<byte>(coloured ? Colours : []);
+        var which = new List<bool>(coloured && some ? Coloured : []);
+        var middles = new Dictionary<long, int>();
+        float limit = longest * longest;
+
+        int Middle(int a, int b)
+        {
+            long key = a < b ? ((long)a << 32) | (uint)b : ((long)b << 32) | (uint)a;
+            if (middles.TryGetValue(key, out int had))
+            {
+                return had;
+            }
+
+            int at = positions.Count;
+            positions.Add((positions[a] + positions[b]) * 0.5f);
+            Vector3 normal = normals[a] + normals[b];
+            normals.Add(normal.LengthSquared() > 1e-12f ? Vector3.Normalize(normal) : normals[a]);
+            coordinates.Add((coordinates[a] + coordinates[b]) * 0.5f);
+            if (skinned)
+            {
+                for (var one = 0; one < 4; one++)
+                {
+                    bones.Add(bones[(a * 4) + one]);
+                    weights.Add(weights[(a * 4) + one]);
+                }
+            }
+
+            if (coloured)
+            {
+                for (var one = 0; one < 4; one++)
+                {
+                    colours.Add((byte)((colours[(a * 4) + one] + colours[(b * 4) + one] + 1) / 2));
+                }
+
+                if (which.Count > 0)
+                {
+                    which.Add(which[a] && which[b]);
+                }
+            }
+
+            middles[key] = at;
+            return at;
+        }
+
+        // HOW MANY TIMES a triangle is halved: until its longest edge fits, at most eight - 65,536 from one.
+        int Halvings(int a, int b, int c)
+        {
+            float most = MathF.Max(
+                Vector3.DistanceSquared(positions[a], positions[b]),
+                MathF.Max(Vector3.DistanceSquared(positions[b], positions[c]), Vector3.DistanceSquared(positions[c], positions[a])));
+            var times = 0;
+            while (most > limit && times < 8)
+            {
+                most *= 0.25f;
+                times++;
+            }
+
+            return times;
+        }
+
+        void Split(List<int> into, int a, int b, int c, int times)
+        {
+            if (times == 0)
+            {
+                into.Add(a);
+                into.Add(b);
+                into.Add(c);
+                return;
+            }
+
+            int ab = Middle(a, b), bc = Middle(b, c), ca = Middle(c, a);
+            Split(into, a, ab, ca, times - 1);
+            Split(into, ab, b, bc, times - 1);
+            Split(into, ca, bc, c, times - 1);
+            Split(into, ab, bc, ca, times - 1);
+        }
+
+        int triangles = Triangles;
+        var indices = new List<int>(Indices.Length);
+        var shapes = new MeshShape[Shapes.Count];
+        var covered = new bool[triangles];
+        for (var one = 0; one < shapes.Length; one++)
+        {
+            MeshShape shape = Shapes[one];
+            int from = Math.Clamp(shape.From / 3, 0, triangles);
+            int end = Math.Clamp((shape.From + shape.Count) / 3, from, triangles);
+            int start = indices.Count;
+            bool split = one < fine.Length && fine[one];
+            for (int t = from; t < end; t++)
+            {
+                covered[t] = true;
+                int a = Indices[t * 3], b = Indices[(t * 3) + 1], c = Indices[(t * 3) + 2];
+                Split(indices, a, b, c, split ? Halvings(a, b, c) : 0);
+            }
+
+            shapes[one] = shape with { From = start, Count = indices.Count - start };
+        }
+
+        // A TRIANGLE NO SHAPE NAMES stays where it was, after them all, as it was drawn.
+        for (var t = 0; t < triangles; t++)
+        {
+            if (!covered[t])
+            {
+                indices.Add(Indices[t * 3]);
+                indices.Add(Indices[(t * 3) + 1]);
+                indices.Add(Indices[(t * 3) + 2]);
+            }
+        }
+
+        return new SkinnedMesh
+        {
+            Positions = [.. positions],
+            Normals = [.. normals],
+            Coordinates = [.. coordinates],
+            Bones = [.. bones],
+            Weights = [.. weights],
+            Indices = [.. indices],
+            Shapes = shapes,
+            Least = Least,
+            Most = Most,
+            Facts = Facts,
+            Colours = [.. colours],
+            Coloured = [.. which],
+        };
+    }
+
     /// <summary>A box through a transform, by its eight corners - the only way that holds under rotation.</summary>
     private static (Vector3 Least, Vector3 Most) Corners(Vector3 least, Vector3 most, Matrix4x4 through)
     {

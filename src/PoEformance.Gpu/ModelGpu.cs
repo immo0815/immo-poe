@@ -107,6 +107,7 @@ public sealed partial class ModelGpu : IDisposable
     private readonly ID3D11DeviceContext _context;
     private readonly bool _owns;
     private readonly ID3D11VertexShader _placed;
+    private readonly ID3D11VertexShader _placedWaves;
     private readonly ID3D11PixelShader _solid;
     private readonly ID3D11PixelShader _mixed;
     private readonly ID3D11PixelShader _added;
@@ -146,6 +147,7 @@ public sealed partial class ModelGpu : IDisposable
         _context = context;
         _owns = owns;
         _placed = compiled.Placed;
+        _placedWaves = compiled.PlacedWaves;
         _solid = compiled.Solid;
         _mixed = compiled.Mixed;
         _added = compiled.Added;
@@ -388,6 +390,7 @@ public sealed partial class ModelGpu : IDisposable
         Plan plan = buffers.Planned(scene);
         Vector3[] placed = posed ? scene.Positions! : positions;
         SceneLight? light = scene.Light;
+        float lift = light?.WaterLift ?? 0f;
 
         // EVERY PROGRAM'S SHADER IN HAND BEFORE ANYTHING IS DRAWN, so a picture is never half the card's.
         if (_runShaders.Length < plan.Runs.Length)
@@ -444,7 +447,7 @@ public sealed partial class ModelGpu : IDisposable
             Depth = new Vector4(reach, 0f, 0f, 0f),
             Dust = new Vector4(scene.Dust ?? EnvironmentSettings.AssumedDust, 0f),
             Water = (scene.Water ?? WaterLook.EngineDefault).ColourRegister,
-            Flow = (scene.Water ?? WaterLook.EngineDefault).FlowRegister,
+            Flow = (scene.Water ?? WaterLook.EngineDefault).FlowRegister with { W = lift },
         });
 
         context.RSSetState(_raster);
@@ -495,6 +498,7 @@ public sealed partial class ModelGpu : IDisposable
             }
 
             var owner = -1;
+            var lifted = false;
             for (var at = 0; at < plan.Runs.Length; at++)
             {
                 Run run = plan.Runs[at];
@@ -518,6 +522,15 @@ public sealed partial class ModelGpu : IDisposable
 
                 context.OMSetBlendState(run.Blend == MaterialBlend.Additive ? _adds : _mixes);
                 context.PSSetShader(shaders[at] ?? (run.Blend == MaterialBlend.Additive ? _added : _mixed));
+
+                // THE WATER LIFTED BY ITS WAVES - MeshPicture.Lifted - where the game light asks for it.
+                bool waves = lift > 0f && run.Shade >= 0 && plan.Programs[run.Shade].HasWaves;
+                if (waves != lifted)
+                {
+                    context.VSSetShader(waves ? _placedWaves : _placed);
+                    lifted = waves;
+                }
+
                 Drawn(run, plan);
             }
         }
@@ -601,6 +614,7 @@ public sealed partial class ModelGpu : IDisposable
         _added.Dispose();
         _mixed.Dispose();
         _solid.Dispose();
+        _placedWaves.Dispose();
         _placed.Dispose();
         if (_owns)
         {
@@ -747,6 +761,7 @@ public sealed partial class ModelGpu : IDisposable
         (string Source, string Entry, string Profile)[] wanted =
         [
             (ModelShaders.Model, "Placed", "vs_4_0"),
+            (ModelShaders.Model, "PlacedWaves", "vs_4_0"),
             (ModelShaders.Model, "Solid", "ps_4_0"),
             (ModelShaders.Model, "Mixed", "ps_4_0"),
             (ModelShaders.Model, "Added", "ps_4_0"),
@@ -780,14 +795,15 @@ public sealed partial class ModelGpu : IDisposable
 
             return new Compiled(
                 device.CreateVertexShader(blobs[0]!),
-                device.CreatePixelShader(blobs[1]!),
+                device.CreateVertexShader(blobs[1]!),
                 device.CreatePixelShader(blobs[2]!),
                 device.CreatePixelShader(blobs[3]!),
                 device.CreatePixelShader(blobs[4]!),
-                device.CreateVertexShader(blobs[5]!),
-                device.CreatePixelShader(blobs[6]!),
-                device.CreateVertexShader(blobs[7]!),
-                device.CreatePixelShader(blobs[8]!),
+                device.CreatePixelShader(blobs[5]!),
+                device.CreateVertexShader(blobs[6]!),
+                device.CreatePixelShader(blobs[7]!),
+                device.CreateVertexShader(blobs[8]!),
+                device.CreatePixelShader(blobs[9]!),
                 device.CreateInputLayout(corners, blobs[0]!));
         }
         finally
@@ -819,6 +835,7 @@ public sealed partial class ModelGpu : IDisposable
 
     private sealed record Compiled(
         ID3D11VertexShader Placed,
+        ID3D11VertexShader PlacedWaves,
         ID3D11PixelShader Solid,
         ID3D11PixelShader Mixed,
         ID3D11PixelShader Added,

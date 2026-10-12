@@ -276,6 +276,90 @@ public class WaterTests
         Assert.True(Brightness(Drawn(waves, Light(glints: false, reflection: true))) > Brightness(none), "the flat ambient is not reflected");
     }
 
+    /// <summary>
+    /// A water shape is split until no edge is longer than asked, the two halves of a quad sharing every new vertex - so a lifted sea has no seams - its area and every other shape as they were.
+    /// </summary>
+    [Fact]
+    public void AWATERShapeIsSplitFineWithoutSeamsAndTheRestIsLeft()
+    {
+        SkinnedMesh mesh = Quads();
+        SkinnedMesh fine = mesh.Refined([true, false], RoomModels.WaterEdge);
+
+        Assert.Equal(2, fine.Shapes.Count);
+        MeshShape water = fine.Shapes[0];
+        float longest = 0f, area = 0f;
+        for (int at = water.From; at < water.From + water.Count; at += 3)
+        {
+            Vector3 a = fine.Positions[fine.Indices[at]], b = fine.Positions[fine.Indices[at + 1]], c = fine.Positions[fine.Indices[at + 2]];
+            longest = MathF.Max(longest, MathF.Max(Vector3.Distance(a, b), MathF.Max(Vector3.Distance(b, c), Vector3.Distance(c, a))));
+            area += Vector3.Cross(b - a, c - a).Length() / 2f;
+        }
+
+        Assert.True(longest <= RoomModels.WaterEdge, $"an edge of {longest}");
+        Assert.Equal(750f * 750f, area, 750f * 750f * 1e-4f);
+
+        // HALVED FIVE TIMES, both halves alike: a grid of 33 by 33, and no place held twice.
+        Vector3[] placesOfWater = [.. Enumerable.Range(water.From, water.Count).Select(at => fine.Positions[fine.Indices[at]]).Distinct()];
+        Assert.Equal(33 * 33, placesOfWater.Length);
+        Assert.Equal(2 * 1024 * 3, water.Count);
+
+        // THE OTHER SHAPE as it was: one triangle on its own three places.
+        MeshShape other = fine.Shapes[1];
+        Assert.Equal(3, other.Count);
+        Assert.Equal(
+            [mesh.Positions[mesh.Indices[6]], mesh.Positions[mesh.Indices[7]], mesh.Positions[mesh.Indices[8]]],
+            new[] { fine.Positions[fine.Indices[other.From]], fine.Positions[fine.Indices[other.From + 1]], fine.Positions[fine.Indices[other.From + 2]] });
+        Assert.All(fine.Normals, one => Assert.Equal(1f, one.Length(), 4));
+
+        // A ROOM SPLITS ITS WATER ALONE, by the shapes' blend words.
+        Assert.Same(mesh, RoomModels.Watered(mesh, ["opaque", "opaque"]));
+        Assert.Equal(water.Count, RoomModels.Watered(mesh, ["water", "opaque"]).Shapes[0].Count);
+    }
+
+    /// <summary>
+    /// The game light's lift raises the water's vertices by its waves, and the picture changes with it.
+    /// </summary>
+    [Fact]
+    public void THELIFTRaisesTheWaterByItsWavesUnderTheGameLightAlone()
+    {
+        SkinnedMesh scene = Quads().Refined([true, false], RoomModels.WaterEdge);
+        ShadeProgram waves = ShadeProgram.Water().Glossy!;
+        WaterLook port = WaterLook.EngineDefault with { FlowIntensity = 1.5f };
+        SceneLight Light(float lift) => new([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1.5f),
+            SunDirection = Vector3.Normalize(new Vector3(0.3f, 0.2f, 1f)),
+            Ambient = SceneAmbient.Flat,
+            FlatAmbient = 0.3f,
+            WaterLift = lift,
+        };
+
+        byte[] Drawn(SceneLight? light) => [.. MeshPicture.Of(
+            scene, new MeshPicture.Canvas(Size) { Water = port, Light = light, Time = 2f }, turn: 0.4f, tilt: 0.35f,
+            skins: [null, Sheet(220, 30, 30)],
+            blends: [MaterialBlend.Alpha, MaterialBlend.Opaque],
+            shades: [waves, null]).Rgba];
+
+        Assert.NotEqual(Drawn(Light(0f)), Drawn(Light(3f)));
+    }
+
+    /// <summary>A water quad 750 a side - two triangles - 60 units over a floor triangle of its own shape.</summary>
+    private static SkinnedMesh Quads()
+    {
+        Vector3[] places =
+        [
+            new(-375f, -375f, -60f), new(375f, -375f, -60f), new(375f, 375f, -60f), new(-375f, 375f, -60f),
+            new(-400f, -400f, 0f), new(400f, -400f, 0f), new(0f, 400f, 0f),
+        ];
+        var normals = new Vector3[places.Length];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+        Vector2[] spots = [.. places.Select(one => new Vector2((one.X + 400f) / 800f, (one.Y + 400f) / 800f))];
+        int[] indices = [0, 1, 2, 0, 2, 3, 4, 5, 6];
+        return SkinnedMesh.Of(
+            places, normals, indices, new Vector3(-400f, -400f, -60f), new Vector3(400f, 400f, 0f),
+            spots, [new MeshShape("Water", 0, 6), new MeshShape("Floor", 6, 3)]);
+    }
+
     /// <summary>An ocean's paints carry the waves in the twin the game light draws with.</summary>
     [Fact]
     public void THEPAINTSLightAnOceanWithItsWaves()
