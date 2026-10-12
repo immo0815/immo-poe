@@ -27,7 +27,7 @@ jobs:
     # AOT is the case that genuinely cannot cross-compile, which is why its gate in ci.yml
     # is on windows-latest. If this job ever does come back to Windows, the shell in the
     # steps below has to come back to pwsh with it.
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LINUX_RUNNER && fromJSON(vars.LINUX_RUNNER) || 'ubuntu-latest' }}
     steps:
       # FULL HISTORY, not the default single commit. The release notes are the changelog the
       # tool's own update tab shows, and building one means listing the commits between the
