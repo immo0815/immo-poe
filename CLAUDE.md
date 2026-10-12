@@ -32,7 +32,9 @@ already cost real time on this project.
   in the capture's zip, beside every other diagnosis the tool can give — ask for that capture
   before theorising about why a tile or room looks wrong. Each probe click also puts its lines in
   the clipboard (asked for from the live client, v0.1.204) - the one copy the capture rule below
-  allows, because it is the probe's own result and not a diagnosis kept out of the catalogue.
+  allows, because it is the probe's own result and not a diagnosis kept out of the catalogue. Only the
+  click's drawing is the processor's (v0.1.238): left on the processor while the probe stood on, a room
+  with running water drew at five frames a second on every core, and a capture pressed then took ages.
 - **`adamthedash/poe_data_tools`** is to the game's FILE formats what GameHelper2 is to its
   memory: working parsers for `.ao`, `.sm`, `.smd`, `.fmt`, `.mat` and `.ast`. Clone it and
   read the parser, not a diagram of it — `crates/poe_data_tools-lib/src/file_parsers/`.
