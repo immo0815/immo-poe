@@ -20,11 +20,14 @@ public sealed class CaptureWaterTexturesTests
         File.WriteAllBytes(program, Program());
         try
         {
-            string text = CaptureWaterTextures.Write(Install, [Noise, Big, Ripple, Missing, Ripple], [program], out IReadOnlyList<WaterTexture> pictures)
+            string text = CaptureWaterTextures.Write(
+                    Install, [Noise, Big, Ripple, Missing, Ripple], [program], out IReadOnlyList<WaterTexture> pictures, out IReadOnlyList<WaterLookupFile> lookups)
                 .ReplaceLineEndings("\n");
 
             Assert.StartsWith(
-                "4 textures name the water, 3 read, 1 at the ripple's 128 square, 2 decoded; 3 strings in the program name them\n", text, StringComparison.Ordinal);
+                "4 textures name the water, 3 read, 1 at the ripple's 128 square, 2 decoded; 3 strings in the program name them; 5 lookups, 0 read as floats - ",
+                text, StringComparison.Ordinal);
+            Assert.Empty(lookups);
 
             // THE STRONGEST WORDS FIRST, the ripple's size marked.
             Assert.True(text.IndexOf("<<" + Ripple, StringComparison.Ordinal) < text.IndexOf("  " + Big, StringComparison.Ordinal));
@@ -51,10 +54,44 @@ public sealed class CaptureWaterTexturesTests
     [Fact]
     public void BEFORETheInstallWalkHasRunItSaysSo()
     {
-        string text = CaptureWaterTextures.Write(Install, [], [], out IReadOnlyList<WaterTexture> pictures);
+        string text = CaptureWaterTextures.Write(Install, [], [], out IReadOnlyList<WaterTexture> pictures, out IReadOnlyList<WaterLookupFile> lookups);
 
         Assert.StartsWith("no water textures listed; no program to search", text, StringComparison.Ordinal);
         Assert.Empty(pictures);
+        Assert.Empty(lookups);
+    }
+
+    [Fact]
+    public void THEENGINESLookupsAreReadAsFloatsWrittenWholeAndHeldAgainstWhatTheWaterTakes()
+    {
+        const string noise = "Art/2DArt/Lookup/noise_curl3.dds";
+        string program = Path.Combine(Path.GetTempPath(), $"poef-water-program-{Guid.NewGuid():N}.exe");
+        File.WriteAllBytes(program, [.. Encoding.ASCII.GetBytes("xyArt/2DArt/Lookup/gerstner_wave_profile.dds"), 0, .. Encoding.ASCII.GetBytes(noise), 0]);
+        try
+        {
+            string text = CaptureWaterTextures.Write(
+                    WaterLookupsTests.Install, ["art/2dart/lookup/surface_ripple.dds", "art/textures/water.dds"], [program],
+                    out _, out IReadOnlyList<WaterLookupFile> lookups)
+                .ReplaceLineEndings("\n");
+
+            // EVERY LOOKUP the walk or the program names, and those the water reads, once each - the program's prefix cut off.
+            Assert.Contains("; 6 lookups, 4 read as floats - the ripples over the engine's ripple texture (surface_ripple.dds); the swell's cross-section the engine's (wave_profile.dds,", text, StringComparison.Ordinal);
+            Assert.Contains("\nArt/2DArt/Lookup/noise_curl3.dds: not in the install\n", text, StringComparison.Ordinal);
+            Assert.Contains("  read as 128 x 128, Direct3D format 116 (A32B32G32R32F)\n", text, StringComparison.Ordinal);
+            Assert.Contains("  written whole: water-lookup-surface_ripple.dds\n", text, StringComparison.Ordinal);
+            Assert.Equal(
+                ["water-lookup-gerstner_wave_profile.dds", "water-lookup-surface_ripple.dds", "water-lookup-wave_profile.dds", "water-lookup-wave_profile_gradient.dds"],
+                lookups.Select(one => one.File).Order(StringComparer.Ordinal));
+
+            // WHAT THE WATER TAKES, and what it draws with now - the stand-ins, nothing having been handed over in a test.
+            Assert.Contains("=== what the water takes of them (WaterLookups), and why\n", text, StringComparison.Ordinal);
+            Assert.Contains("TAKEN as the swell's cross-section: wave_profile.dds with wave_profile_gradient.dds\n", text, StringComparison.Ordinal);
+            Assert.Contains("now drawn: the ripples over a noise of this tool's", text, StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(program);
+        }
     }
 
     /// <summary>A program's bytes: a path in single bytes, a phrase in two at an odd offset, one word twice, and strings with none.</summary>

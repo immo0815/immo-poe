@@ -328,6 +328,19 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   was made from and what came of it - and `shore.png` beside it; `water-textures.txt` also looks for shore, coast, swell,
   tide and distortion textures. NOT DRAWN: the swell's foam, its orbit carrying the ripples to and fro (the cross-section's
   blue, the distortion texture), the rocky shore's clashing state, the spray.
+  THE ENGINE'S LOOKUPS (v0.1.231). Port's captures of v0.1.228 and v0.1.230 found them: the game's program names three -
+  `Art/2DArt/Lookup/surface_ripple.dds` (128 square, one level, its header's code the NUMBER 116, D3DFMT_A32B32G32R32F,
+  which the bytes' decoder could not read), `gerstner_wave_profile.dds` and `wave_profile_gradient.dds` - and the lookup
+  folder holds `wave_profile.dds` and `gerstner_positive_wave_profile.dds` beside them (and `foam_shore_colour_dxt1.dds`
+  elsewhere). The sources bind by sampler name alone, so which file is which is SETTLED BY THE FILES (`WaterLookups`): the
+  ripple texture is taken where its green and blue go with its red's own differences a texel (correlation 0.8 either way
+  round), and the swell's profile is whichever of the three whose red's differences along the phase go with the gradient's
+  red - the others being the beach's. `FloatArt` reads the float formats (the old numbers 111 to 116, DXGI's float ones) as
+  a card does; `ShadeProgram.Use` hands the taken ones over as the install opens, the card making its textures again on a
+  change, the swell read at its own size (`GetDimensions`); where one is not taken the stand-in stays and the line under the
+  picture says why. `water-textures.txt` reads every lookup the walk or the program names as floats, writes each whole
+  beside it (`water-lookup-name.dds`) and what the water takes and why; `water-lookups-replay.txt` reads them again
+  offline. Port's first `shore.png` (v0.1.230) drew the pier, the quay and the bay where the game lays them.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

@@ -247,7 +247,9 @@ public static class CaptureParts
             "Where the engine's ripple texture may be - the one its waves' eight octaves read, 128 texels a side, red the height and "
             + "green and blue its slope, which no shader source names: every texture whose path names the water with its size and "
             + "format, those 128 square marked, the likeliest decoded channel by channel as pictures beside it, and the strings the "
-            + "game's own program holds that name one. What stands between the tool's stand-in waves and the game's."),
+            + "game's own program holds that name one. And the engine's lookups (Art/2DArt/Lookup/) the walk or the program names - the "
+            + "ripple texture, the swell's profiles and gradient - read as floats, each written whole beside it, with what the water "
+            + "takes of them and why. What stands between the tool's stand-in waves and the game's."),
 
         new(Doodads, "Rooms by doodads", "the doodads found", CaptureReport.DoodadsFile,
             "The survey of the area's entity maps for the rooms' doodads: each room's share, each path found and how many stand, "

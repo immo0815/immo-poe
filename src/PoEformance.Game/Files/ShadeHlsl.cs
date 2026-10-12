@@ -269,13 +269,13 @@ public static class ShadeHlsl
         }
         """;
 
-    /// <summary>The slot the ripple texture is read from - ShadeProgram.RippleSheet, bound by the drawing for the pixel and the vertex shaders alike.</summary>
+    /// <summary>The slot the ripple texture is read from - ShadeProgram.Ripples, bound by the drawing for the pixel and the vertex shaders alike.</summary>
     public const int RippleSlot = 10;
 
     /// <summary>The slot the room's shore is read from - ShoreField.Texels, bound by the drawing where it has one.</summary>
     public const int ShoreSlot = 11;
 
-    /// <summary>The slot the swell's cross-section is read from - ShadeProgram.SwellSheet, bound with the ripple texture.</summary>
+    /// <summary>The slot the swell's cross-section is read from - ShadeProgram.Swells, bound with the ripple texture.</summary>
     public const int SwellSlot = 12;
 
     /// <summary>
@@ -406,7 +406,6 @@ public static class ShadeHlsl
     private static string Waves()
     {
         int side = ShadeProgram.RippleSide;
-        int phases = ShadeProgram.SwellPhases, shores = ShadeProgram.SwellShores;
         return $$"""
             Texture2D<float4> ShadeRipples : register(t{{RippleSlot}});
             Texture2D<float4> ShadeShore : register(t{{ShoreSlot}});
@@ -462,17 +461,22 @@ public static class ShadeHlsl
                 ocean = mixed.y;
             }
 
-            // ShadeProgram.Swell: the swell's cross-section, wrapping along the phase and held along the shore's distance.
+            // ShadeProgram.Swell: the swell's cross-section, wrapping along the phase and held along the shore's distance, its own size.
             float ShadeSwellAt(float phase, float near, out float rise)
             {
-                float sx = (phase * {{phases}}.0) - 0.5;
-                float sy = clamp((near * {{shores}}.0) - 0.5, 0.0, {{shores - 1}}.0);
+                uint across;
+                uint down;
+                ShadeSwell.GetDimensions(across, down);
+                int width = (int)across;
+                int height = (int)down;
+                float sx = (phase * (float)width) - 0.5;
+                float sy = clamp((near * (float)height) - 0.5, 0.0, (float)(height - 1));
                 float fx0 = floor(sx);
                 float fx = sx - fx0;
-                int x0 = ((int)fx0) & {{phases - 1}};
-                int x1 = (x0 + 1) & {{phases - 1}};
+                int x0 = ((((int)fx0) % width) + width) % width;
+                int x1 = (x0 + 1) % width;
                 int y0 = (int)sy;
-                int y1 = min(y0 + 1, {{shores - 1}});
+                int y1 = min(y0 + 1, height - 1);
                 float fy = sy - y0;
                 float2 a = ShadeSwell.Load(int3(x0, y0, 0)).xy;
                 float2 b = ShadeSwell.Load(int3(x1, y0, 0)).xy;
