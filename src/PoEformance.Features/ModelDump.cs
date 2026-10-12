@@ -1361,6 +1361,8 @@ public static partial class ModelDump
         10 => "R16G16B16A16_FLOAT",
         28 => "R8G8B8A8_UNORM",
         29 => "R8G8B8A8_UNORM_SRGB",
+        34 => "R16G16_FLOAT",
+        35 => "R16G16_UNORM",
         49 => "R8G8_UNORM",
         61 => "R8_UNORM",
         65 => "A8_UNORM",

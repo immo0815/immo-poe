@@ -377,7 +377,19 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   `flow_muddle_blur_01_R16G16.dds`, two 16-bit channels, which `GameArt` now reads in every header spelling them (a texture that
   does not read leaves the whole material undrawn). CHOSEN: the shore field it reads (2,000 units a colour unit, as the swell's);
   the normal at length one. On the processor the foam's textures are read at their top level. NOT DRAWN: the foam's own normal
-  (CombineWorldNormals is not compiled) and the screen's wetness (ReadPixelWetness, a pass of the engine's).
+  (CombineWorldNormals is not compiled) and the screen's wetness (ReadPixelWetness, a pass of the engine's). MEASURED (v0.1.234's
+  capture): the noise's header is DXGI 35, R16G16_UNORM, and all three read; the rocks' foam "looks fantastic" (said from the live
+  client). WHAT STANDS IN THE SEA IS SHORE (v0.1.236, asked for from the live client: in the game the waves run on over the rocks,
+  here through them): `ShoreField.Of` takes a third kind of land, CHOSEN as the shapes whose own program sprays (`ShadeProgram.Sprays`
+  - the rocks and the pier's stones, not the ship, round whose hull the game breaks nothing), counted apart in `model-panes.txt`; the
+  field is made again once a room's materials are compiled (`RoomModels.ShoreOf`, `MonsterModels.Shaded`), and a stage takes its
+  tile's. The engine's own rocky shore - the field's negative strength, which takes GetClashingWaterPlanarState instead of the
+  swell - reads `distortion_sampler` throughout (its offsets and GetFoamColor2's), a pass texture named nowhere, so it is NOT DRAWN
+  and every shore stays a beach. THE PATCHES BETWEEN THE CRESTS (said from the live client, v0.1.234: "a water texture sticking out
+  of the wave", sand-coloured shapes that move with the swell) are either the sea floor where a lifted trough drops below it (the
+  water then dropped, the probe's fragment "dropped by its program") or the shore reflected off a wave's face by the screen ray -
+  so the probe now writes, for every water pixel lit the game's way, where it stood, how far its waves lean and what its
+  reflection met (`ProbeWater`, `PictureProbe.Watered`). Pause the pane on a patch, probe it, then capture.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

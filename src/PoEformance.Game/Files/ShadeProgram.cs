@@ -365,7 +365,13 @@ public sealed partial class ShadeProgram
         UsesDepth = steps.Any(one => one.Op is Op.Depth or Op.ContactFade);
         Discards = steps.Any(one => one.Op == Op.ContactFade || (one.Op == Op.Depth && one.Extra != 0));
         UsesTime = result == Clock || specular == Clock || gloss == Clock || steps.Any(one => one.Reads(Clock));
+        Sprays = steps.Any(one => one.Op == Op.Spray);
     }
+
+    /// <summary>
+    /// Whether the material draws the sea's spray on itself (CrashingFoamSurface) - the game's own word that the sea breaks on it; see ShoreField.Of.
+    /// </summary>
+    public bool Sprays { get; }
 
     internal enum Op : byte
     {

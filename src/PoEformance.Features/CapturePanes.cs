@@ -144,7 +144,7 @@ public static class CapturePanes
         }
 
         body.Append(CultureInfo.InvariantCulture,
-            $"  shore\tmade from {shore.WaterTriangles} water and {shore.GroundTriangles} ground triangles against a water level of {shore.Level:0.#}: ")
+            $"  shore\tmade from {shore.WaterTriangles} water and {shore.GroundTriangles} ground triangles, and {shore.StandingTriangles} of what stands in the sea (CHOSEN: the shapes whose material sprays, {shore.StandingCells} cells land by them alone), against a water level of {shore.Level:0.#}: ")
             .Append(CultureInfo.InvariantCulture,
                 $"{shore.Width} x {shore.Height} cells of {shore.CellSize:0.#} from ({shore.Left:0}, {shore.Top:0}), {shore.LandCells} land; ")
             .Append(CultureInfo.InvariantCulture,

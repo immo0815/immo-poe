@@ -2103,9 +2103,19 @@ public static class MeshPicture
             float sun = _shadow?.Lit(place, normal) ?? 1f;
             float environment = 1f;
             Vector3 mirrored = Vector3.Zero;
+            // THE PROBE'S PIXEL SAYS WHAT ITS WATER DID - one compare a pixel where nobody probes.
+            bool probed = _probeAt >= 0 && (y * _size) + x == _probeAt && waves != Vector3.Zero;
+            ProbeWater ray = probed
+                ? new ProbeWater(away, place, normal, waves, Vector3.Zero, -2, -1, -1, float.MaxValue, Vector3.Zero, 1f, Vector3.Zero)
+                : default;
             if (_opaque is not null && glossy && waves != Vector3.Zero && _scene!.WaterReflection && _scene.WaterScene)
             {
-                mirrored = Mirrored(waves, normal, x, y, away, specular, gloss, out environment);
+                mirrored = Mirrored(waves, normal, x, y, away, specular, gloss, out environment, probed, ref ray);
+            }
+
+            if (probed)
+            {
+                _probe!.Add(ray with { Environment = environment, Added = mirrored });
             }
 
             // THE PICTURE'S OWN LIGHT IS ADDED AS IT WAS DRAWN, exposed and graded already.
@@ -2121,13 +2131,19 @@ public static class MeshPicture
         /// (<c>reflected + base_normal * max(0, -dot(reflected, base_normal))</c>), marched across the picture, and the
         /// colour where it first meets a surface, linear, weighed by the split sum as the cube is.
         /// </remarks>
-        private Vector3 Mirrored(Vector3 waves, Vector3 normal, int x, int y, float away, Vector3 specular, float gloss, out float environment)
+        private Vector3 Mirrored(
+            Vector3 waves, Vector3 normal, int x, int y, float away, Vector3 specular, float gloss, out float environment, bool probed, ref ProbeWater ray)
         {
             environment = 1f;
             Vector3 reflected = (2f * Vector3.Dot(waves, _toEye) * waves) - _toEye;
             reflected += normal * MathF.Max(0f, -Vector3.Dot(reflected, normal));
             Vector3 inView = Vector3.TransformNormal(reflected, _view);
             int step = ScreenReflection.March(x, y, away, new Vector2(inView.X, inView.Y) * _scale, inView.Z, _size, _depth, out int hitX, out int hitY);
+            if (probed)
+            {
+                ray = ray with { Reflected = reflected, Step = step };
+            }
+
             if (step < 0)
             {
                 return Vector3.Zero;
@@ -2135,6 +2151,17 @@ public static class MeshPicture
 
             environment = ScreenReflection.EnvironmentShare(step);
             int at = ((hitY * _size) + hitX) * 4;
+            if (probed)
+            {
+                ray = ray with
+                {
+                    HitX = hitX,
+                    HitY = hitY,
+                    HitDepth = _depth[(hitY * _size) + hitX],
+                    HitColour = new Vector3(_opaque![at], _opaque[at + 1], _opaque[at + 2]),
+                };
+            }
+
             var seen = new Vector3(
                 ShadeProgram.Linear(_opaque![at] / 255f), ShadeProgram.Linear(_opaque[at + 1] / 255f), ShadeProgram.Linear(_opaque[at + 2] / 255f));
             GlossLight.Environment(MathF.Max(Vector3.Dot(waves, _toEye), 1e-4f), gloss, out float bias, out float scale);
