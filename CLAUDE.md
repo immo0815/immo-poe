@@ -634,7 +634,10 @@ Measured on the committed captures (`lattice-replay.txt`, `joins-replay.txt`, `o
   displacement below the paths - so at its own height, or flat, the sheet sat tens of cells off the outline; and it is
   GATHERED per pixel rather than scattered per cell, since a cell pushed by a lift twenty cells from its neighbour's
   tore black wedges into the picture. `THEPROJECTILESheetMeetsTheFloorItBorders` pins it against both captures. Over an
-  abyss nearly the whole map's rectangle is such ground (the Grotto: 7.6 million cells to 336 thousand walkable).
+  abyss nearly the whole map's rectangle is such ground (the Grotto: 7.6 million cells to 336 thousand walkable), so the
+  sheet takes a REACH (v0.1.226, the page's slider, `shotsReach`, world units, nought no limit and the default): only what
+  lies within it of the floor as drawn - a chamfer distance over the lift's blocks, three a block across and four corner to
+  corner. At 1000 the Grotto's sheet is a band round its paths, 286 thousand pixels of 1.9 million.
 
 ## Raise the version on every push
 

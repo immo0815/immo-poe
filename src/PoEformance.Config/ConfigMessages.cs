@@ -70,6 +70,7 @@ public sealed record OverlayView(
     [property: JsonPropertyName("showShots")] bool ShowShots = true,
     [property: JsonPropertyName("shotsColour")] string ShotsColour = "#E0A040",
     [property: JsonPropertyName("shotsOpacity")] int ShotsOpacity = 30,
+    [property: JsonPropertyName("shotsReach")] int ShotsReach = 0,
     [property: JsonPropertyName("shots")] string Shots = "");
 
 /// <summary>One marker on the page's map, in outline-pixel coordinates.</summary>

@@ -381,6 +381,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         MinimumLootRarity = settings.MinLootRarity;
         ShowTerrain = settings.ShowTerrain;
         ShowShots = settings.ShowShots;
+        ShotsReach = settings.ShotsReach;
         ShowLabels = settings.DotLabels;
         _healthBars.OnlyWhenHurt = settings.HealthBarsOnlyWhenHurt;
         HideBehindPanels = settings.HideBehindPanels;
@@ -498,6 +499,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             ShowShots = ShowShots,
             ShotsColour = OverlaySettings.FormatPageColour(_shotsColour),
             ShotsOpacity = _shotsOpacity,
+            ShotsReach = ShotsReach,
             DotLabels = ShowLabels,
             HealthBarsOnlyWhenHurt = _healthBars.OnlyWhenHurt,
             HideBehindPanels = HideBehindPanels,
@@ -2337,6 +2339,13 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
 
     /// <summary>Draw on the map the ground a projectile crosses and a body cannot - see ShotLayer.</summary>
     public bool ShowShots { get; set; } = true;
+
+    /// <summary>How far from the walkable ground that sheet reaches, in world units; nought for all of it - see ShotLayer.Reach.</summary>
+    public int ShotsReach
+    {
+        get => _shots.Reach;
+        set => _shots.Reach = value;
+    }
 
     /// <summary>Draw name labels next to dots.</summary>
     public bool ShowLabels { get; set; }

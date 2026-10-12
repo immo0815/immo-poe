@@ -36,6 +36,11 @@ public sealed record OverlaySettings(
     [property: JsonPropertyName("showShots")] bool ShowShots = true,
     [property: JsonPropertyName("shotsColour")] string ShotsColour = "#E0A040",
     [property: JsonPropertyName("shotsOpacity")] int ShotsOpacity = 30,
+
+    // How far from the walkable ground the sheet reaches, in world units - the rules' radii's unit, where about 1000 is a
+    // screen (measured, see RuleFacts' MonsterCountWithin). Nought is no limit, which is what the sheet drew before there
+    // was a choice, so nobody's map changes unasked.
+    [property: JsonPropertyName("shotsReach")] int ShotsReach = 0,
     [property: JsonPropertyName("hideNoise")] bool HideNoise = true,
     [property: JsonPropertyName("rememberOutOfRange")] bool RememberOutOfRange = true,
     [property: JsonPropertyName("showPoi")] bool ShowPoi = true,
@@ -383,6 +388,7 @@ public sealed record OverlaySettings(
             ShowShots = sent.ShowShots,
             ShotsColour = sent.ShotsColour,
             ShotsOpacity = sent.ShotsOpacity,
+            ShotsReach = sent.ShotsReach,
         };
     }
 
@@ -407,6 +413,7 @@ public sealed record OverlaySettings(
             TerrainFillOpacity = Math.Clamp(TerrainFillOpacity, 0, 100),
             ShotsColour = ParseColour(ShotsColour) == 0 ? Default.ShotsColour : ShotsColour,
             ShotsOpacity = Math.Clamp(ShotsOpacity, 0, 100),
+            ShotsReach = Math.Clamp(ShotsReach, 0, MostShotsReach),
 
             // Left null when it is null, rather than filled in with the defaults: an untouched
             // file gains no key, and the defaults keep coming from the code where a correction
@@ -493,6 +500,12 @@ public sealed record OverlaySettings(
     /// <summary>The fill as the overlay takes it: colour and opacity in one ABGR value.</summary>
     [JsonIgnore]
     public uint TerrainFillPacked => WithOpacity(ParseColour(TerrainFillColour), TerrainFillOpacity);
+
+    /// <summary>
+    /// The longest reach the page offers, in world units - three screens; past it the reach would reach the whole of any
+    /// area anyway, and nought already says that.
+    /// </summary>
+    public const int MostShotsReach = 3000;
 
     /// <summary>The projectile sheet as the overlay takes it: colour and opacity in one ABGR value.</summary>
     [JsonIgnore]
