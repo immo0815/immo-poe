@@ -172,7 +172,7 @@ public sealed partial class ModelGpu : IDisposable
         _ripplesOf = ShadeProgram.Ripples;
         (_ripples, _rippled) = Sheet(device, _ripplesOf, Format.R32G32B32A32_Float);
         _swellsOf = ShadeProgram.Swells;
-        (_swells, _swelled) = Sheet(device, _swellsOf, Format.R32G32_Float);
+        (_swells, _swelled) = Sheet(device, _swellsOf, Format.R32G32B32A32_Float);
         _solid = compiled.Solid;
         _mixed = compiled.Mixed;
         _added = compiled.Added;
@@ -1384,7 +1384,7 @@ public sealed partial class ModelGpu : IDisposable
         {
             _swelled.Dispose();
             _swells.Dispose();
-            (_swells, _swelled) = Sheet(_device, swells, Format.R32G32_Float);
+            (_swells, _swelled) = Sheet(_device, swells, Format.R32G32B32A32_Float);
             _swellsOf = swells;
         }
     }

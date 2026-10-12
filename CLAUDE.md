@@ -341,6 +341,25 @@ diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule
   picture says why. `water-textures.txt` reads every lookup the walk or the program names as floats, writes each whole
   beside it (`water-lookup-name.dds`) and what the water takes and why; `water-lookups-replay.txt` reads them again
   offline. Port's first `shore.png` (v0.1.230) drew the pier, the quay and the bay where the game lays them.
+  MEASURED (v0.1.231, Port): `surface_ripple.dds`'s green and blue are its red's differences a texel, correlation 1 and
+  scale 1 - TAKEN; `wave_profile.dds` goes with `wave_profile_gradient.dds` at correlation 1 and scale 1 along the phase
+  (0.997 along the shore's distance) - TAKEN - while `gerstner_wave_profile.dds`, the one the program names, does not
+  (0.03): the beach's. All four are fixtures (`tests/fixtures/water-lookups`, `WaterLookupsTests`). The profile is no
+  trochoid: flat far out (its first rows), the swell standing whole about a quarter of a colour unit in, then breaking -
+  flat again by the shore with its green, the trail foam, rising along the phase to one; its blue the orbit about 0.5, its
+  alpha the front's phase from -1 to 2. THE FOAM (v0.1.233, asked for from the live client): `ShadeProgram.Foam`,
+  GetTidalWaterPlanarState's foam and GetFoamColor3's trail as written - the cross-section's green times
+  `saturate(gBufferDelta / 25)` (the depth the view crosses, the water program's own), three octaves of the engine's
+  Voronoi noise (GetVoronoiNoise, Hash2), the shallows' `-(shoreDist - 0.18) * 10` - laid as InitWaterSurfaceData lays it
+  (colour lerped to the foam's, what lies behind hidden by `1 - (1 - a)^3`, specular to 0.04, gloss to nought), and the
+  ripples flattened under it (`foamRippleDampening`, `pow(trail, 3)`). Over a bay at the shore field's 2,000 units a colour
+  unit the foam rolls in bands from 1,000 units out to 200, a fifth of the water covered (`THEFOAMRollsInBandsOnTheEnginesProfile`);
+  where that falls in Port depends on the field's scale, which is CHOSEN (the engine's `dist_to_color` and the env's
+  `shoreline_offset` and `shoreline_resolution` are unread). NOT DRAWN: the leading edge's textured layers
+  (`water_tex_sampler` "for foam leading edge" and `distortion_sampler`, bound by the engine and named nowhere), the orbit's
+  and the distortion's offsets, the rocky shore's clashing state and its GetFoamColor2, the spray (particles). A code block
+  offered from elsewhere (2026-10-12) drew foam from a height threshold, `noise_worley_low.dds`, the walkable grid and a
+  pulsing sine - none of it in the engine's source, which is in `water.txt` whole: read it there.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

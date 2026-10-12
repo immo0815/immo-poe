@@ -721,7 +721,7 @@ internal static class ModelShaders
         // vertex's x and y in the area's wind, times the lift, taken off z (up is minus z).
         Pixel PlacedWaves(Corner corner)
         {
-            corner.position.z -= ShadeWaves(corner.position.xy, Wind, Clock.x, Shore, Swell).w * Flow.w;
+            corner.position.z -= ShadeWaves(corner.position.xy, Wind, float2(Clock.x, 1.0e9), Shore, Swell).w * Flow.w;
             return Placed(corner);
         }
         """;

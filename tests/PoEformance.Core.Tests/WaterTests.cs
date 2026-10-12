@@ -274,7 +274,7 @@ public class WaterTests
     /// <summary>
     /// A bay: water 6,000 across at nought over a sea floor 300 down, and a quay 100 up along x from 1,000 on - the shore a line at x = 1,000, the open sea towards minus x. Up is minus z.
     /// </summary>
-    private static SkinnedMesh Bay()
+    internal static SkinnedMesh Bay()
     {
         Vector3[] places =
         [
@@ -423,14 +423,18 @@ public class WaterTests
         Assert.True(waves.UsesTime);
         Assert.Empty(waves.Textures);
 
+        // THE PLAIN PROGRAM READS THE FOAM, not the waves: the library is there, no step calls ShadeWaves.
         string plain = ShadeHlsl.Of(water, 9);
         Assert.Contains("static const bool ShadeHasWaves = false;", plain, StringComparison.Ordinal);
-        Assert.DoesNotContain("ShadeWaves(", plain, StringComparison.Ordinal);
+        Assert.DoesNotContain("= ShadeWaves(r", plain, StringComparison.Ordinal);
+        Assert.Contains("= ShadeFoam(r", plain, StringComparison.Ordinal);
         Assert.Contains("said.waves = float3(0.0, 0.0, 0.0);", plain, StringComparison.Ordinal);
 
         string wavy = ShadeHlsl.Of(waves, 9);
         Assert.Contains("static const bool ShadeHasWaves = true;", wavy, StringComparison.Ordinal);
-        Assert.Contains("float4 ShadeWaves(float2 place, float4 wind, float clock, float4 shore, float4 swell)", wavy, StringComparison.Ordinal);
+        Assert.Contains("float4 ShadeWaves(float2 place, float4 wind, float2 timing, float4 shore, float4 swell)", wavy, StringComparison.Ordinal);
+        Assert.Contains("float4 ShadeFoam(float2 place, float2 timing, float4 shore, float4 swell)", wavy, StringComparison.Ordinal);
+        Assert.Contains("= ShadeWaves(r", wavy, StringComparison.Ordinal);
         Assert.Contains("said.waves = r", wavy, StringComparison.Ordinal);
 
         // THE ENGINE'S STEADY SCROLL, as the processor writes it - no phase that wraps.

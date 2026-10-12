@@ -64,7 +64,7 @@ public sealed class WaterLookups
     /// <summary>The engine's ripple texture, 128 square, four floats a texel - or null where it is not taken.</summary>
     public WaterSheet? Ripples { get; }
 
-    /// <summary>The engine's swell cross-section: the profile's red and the gradient's at the profile's texels, two floats a texel - or null.</summary>
+    /// <summary>The engine's swell cross-section: the profile's red, the gradient's at the profile's texels, the profile's green and alpha - four floats a texel - or null.</summary>
     public WaterSheet? Swells { get; }
 
     /// <summary>One line: what is taken, and what is not and why.</summary>
@@ -236,14 +236,18 @@ public sealed class WaterLookups
             return null;
         }
 
-        var texels = new float[best.Width * best.Height * 2];
+        // THE PROFILE'S RED, THE GRADIENT'S RED AT ITS TEXELS, AND ITS GREEN AND ALPHA - the trail foam's strength and the front's
+        // phase (GetTidalWaterPlanarState). Its blue, the orbit carrying the ripples to and fro, is not drawn.
+        var texels = new float[best.Width * best.Height * 4];
         for (var y = 0; y < best.Height; y++)
         {
             for (var x = 0; x < best.Width; x++)
             {
-                int at = ((y * best.Width) + x) * 2;
+                int at = ((y * best.Width) + x) * 4;
                 texels[at] = best.At(x, y, 0);
                 texels[at + 1] = Sampled(gradient, (x + 0.5f) / best.Width, (y + 0.5f) / best.Height, 0);
+                texels[at + 2] = best.At(x, y, 1);
+                texels[at + 3] = best.At(x, y, 3);
             }
         }
 
@@ -251,7 +255,7 @@ public sealed class WaterLookups
         said = $"the swell's cross-section the engine's ({name}, its rise wave_profile_gradient.dds"
                + (best.Width == gradient.Width && best.Height == gradient.Height ? ")" : " read at its texels)");
         lines.Add($"TAKEN as the swell's cross-section: {name} with {Path.GetFileName(GradientPath)}");
-        return new WaterSheet(best.Width, best.Height, 2, texels, true, said);
+        return new WaterSheet(best.Width, best.Height, 4, texels, true, said);
     }
 
     /// <summary>One channel at a place, wrapping along u and held along v, the four nearest texels' centres mixed - SamplerLinearWrapClampWrap's read.</summary>
