@@ -168,7 +168,10 @@ build actually performed, so a new diagnostic needs a fresh recording.
 **The capture (F9, "Capture for Diagnosis") is the hub for every diagnosis - probes, fixtures,
 recordings, dumps, measurements - and it is grown, not worked around.** One key writes one zip
 from one spot at one moment: the pictures, the recording, the area's files, every window's
-diagnosis that is ticked on the Keys page (`CaptureParts.All`). That is the rule for new work:
+diagnosis that is ticked on the Keys page (`CaptureParts.All`). A zip past 29 MB is written straight into pieces,
+`name.zip.001`, `.002` and on, each under 29 MB (`CaptureReport.PieceBytes`, `PieceStream`) - the zip's own bytes in order, joined
+again by concatenation (7-Zip opens the `.001`, `copy /b`, `cat`): asked for from the live client (2026-10-13), the place a capture is
+sent to taking no file over 30 MB, and chosen there over several whole zips. That is the rule for new work:
 
 - **Debug lives in the capture, nowhere else** (asked for from the live client, 2026-10-11). A measurement
   the tool can make - a memory search, a dump, an evaluation of what a window shows - is a capture part run

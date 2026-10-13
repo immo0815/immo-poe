@@ -94,9 +94,11 @@ public class AreaEnvironmentTests
             File.WriteAllBytes(Path.Combine(folder, "memory.rec"), new byte[4096]);
             File.WriteAllText(Path.Combine(folder, "loaded-files.txt"), string.Concat(Enumerable.Repeat("Metadata/Terrain/Maps/Seepage/a.tdt\n", 200)));
 
-            (string zip, List<string> leftOut) = CaptureReport.Pack(folder);
+            (IReadOnlyList<string> files, List<string> leftOut) = CaptureReport.Pack(folder);
 
+            string zip = Assert.Single(files);
             Assert.Equal(folder + ".zip", zip);
+            Assert.False(File.Exists(zip + ".001"));
             Assert.Empty(leftOut);
             using ZipArchive archive = ZipFile.OpenRead(zip);
             Assert.Equal(["game.png", "loaded-files.txt", "memory.rec"], archive.Entries.Select(one => one.FullName));
@@ -109,5 +111,60 @@ public class AreaEnvironmentTests
         {
             Directory.Delete(root, recursive: true);
         }
+    }
+
+    /// <summary>
+    /// A capture bigger than a piece is packed straight into pieces - every one full but the last, none past the most - and the
+    /// pieces joined in order are the zip, every file in it as it was.
+    /// </summary>
+    [Fact]
+    public void ACAPTUREBiggerThanAPieceIsCutIntoPiecesThatJoinIntoTheZip()
+    {
+        string root = Path.Combine(Path.GetTempPath(), $"capture-pieces-{Guid.NewGuid():N}");
+        string folder = Path.Combine(root, "2026-10-13 06-07-07 The Excavation");
+        Directory.CreateDirectory(folder);
+        try
+        {
+            var random = new Random(7);
+            byte[] picture = new byte[25_000], recording = new byte[12_345];
+            random.NextBytes(picture);
+            random.NextBytes(recording);
+            File.WriteAllBytes(Path.Combine(folder, "game.png"), picture);
+            File.WriteAllBytes(Path.Combine(folder, "memory.rec"), recording);
+            File.WriteAllText(Path.Combine(folder, "capture.txt"), "capture  the summary\n");
+
+            (IReadOnlyList<string> files, List<string> leftOut) = CaptureReport.Pack(folder, most: 10_000);
+
+            Assert.Empty(leftOut);
+            Assert.Equal(4, files.Count);
+            Assert.Equal([.. Enumerable.Range(1, 4).Select(piece => $"{folder}.zip.{piece:000}")], files);
+            Assert.False(File.Exists(folder + ".zip"));
+            Assert.All(files.SkipLast(1), piece => Assert.Equal(10_000, new FileInfo(piece).Length));
+            Assert.InRange(new FileInfo(files[^1]).Length, 1, 10_000);
+
+            using var joined = new MemoryStream();
+            foreach (string piece in files)
+            {
+                joined.Write(File.ReadAllBytes(piece));
+            }
+
+            joined.Position = 0;
+            using var archive = new ZipArchive(joined, ZipArchiveMode.Read);
+            Assert.Equal(["capture.txt", "game.png", "memory.rec"], archive.Entries.Select(one => one.FullName));
+            Assert.Equal(picture, Content(archive.GetEntry("game.png")!));
+            Assert.Equal(recording, Content(archive.GetEntry("memory.rec")!));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private static byte[] Content(ZipArchiveEntry entry)
+    {
+        using Stream stream = entry.Open();
+        using var copy = new MemoryStream();
+        stream.CopyTo(copy);
+        return copy.ToArray();
     }
 }

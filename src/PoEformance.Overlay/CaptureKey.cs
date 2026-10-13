@@ -1018,7 +1018,8 @@ internal sealed class CaptureKey
 
         string[] off = [.. CaptureParts.All.Where(part => run.Off.Contains(part.Key)).Select(part => part.Key)];
         parts.Add(off.Length == 0 ? "every part of the catalogue was on" : "off: " + string.Join(", ", off));
-        parts.Add($"{Path.GetFileName(run.Folder)}.zip  beside this folder: every file here, packed to send");
+        parts.Add($"{Path.GetFileName(run.Folder)}.zip  beside this folder: every file here, packed to send - past 29 MB cut into pieces "
+            + $"{Path.GetFileName(run.Folder)}.zip.001, .002 and on, each under 29 MB, joined again by 7-Zip (open the .001) or copy /b");
         CaptureStep? packing = run.Progress.Of(CaptureReport.SummaryFile);
         packing?.Start(Environment.TickCount64);
         File.WriteAllText(
@@ -1029,12 +1030,15 @@ internal sealed class CaptureKey
         // leaves the folder as it is - every file in it was written - and says why.
         try
         {
-            (string zip, List<string> leftOut) = CaptureReport.Pack(run.Folder);
-            run.Packed = zip;
+            (IReadOnlyList<string> files, List<string> leftOut) = CaptureReport.Pack(run.Folder);
+            string packed = files.Count == 1
+                ? Path.GetFileName(files[0])
+                : $"{Path.GetFileName(files[0])} to {Path.GetFileName(files[^1])} - {files.Count} pieces under 29 MB, joined by 7-Zip or copy /b";
+            run.Packed = files.Count == 1 ? files[0] : $"{files[0]} ({files.Count} pieces)";
             run.LeftOut = leftOut;
             packing?.End(
                 leftOut.Count == 0 ? CaptureStepState.Done : CaptureStepState.Failed,
-                leftOut.Count == 0 ? $"{CaptureReport.SummaryFile}, and every file packed into {Path.GetFileName(zip)}" : "packed without " + string.Join(", ", leftOut),
+                leftOut.Count == 0 ? $"{CaptureReport.SummaryFile}, and every file packed into {packed}" : $"packed into {packed} without " + string.Join(", ", leftOut),
                 Environment.TickCount64);
         }
         catch (Exception failed) when (failed is IOException or UnauthorizedAccessException)
