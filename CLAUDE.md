@@ -673,6 +673,18 @@ things they share. Squares of these would hardly show whatever the engine reads 
 measurement waits for Port, whose two grounds (the ocean's black and the town fill's cobblestone) cannot be mistaken - a capture at
 the harbour with `game-picture`, `ground-screen` and `ground` ticked. Whakapanu's cove (`TropicalCliff_Cv_Cove_01`, wet sand against
 the rocky sea bed) differs too, but lies mostly under water and reads green near one on most of its wide shapes.
+PORT'S FIRST TINT (v0.1.257) MEASURED NOTHING: the harbour was drawn across its own footprint. The part's block
+(`LaidRoomModels.GroundsOver`) chose how the files lie by the heights of its sloped pieces (the coasts), and a way turning the
+15 by 21 file across its footprint drops a third of the points the misses are SUMMED over, so `(y, x)` won - every harbour
+sub-tile on the screen stood where its neighbour across the diagonal belongs and read that tile's corners, and the tint lay
+over the pier's cobblestone. Laid as the game's turn decodes it - as filed, then placement 1's mirror in x, the Monster Book's
+own room (29 of 29 pieces where the index has them) - all ten of its sub-tiles on the screen meet the game's corner types
+exactly, one of them ocean on one side and nothing on the other. FROM v0.1.261 THE AREA'S OWN INDEX CHOOSES THE WAY BEFORE THE
+HEIGHTS (`LaidRoomModels.Weighed`, `Way.Indexed`: the ways that put every tile of the most pieces several tiles across where
+TileIdentity has them, the file's rows counted from its bottom; the heights only among those), in a laid room and the block
+alike, and the line under the picture says what the index left. The part writes how the files lie and counts, piece by piece,
+the sub-tiles whose four grid corners are the game's at the corners the drawing puts them on (`CaptureGroundScreen.AsTheGame`)
+- read that count before the tint: short of all, the placing is wrong. The tint's measurement waits on the next harbour capture.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
 Eight captures are committed under

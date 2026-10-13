@@ -149,7 +149,8 @@ public class LaidRoomModelsTests
         (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement: 6, selector: 1, lies: 2);
         MonsterModel room = LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0);
 
-        List<LaidGround> grounds = LaidRoomModels.GroundsOver(files.GetValueOrDefault, grid, 0, 0, TilesX, TilesY);
+        List<LaidGround> grounds = LaidRoomModels.GroundsOver(files.GetValueOrDefault, grid, 0, 0, TilesX, TilesY, out string said);
+        Assert.StartsWith("heights: drawn with the files mirrored, turned 180° (x, -y) before the game's own turn", said, StringComparison.Ordinal);
 
         LaidGround laid = Assert.Single(grounds);
         Assert.Equal(TilePath, laid.Path);
@@ -277,6 +278,49 @@ public class LaidRoomModelsTests
         Assert.Contains("1 pieces of 1 tile files", stage.Move, StringComparison.Ordinal);
         Assert.DoesNotContain("left out to keep it turnable", stage.Move, StringComparison.Ordinal);
         Assert.Contains("sub-tiles: of 1 pieces several tiles across, 0 have every tile where the area's own index puts it counting the file's rows from the top, 1 counting them from the bottom", room.Move, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The area's own index chooses the way the files lie before the heights do: where it names the file's rows the other way round, the
+    /// file is drawn turned so they lie where it has them - with nothing sloped, which before chose as filed.
+    /// </summary>
+    /// <remarks>
+    /// PORT'S HARBOUR, small (v0.1.261): its 15 by 21 file came out laid across its own footprint, its sub-tiles where their neighbours
+    /// across the diagonal should be, because the heights alone chose the way. A file one tile across reads the same mirrored in x, so the
+    /// index leaves two ways - turned half round, and turned over in y - and the line says the heights choose among them.
+    /// </remarks>
+    [Fact]
+    public void THEAREASOwnIndexChoosesTheWayTheFilesLieBeforeTheHeights()
+    {
+        var ids = new int[TilesX * TilesY];
+        Array.Fill(ids, -1);
+        var subY = new byte[ids.Length];
+        var placements = new sbyte[ids.Length];
+        Array.Fill(placements, (sbyte)-1);
+        foreach ((int at, byte row) in new[] { ((1 * TilesX) + 1, (byte)1), ((2 * TilesX) + 1, (byte)0) })
+        {
+            ids[at] = 0;
+            subY[at] = row;
+            placements[at] = 3;
+        }
+
+        var tiles = new TerrainTiles([TallPath], ids, new byte[ids.Length], subY, placements, TilesX, TilesY);
+        int stride = ((TilesX * Cells) + 1) / 2;
+        var grid = new TerrainGrid(new byte[stride * TilesY * Cells], stride, TilesY * Cells, TilesX, TilesY, heights: null, tiles: tiles);
+
+        MonsterModel room = LaidRoomModels.Of(Files().GetValueOrDefault, RoomPath, grid, 1, 1, 0);
+
+        Assert.True(room.Ready, room.Why);
+        Assert.Contains(
+            "index: 1/1 pieces several tiles across have every tile where the area's own index puts it with the files turned 180° (-x, -y), and as many with 1 other ways, which the heights choose among",
+            room.Move,
+            StringComparison.Ordinal);
+        Assert.Contains("heights: no sloped piece to settle how the files lie on the area's ground - drawn turned 180° (-x, -y)", room.Move, StringComparison.Ordinal);
+        Assert.Contains("sub-tiles: of 1 pieces several tiles across, 0 have every tile where the area's own index puts it counting the file's rows from the top, 1 counting them from the bottom", room.Move, StringComparison.Ordinal);
+
+        // The block's ground says the same.
+        Assert.Single(LaidRoomModels.GroundsOver(Files().GetValueOrDefault, grid, 0, 0, TilesX, TilesY, out string said));
+        Assert.StartsWith("index: 1/1 pieces several tiles across have every tile where the area's own index puts it with the files turned 180° (-x, -y)", said, StringComparison.Ordinal);
     }
 
     /// <summary>

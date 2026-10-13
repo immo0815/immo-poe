@@ -16,14 +16,23 @@ namespace PoEformance.Features;
 /// the heights are read through), about the middle of its own ground, at the middle of the area
 /// tiles the piece covers.
 ///
-/// ONE THING THE FILES DO NOT SAY IS SETTLED BY THE GROUND: how a tile's mesh lies on the template
+/// ONE THING THE FILES DO NOT SAY IS SETTLED BY THE AREA: how a tile's mesh lies on the template
 /// the game's turn is read through - as filed, turned, or turned over. All eight ways a square can lie
-/// are tried, the turn the game laid each piece applied after, and every piece's ground is asked
-/// how high it is at nine points per tile and held against the height the area itself has there. A
-/// slope - a stair, a ramp - fits one way only, so the way the sloped pieces fit best is the way
-/// every piece is drawn, and the line under the picture says how well, and how well the next did.
-/// With no slope in the room nothing is settled and the files are taken as filed. Each piece is then
-/// raised to the area's own ground, the doodads with it.
+/// are tried, the turn the game laid each piece applied after. FIRST BY THE AREA'S OWN INDEX: every
+/// area tile of a piece several tiles across names the column and row of the file it holds, so only
+/// the ways that put every such tile where the index has it can be the game's (v0.1.261). Then by
+/// the ground, among those: every piece's ground is asked how high it is at nine points per tile and
+/// held against the height the area itself has there. A slope - a stair, a ramp - fits one way only,
+/// so the way the sloped pieces fit best is the way every piece is drawn, and the line under the
+/// picture says how well, and how well the next did. With neither to go on the files are taken as
+/// filed. Each piece is then raised to the area's own ground, the doodads with it.
+///
+/// THE INDEX BEFORE THE HEIGHTS, because the heights alone chose a way that is not one: Port's
+/// harbour, a 15 by 21 file, came out laid across its own footprint in the capture's ground on the
+/// screen (v0.1.257) - every sub-tile where its neighbour across the diagonal should be, its grid's
+/// corners at none of the game's, while laid as filed all ten on the screen met the game's corner
+/// types exactly. The heights' misses are summed over the points that land on the file, and a way
+/// that turns an oblong file across its footprint drops a third of them, so it summed smaller.
 ///
 /// THE HEIGHTS COUNT THE GAME'S WAY, DOWN, IN BOTH, and are not tried the other way any more. The
 /// area's are GameHelper2's terrain heights, which go into the world as its z, and the world's up is
@@ -170,7 +179,7 @@ public static class LaidRoomModels
         reading.Dispose();
         reading = default;
 
-        (Way[] ways, Way chosen, bool settled) = Weighed(pieces, Of, grid, x, y);
+        (Way[] ways, Way chosen, bool settled, int asked) = Weighed(pieces, Of, grid, x, y);
 
         // LAID, the room's corner at the picture's origin and each piece on the area's own ground.
         var pile = new ModelPile();
@@ -304,6 +313,10 @@ public static class LaidRoomModels
             Heights(ways, chosen, settled),
             Levels(above, fitsFitted, fitsAtLevel, atLevel),
         };
+        if (asked > 0)
+        {
+            said.Insert(1, Indexed(ways, chosen, asked));
+        }
         if (several > 0)
         {
             said.Add(string.Create(CultureInfo.InvariantCulture,
@@ -357,11 +370,13 @@ public static class LaidRoomModels
     /// <param name="y">The block's lowest tile down.</param>
     /// <param name="wide">Tiles across.</param>
     /// <param name="tall">Tiles down.</param>
-    internal static List<LaidGround> GroundsOver(Func<string, byte[]?> read, TerrainGrid grid, int x, int y, int wide, int tall)
+    /// <param name="said">How the files were found to lie on the area, the laid room's own lines - the index's and the heights'.</param>
+    internal static List<LaidGround> GroundsOver(Func<string, byte[]?> read, TerrainGrid grid, int x, int y, int wide, int tall, out string said)
     {
         var laid = new List<LaidGround>();
         if (grid.Tiles is not { } tiles)
         {
+            said = "the area's tiles are not read";
             return laid;
         }
 
@@ -381,7 +396,8 @@ public static class LaidRoomModels
         }
 
         List<TilePiece> pieces = tiles.Pieces(x, y, wide, tall, id => (Of(id).Width, Of(id).Height));
-        (_, Way chosen, _) = Weighed(pieces, Of, grid, 0, 0);
+        (Way[] ways, Way chosen, bool settled, int asked) = Weighed(pieces, Of, grid, 0, 0);
+        said = asked > 0 ? Indexed(ways, chosen, asked) + "; " + Heights(ways, chosen, settled) : Heights(ways, chosen, settled);
         foreach (TilePiece piece in pieces)
         {
             Made one = Of(piece.Id);
@@ -399,10 +415,11 @@ public static class LaidRoomModels
     }
 
     /// <summary>
-    /// THE WAY THE FILES LIE ON THE TEMPLATE, from the sloped pieces - see the remarks on the class. As filed comes first, so it is
-    /// the one kept wherever the ground cannot tell two ways apart.
+    /// THE WAY THE FILES LIE ON THE TEMPLATE, by the area's own index and then by the sloped pieces - see the remarks on the class. As
+    /// filed comes first, so it is the one kept wherever neither can tell two ways apart.
     /// </summary>
-    private static (Way[] Ways, Way Chosen, bool Settled) Weighed(List<TilePiece> pieces, Func<int, Made> of, TerrainGrid grid, int x, int y)
+    /// <returns>Every way weighed, the one chosen, whether the heights chose it, and how many pieces several tiles across the index was asked of.</returns>
+    private static (Way[] Ways, Way Chosen, bool Settled, int Several) Weighed(List<TilePiece> pieces, Func<int, Made> of, TerrainGrid grid, int x, int y)
     {
         var ways = new Way[Relations.Length];
         for (var way = 0; way < ways.Length; way++)
@@ -410,10 +427,26 @@ public static class LaidRoomModels
             ways[way] = new Way(Relations[way]);
         }
 
+        int several = 0;
         foreach (TilePiece piece in pieces)
         {
             Made one = of(piece.Id);
-            if (!piece.Whole || one.Lookup is null || !Way.Rises(piece, grid))
+            if (!piece.Whole)
+            {
+                continue;
+            }
+
+            // THE INDEX, of every piece several tiles across that draws anything - its box is what a sub-tile is counted from.
+            if (piece.Width * piece.Height > 1 && grid.Tiles is { } tiles && (one.Props.Ready || one.Ground.Ready))
+            {
+                several++;
+                foreach (Way way in ways)
+                {
+                    way.Index(piece, one, tiles, x, y);
+                }
+            }
+
+            if (one.Lookup is null || !Way.Rises(piece, grid))
             {
                 continue;
             }
@@ -424,23 +457,65 @@ public static class LaidRoomModels
             }
         }
 
-        bool settled = ways.Any(one => one.Sloped > 0);
-        return (ways, settled ? ways.MinBy(one => one.Residual)! : ways[0], settled);
+        Way[] allowed = Allowed(ways);
+        bool settled = allowed.Any(one => one.Sloped > 0);
+        return (ways, settled ? allowed.MinBy(one => one.Residual)! : allowed[0], settled, several);
     }
 
-    /// <summary>What the ground said about the ways a file can lie, for the line under the picture.</summary>
+    /// <summary>The ways the area's own index leaves - those putting the most pieces where it has them, as filed first - or all where it puts none.</summary>
+    private static Way[] Allowed(Way[] ways)
+    {
+        int most = ways.Max(one => one.Indexed);
+        return most > 0 ? [.. ways.Where(one => one.Indexed == most)] : ways;
+    }
+
+    /// <summary>What the area's own index said about the ways a file can lie, for the line under the picture.</summary>
+    private static string Indexed(Way[] ways, Way chosen, int several)
+    {
+        Way[] allowed = Allowed(ways);
+        if (chosen.Indexed == 0)
+        {
+            return string.Create(CultureInfo.InvariantCulture,
+                $"index: no way puts every tile of any of the {several} pieces several tiles across where the area's own index has it - the heights choose among all {ways.Length}");
+        }
+
+        string head = string.Create(CultureInfo.InvariantCulture,
+            $"index: {chosen.Indexed}/{several} pieces several tiles across have every tile where the area's own index puts it with the files {chosen.Said}");
+        if (allowed.Length > 1)
+        {
+            return head + string.Create(CultureInfo.InvariantCulture, $", and as many with {allowed.Length - 1} other ways, which the heights choose among");
+        }
+
+        Way next = ways.Where(one => one != chosen).MaxBy(one => one.Indexed)!;
+        return head + string.Create(CultureInfo.InvariantCulture, $"; next {next.Said} {next.Indexed}/{several}");
+    }
+
+    /// <summary>What the ground said about the ways the index left, for the line under the picture.</summary>
     private static string Heights(Way[] ways, Way chosen, bool settled)
     {
         if (!settled)
         {
-            return "heights: no sloped piece to settle how the files lie on the area's ground - drawn as filed, each piece raised to the area's ground";
+            return $"heights: no sloped piece to settle how the files lie on the area's ground - drawn {chosen.Said}, each piece raised to the area's ground";
         }
 
-        Way[] ranked = [.. ways.OrderBy(one => one.Residual)];
+        Way[] allowed = Allowed(ways);
+        string head = string.Create(CultureInfo.InvariantCulture,
+            $"heights: drawn with the files {chosen.Said} before the game's own turn - {chosen.Fitting}/{chosen.Sloped} sloped pieces meet the area's ground within {Fits} units");
+        if (allowed.Length == 1)
+        {
+            return head;
+        }
+
+        Way[] ranked = [.. allowed.OrderBy(one => one.Residual)];
         Way next = ranked[0] == chosen ? ranked[1] : ranked[0];
-        int rest = ways.Where(one => one != chosen && one != next).Max(one => one.Fitting);
-        return string.Create(CultureInfo.InvariantCulture,
-            $"heights: drawn with the files {chosen.Said} before the game's own turn - {chosen.Fitting}/{chosen.Sloped} sloped pieces meet the area's ground within {Fits} units; next {next.Said} {next.Fitting}/{next.Sloped}; the other {ways.Length - 2} at most {rest}/{chosen.Sloped}");
+        head += string.Create(CultureInfo.InvariantCulture, $"; next {next.Said} {next.Fitting}/{next.Sloped}");
+        if (allowed.Length == 2)
+        {
+            return head;
+        }
+
+        int rest = allowed.Where(one => one != chosen && one != next).Max(one => one.Fitting);
+        return head + string.Create(CultureInfo.InvariantCulture, $"; the other {allowed.Length - 2} at most {rest}/{chosen.Sloped}");
     }
 
     /// <summary>What the two ways of setting a piece's height said, for the line under the picture.</summary>
@@ -891,6 +966,17 @@ public static class LaidRoomModels
 
         /// <summary>The squared misses over every sloped piece, after each was raised to fit as well as it can.</summary>
         public double Residual { get; private set; }
+
+        /// <summary>Pieces several tiles across that have every tile where the area's own index puts it, the file's rows counted from its bottom.</summary>
+        public int Indexed { get; private set; }
+
+        /// <summary>Asks the area's own index of one piece several tiles across - see <see cref="Named"/>.</summary>
+        /// <remarks>
+        /// FROM THE BOTTOM, the one count the area has agreed with: every Monster Book picture of Port's laid harbour room said 29 of its
+        /// 29 such pieces had every tile where the index puts them counting from the file's bottom, and none from its top.
+        /// </remarks>
+        public void Index(TilePiece piece, Made one, TerrainTiles tiles, int x, int y)
+            => Indexed += Named(piece, one, tiles, x, y, Flat(piece, one, x, y), fromTheTop: false) ? 1 : 0;
 
         /// <summary>
         /// Where a piece's file goes, flat: its middle to the origin, laid on the template this way, the game's turn, then out to the middle of the area tiles it covers - from the room's corner, in world units.
