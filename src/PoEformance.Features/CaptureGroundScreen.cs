@@ -56,6 +56,7 @@ public static class CaptureGroundScreen
     /// <param name="height">Its height.</param>
     /// <param name="pictureSaid">What the picture is, for the first line.</param>
     /// <param name="picture">The picture drawn over.</param>
+    /// <param name="cornerPicture">The game's picture tinted by the corners' share of the second ground - see CaptureGroundCompare.</param>
     public static string Write(
         Func<string, byte[]?> read,
         WorldSnapshot snapshot,
@@ -65,13 +66,15 @@ public static class CaptureGroundScreen
         int width,
         int height,
         string pictureSaid,
-        out GamePicture? picture)
+        out GamePicture? picture,
+        out GamePicture? cornerPicture)
     {
         ArgumentNullException.ThrowIfNull(read);
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(loaded);
         ArgumentNullException.ThrowIfNull(masters);
         picture = null;
+        cornerPicture = null;
         if (snapshot.Terrain is not { Tiles: not null } grid)
         {
             return "ground on screen: the area's tiles were not read\n";
@@ -108,10 +111,12 @@ public static class CaptureGroundScreen
 
         // THE OUTLINES AND NAMES AFTER EVERY TINT, so no sub-tile's tint lies over a neighbour's name.
         var rims = new List<(Vector3[] Corners, byte[] Colour, string Name, Vector2 Centre)>();
+        var compared = new List<CaptureGroundCompare.Piece>(laid.Count);
         foreach (LaidGround one in laid)
         {
             int triangles = one.Ground.Indices.Length / 3;
             (IReadOnlyList<SubTileGrounds> subTiles, string mask, GamePicture? maskPicture) = painter.SubTilesOf(one.Path, one.Pieces, triangles);
+            compared.Add(new CaptureGroundCompare.Piece(one, subTiles, maskPicture));
             lines.Clear();
             int oneGround = 0, several = 0, away = 0, agree = 0, gridded = 0;
             var plain = new SortedDictionary<string, int>(StringComparer.Ordinal);
@@ -211,6 +216,7 @@ public static class CaptureGroundScreen
         }
 
         picture = canvas.Picture;
+        string measured = CaptureGroundCompare.Measure(compared, matrix, width, height, bgr, out cornerPicture);
         var said = new StringBuilder();
         said.Append(string.Create(CultureInfo.InvariantCulture,
             $"ground on screen: {mixed} sub-tiles of two or more grounds on the screen, {wideOnes} of them with ground shapes across the mask's atlas; {laid.Count} pieces over tiles {x0}..{x1}, {y0}..{y1}"))
@@ -220,6 +226,7 @@ public static class CaptureGroundScreen
             .Append(held > 0 && agreeing < held ? " - a sub-tile laid elsewhere reads another's corners, and its line below with them" : string.Empty)
             .AppendLine();
         said.Append("how the files lie: ").AppendLine(ways);
+        said.Append(measured);
         said.Append("grounds named by ").Append(chosen).Append("'s MaterialsList (").Append(painter.From)
             .AppendLine(") - of the area's masters, the one whose list names the most of the ground types at the laid pieces' corners:");
         foreach (string line in weighed)

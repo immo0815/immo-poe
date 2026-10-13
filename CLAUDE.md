@@ -699,6 +699,21 @@ the green's correlation with the picture's local contrast is -0.14 against -0.12
 THE MIX READS THE ATLAS'S CELLS - in two areas now - but cobblestones scattered through sand, thinning and thickening smoothly
 (height blending's look, over a weight that is not the green at the block's coordinates). What the engine reads there is not
 measured; the coast's and the wall's tints (under the surf; a wall's face drawn over flat ground) settle nothing.
+THE TWO CANDIDATES HELD AGAINST THE PICTURE (v0.1.264). Nothing in a vertex weighs the mix: format 0x238's 24 bytes are all read
+(position, normal and tangent, the mask's coordinates), and all 66 of Port's templates say `MaterialSlots 0`. But the engine has a
+second way to mix two grounds, GroundGenerateWeights_2a (ground.ffx, internalonly.ffx, whole in ground.txt): the ENGINE mask's red,
+read from the world position through two per-tile transforms no file holds into an atlas of transitions - and the game's own corner
+types laid on v0.1.262's picture put the cobblestone at the cobblestone corners and the sand at the sand corners, thinning between.
+So ground-on-screen now holds two fields against the picture (`CaptureGroundCompare`): every sub-tile of two grounds rasterized over
+the block's whole ground (the nearest ground a pixel, a depth buffer), the mix's green at the block's coordinates and the second
+ground's share bilinear from the sub-tile's four corners (`SubTileGrounds.Seconds`), each correlated with the picture's brightness
+and local contrast - per pair of grounds, across and within sub-tiles, against the same fields moved 85 to 120 pixels - and
+`ground-on-screen-corners.png` tinted by the corners' share. Neither field is the engine's transition; which one the picture
+follows is what to read before the mix is changed.
+THE MONSTER BOOK'S ARENA IS BUILT, AND LAID AS WRITTEN (`BuiltRoomModels`, said from the live client: "our harbour diorama is never
+the game's, always mirrored somehow"). The game lays the boss room each instance its own way - Port's build replays: turned 180 (the
+harbour at placement 0), turned 90 and mirrored (placement 4); v0.1.262's instance laid the harbour at placement 1, mirrored - while
+the built stage lays it as the `.arm` writes it (placement 3). A mirror is not turned away by any camera.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
 Eight captures are committed under

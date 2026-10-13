@@ -157,7 +157,11 @@ public sealed class GroundPainterTests
         Assert.Equal(2, subTiles.Count);
         Assert.Equal(["", "Sand"], subTiles[0].Grounds);
         Assert.Equal([GridSand, string.Empty, GridSand, string.Empty], subTiles[0].Corners);
+
+        // The second ground's corners, in the corners' order: the sand ones, the unnamed being the first ground's group.
+        Assert.Equal([true, false, true, false], subTiles[0].Seconds);
         Assert.Equal([""], subTiles[1].Grounds);
+        Assert.Empty(subTiles[1].Seconds);
         Assert.Equal(Mask, mask);
         Assert.Equal(2, picture?.Width);
     }
