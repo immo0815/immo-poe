@@ -104,7 +104,7 @@ public sealed class CaptureGroundTests
         Assert.Contains("  " + GroundShader + "  (tile_ground_tiling, ground_scalemove)", said, StringComparison.Ordinal);
         Assert.Contains("float2 GroundUv(float3 pos)", said, StringComparison.Ordinal);
         Assert.DoesNotContain("float4 Unrelated", said, StringComparison.Ordinal);
-        Assert.StartsWith("2 tile files laid over 4 cells, 1 templates, 1 of their 1 sub-tile meshes read, 1 ground masks; 3 cells under one ground all round, 1 mixed; 1 MaterialsLists, 2 ground materials; 1 of 2 shader sources name the ground's coordinates", said, StringComparison.Ordinal);
+        Assert.StartsWith("2 tile files laid over 4 cells, 1 templates, 1 of their 1 sub-tile meshes read, 1 ground masks; 3 cells under one ground all round, 1 mixed; 1 MaterialsLists, 2 ground materials, 0 colour textures drawn; 1 of 2 shader sources name the ground's coordinates", said, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -223,6 +223,48 @@ public sealed class CaptureGroundTests
         Assert.Equal(0.5f, GroundPainter.Sample(picture, 1, 0.5f, 0.5f), 3);
         Assert.Equal(0.5f, GroundPainter.Sample(picture, 1, 0f, 0.5f), 3);
         Assert.Equal(1f, GroundPainter.Sample(picture, 1, 1.75f, 0.5f), 3);
+    }
+
+    /// <summary>
+    /// A ground material's colour texture - the one its program reads as sRGB, not the normal map beside it - is handed on as a
+    /// picture, opaque, with its size and mean colour said.
+    /// </summary>
+    [Fact]
+    public void AGROUNDMaterialsColourTextureIsHandedOnAsAPicture()
+    {
+        const string Colour = "Art/Textures/Environment/desert/Shore/Ground/G_VST_Sand01_colour_BC7.dds";
+
+        // Blue first, as a DDS stores it: two pixels of (200, 100, 50), two of (100, 50, 0).
+        byte[]? Read(string path) => path == Colour
+            ? GameArtTests.Dds(2, 2, [50, 100, 200, 10, 50, 100, 200, 10, 0, 50, 100, 10, 0, 50, 100, 10])
+            : Install(path);
+
+        var tiles = new TerrainTiles([Floor, Edge], [0, 0, 0, 1], new byte[4], new byte[4], new sbyte[4], 2, 2);
+        string said = CaptureGround.Write(Read, tiles, [Master], null, [], out _, out IReadOnlyList<(string File, GamePicture Picture)> pictures)
+            .ReplaceLineEndings("\n");
+
+        (string file, GamePicture picture) = Assert.Single(pictures, one => one.File.StartsWith("ground-material-", StringComparison.Ordinal));
+        Assert.Equal("ground-material-1-G_VST_Sand01_colour_BC7.png", file);
+        Assert.Equal(2, picture.Width);
+        Assert.Equal(255, picture.Rgba[3]);
+        Assert.Contains($"colour {Colour}: ground-material-1-G_VST_Sand01_colour_BC7.png, 2 x 2 drawn at 2 x 2; mean colour (150, 75, 25) as stored, alpha 10 left out\n", said, StringComparison.Ordinal);
+        Assert.DoesNotContain("colour Art/Textures/Environment/desert/Shore/Ground/G_VST_Sand01_normal_BC7.dds", said, StringComparison.Ordinal);
+        Assert.Contains("2 ground materials, 1 colour textures drawn", said, StringComparison.Ordinal);
+    }
+
+    /// <summary>A picture is halved until it fits, each pixel the mean of its block, and made opaque.</summary>
+    [Fact]
+    public void APICTUREIsShrunkByHalvesToItsMeansAndMadeOpaque()
+    {
+        var picture = new GamePicture(4, 2, [
+            0, 0, 0, 0, 100, 0, 0, 0, 10, 10, 10, 10, 30, 30, 30, 30,
+            0, 0, 0, 0, 100, 0, 0, 0, 10, 10, 10, 10, 30, 30, 30, 30]);
+
+        GamePicture shrunk = CaptureGround.Shrunk(picture, 2);
+
+        Assert.Equal(2, shrunk.Width);
+        Assert.Equal(1, shrunk.Height);
+        Assert.Equal(new byte[] { 50, 0, 0, 255, 20, 20, 20, 255 }, shrunk.Rgba);
     }
 
     /// <summary>No shader list and no terrain are said, not passed over.</summary>

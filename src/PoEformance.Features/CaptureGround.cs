@@ -55,6 +55,9 @@ public static partial class CaptureGround
     /// <summary>Most ground materials written with their graphs.</summary>
     public const int MostMaterials = 48;
 
+    /// <summary>The longest side a ground material's colour texture is drawn at beside the part - enough to tell two grounds apart, small enough for the zip.</summary>
+    public const int ColourSide = 256;
+
     /// <summary>Most shader sources written whole; more are named.</summary>
     public const int MostShaders = 32;
 
@@ -110,8 +113,9 @@ public static partial class CaptureGround
         => Write(read, tiles, loaded, masters, shaders, out masks, out _);
 
     /// <summary>
-    /// The whole text of the part, the ground masks decoded, and a picture of every masked template's ground from above - its
-    /// shapes by their unnamed ordinal, the mask's green as the mix reads it, and its height (<see cref="ShapePictures"/>).
+    /// The whole text of the part, the ground masks decoded, and its pictures: every masked template's ground from above - its
+    /// shapes by their unnamed ordinal, the mask's green as the mix reads it, and its height (<see cref="ShapePictures"/>) - and
+    /// each ground material's colour texture (<see cref="Colours"/>).
     /// </summary>
     public static string Write(
         Func<string, byte[]?> read,
@@ -120,7 +124,7 @@ public static partial class CaptureGround
         IReadOnlyList<string>? masters,
         IReadOnlyList<string>? shaders,
         out IReadOnlyList<GroundMask> masks,
-        out IReadOnlyList<(string File, GamePicture Picture)> shapes)
+        out IReadOnlyList<(string File, GamePicture Picture)> pictures)
     {
         ArgumentNullException.ThrowIfNull(read);
         ArgumentNullException.ThrowIfNull(loaded);
@@ -185,8 +189,10 @@ public static partial class CaptureGround
             return definition;
         }
 
-        shapes = ShapePictures(pieces, masks, DefinitionOf, body);
-        string groundsSaid = Corners(read, laid, cells, corners, NameOf, loaded, masters, body);
+        IReadOnlyList<(string File, GamePicture Picture)> shapes = ShapePictures(pieces, masks, DefinitionOf, body);
+        var colours = new List<(string File, GamePicture Picture)>();
+        string groundsSaid = Corners(read, laid, cells, corners, NameOf, loaded, masters, colours, body);
+        pictures = [.. shapes, .. colours];
         string shadersSaid = Shaders(read, shaders, body);
         Whole(texts, body);
         Rests(read, laid, body);
@@ -408,6 +414,7 @@ public static partial class CaptureGround
         Func<string, string> nameOf,
         IReadOnlyList<string> loaded,
         IReadOnlyList<string>? masters,
+        List<(string File, GamePicture Picture)> colours,
         StringBuilder said)
     {
         // EACH NAME with the files and cells it lies under, and how many of those have it at all four corners.
@@ -513,28 +520,36 @@ public static partial class CaptureGround
             }
         }
 
-        Materials(read, materials, offeredBy, said);
+        Materials(read, materials, offeredBy, colours, said);
         return string.Create(CultureInfo.InvariantCulture,
-            $"{oneCells} cells under one ground all round, {mixedCells} mixed; {lists} MaterialsLists, {materials.Count} ground materials");
+            $"{oneCells} cells under one ground all round, {mixedCells} mixed; {lists} MaterialsLists, {materials.Count} ground materials, {colours.Count} colour textures drawn");
     }
 
-    /// <summary>Every ground material once: the file, the Input nodes its graphs name, what it compiles to - and each graph once, whole.</summary>
-    private static void Materials(Func<string, byte[]?> read, List<string> materials, Dictionary<string, List<string>> offeredBy, StringBuilder said)
+    /// <summary>
+    /// Every ground material once: the file, the Input nodes its graphs name, what it compiles to and its colour texture as a
+    /// picture - and each graph once, whole.
+    /// </summary>
+    private static void Materials(
+        Func<string, byte[]?> read, List<string> materials, Dictionary<string, List<string>> offeredBy, List<(string File, GamePicture Picture)> colours, StringBuilder said)
     {
         if (materials.Count == 0)
         {
             return;
         }
 
-        said.AppendLine().Append(CultureInfo.InvariantCulture, $"=== the ground materials ({materials.Count})").AppendLine();
+        said.AppendLine().Append(CultureInfo.InvariantCulture, $"=== the ground materials ({materials.Count}) - each colour texture beside this file as a picture, ground-material-N-name.png").AppendLine();
         var paints = new MonsterModels.Paints();
         var graphs = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var written = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (string material in materials.Take(MostMaterials))
         {
             said.AppendLine().Append("##### ").AppendLine(material);
             said.Append("offered as: ").AppendLine(string.Join(", ", offeredBy[material]));
-            CaptureMaterials.Material(read, material, paints, said, graphs, seen);
+            if (CaptureMaterials.Material(read, material, paints, said, graphs, seen))
+            {
+                Colours(read, material, paints, written, colours, said);
+            }
         }
 
         if (materials.Count > MostMaterials)
@@ -543,6 +558,105 @@ public static partial class CaptureGround
         }
 
         CaptureMaterials.Graphs(read, graphs, "a graph the ground materials are instances of", said);
+    }
+
+    /// <summary>
+    /// A ground material's colour textures - those its program reads as sRGB, or the one a plain read takes - each decoded once,
+    /// shrunk to <see cref="ColourSide"/> and handed on as a picture, with its size and mean colour said.
+    /// </summary>
+    /// <remarks>
+    /// TWO GROUNDS THAT LOOK ALIKE SHOW NO SQUARES (v0.1.257). The Excavation's wide shapes were tinted where the mix puts each of
+    /// its two dirts, and the game's picture changed nowhere along the tint's edges - which says the game does not read the mask
+    /// there only if the two dirts look different. The Tile Book draws a tile's ground plain, so the textures are the other half,
+    /// and they are the install's: any capture in the area carries them. The alpha is left out of the picture (a colour texture's
+    /// alpha is a height where PBRGroundBN reads it) and its mean said instead.
+    /// </remarks>
+    private static void Colours(
+        Func<string, byte[]?> read, string material, MonsterModels.Paints paints, Dictionary<string, string> written, List<(string File, GamePicture Picture)> colours, StringBuilder said)
+    {
+        (ShadeCompile compiled, _) = paints.Compiled(read, Clean(MaterialFile.Bare(material)));
+        IEnumerable<string> paths = compiled.Program switch
+        {
+            null => [],
+            { Plain: >= 0 } plain => [plain.Textures[plain.Plain].Path],
+            { } program => program.Textures.Where(texture => texture.Srgb).Select(texture => texture.Path),
+        };
+
+        foreach (string path in paths.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (!written.TryGetValue(path, out string? line))
+            {
+                line = GameArt.Decode(GameArt.ReadRaw(read, path)) is { Ready: true } picture
+                    ? Colour(picture, path, colours)
+                    : "did not decode";
+                written[path] = line;
+            }
+
+            said.Append("colour ").Append(path).Append(": ").AppendLine(line);
+        }
+    }
+
+    /// <summary>One colour texture handed on as a picture, and its line.</summary>
+    private static string Colour(GamePicture picture, string path, List<(string File, GamePicture Picture)> colours)
+    {
+        GamePicture shown = Shrunk(picture, ColourSide);
+        string file = string.Create(CultureInfo.InvariantCulture, $"ground-material-{colours.Count + 1}-{System.IO.Path.GetFileNameWithoutExtension(path)}.png");
+        colours.Add((file, shown));
+
+        long red = 0, green = 0, blue = 0, alpha = 0;
+        byte[] rgba = picture.Rgba;
+        for (var at = 0; at < picture.Width * picture.Height * 4; at += 4)
+        {
+            red += rgba[at];
+            green += rgba[at + 1];
+            blue += rgba[at + 2];
+            alpha += rgba[at + 3];
+        }
+
+        double count = (double)picture.Width * picture.Height;
+        return string.Create(CultureInfo.InvariantCulture,
+            $"{file}, {picture.Width} x {picture.Height} drawn at {shown.Width} x {shown.Height}; mean colour ({red / count:F0}, {green / count:F0}, {blue / count:F0}) as stored, alpha {alpha / count:F0} left out");
+    }
+
+    /// <summary>
+    /// A picture halved until no side is past <paramref name="most"/>, each pixel the mean of the block it stands for, and opaque.
+    /// </summary>
+    internal static GamePicture Shrunk(GamePicture picture, int most)
+    {
+        var step = 1;
+        while (picture.Width / step > most || picture.Height / step > most)
+        {
+            step *= 2;
+        }
+
+        int width = Math.Max(1, picture.Width / step), height = Math.Max(1, picture.Height / step);
+        int across = Math.Min(step, picture.Width), down = Math.Min(step, picture.Height);
+        var rgba = new byte[width * height * 4];
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                int red = 0, green = 0, blue = 0;
+                for (var dy = 0; dy < down; dy++)
+                {
+                    int from = ((((y * step) + dy) * picture.Width) + (x * step)) * 4;
+                    for (var dx = 0; dx < across; dx++, from += 4)
+                    {
+                        red += picture.Rgba[from];
+                        green += picture.Rgba[from + 1];
+                        blue += picture.Rgba[from + 2];
+                    }
+                }
+
+                int block = across * down, to = ((y * width) + x) * 4;
+                rgba[to] = (byte)(red / block);
+                rgba[to + 1] = (byte)(green / block);
+                rgba[to + 2] = (byte)(blue / block);
+                rgba[to + 3] = 255;
+            }
+        }
+
+        return new GamePicture(width, height, rgba);
     }
 
     /// <summary>
