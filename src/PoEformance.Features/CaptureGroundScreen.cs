@@ -104,6 +104,7 @@ public static class CaptureGroundScreen
         var body = new StringBuilder();
         var lines = new StringBuilder();
         int mixed = 0, wideOnes = 0, offScreen = 0, agreeing = 0, held = 0;
+        string[]? typeNames = grid.Ground is { } areaTypes ? LaidRoomModels.GroundNames(areaTypes) : null;
 
         // THE OUTLINES AND NAMES AFTER EVERY TINT, so no sub-tile's tint lies over a neighbour's name.
         var rims = new List<(Vector3[] Corners, byte[] Colour, string Name, Vector2 Centre)>();
@@ -122,10 +123,10 @@ public static class CaptureGroundScreen
                 SubTileGrounds grounds = subTiles[at];
                 int first = from;
                 from += piece.Triangles;
-                if (grounds.Gridded && grid.Ground is { } gameTypes)
+                if (grounds.Gridded && grid.Ground is { } gameTypes && typeNames is not null)
                 {
                     gridded++;
-                    agree += AsTheGame(one, piece, grounds.Corners, gameTypes) ? 1 : 0;
+                    agree += LaidRoomModels.CornersMeet(one.Place, 0, 0, piece, [.. grounds.Corners.Select(Short)], gameTypes, typeNames) ? 1 : 0;
                 }
 
                 if (grounds.Grounds.Count == 1)
@@ -465,39 +466,6 @@ public static class CaptureGroundScreen
 
         string Name(int type) => type <= 0 || type >= ground.Types.Count || ground.Types[type].Length == 0 ? "-" : TerrainGroundTypes.NameFor(ground.Types[type]);
         return string.Join(", ", Name(ground.At(tileX, tileY)), Name(ground.At(tileX + 1, tileY)), Name(ground.At(tileX, tileY + 1)), Name(ground.At(tileX + 1, tileY + 1)));
-    }
-
-    /// <summary>
-    /// Whether a sub-tile's four corners in its definition's grid are the game's own corner types at the corners of the area the
-    /// drawing puts them on, each to each.
-    /// </summary>
-    /// <remarks>
-    /// THE GAME'S OWN CHECK OF THE PLACING (v0.1.261), which v0.1.257's capture of Port made by hand: the harbour, a 15 by 21 file, had
-    /// been laid across its own footprint and every one of its sub-tiles on the screen read another's corners, while laid as the game's
-    /// turn decodes it all ten met the game's exactly - one of them ocean on one side and nothing on the other, which only the mirror
-    /// the game laid it with puts the right way round. Corner k of <see cref="TileDefinition.CornersOf"/> lies at mesh column x - 1 + (k
-    /// &amp; 1) and mesh row 1 - y + (k &gt;&gt; 1) tiles (its remarks), which the piece's place takes to the area's tile corners.
-    /// </remarks>
-    internal static bool AsTheGame(LaidGround one, GroundPiece piece, IReadOnlyList<string> corners, TerrainGroundTypes types)
-    {
-        if (corners.Count != 4)
-        {
-            return false;
-        }
-
-        for (var corner = 0; corner < 4; corner++)
-        {
-            var file = new Vector3((piece.X - 1 + (corner & 1)) * TileModels.Side, (1 - piece.Y + (corner >> 1)) * TileModels.Side, 0f);
-            Vector3 world = Vector3.Transform(file, one.Place);
-            int type = types.At((int)MathF.Round(world.X / TileModels.Side), (int)MathF.Round(world.Y / TileModels.Side));
-            string game = type <= 0 || type >= types.Types.Count || types.Types[type].Length == 0 ? "-" : TerrainGroundTypes.NameFor(types.Types[type]);
-            if (!string.Equals(Short(corners[corner]), game, StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /// <summary>A ground type's file by its name, '-' where unnamed.</summary>
