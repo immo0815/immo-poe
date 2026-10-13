@@ -18,21 +18,28 @@ namespace PoEformance.Features;
 ///
 /// ONE THING THE FILES DO NOT SAY IS SETTLED BY THE AREA: how a tile's mesh lies on the template
 /// the game's turn is read through - as filed, turned, or turned over. All eight ways a square can lie
-/// are tried, the turn the game laid each piece applied after. FIRST BY THE AREA'S OWN INDEX: every
-/// area tile of a piece several tiles across names the column and row of the file it holds, so only
-/// the ways that put every such tile where the index has it can be the game's (v0.1.261). Then by
-/// the ground, among those: every piece's ground is asked how high it is at nine points per tile and
-/// held against the height the area itself has there. A slope - a stair, a ramp - fits one way only,
-/// so the way the sloped pieces fit best is the way every piece is drawn, and the line under the
-/// picture says how well, and how well the next did. With neither to go on the files are taken as
-/// filed. Each piece is then raised to the area's own ground, the doodads with it.
+/// are tried, the turn the game laid each piece applied after. FIRST BY THE GAME'S OWN GROUND TYPES:
+/// a tile definition's ground grid names a ground type at every sub-tile corner in the file's frame,
+/// and the area holds its own at every tile corner (TileCornerData), so a way is the game's where it
+/// lays the grids' corners on the area's - the ways laying the most sub-tiles so are the only ones
+/// left (v0.1.262). Then by the ground's heights, among those: every piece's ground is asked how high
+/// it is at nine points per tile and held against the height the area itself has there. A slope - a
+/// stair, a ramp - fits one way only, so the way the sloped pieces fit best is the way every piece is
+/// drawn, and the line under the picture says how well, and how well the next did. With neither to
+/// go on the files are taken as filed. Each piece is then raised to the area's own ground, the
+/// doodads with it.
 ///
-/// THE INDEX BEFORE THE HEIGHTS, because the heights alone chose a way that is not one: Port's
+/// THE CORNERS BEFORE THE HEIGHTS, because the heights alone chose a way that is not one: Port's
 /// harbour, a 15 by 21 file, came out laid across its own footprint in the capture's ground on the
 /// screen (v0.1.257) - every sub-tile where its neighbour across the diagonal should be, its grid's
 /// corners at none of the game's, while laid as filed all ten on the screen met the game's corner
 /// types exactly. The heights' misses are summed over the points that land on the file, and a way
 /// that turns an oblong file across its footprint drops a third of them, so it summed smaller.
+/// NOT BY THE AREA'S INDEX, which v0.1.261 tried: every tile of a piece names its place counted in
+/// the LAID footprint from its least corner, whichever way the piece was laid (v0.1.248's grid replay,
+/// all of Port's turned pieces), so it says nothing of how the file turns - asked whether it names the
+/// file's column and row, it chose the way undoing the commonest placement, and the harbour came out
+/// wrong again with 131 of its 315 sub-tiles on the game's corner types.
 ///
 /// THE HEIGHTS COUNT THE GAME'S WAY, DOWN, IN BOTH, and are not tried the other way any more. The
 /// area's are GameHelper2's terrain heights, which go into the world as its z, and the world's up is
@@ -167,7 +174,7 @@ public static class LaidRoomModels
             {
                 (MonsterModel props, SkinnedMesh ground, int across, int down, TileDoodads lines, IReadOnlyList<GroundPiece> subTiles) =
                     TileModels.Apart(Counted, tiles.Paths[id], walls: true, paints);
-                one = Made.Of(props, ground, across, down, lines) with { Pieces = subTiles };
+                one = Made.Of(props, ground, across, down, lines) with { Pieces = subTiles, Corners = CornersOf(read, tiles.Paths[id], subTiles) };
                 made[id] = one;
                 reading.Advance();
             }
@@ -315,7 +322,7 @@ public static class LaidRoomModels
         };
         if (asked > 0)
         {
-            said.Insert(1, Indexed(ways, chosen, asked));
+            said.Insert(1, Cornered(ways, chosen, asked));
         }
         if (several > 0)
         {
@@ -370,7 +377,7 @@ public static class LaidRoomModels
     /// <param name="y">The block's lowest tile down.</param>
     /// <param name="wide">Tiles across.</param>
     /// <param name="tall">Tiles down.</param>
-    /// <param name="said">How the files were found to lie on the area, the laid room's own lines - the index's and the heights'.</param>
+    /// <param name="said">How the files were found to lie on the area, the laid room's own lines - the corners' and the heights'.</param>
     internal static List<LaidGround> GroundsOver(Func<string, byte[]?> read, TerrainGrid grid, int x, int y, int wide, int tall, out string said)
     {
         var laid = new List<LaidGround>();
@@ -388,7 +395,7 @@ public static class LaidRoomModels
             {
                 (MonsterModel props, SkinnedMesh ground, int across, int down, TileDoodads lines, IReadOnlyList<GroundPiece> subTiles) =
                     TileModels.Apart(read, tiles.Paths[id], walls: true, paints);
-                one = Made.Of(props, ground, across, down, lines) with { Pieces = subTiles };
+                one = Made.Of(props, ground, across, down, lines) with { Pieces = subTiles, Corners = CornersOf(read, tiles.Paths[id], subTiles) };
                 made[id] = one;
             }
 
@@ -397,7 +404,7 @@ public static class LaidRoomModels
 
         List<TilePiece> pieces = tiles.Pieces(x, y, wide, tall, id => (Of(id).Width, Of(id).Height));
         (Way[] ways, Way chosen, bool settled, int asked) = Weighed(pieces, Of, grid, 0, 0);
-        said = asked > 0 ? Indexed(ways, chosen, asked) + "; " + Heights(ways, chosen, settled) : Heights(ways, chosen, settled);
+        said = asked > 0 ? Cornered(ways, chosen, asked) + "; " + Heights(ways, chosen, settled) : Heights(ways, chosen, settled);
         foreach (TilePiece piece in pieces)
         {
             Made one = Of(piece.Id);
@@ -415,11 +422,11 @@ public static class LaidRoomModels
     }
 
     /// <summary>
-    /// THE WAY THE FILES LIE ON THE TEMPLATE, by the area's own index and then by the sloped pieces - see the remarks on the class. As
-    /// filed comes first, so it is the one kept wherever neither can tell two ways apart.
+    /// THE WAY THE FILES LIE ON THE TEMPLATE, by the game's own corner ground types and then by the sloped pieces - see the remarks on
+    /// the class. As filed comes first, so it is the one kept wherever neither can tell two ways apart.
     /// </summary>
-    /// <returns>Every way weighed, the one chosen, whether the heights chose it, and how many pieces several tiles across the index was asked of.</returns>
-    private static (Way[] Ways, Way Chosen, bool Settled, int Several) Weighed(List<TilePiece> pieces, Func<int, Made> of, TerrainGrid grid, int x, int y)
+    /// <returns>Every way weighed, the one chosen, whether the heights chose it, and how many sub-tiles' corners the game was asked of.</returns>
+    private static (Way[] Ways, Way Chosen, bool Settled, int Asked) Weighed(List<TilePiece> pieces, Func<int, Made> of, TerrainGrid grid, int x, int y)
     {
         var ways = new Way[Relations.Length];
         for (var way = 0; way < ways.Length; way++)
@@ -427,7 +434,9 @@ public static class LaidRoomModels
             ways[way] = new Way(Relations[way]);
         }
 
-        int several = 0;
+        // THE GAME'S NAMES ONCE, so a corner is held against a name rather than a path worked out again per way and per corner.
+        string[]? names = grid.Ground is { } types ? GroundNames(types) : null;
+        int asked = 0;
         foreach (TilePiece piece in pieces)
         {
             Made one = of(piece.Id);
@@ -436,13 +445,12 @@ public static class LaidRoomModels
                 continue;
             }
 
-            // THE INDEX, of every piece several tiles across that draws anything - its box is what a sub-tile is counted from.
-            if (piece.Width * piece.Height > 1 && grid.Tiles is { } tiles && (one.Props.Ready || one.Ground.Ready))
+            if (names is not null && one.Corners.Count > 0)
             {
-                several++;
+                asked += one.Corners.Count(corners => corners.Length == 4);
                 foreach (Way way in ways)
                 {
-                    way.Index(piece, one, tiles, x, y);
+                    way.Meet(piece, one, grid.Ground!, names, x, y);
                 }
             }
 
@@ -459,38 +467,106 @@ public static class LaidRoomModels
 
         Way[] allowed = Allowed(ways);
         bool settled = allowed.Any(one => one.Sloped > 0);
-        return (ways, settled ? allowed.MinBy(one => one.Residual)! : allowed[0], settled, several);
+        return (ways, settled ? allowed.MinBy(one => one.Residual)! : allowed[0], settled, asked);
     }
 
-    /// <summary>The ways the area's own index leaves - those putting the most pieces where it has them, as filed first - or all where it puts none.</summary>
+    /// <summary>The ways the game's corner types leave - those laying the most sub-tiles' corners on them, as filed first - or all where they lay none.</summary>
     private static Way[] Allowed(Way[] ways)
     {
-        int most = ways.Max(one => one.Indexed);
-        return most > 0 ? [.. ways.Where(one => one.Indexed == most)] : ways;
+        int most = ways.Max(one => one.Met);
+        return most > 0 ? [.. ways.Where(one => one.Met == most)] : ways;
     }
 
-    /// <summary>What the area's own index said about the ways a file can lie, for the line under the picture.</summary>
-    private static string Indexed(Way[] ways, Way chosen, int several)
+    /// <summary>What the game's corner types said about the ways a file can lie, for the line under the picture.</summary>
+    private static string Cornered(Way[] ways, Way chosen, int asked)
     {
         Way[] allowed = Allowed(ways);
-        if (chosen.Indexed == 0)
+        if (chosen.Met == 0)
         {
             return string.Create(CultureInfo.InvariantCulture,
-                $"index: no way puts every tile of any of the {several} pieces several tiles across where the area's own index has it - the heights choose among all {ways.Length}");
+                $"corners: no way lays any of {asked} sub-tiles' grid corners on the game's own corner types - the heights choose among all {ways.Length}");
         }
 
         string head = string.Create(CultureInfo.InvariantCulture,
-            $"index: {chosen.Indexed}/{several} pieces several tiles across have every tile where the area's own index puts it with the files {chosen.Said}");
+            $"corners: {chosen.Met}/{asked} sub-tiles have their grid's four ground types at the game's own corners with the files {chosen.Said}");
         if (allowed.Length > 1)
         {
             return head + string.Create(CultureInfo.InvariantCulture, $", and as many with {allowed.Length - 1} other ways, which the heights choose among");
         }
 
-        Way next = ways.Where(one => one != chosen).MaxBy(one => one.Indexed)!;
-        return head + string.Create(CultureInfo.InvariantCulture, $"; next {next.Said} {next.Indexed}/{several}");
+        Way next = ways.Where(one => one != chosen).MaxBy(one => one.Met)!;
+        return head + string.Create(CultureInfo.InvariantCulture, $"; next {next.Said} {next.Met}/{asked}");
     }
 
-    /// <summary>What the ground said about the ways the index left, for the line under the picture.</summary>
+    /// <summary>The area's ground types by the name a grid's corner is held against: '-' for the null slot and for an empty one.</summary>
+    internal static string[] GroundNames(TerrainGroundTypes types)
+    {
+        ArgumentNullException.ThrowIfNull(types);
+        var names = new string[types.Types.Count];
+        for (var type = 0; type < names.Length; type++)
+        {
+            names[type] = type == 0 || types.Types[type].Length == 0 ? "-" : TerrainGroundTypes.NameFor(types.Types[type]);
+        }
+
+        return names;
+    }
+
+    /// <summary>
+    /// Whether a sub-tile's four corners from its definition's grid are the game's own corner types at the area's tile corners the place
+    /// puts them on, each to each.
+    /// </summary>
+    /// <remarks>
+    /// THE GAME'S OWN CHECK OF A PLACING. Corner k of TileDefinition.CornersOf lies at mesh column x - 1 + (k &amp; 1) and mesh row
+    /// 1 - y + (k &gt;&gt; 1) tiles (its remarks); the place takes it into the world from the area tile (<paramref name="x"/>,
+    /// <paramref name="y"/>), where TileCornerData holds the game's type. v0.1.257's capture of Port made it by hand: laid as the game's
+    /// turn decodes it, all ten harbour sub-tiles on the screen met the game's - one ocean on one side and nothing on the other, which only
+    /// the mirror the game laid it with puts the right way round - and laid across its footprint none did.
+    /// </remarks>
+    /// <param name="corners">The four corners' names, '-' unnamed.</param>
+    /// <param name="names">The area's types by name - see <see cref="GroundNames"/>.</param>
+    internal static bool CornersMeet(Matrix4x4 place, int x, int y, GroundPiece piece, IReadOnlyList<string> corners, TerrainGroundTypes types, string[] names)
+    {
+        ArgumentNullException.ThrowIfNull(corners);
+        ArgumentNullException.ThrowIfNull(types);
+        ArgumentNullException.ThrowIfNull(names);
+        if (corners.Count != 4)
+        {
+            return false;
+        }
+
+        for (var corner = 0; corner < 4; corner++)
+        {
+            var file = new Vector3((piece.X - 1 + (corner & 1)) * TileModels.Side, (1 - piece.Y + (corner >> 1)) * TileModels.Side, 0f);
+            Vector3 at = Vector3.Transform(file, place);
+            int type = types.At((int)MathF.Round(at.X / TileModels.Side) + x, (int)MathF.Round(at.Y / TileModels.Side) + y);
+            if (!string.Equals(corners[corner], type > 0 && type < names.Length ? names[type] : "-", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Each sub-tile's four corners by name from a tile's definition grid, or nothing where it carries none.</summary>
+    private static IReadOnlyList<string[]> CornersOf(Func<string, byte[]?> read, string path, IReadOnlyList<GroundPiece> pieces)
+    {
+        (TileDefinition definition, _) = TileModels.Defined(read, path);
+        if (definition.GroundGrid.Count == 0)
+        {
+            return [];
+        }
+
+        var corners = new string[pieces.Count][];
+        for (var at = 0; at < pieces.Count; at++)
+        {
+            corners[at] = [.. definition.CornersOf(pieces[at].X, pieces[at].Y).Select(name => name.Length == 0 ? "-" : TerrainGroundTypes.NameFor(name.Replace('\\', '/')))];
+        }
+
+        return corners;
+    }
+
+    /// <summary>What the ground said about the ways the corners left, for the line under the picture.</summary>
     private static string Heights(Way[] ways, Way chosen, bool settled)
     {
         if (!settled)
@@ -918,6 +994,9 @@ public static class LaidRoomModels
         /// <summary>Which sub-tile each run of the ground block's triangles is - see GroundPiece.</summary>
         public IReadOnlyList<GroundPiece> Pieces { get; init; } = [];
 
+        /// <summary>Each of <see cref="Pieces"/>' four corners' ground types by name, '-' unnamed, from the definition's grid - empty where it carries none.</summary>
+        public IReadOnlyList<string[]> Corners { get; init; } = [];
+
         public static Made Of(MonsterModel props, SkinnedMesh ground, int across, int down, TileDoodads doodads)
         {
             (Vector3 least, Vector3 most) = ground.Ready
@@ -967,16 +1046,18 @@ public static class LaidRoomModels
         /// <summary>The squared misses over every sloped piece, after each was raised to fit as well as it can.</summary>
         public double Residual { get; private set; }
 
-        /// <summary>Pieces several tiles across that have every tile where the area's own index puts it, the file's rows counted from its bottom.</summary>
-        public int Indexed { get; private set; }
+        /// <summary>Sub-tiles whose four grid corners this way lays on the game's own corner types - see <see cref="CornersMeet"/>.</summary>
+        public int Met { get; private set; }
 
-        /// <summary>Asks the area's own index of one piece several tiles across - see <see cref="Named"/>.</summary>
-        /// <remarks>
-        /// FROM THE BOTTOM, the one count the area has agreed with: every Monster Book picture of Port's laid harbour room said 29 of its
-        /// 29 such pieces had every tile where the index puts them counting from the file's bottom, and none from its top.
-        /// </remarks>
-        public void Index(TilePiece piece, Made one, TerrainTiles tiles, int x, int y)
-            => Indexed += Named(piece, one, tiles, x, y, Flat(piece, one, x, y), fromTheTop: false) ? 1 : 0;
+        /// <summary>Asks the game's corner types of one piece's sub-tiles laid this way.</summary>
+        public void Meet(TilePiece piece, Made one, TerrainGroundTypes types, string[] names, int x, int y)
+        {
+            Matrix4x4 place = Spatial(Flat(piece, one, x, y));
+            for (var at = 0; at < one.Corners.Count && at < one.Pieces.Count; at++)
+            {
+                Met += CornersMeet(place, x, y, one.Pieces[at], one.Corners[at], types, names) ? 1 : 0;
+            }
+        }
 
         /// <summary>
         /// Where a piece's file goes, flat: its middle to the origin, laid on the template this way, the game's turn, then out to the middle of the area tiles it covers - from the room's corner, in world units.

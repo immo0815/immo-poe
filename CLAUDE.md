@@ -679,12 +679,16 @@ PORT'S FIRST TINT (v0.1.257) MEASURED NOTHING: the harbour was drawn across its 
 sub-tile on the screen stood where its neighbour across the diagonal belongs and read that tile's corners, and the tint lay
 over the pier's cobblestone. Laid as the game's turn decodes it - as filed, then placement 1's mirror in x, the Monster Book's
 own room (29 of 29 pieces where the index has them) - all ten of its sub-tiles on the screen meet the game's corner types
-exactly, one of them ocean on one side and nothing on the other. FROM v0.1.261 THE AREA'S OWN INDEX CHOOSES THE WAY BEFORE THE
-HEIGHTS (`LaidRoomModels.Weighed`, `Way.Indexed`: the ways that put every tile of the most pieces several tiles across where
-TileIdentity has them, the file's rows counted from its bottom; the heights only among those), in a laid room and the block
-alike, and the line under the picture says what the index left. The part writes how the files lie and counts, piece by piece,
-the sub-tiles whose four grid corners are the game's at the corners the drawing puts them on (`CaptureGroundScreen.AsTheGame`)
-- read that count before the tint: short of all, the placing is wrong. The tint's measurement waits on the next harbour capture.
+exactly, one of them ocean on one side and nothing on the other. v0.1.261 then let the area's index choose the way, taking a tile's
+index for the file's column and row - but EVERY TILE OF A PIECE NAMES ITS PLACE IN THE LAID FOOTPRINT, counted from its least corner,
+whichever way the piece was laid (v0.1.248's ground-grid replay: every turned piece of Port, the harbour among them), so the index
+says nothing of how a file turns; it chose the way undoing the commonest placement, and the next harbour capture (v0.1.261) drew
+the harbour wrong again, 131 of its 315 sub-tiles on the game's corner types. FROM v0.1.262 THE GAME'S OWN CORNER TYPES CHOOSE THE
+WAY BEFORE THE HEIGHTS (`LaidRoomModels.Weighed`, `Way.Met`, `CornersMeet`: the ways that lay the most sub-tiles' four grid corners
+on TileCornerData's types at the area's corners they reach; the heights only among those), in a laid room and the block alike, and
+the line under the picture says what the corners left and the next way's count. The ground-on-screen part writes how the files lie
+and counts, piece by piece, the sub-tiles whose corners meet the game's (the same `CornersMeet`) - read that count before the tint:
+short of all, the placing is wrong. The tint's measurement waits on the next harbour capture.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
 Eight captures are committed under

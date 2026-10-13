@@ -99,17 +99,17 @@ public class CaptureGroundScreenTests
     }
 
     /// <summary>
-    /// A sub-tile's four grid corners are held against the game's own corner types where the drawing puts each corner: laid as the game
+    /// A sub-tile's four grid corners are held against the game's own corner types where the place puts each corner: laid as the game
     /// laid it they are the game's, each to each; mirrored, the two sides change places and they are not - which a check by the four
     /// names in any order could not tell.
     /// </summary>
     /// <remarks>
     /// Two area tiles across, one down: the left column of corners the ground "a", the middle "b", the right unnamed. The sub-tile c1r1's
-    /// corners lie at mesh (0, 0), (250, 0), (0, 250) and (250, 250) - TileDefinition.CornersOf's order - so drawn in place they fall on
-    /// the area's corners (0, 0), (1, 0), (0, 1) and (1, 1).
+    /// corners lie at mesh (0, 0), (250, 0), (0, 250) and (250, 250) - TileDefinition.CornersOf's order - so placed as they are they fall
+    /// on the area's corners (0, 0), (1, 0), (0, 1) and (1, 1).
     /// </remarks>
     [Fact]
-    public void ASUBTILESGridCornersAreHeldAgainstTheGamesWhereTheDrawingPutsThem()
+    public void ASUBTILESGridCornersAreHeldAgainstTheGamesWhereThePlacePutsThem()
     {
         const int corner = TerrainGroundTypes.BytesPerCorner;
         var corners = new byte[3 * 2 * corner];
@@ -119,15 +119,15 @@ public class CaptureGroundScreenTests
         }
 
         TerrainGroundTypes types = Assert.IsType<TerrainGroundTypes>(TerrainGroundTypes.From(["", "Metadata/Test/a.gt", "Metadata/Test/b.gt"], corners, 2, 1));
-        string[] grid = ["Metadata/Test/a.gt", "Metadata/Test/b.gt", "Metadata/Test/a.gt", "Metadata/Test/b.gt"];
+        string[] names = LaidRoomModels.GroundNames(types);
+        Assert.Equal(["-", "a", "b"], names);
         var piece = new GroundPiece(1, 1, 2);
-        LaidGround Placed(Matrix4x4 place) => new("Metadata/Test/t.tdt", new TilePiece(0, 3, 0, 0, 0, 0, Whole: true), SkinnedMesh.None, [piece], place);
 
-        Assert.True(CaptureGroundScreen.AsTheGame(Placed(Matrix4x4.Identity), piece, grid, types));
-        Assert.False(CaptureGroundScreen.AsTheGame(Placed(Matrix4x4.CreateScale(-1f, 1f, 1f) * Matrix4x4.CreateTranslation(250f, 0f, 0f)), piece, grid, types));
+        Assert.True(LaidRoomModels.CornersMeet(Matrix4x4.Identity, 0, 0, piece, ["a", "b", "a", "b"], types, names));
+        Assert.False(LaidRoomModels.CornersMeet(Matrix4x4.CreateScale(-1f, 1f, 1f) * Matrix4x4.CreateTranslation(250f, 0f, 0f), 0, 0, piece, ["a", "b", "a", "b"], types, names));
 
-        // The right tile's corners: "b", then the unnamed, which the grid's empty name is.
-        Assert.True(CaptureGroundScreen.AsTheGame(Placed(Matrix4x4.CreateTranslation(250f, 0f, 0f)), piece, ["Metadata/Test/b.gt", "", "Metadata/Test/b.gt", ""], types));
+        // The right tile's corners: "b", then the unnamed - placed from the area's tile one across rather than moved there.
+        Assert.True(LaidRoomModels.CornersMeet(Matrix4x4.Identity, 1, 0, piece, ["b", "-", "b", "-"], types, names));
     }
 
     [Fact]
