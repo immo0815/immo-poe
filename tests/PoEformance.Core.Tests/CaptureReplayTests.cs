@@ -93,7 +93,7 @@ public partial class CaptureReplayTests
         }
 
         // THE GRIDS AS ground.txt WRITES THEM: the defining file's header, then "ground grid WxH" and a row of short names a line.
-        string groundFile = Path.Combine(folder, CaptureReport.GroundFile);
+        string groundFile = CaptureParts.Find(folder, CaptureReport.GroundFile);
         var grids = new Dictionary<string, string[][]>(StringComparer.OrdinalIgnoreCase);
         if (File.Exists(groundFile))
         {
@@ -872,7 +872,7 @@ public partial class CaptureReplayTests
         // EACH GROUND TYPE WRITTEN WHOLE: its path, then its first line - the name a section is keyed by.
         var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         string ground = string.Empty;
-        foreach (string raw in File.ReadLines(Path.Combine(folder, CaptureReport.MastersFile)))
+        foreach (string raw in File.ReadLines(CaptureParts.Find(folder, CaptureReport.MastersFile)))
         {
             string line = raw.TrimEnd('\r');
             if (line.StartsWith("##### ", StringComparison.Ordinal))
@@ -889,7 +889,7 @@ public partial class CaptureReplayTests
         }
 
         var identities = pool.ToDictionary(tile => tile.Path, tile => tile.Identity, StringComparer.OrdinalIgnoreCase);
-        string laid = Path.Combine(folder, CaptureReport.TileIdentitiesFile);
+        string laid = CaptureParts.Find(folder, CaptureReport.TileIdentitiesFile);
         foreach (string raw in File.Exists(laid) ? File.ReadLines(laid) : [])
         {
             string[] cells = raw.TrimEnd('\r').Split('\t');
@@ -942,7 +942,7 @@ public partial class CaptureReplayTests
     /// <summary>The tileset's tiles with their identities out of slot-candidates.txt's table, weighted from tileset-lists.txt where the capture has it - or null and why.</summary>
     private static List<RoomBuildTile>? Pool(string folder, out string how)
     {
-        string candidates = Path.Combine(folder, CaptureReport.SlotCandidatesFile);
+        string candidates = CaptureParts.Find(folder, CaptureReport.SlotCandidatesFile);
         if (!File.Exists(candidates))
         {
             how = $"no {CaptureReport.SlotCandidatesFile} in the capture - a capture from 0.1.176 on carries the tileset's tiles";
@@ -951,7 +951,7 @@ public partial class CaptureReplayTests
 
         var weights = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var words = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
-        string lists = Path.Combine(folder, CaptureReport.TilesetListsFile);
+        string lists = CaptureParts.Find(folder, CaptureReport.TilesetListsFile);
         if (File.Exists(lists))
         {
             foreach (TileListEntry entry in TileList.Parse(File.ReadAllText(lists)).Entries)
@@ -1139,9 +1139,9 @@ public partial class CaptureReplayTests
         {
             string[] loaded = ["Metadata/Terrain/Maps/Test/master.tsi"];
             File.WriteAllText(
-                Path.Combine(folder, CaptureReport.TileFilesFile),
+                CaptureParts.Find(folder, CaptureReport.TileFilesFile),
                 CaptureReport.TileFiles(CaptureReportTests.TileFilesInstall, loaded, null, CaptureReportTests.TileFilesLaid()));
-            File.WriteAllText(Path.Combine(folder, CaptureReport.MastersFile), CaptureReport.Masters(CaptureReportTests.TileFilesInstall, loaded, null));
+            File.WriteAllText(CaptureParts.Find(folder, CaptureReport.MastersFile), CaptureReport.Masters(CaptureReportTests.TileFilesInstall, loaded, null));
 
             string replay = TileFilesReplay(folder).ReplaceLineEndings("\n");
             Assert.Contains("4 laid files no tile list names: 1 reached by inheriting, 1 in a fill list, 1 sharing a template with a listed file, 1 not explained", replay, StringComparison.Ordinal);
@@ -1172,7 +1172,7 @@ public partial class CaptureReplayTests
     public static string TileFilesReplay(string folder)
     {
         var said = new StringBuilder();
-        string path = Path.Combine(folder, CaptureReport.TileFilesFile);
+        string path = CaptureParts.Find(folder, CaptureReport.TileFilesFile);
         if (!File.Exists(path))
         {
             said.AppendLine(CultureInfo.InvariantCulture, $"tile files: no {CaptureReport.TileFilesFile} in the capture - a capture from 0.1.183 on carries it");
@@ -1307,7 +1307,7 @@ public partial class CaptureReplayTests
             }
         }
 
-        string lists = Path.Combine(folder, CaptureReport.TilesetListsFile);
+        string lists = CaptureParts.Find(folder, CaptureReport.TilesetListsFile);
         if (File.Exists(lists))
         {
             foreach (TileListEntry entry in TileList.Parse(File.ReadAllText(lists)).Entries)
@@ -1429,7 +1429,7 @@ public partial class CaptureReplayTests
     public static string BossPointsReplay(string folder)
     {
         var said = new StringBuilder();
-        Dictionary<string, RoomLayout> rooms = Rooms(File.ReadAllText(Path.Combine(folder, CaptureReport.RoomFilesFile)))
+        Dictionary<string, RoomLayout> rooms = Rooms(File.ReadAllText(CaptureParts.Find(folder, CaptureReport.RoomFilesFile)))
             .GroupBy(one => Short(one.Room), StringComparer.OrdinalIgnoreCase)
             .ToDictionary(one => one.Key, one => one.First().Layout, StringComparer.OrdinalIgnoreCase);
         (List<DoodadSighting> entities, string entitiesHow) = Entities(folder);
@@ -1442,7 +1442,7 @@ public partial class CaptureReplayTests
         }
 
         // THE PLACES, as rooms-placed.txt says them: "room: ... - tile x, y, turned ...:" by doodads and by tiles alike.
-        string placed = Path.Combine(folder, "rooms-placed.txt");
+        string placed = CaptureParts.Find(folder, "rooms-placed.txt");
         foreach (Match place in (File.Exists(placed) ? File.ReadLines(placed) : []).Select(line => PlacedAt().Match(line)).Where(match => match.Success))
         {
             string name = place.Groups[1].Value;
@@ -1575,7 +1575,7 @@ public partial class CaptureReplayTests
     {
         var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var lists = new List<(string, GroundMaterials)>();
-        string path = Path.Combine(folder, CaptureReport.MastersFile);
+        string path = CaptureParts.Find(folder, CaptureReport.MastersFile);
         if (!File.Exists(path))
         {
             return (names, lists);
@@ -1947,7 +1947,7 @@ public partial class CaptureReplayTests
     private static (Dictionary<string, (int Width, int Height, List<TileLine> Doodads)> Files, string How) TileDoodads(string folder)
     {
         var files = new Dictionary<string, (int Width, int Height, List<TileLine> Doodads)>(StringComparer.OrdinalIgnoreCase);
-        string path = Path.Combine(folder, CaptureReport.TileFilesFile);
+        string path = CaptureParts.Find(folder, CaptureReport.TileFilesFile);
         if (!File.Exists(path))
         {
             return (files, $"no {CaptureReport.TileFilesFile} in the capture");
@@ -2028,7 +2028,7 @@ public partial class CaptureReplayTests
     /// <summary>Every named entity the recording holds - both entity maps walked unfiltered, as the capture's pass walked them.</summary>
     private static (List<DoodadSighting> Entities, string How) Entities(string folder)
     {
-        string path = Path.Combine(folder, CaptureReport.MemoryFile);
+        string path = CaptureParts.Find(folder, CaptureReport.MemoryFile);
         if (!File.Exists(path))
         {
             return ([], $"no {CaptureReport.MemoryFile} in the capture");
@@ -2052,7 +2052,7 @@ public partial class CaptureReplayTests
     private static List<FillListEntry> FillEntries(string folder)
     {
         var entries = new List<FillListEntry>();
-        string path = Path.Combine(folder, CaptureReport.MastersFile);
+        string path = CaptureParts.Find(folder, CaptureReport.MastersFile);
         if (!File.Exists(path))
         {
             return entries;
@@ -2086,7 +2086,7 @@ public partial class CaptureReplayTests
     /// <summary>The fill lists of area-masters.txt read back with FillList, each with how many of its tiles the area laid.</summary>
     private static void FillLists(StringBuilder said, string folder, HashSet<string> laid)
     {
-        string path = Path.Combine(folder, CaptureReport.MastersFile);
+        string path = CaptureParts.Find(folder, CaptureReport.MastersFile);
         if (!File.Exists(path))
         {
             said.AppendLine(CultureInfo.InvariantCulture, $"fill lists: no {CaptureReport.MastersFile} in the capture - a capture from 0.1.184 on carries it");
@@ -2293,7 +2293,7 @@ public partial class CaptureReplayTests
     private static Dictionary<string, int> Written(string folder)
     {
         var weights = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        string lists = Path.Combine(folder, CaptureReport.TilesetListsFile);
+        string lists = CaptureParts.Find(folder, CaptureReport.TilesetListsFile);
         if (!File.Exists(lists))
         {
             return weights;
@@ -2651,9 +2651,9 @@ public partial class CaptureReplayTests
     /// <summary>Every room of the capture placed by its doodads over the capture's sightings - each room of the area's module on its lattice, as the tool places it, unless <paramref name="onLattice"/> says otherwise (see RoomLattice).</summary>
     private static Placing Place(string folder, bool onLattice = true)
     {
-        List<(string Room, RoomLayout Layout)> rooms = Rooms(File.ReadAllText(Path.Combine(folder, CaptureReport.RoomFilesFile)));
-        DoodadSurvey survey = Survey(File.ReadAllText(Path.Combine(folder, CaptureReport.DoodadsFile)));
-        (int tilesX, int tilesY) = Tiles(File.ReadAllText(Path.Combine(folder, CaptureReport.SummaryFile)), survey);
+        List<(string Room, RoomLayout Layout)> rooms = Rooms(File.ReadAllText(CaptureParts.Find(folder, CaptureReport.RoomFilesFile)));
+        DoodadSurvey survey = Survey(File.ReadAllText(CaptureParts.Find(folder, CaptureReport.DoodadsFile)));
+        (int tilesX, int tilesY) = Tiles(File.ReadAllText(CaptureParts.Find(folder, CaptureReport.SummaryFile)), survey);
         RoomLattices lattices = onLattice ? Lattices(folder) : RoomLattices.None;
 
         var found = new List<(string Room, RoomDoodadPlaces Places)>(rooms.Count);
@@ -2677,7 +2677,7 @@ public partial class CaptureReplayTests
     /// </summary>
     private static TerrainGrid? Terrain(string folder, out string how)
     {
-        string path = Path.Combine(folder, CaptureReport.MemoryFile);
+        string path = CaptureParts.Find(folder, CaptureReport.MemoryFile);
         if (!File.Exists(path))
         {
             how = $"terrain not read: no {CaptureReport.MemoryFile} in the capture";
@@ -2717,7 +2717,7 @@ public partial class CaptureReplayTests
     /// </summary>
     private static Dictionary<string, TileIdentity>? Identities(string folder)
     {
-        string path = Path.Combine(folder, CaptureReport.TileIdentitiesFile);
+        string path = CaptureParts.Find(folder, CaptureReport.TileIdentitiesFile);
         if (!File.Exists(path))
         {
             return null;

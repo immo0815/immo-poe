@@ -517,11 +517,15 @@ internal sealed class CaptureKey
 
         void Not(string file, string why) => Said(file, "not written: " + why, CaptureStepState.NotWritten);
 
+        // EACH PART'S FILES IN ITS HEADING'S FOLDER, the pictures and dumps it writes beside its file with it (asked for from the
+        // live client, 2026-10-13 - see CaptureParts.Folders); set while the part writes, the top again after.
+        string folder = run.Folder;
         void Part(string file, Func<string> write)
         {
             run.Progress.Of(file)?.Start(Environment.TickCount64);
             try
             {
+                folder = Path.GetDirectoryName(CaptureParts.PathOf(run.Folder, file)) ?? run.Folder;
                 string line = write();
                 Said(
                     file,
@@ -534,9 +538,13 @@ internal sealed class CaptureKey
             {
                 Said(file, "FAILED: " + failed.Message, CaptureStepState.Failed);
             }
+            finally
+            {
+                folder = run.Folder;
+            }
         }
 
-        string At(string file) => Path.Combine(run.Folder, file);
+        string At(string file) => Path.Combine(folder, file);
         bool On(string key) => !run.Off.Contains(key);
         ClientRect client = run.Client;
 

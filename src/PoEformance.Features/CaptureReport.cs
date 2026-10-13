@@ -418,6 +418,9 @@ public static class CaptureReport
     /// written straight into pieces, <c>name.zip.001</c>, <c>.002</c> and on - the zip's own bytes in order, joined again by
     /// concatenation (see <see cref="PieceStream"/>).
     ///
+    /// A FOLDER A HEADING (asked for from the live client, 2026-10-13): the files sit in the capture's folder as
+    /// <see cref="CaptureParts.Folders"/> sort them, and the zip keeps those folders, capture.txt at the top.
+    ///
     /// A file that cannot be opened is left out and named, not allowed to sink the rest: the only
     /// one that can be is a recording still being written, and the folder keeps it either way.
     /// </remarks>
@@ -431,13 +434,16 @@ public static class CaptureReport
         using var pieces = new PieceStream(zip, most);
         using (var archive = new ZipArchive(pieces, ZipArchiveMode.Create, leaveOpen: true))
         {
-            foreach (string path in Directory.EnumerateFiles(folder).Order(StringComparer.OrdinalIgnoreCase))
+            // EACH HEADING'S FOLDER AS A FOLDER IN THE ZIP (CaptureParts.Folders), the top's files first.
+            foreach (string name in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories)
+                .Select(path => Path.GetRelativePath(folder, path).Replace('\\', '/'))
+                .OrderBy(name => name.Contains('/', StringComparison.Ordinal))
+                .ThenBy(name => name, StringComparer.OrdinalIgnoreCase))
             {
-                string name = Path.GetFileName(path);
                 bool packed = name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || name.EndsWith(".rec", StringComparison.OrdinalIgnoreCase);
                 try
                 {
-                    archive.CreateEntryFromFile(path, name, packed ? CompressionLevel.NoCompression : CompressionLevel.Optimal);
+                    archive.CreateEntryFromFile(Path.Combine(folder, name), name, packed ? CompressionLevel.NoCompression : CompressionLevel.Optimal);
                 }
                 catch (IOException)
                 {

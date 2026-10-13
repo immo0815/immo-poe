@@ -171,7 +171,11 @@ from one spot at one moment: the pictures, the recording, the area's files, ever
 diagnosis that is ticked on the Keys page (`CaptureParts.All`). A zip past 29 MB is written straight into pieces,
 `name.zip.001`, `.002` and on, each under 29 MB (`CaptureReport.PieceBytes`, `PieceStream`) - the zip's own bytes in order, joined
 again by concatenation (7-Zip opens the `.001`, `copy /b`, `cat`): asked for from the live client (2026-10-13), the place a capture is
-sent to taking no file over 30 MB, and chosen there over several whole zips. That is the rule for new work:
+sent to taking no file over 30 MB, and chosen there over several whole zips. From v0.1.260 a capture's files sit in a folder for
+their heading, in the folder and the zip alike - `pictures`, `entities`, `area`, `rooms` (both room headings), `windows`, `mem` (asked
+for from the live client, 2026-10-13); capture.txt stays at the top, and a part's pictures and dumps go where its file goes
+(`CaptureParts.Folders`, `FolderOf`, `PathOf`). An offline reader opens a capture's file through `CaptureParts.Find`, which finds it at
+the top - every earlier capture and every fixture - or in its folder. That is the rule for new work:
 
 - **Debug lives in the capture, nowhere else** (asked for from the live client, 2026-10-11). A measurement
   the tool can make - a memory search, a dump, an evaluation of what a window shows - is a capture part run

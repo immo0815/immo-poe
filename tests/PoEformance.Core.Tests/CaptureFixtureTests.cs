@@ -523,7 +523,7 @@ public partial class CaptureFixtureTests
     /// <summary>The terrain grid the capture's recording reads back as the tool reads it live - both grids, the heights.</summary>
     private static TerrainGrid RecordedTerrain(string folder)
     {
-        using var replay = ReplayMemoryReader.Load(File.OpenRead(Path.Combine(folder, CaptureReport.MemoryFile)));
+        using var replay = ReplayMemoryReader.Load(File.OpenRead(CaptureParts.Find(folder, CaptureReport.MemoryFile)));
         Assert.True(replay.ResolvedStatics.TryGetValue("GameStates", out ulong gameStates));
         var rotation = new TerrainRotationTables(
             replay.ResolvedStatics.GetValueOrDefault("TerrainRotationSelector"),

@@ -81,7 +81,7 @@ public class AreaEnvironmentTests
         Assert.Equal(0x204, player.OffsetOf("Level"));
     }
 
-    /// <summary>A capture's folder is packed beside it under its own name, the pictures and the recording stored as they are, the text compressed.</summary>
+    /// <summary>A capture's folder is packed beside it under its own name, a heading's folder a folder in the zip and capture.txt at the top first, the pictures and the recording stored as they are, the text compressed.</summary>
     [Fact]
     public void ACAPTUREIsPackedBesideItsFolder()
     {
@@ -90,9 +90,10 @@ public class AreaEnvironmentTests
         Directory.CreateDirectory(folder);
         try
         {
-            File.WriteAllBytes(Path.Combine(folder, "game.png"), new byte[4096]);
-            File.WriteAllBytes(Path.Combine(folder, "memory.rec"), new byte[4096]);
-            File.WriteAllText(Path.Combine(folder, "loaded-files.txt"), string.Concat(Enumerable.Repeat("Metadata/Terrain/Maps/Seepage/a.tdt\n", 200)));
+            File.WriteAllBytes(CaptureParts.PathOf(folder, "game.png"), new byte[4096]);
+            File.WriteAllBytes(CaptureParts.PathOf(folder, "memory.rec"), new byte[4096]);
+            File.WriteAllText(CaptureParts.PathOf(folder, "loaded-files.txt"), string.Concat(Enumerable.Repeat("Metadata/Terrain/Maps/Seepage/a.tdt\n", 200)));
+            File.WriteAllText(CaptureParts.PathOf(folder, "capture.txt"), "capture  the summary\n");
 
             (IReadOnlyList<string> files, List<string> leftOut) = CaptureReport.Pack(folder);
 
@@ -101,10 +102,10 @@ public class AreaEnvironmentTests
             Assert.False(File.Exists(zip + ".001"));
             Assert.Empty(leftOut);
             using ZipArchive archive = ZipFile.OpenRead(zip);
-            Assert.Equal(["game.png", "loaded-files.txt", "memory.rec"], archive.Entries.Select(one => one.FullName));
-            Assert.Equal(4096, archive.GetEntry("game.png")!.CompressedLength);
-            Assert.Equal(4096, archive.GetEntry("memory.rec")!.CompressedLength);
-            ZipArchiveEntry text = archive.GetEntry("loaded-files.txt")!;
+            Assert.Equal(["capture.txt", "area/loaded-files.txt", "mem/memory.rec", "pictures/game.png"], archive.Entries.Select(one => one.FullName));
+            Assert.Equal(4096, archive.GetEntry("pictures/game.png")!.CompressedLength);
+            Assert.Equal(4096, archive.GetEntry("mem/memory.rec")!.CompressedLength);
+            ZipArchiveEntry text = archive.GetEntry("area/loaded-files.txt")!;
             Assert.True(text.CompressedLength * 10 < text.Length, $"{text.CompressedLength} of {text.Length}");
         }
         finally

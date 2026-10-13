@@ -764,7 +764,7 @@ public partial class CaptureReplayTests
     /// <remarks>A capture from before the part (CaptureParts.Landscape) holds the walkable grid and not the second one, and says so.</remarks>
     public static string LandscapeReplay(string folder)
     {
-        string path = Path.Combine(folder, CaptureReport.MemoryFile);
+        string path = CaptureParts.Find(folder, CaptureReport.MemoryFile);
         if (!File.Exists(path))
         {
             return $"landscape: not read - no {CaptureReport.MemoryFile} in the capture";
@@ -797,7 +797,7 @@ public partial class CaptureReplayTests
     private static List<(string Path, string Text)> MasterSections(string folder)
     {
         var sections = new List<(string Path, string Text)>();
-        string path = Path.Combine(folder, CaptureReport.MastersFile);
+        string path = CaptureParts.Find(folder, CaptureReport.MastersFile);
         if (!File.Exists(path))
         {
             return sections;

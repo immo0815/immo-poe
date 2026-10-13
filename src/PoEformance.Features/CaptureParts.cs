@@ -171,6 +171,94 @@ public static class CaptureParts
     public static IReadOnlyList<string> Groups { get; } =
         ["Pictures", "Entities", "Area files", "Rooms by ground and tiles", "Rooms by doodads", "Windows", "Memory"];
 
+    /// <summary>
+    /// The folders a capture's files are sorted into, in its folder and its zip alike - one a heading, the rooms' two headings
+    /// sharing one; capture.txt and the replays stay at the top (asked for from the live client, 2026-10-13).
+    /// </summary>
+    public static IReadOnlyList<string> Folders { get; } = ["pictures", "entities", "area", "rooms", "windows", "mem"];
+
+    /// <summary>
+    /// Each file a part writes by its folder, the memory pass's index beside the recording - see <see cref="FolderOf"/>. Made on
+    /// first use: a field made from <see cref="All"/> above it in the file would be made before <see cref="All"/> is.
+    /// </summary>
+    private static Dictionary<string, string>? _fileFolders;
+
+    private static Dictionary<string, string> FileFolders => _fileFolders ??= Filed();
+
+    /// <summary>A heading's folder, or empty for none.</summary>
+    public static string FolderOfGroup(string group) => group switch
+    {
+        "Pictures" => "pictures",
+        "Entities" => "entities",
+        "Area files" => "area",
+        "Rooms by ground and tiles" or "Rooms by doodads" => "rooms",
+        "Windows" => "windows",
+        "Memory" => "mem",
+        _ => string.Empty,
+    };
+
+    /// <summary>
+    /// The folder a file of a capture goes to: its part's, by the file the part writes - empty for capture.txt and anything no
+    /// part names, which stay at the top. The pictures and dumps a part writes beside its file go where its file goes.
+    /// </summary>
+    public static string FolderOf(string file) => FileFolders.GetValueOrDefault(file, string.Empty);
+
+    /// <summary>Where a file of a capture is written, its folder made where it is not yet there.</summary>
+    /// <param name="capture">The capture's folder.</param>
+    /// <param name="file">The file, by its name.</param>
+    public static string PathOf(string capture, string file)
+    {
+        string folder = FolderOf(file);
+        if (folder.Length == 0)
+        {
+            return Path.Combine(capture, file);
+        }
+
+        string directory = Path.Combine(capture, folder);
+        Directory.CreateDirectory(directory);
+        return Path.Combine(directory, file);
+    }
+
+    /// <summary>
+    /// Where a file of an unpacked capture is - at the top, as every capture before v0.1.260 and every fixture has it, or in one of
+    /// <see cref="Folders"/> - or where it would be at the top, where it is in neither: the offline readers' one way in.
+    /// </summary>
+    /// <param name="capture">The capture's folder.</param>
+    /// <param name="file">The file, by its name.</param>
+    public static string Find(string capture, string file)
+    {
+        string top = Path.Combine(capture, file);
+        if (File.Exists(top))
+        {
+            return top;
+        }
+
+        foreach (string folder in Folders)
+        {
+            string inside = Path.Combine(capture, folder, file);
+            if (File.Exists(inside))
+            {
+                return inside;
+            }
+        }
+
+        return top;
+    }
+
+    private static Dictionary<string, string> Filed()
+    {
+        var filed = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [CaptureMemory.IndexFile] = "mem" };
+        foreach (CapturePart part in All)
+        {
+            if (part.File.Length > 0)
+            {
+                filed.TryAdd(part.File, FolderOfGroup(part.Group));
+            }
+        }
+
+        return filed;
+    }
+
     /// <summary>Every part, grouped as <see cref="Groups"/> orders them.</summary>
     public static IReadOnlyList<CapturePart> All { get; } =
     [
