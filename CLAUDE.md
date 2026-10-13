@@ -659,6 +659,13 @@ game draws no squares there; whether that says it does not read the mask there w
 cannot show it - it draws a lone tile's ground plain (its "drawn as" says so), only a laid room in the Monster Book paints it. From
 v0.1.257 the ground part writes each ground material's colour texture beside ground.txt (`ground-material-N-name.png`, the sRGB textures
 its program reads, at most 256 a side, the mean colour and alpha said) - any capture in the area carries them.
+THEY LOOK ALIKE, SO THE EXCAVATION CANNOT SETTLE IT (v0.1.257's ground.txt): DirtExcavated01 to 03 average (107..110, 94..97,
+79..82), DirtExcavatedEdge01 (105, 92, 78), DirtExcavatedGritty01 to 03 (108..112, 94..98, 80..83) - within five of 255 of each other,
+apart only in their fine pattern (scratches, light blotches, grit) - and the edge test above weighed brightness and warmth, the very
+things they share. Squares of these would hardly show whatever the engine reads there. DECIDED from the live client (2026-10-13): the
+measurement waits for Port, whose two grounds (the ocean's black and the town fill's cobblestone) cannot be mistaken - a capture at
+the harbour with `game-picture`, `ground-screen` and `ground` ticked. Whakapanu's cove (`TropicalCliff_Cv_Cove_01`, wet sand against
+the rocky sea bed) differs too, but lies mostly under water and reads green near one on most of its wide shapes.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
 Eight captures are committed under
