@@ -688,7 +688,17 @@ WAY BEFORE THE HEIGHTS (`LaidRoomModels.Weighed`, `Way.Met`, `CornersMeet`: the 
 on TileCornerData's types at the area's corners they reach; the heights only among those), in a laid room and the block alike, and
 the line under the picture says what the corners left and the next way's count. The ground-on-screen part writes how the files lie
 and counts, piece by piece, the sub-tiles whose corners meet the game's (the same `CornersMeet`) - read that count before the tint:
-short of all, the placing is wrong. The tint's measurement waits on the next harbour capture.
+short of all, the placing is wrong.
+THE HARBOUR MEASURED (v0.1.262, the player on the quay at Port_Boss_01's piece 1, 8): 504 of 504 sub-tiles on the game's corner
+types, the files as filed (next mirrored, 280). The quay's land side (c13r9 to c14r11, the unnamed group's cobblestone and
+TropicalFill's dry sand, wide shapes at z 24 to 176) is where the two grounds cannot be mistaken: the sand's colour textures average
+106 to 109 in brightness, the cobblestones' 85 to 98, so squares of the mix would put the blue side of every tint edge some ten levels
+darker in the game's picture (lit at about 0.6). Across 10,953 pairs six pixels apart over the tint's edges the game's picture is
++1.4 brighter on the blue side, against -0.2 +/- 1.3 with the same edges moved, and no more textured (+0.17 against -0.04 +/- 0.47);
+the green's correlation with the picture's local contrast is -0.14 against -0.12 +/- 0.05 moved. THE GAME DRAWS NO SQUARES WHERE
+THE MIX READS THE ATLAS'S CELLS - in two areas now - but cobblestones scattered through sand, thinning and thickening smoothly
+(height blending's look, over a weight that is not the green at the block's coordinates). What the engine reads there is not
+measured; the coast's and the wall's tints (under the surf; a wall's face drawn over flat ground) settle nothing.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
 Eight captures are committed under
