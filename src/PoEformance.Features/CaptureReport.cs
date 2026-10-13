@@ -399,8 +399,12 @@ public static class CaptureReport
         return said.ToString();
     }
 
+    /// <summary>The most bytes one file of a packed capture holds - under 30 MB however a megabyte is counted (asked for from the live client, 2026-10-13).</summary>
+    public const long PieceBytes = 29_000_000;
+
     /// <summary>
-    /// Every file of a capture packed into one zip beside its folder, named like it - what gets sent. Returns the zip's path and the files left out.
+    /// Every file of a capture packed into one zip beside its folder, named like it - what gets sent - and cut into pieces of at
+    /// most <paramref name="most"/> bytes where it is bigger. Returns the files written, in order, and the files left out.
     /// </summary>
     /// <remarks>
     /// ASKED FOR because a capture is a dozen files or more and the place they are sent to takes five.
@@ -409,32 +413,46 @@ public static class CaptureReport
     /// compressed already, and squeezing them again is seconds of work for nothing. The text files
     /// are compressed, and they are where it pays - the loaded-file list shrinks to a tenth.
     ///
+    /// CUT AT 29 MB (asked for from the live client, 2026-10-13): the place a capture is sent to takes no file over 30 MB, and
+    /// two full pictures with the area's files run past it. A zip that fits stays one file, <c>name.zip</c>; a bigger one is
+    /// written straight into pieces, <c>name.zip.001</c>, <c>.002</c> and on - the zip's own bytes in order, joined again by
+    /// concatenation (see <see cref="PieceStream"/>).
+    ///
+    /// A FOLDER A HEADING (asked for from the live client, 2026-10-13): the files sit in the capture's folder as
+    /// <see cref="CaptureParts.Folders"/> sort them, and the zip keeps those folders, capture.txt at the top.
+    ///
     /// A file that cannot be opened is left out and named, not allowed to sink the rest: the only
     /// one that can be is a recording still being written, and the folder keeps it either way.
     /// </remarks>
     /// <param name="folder">The capture's folder.</param>
-    public static (string Zip, List<string> LeftOut) Pack(string folder)
+    /// <param name="most">The most bytes one file holds.</param>
+    public static (IReadOnlyList<string> Files, List<string> LeftOut) Pack(string folder, long most = PieceBytes)
     {
         ArgumentException.ThrowIfNullOrEmpty(folder);
         string zip = Path.TrimEndingDirectorySeparator(folder) + ".zip";
         var leftOut = new List<string>();
-        using FileStream file = File.Create(zip);
-        using var archive = new ZipArchive(file, ZipArchiveMode.Create);
-        foreach (string path in Directory.EnumerateFiles(folder).Order(StringComparer.OrdinalIgnoreCase))
+        using var pieces = new PieceStream(zip, most);
+        using (var archive = new ZipArchive(pieces, ZipArchiveMode.Create, leaveOpen: true))
         {
-            string name = Path.GetFileName(path);
-            bool packed = name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || name.EndsWith(".rec", StringComparison.OrdinalIgnoreCase);
-            try
+            // EACH HEADING'S FOLDER AS A FOLDER IN THE ZIP (CaptureParts.Folders), the top's files first.
+            foreach (string name in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories)
+                .Select(path => Path.GetRelativePath(folder, path).Replace('\\', '/'))
+                .OrderBy(name => name.Contains('/', StringComparison.Ordinal))
+                .ThenBy(name => name, StringComparer.OrdinalIgnoreCase))
             {
-                archive.CreateEntryFromFile(path, name, packed ? CompressionLevel.NoCompression : CompressionLevel.Optimal);
-            }
-            catch (IOException)
-            {
-                leftOut.Add(name);
+                bool packed = name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || name.EndsWith(".rec", StringComparison.OrdinalIgnoreCase);
+                try
+                {
+                    archive.CreateEntryFromFile(Path.Combine(folder, name), name, packed ? CompressionLevel.NoCompression : CompressionLevel.Optimal);
+                }
+                catch (IOException)
+                {
+                    leftOut.Add(name);
+                }
             }
         }
 
-        return (zip, leftOut);
+        return (pieces.Finish(), leftOut);
     }
 
     /// <summary>The area's loaded files, one to a line, as the game listed them.</summary>

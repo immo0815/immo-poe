@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using PoEformance.Features;
 using PoEformance.Game.Files;
 
 namespace PoEformance.Core.Tests;
@@ -13,12 +14,12 @@ public partial class CaptureReplayTests
     [Fact]
     public void THEBEACHWavesGraphsAreReadAgainFromACapture()
     {
-        if (Folder is not { Length: > 0 } folder || !File.Exists(Path.Combine(folder, "water-textures.txt")))
+        if (Folder is not { Length: > 0 } folder || !File.Exists(CaptureParts.Find(folder, "water-textures.txt")))
         {
             return;
         }
 
-        string replay = WavesReplay(File.ReadAllLines(Path.Combine(folder, "water-textures.txt")));
+        string replay = WavesReplay(File.ReadAllLines(CaptureParts.Find(folder, "water-textures.txt")));
         File.WriteAllText(Path.Combine(folder, "waves-replay.txt"), replay);
         Assert.StartsWith("beach waves:", replay, StringComparison.Ordinal);
     }

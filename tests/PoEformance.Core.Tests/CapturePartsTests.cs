@@ -80,4 +80,48 @@ public class CapturePartsTests
             File.Delete(path);
         }
     }
+
+    /// <summary>
+    /// Every part's file goes to its heading's folder - the rooms' two headings to one, the memory pass's index beside the
+    /// recording - and capture.txt stays at the top.
+    /// </summary>
+    [Fact]
+    public void EACHPartsFileGoesToItsHeadingsFolder()
+    {
+        Assert.Equal("pictures", CaptureParts.FolderOf(CaptureReport.GameShot));
+        Assert.Equal("entities", CaptureParts.FolderOf(CaptureReport.EntitiesFile));
+        Assert.Equal("entities", CaptureParts.FolderOf(CaptureReport.MonstersFile));
+        Assert.Equal("area", CaptureParts.FolderOf(CaptureReport.GroundFile));
+        Assert.Equal("rooms", CaptureParts.FolderOf(CaptureReport.TileIdentitiesFile));
+        Assert.Equal("rooms", CaptureParts.FolderOf(CaptureReport.DoodadsFile));
+        Assert.Equal("rooms", CaptureParts.FolderOf(CaptureReport.LandscapeFile));
+        Assert.Equal("windows", CaptureParts.FolderOf(CaptureReport.PanesFile));
+        Assert.Equal("mem", CaptureParts.FolderOf(CaptureReport.MemoryFile));
+        Assert.Equal("mem", CaptureParts.FolderOf(CaptureMemory.IndexFile));
+        Assert.Equal(string.Empty, CaptureParts.FolderOf(CaptureReport.SummaryFile));
+        Assert.All(CaptureParts.All.Where(part => part.File.Length > 0), part => Assert.Contains(CaptureParts.FolderOf(part.File), CaptureParts.Folders));
+    }
+
+    /// <summary>A capture's file is found at the top, as older captures and the fixtures have it, or in its heading's folder.</summary>
+    [Fact]
+    public void ACAPTURESFileIsFoundAtTheTopOrInItsFolder()
+    {
+        string root = Path.Combine(Path.GetTempPath(), $"capture-find-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            string written = CaptureParts.PathOf(root, CaptureReport.GroundFile);
+            File.WriteAllText(written, "ground");
+            File.WriteAllText(Path.Combine(root, CaptureReport.MastersFile), "masters");
+
+            Assert.Equal(Path.Combine(root, "area", CaptureReport.GroundFile), written);
+            Assert.Equal(written, CaptureParts.Find(root, CaptureReport.GroundFile));
+            Assert.Equal(Path.Combine(root, CaptureReport.MastersFile), CaptureParts.Find(root, CaptureReport.MastersFile));
+            Assert.Equal(Path.Combine(root, CaptureReport.WaterFile), CaptureParts.Find(root, CaptureReport.WaterFile));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
 }

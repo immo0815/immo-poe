@@ -12,12 +12,12 @@ public partial class CaptureReplayTests
     [Fact]
     public void THEMATERIALSAreCompiledAgainFromACapture()
     {
-        if (Folder is not { Length: > 0 } folder || !File.Exists(Path.Combine(folder, "model-panes.txt")))
+        if (Folder is not { Length: > 0 } folder || !File.Exists(CaptureParts.Find(folder, "model-panes.txt")))
         {
             return;
         }
 
-        string replay = MaterialsReplay(File.ReadAllLines(Path.Combine(folder, "model-panes.txt")));
+        string replay = MaterialsReplay(File.ReadAllLines(CaptureParts.Find(folder, "model-panes.txt")));
         File.WriteAllText(Path.Combine(folder, "materials-replay.txt"), replay);
         Assert.StartsWith("materials:", replay, StringComparison.Ordinal);
     }

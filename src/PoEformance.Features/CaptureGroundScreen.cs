@@ -83,7 +83,7 @@ public static class CaptureGroundScreen
         }
 
         (int x0, int y0, int x1, int y1) = Block(matrix, player, grid, width, height);
-        List<LaidGround> laid = LaidRoomModels.GroundsOver(read, grid, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+        List<LaidGround> laid = LaidRoomModels.GroundsOver(read, grid, x0, y0, x1 - x0 + 1, y1 - y0 + 1, out string ways);
 
         // THE GROUND TYPES AT THE LAID PIECES' CORNERS, which the MaterialsList painting them must name.
         var types = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -103,7 +103,7 @@ public static class CaptureGroundScreen
         var canvas = new Canvas(width, height, bgr);
         var body = new StringBuilder();
         var lines = new StringBuilder();
-        int mixed = 0, wideOnes = 0, offScreen = 0;
+        int mixed = 0, wideOnes = 0, offScreen = 0, agreeing = 0, held = 0;
 
         // THE OUTLINES AND NAMES AFTER EVERY TINT, so no sub-tile's tint lies over a neighbour's name.
         var rims = new List<(Vector3[] Corners, byte[] Colour, string Name, Vector2 Centre)>();
@@ -112,7 +112,7 @@ public static class CaptureGroundScreen
             int triangles = one.Ground.Indices.Length / 3;
             (IReadOnlyList<SubTileGrounds> subTiles, string mask, GamePicture? maskPicture) = painter.SubTilesOf(one.Path, one.Pieces, triangles);
             lines.Clear();
-            int oneGround = 0, several = 0, away = 0;
+            int oneGround = 0, several = 0, away = 0, agree = 0, gridded = 0;
             var plain = new SortedDictionary<string, int>(StringComparer.Ordinal);
 
             int from = 0;
@@ -122,6 +122,12 @@ public static class CaptureGroundScreen
                 SubTileGrounds grounds = subTiles[at];
                 int first = from;
                 from += piece.Triangles;
+                if (grounds.Gridded && grid.Ground is { } gameTypes)
+                {
+                    gridded++;
+                    agree += AsTheGame(one, piece, grounds.Corners, gameTypes) ? 1 : 0;
+                }
+
                 if (grounds.Grounds.Count == 1)
                 {
                     oneGround++;
@@ -186,8 +192,11 @@ public static class CaptureGroundScreen
                 .Append(" · mask ").Append(mask.Length == 0 ? "none" : mask + (maskPicture is { } decoded ? string.Create(CultureInfo.InvariantCulture, $" ({decoded.Width} x {decoded.Height})") : " (did not read)"))
                 .Append(string.Create(CultureInfo.InvariantCulture, $" · sub-tiles: {oneGround} of one ground, {several} of two or more"))
                 .Append(away > 0 ? string.Create(CultureInfo.InvariantCulture, $" ({away} off the screen)") : string.Empty)
-                .AppendLine(string.Concat(plain.Select(why => string.Create(CultureInfo.InvariantCulture, $", {why.Value} plain {why.Key}"))));
+                .Append(string.Concat(plain.Select(why => string.Create(CultureInfo.InvariantCulture, $", {why.Value} plain {why.Key}"))))
+                .AppendLine(gridded > 0 ? string.Create(CultureInfo.InvariantCulture, $" · the game's corner types at {agree} of {gridded} sub-tiles") : string.Empty);
             body.Append(lines);
+            agreeing += agree;
+            held += gridded;
         }
 
         foreach ((Vector3[] corners, byte[] colour, string name, Vector2 centre) in rims)
@@ -206,6 +215,10 @@ public static class CaptureGroundScreen
             $"ground on screen: {mixed} sub-tiles of two or more grounds on the screen, {wideOnes} of them with ground shapes across the mask's atlas; {laid.Count} pieces over tiles {x0}..{x1}, {y0}..{y1}"))
             .Append(offScreen > 0 ? string.Create(CultureInfo.InvariantCulture, $", {offScreen} such sub-tiles off the screen") : string.Empty)
             .Append(" - over ").AppendLine(pictureSaid);
+        said.Append(string.Create(CultureInfo.InvariantCulture, $"laid where the game has them: {agreeing} of {held} sub-tiles of a definition with a corner grid have its four corners' ground types at the corners the drawing puts them on"))
+            .Append(held > 0 && agreeing < held ? " - a sub-tile laid elsewhere reads another's corners, and its line below with them" : string.Empty)
+            .AppendLine();
+        said.Append("how the files lie: ").AppendLine(ways);
         said.Append("grounds named by ").Append(chosen).Append("'s MaterialsList (").Append(painter.From)
             .AppendLine(") - of the area's masters, the one whose list names the most of the ground types at the laid pieces' corners:");
         foreach (string line in weighed)
@@ -452,6 +465,39 @@ public static class CaptureGroundScreen
 
         string Name(int type) => type <= 0 || type >= ground.Types.Count || ground.Types[type].Length == 0 ? "-" : TerrainGroundTypes.NameFor(ground.Types[type]);
         return string.Join(", ", Name(ground.At(tileX, tileY)), Name(ground.At(tileX + 1, tileY)), Name(ground.At(tileX, tileY + 1)), Name(ground.At(tileX + 1, tileY + 1)));
+    }
+
+    /// <summary>
+    /// Whether a sub-tile's four corners in its definition's grid are the game's own corner types at the corners of the area the
+    /// drawing puts them on, each to each.
+    /// </summary>
+    /// <remarks>
+    /// THE GAME'S OWN CHECK OF THE PLACING (v0.1.261), which v0.1.257's capture of Port made by hand: the harbour, a 15 by 21 file, had
+    /// been laid across its own footprint and every one of its sub-tiles on the screen read another's corners, while laid as the game's
+    /// turn decodes it all ten met the game's exactly - one of them ocean on one side and nothing on the other, which only the mirror
+    /// the game laid it with puts the right way round. Corner k of <see cref="TileDefinition.CornersOf"/> lies at mesh column x - 1 + (k
+    /// &amp; 1) and mesh row 1 - y + (k &gt;&gt; 1) tiles (its remarks), which the piece's place takes to the area's tile corners.
+    /// </remarks>
+    internal static bool AsTheGame(LaidGround one, GroundPiece piece, IReadOnlyList<string> corners, TerrainGroundTypes types)
+    {
+        if (corners.Count != 4)
+        {
+            return false;
+        }
+
+        for (var corner = 0; corner < 4; corner++)
+        {
+            var file = new Vector3((piece.X - 1 + (corner & 1)) * TileModels.Side, (1 - piece.Y + (corner >> 1)) * TileModels.Side, 0f);
+            Vector3 world = Vector3.Transform(file, one.Place);
+            int type = types.At((int)MathF.Round(world.X / TileModels.Side), (int)MathF.Round(world.Y / TileModels.Side));
+            string game = type <= 0 || type >= types.Types.Count || types.Types[type].Length == 0 ? "-" : TerrainGroundTypes.NameFor(types.Types[type]);
+            if (!string.Equals(Short(corners[corner]), game, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>A ground type's file by its name, '-' where unnamed.</summary>

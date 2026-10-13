@@ -3180,7 +3180,7 @@ internal static class Program
 
                 var passed = new TaskCompletionSource();
                 Task<long>? recorded = tap.Start(
-                    File.Create(Path.Combine(ask.Folder, PoEformance.Features.CaptureReport.MemoryFile)),
+                    File.Create(PoEformance.Features.CaptureParts.PathOf(ask.Folder, PoEformance.Features.CaptureReport.MemoryFile)),
                     notes,
                     new TapRecording(PoEformance.Features.CaptureReport.MemoryFrames)
                     {
@@ -3218,7 +3218,7 @@ internal static class Program
                         passed.TrySetResult();
                     }
 
-                    await File.WriteAllTextAsync(Path.Combine(ask.Folder, PoEformance.Features.CaptureMemory.IndexFile), pass.Index).ConfigureAwait(false);
+                    await File.WriteAllTextAsync(PoEformance.Features.CaptureParts.PathOf(ask.Folder, PoEformance.Features.CaptureMemory.IndexFile), pass.Index).ConfigureAwait(false);
 
                     // The files only the pass can write - a monster's mods are read nowhere else -
                     // beside the index, each on its own so one failing loses only itself.
@@ -3226,12 +3226,12 @@ internal static class Program
                     {
                         try
                         {
-                            await File.WriteAllTextAsync(Path.Combine(ask.Folder, file), text).ConfigureAwait(false);
+                            await File.WriteAllTextAsync(PoEformance.Features.CaptureParts.PathOf(ask.Folder, file), text).ConfigureAwait(false);
                         }
                         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
                         {
                             await File.AppendAllTextAsync(
-                                Path.Combine(ask.Folder, PoEformance.Features.CaptureMemory.IndexFile),
+                                PoEformance.Features.CaptureParts.PathOf(ask.Folder, PoEformance.Features.CaptureMemory.IndexFile),
                                 $"\n{file} could not be written: {exception.Message}\n").ConfigureAwait(false);
                         }
                     }

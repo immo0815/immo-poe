@@ -24,7 +24,7 @@ public partial class CaptureReplayTests
     {
         byte[]? Read(string path)
         {
-            string file = Path.Combine(folder, new WaterLookupFile(path, []).File);
+            string file = CaptureParts.Find(folder, new WaterLookupFile(path, []).File);
             return File.Exists(file) ? File.ReadAllBytes(file) : null;
         }
 

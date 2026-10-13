@@ -485,7 +485,7 @@ internal sealed class GroundPainter
         {
             IReadOnlyList<string> corners = gridded ? definition.CornersOf(pieces[at].X, pieces[at].Y) : definition.Grounds;
             (_, List<(int Order, GroundGroup Group)> grounds, string setWhy) = SetOf(corners, gridded);
-            subTiles[at] = new SubTileGrounds(corners, [.. grounds.Select(one => one.Group.Name)], setWhy);
+            subTiles[at] = new SubTileGrounds(corners, [.. grounds.Select(one => one.Group.Name)], setWhy) { Gridded = gridded };
         }
 
         string mask = definition.Templates.Count > 0 ? TileTemplate.Read(_read(Clean(definition.Templates[0]))).GroundMask : string.Empty;
@@ -558,7 +558,11 @@ internal sealed class GroundPainter
 /// <param name="Corners">Its four corners' ground types (<c>.gt</c>), empty where unnamed - from the definition's grid, or the tile's own four.</param>
 /// <param name="Grounds">The MaterialsList groups they come to, by name in the list's order - empty for the group with none.</param>
 /// <param name="Why">Why it stays plain, or empty.</param>
-internal sealed record SubTileGrounds(IReadOnlyList<string> Corners, IReadOnlyList<string> Grounds, string Why);
+internal sealed record SubTileGrounds(IReadOnlyList<string> Corners, IReadOnlyList<string> Grounds, string Why)
+{
+    /// <summary>Whether the corners are the sub-tile's own from the definition's grid, rather than the tile's four standing in for it.</summary>
+    public bool Gridded { get; init; }
+}
 
 /// <summary>
 /// The name a tile's ground of two grounds wears as its material when the two are mixed per pixel - see GroundPainter and
