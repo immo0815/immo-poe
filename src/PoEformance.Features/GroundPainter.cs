@@ -419,26 +419,15 @@ internal sealed class GroundPainter
         var grounds = new List<(int Order, GroundGroup Group)>();
         foreach (string corner in corners)
         {
+            int order = OrderOf(corner, unnamedIsDefault);
             if (corner.Length == 0)
             {
-                int unnamed = unnamedIsDefault ? _unnamedGroup : -1;
-                if (unnamed >= 0 && !grounds.Exists(one => one.Order == unnamed))
+                if (order >= 0 && !grounds.Exists(one => one.Order == order))
                 {
-                    grounds.Add((unnamed, _list.Groups[unnamed]));
+                    grounds.Add((order, _list.Groups[order]));
                 }
 
                 continue;
-            }
-
-            string name = NameOf(corner);
-            int order = -1;
-            for (var at = 0; at < _list.Groups.Count; at++)
-            {
-                if (string.Equals(_list.Groups[at].Name, name, StringComparison.OrdinalIgnoreCase))
-                {
-                    order = at;
-                    break;
-                }
             }
 
             if (order < 0)
@@ -463,6 +452,26 @@ internal sealed class GroundPainter
         static (string, List<(int, GroundGroup)>, string) Plained(string why) => ("plain: " + why, [], why);
     }
 
+    /// <summary>A corner's group in the MaterialsList, by its place there, or -1 - an unnamed corner the group with no name where <paramref name="unnamedIsDefault"/> (see <see cref="SetOf"/>).</summary>
+    private int OrderOf(string corner, bool unnamedIsDefault)
+    {
+        if (corner.Length == 0)
+        {
+            return unnamedIsDefault ? _unnamedGroup : -1;
+        }
+
+        string name = NameOf(corner);
+        for (var at = 0; at < _list.Groups.Count; at++)
+        {
+            if (string.Equals(_list.Groups[at].Name, name, StringComparison.OrdinalIgnoreCase))
+            {
+                return at;
+            }
+        }
+
+        return -1;
+    }
+
     /// <summary>
     /// Each sub-tile's corners and the grounds they come to, as <see cref="Paint"/> works them out - for the capture's picture of the
     /// ground on the screen (CaptureGroundScreen) - and the template's mask with the picture it decodes to.
@@ -485,7 +494,8 @@ internal sealed class GroundPainter
         {
             IReadOnlyList<string> corners = gridded ? definition.CornersOf(pieces[at].X, pieces[at].Y) : definition.Grounds;
             (_, List<(int Order, GroundGroup Group)> grounds, string setWhy) = SetOf(corners, gridded);
-            subTiles[at] = new SubTileGrounds(corners, [.. grounds.Select(one => one.Group.Name)], setWhy) { Gridded = gridded };
+            bool[] seconds = grounds.Count == 2 && corners.Count == 4 ? [.. corners.Select(corner => OrderOf(corner, gridded) == grounds[1].Order)] : [];
+            subTiles[at] = new SubTileGrounds(corners, [.. grounds.Select(one => one.Group.Name)], setWhy) { Gridded = gridded, Seconds = seconds };
         }
 
         string mask = definition.Templates.Count > 0 ? TileTemplate.Read(_read(Clean(definition.Templates[0]))).GroundMask : string.Empty;
@@ -562,6 +572,9 @@ internal sealed record SubTileGrounds(IReadOnlyList<string> Corners, IReadOnlyLi
 {
     /// <summary>Whether the corners are the sub-tile's own from the definition's grid, rather than the tile's four standing in for it.</summary>
     public bool Gridded { get; init; }
+
+    /// <summary>For a sub-tile of two grounds, which of its four corners - in <see cref="Corners"/>' order - are the second ground's; empty else.</summary>
+    public IReadOnlyList<bool> Seconds { get; init; } = [];
 }
 
 /// <summary>

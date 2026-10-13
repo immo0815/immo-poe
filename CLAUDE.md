@@ -688,7 +688,39 @@ WAY BEFORE THE HEIGHTS (`LaidRoomModels.Weighed`, `Way.Met`, `CornersMeet`: the 
 on TileCornerData's types at the area's corners they reach; the heights only among those), in a laid room and the block alike, and
 the line under the picture says what the corners left and the next way's count. The ground-on-screen part writes how the files lie
 and counts, piece by piece, the sub-tiles whose corners meet the game's (the same `CornersMeet`) - read that count before the tint:
-short of all, the placing is wrong. The tint's measurement waits on the next harbour capture.
+short of all, the placing is wrong.
+THE HARBOUR MEASURED (v0.1.262, the player on the quay at Port_Boss_01's piece 1, 8): 504 of 504 sub-tiles on the game's corner
+types, the files as filed (next mirrored, 280). The quay's land side (c13r9 to c14r11, the unnamed group's cobblestone and
+TropicalFill's dry sand, wide shapes at z 24 to 176) is where the two grounds cannot be mistaken: the sand's colour textures average
+106 to 109 in brightness, the cobblestones' 85 to 98, so squares of the mix would put the blue side of every tint edge some ten levels
+darker in the game's picture (lit at about 0.6). Across 10,953 pairs six pixels apart over the tint's edges the game's picture is
++1.4 brighter on the blue side, against -0.2 +/- 1.3 with the same edges moved, and no more textured (+0.17 against -0.04 +/- 0.47);
+the green's correlation with the picture's local contrast is -0.14 against -0.12 +/- 0.05 moved. THE GAME DRAWS NO SQUARES WHERE
+THE MIX READS THE ATLAS'S CELLS - in two areas now - but cobblestones scattered through sand, thinning and thickening smoothly
+(height blending's look, over a weight that is not the green at the block's coordinates). What the engine reads there is not
+measured; the coast's and the wall's tints (under the surf; a wall's face drawn over flat ground) settle nothing.
+THE TWO CANDIDATES HELD AGAINST THE PICTURE (v0.1.264). Nothing in a vertex weighs the mix: format 0x238's 24 bytes are all read
+(position, normal and tangent, the mask's coordinates), and all 66 of Port's templates say `MaterialSlots 0`. But the engine has a
+second way to mix two grounds, GroundGenerateWeights_2a (ground.ffx, internalonly.ffx, whole in ground.txt): the ENGINE mask's red,
+read from the world position through two per-tile transforms no file holds into an atlas of transitions - and the game's own corner
+types laid on v0.1.262's picture put the cobblestone at the cobblestone corners and the sand at the sand corners, thinning between.
+So ground-on-screen now holds two fields against the picture (`CaptureGroundCompare`): every sub-tile of two grounds rasterized over
+the block's whole ground (the nearest ground a pixel, a depth buffer), the mix's green at the block's coordinates and the second
+ground's share bilinear from the sub-tile's four corners (`SubTileGrounds.Seconds`), each correlated with the picture's brightness
+and local contrast - per pair of grounds, across and within sub-tiles, against the same fields moved 85 to 120 pixels - and
+`ground-on-screen-corners.png` tinted by the corners' share. Neither field is the engine's transition; which one the picture
+follows is what to read before the mix is changed.
+THE MONSTER BOOK'S ARENA IS BUILT, AND LAID AS WRITTEN (`BuiltRoomModels`, said from the live client: "our harbour diorama is never
+the game's, always mirrored somehow"). The game lays the boss room each instance its own way - Port's build replays: turned 180 (the
+harbour at placement 0), turned 90 and mirrored (placement 4); v0.1.262's instance laid the harbour at placement 1, mirrored - while
+the built stage lays it as the `.arm` writes it (placement 3). A mirror is not turned away by any camera. So the Monster Book has
+a switch for a built stage, DECIDED from the live client over laying it as the area's own (2026-10-13): "mirrored" (`RoomKey.Mirrored`,
+`BuiltRoomModels.MirroredTurn`) turns the built grid over in x - each piece where its mirror image lies, laid the way a mirror sends it
+(`TileOrientation.MirroredInX`: as filed comes to placement 1, as the game put the harbour), its tiles counting their places from the
+piece's least corner again (`TerrainTiles.MirroredInX`) - and lays the room as written, mirrored. AND A MIRRORED ROOM'S DOODADS ARE
+TURNED, NOT MIRRORED (`LaidRoomModels.TurnedThrough`), as its tile doodads and its boss were: through the laying alone a room's
+doodad came out its own mirror image - the harbour's ship turned inside out - in a built room switched over and an area's room laid
+mirrored alike.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
 Eight captures are committed under

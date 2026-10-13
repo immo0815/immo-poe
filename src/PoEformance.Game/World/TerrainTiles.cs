@@ -89,6 +89,48 @@ public sealed class TerrainTiles
     public int PlacementAt(int x, int y) => (uint)x < (uint)Width && (uint)y < (uint)Height ? _placements[(y * Width) + x] : -1;
 
     /// <summary>
+    /// The same tiles with the whole grid turned over in x: each piece at the columns its mirror image covers, laid the way a mirror
+    /// sends it (TileOrientation.MirroredInX), each tile naming its place counted from its piece's least corner again.
+    /// </summary>
+    /// <remarks>
+    /// THE PLACE A TILE NAMES IS ITS PLACE IN THE LAID FOOTPRINT, whichever way the piece went (v0.1.248's ground-grid replay, every
+    /// turned piece of Port), so a mirrored piece's tiles count their columns from its other end.
+    /// </remarks>
+    /// <param name="size">A tile file's size in tiles as its file has it, by id - see <see cref="Pieces"/>.</param>
+    public TerrainTiles MirroredInX(Func<int, (int Width, int Height)> size)
+    {
+        var ids = new int[_ids.Length];
+        Array.Fill(ids, -1);
+        var subX = new byte[_ids.Length];
+        var subY = new byte[_ids.Length];
+        var placements = new sbyte[_ids.Length];
+        Array.Fill(placements, (sbyte)-1);
+        foreach (TilePiece piece in Pieces(0, 0, Width, Height, size))
+        {
+            int placement = TileOrientation.MirroredInX(piece.Placement);
+            for (int y = piece.MinY; y <= piece.MaxY; y++)
+            {
+                for (int x = piece.MinX; x <= piece.MaxX; x++)
+                {
+                    int from = (y * Width) + x;
+                    if (_ids[from] != piece.Id)
+                    {
+                        continue;
+                    }
+
+                    int to = (y * Width) + (Width - 1 - x);
+                    ids[to] = piece.Id;
+                    subX[to] = (byte)(piece.MaxX - x);
+                    subY[to] = _subY[from];
+                    placements[to] = (sbyte)placement;
+                }
+            }
+        }
+
+        return new TerrainTiles(Paths, ids, subX, subY, placements, Width, Height);
+    }
+
+    /// <summary>
     /// The pieces laid over a block of the area, each once - a file several tiles across counted as one piece, not one per tile.
     /// </summary>
     /// <param name="x">The block's lowest tile across.</param>

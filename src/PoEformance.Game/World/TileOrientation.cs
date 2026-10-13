@@ -60,6 +60,36 @@ public readonly record struct TileOrientation
     };
 
     /// <summary>
+    /// The placement a tile laid <paramref name="placement"/> comes to when the whole of what it lies in is turned over in x - or -1
+    /// where it is not a placement.
+    /// </summary>
+    /// <remarks>
+    /// THE WORLD'S X TURNED OVER AFTER THE TILE'S OWN PLACEMENT: the template lands in the world through <see cref="Turn"/>, and a
+    /// mirror in x takes the world's x to minus itself, so the new placement is the one whose turn has the old one's first row
+    /// negated. As filed comes to mirrored (placement 1), and the game agrees: a boss room it laid "as written, mirrored" put
+    /// Port's harbour, as filed in the room, at placement 1.
+    /// </remarks>
+    public static int MirroredInX(int placement)
+    {
+        TileOrientation laid = OfPlacement(placement);
+        if (!laid.IsPlacement)
+        {
+            return -1;
+        }
+
+        (int xx, int xy, int yx, int yy) = laid.Turn;
+        for (var other = 0; other < 8; other++)
+        {
+            if (OfPlacement(other).Turn == (-xx, -xy, yx, yy))
+            {
+                return other;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
     /// Decodes one selector through the two engine tables - a port of GameHelper2's GetSubTerrainHeight.
     /// </summary>
     /// <remarks>

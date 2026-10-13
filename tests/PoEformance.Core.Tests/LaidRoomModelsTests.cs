@@ -336,6 +336,38 @@ public class LaidRoomModelsTests
     }
 
     /// <summary>
+    /// A room's doodad through a room laid turned over is turned, not mirrored: it stands where the mirror sends it and faces the way
+    /// the mirror sends its facing, its own model the right way round.
+    /// </summary>
+    [Fact]
+    public void AMIRROREDRoomsDoodadIsTurnedNotMirrored()
+    {
+        Matrix3x2 laying = RoomFinder.Laying(4, 3, BuiltRoomModels.MirroredTurn);
+        Matrix4x4 beyond = new(
+            laying.M11, laying.M12, 0f, 0f,
+            laying.M21, laying.M22, 0f, 0f,
+            0f, 0f, 1f, 0f,
+            laying.M31 * TileModels.Side, laying.M32 * TileModels.Side, 0f, 1f);
+        var one = new RoomDoodad(23, 46, MathF.PI / 3f, 2f, "Metadata/Test/boat.ao", "boat");
+
+        // As RoomModels.Lay composes it: scaled, turned, placed - then through the room.
+        Matrix4x4 place = Matrix4x4.CreateScale(2f) * Matrix4x4.CreateRotationZ(one.Turn)
+            * Matrix4x4.CreateTranslation(one.X * RoomModels.CellSize, one.Y * RoomModels.CellSize, 0f)
+            * LaidRoomModels.TurnedThrough(one, beyond, laying);
+
+        Assert.True(place.GetDeterminant() > 0f, "turned, not mirrored");
+        Vector3 at = Vector3.Transform(new Vector3(one.X * RoomModels.CellSize, one.Y * RoomModels.CellSize, 0f), beyond);
+        Assert.Equal(at.X, place.Translation.X, 2);
+        Assert.Equal(at.Y, place.Translation.Y, 2);
+
+        // Its forward, minus y in its own frame, along its facing as the mirror sends it.
+        Vector3 forward = Vector3.Normalize(Vector3.TransformNormal(-Vector3.UnitY, place));
+        Vector2 facing = Vector2.Normalize(Vector2.TransformNormal(new Vector2(MathF.Sin(one.Turn), -MathF.Cos(one.Turn)), laying));
+        Assert.Equal(facing.X, forward.X, 4);
+        Assert.Equal(facing.Y, forward.Y, 4);
+    }
+
+    /// <summary>
     /// The room laid over an area whose one tile is laid the given way, its heights written with the file lying on the template as <paramref name="lies"/> says - TileOrientation's placement numbers.
     /// </summary>
     /// <param name="level">The tile's own level, which its sub-tile heights are written relative to.</param>

@@ -135,10 +135,11 @@ public class CaptureGroundScreenTests
     {
         var snapshot = new WorldSnapshot(true, null, [], new float[16]);
 
-        string said = CaptureGroundScreen.Write(_ => null, snapshot, [], [], null, 100, 100, "black", out GamePicture? picture);
+        string said = CaptureGroundScreen.Write(_ => null, snapshot, [], [], null, 100, 100, "black", out GamePicture? picture, out GamePicture? corners);
 
         Assert.Equal("ground on screen: the area's tiles were not read\n", said);
         Assert.Null(picture);
+        Assert.Null(corners);
     }
 
     /// <summary>

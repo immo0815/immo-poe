@@ -143,7 +143,7 @@ public static class StagedModels
         {
             if (room.Built.Length > 0)
             {
-                return BuiltRoomModels.Of(read, room.Path, room.Built, shaded: true, doodads: RoomModels.EveryDoodad, tools: room.Tools, progress: progress, heights: room.Heights);
+                return BuiltRoomModels.Of(read, room.Path, room.Built, shaded: true, doodads: RoomModels.EveryDoodad, tools: room.Tools, progress: progress, heights: room.Heights, mirrored: room.Mirrored);
             }
 
             return MonsterModel.None with { Why = "a room is a stage only as the area laid it or built from its tileset - its file alone is doodads over nothing" };

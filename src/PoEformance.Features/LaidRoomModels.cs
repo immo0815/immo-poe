@@ -282,6 +282,7 @@ public static class LaidRoomModels
         // THE DOODADS, where the corners were found and on the area's ground under them.
         Matrix3x2 laying = RoomFinder.Laying(room.Width, room.Height, turn);
         Matrix4x4 beyondFlat = Spatial(Matrix3x2.CreateScale(1f / TileModels.Side) * laying * Matrix3x2.CreateScale(TileModels.Side));
+        bool overturned = laying.GetDeterminant() < 0f;
         var lights = new RoomLights.Gathered(Counted);
         RoomModels.Doodads laid = RoomModels.Lay(room, Counted, paints, pile, doodads, tools, one =>
         {
@@ -295,7 +296,7 @@ public static class LaidRoomModels
                 DoodadHeight.Added when one.Height is { } height => ground + height,
                 _ => ground,
             };
-            return beyondFlat * Matrix4x4.CreateTranslation(0f, 0f, z);
+            return (overturned ? TurnedThrough(one, beyondFlat, laying) : beyondFlat) * Matrix4x4.CreateTranslation(0f, 0f, z);
         }, heights, lights, hiding.Sieve, tileDoodads);
 
         SkinnedMesh joined = RoomModels.Watered(hiding.Keep(SkinnedMesh.Joined(pile.Joins), pile), pile.Modes);
@@ -925,6 +926,26 @@ public static class LaidRoomModels
         }
 
         return away;
+    }
+
+    /// <summary>
+    /// What takes a room's doodad, as RoomModels.Lay has turned and placed it in the room, through a room laid turned over: its own
+    /// turn and place undone, then the turn and place the mirror sends it to - turned, not mirrored.
+    /// </summary>
+    /// <remarks>
+    /// AN ENTITY CARRIES AN ANGLE AND NO MIRROR, as a tile's doodads do (<see cref="TileDoodadsOf"/>) and the boss (<see cref="BossSpotOf"/>):
+    /// through the room's laying alone, a doodad of a mirrored room came out its own mirror image - the ship of Port's harbour turned
+    /// inside out with the room. Its facing, (sin a, -cos a) as the lines read, goes through the laying as a direction, and the doodad
+    /// is turned to it; its place goes through the laying whole.
+    /// </remarks>
+    internal static Matrix4x4 TurnedThrough(RoomDoodad one, Matrix4x4 beyond, Matrix3x2 laying)
+    {
+        var at = new Vector3(one.X * RoomModels.CellSize, one.Y * RoomModels.CellSize, 0f);
+        (float sin, float cos) = MathF.SinCos(one.Turn);
+        Vector2 facing = Vector2.TransformNormal(new Vector2(sin, -cos), laying);
+        return Matrix4x4.CreateTranslation(-at)
+            * Matrix4x4.CreateRotationZ(MathF.Atan2(facing.X, -facing.Y) - one.Turn)
+            * Matrix4x4.CreateTranslation(Vector3.Transform(at, beyond));
     }
 
     /// <summary>

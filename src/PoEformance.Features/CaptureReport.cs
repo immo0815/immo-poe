@@ -96,6 +96,9 @@ public static class CaptureReport
     /// <summary>The picture beside it.</summary>
     public const string GroundScreenShot = "ground-on-screen.png";
 
+    /// <summary>The game's picture tinted by the corners' share of the second ground - see CaptureGroundCompare.</summary>
+    public const string GroundScreenCorners = "ground-on-screen-corners.png";
+
     /// <summary>What the water is drawn from - see CaptureWater.</summary>
     public const string WaterFile = "water.txt";
 
