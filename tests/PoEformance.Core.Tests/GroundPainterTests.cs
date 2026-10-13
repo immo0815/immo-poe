@@ -166,14 +166,27 @@ public sealed class GroundPainterTests
         Assert.Equal(2, picture?.Width);
     }
 
+    /// <summary>
+    /// A tile of three grounds is drawn as the two most of its corners name, mixed as two are: Moss at two corners, then Rock over Sand
+    /// at one each - Rock listed first - with Rock, listed before Moss, at green nought; and it is said, as a stand-in.
+    /// </summary>
     [Fact]
-    public void ATILEOfThreeGroundsStaysPlainAndIsSaid()
+    public void ATILEOfThreeGroundsIsDrawnAsTheTwoMostOfItsCornersName()
     {
-        GroundPainter painter = Painter();
+        GroundPainter painter = Painter(Mixable);
 
-        Assert.Null(painter.Paint("three.tdt", Ground(), Matrix4x4.Identity, "ground of three.tdt"));
-        Assert.Null(painter.Paint("three.tdt", Ground(), Matrix4x4.Identity, "ground of three.tdt"));
-        Assert.Contains("plain: 2 of three or four grounds", painter.Said(), StringComparison.Ordinal);
+        MonsterModel? painted = painter.Paint("three.tdt", Ground(), Matrix4x4.Identity, "ground of three.tdt");
+
+        Assert.NotNull(painted);
+        Assert.Equal([GroundBlend.Name("Art/rock.mat", "Art/moss.mat", Mask)], painted!.ShapeMaterials);
+        string said = painter.Said();
+        Assert.Contains("0 sub-tiles of one ground, 1 of two mixed per pixel", said, StringComparison.Ordinal);
+        Assert.Contains(", 1 of three or four grounds drawn as the two most of their corners name, ties to the list's first - CHOSEN", said, StringComparison.Ordinal);
+        Assert.Contains("plain: none", said, StringComparison.Ordinal);
+
+        // THE CAPTURE'S VIEW keeps them the engine's own: three grounds, said why the tool cannot mix them as it does.
+        (IReadOnlyList<SubTileGrounds> subTiles, _, _) = Painter(Mixable).SubTilesOf("three.tdt", [new GroundPiece(1, 1, 2)], 2);
+        Assert.Equal("of three or four grounds (the engine's atlas, placed by transforms no file holds)", Assert.Single(subTiles).Why);
     }
 
     [Fact]
@@ -229,6 +242,7 @@ public sealed class GroundPainterTests
         "Art/rock.mat" => CaptureGroundTests.Text("""{"version":4,"graphinstances":[{"parent":"Metadata/Grey.fxgraph"}]}"""),
         "Art/sand2.mat" => CaptureGroundTests.Text("""{"version":4,"graphinstances":[{"parent":"Metadata/Grey.fxgraph"}]}"""),
         "Art/cobble.mat" => CaptureGroundTests.Text("""{"version":4,"graphinstances":[{"parent":"Metadata/Grey.fxgraph"}]}"""),
+        "Art/moss.mat" => CaptureGroundTests.Text("""{"version":4,"graphinstances":[{"parent":"Metadata/Grey.fxgraph"}]}"""),
         "Metadata/Grey.fxgraph" => CaptureGroundTests.Text(
             """
             {"nodes":[

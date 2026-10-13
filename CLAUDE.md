@@ -584,7 +584,11 @@ block's own coordinates (`GroundGenerateWeights_1a1b`), and in all three of Port
 is the one the MaterialsList lists FIRST (Town fill, then Ocean, then Tropical - neither the names' order nor the
 terrain's list fits) - one area's evidence, which another area's capture is to confirm. A laid or built room now
 paints its ground so (`GroundPainter`): one ground in its group's heaviest choice, two mixed per pixel by the green,
-three or four plain; the materials' coordinates the placed position times 0.004; the master given, or
+three or four as the two most of their corners name, ties to the list's first, mixed as two (CHOSEN from the live client,
+v0.1.267 - a stand-in: the engine mixes them with its own mask's red too, GroundGenerateWeights_2a1b, 3a1b and 2a2b, read
+through per-tile transforms no file holds; left plain they drew as white squares along Port's quay, c14r12 under the
+tarpaulin crate among them, where the game draws the quay's top as its neighbours'; the capture's ground-on-screen still
+marks them as the engine's own and leaves them out of its comparison); the materials' coordinates the placed position times 0.004; the master given, or
 `master.tsi` beside the room's `Rooms/`. The line under the picture says each of those decisions. TWO GROUNDS ARE MIXED
 PER PIXEL AS THE ENGINE MIXES THEM (v0.1.244, `ShadeProgram.Grounds`, `MonsterModels.Paints.Grounds`, worn under a name of
 their own, `GroundBlend`): the mesh keeps the block's own coordinates for the mask, the program reads its green there, works
