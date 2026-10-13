@@ -541,8 +541,9 @@ the client proves nothing, so it is still open. A line
 naming a set (`_set.ao`) stands in the game as one member of the set, so matching by model misses it:
 7221 such lines found nothing, the seven plain ones all. A laid room's picture - an area's, a built one's
 in the Monster Book - draws each piece's doodads so (`LaidRoomModels.TileDoodadsOf`): placed as measured,
-not hung on the tile's mesh, whose sub-tile rows run down -y while the cells run down +y; turned, not
-mirrored, since an entity carries an angle only; the height above the piece's own lift (the level, as
+not hung on the tile's mesh, whose sub-tile rows run down -y while the cells run down +y; mirrored with
+a mirrored piece (from v0.1.266 - turned alone before, on the reading that an entity carries an angle only,
+which Port's mirrored boss room refuted: see THE MONSTER BOOK'S ARENA below); the height above the piece's own lift (the level, as
 measured, or the fit to the ground where the piece is drawn fitted); and the `.tdt`'s list taken where
 there are two - DECIDED, not measured, and the line under the picture says so. A ROOM NAMES ITS BOSS'S
 PLACE: its `.arm` carries point-of-interest groups (poe_data_tools' `poi`: `x y turn "tag"`, read as
@@ -717,10 +718,19 @@ the built stage lays it as the `.arm` writes it (placement 3). A mirror is not t
 a switch for a built stage, DECIDED from the live client over laying it as the area's own (2026-10-13): "mirrored" (`RoomKey.Mirrored`,
 `BuiltRoomModels.MirroredTurn`) turns the built grid over in x - each piece where its mirror image lies, laid the way a mirror sends it
 (`TileOrientation.MirroredInX`: as filed comes to placement 1, as the game put the harbour), its tiles counting their places from the
-piece's least corner again (`TerrainTiles.MirroredInX`) - and lays the room as written, mirrored. AND A MIRRORED ROOM'S DOODADS ARE
-TURNED, NOT MIRRORED (`LaidRoomModels.TurnedThrough`), as its tile doodads and its boss were: through the laying alone a room's
-doodad came out its own mirror image - the harbour's ship turned inside out - in a built room switched over and an area's room laid
-mirrored alike.
+piece's least corner again (`TerrainTiles.MirroredInX`; the sizes from the pool AND the fill list, `BuiltRoomModels.SizesOf` - v0.1.265
+took the pool's alone, so Port's 3x3 `Building_Fill_01` to `03` read as one tile each and 56 pieces of the town round the harbour were
+left out as not whole) - and lays the room as written, mirrored. A MIRRORED ROOM'S DOODADS ARE MIRRORED WITH IT, MEASURED (v0.1.265's
+capture, Port's boss room laid as written, mirrored): the game holds every doodad entity of it at MINUS its line's angle
+(Render.RotationCurrent, 187 of 187 matched to their lines) and carries no mirror beside the angle in Render (+0x1C4 is -1 on every
+entity) - yet the ship, `boss_boat.ao` at angle nought, lays its gangway on the quay the mirror moved to its other side, and the gangway
+is the ship's own mesh (neither the room's lines nor the harbour tile's `.tmd` name one). So the angle is only the turning half; the game
+draws the mirror image (`LaidRoomModels.Through`, the laying whole). v0.1.265 had turned them instead, fearing a mirrored mesh would
+draw inside out - neither drawing culls by winding, and mirrored tile pieces always drew whole - and the ship put its gangway into the
+water ("most passengers won't fancy that", said from the live client). A TILE'S DOODADS IN A MIRRORED PIECE ARE MIRRORED TOO, DECIDED
+from the live client (2026-10-13) on that evidence: the same kinds of entity, held at the same laid facing (`TileDoodadList.Shown`); not
+measured on a tile's doodad, and the line under the picture says so. The boss stays turned - the server's monster, not a piece of the room.
+The room's mirror ALSO put Port's rock formation where the game has it ("for the first time 1:1 with the game", said from the live client).
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
 Eight captures are committed under

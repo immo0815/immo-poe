@@ -316,4 +316,36 @@ public class RoomBuilderTests
         Assert.Equal([new TilePiece(0, 1, 1, 0, 2, 0, Whole: true), new TilePiece(1, TileOrientation.MirroredInX(6), 0, 0, 0, 0, Whole: true)],
             turned.Pieces(0, 0, 3, 1, id => id == 0 ? (2, 1) : (1, 1)).OrderBy(one => one.Id));
     }
+
+    /// <summary>
+    /// A built grid's tile sizes come from every tile the build could lay - the master's fill list's as well as the pool's - so a 3x3
+    /// fill tile turned over stays one whole piece rather than three columns each naming the first.
+    /// </summary>
+    [Fact]
+    public void ABUILTGridsFillTilesKeepTheirSizeTurnedOver()
+    {
+        RoomBuildTile pooled = Tile("Pooled", 1, "", "", "", "");
+        RoomBuildTile fill = Tile("Building_Fill_01", 1, "", "", "", "", width: 3, height: 3);
+        string[] paths = [fill.Path.Replace('/', '\\'), pooled.Path, "Metadata/Terrain/Blank.tdt"];
+
+        Func<int, (int Width, int Height)> sizes = BuiltRoomModels.SizesOf(paths, [pooled, fill]);
+
+        Assert.Equal((3, 3), sizes(0));
+        Assert.Equal((1, 1), sizes(1));
+        Assert.Equal((1, 1), sizes(2));
+        Assert.Equal((1, 1), sizes(7));
+
+        // The fill tile laid as filed over the whole of a 3x3 grid, its tiles naming their places: turned over, still whole.
+        var ids = new int[9];
+        var subX = new byte[9];
+        var subY = new byte[9];
+        for (var at = 0; at < 9; at++)
+        {
+            (subX[at], subY[at]) = ((byte)(at % 3), (byte)(at / 3));
+        }
+
+        var tiles = new TerrainTiles(paths, ids, subX, subY, [.. Enumerable.Repeat((sbyte)3, 9)], 3, 3);
+        TerrainTiles turned = tiles.MirroredInX(sizes);
+        Assert.Equal([new TilePiece(0, 1, 0, 0, 2, 2, Whole: true)], turned.Pieces(0, 0, 3, 3, sizes));
+    }
 }

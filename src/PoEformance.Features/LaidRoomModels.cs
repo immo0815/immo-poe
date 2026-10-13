@@ -197,7 +197,7 @@ public static class LaidRoomModels
         var above = new List<float>(pieces.Count);
         var used = new HashSet<int>();
         var tileDoodads = new List<(RoomDoodad One, Matrix4x4 Place)>();
-        int facingAway = 0, bothLists = 0;
+        int facingAway = 0, bothLists = 0, mirroredLists = 0;
         var withLines = new HashSet<int>();
         foreach (TilePiece piece in pieces)
         {
@@ -243,6 +243,7 @@ public static class LaidRoomModels
             if (one.Doodads.Lines.Count > 0)
             {
                 facingAway += TileDoodadsOf(piece, one.Doodads, one.Width, one.Height, x, y, lift, grid, heights, tileDoodads);
+                mirroredLists += Mirrors(piece.Placement) ? 1 : 0;
                 if (withLines.Add(piece.Id) && one.Doodads.Both)
                 {
                     bothLists++;
@@ -281,8 +282,7 @@ public static class LaidRoomModels
 
         // THE DOODADS, where the corners were found and on the area's ground under them.
         Matrix3x2 laying = RoomFinder.Laying(room.Width, room.Height, turn);
-        Matrix4x4 beyondFlat = Spatial(Matrix3x2.CreateScale(1f / TileModels.Side) * laying * Matrix3x2.CreateScale(TileModels.Side));
-        bool overturned = laying.GetDeterminant() < 0f;
+        Matrix4x4 beyondFlat = Through(laying);
         var lights = new RoomLights.Gathered(Counted);
         RoomModels.Doodads laid = RoomModels.Lay(room, Counted, paints, pile, doodads, tools, one =>
         {
@@ -296,7 +296,7 @@ public static class LaidRoomModels
                 DoodadHeight.Added when one.Height is { } height => ground + height,
                 _ => ground,
             };
-            return (overturned ? TurnedThrough(one, beyondFlat, laying) : beyondFlat) * Matrix4x4.CreateTranslation(0f, 0f, z);
+            return beyondFlat * Matrix4x4.CreateTranslation(0f, 0f, z);
         }, heights, lights, hiding.Sieve, tileDoodads);
 
         SkinnedMesh joined = RoomModels.Watered(hiding.Keep(SkinnedMesh.Joined(pile.Joins), pile), pile.Modes);
@@ -335,6 +335,7 @@ public static class LaidRoomModels
         {
             said.Add(string.Create(CultureInfo.InvariantCulture,
                 $"tile doodads: {tileDoodads.Count} from the doodad lists of {withLines.Count} tile files, {facingAway} wall tops facing away from the camera left out as the game leaves them")
+                + (mirroredLists > 0 ? string.Create(CultureInfo.InvariantCulture, $"; the doodads of {mirroredLists} pieces laid mirrored are mirrored with them, as the game draws a mirrored room's own - DECIDED, not measured on a tile's doodad") : string.Empty)
                 + (bothLists > 0 ? string.Create(CultureInfo.InvariantCulture, $"; {bothLists} files carry a list beside the .tdt and one beside the template - the .tdt's taken, which no capture has measured yet") : string.Empty));
         }
 
@@ -859,7 +860,6 @@ public static class LaidRoomModels
         return seen.Count;
     }
 
-    /// <summary>A flat placement as a placement in space, the height left alone.</summary>
     /// <summary>
     /// One laid piece's own doodads, each where the game puts it, into <paramref name="into"/> - and how many wall tops were
     /// left out for facing away from the camera.
@@ -877,8 +877,12 @@ public static class LaidRoomModels
     /// the piece itself is drawn at, so a doodad stays on the mesh it belongs to. The other two readings stay for
     /// comparison, as they do for a room's doodads (DoodadHeight).
     ///
-    /// TURNED, NOT MIRRORED: an entity carries an angle and no mirror, so a doodad of a mirrored tile is turned to the way its
-    /// line faces once laid - the facing TileDoodadList.Shown reads, (sin a, -cos a) - rather than mirrored with the tile.
+    /// MIRRORED WITH A MIRRORED PIECE, DECIDED from the live client (2026-10-13) on a room's doodads' evidence: it was turned
+    /// to the way its line faces once laid, on the reading that an entity carries an angle and no mirror - and Port's mirrored
+    /// boss room refuted that reading for its own doodads (<see cref="Through"/>: the game holds them at minus their lines'
+    /// angles and draws the ship's mirror image). A tile's doodads are entities of the same kinds, held at the angle its laid
+    /// facing reads (TileDoodadList.Shown, (sin a, -cos a)), which the placement's mirror gives as well; that the game draws
+    /// them mirrored is not measured on a tile's doodad.
     /// </remarks>
     /// <param name="piece">The laid piece.</param>
     /// <param name="doodads">Its file's doodad lists.</param>
@@ -895,6 +899,7 @@ public static class LaidRoomModels
     {
         TileOrientation placed = TileOrientation.OfPlacement(piece.Placement);
         (int xx, int xy, int yx, int yy) = placed.IsPlacement ? placed.Turn : (1, 0, 0, 1);
+        var turn = new Matrix4x4(xx, yx, 0f, 0f, xy, yy, 0f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 0f, 1f);
         var middle = new Vector2((piece.MinX + piece.MaxX + 1) / 2f, (piece.MinY + piece.MaxY + 1) / 2f) * TileModels.Side;
         var half = new Vector2(width, height) * (TileModels.Side / 2f);
         var corner = new Vector2(x, y) * TileModels.Side;
@@ -909,8 +914,6 @@ public static class LaidRoomModels
 
             Vector2 local = (line.Exact ?? (new Vector2(line.X, line.Y) * RoomModels.CellSize)) - half;
             Vector2 world = middle + new Vector2((xx * local.X) + (xy * local.Y), (yx * local.X) + (yy * local.Y));
-            (float sin, float cos) = MathF.SinCos(line.Turn);
-            float facingX = (xx * sin) - (xy * cos), facingY = (yx * sin) - (yy * cos);
             float ground = grid.HeightAt((int)(world.X / RoomModels.CellSize), (int)(world.Y / RoomModels.CellSize));
             float z = heights switch
             {
@@ -921,7 +924,8 @@ public static class LaidRoomModels
 
             Vector2 inRoom = world - corner;
             into.Add((line, Matrix4x4.CreateScale(line.Scale > 0f ? line.Scale : 1f)
-                * Matrix4x4.CreateRotationZ(MathF.Atan2(facingX, -facingY))
+                * Matrix4x4.CreateRotationZ(line.Turn)
+                * turn
                 * Matrix4x4.CreateTranslation(inRoom.X, inRoom.Y, z)));
         }
 
@@ -929,24 +933,20 @@ public static class LaidRoomModels
     }
 
     /// <summary>
-    /// What takes a room's doodad, as RoomModels.Lay has turned and placed it in the room, through a room laid turned over: its own
-    /// turn and place undone, then the turn and place the mirror sends it to - turned, not mirrored.
+    /// What takes a room's doodad, as RoomModels.Lay has turned and placed it in the room, through the room's laying: the laying
+    /// whole, a mirror included.
     /// </summary>
     /// <remarks>
-    /// AN ENTITY CARRIES AN ANGLE AND NO MIRROR, as a tile's doodads do (<see cref="TileDoodadsOf"/>) and the boss (<see cref="BossSpotOf"/>):
-    /// through the room's laying alone, a doodad of a mirrored room came out its own mirror image - the ship of Port's harbour turned
-    /// inside out with the room. Its facing, (sin a, -cos a) as the lines read, goes through the laying as a direction, and the doodad
-    /// is turned to it; its place goes through the laying whole.
+    /// A MIRRORED ROOM'S DOODAD IS MIRRORED, MEASURED on Port's boss room laid as written, mirrored (v0.1.265's capture): the game
+    /// holds every doodad entity of it at minus its line's angle (Render.RotationCurrent, 187 of 187 matched to their lines) and
+    /// carries no mirror beside the angle in Render - yet its ship, boss_boat.ao at angle nought, lays its gangway on the quay the
+    /// mirror sends to the other side. The gangway is the ship's own mesh, neither the room's lines nor the harbour tile's name
+    /// another, so the game draws the ship's mirror image: the angle the game holds is only the turning half of the laying. Turned
+    /// to that angle and not mirrored (v0.1.265, TurnedThrough), the ship put its gangway into the water (said from the live
+    /// client). Neither drawing culls by winding, so a mirrored mesh draws whole, as a mirrored tile piece always has.
     /// </remarks>
-    internal static Matrix4x4 TurnedThrough(RoomDoodad one, Matrix4x4 beyond, Matrix3x2 laying)
-    {
-        var at = new Vector3(one.X * RoomModels.CellSize, one.Y * RoomModels.CellSize, 0f);
-        (float sin, float cos) = MathF.SinCos(one.Turn);
-        Vector2 facing = Vector2.TransformNormal(new Vector2(sin, -cos), laying);
-        return Matrix4x4.CreateTranslation(-at)
-            * Matrix4x4.CreateRotationZ(MathF.Atan2(facing.X, -facing.Y) - one.Turn)
-            * Matrix4x4.CreateTranslation(Vector3.Transform(at, beyond));
-    }
+    internal static Matrix4x4 Through(Matrix3x2 laying)
+        => Spatial(Matrix3x2.CreateScale(1f / TileModels.Side) * laying * Matrix3x2.CreateScale(TileModels.Side));
 
     /// <summary>
     /// Where the room names its boss's place, in the picture's frame - the room's corner its origin, as every piece and doodad has
@@ -959,9 +959,10 @@ public static class LaidRoomModels
     /// several - Sulphuric's boss room names a "mapboss1" and a "mapboss2", one a boss each - is taken by its first: "mapboss",
     /// then "force:mapboss", then the lowest number; the others are counted, for the line under the picture.
     ///
-    /// TURNED, NOT MIRRORED, as a tile's doodads are: the point's angle read as a doodad line's (the room pictures turn their
-    /// doodads by it and draw right), through the room's laying as a direction, so a mirrored room turns its boss to face the
-    /// way the mirror sends him without turning his model inside out.
+    /// TURNED, NOT MIRRORED: the point's angle read as a doodad line's (the room pictures turn their doodads by it and draw
+    /// right), through the room's laying as a direction, so a mirrored room turns its boss to face the way the mirror sends him -
+    /// the game holds a mirrored room's doodads at that angle (<see cref="Through"/>) - while his own model, the server's monster
+    /// and no piece of the room, stays the right way round.
     /// </remarks>
     internal static RoomSpot? BossSpotOf(RoomLayout room, Matrix3x2 laying)
     {
@@ -997,6 +998,20 @@ public static class LaidRoomModels
         }
     }
 
+    /// <summary>Whether a piece laid this way - TileOrientation's placement numbers - is laid mirrored.</summary>
+    private static bool Mirrors(int placement)
+    {
+        TileOrientation placed = TileOrientation.OfPlacement(placement);
+        if (!placed.IsPlacement)
+        {
+            return false;
+        }
+
+        (int xx, int xy, int yx, int yy) = placed.Turn;
+        return (xx * yy) - (xy * yx) < 0;
+    }
+
+    /// <summary>A flat placement as a placement in space, the height left alone.</summary>
     private static Matrix4x4 Spatial(Matrix3x2 flat) => new(
         flat.M11, flat.M12, 0f, 0f,
         flat.M21, flat.M22, 0f, 0f,

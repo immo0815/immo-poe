@@ -32,8 +32,8 @@ public static class BuiltRoomModels
     /// THE GAME LAYS A ROOM EACH INSTANCE ITS OWN WAY, mirrored in some (Port's build replays: its boss room turned 180, then turned
     /// 90 and mirrored; v0.1.262's instance laid the harbour at placement 1, mirrored), while a room built from the tileset is laid
     /// as its .arm writes it - and a mirror is not turned away by any camera (said from the live client: "our harbour diorama is
-    /// never the game's, always mirrored somehow"). So a switch turns the built room over, the tiles and the doodads each the way
-    /// the game turns them.
+    /// never the game's, always mirrored somehow"). So a switch turns the built room over, its tiles and its doodads mirrored with
+    /// it as the game draws them (LaidRoomModels.Through).
     /// </remarks>
     public const int MirroredTurn = 4;
 
@@ -156,14 +156,7 @@ public static class BuiltRoomModels
         int x = build.X, turn = 0;
         if (mirrored)
         {
-            var sizes = new Dictionary<int, (int Width, int Height)>();
-            for (var id = 0; id < tiles.Paths.Count; id++)
-            {
-                RoomBuildTile? known = pool.Find(one => string.Equals(one.Path, Slashed(tiles.Paths[id]), StringComparison.OrdinalIgnoreCase));
-                sizes[id] = known is null ? (1, 1) : (known.Identity.Width, known.Identity.Height);
-            }
-
-            tiles = tiles.MirroredInX(id => sizes.GetValueOrDefault(id, (1, 1)));
+            tiles = tiles.MirroredInX(SizesOf(tiles.Paths, pool.Concat(fills.Values.SelectMany(section => section))));
             grid = new TerrainGrid(
                 new byte[bytesPerRow * rows], bytesPerRow, rows, tiles.Width, tiles.Height, (TerrainHeightField?)null,
                 "built from the tileset: no heights, every tile at level nought", tiles: tiles);
@@ -178,6 +171,33 @@ public static class BuiltRoomModels
         return model.Ready
             ? model with { Move = said + "; " + model.Move }
             : model with { Why = said + "; " + model.Why };
+    }
+
+    /// <summary>
+    /// Each tile file's size as its file has it, by the built grid's id - one by one where the build named no such tile.
+    /// </summary>
+    /// <remarks>
+    /// THE POOL AND THE FILL LIST BOTH: v0.1.265 took the pool alone, so the master's fill tiles - Port's 3x3 Building_Fill_01 to 03,
+    /// 23 of the boss room's 29 slots - read as one tile each, and turned over every tile of them named the first column; the drawing
+    /// then found 56 pieces not whole and left the town round the harbour out.
+    /// </remarks>
+    /// <param name="paths">The built grid's tile files, by id.</param>
+    /// <param name="built">Every tile the build could lay - the pool's and the fill list's.</param>
+    internal static Func<int, (int Width, int Height)> SizesOf(IReadOnlyList<string> paths, IEnumerable<RoomBuildTile> built)
+    {
+        var bySlashed = new Dictionary<string, (int Width, int Height)>(StringComparer.OrdinalIgnoreCase);
+        foreach (RoomBuildTile one in built)
+        {
+            bySlashed.TryAdd(one.Path, (one.Identity.Width, one.Identity.Height));
+        }
+
+        var sizes = new (int Width, int Height)[paths.Count];
+        for (var id = 0; id < sizes.Length; id++)
+        {
+            sizes[id] = bySlashed.GetValueOrDefault(Slashed(paths[id]), (1, 1));
+        }
+
+        return id => (uint)id < (uint)sizes.Length ? sizes[id] : (1, 1);
     }
 
     /// <summary>

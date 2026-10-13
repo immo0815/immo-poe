@@ -336,35 +336,40 @@ public class LaidRoomModelsTests
     }
 
     /// <summary>
-    /// A room's doodad through a room laid turned over is turned, not mirrored: it stands where the mirror sends it and faces the way
-    /// the mirror sends its facing, its own model the right way round.
+    /// A room's doodad through a room laid turned over is mirrored with it: it stands where the mirror sends it, faces at minus its
+    /// line's angle - the angle the game holds - and its own right side lies on its left, as Port's ship lays its gangway on the quay
+    /// the mirror moved.
     /// </summary>
+    /// <remarks>
+    /// The ship's line, measured in the room laid as written, mirrored: x 1846.39 of a room 19 tiles across, angle nought; its entity
+    /// at 4750 - 1846.39 = 2903.61 from the room's corner, Render.RotationCurrent nought. The doodad here is turned, to tell minus its
+    /// angle from its angle.
+    /// </remarks>
     [Fact]
-    public void AMIRROREDRoomsDoodadIsTurnedNotMirrored()
+    public void AMIRROREDRoomsDoodadIsMirroredAtMinusItsAngle()
     {
-        Matrix3x2 laying = RoomFinder.Laying(4, 3, BuiltRoomModels.MirroredTurn);
-        Matrix4x4 beyond = new(
-            laying.M11, laying.M12, 0f, 0f,
-            laying.M21, laying.M22, 0f, 0f,
-            0f, 0f, 1f, 0f,
-            laying.M31 * TileModels.Side, laying.M32 * TileModels.Side, 0f, 1f);
-        var one = new RoomDoodad(23, 46, MathF.PI / 3f, 2f, "Metadata/Test/boat.ao", "boat");
+        Matrix3x2 laying = RoomFinder.Laying(19, 25, BuiltRoomModels.MirroredTurn);
+        var one = new RoomDoodad(169, 195, MathF.PI / 3f, 1f, "Metadata/Terrain/Maps/Port/Tiles/boss_boat.ao", "Metadata/MiscellaneousObjects/Doodad");
 
         // As RoomModels.Lay composes it: scaled, turned, placed - then through the room.
-        Matrix4x4 place = Matrix4x4.CreateScale(2f) * Matrix4x4.CreateRotationZ(one.Turn)
+        Matrix4x4 place = Matrix4x4.CreateScale(one.Scale) * Matrix4x4.CreateRotationZ(one.Turn)
             * Matrix4x4.CreateTranslation(one.X * RoomModels.CellSize, one.Y * RoomModels.CellSize, 0f)
-            * LaidRoomModels.TurnedThrough(one, beyond, laying);
+            * LaidRoomModels.Through(laying);
 
-        Assert.True(place.GetDeterminant() > 0f, "turned, not mirrored");
-        Vector3 at = Vector3.Transform(new Vector3(one.X * RoomModels.CellSize, one.Y * RoomModels.CellSize, 0f), beyond);
-        Assert.Equal(at.X, place.Translation.X, 2);
-        Assert.Equal(at.Y, place.Translation.Y, 2);
+        Assert.True(place.GetDeterminant() < 0f, "mirrored with the room");
+        Assert.Equal((19 * TileModels.Side) - (one.X * RoomModels.CellSize), place.Translation.X, 2);
+        Assert.Equal(one.Y * RoomModels.CellSize, place.Translation.Y, 2);
 
-        // Its forward, minus y in its own frame, along its facing as the mirror sends it.
-        Vector3 forward = Vector3.Normalize(Vector3.TransformNormal(-Vector3.UnitY, place));
-        Vector2 facing = Vector2.Normalize(Vector2.TransformNormal(new Vector2(MathF.Sin(one.Turn), -MathF.Cos(one.Turn)), laying));
-        Assert.Equal(facing.X, forward.X, 4);
-        Assert.Equal(facing.Y, forward.Y, 4);
+        // Its forward, minus y in its own frame, along the facing of minus its angle: (sin -a, -cos -a).
+        Vector3 forward = Vector3.TransformNormal(-Vector3.UnitY, place);
+        Assert.Equal(MathF.Sin(-one.Turn), forward.X, 4);
+        Assert.Equal(-MathF.Cos(-one.Turn), forward.Y, 4);
+
+        // Its own right, plus x, where a doodad turned to minus its angle has its left.
+        Vector3 right = Vector3.TransformNormal(Vector3.UnitX, place);
+        Vector3 turnedRight = Vector3.TransformNormal(Vector3.UnitX, Matrix4x4.CreateRotationZ(-one.Turn));
+        Assert.Equal(-turnedRight.X, right.X, 4);
+        Assert.Equal(-turnedRight.Y, right.Y, 4);
     }
 
     /// <summary>
@@ -516,7 +521,8 @@ public class LaidRoomModelsTests
     /// THE LINES ARE abysswall_CvLarge_02's OWN, and the game had only the third: at area tile 32, 11 it stood at 8125,
     /// 3125 - the piece's middle, 8250, 3000, less a quarter tile across and plus one down. Here the piece is moved to area
     /// tile 1, 1 with the room's corner there, so the same arithmetic gives 125, 375 from the corner, at 250 over the
-    /// piece's lift. Its facing once laid is 225 degrees - (sin a, -cos a) - so it is turned -45 degrees, not mirrored.
+    /// piece's lift. Its facing once laid points 225 degrees round from plus x - (sin a, -cos a) at a = -45 degrees - and it is
+    /// mirrored with the piece: its own right lies where a doodad turned -45 degrees has its left.
     /// </remarks>
     [Fact]
     public void ATILESOwnDoodadsStandWhereTheGameHasThemAndTheFarTopsAreLeftOut()
@@ -538,9 +544,19 @@ public class LaidRoomModelsTests
         (RoomDoodad top, Matrix4x4 place) = Assert.Single(into);
         Assert.EndsWith("Abysswall_Upper_CvLarge_2c.ao", top.Ao, StringComparison.Ordinal);
         Assert.Equal(new Vector3(125f, 375f, -210f), place.Translation);
-        Assert.Equal(MathF.Cos(-MathF.PI / 4f), place.M11, 3);
-        Assert.Equal(MathF.Sin(-MathF.PI / 4f), place.M12, 3);
-        Assert.True(place.GetDeterminant() > 0f, "a tile doodad is turned, never mirrored");
+        Vector3 forward = Vector3.TransformNormal(-Vector3.UnitY, place);
+        Assert.Equal(MathF.Sin(-MathF.PI / 4f), forward.X, 3);
+        Assert.Equal(-MathF.Cos(-MathF.PI / 4f), forward.Y, 3);
+        Assert.Equal(-MathF.Cos(-MathF.PI / 4f), place.M11, 3);
+        Assert.Equal(-MathF.Sin(-MathF.PI / 4f), place.M12, 3);
+        Assert.True(place.GetDeterminant() < 0f, "a mirrored piece's doodad is mirrored with it");
+
+        // LAID WITHOUT A MIRROR (placement 0, turned 180 from as filed), its doodads are turned alone.
+        into.Clear();
+        LaidRoomModels.TileDoodadsOf(
+            new TilePiece(0, 0, 1, 1, 2, 2, Whole: true), new TileDoodads(list.Doodads, Both: false), 2, 2, 1, 1, 40f, grid, DoodadHeight.File, into);
+        Assert.NotEmpty(into);
+        Assert.All(into, one => Assert.True(one.Place.GetDeterminant() > 0f, "turned alone"));
     }
 
     /// <summary>
