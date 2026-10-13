@@ -719,7 +719,8 @@ internal sealed class CaptureKey
                         out IReadOnlyList<GroundMask> masks, out IReadOnlyList<(string File, GamePicture Picture)> shapes);
                     File.WriteAllText(At(CaptureReport.GroundFile), ground);
 
-                    // THE BIGGEST MASKED TEMPLATES FROM ABOVE - their shapes, the green as the mix reads it, their height.
+                    // THE BIGGEST MASKED TEMPLATES FROM ABOVE - their shapes, the green as the mix reads it, their height - and each
+                    // ground material's colour texture.
                     foreach ((string file, GamePicture picture) in shapes)
                     {
                         using Image<Rgba32> image = Image.LoadPixelData<Rgba32>(picture.Rgba, picture.Width, picture.Height);

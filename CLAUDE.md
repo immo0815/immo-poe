@@ -652,6 +652,13 @@ from v0.1.256 the part TINTS each wide shape by the green the mix reads at every
 through, the coordinates interpolated over the clip w as the card's are) and says how many of its pixels are the second ground's - whether
 the game's ground changes along the tint's edges is the measurement. That capture had the game's picture switched off; the player had not
 moved since the capture before it, so its picture was laid under by hand. Keep `game-picture` ticked for this part.
+ITS FIRST TINT (v0.1.256, 18 wide shapes, 905,001 pixels tinted) laid the mix's squares plainly over the floor - "our checkerboard" (said
+from the live client) - and the game's picture changes nowhere along them: across the 11,896 pixels of the tint's red and blue edges the
+game's picture is 2.4 of 255 lighter on the red side, against 0.6 +/- 0.4 with the same edges moved elsewhere, and no warmer at all. So the
+game draws no squares there; whether that says it does not read the mask there waits on the two dirts looking different, and the Tile Book
+cannot show it - it draws a lone tile's ground plain (its "drawn as" says so), only a laid room in the Monster Book paints it. From
+v0.1.257 the ground part writes each ground material's colour texture beside ground.txt (`ground-material-N-name.png`, the sRGB textures
+its program reads, at most 256 a side, the mean colour and alpha said) - any capture in the area carries them.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
 Eight captures are committed under
