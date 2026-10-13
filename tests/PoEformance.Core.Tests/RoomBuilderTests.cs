@@ -280,4 +280,40 @@ public class RoomBuilderTests
         Assert.Equal("Oasis", key.BuiltIn);
         Assert.Equal(string.Empty, new RoomKey("x.arm").BuiltIn);
     }
+
+    /// <summary>A built room turned over in x is a key of its own, written and read back - the Monster Book's switch.</summary>
+    [Fact]
+    public void ABUILTRoomTurnedOverIsAKeyOfItsOwn()
+    {
+        var key = new RoomKey("Metadata/Terrain/Maps/Port/Rooms/Unique/boss_01.arm", Built: "Metadata/Terrain/Maps/Port/master.tsi", Mirrored: true);
+        string written = key.ToString();
+        Assert.EndsWith("|built=Metadata/Terrain/Maps/Port/master.tsi+mirrored", written, StringComparison.Ordinal);
+
+        RoomKey read = RoomKey.Read(written);
+        Assert.True(read.Mirrored);
+        Assert.Equal(key.Built, read.Built);
+        Assert.NotEqual(written, (read with { Mirrored = false }).ToString());
+        Assert.False(RoomKey.Read((read with { Mirrored = false }).ToString()).Mirrored);
+    }
+
+    /// <summary>
+    /// A grid turned over in x: each piece at the columns its mirror image covers, laid the way a mirror sends it, each tile naming its
+    /// place counted from its piece's least corner again.
+    /// </summary>
+    [Fact]
+    public void AGRIDTurnedOverLaysEachPieceWhereItsMirrorImageLies()
+    {
+        // A two-by-one file laid as filed at columns 0 and 1 of three, and a one-by-one turned 90 at column 2.
+        var tiles = new TerrainTiles(["two.tdt", "one.tdt"], [0, 0, 1], [0, 1, 0], [0, 0, 0], [3, 3, 6], 3, 1);
+
+        TerrainTiles turned = tiles.MirroredInX(id => id == 0 ? (2, 1) : (1, 1));
+
+        Assert.Equal([1, 0, 0], new[] { turned.IdAt(0, 0), turned.IdAt(1, 0), turned.IdAt(2, 0) });
+        Assert.Equal((0, 0), turned.SubAt(1, 0));
+        Assert.Equal((1, 0), turned.SubAt(2, 0));
+        Assert.Equal(1, turned.PlacementAt(1, 0));
+        Assert.Equal(TileOrientation.MirroredInX(6), turned.PlacementAt(0, 0));
+        Assert.Equal([new TilePiece(0, 1, 1, 0, 2, 0, Whole: true), new TilePiece(1, TileOrientation.MirroredInX(6), 0, 0, 0, 0, Whole: true)],
+            turned.Pieces(0, 0, 3, 1, id => id == 0 ? (2, 1) : (1, 1)).OrderBy(one => one.Id));
+    }
 }

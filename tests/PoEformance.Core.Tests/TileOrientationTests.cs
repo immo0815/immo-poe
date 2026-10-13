@@ -232,4 +232,25 @@ public class TileOrientationTests
         Assert.NotNull(grid);
         Assert.Equal(0, Assert.Single(grid!.Rooms).Turns);
     }
+
+    /// <summary>
+    /// A tile's placement once the whole it lies in is turned over in x: as filed comes to mirrored (placement 1) - which is where the
+    /// game put Port's harbour, as filed in its boss room, in an instance that laid the room as written and mirrored - every placement
+    /// changes whether it mirrors, and turning over twice comes back.
+    /// </summary>
+    [Fact]
+    public void APLACEMENTTurnedOverInXIsTheMirrorOfItsTurn()
+    {
+        Assert.Equal(1, TileOrientation.MirroredInX(3));
+        Assert.Equal(2, TileOrientation.MirroredInX(0));
+        for (var placement = 0; placement < 8; placement++)
+        {
+            int turned = TileOrientation.MirroredInX(placement);
+            Assert.InRange(turned, 0, 7);
+            Assert.NotEqual(TileOrientation.OfPlacement(placement).Mirrored, TileOrientation.OfPlacement(turned).Mirrored);
+            Assert.Equal(placement, TileOrientation.MirroredInX(turned));
+        }
+
+        Assert.Equal(-1, TileOrientation.MirroredInX(-1));
+    }
 }

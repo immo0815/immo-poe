@@ -26,6 +26,18 @@ namespace PoEformance.Features;
 public static class BuiltRoomModels
 {
     /// <summary>
+    /// The room's turn laying it as written and turned over in x - RoomFinder's numbering.
+    /// </summary>
+    /// <remarks>
+    /// THE GAME LAYS A ROOM EACH INSTANCE ITS OWN WAY, mirrored in some (Port's build replays: its boss room turned 180, then turned
+    /// 90 and mirrored; v0.1.262's instance laid the harbour at placement 1, mirrored), while a room built from the tileset is laid
+    /// as its .arm writes it - and a mirror is not turned away by any camera (said from the live client: "our harbour diorama is
+    /// never the game's, always mirrored somehow"). So a switch turns the built room over, the tiles and the doodads each the way
+    /// the game turns them.
+    /// </remarks>
+    public const int MirroredTurn = 4;
+
+    /// <summary>
     /// The room built from the tileset and drawn, or why not. Never throws.
     /// </summary>
     /// <param name="read">How to get a file out of the install, by path.</param>
@@ -36,6 +48,7 @@ public static class BuiltRoomModels
     /// <param name="tools">Whether the level editor's tools are placed too.</param>
     /// <param name="progress">Where the build says how far it has got, or null.</param>
     /// <param name="heights">How high a doodad whose line carries a height is set.</param>
+    /// <param name="mirrored">Whether the room is laid turned over in x - see the remarks on <see cref="MirroredTurn"/>.</param>
     public static MonsterModel Of(
         Func<string, byte[]?>? read,
         string? path,
@@ -44,7 +57,8 @@ public static class BuiltRoomModels
         int doodads = RoomModels.UsualDoodads,
         bool tools = false,
         ModelProgress? progress = null,
-        DoodadHeight heights = DoodadHeight.File)
+        DoodadHeight heights = DoodadHeight.File,
+        bool mirrored = false)
     {
         if (read is null)
         {
@@ -137,9 +151,30 @@ public static class BuiltRoomModels
             new byte[bytesPerRow * rows], bytesPerRow, rows, tiles.Width, tiles.Height, (TerrainHeightField?)null,
             "built from the tileset: no heights, every tile at level nought", tiles: tiles);
 
+        // TURNED OVER WHERE ASKED: the grid's mirror image, the room laid at its mirrored corner and as written, mirrored - so its
+        // tiles go the way a mirror sends them and its doodads are turned the way it sends them, as the game lays it.
+        int x = build.X, turn = 0;
+        if (mirrored)
+        {
+            var sizes = new Dictionary<int, (int Width, int Height)>();
+            for (var id = 0; id < tiles.Paths.Count; id++)
+            {
+                RoomBuildTile? known = pool.Find(one => string.Equals(one.Path, Slashed(tiles.Paths[id]), StringComparison.OrdinalIgnoreCase));
+                sizes[id] = known is null ? (1, 1) : (known.Identity.Width, known.Identity.Height);
+            }
+
+            tiles = tiles.MirroredInX(id => sizes.GetValueOrDefault(id, (1, 1)));
+            grid = new TerrainGrid(
+                new byte[bytesPerRow * rows], bytesPerRow, rows, tiles.Width, tiles.Height, (TerrainHeightField?)null,
+                "built from the tileset: no heights, every tile at level nought", tiles: tiles);
+            x = tiles.Width - build.X - room.Width;
+            turn = MirroredTurn;
+        }
+
         MonsterModel model = LaidRoomModels.Of(
-            read, path, grid, build.X, build.Y, 0, shaded, doodads, tools, atLevel: true, progress: progress, heights: heights, master: master);
-        string said = build.Said + $" ({pool.Count} tiles in the pool{(unread > 0 ? $", {unread} did not read" : string.Empty)}{fillsSaid})";
+            read, path, grid, x, build.Y, turn, shaded, doodads, tools, atLevel: true, progress: progress, heights: heights, master: master);
+        string said = build.Said + $" ({pool.Count} tiles in the pool{(unread > 0 ? $", {unread} did not read" : string.Empty)}{fillsSaid})"
+            + (mirrored ? "; turned over in x by the switch, as the game lays the room in some instances" : string.Empty);
         return model.Ready
             ? model with { Move = said + "; " + model.Move }
             : model with { Why = said + "; " + model.Why };

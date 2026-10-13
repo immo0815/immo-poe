@@ -632,7 +632,7 @@ public sealed class TileBookWindow : BookWindow<TileBook>
         {
             // BUILT FROM ITS TILESET where the key names one, else the file alone - see BuiltRoomModels.
             return room.Built.Length > 0
-                ? BuiltRoomModels.Of(read, room.Path, room.Built, shaded: true, doodads: room.Doodads, tools: room.Tools, progress: progress, heights: room.Heights)
+                ? BuiltRoomModels.Of(read, room.Path, room.Built, shaded: true, doodads: room.Doodads, tools: room.Tools, progress: progress, heights: room.Heights, mirrored: room.Mirrored)
                 : RoomModels.Of(read, room.Path, shaded: true, doodads: room.Doodads, tools: room.Tools, progress: progress, heights: room.Heights);
         }
 

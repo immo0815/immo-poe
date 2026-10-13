@@ -713,7 +713,14 @@ follows is what to read before the mix is changed.
 THE MONSTER BOOK'S ARENA IS BUILT, AND LAID AS WRITTEN (`BuiltRoomModels`, said from the live client: "our harbour diorama is never
 the game's, always mirrored somehow"). The game lays the boss room each instance its own way - Port's build replays: turned 180 (the
 harbour at placement 0), turned 90 and mirrored (placement 4); v0.1.262's instance laid the harbour at placement 1, mirrored - while
-the built stage lays it as the `.arm` writes it (placement 3). A mirror is not turned away by any camera.
+the built stage lays it as the `.arm` writes it (placement 3). A mirror is not turned away by any camera. So the Monster Book has
+a switch for a built stage, DECIDED from the live client over laying it as the area's own (2026-10-13): "mirrored" (`RoomKey.Mirrored`,
+`BuiltRoomModels.MirroredTurn`) turns the built grid over in x - each piece where its mirror image lies, laid the way a mirror sends it
+(`TileOrientation.MirroredInX`: as filed comes to placement 1, as the game put the harbour), its tiles counting their places from the
+piece's least corner again (`TerrainTiles.MirroredInX`) - and lays the room as written, mirrored. AND A MIRRORED ROOM'S DOODADS ARE
+TURNED, NOT MIRRORED (`LaidRoomModels.TurnedThrough`), as its tile doodads and its boss were: through the laying alone a room's
+doodad came out its own mirror image - the harbour's ship turned inside out - in a built room switched over and an area's room laid
+mirrored alike.
 `ground-replay.txt` counts the cells: a tile of one ground all round covers 39% (Steaming Springs) to
 77% (Port) of an area, but Port's harbour, the boss's floor, is one 315-cell tile of two grounds.
 Eight captures are committed under

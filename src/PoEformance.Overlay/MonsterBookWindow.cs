@@ -701,6 +701,22 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
                 + " the Tile Book's tile is whatever that book is open at."
                 + " The picture frames the whole tile - the wheel zooms in on the monster.");
 
+            // A BUILT ROOM TURNED OVER BY HAND: the game lays a room each instance its own way, mirrored in some, and no camera turns a
+            // mirror away (said from the live client of Port's harbour) - see BuiltRoomModels.MirroredTurn.
+            if (TileBook.IsRoom(currentPath) && RoomKey.Read(current) is { Built.Length: > 0 } built)
+            {
+                bool mirrored = built.Mirrored;
+                if (ImGui.Checkbox("mirrored##monster-stage-mirrored", ref mirrored))
+                {
+                    model.Stage = (built with { Mirrored = mirrored }).ToString();
+                }
+
+                OverlayLayout.Hint("The built room turned over in x. The game lays a room each instance its own way - turned, and in some"
+                    + " instances mirrored - while a room built from the tileset is laid as its file writes it, and no turn of the camera undoes a mirror."
+                    + " Ticked, the tiles go the way a mirror sends them and the doodads and the boss are turned to face the way it sends them, not mirrored,"
+                    + " as the game turns them.");
+            }
+
             // WHAT THE SEARCH WENT THROUGH, under the combo once it has run: which areas, which folders, how
             // many tiles the index held - so an empty list says which step was empty rather than nothing.
             if (_arenasSaid.Length > 0 && string.Equals(_arenasFor, chosen, StringComparison.Ordinal))
