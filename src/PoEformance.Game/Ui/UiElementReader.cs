@@ -283,6 +283,9 @@ public sealed class UiElementReader
     }
 
     /// <summary>Reads one element resolved to window pixels, or null if it is not one.</summary>
+    /// <summary>The element's StringId, read on its own - for a caller that already has its place.</summary>
+    public string StringIdOf(ulong address) => _reader.ReadStdWString(address + (ulong)_stringId);
+
     public UiElement? Read(ulong address, UiScale scale, bool withStringId = true)
     {
         if (!IsUiElement(address))

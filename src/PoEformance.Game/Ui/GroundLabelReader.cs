@@ -1,5 +1,4 @@
 using System.Numerics;
-using PoEformance.Core.Memory;
 using PoEformance.Core.Schema;
 
 namespace PoEformance.Game.Ui;
@@ -15,10 +14,12 @@ namespace PoEformance.Game.Ui;
 /// WHERE THEY ARE. Under one element, reached by the index path <see cref="ContainerPath"/> from the
 /// UI root (measured 2026-10-14: the labels are that element's direct children).
 ///
-/// WHAT IT COSTS. The element's address is found once per AREA - it is kept while the area instance
-/// stays the same and looked up again when the area changes - and every read after that only walks
-/// the element's children. A search of the whole tree was the first version and cost about half a
-/// second a read; the path costs a few node reads.
+/// WHAT IT COSTS. The element's address is found once per AREA - kept while the area instance is
+/// the same, looked up again when it changes. Every read after that places the element's children
+/// in one pass (<see cref="UiElementReader.ReadSiblings"/>, one walk up the ancestors for all of
+/// them) and reads a child's StringId only where the child is shown and has a size. Reading each
+/// child as a whole node (<c>UiTreeReader.ReadOne</c>) would also read its text, its own children
+/// and a walk up for every child, none of which this needs.
 ///
 /// ONLY THE ITEMS, AND ONLY THE ONES SHOWN. Of the children, only WorldItem elements count, and of
 /// those only the visible ones: a hidden element keeps its rectangle, so a label the game has
@@ -32,17 +33,18 @@ public sealed class GroundLabelReader
     /// <summary>The child indices from the UI root down to the element the labels hang under.</summary>
     public static readonly int[] ContainerPath = [8, 0, 0];
 
-    private readonly UiTreeReader _tree;
+    private const int MaxChildren = 512;
+
+    private readonly UiElementReader _elements;
 
     private ulong _area;
     private ulong _container;
 
-    public GroundLabelReader(IMemoryReader reader, OffsetSchema schema)
+    public GroundLabelReader(UiElementReader elements)
     {
-        ArgumentNullException.ThrowIfNull(reader);
-        ArgumentNullException.ThrowIfNull(schema);
+        ArgumentNullException.ThrowIfNull(elements);
 
-        _tree = new UiTreeReader(reader, schema);
+        _elements = elements;
     }
 
     /// <summary>
@@ -64,7 +66,7 @@ public sealed class GroundLabelReader
         if (areaInstance != _area || _container == 0)
         {
             _area = areaInstance;
-            _container = ResolveContainer(uiRoot, scale);
+            _container = ResolveContainer(uiRoot);
         }
 
         if (_container == 0)
@@ -72,24 +74,35 @@ public sealed class GroundLabelReader
             return labels;
         }
 
-        UiNode? container = _tree.ReadOne(_container, scale);
-        if (container is null)
+        if (!_elements.IsUiElement(_container))
         {
             // Gone since the last read - looked up again on the next one.
             _container = 0;
             return labels;
         }
 
-        foreach (ulong child in container.Children)
+        List<ulong> children = _elements.Children(_container, MaxChildren);
+        if (children.Count == 0)
         {
-            UiNode? node = _tree.ReadOne(child, scale);
-            if (node is null || node.StringId != Id || !node.Visible || node.Size.X <= 0f || node.Size.Y <= 0f)
+            return labels;
+        }
+
+        Dictionary<ulong, Placed> placed = _elements.ReadSiblings(_container, children, scale);
+        foreach (ulong child in children)
+        {
+            if (!placed.TryGetValue(child, out Placed where) || !where.Shown
+                || where.Size.X <= 0f || where.Size.Y <= 0f)
             {
                 continue;
             }
 
-            Vector2 at = node.Position;
-            var rect = new ScreenRect(at.X, at.Y, at.X + node.Size.X, at.Y + node.Size.Y);
+            if (_elements.StringIdOf(child) != Id)
+            {
+                continue;
+            }
+
+            Vector2 at = where.Position;
+            var rect = new ScreenRect(at.X, at.Y, at.X + where.Size.X, at.Y + where.Size.Y);
             if (rect.IsSane && rect.Overlaps(window))
             {
                 labels.Add(rect.ClippedTo(window));
@@ -100,20 +113,23 @@ public sealed class GroundLabelReader
     }
 
     /// <summary>The address of the element at the end of <see cref="ContainerPath"/>, or zero.</summary>
-    private ulong ResolveContainer(ulong root, UiScale scale)
+    private ulong ResolveContainer(ulong root)
     {
         ulong at = root;
         foreach (int index in ContainerPath)
         {
-            UiNode? node = _tree.ReadOne(at, scale);
-            if (node is null || index < 0 || index >= node.Children.Count)
+            if (!_elements.IsUiElement(at))
             {
                 return 0;
             }
 
-            at = node.Children[index];
+            at = _elements.Child(at, index);
+            if (at == 0)
+            {
+                return 0;
+            }
         }
 
-        return _tree.ReadOne(at, scale) is null ? 0 : at;
+        return _elements.IsUiElement(at) ? at : 0;
     }
 }
