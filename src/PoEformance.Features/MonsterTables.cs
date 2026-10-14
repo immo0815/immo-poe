@@ -90,7 +90,12 @@ public sealed class MonsterTables
     /// <param name="files">The opened install, or null where there is none.</param>
     /// <param name="layouts">The vendored column lists - data/monster-tables.json.</param>
     /// <param name="shipped">What stands when this cannot read, and what the result is compared to.</param>
-    public static MonsterTables Read(GameFiles? files, QuestTableLayouts? layouts, MonsterVarieties? shipped)
+    /// <param name="writeTo">
+    /// The file <paramref name="shipped"/> came from, to be brought up to the install where the two
+    /// differ - see <see cref="Refreshes"/>. Null leaves every file alone, as the diagnostic modes do.
+    /// </param>
+    public static MonsterTables Read(
+        GameFiles? files, QuestTableLayouts? layouts, MonsterVarieties? shipped, string? writeTo = null)
     {
         MonsterVarieties standing = shipped ?? MonsterVarieties.Empty;
 
@@ -191,9 +196,60 @@ public sealed class MonsterTables
             + $" {meanings.Count} modifiers, {bloodNames.Count} blood types, {resistNames.Count} resistance"
             + $" profiles, {dropped} empty modifier slots dropped");
 
-        said.AddRange(Against(table, standing));
+        Comparison compared = Compare(table, standing);
+        said.AddRange(compared.Lines);
+
+        // ALL SEVEN REFERENCE TABLES, or the file is not touched: one that did not read leaves its
+        // row numbers unnamed, and writing that over an export which names them loses names.
+        bool whole = types is not null && resistances is not null && blood is not null && tags is not null
+            && effects is not null && mods is not null && stats is not null;
+
+        if (writeTo is { Length: > 0 })
+        {
+            said.Add(Refreshes(compared, whole) is { } why
+                ? "  " + (table.Save(writeTo, out string wrote) ? wrote + " - " + why : wrote)
+                : "  data/monster-varieties.json left as it is - " + Kept(compared, whole));
+        }
+
         return new MonsterTables(table, said) { FromGame = true };
     }
+
+    /// <summary>
+    /// Why the shipped file is to be replaced by what the install says, or null where it is not.
+    /// </summary>
+    /// <remarks>
+    /// ON ANY DIFFERENCE, asked for from the live client (2026-10-13): new monsters, a name, type or
+    /// skill count that moved, or a reference table renumbered under the export - the last being the
+    /// one where the export is not merely old but WRONG, every tag on a monster naming another tag.
+    ///
+    /// AND ONLY FROM A WHOLE READ THAT LOSES NOTHING, which is what keeps a broken layout from being
+    /// written over a good file: every reference table read with its row size agreeing, and every
+    /// monster the file knows still in the install. A column that has moved does not lose monsters
+    /// quietly - the Id column is what keys them - so a read that dropped some is a read to distrust.
+    /// </remarks>
+    private static string? Refreshes(Comparison compared, bool whole)
+    {
+        if (!whole || compared.OnlyInExport > 0)
+        {
+            return null;
+        }
+
+        if (compared.Shared == 0)
+        {
+            return "the shipped table was missing or empty";
+        }
+
+        return compared.OnlyInInstall + compared.Differ + compared.Renumbered == 0
+            ? null
+            : $"{compared.OnlyInInstall} new, {compared.Differ} changed, {compared.Renumbered} renumbered";
+    }
+
+    private static string Kept(Comparison compared, bool whole)
+        => !whole
+            ? "not every reference table read, and a partial table would lose names the file has"
+            : compared.OnlyInExport > 0
+                ? $"{compared.OnlyInExport} of its monsters are not in the install, which a sound read never loses"
+                : "it already says what the install says";
 
     /// <summary>
     /// How this table compares with the shipped export, which is the only check there is.
@@ -224,12 +280,19 @@ public sealed class MonsterTables
     /// which is the one finding in this report that is nobody's stale export.
     /// </remarks>
     public static IReadOnlyList<string> Against(MonsterVarieties read, MonsterVarieties? shipped)
+        => Compare(read, shipped).Lines;
+
+    /// <summary>The report, and the counts behind it that decide whether the file is rewritten.</summary>
+    private readonly record struct Comparison(
+        IReadOnlyList<string> Lines, int Shared, int OnlyInInstall, int OnlyInExport, int Differ, int Renumbered);
+
+    private static Comparison Compare(MonsterVarieties read, MonsterVarieties? shipped)
     {
         ArgumentNullException.ThrowIfNull(read);
 
         if (shipped is null || shipped.Count == 0)
         {
-            return [$"  nothing to compare {read.Count} monsters against"];
+            return new Comparison([$"  nothing to compare {read.Count} monsters against"], 0, read.Count, 0, 0, 0);
         }
 
         var only = new List<string>();
@@ -298,7 +361,7 @@ public sealed class MonsterTables
             lines.Add($"    only in the install: {path}");
         }
 
-        return lines;
+        return new Comparison(lines, shared, only.Count, shipped.Count - shared, differ.Count, renumbered.Count);
 
         static string Show(MonsterVariety one)
             => $"name {(one.Name is { Length: > 0 } named ? named : "-")}, type {one.Type}, {one.SkillCount} skills";

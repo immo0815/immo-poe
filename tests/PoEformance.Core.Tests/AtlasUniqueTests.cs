@@ -319,4 +319,38 @@ public class AtlasUniqueTests
             Size: default,
             BadgeIds: [],
             ContentTokens: []);
+
+    [Fact]
+    public void ANEWAtlasMapIsAddedToTheFileAndNothingCuratedIsTouched()
+    {
+        // Added, never rewritten: the English names and the curated words stay as they were, and
+        // a map already listed is not renamed to the client's spelling.
+        string path = Path.Combine(Path.GetTempPath(), $"atlas-maps-{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, """{"maps":{"MapLostTowers":{"name":"Lost Towers","tags":["tower"]}}}""");
+        try
+        {
+            var game = new Dictionary<string, string>
+            {
+                ["MapLostTowers"] = "Verlorene Türme",
+                ["MapNewOne"] = "Neue Karte",
+                ["MapNoName"] = string.Empty,
+            };
+
+            Assert.Equal(1, AtlasMapNames.Append(path, game, out string said));
+            Assert.Contains("MapNewOne", said, StringComparison.Ordinal);
+
+            AtlasMapNames written = AtlasMapNames.Load(path);
+            Assert.Equal(2, written.Count);
+            Assert.Equal("Lost Towers", written.All["MapLostTowers"].Name);
+            Assert.Equal(["tower"], written.All["MapLostTowers"].Tags);
+            Assert.Equal("Neue Karte", written.All["MapNewOne"].Name);
+            Assert.Contains("Neue Karte", File.ReadAllText(path), StringComparison.Ordinal);
+
+            Assert.Equal(0, AtlasMapNames.Append(path, game, out _));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }

@@ -2485,6 +2485,11 @@ internal static class Program
         PoEformance.Game.World.AtlasContentNames atlasContents =
             PoEformance.Game.World.AtlasContentNames.Load(FindDataFile("atlas-content.json"));
 
+        // Kept by name, so the install's own sentences can be held against it once read - and the
+        // file brought up to them where they differ. See WalkTheInstall below.
+        PoEformance.Game.Components.StatDescriptions shippedSentences =
+            PoEformance.Game.Components.StatDescriptions.Load(FindDataFile("stat_desc_map.tsv"));
+
         var atlas = new PoEformance.Features.AtlasWatch(
             reader,
             schema,
@@ -2496,10 +2501,12 @@ internal static class Program
             // The game's own sentence per stat, behind both content tables. Keyed by the stat's
             // NAME rather than by a row index, so it does not go wrong when the game inserts a row -
             // the index half of that join comes out of memory. See StatDescriptions.
-            PoEformance.Game.Components.StatDescriptions.Load(FindDataFile("stat_desc_map.tsv")))
+            shippedSentences)
         {
             Settings = PoEformance.Features.AtlasStore.Load(),
             Ritual = ritual,
+            MapsFile = FindDataFile("atlas-maps.json"),
+            Log = Console.WriteLine,
         };
         atlas.RitualWorth = atlas.Settings.Worth;
 
@@ -2574,6 +2581,14 @@ internal static class Program
                 PoEformance.Game.Components.StatDescriptions.FromInstall(installed, walked.Inside);
 
             atlas.LearnStatDescriptions(said);
+
+            // AND THE SHIPPED TSV IS BROUGHT UP TO THEM where they differ and nothing it words is
+            // lost (asked for from the live client, 2026-10-13) - see StatDescriptions.Supersedes.
+            if (said.Supersedes(shippedSentences) is { } why)
+            {
+                said.Save(FindDataFile("stat_desc_map.tsv"), out string wrote);
+                Console.WriteLine($"stat sentences: {wrote} - {why}");
+            }
 
             // AND THE UNIQUES, off the same background task and for the same reason: three tables
             // out of the install, joined, which is file work rather than memory work and has no
@@ -3329,10 +3344,13 @@ internal static class Program
             PoEformance.Game.Entities.MonsterVarieties exported = overlay.Monsters;
             _ = Task.Run(() =>
             {
+                // AND THE FILE IS BROUGHT UP TO THE INSTALL where the two differ (asked for from the
+                // live client, 2026-10-13), so the next start begins from the patch being played.
                 PoEformance.Features.MonsterTables read = PoEformance.Features.MonsterTables.Read(
                     installed,
                     PoEformance.Features.QuestTableLayouts.Load(FindDataFile("monster-tables.json")),
-                    exported);
+                    exported,
+                    FindDataFile("monster-varieties.json"));
 
                 foreach (string line in read.Say)
                 {

@@ -327,6 +327,15 @@ public sealed class AtlasWatch
     /// <remarks>See <see cref="Game.Components.StatDescriptions.Against"/> for why that comparison IS the check.</remarks>
     private readonly Game.Components.StatDescriptions _shippedDescriptions;
 
+    /// <summary>data/atlas-maps.json, which new atlas maps are added to. Null adds nothing.</summary>
+    public string? MapsFile { get; init; }
+
+    /// <summary>Where a line about a file this wrote goes. Null says nothing.</summary>
+    public Action<string>? Log { get; init; }
+
+    /// <summary>Whether <see cref="AddNewMaps"/> has had its one go this session.</summary>
+    private bool _mapsAdded;
+
     public AtlasWatch(
         IMemoryReader reader,
         OffsetSchema schema,
@@ -843,6 +852,7 @@ public sealed class AtlasWatch
             {
                 Names.LearnUnique(_catalogue.All);
                 Bosses.Learn(_catalogue.BossesByArea());
+                AddNewMaps();
             }
         }
 
@@ -1373,10 +1383,47 @@ public sealed class AtlasWatch
 
             Names.LearnUnique(_catalogue.All);
             Bosses.Learn(_catalogue.BossesByArea());
+            AddNewMaps();
             return true;
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Adds every atlas map data/atlas-maps.json does not list to it, once a session.
+    /// </summary>
+    /// <remarks>
+    /// ASKED FOR FROM THE LIVE CLIENT (2026-10-13): a difference found is written into the file
+    /// rather than only reported. Only ADDED - see AtlasMapNames.Append for why nothing the file
+    /// holds is rewritten - and only once both tables read cleanly: EndgameMaps says which ids the
+    /// atlas holds, WorldAreas what each is called, and a map the second does not name is skipped
+    /// rather than written without a name.
+    /// </remarks>
+    private void AddNewMaps()
+    {
+        if (_mapsAdded || MapsFile is not { Length: > 0 } path
+            || _endgame.Maps.Count == 0 || _endgame.LastError.Length > 0 || _catalogue.All.Count == 0)
+        {
+            return;
+        }
+
+        _mapsAdded = true;
+
+        var added = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string id in _endgame.Maps.Keys)
+        {
+            if (!Names.All.ContainsKey(id) && _catalogue.Of(id) is { Name.Length: > 0 } area)
+            {
+                added[id] = area.Name;
+            }
+        }
+
+        if (added.Count > 0)
+        {
+            AtlasMapNames.Append(path, added, out string said);
+            Log?.Invoke("atlas maps: " + said);
+        }
     }
 
     /// <summary>Publishes the game-against-file report for the interface to draw.</summary>
