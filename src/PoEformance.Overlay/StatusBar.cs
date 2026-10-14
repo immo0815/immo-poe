@@ -6,7 +6,7 @@ using PoEformance.Features;
 namespace PoEformance.Overlay;
 
 /// <summary>
-/// The one line that says whether the tool is working, drawn above the tabs on every page.
+/// The one line that says whether the tool is working, painted into the main window's title bar.
 /// </summary>
 /// <remarks>
 /// THE READOUT WAS A PAGE, AND A PAGE IS SOMEWHERE YOU HAVE TO BE. "Is it reading the game" and
@@ -16,7 +16,7 @@ namespace PoEformance.Overlay;
 /// either the tool sat on its status page and the other twelve were out of reach, or it sat on
 /// a tool page and a blank overlay was ambiguous again.
 ///
-/// A strip above the tab bar is on screen on every page, costs one line, and answers the four
+/// A strip in the title bar is on screen on every page, costs no line at all, and answers the four
 /// or five questions that are worth answering constantly. The status PAGE keeps everything
 /// else - the belt, the panels, the projection probe, the whole debugging pass - because those
 /// are read deliberately, once, while working something out.
@@ -32,7 +32,7 @@ namespace PoEformance.Overlay;
 /// CHIPS RATHER THAN A SENTENCE. Each fact is a short coloured word in a fixed order, so the
 /// strip is read by SHAPE after the first day - the eye goes to the third position for the
 /// entity count rather than reading a line of prose to find it. A fact that does not fit the
-/// window is dropped rather than wrapped, which keeps this one line tall at every window size;
+/// window is dropped rather than wrapped, which keeps it inside the title bar at every size;
 /// they are drawn most-important-first, so what survives a narrow window is what matters.
 /// </remarks>
 [SupportedOSPlatform("windows")]
@@ -41,43 +41,76 @@ public static class StatusBar
     /// <summary>Whether a chip has been drawn on this strip yet, so the first gets no divider.</summary>
     /// <remarks>
     /// Static because the strip is drawn once per frame on the render thread, in one place,
-    /// between <see cref="Begin"/> and <see cref="End"/> - the same thread-and-moment argument
+    /// between <see cref="InTitle"/> and <see cref="End"/> - the same thread-and-moment argument
     /// the font stack is built on. Nothing outside the render thread may touch this.
     /// </remarks>
     private static bool _started;
 
-    /// <summary>Opens the strip.</summary>
-    public static void Begin() => _started = false;
+    /// <summary>Where the next chip starts, in screen space.</summary>
+    private static float _x;
+
+    /// <summary>Where the strip must stop: the version, or the title bar's icons.</summary>
+    private static float _right;
+
+    /// <summary>The title bar's top edge and height, for centring each chip in it.</summary>
+    private static float _top;
+
+    private static float _bar;
+
+    /// <summary>Whether a strip is open, so a chip outside one paints nothing.</summary>
+    private static bool _open;
 
     /// <summary>
-    /// Closes the strip and rules it off from the tabs below.
+    /// Opens the strip in the current window's TITLE BAR, between its name and <paramref name="right"/>.
     /// </summary>
     /// <remarks>
-    /// A rule rather than a gap, and it is doing real work: without it the strip and the tab bar
-    /// read as one block of chrome, and the strip's words look like more tabs. It is the same
-    /// one-pixel separator the rest of the tool uses, so nothing new has been invented for it.
+    /// IN THE TITLE BAR, asked for from the live client (v0.1.270): a line of its own under the
+    /// title cost a row of every page for facts that fit beside the name. PAINTED, not submitted:
+    /// an item in the title bar widens the window's measured content, which is the loop
+    /// <see cref="WindowChrome.TitleButtons"/> explains - text that is only drawn cannot feed it.
+    /// The name's width is measured rather than assumed, so a renamed window still starts its
+    /// strip after its own title, past ImGui's collapse arrow (one font size and an inner gap).
+    /// Call right after the title buttons, in the face the title was set in.
     /// </remarks>
+    /// <param name="title">The window's own name as ImGui draws it.</param>
+    /// <param name="right">The screen x the strip must not cross.</param>
+    public static void InTitle(string title, float right)
+    {
+        ImGuiStylePtr style = ImGui.GetStyle();
+        Vector2 corner = ImGui.GetWindowPos();
+        float size = ImGui.GetFontSize();
+
+        _started = false;
+        _open = true;
+        _top = corner.Y;
+        _bar = ImGui.GetFrameHeight();
+        _right = right;
+        _x = corner.X + style.FramePadding.X + size + style.ItemInnerSpacing.X
+             + ImGui.CalcTextSize(title).X + (size * 0.8f);
+
+        // Clipped to the bar, so nothing a chip paints can spill into the page below it.
+        ImGui.PushClipRect(new Vector2(corner.X, _top), new Vector2(right, _top + _bar), true);
+    }
+
+    /// <summary>Closes the strip.</summary>
     public static void End()
     {
-        // Nothing was drawn - no line either, or the window opens with a rule under nothing.
-        if (!_started)
+        if (!_open)
         {
             return;
         }
 
-        ImGui.Separator();
+        _open = false;
+        ImGui.PopClipRect();
     }
 
     /// <summary>One fact, in its own colour, after a divider.</summary>
     /// <remarks>
-    /// DROPPED RATHER THAN WRAPPED when the window is too narrow for it. ImGui's
-    /// <c>SameLine</c> does not wrap, so a strip too long for the window would simply run off
-    /// the right edge - which is the same as being dropped, except that it also stretches the
-    /// window's content width and gives every page a horizontal scrollbar it does not need.
-    /// Measuring first and stopping is the same outcome without that cost.
-    ///
-    /// The measurement includes the divider, because a chip that fits only by losing its
-    /// divider would run into its neighbour.
+    /// DROPPED RATHER THAN SQUEEZED when the bar is too short for it: the facts are drawn
+    /// most-important-first, so a narrow window keeps the state and the area and loses the
+    /// frame timing. Dropping also stops every later chip, so the strip never shows a gap
+    /// with a less important fact beyond it. The measurement includes the divider, because a
+    /// chip that fits only by losing its divider would run into its neighbour.
     /// </remarks>
     /// <param name="text">The fact. Already formatted - this draws it, it does not decide it.</param>
     /// <param name="ink">What it is drawn in. The colour IS the state for most of these.</param>
@@ -85,47 +118,34 @@ public static class StatusBar
     {
         ArgumentNullException.ThrowIfNull(text);
 
-        if (text.Length == 0)
+        if (!_open || text.Length == 0)
         {
             return;
         }
 
-        float divider = ImGui.GetFontSize() * 1.6f;
-        float wanted = ImGui.CalcTextSize(text).X + divider;
+        float divider = _started ? ImGui.GetFontSize() * 1.6f : 0f;
+        float wide = ImGui.CalcTextSize(text).X;
+        if (_x + divider + wide > _right)
+        {
+            // Nothing after this one either: see the remarks.
+            _right = float.MinValue;
+            return;
+        }
 
-        // MEASURED IN SCREEN SPACE, from the right edge of the chip just drawn to the window's
-        // inner right edge. The cursor cannot be asked instead: a text item leaves it on the
-        // NEXT line, so its X is the left margin rather than where this strip has got to.
-        // GetItemRectMax is the previous chip's own right edge, which is exactly the question -
-        // and it stays correct across a chip that was skipped, since the skipped one submitted
-        // no item.
+        ImDrawListPtr draw = ImGui.GetWindowDrawList();
+        float y = _top + ((_bar - ImGui.GetTextLineHeight()) * 0.5f);
+
         if (_started)
         {
-            float edge = ImGui.GetWindowPos().X + ImGui.GetWindowWidth()
-                         - ImGui.GetStyle().WindowPadding.X - ImGui.GetStyle().ScrollbarSize;
-            if (ImGui.GetItemRectMax().X + wanted > edge)
-            {
-                return;
-            }
-
-            ImGui.SameLine(0f, divider * 0.5f);
-            ImGui.TextColored(OverlayInk.Edge, "|");
-            ImGui.SameLine(0f, divider * 0.5f);
+            float bar = ImGui.CalcTextSize("|").X;
+            draw.AddText(new Vector2(_x + ((divider - bar) * 0.5f), y), ImGui.GetColorU32(OverlayInk.Edge), "|");
         }
 
+        // AddText draws the string as it is - no printf - so area names with percent signs in
+        // them need nothing done to them.
+        draw.AddText(new Vector2(_x + divider, y), ImGui.GetColorU32(ink), text);
+        _x += divider + wide;
         _started = true;
-
-        // Pushed rather than passed to TextColored: ImGui's text calls are printf, and these
-        // strings carry area names and percent signs straight out of the game. See ImGuiText.
-        ImGui.PushStyleColor(ImGuiCol.Text, ink);
-        try
-        {
-            ImGui.TextUnformatted(text);
-        }
-        finally
-        {
-            ImGui.PopStyleColor();
-        }
     }
 
     /// <summary>A fact in the quiet ink, for the ones that are never good or bad news.</summary>

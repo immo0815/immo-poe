@@ -444,7 +444,12 @@ public sealed class WindowChrome
     /// that is only drawn cannot feed that loop. It is dropped rather than overlapped where
     /// the window is too narrow to hold it beside its own name.
     /// </param>
-    public void TitleButtons(string id, bool closable = false, string aside = "")
+    /// <returns>
+    /// The screen x where the title bar's free space ends - left of the version, or of the icons
+    /// where there is no version - so a caller can paint into the rest of the bar
+    /// (<see cref="StatusBar.InTitle"/>).
+    /// </returns>
+    public float TitleButtons(string id, bool closable = false, string aside = "")
     {
         ImGuiStylePtr style = ImGui.GetStyle();
 
@@ -486,8 +491,10 @@ public sealed class WindowChrome
         // smaller icon.
         if (left < corner.X + style.FramePadding.X + size + gap)
         {
-            return;
+            return left;
         }
+
+        float free = left - gap;
 
         // WHETHER THE ICONS ARE ITEMS THIS FRAME, which is the rest of that same problem. The
         // inset above stops an auto-fitting window GROWING; what it cannot stop is the window
@@ -561,6 +568,7 @@ public sealed class WindowChrome
                 float at = left - gap - wide;
                 if (at > corner.X + style.FramePadding.X + size + gap)
                 {
+                    free = at - gap;
                     draw.AddText(
                         new Vector2(at, corner.Y + ((bar - ImGui.GetTextLineHeight()) * 0.5f)),
                         ImGui.GetColorU32(OverlayInk.Quiet),
@@ -576,6 +584,8 @@ public sealed class WindowChrome
             ImGui.SetCursorPos(resume);
             ImGui.PopClipRect();
         }
+
+        return free;
     }
 
     /// <summary>One title bar icon's hit area and its hover backing. True when it was clicked.</summary>

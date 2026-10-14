@@ -41,6 +41,9 @@ namespace PoEformance.Overlay;
 [SupportedOSPlatform("windows")]
 public sealed class ToolTabs
 {
+    /// <summary>The window's name, which the status strip measures to start after it.</summary>
+    private const string Title = "PoEformance";
+
     private sealed record Section(int Order, string Id, string Label, Action Draw, Action? Idle)
     {
         /// <summary>A label read per frame, for a header that has news to carry.</summary>
@@ -379,7 +382,7 @@ public sealed class ToolTabs
         // page. ImGui then keeps whatever size the window has - which is the one the user
         // dragged it to, remembered across pages, across sessions and across a tool that wants
         // to be wide. See the note on _onReadout for what this replaces.
-        bool expanded = ImGui.Begin("PoEformance", Chrome.Flags(ChromeId, ImGuiWindowFlags.NoFocusOnAppearing));
+        bool expanded = ImGui.Begin(Title, Chrome.Flags(ChromeId, ImGuiWindowFlags.NoFocusOnAppearing));
 
         // Before the contents and outside the expanded test, because a collapsed window is
         // still somewhere: its title bar is the ground it covers, and that is what the next
@@ -402,17 +405,22 @@ public sealed class ToolTabs
                 // always up, and the question it answers - "is the build I am looking at the
                 // one with the fix in it" - was being settled by comparing a screenshot
                 // against a merge time. See ToolVersion.
-                Chrome.TitleButtons(ChromeId, closable: false, aside: Version);
+                float free = Chrome.TitleButtons(ChromeId, closable: false, aside: Version);
 
-                // ABOVE THE TABS, so it is on screen whichever page is in front - which is the
-                // entire reason it exists. Outside DrawPages because it belongs to the window
-                // rather than to any page, and because the tab bar's heading face must not
-                // reach it.
+                // IN THE TITLE BAR, so it is on screen whichever page is in front - which is the
+                // entire reason it exists - without taking a line from every page. Outside
+                // DrawPages because it belongs to the window rather than to any page.
                 if (Header is not null)
                 {
-                    StatusBar.Begin();
-                    Header();
-                    StatusBar.End();
+                    StatusBar.InTitle(Title, free);
+                    try
+                    {
+                        Header();
+                    }
+                    finally
+                    {
+                        StatusBar.End();
+                    }
                 }
 
                 inFront = DrawPages();
