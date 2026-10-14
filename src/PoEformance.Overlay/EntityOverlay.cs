@@ -387,6 +387,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         HideBehindPanels = settings.HideBehindPanels;
         HideWindowsBehindPanels = settings.HideWindowsBehindPanels;
         GroundLabelTransparency = settings.GroundLabelTransparencyOrDefault;
+        GroundLabelFade = settings.GroundLabelFade;
         ScreenshotKey = settings.ScreenshotKey;
         _capture.Key = settings.CaptureKey;
         _capture.Off = settings.CaptureOffOrEmpty;
@@ -506,6 +507,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             HideBehindPanels = HideBehindPanels,
             HideWindowsBehindPanels = HideWindowsBehindPanels,
             GroundLabelTransparency = GroundLabelTransparency == 0.8f ? null : GroundLabelTransparency,
+            GroundLabelFade = GroundLabelFade,
             ScreenshotKey = ScreenshotKey,
             CaptureKey = _capture.Key,
 
@@ -2564,6 +2566,22 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// readable and the map shows through at the rest. See <see cref="FadeWithin"/>.
     /// </summary>
     public float GroundLabelTransparency { get; set; } = 0.8f;
+
+    /// <summary>
+    /// Whether the map fades under ground labels at all. Off also stops the label reads, through
+    /// <see cref="PoEformance.Game.Ui.GroundLabelReader.Enabled"/>, so it costs nothing while off.
+    /// </summary>
+    public bool GroundLabelFade
+    {
+        get => _groundLabelFade;
+        set
+        {
+            _groundLabelFade = value;
+            PoEformance.Game.Ui.GroundLabelReader.Enabled = value;
+        }
+    }
+
+    private bool _groundLabelFade = true;
 
     /// <summary>The capture key and the capture it runs - see <see cref="CaptureKey"/>.</summary>
     private readonly CaptureKey _capture;
@@ -5951,12 +5969,23 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
 
         OverlayLayout.Hint("Hides only the windows actually lying on top of the open panel.");
 
+        bool fade = GroundLabelFade;
+        if (OverlayLayout.Toggle("fade map under labels", ref fade))
+        {
+            GroundLabelFade = fade;
+            SettingsChanged?.Invoke();
+        }
+
+        // Greyed out rather than hidden while the fade is off: the amount still shows, it just has nothing to do.
+        ImGui.BeginDisabled(!GroundLabelFade);
         float transparency = GroundLabelTransparency * 100f;
         if (OverlayLayout.Slider("label transparency", ref transparency, 0f, 100f, "%.0f%%"))
         {
             GroundLabelTransparency = transparency / 100f;
             SettingsChanged?.Invoke();
         }
+
+        ImGui.EndDisabled();
 
         OverlayLayout.Hint("How much of the large map is hidden under a ground item label. The label stays readable.");
 

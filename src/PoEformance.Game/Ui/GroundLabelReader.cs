@@ -35,6 +35,13 @@ public sealed class GroundLabelReader
 
     private const int MaxChildren = 512;
 
+    /// <summary>
+    /// Whether labels are read at all. Off means no read and no fade - the switch on the overlay's
+    /// hiding group. Set from the overlay's thread; a bool write is atomic, and a frame that sees
+    /// the old value reads one more time, which is harmless.
+    /// </summary>
+    public static volatile bool Enabled = true;
+
     private readonly UiElementReader _elements;
 
     private ulong _area;
@@ -58,7 +65,7 @@ public sealed class GroundLabelReader
     public List<ScreenRect> Read(ulong uiRoot, UiScale scale, ulong areaInstance, ScreenRect window)
     {
         var labels = new List<ScreenRect>();
-        if (uiRoot == 0 || areaInstance == 0)
+        if (!Enabled || uiRoot == 0 || areaInstance == 0)
         {
             return labels;
         }
