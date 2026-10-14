@@ -386,6 +386,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         _healthBars.OnlyWhenHurt = settings.HealthBarsOnlyWhenHurt;
         HideBehindPanels = settings.HideBehindPanels;
         HideWindowsBehindPanels = settings.HideWindowsBehindPanels;
+        GroundLabelTransparency = settings.GroundLabelTransparencyOrDefault;
         ScreenshotKey = settings.ScreenshotKey;
         _capture.Key = settings.CaptureKey;
         _capture.Off = settings.CaptureOffOrEmpty;
@@ -504,6 +505,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             HealthBarsOnlyWhenHurt = _healthBars.OnlyWhenHurt,
             HideBehindPanels = HideBehindPanels,
             HideWindowsBehindPanels = HideWindowsBehindPanels,
+            GroundLabelTransparency = GroundLabelTransparency == 0.8f ? null : GroundLabelTransparency,
             ScreenshotKey = ScreenshotKey,
             CaptureKey = _capture.Key,
 
@@ -2556,6 +2558,12 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// <see cref="WindowChrome.Covered"/>, which also records the ways back.
     /// </remarks>
     public bool HideWindowsBehindPanels { get; set; } = true;
+
+    /// <summary>
+    /// How much of the large map is hidden under a ground item label, 0 to 1 - the label stays
+    /// readable and the map shows through at the rest. See <see cref="FadeWithin"/>.
+    /// </summary>
+    public float GroundLabelTransparency { get; set; } = 0.8f;
 
     /// <summary>The capture key and the capture it runs - see <see cref="CaptureKey"/>.</summary>
     private readonly CaptureKey _capture;
@@ -5573,7 +5581,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         Row(
             "map area",
             ScreenRegion.Of(ScreenRect.Window(width, height), KeepOutOf(width, height))
-            + $"   (interface {_snapshot.InterfaceParts.Count} parts)",
+            + $"   (interface {_snapshot.InterfaceParts.Count} parts, {_snapshot.GroundLabelsOnScreen.Count} ground labels)",
             Measured,
             figure: true);
 
@@ -5948,6 +5956,15 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
 
         OverlayLayout.Hint("Hides only the windows actually lying on top of the open panel.");
 
+        float transparency = GroundLabelTransparency * 100f;
+        if (OverlayLayout.Slider("label transparency", ref transparency, 0f, 100f, "%.0f%%"))
+        {
+            GroundLabelTransparency = transparency / 100f;
+            SettingsChanged?.Invoke();
+        }
+
+        OverlayLayout.Hint("How much of the large map is hidden under a ground item label. The label stays readable.");
+
         _keepOut.DrawControls();
     }
 
@@ -6082,6 +6099,10 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         }
 
         ImDrawListPtr draw = ImGui.GetBackgroundDrawList();
+
+        // Where this frame's map begins in the draw list, so the labels' fade can be applied to exactly
+        // what the map drew and nothing before it.
+        int mapFirstVertex = draw.VtxBuffer.Size;
 
         // UNDER EVERYTHING, including the layout: it is the ground the rest is read against,
         // and a monster dot lost behind a heat patch is a marker that did not work.
@@ -6244,6 +6265,56 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             draw.AddCircle(map.Centre, 9f, colour, 20, Style.Width(StyleCatalogue.Keys.AidCentre, 2f));
             draw.AddText(map.Centre + new Vector2(12, -7), colour,
                 $"map centre - the game's player marker belongs here (zoom {map.Zoom:F2})");
+        }
+
+        // THE LABELS' FADE, last: whatever the map drew inside a ground label is made as faint as the setting says,
+        // and the label is drawn by the game over it, readable. Applied to the vertices after the fact rather
+        // than per layer, so every layer that draws on the map is faded by the same rule without knowing about it.
+        FadeWithin(draw, mapFirstVertex, _snapshot.GroundLabelsOnScreen, GroundLabelTransparency);
+    }
+
+    /// <summary>
+    /// Makes whatever a draw list drew from <paramref name="first"/> on, inside the given rectangles,
+    /// as faint as the transparency says.
+    /// </summary>
+    /// <remarks>
+    /// THE ALPHA IS IN THE VERTICES, and the map is drawn by a dozen layers that each pick their own
+    /// colour, so there is no one place to ask for a fainter map. Changing each layer would be a
+    /// change to every layer; changing the vertices the map has already written is one rule, applied
+    /// once, and it cannot be missed by a layer added later.
+    ///
+    /// A LINE THAT CROSSES A LABEL'S EDGE is faded only at the vertices inside it, so its end reads
+    /// as a soft step rather than a clean cut. That is the cost of working on vertices; the label
+    /// itself is never touched.
+    ///
+    /// THE SCAN IS VERTICES TIMES LABELS. A map is a few thousand vertices and the labels on one
+    /// screen are a few dozen, which is far below anything that would show in the read cost.
+    /// </remarks>
+    private static unsafe void FadeWithin(
+        ImDrawListPtr draw, int first, IReadOnlyList<ScreenRect> labels, float transparency)
+    {
+        float keep = 1f - Math.Clamp(transparency, 0f, 1f);
+        int end = draw.VtxBuffer.Size;
+        if (labels.Count == 0 || keep >= 1f || first >= end)
+        {
+            return;
+        }
+
+        ImDrawVert* vertices = (ImDrawVert*)draw.VtxBuffer.Data;
+        for (int i = first; i < end; i++)
+        {
+            Vector2 at = vertices[i].pos;
+            foreach (ScreenRect label in labels)
+            {
+                if (!label.Contains(at))
+                {
+                    continue;
+                }
+
+                uint alpha = (uint)(((vertices[i].col >> 24) * keep) + 0.5f);
+                vertices[i].col = (vertices[i].col & 0x00FFFFFFu) | (alpha << 24);
+                break;
+            }
         }
     }
 
