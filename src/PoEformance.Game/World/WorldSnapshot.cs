@@ -470,7 +470,11 @@ public sealed record WorldSnapshot(
     IReadOnlyDictionary<ulong, int>? SkillDps = null,
     string? SkillsNote = null,
     string? SkillsSurvey = null,
-    string? SkillsPanel = null)
+    string? SkillsPanel = null,
+
+    // The ground item labels on screen while the large map is up, as window rectangles - the
+    // map is drawn under them at reduced strength rather than kept off them. See GroundLabelReader.
+    IReadOnlyList<ScreenRect>? GroundLabels = null)
 {
     /// <summary>The belt's slots on screen, empty when the bar is not - or was not read.</summary>
     public IReadOnlyList<FlaskSlotOnScreen> FlaskSlotsOnScreen => FlaskSlots ?? [];
@@ -493,6 +497,9 @@ public sealed record WorldSnapshot(
     /// bar's tab shows beside its switch, where the whole skills line would be noise.
     /// </summary>
     public string SkillsPanelReadout => SkillsPanel ?? string.Empty;
+
+    /// <summary>The ground labels on screen this read, empty when the large map was not read.</summary>
+    public IReadOnlyList<ScreenRect> GroundLabelsOnScreen => GroundLabels ?? [];
 
     /// <summary>The parts of the game's interface on screen, empty when none were read.</summary>
     /// <remarks>
@@ -559,6 +566,7 @@ public sealed class WorldReader
     private readonly OffsetSchema _schema;
     private readonly EntityMapReader _map;
     private readonly MapRadarReader _mapRadar;
+    private readonly GroundLabelReader _groundLabels;
     private readonly EntityReader _entities;
     private readonly RenderReader _render;
     private readonly LifeReader _life;
@@ -907,6 +915,7 @@ public sealed class WorldReader
         _schema = schema;
         _map = new EntityMapReader(reader, schema);
         _mapRadar = new MapRadarReader(reader, schema);
+        _groundLabels = new GroundLabelReader(reader, schema);
         _entities = new EntityReader(reader, schema);
         _render = new RenderReader(reader, schema);
         _life = new LifeReader(reader, schema);
@@ -1661,6 +1670,7 @@ public sealed class WorldReader
         MapView? largeMap = null;
         MapView? miniMap = null;
         IReadOnlyList<InterfacePart> hud = [];
+        IReadOnlyList<ScreenRect> groundLabels = [];
         IReadOnlyList<FlaskSlotOnScreen> flaskSlots = [];
         IReadOnlyList<SkillSlotOnScreen> skillSlots = [];
         if (scale is UiScale viewport && chain.UiRoot != 0)
@@ -1685,6 +1695,14 @@ public sealed class WorldReader
             _uiElements.AndAncestors(mini, notThese);
 
             hud = _hud.Read(chain.UiRoot, viewport, notThese);
+
+            // THE LABELS ONLY WHILE THE LARGE MAP IS UP, because that is the only time the map is
+            // drawn under them: the minimap has no labels to fade under, and the search is a walk
+            // of the interface that is not free. See GroundLabelReader.
+            if (largeMap is MapView shown && shown.IsUsable && shown.Visible)
+            {
+                groundLabels = _groundLabels.Read(chain.UiRoot, viewport, ScreenRect.Window(viewport.WindowWidth, viewport.WindowHeight));
+            }
 
             // The belt's slots, under the same interface element: where each flask is drawn,
             // for the number written on it. From the HUD the reader just resolved, so a HUD
@@ -1776,7 +1794,8 @@ public sealed class WorldReader
             _skillPanel.Dps,
             SkillsNote(skillSlots),
             SkillsSurvey(skillSlots),
-            _skillPanel.Note);
+            _skillPanel.Note,
+            groundLabels);
     }
 
     /// <summary>The survey of the first slot's skill object, or nothing while no slot has one.</summary>

@@ -309,7 +309,11 @@ public sealed record OverlaySettings(
     // off ones rather than the on ones, and null until somebody unticks one, for the hidden tabs'
     // reason: a part added in a later build is then written without anybody asking, and an
     // untouched file gains no key.
-    [property: JsonPropertyName("captureOff")] IReadOnlyList<string>? CaptureOff = null)
+    [property: JsonPropertyName("captureOff")] IReadOnlyList<string>? CaptureOff = null,
+
+    // How much of the large map is hidden under a ground item label, 0 to 1. Null until somebody
+    // moves it, so an untouched file gains no key. 0.8 is the default - see GroundLabelTransparencyOrDefault.
+    [property: JsonPropertyName("groundLabelTransparency")] float? GroundLabelTransparency = null)
 {
     /// <summary>How the tool's own windows look. The defaults until somebody says otherwise.</summary>
     /// <remarks>
@@ -320,6 +324,9 @@ public sealed record OverlaySettings(
 
     /// <summary>Where the game's interface is, as edited or as it ships.</summary>
     public MapKeepOut MapKeepOutOrDefault => MapKeepOut ?? Features.MapKeepOut.Default;
+
+    /// <summary>How much of the large map is hidden under a ground label, 0 to 1.</summary>
+    public float GroundLabelTransparencyOrDefault => GroundLabelTransparency ?? 0.8f;
 
     /// <summary>What was decided about the room names, or the defaults.</summary>
     public RoomSettings RoomsOrDefault => Rooms ?? RoomSettings.Default;
