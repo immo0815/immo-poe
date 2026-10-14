@@ -915,7 +915,6 @@ public sealed class WorldReader
         _schema = schema;
         _map = new EntityMapReader(reader, schema);
         _mapRadar = new MapRadarReader(reader, schema);
-        _groundLabels = new GroundLabelReader(reader, schema);
         _entities = new EntityReader(reader, schema);
         _render = new RenderReader(reader, schema);
         _life = new LifeReader(reader, schema);
@@ -931,6 +930,7 @@ public sealed class WorldReader
         _uiElements = new UiElementReader(reader, schema);
         _panels = new PanelReader(reader, schema, _uiElements);
         _hud = new InterfaceReader(reader, schema, _uiElements);
+        _groundLabels = new GroundLabelReader(_uiElements);
         _flaskBar = new FlaskBarReader(reader, schema, _uiElements);
         _skills = new PlayerSkills(reader, schema);
         _skillBar = new SkillBarReader(reader, schema, _uiElements);
@@ -1701,7 +1701,8 @@ public sealed class WorldReader
             // of the interface that is not free. See GroundLabelReader.
             if (largeMap is MapView shown && shown.IsUsable && shown.Visible)
             {
-                groundLabels = _groundLabels.Read(chain.UiRoot, viewport, ScreenRect.Window(viewport.WindowWidth, viewport.WindowHeight));
+                groundLabels = _groundLabels.Read(
+                    chain.UiRoot, viewport, chain.AreaInstance, ScreenRect.Window(viewport.WindowWidth, viewport.WindowHeight));
             }
 
             // The belt's slots, under the same interface element: where each flask is drawn,

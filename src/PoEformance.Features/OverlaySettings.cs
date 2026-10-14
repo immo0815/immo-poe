@@ -313,7 +313,10 @@ public sealed record OverlaySettings(
 
     // How much of the large map is hidden under a ground item label, 0 to 1. Null until somebody
     // moves it, so an untouched file gains no key. 0.8 is the default - see GroundLabelTransparencyOrDefault.
-    [property: JsonPropertyName("groundLabelTransparency")] float? GroundLabelTransparency = null)
+    [property: JsonPropertyName("groundLabelTransparency")] float? GroundLabelTransparency = null,
+
+    // Whether the map fades under ground labels at all. Off reads no labels, so costs nothing.
+    [property: JsonPropertyName("groundLabelFade")] bool GroundLabelFade = true)
 {
     /// <summary>How the tool's own windows look. The defaults until somebody says otherwise.</summary>
     /// <remarks>
