@@ -5289,11 +5289,6 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 Row("skill row", _snapshot.SkillsSurveyReadout, figure: true);
             }
 
-            if (FlaskStatus is not null)
-            {
-                Row("flask", FlaskStatus(), OverlayInk.Accent);
-            }
-
             if (EvasionStatus is not null)
             {
                 Row("evade", EvasionStatus(), OverlayInk.Accent);

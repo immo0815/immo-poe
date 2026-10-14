@@ -79,6 +79,14 @@ public sealed class CostWindow
 
         ImGui.Separator();
 
+        // ACROSS THE WHOLE WINDOW, the figures included (asked for from the live client,
+        // v0.1.272): the plot takes what the row leaves once its figures' column - as wide as
+        // the widest figure can be - and the gap before it are set aside.
+        float figures = ImGui.CalcTextSize("max 0000.0 ms").X;
+        float plotWidth = Math.Max(
+            ImGui.GetContentRegionAvail().X - figures - ImGui.GetStyle().ItemSpacing.X,
+            figures);
+
         foreach ((CostPhase phase, string label) in Phases)
         {
             float[] series = _history.Series(phase, scope);
@@ -99,7 +107,7 @@ public sealed class CostWindow
                 label,
                 0f,
                 (float)Math.Max(summary.Worst * 1.1, 0.1),
-                new Vector2(0f, _height));
+                new Vector2(plotWidth, _height));
 
             ImGui.SameLine();
             ImGui.BeginGroup();
