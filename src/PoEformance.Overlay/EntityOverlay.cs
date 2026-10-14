@@ -5096,7 +5096,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// loading screen reads as a broken read.
     ///
     /// Its own method because it is now asked twice: once by the readout page and once by the
-    /// strip above the tabs, which has to answer this on every page. Two copies of a switch
+    /// strip in the title bar, which has to answer this on every page. Two copies of a switch
     /// over eight game states is two copies to keep in step.
     /// </remarks>
     private string Idling() => _snapshot.State switch
@@ -5113,7 +5113,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     };
 
     /// <summary>
-    /// The live strip above the tabs: the four or five facts worth having on every page.
+    /// The live strip in the title bar: the four or five facts worth having on every page.
     /// </summary>
     /// <remarks>
     /// WHAT EARNS A PLACE HERE is the question asked while doing something else. "Is it reading
