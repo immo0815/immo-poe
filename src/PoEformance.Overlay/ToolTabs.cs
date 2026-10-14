@@ -395,6 +395,10 @@ public sealed class ToolTabs
         // and the assert that follows takes the process down.
         try
         {
+            // Where the title bar's free space ends. A collapsed window draws no icons and no
+            // version (see TitleButtons), so the strip may run up to the window's padding.
+            float free = ImGui.GetWindowPos().X + ImGui.GetWindowWidth() - ImGui.GetStyle().WindowPadding.X;
+
             if (expanded)
             {
                 // Before the tabs, so they stop short of the icons. NOT closable, alone among
@@ -405,23 +409,7 @@ public sealed class ToolTabs
                 // always up, and the question it answers - "is the build I am looking at the
                 // one with the fix in it" - was being settled by comparing a screenshot
                 // against a merge time. See ToolVersion.
-                float free = Chrome.TitleButtons(ChromeId, closable: false, aside: Version);
-
-                // IN THE TITLE BAR, so it is on screen whichever page is in front - which is the
-                // entire reason it exists - without taking a line from every page. Outside
-                // DrawPages because it belongs to the window rather than to any page.
-                if (Header is not null)
-                {
-                    StatusBar.InTitle(Title, free);
-                    try
-                    {
-                        Header();
-                    }
-                    finally
-                    {
-                        StatusBar.End();
-                    }
-                }
+                free = Chrome.TitleButtons(ChromeId, closable: false, aside: Version);
 
                 inFront = DrawPages();
 
@@ -430,6 +418,22 @@ public sealed class ToolTabs
                 // been submitted - asked first it would steal the right-click the colour
                 // pickers in the Appearance page have their own use for.
                 Chrome.Menu(ChromeId);
+            }
+
+            // IN THE TITLE BAR, collapsed or not, so it is on screen whichever page is in front
+            // - which is the entire reason it exists - without taking a line from any page.
+            // After the title buttons, whose return says where their icons and version begin.
+            if (Header is not null)
+            {
+                StatusBar.InTitle(Title, free);
+                try
+                {
+                    Header();
+                }
+                finally
+                {
+                    StatusBar.End();
+                }
             }
         }
         finally

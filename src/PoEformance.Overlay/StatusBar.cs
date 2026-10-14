@@ -70,7 +70,8 @@ public static class StatusBar
     /// <see cref="WindowChrome.TitleButtons"/> explains - text that is only drawn cannot feed it.
     /// The name's width is measured rather than assumed, so a renamed window still starts its
     /// strip after its own title, past ImGui's collapse arrow (one font size and an inner gap).
-    /// Call right after the title buttons, in the face the title was set in.
+    /// Call right after the title buttons, in the face the title was set in - and on a collapsed
+    /// window too, where the title bar is all there is to see.
     /// </remarks>
     /// <param name="title">The window's own name as ImGui draws it.</param>
     /// <param name="right">The screen x the strip must not cross.</param>
@@ -88,8 +89,10 @@ public static class StatusBar
         _x = corner.X + style.FramePadding.X + size + style.ItemInnerSpacing.X
              + ImGui.CalcTextSize(title).X + (size * 0.8f);
 
-        // Clipped to the bar, so nothing a chip paints can spill into the page below it.
-        ImGui.PushClipRect(new Vector2(corner.X, _top), new Vector2(right, _top + _bar), true);
+        // Clipped to the bar, so nothing a chip paints can spill into the page below it. NOT
+        // intersected with the clip in force: that is the window's content area, which starts
+        // under the title bar, and intersecting with it clipped the whole strip away (v0.1.270).
+        ImGui.PushClipRect(new Vector2(corner.X, _top), new Vector2(right, _top + _bar), false);
     }
 
     /// <summary>Closes the strip.</summary>
