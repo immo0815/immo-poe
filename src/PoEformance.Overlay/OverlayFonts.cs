@@ -72,6 +72,24 @@ public static class OverlayFonts
     /// </remarks>
     private static readonly ushort[] Figures = PinnedFigures();
 
+    /// <summary>What text is written with: ImGui's default range (Basic Latin and Latin-1, which holds the '×') and the arrows ('→').</summary>
+    /// <remarks>Pinned for <see cref="Figures"/>' reason. The labels write '→' between two places and '×' in sizes; the default range alone drew '→' as '?'.</remarks>
+    private static readonly ushort[] Text = PinnedText();
+
+    /// <summary>The glyph range for every text face - see <see cref="Text"/>.</summary>
+    public static IntPtr TextRange => Marshal.UnsafeAddrOfPinnedArrayElement(Text, 0);
+
+    private static ushort[] PinnedText()
+    {
+        ushort[] range = GC.AllocateArray<ushort>(5, pinned: true);
+        range[0] = 0x0020;
+        range[1] = 0x00FF;
+        range[2] = 0x2190;
+        range[3] = 0x21FF;
+        range[4] = 0;
+        return range;
+    }
+
     /// <summary>The glyph range for <see cref="RebuiltFigures"/>'s font.</summary>
     public static IntPtr DigitRange => Marshal.UnsafeAddrOfPinnedArrayElement(Figures, 0);
 

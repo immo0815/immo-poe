@@ -53,29 +53,13 @@ public sealed class ProjectileWindow
         // window. They were simply not on screen. A block of prose in the middle of a row is
         // not a formatting slip; it moves the controls after it somewhere nobody can reach.
         bool drawing = _layer.Enabled;
-        if (OverlayLayout.Toggle("Draw Them over the Game", ref drawing))
+        if (OverlayLayout.Toggle("draw projectiles", ref drawing))
         {
             _layer.Enabled = drawing;
             _changed();
         }
 
-        OverlayLayout.Cell(1);
-        bool trails = _layer.ShowTrails;
-        if (OverlayLayout.Toggle("With the Line They Came Along", ref trails))
-        {
-            _layer.ShowTrails = trails;
-            _changed();
-        }
-
-        OverlayLayout.Cell(2);
-        bool paths = _layer.ShowPaths;
-        if (OverlayLayout.Toggle("And Their Paths", ref paths))
-        {
-            _layer.ShowPaths = paths;
-            _changed();
-        }
-
-        // Under the row that carries it, because it is the one control here with a price. The
+        // Under the switch that carries it, because it is the one control here with a price. The
         // game files projectiles as visual entities and the reader skips those, so this switch
         // turns the entity walk's own filter off as well - there is no way to see a projectile
         // without paying for that.
@@ -87,8 +71,31 @@ public sealed class ProjectileWindow
                 + " visuals. Watch the Read cost tab.");
         }
 
+        // The rest only shape what the switch above draws, so they sit under it and go grey
+        // while it is off.
+        ImGui.Indent();
+        ImGui.BeginDisabled(!drawing);
+
+        bool trails = _layer.ShowTrails;
+        if (OverlayLayout.Toggle("trails", ref trails))
+        {
+            _layer.ShowTrails = trails;
+            _changed();
+        }
+
+        OverlayLayout.Hint("The line each projectile came along.");
+
+        bool paths = _layer.ShowPaths;
+        if (OverlayLayout.Toggle("show path", ref paths))
+        {
+            _layer.ShowPaths = paths;
+            _changed();
+        }
+
+        OverlayLayout.Hint("The metadata path beside each mark.");
+
         bool mine = _layer.MineOnly;
-        if (OverlayLayout.Toggle("Only Mine", ref mine))
+        if (OverlayLayout.Toggle("player only", ref mine))
         {
             _layer.MineOnly = mine;
             _changed();
@@ -103,7 +110,10 @@ public sealed class ProjectileWindow
             + " monsters. Check the list below says \"mine\" for your own skills before relying"
             + " on this.");
 
-        ImGui.Separator();
+        ImGui.EndDisabled();
+        ImGui.Unindent();
+
+        OverlayLayout.Group("in the air");
 
         // The same warning the effects tab carries, for the same reason: "projectiles" invites
         // an expectation nothing in memory can meet, and somebody looking for the fire itself
@@ -113,7 +123,6 @@ public sealed class ProjectileWindow
             "The game's own particles are rendering, not entities - nothing lists a spark."
             + " What is marked is the projectile ENTITY the skill spawns, one per projectile.");
 
-        ImGui.Separator();
         DrawSorts(snapshot);
     }
 
@@ -140,7 +149,7 @@ public sealed class ProjectileWindow
             if (!_layer.Enabled)
             {
                 ImGui.TextColored(
-                    DimText, "nothing is being read - tick \"draw them over the game\" above.");
+                    DimText, "nothing is being read - tick \"draw projectiles\" above.");
                 return;
             }
 
@@ -159,8 +168,8 @@ public sealed class ProjectileWindow
 
         try
         {
-            ImGui.TableSetupColumn("how many");
-            ImGui.TableSetupColumn("mine");
+            ImGui.TableSetupColumn("count");
+            ImGui.TableSetupColumn("player");
             ImGui.TableSetupColumn("trail");
             ImGui.TableSetupColumn("path");
             ImGui.TableHeadersRow();

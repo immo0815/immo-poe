@@ -9,7 +9,7 @@ using PoEformance.Game.World;
 namespace PoEformance.Overlay;
 
 /// <summary>
-/// The tab for one figure written on the game's own HUD: its switch, what it shows and how
+/// The band for one figure written on the game's own HUD: its switch, what it shows and how
 /// fresh that can be, and its looks.
 /// </summary>
 /// <remarks>
@@ -45,6 +45,7 @@ public sealed class FigureTab
     private readonly OverlayStyle _style;
     private readonly Action _save;
     private readonly string _key;
+    private readonly string _group;
     private readonly string _title;
     private readonly string _explanation;
     private readonly Func<WorldSnapshot, string> _status;
@@ -53,6 +54,7 @@ public sealed class FigureTab
     /// <param name="style">The one style everything drawn reads from.</param>
     /// <param name="save">Writes the style down. Called when the switch moves; the rows call it themselves.</param>
     /// <param name="key">The catalogue key whose hidden flag is the figure's switch.</param>
+    /// <param name="group">The band this figure's part of the tab is drawn under.</param>
     /// <param name="title">What the switch says.</param>
     /// <param name="explanation">What the figure is, in a sentence or two.</param>
     /// <param name="groups">The catalogue groups drawn under the switch.</param>
@@ -62,6 +64,7 @@ public sealed class FigureTab
         OverlayStyle style,
         Action save,
         string key,
+        string group,
         string title,
         string explanation,
         string[] groups,
@@ -71,6 +74,7 @@ public sealed class FigureTab
         ArgumentNullException.ThrowIfNull(style);
         ArgumentNullException.ThrowIfNull(save);
         ArgumentException.ThrowIfNullOrEmpty(key);
+        ArgumentException.ThrowIfNullOrEmpty(group);
         ArgumentException.ThrowIfNullOrEmpty(title);
         ArgumentNullException.ThrowIfNull(explanation);
         ArgumentNullException.ThrowIfNull(groups);
@@ -78,17 +82,39 @@ public sealed class FigureTab
         _style = style;
         _save = save;
         _key = key;
+        _group = group;
         _title = title;
         _explanation = explanation;
         _status = status;
         _rows = new StyleRows(style, save, groups, sheet);
     }
 
-    /// <summary>Draws the tab: the switch, the words, the status line, the rows.</summary>
+    /// <summary>Draws the figure's band: the switch, the words, the status line, the rows.</summary>
+    /// <remarks>
+    /// A BAND rather than a tab of its own: the belt's and the skill bar's figures share one
+    /// tool, each under its own group, because a tab each was two near-empty tabs.
+    /// </remarks>
     public void Draw(WorldSnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
+        OverlayLayout.Group(_group);
+
+        // Its own id scope: the two figures share one tool, and each one's rows table would
+        // otherwise share the other's ImGui id.
+        ImGui.PushID(_key);
+        try
+        {
+            DrawBody(snapshot);
+        }
+        finally
+        {
+            ImGui.PopID();
+        }
+    }
+
+    private void DrawBody(WorldSnapshot snapshot)
+    {
         // Written down at once rather than through the rows' settling: a tick is one click,
         // not a drag, so there is nothing to wait for.
         bool on = _style.Visible(_key);
@@ -101,8 +127,19 @@ public sealed class FigureTab
         ImGuiText.Wrapped(DimText, _explanation);
         ImGuiText.Wrapped(DimText, _status(snapshot));
 
-        ImGui.Separator();
-        _rows.Draw();
+        // The looks are the switch's children: drawn while it is off, so they can be seen, but
+        // not editable until the figure is on.
+        ImGui.Indent();
+        ImGui.BeginDisabled(!on);
+        try
+        {
+            _rows.Draw();
+        }
+        finally
+        {
+            ImGui.EndDisabled();
+            ImGui.Unindent();
+        }
     }
 
     /// <summary>While the tab is not on screen: a colour change left behind still lands.</summary>

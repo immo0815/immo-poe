@@ -24,9 +24,6 @@ namespace PoEformance.Overlay;
 [SupportedOSPlatform("windows")]
 public sealed class RunecraftWindow
 {
-    /// <summary>How many rows the list shows. The panel offers a handful; the rest are counted.</summary>
-    private const int MostRows = 48;
-
     private static readonly Vector4 DimText = OverlayInk.Quiet;
     private static readonly Vector4 GoodText = OverlayInk.Good;
     private static readonly Vector4 WarnText = OverlayInk.Warn;
@@ -41,31 +38,26 @@ public sealed class RunecraftWindow
     private readonly MonolithWatch _monoliths;
     private readonly Action<RunecraftSettings> _saved;
     private readonly PriceStore _prices;
-    private readonly Action _pricesChanged;
 
     private bool _unsaved;
 
     /// <param name="watch">The reader's half for the panel.</param>
     /// <param name="monoliths">The reader's half for the area's monoliths.</param>
     /// <param name="saved">Writes a changed setting down - called once the typing has stopped.</param>
-    /// <param name="prices">The poe.ninja book, and its switch.</param>
-    /// <param name="pricesChanged">
-    /// Says the price switch moved, so the overlay settings that remember it are written. The
-    /// same callback the Stash tab's copy of the switch uses, so the two cannot disagree.
+    /// <param name="prices">
+    /// The poe.ninja book, read only: its switch is set under economy → price sources alone.
     /// </param>
     public RunecraftWindow(
-        RunecraftWatch watch, MonolithWatch monoliths, Action<RunecraftSettings> saved, PriceStore prices, Action pricesChanged)
+        RunecraftWatch watch, MonolithWatch monoliths, Action<RunecraftSettings> saved, PriceStore prices)
     {
         ArgumentNullException.ThrowIfNull(watch);
         ArgumentNullException.ThrowIfNull(monoliths);
         ArgumentNullException.ThrowIfNull(saved);
         ArgumentNullException.ThrowIfNull(prices);
-        ArgumentNullException.ThrowIfNull(pricesChanged);
         _watch = watch;
         _monoliths = monoliths;
         _saved = saved;
         _prices = prices;
-        _pricesChanged = pricesChanged;
     }
 
     /// <summary>Draws the tab's content.</summary>
@@ -74,7 +66,7 @@ public sealed class RunecraftWindow
         RunecraftSettings settings = _watch.Settings;
 
         bool enabled = settings.Enabled;
-        if (OverlayLayout.Master("Runecraft prices", ref enabled))
+        if (OverlayLayout.Master("runecraft prices", ref enabled))
         {
             Apply(settings with { Enabled = enabled });
             settings = _watch.Settings;
@@ -96,35 +88,31 @@ public sealed class RunecraftWindow
 
         Flush();
 
-        ImGui.Separator();
-        Reading();
-
-        ImGui.Separator();
         Monoliths();
     }
 
     /// <summary>Where the prices come from, and whether they are being fetched at all.</summary>
+    /// <remarks>
+    /// A STATUS LINE, NOT THE SWITCH. The poe.ninja switch is set under economy → price sources;
+    /// a second copy here was the same setting offered twice, which reads as two settings.
+    /// </remarks>
     private void Sources()
     {
-        OverlayLayout.Group("Where the Prices Come From");
+        OverlayLayout.Group("prices");
 
         bool asking = _prices.Enabled;
-        if (ImGui.Checkbox("Fetch poe.ninja", ref asking))
-        {
-            _prices.Enabled = asking;
-            _pricesChanged();
-        }
-
-        OverlayLayout.Hint(
-            "The same switch as the Stash tab's. One anonymous request for a league's prices;"
-            + " what goes out is the league name and nothing else.");
+        ImGui.TextColored(DimText, "poe.ninja:");
+        ImGui.SameLine();
+        ImGui.TextColored(asking ? GoodText : DimText, asking ? "on" : "off");
+        ImGui.SameLine();
+        ImGui.TextColored(DimText, "- set under economy → price sources");
 
         PriceBook book = _prices.Book;
         if (!_prices.Enabled)
         {
             if (_watch.Settings.Enabled)
             {
-                OverlayLayout.Warning("Nothing will be priced until poe.ninja is being asked.");
+                OverlayLayout.Warning("Nothing will be priced until poe.ninja is queried - economy → price sources.");
             }
         }
         else if (!book.Ready)
@@ -154,10 +142,10 @@ public sealed class RunecraftWindow
     /// <summary>How the prices are drawn.</summary>
     private void Drawing(RunecraftSettings settings)
     {
-        OverlayLayout.Group("How the Price Is Drawn");
+        OverlayLayout.Group("price display");
 
         int mode = (int)settings.ColourMode;
-        if (OverlayLayout.Combo("Colour", ref mode, ColourModes))
+        if (OverlayLayout.Combo("colouring", ref mode, ColourModes))
         {
             Apply(settings with { ColourMode = (RunecraftColourMode)mode });
             settings = _watch.Settings;
@@ -167,32 +155,38 @@ public sealed class RunecraftWindow
             "Relative tints each price against the median of the rows on screen - a third above"
             + " it green, a third below it red. Absolute uses the two thresholds below.");
 
-        if (settings.ColourMode == RunecraftColourMode.Absolute)
-        {
-            float good = settings.GoodFrom;
-            if (OverlayLayout.Drag("Green from (ex)", ref good, 0.5f, 0.1f, 10_000f, "%.1f"))
-            {
-                Apply(settings with { GoodFrom = good });
-                settings = _watch.Settings;
-            }
+        // The thresholds belong to the absolute colouring alone: stepped in under it, and shut
+        // off rather than hidden in the other modes so the page keeps its shape.
+        float step = OverlayLayout.Step();
+        ImGui.Indent(step);
+        ImGui.BeginDisabled(settings.ColourMode != RunecraftColourMode.Absolute);
 
-            float bad = settings.BadBelow;
-            if (OverlayLayout.Drag("Red below (ex)", ref bad, 0.1f, 0f, 10_000f, "%.2f"))
-            {
-                Apply(settings with { BadBelow = bad });
-                settings = _watch.Settings;
-            }
+        float good = settings.GoodFrom;
+        if (OverlayLayout.Drag("green from", ref good, 0.5f, 0.1f, 10_000f, "%.1f ex"))
+        {
+            Apply(settings with { GoodFrom = good });
+            settings = _watch.Settings;
         }
 
+        float bad = settings.BadBelow;
+        if (OverlayLayout.Drag("red below", ref bad, 0.1f, 0f, 10_000f, "%.2f ex"))
+        {
+            Apply(settings with { BadBelow = bad });
+            settings = _watch.Settings;
+        }
+
+        ImGui.EndDisabled();
+        ImGui.Unindent(step);
+
         bool frame = settings.FrameBest;
-        if (OverlayLayout.Toggle("Frame the most valuable row", ref frame))
+        if (OverlayLayout.Toggle("highlight most valuable", ref frame))
         {
             Apply(settings with { FrameBest = frame });
             settings = _watch.Settings;
         }
 
         bool unpriced = settings.ShowUnpriced;
-        if (OverlayLayout.Toggle("Mark rows nothing could price", ref unpriced))
+        if (OverlayLayout.Toggle("mark unpriced", ref unpriced))
         {
             Apply(settings with { ShowUnpriced = unpriced });
             settings = _watch.Settings;
@@ -200,7 +194,7 @@ public sealed class RunecraftWindow
 
         float offset = settings.XOffset;
         if (OverlayLayout.Slider(
-                "Sideways offset", ref offset, -RunecraftSettings.FurthestOffset, RunecraftSettings.FurthestOffset, "%.0f px"))
+                "x offset", ref offset, -RunecraftSettings.FurthestOffset, RunecraftSettings.FurthestOffset, "%.0f px"))
         {
             Apply(settings with { XOffset = offset });
             settings = _watch.Settings;
@@ -211,7 +205,7 @@ public sealed class RunecraftWindow
             + " a client language whose names run further left, or a letterboxed display.");
 
         float text = settings.Writing;
-        if (OverlayLayout.Slider("Writing size", ref text, RunecraftSettings.SmallestText, RunecraftSettings.LargestText, "%.2f x"))
+        if (OverlayLayout.Slider("text size", ref text, RunecraftSettings.SmallestText, RunecraftSettings.LargestText, "%.2f×"))
         {
             Apply(settings with { TextScale = text });
             settings = _watch.Settings;
@@ -219,10 +213,10 @@ public sealed class RunecraftWindow
 
         OverlayLayout.Hint("Against half the row's height, which is what 1.00 writes at.");
 
-        OverlayLayout.Group("On the Map");
+        OverlayLayout.Group("map overlay");
 
         bool labels = settings.MapLabels;
-        if (OverlayLayout.Toggle("Price each monolith on the map", ref labels))
+        if (OverlayLayout.Toggle("monolith prices", ref labels))
         {
             Apply(settings with { MapLabels = labels });
             settings = _watch.Settings;
@@ -233,25 +227,56 @@ public sealed class RunecraftWindow
             + " open. Worked out from the monolith's own anchor rune and hole count against the"
             + " install's recipe table - the game's own rule - so it is known before the panel is.");
 
+        // What the map label carries, so all of it is the prices' child: stepped in, and shut
+        // off while the labels are.
+        ImGui.Indent(step);
+        ImGui.BeginDisabled(!settings.MapLabels);
+
         bool sockets = settings.MapSockets;
-        if (OverlayLayout.Toggle("Hole count before the price", ref sockets))
+        if (OverlayLayout.Toggle("hole count", ref sockets))
         {
             Apply(settings with { MapSockets = sockets });
             settings = _watch.Settings;
         }
 
-        OverlayLayout.Hint("\"[5] 49 ex\": five holes, best reward 49 Exalted. The holes decide the walk first.");
+        OverlayLayout.Hint(
+            "The hole count before the price. \"[5] 49 ex\": five holes, best reward 49 Exalted."
+            + " The holes decide the walk first.");
+
+        bool rune = settings.MapRune;
+        if (OverlayLayout.Toggle("chosen rune", ref rune))
+        {
+            Apply(settings with { MapRune = rune });
+            settings = _watch.Settings;
+        }
+
+        OverlayLayout.Hint(
+            "Names the chosen rune on the map. \"[5] Opulent\" in place of the price on a monolith"
+            + " whose player gave up reward for the rune; \"[5] 49 ex | Opulent\" on one sealed by a"
+            + " reroll, where both are pinned.");
+
+        bool scout = settings.MapScout;
+        if (OverlayLayout.Toggle("rune scouting", ref scout))
+        {
+            Apply(settings with { MapScout = scout });
+            settings = _watch.Settings;
+        }
+
+        OverlayLayout.Hint("The best few runes a monolith could still propagate, on a line above its price.");
+
+        ImGui.EndDisabled();
+        ImGui.Unindent(step);
 
         Chain(settings);
     }
 
-    /// <summary>The rune chain: the switch, the calibration knob, the map's two rune labels, and the weight per rune.</summary>
+    /// <summary>The rune chain: the switch, the calibration knob, and the weight per rune.</summary>
     private void Chain(RunecraftSettings settings)
     {
-        OverlayLayout.Group("The Rune Chain");
+        OverlayLayout.Group("rune chain");
 
         bool chain = settings.ChainEnabled;
-        if (OverlayLayout.Toggle("Value the rune a recipe propagates", ref chain))
+        if (OverlayLayout.Toggle("value rune chain", ref chain))
         {
             Apply(settings with { ChainEnabled = chain });
             settings = _watch.Settings;
@@ -269,7 +294,7 @@ public sealed class RunecraftWindow
         }
 
         float baseEx = settings.ChainBaseEx;
-        if (OverlayLayout.Drag("Loot per pack (ex)", ref baseEx, 0.5f, 0f, 10_000f, "%.1f"))
+        if (OverlayLayout.Drag("loot per pack", ref baseEx, 0.5f, 0f, 10_000f, "%.1f ex"))
         {
             Apply(settings with { ChainBaseEx = baseEx });
             settings = _watch.Settings;
@@ -279,26 +304,6 @@ public sealed class RunecraftWindow
             "Expected drop value of ONE pack of runic monsters. The whole chain value scales with"
             + " this, so it is the knob to calibrate: the reference measured 22 to 58 Exalted a"
             + " wave on high Grand expeditions and sat at the low end.");
-
-        bool rune = settings.MapRune;
-        if (OverlayLayout.Toggle("Name the chosen rune on the map", ref rune))
-        {
-            Apply(settings with { MapRune = rune });
-            settings = _watch.Settings;
-        }
-
-        OverlayLayout.Hint(
-            "\"[5] Opulent\" in place of the price on a monolith whose player gave up reward for the"
-            + " rune; \"[5] 49 ex | Opulent\" on one sealed by a reroll, where both are pinned.");
-
-        bool scout = settings.MapScout;
-        if (OverlayLayout.Toggle("Scout propagatable runes on the map", ref scout))
-        {
-            Apply(settings with { MapScout = scout });
-            settings = _watch.Settings;
-        }
-
-        OverlayLayout.Hint("The best few runes a monolith could still propagate, on a line above its price.");
 
         Weights(settings);
     }
@@ -322,7 +327,7 @@ public sealed class RunecraftWindow
             try
             {
                 ImGui.TableSetupColumn("rune");
-                ImGui.TableSetupColumn("loot x");
+                ImGui.TableSetupColumn("loot ×");
                 ImGui.TableSetupColumn("ex/wave");
                 ImGui.TableSetupColumn("avoid");
                 ImGui.TableSetupColumn("effect", ImGuiTableColumnFlags.WidthStretch);
@@ -344,7 +349,7 @@ public sealed class RunecraftWindow
                         ImGui.TableSetColumnIndex(1);
                         ImGui.SetNextItemWidth(field);
                         float mult = weight.LootMult;
-                        if (ImGui.DragFloat("##mult", ref mult, 0.01f, 0f, RunecraftSettings.LargestMult, "%.2f"))
+                        if (ImGui.DragFloat("##mult", ref mult, 0.01f, 0f, RunecraftSettings.LargestMult, "%.2f×"))
                         {
                             changed = weight with { LootMult = mult };
                             changedAt = i;
@@ -355,7 +360,7 @@ public sealed class RunecraftWindow
                         ImGui.TableSetColumnIndex(2);
                         ImGui.SetNextItemWidth(field);
                         float perWave = (weight.LootMult - 1f) * baseEx;
-                        if (ImGui.DragFloat("##ex", ref perWave, 0.1f, -baseEx, (RunecraftSettings.LargestMult - 1f) * baseEx, "%.1f"))
+                        if (ImGui.DragFloat("##ex", ref perWave, 0.1f, -baseEx, (RunecraftSettings.LargestMult - 1f) * baseEx, "%.1f ex"))
                         {
                             changed = weight with { LootMult = 1f + (perWave / baseEx) };
                             changedAt = i;
@@ -363,7 +368,7 @@ public sealed class RunecraftWindow
 
                         ImGui.TableSetColumnIndex(3);
                         bool avoid = weight.Avoid;
-                        if (ImGui.Checkbox("##avoid", ref avoid))
+                        if (OverlayLayout.Toggle("##avoid", ref avoid))
                         {
                             changed = weight with { Avoid = avoid };
                             changedAt = i;
@@ -379,10 +384,7 @@ public sealed class RunecraftWindow
                             remove = i;
                         }
 
-                        if (ImGui.IsItemHovered())
-                        {
-                            ImGui.SetTooltip("Take the rune out of the table - it is then worth 1.00, no loot effect");
-                        }
+                        OverlayLayout.Hint("Takes the rune out of the table. It is then worth 1.00, no loot effect.");
                     }
                     finally
                     {
@@ -426,7 +428,7 @@ public sealed class RunecraftWindow
         // thirty-four until then - the same order either way.
         RuneChainTable table = _monoliths.Table;
         ImGui.SetNextItemWidth(OverlayLayout.FieldWidth());
-        if (ImGui.BeginCombo("Add a rune", "choose..."))
+        if (ImGui.BeginCombo("add rune", "choose…"))
         {
             try
             {
@@ -453,7 +455,7 @@ public sealed class RunecraftWindow
             }
         }
 
-        if (ImGui.SmallButton("Reset to the tier-list defaults"))
+        if (ImGui.SmallButton("reset to defaults"))
         {
             Apply(settings with { ChainWeights = RuneChain.DefaultWeights });
         }
@@ -479,7 +481,7 @@ public sealed class RunecraftWindow
     private void Monoliths()
     {
         MonolithsView monoliths = _monoliths.View;
-        OverlayLayout.Group("Monoliths in This Area");
+        OverlayLayout.Group("area monoliths");
         ImGui.TextColored(monoliths.Any ? DimText : WarnText, monoliths.Status);
 
         RecipeCatalog catalog = _monoliths.Catalog;
@@ -495,7 +497,7 @@ public sealed class RunecraftWindow
 
         RunecraftSettings settings = _watch.Settings;
         float least = settings.ListMinEx;
-        if (OverlayLayout.Drag("Hide offers under (ex)", ref least, 0.5f, 0f, 10_000f, "%.1f"))
+        if (OverlayLayout.Drag("hide under", ref least, 0.5f, 0f, 10_000f, "%.1f ex"))
         {
             Apply(settings with { ListMinEx = least });
             settings = _watch.Settings;
@@ -560,14 +562,14 @@ public sealed class RunecraftWindow
         try
         {
             ImGui.TableSetupColumn("reward");
-            ImGui.TableSetupColumn("x");
+            ImGui.TableSetupColumn("×");
             ImGui.TableSetupColumn("unit");
             ImGui.TableSetupColumn("total");
             if (chained)
             {
                 ImGui.TableSetupColumn("rune");
                 ImGui.TableSetupColumn("chain");
-                ImGui.TableSetupColumn("all told");
+                ImGui.TableSetupColumn("sum");
             }
 
             ImGui.TableHeadersRow();
@@ -587,7 +589,7 @@ public sealed class RunecraftWindow
                 ImGui.TextUnformatted(candidate.Reward);
                 if (ImGui.IsItemHovered())
                 {
-                    ImGui.SetTooltip($"[{candidate.Recipe.Size}] {Runes(candidate.Recipe, catalog, station.AnchorHole)}  ·  {candidate.Recipe.Id}");
+                    OverlayLayout.Hint($"[{candidate.Recipe.Size}] {Runes(candidate.Recipe, catalog, station.AnchorHole)}  ·  {candidate.Recipe.Id}");
                 }
 
                 ImGui.TableSetColumnIndex(1);
@@ -666,100 +668,59 @@ public sealed class RunecraftWindow
         return string.Join(" · ", parts);
     }
 
-    /// <summary>What the panel read, row by row, with the door each price came through.</summary>
-    private void Reading()
+    /// <summary>
+    /// What the panel read, row by row, with the door each price came through - the capture's runecraft-panel part.
+    /// </summary>
+    /// <remarks>
+    /// A DIAGNOSIS, SO IT LIVES IN THE CAPTURE (CLAUDE.md, "Debug lives in the capture"): it was a block at the foot of
+    /// this player page, read by nobody playing and copied by hand when a price went missing. Asked for on the frame
+    /// the key goes down, on the drawing thread, so the watch's lists are read where they are written. Every row, not
+    /// the page's first 48: a file has the room.
+    /// </remarks>
+    /// <returns>The report, or null while the panel has not been looked at.</returns>
+    public string? PanelReport()
     {
         RunecraftView view = _watch.View;
-        OverlayLayout.Group("What the Panel Read");
-
+        var text = new System.Text.StringBuilder();
+        text.AppendLine(view.Status);
         if (!view.Open)
         {
-            ImGui.TextColored(DimText, view.Status);
-            return;
+            return text.ToString();
         }
 
-        ImGui.TextColored(view.Priced > 0 ? GoodText : WarnText, view.Status);
+        // What the game calls the elements the fingerprint walk resolved: a named panel is a sturdier anchor than a
+        // fingerprint - see RunecraftPanel in the schema.
         if (view.Named.Length > 0)
         {
-            ImGui.TextColored(DimText, view.Named);
-            OverlayLayout.Hint(
-                "What the game calls the elements the fingerprint walk resolved. A named panel is"
-                + " a sturdier anchor than a fingerprint - see RunecraftPanel in the schema.");
+            text.AppendLine(view.Named);
         }
 
-        // Where the first row's text was measured, because that is what the price is placed
-        // against: a child index that drifts shows here as "not read" or as a spanning
-        // element, with the price back at the edge, before anyone wonders why it moved.
+        // Where the first row's text was measured, because that is what the price is placed against: a child index
+        // that drifts shows here as "not read" or as a spanning element, with the price back at the edge.
         if (view.Rewards.Count > 0)
         {
             RunecraftReward first = view.Rewards[0];
-            ImGui.TextColored(
-                first.TextAnchors(0f) ? DimText : WarnText,
-                first.Text is { } text
-                    ? $"row text {text.Width:0} px wide, {text.Left - first.Where.Left:0} px into a {first.Where.Width:0} px row"
+            text.AppendLine(
+                first.Text is { } read
+                    ? string.Create(
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        $"row text {read.Width:0} px wide, {read.Left - first.Where.Left:0} px into a {first.Where.Width:0} px row")
                       + (first.TextAnchors(0f) ? " - the price sits before it" : " - not a text inside its row, so the price sits at the row's edge")
                     : "row text element not read - the price sits at the row's edge");
         }
 
         IReadOnlyList<(RunecraftRow Row, RunecraftPrice Price)> rows = _watch.Studied;
-        if (rows.Count == 0)
+        text.AppendLine();
+        text.AppendLine("row\tpriced by\tvia\tex");
+        foreach ((RunecraftRow row, RunecraftPrice price) in rows)
         {
-            return;
+            text.Append(row.Label).Append('\t')
+                .Append(price.Key.Length > 0 ? price.Key : row.RecipeId.Length > 0 ? row.RecipeId : "-").Append('\t')
+                .Append(price.Via).Append('\t')
+                .AppendLine(price.Total is { } total ? RunecraftPrices.Format(total) : "-");
         }
 
-        if (!ImGui.BeginTable("##runecraft-rows", 4, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.RowBg))
-        {
-            return;
-        }
-
-        try
-        {
-            ImGui.TableSetupColumn("row");
-            ImGui.TableSetupColumn("priced by");
-            ImGui.TableSetupColumn("via");
-            ImGui.TableSetupColumn("ex");
-            ImGui.TableHeadersRow();
-
-            int shown = 0;
-            foreach ((RunecraftRow row, RunecraftPrice price) in rows)
-            {
-                if (shown++ >= MostRows)
-                {
-                    break;
-                }
-
-                ImGui.TableNextRow();
-                ImGui.TableSetColumnIndex(0);
-                ImGui.TextUnformatted(row.Label);
-
-                ImGui.TableSetColumnIndex(1);
-                ImGui.TextColored(DimText, price.Key.Length > 0 ? price.Key : row.RecipeId.Length > 0 ? row.RecipeId : "-");
-
-                ImGui.TableSetColumnIndex(2);
-                ImGui.TextColored(price.Priced ? DimText : WarnText, price.Via);
-
-                ImGui.TableSetColumnIndex(3);
-                if (price.Total is { } total)
-                {
-                    ImGui.TextColored(MoneyText, RunecraftPrices.Format(total));
-                }
-                else
-                {
-                    ImGui.TextColored(DimText, "-");
-                }
-            }
-
-            if (rows.Count > MostRows)
-            {
-                ImGui.TableNextRow();
-                ImGui.TableSetColumnIndex(0);
-                ImGui.TextColored(DimText, $"...and {rows.Count - MostRows} more");
-            }
-        }
-        finally
-        {
-            ImGui.EndTable();
-        }
+        return text.ToString();
     }
 
     /// <summary>Takes a changed setting into use at once; the write waits for the typing to stop.</summary>

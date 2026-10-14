@@ -96,7 +96,7 @@ public sealed class PreloadPanel
         ImGui.SetNextWindowPos(new Vector2(screen.X * 0.015f, screen.Y * 0.22f), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowBgAlpha(Alpha());
 
-        bool expanded = ImGui.Begin("What loaded###preload-corner", Chrome.Flags(ChromeId, Flags));
+        bool expanded = ImGui.Begin("what loaded###preload-corner", Chrome.Flags(ChromeId, Flags));
 
         // Before the early return, not after it: a collapsed window is still on screen, and
         // where it sits is what decides next frame whether it is over a panel.
@@ -134,7 +134,7 @@ public sealed class PreloadPanel
             // Under the list rather than in a corner of it: the window sizes itself to its
             // contents, so a button pinned to the right edge would move with the longest
             // name and be somewhere different in every area.
-            if (ImGui.SmallButton("Close for This Map"))
+            if (ImGui.SmallButton("close for this map"))
             {
                 _closed = area;
             }

@@ -29,6 +29,16 @@ namespace PoEformance.Overlay;
 [SupportedOSPlatform("windows")]
 public sealed class PoiLayer
 {
+    /// <summary>What the mouse does on the large map - said under the active routes, which it makes.</summary>
+    private static readonly string MouseSaid =
+        "Ctrl + click a room's name: the map's own names pin the room with a route, the tile book's room outlines route to the room"
+        + " - that one goes as soon as you stand in it.\n"
+        + "Ctrl + shift + click anywhere: a stop on the newest route, passed in the order they were set, up to "
+        + RoutePlanner.MaxStops.ToString(CultureInfo.InvariantCulture)
+        + " - or, with no route, a route to that point.\n"
+        + "A route goes when you reach its end, a stop when you reach it; leaving the area drops them all. At most "
+        + RoutePlanner.MaxRoutes.ToString(CultureInfo.InvariantCulture) + " at once - a new one replaces the oldest.";
+
     private static readonly Vector4 DimText = OverlayInk.Quiet;
 
     private readonly RoutePlanner _planner;
@@ -412,10 +422,10 @@ public sealed class PoiLayer
     /// </remarks>
     public void DrawRouteSettings()
     {
-        OverlayLayout.Group("On the Map");
+        OverlayLayout.Group("map overlay");
 
         bool routes = ShowRoutes;
-        if (OverlayLayout.Toggle("Draw the Routes", ref routes))
+        if (OverlayLayout.Toggle("draw routes", ref routes))
         {
             ShowRoutes = routes;
             Changed?.Invoke();
@@ -423,40 +433,38 @@ public sealed class PoiLayer
 
         OverlayLayout.Hint("The walkable line to every chosen place, each in its route's colour. Off keeps the routes and only stops drawing them.");
 
+        // A CHILD OF THE ROUTES: arrows along a line that is not drawn would point along nothing.
+        float step = OverlayLayout.Step();
+        ImGui.Indent(step);
+        ImGui.BeginDisabled(!ShowRoutes);
         bool arrows = ShowArrows;
-        if (OverlayLayout.Toggle("Arrows Along Them", ref arrows))
+        if (OverlayLayout.Toggle("draw arrows", ref arrows))
         {
             ShowArrows = arrows;
             Changed?.Invoke();
         }
 
         OverlayLayout.Hint("Chevrons along each route on the large map, pointing the way it runs.");
+        ImGui.EndDisabled();
+        ImGui.Unindent(step);
 
-        bool picking = ShowPicker;
-        if (OverlayLayout.Toggle("Points of Interest Window", ref picking))
+        // THE ROUTES' COLOURS beside their switches (S4 of the labels review) - the style rows of StyleCatalogue.Homes.Routes,
+        // handed in by whoever builds this layer.
+        if (RouteStyles is { } styles)
         {
-            ShowPicker = picking;
-            Changed?.Invoke();
+            OverlayLayout.Group("colours");
+            styles.Draw();
         }
-
-        OverlayLayout.Hint("The places worth walking to, in a small window of their own beside the map - click one to draw the way there.");
-
-        OverlayLayout.Group("The Mouse on the Large Map");
-        OverlayLayout.Note(
-            "Ctrl + click a room's name: the map's own names pin the room with a route, the tile book's room outlines route to the room"
-            + " - that one goes as soon as you stand in it.\n"
-            + "Ctrl + shift + click anywhere: a stop on the newest route, passed in the order they were set, up to "
-            + RoutePlanner.MaxStops.ToString(CultureInfo.InvariantCulture)
-            + " - or, with no route, a route to that point.\n"
-            + "A route goes when you reach its end, a stop when you reach it; leaving the area drops them all. At most "
-            + RoutePlanner.MaxRoutes.ToString(CultureInfo.InvariantCulture) + " at once - a new one replaces the oldest.");
     }
+
+    /// <summary>The style rows for the routes' colours and arrows (StyleCatalogue.Homes.Routes), drawn in the settings; null draws none.</summary>
+    public StyleRows? RouteStyles { get; set; }
 
     /// <summary>The Routes page's list section, with how many routes there are in its tab - see <see cref="DrawActiveRoutes"/>.</summary>
     public string ActiveRoutesLabel => _planner.Targets.Count switch
     {
-        0 => "Active Routes###routes-active",
-        int count => string.Create(CultureInfo.InvariantCulture, $"Active Routes ({count})###routes-active"),
+        0 => "active routes###routes-active",
+        int count => string.Create(CultureInfo.InvariantCulture, $"active routes ({count})###routes-active"),
     };
 
     /// <summary>
@@ -485,16 +493,31 @@ public sealed class PoiLayer
             ? "-  (no player read)"
             : string.Create(CultureInfo.InvariantCulture, $"x {player.WorldX:F0}   y {player.WorldY:F0}"));
 
+        // THE PLACES WINDOW'S WAY BACK. Its switch left the settings (row 471 of the labels review); the window keeps its own
+        // close button and its saved state (showPoi), so once closed it is opened again from here.
+        if (!ShowPicker)
+        {
+            ImGui.SameLine();
+            if (ImGui.SmallButton("points of interest##routes-picker"))
+            {
+                ShowPicker = true;
+                Changed?.Invoke();
+            }
+
+            OverlayLayout.Hint("Open the points of interest window again.");
+        }
+
         if (targets.Count == 0)
         {
             OverlayLayout.Note("No routes - choose a place in the points of interest window, ctrl + click a room's name on the large map,"
                 + " or ctrl + shift + click the map for a route to that point.");
+            OverlayLayout.Note(MouseSaid);
             return;
         }
 
         ImGui.TextColored(DimText, string.Create(CultureInfo.InvariantCulture, $"{targets.Count} of {RoutePlanner.MaxRoutes}"));
         ImGui.SameLine();
-        if (ImGui.SmallButton("Clear All##routes-clear"))
+        if (ImGui.SmallButton("clear all##routes-clear"))
         {
             _planner.Clear();
             return;
@@ -546,11 +569,11 @@ public sealed class PoiLayer
                 ImGui.TextUnformatted(target.Via.Count.ToString(CultureInfo.InvariantCulture));
                 if (target.Via.Count > 0 && ImGui.IsItemHovered())
                 {
-                    ImGui.SetTooltip(StopsSaid(target));
+                    OverlayLayout.Hint(StopsSaid(target));
                 }
 
                 ImGui.TableNextColumn();
-                if (ImGui.SmallButton("drop"))
+                if (ImGui.SmallButton("remove"))
                 {
                     _planner.Remove(target.Target);
                 }
@@ -558,7 +581,7 @@ public sealed class PoiLayer
                 if (target.Via.Count > 0)
                 {
                     ImGui.SameLine();
-                    if (ImGui.SmallButton("drop stops"))
+                    if (ImGui.SmallButton("remove stops"))
                     {
                         _planner.ClearStops(target.Target);
                     }
@@ -571,6 +594,8 @@ public sealed class PoiLayer
         {
             ImGui.EndTable();
         }
+
+        OverlayLayout.Note(MouseSaid);
     }
 
     /// <summary>A route's stops, one line each, in world units.</summary>
@@ -1157,7 +1182,7 @@ public sealed class PoiLayer
         {
             ImGui.TextColored(DimText, $"{targets.Count} of {RoutePlanner.MaxRoutes} routes");
             ImGui.SameLine();
-            if (ImGui.SmallButton("Clear All"))
+            if (ImGui.SmallButton("clear all"))
             {
                 _planner.Clear();
             }

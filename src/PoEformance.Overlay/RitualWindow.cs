@@ -99,10 +99,10 @@ public sealed class RitualWindow
         // Room left for the button that follows - the one thing that may share a filter's line,
         // because a button beside a filter is a filter control rather than a second setting.
         OverlayLayout.Search(
-            "##filter", "only routes paying...", ref _filter, 64, OverlayLayout.ButtonRoom("clear picks"));
+            "##filter", "filter rewards…", ref _filter, 64, OverlayLayout.ButtonRoom("clear picks"));
         ImGui.SameLine();
 
-        if (ImGui.SmallButton("Clear Picks"))
+        if (ImGui.SmallButton("clear picks"))
         {
             Picked.Clear();
         }
@@ -111,10 +111,12 @@ public sealed class RitualWindow
         // the front of the window rather than buried: draw one line with this on, and every map
         // reports what was predicted, what was rolled, and whether they agree.
         bool checking = _watch.Proof.Enabled;
-        if (ImGui.Checkbox("check the predictions against what the game rolls", ref checking))
+        if (OverlayLayout.Toggle("verify predictions", ref checking))
         {
             _watch.Proof.Enabled = checking;
         }
+
+        OverlayLayout.Hint("Checks the predictions against what the game rolls.");
 
         if (_watch.Proof.Recorded > 0)
         {
@@ -128,9 +130,9 @@ public sealed class RitualWindow
             OverlayLayout.Note("Nothing to check yet - it needs a map already picked.");
         }
 
-        ImGui.Separator();
+        OverlayLayout.Group("routes");
         Routes(view);
-        ImGui.Separator();
+        OverlayLayout.Group("reward weights", "What a reward is worth to you. Routes are sorted by the sum over their own.");
         Weights();
     }
 
@@ -192,7 +194,9 @@ public sealed class RitualWindow
                 try
                 {
                     bool drawn = Picked.ContainsKey(chain.Key);
-                    if (ImGui.Checkbox("##pick", ref drawn))
+                    bool flipped = ImGui.Checkbox("##pick", ref drawn);
+                    OverlayLayout.Hint("Draw this route.");
+                    if (flipped)
                     {
                         if (drawn)
                         {
@@ -249,9 +253,6 @@ public sealed class RitualWindow
     /// <summary>What each reward is worth, which is what orders the list.</summary>
     private void Weights()
     {
-        ImGuiText.Wrapped(
-            DimText, "what a reward is worth to you - routes are sorted by the sum over their own");
-
         if (!ImGui.BeginChild("ritual-weights", new Vector2(0f, 0f), ImGuiChildFlags.Borders))
         {
             ImGui.EndChild();

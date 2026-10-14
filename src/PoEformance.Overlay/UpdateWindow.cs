@@ -40,7 +40,7 @@ public sealed class UpdateWindow
         + $"{UpdateCheck.Owner}/{UpdateCheck.Repository},\n"
         + "permission Contents: read (read and write if it should also send boss exports).";
 
-    private readonly GitHubTokenField _token = new("update-token", "GitHub token (Contents: read)", TokenSaid);
+    private readonly GitHubTokenField _token = new("update-token", "github token (Contents: read)", TokenSaid);
 
     /// <summary>What the last press on the token's buttons came to.</summary>
     private string _tokenSaid = string.Empty;
@@ -82,7 +82,7 @@ public sealed class UpdateWindow
     /// tab nobody reads twice; one that says "Update available" is read the first time it says
     /// it, which is the only time it needs to be.
     /// </remarks>
-    public string Label => _check.Offering ? "Update available" : "Update";
+    public string Label => _check.Offering ? "update available" : "update";
 
     /// <summary>
     /// Runs on every frame this section is NOT drawn - folded away, or on another page.
@@ -133,7 +133,7 @@ public sealed class UpdateWindow
         DrawToken();
 
         ImGui.Spacing();
-        if (ImGui.Button("Check Now"))
+        if (ImGui.Button("check now"))
         {
             _check.Refresh();
         }
@@ -239,7 +239,7 @@ public sealed class UpdateWindow
                 break;
 
             case UpdateStep.Ready:
-                if (ImGui.Button("Install and Restart"))
+                if (ImGui.Button("install & restart"))
                 {
                     _install();
                 }
@@ -247,13 +247,13 @@ public sealed class UpdateWindow
                 break;
 
             default:
-                if (ImGui.Button($"Download ({release.DownloadSize / (1024.0 * 1024):F0} MB)"))
+                if (ImGui.Button($"download ({release.DownloadSize / (1024.0 * 1024):F0} MB)"))
                 {
                     _download();
                 }
 
                 ImGui.SameLine();
-                if (ImGui.Button("Not This One"))
+                if (ImGui.Button("skip version"))
                 {
                     _skip();
                 }

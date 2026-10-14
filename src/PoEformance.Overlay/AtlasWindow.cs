@@ -65,7 +65,7 @@ public sealed class AtlasWindow
         AtlasSettings changed = settings;
 
         bool enabled = settings.Enabled;
-        if (OverlayLayout.Master("Enable Atlas Overlay", ref enabled))
+        if (OverlayLayout.Master("atlas overlay", ref enabled))
         {
             changed = changed with { Enabled = enabled };
         }
@@ -99,14 +99,14 @@ public sealed class AtlasWindow
         AtlasView view = _watch.View;
         AtlasSettings changed = settings;
 
-        OverlayLayout.Group("Drawn");
+        OverlayLayout.Group("drawn");
 
         // FIVE SWITCHES IN A GRID, three across and two down. They were three on one line and
         // two on lines of their own, spaced with a fixed gap - so the second row's switches
         // landed under the MIDDLE of the first row's rather than under their ticks, and the
         // block read as a row plus some leftovers. Columns put every tick under a tick.
         bool names = settings.Names;
-        if (OverlayLayout.Toggle("Map Names", ref names))
+        if (OverlayLayout.Toggle("map names", ref names))
         {
             changed = changed with { Names = names };
         }
@@ -119,7 +119,7 @@ public sealed class AtlasWindow
         OverlayLayout.Cell(1);
 
         bool contents = settings.Contents;
-        if (OverlayLayout.Toggle("What Is in Them", ref contents))
+        if (OverlayLayout.Toggle("map mechanic", ref contents))
         {
             changed = changed with { Contents = contents };
         }
@@ -131,7 +131,7 @@ public sealed class AtlasWindow
         OverlayLayout.Cell(2);
 
         bool web = settings.Web;
-        if (OverlayLayout.Toggle("Every Connection", ref web))
+        if (OverlayLayout.Toggle("all connections", ref web))
         {
             changed = changed with { Web = web };
         }
@@ -142,7 +142,7 @@ public sealed class AtlasWindow
             + " is the question.");
 
         bool ratings = settings.Ratings;
-        if (OverlayLayout.Toggle("Map Ratings", ref ratings))
+        if (OverlayLayout.Toggle("map ratings", ref ratings))
         {
             changed = changed with { Ratings = ratings };
         }
@@ -155,30 +155,12 @@ public sealed class AtlasWindow
 
         OverlayLayout.Cell(1);
 
-        bool biomes = settings.Biomes;
-        if (OverlayLayout.Toggle("Biome Borders", ref biomes))
-        {
-            changed = changed with { Biomes = biomes };
-        }
-
-        // THE KEY IS GONE. It listed all thirteen biome names, each in the colour it rings a map
-        // in, whenever the switch was on - a wrapped block of coloured words in the middle of a
-        // settings page, permanently, for a question asked once. The colours are on the atlas
-        // where they are used; a legend in the settings is a reference table nobody was reading.
-        OverlayLayout.Hint("The ring around each name says what terrain the map is.");
-
-        OverlayLayout.Cell(2);
-
-        // THE LABEL SAYS WHAT THE SWITCH IS DOING, not what turning it on would do. "As Pictures"
-        // left the off state unnamed, so a node showing words read as the feature being broken
-        // rather than as the setting being off.
-        //
-        // AFTER ### IS THE IDENTITY, and it has to be there: ImGui keys a widget by its label, so
-        // a label that changes with the state is a different widget every time it is clicked.
+        // A CHILD OF "map mechanic", in the cell under it, and shut off while that is: it only
+        // says how the mechanics are drawn. One fixed label - the tick shows the state - with the old identity
+        // after ### kept, since the label used to change with the state.
+        ImGui.BeginDisabled(!contents);
         bool icons = settings.Icons;
-        if (OverlayLayout.Toggle(
-            (icons ? "Node mechanic: icon" : "Node mechanic: text") + "###atlas-as-pictures",
-            ref icons))
+        if (OverlayLayout.Toggle("mechanic as icons###atlas-as-pictures", ref icons))
         {
             changed = changed with { Icons = icons };
         }
@@ -194,6 +176,21 @@ public sealed class AtlasWindow
         // spot. Measured once: the file had a badge carrying another badge's text, three contents
         // missing, and every high effect id five tokens stale, so Water read as Desert.
         OverlayLayout.Hint($"Names come from {_watch.ContentSource}.");
+        ImGui.EndDisabled();
+
+        OverlayLayout.Cell(2);
+
+        bool biomes = settings.Biomes;
+        if (OverlayLayout.Toggle("biome borders", ref biomes))
+        {
+            changed = changed with { Biomes = biomes };
+        }
+
+        // THE KEY IS GONE. It listed all thirteen biome names, each in the colour it rings a map
+        // in, whenever the switch was on - a wrapped block of coloured words in the middle of a
+        // settings page, permanently, for a question asked once. The colours are on the atlas
+        // where they are used; a legend in the settings is a reference table nobody was reading.
+        OverlayLayout.Hint("A frame around the map name in the biome's colour, which says what terrain the map is.");
 
         // A name in the file that matches no map is a rating that silently never appears, which
         // is indistinguishable from having forgotten to write it. Named here, it is a typo.
@@ -213,16 +210,16 @@ public sealed class AtlasWindow
         // decided while writing it, so it is here to be turned up rather than guessed at.
         float writing = settings.Writing;
         if (OverlayLayout.Slider(
-                "Size of the Writing", ref writing,
-                AtlasSettings.SmallestText, AtlasSettings.LargestText, "%.2fx"))
+                "text size", ref writing,
+                AtlasSettings.SmallestText, AtlasSettings.LargestText, "%.2f×"))
         {
             changed = changed with { TextScale = writing };
         }
 
-        OverlayLayout.Group("Hidden");
+        OverlayLayout.Group("hide");
 
         bool hideDone = settings.HideCompleted;
-        if (OverlayLayout.Toggle("Hide Finished Maps", ref hideDone))
+        if (OverlayLayout.Toggle("hide finished", ref hideDone))
         {
             changed = changed with { HideCompleted = hideDone };
         }
@@ -230,19 +227,18 @@ public sealed class AtlasWindow
         OverlayLayout.Next();
 
         bool hideLocked = settings.HideUnreachable;
-        if (OverlayLayout.Toggle("Hide Maps with No Way There", ref hideLocked))
+        if (OverlayLayout.Toggle("hide unreachable", ref hideLocked))
         {
             changed = changed with { HideUnreachable = hideLocked };
         }
 
-        // Said next to the switch that causes it, because this is the one pair whose effect
-        // looks like the feature being broken: routes lead to maps nobody has reached, so
-        // hiding those and wondering where the lines went is a short trip. On its own line
-        // rather than in a tooltip for that same reason - it is a warning, not an aside.
-        OverlayLayout.Note("Maps you are routing to stay visible either way.");
+        // Said on the switch that causes it, because this is the one pair whose effect looks
+        // like the feature being broken: routes lead to maps nobody has reached, so hiding those
+        // and wondering where the lines went is a short trip.
+        OverlayLayout.Hint("Hides maps with no way there. Maps you are routing to stay visible either way.");
 
         bool hideOnHover = settings.HideOnHover;
-        if (OverlayLayout.Toggle("Hide Everything over an Unmeasurable Hover Panel", ref hideOnHover))
+        if (OverlayLayout.Toggle("hide on hover", ref hideOnHover))
         {
             changed = changed with { HideOnHover = hideOnHover };
         }
@@ -253,8 +249,8 @@ public sealed class AtlasWindow
         // and leaving it looking like the main behaviour would have somebody switch it off to
         // stop a blanking that is not happening.
         OverlayLayout.Note(
-            "The panel over a hovered map is normally kept off like any other part of the"
-            + " interface. This is only what happens when it cannot be found."
+            "Hides everything while a map is hovered and its panel cannot be measured. The panel"
+            + " is normally kept off like any other part of the interface; this is only the fallback."
             // Said out loud, because "the overlay vanished" is what this looks like from the
             // outside - and if a node's rectangle ever reads too big it would be permanent.
             + (view.Hovering ? "  A map is hovered now." : string.Empty));
@@ -283,7 +279,7 @@ public sealed class AtlasWindow
         // The filter above the groups, because it decides what any of them can match. Its name
         // is inside the box now - it had a label to its right and a width nobody chose twice.
         string search = settings.Search;
-        if (OverlayLayout.Search("##atlas-search", "only maps called...", ref search, 64))
+        if (OverlayLayout.Search("##atlas-search", "filter maps…", ref search, 64))
         {
             changed = changed with { Search = search };
         }
@@ -293,10 +289,10 @@ public sealed class AtlasWindow
         // UNDER the groups rather than above them, because it is about what the groups DO once
         // they are ticked: the list is what somebody came here to edit, and a pair of switches
         // sitting on top of it would push the thing being edited down the page.
-        OverlayLayout.Group("Off the Screen");
+        OverlayLayout.Group("off-screen");
 
         bool pointers = settings.Pointers;
-        if (OverlayLayout.Toggle("Point at Targets off the Screen", ref pointers))
+        if (OverlayLayout.Toggle("edge pointers", ref pointers))
         {
             changed = changed with { Pointers = pointers };
         }
@@ -307,10 +303,14 @@ public sealed class AtlasWindow
             + " direction, naming the map and how many away it is - the nearest one of each"
             + " group, so ten unrun uniques are one marker rather than ten.");
 
-        if (pointers)
+        // A child of the pointers: indented, and shut off rather than hidden while they are off,
+        // so the page does not change shape under the cursor.
+        float step = OverlayLayout.Step();
+        ImGui.Indent(step);
+        ImGui.BeginDisabled(!pointers);
         {
             float reach = settings.Reach;
-            if (OverlayLayout.Slider("Reaching", ref reach, 0f, AtlasSettings.FurthestRange, Reach(reach)))
+            if (OverlayLayout.Slider("reach", ref reach, 0f, AtlasSettings.FurthestRange, Reach(reach)))
             {
                 // Nought is "never chosen" in the settings, so "no limit" is written as a
                 // negative - see AtlasSettings.Reach. Dragging to the bottom means no limit.
@@ -323,6 +323,9 @@ public sealed class AtlasWindow
                 + " can start now, and those are scattered over the whole atlas - so a map on"
                 + " the far side of the world is routinely three hops away.");
         }
+
+        ImGui.EndDisabled();
+        ImGui.Unindent(step);
 
         Apply(settings, changed);
     }
@@ -366,21 +369,21 @@ public sealed class AtlasWindow
         // Right-aligned, so it sits out of the account's way however long that runs and does not
         // move as the counts change. Measured from what is LEFT on the line - after a SameLine
         // that is the distance from the cursor to the window's inner right edge.
-        float button = ImGui.CalcTextSize("Check the read").X + (ImGui.GetStyle().FramePadding.X * 2f);
+        float button = ImGui.CalcTextSize("debug output").X + (ImGui.GetStyle().FramePadding.X * 2f);
         float room = ImGui.GetContentRegionAvail().X;
         if (room > button)
         {
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + room - button);
         }
 
-        if (ImGui.Button("Check the Read"))
+        if (ImGui.Button("debug output"))
         {
             _watch.CheckTheRead();
         }
 
         OverlayLayout.Hint("Open the atlas first - it reads nothing while the panel is shut."
             + (_watch.Checked.Count > 0
-                ? $" The last check wrote {_watch.Checked.Count} lines - they are on the Debug Log tab."
+                ? $" The last check wrote {_watch.Checked.Count} lines - they are on the debug log tab."
                 : string.Empty));
     }
 
@@ -523,7 +526,7 @@ public sealed class AtlasWindow
                     if (group.Route)
                     {
                         int hops = group.MaxHops;
-                        if (OverlayLayout.Narrow.Number("maps away", ref hops, 1))
+                        if (OverlayLayout.Narrow.Number("max hops", ref hops, 1))
                         {
                             after = after with { MaxHops = Math.Max(0, hops) };
                         }

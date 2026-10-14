@@ -29,49 +29,26 @@ public sealed class PreloadWindow
 
     private readonly PreloadWatch _watch;
     private readonly Action _lookAgain;
-    private readonly Action _sweep;
-    private readonly Action? _rooms;
-    private readonly Action? _writeRooms;
-    private readonly Action? _huntPlacements;
     private readonly Action _rulesChanged;
     private string _search = string.Empty;
     private string _said = string.Empty;
     private string _saved = string.Empty;
 
     /// <param name="lookAgain">Runs the walk again, for when it needs forcing.</param>
-    /// <param name="sweep">Looks for the count field instead of assuming one - see below.</param>
     /// <param name="rulesChanged">Writes down a rule somebody added from the raw list.</param>
-    /// <param name="rooms">
-    /// Opens the area's ROOM files out of the game's own bundles and reports what is in them.
-    /// Optional, because it needs the game's files: without an install to read there is
-    /// nothing to offer, and a button that always answers "no files" is worse than no button.
-    /// </param>
-    /// <param name="writeRooms">
-    /// Writes those files out whole, decoded, beside the loaded-file dumps. The readout says
-    /// what a room NAMES; the format - the grid's size, its alphabet, how it refers to the
-    /// ground types - is a question about the whole file, and nobody answers that at the
-    /// machine running the game.
-    /// </param>
-    public PreloadWindow(
-        PreloadWatch watch,
-        Action lookAgain,
-        Action sweep,
-        Action rulesChanged,
-        Action? rooms = null,
-        Action? writeRooms = null,
-        Action? huntPlacements = null)
+    /// <remarks>
+    /// THE DIAGNOSTIC BUTTONS ARE GONE FROM HERE - finding the count field, looking inside the rooms, writing them out and
+    /// hunting their placements. They are capture parts now (CaptureParts.RunsAtPress): a diagnosis lives in the capture,
+    /// not on a page somebody plays with open.
+    /// </remarks>
+    public PreloadWindow(PreloadWatch watch, Action lookAgain, Action rulesChanged)
     {
         ArgumentNullException.ThrowIfNull(watch);
         ArgumentNullException.ThrowIfNull(lookAgain);
-        ArgumentNullException.ThrowIfNull(sweep);
         ArgumentNullException.ThrowIfNull(rulesChanged);
         _watch = watch;
         _lookAgain = lookAgain;
-        _sweep = sweep;
         _rulesChanged = rulesChanged;
-        _rooms = rooms;
-        _writeRooms = writeRooms;
-        _huntPlacements = huntPlacements;
     }
 
     /// <summary>Draws the tab's content.</summary>
@@ -79,10 +56,12 @@ public sealed class PreloadWindow
 
     private void Draw()
     {
-        if (ImGui.Button("Look Again"))
+        if (ImGui.Button("rescan"))
         {
             _lookAgain();
         }
+
+        OverlayLayout.Hint("Read the area's file list again.");
 
         ImGui.SameLine();
 
@@ -107,69 +86,12 @@ public sealed class PreloadWindow
             ImGui.TextColored(WarnText, _watch.Note);
         }
 
-        // Offered exactly when it is the question. "It walked thousands of slots and matched
-        // nothing" has several causes wanting opposite fixes, and the sweep is what tells
-        // them apart - so it appears when that has happened and stays out of the way when it
-        // has not.
-        if (all.Count == 0 && _watch.Looked)
-        {
-            ImGui.SameLine();
-            if (ImGui.SmallButton("Find the Count Field"))
-            {
-                _sweep();
-            }
-        }
-
-        // What the ROOMS of this area are made of, read out of the game's own bundles. Offered
-        // here because this list is where their names come from: memory says which rooms the
-        // area loaded and nothing more, so the files themselves are the only place left that
-        // could say where each one sits. See RoomFiles.
-        if (all.Count > 0 && _rooms is not null)
-        {
-            ImGui.SameLine();
-            if (ImGui.SmallButton("Look Inside the Rooms"))
-            {
-                _rooms();
-            }
-        }
-
-        // And the whole of them, out to a file. The readout above is eight strings per room,
-        // which was enough to establish that a room is a grid of characters and nothing more;
-        // the dimensions, the alphabet and the way it names its ground types are questions
-        // about the whole file, and this is what carries one off the gaming machine.
-        if (all.Count > 0 && _writeRooms is not null)
-        {
-            ImGui.SameLine();
-            if (ImGui.SmallButton("Write the Rooms Out"))
-            {
-                _writeRooms();
-            }
-        }
-
-        // AND THE OTHER DIRECTION: not what a room file says, but who in memory REFERS to one.
-        // The file table is what makes that searchable at all - it hands over the ADDRESS of
-        // every room's record, so the hunt looks for a known value rather than for a shape that
-        // resembles a room. See RoomPlacementProbe for why that distinction is the whole point.
-        //
-        // NOT GATED ON THE LIST ABOVE, unlike its neighbours. Those read files this AREA loaded,
-        // so with no match there is nothing to open; this walks the whole table itself and works
-        // when the area match does not - which is precisely when somebody wants it. The probe
-        // reports its own emptiness in words, which beats a button that is not there.
-        if (_huntPlacements is not null)
-        {
-            ImGui.SameLine();
-            if (ImGui.SmallButton("Hunt the Placements"))
-            {
-                _huntPlacements();
-            }
-        }
-
         // The whole list, out to a file. Offered beside the count rather than at the bottom of
         // the raw list, because the reason to want it is the count being interesting.
         if (all.Count > 0)
         {
             ImGui.SameLine();
-            if (ImGui.SmallButton("Save the List"))
+            if (ImGui.SmallButton("save list"))
             {
                 _saved = PreloadAlertStore.Dump(_watch.Area, all, _watch.Note) is { } written
                     ? $"written to {written}"
@@ -182,18 +104,10 @@ public sealed class PreloadWindow
             }
         }
 
-        // THE DIAGNOSTICS' LINES - "rooms written to ..." among them - with any file they wrote a link.
-        foreach (string line in _watch.Sweep)
-        {
-            PathLink.Line(DimText, line);
-        }
-
         // Titled rules between the halves, like the alerts tab: the findings and the raw
         // list are different answers to different questions, and a hairline does not say
         // where one ends.
-        ImGui.Spacing();
-        OverlayLayout.Group("What That Means");
-        ImGui.Spacing();
+        OverlayLayout.Group("matches", "What the files this area loaded mean, by the watch list.");
 
         IReadOnlyList<PreloadAlertEntry> found = _watch.Found;
         if (found.Count == 0)
@@ -212,9 +126,7 @@ public sealed class PreloadWindow
             ImGuiText.Wrapped(DimText, entry.Path);
         }
 
-        ImGui.Spacing();
-        OverlayLayout.Group("Every File It Loaded");
-        ImGui.Spacing();
+        OverlayLayout.Group("all loaded files");
         DrawSearch();
 
         if (!ImGui.BeginChild("preload-raw", Vector2.Zero, ImGuiChildFlags.Borders))
@@ -259,10 +171,12 @@ public sealed class PreloadWindow
                 // to type it or wait for a release. THIS EXACT PATH is what gets watched - so
                 // what was clicked and what is stored can never disagree, which is the whole
                 // bargain of matching exactly.
-                if (ImGui.SmallButton("+ Watch"))
+                if (ImGui.SmallButton("+ watch"))
                 {
                     Add(path);
                 }
+
+                OverlayLayout.Hint("Add this exact path to the watch list.");
 
                 ImGui.TableNextColumn();
 
@@ -297,8 +211,8 @@ public sealed class PreloadWindow
     private void DrawSearch()
     {
         bool entered = OverlayLayout.Search(
-            "###preload-search", "filter the files loaded here...", ref _search, 96,
-            OverlayLayout.ButtonRoom("watch for this"), ImGuiInputTextFlags.EnterReturnsTrue);
+            "###preload-search", "filter files…", ref _search, 96,
+            OverlayLayout.ButtonRoom("watch this"), ImGuiInputTextFlags.EnterReturnsTrue);
 
         ImGui.SameLine();
 
@@ -306,7 +220,9 @@ public sealed class PreloadWindow
         // already said what they care about, and it is a better rule than any single path
         // the search turned up - shorter, so it survives the file being renamed next league.
         string term = _search.Trim();
-        bool add = ImGui.Button("Watch for This") || entered;
+        bool add = ImGui.Button("watch this");
+        OverlayLayout.Hint("Add the typed fragment to the watch list.");
+        add |= entered;
         if (add && term.Length > 0)
         {
             Add(term);

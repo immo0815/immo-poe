@@ -135,6 +135,21 @@ public static class CaptureReport
     /// <summary>The atlas check's report.</summary>
     public const string AtlasLogFile = "atlas-log.txt";
 
+    /// <summary>The loaded-file table's sweep for its count field.</summary>
+    public const string CountFieldFile = "count-field.txt";
+
+    /// <summary>What the area's room files name.</summary>
+    public const string RoomsInsideFile = "rooms-inside.txt";
+
+    /// <summary>The area's room files and their type files, decoded whole.</summary>
+    public const string RoomsExportedFile = "rooms-exported.txt";
+
+    /// <summary>What in memory refers to the area's room files.</summary>
+    public const string RoomPlacementsFile = "room-placements.txt";
+
+    /// <summary>What the runecraft panel read.</summary>
+    public const string RunecraftPanelFile = "runecraft-panel.txt";
+
     /// <summary>Where captures go: beside the tool, like its exports.</summary>
     public static string Root => Path.Combine(AppContext.BaseDirectory, "captures");
 

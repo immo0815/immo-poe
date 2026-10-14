@@ -114,6 +114,27 @@ public sealed class ToolTabs
         _leads[page] = draw;
     }
 
+    // A page's tab label read per frame, by page id - see LivePage.
+    private readonly Dictionary<string, Func<string>> _livePages = [];
+
+    /// <summary>
+    /// Gives a page a tab label read every frame, for news the page carries.
+    /// </summary>
+    /// <remarks>
+    /// A section's live label shows on its header, and a page holding ONE tool has no header -
+    /// so a single-tool page with something to announce, the update on the about page, says it
+    /// on its tab instead. Kept by id for the reason leads are.
+    /// </remarks>
+    public void LivePage(string page, Func<string> label)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(page);
+        ArgumentNullException.ThrowIfNull(label);
+        _livePages[page] = label;
+    }
+
+    private string LabelOf(Page page) =>
+        _livePages.TryGetValue(page.Id, out Func<string>? live) ? live() : page.Label;
+
     // The pages somebody took off the bar. A registered tool stays registered - its idle
     // callback keeps running, its jumps keep working - the tab is just not offered, which is
     // what "I never use this one" actually asks for. Ids rather than Page references because
@@ -483,7 +504,7 @@ public sealed class ToolTabs
                     // ###id so a label could carry live text without the tab becoming a new
                     // control - ImGui identity comes from the label, as the status readout's
                     // checkboxes learned the hard way.
-                    if (!BeginTabItem($"{page.Label}###{page.Id}", flags))
+                    if (!BeginTabItem($"{LabelOf(page)}###{page.Id}", flags))
                     {
                         continue;
                     }
@@ -796,7 +817,7 @@ public sealed class ToolTabs
 
             // ###id for the reason the tabs carry it: the checkbox must survive a relabel.
             bool shown = !_hidden.Contains(page.Id);
-            if (!ImGui.Checkbox($"{page.Label}###tab-{page.Id}", ref shown))
+            if (!OverlayLayout.Toggle($"{page.Label}###tab-{page.Id}", ref shown))
             {
                 continue;
             }

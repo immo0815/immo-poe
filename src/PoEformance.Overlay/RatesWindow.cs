@@ -87,7 +87,7 @@ public sealed class RatesWindow
         // switch sat at whatever x the filter's width happened to end at - which was 16.5 lines
         // here, 14.5 on the ritual page and 12 on two others, for the same pair of controls.
         OverlayLayout.Search("##rates-search", "name...", ref _search, 64);
-        OverlayLayout.Toggle("Only Where a Loop Pays", ref _routesOnly);
+        OverlayLayout.Toggle("paying loops only", ref _routesOnly);
 
         IReadOnlyList<Route> routes = Arbitrage.Routes(pairs, index);
         var better = routes.ToDictionary(route => route.Path, StringComparer.Ordinal);
@@ -115,12 +115,19 @@ public sealed class RatesWindow
     /// guards - see <see cref="Arbitrage"/> for what that costs.
     ///
     /// It reads the store's own flag every frame rather than keeping a copy, so this and the
-    /// Stash tab's switch cannot come apart.
+    /// price sources' exchange switch cannot come apart. KEPT HERE, unlike the poe.ninja switch
+    /// runecraft used to repeat: the exchange is the one thing this page draws from, so a page
+    /// that is empty while it is off offers the way to turn it on. The index follows it either
+    /// way - the wiring sets it from the exchange's flag every tick.
     /// </remarks>
     private bool Switch()
     {
         bool asking = _exchange.Enabled;
-        if (ImGui.Checkbox("read live rates", ref asking))
+        bool flipped = OverlayLayout.Toggle("live rates", ref asking);
+        OverlayLayout.Hint(
+            "Reads the game's own currency exchange and the index beside it. The same switch as"
+            + " \"query currency exchange\" under economy → price sources.");
+        if (flipped)
         {
             _exchange.Enabled = asking;
             _scout.Enabled = asking;
@@ -237,7 +244,7 @@ public sealed class RatesWindow
         {
             ImGui.TableSetupScrollFreeze(0, 1);
             ImGui.TableSetupColumn("currency");
-            ImGui.TableSetupColumn("in exalted");
+            ImGui.TableSetupColumn("ex");
             ImGui.TableSetupColumn("7 days");
             ImGui.TableSetupColumn("book");
 
