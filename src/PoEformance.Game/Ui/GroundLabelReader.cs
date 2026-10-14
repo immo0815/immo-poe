@@ -10,29 +10,32 @@ namespace PoEformance.Game.Ui;
 /// <remarks>
 /// WHAT THEY ARE. A dropped item's name is an ordinary UI element whose StringId is the item's
 /// own path - <c>Metadata/MiscellaneousObjects/WorldItem</c> for a ground item - and whose text is
-/// the name. Its rectangle is its own, the same as an interface part's, so the map can be drawn
-/// under it at the game's own place (measured on the large map, 2026-10-14).
+/// the name. Its rectangle is its own, the same as an interface part's.
 ///
-/// WHEN IT IS READ. Only while the large map is on screen: a label is only ever drawn under the
-/// map's fade, and the search costs a walk of the interface that the minimap does not need. The
-/// caller decides; this only answers.
+/// WHERE THEY ARE. Under one element, reached by the index path <see cref="ContainerPath"/> from the
+/// UI root (measured 2026-10-14: the labels are that element's direct children).
 ///
-/// ONLY WHAT IS SHOWN. A hidden element keeps its rectangle, so a label the game has stopped
-/// drawing would otherwise still fade the map. Visibility and the window are both checked.
+/// WHAT IT COSTS. The element's address is found once per AREA - it is kept while the area instance
+/// stays the same and looked up again when the area changes - and every read after that only walks
+/// the element's children. A search of the whole tree was the first version and cost about half a
+/// second a read; the path costs a few node reads.
 ///
-/// SEARCHED, NOT POSITIONED. The labels hang under the interface's own tree at a depth nobody
-/// has pinned down, so they are found by their id under the UI root rather than by an index that
-/// a patch would move. The budget bounds the walk; an interrupted search returns what it found.
+/// ONLY THE ITEMS, AND ONLY THE ONES SHOWN. Of the children, only WorldItem elements count, and of
+/// those only the visible ones: a hidden element keeps its rectangle, so a label the game has
+/// stopped drawing would otherwise still fade the map.
 /// </remarks>
 public sealed class GroundLabelReader
 {
     /// <summary>The StringId every ground item label carries.</summary>
     public const string Id = "Metadata/MiscellaneousObjects/WorldItem";
 
-    private const int MaxLabels = 300;
-    private const int Budget = 20_000;
+    /// <summary>The child indices from the UI root down to the element the labels hang under.</summary>
+    public static readonly int[] ContainerPath = [8, 0, 0];
 
     private readonly UiTreeReader _tree;
+
+    private ulong _area;
+    private ulong _container;
 
     public GroundLabelReader(IMemoryReader reader, OffsetSchema schema)
     {
@@ -42,18 +45,45 @@ public sealed class GroundLabelReader
         _tree = new UiTreeReader(reader, schema);
     }
 
-    /// <summary>The visible ground labels that lie on the window, or none when the root is unknown.</summary>
-    public List<ScreenRect> Read(ulong uiRoot, UiScale scale, ScreenRect window)
+    /// <summary>
+    /// The visible ground labels that lie on the window. Empty when the path does not lead to the
+    /// element, which is the honest answer rather than a search for it.
+    /// </summary>
+    /// <param name="uiRoot">The UI root this frame.</param>
+    /// <param name="scale">The window's scale, for the positions.</param>
+    /// <param name="areaInstance">The area instance this frame; a new one means the element is looked up again.</param>
+    /// <param name="window">The window the labels must lie on.</param>
+    public List<ScreenRect> Read(ulong uiRoot, UiScale scale, ulong areaInstance, ScreenRect window)
     {
         var labels = new List<ScreenRect>();
-        if (uiRoot == 0)
+        if (uiRoot == 0 || areaInstance == 0)
         {
             return labels;
         }
 
-        foreach (UiNode node in _tree.Search(uiRoot, Id, scale, MaxLabels, Budget))
+        if (areaInstance != _area || _container == 0)
         {
-            if (node.StringId != Id || !node.Visible || node.Size.X <= 0f || node.Size.Y <= 0f)
+            _area = areaInstance;
+            _container = ResolveContainer(uiRoot, scale);
+        }
+
+        if (_container == 0)
+        {
+            return labels;
+        }
+
+        UiNode? container = _tree.ReadOne(_container, scale);
+        if (container is null)
+        {
+            // Gone since the last read - looked up again on the next one.
+            _container = 0;
+            return labels;
+        }
+
+        foreach (ulong child in container.Children)
+        {
+            UiNode? node = _tree.ReadOne(child, scale);
+            if (node is null || node.StringId != Id || !node.Visible || node.Size.X <= 0f || node.Size.Y <= 0f)
             {
                 continue;
             }
@@ -67,5 +97,23 @@ public sealed class GroundLabelReader
         }
 
         return labels;
+    }
+
+    /// <summary>The address of the element at the end of <see cref="ContainerPath"/>, or zero.</summary>
+    private ulong ResolveContainer(ulong root, UiScale scale)
+    {
+        ulong at = root;
+        foreach (int index in ContainerPath)
+        {
+            UiNode? node = _tree.ReadOne(at, scale);
+            if (node is null || index < 0 || index >= node.Children.Count)
+            {
+                return 0;
+            }
+
+            at = node.Children[index];
+        }
+
+        return _tree.ReadOne(at, scale) is null ? 0 : at;
     }
 }

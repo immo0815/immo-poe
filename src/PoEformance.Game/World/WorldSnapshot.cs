@@ -1701,7 +1701,8 @@ public sealed class WorldReader
             // of the interface that is not free. See GroundLabelReader.
             if (largeMap is MapView shown && shown.IsUsable && shown.Visible)
             {
-                groundLabels = _groundLabels.Read(chain.UiRoot, viewport, ScreenRect.Window(viewport.WindowWidth, viewport.WindowHeight));
+                groundLabels = _groundLabels.Read(
+                    chain.UiRoot, viewport, chain.AreaInstance, ScreenRect.Window(viewport.WindowWidth, viewport.WindowHeight));
             }
 
             // The belt's slots, under the same interface element: where each flask is drawn,
