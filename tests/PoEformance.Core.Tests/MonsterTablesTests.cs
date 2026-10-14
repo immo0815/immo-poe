@@ -459,4 +459,39 @@ public class MonsterTablesTests
             MonsterTables.Against(installed.Table, bare),
             line => line.Contains("no reference table has been renumbered", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void ADIFFERINGExportIsReplacedByTheInstallAndReadsBackTheSame()
+    {
+        // Asked for from the live client: a difference found at start-up is written into the file,
+        // not only reported. What is written must load back to what was read, or the next start
+        // reports a difference of its own making; and a second read then leaves the file alone.
+        QuestTableLayouts layouts = Layouts();
+        string path = Path.Combine(Path.GetTempPath(), $"monsters-{Guid.NewGuid():N}.json");
+        try
+        {
+            MonsterTables read = MonsterTables.Read(Install(layouts), layouts, MonsterVarieties.Empty, path);
+            Assert.True(File.Exists(path), string.Join("\n", read.Say));
+
+            MonsterVarieties written = MonsterVarieties.Load(path);
+            Assert.Equal(read.Table.Count, written.Count);
+            Assert.Contains(
+                "0 of the shared ones differ",
+                string.Join("\n", MonsterTables.Against(read.Table, written)),
+                StringComparison.Ordinal);
+
+            MonsterVariety one = Assert.IsType<MonsterVariety>(written.Find("Metadata/Monsters/Test/Shieldbearer"));
+            Assert.Equal(["undead", "zombie"], written.TagsOf(one));
+            Assert.Equal("RotBlood", written.BloodName(one));
+
+            DateTime before = File.GetLastWriteTimeUtc(path);
+            MonsterTables again = MonsterTables.Read(Install(layouts), layouts, written, path);
+            Assert.Contains(again.Say, line => line.Contains("left as it is", StringComparison.Ordinal));
+            Assert.Equal(before, File.GetLastWriteTimeUtc(path));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }

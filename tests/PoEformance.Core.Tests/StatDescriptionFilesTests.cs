@@ -383,4 +383,32 @@ public class StatDescriptionFilesTests
         // Nothing to compare against is said rather than counted as agreement.
         Assert.Contains("nothing to compare", Assert.Single(lines.Against(StatDescriptions.Empty)), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void THEINSTALLSSentencesAreWrittenAsTheTsvAndReadBackTheSame()
+    {
+        // The TSV written from the install must load back to the same sentences - grouped stats
+        // still grouped, the base_ alias still answering - or every start would rewrite it.
+        StatDescriptions read = StatDescriptions.FromInstall(Install());
+        string path = Path.Combine(Path.GetTempPath(), $"stats-{Guid.NewGuid():N}.tsv");
+        try
+        {
+            Assert.NotNull(read.Supersedes(StatDescriptions.Empty));
+            Assert.True(read.Save(path, out string said), said);
+
+            StatDescriptions written = StatDescriptions.Load(path);
+            Assert.Equal(read.Count, written.Count);
+            Assert.Equal(read.Grouped, written.Grouped);
+            Assert.Equal("{0} to maximum Life", written.Of("maximum_life"));
+            Assert.Null(read.Supersedes(written));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void ANDATableReadFromTheFileNeverReplacesOne()
+        => Assert.Null(StatDescriptions.Empty.Supersedes(StatDescriptions.Empty));
 }

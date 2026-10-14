@@ -214,6 +214,79 @@ public sealed class AtlasMapNames
     }
 
     /// <summary>
+    /// Adds the maps the file has never heard of to it, leaving every entry it has untouched.
+    /// </summary>
+    /// <remarks>
+    /// ADDED, NEVER REWRITTEN (decided from the live client, 2026-10-13). The file is partly curated
+    /// - the English names the ratings resolve through, and words like "tower" or "breach" the game's
+    /// tags do not share - so what the game says replaces none of it. A new map goes in under the
+    /// name the client gives it, which on a client not in English is not English: it is still a name
+    /// where there was a raw id, and an entry somebody can correct. No tags: the game's share no
+    /// vocabulary with the curated ones, and a curated word nobody chose would group the map wrongly.
+    ///
+    /// Read again from disk rather than written from <see cref="All"/>, so an entry somebody added
+    /// by hand while the tool ran survives. Sorted, through a temporary file and a rename.
+    /// </remarks>
+    /// <param name="path">The file to add to.</param>
+    /// <param name="added">Map id to the name the game gives it.</param>
+    /// <returns>How many entries were added; nought where none were new or the write failed.</returns>
+    public static int Append(string path, IReadOnlyDictionary<string, string> added, out string said)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(path);
+        ArgumentNullException.ThrowIfNull(added);
+
+        try
+        {
+            Dictionary<string, AtlasMapEntry> maps = new(StringComparer.OrdinalIgnoreCase);
+            if (File.Exists(path))
+            {
+                using FileStream stream = File.OpenRead(path);
+                AtlasMapFile? file = JsonSerializer.Deserialize(stream, AtlasMapJsonContext.Default.AtlasMapFile);
+                foreach ((string id, AtlasMapEntry entry) in file?.Maps ?? [])
+                {
+                    maps[id] = entry;
+                }
+            }
+
+            var fresh = new List<string>();
+            foreach ((string id, string name) in added)
+            {
+                if (id.Length > 0 && name.Length > 0 && maps.TryAdd(id, new AtlasMapEntry { Name = name }))
+                {
+                    fresh.Add(id);
+                }
+            }
+
+            if (fresh.Count == 0)
+            {
+                said = $"{Path.GetFileName(path)} already lists every map the game does";
+                return 0;
+            }
+
+            var sorted = new Dictionary<string, AtlasMapEntry>(maps.Count, StringComparer.Ordinal);
+            foreach (KeyValuePair<string, AtlasMapEntry> pair in maps.OrderBy(one => one.Key, StringComparer.Ordinal))
+            {
+                sorted[pair.Key] = pair.Value;
+            }
+
+            string temporary = path + ".writing";
+            File.WriteAllText(
+                temporary,
+                JsonSerializer.Serialize(new AtlasMapFile { Maps = sorted }, AtlasMapJsonWriting.Relaxed.AtlasMapFile) + "\n");
+            File.Move(temporary, path, overwrite: true);
+
+            said = $"added {fresh.Count} maps to {Path.GetFileName(path)}: {string.Join(", ", fresh.Take(8))}";
+            return fresh.Count;
+        }
+        catch (Exception exception) when (exception is IOException or JsonException or UnauthorizedAccessException
+            or NotSupportedException)
+        {
+            said = $"could not add to {path}: {exception.Message}";
+            return 0;
+        }
+    }
+
+    /// <summary>
     /// Loads the file, or returns <see cref="Empty"/> when it is missing or unreadable.
     /// </summary>
     /// <remarks>
@@ -279,3 +352,16 @@ public sealed class AtlasMapEntry
 /// <summary>Source-generated JSON, so the map names survive Native AOT.</summary>
 [JsonSerializable(typeof(AtlasMapFile))]
 public sealed partial class AtlasMapJsonContext : JsonSerializerContext;
+
+/// <summary>The context <see cref="AtlasMapNames.Append"/> writes with: indented, no null tags, apostrophes as typed.</summary>
+[JsonSourceGenerationOptions(WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+[JsonSerializable(typeof(AtlasMapFile))]
+internal sealed partial class AtlasMapJsonWriting : JsonSerializerContext
+{
+    public static AtlasMapJsonWriting Relaxed { get; } = new(new JsonSerializerOptions
+    {
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    });
+}

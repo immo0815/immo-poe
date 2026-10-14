@@ -402,6 +402,84 @@ public sealed class MonsterVarieties
     }
 
     /// <summary>
+    /// Writes this table over <paramref name="path"/> in the shape <see cref="Load"/> reads.
+    /// </summary>
+    /// <remarks>
+    /// FOR THE INSTALL'S READ TO REPLACE A STALE EXPORT (asked for from the live client,
+    /// 2026-10-13): once the install has been read whole and differs from the file, the file is
+    /// brought up to it, so the next start - and a start with no install - begins from the patch
+    /// being played rather than from whenever somebody last ran the export.
+    ///
+    /// THROUGH A TEMPORARY FILE and a rename, as BossIcons.Save writes its file: a crash half way
+    /// through a direct write leaves a truncated JSON file, which loads as nothing at all.
+    ///
+    /// KEYS SORTED ORDINALLY, as the Python export sorts them, so the first write is a diff of what
+    /// changed rather than of where a dictionary put things. Defaults are left out - every field
+    /// has the default <see cref="Load"/> gives it back - which keeps the file the export's size.
+    /// </remarks>
+    /// <returns>Whether the file was written; <paramref name="said"/> says what happened either way.</returns>
+    public bool Save(string path, out string said)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(path);
+
+        var file = new MonsterVarietyFile
+        {
+            Generated = Generated,
+            Source = "PoEformance, from the install's own .datc64 tables",
+            Monsters = Sorted(_byPath),
+            Skills = Keyed(_skills),
+            Modifiers = Keyed(_modifiers),
+            Tags = Keyed(_tags),
+            Types = Keyed(_types),
+            Blood = Keyed(_blood),
+            Resistances = Keyed(_resistances),
+        };
+
+        string temporary = path + ".writing";
+        try
+        {
+            using (FileStream stream = File.Create(temporary))
+            {
+                JsonSerializer.Serialize(stream, file, MonsterJsonWriting.Relaxed.MonsterVarietyFile);
+            }
+
+            File.Move(temporary, path, overwrite: true);
+            said = $"wrote {Path.GetFileName(path)}: {Count} monsters, {_skills.Count} skills, {_tags.Count} tags,"
+                + $" {_types.Count} types, {_modifiers.Count} modifiers";
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
+            or NotSupportedException or JsonException)
+        {
+            said = $"could not write {path}: {exception.Message}";
+            return false;
+        }
+
+        static Dictionary<string, T> Sorted<T>(IReadOnlyDictionary<string, T> pairs)
+        {
+            var sorted = new Dictionary<string, T>(pairs.Count, StringComparer.Ordinal);
+            foreach (KeyValuePair<string, T> pair in pairs.OrderBy(one => one.Key, StringComparer.Ordinal))
+            {
+                sorted[pair.Key] = pair.Value;
+            }
+
+            return sorted;
+        }
+
+        // Row numbers become text, as JSON keys must and as Load parses them back.
+        static Dictionary<string, T> Keyed<T>(IReadOnlyDictionary<int, T> rows)
+        {
+            var keyed = new Dictionary<string, T>(rows.Count, StringComparer.Ordinal);
+            foreach ((int row, T value) in rows)
+            {
+                keyed[row.ToString(System.Globalization.CultureInfo.InvariantCulture)] = value;
+            }
+
+            return Sorted(keyed);
+        }
+    }
+
+    /// <summary>
     /// Every monster the table knows, by the path it is keyed on.
     /// </summary>
     /// <remarks>
@@ -585,6 +663,10 @@ internal sealed class MonsterVarietyFile
     [JsonPropertyName("generated")]
     public string? Generated { get; init; }
 
+    /// <summary>What made the file. Written and never read - it is for a person opening it.</summary>
+    [JsonPropertyName("source")]
+    public string? Source { get; init; }
+
     [JsonPropertyName("monsters")]
     public Dictionary<string, MonsterVariety>? Monsters { get; init; }
 
@@ -611,3 +693,19 @@ internal sealed class MonsterVarietyFile
 /// <summary>Source-generated JSON, so the monster table survives Native AOT.</summary>
 [JsonSerializable(typeof(MonsterVarietyFile))]
 internal sealed partial class MonsterJsonContext : JsonSerializerContext;
+
+/// <summary>The context the file is WRITTEN with, by <see cref="MonsterVarieties.Save"/>.</summary>
+/// <remarks>
+/// Defaults left out, and without HTML-safe escaping: the names are full of apostrophes - "Hilda's",
+/// "Kitava's" - which the default encoder writes as ', a file nobody can search by eye.
+/// </remarks>
+[JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault)]
+[JsonSerializable(typeof(MonsterVarietyFile))]
+internal sealed partial class MonsterJsonWriting : JsonSerializerContext
+{
+    public static MonsterJsonWriting Relaxed { get; } = new(new JsonSerializerOptions
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    });
+}
