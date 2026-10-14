@@ -5177,6 +5177,13 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         StatusBar.Figure(
             _snapshot.Remembered > 0 ? $"{listed} +{_snapshot.Remembered}" : $"{listed}");
 
+        // The ground labels the map is faded under this read. Shown only while the fade is on, because
+        // a count with nothing fading under it would read as a fault.
+        if (GroundLabelFade)
+        {
+            StatusBar.Chip($"labels {_snapshot.GroundLabelsOnScreen.Count}", Quiet);
+        }
+
         if (ReadStats is not null)
         {
             (double ms, long _, long failures) = ReadStats();
