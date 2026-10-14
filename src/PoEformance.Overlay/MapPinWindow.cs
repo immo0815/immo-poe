@@ -72,9 +72,9 @@ public sealed class MapPinWindow
             "what the five flag columns mean is not known - count the pins your world map draws"
             + " and see which of these two it matches");
 
-        ImGui.Checkbox("only the locked ones", ref _lockedOnly);
+        OverlayLayout.Toggle("locked only", ref _lockedOnly);
         ImGui.SameLine();
-        ImGui.Checkbox("show the columns", ref _columns);
+        OverlayLayout.Toggle("show columns", ref _columns);
 
         OverlayLayout.Search("##pin-search", "filter by name", ref _search, 64);
 
@@ -112,7 +112,7 @@ public sealed class MapPinWindow
 
                 // A titled rule, like the quest list's acts - the same boundary drawn the
                 // same way, so the two tabs on this page read as one interface.
-                OverlayLayout.Group(act > 0 ? $"Act {act}" : "No act");
+                OverlayLayout.Group(act > 0 ? $"act {act}" : "no act");
             }
 
             Row(pin);

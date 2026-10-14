@@ -167,6 +167,47 @@ public static class CaptureParts
     /// <summary>The raw sweep inside the recording.</summary>
     public const string RawSweep = "raw-sweep";
 
+    /// <summary>The loaded-file table walked for its count field - once the Loaded Files page's "find the count field" button.</summary>
+    public const string CountField = "count-field";
+
+    /// <summary>What the area's room files name - once the Loaded Files page's "look inside the rooms" button.</summary>
+    public const string RoomsInside = "rooms-inside";
+
+    /// <summary>The area's room files and the type files they declare, decoded whole - once the Loaded Files page's "write the rooms out" button.</summary>
+    public const string RoomsExported = "rooms-exported";
+
+    /// <summary>Whatever in memory refers to one of the area's room files - once the Loaded Files page's "hunt the placements" button.</summary>
+    public const string RoomPlacements = "room-placements";
+
+    /// <summary>What the runecraft panel read, row by row - once the Runecraft page's "what the panel read" block.</summary>
+    public const string RunecraftPanel = "runecraft-panel";
+
+    /// <summary>
+    /// Whether a part is a piece of work started at the press, off the drawing thread, and waited for when the files are written - see CaptureKey.OfferWork.
+    /// </summary>
+    /// <remarks>
+    /// THE LOADED FILES PAGE'S FOUR BUTTONS, moved here (S8 of the labels review): diagnoses on a player page, each answering in
+    /// lines under the buttons that nobody playing reads. They read the file table and the bundles, which takes seconds, so they
+    /// cannot be asked for on the frame the key goes down as a window's text is.
+    /// </remarks>
+    public static bool RunsAtPress(string key) => key is CountField or RoomsInside or RoomsExported or RoomPlacements;
+
+    /// <summary>
+    /// A heading as the Keys page writes it. The headings themselves stay as they are: they are what <see cref="FolderOfGroup"/> keys
+    /// the folders by, and only their wording on the page was changed.
+    /// </summary>
+    public static string GroupLabel(string group) => group switch
+    {
+        "Pictures" => "pictures",
+        "Entities" => "entities",
+        "Area files" => "area",
+        "Rooms by ground and tiles" => "rooms by tiles",
+        "Rooms by doodads" => "rooms by doodads",
+        "Windows" => "windows",
+        "Memory" => "memory",
+        _ => group,
+    };
+
     /// <summary>The headings, in the order the Keys page shows them.</summary>
     public static IReadOnlyList<string> Groups { get; } =
         ["Pictures", "Entities", "Area files", "Rooms by ground and tiles", "Rooms by doodads", "Windows", "Memory"];
@@ -262,67 +303,67 @@ public static class CaptureParts
     /// <summary>Every part, grouped as <see cref="Groups"/> orders them.</summary>
     public static IReadOnlyList<CapturePart> All { get; } =
     [
-        new(GamePicture, "Pictures", "the game alone", CaptureReport.GameShot,
+        new(GamePicture, "Pictures", "game only", CaptureReport.GameShot,
             "The game as it was, the overlay hidden for the shot - what the game drew, with nothing of the tool over it."),
-        new(OverlayPicture, "Pictures", "the game with the overlay", CaptureReport.OverlayShot,
+        new(OverlayPicture, "Pictures", "game + overlay", CaptureReport.OverlayShot,
             "The game with the overlay over it, as the key went down - what you were looking at."),
 
-        new(Entities, "Entities", "every entity", CaptureReport.EntitiesFile,
+        new(Entities, "Entities", "entities", CaptureReport.EntitiesFile,
             "Every entity the overlay read this frame, nearest first: where it stands, what it is, and where in memory it was. "
             + "With the recording on, the world is read once more inside it with every switch on - visuals, effects, buffs, aim, "
             + "actions, as many entities as the game lists, and the terrain.",
             CaptureReads.World),
-        new(Monsters, "Entities", "every monster's mods and buffs", CaptureReport.MonstersFile,
+        new(Monsters, "Entities", "monster mods & buffs", CaptureReport.MonstersFile,
             "Inside the recording: every monster the game lists, nearest first, with its mods by the game's own ids, its buffs "
             + "with their clocks, its life and its targetable byte - and every marked place standing on it, an essence prison "
             + "being one. Two captures, before and after an essence is clicked, say what the game puts on an imprisoned "
             + "monster and takes off a freed one. Needs the recording.",
             CaptureReads.Monsters),
 
-        new(LoadedFiles, "Area files", "the area's loaded files", CaptureReport.LoadedFile,
+        new(LoadedFiles, "Area files", "area loaded files", CaptureReport.LoadedFile,
             "Every file the area loaded, as the game lists them - which rooms, tiles, models and environments the area is built from. "
             + "With the recording on, the list is read once more inside it.",
             CaptureReads.Loaded),
-        new(Environments, "Area files", "the environments", CaptureReport.EnvironmentsFile,
+        new(Environments, "Area files", "environments", CaptureReport.EnvironmentsFile,
             "The area's own environment and those the rooms around you name, whole - the light, the fog, the sky."),
-        new(RoomFiles, "Area files", "the room files", CaptureReport.RoomFilesFile,
+        new(RoomFiles, "Area files", "room files", CaptureReport.RoomFilesFile,
             "Every room file (.arm) the area loaded, whole: the doodad lines and the slots each room is placed by. With "
             + "doodads.txt it is the whole of what the placing works from, so a placing can be run again without the game."),
 
-        new(RoomsNear, "Rooms by ground and tiles", "the rooms around you", CaptureReport.RoomsFile,
+        new(RoomsNear, "Rooms by ground and tiles", "nearby rooms", CaptureReport.RoomsFile,
             "Every room arranged within three tiles of yours, its doodads' lights and the pieces attached to them, and the file "
             + "of each room you stand in - so a lamp in the picture can be found in a file."),
-        new(RoomsArranged, "Rooms by ground and tiles", "every room arranged", CaptureReport.ArrangedFile,
+        new(RoomsArranged, "Rooms by ground and tiles", "arranged rooms", CaptureReport.ArrangedFile,
             "Where the ground-and-tile search arranged every room of the area, what disagrees there, and how many of its tiles "
             + "can be walked - the Tile Book's \"rooms:\" line and its hover, as the map draws them without an entity read."),
-        new(RoomPick, "Rooms by ground and tiles", "the Tile Book's picked row", CaptureReport.PickFile,
+        new(RoomPick, "Rooms by ground and tiles", "tile book pick", CaptureReport.PickFile,
             "The row picked in the Tile Book's room list held against the rooms on the map, and every place it parts with the "
             + "area - the two folds under the list. Nothing where no row is picked."),
-        new(TileIdentities, "Rooms by ground and tiles", "the laid tiles' definitions", CaptureReport.TileIdentitiesFile,
+        new(TileIdentities, "Rooms by ground and tiles", "tile definitions", CaptureReport.TileIdentitiesFile,
             "Every distinct tile file the area laid, with what a room's slot is checked against - size, tag, edge and corner ground "
             + "types. With the recording's terrain and room-files.txt it is what the ground-and-tile search runs again from without the game."),
-        new(Landscape, "Rooms by ground and tiles", "the terrain's second grid", CaptureReport.LandscapeFile,
+        new(Landscape, "Rooms by ground and tiles", "projectile grid", CaptureReport.LandscapeFile,
             "Inside the recording: the terrain's two cell grids whole - the walkable one, and GridLandscapeData beside it, whose "
             + "meaning is not settled - counted against each other, against the ground under every cell, and along the edge of "
             + "where anybody can stand, with both grids round you one character a cell. Whether the second is the grid a "
             + "projectile asks - walls blocking, chasms not - is what it answers. Needs the recording.",
             CaptureReads.Landscape),
-        new(SlotCandidates, "Rooms by ground and tiles", "the rooms' slots against the tilesets", CaptureReport.SlotCandidatesFile,
+        new(SlotCandidates, "Rooms by ground and tiles", "slot candidates", CaptureReport.SlotCandidatesFile,
             "Every room of the area's set, each kind of its slots with the tiles the area's tilesets OFFER that answer it, by the search's rule - "
             + "one tile settles the kind by the files alone, several is the generator's choice - with a summary over the rooms and the arena rooms, "
             + "and every offered tile's definition after it. The measure of whether a boss room could be built without standing in its area."),
-        new(TilesetLists, "Area files", "the tile lists", CaptureReport.TilesetListsFile,
+        new(TilesetLists, "Area files", "tile lists", CaptureReport.TilesetListsFile,
             "The area's tile lists (.tst) whole, each master's and every list it includes: the weight the generator draws each tile by and the "
             + "words after it. What a room is built from without the area, and where the words' meaning is to be read rather than guessed."),
-        new(TileFiles, "Area files", "the tile files' chains", CaptureReport.TileFilesFile,
+        new(TileFiles, "Area files", "tile file chains", CaptureReport.TileFilesFile,
             "Every tile file the tile lists or fill lists name or the area laid: its definition followed through every file it inherits, "
             + "and the tile's own doodad list (.tmd, beside the .tdt or its template) whole. Every area lays files no tile list names - "
             + "this says for each whether a listed file inherits it, a fill list names it or a listed file shares its template."),
-        new(Masters, "Area files", "the area's masters", CaptureReport.MastersFile,
+        new(Masters, "Area files", "master file", CaptureReport.MastersFile,
             "Every master (.tsi) of the area whole, and every file it names - room set, fill list (FillTiles), anything else - whole too; "
             + "a tile list by name, being whole in tileset-lists.txt; then the area's ground types whole, whose names a fill list's sections "
             + "are keyed by. The keys of a master this tool does not read yet are where to look."),
-        new(Ground, "Area files", "the ground's makings", CaptureReport.GroundFile,
+        new(Ground, "Area files", "ground", CaptureReport.GroundFile,
             "What the laid tiles' ground is made of, as the files say: every template's ground blocks by vertex format, with what "
             + "the fields the reader steps over hold; each corner's ground by name and what the master's MaterialsList draws it with, "
             + "the ground materials and their graphs, each colour texture beside it as a picture; the install's shader sources that name where the ground's texture "
@@ -330,21 +371,21 @@ public static class CaptureParts
             + "ground shapes sub-tile by sub-tile with their unnamed ordinals and the mask's green, the biggest drawn from above "
             + "beside it; and every laid tile definition's bytes past what is read. What stands between the rooms' white ground "
             + "and a painted one."),
-        new(GroundScreen, "Area files", "the ground on the screen", CaptureReport.GroundScreenFile,
+        new(GroundScreen, "Area files", "ground on screen", CaptureReport.GroundScreenFile,
             "The laid tiles' ground laid over the game's own picture where the Monster Book's laid room has it: every sub-tile of two "
             + "grounds or more on the screen outlined and named as ground.txt names it, and its ground shapes whose coordinates run "
             + "across the mask's atlas drawn - where the tool's mix comes out as a checkerboard - so which ground the game draws there "
             + "is read off its picture (ground-on-screen.png). Each sub-tile's grid corners beside the game's own corner types at that "
             + "place, and each shape's height, green and reach across the mask. And the two ways two grounds may be mixed held against "
             + "the game's picture pixel by pixel - the mask's green and the corners' share - with moved controls (ground-on-screen-corners.png "
-            + "tinted by the corners). Best with \"the game alone\" ticked: over the overlay's picture the overlay's own drawing is in the way."),
-        new(Water, "Area files", "the water's makings", CaptureReport.WaterFile,
+            + "tinted by the corners). Best with \"game only\" ticked: over the overlay's picture the overlay's own drawing is in the way."),
+        new(Water, "Area files", "water", CaptureReport.WaterFile,
             "What the water is drawn from, as the files say: every key the install's environments write in their water "
             + "sections, how many files carry it and what values, every environment's water section file by file - to pick an "
             + "area by what its file sets - and the shader sources of the engine's water pass whole - "
             + "the colours, the waves, the refraction. Water materials are no ordinary ones (\"shadertype\": \"Ocean\"), and "
             + "this is what stands between a white water plane and one drawn as the game does."),
-        new(WaterTextures, "Area files", "the water's textures", CaptureReport.WaterTexturesFile,
+        new(WaterTextures, "Area files", "water textures", CaptureReport.WaterTexturesFile,
             "Where the engine's ripple texture may be - the one its waves' eight octaves read, 128 texels a side, red the height and "
             + "green and blue its slope, which no shader source names: every texture whose path names the water with its size and "
             + "format, those 128 square marked, the likeliest decoded channel by channel as pictures beside it, and the strings the "
@@ -354,36 +395,53 @@ public static class CaptureParts
             + "foam that floods the rocks: the graphs the program names for them (BreakingOceanWaves and its kin) whole, every graph "
             + "they name, and the textures they name with their headers."),
 
-        new(Doodads, "Rooms by doodads", "the doodads found", CaptureReport.DoodadsFile,
+        new(CountField, "Area files", "count field sweep", CaptureReport.CountFieldFile,
+            "The loaded-file table walked for its count field instead of assuming one: what the area-change counter reads, how many "
+            + "slots were walked, records read and paths readable - their difference says which part of the walk is wrong - and the "
+            + "buckets in hex where the walk reached nothing. Run at the press; what the Loaded Files page's \"find the count field\" did."),
+        new(RoomsInside, "Area files", "room contents", CaptureReport.RoomsInsideFile,
+            "Every room file the area loaded, opened out of the game's bundles, with the strings it names - edge and ground types, tiles. "
+            + "Needs the install. Run at the press; what the Loaded Files page's \"look inside the rooms\" did."),
+        new(RoomsExported, "Area files", "room export", CaptureReport.RoomsExportedFile,
+            "Every room file the area loaded and every type file they declare, decoded whole into one file - the format read away from the "
+            + "game. Needs the install. Run at the press; what the Loaded Files page's \"write the rooms out\" did."),
+        new(RoomPlacements, "Area files", "placement hunt", CaptureReport.RoomPlacementsFile,
+            "Whatever in the game's memory refers to one of the area's room files, by the addresses of their records in the loaded-file "
+            + "table, with every other file's record as the control. Run at the press; what the Loaded Files page's \"hunt the "
+            + "placements\" did."),
+        new(Doodads, "Rooms by doodads", "doodads", CaptureReport.DoodadsFile,
             "The survey of the area's entity maps for the rooms' doodads: each room's share, each path found and how many stand, "
             + "then every sighting with its id, path, model and position. With the recording on, both maps are walked once more "
             + "inside it with every named entity's path, position and model, so the placing can be run again from the recording.",
             CaptureReads.Doodads),
-        new(RoomsPlaced, "Rooms by doodads", "every room placed", CaptureReport.PlacedFile,
+        new(RoomsPlaced, "Rooms by doodads", "placed rooms", CaptureReport.PlacedFile,
             "Every place each room's doodads stand, with hits, lines, offset and tiles agreeing, what it yielded to whom, or why "
             + "it has none - the Tile Book's \"rooms:\" line and its hover, as the map draws them."),
 
-        new(Routes, "Windows", "the active routes", CaptureReport.RoutesFile,
+        new(Routes, "Windows", "active routes", CaptureReport.RoutesFile,
             "Where you stand and every route - its end and its stops - in world units, as the Routes page lists them. Nothing where none is set."),
-        new(SceneLight, "Windows", "the light hunt's report", CaptureReport.SceneLightFile,
+        new(SceneLight, "Windows", "light hunt", CaptureReport.SceneLightFile,
             "The whole report of the last \"find the readings\" in the Tile Book's Light fold: every reading, where each was found, "
             + "the raw angles beside them. Nothing where none has run."),
-        new(ModelProbe, "Windows", "the model probe", CaptureReport.ProbeFile,
+        new(ModelProbe, "Windows", "model probe", CaptureReport.ProbeFile,
             "What the last probe click in a model pane listed under that pixel, and how each translucent layer came out over the "
             + "picture - for every book whose probe is on. Nothing where none is."),
-        new(ModelPanes, "Windows", "the model panes' lines", CaptureReport.PanesFile,
+        new(ModelPanes, "Windows", "model panes", CaptureReport.PanesFile,
             "Every model pane showing a model: its lines under the picture, a room stage's own among them, and every doodad file "
             + "of the room it shows with what became of its lines - laid, not drawn, left out by the cap, unseen - its box, where "
             + "its first line puts it and its materials; each file that did not draw written whole with what it extends; the materials "
             + "under the probe, those drawn plain and those naming a shore's node or with nodes left out, whole, each program texture's "
             + "header beside them. Nothing where no pane shows a model."),
-        new(Dissector, "Windows", "the dissector", CaptureReport.DissectorFile,
+        new(Dissector, "Windows", "dissector", CaptureReport.DissectorFile,
             "The places the Memory Dissector has open, the route walked to them, and what its last search found with the bytes "
             + "round each place. Nothing where it is untouched."),
-        new(AtlasLog, "Windows", "the atlas check", CaptureReport.AtlasLogFile,
+        new(AtlasLog, "Windows", "atlas", CaptureReport.AtlasLogFile,
             "The Atlas page's \"Check the Read\" report whole, as its Debug Log tab has it. Nothing where it has not run."),
 
-        new(LightHunt, "Memory", "the light and water hunt", CaptureReport.LightHuntFile,
+        new(RunecraftPanel, "Windows", "runecraft panel", CaptureReport.RunecraftPanelFile,
+            "What the Runecraft page read off the game's runecraft panel: its status, what the game calls the elements found, where the "
+            + "first row's text was measured, and every row with what priced it and through which door. Nothing where the panel was never seen."),
+        new(LightHunt, "Memory", "light & water hunt", CaptureReport.LightHuntFile,
             "The Tile Book light panel's search of the game's memory, run at the press for the area's own environment: "
             + "where the game keeps the sun, the sky's turn and the dust colour, and the water - the water pass's uniform "
             + "block as common.ffx declares it, read out by name, its colours among them, and the file's water values in the "
@@ -391,10 +449,10 @@ public static class CaptureParts
             + "What the engine draws an area's water with where its file "
             + "sets no colour. It looks through up to sixteen gigabytes on every core: the capture's window shows how far it is "
             + "and where its time goes, and stops it on a click - what it found until then is written, as it is at five minutes."),
-        new(Memory, "Memory", "a memory recording", CaptureReport.MemoryFile,
+        new(Memory, "Memory", "memory recording", CaptureReport.MemoryFile,
             "The overlay's own reads for three seconds, and inside them one pass reading once more from nothing whatever the "
             + "ticked parts above ask for - memory.txt beside it says what the pass read where. Replays with --replay, game closed."),
-        new(RawSweep, "Memory", "the raw bytes", string.Empty,
+        new(RawSweep, "Memory", "in raw bytes", string.Empty,
             "In the recording: the game's root objects whole, one hop beyond every pointer in them, and every component of the "
             + "entities around you - the bytes nothing reads yet, for the questions nobody has asked. A few megabytes.",
             CaptureReads.Sweep),

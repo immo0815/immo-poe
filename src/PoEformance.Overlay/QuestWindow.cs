@@ -84,9 +84,10 @@ public sealed class QuestWindow
                 $"{ambiguous} quests have several steps holding - normal, the furthest along is shown");
         }
 
-        ImGui.Checkbox("finished too", ref _done);
+        OverlayLayout.Toggle("show finished", ref _done);
         ImGui.SameLine();
-        ImGui.Checkbox("show the flags", ref _conditions);
+        OverlayLayout.Toggle("show flags", ref _conditions);
+        OverlayLayout.Hint("The game's own quest conditions under each quest.");
 
         OverlayLayout.Search("##quest-search", "filter by name", ref _search, 64);
 
@@ -130,7 +131,7 @@ public sealed class QuestWindow
             {
                 act = quest.Act;
                 showing = OverlayLayout.Subsection(
-                    act > 0 ? $"Act {act}" : "No Act", openByDefault: true);
+                    act > 0 ? $"act {act}###Act {act}" : "no act###No Act", openByDefault: true);
             }
 
             if (!showing)
@@ -205,7 +206,7 @@ public sealed class QuestWindow
         // One quest's walkthrough at a time. The steps are the same list every time and there
         // are up to 87 of them, so opening all of them at once is a wall rather than a view.
         bool open = _walkthrough == quest.Row;
-        if (ImGui.SmallButton(open ? "hide the steps" : "all the steps"))
+        if (ImGui.SmallButton(open ? "hide steps" : "show steps"))
         {
             _walkthrough = open ? -1 : quest.Row;
         }

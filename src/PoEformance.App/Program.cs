@@ -2671,72 +2671,6 @@ internal static class Program
         PoEformance.Features.PreloadSettings preloadSettings = PoEformance.Features.PreloadStore.Load();
         preload.Watch(PoEformance.Features.PreloadAlertStore.Load());
 
-        void SweepForTheCountField()
-        {
-            if (fileRoot == 0 || areaCounter == 0)
-            {
-                preload.Swept(["the file root or the counter did not resolve - nothing to sweep"]);
-                return;
-            }
-
-            _ = Task.Run(() =>
-            {
-                try
-                {
-                    int counter = preloadReader.AreaChangeCount(areaCounter);
-                    PoEformance.Game.World.PreloadReader.PreloadSweep swept =
-                        preloadReader.Sweep(fileRoot, counter);
-
-                    var lines = new List<string>
-                    {
-                        $"counter static reads {counter}",
-
-                        // SLOTS BEFORE RECORDS, because their difference is the diagnosis and
-                        // only the pair says which failure this is. No slots means the buckets
-                        // yielded nothing - the root or the bucket layout, and the count field
-                        // is irrelevant. Slots without records means the walk reached addresses
-                        // that could not be read. Records without names means the struct base
-                        // is wrong. The slot count was measured all along and never shown, so
-                        // this readout could contradict itself and did.
-                        $"{swept.Slots} slots walked, {swept.Records} records read,"
-                            + $" {swept.Named} with a readable path"
-                            + (swept.Slots == 0
-                                ? "  <- the buckets yielded nothing; the count field cannot be the problem"
-                                : swept.Named == 0 ? "  <- the RECORD is wrong, not the count" : string.Empty),
-                    };
-
-                    if (preloadReader.LastError.Length > 0)
-                    {
-                        lines.Add(preloadReader.LastError);
-                    }
-
-                    // ONLY WHEN THE WALK REACHED NOTHING, because that is the only time the
-                    // buckets themselves are the question. Sixteen hex rows under a working
-                    // table would be noise, and noise is how a real diagnostic stops being read.
-                    if (swept.Slots == 0)
-                    {
-                        lines.AddRange(preloadReader.DescribeBuckets(fileRoot));
-                    }
-
-                    lines.AddRange(swept.Samples.Select(sample => $"    {sample}"));
-
-                    lines.Add($"at the offset in use (+0x{swept.Chosen:X}) the records hold:");
-                    lines.AddRange(swept.NearbyValues.Select(v => $"    {v.Value}  in {v.Records} records"));
-
-                    lines.Add("offsets holding the counter's value:");
-                    lines.AddRange(swept.CountAt.Count > 0
-                        ? swept.CountAt.Select(c => $"    +0x{c.Offset:X}  in {c.Agreeing} records")
-                        : ["    none - no field in the first 0x100 bytes holds it"]);
-
-                    preload.Swept(lines);
-                }
-                catch (Exception exception)
-                {
-                    preload.Swept([exception.Message]);
-                }
-            });
-        }
-
         void LookAtWhatLoaded(uint area)
         {
             // One at a time, and never twice for the same area. Two walks at once would be
@@ -3486,70 +3420,84 @@ internal static class Program
         overlay.Coverage = coverage;
         overlay.Damage = damage;
 
-        // A DIAGNOSTIC BUTTON THAT CAN DO NOTHING VISIBLE IS WORSE THAN NO BUTTON, and all three
-        // of the ones below could. Each ran its work in a Task.Run whose catch named two
-        // exception types; anything else - a schema field that moved, a null, an overflow - left
-        // a faulted Task nobody observes and a panel that simply did not change. That is what
-        // "I press it and nothing happens" IS, and it cost a round of hunting the wrong thing.
-        //
-        // So every failure is reported in the panel, with its TYPE: "KeyNotFoundException:
-        // Schema struct 'TgtFile' has no field 'TgtPath'" says where to look, where a bare
-        // message often does not. And the press is acknowledged before the work starts, so a
-        // button that ran and found nothing can never look like a button that did not fire.
-        static void RunDiagnostic(
-            PoEformance.Features.PreloadWatch watch,
-            string doing,
-            Func<IReadOnlyList<string>> work)
+        // THE COUNT FIELD SWEEP is a capture part run at the press (CaptureParts.CountField), as the
+        // Loaded Files page's button was before it.
+        overlay.OfferCaptureWork(PoEformance.Features.CaptureParts.CountField, _ =>
         {
-            watch.Swept([doing + "..."]);
-            _ = Task.Run(() =>
+            if (fileRoot == 0 || areaCounter == 0)
             {
-                try
-                {
-                    watch.Swept(work());
-                }
-                catch (Exception exception)
-                {
-                    watch.Swept([$"{doing} failed - {exception.GetType().Name}: {exception.Message}"]);
-                }
-            });
-        }
+                return ["the file root or the counter did not resolve - nothing to sweep"];
+            }
 
-        // BEFORE AttachPreload, which is where the button that runs this is built. Only offered
-        // with an install to read: the rooms of an area are named in memory and placed nowhere
-        // this tool can see, so the files themselves are the last place that could say where
-        // each one sits - see RoomFiles for what the answer decides.
+            int counter = preloadReader.AreaChangeCount(areaCounter);
+            PoEformance.Game.World.PreloadReader.PreloadSweep swept =
+                preloadReader.Sweep(fileRoot, counter);
+
+            var lines = new List<string>
+            {
+                $"counter static reads {counter}",
+
+                // SLOTS BEFORE RECORDS, because their difference is the diagnosis and
+                // only the pair says which failure this is. No slots means the buckets
+                // yielded nothing - the root or the bucket layout, and the count field
+                // is irrelevant. Slots without records means the walk reached addresses
+                // that could not be read. Records without names means the struct base
+                // is wrong. The slot count was measured all along and never shown, so
+                // this readout could contradict itself and did.
+                $"{swept.Slots} slots walked, {swept.Records} records read,"
+                    + $" {swept.Named} with a readable path"
+                    + (swept.Slots == 0
+                        ? "  <- the buckets yielded nothing; the count field cannot be the problem"
+                        : swept.Named == 0 ? "  <- the RECORD is wrong, not the count" : string.Empty),
+            };
+
+            if (preloadReader.LastError.Length > 0)
+            {
+                lines.Add(preloadReader.LastError);
+            }
+
+            // ONLY WHEN THE WALK REACHED NOTHING, because that is the only time the
+            // buckets themselves are the question. Sixteen hex rows under a working
+            // table would be noise, and noise is how a real diagnostic stops being read.
+            if (swept.Slots == 0)
+            {
+                lines.AddRange(preloadReader.DescribeBuckets(fileRoot));
+            }
+
+            lines.AddRange(swept.Samples.Select(sample => $"    {sample}"));
+
+            lines.Add($"at the offset in use (+0x{swept.Chosen:X}) the records hold:");
+            lines.AddRange(swept.NearbyValues.Select(v => $"    {v.Value}  in {v.Records} records"));
+
+            lines.Add("offsets holding the counter's value:");
+            lines.AddRange(swept.CountAt.Count > 0
+                ? swept.CountAt.Select(c => $"    +0x{c.Offset:X}  in {c.Agreeing} records")
+                : ["    none - no field in the first 0x100 bytes holds it"]);
+
+            return lines;
+        });
+
+        // Only with an install to read: the rooms of an area are named in memory and placed nowhere
+        // this tool can see, so the files themselves are the last place that could say where each
+        // one sits - see RoomFiles for what the answer decides.
         if (installed is not null)
         {
-            overlay.LookInsideRooms = () => RunDiagnostic(
-                preload,
-                "looking inside the rooms",
-                () => PoEformance.Game.Diagnostics.RoomFiles.Describe(
-                    preload.All,
-                    path => PoEformance.Game.Files.GameArt.ReadRaw(installed, path)));
+            Func<string, byte[]?> read = path => PoEformance.Game.Files.GameArt.ReadRaw(installed, path);
+            overlay.OfferCaptureWork(
+                PoEformance.Features.CaptureParts.RoomsInside,
+                _ => PoEformance.Game.Diagnostics.RoomFiles.Describe(preload.All, read));
 
-            // And the whole of them, decoded, beside the loaded-file dumps. The readout is
-            // eight strings per room, which cannot answer a question about the format itself.
-            overlay.WriteRoomsOut = () => RunDiagnostic(
-                preload,
-                "writing the rooms out",
-                () =>
-                {
-                    string? written = PoEformance.Game.Diagnostics.RoomFiles.Dump(
-                        preload.Area,
-                        preload.All,
-                        path => PoEformance.Game.Files.GameArt.ReadRaw(installed, path));
-                    return [
-                        written is null
-                            ? "could not write the rooms out"
-                            : $"rooms written to {written}"];
-                });
+            // And the whole of them, decoded, written by the dump itself to the part's file.
+            overlay.OfferCaptureWork(
+                PoEformance.Features.CaptureParts.RoomsExported,
+                path => PoEformance.Game.Diagnostics.RoomFiles.Dump(preload.Area, preload.All, read, path) is null
+                    ? ["could not write the rooms out"]
+                    : null);
         }
 
-        // NEEDS NO INSTALL, unlike the two above: it reads memory rather than the game's files,
-        // so it is attached whether or not the bundles can be opened. The one thing it needs is
-        // the loaded-file table, which is the very list this page is about.
-        overlay.HuntRoomPlacements = () => RunDiagnostic(preload, "hunting the placements", () =>
+        // NEEDS NO INSTALL: it reads memory rather than the game's files. The one thing it needs is
+        // the loaded-file table.
+        overlay.OfferCaptureWork(PoEformance.Features.CaptureParts.RoomPlacements, _ =>
         {
             if (fileRoot == 0)
             {
@@ -3589,7 +3537,6 @@ internal static class Program
         overlay.AttachPreload(
             preload,
             () => LookAtWhatLoaded(preloadArea),
-            SweepForTheCountField,
             preloadSettings,
             changed => PoEformance.Features.PreloadStore.Save(changed),
             // READ WHEN THE BUTTON IS PRESSED, not now. It is six rows off a disk nobody is

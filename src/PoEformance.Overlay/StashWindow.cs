@@ -140,21 +140,17 @@ public sealed class StashWindow
     public void DrawTab() => Draw();
 
     /// <summary>
-    /// Draws the page: the stash itself, or where its prices come from.
+    /// Draws the page: the stash itself. Where its prices come from is a tool of its own - see
+    /// <see cref="DrawPriceSources"/>.
     /// </summary>
     /// <remarks>
-    /// TWO TABS BECAUSE THEY ARE VISITED AT DIFFERENT TIMES. The four price switches are agreed
-    /// to once - each is a decision about talking to somebody else's server, and one of them
-    /// opens a browser to sign in to - and after that they are never touched again. The stash
-    /// grid is what this page is opened for. Stacked, the switches and their five lines of
-    /// status sat permanently between the search box and the thing being searched, so the grid
-    /// started a third of the way down the tab and gave that up on every frame.
+    /// THE SOURCES LEFT THIS PAGE BECAUSE THEY ARE VISITED AT DIFFERENT TIMES, and because more
+    /// than one page prices with them. The switches are agreed to once - each is a decision about
+    /// talking to somebody else's server - and after that never touched again, while the stash
+    /// grid is what this page is opened for. Runecraft and the rates read the same switches, so
+    /// they are set in one place rather than offered again wherever a price is shown.
     /// </remarks>
-    private void Draw()
-        => OverlayLayout.Tabs(
-            "stash-tabs",
-            ("Stash Inspector", DrawInspector),
-            ("Price Sources", DrawSources));
+    private void Draw() => DrawInspector();
 
     /// <summary>The stash: a filter, the tabs down the left, and what is in the chosen one.</summary>
     private void DrawInspector()
@@ -201,11 +197,13 @@ public sealed class StashWindow
         // The aside moves into the box's own hint rather than sitting beside it: "searches the
         // stats too" is what the field DOES, and a placeholder is where a field says that.
         OverlayLayout.Search(
-            "##search", "name, mod or stat - the stats are searched too...", ref _search, 128,
-            OverlayLayout.ButtonRoom("Scan Stash") + (ImGui.GetFontSize() * 9f));
+            "##search", "name, mod or stat…", ref _search, 128,
+            OverlayLayout.ButtonRoom("scan stash") + (ImGui.GetFontSize() * 9f));
+
+        OverlayLayout.Hint("Searches item names, mods and stats - the stats are searched too.");
 
         ImGui.SameLine();
-        if (ImGui.Button("Scan Stash"))
+        if (ImGui.Button("scan stash"))
         {
             _inspector.ReadAgain();
         }
@@ -213,7 +211,7 @@ public sealed class StashWindow
         OverlayLayout.Hint("Reads every tab the game has loaded. A big stash takes a moment.");
 
         ImGui.SameLine();
-        OverlayLayout.Narrow.Slider("cell", ref _cell, 24f, 96f, "%.0f px");
+        OverlayLayout.Narrow.Slider("cell size", ref _cell, 24f, 96f, "%.0f px");
         OverlayLayout.Hint("How big each item is drawn in the grid.");
 
         if (_inspector.Reading)
@@ -249,7 +247,7 @@ public sealed class StashWindow
         OverlayLayout.Divider();
 
         bool hiding = _hideEmpty;
-        if (ImGui.Checkbox("Hide Empty Tabs", ref hiding))
+        if (OverlayLayout.Toggle("hide empty tabs", ref hiding))
         {
             _hideEmpty = hiding;
 
@@ -271,46 +269,39 @@ public sealed class StashWindow
     private bool _hideEmpty = true;
 
     /// <summary>
-    /// The price switch, and what asking for them got.
-    /// </summary>
-    /// <remarks>
-    /// OFF UNTIL SOMEBODY TURNS IT ON, like the pictures - but for a stronger reason. There is
-    /// no local copy of a price to prefer: they only exist on somebody else's server, so the
-    /// switch is the difference between a tool that reads memory and a tool that talks to the
-    /// internet. What goes out is a league name and nothing else.
-    ///
-    /// The league is shown whether or not it is on, because it is the answer to "prices for
-    /// what" - and because seeing the wrong one there is how somebody finds out the tool is
-    /// pricing their softcore stash against the hardcore economy.
-    /// </remarks>
-    /// <summary>
-    /// The four things this page can ask the outside world, and what each of them said.
+    /// The things this tool can ask the outside world, and what each of them said.
     /// </summary>
     /// <remarks>
     /// ONE SWITCH PER ROW, EACH WITH ITS OWN ANSWER BESIDE IT. These were four checkboxes with
     /// their status welded on by <c>SameLine</c> and, on two of them, a wrapped paragraph
     /// underneath - so the block was five to eight lines depending on what had been switched on,
-    /// which is a block that changes height while you use it, sitting above the grid.
+    /// which is a block that changes height while you use it. What each switch SENDS is said
+    /// in its hint.
     ///
-    /// They stay full sentences rather than becoming hovers: each of these is a decision to talk
-    /// to somebody else's server, one of them signs in to an account, and what a switch SENDS is
-    /// not an aside. What moved to hovers is what came back.
+    /// PUBLIC, a tool of its own on the economy page: runecraft and the rates price from the same
+    /// switches, and say where they are set rather than offering them again.
     /// </remarks>
-    private void DrawSources()
+    public void DrawPriceSources()
     {
         PriceBook book = _prices.Book;
         string league = _inspector.League;
 
-        OverlayLayout.Group("Where the Prices Come From");
+        OverlayLayout.Group("prices");
 
         Ninja(book, league);
         Exchange(league);
+
+        // Under the exchange it tests, stepped in as its child. Not shut off with the switch: it
+        // is a one-off question to the trade site, answered whether or not the feed is read.
+        float step = OverlayLayout.Step();
+        ImGui.Indent(step);
+        DrawProbe();
+        ImGui.Unindent(step);
+
         Trade();
 
-        OverlayLayout.Group("Item Pictures");
+        OverlayLayout.Group("item pictures");
         Pictures();
-
-        DrawProbe();
     }
 
     /// <summary>
@@ -329,7 +320,7 @@ public sealed class StashWindow
     private void Ninja(PriceBook book, string league)
     {
         bool asking = _prices.Enabled;
-        if (ImGui.Checkbox("Fetch poe.ninja", ref asking))
+        if (OverlayLayout.Toggle("query poe.ninja", ref asking))
         {
             _prices.Enabled = asking;
             _changed();
@@ -386,7 +377,7 @@ public sealed class StashWindow
         bool installed = _art.Install is not null;
 
         bool web = _art.Enabled;
-        if (ImGui.Checkbox("Fetch poe2db", ref web))
+        if (OverlayLayout.Toggle("query poe2db", ref web))
         {
             _art.Enabled = web;
             _changed();
@@ -435,7 +426,7 @@ public sealed class StashWindow
         }
 
         bool asking = _exchange.Enabled;
-        if (ImGui.Checkbox("Fetch Currency Exchange", ref asking))
+        if (OverlayLayout.Toggle("query currency exchange", ref asking))
         {
             _exchange.Enabled = asking;
             _changed();
@@ -445,7 +436,7 @@ public sealed class StashWindow
             "The game's own exchange: executed trades rather than an aggregated index, and the"
             + " two are expected to disagree. Nothing switches over - both are shown until"
             + " somebody has watched them for a while. It is also what the per-tab worth on the"
-            + " Wealth page is priced from, since it knows far more currencies than the index.");
+            + " wealth page is priced from, since it knows far more currencies than the index.");
 
         // TOLD ON EVERY DRAW, not only when the switch moves, and that fixes two things rather
         // than one. The switch is saved now, so a restored "on" would otherwise never name a
@@ -509,15 +500,15 @@ public sealed class StashWindow
     private void Trade()
     {
         bool asking = _trade.Enabled;
-        if (ImGui.Checkbox("Fetch Trade API (Uniques)", ref asking))
+        if (OverlayLayout.Toggle("trade API", ref asking))
         {
             _trade.Enabled = asking;
             _changed();
         }
 
         OverlayLayout.Hint(
-            "For the uniques poe.ninja could not price. This one opens a browser, asks you to"
-            + " sign in to your own account, and then asks the game's own trade site one question"
+            "Asks the trade API for the uniques poe.ninja could not price. This one opens a browser,"
+            + " asks you to sign in to your own account, and then asks the game's own trade site one question"
             + " at a time - which is a different thing to agree to than an anonymous index. The"
             + " sign-in never comes near this tool: it lives in that browser's profile, and what"
             + " crosses back is asking prices.");
@@ -530,7 +521,7 @@ public sealed class StashWindow
             return;
         }
 
-        if (ImGui.SmallButton("Open Trade Window"))
+        if (ImGui.SmallButton("open trade login"))
         {
             _signIn();
         }
@@ -567,7 +558,7 @@ public sealed class StashWindow
 
         bool running = _probing is not null;
         ImGui.BeginDisabled(running);
-        if (ImGui.SmallButton("Ask the Currency Exchange Once"))
+        if (ImGui.SmallButton("test currency exchange"))
         {
             _probed = null;
             _probing = _probe();
@@ -779,7 +770,7 @@ public sealed class StashWindow
             // "Everything" first, because searching across the whole stash is the thing this
             // does that the game cannot. The trailing "###" is its identity: without one, a
             // tab whose total changes is a DIFFERENT widget to ImGui and loses its selection.
-            if (ImGui.Selectable($"Everything ({view.Items}){Money(book, _total)}###everything", _page < 0))
+            if (ImGui.Selectable($"everything ({view.Items}){Money(book, _total)}###everything", _page < 0))
             {
                 _page = -1;
             }

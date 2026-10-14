@@ -64,9 +64,7 @@ public sealed class PreloadAlertWindow
     public void DrawTab()
     {
         Switches();
-        ImGui.Spacing();
-        OverlayLayout.Group("Watch Rules");
-        ImGui.Spacing();
+        OverlayLayout.Group("rules");
         List();
     }
 
@@ -75,44 +73,39 @@ public sealed class PreloadAlertWindow
         PreloadSettings had = _settings();
         PreloadSettings wanted = had;
 
-        OverlayLayout.Group("Alert Settings");
+        OverlayLayout.Group("alerts");
 
-        // A 2x2 GRID rather than two pairs joined by a fixed gap, so the second row's switches
-        // sit under the first row's ticks instead of under the middle of their labels.
+        // THE CORNER WINDOW'S OWN SWITCHES UNDER IT, stepped in and greyed while it is off: the timer, hiding it when empty
+        // and hiding it in town all act on that window and on nothing else.
         bool window = had.Window;
-        if (OverlayLayout.Toggle("Overlay Window", ref window))
+        if (OverlayLayout.Toggle("corner window", ref window))
         {
             wanted = wanted with { Window = window };
         }
 
         OverlayLayout.Hint("Keeps a list in the corner of the screen for as long as the area lasts.");
 
-        OverlayLayout.Cell(1);
-        bool card = had.Card;
-        if (OverlayLayout.Toggle("Announce on Enter", ref card))
-        {
-            wanted = wanted with { Card = card };
-        }
-
-        OverlayLayout.Hint("Says what matched once, on the way in, and then gets out of the way.");
-
+        float step = OverlayLayout.Step();
+        ImGui.Indent(step);
+        ImGui.BeginDisabled(!had.Window);
         bool timer = had.Timer;
-        if (OverlayLayout.Toggle("Show Load Timer", ref timer))
+        if (OverlayLayout.Toggle("load timer", ref timer))
         {
             wanted = wanted with { Timer = timer };
         }
 
         OverlayLayout.Hint("How long since the area loaded, counting up on the corner window.");
 
-        OverlayLayout.Cell(1);
         bool empty = had.HideWhenEmpty;
-        if (OverlayLayout.Toggle("Auto-Hide if Empty", ref empty))
+        if (OverlayLayout.Toggle("hide when empty", ref empty))
         {
             wanted = wanted with { HideWhenEmpty = empty };
         }
 
+        OverlayLayout.Hint("Close the corner window when nothing matched.");
+
         bool town = had.HideInTown;
-        if (OverlayLayout.Toggle("Hide in Safe Zones", ref town))
+        if (OverlayLayout.Toggle("hide in town", ref town))
         {
             wanted = wanted with { HideInTown = town };
         }
@@ -125,15 +118,30 @@ public sealed class PreloadAlertWindow
             "Town and hideouts. The file list is not refreshed there, so what it holds is the last"
             + " real area: left on, the window says so rather than showing it as though it were"
             + " here.");
+        ImGui.EndDisabled();
+        ImGui.Unindent(step);
+
+        bool card = had.Card;
+        if (OverlayLayout.Toggle("announce on entry", ref card))
+        {
+            wanted = wanted with { Card = card };
+        }
+
+        OverlayLayout.Hint("Says what matched once, on the way in, and then gets out of the way.");
+
+        ImGui.Indent(step);
+        ImGui.BeginDisabled(!had.Card);
+        if (OverlayLayout.Actions("announce again") == 0)
+        {
+            _sayItNow();
+        }
+
+        ImGui.EndDisabled();
+        ImGui.Unindent(step);
 
         if (wanted != had)
         {
             _switched(wanted);
-        }
-
-        if (OverlayLayout.Actions("Say It Again Now") == 0)
-        {
-            _sayItNow();
         }
     }
 
@@ -266,7 +274,7 @@ public sealed class PreloadAlertWindow
 
         ImGui.TableNextColumn();
         bool on = entry.Enabled;
-        if (ImGui.Checkbox("##on", ref on))
+        if (OverlayLayout.Toggle("##on", ref on))
         {
             entry = entry with { Enabled = on };
             edit = Edit.Field;
@@ -285,6 +293,8 @@ public sealed class PreloadAlertWindow
             moved = true;
         }
 
+        OverlayLayout.Hint("Move up.");
+
         ImGui.EndDisabled();
         ImGui.SameLine();
         ImGui.BeginDisabled(at >= all.Count - 1);
@@ -293,6 +303,8 @@ public sealed class PreloadAlertWindow
             (all[at + 1], all[at]) = (all[at], all[at + 1]);
             moved = true;
         }
+
+        OverlayLayout.Hint("Move down.");
 
         ImGui.EndDisabled();
 
@@ -306,16 +318,13 @@ public sealed class PreloadAlertWindow
 
         ImGui.TableNextColumn();
         bool log = entry.Log;
-        if (ImGui.Checkbox("##log", ref log))
+        if (OverlayLayout.Toggle("##log", ref log))
         {
             entry = entry with { Log = log };
             edit = Edit.Field;
         }
 
-        if (ImGui.IsItemHovered())
-        {
-            ImGui.SetTooltip("Also write a line to preloads-found.log when an area has it.");
-        }
+        OverlayLayout.Hint("Also write a line to preloads-found.log when an area has it.");
 
         ImGui.TableNextColumn();
         Vector4 colour = ImGui.ColorConvertU32ToFloat4(entry.Colour);
@@ -361,11 +370,11 @@ public sealed class PreloadAlertWindow
                 said.Append(PreloadAlerts.Here(one, here) ? "* " : "  ").Append(one).Append('\n');
             }
 
-            ImGui.SetTooltip(said.ToString().TrimEnd());
+            OverlayLayout.Hint(said.ToString().TrimEnd());
         }
 
         ImGui.TableNextColumn();
-        if (ImGui.SmallButton("Delete"))
+        if (ImGui.SmallButton("delete"))
         {
             all.RemoveAt(at);
             return Edit.Shape;
@@ -390,7 +399,7 @@ public sealed class PreloadAlertWindow
             return;
         }
 
-        if (ImGui.SmallButton("Import Defaults"))
+        if (ImGui.SmallButton("import defaults"))
         {
             int added = _starter().Count(_watch.Add);
             if (added > 0)
@@ -403,13 +412,10 @@ public sealed class PreloadAlertWindow
                 : "already had all of them";
         }
 
-        if (ImGui.IsItemHovered())
-        {
-            ImGui.SetTooltip(
-                "Breach, Delirium, Abyss, Vaal, Essence and Azmeri, as paths that carry the\n"
-                + "mechanic's own name and appeared in no map without it - measured over\n"
-                + "twenty captured areas. It adds to your list rather than replacing it.");
-        }
+        OverlayLayout.Hint(
+            "Breach, Delirium, Abyss, Vaal, Essence and Azmeri, as paths that carry the"
+            + " mechanic's own name and appeared in no map without it - measured over"
+            + " twenty captured areas. It adds to your list rather than replacing it.");
 
         if (_tookStarter.Length > 0)
         {
@@ -431,7 +437,7 @@ public sealed class PreloadAlertWindow
         ImGui.SameLine();
 
         ImGui.BeginDisabled(string.IsNullOrWhiteSpace(_addPath));
-        if (ImGui.SmallButton("Add"))
+        if (ImGui.SmallButton("add"))
         {
             if (_watch.Add(new PreloadAlertEntry(
                     _addPath.Trim(),

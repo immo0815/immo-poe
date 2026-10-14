@@ -35,80 +35,80 @@ public static class StyleCatalogue
     public static IReadOnlyList<StyleEntry> Entries { get; } =
     [
         // ── Entities ────────────────────────────────────────────────────────
-        new("entity.monster.normal", "Monsters", "Ordinary monster", Marker, Rgb(255, 64, 64)),
-        new("entity.monster.magic", "Monsters", "Magic monster", Marker, Rgb(140, 166, 255)),
-        new("entity.monster.rare", "Monsters", "Rare monster", Marker, Rgb(255, 242, 89)),
-        new("entity.monster.unique", "Monsters", "Unique monster", Marker, Rgb(255, 128, 38)),
+        new("entity.monster.normal", "Monsters", "normal", Marker, Rgb(255, 64, 64)),
+        new("entity.monster.magic", "Monsters", "magic", Marker, Rgb(140, 166, 255)),
+        new("entity.monster.rare", "Monsters", "rare", Marker, Rgb(255, 242, 89)),
+        new("entity.monster.unique", "Monsters", "unique", Marker, Rgb(255, 128, 38)),
 
-        new("entity.item.normal", "Drops", "Ordinary drop", Marker, Rgb(217, 217, 217)),
-        new("entity.item.magic", "Drops", "Magic drop", Marker, Rgb(115, 140, 255)),
-        new("entity.item.rare", "Drops", "Rare drop", Marker, Rgb(255, 242, 89)),
-        new("entity.item.unique", "Drops", "Unique drop", Marker, Rgb(255, 140, 51)),
-        new("entity.item.currency", "Drops", "Currency", Marker, Rgb(230, 191, 140)),
+        new("entity.item.normal", "Drops", "normal", Marker, Rgb(217, 217, 217)),
+        new("entity.item.magic", "Drops", "magic", Marker, Rgb(115, 140, 255)),
+        new("entity.item.rare", "Drops", "rare", Marker, Rgb(255, 242, 89)),
+        new("entity.item.unique", "Drops", "unique", Marker, Rgb(255, 140, 51)),
+        new("entity.item.currency", "Drops", "currency", Marker, Rgb(230, 191, 140)),
 
-        new("entity.chest", "Other entities", "Chest", Marker, Rgb(255, 217, 51)),
+        new("entity.chest", "Other entities", "chest", Marker, Rgb(255, 217, 51)),
         new("entity.npc", "Other entities", "NPC", Marker, Rgb(153, 230, 153)),
-        new("entity.player", "Other entities", "Player", Marker, Rgb(77, 255, 77)),
+        new("entity.player", "Other entities", "player", Marker, Rgb(77, 255, 77)),
 
         // Off by default in the overlay, but reachable from the kind filter - so they are
         // drawn, so they belong here. An entry for something switched off is cheap; a drawn
         // thing with no entry is the promise this file makes being false.
-        new("entity.effect", "Other entities", "Effect", Marker, Rgb(179, 128, 255)),
-        new("entity.terrain", "Other entities", "Terrain piece", Marker, Rgb(153, 153, 153)),
-        new("entity.other", "Other entities", "Anything else", Marker, Rgb(204, 204, 204)),
+        new("entity.effect", "Other entities", "effect", Marker, Rgb(179, 128, 255)),
+        new("entity.terrain", "Other entities", "terrain", Marker, Rgb(153, 153, 153)),
+        new("entity.other", "Other entities", "the rest", Marker, Rgb(204, 204, 204)),
 
-        new("entity.outline", "Other entities", "Dot outline", Line, Rgb(0, 0, 0, 204)),
-        new("entity.label", "Other entities", "Dot label", StyleTraits.Colour, Rgb(217, 217, 217)),
+        new("entity.outline", "Other entities", "dot outline", Line, Rgb(0, 0, 0, 204)),
+        new("entity.label", "Other entities", "dot label", StyleTraits.Colour, Rgb(217, 217, 217)),
 
         // ── Places ──────────────────────────────────────────────────────────
-        new("poi.marker", "Places", "Unrecognised marker", Marker, Rgb(217, 217, 242)),
-        new("poi.portal", "Places", "Area transition", Marker, Rgb(115, 242, 255)),
-        new("poi.waypoint", "Places", "Waypoint", Marker, Rgb(140, 191, 255)),
-        new("poi.checkpoint", "Places", "Checkpoint", Marker, Rgb(153, 217, 153)),
-        new("poi.chest", "Places", "Chest", Marker, Rgb(255, 217, 102)),
-        new("poi.strongbox", "Places", "Strongbox", Marker, Rgb(255, 191, 77)),
-        new("poi.shrine", "Places", "Shrine", Marker, Rgb(128, 255, 204)),
-        new("poi.breach", "Places", "Breach", Marker, Rgb(191, 128, 255)),
-        new("poi.ritual", "Places", "Ritual", Marker, Rgb(255, 102, 153)),
-        new("poi.expedition", "Places", "Expedition", Marker, Rgb(230, 191, 128)),
-        new("poi.essence", "Places", "Essence", Marker, Rgb(140, 217, 255)),
-        new("poi.delirium", "Places", "Delirium", Marker, Rgb(217, 217, 255)),
+        new("poi.marker", "Places", "unknown", Marker, Rgb(217, 217, 242)),
+        new("poi.portal", "Places", "area transition", Marker, Rgb(115, 242, 255)),
+        new("poi.waypoint", "Places", "waypoint", Marker, Rgb(140, 191, 255)),
+        new("poi.checkpoint", "Places", "checkpoint", Marker, Rgb(153, 217, 153)),
+        new("poi.chest", "Places", "chest", Marker, Rgb(255, 217, 102)),
+        new("poi.strongbox", "Places", "strongbox", Marker, Rgb(255, 191, 77)),
+        new("poi.shrine", "Places", "shrine", Marker, Rgb(128, 255, 204)),
+        new("poi.breach", "Places", "breach", Marker, Rgb(191, 128, 255)),
+        new("poi.ritual", "Places", "ritual", Marker, Rgb(255, 102, 153)),
+        new("poi.expedition", "Places", "expedition", Marker, Rgb(230, 191, 128)),
+        new("poi.essence", "Places", "essence", Marker, Rgb(140, 217, 255)),
+        new("poi.delirium", "Places", "delirium", Marker, Rgb(217, 217, 255)),
         new("poi.npc", "Places", "NPC", Marker, Rgb(255, 242, 179)),
-        new("poi.quest", "Places", "Quest objective", Marker, Rgb(255, 204, 64)),
-        new("poi.boss", "Places", "Boss arena", Marker, Rgb(255, 102, 89)),
-        new("poi.label", "Places", "Place name", StyleTraits.Colour, Rgb(230, 230, 240)),
+        new("poi.quest", "Places", "quest objective", Marker, Rgb(255, 204, 64)),
+        new("poi.boss", "Places", "boss arena", Marker, Rgb(255, 102, 89)),
+        new("poi.label", "Places", "labels", StyleTraits.Colour, Rgb(230, 230, 240)),
 
         // ── Routes ──────────────────────────────────────────────────────────
-        new("route.1", "Routes", "First route", Line, Rgb(89, 255, 191)),
-        new("route.2", "Routes", "Second route", Line, Rgb(255, 140, 217)),
-        new("route.3", "Routes", "Third route", Line, Rgb(255, 191, 77)),
-        new("route.4", "Routes", "Fourth route", Line, Rgb(140, 204, 255)),
-        new("route.5", "Routes", "Fifth route", Line, Rgb(204, 255, 102)),
-        new("route.arrow", "Routes", "Direction arrows", StyleTraits.Scale, Rgb(255, 255, 255)),
+        new("route.1", "Routes", "route 1", Line, Rgb(89, 255, 191)),
+        new("route.2", "Routes", "route 2", Line, Rgb(255, 140, 217)),
+        new("route.3", "Routes", "route 3", Line, Rgb(255, 191, 77)),
+        new("route.4", "Routes", "route 4", Line, Rgb(140, 204, 255)),
+        new("route.5", "Routes", "route 5", Line, Rgb(204, 255, 102)),
+        new("route.arrow", "Routes", "arrows", StyleTraits.Scale, Rgb(255, 255, 255)),
 
         // ── The map itself ──────────────────────────────────────────────────
-        new("terrain.outline", "Map", "Area layout", Line, Rgb(150, 200, 255)),
+        new("terrain.outline", "Map", "area layout", Line, Rgb(150, 200, 255)),
 
         // The ground a projectile crosses and a body cannot, as a sheet under the layout (ShotLayer). Colour only: its
         // alpha is the sheet's opacity, as the page's slider sets it. Yields to the page the way the layout does.
-        new("terrain.shots", "Map", "Where only projectiles pass", StyleTraits.Colour, Rgb(224, 160, 64, 77)),
-        new("map.unwalked", "Map", "Still to walk", StyleTraits.Colour | StyleTraits.Scale, Rgb(120, 150, 190, 140)),
+        new("terrain.shots", "Map", "projectiles layout", StyleTraits.Colour, Rgb(224, 160, 64, 77)),
+        new("map.unwalked", "Map", "undiscovered", StyleTraits.Colour | StyleTraits.Scale, Rgb(120, 150, 190, 140)),
 
         // The room names read AGAINST the layout rather than over it, so this is deliberately
         // quieter than the outline it sits on. Scale sizes the dot at each room's centre; the
         // name beside it takes this colour as well, which is what keeps a screen full of them
         // one layer instead of two.
-        new("map.room", "Map", "Room name", StyleTraits.Colour | StyleTraits.Scale, Rgb(184, 208, 232, 210)),
+        new("map.room", "Map", "room name", StyleTraits.Colour | StyleTraits.Scale, Rgb(184, 208, 232, 210)),
 
         // The ground types sit UNDER the room names in every sense: a room is a place and a
         // ground type is what the place is made of, so this is quieter still and warmer, to be
         // told apart from the room labels at a glance when both are on.
-        new("map.ground", "Map", "Ground type", StyleTraits.Colour | StyleTraits.Scale, Rgb(224, 190, 150, 190)),
+        new("map.ground", "Map", "tile name", StyleTraits.Colour | StyleTraits.Scale, Rgb(224, 190, 150, 190)),
 
         // The colour here is the HOT end of the ramp; the cool end is derived from it, so one
         // choice moves the whole scale rather than leaving somebody to match two ends by eye.
         // Scale sizes the patch, which is how a picture is made denser or airier.
-        new("map.heat", "Map", "Heat map", StyleTraits.Colour | StyleTraits.Scale, Rgb(255, 80, 40, 190)),
+        new("map.heat", "Map", "damage heatmap", StyleTraits.Colour | StyleTraits.Scale, Rgb(255, 80, 40, 190)),
 
         // EDGE INDICATORS, one entry per map, and the tick is the switch. Two rather than one
         // because the two maps are looked at for different things: the large map is a plan and
@@ -119,8 +119,8 @@ public static class StyleCatalogue
         // colour of its own it would say only "something is over there", which the direction
         // already said. Scale is here because a pinned marker sits on the frame among the
         // game's own furniture, where it often wants to be smaller than one on open map.
-        new("map.edge.small", "Map", "Edge indicators (minimap)", StyleTraits.Scale, Rgb(255, 255, 255)),
-        new("map.edge.large", "Map", "Edge indicators (large map)", StyleTraits.Scale, Rgb(255, 255, 255)),
+        new("map.edge.small", "Map", "edge indicators (minimap)", StyleTraits.Scale, Rgb(255, 255, 255)),
+        new("map.edge.large", "Map", "edge indicators (large map)", StyleTraits.Scale, Rgb(255, 255, 255)),
 
         // ── Room outlines ───────────────────────────────────────────────────
         // The tile book's rooms on the large map: the row picked in a room's list, and every
@@ -137,20 +137,20 @@ public static class StyleCatalogue
         // area is drawn at three quarters of it, its marks the same, so the picked one stays the
         // one on top. Scale on the name is its font size against the interface's, and the backing
         // grows with it.
-        new("room.outline", "Room outlines", "Outline", Line, Rgb(184, 208, 232, 210)),
-        new("room.outline.name", "Room outlines", "Name", StyleTraits.Colour | StyleTraits.Scale, Rgb(184, 208, 232, 210)),
-        new("room.outline.plate", "Room outlines", "Backing under the name", StyleTraits.Colour, Rgb(20, 22, 26, 180)),
-        new("room.outline.corner", "Room outlines", "Corner that disagrees", StyleTraits.Colour, Rgb(224, 48, 48, 255)),
-        new("room.outline.tile", "Room outlines", "Tile that disagrees", StyleTraits.Colour, Rgb(240, 144, 32, 255)),
-        new("room.outline.join", "Room outlines", "Explained by a join", StyleTraits.Colour, Rgb(48, 192, 224, 255)),
+        new("room.outline", "Room outlines", "outline", Line, Rgb(184, 208, 232, 210)),
+        new("room.outline.name", "Room outlines", "name", StyleTraits.Colour | StyleTraits.Scale, Rgb(184, 208, 232, 210)),
+        new("room.outline.plate", "Room outlines", "name background", StyleTraits.Colour, Rgb(20, 22, 26, 180)),
+        new("room.outline.corner", "Room outlines", "bad corner", StyleTraits.Colour, Rgb(224, 48, 48, 255)),
+        new("room.outline.tile", "Room outlines", "bad tile", StyleTraits.Colour, Rgb(240, 144, 32, 255)),
+        new("room.outline.join", "Room outlines", "proper connector", StyleTraits.Colour, Rgb(48, 192, 224, 255)),
 
         // ── Health bars ─────────────────────────────────────────────────────
         // The BAR takes its colour from the monster's rarity entry above, so that one choice
         // covers the dot and the bar together. What is here is everything the rarity cannot
         // say: the empty part, and the shield.
-        new("healthbar", "Health bars", "Monster health bar", StyleTraits.Scale, Rgb(255, 64, 64)),
-        new("healthbar.back", "Health bars", "Empty part", StyleTraits.Colour, Rgb(28, 18, 18, 200)),
-        new("healthbar.shield", "Health bars", "Energy shield", StyleTraits.Colour, Rgb(140, 200, 255)),
+        new("healthbar", "Health bars", "monsters", StyleTraits.Scale, Rgb(255, 64, 64)),
+        new("healthbar.back", "Health bars", "empty part", StyleTraits.Colour, Rgb(28, 18, 18, 200)),
+        new("healthbar.shield", "Health bars", "energy shield", StyleTraits.Colour, Rgb(140, 200, 255)),
 
         // ── Projectiles ─────────────────────────────────────────────────────
         // Two colours because there are two questions, and only one of them is "where is my
@@ -158,38 +158,38 @@ public static class StyleCatalogue
         // and a single colour for both would answer neither. The trail takes its HUE from the
         // projectile it belongs to, for the same reason; this entry sets how thick it is and,
         // through its alpha, how strongly it shows.
-        new("projectile.mine", "Projectiles", "Yours", Marker, Rgb(102, 224, 255)),
-        new("projectile.other", "Projectiles", "Everything else's", Marker, Rgb(255, 122, 89)),
-        new("projectile.trail", "Projectiles", "Where it came from", Line, Rgb(255, 255, 255, 128)),
+        new("projectile.mine", "Projectiles", "player", Marker, Rgb(102, 224, 255)),
+        new("projectile.other", "Projectiles", "others", Marker, Rgb(255, 122, 89)),
+        new("projectile.trail", "Projectiles", "trail", Line, Rgb(255, 255, 255, 128)),
 
         // The trail's HUE, by what the projectile appears to be. The mark itself keeps saying
         // whose it is, so the two together answer both questions at once: a cyan dot on a red
         // trail is your fireball. Which element a name means is a guess and can be wrong - see
         // ProjectileElements - so anything unrecognised keeps the mark's own colour rather than
         // taking one of these and stating something.
-        new("projectile.fire", "Projectiles", "Fire trail", StyleTraits.Colour, Rgb(255, 106, 61)),
-        new("projectile.cold", "Projectiles", "Cold trail", StyleTraits.Colour, Rgb(102, 179, 255)),
-        new("projectile.lightning", "Projectiles", "Lightning trail", StyleTraits.Colour, Rgb(255, 224, 92)),
-        new("projectile.chaos", "Projectiles", "Chaos trail", StyleTraits.Colour, Rgb(166, 122, 255)),
-        new("projectile.physical", "Projectiles", "Physical trail", StyleTraits.Colour, Rgb(214, 214, 214)),
+        new("projectile.fire", "Projectiles", "fire", StyleTraits.Colour, Rgb(255, 106, 61)),
+        new("projectile.cold", "Projectiles", "cold", StyleTraits.Colour, Rgb(102, 179, 255)),
+        new("projectile.lightning", "Projectiles", "lightning", StyleTraits.Colour, Rgb(255, 224, 92)),
+        new("projectile.chaos", "Projectiles", "chaos", StyleTraits.Colour, Rgb(166, 122, 255)),
+        new("projectile.physical", "Projectiles", "physical", StyleTraits.Colour, Rgb(214, 214, 214)),
 
         // ── The belt ────────────────────────────────────────────────────────
         // The figure written on each flask: how many uses it has left. Scale sizes it against
         // the slot. The colour is the figure's while there is a use in the flask; an empty one
         // takes the interface's own "bad" ink instead, which is not offered here because it is
         // the one colour that has to mean the same thing everywhere it appears.
-        new("flask.uses", "Flasks", "Uses left on a flask", StyleTraits.Colour | StyleTraits.Scale, Rgb(255, 255, 255, 240)),
+        new("flask.uses", "Flasks", "uses left", StyleTraits.Colour | StyleTraits.Scale, Rgb(255, 255, 255, 240)),
         // The plate under the figure, the same one the room names stand on: what is under the
         // figure is whatever colour the flask is, and a pale digit on a life flask's glare was
         // not readable with an edge alone. Its alpha is how much of the flask shows through;
         // hidden, the figure stands on the flask with just its edge.
-        new("flask.uses.plate", "Flasks", "Backing under the figure", StyleTraits.Colour, Rgb(20, 22, 26, 180)),
+        new("flask.uses.plate", "Flasks", "backing", StyleTraits.Colour, Rgb(20, 22, 26, 180)),
 
         // ── The skill bar ───────────────────────────────────────────────────
         // Each skill's DPS, as the Skills panel last showed it, written short on the skill's
         // icon. The same pair as the flask figure, for the same reasons.
-        new("skill.dps", "Skills", "DPS on a skill", StyleTraits.Colour | StyleTraits.Scale, Rgb(255, 255, 255, 240)),
-        new("skill.dps.plate", "Skills", "Backing under the DPS", StyleTraits.Colour, Rgb(20, 22, 26, 180)),
+        new("skill.dps", "Skills", "skill DPS", StyleTraits.Colour | StyleTraits.Scale, Rgb(255, 255, 255, 240)),
+        new("skill.dps.plate", "Skills", "DPS background", StyleTraits.Colour, Rgb(20, 22, 26, 180)),
 
         // ── What the area loaded ────────────────────────────────────────────
         // The card and the list have separate backings because they are read at different
@@ -199,15 +199,15 @@ public static class StyleCatalogue
         // The three weights carry an ICON, which is what the entry card draws as its plate:
         // point one at a picture and the card wears it, leave it empty and the weight's name
         // is written instead. Scale is the plate's width, so one weight can be made to shout.
-        new("preload.banner.back", "What the area loaded", "Entry line backing", StyleTraits.Colour, Rgb(14, 20, 28, 215)),
-        new("preload.list.back", "What the area loaded", "List backing", StyleTraits.Colour, Rgb(14, 20, 28, 170)),
+        new("preload.banner.back", "What the area loaded", "entry backing", StyleTraits.Colour, Rgb(14, 20, 28, 215)),
+        new("preload.list.back", "What the area loaded", "list backing", StyleTraits.Colour, Rgb(14, 20, 28, 170)),
         // ONE plate rather than three. There used to be one per weight, back when an entry's
         // colour came from a weight; entries now carry their own colour, so what is left for the
         // catalogue is the card's plate itself - its icon, and how wide it is drawn.
         // A PLATE rather than an icon: this one is drawn across the top of the screen, so it
         // takes a picture file with proportions of its own rather than a cell off the 64-pixel
         // marker sheet, which stretched that wide is a smear.
-        new("preload.card", "What the area loaded", "Card Scale",
+        new("preload.card", "What the area loaded", "card",
             StyleTraits.Colour | StyleTraits.Scale | StyleTraits.Plate, Rgb(255, 217, 102)),
 
         // ── The atlas ───────────────────────────────────────────────────────
@@ -215,12 +215,12 @@ public static class StyleCatalogue
         // rather than here: there is one per group and they are somebody's list, not this
         // file's. What is here is what a map with NO group uses, plus the parts no group can
         // colour - the plate, the connections, and the dot on the near end of a route.
-        new("atlas.label", "The atlas", "Map name", StyleTraits.Colour, Rgb(220, 225, 235, 255)),
-        new("atlas.plate", "The atlas", "Label backing", StyleTraits.Colour, Rgb(0, 0, 0, 204)),
-        new("atlas.content", "The atlas", "What is in a map", StyleTraits.Colour, Rgb(184, 194, 214, 255)),
-        new("atlas.web", "The atlas", "Connections", Line, Rgb(255, 255, 255, 56)),
-        new("atlas.route", "The atlas", "Route", Line, Rgb(255, 255, 255, 140)),
-        new("atlas.entry", "The atlas", "Where a route starts", Marker, Rgb(51, 255, 51, 255)),
+        new("atlas.label", "The atlas", "map name", StyleTraits.Colour, Rgb(220, 225, 235, 255)),
+        new("atlas.plate", "The atlas", "name background", StyleTraits.Colour, Rgb(0, 0, 0, 204)),
+        new("atlas.content", "The atlas", "map mechanic", StyleTraits.Colour, Rgb(184, 194, 214, 255)),
+        new("atlas.web", "The atlas", "connections", Line, Rgb(255, 255, 255, 56)),
+        new("atlas.route", "The atlas", "route", Line, Rgb(255, 255, 255, 140)),
+        new("atlas.entry", "The atlas", "route start", Marker, Rgb(51, 255, 51, 255)),
 
         // ── Measuring aids ──────────────────────────────────────────────────
         // Switched on with the calibration and browser tools rather than during play, but
@@ -228,12 +228,12 @@ public static class StyleCatalogue
         // this file's promise false. They are also the entries most worth changing: their job
         // is to be TOLD APART from what they are measured against, and what that takes
         // depends on the map somebody is standing on.
-        new("aid.centre", "Measuring aids", "Screen centre", Line, Rgb(77, 230, 255)),
-        new("aid.ground", "Measuring aids", "Ground marker", Line, Rgb(102, 255, 102)),
-        new("aid.healthbar", "Measuring aids", "Health-bar marker", Line, Rgb(255, 102, 255)),
-        new("aid.link", "Measuring aids", "Line between the two", Line, Rgb(255, 255, 255)),
-        new("aid.selected", "Measuring aids", "Selected interface element", Line, Rgb(255, 64, 64)),
-        new("aid.hovered", "Measuring aids", "Interface element under the cursor", Line, Rgb(89, 179, 255)),
+        new("aid.centre", "Measuring aids", "screen centre", Line, Rgb(77, 230, 255)),
+        new("aid.ground", "Measuring aids", "ground mark", Line, Rgb(102, 255, 102)),
+        new("aid.healthbar", "Measuring aids", "bar mark", Line, Rgb(255, 102, 255)),
+        new("aid.link", "Measuring aids", "link line", Line, Rgb(255, 255, 255)),
+        new("aid.selected", "Measuring aids", "selected UI element", Line, Rgb(255, 64, 64)),
+        new("aid.hovered", "Measuring aids", "hovered UI element", Line, Rgb(89, 179, 255)),
     ];
 
     /// <summary>
@@ -355,7 +355,7 @@ public static class StyleCatalogue
         public static readonly string[] MarkerEntities = ["Monsters", "Drops", "Other entities"];
 
         /// <summary>What is drawn on the GROUND: places, the layout, the routes between them.</summary>
-        public static readonly string[] MarkerPlaces = ["Places", "Map", "Room outlines", "Routes"];
+        public static readonly string[] MarkerPlaces = ["Places", "Map", "Room outlines"];
 
         /// <summary>The bars over a monster's head.</summary>
         public static readonly string[] MarkerHealth = ["Health bars"];
@@ -377,10 +377,44 @@ public static class StyleCatalogue
             .. MarkerEntities, .. MarkerPlaces, .. MarkerHealth, .. MarkerAids,
         ];
 
+        /// <summary>On the routes page's settings, beside the switches that draw them.</summary>
+        /// <remarks>
+        /// Moved off the markers' places tab: somebody adjusting a route looks for its colour where
+        /// the routes are configured, not among the waypoints and shrines.
+        /// </remarks>
+        public static readonly string[] Routes = ["Routes"];
+
         /// <summary>Every page's claim, for the test that keeps the mapping complete.</summary>
         public static IEnumerable<string> All()
-            => Area.Concat(Atlas).Concat(Projectiles).Concat(Flasks).Concat(Skills).Concat(Markers);
+            => Area.Concat(Atlas).Concat(Projectiles).Concat(Flasks).Concat(Skills).Concat(Routes).Concat(Markers);
     }
+
+    /// <summary>The heading an editor writes for a group.</summary>
+    /// <remarks>
+    /// APART FROM THE GROUP'S NAME, which <see cref="Homes"/> and the tests use as an identity:
+    /// the heading follows the interface's lowercase labels, the identity stays what it was so
+    /// nothing that names a group has to move with a wording change.
+    /// </remarks>
+    public static string GroupTitle(string group) => group switch
+    {
+        "What the area loaded" => "loaded files",
+        "The atlas" => "atlas",
+        "Places" => "environments",
+        "Monsters" => "monsters",
+        "Drops" => "drops",
+        "Other entities" => "other entities",
+        "Routes" => "routes",
+        "Map" => "map",
+        "Room outlines" => "room outlines",
+        "Health bars" => "health bars",
+        "Projectiles" => "projectiles",
+        "Flasks" => "flasks",
+        "Skills" => "skills",
+        "Measuring aids" => "measuring aids",
+
+        // Spelled out rather than lowered on the fly: the headings are drawn every frame.
+        _ => group,
+    };
 
     /// <summary>The entry for a key, or null when there is none.</summary>
     public static StyleEntry? Find(string key)

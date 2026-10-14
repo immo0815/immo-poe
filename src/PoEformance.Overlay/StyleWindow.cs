@@ -124,17 +124,17 @@ public sealed class StyleWindow
     {
         DrawInterface();
 
-        if (Chrome is not null && OverlayLayout.Subsection("Windows", openByDefault: true))
+        if (Chrome is not null && OverlayLayout.Subsection("windows###Windows", openByDefault: true))
         {
             Chrome.DrawList();
         }
 
-        if (TabList is not null && OverlayLayout.Subsection("Tabs", openByDefault: true))
+        if (TabList is not null && OverlayLayout.Subsection("tabs###Tabs", openByDefault: true))
         {
             TabList();
         }
 
-        if (Keys is not null && OverlayLayout.Subsection("Keys", openByDefault: true))
+        if (Keys is not null && OverlayLayout.Subsection("keys###Keys", openByDefault: true))
         {
             Keys();
         }
@@ -152,7 +152,7 @@ public sealed class StyleWindow
     private void DrawInterface()
     {
         if (Interface is not InterfaceEditor editor
-            || !OverlayLayout.Subsection("Text and Panels", openByDefault: true))
+            || !OverlayLayout.Subsection("text and panels###Text and Panels", openByDefault: true))
         {
             return;
         }
@@ -166,7 +166,7 @@ public sealed class StyleWindow
 
         int size = _draftTextSize > 0 ? _draftTextSize : now.TextSizeOr;
         if (OverlayLayout.Slider(
-                "Text Size", ref size, InterfaceStyle.MinTextSize, InterfaceStyle.MaxTextSize, "%d px"))
+                "text size", ref size, InterfaceStyle.MinTextSize, InterfaceStyle.MaxTextSize, "%d px"))
         {
             _draftTextSize = size;
         }
@@ -199,7 +199,7 @@ public sealed class StyleWindow
         // them reads as anything to a person - and a slider labelled in percent can be
         // ctrl-clicked and typed into, which one labelled "0.85" cannot usefully be.
         int panels = Percent(now.PanelOpacityOr);
-        if (OverlayLayout.Slider("Tool Panels", ref panels, Floor, 100, "%d%% solid"))
+        if (OverlayLayout.Slider("tool panels", ref panels, Floor, 100, "%d%% solid"))
         {
             editor.Chose(now with { PanelOpacity = panels / 100f });
             _unsavedInterface = true;
@@ -208,7 +208,7 @@ public sealed class StyleWindow
         OverlayLayout.Hint("Every page except the live readout.");
 
         int readout = Percent(now.ReadoutOpacityOr);
-        if (OverlayLayout.Slider("Readout", ref readout, Floor, 100, "%d%% solid"))
+        if (OverlayLayout.Slider("readout", ref readout, Floor, 100, "%d%% solid"))
         {
             editor.Chose(now with { ReadoutOpacity = readout / 100f });
             _unsavedInterface = true;
@@ -221,7 +221,7 @@ public sealed class StyleWindow
         // ITS OWN LINE, not stuck to the end of the paragraph above it with SameLine. That is
         // what this button used to be, and it put the button wherever the prose happened to
         // wrap - so dragging the window moved it.
-        if (now != InterfaceStyle.Default && OverlayLayout.Actions("Reset text and panels") == 0)
+        if (now != InterfaceStyle.Default && OverlayLayout.Actions("reset text and panels") == 0)
         {
             editor.Chose(InterfaceStyle.Default);
             _draftTextSize = 0;

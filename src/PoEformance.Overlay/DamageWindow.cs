@@ -114,14 +114,14 @@ public sealed class DamageWindow
     {
         DrawMetrics();
 
-        ImGui.Separator();
+        OverlayLayout.Group("graph");
         DrawGraph();
         DrawGraphControls();
 
-        ImGui.Separator();
+        OverlayLayout.Gap();
         DrawKills();
 
-        ImGui.Separator();
+        OverlayLayout.Group("targets");
         DrawTargets();
 
         ImGui.Spacing();
@@ -152,19 +152,19 @@ public sealed class DamageWindow
         DrawBurst();
 
         Metric(
-            "Watched", Number(_meter.Observed), DimText,
+            "watched", Number(_meter.Observed), DimText,
             $"Seen coming off {_meter.Hurt} monsters' health. The part that rests on nothing but"
             + " a reading.");
 
         OverlayLayout.Cell(1);
         Metric(
-            "Credited", Number(_meter.CreditedHurt), JudgedText,
+            "credited", Number(_meter.CreditedHurt), JudgedText,
             "Damage dealt to monsters that were already being hurt, and then vanished. Nearly"
             + " certain: something was hurting it, and then it was gone.");
 
         OverlayLayout.Cell(2);
         Metric(
-            "Untouched", Number(_meter.CreditedUntouched), SoftText,
+            "untouched", Number(_meter.CreditedUntouched), SoftText,
             $"{Share(_meter.CreditedUntouched, _meter.Total)} of the total. Monsters that"
             + " vanished without a scratch seen - this half rests entirely on the assumption,"
             + " and is where one that merely walked off would land.");
@@ -173,7 +173,7 @@ public sealed class DamageWindow
         {
             OverlayLayout.Cell(3);
             Metric(
-                "Out of range", Number(_meter.Withheld), DimText,
+                "out of range", Number(_meter.Withheld), DimText,
                 $"{_meter.WithheldCount} vanished too far away to have been killed, so their"
                 + " health was refused rather than credited.");
         }
@@ -198,29 +198,25 @@ public sealed class DamageWindow
     /// </remarks>
     private void DrawGraphControls()
     {
-        OverlayLayout.Toggle("Reset per Map", ref _thisMapOnly);
+        OverlayLayout.Toggle("reset per map", ref _thisMapOnly);
         OverlayLayout.Hint("Off keeps counting across areas, so the graph spans the session.");
 
         ImGui.SameLine();
-        if (ImGui.Button("Reset DPS"))
+        if (ImGui.Button("reset DPS"))
         {
             _meter.History.Clear();
         }
 
         OverlayLayout.Next();
-        OverlayLayout.Narrow.Slider("##dmg-height", ref _height, 40f, 240f, "%.0f px");
-        ImGui.SameLine();
-        ImGui.TextColored(DimText, "Graph height");
+        OverlayLayout.Narrow.Slider("graph height###dmg-height", ref _height, 40f, 240f, "%.0f px");
 
         OverlayLayout.Next();
         float smoothing = _meter.SmoothingSeconds;
-        if (OverlayLayout.Narrow.Slider("##dmg-smoothing", ref smoothing, 0.1f, 5f, "%.2f s"))
+        if (OverlayLayout.Narrow.Slider("smoothing###dmg-smoothing", ref smoothing, 0.1f, 5f, "%.2f s"))
         {
             _meter.SmoothingSeconds = smoothing;
         }
 
-        ImGui.SameLine();
-        ImGui.TextColored(DimText, "Smooth window");
         OverlayLayout.Hint(
             "How long a window the headline dps is averaged over. The peak moves with this, which"
             + " is why the peak cannot be compared with anybody else's.");
@@ -238,16 +234,20 @@ public sealed class DamageWindow
     /// </remarks>
     private void DrawMeasurement()
     {
-        if (!OverlayLayout.Subsection("How the Figure Is Measured"))
+        if (!OverlayLayout.Subsection("measurement###How the Figure Is Measured"))
         {
             return;
         }
 
         bool counting = _meter.CountKills;
-        if (OverlayLayout.Toggle("Track Off-Screen / Vanished Kills", ref counting))
+        if (OverlayLayout.Toggle("count off-screen kills", ref counting))
         {
             _meter.CountKills = counting;
         }
+
+        OverlayLayout.Hint(
+            "Credits monsters that vanished - killed off-screen or between two reads - with the"
+            + " health they had left.");
 
         // The reason the switch above is not merely a preference: a dead monster is dropped
         // from the snapshot rather than lingering at zero, so the last chunk of every kill -
@@ -262,21 +262,24 @@ public sealed class DamageWindow
         }
         else
         {
+            ImGui.Indent();
+
             // GRID UNITS, the same as the rows above and as the entity browser. It was in
             // screens, which read more naturally but could not be compared with anything:
             // the figures it has to be set against - how far the list reaches, where things
             // went missing, GameHelper2's measured bubble near 200 - are all in grid, and a
             // control in its own private unit cannot be set from them.
             float limit = _meter.CreditWithin / MapView.WorldToGrid;
-            if (OverlayLayout.Slider("Max Range", ref limit, 0f, 600f,
-                    limit <= 0f ? "any distance" : "%.0f grid"))
+            if (OverlayLayout.Slider("max range", ref limit, 0f, 600f,
+                    limit <= 0f ? "any" : "%.0f cells"))
             {
                 _meter.CreditWithin = limit * MapView.WorldToGrid;
             }
 
             OverlayLayout.Hint(
                 "Measured from where the monster was last seen. Anything that vanished further"
-                + " away than this is refused rather than credited.");
+                + " away than this is refused rather than credited. 0 is any distance.");
+            ImGui.Unindent();
         }
 
         DrawFurthest();
@@ -298,7 +301,7 @@ public sealed class DamageWindow
         }
 
         bool painting = heat.Enabled;
-        if (OverlayLayout.Toggle("Damage Heatmap Overlay", ref painting))
+        if (OverlayLayout.Toggle("heat map", ref painting))
         {
             heat.Enabled = painting;
         }
@@ -367,7 +370,7 @@ public sealed class DamageWindow
         uint scope = _thisMapOnly ? CurrentArea : 0;
         IReadOnlyList<KillRecord> kills = _meter.Kills.In(scope);
 
-        if (!OverlayLayout.Subsection($"Rares and Uniques ({kills.Count})###dmg-kills", openByDefault: true))
+        if (!OverlayLayout.Subsection($"rares & uniques ({kills.Count})###dmg-kills", openByDefault: true))
         {
             return;
         }
@@ -407,7 +410,7 @@ public sealed class DamageWindow
             ImGui.TableSetupColumn("monster", ImGuiTableColumnFlags.DefaultSort);
             ImGui.TableSetupColumn("took");
             ImGui.TableSetupColumn("damage");
-            ImGui.TableSetupColumn("dps");
+            ImGui.TableSetupColumn("DPS");
             ImGui.TableHeadersRow();
 
             foreach (KillRecord kill in Sorted(kills))
@@ -968,7 +971,7 @@ public sealed class DamageWindow
 
         ImGui.TextColored(
             roomy ? DimText : SoftText,
-            $"  counted out to: {counted:0} grid, limit {gate:0}"
+            $"  counted out to: {counted:0} cells, limit {gate:0}"
             + (roomy
                 ? "  - clear of it, so it is not cutting into kills"
                 : "  - close to it; it may be refusing real kills, so try widening it"));
@@ -996,8 +999,8 @@ public sealed class DamageWindow
         try
         {
             ImGui.TableSetupColumn("target", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("left", ImGuiTableColumnFlags.WidthFixed, 70f);
-            ImGui.TableSetupColumn("dps", ImGuiTableColumnFlags.WidthFixed, 90f);
+            ImGui.TableSetupColumn("left", ImGuiTableColumnFlags.WidthFixed, ImGui.GetFontSize() * 5f);
+            ImGui.TableSetupColumn("DPS", ImGuiTableColumnFlags.WidthFixed, ImGui.GetFontSize() * 6.5f);
             ImGui.TableHeadersRow();
 
             foreach (DamageTarget target in targets)

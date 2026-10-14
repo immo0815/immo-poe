@@ -111,7 +111,7 @@ public sealed class AtlasLogWindow(Func<IReadOnlyList<string>> report)
         {
             ImGui.TextColored(
                 DimText,
-                "Nothing yet. \"Check the Read\" on the Atlas page walks the tables and writes its"
+                "Nothing yet. \"debug output\" on the atlas page walks the tables and writes its"
                 + " account here.");
             return;
         }
@@ -146,8 +146,8 @@ public sealed class AtlasLogWindow(Func<IReadOnlyList<string>> report)
     /// <summary>The section picker and the search box, on one line.</summary>
     private void Controls()
     {
-        ImGui.SetNextItemWidth(220f);
-        if (ImGui.BeginCombo("###atlas-log-section", _section))
+        ImGui.SetNextItemWidth(OverlayLayout.FieldWidth());
+        if (ImGui.BeginCombo("section###atlas-log-section", _section))
         {
             foreach (string section in _sections)
             {
@@ -161,13 +161,15 @@ public sealed class AtlasLogWindow(Func<IReadOnlyList<string>> report)
         }
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(260f);
-        ImGui.InputTextWithHint("###atlas-log-find", "find in the text...", ref _search, SearchLength);
-        if (ImGui.IsItemHovered())
+        OverlayLayout.Search("###atlas-log-find", "find in the text…", ref _search, SearchLength,
+            ImGui.CalcTextSize("00000 of 00000 lines").X + ImGui.GetStyle().ItemSpacing.X);
+
+        // THE WHOLE THING GOES INTO A CAPTURE, not the filtered view: a report with the
+        // interesting part filtered out is worse than no report. The filter is for reading here.
+        // Built only while hovered, so the draw path does not format it every frame.
+        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
         {
-            // THE WHOLE THING GOES INTO A CAPTURE, not the filtered view: a report with the
-            // interesting part filtered out is worse than no report. The filter is for reading here.
-            ImGui.SetTooltip($"For reading here. The capture key writes all {_lines.Count} lines to atlas-log.txt, filter ignored.");
+            OverlayLayout.Hint($"For reading here. The capture key writes all {_lines.Count} lines to atlas-log.txt, filter ignored.");
         }
     }
 

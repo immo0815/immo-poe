@@ -80,7 +80,7 @@ public sealed class ExpeditionWindow
         ExpeditionView view = _watch.View;
 
         bool enabled = settings.Enabled;
-        if (OverlayLayout.Master("Expedition planner", ref enabled))
+        if (OverlayLayout.Master("expedition planner", ref enabled))
         {
             Apply(settings with { Enabled = enabled });
             settings = _watch.Settings;
@@ -104,11 +104,11 @@ public sealed class ExpeditionWindow
 
         OverlayLayout.Tabs(
             "expedition-pages",
-            ("Plan", () => PlanPage(view)),
-            ("Weights", () => WeightsPage(view, settings)),
-            ("Relics", () => RelicsPage(settings)),
-            ("Props", () => PropsPage(settings, view)),
-            ("Map & Run", () => DrawingPage(settings)));
+            ("plan", () => PlanPage(view)),
+            ("weights", () => WeightsPage(view, settings)),
+            ("relics", () => RelicsPage(settings)),
+            ("props", () => PropsPage(settings, view)),
+            ("map & run", () => DrawingPage(settings)));
 
         Flush();
     }
@@ -118,7 +118,7 @@ public sealed class ExpeditionWindow
     /// <summary>Where the expedition stands, and the Run button.</summary>
     private void State(ExpeditionView view, ExpeditionSettings settings)
     {
-        OverlayLayout.Group("This Expedition");
+        OverlayLayout.Group("this expedition");
         ImGuiText.Colored(view.HasDetonator ? GoodText : DimText, view.Status);
 
         if (!view.HasDetonator)
@@ -142,12 +142,12 @@ public sealed class ExpeditionWindow
         if (!view.CountsKnown)
         {
             int manual = settings.ManualTotal;
-            if (OverlayLayout.Number("Total charges (manual)", ref manual))
+            if (OverlayLayout.Number("charges", ref manual))
             {
                 Apply(settings with { ManualTotal = manual });
             }
 
-            OverlayLayout.Hint("The charge total the plan is made with while the game's own count cannot be read.");
+            OverlayLayout.Hint("The charge total (manual) the plan is made with while the game's own count cannot be read.");
             OverlayLayout.Warning(
                 "Neither the controller nor the counter widget could be read: set the total to match"
                 + " the in-game counter. Progress counts the charges seen as entities.");
@@ -162,7 +162,7 @@ public sealed class ExpeditionWindow
         if (view.Computing)
         {
             ImGui.BeginDisabled();
-            OverlayLayout.Actions("cooking...");
+            OverlayLayout.Actions("planning…");
             ImGui.EndDisabled();
         }
         else
@@ -174,7 +174,7 @@ public sealed class ExpeditionWindow
                 ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.16f, 0.45f, 0.16f, 1f));
             }
 
-            int pressed = OverlayLayout.Actions(view.Stale ? "Run*" : "Run");
+            int pressed = OverlayLayout.Actions(view.Stale ? "run*" : "run");
             if (view.Stale)
             {
                 ImGui.PopStyleColor(3);
@@ -215,7 +215,7 @@ public sealed class ExpeditionWindow
     {
         PlanResult plan = view.Route;
         OverlayLayout.Group(
-            $"The Plan ({plan.Route.Count} charges)",
+            $"plan ({plan.Route.Count} charges)",
             "Each charge in the order to lay it, where it goes in grid cells, and why it landed there."
             + " Grey is already placed, green is next, gold still to come - the same colours as on the map.");
 
@@ -267,7 +267,7 @@ public sealed class ExpeditionWindow
     /// <summary>What the scan found, by value.</summary>
     private static void Targets(ExpeditionView view)
     {
-        if (!OverlayLayout.Subsection($"Targets ({view.Targets.Count})"))
+        if (!OverlayLayout.Subsection($"targets ({view.Targets.Count})###targets"))
         {
             return;
         }
@@ -342,7 +342,7 @@ public sealed class ExpeditionWindow
     private static void Trace(ExpeditionView view)
     {
         IReadOnlyList<string> lines = view.Route.Trace;
-        if (!OverlayLayout.Subsection($"Why ({lines.Count} lines)"))
+        if (!OverlayLayout.Subsection($"trace ({lines.Count})###why"))
         {
             return;
         }
@@ -373,7 +373,7 @@ public sealed class ExpeditionWindow
     private void WeightsPage(ExpeditionView view, ExpeditionSettings settings)
     {
         OverlayLayout.Group(
-            "What Is Worth the Walk",
+            "anchors",
             "The anchors: the places the route is built to reach, in order. Everything else is a"
             + " pickup, taken only when a blast happens to cover it or a spare charge pays for it.");
         OverlayLayout.Note(
@@ -381,7 +381,7 @@ public sealed class ExpeditionWindow
             + " or when it has enough holes to be worth the chain whatever it pays.");
 
         float minEx = settings.MonolithMinEx;
-        if (OverlayLayout.Drag("Monolith worth a detour (ex)", ref minEx, 1f, 0f, 100_000f, "%.0f"))
+        if (OverlayLayout.Drag("monolith from", ref minEx, 1f, 0f, 100_000f, "%.0f ex"))
         {
             Apply(settings with { MonolithMinEx = minEx });
             settings = _watch.Settings;
@@ -394,7 +394,7 @@ public sealed class ExpeditionWindow
             + " still collects runes. 0 routes every priced monolith.");
 
         int sockets = settings.MonolithMinSockets;
-        if (OverlayLayout.Number("...or holes at least", ref sockets))
+        if (OverlayLayout.Number("or holes from", ref sockets))
         {
             Apply(settings with { MonolithMinSockets = sockets });
             settings = _watch.Settings;
@@ -411,13 +411,13 @@ public sealed class ExpeditionWindow
         if (!knownGrand)
         {
             OverlayLayout.Group(
-                "Reward Flags by Height (normal)",
+                "flags (normal)",
                 "On a normal expedition each flag's pole stands at a fixed height per reward tier, so"
                 + " the tall ones are the good ones. The tiny throwaway flags weigh nothing.");
             OverlayLayout.Note("What a flag of each tier is worth to the route, in Exalted - white, magic, gold, and the two-triangle logbook flag.");
 
             int white = settings.MarkerWhite;
-            if (OverlayLayout.Slider("White flag", ref white, 0, 500, "%d ex"))
+            if (OverlayLayout.Slider("white", ref white, 0, 500, "%d ex"))
             {
                 Apply(settings with { MarkerWhite = white });
                 settings = _watch.Settings;
@@ -426,7 +426,7 @@ public sealed class ExpeditionWindow
             OverlayLayout.Hint("The ordinary flag: a normal-rarity reward.");
 
             int magic = settings.MarkerMagic;
-            if (OverlayLayout.Slider("Magic flag", ref magic, 0, 500, "%d ex"))
+            if (OverlayLayout.Slider("magic", ref magic, 0, 500, "%d ex"))
             {
                 Apply(settings with { MarkerMagic = magic });
                 settings = _watch.Settings;
@@ -435,7 +435,7 @@ public sealed class ExpeditionWindow
             OverlayLayout.Hint("The blue flag: a magic reward.");
 
             int gold = settings.MarkerGold;
-            if (OverlayLayout.Slider("Gold flag", ref gold, 0, 500, "%d ex"))
+            if (OverlayLayout.Slider("gold", ref gold, 0, 500, "%d ex"))
             {
                 Apply(settings with { MarkerGold = gold });
                 settings = _watch.Settings;
@@ -444,7 +444,7 @@ public sealed class ExpeditionWindow
             OverlayLayout.Hint("The gold flag: a rare reward.");
 
             int logbook = settings.MarkerLogbook;
-            if (OverlayLayout.Slider("Logbook flag", ref logbook, 0, 1000, "%d ex"))
+            if (OverlayLayout.Slider("logbook", ref logbook, 0, 1000, "%d ex"))
             {
                 Apply(settings with { MarkerLogbook = logbook });
                 settings = _watch.Settings;
@@ -456,13 +456,13 @@ public sealed class ExpeditionWindow
         if (!knownNormal)
         {
             OverlayLayout.Group(
-                "Reward Types (Grand)",
+                "reward types (grand)",
                 "On a Grand expedition - a logbook, or ten charges and more - the flags carry a reward"
                 + " type instead of a height, so each type is weighed by name.");
             OverlayLayout.Note("What a flag of each reward type is worth to the route, in Exalted. A type not listed weighs 1; 0 ignores it.");
 
             int markers = settings.MinMarkersPerSpare;
-            if (OverlayLayout.Slider("Flags per spare charge", ref markers, 1, 3, "%d"))
+            if (OverlayLayout.Slider("flags per spare charge", ref markers, 1, 3, "%d"))
             {
                 Apply(settings with { MinMarkersPerSpare = markers });
                 settings = _watch.Settings;
@@ -522,7 +522,7 @@ public sealed class ExpeditionWindow
                         ImGui.TableSetColumnIndex(1);
                         ImGui.SetNextItemWidth(field);
                         float weight = row.Weight;
-                        if (ImGui.DragFloat("##w", ref weight, 0.5f, 0f, 10_000f, "%.0f"))
+                        if (ImGui.DragFloat("##w", ref weight, 0.5f, 0f, 10_000f, "%.0f ex"))
                         {
                             changed = row with { Weight = weight };
                             changedAt = i;
@@ -577,7 +577,7 @@ public sealed class ExpeditionWindow
         }
 
         ImGui.SetNextItemWidth(OverlayLayout.FieldWidth());
-        if (ImGui.BeginCombo("Add a reward type", "choose..."))
+        if (ImGui.BeginCombo("add reward", "choose…"))
         {
             try
             {
@@ -618,7 +618,7 @@ public sealed class ExpeditionWindow
 
         OverlayLayout.Hint("The known reward types, and any icon seen on this map that is not among them.");
 
-        if (OverlayLayout.Actions("Reset the reward weights") == 0)
+        if (OverlayLayout.Actions("reset weights") == 0)
         {
             Apply(settings with { RewardWeights = ExpeditionSettings.DefaultRewardWeights });
         }
@@ -658,7 +658,7 @@ public sealed class ExpeditionWindow
     private void RelicsPage(ExpeditionSettings settings)
     {
         OverlayLayout.Group(
-            "Relics: seek (+) and shun (-)",
+            "relics",
             "A relic (\"remnant\") is a field device whose mods apply to the whole dig once a blast"
             + " reaches it: more quantity, more packs - or monsters immune to your damage. The route"
             + " goes to the relics worth it and keeps every blast clear of the ones you tick avoid.");
@@ -690,8 +690,8 @@ public sealed class ExpeditionWindow
         {
             try
             {
-                ImGui.TableSetupColumn("seek (+)  ·  weight in ex");
-                ImGui.TableSetupColumn("shun (-)  ·  avoid, or weight in ex");
+                ImGui.TableSetupColumn("seek (+)");
+                ImGui.TableSetupColumn("shun (−)");
                 ImGui.TableHeadersRow();
                 float field = ImGui.GetFontSize() * 3f;
                 float gap = ImGui.GetStyle().ItemSpacing.X;
@@ -720,7 +720,7 @@ public sealed class ExpeditionWindow
                         if (shunnable)
                         {
                             bool tick = avoided;
-                            if (ImGui.Checkbox("##avoid", ref tick))
+                            if (OverlayLayout.Toggle("##avoid", ref tick))
                             {
                                 toggledMod = mod;
                                 toggledOn = tick;
@@ -746,7 +746,7 @@ public sealed class ExpeditionWindow
                         {
                             map.TryGetValue(mod, out float value);
                             ImGui.SetNextItemWidth(field);
-                            if (ImGui.DragFloat("##w", ref value, 0.5f, 0f, 10_000f, "%.0f"))
+                            if (ImGui.DragFloat("##w", ref value, 0.5f, 0f, 10_000f, "%.0f ex"))
                             {
                                 changedMod = mod;
                                 changedWeight = value;
@@ -823,7 +823,7 @@ public sealed class ExpeditionWindow
             settings = _watch.Settings;
         }
 
-        int pressed = OverlayLayout.Actions("Clear the weights", "Clear the avoid marks");
+        int pressed = OverlayLayout.Actions("clear weights", "clear avoids");
         if (pressed == 0)
         {
             Apply(settings with { RelicWeights = [] });
@@ -840,7 +840,7 @@ public sealed class ExpeditionWindow
     private void PropsPage(ExpeditionSettings settings, ExpeditionView view)
     {
         OverlayLayout.Group(
-            "Exploding Props",
+            "exploding props",
             "Barrels, oil derricks, Faridun explosives: scenery that explodes when a blast reaches it,"
             + " clearing its own radius for free - so one charge beside a derrick covers far more than its"
             + " own blast. The chain does not continue from the prop, and one prop never sets off another.");
@@ -860,7 +860,7 @@ public sealed class ExpeditionWindow
             try
             {
                 bool on = rule.Enabled;
-                if (ImGui.Checkbox("##on", ref on))
+                if (OverlayLayout.Toggle("##on", ref on))
                 {
                     changed = rule with { Enabled = on };
                     changedAt = i;
@@ -930,9 +930,9 @@ public sealed class ExpeditionWindow
             settings = _watch.Settings;
         }
 
-        OverlayLayout.Input("New rule's path fragment", ref _newProp, 128);
-        OverlayLayout.Hint("A piece of the object's path - copy one from the list below. The radius starts at 55 cells, a barrel's.");
-        if (OverlayLayout.Actions("Add rule") == 0 && _newProp.Trim().Length > 0)
+        OverlayLayout.Input("new path", ref _newProp, 128);
+        OverlayLayout.Hint("The new rule's path fragment: a piece of the object's path - copy one from the list below. The radius starts at 55 cells, a barrel's.");
+        if (OverlayLayout.Actions("add rule") == 0 && _newProp.Trim().Length > 0)
         {
             var added = new List<PropRule>(rules) { new(_newProp.Trim(), 55f) };
             Apply(settings with { PropRules = added });
@@ -940,7 +940,7 @@ public sealed class ExpeditionWindow
         }
 
         OverlayLayout.Group(
-            "Objects Matching No Rule",
+            "unmatched objects",
             "The expedition objects on this map that no rule names. Most are scenery; add a rule only"
             + " for one that really explodes, and click a name to copy its path.");
         if (view.UnmatchedProps.Count == 0)
@@ -970,12 +970,12 @@ public sealed class ExpeditionWindow
     private void DrawingPage(ExpeditionSettings settings)
     {
         OverlayLayout.Group(
-            "On the Map",
+            "on the map",
             "Drawn on whichever map is open: the large map when it is up, else the minimap. The"
             + " numbered charges and the avoid marks are always drawn; these are the extras.");
 
         bool rings = settings.ShowRings;
-        if (OverlayLayout.Toggle("Blast ring on each planned charge", ref rings))
+        if (OverlayLayout.Toggle("blast rings", ref rings))
         {
             Apply(settings with { ShowRings = rings });
             settings = _watch.Settings;
@@ -984,7 +984,7 @@ public sealed class ExpeditionWindow
         OverlayLayout.Hint("A ring the size of one blast round every planned charge, so overlapping coverage is visible.");
 
         bool spine = settings.ShowSpine;
-        if (OverlayLayout.Toggle("The line the route walks", ref spine))
+        if (OverlayLayout.Toggle("route line", ref spine))
         {
             Apply(settings with { ShowSpine = spine });
             settings = _watch.Settings;
@@ -993,7 +993,7 @@ public sealed class ExpeditionWindow
         OverlayLayout.Hint("The walkable line from the detonator through the anchors that the charges are laid along.");
 
         bool props = settings.ShowProps;
-        if (OverlayLayout.Toggle("Exploding props and their radius", ref props))
+        if (OverlayLayout.Toggle("prop radius", ref props))
         {
             Apply(settings with { ShowProps = props });
             settings = _watch.Settings;
@@ -1002,7 +1002,7 @@ public sealed class ExpeditionWindow
         OverlayLayout.Hint("Each prop with a rule, and the area its own explosion clears.");
 
         bool gates = settings.ShowGates;
-        if (OverlayLayout.Toggle("Path-blockers and the holes they punch", ref gates))
+        if (OverlayLayout.Toggle("blockers", ref gates))
         {
             Apply(settings with { ShowGates = gates });
             settings = _watch.Settings;
@@ -1010,9 +1010,9 @@ public sealed class ExpeditionWindow
 
         OverlayLayout.Hint("The shut blockers (red) with the cells they make solid, and the opened ones (green) the chain may pass.");
 
-        OverlayLayout.Group("Run", "Re-plan without a trip to this window, and keep the planner's reasoning on disk.");
+        OverlayLayout.Group("run", "Re-plan without a trip to this window, and keep the planner's reasoning on disk.");
         int key = RunKeys.IndexOf(settings.RunKey);
-        if (OverlayLayout.Combo("Run hotkey", ref key, KeyNames))
+        if (OverlayLayout.Combo("run key", ref key, KeyNames))
         {
             Apply(settings with { RunKey = RunKeys.Choices[key].Code });
             settings = _watch.Settings;
@@ -1023,12 +1023,14 @@ public sealed class ExpeditionWindow
             + " this tool is in front. Off by default: no key is safe on every keyboard.");
 
         bool trace = settings.TraceFile;
-        if (OverlayLayout.Toggle("Write the decision trace to config/expedition-plan.txt", ref trace))
+        if (OverlayLayout.Toggle("write trace file", ref trace))
         {
             Apply(settings with { TraceFile = trace });
         }
 
-        OverlayLayout.Hint("The whole trace of every run, for a plan that looks wrong. The last lines are on the Plan page too.");
+        OverlayLayout.Hint(
+            "Writes the decision trace to config/expedition-plan.txt: the whole trace of every run,"
+            + " for a plan that looks wrong. The last lines are on the plan page too.");
     }
 
     /// <summary>Takes a changed setting into use at once; the write waits for the typing to stop.</summary>

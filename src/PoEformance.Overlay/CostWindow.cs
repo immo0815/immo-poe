@@ -55,15 +55,15 @@ public sealed class CostWindow
     {
         uint scope = _thisMapOnly ? CurrentArea : 0;
 
-        ImGui.Checkbox("this map only", ref _thisMapOnly);
+        OverlayLayout.Toggle("this map only", ref _thisMapOnly);
         ImGui.SameLine();
-        if (ImGui.Button("Start Over"))
+        if (ImGui.Button("start over"))
         {
             _history.Clear();
         }
 
         ImGui.SameLine();
-        OverlayLayout.Slider("Plot Height", ref _height, 30f, 160f, "%.0f px");
+        OverlayLayout.Slider("plot height", ref _height, 30f, 160f, "%.0f px");
 
         double seconds = _history.SecondsIn(scope);
         ImGui.TextColored(

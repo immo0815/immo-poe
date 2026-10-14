@@ -91,20 +91,17 @@ public sealed class MapKeepOutEditor
     public void DrawControls()
     {
         bool on = Zones.On;
-        if (ImGui.Checkbox("Keep the map off the game's interface", ref on))
+        if (OverlayLayout.Toggle("keep map off HUD", ref on))
         {
             Zones = Zones with { On = on };
             Changed?.Invoke();
         }
 
-        if (ImGui.IsItemHovered())
-        {
-            ImGui.SetTooltip(
+        OverlayLayout.Hint(
                 "The game draws the large map across the WHOLE window and paints the orbs, the"
                 + " bars and any open panel on top of it. This overlay cannot get underneath"
                 + " them, so it stays off what the interface covers - measured from the game's"
                 + " own HUD element, part by part.");
-        }
 
         if (!on)
         {
@@ -115,23 +112,30 @@ public sealed class MapKeepOutEditor
         // identity from its label - so with ## the node would be a NEW node every time a part
         // appeared or went, and it would snap shut under the cursor. ### fixes the identity
         // and lets the label say whatever it likes.
-        if (ImGui.TreeNode($"Interface parts ({Parts.Count} measured)###keepouthud"))
+        // CHILDREN OF THE SWITCH, stepped in under it.
+        float step = OverlayLayout.Step();
+        ImGui.Indent(step);
+        if (ImGui.TreeNode($"HUD parts ({Parts.Count})###keepouthud"))
         {
             DrawPartList();
             ImGui.TreePop();
         }
 
-        if (ImGui.TreeNode($"Extra boxes ({Zones.ZonesOrEmpty.Count})###keepoutzones"))
+        if (ImGui.TreeNode($"extra zones ({Zones.ZonesOrEmpty.Count})###keepoutzones"))
         {
             bool editing = Editing;
-            if (ImGui.Checkbox("Show them, to drag them", ref editing))
+            if (OverlayLayout.Toggle("edit zones", ref editing))
             {
                 Editing = editing;
             }
 
+            OverlayLayout.Hint("Show the zones on screen so they can be dragged.");
+
             DrawZoneList();
             ImGui.TreePop();
         }
+
+        ImGui.Unindent(step);
     }
 
     /// <summary>
@@ -148,7 +152,7 @@ public sealed class MapKeepOutEditor
     private void DrawPartList()
     {
         bool hud = Zones.Hud;
-        if (ImGui.Checkbox("Measure it##keepouthudon", ref hud))
+        if (OverlayLayout.Toggle("measure HUD##keepouthudon", ref hud))
         {
             Zones = Zones with { Hud = hud };
             Changed?.Invoke();
@@ -169,7 +173,7 @@ public sealed class MapKeepOutEditor
         foreach (InterfacePart part in Parts)
         {
             bool honoured = Zones.Honours(part.Label);
-            if (ImGui.Checkbox($"{part.Label}##keepoutpart{part.Address:X}", ref honoured))
+            if (OverlayLayout.Toggle($"{part.Label}##keepoutpart{part.Address:X}", ref honoured))
             {
                 Zones = Zones.Honouring(part.Label, honoured);
                 Changed?.Invoke();
@@ -206,7 +210,7 @@ public sealed class MapKeepOutEditor
     /// </remarks>
     private void DrawZoneList()
     {
-        if (ImGui.SmallButton("Add a Zone"))
+        if (ImGui.SmallButton("add zone"))
         {
             Zones = Zones.Plus();
             _place = true;
@@ -215,7 +219,7 @@ public sealed class MapKeepOutEditor
         }
 
         ImGui.SameLine();
-        if (ImGui.SmallButton("Remove All"))
+        if (ImGui.SmallButton("remove all"))
         {
             // Only the boxes: the interface switch beside them is a different decision, and a
             // button labelled for one that quietly undoes the other is how a setting comes back
@@ -236,7 +240,7 @@ public sealed class MapKeepOutEditor
             // The ##index suffix is not decoration: ImGui derives a control's identity from
             // its label, so two zones named the same would be ONE checkbox and clicking either
             // would move the first.
-            if (ImGui.Checkbox($"{zone.Name}##keepout{i}", ref zoneOn))
+            if (OverlayLayout.Toggle($"{zone.Name}##keepout{i}", ref zoneOn))
             {
                 Zones = Zones.With(i, zone with { On = zoneOn });
                 Changed?.Invoke();
@@ -248,7 +252,7 @@ public sealed class MapKeepOutEditor
                 + $" x {zone.Top * 100f:F0}-{zone.Bottom * 100f:F0}%");
 
             ImGui.SameLine();
-            if (ImGui.SmallButton($"Remove##keepout{i}"))
+            if (ImGui.SmallButton($"remove##keepout{i}"))
             {
                 removing = i;
             }
@@ -355,7 +359,7 @@ public sealed class MapKeepOutEditor
         ImGui.SetNextWindowBgAlpha(0.9f);
 
         if (ImGui.Begin(
-                "Where the game's interface is##keepoutcontrols",
+                "where the HUD is##keepoutcontrols",
                 ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings
                 | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking))
         {
@@ -366,7 +370,7 @@ public sealed class MapKeepOutEditor
             DrawZoneList();
 
             ImGui.Separator();
-            if (ImGui.Button("Done"))
+            if (ImGui.Button("done"))
             {
                 Editing = false;
             }

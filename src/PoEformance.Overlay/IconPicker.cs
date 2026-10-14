@@ -78,20 +78,20 @@ internal static class IconPicker
             // The sheet is embedded, so this is a build mistake rather than anything the user
             // did - said plainly instead of showing an empty box they might scroll for.
             ImGuiText.Wrapped(OverlayInk.Quiet, $"{IconSheet.Resource} did not ship with this build.");
-            return ImGui.SmallButton("None") ? None : Unchanged;
+            return ImGui.SmallButton("none") ? None : Unchanged;
         }
 
         int columns = IconSheet.ColumnsIn(sheet.Width);
         int count = IconSheet.CountIn(sheet.Width, sheet.Height);
         int chosen = Unchanged;
 
-        if (ImGui.SmallButton("None"))
+        if (ImGui.SmallButton("none"))
         {
             chosen = None;
         }
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(ImGui.GetFontSize() * 10f);
+        ImGui.SetNextItemWidth(OverlayLayout.FieldWidth());
         ImGui.InputTextWithHint("###find", "find by name...", ref _search, 64);
 
         ImGui.SameLine();

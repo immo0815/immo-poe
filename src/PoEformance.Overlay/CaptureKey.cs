@@ -67,6 +67,9 @@ internal sealed class CaptureKey
     /// <summary>How long to wait for the room search and the doodad survey before writing without them.</summary>
     public const int RoomWaitMs = 60_000;
 
+    /// <summary>How long the files wait for a piece of work started at the press - see <see cref="OfferWork"/>.</summary>
+    private const int WorkWaitSeconds = 120;
+
     /// <summary>How long the files wait for the memory half - past the longest a recording runs.</summary>
     private const int MemoryWaitSeconds = 90;
 
@@ -85,6 +88,9 @@ internal sealed class CaptureKey
 
     /// <summary>The windows' diagnoses, by part key - each asked for its text as the key goes down. See <see cref="Offer"/>.</summary>
     private readonly Dictionary<string, Func<string?>> _offers = new(StringComparer.Ordinal);
+
+    /// <summary>The diagnoses that take seconds, by part key - each started as the key goes down. See <see cref="OfferWork"/>.</summary>
+    private readonly Dictionary<string, Func<string, IReadOnlyList<string>?>> _works = new(StringComparer.Ordinal);
 
     /// <summary>The model panes, asked for as the key goes down - see <see cref="OfferPanes"/>.</summary>
     private Func<IReadOnlyList<CapturePane>>? _panes;
@@ -202,6 +208,27 @@ internal sealed class CaptureKey
         ArgumentException.ThrowIfNullOrEmpty(key);
         ArgumentNullException.ThrowIfNull(report);
         _offers[key] = report;
+    }
+
+    /// <summary>
+    /// A diagnosis that takes seconds as a part of the capture: started off the drawing thread on the frame the key goes down, and
+    /// waited for when the files are written.
+    /// </summary>
+    /// <remarks>
+    /// FOR WHAT WAS A BUTTON ON A PLAYER PAGE (the Loaded Files page's four - see CaptureParts.RunsAtPress): they walk the file
+    /// table or open the bundles, which <see cref="Offer"/>'s on-the-frame text cannot afford. A part no session offered says so
+    /// in capture.txt - no install to read, say - rather than waiting.
+    /// </remarks>
+    /// <param name="key">The part's key - see CaptureParts.</param>
+    /// <param name="work">
+    /// Given the path of the part's file, its lines to write there - or null where the work wrote that file itself (the room
+    /// export, whose writer takes a path).
+    /// </param>
+    public void OfferWork(string key, Func<string, IReadOnlyList<string>?> work)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(key);
+        ArgumentNullException.ThrowIfNull(work);
+        _works[key] = work;
     }
 
     /// <summary>
@@ -330,6 +357,23 @@ internal sealed class CaptureKey
             }
         }
 
+        // THE SLOW DIAGNOSES FROM THE PRESS ON, off this thread, each with the file it writes - see OfferWork.
+        foreach (CapturePart part in CaptureParts.All)
+        {
+            if (!CaptureParts.RunsAtPress(part.Key) || !On(part.Key))
+            {
+                continue;
+            }
+
+            string path = CaptureParts.PathOf(folder, part.File);
+            Func<string, IReadOnlyList<string>?>? work = _works.GetValueOrDefault(part.Key);
+            run.Works.Add((part, path, work is null ? null : Task.Run(() => work(path))));
+            if (work is not null)
+            {
+                run.Progress.Of(part.File)?.Start(now);
+            }
+        }
+
         // THE PANES AS THEY STAND, their models immutable - the files they name are read with the rest, off this thread.
         if (On(CaptureParts.ModelPanes) && _panes is { } panes)
         {
@@ -409,6 +453,10 @@ internal sealed class CaptureKey
                     Live = () => Hunting(hunt, progress.Of(CaptureReport.LightHuntFile)),
                     Fraction = () => hunt.Budget > 0 ? (float)((double)hunt.Bytes / hunt.Budget) : 0f,
                     Stop = hunt.Stop,
+                },
+                _ when CaptureParts.RunsAtPress(part.Key) => new CaptureStep(part.File, part.Label)
+                {
+                    Live = () => "running since the press, off the drawing thread - it says nothing of how far it is",
                 },
                 CaptureParts.Memory => new CaptureStep(part.File, part.Label)
                 {
@@ -950,6 +998,41 @@ internal sealed class CaptureKey
             });
         }
 
+        // THE SLOW DIAGNOSES, started at the press - see OfferWork.
+        foreach ((CapturePart part, string path, Task<IReadOnlyList<string>?>? work) in run.Works)
+        {
+            if (work is null)
+            {
+                Not(part.File, "nothing in this session can make it - no install to read, or no file table");
+                continue;
+            }
+
+            Part(part.File, () =>
+            {
+                try
+                {
+                    if (!work.Wait(TimeSpan.FromSeconds(WorkWaitSeconds)))
+                    {
+                        return $"not written: still running {WorkWaitSeconds} s after the press";
+                    }
+                }
+                catch (AggregateException failed)
+                {
+                    // ITS TYPE AS WELL: "KeyNotFoundException: ... has no field" says where to look where a bare message may not.
+                    Exception cause = failed.GetBaseException();
+                    return $"FAILED: {cause.GetType().Name}: {cause.Message}";
+                }
+
+                if (work.Result is not { } lines)
+                {
+                    return File.Exists(path) ? "written by the part itself" : "not written: the part wrote nothing";
+                }
+
+                File.WriteAllLines(path, lines);
+                return lines.Count > 0 ? lines[0] : "nothing to say";
+            });
+        }
+
         if (On(CaptureParts.LightHunt))
         {
             if (run.LightHunt is not { } hunt)
@@ -1104,7 +1187,7 @@ internal sealed class CaptureKey
         ImGui.SetNextWindowPos(new Vector2(12, 30), ImGuiCond.FirstUseEver);
         bool open = true;
         if (ImGui.Begin(
-            "Capture for Diagnosis###captureprogress",
+            "diagnosis capture###captureprogress",
             ref open,
             ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoNav))
         {
@@ -1121,10 +1204,10 @@ internal sealed class CaptureKey
     /// <summary>The rows on Appearance → Keys: the key, what the game does with it, and a box for every part of the catalogue.</summary>
     public void DrawControls()
     {
-        OverlayLayout.Group("Capture for Diagnosis");
+        OverlayLayout.Group("diagnosis capture");
         if (_listening)
         {
-            ImGui.Button("Press a key...  (Esc cancels)##capturekey");
+            ImGui.Button("press a key… (Esc cancels)##capturekey");
             if (PressedKey() is int key and > 0)
             {
                 if (key != 0x1B)
@@ -1167,7 +1250,7 @@ internal sealed class CaptureKey
         bool memory = On(CaptureParts.Memory);
         foreach (string group in CaptureParts.Groups)
         {
-            ImGui.TextColored(OverlayInk.Quiet, group);
+            ImGui.TextColored(OverlayInk.Quiet, CaptureParts.GroupLabel(group));
             float indent = ImGui.GetCursorPosX() + ImGui.GetStyle().FramePadding.X;
             float right = ImGui.GetCursorScreenPos().X + ImGui.GetContentRegionAvail().X;
             float end = float.NaN;
@@ -1187,7 +1270,7 @@ internal sealed class CaptureKey
                 bool moot = CaptureParts.NeedsRecording(part.Key) && !memory;
                 ImGui.BeginDisabled(moot);
                 bool on = On(part.Key);
-                if (ImGui.Checkbox(part.Box, ref on))
+                if (OverlayLayout.Toggle(part.Box, ref on))
                 {
                     _ = on ? _off.Remove(part.Key) : _off.Add(part.Key);
                     Changed?.Invoke();
@@ -1276,6 +1359,9 @@ internal sealed class CaptureKey
 
         /// <summary>The light hunt started at the press, its whole report to come - or null, with why in <see cref="LightHuntNote"/>.</summary>
         public Task<string>? LightHunt { get; set; }
+
+        /// <summary>The slow diagnoses started at the press, each with the file it writes - null where no session offered it.</summary>
+        public List<(CapturePart Part, string Path, Task<IReadOnlyList<string>?>? Work)> Works { get; } = [];
 
         /// <summary>Why there is no light hunt.</summary>
         public string LightHuntNote { get; set; } = string.Empty;

@@ -189,23 +189,27 @@ public sealed class WealthWindow
 
         OverlayLayout.Tabs(
             "wealth-tabs",
-            ("Breakdown & Inventory", DrawHoldings),
-            ("History & Graph", () => DrawHistory(now)));
+            ("breakdown", DrawHoldings),
+            ("history", () => DrawHistory(now)));
     }
 
     private void DrawSwitch()
     {
         bool on = Watching;
-        if (ImGui.Checkbox("Enable Wealth Tracker", ref on) && on != Watching)
+        if (OverlayLayout.Master("wealth tracker", ref on) && on != Watching)
         {
             Watching = on;
             WatchChanged?.Invoke(on);
         }
 
-        OverlayLayout.Cell(1, 16f);
+        // The corner panel shows what the tracker counts, so it is the tracker's child: stepped
+        // in under it, and shut off while it is off.
+        float step = OverlayLayout.Step();
+        ImGui.Indent(step);
+        ImGui.BeginDisabled(!Watching);
 
         bool panel = _panel.Enabled;
-        if (ImGui.Checkbox("Show Overlay", ref panel))
+        if (OverlayLayout.Toggle("overlay", ref panel))
         {
             _panel.Enabled = panel;
             Changed?.Invoke();
@@ -215,6 +219,9 @@ public sealed class WealthWindow
             "A panel in the corner of the game saying what the purse is worth and which way it"
             + " went. It can be moved, and made click-through from its own title menu so it stops"
             + " taking the mouse during a fight.");
+
+        ImGui.EndDisabled();
+        ImGui.Unindent(step);
     }
 
     /// <summary>
@@ -250,7 +257,7 @@ public sealed class WealthWindow
             ImGuiText.Wrapped(
                 Warn,
                 "No prices yet. Nothing can be valued and nothing is being written to the record -"
-                + " turn prices on in the Stash tab, which is where they are fetched from.");
+                + " turn prices on under economy → price sources, which is where they are fetched from.");
             ImGui.Separator();
             return;
         }
@@ -268,7 +275,7 @@ public sealed class WealthWindow
         WealthTracker.Shown showing = _tracker.Showing ?? new WealthTracker.Shown(0, 0, false, 0);
 
         OverlayLayout.Figure(
-            "Holding",
+            "total",
             StashWorth.Purse(showing.Exalted, showing.Rate),
             showing.Live ? Line : Warn,
             showing.Live
@@ -289,7 +296,7 @@ public sealed class WealthWindow
         ImGui.Separator();
     }
 
-    /// <summary>How wide one headline cell is. Sized for "Holding  601 div, 312 ex".</summary>
+    /// <summary>How wide one headline cell is. Sized for "total  601 div, 312 ex".</summary>
     private const float FigureEms = 17f;
 
     /// <summary>
@@ -310,7 +317,7 @@ public sealed class WealthWindow
         {
             OverlayLayout.Figure(
                 Windows[_window].Label, "nothing recorded yet", OverlayInk.Quiet,
-                "Nothing in the record covers this stretch. Choose a longer one under History.");
+                "Nothing in the record covers this stretch. Choose a longer one under history.");
             return;
         }
 
@@ -324,7 +331,7 @@ public sealed class WealthWindow
             $"{(moved.Exalted >= 0 ? "+" : string.Empty)}{StashWorth.Purse(moved.Exalted, rate)}"
             + $"  over {WealthPanel.Ago(moved.Over)}",
             moved.Exalted > 0 ? Up : moved.Exalted < 0 ? Down : OverlayInk.Quiet,
-            "The stretch is chosen under History, and the corner panel reports on the same one."
+            "The stretch is chosen under history, and the corner panel reports on the same one."
             + split);
     }
 
@@ -459,7 +466,7 @@ public sealed class WealthWindow
     private void DrawHistory(long now)
     {
         DrawGraph(now);
-        ImGui.Separator();
+        OverlayLayout.Group("record");
         DrawRecord(now);
     }
 
@@ -480,7 +487,7 @@ public sealed class WealthWindow
             ImGuiText.Wrapped(
                 Warn,
                 "No prices yet. Nothing can be valued and nothing is being written to the record - "
-                + "turn prices on in the Stash tab, which is where they are fetched from.");
+                + "turn prices on under economy → price sources, which is where they are fetched from.");
             return;
         }
 
@@ -514,7 +521,7 @@ public sealed class WealthWindow
     private void DrawBreakdown()
     {
         OverlayLayout.Group(
-            "Currency Breakdown",
+            "currency",
             "A single total is believed or distrusted, and neither can be acted on. Broken into"
             + " the stacks that produced it, a count can be compared against the tab in front of"
             + " you and a unit price against what that currency actually trades at.");
@@ -732,7 +739,7 @@ public sealed class WealthWindow
         // line below the header row of the table beside it. Two tables read across each other
         // whose columns do not start at the same height are two tables you cannot read across.
         OverlayLayout.Group(
-            "Stash / Inventory Breakdown",
+            "by tab",
             (tabs.Count > 0 ? $"{StashWorth.Purse(all.Exalted, rate)} in all.\n\n" : string.Empty)
             + "Priced from the game's own Currency Exchange rather than the index beside it, and"
             + " that is what makes this possible at all: the index knows 38 currencies in Standard"
@@ -1094,7 +1101,7 @@ public sealed class WealthWindow
         // and some of it is months old.
         if (!_confirmingReset)
         {
-            if (ImGui.Button("Reset Tracking History"))
+            if (ImGui.Button("reset history"))
             {
                 _confirmingReset = true;
             }
@@ -1104,7 +1111,7 @@ public sealed class WealthWindow
 
         ImGuiText.Wrapped(Warn, "This deletes every reading. There is no way back.");
 
-        if (ImGui.Button("Yes, Throw It Away"))
+        if (ImGui.Button("Yes, delete it."))
         {
             _tracker.History.Reset(now);
             _confirmingReset = false;
@@ -1112,7 +1119,7 @@ public sealed class WealthWindow
         }
 
         ImGui.SameLine();
-        if (ImGui.Button("Keep It"))
+        if (ImGui.Button("cancel"))
         {
             _confirmingReset = false;
         }

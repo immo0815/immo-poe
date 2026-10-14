@@ -172,7 +172,7 @@ public sealed class StyleRows
                     OverlayFonts.PushLabel();
                     try
                     {
-                        ImGui.TextColored(OverlayInk.Accent, group);
+                        ImGui.TextColored(OverlayInk.Accent, StyleCatalogue.GroupTitle(group));
                     }
                     finally
                     {
@@ -213,16 +213,12 @@ public sealed class StyleRows
             return;
         }
 
-        ImGui.TextColored(DimText, "Set all sizes");
-        ImGui.SameLine();
-
-        ImGui.SetNextItemWidth(ImGui.GetFontSize() * 5f);
-        ImGui.InputInt("###setall", ref _setAll, 5);
+        OverlayLayout.Narrow.Number("set all sizes###setall", ref _setAll, 5);
         _setAll = Math.Clamp(_setAll, 30, 400);
         OverlayLayout.Hint("Per cent of each thing's ordinary size. 100 puts them back.");
 
         ImGui.SameLine();
-        if (ImGui.SmallButton("Apply"))
+        if (ImGui.SmallButton("apply"))
         {
             float scale = _setAll / 100f;
             foreach (StyleEntry entry in sizeable)
@@ -265,7 +261,7 @@ public sealed class StyleRows
                   + " follows the defaults, so a corrected one reaches you.");
 
         ImGui.SameLine();
-        if (ImGui.SmallButton("Reset All") && changed > 0)
+        if (ImGui.SmallButton("reset all") && changed > 0)
         {
             _style.ResetAll();
             Changed();
@@ -334,6 +330,8 @@ public sealed class StyleRows
             wanted = wanted with { Hidden = !visible };
         }
 
+        OverlayLayout.Hint("Draw this.");
+
         ImGui.TableNextColumn();
         if (entry.Traits.HasFlag(StyleTraits.Colour))
         {
@@ -373,7 +371,7 @@ public sealed class StyleRows
         ImGui.TableNextColumn();
         if (!style.SaysNothing)
         {
-            if (ImGui.SmallButton("Reset"))
+            if (ImGui.SmallButton("reset"))
             {
                 _style.Reset(entry.Key);
                 Changed();
@@ -505,7 +503,7 @@ public sealed class StyleRows
             // what a line should do by default - so the format says so rather than showing a
             // meaningless 0.0.
             if (OverlayLayout.Narrow.Slider(
-                    "###width", ref width, 0f, 8f, width <= 0f ? "as it comes" : "%.1f px"))
+                    "###width", ref width, 0f, 8f, width <= 0f ? "auto" : "%.1f px"))
             {
                 wanted = wanted with { Width = width };
             }
@@ -545,7 +543,7 @@ public sealed class StyleRows
         }
         else
         {
-            pressed = ImGui.SmallButton("Icon");
+            pressed = ImGui.SmallButton("icon");
         }
 
         if (pressed)
@@ -602,7 +600,7 @@ public sealed class StyleRows
     {
         bool has = !string.IsNullOrEmpty(wanted.Plate);
 
-        if (ImGui.SmallButton(has ? "Plate *" : "Plate"))
+        if (ImGui.SmallButton(has ? "plate *" : "plate"))
         {
             _platePath = wanted.Plate ?? string.Empty;
             ImGui.OpenPopup("plate");
@@ -628,7 +626,7 @@ public sealed class StyleRows
 
             OverlayLayout.Note("A .png next to the tool, or any full path. Missing files draw the one that ships.");
 
-            int pressed = OverlayLayout.Actions("Use", "None");
+            int pressed = OverlayLayout.Actions("use", "none");
             if (pressed == 0)
             {
                 wanted = wanted with { Plate = _platePath.Trim() };

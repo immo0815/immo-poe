@@ -70,12 +70,12 @@ internal sealed class BossIconRows(
                 + $" {skipped} have no boss, {open} still to do"
                 + $" - {_bosses} different bosses, which is what that many maps really costs.");
 
-        ImGui.SetNextItemWidth(200f);
+        ImGui.SetNextItemWidth(OverlayLayout.FieldWidth());
         ImGui.InputTextWithHint("##boss-plan-find", "find by id or name...", ref _find, FindLength);
         ImGui.SameLine();
-        ImGui.Checkbox("done too", ref _showDone);
+        OverlayLayout.Toggle("show done", ref _showDone);
         ImGui.SameLine();
-        ImGui.Checkbox("hideouts and towers", ref _showQuiet);
+        OverlayLayout.Toggle("hideouts & towers", ref _showQuiet);
 
         Table(written);
 
@@ -259,16 +259,13 @@ internal sealed class BossIconRows(
 
         ImGui.TableNextColumn();
         bool skip = row.State == BossIconState.Skipped;
-        if (ImGui.Checkbox($"##boss-plan-skip-{row.Id}", ref skip))
+        if (OverlayLayout.Toggle($"##boss-plan-skip-{row.Id}", ref skip))
         {
             written.Skip(row.Id, skip, out string said);
             _said = said;
         }
 
-        if (ImGui.IsItemHovered())
-        {
-            ImGui.SetTooltip("tick a map that has no boss to make a picture for.\nit stops being counted as work.");
-        }
+        OverlayLayout.Hint("Tick a map that has no boss to make a picture for. It stops being counted as work.");
     }
 
     /// <summary>
@@ -312,8 +309,8 @@ internal sealed class BossIconRows(
         {
             ImGui.SetTooltip(
                 row.Path.Length > 0
-                    ? $"click to open it in the Monster Book and copy the name\n{row.Path}"
-                    : "click to copy the name");
+                    ? $"Click to open it in the Monster Book and copy the name.\n{row.Path}"
+                    : "Click to copy the name.");
         }
     }
 

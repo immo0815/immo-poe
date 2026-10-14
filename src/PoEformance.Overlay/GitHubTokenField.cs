@@ -53,12 +53,9 @@ internal sealed class GitHubTokenField(string id, string hint, string tooltip)
     /// <returns>What a press came to, in a sentence; null when nothing was pressed.</returns>
     public string? Ask()
     {
-        ImGui.SetNextItemWidth(280f);
+        ImGui.SetNextItemWidth(OverlayLayout.FieldWidth());
         ImGui.InputTextWithHint(_fieldLabel, hint, ref _token, TokenLength, ImGuiInputTextFlags.Password);
-        if (ImGui.IsItemHovered())
-        {
-            ImGui.SetTooltip(tooltip);
-        }
+        OverlayLayout.Hint(tooltip);
 
         ImGui.SameLine();
         ImGui.BeginDisabled(_token.Trim().Length == 0);

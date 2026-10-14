@@ -711,7 +711,22 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// dissector learns to look somewhere else. The id stays "entities" because it is in
     /// settings files, where a name nobody reads is worth more than a name that is right.
     /// </remarks>
-    private const string EntitiesLabel = "Inspect";
+    private const string EntitiesLabel = "inspect";
+
+    /// <summary>What the markers page is CALLED: it holds everything the overlay draws.</summary>
+    /// <remarks>The id stays "markers", because it is in settings files.</remarks>
+    private const string OverlayLabel = "overlay";
+
+    /// <summary>The page holding the stash, wealth, rates and price-source tools.</summary>
+    private const string Economy = "economy";
+
+    /// <summary>The last page: the tool itself - its update.</summary>
+    private const string About = "about";
+
+    // The about page's tab, without and with an update waiting. Constants so the per-frame
+    // label allocates nothing.
+    private const string AboutLabel = "about";
+    private const string AboutWithNews = "about (update available)";
 
     // Only the tools something else still reaches for keep a field; the rest live on as
     // their tab's callbacks and nothing more. A field that nothing reads is a claim that
@@ -1924,46 +1939,12 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// The shipped list, read on demand. Null means there is none to offer, and the editor then
     /// says what it said before anything shipped: build your own from the area tab.
     /// </param>
-    /// <summary>
-    /// Opens the area's room files out of the game's own bundles, when something can.
-    /// </summary>
-    /// <remarks>
-    /// Null unless the App attaches it, which it only does with an install to read. The overlay
-    /// has no business finding the game's files; what it owns is the button, and a button with
-    /// nothing behind it is simply not drawn. See RoomFiles for what the answer is for.
-    ///
-    /// SET IT BEFORE <see cref="AttachPreload"/>, which is where the window is built and where
-    /// this is read. Nothing enforces that, so it is written down here rather than discovered
-    /// as a button that never appears.
-    /// </remarks>
-    public Action? LookInsideRooms { get; set; }
-
-    /// <summary>
-    /// Writes the area's room files out whole, decoded, when something can.
-    /// </summary>
-    /// <remarks>
-    /// Same rules as <see cref="LookInsideRooms"/>, including SET IT BEFORE
-    /// <see cref="AttachPreload"/>. Separate from it because the two answer different
-    /// questions: one says what a room names, and this is what a person reads the format out
-    /// of, on a machine that is not running the game.
-    /// </remarks>
-    public Action? WriteRoomsOut { get; set; }
-
-    /// <summary>
-    /// Searches memory for anything that REFERS to one of the area's room files.
-    /// </summary>
-    /// <remarks>
-    /// Same rules as the two above, including SET IT BEFORE <see cref="AttachPreload"/>. It is
-    /// the opposite direction to both: they read what a room file SAYS, and this asks who in
-    /// the game points AT one - which is the question that would place a room on the map.
-    /// Unlike them it needs no install, only the loaded-file table this page already walks.
-    /// </remarks>
-    public Action? HuntRoomPlacements { get; set; }
+    /// <summary>Hands a capture part that runs at the press (CaptureParts.RunsAtPress) its work.</summary>
+    public void OfferCaptureWork(string key, Func<string, IReadOnlyList<string>?> work) => _capture.OfferWork(key, work);
 
     public void AttachPreload(
         PreloadWatch watch,
         Action lookAgain,
-        Action sweep,
         PreloadSettings settings,
         Action<PreloadSettings> rulesChanged,
         bool visible = false,
@@ -1971,7 +1952,6 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     {
         ArgumentNullException.ThrowIfNull(watch);
         ArgumentNullException.ThrowIfNull(lookAgain);
-        ArgumentNullException.ThrowIfNull(sweep);
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(rulesChanged);
         _preload = watch;
@@ -1985,18 +1965,11 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         _tools.AsTabs(Area);
 
         var styles = new StyleRows(Style, SaveStyle, StyleCatalogue.Homes.Area, _icons.Sheet);
-        var window = new PreloadWindow(
-            watch,
-            lookAgain,
-            sweep,
-            () => PreloadListChanged?.Invoke(watch.Watching),
-            LookInsideRooms,
-            WriteRoomsOut,
-            HuntRoomPlacements);
+        var window = new PreloadWindow(watch, lookAgain, () => PreloadListChanged?.Invoke(watch.Watching));
         _tools.Add(
             20,
             "preload",
-            "Loaded Files",
+            "loaded files",
             () =>
             {
                 window.DrawTab();
@@ -2004,7 +1977,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             },
             styles.Idle,
             page: Area,
-            pageLabel: "Area");
+            pageLabel: "area");
 
         // The list that decides what gets said, beside the raw one it is built from. Two tabs
         // rather than one long page: finding a path and curating the list are different jobs,
@@ -2016,7 +1989,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             list => PreloadListChanged?.Invoke(list),
             SayItNow,
             starter);
-        _tools.Add(22, "preload-alerts", "Watch List", alerts.DrawTab, page: Area, pageLabel: "Area");
+        _tools.Add(22, "preload-alerts", "watch list", alerts.DrawTab, page: Area, pageLabel: "area");
 
         if (visible)
         {
@@ -2135,37 +2108,72 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         _tools.Add(
             65,
             "markers",
-            "Entities & Drops",
+            "entities & drops",
             () =>
             {
-                // The reset line covers every drawn thing in the tool, not just this tab's -
-                // it says so - so it is drawn once, on the tab this page opens to.
+                // The switches first, then the reset line: it covers every drawn thing in the
+                // tool, not just this tab's - it says so - so it is drawn once, on the tab this
+                // page opens to.
+                DrawEntitySwitches();
+                OverlayLayout.Group("style");
                 entities.DrawResetLine();
                 entities.Draw();
             },
             entities.Idle,
             page: Markers,
-            pageLabel: "Markers");
+            pageLabel: OverlayLabel);
 
         _tools.Add(
             66,
             "markers-places",
-            "Map & Places",
+            "map & places",
             () =>
             {
                 // On THIS tab, because the unrecognised marker whose row is on it is what the
                 // collected names are about - and a file nothing mentions is a file nobody
                 // opens. One line, and only once there is something in it to open.
                 DrawCollectedNames();
+                DrawMapNameSwitches();
+                DrawHidingSwitches();
                 DrawBossArt();
                 places.Draw();
             },
             places.Idle,
             page: Markers);
-        _tools.Add(67, "markers-health", "Health Bars", health.Draw, health.Idle, page: Markers);
-        _tools.Add(68, "markers-aids", "Measuring Aids", aids.Draw, aids.Idle, page: Markers);
+        _tools.Add(
+            67,
+            "markers-health",
+            "health bars",
+            () =>
+            {
+                DrawHealthSwitches();
+                health.Draw();
+            },
+            health.Idle,
+            page: Markers);
 
-        _tools.Add(70, "style", "Appearance", window.DrawTab, window.Idle);
+        // ON THE INSPECT PAGE: the aids, the kind filter and the projection probe are calibration
+        // work, which a player's overlay page has no use for. Ordered after the inspect page's own
+        // tools, since a page takes the order of its first section.
+        _tools.Add(
+            115,
+            "markers-aids",
+            "measuring aids",
+            () =>
+            {
+                if (ShowDiagnostics)
+                {
+                    DrawMeasuringControls(_viewport.X, _viewport.Y);
+                    ImGui.Spacing();
+                }
+
+                aids.Draw();
+            },
+            aids.Idle,
+            page: Entities,
+            pageLabel: EntitiesLabel);
+
+        _tools.Add(70, "style", "appearance", window.DrawTab, window.Idle);
         if (visible)
         {
             _tools.Show("style");
@@ -2197,7 +2205,6 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 : $"{names} icon names the marker rules do not recognise have been collected,"
                     + " with an example path for each:");
         ImGuiText.Mono(OverlayInk.Quiet, UnrecognisedMarkers.LogPath);
-        ImGui.Separator();
     }
 
     /// <summary>
@@ -2220,12 +2227,16 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             return;
         }
 
+        OverlayLayout.Group("boss arenas");
+
         bool art = poi.ShowBossArt;
-        if (ImGui.Checkbox("boss arenas wear the game's own picture of their boss", ref art))
+        if (OverlayLayout.Toggle("boss icons", ref art))
         {
             poi.ShowBossArt = art;
             SettingsChanged?.Invoke();
         }
+
+        OverlayLayout.Hint("Boss arenas wear the game's own picture of their boss.");
 
         int missing = poi.BossIcons.MissingCount;
         if (art && missing > 0)
@@ -2245,7 +2256,8 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         // has been played, and this one starts from the game's own set of endgame maps, so it
         // says what is missing before anybody has been there. Folded away, because it is 173
         // rows and this is a tab about markers.
-        if (EndgameMaps.Count > 0 && ImGui.CollapsingHeader("boss pictures still to make"))
+        // The ###id keeps the fold's open state from before it was renamed.
+        if (EndgameMaps.Count > 0 && OverlayLayout.Subsection("missing boss icons###boss pictures still to make"))
         {
             _bossPlan.Draw();
 
@@ -2253,8 +2265,6 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             ImGui.Spacing();
             _bossExport.Draw();
         }
-
-        ImGui.Separator();
     }
 
     /// <summary>
@@ -2297,7 +2307,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             () => Animations);
 
         _tools.Add(
-            32, "tracker", "Tracker", () => window.DrawTab(_snapshot), page: Combat, pageLabel: "Combat");
+            32, "tracker", "tracker", () => window.DrawTab(_snapshot), page: Combat, pageLabel: "combat");
 
         if (visible)
         {
@@ -2455,8 +2465,8 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         // size itself to a dozen short lines during a fight. Order 0 keeps it leftmost however
         // the rest are numbered.
         _tools.Add(
-            0, Status, "Live readout", () => DrawStatusTab(_viewport.X, _viewport.Y),
-            page: Status, pageLabel: "Status");
+            0, Status, "live readout", () => DrawStatusTab(_viewport.X, _viewport.Y),
+            page: Status, pageLabel: "status");
 
         // The live facts that belong on EVERY page rather than on this one - see
         // DrawStatusStrip, and StatusBar for why the window stopped resizing itself once they
@@ -2734,11 +2744,11 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// <summary>The row on Appearance → Keys that shows and rebinds the screenshot key.</summary>
     private void DrawScreenshotControls()
     {
-        OverlayLayout.Group("Screenshot");
+        OverlayLayout.Group("screenshot");
 
         if (_shotListening)
         {
-            ImGui.Button("Press a key...  (Esc cancels)");
+            ImGui.Button("press a key… (Esc cancels)");
             if (CaptureKey.PressedKey() is int key and > 0)
             {
                 if (key != 0x1B)
@@ -3077,19 +3087,19 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         // own answer to what is worth walking to, they change every league, and the rest of this
         // page is set once. It was buried under eleven switches.
         _tools.Add(
-            40, "atlas-routes", "Routing", window.DrawRouting, window.Idle,
-            page: Atlas, pageLabel: "Atlas");
+            40, "atlas-routes", "routing", window.DrawRouting, window.Idle,
+            page: Atlas, pageLabel: "atlas");
 
         _tools.Add(
-            41, "atlas", "Display Filters", window.DrawTab, window.Idle,
-            page: Atlas, pageLabel: "Atlas");
+            41, "atlas", "filters", window.DrawTab, window.Idle,
+            page: Atlas, pageLabel: "atlas");
 
         // The atlas's plate, web and route colours, between the filters and the ritual line
         // that draws onto it.
         var styles = new StyleRows(Style, SaveStyle, StyleCatalogue.Homes.Atlas, _icons.Sheet);
         _tools.Add(
-            42, "atlas-style", "Visual Style", styles.Draw, styles.Idle,
-            page: Atlas, pageLabel: "Atlas");
+            42, "atlas-style", "style", styles.Draw, styles.Idle,
+            page: Atlas, pageLabel: "atlas");
 
         // LAST, and a tab rather than the nine-row box it used to be drawn in under the filters.
         // The check's report is eight hundred lines now - every repeated map row, every content the
@@ -3098,9 +3108,9 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         // setting, so it goes at the end where nobody lands on it by accident.
         var log = new AtlasLogWindow(() => watch.Checked);
         _tools.Add(
-            49, "atlas-log", "Debug Log", log.DrawTab,
-            page: Atlas, pageLabel: "Atlas",
-            live: () => watch.Checked.Count > 0 ? $"Debug Log ({watch.Checked.Count})###atlas-log" : "Debug Log###atlas-log");
+            49, "atlas-log", "debug log", log.DrawTab,
+            page: Atlas, pageLabel: "atlas",
+            live: () => watch.Checked.Count > 0 ? $"debug log ({watch.Checked.Count})###atlas-log" : "debug log###atlas-log");
 
         // The check's report whole, for a capture - the window's filter is for reading, not sending.
         _capture.Offer(CaptureParts.AtlasLog, () => watch.Checked is { Count: > 0 } report ? string.Join('\n', report) : null);
@@ -3189,7 +3199,14 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             file => _icons.PictureFor(file, IconCache.MaxWideEdge).Texture,
             () => SettingsChanged?.Invoke(),
             exchange);
-        _tools.Add(60, "stash", "Stash", window.DrawTab);
+        // ONE PAGE FOR WHAT THINGS ARE WORTH, as tabs: the stash, the wealth record, the rates
+        // and the price sources are one subject read one at a time, and as three pages of
+        // their own they were three tabs on a bar that has no room for them. The price sources
+        // are the stash's own section as a tool of its own, because the wealth and rates tabs
+        // read the same book and its switches were otherwise found only under the stash.
+        _tools.AsTabs(Economy);
+        _tools.Add(55, "stash", "stash", window.DrawTab, page: Economy, pageLabel: "economy");
+        _tools.Add(58, "price-sources", "price sources", window.DrawPriceSources, page: Economy, pageLabel: "economy");
         if (visible)
         {
             _tools.Show("stash");
@@ -3252,7 +3269,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         window.WindowMinutes = _wealthMinutes;
 
         _wealthWindow = window;
-        _tools.Add(61, "wealth", "Wealth", window.DrawTab);
+        _tools.Add(56, "wealth", "wealth", window.DrawTab, page: Economy, pageLabel: "economy");
     }
 
     /// <summary>
@@ -3279,17 +3296,16 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         ArgumentNullException.ThrowIfNull(league);
 
         var window = new RatesWindow(exchange, scout, league, named);
-        _tools.Add(62, "rates", "Rates", window.DrawTab);
+        _tools.Add(57, "rates", "rates", window.DrawTab, page: Economy, pageLabel: "economy");
     }
 
     /// <summary>
-    /// Adds the update notice, beside the live readout on the Status page.
+    /// Adds the update notice, on the about page at the end of the bar.
     /// </summary>
     /// <remarks>
-    /// ON THE STATUS PAGE, which is the page this window opens on and the one that is up during
-    /// a session. A notice on a page nobody has in front of them is not a notice - and its
-    /// header carries the news, so "there is a newer build" is legible with the section still
-    /// folded.
+    /// ON A PAGE OF ITS OWN rather than beside the live readout: the readout is the page looked
+    /// past during a fight, and a notice there pulled it forward. The about page's TAB carries the
+    /// news instead, so "there is a newer build" is still legible without opening anything.
     ///
     /// The check and the installer are HANDED IN rather than made here, because the config
     /// window drives the same two. One of each, or the two surfaces disagree about what the
@@ -3318,8 +3334,17 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         // the whole of an ordinary session, so hanging the tick off the draw would mean
         // checking once at startup and never again.
         _tools.Add(
-            5, "update", "Update", window.DrawTab, window.Idle,
-            page: Status, pageLabel: "Status", live: () => window.Label);
+            200, "update", "update", window.DrawTab, window.Idle,
+            page: About, pageLabel: "about", live: () => window.Label);
+
+        // The page holds this one tool, so it has no header to carry the news: the tab does.
+        // Matched on the end of the window's label, whatever its case, so the notice keeps
+        // working however that label is worded.
+        _tools.LivePage(
+            About,
+            () => window.Label.EndsWith("available", StringComparison.OrdinalIgnoreCase)
+                ? AboutWithNews
+                : AboutLabel);
     }
 
     /// <summary>
@@ -3334,13 +3359,13 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     {
         ArgumentNullException.ThrowIfNull(watch);
         var window = new QuestWindow(watch);
-        _tools.Add(25, "quests", "Quests", window.DrawTab, page: Area);
+        _tools.Add(25, "quests", "quests", window.DrawTab, page: Area);
 
         // Its own tab rather than a fold inside the quests one. It answers a different
         // question - "what is my map still hiding" against "what am I supposed to do next" -
         // and it rides the same read, so it costs a tab and nothing else.
         var pins = new MapPinWindow(watch);
-        _tools.Add(26, "mappins", "Map Pins", pins.DrawTab, page: Area);
+        _tools.Add(26, "mappins", "map pins", pins.DrawTab, page: Area);
 
         if (visible)
         {
@@ -3367,7 +3392,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         _ritualWatch = watch;
         var window = new RitualWindow(watch, worth, apply, save);
         _ritualWindow = window;
-        _tools.Add(50, "ritual", "Ritual Line", window.DrawTab, page: Atlas, pageLabel: "Atlas");
+        _tools.Add(50, "ritual", "ritual line", window.DrawTab, page: Atlas, pageLabel: "atlas");
         if (visible)
         {
             _tools.Show("ritual");
@@ -3394,8 +3419,9 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         _runecraftWatch = watch;
         _monolithWatch = monoliths;
 
-        var window = new RunecraftWindow(watch, monoliths, saved, prices, () => SettingsChanged?.Invoke());
-        _tools.Add(63, "runecraft", "Runecraft", window.DrawTab);
+        var window = new RunecraftWindow(watch, monoliths, saved, prices);
+        _capture.Offer(CaptureParts.RunecraftPanel, window.PanelReport);
+        _tools.Add(63, "runecraft", "runecraft", window.DrawTab);
         if (visible)
         {
             _tools.Show("runecraft");
@@ -3410,7 +3436,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         _expeditionWatch = watch;
 
         var window = new ExpeditionWindow(watch, saved);
-        _tools.Add(64, "expedition", "Expedition", window.DrawTab);
+        _tools.Add(64, "expedition", "expedition", window.DrawTab);
         if (visible)
         {
             _tools.Show("expedition");
@@ -3837,6 +3863,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             // So an arena can be labelled with the boss the game says stands in it rather than
             // with the tile it is built from. See PoiLayer.MonsterName.
             MonsterName = Called,
+            RouteStyles = new StyleRows(Style, SaveStyle, StyleCatalogue.Homes.Routes, _icons.Sheet),
         };
 
         // A PAGE OF ITS OWN for everything about routes but their looks, which stay on Markers -
@@ -3845,10 +3872,12 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         // routing: it is what the page is opened for once the switches are set.
         PoiLayer poi = _poi;
         _tools.Add(
-            69, "routes-active", "Active Routes", () => poi.DrawActiveRoutes(_snapshot),
-            page: Routes, pageLabel: "Routes", live: () => poi.ActiveRoutesLabel);
+            69, "routes-active", "active routes", () => poi.DrawActiveRoutes(_snapshot),
+            page: Routes, pageLabel: "routes", live: () => poi.ActiveRoutesLabel);
         _capture.Offer(CaptureParts.Routes, () => poi.RoutesReport(_snapshot.Player));
-        _tools.Add(69, "routes-settings", "Settings", poi.DrawRouteSettings, page: Routes, pageLabel: "Routes");
+        _tools.Add(
+            69, "routes-settings", "route settings", poi.DrawRouteSettings, poi.RouteStyles!.Idle,
+            page: Routes, pageLabel: "routes");
 
         // TABS, the atlas page's reason: the list is watched while playing, the switches are set
         // once - never both on screen at the same time.
@@ -4046,8 +4075,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// monospace even a pixel larger would make every table with a number in it taller than the
     /// same table without one.
     ///
-    /// The glyph range is the default English one, which is what the single-font call this
-    /// replaced asked for. Reusing the one config across the AddFont calls is ImGui's own
+    /// The glyph range is ImGui's default English one with the arrows added (OverlayFonts.TextRange). Reusing the one config across the AddFont calls is ImGui's own
     /// pattern; it copies what it needs out of it.
     /// </remarks>
     /// <param name="file">The serif face. Already known to exist.</param>
@@ -4067,7 +4095,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         return ReplaceFont(config =>
         {
             ImGuiIOPtr io = ImGui.GetIO();
-            IntPtr english = io.Fonts.GetGlyphRangesDefault();
+            IntPtr english = OverlayFonts.TextRange;
 
             // FIRST is the default face, which is what everything not asking for one of the
             // others gets - so the body size has to be added first.
@@ -4672,7 +4700,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             {
                 var made = new CostWindow(Costs);
                 _costWindow = made;
-                _tools.Add(80, "cost", "Read cost", made.DrawTab, page: Status);
+                _tools.Add(80, "cost", "read cost", made.DrawTab, page: Status);
             }
 
             _costWindow.CurrentArea = _snapshot.AreaHash;
@@ -4686,26 +4714,41 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 _projectiles, _projectileWatch, () => SettingsChanged?.Invoke());
             _projectileWindow = made;
             _tools.Add(
-                35, "projectiles", "Projectiles", () => made.DrawTab(_snapshot), page: Combat);
+                35, "projectiles", "projectiles", () => made.DrawTab(_snapshot), page: Combat);
 
             // The marks' and trails' colours, folded under the switches they belong to.
             var styles = new StyleRows(Style, SaveStyle, StyleCatalogue.Homes.Projectiles, _icons.Sheet);
             _tools.Add(
-                36, "projectiles-style", "How projectiles look", styles.Draw, styles.Idle,
+                36, "projectiles-style", "projectile style", styles.Draw, styles.Idle,
                 page: Combat);
 
-            // The two figures written on the HUD, a tab each: the switch somebody looks for
-            // on this page, and the figure's looks under it. See FigureTab for why the switch
+            // The two figures written on the HUD: the switch somebody looks for on this page,
+            // and the figure's looks under it. See FigureTab for why the switch
             // is the style's own rather than a flag of its own.
             var belt = new FigureTab(
-                Style, SaveStyle, StyleCatalogue.Keys.FlaskUses, "Uses Left on the Flasks",
+                Style, SaveStyle, StyleCatalogue.Keys.FlaskUses, "flask uses", "flask uses",
                 FigureTab.BeltExplanation, StyleCatalogue.Homes.Flasks, FigureTab.BeltStatus, _icons.Sheet);
-            _tools.Add(37, "belt", "Belt", () => belt.Draw(_snapshot), belt.Idle, page: Combat);
-
             var skillBar = new FigureTab(
-                Style, SaveStyle, StyleCatalogue.Keys.SkillDps, "DPS on the Skill Bar",
+                Style, SaveStyle, StyleCatalogue.Keys.SkillDps, "skill DPS", "skill DPS",
                 FigureTab.SkillBarExplanation, StyleCatalogue.Homes.Skills, FigureTab.SkillBarStatus, _icons.Sheet);
-            _tools.Add(38, "skillbar", "Skill bar", () => skillBar.Draw(_snapshot), skillBar.Idle, page: Combat);
+
+            // ONE TOOL, a group each: apart they were two near-empty tabs. Filed under the belt's
+            // id, which the skill bar's joins.
+            _tools.Add(
+                37,
+                "belt",
+                "HUD figures",
+                () =>
+                {
+                    belt.Draw(_snapshot);
+                    skillBar.Draw(_snapshot);
+                },
+                () =>
+                {
+                    belt.Idle();
+                    skillBar.Idle();
+                },
+                page: Combat);
         }
 
         // The same first-use registration, and for the same reason: the two callbacks it needs
@@ -4726,7 +4769,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             if (_damageWindow is null)
             {
                 _damageWindow = new DamageWindow(meter) { Heat = _heat };
-                _tools.Add(30, "damage", "Damage", _damageWindow.DrawTab, page: Combat, pageLabel: "Combat");
+                _tools.Add(30, "damage", "damage", _damageWindow.DrawTab, page: Combat, pageLabel: "combat");
             }
 
             _damageWindow.CurrentArea = _snapshot.AreaHash;
@@ -4949,19 +4992,10 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// </remarks>
     private void DrawStatusTab(int width, int height)
     {
+        // THE READOUT AND ITS HISTORY ALONE. The switches that sat under it moved to the overlay
+        // page, beside the style rows of what they switch - see DrawEntitySwitches and kin.
         DrawReadout(width, height);
         DrawRuleHistory();
-
-        ImGui.Separator();
-        DrawSwitches();
-
-        if (!ShowDiagnostics)
-        {
-            return;
-        }
-
-        ImGui.Separator();
-        DrawMeasuringControls(width, height);
     }
 
     /// <summary>Shortens a value that would otherwise stretch the readout's second column.</summary>
@@ -5252,7 +5286,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             // what is.
             if (_snapshot.SkillsSurveyReadout.Length > 0)
             {
-                Row("skillrow", _snapshot.SkillsSurveyReadout, figure: true);
+                Row("skill row", _snapshot.SkillsSurveyReadout, figure: true);
             }
 
             if (FlaskStatus is not null)
@@ -5382,7 +5416,8 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             return;
         }
 
-        if (!ImGui.CollapsingHeader($"rule history ({entries.Count})"))
+        // ###id so the fold keeps its open state while the count in its label moves.
+        if (!OverlayLayout.Subsection($"rule history ({entries.Count})###rule-history"))
         {
             return;
         }
@@ -5671,27 +5706,60 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         }
     }
 
-    /// <summary>The switches with no page of their own.</summary>
+    /// <summary>What the overlay draws of entities: noise, memory, labels.</summary>
     /// <remarks>
-    /// One line each and every one of them is reached for mid-fight, which is why they sit
-    /// under the readout rather than on the appearance page: a switch you have to go to
-    /// another tab for is a switch you flip after the thing you wanted it for has happened.
+    /// ON THE OVERLAY PAGE beside the style rows of what they switch, rather than under the live
+    /// readout where they used to be: a switch belongs where its result is drawn and styled, and
+    /// the readout is the page looked past during a fight, not the one settings are looked for on.
     ///
-    /// IN TWO GROUPS, because they answer two different questions and used to be one list of
-    /// seven. "What gets drawn" and "when does the tool get out of the way" have nothing to do
-    /// with each other, and a reader who cannot see the join has to read all seven lines to
-    /// find the one they came for. The grouping is not decoration - it is the difference
-    /// between scanning and reading.
-    ///
-    /// AND WITH THEIR EXPLANATIONS IN TOOLTIPS. Every label here used to carry its own aside in
-    /// brackets - "Hide noise  (effects, pets, daemons - off to see everything)" - which is a
-    /// sentence read every time the page is opened by somebody who learned what it meant months
-    /// ago, and which made a block of seven checkboxes seven paragraphs tall. The name is on the
-    /// line; the explanation is under the pointer.
+    /// The explanations are in tooltips: the name is on the line, the aside under the pointer.
     /// </remarks>
-    private void DrawSwitches()
+    private void DrawEntitySwitches()
     {
-        OverlayLayout.Group("What Is Drawn");
+        OverlayLayout.Group("drawn");
+
+        if (Noise is not null)
+        {
+            bool filtering = Noise.Enabled;
+            if (OverlayLayout.Toggle("hide noise", ref filtering))
+            {
+                Noise.Enabled = filtering;
+                SettingsChanged?.Invoke();
+            }
+
+            OverlayLayout.Hint("Effects, pets and daemons. Off to see everything the game lists.");
+        }
+
+        if (Memory is not null)
+        {
+            bool remembering = Memory.Enabled;
+            if (OverlayLayout.Toggle("keep out-of-range", ref remembering))
+            {
+                Memory.Enabled = remembering;
+                SettingsChanged?.Invoke();
+            }
+
+            OverlayLayout.Hint("Places and drops the game has stopped listing stay on the map.");
+        }
+
+        bool labels = ShowLabels;
+        if (OverlayLayout.Toggle("dot labels", ref labels))
+        {
+            ShowLabels = labels;
+            SettingsChanged?.Invoke();
+        }
+
+        OverlayLayout.Hint("The entity's name beside each marker dot.");
+    }
+
+    /// <summary>The names written on the large map: rooms and ground types.</summary>
+    /// <remarks>
+    /// On the map tab, beside the room-name and tile-name style rows, for the reason
+    /// <see cref="DrawEntitySwitches"/> gives.
+    /// </remarks>
+    private void DrawMapNameSwitches()
+    {
+        OverlayLayout.Group("map names");
 
         // The points-of-interest window's switch lives on the Routes page with the rest of the
         // routing - see PoiLayer.DrawRouteSettings.
@@ -5699,7 +5767,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         if (_rooms is not null)
         {
             bool naming = _rooms.Enabled;
-            if (OverlayLayout.Toggle("Room Names on the Map", ref naming))
+            if (OverlayLayout.Toggle("room names", ref naming))
             {
                 _rooms.Enabled = naming;
                 SettingsChanged?.Invoke();
@@ -5709,24 +5777,28 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 "What the game itself calls each part of the layout, on the large map."
                 + "\nPoint at one for its file, and ctrl + click it to pin it with a route.");
 
-            if (_rooms.Enabled)
+            // The children stay drawn, disabled, while the parent is off, so what the switch
+            // governs is visible before it is turned on.
+            ImGui.Indent();
+            ImGui.BeginDisabled(!_rooms.Enabled);
             {
                 // FIRST, because it is the one that does the work. An area is built from one
                 // module repeated, so the threshold in tiles below is a cliff rather than a
                 // slider - this is what separates a place from a building block.
                 int repeats = _rooms.MaxPlacements;
-                if (OverlayLayout.Slider("Named up to", ref repeats, 1, 40, "%d placements"))
+                if (OverlayLayout.Slider("max repeats###room-max", ref repeats, 1, 40, "%d×"))
                 {
                     _rooms.MaxPlacements = repeats;
                     SettingsChanged?.Invoke();
                 }
 
                 OverlayLayout.Hint(
-                    "A file placed eighty times in one area is a wall module, and labelling"
+                    "Rooms placed more often than this are not named."
+                    + "\nA file placed eighty times in one area is a wall module, and labelling"
                     + "\nall eighty buries the one room worth reading.");
 
                 int least = _rooms.MinTiles;
-                if (OverlayLayout.Slider("Smallest Room Named", ref least, 1, 32, "%d tiles"))
+                if (OverlayLayout.Slider("min size###room-min", ref least, 1, 32, "%d tiles"))
                 {
                     _rooms.MinTiles = least;
                     SettingsChanged?.Invoke();
@@ -5741,7 +5813,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 // file, and a filter typed a letter at a time would write it eight times.
                 string only = _rooms.Filter;
                 if (OverlayLayout.Search(
-                        "##rooms", "only rooms named...", ref only, 64,
+                        "##rooms", "filter rooms…", ref only, 64,
                         flags: ImGuiInputTextFlags.EnterReturnsTrue))
                 {
                     _rooms.Filter = only;
@@ -5754,17 +5826,25 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 // The ###id keeps the button ONE control while its label counts: ImGui takes a
                 // control's identity from its label, so a live number in one would make a new
                 // control every time it changed - and the click land on nothing.
-                if (_rooms.PinnedHere > 0
-                    && OverlayLayout.Actions($"Forget the {_rooms.PinnedHere} pinned here###forget-rooms") == 0)
+                if (_rooms.PinnedHere > 0)
                 {
-                    _rooms.Forget();
+                    if (OverlayLayout.Actions($"forget pins ({_rooms.PinnedHere})###forget-rooms") == 0)
+                    {
+                        _rooms.Forget();
+                    }
+
+                    OverlayLayout.Hint(
+                        "Forgets the pins of this area. Rooms of an old instance never match again.");
                 }
             }
+
+            ImGui.EndDisabled();
+            ImGui.Unindent();
         }
 
         {
             bool ground = _ground.Enabled;
-            if (OverlayLayout.Toggle("Ground Types on the Map", ref ground))
+            if (OverlayLayout.Toggle("ground names", ref ground))
             {
                 _ground.Enabled = ground;
                 SettingsChanged?.Invoke();
@@ -5776,13 +5856,14 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 + "\nGround you can stand on is named; walls and ceilings only in an area"
                 + "\nwhere nothing else carries a name.");
 
-            if (_ground.Enabled)
+            ImGui.Indent();
+            ImGui.BeginDisabled(!_ground.Enabled);
             {
                 // FIRST, because it is the one that does the work - the same order the room
                 // names put their two filters in, and for the same reason. Every patch of one
                 // type carries the same word, so the twentieth adds a position and no meaning.
                 int repeats = _ground.MaxPatches;
-                if (OverlayLayout.Slider("Named up to", ref repeats, 1, 20, "%d patches"))
+                if (OverlayLayout.Slider("max patches###ground-max", ref repeats, 1, 20, "%d"))
                 {
                     _ground.MaxPatches = repeats;
                     SettingsChanged?.Invoke();
@@ -5793,7 +5874,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                     + "\nis a label carrying the same word. The biggest are kept.");
 
                 int least = _ground.MinTiles;
-                if (OverlayLayout.Slider("Smallest Patch Named", ref least, 1, 64, "%d tiles"))
+                if (OverlayLayout.Slider("min size###ground-min", ref least, 1, 64, "%d tiles"))
                 {
                     _ground.MinTiles = least;
                     SettingsChanged?.Invoke();
@@ -5809,7 +5890,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 // sentence that explains an empty map was itself invisible unless somebody
                 // happened to point at the right control. A diagnostic nobody can see is not a
                 // diagnostic.
-                if (_ground.Note.Length > 0)
+                if (_ground.Enabled && _ground.Note.Length > 0)
                 {
                     ImGuiText.Wrapped(Quiet, ImGuiText.Escape(_ground.Note));
                 }
@@ -5824,77 +5905,70 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 // it raw with two per-cent signs per row, and printf ate one of them and left
                 // the OTHER number standing under its label. Mono is TextUnformatted, so a row
                 // is drawn as written - and a table of figures wants the mono face anyway.
-                foreach (string line in _ground.Diagnosis)
+                if (_ground.Enabled)
                 {
-                    ImGuiText.Mono(Quiet, line);
+                    foreach (string line in _ground.Diagnosis)
+                    {
+                        ImGuiText.Mono(Quiet, line);
+                    }
                 }
             }
+
+            ImGui.EndDisabled();
+            ImGui.Unindent();
         }
 
-        if (Noise is not null)
+    }
+
+    /// <summary>When the overlay gets out of the way of the game's own panels.</summary>
+    /// <remarks>
+    /// One group with the map's keep-out zones, because all three answer the same question -
+    /// what the tool hides so the game can be read - and on the map tab, since the keep-out
+    /// zones are the map's and the markers hidden behind panels are mostly the map's too.
+    /// </remarks>
+    private void DrawHidingSwitches()
+    {
+        OverlayLayout.Group("hiding");
+
+        bool behind = HideBehindPanels;
+        if (OverlayLayout.Toggle("hide under panels", ref behind))
         {
-            bool filtering = Noise.Enabled;
-            if (OverlayLayout.Toggle("Hide Noise", ref filtering))
-            {
-                Noise.Enabled = filtering;
-                SettingsChanged?.Invoke();
-            }
-
-            OverlayLayout.Hint("Effects, pets and daemons. Off to see everything the game lists.");
-        }
-
-        if (Memory is not null)
-        {
-            bool remembering = Memory.Enabled;
-            if (OverlayLayout.Toggle("Keep What Is Out of Range", ref remembering))
-            {
-                Memory.Enabled = remembering;
-                SettingsChanged?.Invoke();
-            }
-
-            OverlayLayout.Hint("Places and drops the game has stopped listing stay on the map.");
-        }
-
-        bool labels = ShowLabels;
-        if (OverlayLayout.Toggle("Name Labels Beside the Dots", ref labels))
-        {
-            ShowLabels = labels;
+            HideBehindPanels = behind;
             SettingsChanged?.Invoke();
         }
 
+        OverlayLayout.Hint("Hides the markers behind big panels: the stash, the skill tree, the atlas and the world map.");
+
+        bool windowsBehind = HideWindowsBehindPanels;
+        if (OverlayLayout.Toggle("hide windows on panels", ref windowsBehind))
+        {
+            HideWindowsBehindPanels = windowsBehind;
+            SettingsChanged?.Invoke();
+        }
+
+        OverlayLayout.Hint("Hides only the windows actually lying on top of the open panel.");
+
+        _keepOut.DrawControls();
+    }
+
+    /// <summary>The health bars' one switch, above their style rows.</summary>
+    private void DrawHealthSwitches()
+    {
         bool hurtOnly = _healthBars.OnlyWhenHurt;
-        if (OverlayLayout.Toggle("Health Bars Only Once Hurt", ref hurtOnly))
+        if (OverlayLayout.Toggle("bars only when hurt", ref hurtOnly))
         {
             _healthBars.OnlyWhenHurt = hurtOnly;
             SettingsChanged?.Invoke();
         }
 
         OverlayLayout.Hint("Off draws a bar over every monster, at full life included.");
-
-        OverlayLayout.Group("Getting Out of the Way");
-
-        bool behind = HideBehindPanels;
-        if (OverlayLayout.Toggle("Hide Markers Behind Big Panels", ref behind))
-        {
-            HideBehindPanels = behind;
-            SettingsChanged?.Invoke();
-        }
-
-        OverlayLayout.Hint("The stash, the skill tree, the atlas and the world map.");
-
-        bool windowsBehind = HideWindowsBehindPanels;
-        if (OverlayLayout.Toggle("Hide These Windows over a Panel", ref windowsBehind))
-        {
-            HideWindowsBehindPanels = windowsBehind;
-            SettingsChanged?.Invoke();
-        }
-
-        OverlayLayout.Hint("Only the windows actually lying on top of the open panel.");
-
-        _keepOut.DrawControls();
     }
 
     /// <summary>The kind filter and the projection probe. Both are --debug work.</summary>
+    /// <remarks>
+    /// On the inspect page's measuring-aids tool with the aids' own style rows, rather than
+    /// under the live readout: developer work, kept off the pages a player reads.
+    /// </remarks>
     private void DrawMeasuringControls(int width, int height)
     {
         // The kind breakdown doubles as the filter, since "what is out there" and "what do I
@@ -5905,7 +5979,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                  _snapshot.Entities.GroupBy(e => e.Kind).OrderBy(g => g.Key.ToString(), StringComparer.Ordinal))
         {
             bool drawn = DrawnKinds.Contains(group.Key);
-            if (ImGui.Checkbox($"{group.Key,-12} {group.Count()}##kind{group.Key}", ref drawn))
+            if (OverlayLayout.Toggle($"{group.Key.ToString().ToLowerInvariant(),-12} {group.Count()}##kind{group.Key}", ref drawn))
             {
                 if (drawn)
                 {
@@ -5919,7 +5993,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         }
 
         bool calibration = ShowCalibration;
-        if (OverlayLayout.Toggle("Calibration Aids", ref calibration))
+        if (OverlayLayout.Toggle("calibration aids", ref calibration))
         {
             ShowCalibration = calibration;
         }
@@ -5929,18 +6003,20 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             return;
         }
 
+        ImGui.Indent();
+
         // Drag until the marker sits on the X the game's own map draws at the player's
         // position, then read the number off. Reported in BOTH units because that is what
         // separates the possible causes: a round world height means the wrong height is being
         // fed in, while a value that only makes sense in pixels means the error is in screen
         // space.
         float probe = ProbeHeight;
-        if (OverlayLayout.Drag("Probe Height", ref probe, 0.5f, -200f, 200f, "%.0f world units"))
+        if (OverlayLayout.Drag("probe height", ref probe, 0.5f, -200f, 200f, "%.0f units"))
         {
             ProbeHeight = probe;
         }
 
-        if (OverlayLayout.Actions("Reset the probe") == 0)
+        if (OverlayLayout.Actions("reset probe") == 0)
         {
             ProbeHeight = 0;
         }
@@ -5959,6 +6035,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             ? $"probe    {ProbeHeight:F0} world units = {ProbeHeight * pixelsPerUnit:F0} px"
               + $"   (scale {pixelsPerUnit:F2} px per world unit)"
             : "probe    scale unavailable - no character height to calibrate against");
+        ImGui.Unindent();
     }
 
     /// <summary>

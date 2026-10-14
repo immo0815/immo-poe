@@ -86,9 +86,9 @@ public sealed class WindowChrome
     public static IReadOnlyList<OverlayWindow> Windows { get; } =
     [
         new(StatusId, "PoEformance"),
-        new("poi", "Points of interest"),
-        new("preload", "What loaded"),
-        new(WealthPanel.ChromeId, "Wealth"),
+        new("poi", "points of interest"),
+        new("preload", "what loaded"),
+        new(WealthPanel.ChromeId, "wealth"),
     ];
 
     private readonly Dictionary<string, WindowRule> _rules = [];
@@ -768,16 +768,20 @@ public sealed class WindowChrome
             WindowRule rule = Of(id);
 
             bool locked = rule.Locked;
-            if (ImGui.MenuItem("Locked  (cannot be dragged)", string.Empty, ref locked))
+            if (ImGui.MenuItem("locked", string.Empty, ref locked))
             {
                 Set(id, rule with { Locked = locked });
             }
 
+            OverlayLayout.Hint("The window cannot be dragged.");
+
             bool through = rule.ClickThrough;
-            if (ImGui.MenuItem("Click-through  (the game gets the click)", string.Empty, ref through))
+            if (ImGui.MenuItem("click-through", string.Empty, ref through))
             {
                 Set(id, rule with { ClickThrough = through });
             }
+
+            OverlayLayout.Hint("The game gets the click.");
 
             if (through)
             {
@@ -788,7 +792,7 @@ public sealed class WindowChrome
                 ImGui.Separator();
                 ImGui.TextDisabled("right-clicking this window will not reach this menu again:");
                 ImGui.TextDisabled("the pointer in its title bar hands the window back,");
-                ImGui.TextDisabled("and Tools -> Appearance lists every window either way");
+                ImGui.TextDisabled("and appearance -> windows lists every window either way");
             }
         }
         finally
