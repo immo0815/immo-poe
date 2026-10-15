@@ -174,6 +174,15 @@ public sealed class ToolTabs
     /// </remarks>
     public string Version { get; set; } = ToolVersion.Said;
 
+    /// <summary>
+    /// What "quit" in this window's right-click menu does, or null for no such entry.
+    /// </summary>
+    /// <remarks>
+    /// A callback because ending the process is the app's business (the config window's thread,
+    /// the recording), not this class's.
+    /// </remarks>
+    public Action? Quit { get; set; }
+
     /// <summary>How solid this window is drawn, as the user set it.</summary>
     /// <remarks>
     /// Read at Begin rather than copied into a field on a change, so a slider dragged in the
@@ -417,7 +426,7 @@ public sealed class ToolTabs
                 // control, and what is under the cursor is only known once the controls have
                 // been submitted - asked first it would steal the right-click the colour
                 // pickers in the Appearance page have their own use for.
-                Chrome.Menu(ChromeId);
+                Chrome.Menu(ChromeId, Quit);
             }
 
             // IN THE TITLE BAR, collapsed or not, so it is on screen whichever page is in front

@@ -758,7 +758,12 @@ public sealed class WindowChrome
     /// person pointing at it means; the item test is the helper's NoOpenOverItems by
     /// another route.
     /// </remarks>
-    public void Menu(string id)
+    /// <param name="quit">
+    /// Offered as a last entry, apart from the two switches, or null for a window that has no
+    /// say in ending the tool. Only the main window passes it: with no console to Ctrl+C, this is
+    /// the one way to end the process short of the task manager.
+    /// </param>
+    public void Menu(string id, Action? quit = null)
     {
         if (ImGui.IsWindowHovered(
                 ImGuiHoveredFlags.ChildWindows | ImGuiHoveredFlags.AllowWhenBlockedByPopup)
@@ -803,6 +808,17 @@ public sealed class WindowChrome
                 ImGui.TextDisabled("right-clicking this window will not reach this menu again:");
                 ImGui.TextDisabled("the pointer in its title bar hands the window back,");
                 ImGui.TextDisabled("and appearance -> windows lists every window either way");
+            }
+
+            if (quit is not null)
+            {
+                ImGui.Separator();
+                if (ImGui.MenuItem("quit PoEformance"))
+                {
+                    quit();
+                }
+
+                OverlayLayout.Hint("Closes the overlay and the config window.");
             }
         }
         finally

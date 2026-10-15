@@ -678,6 +678,13 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         set => _tools.Version = value ?? ToolVersion.Said;
     }
 
+    /// <summary>Ends the whole tool; offered in the main window's right-click menu.</summary>
+    public Action? Quit
+    {
+        get => _tools.Quit;
+        set => _tools.Quit = value;
+    }
+
     // The tools something elsewhere in the overlay jumps to by name.
     private const string UiBrowserTab = "uibrowser";
     private const string DissectorTab = "dissector";
