@@ -3100,6 +3100,17 @@ internal static class Program
         // mistaken for a released one. See ToolVersion.
         overlay.Version = PoEformance.Features.ToolVersion.With(PoEformance.Features.BuildStamp.Load());
 
+        // THE WAY OUT, now that no console is there to Ctrl+C. Closing the overlay alone would
+        // leave the process up: the config window's thread is a foreground one and Main joins it.
+        // Off the render thread, so the exit does not happen mid-frame; the recording is flushed
+        // first because Environment.Exit would drop its tail (as UpdateService.Apply notes).
+        overlay.Quit = () => _ = Task.Run(() =>
+        {
+            overlay.Close();
+            recorder?.Dispose();
+            Environment.Exit(0);
+        });
+
         // THE LIGHT PANEL'S SEARCH of the game's memory, off the frame - see FloatHunt and LightHunt.
         // Set before the books are attached, which take it as they are made. Twice HeapScan's budget:
         // the first hunt in AzmerianRanges stopped at eight gigabytes with the sky's turn not found.
