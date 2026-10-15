@@ -333,6 +333,12 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// </remarks>
     public Action? SettingsChanged { get; set; }
 
+    /// <summary>The features the tool starts with, as the status page shows them - see <see cref="DrawLaunchSwitches"/>.</summary>
+    public PoEformance.Features.LaunchSettings Launch { get; set; } = PoEformance.Features.LaunchSettings.Default;
+
+    /// <summary>Saves the start features when the status page changes one.</summary>
+    public Action<PoEformance.Features.LaunchSettings>? LaunchChanged { get; set; }
+
     /// <summary>What the entity browser has been told to leave out of its list.</summary>
     /// <remarks>
     /// Owned here rather than by the browser window, because it is written to the settings
@@ -5018,10 +5024,53 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// </remarks>
     private void DrawStatusTab(int width, int height)
     {
-        // THE READOUT AND ITS HISTORY ALONE. The switches that sat under it moved to the overlay
-        // page, beside the style rows of what they switch - see DrawEntitySwitches and kin.
+        // THE START SWITCHES FIRST, the one exception to the readout alone: a first start has no
+        // readout worth reading, and these are what it has to be told. The other switches sit on
+        // the overlay page, beside the style rows of what they switch - see DrawEntitySwitches.
+        DrawLaunchSwitches();
         DrawReadout(width, height);
         DrawRuleHistory();
+    }
+
+    /// <summary>The features the tool starts with - what used to be typed on the command line.</summary>
+    /// <remarks>
+    /// Saved as each one changes, and taking effect at the next start: a feature started half way
+    /// through a session would be a state nobody asked for, and the tool's own launch is the one
+    /// moment the rest of it is built around these.
+    /// </remarks>
+    private void DrawLaunchSwitches()
+    {
+        OverlayLayout.Group("on start", "Takes effect the next time the tool starts.");
+
+        bool config = Launch.Config;
+        if (OverlayLayout.Toggle("settings window", ref config))
+        {
+            SetLaunch(Launch with { Config = config });
+        }
+
+        OverlayLayout.Hint("Opens the config window beside the overlay.");
+
+        bool autoFlask = Launch.AutoFlask;
+        if (OverlayLayout.Toggle("auto-flask", ref autoFlask))
+        {
+            SetLaunch(Launch with { AutoFlask = autoFlask });
+        }
+
+        OverlayLayout.Hint("Turns the flask rules on from the start, even where the saved settings have them off.");
+
+        bool debug = Launch.Debug;
+        if (OverlayLayout.Toggle("debug", ref debug))
+        {
+            SetLaunch(Launch with { Debug = debug });
+        }
+
+        OverlayLayout.Hint("The projection diagnostics and calibration aids.");
+    }
+
+    private void SetLaunch(PoEformance.Features.LaunchSettings next)
+    {
+        Launch = next;
+        LaunchChanged?.Invoke(next);
     }
 
     /// <summary>Shortens a value that would otherwise stretch the readout's second column.</summary>

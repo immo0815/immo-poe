@@ -86,9 +86,14 @@ dotnet build        # any OS
 dotnet test         # any OS
 PoEformance.App --record session.rec     # capture a session (Windows)
 PoEformance.App --replay session.rec     # develop against it, game closed (any use)
-PoEformance.App --overlay --config       # in-game overlay + config window, side by side
-PoEformance.App --overlay --debug        # plus the projection diagnostics and calibration aids
+PoEformance.App                          # the in-game overlay; its status page holds the start switches
+PoEformance.App --config --debug         # the same, plus the config window and the diagnostics, for this start
 ```
+
+The start switches (settings window, auto-flask, debug) are kept in `config/launch.json` beside the
+exe, and the overlay's status page changes them. A flag on the command line adds its feature for that
+start only; to turn one off, use the status page. The overlay always starts, so `--overlay` is accepted
+and does nothing.
 
 In the overlay, **F9** (rebindable under Appearance → Keys → Capture for Diagnosis) writes a capture
 of the spot you stand on into `captures/<time> <area>/` beside the tool and packs it into

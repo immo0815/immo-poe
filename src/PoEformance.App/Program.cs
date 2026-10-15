@@ -30,7 +30,11 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
-        var options = CliOptions.Parse(args);
+        // The features from the config first, then the command line adds to them for this start -
+        // see LaunchSettings. Loaded once here and handed on: the status page saves changes to the
+        // same file, and a flag given for one start must never reach it.
+        PoEformance.Features.LaunchSettings launch = PoEformance.Features.LaunchSettingsStore.Load();
+        var options = CliOptions.Parse(args).WithLaunch(launch);
         Console.WriteLine("PoEformance (C# port) - drift report");
 
         // What the tool HEARD, not what was typed - the one line that settles "but I always
@@ -368,8 +372,8 @@ internal static class Program
 
             if (!options.ShowConfig)
             {
-                Console.WriteLine("           (pass --config for the settings window - that is where slots");
-                Console.WriteLine("           are switched on; it can stay open while the overlay runs)");
+                Console.WriteLine("           (the settings window is off - switch it on under the overlay's");
+                Console.WriteLine("           status page, or in config/launch.json; that is where slots are switched on)");
             }
         }
 
@@ -462,7 +466,7 @@ internal static class Program
             RunOverlay(
                 reader, SchemaJson.Load(schemaPath), gameStatesAddress, gameWindow, cull, autoFlask,
                 ruleEngine, ruleHistory, buffWatch, groundWatch, evasionPlanner, rotation,
-                debug: options.Debug, settings: overlaySettings, handle: overlayHandle,
+                debug: options.Debug, launch: launch, settings: overlaySettings, handle: overlayHandle,
                 uiBrowser: options.ShowUiBrowser, updates: updates,
                 tracker: tracker, writeTracker: WriteTracker,
                 fileRoot: result.Statics.FirstOrDefault(s => s.Name == "FileRoot" && s.Found)?.Address ?? 0,
@@ -2272,6 +2276,7 @@ internal static class Program
         PoEformance.Features.GroundWatch groundWatch,
         PoEformance.Features.EvasionPlanner evasionPlanner,
         PoEformance.Game.World.TerrainRotationTables rotation, bool debug,
+        PoEformance.Features.LaunchSettings launch,
         PoEformance.Features.OverlaySettings settings, OverlayHandle handle, bool uiBrowser,
         UpdateService updates,
         // The ONE copy of the tracker's settings, shared with the config window rather than
@@ -3025,6 +3030,11 @@ internal static class Program
         overlay.EvasionStatus = () => evasionPlanner.LastTick.Reason;
         overlay.RuleStatus = () => ruleEngine.LastTick.Reason;
         overlay.AimStatus = () => ruleEngine.AimNote(Environment.TickCount64);
+
+        // The status page's start switches. Saved as they change, and read by nothing else until
+        // the next start - a feature switched on here starts the next time, not now.
+        overlay.Launch = launch;
+        overlay.LaunchChanged = settingsToSave => PoEformance.Features.LaunchSettingsStore.Save(settingsToSave);
 
         // Enough to fill the folded panel several times over without asking the log for a
         // session's worth of history on every frame it happens to be open.
@@ -4624,11 +4634,25 @@ internal static class Program
         string UpdateOutcome,
         string UpdatedVersion)
     {
+        /// <summary>The options with the config's features switched on as well as the typed ones.</summary>
+        /// <remarks>
+        /// A flag only ever adds: a feature the config has on stays on for this start whatever the
+        /// command line says, and turning one off is the status page's job. That keeps every
+        /// shortcut that passes a flag working, and keeps the config's own file from being edited by
+        /// a launch that only meant to try something once.
+        /// </remarks>
+        public CliOptions WithLaunch(PoEformance.Features.LaunchSettings launch) => this with
+        {
+            ShowConfig = ShowConfig || launch.Config,
+            AutoFlask = AutoFlask || launch.AutoFlask,
+            Debug = Debug || launch.Debug,
+        };
+
         public static CliOptions Parse(string[] args)
         {
             string? schema = null, replay = null, record = null;
             string updateOutcome = string.Empty, updatedVersion = string.Empty;
-            bool watch = false, verbose = false, overlay = false, config = false;
+            bool watch = false, verbose = false, config = false;
             bool autoFlask = false, probeFlasks = false, probeKeys = false, debug = false;
             var watchFlasks = false;
             bool uiBrowser = false, questFlags = false, scanHeap = false, peekWatch = false;
@@ -4678,8 +4702,10 @@ internal static class Program
                     case "--watch":
                         watch = true;
                         break;
+                    // Accepted and ignored: the overlay always starts now, and its status page is
+                    // where the other switches are set - see LaunchSettings. Kept so that a
+                    // shortcut which still passes it starts without the unknown-option warning.
                     case "--overlay":
-                        overlay = true;
                         break;
                     case "--config":
                         config = true;
@@ -4870,7 +4896,7 @@ internal static class Program
             }
 
             return new CliOptions(
-                schema, replay, record, watch, verbose, overlay, config, autoFlask, probeFlasks, watchFlasks, probeKeys,
+                schema, replay, record, watch, verbose, true, config, autoFlask, probeFlasks, watchFlasks, probeKeys,
                 debug, uiBrowser, questFlags, scanHeap, actionHunt, skillHunt, hoverHunt, mapHunt, sweep,
                 inventorySweep, tabName, groundTypeDump, animDump, aoDump, astDump, poseDump,
                 modelDump, glossary, listTables, peek, peekWatch, updateOutcome, updatedVersion);
