@@ -2478,6 +2478,10 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             0, Status, "live readout", () => DrawStatusTab(_viewport.X, _viewport.Y),
             page: Status, pageLabel: "status");
 
+        // Beside the cost readout, which takes order 80 once its history is wired: the start switches
+        // come after it on the same page.
+        _tools.Add(81, "launch", "on start", DrawLaunchTab, page: Status);
+
         // The live facts that belong on EVERY page rather than on this one - see
         // DrawStatusStrip, and StatusBar for why the window stopped resizing itself once they
         // moved up there.
@@ -5024,21 +5028,20 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// </remarks>
     private void DrawStatusTab(int width, int height)
     {
-        // THE START SWITCHES FIRST, the one exception to the readout alone: a first start has no
-        // readout worth reading, and these are what it has to be told. The other switches sit on
-        // the overlay page, beside the style rows of what they switch - see DrawEntitySwitches.
-        DrawLaunchSwitches();
+        // THE READOUT AND ITS HISTORY ALONE. The switches that sat under it moved to the overlay
+        // page, beside the style rows of what they switch - see DrawEntitySwitches and kin.
         DrawReadout(width, height);
         DrawRuleHistory();
     }
 
     /// <summary>The features the tool starts with - what used to be typed on the command line.</summary>
     /// <remarks>
-    /// Saved as each one changes, and taking effect at the next start: a feature started half way
-    /// through a session would be a state nobody asked for, and the tool's own launch is the one
-    /// moment the rest of it is built around these.
+    /// Its own page beside the cost readout rather than on the status page, so a first start finds
+    /// it at once and the readout stays the readout. Saved as each one changes and taking effect at
+    /// the next start: a feature started half way through a session would be a state nobody asked
+    /// for, and the tool's own launch is the one moment the rest of it is built around these.
     /// </remarks>
-    private void DrawLaunchSwitches()
+    private void DrawLaunchTab()
     {
         OverlayLayout.Group("on start", "Takes effect the next time the tool starts.");
 
@@ -5048,23 +5051,23 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             SetLaunch(Launch with { Config = config });
         }
 
-        OverlayLayout.Hint("Opens the config window beside the overlay.");
-
+        ImGui.SameLine();
         bool autoFlask = Launch.AutoFlask;
         if (OverlayLayout.Toggle("auto-flask", ref autoFlask))
         {
             SetLaunch(Launch with { AutoFlask = autoFlask });
         }
 
-        OverlayLayout.Hint("Turns the flask rules on from the start, even where the saved settings have them off.");
-
+        ImGui.SameLine();
         bool debug = Launch.Debug;
         if (OverlayLayout.Toggle("debug", ref debug))
         {
             SetLaunch(Launch with { Debug = debug });
         }
 
-        OverlayLayout.Hint("The projection diagnostics and calibration aids.");
+        OverlayLayout.Hint("Settings window: the config window opens beside the overlay. Auto-flask: the flask rules "
+            + "start on, even where the saved settings have them off. Debug: a console window with the projection "
+            + "diagnostics and calibration aids.");
     }
 
     private void SetLaunch(PoEformance.Features.LaunchSettings next)
