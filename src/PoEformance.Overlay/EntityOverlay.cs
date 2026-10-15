@@ -339,6 +339,15 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// <summary>Saves the start features when the status page changes one.</summary>
     public Action<PoEformance.Features.LaunchSettings>? LaunchChanged { get; set; }
 
+    /// <summary>Whether auto-flask is on right now, read each frame for the page's checkbox.</summary>
+    public Func<bool>? AutoFlaskOn { get; set; }
+
+    /// <summary>Switches auto-flask on or off at once and saves it.</summary>
+    public Action<bool>? AutoFlaskChanged { get; set; }
+
+    /// <summary>Opens the config window, or does nothing while it is already open.</summary>
+    public Action? OpenConfig { get; set; }
+
     /// <summary>What the entity browser has been told to leave out of its list.</summary>
     /// <remarks>
     /// Owned here rather than by the browser window, because it is written to the settings
@@ -2487,7 +2496,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
 
         // Beside the cost readout, which takes order 80 once its history is wired: the start switches
         // come after it on the same page.
-        _tools.Add(81, "launch", "on start", DrawLaunchTab, page: Status);
+        _tools.Add(81, "launch", "features", DrawLaunchTab, page: Status);
 
         // The live facts that belong on EVERY page rather than on this one - see
         // DrawStatusStrip, and StatusBar for why the window stopped resizing itself once they
@@ -5041,40 +5050,40 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         DrawRuleHistory();
     }
 
-    /// <summary>The features the tool starts with - what used to be typed on the command line.</summary>
+    /// <summary>The switches that start features.</summary>
     /// <remarks>
-    /// Its own page beside the cost readout rather than on the status page, so a first start finds
-    /// it at once and the readout stays the readout. Saved as each one changes and taking effect at
-    /// the next start: a feature started half way through a session would be a state nobody asked
-    /// for, and the tool's own launch is the one moment the rest of it is built around these.
+    /// Auto-flask is a checkbox and acts at once. The settings window is a button, not a
+    /// checkbox: it is opened, closed with its own X and opened again. Debug is the one that waits
+    /// for the next start, because its diagnostics are built as the tool starts.
     /// </remarks>
     private void DrawLaunchTab()
     {
-        OverlayLayout.Group("on start", "Takes effect the next time the tool starts.");
+        OverlayLayout.Group("features");
 
-        bool config = Launch.Config;
-        if (OverlayLayout.Toggle("settings window", ref config))
-        {
-            SetLaunch(Launch with { Config = config });
-        }
-
-        ImGui.SameLine();
-        bool autoFlask = Launch.AutoFlask;
+        bool autoFlask = AutoFlaskOn?.Invoke() ?? false;
         if (OverlayLayout.Toggle("auto-flask", ref autoFlask))
         {
-            SetLaunch(Launch with { AutoFlask = autoFlask });
+            AutoFlaskChanged?.Invoke(autoFlask);
         }
 
-        ImGui.SameLine();
+        OverlayLayout.Hint("The flask rules, on or off right now. The slots are set in the settings window.");
+
+        if (OpenConfig is not null && ImGui.Button("settings window"))
+        {
+            OpenConfig();
+        }
+
+        OverlayLayout.Hint("Opens the config window. Close it with its X; the button opens it again.");
+
+        OverlayLayout.Group("on start", "Takes effect the next time the tool starts.");
+
         bool debug = Launch.Debug;
         if (OverlayLayout.Toggle("debug", ref debug))
         {
             SetLaunch(Launch with { Debug = debug });
         }
 
-        OverlayLayout.Hint("Settings window: the config window opens beside the overlay. Auto-flask: the flask rules "
-            + "start on, even where the saved settings have them off. Debug: a console window with the projection "
-            + "diagnostics and calibration aids.");
+        OverlayLayout.Hint("A console window with the projection diagnostics and calibration aids.");
     }
 
     private void SetLaunch(PoEformance.Features.LaunchSettings next)

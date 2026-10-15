@@ -380,8 +380,8 @@ internal static class Program
 
             if (!options.ShowConfig)
             {
-                Console.WriteLine("           (the settings window is off - switch it on under the overlay's");
-                Console.WriteLine("           status page, or in config/launch.json; that is where slots are switched on)");
+                Console.WriteLine("           (open the settings window with the button on the overlay's status");
+                Console.WriteLine("           page - that is where slots are switched on)");
             }
         }
 
@@ -443,13 +443,34 @@ internal static class Program
 
         // Topmost only when the overlay is up, i.e. when a fullscreen game would otherwise
         // hide it. On its own it is an ordinary window and should behave like one.
-        Thread? configWindow = options.ShowConfig
-            ? StartConfigWindow(
-                reader, schemaPath, result, gameStatesAddress, autoFlask, flaskKeys, flaskSettings,
-                overlaySettings, ruleEngine, buffWatch, evasionPlanner, overlayHandle, updates,
-                groundWatch, () => tracker, WriteTracker,
-                alwaysOnTop: options.ShowOverlay)
-            : null;
+        // Opened by --config at start and by the status page's button at any time after. One
+        // window at a time: a press while it is open does nothing, and once it is closed the next
+        // press opens a fresh one. Each open reads the settings files again rather than reusing
+        // what the last window held, because the status page changes auto-flask behind its back.
+        Thread? configWindow = null;
+        var configLock = new object();
+        void OpenConfigWindow()
+        {
+            lock (configLock)
+            {
+                if (configWindow is { IsAlive: true })
+                {
+                    return;
+                }
+
+                configWindow = StartConfigWindow(
+                    reader, schemaPath, result, gameStatesAddress, autoFlask, flaskKeys,
+                    PoEformance.Features.AutoFlaskSettingsStore.Load(),
+                    PoEformance.Features.OverlaySettingsStore.Load(), ruleEngine, buffWatch,
+                    evasionPlanner, overlayHandle, updates, groundWatch, () => tracker, WriteTracker,
+                    alwaysOnTop: options.ShowOverlay);
+            }
+        }
+
+        if (options.ShowConfig)
+        {
+            OpenConfigWindow();
+        }
 
         bool overlayRuns = options.ShowOverlay && options.ReplayPath is null && gameStatesAddress != 0;
         if (overlayRuns)
@@ -474,7 +495,8 @@ internal static class Program
             RunOverlay(
                 reader, SchemaJson.Load(schemaPath), gameStatesAddress, gameWindow, cull, autoFlask,
                 ruleEngine, ruleHistory, buffWatch, groundWatch, evasionPlanner, rotation,
-                debug: options.Debug, launch: launch, settings: overlaySettings, handle: overlayHandle,
+                debug: options.Debug, launch: launch, openConfig: OpenConfigWindow,
+                settings: overlaySettings, handle: overlayHandle,
                 uiBrowser: options.ShowUiBrowser, updates: updates,
                 tracker: tracker, writeTracker: WriteTracker,
                 fileRoot: result.Statics.FirstOrDefault(s => s.Name == "FileRoot" && s.Found)?.Address ?? 0,
@@ -2284,7 +2306,7 @@ internal static class Program
         PoEformance.Features.GroundWatch groundWatch,
         PoEformance.Features.EvasionPlanner evasionPlanner,
         PoEformance.Game.World.TerrainRotationTables rotation, bool debug,
-        PoEformance.Features.LaunchSettings launch,
+        PoEformance.Features.LaunchSettings launch, Action openConfig,
         PoEformance.Features.OverlaySettings settings, OverlayHandle handle, bool uiBrowser,
         UpdateService updates,
         // The ONE copy of the tracker's settings, shared with the config window rather than
@@ -3039,10 +3061,20 @@ internal static class Program
         overlay.RuleStatus = () => ruleEngine.LastTick.Reason;
         overlay.AimStatus = () => ruleEngine.AimNote(Environment.TickCount64);
 
-        // The status page's start switches. Saved as they change, and read by nothing else until
-        // the next start - a feature switched on here starts the next time, not now.
+        // The status page's switches. Debug is saved for the next start; auto-flask acts at once
+        // and is saved in its own settings; the button opens the config window.
         overlay.Launch = launch;
         overlay.LaunchChanged = settingsToSave => PoEformance.Features.LaunchSettingsStore.Save(settingsToSave);
+        overlay.AutoFlaskOn = () => autoFlask.Enabled;
+        overlay.AutoFlaskChanged = on =>
+        {
+            autoFlask.Enabled = on;
+            PoEformance.Features.AutoFlaskSettings saved = PoEformance.Features.AutoFlaskSettingsStore.Load();
+            SaveWarning(
+                PoEformance.Features.AutoFlaskSettingsStore.Save(saved with { Enabled = on }),
+                PoEformance.Features.AutoFlaskSettingsStore.DefaultPath);
+        };
+        overlay.OpenConfig = openConfig;
 
         // Enough to fill the folded panel several times over without asking the log for a
         // session's worth of history on every frame it happens to be open.
@@ -3819,7 +3851,7 @@ internal static class Program
         Console.WriteLine();
         if (!engine.Enabled)
         {
-            Console.WriteLine("auto-flask off - turn it on in the config window (--config), or with --autoflask");
+            Console.WriteLine("auto-flask off - tick it on the overlay's status page, or start with --autoflask");
         }
         else if (engine.AnyRuleEnabled())
         {
@@ -4299,7 +4331,7 @@ internal static class Program
         }
 
         return new PoEformance.Config.AutoFlaskView(
-            Enabled: settings.Enabled,
+            Enabled: engine.Enabled,
             KeySource: $"{keys.Source} - {keys.Detail}",
             Status: engine.LastTick.Reason,
             Slots: slots);
@@ -4653,17 +4685,15 @@ internal static class Program
         string UpdateOutcome,
         string UpdatedVersion)
     {
-        /// <summary>The options with the config's features switched on as well as the typed ones.</summary>
+        /// <summary>The options with the config's start-only features switched on as well as the typed ones.</summary>
         /// <remarks>
-        /// A flag only ever adds: a feature the config has on stays on for this start whatever the
-        /// command line says, and turning one off is the status page's job. That keeps every
+        /// A flag only ever adds: debug the config has on stays on for this start whatever the
+        /// command line says, and turning it off is the status page's job. That keeps every
         /// shortcut that passes a flag working, and keeps the config's own file from being edited by
         /// a launch that only meant to try something once.
         /// </remarks>
         public CliOptions WithLaunch(PoEformance.Features.LaunchSettings launch) => this with
         {
-            ShowConfig = ShowConfig || launch.Config,
-            AutoFlask = AutoFlask || launch.AutoFlask,
             Debug = Debug || launch.Debug,
         };
 

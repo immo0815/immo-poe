@@ -12,8 +12,6 @@ public sealed class LaunchSettingsTests
         LaunchSettings loaded = LaunchSettingsStore.Load(path);
 
         Assert.Equal(LaunchSettings.Default, loaded);
-        Assert.False(loaded.Config);
-        Assert.False(loaded.AutoFlask);
         Assert.False(loaded.Debug);
     }
 
@@ -23,7 +21,7 @@ public sealed class LaunchSettingsTests
         string path = Path.Combine(Path.GetTempPath(), $"poeformance-launch-{Guid.NewGuid():N}.json");
         try
         {
-            var settings = new LaunchSettings(Config: true, AutoFlask: true, Debug: false);
+            var settings = new LaunchSettings(Debug: true);
 
             Assert.True(LaunchSettingsStore.Save(settings, path));
             Assert.Equal(settings, LaunchSettingsStore.Load(path));
