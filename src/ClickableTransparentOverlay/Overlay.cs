@@ -689,7 +689,9 @@
                 0,
                 this.title,
                 WindowStyles.WS_POPUP,
-                WindowExStyles.WS_EX_ACCEPTFILES | WindowExStyles.WS_EX_TOPMOST);
+                // TOOLWINDOW keeps the overlay out of the taskbar and Alt+Tab; the exe has no
+                // console any more, so this popup would otherwise be the one entry shown.
+                WindowExStyles.WS_EX_ACCEPTFILES | WindowExStyles.WS_EX_TOPMOST | WindowExStyles.WS_EX_TOOLWINDOW);
             this.renderer = new ImGuiRenderer(device, deviceContext, this.initialWindowWidth, this.initialWindowHeight);
             this.inputhandler = new ImGuiInputHandler(this.window.Handle);
             this.overlayIsReady = true;
