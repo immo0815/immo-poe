@@ -5,7 +5,7 @@
     everything is wired by hand, in order, with no container and no reflection.
   -->
   <PropertyGroup>
-    <!-- WinExe, not Exe: a console window opens only for --debug (see DebugConsole). -->
+    <!-- WinExe, not Exe: a console window opens only for the debug switch (see DebugConsole). -->
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>PoEformance.App</RootNamespace>
