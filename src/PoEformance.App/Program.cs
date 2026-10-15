@@ -34,6 +34,14 @@ internal static class Program
         // see LaunchSettings. Loaded once here and handed on: the status page saves changes to the
         // same file, and a flag given for one start must never reach it.
         PoEformance.Features.LaunchSettings launch = PoEformance.Features.LaunchSettingsStore.Load();
+
+        // BEFORE anything writes to the console - the options parser included, since it reports
+        // bad arguments there and a windowed exe has no console to report them to until now.
+        if (args.Contains("--debug") || launch.Debug)
+        {
+            DebugConsole.Attach();
+        }
+
         var options = CliOptions.Parse(args).WithLaunch(launch);
         Console.WriteLine("PoEformance (C# port) - drift report");
 
