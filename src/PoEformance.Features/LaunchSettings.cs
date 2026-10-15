@@ -3,16 +3,14 @@ using System.Text.Json.Serialization;
 
 namespace PoEformance.Features;
 
-/// <summary>The features the tool starts with, kept beside the executable.</summary>
+/// <summary>What the tool decides at start and cannot change afterwards, kept beside the executable.</summary>
 /// <remarks>
-/// These were command-line flags, and a first start with none of them had nothing to show.
-/// The overlay is not one of them: it always starts, because its status page is where these
-/// are switched. A command-line flag adds its feature for that start only and never removes
-/// one, so turning a feature off is always done on the status page.
+/// Only debug is one: the diagnostics are built into the overlay as it starts. The other
+/// features are live switches on the status page - auto-flask is a checkbox that acts at once,
+/// and the settings window is a button that opens it. A command-line flag adds debug for that
+/// start only and never removes it.
 /// </remarks>
 public sealed record LaunchSettings(
-    [property: JsonPropertyName("config")] bool Config = false,
-    [property: JsonPropertyName("autoFlask")] bool AutoFlask = false,
     [property: JsonPropertyName("debug")] bool Debug = false)
 {
     public static LaunchSettings Default { get; } = new();
