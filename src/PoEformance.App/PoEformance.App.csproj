@@ -11,6 +11,10 @@
     <PublishAot>true</PublishAot>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
 
+    <!-- The exe's own icon in Explorer, the taskbar and the shortcut. The project's art lives
+         at the repository root, beside the other assets, rather than in this folder. -->
+    <ApplicationIcon>..\..\assets\icon.ico</ApplicationIcon>
+
     <!-- Required, not cosmetic: without a comctl32 v6 dependency the process gets v5,
          which has no TaskDialogIndirect export, so the UI library's own error reporting
          fails with "Entry point was not found" instead of showing the actual error.
