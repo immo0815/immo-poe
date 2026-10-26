@@ -108,7 +108,7 @@ public static class CapturePanes
             body.AppendLine().Append(CultureInfo.InvariantCulture, $"=== the doodad files that did not draw, whole, with what each extends ({unlaid.Count})").AppendLine();
             foreach (DoodadFile file in unlaid.Take(MostWhole))
             {
-                Chain(body, read, file.Ao);
+                Chain(body, read, file.Ao, "did not draw");
             }
 
             if (unlaid.Count > MostWhole)
@@ -117,12 +117,54 @@ public static class CapturePanes
             }
         }
 
+        int moving = Moving(body, read, panes);
+
         var said = new StringBuilder();
         said.Append(CultureInfo.InvariantCulture,
-            $"{panes.Count} model panes showing a model, {files} doodad files of their rooms with what became of each one's lines, {unlaid.Count} that did not draw written whole")
+            $"{panes.Count} model panes showing a model, {files} doodad files of their rooms with what became of each one's lines, {unlaid.Count} that did not draw written whole, {moving} with a rig or among the largest written whole")
             .AppendLine();
         said.Append(body);
         return said.ToString();
+    }
+
+    /// <summary>How many of the largest doodad files are written whole beside those with a rig - see <see cref="Moving"/>.</summary>
+    private const int Largest = 3;
+
+    /// <summary>
+    /// Every doodad file of the rooms shown that carries a rig, and the few largest, written whole with what each extends and its
+    /// rig's animations - and how many were.
+    /// </summary>
+    /// <remarks>
+    /// WRITTEN FOR PORT'S SHIP (asked for from the live client): in the game boss_boat.ao rocks with the waves, in the Monster Book it
+    /// stands still, as every doodad of a laid room does (RoomModels: a rig stays in its rest pose). Its materials are plain PBR
+    /// graphs with no vertex motion (v0.1.287's capture), so what moves it is its .ao - a rig and an animation the game plays - or
+    /// the engine itself; the file says which. The largest go in whatever they carry, the ship being 355,726 triangles of a room.
+    /// </remarks>
+    private static int Moving(StringBuilder body, Func<string, byte[]?>? read, IReadOnlyList<CapturePane> panes)
+    {
+        DoodadFile[] all = [.. panes.SelectMany(pane => pane.Model.DoodadFiles).DistinctBy(file => file.Ao, StringComparer.OrdinalIgnoreCase)];
+        DoodadFile[] rigged = [.. all.Where(file => file.Rig.Length > 0 || file.Animations.Count > 0)];
+        DoodadFile[] largest = [.. all.Except(rigged).OrderByDescending(file => file.Triangles).Take(Largest)];
+        if (rigged.Length + largest.Length == 0)
+        {
+            return 0;
+        }
+
+        body.AppendLine().Append(CultureInfo.InvariantCulture,
+            $"=== the doodad files with a rig ({rigged.Length}) and the {largest.Length} largest without one, whole, with their animations - what the game may move them by").AppendLine();
+        foreach (DoodadFile file in rigged.Concat(largest).Take(MostWhole))
+        {
+            body.AppendLine().Append("  ").Append(file.Ao).Append(CultureInfo.InvariantCulture, $"  {file.Triangles} triangles, {file.Lines} lines, {file.Laid} laid")
+                .AppendLine(file.Rig.Length > 0 ? "  rig " + file.Rig : "  no rig");
+            foreach (string animation in file.Animations)
+            {
+                body.Append("    animation\t").AppendLine(animation);
+            }
+
+            Chain(body, read, file.Ao, file.Rig.Length > 0 ? "has a rig" : "among the largest");
+        }
+
+        return Math.Min(rigged.Length + largest.Length, MostWhole);
     }
 
     /// <summary>The picture of a pane's shore beside the part - see <see cref="ShorePictures"/>.</summary>
@@ -509,10 +551,10 @@ public static class CapturePanes
     /// One .ao written whole, then every file it extends, breadth first - each read as the model walk reads it, the
     /// extension added where the extends line has none.
     /// </summary>
-    private static void Chain(StringBuilder body, Func<string, byte[]?>? read, string ao)
+    private static void Chain(StringBuilder body, Func<string, byte[]?>? read, string ao, string reason)
     {
         var queue = new Queue<(string Path, string Why)>();
-        queue.Enqueue((ao, "did not draw"));
+        queue.Enqueue((ao, reason));
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int written = 0;
         while (queue.Count > 0 && written < MostDeep)

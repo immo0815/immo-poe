@@ -460,6 +460,9 @@ public static class RoomModels
                 Most = model.Mesh.Most,
                 Materials = model.ShapeMaterials,
                 Modes = model.Modes,
+                Rig = model.Rig_,
+                Animations = [.. model.Rig.Animations.Select(one => string.Create(
+                    System.Globalization.CultureInfo.InvariantCulture, $"{one.Name} ({one.Rate} fps, {one.Tracks} tracks, kind {one.Kind})"))],
             }
             : new DoodadFile(ao, Lines, Laid, Missing, Capped, Unseen, Model?.Why ?? string.Empty, first);
     }
@@ -612,4 +615,10 @@ public sealed record DoodadFile(string Ao, int Lines, int Laid, int Missing, int
 
     /// <summary>Each shape's blend as its material spells it, where it loaded - see MonsterModel.Modes.</summary>
     public IReadOnlyList<string> Modes { get; init; } = [];
+
+    /// <summary>The skeleton its .ao names, where it names one - a doodad laid in a room stays in its rest pose (RoomModels).</summary>
+    public string Rig { get; init; } = string.Empty;
+
+    /// <summary>Its skeleton's animations, each with its rate, tracks and kind - what the game may play on it.</summary>
+    public IReadOnlyList<string> Animations { get; init; } = [];
 }
