@@ -472,8 +472,8 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   ZONE `"caravan" 26 -102 261 454` round the ship (`RoomZone`, poe_data_tools' `Zone`, read from v0.1.291; the room's other zones beside
   it); the program names `no_wobble`, which `DoodadNoWobble.ot` sets. In memory the WobblePoint's +0x40 is the Sector component of an
   entity of its own (`Metadata/MiscellaneousObjects/Sector`). SO THE SHIP SWAYS ON THE CARD from v0.1.291 (`WobbleRig`, `RoomSways`,
-  `RoomSway`, `MonsterModel.ShapeSways` and `Sways`, `ModelScene.Sways` and `Swayed`): the bone's skin matrix
-  (`inverse(bindModel) * world`, the core's frame) conjugated into the picture's by the core line's own place, every doodad line in a
+  `RoomSway`, `MonsterModel.ShapeSways` and `Sways`, `ModelScene.Sways` and `Swayed`): the bone's world matrix
+  (the core's frame; its skin matrix until v0.1.293, below) conjugated into the picture's by the core line's own place, every doodad line in a
   zone of the sector's name whose type sets no no_wobble turned by it in the vertex shader (`Part.Sway`, the shadow's casters cast again
   each frame over the kept stage). READ FROM THE FILES, said under the picture: the zone rule (the census in wobble.txt names the
   Sector's own list in the next capture) and that the bone's skin matrix is the WobblePoint's (wobble-files.txt plays the rig
@@ -483,6 +483,12 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   rig's bundle while the install's own (`GameFiles.Unpack`) reads every monster's - so the install's decoder is handed over as it opens
   (`WobbleRig.Unpacker`, v0.1.292), and a rig that still does not unpack says which decoder ran and what it refused. That capture's census
   also showed a "sector" IS a room zone: the WobblePoint's Sector lists further Sector entities, one a zone of the boss room.
+  v0.1.292 SWAYED, BUT SANK THE SHIP 232 UNITS (its gangway below the quay, said from the live client with a picture). Its capture held
+  both halves at last: the tool's turn is the WobblePoint's to the float, but the SKIN matrix carries the rest's z -232.42 as +232, the
+  animation holding the bone at nought. The game's matrix is the bone's WORLD matrix (`SkeletonPose.World`) conjugated by the core's
+  place: less a turn about the core's own position (Render x and y, TerrainHeight z) its translation leaves under 0.003 in x and y and
+  the bone's heave, -0.864..0.664, in z - the world matrix's own, exactly. `WobbleRig.At` takes it from v0.1.293. The earlier fixed
+  point 200 units beside the core was the heave biasing a fit along the turn's axis, the same bias the tool's own matrix shows.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

@@ -116,7 +116,7 @@ public static class CaptureWobble
     /// </summary>
     private static int Played(Func<string, byte[]?> read, IReadOnlyList<string> types, StringBuilder body)
     {
-        body.AppendLine().AppendLine("=== the wobble cores played as the tool plays them (WobbleRig): the WobblePoint's bone, its rig and default animation, and the bone's sway over one loop - inverse(bindModel) * world, the core's model frame, row vectors");
+        body.AppendLine().AppendLine("=== the wobble cores played as the tool plays them (WobbleRig): the WobblePoint's bone, its rig and default animation, and the bone's sway over one loop - its world matrix (SkeletonPose.World), the core's model frame, row vectors");
         int played = 0;
         foreach (string type in types)
         {

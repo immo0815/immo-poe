@@ -177,4 +177,30 @@ public class PortSwayTests
         Assert.True(residual < 1, $"residual {residual}");
         Assert.True(largest > 80, $"largest {largest}");
     }
+
+    [Fact]
+    public void THEGAMESSWAYTurnsAboutTheCoreAndHeavesByTheBone()
+    {
+        // THE BONE'S WORLD MATRIX CONJUGATED BY THE CORE'S PLACE (v0.1.293): the game's translation less a turn about the core's own
+        // place - its Render x and y in the watch's heading, its Render TerrainHeight -328.125 - leaves nothing in x and y and the
+        // bone's own heave in z, -0.864..0.664. The fit above lies 200 units off because that heave biases it along the turn's axis.
+        WobbleSeries.Point point = Assert.Single(WobbleSeries.Read(File.ReadAllText(Path.Combine(Folder, "watch.txt"))));
+        double[] core = [3940.217, 12385.87, -328.125];
+        double sideways = 0, least = double.MaxValue, most = double.MinValue;
+        for (var row = 0; row < point.Rows.Count; row++)
+        {
+            byte[] block = point.At(row);
+            float M(int r, int c) => BitConverter.ToSingle(block, WobbleSeries.Turn + (r * 16) + (c * 4));
+
+            // A TURN ABOUT p, row vectors, moves by p - p R: what the game's translation holds beyond that.
+            double Left(int c) => M(3, c) - (core[c] - ((core[0] * M(0, c)) + (core[1] * M(1, c)) + (core[2] * M(2, c))));
+            sideways = Math.Max(sideways, Math.Max(Math.Abs(Left(0)), Math.Abs(Left(1))));
+            least = Math.Min(least, Left(2));
+            most = Math.Max(most, Left(2));
+        }
+
+        Assert.True(sideways < 0.01, $"sideways {sideways}");
+        Assert.InRange(least, -0.9, -0.8);
+        Assert.InRange(most, 0.6, 0.7);
+    }
 }
