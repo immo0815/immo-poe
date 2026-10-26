@@ -63,7 +63,10 @@ public sealed record BuildStamp
     /// empty in a single-file publish - and a single-file publish is exactly what the release
     /// ships.
     /// </remarks>
-    public static string DefaultPath => Path.Combine(AppContext.BaseDirectory, "version.json");
+    public static string DefaultPath => Path.Combine(AppContext.BaseDirectory, FileName);
+
+    /// <summary>The stamp's file name, beside the executable - what an update copies last (UpdateScript).</summary>
+    public const string FileName = "version.json";
 
     /// <summary>This build, or <see cref="Unknown"/> when there is no stamp to read.</summary>
     public static BuildStamp Load(string? path = null)
