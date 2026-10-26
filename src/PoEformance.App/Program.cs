@@ -3457,6 +3457,10 @@ internal static class Program
                     // texture - only those, the rest rejected on the path's bytes.
                     new PoEformance.Game.Files.BundleIndex.WalkPlace(
                         string.Empty, [TextureExtension], PoEformance.Features.CaptureWaterTextures.Words),
+
+                    // AND EVERY PATH NAMING A WOBBLE, for the capture's wobble files part: what sways Port's ship.
+                    .. PoEformance.Features.CaptureWobble.Folders.Select(folder =>
+                        new PoEformance.Game.Files.BundleIndex.WalkPlace(folder, [string.Empty], PoEformance.Features.CaptureWobble.Words)),
                 ]);
                 List<string> tiles = [.. found[0].Where(one => !one.EndsWith(TilesetExtension, StringComparison.OrdinalIgnoreCase))];
                 List<string> sets = [.. found[0].Where(one => one.EndsWith(TilesetExtension, StringComparison.OrdinalIgnoreCase))];
@@ -3467,6 +3471,7 @@ internal static class Program
                 overlay.MaterialFiles = found[3];
                 overlay.EnvironmentFiles = found[4];
                 overlay.WaterTextureFiles = found[5];
+                overlay.WobblePaths = [.. found.Skip(6).SelectMany(one => one).Distinct(StringComparer.OrdinalIgnoreCase)];
                 overlay.TileFiles = tiles;
             });
         }
@@ -3555,6 +3560,24 @@ internal static class Program
                     ? ["could not write the rooms out"]
                     : null);
         }
+
+        // THE WOBBLE WATCH: what sways Port's ship, read from memory for seconds from the press - see WobbleProbe. One probe a
+        // press, made at the press, so its line and its stop in the capture's window are that press's.
+        PoEformance.Game.Diagnostics.WobbleProbe? wobble = null;
+        overlay.OfferCaptureWork(
+            PoEformance.Features.CaptureParts.Wobble,
+            _ =>
+            {
+                // PAST THE TAP, as the light hunt reads: twenty seconds of it would crowd the capture's recording out of its cap.
+                var probe = new PoEformance.Game.Diagnostics.WobbleProbe(
+                    reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader, schema);
+                wobble = probe;
+                return probe.Run(gameStatesStatic);
+            },
+            new PoEformance.Overlay.CaptureWorkProgress(
+                () => wobble?.Line ?? "starting",
+                () => wobble?.Fraction ?? 0f,
+                () => wobble?.Stop()));
 
         // NEEDS NO INSTALL: it reads memory rather than the game's files. The one thing it needs is
         // the loaded-file table.

@@ -161,6 +161,12 @@ public static class CaptureParts
     /// <summary>The light hunt run at the press: the sun, the sky's turn, the dust and the water as the game's memory holds them.</summary>
     public const string LightHunt = "light-hunt";
 
+    /// <summary>The wobble points and the doodads by them, watched for seconds from the press: what sways a ship.</summary>
+    public const string Wobble = "wobble";
+
+    /// <summary>The install's files of the engine's wobble: the object types, every path naming one, the sources and the program's strings.</summary>
+    public const string WobbleFiles = "wobble-files";
+
     /// <summary>The memory recording itself.</summary>
     public const string Memory = "memory";
 
@@ -190,7 +196,7 @@ public static class CaptureParts
     /// lines under the buttons that nobody playing reads. They read the file table and the bundles, which takes seconds, so they
     /// cannot be asked for on the frame the key goes down as a window's text is.
     /// </remarks>
-    public static bool RunsAtPress(string key) => key is CountField or RoomsInside or RoomsExported or RoomPlacements;
+    public static bool RunsAtPress(string key) => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble;
 
     /// <summary>
     /// A heading as the Keys page writes it. The headings themselves stay as they are: they are what <see cref="FolderOfGroup"/> keys
@@ -395,6 +401,12 @@ public static class CaptureParts
             + "foam that floods the rocks: the graphs the program names for them (BreakingOceanWaves and its kin) whole, every graph "
             + "they name, and the textures they name with their headers."),
 
+        new(WobbleFiles, "Area files", "wobble files", CaptureReport.WobbleFilesFile,
+            "What the install says of the engine's wobble - what sways Port's ship, whose model has no rig and no animation: the object "
+            + "types (.ot, .otc, .ao, .aoc) of every loaded path naming a wobble and of the doodads that may and may not sway, each "
+            + "followed through what it extends, whole; every install path naming a wobble, the text files among them whole; the "
+            + "shader sources naming one, and the game's program's strings naming one."),
+
         new(CountField, "Area files", "count field sweep", CaptureReport.CountFieldFile,
             "The loaded-file table walked for its count field instead of assuming one: what the area-change counter reads, how many "
             + "slots were walked, records read and paths readable - their difference says which part of the walk is wrong - and the "
@@ -449,6 +461,13 @@ public static class CaptureParts
             + "What the engine draws an area's water with where its file "
             + "sets no colour. It looks through up to sixteen gigabytes on every core: the capture's window shows how far it is "
             + "and where its time goes, and stops it on a click - what it found until then is written, as it is at five minutes."),
+        new(Wobble, "Memory", "wobble watch", CaptureReport.WobbleFile,
+            "Every entity carrying a WobblePoint - the wobble core the game lays beside a ship - and the doodads standing by it, "
+            + "watched for twenty seconds from the press: the WobblePoint as fast as it reads, every component of the doodads and one "
+            + "hop beyond each pointer in them twenty times a second, with a doodad that may not sway as the control. Every field that "
+            + "changes is written with its range and period, the first read of every block whole, and the WobblePoint's changing "
+            + "fields as a table over time - what moves the ship, by how much and how often. Stand within sight of the ship; the "
+            + "window shows how far it is and stops it on a click."),
         new(Memory, "Memory", "memory recording", CaptureReport.MemoryFile,
             "The overlay's own reads for three seconds, and inside them one pass reading once more from nothing whatever the "
             + "ticked parts above ask for - memory.txt beside it says what the pass read where. Replays with --replay, game closed."),

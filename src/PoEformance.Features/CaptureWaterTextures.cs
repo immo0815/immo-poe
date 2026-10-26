@@ -331,15 +331,18 @@ public static class CaptureWaterTextures
     /// <remarks>
     /// TESTED ON THE BYTES, lowered into one buffer: a program holds millions of runs, and only the few holding a word are made strings.
     /// </remarks>
-    internal static SortedDictionary<string, int> Strings(ReadOnlySpan<byte> bytes)
+    internal static SortedDictionary<string, int> Strings(ReadOnlySpan<byte> bytes) => Strings(bytes, WordBytes);
+
+    /// <summary>The same, for other words - lower case, as bytes (the wobble part's).</summary>
+    internal static SortedDictionary<string, int> Strings(ReadOnlySpan<byte> bytes, byte[][] words)
     {
         var found = new SortedDictionary<string, int>(StringComparer.Ordinal);
         var lowered = new byte[LongestString];
 
         // ONE BYTE A CHARACTER, then TWO, the high one nought, at either alignment.
-        Runs(bytes, 0, 1, lowered, found);
-        Runs(bytes, 0, 2, lowered, found);
-        Runs(bytes, 1, 2, lowered, found);
+        Runs(bytes, 0, 1, lowered, words, found);
+        Runs(bytes, 0, 2, lowered, words, found);
+        Runs(bytes, 1, 2, lowered, words, found);
         return found;
     }
 
@@ -350,7 +353,7 @@ public static class CaptureWaterTextures
     private static readonly byte[][] WordBytes = [.. Words.Select(word => Encoding.ASCII.GetBytes(word.ToLowerInvariant()))];
 
     /// <summary>The runs at one width from one offset: each character's low byte printable, and a wide one's high byte nought.</summary>
-    private static void Runs(ReadOnlySpan<byte> bytes, int offset, int width, byte[] lowered, SortedDictionary<string, int> found)
+    private static void Runs(ReadOnlySpan<byte> bytes, int offset, int width, byte[] lowered, byte[][] words, SortedDictionary<string, int> found)
     {
         var start = -1;
         var length = 0;
@@ -375,15 +378,15 @@ public static class CaptureWaterTextures
                 continue;
             }
 
-            Ended(bytes, start, at, length, width, lowered, found);
+            Ended(bytes, start, at, length, width, lowered, words, found);
             start = -1;
         }
 
-        Ended(bytes, start, at, length, width, lowered, found);
+        Ended(bytes, start, at, length, width, lowered, words, found);
     }
 
     /// <summary>A run that ended: kept where it is long enough, not too long, and holds a word.</summary>
-    private static void Ended(ReadOnlySpan<byte> bytes, int start, int end, int length, int width, byte[] lowered, SortedDictionary<string, int> found)
+    private static void Ended(ReadOnlySpan<byte> bytes, int start, int end, int length, int width, byte[] lowered, byte[][] words, SortedDictionary<string, int> found)
     {
         if (start < 0 || length < ShortestString || length > LongestString)
         {
@@ -391,7 +394,7 @@ public static class CaptureWaterTextures
         }
 
         ReadOnlySpan<byte> run = lowered.AsSpan(0, length);
-        foreach (byte[] word in WordBytes)
+        foreach (byte[] word in words)
         {
             if (run.IndexOf(word) >= 0)
             {

@@ -92,6 +92,9 @@ internal sealed class CaptureKey
     /// <summary>The diagnoses that take seconds, by part key - each started as the key goes down. See <see cref="OfferWork"/>.</summary>
     private readonly Dictionary<string, Func<string, IReadOnlyList<string>?>> _works = new(StringComparer.Ordinal);
 
+    /// <summary>What a piece of work says of itself in the window while it runs, by part key - see <see cref="OfferWork"/>.</summary>
+    private readonly Dictionary<string, CaptureWorkProgress> _workProgress = new(StringComparer.Ordinal);
+
     /// <summary>The model panes, asked for as the key goes down - see <see cref="OfferPanes"/>.</summary>
     private Func<IReadOnlyList<CapturePane>>? _panes;
 
@@ -166,6 +169,9 @@ internal sealed class CaptureKey
     /// <summary>The install's textures whose paths name the water (CaptureWaterTextures.Words), as its walk found them - empty until it has run.</summary>
     public IReadOnlyList<string> WaterTextures { get; set; } = [];
 
+    /// <summary>The install's paths naming a wobble (CaptureWobble.Words under CaptureWobble.Folders), as its walk found them - empty until it has run.</summary>
+    public IReadOnlyList<string> WobblePaths { get; set; } = [];
+
     /// <summary>
     /// Starts the light hunt for the area's own environment and hands back its whole report, or null where nothing can search - the light-hunt part. Set by whoever owns the search.
     /// </summary>
@@ -224,11 +230,16 @@ internal sealed class CaptureKey
     /// Given the path of the part's file, its lines to write there - or null where the work wrote that file itself (the room
     /// export, whose writer takes a path).
     /// </param>
-    public void OfferWork(string key, Func<string, IReadOnlyList<string>?> work)
+    /// <param name="progress">What it says of itself in the window while it runs - how far, and a stop that keeps what it found - or null for a line saying nothing.</param>
+    public void OfferWork(string key, Func<string, IReadOnlyList<string>?> work, CaptureWorkProgress? progress = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(key);
         ArgumentNullException.ThrowIfNull(work);
         _works[key] = work;
+        if (progress is not null)
+        {
+            _workProgress[key] = progress;
+        }
     }
 
     /// <summary>
@@ -454,6 +465,12 @@ internal sealed class CaptureKey
                     Fraction = () => hunt.Budget > 0 ? (float)((double)hunt.Bytes / hunt.Budget) : 0f,
                     Stop = hunt.Stop,
                 },
+                _ when CaptureParts.RunsAtPress(part.Key) && _workProgress.TryGetValue(part.Key, out CaptureWorkProgress? work) => new CaptureStep(part.File, part.Label)
+                {
+                    Live = work.Live,
+                    Fraction = work.Fraction,
+                    Stop = work.Stop,
+                },
                 _ when CaptureParts.RunsAtPress(part.Key) => new CaptureStep(part.File, part.Label)
                 {
                     Live = () => "running since the press, off the drawing thread - it says nothing of how far it is",
@@ -546,13 +563,14 @@ internal sealed class CaptureKey
         IReadOnlyList<string> shaders = Shaders;
         IReadOnlyList<string> environments = Environments;
         IReadOnlyList<string> waterTextures = WaterTextures;
-        run.Writing = Task.Run(() => Write(run, read, version, shaders, environments, waterTextures));
+        IReadOnlyList<string> wobblePaths = WobblePaths;
+        run.Writing = Task.Run(() => Write(run, read, version, shaders, environments, waterTextures, wobblePaths));
     }
 
     /// <summary>Every ticked part of the capture, each on its own so one failing loses only itself.</summary>
     private static void Write(
         Run run, Func<string, byte[]?>? read, string version, IReadOnlyList<string> shaders, IReadOnlyList<string> environments,
-        IReadOnlyList<string> waterTextures)
+        IReadOnlyList<string> waterTextures, IReadOnlyList<string> wobblePaths)
     {
         var parts = new List<string>();
 
@@ -880,6 +898,26 @@ internal sealed class CaptureKey
                         }
                     }
 
+                    return text[..text.IndexOf('\n')].TrimEnd('\r');
+                });
+            }
+        }
+
+        if (On(CaptureParts.WobbleFiles))
+        {
+            if (read is null)
+            {
+                Not(CaptureReport.WobbleFilesFile, "no install to read the wobble's files from");
+            }
+            else
+            {
+                Part(CaptureReport.WobbleFilesFile, () =>
+                {
+                    string? install = GameInstall.Find(null);
+                    string[] programs = install is null ? []
+                        : [.. GameInstall.Names.Select(name => Path.Combine(install, name + ".exe")).Where(File.Exists)];
+                    string text = CaptureWobble.Write(read, run.Loaded, wobblePaths, shaders, programs);
+                    File.WriteAllText(At(CaptureReport.WobbleFilesFile), text);
                     return text[..text.IndexOf('\n')].TrimEnd('\r');
                 });
             }
@@ -1396,3 +1434,9 @@ internal sealed class CaptureKey
         public List<string> LeftOut { get; set; } = [];
     }
 }
+
+/// <summary>What a piece of capture work started at the press says of itself in the capture's window - see CaptureKey.OfferWork.</summary>
+/// <param name="Live">Its line: what it is doing.</param>
+/// <param name="Fraction">How far it is, nought to one.</param>
+/// <param name="Stop">Stops it early, what it found until then kept - or null where it cannot be stopped.</param>
+public sealed record CaptureWorkProgress(Func<string> Live, Func<float> Fraction, Action? Stop);

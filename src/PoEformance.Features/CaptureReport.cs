@@ -111,6 +111,12 @@ public static class CaptureReport
     /// <summary>The light and water hunt run at the press - see LightHunt.</summary>
     public const string LightHuntFile = "light-hunt.txt";
 
+    /// <summary>The wobble points and the doodads by them watched for seconds from the press - see WobbleProbe.</summary>
+    public const string WobbleFile = "wobble.txt";
+
+    /// <summary>The install's files of the engine's wobble - see CaptureWobble.</summary>
+    public const string WobbleFilesFile = "wobble-files.txt";
+
     /// <summary>The survey of the entity maps for the rooms' doodads, and every sighting.</summary>
     public const string DoodadsFile = "doodads.txt";
 

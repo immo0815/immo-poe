@@ -39,6 +39,20 @@ public partial class CaptureReplayTests
     /// <summary>The capture's folder, from POEF_CAPTURE - or null, and the replay does nothing.</summary>
     private static string? Folder => Environment.GetEnvironmentVariable("POEF_CAPTURE");
 
+    /// <summary>The wobble watch read back: each wobble point's changed fields with their period, and its turn over time - wobble-replay.txt.</summary>
+    [Fact]
+    public void THEWOBBLEWatchIsReadBackFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder || CaptureParts.Find(folder, CaptureReport.WobbleFile) is not { } path || !File.Exists(path))
+        {
+            return;
+        }
+
+        string replay = PoEformance.Game.Diagnostics.WobbleSeries.Report(PoEformance.Game.Diagnostics.WobbleSeries.Read(File.ReadAllText(path)));
+        File.WriteAllText(Path.Combine(folder, "wobble-replay.txt"), replay);
+        Assert.StartsWith("wobble replay: ", replay, StringComparison.Ordinal);
+    }
+
     /// <summary>Places every room of the capture by its doodads and writes the result beside the capture's files.</summary>
     [Fact]
     public void THEPLACINGRunsAgainFromACapture()
