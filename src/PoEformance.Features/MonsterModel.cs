@@ -519,11 +519,41 @@ public static class MonsterModels
             byte[]? got = read(one);
             if (got is not null)
             {
-                bytes += got.Length;
-                files++;
+                Interlocked.Add(ref bytes, got.Length);
+                Interlocked.Increment(ref files);
             }
 
             return got;
+        }
+
+        // A SHAPE LEFT WITH NOTHING - every triangle of it hidden from the game's camera, see
+        // LaidRoomModels - is not compiled for: nothing of it is drawn.
+        bool Compiles(int shape)
+        {
+            string material = wearing[shape];
+            return material.Length > 0 && MaterialFile.SelectorOf(material) < 0 && model.Mesh.Shapes[shape].Count > 0;
+        }
+
+        // EVERY MATERIAL ON EVERY CORE FIRST: its graphs compiled and its textures decoded into the shared cache, each once
+        // whoever asks (Paints) - a room wears hundreds, and one after another they were most of a stage's wait. The walk below
+        // then finds each made, and puts the answers together in the shapes' order as it always did.
+        var distinct = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var materials = new List<string>();
+        for (var shape = 0; shape < count; shape++)
+        {
+            if (Compiles(shape) && distinct.Add(MaterialFile.Bare(wearing[shape])))
+            {
+                materials.Add(wearing[shape]);
+            }
+        }
+
+        using (ModelProgress.Step step = ModelProgress.Begin(paints.Progress, "compiling the shader graphs", materials.Count))
+        {
+            Parallel.ForEach(materials, material =>
+            {
+                paints.Shade(Counted, material);
+                step.Advance();
+            });
         }
 
         var shades = new ShadeProgram?[count];
@@ -533,18 +563,14 @@ public static class MonsterModels
         var drawn = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var clocked = new List<string>();
         var unshaded = new List<string>();
-        using ModelProgress.Step step = ModelProgress.Begin(paints.Progress, "compiling the shader graphs", count);
         for (var shape = 0; shape < count; shape++)
         {
-            step.Advance();
-            string material = wearing[shape];
-
-            // A SHAPE LEFT WITH NOTHING - every triangle of it hidden from the game's camera, see
-            // LaidRoomModels - is not compiled for: nothing of it is drawn.
-            if (material.Length == 0 || MaterialFile.SelectorOf(material) >= 0 || model.Mesh.Shapes[shape].Count == 0)
+            if (!Compiles(shape))
             {
                 continue;
             }
+
+            string material = wearing[shape];
 
             Shade shade = paints.Shade(Counted, material);
             foreach (string why in shade.Skipped)
@@ -2538,13 +2564,7 @@ public static class MonsterModels
             return (null, "neither the .ao nor the .sm names a material", string.Empty, true);
         }
 
-        string file = MaterialFile.Bare(material);
-        if (!paints.Files.TryGetValue(file, out MaterialFile? paint))
-        {
-            paint = Read(read, file, MaterialFile.Read);
-            paints.Files[file] = paint;
-        }
-
+        MaterialFile paint = paints.Paint(read, MaterialFile.Bare(material));
         if (!paint.Ready)
         {
             return (null, $"the material did not read: {MaterialFile.Bare(material)}", string.Empty, true);
@@ -2574,38 +2594,12 @@ public static class MonsterModels
                 true);
         }
 
-        if (paints.Skins.TryGetValue(texture, out Mipmaps? kept))
-        {
-            // DECODED ONCE PER TEXTURE, not once per shape that points at it: two shapes of
-            // one material name the same sheet through different graphs, and a boss's sheet
-            // is sixteen megabytes of pixels before its levels are built.
-            return kept is null
-                ? (null, $"the texture did not read: {texture}", texture, named)
-                : Fitted(kept, mesh, texture, named);
-        }
-
-        // THROUGH ReadRaw AND NOT A BARE READ. A texture in this game is one of three things and
-        // only the third is a .dds as it stands: it may be a SIGNPOST - a star and the path of the
-        // file that really holds it - or it may sit behind a compressed header. Decoding a plain
-        // read handles the third and silently fails the other two, which shows as a monster with a
-        // mesh and no colour and says nothing about why.
-        if (GameArt.ReadRaw(read, texture) is not { Length: > 0 } bytes)
-        {
-            paints.Skins[texture] = null;
-            return (null, $"the texture did not read: {texture}", texture, named);
-        }
-
-        // THE LEVELS ARE BUILT HERE, ON THE LOAD'S TASK, and not where the picture is drawn: a
-        // boss's skin is 2048 square, and halving it down is a pass over sixteen megabytes that
-        // belongs beside the bundle reads it follows rather than on the frame that first draws it.
-        if (Mipmaps.Of(GameArt.Decode(bytes)) is not { } skin)
-        {
-            paints.Skins[texture] = null;
-            return (null, $"the texture did not decode: {texture}", texture, named);
-        }
-
-        paints.Skins[texture] = skin;
-        return Fitted(skin, mesh, texture, named);
+        // DECODED ONCE PER TEXTURE, not once per shape that points at it: two shapes of one material name the same sheet through
+        // different graphs, and a boss's sheet is sixteen megabytes of pixels before its levels are built. See Paints.Texture.
+        (Mipmaps? skin, bool readAtAll) = paints.Texture(read, texture);
+        return skin is not null
+            ? Fitted(skin, mesh, texture, named)
+            : (null, readAtAll ? $"the texture did not decode: {texture}" : $"the texture did not read: {texture}", texture, named);
     }
 
     /// <summary>A decoded texture with the one thing that can still be wrong about it.</summary>
@@ -2624,6 +2618,12 @@ public static class MonsterModels
                 named);
 
     /// <summary>What has already been read, so nothing is read or decoded twice.</summary>
+    /// <remarks>
+    /// SHARED BY EVERY THREAD OF ONE BUILD: a room's tiles, doodads and materials are made on all cores at once (LaidRoomModels,
+    /// RoomModels.Lay, Shaded), and every cache here is made once per key whoever asks first (<see cref="OnceCache{T}"/>) - a texture
+    /// two doodads wear is one decode and one object, as it was on one thread. What depends on the order things were first read
+    /// (<see cref="Shaders"/>) keeps that order where one thread reads, and the order they landed in where several do.
+    /// </remarks>
     internal sealed class Paints
     {
         /// <summary>Where the build this cache serves says how far it has got, or null - see <see cref="ModelProgress"/>.</summary>
@@ -2631,29 +2631,114 @@ public static class MonsterModels
         public ModelProgress? Progress { get; init; }
 
         /// <summary>Material file by its path, with the selector taken off.</summary>
-        public Dictionary<string, MaterialFile> Files { get; } = new(StringComparer.OrdinalIgnoreCase);
+        private readonly OnceCache<MaterialFile> _files = new();
 
-        /// <summary>One material file by its path, the selector taken off - read once.</summary>
-        public MaterialFile Paint(Func<string, byte[]?> read, string file)
+        /// <summary>The material files in the order they were first read - see <see cref="Shaders"/>.</summary>
+        private readonly List<MaterialFile> _read = [];
+
+        /// <summary>Blend modes by material file, the first graph's and the last's, worked out once. See <see cref="Modes"/>.</summary>
+        private readonly OnceCache<(string First, string Last)> _modes = new();
+
+        /// <summary>A shader graph's own blend mode by its path, read once however many materials name it.</summary>
+        private readonly OnceCache<string> _graphs = new();
+
+        /// <summary>Decoded texture by its path, with whether its file read at all.</summary>
+        private readonly OnceCache<(Mipmaps? Levels, bool Read)> _sheets = new();
+
+        /// <summary>A shader graph by its path, read once however many materials are instances of it.</summary>
+        private readonly OnceCache<ShaderGraph> _graphFiles = new();
+
+        /// <summary>What each material's graphs came to, by material file.</summary>
+        private readonly OnceCache<Shade> _shades = new();
+
+        /// <summary>What compiling each material's graphs came to, by material file - before any texture is read.</summary>
+        private readonly OnceCache<(ShadeCompile Compiled, IReadOnlyList<string> Inputs)> _compiled = new();
+
+        /// <summary>What mixing each pair of grounds came to: the name its program is kept under, or null and why not - asked once each.</summary>
+        private readonly OnceCache<(string? Name, string Why)> _mixed = new();
+
+        /// <summary>A texture's bytes as the install holds them, its own wrapping taken off - timed, see ModelProgress.Time.</summary>
+        public byte[]? Raw(Func<string, byte[]?> read, string texture)
         {
-            if (!Files.TryGetValue(file, out MaterialFile? paint))
+            using ModelProgress.Timed timed = ModelProgress.Time(Progress, BuildWork.Unpacking);
+            return GameArt.ReadRaw(read, texture);
+        }
+
+        /// <summary>A texture's bytes decoded, with its levels - timed, see ModelProgress.Time.</summary>
+        public Mipmaps? Levels(byte[] bytes)
+        {
+            GamePicture? top;
+            using (ModelProgress.Time(Progress, BuildWork.Decoding))
             {
-                paint = MaterialFile.Read(read(file.Replace('\\', '/').Trim()));
-                Files[file] = paint;
+                top = GameArt.Decode(bytes);
+            }
+
+            using ModelProgress.Timed timed = ModelProgress.Time(Progress, BuildWork.Mipmapping);
+            return Mipmaps.Of(top);
+        }
+
+        /// <summary>
+        /// A texture decoded with its levels, once however many shapes and materials name it - or null levels, and whether its file
+        /// read at all, where it did not decode.
+        /// </summary>
+        /// <remarks>
+        /// THROUGH ReadRaw AND NOT A BARE READ. A texture in this game is one of three things and only the third is a .dds as it
+        /// stands: it may be a SIGNPOST - a star and the path of the file that really holds it - or it may sit behind a compressed
+        /// header. Decoding a plain read handles the third and silently fails the other two.
+        ///
+        /// THE LEVELS ARE BUILT HERE, ON THE LOAD'S TASK, and not where the picture is drawn: a boss's skin is 2048 square, and
+        /// halving it down is a pass over sixteen megabytes that belongs beside the bundle reads it follows rather than on the
+        /// frame that first draws it.
+        /// </remarks>
+        public (Mipmaps? Levels, bool Read) Texture(Func<string, byte[]?> read, string texture)
+            => _sheets.Get(texture, path => Raw(read, path) is { Length: > 0 } bytes ? (Levels(bytes), true) : (null, false));
+
+        /// <summary>A material file parsed - timed, see ModelProgress.Time.</summary>
+        private MaterialFile Material(Func<string, byte[]?> read, string file)
+        {
+            byte[]? bytes = read(file.Replace('\\', '/').Trim());
+            MaterialFile paint;
+            using (ModelProgress.Time(Progress, BuildWork.GraphReading))
+            {
+                paint = MaterialFile.Read(bytes);
+            }
+
+            lock (_read)
+            {
+                _read.Add(paint);
             }
 
             return paint;
         }
 
+        /// <summary>A shader graph parsed, once - timed, see ModelProgress.Time.</summary>
+        private ShaderGraph Graph(Func<string, byte[]?> read, string path)
+            => _graphFiles.Get(path, one =>
+            {
+                byte[]? bytes = read(one);
+                using ModelProgress.Timed timed = ModelProgress.Time(Progress, BuildWork.GraphReading);
+                return ShaderGraph.Read(bytes);
+            });
+
+        /// <summary>One material file by its path, the selector taken off - read once.</summary>
+        public MaterialFile Paint(Func<string, byte[]?> read, string file) => _files.Get(file, one => Material(read, one));
+
+        /// <summary>
+        /// A material handed over already read, in place of reading it - the graph survey reads every material in the install itself,
+        /// and hands each in before asking its <see cref="Modes"/>. See <see cref="Forget"/>.
+        /// </summary>
+        public void Hand(string file, MaterialFile paint) => _files.Set(file, paint);
+
+        /// <summary>Lets go of a material handed over and what was worked out of it - a survey's memory stays one material's.</summary>
+        public void Forget(string file)
+        {
+            _files.Forget(file);
+            _modes.Forget(file);
+        }
+
         /// <summary>Whether the engine draws a material in its own water pass - see ShadeProgram.OceanShader.</summary>
         public static bool IsWater(MaterialFile paint)
             => string.Equals(paint.ShaderType, ShadeProgram.OceanShader, StringComparison.OrdinalIgnoreCase);
-
-        /// <summary>Blend modes by material file, the first graph's and the last's, worked out once. See <see cref="Modes"/>.</summary>
-        private readonly Dictionary<string, (string First, string Last)> _modes = new(StringComparer.OrdinalIgnoreCase);
-
-        /// <summary>A shader graph's own blend mode by its path, read once however many materials name it.</summary>
-        private readonly Dictionary<string, string> _graphs = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// The blend mode a material asks for, as it spells it, or empty: where the first graph to name one wins, and where the last does.
@@ -2675,36 +2760,25 @@ public static class MonsterModels
         /// once each through the cache.
         /// </remarks>
         public (string First, string Last) Modes(Func<string, byte[]?> read, string material)
-        {
-            string file = MaterialFile.Bare(material);
-            if (_modes.TryGetValue(file, out (string, string) known))
-            {
-                return known;
-            }
+            => _modes.Get(MaterialFile.Bare(material), file => ModesOf(read, file));
 
+        private (string First, string Last) ModesOf(Func<string, byte[]?> read, string file)
+        {
             // THE BEACH'S SHEET, said as the word MaterialBlends takes for it - see RoomModels.Piled.
             if (string.Equals(file, ShadeProgram.BeachGraph, StringComparison.OrdinalIgnoreCase))
             {
-                _modes[file] = (RoomModels.BeachMode, RoomModels.BeachMode);
-                return _modes[file];
+                return (RoomModels.BeachMode, RoomModels.BeachMode);
             }
 
-            if (!Files.TryGetValue(file, out MaterialFile? paint))
+            MaterialFile paint = Paint(read, file);
+            if (IsWater(paint))
             {
-                paint = MaterialFile.Read(read(file.Replace('\\', '/').Trim()));
-                Files[file] = paint;
+                // THE ENGINE'S WATER PASS, said as the word MaterialBlends takes for it - see ShadeProgram.Water.
+                return ("water", "water");
             }
 
             string first = paint.Blend;
             string last = paint.Blend;
-            if (IsWater(paint))
-            {
-                // THE ENGINE'S WATER PASS, said as the word MaterialBlends takes for it - see ShadeProgram.Water.
-                first = last = "water";
-                _modes[file] = (first, last);
-                return (first, last);
-            }
-
             if (paint.Blend.Length == 0)
             {
                 foreach (string parent in paint.Parents)
@@ -2714,12 +2788,7 @@ public static class MonsterModels
                         continue;
                     }
 
-                    if (!_graphs.TryGetValue(parent, out string? graph))
-                    {
-                        graph = MaterialFile.GraphBlend(read(parent.Replace('\\', '/').Trim()));
-                        _graphs[parent] = graph;
-                    }
-
+                    string graph = _graphs.Get(parent, one => MaterialFile.GraphBlend(read(one.Replace('\\', '/').Trim())));
                     if (graph.Length > 0)
                     {
                         first = first.Length > 0 ? first : graph;
@@ -2728,7 +2797,6 @@ public static class MonsterModels
                 }
             }
 
-            _modes[file] = (first, last);
             return (first, last);
         }
 
@@ -2737,8 +2805,14 @@ public static class MonsterModels
         {
             get
             {
+                MaterialFile[] files;
+                lock (_read)
+                {
+                    files = [.. _read];
+                }
+
                 var said = new List<string>();
-                foreach (MaterialFile file in Files.Values)
+                foreach (MaterialFile file in files)
                 {
                     foreach (string parent in file.Parents)
                     {
@@ -2753,18 +2827,6 @@ public static class MonsterModels
             }
         }
 
-        /// <summary>Decoded texture by its path, with null for one that would not read.</summary>
-        public Dictionary<string, Mipmaps?> Skins { get; } = new(StringComparer.OrdinalIgnoreCase);
-
-        /// <summary>A shader graph by its path, read once however many materials are instances of it.</summary>
-        private readonly Dictionary<string, ShaderGraph> _graphFiles = new(StringComparer.OrdinalIgnoreCase);
-
-        /// <summary>What each material's graphs came to, by material file.</summary>
-        private readonly Dictionary<string, Shade> _shades = new(StringComparer.OrdinalIgnoreCase);
-
-        /// <summary>What compiling each material's graphs came to, by material file - before any texture is read.</summary>
-        private readonly Dictionary<string, (ShadeCompile Compiled, IReadOnlyList<string> Inputs)> _compiled = new(StringComparer.OrdinalIgnoreCase);
-
         /// <summary>
         /// One material's graphs compiled, with the Input nodes they name - the textures not yet read.
         /// </summary>
@@ -2774,53 +2836,42 @@ public static class MonsterModels
         /// <c>InputWorldPos</c> is the question. Named in the order the graphs list them.
         /// </remarks>
         public (ShadeCompile Compiled, IReadOnlyList<string> Inputs) Compiled(Func<string, byte[]?> read, string material)
-        {
-            string file = MaterialFile.Bare(material);
-            if (_compiled.TryGetValue(file, out (ShadeCompile, IReadOnlyList<string>) known))
-            {
-                return known;
-            }
+            => _compiled.Get(MaterialFile.Bare(material), file => CompiledOf(read, file));
 
+        private (ShadeCompile Compiled, IReadOnlyList<string> Inputs) CompiledOf(Func<string, byte[]?> read, string file)
+        {
             // THE BEACH'S SHEET WEARS THE ENGINE'S GRAPH ITSELF, no material: its own program over the textures the graph binds.
             if (string.Equals(file, ShadeProgram.BeachGraph, StringComparison.OrdinalIgnoreCase))
             {
-                if (!_graphFiles.TryGetValue(file, out ShaderGraph? waves))
-                {
-                    waves = ShaderGraph.Read(read(file));
-                    _graphFiles[file] = waves;
-                }
-
-                (ShadeCompile, IReadOnlyList<string>) beach = (ShadeProgram.BeachOf(waves), []);
-                _compiled[file] = beach;
-                return beach;
+                return (ShadeProgram.BeachOf(Graph(read, file)), []);
             }
 
             // AN OCEAN IS THE ENGINE'S WATER PASS, not its graphs: they write no colour the picture can draw
             // (nvidian_Ocean's reads an albedo nothing wrote), and the area's water is what it is drawn with.
             if (IsWater(Paint(read, file)))
             {
-                (ShadeCompile, IReadOnlyList<string>) water = (
+                return (
                     new ShadeCompile(ShadeProgram.Water(), [$"the material's graphs, its shadertype being {ShadeProgram.OceanShader}: drawn as the area's water"]),
                     []);
-                _compiled[file] = water;
-                return water;
             }
 
             var chain = new List<(ShaderInstance, ShaderGraph)>();
             var inputs = new List<string>();
-            foreach (ShaderInstance instance in ShaderGraph.Instances(read(file.Replace('\\', '/').Trim())))
+            byte[]? instanced = read(file.Replace('\\', '/').Trim());
+            IReadOnlyList<ShaderInstance> instances;
+            using (ModelProgress.Time(Progress, BuildWork.GraphReading))
+            {
+                instances = ShaderGraph.Instances(instanced);
+            }
+
+            foreach (ShaderInstance instance in instances)
             {
                 if (instance.Parent.Length == 0)
                 {
                     continue;
                 }
 
-                string parent = instance.Parent.Replace('\\', '/').Trim();
-                if (!_graphFiles.TryGetValue(parent, out ShaderGraph? graph))
-                {
-                    graph = ShaderGraph.Read(read(parent));
-                    _graphFiles[parent] = graph;
-                }
+                ShaderGraph graph = Graph(read, instance.Parent.Replace('\\', '/').Trim());
 
                 // A GRAPH WITH NO NODES - ForceAlpha is a blend mode and nothing else - has nothing
                 // to compile, and is not missing.
@@ -2834,9 +2885,8 @@ public static class MonsterModels
                 }
             }
 
-            (ShadeCompile, IReadOnlyList<string>) compiled = (ShadeProgram.Compile(chain), inputs);
-            _compiled[file] = compiled;
-            return compiled;
+            using ModelProgress.Timed timed = ModelProgress.Time(Progress, BuildWork.Compiling);
+            return (ShadeProgram.Compile(chain), inputs);
         }
 
         /// <summary>
@@ -2851,19 +2901,12 @@ public static class MonsterModels
         /// <param name="why">Why there is none, where there is none.</param>
         public string? Grounds(Func<string, byte[]?> read, string first, string second, string mask, float scale, out string why)
         {
-            string name = GroundBlend.Name(first, second, mask);
-            if (_shades.ContainsKey(name))
-            {
-                why = string.Empty;
-                return name;
-            }
+            (string? name, why) = _mixed.Get(GroundBlend.Name(first, second, mask), name => Mixed(read, name, first, second, mask, scale));
+            return name;
+        }
 
-            if (_unmixed.TryGetValue(name, out string? known))
-            {
-                why = known;
-                return null;
-            }
-
+        private (string? Name, string Why) Mixed(Func<string, byte[]?> read, string name, string first, string second, string mask, float scale)
+        {
             (ShadeProgram? flatFirst, ShadeProgram? shineFirst, string whyFirst) = Bound(read, first);
             (ShadeProgram? flatSecond, ShadeProgram? shineSecond, string whySecond) = Bound(read, second);
             Mipmaps? sheet = Sheet(read, mask);
@@ -2873,25 +2916,19 @@ public static class MonsterModels
                 : ShadeProgram.Grounds(flatFirst, flatSecond, texture, sheet, scale);
             if (flat is null)
             {
-                why = flatFirst is null ? whyFirst
+                return (null, flatFirst is null ? whyFirst
                     : flatSecond is null ? whySecond
                     : sheet is null ? "its mask did not read: " + mask
-                    : "the two grounds' programs cannot be run as one (more registers than a program takes, or one reads the triangle's tangent frame)";
-                _unmixed[name] = why;
-                return null;
+                    : "the two grounds' programs cannot be run as one (more registers than a program takes, or one reads the triangle's tangent frame)");
             }
 
             ShadeProgram? shine = shineFirst is not null || shineSecond is not null
                 ? ShadeProgram.Grounds(shineFirst ?? flatFirst!, shineSecond ?? flatSecond!, texture, sheet, scale)
                 : null;
-            _shades[name] = new Shade(flat, null, [], shine);
-            _modes[name] = (string.Empty, string.Empty);
-            why = string.Empty;
-            return name;
+            _shades.Set(name, new Shade(flat, null, [], shine));
+            _modes.Set(name, (string.Empty, string.Empty));
+            return (name, string.Empty);
         }
-
-        /// <summary>The pairs of grounds that could not be mixed as one program, with why - asked once each.</summary>
-        private readonly Dictionary<string, string> _unmixed = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>One material's program and its glossy twin with their textures in hand - even where its colour is one plain read - or null and why.</summary>
         private (ShadeProgram? Flat, ShadeProgram? Glossy, string Why) Bound(Func<string, byte[]?> read, string material)
@@ -2930,78 +2967,54 @@ public static class MonsterModels
         /// What one material's graphs compute for its colour - see MonsterModels.Shaded.
         /// </summary>
         public Shade Shade(Func<string, byte[]?> read, string material)
+            => _shades.Get(MaterialFile.Bare(material), file => ShadeOf(read, file));
+
+        private Shade ShadeOf(Func<string, byte[]?> read, string file)
         {
-            string file = MaterialFile.Bare(material);
-            if (_shades.TryGetValue(file, out Shade known))
-            {
-                return known;
-            }
-
-            ShadeCompile compiled = Compiled(read, material).Compiled;
+            ShadeCompile compiled = Compiled(read, file).Compiled;
             var skipped = new List<string>(compiled.Skipped);
-
-            Shade shade;
             if (compiled.Program is not { } program)
             {
-                shade = new Shade(null, null, skipped);
+                return new Shade(null, null, skipped);
             }
-            else
+
+            var sheets = new Mipmaps?[program.Textures.Count];
+            for (var one = 0; one < sheets.Length; one++)
             {
-                var sheets = new Mipmaps?[program.Textures.Count];
-                for (var one = 0; one < sheets.Length; one++)
+                sheets[one] = Sheet(read, program.Textures[one].Path);
+                if (sheets[one] is null)
                 {
-                    sheets[one] = Sheet(read, program.Textures[one].Path);
-                    if (sheets[one] is null)
-                    {
-                        skipped.Add($"a texture that did not read: {program.Textures[one].Path}");
-                    }
-                }
-
-                if (Array.Exists(sheets, one => one is null))
-                {
-                    shade = new Shade(null, null, skipped);
-                }
-                else
-                {
-                    // THE GLOSSY PROGRAM READS ONE MORE TEXTURE - the gloss's - which is fetched here
-                    // and handed over beside the rest; one that does not read leaves it out.
-                    ShadeProgram bound = program.With(sheets);
-                    ShadeProgram? shine = null;
-                    if (program.Glossy is { } glossy)
-                    {
-                        var more = new Mipmaps?[glossy.Textures.Count];
-                        for (var one = 0; one < more.Length; one++)
-                        {
-                            more[one] = Sheet(read, glossy.Textures[one].Path);
-                        }
-
-                        shine = glossy.With(more) is { Bound: true } lit ? lit : null;
-                    }
-
-                    shade = program.Plain >= 0
-                        ? new Shade(null, sheets[program.Plain], skipped, shine)
-                        : new Shade(bound, null, skipped, shine);
+                    skipped.Add($"a texture that did not read: {program.Textures[one].Path}");
                 }
             }
 
-            _shades[file] = shade;
-            return shade;
+            if (Array.Exists(sheets, one => one is null))
+            {
+                return new Shade(null, null, skipped);
+            }
+
+            // THE GLOSSY PROGRAM READS ONE MORE TEXTURE - the gloss's - which is fetched here
+            // and handed over beside the rest; one that does not read leaves it out.
+            ShadeProgram bound = program.With(sheets);
+            ShadeProgram? shine = null;
+            if (program.Glossy is { } glossy)
+            {
+                var more = new Mipmaps?[glossy.Textures.Count];
+                for (var one = 0; one < more.Length; one++)
+                {
+                    more[one] = Sheet(read, glossy.Textures[one].Path);
+                }
+
+                shine = glossy.With(more) is { Bound: true } lit ? lit : null;
+            }
+
+            return program.Plain >= 0
+                ? new Shade(null, sheets[program.Plain], skipped, shine)
+                : new Shade(bound, null, skipped, shine);
         }
 
         /// <summary>A texture decoded with its levels, through the same cache as the skins.</summary>
-        private Mipmaps? Sheet(Func<string, byte[]?> read, string texture)
-        {
-            if (Skins.TryGetValue(texture, out Mipmaps? kept))
-            {
-                return kept;
-            }
-
-            Mipmaps? sheet = GameArt.ReadRaw(read, texture) is { Length: > 0 } bytes
-                ? Mipmaps.Of(GameArt.Decode(bytes))
-                : null;
-            Skins[texture] = sheet;
-            return sheet;
-        }
+        private Mipmaps? Sheet(Func<string, byte[]?> read, string texture) => Texture(read, texture).Levels;
     }
 
     /// <summary>

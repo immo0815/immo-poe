@@ -64,6 +64,7 @@ public static class StagedModels
     /// <param name="shaded">Whether the monster's material graphs are read; the stage's always are.</param>
     /// <param name="progress">Where the build says how far it has got, or null.</param>
     /// <param name="terrain">The current area's grid, asked when a room is to be laid from it, or null - see <see cref="LaidRoom"/>.</param>
+    /// <param name="keep">Where the pane keeps its last stage, so the next monster on it is not built on a new one - or null to build it anew.</param>
     public static MonsterModel Of(
         Func<string, byte[]?>? read,
         MonsterVariety? one,
@@ -71,7 +72,8 @@ public static class StagedModels
         bool wearing = true,
         bool shaded = false,
         ModelProgress? progress = null,
-        Func<TerrainGrid?>? terrain = null)
+        Func<TerrainGrid?>? terrain = null,
+        StageKeep? keep = null)
     {
         MonsterModel actor = MonsterModels.Of(read, one, wearing, shaded, progress);
         if (string.IsNullOrWhiteSpace(stage) || read is null || !actor.Ready)
@@ -80,15 +82,15 @@ public static class StagedModels
         }
 
         string path = PathOf(stage);
-        MonsterModel tile;
-        if (TileBook.IsRoom(path))
+        MonsterModel Built()
         {
-            tile = LaidRoom(read, stage, terrain, progress);
-        }
-        else
-        {
+            if (TileBook.IsRoom(path))
+            {
+                return LaidRoom(read, stage, terrain, progress);
+            }
+
             TileKey key = TileKey.Read(stage);
-            tile = TileModels.Of(
+            return TileModels.Of(
                 read,
                 key.Path,
                 ground: key.Ground,
@@ -97,6 +99,20 @@ public static class StagedModels
                 swaps: key.Tileset.Length > 0 ? TilesetIndex.Overrides(read, key.Tileset) : null,
                 tileset: key.Tileset.Length > 0 ? TilesetIndex.Short(key.Tileset) : string.Empty,
                 progress: progress);
+        }
+
+        MonsterModel tile;
+        if (keep is null)
+        {
+            tile = Built();
+        }
+        else
+        {
+            tile = keep.Tile(stage, Built, out bool kept);
+            if (kept)
+            {
+                progress?.Note("the stage was the one this pane built last, kept - only the monster was built");
+            }
         }
 
         if (!tile.Ready)
@@ -226,7 +242,7 @@ public static class StagedModels
             CultureInfo.InvariantCulture,
             $"stage: {Tail(stage)}{(TileBook.IsRoom(stage) ? " as the area laid it" : string.Empty)} · the monster stands {where} at {scale:0.##} of its file's size, {(found ? $"on the floor there ({floor:0} on the tile's z)" : "at the tile's lowest point - nothing faces up there")}");
 
-        return RoomModels.Piled(joined, pile, actor.Mesh_, [tile, actor]) with
+        return RoomModels.Piled(joined, pile, actor.Mesh_, [tile, actor], tile.Shore) with
         {
             // THE MONSTER'S OWN ACCOUNT OF ITSELF, kept whole: the lines under the picture, the dump and
             // the sweep read these, and a stage changes where he stands, not what he is.
@@ -416,4 +432,71 @@ public static class StagedModels
         => first.Count == 0 ? second : second.Count == 0 ? first : [.. first.Concat(second).Distinct(StringComparer.OrdinalIgnoreCase)];
 
     private static string Tail(string path) => path[(path.LastIndexOf('/') + 1)..];
+}
+
+/// <summary>
+/// A pane's last stage, kept while the pane asks for it: the next monster set on it is built alone and joined to the stage already made.
+/// </summary>
+/// <remarks>
+/// ASKED FOR FROM THE LIVE CLIENT: a stage takes tens of seconds and a monster tens of milliseconds, and every monster picked on the
+/// same stage built the stage again. The stage does not depend on the monster - StagedModels.Staged joins the two and changes
+/// neither - so the room is made once per key.
+///
+/// ONE STAGE, BY ITS WHOLE KEY: the key names the room, how it was laid or built, its switches and the area it was laid in, so a
+/// different key is a different stage and the one kept is let go of - a stage is gigabytes of meshes and textures, and two are not
+/// kept. A build already under way for the key is waited for rather than started again; one that failed or came out empty is not kept.
+/// </remarks>
+public sealed class StageKeep
+{
+    private readonly Lock _gate = new();
+    private string _key = string.Empty;
+    private Task<MonsterModel>? _tile;
+
+    /// <summary>
+    /// The stage for <paramref name="key"/>: the one kept, or one built by <paramref name="build"/> and kept - and whether it was kept.
+    /// </summary>
+    internal MonsterModel Tile(string key, Func<MonsterModel> build, out bool kept)
+    {
+        TaskCompletionSource<MonsterModel>? mine = null;
+        Task<MonsterModel> tile;
+        lock (_gate)
+        {
+            if (_tile is { } had && string.Equals(_key, key, StringComparison.Ordinal)
+                && !had.IsFaulted && !had.IsCanceled && !(had.IsCompletedSuccessfully && !had.Result.Ready))
+            {
+                tile = had;
+            }
+            else
+            {
+                mine = new TaskCompletionSource<MonsterModel>(TaskCreationOptions.RunContinuationsAsynchronously);
+                _key = key;
+                _tile = tile = mine.Task;
+            }
+        }
+
+        kept = mine is null;
+        if (mine is not null)
+        {
+            try
+            {
+                mine.SetResult(build());
+            }
+            catch (Exception exception) when (exception is not (OutOfMemoryException or StackOverflowException))
+            {
+                mine.SetException(exception);
+            }
+        }
+
+        return tile.GetAwaiter().GetResult();
+    }
+
+    /// <summary>Lets go of the stage kept - the pane asks for none.</summary>
+    public void Forget()
+    {
+        lock (_gate)
+        {
+            _key = string.Empty;
+            _tile = null;
+        }
+    }
 }

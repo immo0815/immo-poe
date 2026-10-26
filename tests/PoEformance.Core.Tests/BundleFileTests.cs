@@ -98,10 +98,19 @@ public class BundleFileTests
         Assert.Equal(content[480..500], bundle.Read(480, 20, Watch));
         Assert.Equal(1, unpacked);
 
-        // ANOTHER CHUNK IS UNPACKED, and becomes the one kept.
+        // ANOTHER CHUNK IS UNPACKED, and kept BESIDE the first: four are kept, so threads reading different files of one bundle
+        // do not unpack each other's chunk again.
         Assert.Equal(content[510..520], bundle.Read(510, 10, Watch));
         Assert.Equal(content[490..495], bundle.Read(490, 5, Watch));
-        Assert.Equal(3, unpacked);
+        Assert.Equal(2, unpacked);
+
+        // A FIFTH TAKES THE OLDEST'S PLACE, and that one is unpacked again when asked.
+        Assert.Equal(content[610..620], bundle.Read(610, 10, Watch));
+        Assert.Equal(content[710..720], bundle.Read(710, 10, Watch));
+        Assert.Equal(content[810..820], bundle.Read(810, 10, Watch));
+        Assert.Equal(5, unpacked);
+        Assert.Equal(content[490..495], bundle.Read(490, 5, Watch));
+        Assert.Equal(6, unpacked);
     }
 
     [Fact]

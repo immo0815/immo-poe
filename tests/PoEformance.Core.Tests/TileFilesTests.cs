@@ -953,8 +953,12 @@ public class TileFilesTests
             byte[]? got = files.GetValueOrDefault(path);
             if (got is not null)
             {
-                handed.Add(path);
-                bytes += got.Length;
+                // LOCKED: a room's tiles, doodads and materials are read on every core at once.
+                lock (handed)
+                {
+                    handed.Add(path);
+                    bytes += got.Length;
+                }
             }
 
             return got;

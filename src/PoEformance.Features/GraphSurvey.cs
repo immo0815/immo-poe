@@ -113,9 +113,9 @@ public static class GraphSurvey
             // THE MATERIAL HANDED OVER ALREADY READ, so the blend walk reads only its graphs - and taken
             // back after, since the walk keeps its answer and a survey reads every material once.
             string bare = MaterialFile.Bare(material);
-            paints.Files[bare] = MaterialFile.Read(content);
+            paints.Hand(bare, MaterialFile.Read(content));
             rule.Count(material, paints.Modes(read, material));
-            paints.Files.Remove(bare);
+            paints.Forget(bare);
 
             IReadOnlyList<ShaderInstance> chain = ShaderGraph.Instances(content);
             if (chain.Count == 0)

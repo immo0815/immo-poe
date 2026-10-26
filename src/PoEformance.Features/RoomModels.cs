@@ -161,8 +161,8 @@ public static class RoomModels
             byte[]? got = read(one.Replace('\\', '/').Trim());
             if (got is not null)
             {
-                bytes += got.Length;
-                files++;
+                Interlocked.Add(ref bytes, got.Length);
+                Interlocked.Increment(ref files);
             }
 
             return got;
@@ -367,6 +367,20 @@ public static class RoomModels
             Take(one, place);
         }
 
+        // EVERY FILE THAT WILL BE LAID, ON EVERY CORE, before any is laid: one model per file, through the shared cache (Paints), so
+        // a sheet two doodads wear is still one decode. The files are the ones the loop below would load on meeting their first
+        // line - all of them where nothing is sieved, the wanted ones where something is - and the loop then lays them in the
+        // lines' order as it always did, so the picture is the same one.
+        Tally[] loading = [.. named.Where(file => sieve is null || file.Wanted)];
+        using (ModelProgress.Step reading = ModelProgress.Begin(paints.Progress, "reading the doodad files", loading.Length))
+        {
+            Parallel.ForEach(loading, file =>
+            {
+                file.Model = MonsterModels.OfFiles(counted, [file.Ao], wearing: true, paints);
+                reading.Advance();
+            });
+        }
+
         using ModelProgress.Step step = ModelProgress.Begin(paints.Progress, "laying the doodads", laid.Count);
         foreach ((RoomDoodad one, Matrix4x4 place, Tally file) in laid)
         {
@@ -427,6 +441,9 @@ public static class RoomModels
     /// <summary>One doodad file's lines as they are laid, and its model once loaded - see <see cref="DoodadFile"/>.</summary>
     private sealed class Tally(string ao, Vector3 first)
     {
+        /// <summary>The file, as its first line names it.</summary>
+        public string Ao => ao;
+
         public MonsterModel? Model;
         public bool Wanted;
         public int Lines;
@@ -516,12 +533,18 @@ public static class RoomModels
     /// <remarks>
     /// THE ENGINE'S BEACH WAVES join a room with a shore: a sheet over its ground in the shore's band (ShoreField.Beach), wearing
     /// the engine's own graph (ShadeProgram.BeachGraph) - once, so a stage piling a room that brings its sheet keeps the one.
+    ///
+    /// A STAGE BRINGS ITS SHORE ALREADY MADE (<paramref name="shore"/>): the monster joined to it is neither water nor ground, so the
+    /// shore over the joined mesh is the stage's own, and working it out again over millions of triangles was thrown away by
+    /// StagedModels.Staged, which keeps the stage's. Its beach sheet came with it, or its shore makes none.
     /// </remarks>
-    internal static MonsterModel Piled(SkinnedMesh joined, ModelPile pile, string path, IEnumerable<MonsterModel> models)
+    /// <param name="shore">The shore already made for what is piled, which is then neither made again nor given a beach sheet - or null to make it.</param>
+    internal static MonsterModel Piled(SkinnedMesh joined, ModelPile pile, string path, IEnumerable<MonsterModel> models, ShoreField? shore = null)
     {
         MonsterModel[] all = [.. models];
-        ShoreField? shore = ShoreOf(joined, pile.Modes, pile.Sources, null);
-        if (shore is not null && !pile.Sources.Contains(BeachSource, StringComparer.Ordinal) && shore.Beach() is { } sheet)
+        bool made = shore is null;
+        shore ??= ShoreOf(joined, pile.Modes, pile.Sources, null);
+        if (made && shore is not null && !pile.Sources.Contains(BeachSource, StringComparer.Ordinal) && shore.Beach() is { } sheet)
         {
             joined = SkinnedMesh.Joined([new MeshJoin(joined, null, null, null), new MeshJoin(sheet, null, null, null)]);
             pile.Joined(sheet, BeachMode, ShadeProgram.BeachGraph, BeachSource);

@@ -219,12 +219,23 @@ public static class Oodle
         private readonly unsafe delegate* unmanaged[Cdecl]<
             byte*, nint, byte*, nint, int, int, int, byte*, nint, void*, void*, void*, nint, int, nint> _decompress;
 
-        private unsafe Native(string where, nint entry)
+        /// <summary>OodleLZDecoder_MemorySizeNeeded, or null where the library does not export it - see <see cref="Decompress"/>.</summary>
+        private readonly unsafe delegate* unmanaged[Cdecl]<int, nint, int> _memoryNeeded;
+
+        /// <summary>This thread's decoder memory, pinned, and the largest chunk it was sized for - see <see cref="Decompress"/>.</summary>
+        [ThreadStatic]
+        private static byte[]? t_scratch;
+
+        [ThreadStatic]
+        private static int t_scratchFor;
+
+        private unsafe Native(string where, nint entry, nint memoryNeeded)
         {
             Where = where;
             Called = Path.GetFileName(where);
             _decompress = (delegate* unmanaged[Cdecl]<
                 byte*, nint, byte*, nint, int, int, int, byte*, nint, void*, void*, void*, nint, int, nint>)entry;
+            _memoryNeeded = (delegate* unmanaged[Cdecl]<int, nint, int>)memoryNeeded;
         }
 
         /// <summary>What the file is called, for the line that says which decoder ran.</summary>
@@ -285,9 +296,11 @@ public static class Oodle
                         continue;
                     }
 
+                    // THE DECODER'S MEMORY SIZE, asked the same way - a library without it decodes one chunk at a time.
+                    nint needed = NativeLibrary.TryGetExport(library, "OodleLZDecoder_MemorySizeNeeded", out nint sized) ? sized : 0;
                     unsafe
                     {
-                        return new Native(file, entry);
+                        return new Native(file, entry, needed);
                     }
                 }
 
@@ -314,6 +327,12 @@ public static class Oodle
         ///
         /// A zero back means it refused. It is not an exception and must not become one - this
         /// runs while a stash is being drawn.
+        ///
+        /// ON EVERY THREAD AT ONCE, EACH WITH ITS OWN DECODER MEMORY - which is how LibBundle3, where the bundle format here came
+        /// from, calls it: a pinned scratch per thread, sized by OodleLZDecoder_MemorySizeNeeded for any compressor, handed in as
+        /// decoderMemory, and no lock (its Index.ExtractParallel unpacks bundles from many threads). Behind one lock a room's
+        /// build on every core read its files one chunk at a time. A library that does not say how much memory it needs is
+        /// called as before: its own scratch, one chunk at a time.
         /// </remarks>
         public unsafe byte[]? Decompress(ReadOnlyMemory<byte> packed, int size)
         {
@@ -328,12 +347,26 @@ public static class Oodle
             fixed (byte* input = packed.Span)
             fixed (byte* output = plain)
             {
-                lock (Gate)
+                if (_memoryNeeded is null)
                 {
-                    got = _decompress(
-                        input, packed.Length, output, size,
-                        1, 0, 0,
-                        null, 0, null, null, null, 0, 3);
+                    lock (Gate)
+                    {
+                        got = _decompress(
+                            input, packed.Length, output, size,
+                            1, 0, 0,
+                            null, 0, null, null, null, 0, 3);
+                    }
+                }
+                else
+                {
+                    byte[] scratch = Scratch(size);
+                    fixed (byte* memory = scratch)
+                    {
+                        got = _decompress(
+                            input, packed.Length, output, size,
+                            1, 0, 0,
+                            null, 0, null, null, memory, scratch.Length, 3);
+                    }
                 }
             }
 
@@ -344,6 +377,25 @@ public static class Oodle
 
             LastRefusal = $"{Called} decoded {got} bytes of the {size} asked for";
             return null;
+        }
+
+        /// <summary>This thread's decoder memory, grown to what a chunk of <paramref name="size"/> needs with any compressor.</summary>
+        private unsafe byte[] Scratch(int size)
+        {
+            if (t_scratch is { } kept && size <= t_scratchFor)
+            {
+                return kept;
+            }
+
+            // -1 IS "ANY COMPRESSOR" (OodleLZ_Compressor_Invalid), as LibBundle3 asks it: a bundle's chunks may be packed by more than one.
+            int needed = Math.Max(_memoryNeeded(-1, Math.Max(size, t_scratchFor)), 1);
+            if (t_scratch is not { } had || had.Length < needed)
+            {
+                t_scratch = GC.AllocateUninitializedArray<byte>(needed, pinned: true);
+            }
+
+            t_scratchFor = Math.Max(size, t_scratchFor);
+            return t_scratch;
         }
     }
 }

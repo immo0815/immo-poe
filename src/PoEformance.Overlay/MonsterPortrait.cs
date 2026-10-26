@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
 using System.Reflection;
@@ -1220,8 +1221,40 @@ public sealed class MonsterPortrait
         _loading = null;
         _shown = string.Empty;
         _drawnTurn = float.NaN;
+        _built = _progress is { } progress ? [.. progress.Report()] : [];
+        _pictureDue = _model.Ready;
         Rigged();
         Said();
+    }
+
+    /// <summary>Where the time of the model shown went, for the capture - see ModelProgress.Report and <see cref="Pictured"/>.</summary>
+    private List<string> _built = [];
+
+    /// <summary>The pane's last stage, kept for the next monster set on it - see StageKeep.</summary>
+    private readonly StageKeep _stageKeep = new();
+
+    /// <summary>When the model shown was asked for, as Stopwatch counts.</summary>
+    private long _chosenAt;
+
+    /// <summary>Whether the model landed and its first picture is still to be drawn - see <see cref="Pictured"/>.</summary>
+    private bool _pictureDue;
+
+    /// <summary>
+    /// The first picture of a model that landed: how long it took to draw - its upload to the card with it - and how long from the
+    /// model being asked for until it was shown, which is the wait the person at the pane has.
+    /// </summary>
+    private void Pictured(long began)
+    {
+        if (!_pictureDue)
+        {
+            return;
+        }
+
+        _pictureDue = false;
+        long now = Stopwatch.GetTimestamp();
+        _built.Add(string.Create(
+            CultureInfo.InvariantCulture,
+            $"first picture: drawn on the {(_onCard ? "card" : "processor")} in {(double)(now - began) / Stopwatch.Frequency:0.000} s, shown {(double)(now - _chosenAt) / Stopwatch.Frequency:0.000} s after the model was asked for{(_onCard || _cardWhy.Length == 0 ? string.Empty : " - not on the card: " + _cardWhy)}"));
     }
 
     /// <summary>
@@ -1520,6 +1553,7 @@ public sealed class MonsterPortrait
         => _model.Ready
             ? new CapturePane(Book, [.. _status.Select(line => line.Replace("%%", "%", StringComparison.Ordinal))], _model)
             {
+                Built = [.. _built],
                 Probed = HasProbe ? _probedShapes : [],
                 Shades = ShadesOf(_model),
             }
@@ -2935,7 +2969,6 @@ public sealed class MonsterPortrait
 
         // A load already running for the previous monster is left to finish and then ignored -
         // cancelling a handful of bundle reads costs more code than letting them land.
-        Func<string, byte[]?> read = _install!;
         bool wearing = Parts;
         _dressed = wearing;
         bool shaded = Shaded;
@@ -2944,8 +2977,19 @@ public sealed class MonsterPortrait
         Func<Func<string, byte[]?>, MonsterVariety, string, bool, ModelProgress, MonsterModel>? load = Load;
         var progress = new ModelProgress();
         _progress = progress;
+        _chosenAt = Stopwatch.GetTimestamp();
+        _built = [];
+        Func<string, byte[]?> read = progress.Timing(_install!);
+
+        // THE STAGE KEPT WHILE IT IS ASKED FOR, and let go of the moment none is - see StageKeep.
+        StageKeep keep = _stageKeep;
+        if (stage.Length == 0)
+        {
+            keep.Forget();
+        }
+
         _loading = load is null
-            ? Task.Run(() => StagedModels.Of(read, one, stage, wearing, shaded, progress, terrain))
+            ? Task.Run(() => StagedModels.Of(read, one, stage, wearing, shaded, progress, terrain, keep))
             : Task.Run(() => load(read, one, path, wearing, progress));
     }
 
@@ -3381,6 +3425,7 @@ public sealed class MonsterPortrait
         _drawnWater = Watered();
         _drawnSharp = Card?.Sharp ?? false;
         _drawing++;
+        long began = Stopwatch.GetTimestamp();
 
         try
         {
@@ -3450,6 +3495,10 @@ public sealed class MonsterPortrait
             // input here came out of a game's files.
             Why = $"the model would not draw: {exception.Message}";
             Drop();
+        }
+        finally
+        {
+            Pictured(began);
         }
     }
 
