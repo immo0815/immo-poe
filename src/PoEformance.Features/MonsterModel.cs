@@ -2589,7 +2589,7 @@ public static class MonsterModels
         // file that really holds it - or it may sit behind a compressed header. Decoding a plain
         // read handles the third and silently fails the other two, which shows as a monster with a
         // mesh and no colour and says nothing about why.
-        if (GameArt.ReadRaw(read, texture) is not { Length: > 0 } bytes)
+        if (paints.Raw(read, texture) is not { Length: > 0 } bytes)
         {
             paints.Skins[texture] = null;
             return (null, $"the texture did not read: {texture}", texture, named);
@@ -2598,7 +2598,7 @@ public static class MonsterModels
         // THE LEVELS ARE BUILT HERE, ON THE LOAD'S TASK, and not where the picture is drawn: a
         // boss's skin is 2048 square, and halving it down is a pass over sixteen megabytes that
         // belongs beside the bundle reads it follows rather than on the frame that first draws it.
-        if (Mipmaps.Of(GameArt.Decode(bytes)) is not { } skin)
+        if (paints.Levels(bytes) is not { } skin)
         {
             paints.Skins[texture] = null;
             return (null, $"the texture did not decode: {texture}", texture, named);
@@ -2630,6 +2630,42 @@ public static class MonsterModels
         /// <remarks>ON THE CACHE because the cache is the one thing every step of a build is handed already.</remarks>
         public ModelProgress? Progress { get; init; }
 
+        /// <summary>A texture's bytes as the install holds them, its own wrapping taken off - timed, see ModelProgress.Time.</summary>
+        public byte[]? Raw(Func<string, byte[]?> read, string texture)
+        {
+            using ModelProgress.Timed timed = ModelProgress.Time(Progress, BuildWork.Unpacking);
+            return GameArt.ReadRaw(read, texture);
+        }
+
+        /// <summary>A texture's bytes decoded, with its levels - timed, see ModelProgress.Time.</summary>
+        public Mipmaps? Levels(byte[] bytes)
+        {
+            GamePicture? top;
+            using (ModelProgress.Time(Progress, BuildWork.Decoding))
+            {
+                top = GameArt.Decode(bytes);
+            }
+
+            using ModelProgress.Timed timed = ModelProgress.Time(Progress, BuildWork.Mipmapping);
+            return Mipmaps.Of(top);
+        }
+
+        /// <summary>A material file parsed - timed, see ModelProgress.Time.</summary>
+        private MaterialFile Material(Func<string, byte[]?> read, string file)
+        {
+            byte[]? bytes = read(file.Replace('\\', '/').Trim());
+            using ModelProgress.Timed timed = ModelProgress.Time(Progress, BuildWork.GraphReading);
+            return MaterialFile.Read(bytes);
+        }
+
+        /// <summary>A shader graph parsed - timed, see ModelProgress.Time.</summary>
+        private ShaderGraph Graph(Func<string, byte[]?> read, string path)
+        {
+            byte[]? bytes = read(path);
+            using ModelProgress.Timed timed = ModelProgress.Time(Progress, BuildWork.GraphReading);
+            return ShaderGraph.Read(bytes);
+        }
+
         /// <summary>Material file by its path, with the selector taken off.</summary>
         public Dictionary<string, MaterialFile> Files { get; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -2638,7 +2674,7 @@ public static class MonsterModels
         {
             if (!Files.TryGetValue(file, out MaterialFile? paint))
             {
-                paint = MaterialFile.Read(read(file.Replace('\\', '/').Trim()));
+                paint = Material(read, file);
                 Files[file] = paint;
             }
 
@@ -2691,7 +2727,7 @@ public static class MonsterModels
 
             if (!Files.TryGetValue(file, out MaterialFile? paint))
             {
-                paint = MaterialFile.Read(read(file.Replace('\\', '/').Trim()));
+                paint = Material(read, file);
                 Files[file] = paint;
             }
 
@@ -2786,7 +2822,7 @@ public static class MonsterModels
             {
                 if (!_graphFiles.TryGetValue(file, out ShaderGraph? waves))
                 {
-                    waves = ShaderGraph.Read(read(file));
+                    waves = Graph(read, file);
                     _graphFiles[file] = waves;
                 }
 
@@ -2808,7 +2844,14 @@ public static class MonsterModels
 
             var chain = new List<(ShaderInstance, ShaderGraph)>();
             var inputs = new List<string>();
-            foreach (ShaderInstance instance in ShaderGraph.Instances(read(file.Replace('\\', '/').Trim())))
+            byte[]? instanced = read(file.Replace('\\', '/').Trim());
+            IReadOnlyList<ShaderInstance> instances;
+            using (ModelProgress.Time(Progress, BuildWork.GraphReading))
+            {
+                instances = ShaderGraph.Instances(instanced);
+            }
+
+            foreach (ShaderInstance instance in instances)
             {
                 if (instance.Parent.Length == 0)
                 {
@@ -2818,7 +2861,7 @@ public static class MonsterModels
                 string parent = instance.Parent.Replace('\\', '/').Trim();
                 if (!_graphFiles.TryGetValue(parent, out ShaderGraph? graph))
                 {
-                    graph = ShaderGraph.Read(read(parent));
+                    graph = Graph(read, parent);
                     _graphFiles[parent] = graph;
                 }
 
@@ -2834,7 +2877,13 @@ public static class MonsterModels
                 }
             }
 
-            (ShadeCompile, IReadOnlyList<string>) compiled = (ShadeProgram.Compile(chain), inputs);
+            ShadeCompile program;
+            using (ModelProgress.Time(Progress, BuildWork.Compiling))
+            {
+                program = ShadeProgram.Compile(chain);
+            }
+
+            (ShadeCompile, IReadOnlyList<string>) compiled = (program, inputs);
             _compiled[file] = compiled;
             return compiled;
         }
@@ -2996,8 +3045,8 @@ public static class MonsterModels
                 return kept;
             }
 
-            Mipmaps? sheet = GameArt.ReadRaw(read, texture) is { Length: > 0 } bytes
-                ? Mipmaps.Of(GameArt.Decode(bytes))
+            Mipmaps? sheet = Raw(read, texture) is { Length: > 0 } bytes
+                ? Levels(bytes)
                 : null;
             Skins[texture] = sheet;
             return sheet;

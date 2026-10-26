@@ -18,6 +18,9 @@ public sealed record CapturePane(string Book, IReadOnlyList<string> Lines, Monst
 
     /// <summary>The programs the pane draws each shape with - the flat or the glossy list - or null where it draws none.</summary>
     public IReadOnlyList<ShadeProgram?>? Shades { get; init; }
+
+    /// <summary>Where the time of building the model and drawing its first picture went - see ModelProgress.Report.</summary>
+    public IReadOnlyList<string> Built { get; init; } = [];
 }
 
 /// <summary>
@@ -68,6 +71,11 @@ public static class CapturePanes
             foreach (string line in pane.Lines)
             {
                 body.Append("  info\t").AppendLine(line);
+            }
+
+            foreach (string line in pane.Built)
+            {
+                body.Append("  time\t").AppendLine(line);
             }
 
             if (model.StageMove.Length > 0)
