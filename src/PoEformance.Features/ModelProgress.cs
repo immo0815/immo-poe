@@ -34,6 +34,7 @@ public sealed class ModelProgress
     private readonly long[] _spent = new long[Kinds];
     private readonly List<StepTime> _steps = [];
     private readonly List<string> _notes = [];
+    private readonly Dictionary<string, FormatTime> _formats = new(StringComparer.Ordinal);
     private readonly Lock _gate = new();
     private long _stepStarted;
     private long[] _stepSpent = new long[Kinds];
@@ -171,30 +172,70 @@ public sealed class ModelProgress
         long[] spent = Spent();
         StepTime[] steps;
         string[] notes;
+        KeyValuePair<string, FormatTime>[] formats;
         lock (_gate)
         {
             steps = [.. _steps];
             notes = [.. _notes];
+            formats = [.. _formats.OrderByDescending(one => one.Value.Decoding)];
         }
 
-        var lines = new List<string>(steps.Length + 3)
+        var lines = new List<string>(steps.Length + formats.Length + 4)
         {
             string.Create(CultureInfo.InvariantCulture, $"built in {InSeconds(ended - _startedTicks):0.000} s wall") + Kinded(spent, ended - _startedTicks),
         };
 
+        // ONE LINE A STEP'S NAME, in the order first begun: a room paints the shapes of every piece and doodad outside any outer step,
+        // and a line each was thirty lines of nought (said from the live client, v0.1.285's capture).
         long inSteps = 0;
-        foreach (StepTime step in steps)
+        foreach (IGrouping<string, StepTime> named in steps.GroupBy(step => step.Stage, StringComparer.Ordinal))
         {
-            inSteps += step.Wall;
-            lines.Add(string.Create(CultureInfo.InvariantCulture, $"step \"{step.Stage}\" ({step.Total} things): {InSeconds(step.Wall):0.000} s wall") + Kinded(step.Spent, step.Wall));
+            long wall = named.Sum(step => step.Wall);
+            int things = named.Sum(step => step.Total);
+            int times = named.Count();
+            var kinds = new long[Kinds];
+            foreach (StepTime step in named)
+            {
+                for (var kind = 0; kind < Kinds; kind++)
+                {
+                    kinds[kind] += step.Spent[kind];
+                }
+            }
+
+            inSteps += wall;
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"step \"{named.Key}\"{(times > 1 ? $" x{times}" : string.Empty)} ({things} things): {InSeconds(wall):0.000} s wall") + Kinded(kinds, wall));
         }
 
         lines.Add(string.Create(CultureInfo.InvariantCulture, $"outside every step: {InSeconds(ended - _startedTicks - inSteps):0.000} s wall"));
         lines.Add("the kinds are timed exclusively, each on the thread it ran on and summed over threads; \"the rest\" is the wall time less them -"
             + " the .ao, mesh and tile walks, placing and joining - and comes out negative where several threads ran at once");
+
+        // THE TEXTURES BY FORMAT, the costliest first: decoding was nearly all of a stage's work (v0.1.285's capture, 110 of 128 thread
+        // seconds), and whether one format's decoder or the decoding itself is the cost decides what to do about it.
+        foreach ((string format, FormatTime time) in formats)
+        {
+            double pixels = time.Pixels / 1e6;
+            lines.Add(string.Create(CultureInfo.InvariantCulture,
+                $"textures {format}: {time.Count} decoded, {pixels:0.0} million pixels at the top level, decoding {InSeconds(time.Decoding):0.000} s and mipmaps {InSeconds(time.Mipmapping):0.000} s summed over threads - {(time.Pixels > 0 ? InSeconds(time.Decoding) * 1e9 / time.Pixels : 0):0.0} ns a pixel decoding"));
+        }
+
         lines.AddRange(notes);
         return lines;
     }
+
+    /// <summary>One texture decoded: its format in a word (ModelDump.Format), its top level's pixels, and the Stopwatch ticks its decoding and its mipmaps took.</summary>
+    public void Decoded(string format, long pixels, long decoding, long mipmapping)
+    {
+        ArgumentNullException.ThrowIfNull(format);
+        lock (_gate)
+        {
+            FormatTime had = _formats.GetValueOrDefault(format);
+            _formats[format] = new FormatTime(had.Count + 1, had.Pixels + pixels, had.Decoding + decoding, had.Mipmapping + mipmapping);
+        }
+    }
+
+    /// <summary>The textures of one format decoded so far - see <see cref="Decoded"/>.</summary>
+    private readonly record struct FormatTime(int Count, long Pixels, long Decoding, long Mipmapping);
 
     /// <summary>How long has gone on one kind of work so far, in seconds, summed over threads.</summary>
     public double SecondsOn(BuildWork work) => InSeconds(Interlocked.Read(ref _spent[(int)work]));
