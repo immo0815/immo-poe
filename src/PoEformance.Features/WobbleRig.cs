@@ -14,9 +14,13 @@ namespace PoEformance.Features;
 /// <c>randomise_start_position = true</c>. Watched for twenty seconds, the WobblePoint held a 4x4 matrix, row vectors, that is a pure
 /// turn about one fixed point - (4162, 12473, -328) in Port's world, the residual under half a unit against a swing of 140 - tilting
 /// up to 0.37 degrees, the swings 1.9 to 2.4 s apart and their sizes repeating after about 12.9 s: an authored loop, not a sine.
-/// So the matrix is read here as the bone's own: where the animation puts it against where it rests, <c>inverse(bindModel) *
-/// world</c>, in the core's model frame - SkeletonPose's skin matrix for that bone. Whether that is the engine's exact reading is
-/// what <c>wobble-files.txt</c> holds against the watch: this one's matrix over the loop beside the game's.
+/// THE MATRIX IS THE BONE'S WORLD MATRIX, MEASURED (v0.1.292's capture, Port, both halves in one zip): SkeletonPose's World for
+/// the bone, in the core's model frame, conjugated by the core's place (RoomSway). Its turn is the WobblePoint's to the float
+/// (+0x80 -0.00638736..0.00455121 against the game's -0.00638975..0.00455121); its translation is nought in x and y and a heave of
+/// -0.864..0.664 in z - and the game's, less a turn about the core's own place (its Render x and y, its TerrainHeight), leaves
+/// exactly that: under 0.003 in x and y, -0.864..0.664 in z. v0.1.291 took the SKIN matrix instead, <c>inverse(bindModel) * world</c>:
+/// the same turn, but the bone rests at z -232.42 while the animation holds it at nought, so the skin carried +232 - the ship sank
+/// 232 units and its gangway hung below the quay (said from the live client, with a picture).
 /// </remarks>
 public sealed class WobbleRig
 {
@@ -204,7 +208,8 @@ public sealed class WobbleRig
     }
 
     /// <summary>
-    /// The bone's sway at a moment, in the core's model frame: where the animation puts it against where it rests, row vectors.
+    /// The bone's sway at a moment, in the core's model frame: its world matrix, where the animation puts it, row vectors - not its skin
+    /// matrix (see the remarks).
     /// </summary>
     /// <param name="seconds">Seconds into the loop; any value, wrapped.</param>
     public Matrix4x4 At(float seconds)
@@ -219,7 +224,7 @@ public sealed class WobbleRig
         lock (_gate)
         {
             _pose.Take(_tracks, frame);
-            return _pose.Skin[BoneIndex];
+            return _pose.World[BoneIndex];
         }
     }
 
