@@ -125,7 +125,7 @@ public static class CaptureWobble
                 continue;
             }
 
-            if (WobbleRig.Of(read, Oodle.Decompress, type, out string why) is not { } rig)
+            if (WobbleRig.Of(read, WobbleRig.Unpacking, type, out string why) is not { } rig)
             {
                 body.Append(type).Append(": not played - ").AppendLine(why);
                 continue;

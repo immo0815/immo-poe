@@ -26,6 +26,20 @@ public sealed class WobbleRig
     /// <summary>The rate an animation whose header says none plays at - the portrait's.</summary>
     private const float UsualRate = 30f;
 
+    /// <summary>
+    /// The install's own Oodle decoder - its GameFiles.Unpack, handed over as the install opens - or null for the shipped managed one.
+    /// </summary>
+    /// <remarks>
+    /// WHY HANDED OVER AND NOT PASSED DOWN: v0.1.291 unpacked the rig with <c>Oodle.Decompress</c>, the managed fallback, and it does not
+    /// read BoatWobbleRig/rig.ast's keyframes ("its keyframes did not unpack", the next Port capture) - while the Monster Book plays
+    /// every monster through the install's decoder. A room is built many calls down from anything that holds the install, as the
+    /// water's lookups are drawn (ShadeProgram.Use), so the decoder comes the same way: once, as the install opens.
+    /// </remarks>
+    public static Func<ReadOnlyMemory<byte>, int, byte[]?>? Unpacker { get; set; }
+
+    /// <summary>The decoder a rig is unpacked with: the install's where handed over, else the managed one.</summary>
+    public static Func<ReadOnlyMemory<byte>, int, byte[]?> Unpacking => Unpacker ?? Oodle.Decompress;
+
     private readonly SkeletonPose _pose;
     private readonly AnimationTracks _tracks;
     private readonly object _gate = new();
@@ -155,7 +169,10 @@ public sealed class WobbleRig
         AnimationTracks tracks = frames is null ? AnimationTracks.None : AnimationTracks.Read(frames, animation.Tracks, rig.Version);
         if (!tracks.Ready || tracks.Frames <= 0)
         {
-            why = $"{skeleton}'s {animation.Name} does not read: {(frames is null ? "its keyframes did not unpack" : tracks.Why)}";
+            // WHICH DECODER, AND WHAT IT SAID: v0.1.291's line said only that the keyframes did not unpack, with the managed decoder.
+            string decoder = Unpacker is null ? "the shipped managed decoder" : "the install's decoder";
+            string refused = Oodle.LastRefusal.Length > 0 ? $" - the managed decoder's last refusal: {Oodle.LastRefusal}" : string.Empty;
+            why = $"{skeleton}'s {animation.Name} does not read: {(frames is null ? $"its keyframes did not unpack with {decoder}{refused}" : tracks.Why)}";
             return null;
         }
 
