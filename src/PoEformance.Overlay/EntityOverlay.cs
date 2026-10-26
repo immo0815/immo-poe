@@ -1981,6 +1981,18 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         }
     }
 
+    /// <summary>The install's object scripts, for the capture's water shore part - see CaptureWaterShore.</summary>
+    /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
+    public IReadOnlyList<string> ObjectScripts
+    {
+        get => _capture.ObjectScripts;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _capture.ObjectScripts = value;
+        }
+    }
+
     public void AttachPreload(
         PreloadWatch watch,
         Action lookAgain,

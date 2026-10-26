@@ -172,6 +172,9 @@ internal sealed class CaptureKey
     /// <summary>The install's paths naming a wobble (CaptureWobble.Words under CaptureWobble.Folders), as its walk found them - empty until it has run.</summary>
     public IReadOnlyList<string> WobblePaths { get; set; } = [];
 
+    /// <summary>The install's object scripts (CaptureWaterShore.Extensions under its Folder), as its walk found them - empty until it has run.</summary>
+    public IReadOnlyList<string> ObjectScripts { get; set; } = [];
+
     /// <summary>
     /// Starts the light hunt for the area's own environment and hands back its whole report, or null where nothing can search - the light-hunt part. Set by whoever owns the search.
     /// </summary>
@@ -564,13 +567,14 @@ internal sealed class CaptureKey
         IReadOnlyList<string> environments = Environments;
         IReadOnlyList<string> waterTextures = WaterTextures;
         IReadOnlyList<string> wobblePaths = WobblePaths;
-        run.Writing = Task.Run(() => Write(run, read, version, shaders, environments, waterTextures, wobblePaths));
+        IReadOnlyList<string> objectScripts = ObjectScripts;
+        run.Writing = Task.Run(() => Write(run, read, version, shaders, environments, waterTextures, wobblePaths, objectScripts));
     }
 
     /// <summary>Every ticked part of the capture, each on its own so one failing loses only itself.</summary>
     private static void Write(
         Run run, Func<string, byte[]?>? read, string version, IReadOnlyList<string> shaders, IReadOnlyList<string> environments,
-        IReadOnlyList<string> waterTextures, IReadOnlyList<string> wobblePaths)
+        IReadOnlyList<string> waterTextures, IReadOnlyList<string> wobblePaths, IReadOnlyList<string> objectScripts)
     {
         var parts = new List<string>();
 
@@ -918,6 +922,26 @@ internal sealed class CaptureKey
                         : [.. GameInstall.Names.Select(name => Path.Combine(install, name + ".exe")).Where(File.Exists)];
                     string text = CaptureWobble.Write(read, run.Loaded, wobblePaths, shaders, programs);
                     File.WriteAllText(At(CaptureReport.WobbleFilesFile), text);
+                    return text[..text.IndexOf('\n')].TrimEnd('\r');
+                });
+            }
+        }
+
+        if (On(CaptureParts.WaterShore))
+        {
+            if (read is null)
+            {
+                Not(CaptureReport.WaterShoreFile, "no install to read the object scripts from");
+            }
+            else
+            {
+                Part(CaptureReport.WaterShoreFile, () =>
+                {
+                    string? install = GameInstall.Find(null);
+                    string[] programs = install is null ? []
+                        : [.. GameInstall.Names.Select(name => Path.Combine(install, name + ".exe")).Where(File.Exists)];
+                    string text = CaptureWaterShore.Write(read, objectScripts, run.Loaded, shaders, programs);
+                    File.WriteAllText(At(CaptureReport.WaterShoreFile), text);
                     return text[..text.IndexOf('\n')].TrimEnd('\r');
                 });
             }

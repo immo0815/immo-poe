@@ -167,6 +167,9 @@ public static class CaptureParts
     /// <summary>The install's files of the engine's wobble: the object types, every path naming one, the sources and the program's strings.</summary>
     public const string WobbleFiles = "wobble-files";
 
+    /// <summary>What the engine's shore field is made from: every object script naming the water's blocking or flow, the sources and strings.</summary>
+    public const string WaterShore = "water-shore";
+
     /// <summary>The memory recording itself.</summary>
     public const string Memory = "memory";
 
@@ -406,6 +409,14 @@ public static class CaptureParts
             + "types (.ot, .otc, .ao, .aoc) of every loaded path naming a wobble and of the doodads that may and may not sway, each "
             + "followed through what it extends, whole; every install path naming a wobble, the text files among them whole; the "
             + "shader sources naming one, and the game's program's strings naming one."),
+
+        new(WaterShore, "Area files", "water's shore", CaptureReport.WaterShoreFile,
+            "What the engine's shore field is made from - where its swell runs, which in Port runs between the ship and the quay while "
+            + "the tool's runs in under the hull: every object script (.ot, .otc) in the install searched for the water's blocking and "
+            + "flow (SetWaterBlocking, SetWaterFlow, the program's script commands), each line naming them and the first scripts whole; "
+            + "the area's loaded object types that reach one through what they extend; the shader sources naming the shore field; and "
+            + "the game's program's strings naming a shore, the water's blocking or a markup. Searches some tens of thousands of files "
+            + "on every core."),
 
         new(CountField, "Area files", "count field sweep", CaptureReport.CountFieldFile,
             "The loaded-file table walked for its count field instead of assuming one: what the area-change counter reads, how many "

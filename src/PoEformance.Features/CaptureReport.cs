@@ -117,6 +117,9 @@ public static class CaptureReport
     /// <summary>The install's files of the engine's wobble - see CaptureWobble.</summary>
     public const string WobbleFilesFile = "wobble-files.txt";
 
+    /// <summary>What the install says the engine's shore field is made from - see CaptureWaterShore.</summary>
+    public const string WaterShoreFile = "water-shore.txt";
+
     /// <summary>The survey of the entity maps for the rooms' doodads, and every sighting.</summary>
     public const string DoodadsFile = "doodads.txt";
 
