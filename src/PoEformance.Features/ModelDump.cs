@@ -1355,6 +1355,33 @@ public static partial class ModelDump
     /// this game has turned up in, or whose alpha is the question - with or without an X, one channel
     /// or four. Anything else prints as its number alone.
     /// </remarks>
+    /// <summary>
+    /// A texture's format in a word - the DXGI name, the fourCC, or the bit count of an uncompressed one - for counting textures by
+    /// it (ModelProgress.Decoded); see <see cref="Header"/> for the whole header.
+    /// </summary>
+    public static string Format(byte[]? dds)
+    {
+        const int Least = 128;
+        if (dds is null || dds.Length < Least || dds[0] != (byte)'D' || dds[1] != (byte)'D' || dds[2] != (byte)'S' || dds[3] != (byte)' ')
+        {
+            return "not a DDS";
+        }
+
+        if ((BitConverter.ToUInt32(dds, 80) & 0x4) == 0)
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"uncompressed {BitConverter.ToInt32(dds, 88)} bit");
+        }
+
+        string fourCc = Encoding.ASCII.GetString(dds, 84, 4).TrimEnd('\0');
+        if (fourCc != "DX10")
+        {
+            return fourCc;
+        }
+
+        int format = dds.Length >= Least + 4 ? BitConverter.ToInt32(dds, Least) : -1;
+        return Dxgi(format) is { Length: > 0 } name ? name : string.Create(CultureInfo.InvariantCulture, $"DXGI {format}");
+    }
+
     private static string Dxgi(int format) => format switch
     {
         2 => "R32G32B32A32_FLOAT",

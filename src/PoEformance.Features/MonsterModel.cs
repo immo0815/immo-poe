@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using PoEformance.Game.Entities;
 using PoEformance.Game.Files;
@@ -2664,17 +2665,25 @@ public static class MonsterModels
             return GameArt.ReadRaw(read, texture);
         }
 
-        /// <summary>A texture's bytes decoded, with its levels - timed, see ModelProgress.Time.</summary>
+        /// <summary>A texture's bytes decoded, with its levels - timed, see ModelProgress.Time, and counted by its format (ModelProgress.Decoded).</summary>
         public Mipmaps? Levels(byte[] bytes)
         {
+            long started = Stopwatch.GetTimestamp();
             GamePicture? top;
             using (ModelProgress.Time(Progress, BuildWork.Decoding))
             {
                 top = GameArt.Decode(bytes);
             }
 
-            using ModelProgress.Timed timed = ModelProgress.Time(Progress, BuildWork.Mipmapping);
-            return Mipmaps.Of(top);
+            long decoded = Stopwatch.GetTimestamp();
+            Mipmaps? levels;
+            using (ModelProgress.Time(Progress, BuildWork.Mipmapping))
+            {
+                levels = Mipmaps.Of(top);
+            }
+
+            Progress?.Decoded(ModelDump.Format(bytes), top is { Ready: true } picture ? (long)picture.Width * picture.Height : 0, decoded - started, Stopwatch.GetTimestamp() - decoded);
+            return levels;
         }
 
         /// <summary>
