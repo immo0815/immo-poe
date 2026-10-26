@@ -52,7 +52,7 @@ public class StageKeepTests
     }
 
     [Fact]
-    public void ASTAGEBeingBuiltIsWaitedForNotBuiltTwice()
+    public async Task ASTAGEBeingBuiltIsWaitedForNotBuiltTwice()
     {
         var keep = new StageKeep();
         var built = 0;
@@ -77,7 +77,7 @@ public class StageKeepTests
         });
 
         release.Set();
-        Assert.Same(first.Result, second.Result);
+        Assert.Same(await first, await second);
         Assert.True(keptSecond);
         Assert.Equal(1, built);
     }

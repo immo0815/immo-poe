@@ -1966,7 +1966,20 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// says what it said before anything shipped: build your own from the area tab.
     /// </param>
     /// <summary>Hands a capture part that runs at the press (CaptureParts.RunsAtPress) its work.</summary>
-    public void OfferCaptureWork(string key, Func<string, IReadOnlyList<string>?> work) => _capture.OfferWork(key, work);
+    public void OfferCaptureWork(string key, Func<string, IReadOnlyList<string>?> work, CaptureWorkProgress? progress = null)
+        => _capture.OfferWork(key, work, progress);
+
+    /// <summary>The install's paths naming a wobble, for the capture's wobble files part - see CaptureWobble.</summary>
+    /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
+    public IReadOnlyList<string> WobblePaths
+    {
+        get => _capture.WobblePaths;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _capture.WobblePaths = value;
+        }
+    }
 
     public void AttachPreload(
         PreloadWatch watch,

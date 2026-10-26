@@ -1066,6 +1066,18 @@
       }
     },
 
+    "WobblePoint": {
+      "comment": "Component on the wobble core the game lays beside a ship - Port's Metadata/Terrain/Gallows/Act4/4_6/Objects/BoatWobbleCore, model BoatnautWobbleCore_small.ao (a two-triangle plane 2750 x 4000, laid 240 units from boss_boat.ao). NAMED BY NO REFERENCE: GameHelper2, dat-schema and poe_data_tools were searched for 'wobble' (2026-10-26). WHY IT IS HERE: the ship sways in the game - a video measured its gangway 4 px up and down every 2.05 s, the hull 0.62 of that in step, an amplitude that comes and goes - while its .ao is a FixedMesh with no rig and no animation, and the room's doodads are of the entity types Doodad or DoodadNoWobble. ONE READ SO FAR (v0.1.289's capture recording, Port, frame 36), so every field but the first two is a reading: the capture part wobble.txt (WobbleProbe) watches it for twenty seconds, and wobble-replay.txt (WobbleSeries) reads that back. Read at +0x00..+0xA8: a vtable, the owner, three heap pointers at +0x10 to +0x20, a one-element inline vector at +0x28 (begin +0x40, end and capacity +0x48) holding one heap pointer, the ints 2, 44, 27, 55 at +0x50 to +0x5C, 1 at +0x60, the turn, then 0.171875, 0.423828125 (both exact binary fractions), 18.1477 and 1.0.",
+      "fields": {
+        "Owner": { "offset": "0x08", "type": "ptr", "comment": "The entity this component belongs to - the core's own entity address on the one read, as every component's +0x08 is." },
+        "Turn": { "offset": "0x68", "type": "f32", "comment": "READ AS a rotation, three rows of four floats (the fourth nought) - (1, -6.5e-7, -0.000522522, 0), (0, 0.999999, -0.00125081, 0), (0.000522523, 0.00125081, 0.999999, 0) on the one read: 0.0777 degrees about the axis (0.923, -0.385, 0), a tilt about a line in the ground's plane. Whether it moves with the ship's sway, and whether the engine turns the doodads by it about the core's place, is what wobble.txt measures." },
+        "Unnamed98": { "offset": "0x98", "type": "f32", "comment": "UNNAMED: 0.171875 on the one read. Beside Unnamed9C, both exact binary fractions - a setting rather than a state, unless the watch says otherwise." },
+        "Unnamed9C": { "offset": "0x9C", "type": "f32", "comment": "UNNAMED: 0.423828125 on the one read." },
+        "UnnamedA0": { "offset": "0xA0", "type": "f32", "comment": "UNNAMED: 18.1477 on the one read - a clock or a phase, if it moves in the watch." },
+        "UnnamedA4": { "offset": "0xA4", "type": "f32", "comment": "UNNAMED: 1.0 on the one read." }
+      }
+    },
+
     "Positioned": {
       "comment": "Component: where the entity stands in the GRID world and how it is moving. Only Reaction is read here so far. KNOWN TO EXIST BUT NOT YET PLACED (2026-08): ExileCore2's PoE2 PositionedComponentOffsets additionally names RawVelocity, PrevPosition, TravelStart / TravelTarget / TravelProgress, GridPosition, Rotation and Scale - names only, its offset values are decoded at runtime. Velocity and travel target are the movement-prediction half of any evasion logic, so they are the hunt AFTER the Actor's action fields. ExileCore2 also shows a separate Pathfinding COMPONENT (WantMoveToPosition, DestinationNodes) - an entity's movement goal lives there, distinct from the Actor's skill destination.",
       "fields": {

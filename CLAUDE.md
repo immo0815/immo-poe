@@ -455,6 +455,15 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   tell from the film over a deep gap, the lifted sea or a shadow: the probe now writes the beach's own line (`ProbeBeach`: its lift,
   the shore's distance, the foam, the film and its path) and, for every fragment the game light shaded, how much sun reached it and
   what cast the shadow (`ProbeSun`, one ray towards the sun on a click). Probe a patch, then capture.
+  THE SHIP SWAYS, AND NOT BY ITS MODEL (v0.1.290, asked for from the live client). A real-time video measured Port's gangway 4 px up
+  and down every 2.05 s (the hull 0.62 of that, in step, so a tilt with a heave; the amplitude comes and goes), while v0.1.289's capture
+  wrote `boss_boat.ao` whole: a FixedMesh, no rig, no animation. Beside it the room lays `BoatnautWobbleCore_small.ao`, a two-triangle
+  plane of the entity type `.../4_6/Objects/BoatWobbleCore`, whose entity carries a component no reference names, `WobblePoint` - and
+  the room's doodads are of the types `Doodad` and `DoodadNoWobble`. Its one read held a turn of 0.0777 degrees about a line in the
+  ground's plane (schema `WobblePoint`). `wobble.txt` (`WobbleProbe`, run at the press for 20 s) watches every WobblePoint and every
+  component of the doodads by it, one hop beyond their pointers, with a DoodadNoWobble as the control; `wobble-files.txt`
+  (`CaptureWobble`) writes the object types whole and the paths, sources and program strings naming a wobble; `wobble-replay.txt`
+  (`WobbleSeries`) reads the watch back. Read them before the ship is moved: what sways it, by how much, about which point.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
