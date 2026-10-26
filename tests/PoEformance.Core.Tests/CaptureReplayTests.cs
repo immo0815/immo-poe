@@ -48,7 +48,13 @@ public partial class CaptureReplayTests
             return;
         }
 
-        string replay = PoEformance.Game.Diagnostics.WobbleSeries.Report(PoEformance.Game.Diagnostics.WobbleSeries.Read(File.ReadAllText(path)));
+        // THE GAME'S SWAY BESIDE THE TOOL'S: the watch, and the cores as WobbleRig plays them (wobble-files.txt), where it was written.
+        string played = CaptureParts.Find(folder, CaptureReport.WobbleFilesFile);
+        string replay = PoEformance.Game.Diagnostics.WobbleSeries.Report(
+        [
+            .. PoEformance.Game.Diagnostics.WobbleSeries.Read(File.ReadAllText(path)),
+            .. File.Exists(played) ? PoEformance.Game.Diagnostics.WobbleSeries.Read(File.ReadAllText(played)) : [],
+        ]);
         File.WriteAllText(Path.Combine(folder, "wobble-replay.txt"), replay);
         Assert.StartsWith("wobble replay: ", replay, StringComparison.Ordinal);
     }

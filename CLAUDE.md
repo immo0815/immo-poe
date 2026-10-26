@@ -464,6 +464,21 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   component of the doodads by it, one hop beyond their pointers, with a DoodadNoWobble as the control; `wobble-files.txt`
   (`CaptureWobble`) writes the object types whole and the paths, sources and program strings naming a wobble; `wobble-replay.txt`
   (`WobbleSeries`) reads the watch back. Read them before the ship is moved: what sways it, by how much, about which point.
+  ITS FIRST WATCH ANSWERED (v0.1.290). The ship's own components never change; the WobblePoint holds a 4x4 matrix (row vectors,
+  +0x68 to +0xA4) that is a PURE TURN ABOUT ONE POINT - (4162, 12473, -328.2), z the core's TerrainHeight, the translation left over
+  under half a unit against 81 - tilting up to 0.37 degrees, swings 1.9 to 2.4 s apart whose sizes repeat after about 12.9 s: an authored
+  loop. The files say whose: the core's `.ot` writes `WobblePoint { sector = "caravan"; bone = "caravan_jntBnd" }` and an Animated
+  object whose `.ao` plays `idle_small_01` on `Boatnaut/BoatWobbleRig/rig.ast` (`randomise_start_position`); Port's boss room writes a
+  ZONE `"caravan" 26 -102 261 454` round the ship (`RoomZone`, poe_data_tools' `Zone`, read from v0.1.291; the room's other zones beside
+  it); the program names `no_wobble`, which `DoodadNoWobble.ot` sets. In memory the WobblePoint's +0x40 is the Sector component of an
+  entity of its own (`Metadata/MiscellaneousObjects/Sector`). SO THE SHIP SWAYS ON THE CARD from v0.1.291 (`WobbleRig`, `RoomSways`,
+  `RoomSway`, `MonsterModel.ShapeSways` and `Sways`, `ModelScene.Sways` and `Swayed`): the bone's skin matrix
+  (`inverse(bindModel) * world`, the core's frame) conjugated into the picture's by the core line's own place, every doodad line in a
+  zone of the sector's name whose type sets no no_wobble turned by it in the vertex shader (`Part.Sway`, the shadow's casters cast again
+  each frame over the kept stage). READ FROM THE FILES, said under the picture: the zone rule (the census in wobble.txt names the
+  Sector's own list in the next capture) and that the bone's skin matrix is the WobblePoint's (wobble-files.txt plays the rig
+  beside the watch, `wobble-replay.txt` fits both halves' fixed points). CHOSEN: every core starts its loop at nought. NOT DONE:
+  the processor's picture stands still; the curve at the WobblePoint's bone block (+0x180) is unread.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

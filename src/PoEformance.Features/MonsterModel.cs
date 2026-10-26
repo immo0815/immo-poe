@@ -312,6 +312,14 @@ public sealed record MonsterModel(
     public IReadOnlyList<string> ShapeSources { get; init; } = [];
 
     /// <summary>
+    /// Per shape, which of <see cref="Sways"/> turns it as the clock runs, or -1 for none - a ship and its deck's load (RoomSways); empty for a model that sways nothing.
+    /// </summary>
+    public IReadOnlyList<int> ShapeSways { get; init; } = [];
+
+    /// <summary>The wobble cores laid in it, each with its rig played and where it stands - see RoomSway.</summary>
+    public IReadOnlyList<RoomSway> Sways { get; init; } = [];
+
+    /// <summary>
     /// The room's shore, for the ocean's swell - made from its water and its ground (ShoreField.Of, CHOSEN); null where it has no water, no ground over it, or is no room.
     /// </summary>
     public ShoreField? Shore { get; init; }

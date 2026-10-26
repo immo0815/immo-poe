@@ -1,0 +1,27 @@
+version 3
+extends "Metadata/Parent"
+
+AnimationController
+{
+	metadata = "Art/Models/Terrain/Islands/Doodads/Boatnaut/BoatWobbleRig/rig.amd"
+	default_animation = "idle_small_01"
+    randomise_start_position = true
+}
+
+client
+{
+	ClientAnimationController
+	{
+		skeleton = "Art/Models/Terrain/Islands/Doodads/Boatnaut/BoatWobbleRig/rig.ast"
+	}
+	
+	SkinMesh
+	{
+		skin = "Art/Models/Terrain/Desert/FarudinCarts/CartWobbleRig/cart_mesh.sm"
+	}
+	
+	AnimatedRender
+	{
+	    rotation_lock = 0.0
+	}
+}

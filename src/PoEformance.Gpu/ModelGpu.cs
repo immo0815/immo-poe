@@ -32,6 +32,8 @@ namespace PoEformance.Gpu;
 /// <param name="Sharp">Whether textures are read anisotropically - the one way the card is let draw a picture the processor does not; see <see cref="ModelGpu"/>.</param>
 /// <param name="PoseFrom">The first vertex a pose moves: those before it are the mesh's own in <paramref name="Positions"/> and <paramref name="Normals"/>, and stay so while the arrays are the same - a stage's, under the monster posed on it.</param>
 /// <param name="PoseKey">Which pose the arrays hold: one key on two draws of the same arrays says nothing moved between them, and nought that nothing is known - the pose is then sent whole every draw.</param>
+/// <param name="Sways">Per shape, which of <paramref name="Swayed"/> turns it, or -1 for none - a ship and its deck (MonsterModel.ShapeSways); null for none.</param>
+/// <param name="Swayed">This frame's sway of each group, row vectors in the mesh's frame (RoomSway.At) - applied in the vertex shader, the mesh's own vertices left as they are.</param>
 public readonly record struct ModelScene(
     SkinnedMesh Mesh,
     float Turn = 0f,
@@ -51,7 +53,9 @@ public readonly record struct ModelScene(
     bool Sharp = false,
     WaterLook? Water = null,
     int PoseFrom = 0,
-    long PoseKey = 0);
+    long PoseKey = 0,
+    IReadOnlyList<int>? Sways = null,
+    Matrix4x4[]? Swayed = null);
 
 /// <summary>
 /// Pictures of models drawn on the graphics card - MeshPicture's pictures, at the card's speed.
@@ -166,7 +170,10 @@ public sealed partial class ModelGpu : IDisposable
     private (SkinnedMesh Mesh, Mipmaps? Skin, IReadOnlyList<Mipmaps?>? Skins, IReadOnlyList<MaterialBlend>? Blends, IReadOnlyList<ShadeProgram?>? Shades, bool Lit, long Landed)? _canFor;
 
     /// <summary>What the part constants hold - written again only when a run asks for something else.</summary>
-    private Vector4? _partHeld;
+    private PartConstants? _partHeld;
+
+    /// <summary>This frame's sway of each group - ModelScene.Swayed - or null; a run's group indexes it.</summary>
+    private Matrix4x4[]? _swayed;
 
     private long _draws;
     private bool _disposed;
@@ -197,7 +204,7 @@ public sealed partial class ModelGpu : IDisposable
         _straight = compiled.Straight;
         _layout = compiled.Layout;
         _frame = device.CreateBuffer(Marshal.SizeOf<FrameConstants>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
-        _part = device.CreateBuffer(Marshal.SizeOf<Vector4>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
+        _part = device.CreateBuffer(Marshal.SizeOf<PartConstants>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
         _scene = device.CreateBuffer(Marshal.SizeOf<SceneConstants>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
         _wrap = device.CreateSamplerState(new SamplerDescription(
             Filter.MinMagMipLinear, TextureAddressMode.Wrap, TextureAddressMode.Wrap, TextureAddressMode.Wrap,
@@ -453,6 +460,8 @@ public sealed partial class ModelGpu : IDisposable
 
         Plan plan = buffers.Planned(scene);
         Vector3[] placed = posed ? scene.Positions! : positions;
+        _swayed = plan.Sways ? scene.Swayed : null;
+        _partHeld = null;
         SceneLight? light = scene.Light;
         float lift = light?.WaterLift ?? 0f;
 
@@ -535,6 +544,9 @@ public sealed partial class ModelGpu : IDisposable
         context.VSSetConstantBuffer(0, _frame);
         context.PSSetConstantBuffer(0, _frame);
         context.PSSetConstantBuffer(1, _part);
+
+        // THE PART TO THE VERTEX SHADER TOO: a swaying run's matrix is applied to its vertices there.
+        context.VSSetConstantBuffer(1, _part);
         context.PSSetSampler(0, scene.Sharp ? _sharp : _wrap);
         context.PSSetShaderResource(1, _tables.View);
 
@@ -556,7 +568,7 @@ public sealed partial class ModelGpu : IDisposable
         // THE SUN'S SHADOW MAP BEFORE THE PICTURE, into its own target - see Lit.
         if (light is not null)
         {
-            Lit(light, buffers, plan, view, placed, pose, posed ? scene.PoseFrom : 0);
+            Lit(light, buffers, plan, view, placed, _swayed is null ? pose : -1, posed ? scene.PoseFrom : 0);
         }
 
         context.OMSetRenderTargets(target.AccumulatedTarget, target.Depth);
@@ -699,6 +711,8 @@ public sealed partial class ModelGpu : IDisposable
             Run run = plan.Runs[at];
             if (Beach(run, plan))
             {
+                // ITS OWN SWAY, NOT THE LAST RUN'S: a walk with no pixel shader still reads the part's matrix in its vertices.
+                Part(new Vector4(0f, -1f, 0f, 0f), run.Sway);
                 context.DrawIndexed(run.Count * 3, run.First * 3, 0);
             }
         }
@@ -758,6 +772,7 @@ public sealed partial class ModelGpu : IDisposable
             Run run = plan.Runs[at];
             if (Sea(run, plan))
             {
+                Part(new Vector4(0f, -1f, 0f, 0f), run.Sway);
                 context.DrawIndexed(run.Count * 3, run.First * 3, 0);
             }
         }
@@ -909,16 +924,24 @@ public sealed partial class ModelGpu : IDisposable
             _sheetsBound = Math.Max(_sheetsBound, sheets.Count);
         }
 
-        Part(new Vector4(view is null ? 0f : 1f, run.Blend == MaterialBlend.Cutout ? MeshPicture.CutoutAlpha : -1f, 0f, 0f));
+        Part(new Vector4(view is null ? 0f : 1f, run.Blend == MaterialBlend.Cutout ? MeshPicture.CutoutAlpha : -1f, 0f, 0f), run.Sway);
         _context.DrawIndexed(run.Count * 3, run.First * 3, 0);
     }
 
     /// <summary>
     /// The part constants a run is drawn with, written only where they change - a room's runs mostly ask for the same two, and each write was a map of the buffer.
     /// </summary>
-    private void Part(Vector4 value)
+    /// <param name="flags">ModelShaders' Part.Flags.</param>
+    /// <param name="sway">The run's sway group, or -1 - its matrix this frame's, the identity for none.</param>
+    private void Part(Vector4 flags, int sway)
     {
-        if (_partHeld != value)
+        var value = new PartConstants
+        {
+            Flags = flags,
+            Sway = sway >= 0 && _swayed is { } swayed && sway < swayed.Length ? swayed[sway] : Matrix4x4.Identity,
+        };
+
+        if (_partHeld is not { } held || held.Flags != value.Flags || held.Sway != value.Sway)
         {
             Written(_part, value);
             _partHeld = value;
@@ -1116,6 +1139,14 @@ public sealed partial class ModelGpu : IDisposable
         }
     }
 
+    /// <summary>A run's constants - ModelShaders' Part, field for field.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PartConstants
+    {
+        public Vector4 Flags;
+        public Matrix4x4 Sway;
+    }
+
     /// <summary>The frame's constants - ModelShaders' Frame, field for field, sixteen-byte rows.</summary>
     [StructLayout(LayoutKind.Sequential)]
     private struct FrameConstants
@@ -1182,7 +1213,7 @@ public sealed partial class ModelGpu : IDisposable
     /// <param name="Blend">How it is put over what is behind.</param>
     /// <param name="Shade">Its program, in the plan's list, or below nought for none.</param>
     /// <param name="Owner">Its shape's number among the translucent ones, or below nought for a solid run.</param>
-    private readonly record struct Run(int First, int Count, int Wears, MaterialBlend Blend, int Shade = -1, int Owner = -1);
+    private readonly record struct Run(int First, int Count, int Wears, MaterialBlend Blend, int Shade = -1, int Owner = -1, int Sway = -1);
 
     /// <summary>A picture's runs, textures and programs, worked out once per mesh and lists - and the runs that cast the sun's shadow.</summary>
     /// <param name="Runs">Every run in the mesh's order, the shadow-only ones among them - the drawing's passes take the blends they draw.</param>
@@ -1191,12 +1222,13 @@ public sealed partial class ModelGpu : IDisposable
     /// <param name="Programs">The programs the runs run, as MeshPicture.Programmed finds them.</param>
     /// <param name="Translucent">Whether any run is mixed or added.</param>
     /// <param name="Behind">Whether a mixed run's program measures against the solid depth behind - see ModelTarget.Behind.</param>
-    private sealed record Plan(Run[] Runs, Run[] Casts, Mipmaps?[] Palette, ShadeProgram[] Programs, bool Translucent, bool Behind);
+    /// <param name="Sways">Whether any run sways - its vertices turned in the vertex shader each frame, and cast again each frame.</param>
+    private sealed record Plan(Run[] Runs, Run[] Casts, Mipmaps?[] Palette, ShadeProgram[] Programs, bool Translucent, bool Behind, bool Sways = false);
 
     /// <summary>A mesh on the card: its vertices, normals, coordinates, colours and indices, and a pose's where it moves.</summary>
     private sealed class MeshBuffers : IDisposable
     {
-        private (Mipmaps? Skin, IReadOnlyList<Mipmaps?>? Skins, IReadOnlyList<MaterialBlend>? Blends, IReadOnlyList<ShadeProgram?>? Shades, Plan Plan)? _planned;
+        private (Mipmaps? Skin, IReadOnlyList<Mipmaps?>? Skins, IReadOnlyList<MaterialBlend>? Blends, IReadOnlyList<ShadeProgram?>? Shades, IReadOnlyList<int>? Sways, Plan Plan)? _planned;
         private readonly SkinnedMesh _mesh;
         private readonly bool _coordinated;
 
@@ -1316,6 +1348,9 @@ public sealed partial class ModelGpu : IDisposable
             return split;
         }
 
+        /// <summary>The mesh's triangles.</summary>
+        public int Triangles => _mesh.Indices.Length / 3;
+
         /// <summary>The bounds of the stage's own vertices - those before the pose's first - along the light, worked out once a direction.</summary>
         public ShadowBounds StageBounds(int from, Vector3 direction)
         {
@@ -1341,6 +1376,13 @@ public sealed partial class ModelGpu : IDisposable
             var moving = new List<Run>();
             foreach (Run run in plan.Casts)
             {
+                // A SWAYING CASTER MOVES EVERY FRAME, wherever it lies - cast again each time with its matrix.
+                if (run.Sway >= 0)
+                {
+                    moving.Add(run);
+                    continue;
+                }
+
                 int end = run.First + run.Count;
                 if (run.First < split)
                 {
@@ -1368,13 +1410,13 @@ public sealed partial class ModelGpu : IDisposable
         public Plan Planned(in ModelScene scene)
         {
             if (_planned is { } had && ReferenceEquals(had.Skin, scene.Skin) && ReferenceEquals(had.Skins, scene.Skins)
-                && ReferenceEquals(had.Blends, scene.Blends) && ReferenceEquals(had.Shades, scene.Shades))
+                && ReferenceEquals(had.Blends, scene.Blends) && ReferenceEquals(had.Shades, scene.Shades) && ReferenceEquals(had.Sways, scene.Sways))
             {
                 return had.Plan;
             }
 
             Plan plan = Worked(scene);
-            _planned = (scene.Skin, scene.Skins, scene.Blends, scene.Shades, plan);
+            _planned = (scene.Skin, scene.Skins, scene.Blends, scene.Shades, scene.Sways, plan);
             return plan;
         }
 
@@ -1470,21 +1512,37 @@ public sealed partial class ModelGpu : IDisposable
                 }
             }
 
+            // THE SWAY GROUPS: a ship's shapes turned in the vertex shader by their group's matrix - RoomSway; nought groups, none.
+            var sways = new int[triangles];
+            Array.Fill(sways, -1);
+            var swaying = false;
+            if (scene.Sways is { Count: > 0 } swayed)
+            {
+                for (var shape = 0; shape < mesh.Shapes.Count && shape < swayed.Count; shape++)
+                {
+                    if (swayed[shape] >= 0)
+                    {
+                        Fill(sways, mesh.Shapes[shape], swayed[shape], triangles);
+                        swaying = true;
+                    }
+                }
+            }
+
             var runs = new List<Run>();
             var behind = false;
             for (int first = 0, at = 1; first < triangles; at++)
             {
                 if (at == triangles || wears[at] != wears[first] || blends[at] != blends[first] || shades[at] != shades[first]
-                    || owners[at] != owners[first])
+                    || owners[at] != owners[first] || sways[at] != sways[first])
                 {
-                    runs.Add(new Run(first, at - first, wears[first], blends[first], shades[first], owners[first]));
+                    runs.Add(new Run(first, at - first, wears[first], blends[first], shades[first], owners[first], sways[first]));
                     behind |= blends[first] == MaterialBlend.Alpha && shades[first] >= 0 && programs[shades[first]].UsesDepth;
                     first = at;
                 }
             }
 
             Mipmaps?[] worn = [.. palette];
-            return new Plan([.. runs], Casting(runs, worn), worn, [.. programs], translucent, behind);
+            return new Plan([.. runs], Casting(runs, worn), worn, [.. programs], translucent, behind, swaying);
         }
 
         private static void Fill<T>(T[] into, MeshShape shape, T value, int triangles)

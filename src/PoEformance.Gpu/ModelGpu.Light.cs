@@ -53,7 +53,7 @@ public sealed partial class ModelGpu
                 map = buffers.Shadow;
                 frame = was.Frame;
             }
-            else if (Framed(buffers, placed, light, from, out split) is { } framed)
+            else if (Framed(buffers, placed, light, from, plan.Sways && _swayed is not null, out split) is { } framed)
             {
                 frame = framed;
                 if (buffers.Shadow is not { } kept || kept.Side != framed.Side)
@@ -130,16 +130,24 @@ public sealed partial class ModelGpu
     /// <summary>
     /// The frame the sun's map is drawn in - from every vertex, or where a pose moves only a monster's, from the stage's bounds kept and his scanned - and the triangle the stage's casters end at where the monster stands inside the stage's frame, else -1.
     /// </summary>
-    private static ShadowFrame? Framed(MeshBuffers buffers, Vector3[] placed, SceneLight light, int from, out int split)
+    /// <param name="swaying">Whether runs sway: their casters are then cast again every frame over the stage's kept - a room alone kept whole but for them.</param>
+    private static ShadowFrame? Framed(MeshBuffers buffers, Vector3[] placed, SceneLight light, int from, bool swaying, out int split)
     {
         split = from > 0 && from < placed.Length ? buffers.Split(from) : -1;
+        if (split <= 0 && swaying)
+        {
+            // NO MONSTER BEFORE THE SWAY: every vertex is the stage's, its bounds kept - a ship sways a few units inside them.
+            split = buffers.Triangles;
+            from = placed.Length;
+        }
+
         if (split <= 0)
         {
             return ShadowMap.Framed(placed, light.SunDirection, light.ShadowSide);
         }
 
         ShadowBounds stage = buffers.StageBounds(from, light.SunDirection);
-        ShadowBounds whole = stage.With(ShadowMap.Bounded(placed.AsSpan(from), light.SunDirection));
+        ShadowBounds whole = from < placed.Length ? stage.With(ShadowMap.Bounded(placed.AsSpan(from), light.SunDirection)) : stage;
         if (whole != stage)
         {
             split = -1;
@@ -199,7 +207,7 @@ public sealed partial class ModelGpu
             Mipmaps? worn = run.Blend == MaterialBlend.Cutout ? plan.Palette[run.Wears] : null;
             ID3D11ShaderResourceView? view = worn is null ? null : Skin(worn).View;
             context.PSSetShaderResource(0, view!);
-            Part(new Vector4(view is null ? 0f : 1f, view is null ? -1f : MeshPicture.CutoutAlpha, 0f, 0f));
+            Part(new Vector4(view is null ? 0f : 1f, view is null ? -1f : MeshPicture.CutoutAlpha, 0f, 0f), run.Sway);
             context.DrawIndexed(run.Count * 3, run.First * 3, 0);
         }
 
@@ -233,13 +241,14 @@ public sealed partial class ModelGpu
                 continue;
             }
 
-            if (casts.Count > 0 && casts[^1] is { Blend: MaterialBlend.Opaque } last && last.First + last.Count == run.First)
+            // NOT ACROSS A SWAY: a group's casters are drawn with its own matrix.
+            if (casts.Count > 0 && casts[^1] is { Blend: MaterialBlend.Opaque } last && last.First + last.Count == run.First && last.Sway == run.Sway)
             {
                 casts[^1] = last with { Count = last.Count + run.Count };
             }
             else
             {
-                casts.Add(new Run(run.First, run.Count, 0, MaterialBlend.Opaque));
+                casts.Add(new Run(run.First, run.Count, 0, MaterialBlend.Opaque, Sway: run.Sway));
             }
         }
 

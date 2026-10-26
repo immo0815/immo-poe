@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Numerics;
 using System.Text;
 using PoEformance.Game.Files;
 
@@ -98,12 +99,79 @@ public static class CaptureWobble
             }
         }
 
+        int played = Played(read, types, body);
+        Swaying(read, loaded, body);
+
         int sources = CaptureSources.Naming(read, shaders, Words, MostShaders, body);
         string strings = Programs(programs, body);
         string head = string.Create(
             CultureInfo.InvariantCulture,
-            $"wobble files: {types.Length} object types, {files} of their files read; {paths.Length} install paths name a wobble, {whole} written whole; {(sources < 0 ? "no shader sources" : $"{sources} shader sources name one")}; {strings}");
+            $"wobble files: {types.Length} object types, {files} of their files read, {played} wobble cores played; {paths.Length} install paths name a wobble, {whole} written whole; {(sources < 0 ? "no shader sources" : $"{sources} shader sources name one")}; {strings}");
         return head + Environment.NewLine + body;
+    }
+
+    /// <summary>
+    /// Every type with a WobblePoint played as the tool plays it (WobbleRig): what it read, and the bone's matrix over one loop as a
+    /// table in the watch's own columns - so <c>wobble-replay.txt</c> holds the tool's sway beside the game's.
+    /// </summary>
+    private static int Played(Func<string, byte[]?> read, IReadOnlyList<string> types, StringBuilder body)
+    {
+        body.AppendLine().AppendLine("=== the wobble cores played as the tool plays them (WobbleRig): the WobblePoint's bone, its rig and default animation, and the bone's sway over one loop - inverse(bindModel) * world, the core's model frame, row vectors");
+        int played = 0;
+        foreach (string type in types)
+        {
+            if (read(type + ".ot") is not { Length: > 0 } bytes || !StatDescriptionFiles.Decode(bytes).Contains(WobbleRig.Block, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (WobbleRig.Of(read, Oodle.Decompress, type, out string why) is not { } rig)
+            {
+                body.Append(type).Append(": not played - ").AppendLine(why);
+                continue;
+            }
+
+            played++;
+            body.AppendLine(rig.Said());
+            body.Append(CultureInfo.InvariantCulture, $"=== {WobbleRig.Block} of played:{type} over time: the tool's own, a row every {PlayedStep} s over {rig.Seconds:0.###} s").AppendLine();
+            body.AppendLine("t\t" + string.Join('\t', Enumerable.Range(0, 16).Select(at => string.Create(CultureInfo.InvariantCulture, $"+0x{0x68 + (at * 4):X}"))));
+            for (float at = 0; at <= rig.Seconds; at += PlayedStep)
+            {
+                Matrix4x4 sway = rig.At(at);
+                body.Append(at.ToString("0.000", CultureInfo.InvariantCulture));
+                for (var row = 0; row < 4; row++)
+                {
+                    for (var column = 0; column < 4; column++)
+                    {
+                        body.Append('\t').Append(sway[row, column].ToString("G7", CultureInfo.InvariantCulture));
+                    }
+                }
+
+                body.AppendLine();
+            }
+
+            body.AppendLine();
+        }
+
+        if (played == 0)
+        {
+            body.AppendLine("(no loaded type carries a WobblePoint that plays)");
+        }
+
+        return played;
+    }
+
+    /// <summary>The step the played table is written at.</summary>
+    private const float PlayedStep = 0.02f;
+
+    /// <summary>Every loaded object type under MiscellaneousObjects, and whether it may be swayed (WobbleRig.Sways).</summary>
+    private static void Swaying(Func<string, byte[]?> read, IReadOnlyList<string>? loaded, StringBuilder body)
+    {
+        body.AppendLine().AppendLine("=== the loaded object types and whether a wobble may sway them - false where the type or what it extends sets no_wobble");
+        foreach (string type in (loaded ?? []).Where(path => path.StartsWith("Metadata/MiscellaneousObjects/", StringComparison.OrdinalIgnoreCase) && !path.Contains('.', StringComparison.Ordinal)).Order(StringComparer.OrdinalIgnoreCase))
+        {
+            body.Append("  ").Append(type).Append("  ").AppendLine(WobbleRig.Sways(read, type) ? "sways" : "no_wobble");
+        }
     }
 
     /// <summary>Whether a path names a wobble.</summary>

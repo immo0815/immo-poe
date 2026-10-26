@@ -3230,9 +3230,45 @@ public sealed class MonsterPortrait
     /// </remarks>
     private bool Ticking => _playing && HasClock();
 
-    /// <summary>Whether a shade program the picture is drawn with reads <c>Time</c>. Worked out once per list, since it is asked every frame.</summary>
+    /// <summary>
+    /// Each wobble core's sway at the clock - RoomSway.At - into an array kept for the model, or null where nothing sways.
+    /// </summary>
+    /// <remarks>
+    /// THE GAME STARTS EACH CORE AT A RANDOM PLACE IN ITS LOOP (<c>randomise_start_position = true</c> in its .ao); here every core
+    /// starts at nought, so two pictures of one room sway alike.
+    /// </remarks>
+    private Matrix4x4[]? Swayed()
+    {
+        IReadOnlyList<RoomSway> sways = _model.Sways;
+        if (sways.Count == 0)
+        {
+            return null;
+        }
+
+        if (_swayed is null || _swayed.Length != sways.Count)
+        {
+            _swayed = new Matrix4x4[sways.Count];
+        }
+
+        for (var one = 0; one < sways.Count; one++)
+        {
+            _swayed[one] = sways[one].At(_clock);
+        }
+
+        return _swayed;
+    }
+
+    private Matrix4x4[]? _swayed;
+
+    /// <summary>Whether a shade program the picture is drawn with reads <c>Time</c> - or a ship sways in it. Worked out once per list, since it is asked every frame.</summary>
     private bool HasClock()
     {
+        // A SWAY RUNS WITH THE CLOCK, on the card - the processor's picture stands still, and says so.
+        if (_model.Sways.Count > 0 && _onCard)
+        {
+            return true;
+        }
+
         IReadOnlyList<ShadeProgram?>? shades = ShadesOf(_model);
         if (shades is null)
         {
@@ -3554,7 +3590,8 @@ public sealed class MonsterPortrait
         var scene = new ModelScene(
             _model.Mesh, _turn, _tilt, Ink, _model.Skin, _zoom, _pan, _model.Skins, Blends(),
             moving ? _posed : null, moving ? _posedNormals : null, _drawnLight, ShadesOf(_model), _clock, _drawnDust, card.Sharp, _drawnWater,
-            PoseFrom: moving && _model.Actor is not null ? _model.ActorFirst : 0, PoseKey: moving ? _poseKey : 0);
+            PoseFrom: moving && _model.Actor is not null ? _model.ActorFirst : 0, PoseKey: moving ? _poseKey : 0,
+            Sways: _model.ShapeSways.Count > 0 ? _model.ShapeSways : null, Swayed: Swayed());
         if (!gpu.Can(scene, out string why))
         {
             // A MATERIAL'S SHADER STILL COMPILING is the usual no: the picture is the processor's until

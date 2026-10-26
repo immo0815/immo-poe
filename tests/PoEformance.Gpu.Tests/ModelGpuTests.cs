@@ -88,6 +88,55 @@ public class ModelGpuTests
         Compared(expected.Rgba, Drawn(new ModelScene(box, Turn: 0.6f, Tilt: 0.4f, Positions: moved, Normals: box.Normals)));
     }
 
+    /// <summary>A swaying shape is drawn where its group's matrix puts it - the vertex shader's sway, held against the processor's moved vertices.</summary>
+    [GpuFact]
+    public void ASWAYEDShapeIsDrawnWhereItsMatrixPutsIt()
+    {
+        SkinnedMesh box = Box();
+        Matrix4x4 sway = Matrix4x4.CreateRotationX(0.15f) * Matrix4x4.CreateTranslation(0.3f, 0f, -0.2f);
+        Vector3[] moved = [.. box.Positions.Select(one => Vector3.Transform(one, sway))];
+        Vector3[] turned = [.. box.Normals.Select(one => Vector3.TransformNormal(one, sway))];
+        GamePicture expected = MeshPicture.Of(box, new MeshPicture.Canvas(Side), moved, turned, 0.6f, 0.4f);
+        Compared(expected.Rgba, Drawn(new ModelScene(
+            box, Turn: 0.6f, Tilt: 0.4f, Sways: [.. Enumerable.Repeat(0, box.Shapes.Count)], Swayed: [sway])));
+    }
+
+    /// <summary>
+    /// A swaying caster casts where it sways, cast again every frame over the still floor's kept shadow - the stage's corners holding the
+    /// shadow's frame, as a ship sways a few units inside its room's.
+    /// </summary>
+    [GpuFact]
+    public void ASWAYINGCasterCastsWhereItSwaysOverTheKeptFloor()
+    {
+        var light = new SceneLight([], SceneLight.PointShape.Zero, null)
+        {
+            SunColour = new Vector3(1.6f, 1.4f, 1.2f),
+            SunDirection = Vector3.Normalize(new Vector3(1.1f, -1f, 0.6f)),
+            SunShadows = true,
+        };
+        SkinnedMesh stage = Posable(out int first);
+        IReadOnlyList<Mipmaps?> skins = [Plain(new Vector4(0.7f, 0.6f, 0.4f, 1f)), Checker(64, 8, alpha: true)];
+        IReadOnlyList<MaterialBlend> blends = [MaterialBlend.Opaque, MaterialBlend.Cutout];
+        int[] sways = [-1, 0];
+        using ModelGpu? gpu = ModelGpu.Warp(out string why);
+        Assert.True(gpu is not null, why);
+        using ModelTarget target = gpu.Target(Side);
+        foreach (Vector3 shift in (Vector3[])[Vector3.Zero, new(0.5f, 0.2f, -0.4f), new(-0.3f, 0.1f, 0.2f)])
+        {
+            Matrix4x4 sway = Matrix4x4.CreateTranslation(shift);
+            Vector3[] moved = [.. stage.Positions.Select((one, at) => at >= first ? Vector3.Transform(one, sway) : one)];
+            var scene = new ModelScene(stage, Turn: 0.3f, Tilt: 0.2f, Skins: skins, Blends: blends, Light: light, Sways: sways, Swayed: [sway]);
+            GamePicture expected = MeshPicture.Of(
+                stage, new MeshPicture.Canvas(Side) { Light = light }, moved, stage.Normals, 0.3f, 0.2f, default, null, 1f, default, skins, blends);
+            Assert.True(gpu.Can(scene, out why), why);
+            Assert.True(gpu.Draw(target, scene, out why), why);
+            Compared(expected.Rgba, gpu.Read(target));
+        }
+
+        // CAST OVER THE KEPT FLOOR on every frame: a sway moves every frame.
+        Assert.Equal(3, gpu.ShadowsStaged);
+    }
+
     // ---- the game's light ----
 
     /// <summary>
