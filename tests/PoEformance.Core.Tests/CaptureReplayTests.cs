@@ -59,6 +59,20 @@ public partial class CaptureReplayTests
         Assert.StartsWith("wobble replay: ", replay, StringComparison.Ordinal);
     }
 
+    /// <summary>The object scripts naming the water's blocking or flow, read back from water-shore.txt - water-shore-replay.txt.</summary>
+    [Fact]
+    public void THEWATERSHOREScriptsAreReadBackFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder || CaptureParts.Find(folder, CaptureReport.WaterShoreFile) is not { } path || !File.Exists(path))
+        {
+            return;
+        }
+
+        string replay = CaptureWaterShore.Report(CaptureWaterShore.Calls(File.ReadAllText(path)));
+        File.WriteAllText(Path.Combine(folder, "water-shore-replay.txt"), replay);
+        Assert.StartsWith("water shore replay: ", replay, StringComparison.Ordinal);
+    }
+
     /// <summary>Places every room of the capture by its doodads and writes the result beside the capture's files.</summary>
     [Fact]
     public void THEPLACINGRunsAgainFromACapture()

@@ -489,6 +489,15 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   place: less a turn about the core's own position (Render x and y, TerrainHeight z) its translation leaves under 0.003 in x and y and
   the bone's heave, -0.864..0.664, in z - the world matrix's own, exactly. `WobbleRig.At` takes it from v0.1.293. The earlier fixed
   point 200 units beside the core was the heave biasing a fit along the turn's axis, the same bias the tool's own matrix shows.
+  v0.1.293 put the gangway back on the quay and swayed "almost identically" to the game (said from the live client).
+  THE SWELL RUNS UNDER THE SHIP (said from the live client, v0.1.293, with an in-game picture): in the game the waves make their way
+  between the ship and the quay, a breaking crest in the channel; the tool's run in under one side of the hull and out of the other,
+  because the shore field is made from the ground and the spraying rocks alone and the ship is neither. What the engine makes ITS field
+  from is in no file read so far - but the program holds two script commands, `SetWaterBlocking` and `SetWaterFlow` (lambdas over
+  ScriptTokens, as an object script's commands are), beside `RiverMarkupField` and `MarkupFlowConstraints`. `water-shore.txt`
+  (`CaptureWaterShore`, v0.1.294) searches every `.ot` and `.otc` under Metadata/ for them on every core, lists each line naming them,
+  the area's loaded types reaching one through what they extend, the shader sources naming the field and the program's strings naming a
+  shore; `water-shore-replay.txt` reads the lines back. Read it before the ship is made shore.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
