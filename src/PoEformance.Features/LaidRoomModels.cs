@@ -144,8 +144,8 @@ public static class LaidRoomModels
             byte[]? got = read(one.Replace('\\', '/').Trim());
             if (got is not null)
             {
-                bytes += got.Length;
-                files++;
+                Interlocked.Add(ref bytes, got.Length);
+                Interlocked.Increment(ref files);
             }
 
             return got;
@@ -167,24 +167,45 @@ public static class LaidRoomModels
         // THE GROUND'S PAINTER, from the area's MaterialsList - the master given, or the one beside the room's Rooms/.
         (GroundPainter? painter, string unpainted) = GroundPainter.For(Counted, master.Length > 0 ? master : GroundPainter.MasterBeside(read, path), paints);
         var grounds = new List<MonsterModel>();
-        ModelProgress.Step reading = ModelProgress.Begin(progress, "reading the tile files", Distinct(tiles, x, y, wide, tall));
+        Made Make(int id)
+        {
+            (MonsterModel props, SkinnedMesh ground, int across, int down, TileDoodads lines, IReadOnlyList<GroundPiece> subTiles) =
+                TileModels.Apart(Counted, tiles.Paths[id], walls: true, paints);
+            return Made.Of(props, ground, across, down, lines) with { Pieces = subTiles, Corners = CornersOf(read, tiles.Paths[id], subTiles) };
+        }
+
+        // EVERY TILE FILE OF THE BLOCK ON EVERY CORE FIRST, through the shared cache (Paints). The pieces then take them in the order
+        // they first ask for them, as they read them before, so what the room is joined from comes in the same order; a file the
+        // block does not name - a piece reaching in from outside it - is read when asked, as before.
+        int[] block = Distinct(tiles, x, y, wide, tall);
+        var ready = new Made[block.Length];
+        using (ModelProgress.Step reading = ModelProgress.Begin(progress, "reading the tile files", block.Length))
+        {
+            Parallel.For(0, block.Length, at =>
+            {
+                ready[at] = Make(block[at]);
+                reading.Advance();
+            });
+        }
+
+        var prefetched = new Dictionary<int, Made>(block.Length);
+        for (var at = 0; at < block.Length; at++)
+        {
+            prefetched[block[at]] = ready[at];
+        }
+
         Made Of(int id)
         {
             if (!made.TryGetValue(id, out Made? one))
             {
-                (MonsterModel props, SkinnedMesh ground, int across, int down, TileDoodads lines, IReadOnlyList<GroundPiece> subTiles) =
-                    TileModels.Apart(Counted, tiles.Paths[id], walls: true, paints);
-                one = Made.Of(props, ground, across, down, lines) with { Pieces = subTiles, Corners = CornersOf(read, tiles.Paths[id], subTiles) };
+                one = prefetched.TryGetValue(id, out Made? early) ? early : Make(id);
                 made[id] = one;
-                reading.Advance();
             }
 
             return one;
         }
 
         List<TilePiece> pieces = tiles.Pieces(x, y, wide, tall, id => (Of(id).Width, Of(id).Height));
-        reading.Dispose();
-        reading = default;
 
         (Way[] ways, Way chosen, bool settled, int asked) = Weighed(pieces, Of, grid, x, y);
 
@@ -841,23 +862,24 @@ public static class LaidRoomModels
 
     private static string Tail(string path) => path[(path.LastIndexOf('/') + 1)..];
 
-    /// <summary>How many different tile files the block names - what the bar counts the reading against.</summary>
-    private static int Distinct(TerrainTiles tiles, int x, int y, int wide, int tall)
+    /// <summary>The different tile files the block names, in the order the block first names them.</summary>
+    private static int[] Distinct(TerrainTiles tiles, int x, int y, int wide, int tall)
     {
         var seen = new HashSet<int>();
+        var named = new List<int>();
         for (int row = y; row < y + tall; row++)
         {
             for (int column = x; column < x + wide; column++)
             {
                 int id = tiles.IdAt(column, row);
-                if (id >= 0)
+                if (id >= 0 && seen.Add(id))
                 {
-                    seen.Add(id);
+                    named.Add(id);
                 }
             }
         }
 
-        return seen.Count;
+        return [.. named];
     }
 
     /// <summary>

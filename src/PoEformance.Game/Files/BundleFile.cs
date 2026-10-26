@@ -34,8 +34,18 @@ public sealed class BundleFile
     private readonly long[] _starts;
     private readonly int _dataAt;
 
-    /// <summary>The chunk unpacked last, with its number - see <see cref="Read(int, int, Func{ReadOnlyMemory{byte}, int, byte[]})"/>.</summary>
-    private Recent? _recent;
+    /// <summary>The chunks unpacked last, with their numbers - see <see cref="Read(int, int, Func{ReadOnlyMemory{byte}, int, byte[]})"/>.</summary>
+    private readonly Recent?[] _recent = new Recent?[RecentChunks];
+
+    /// <summary>Where the next chunk unpacked is kept, round the slots.</summary>
+    private int _nextRecent;
+
+    /// <summary>How many unpacked chunks a bundle keeps - a megabyte of them.</summary>
+    /// <remarks>
+    /// SEVERAL, because a model's build reads on every core: one slot was taken in turn by threads reading different files of one
+    /// bundle, and each unpacked again the chunk the one before had just put there.
+    /// </remarks>
+    private const int RecentChunks = 4;
 
     /// <summary>One unpacked chunk and which it is.</summary>
     private sealed record Recent(int Chunk, byte[] Plain);
@@ -171,13 +181,13 @@ public sealed class BundleFile
                 return null;
             }
 
-            // THE LAST CHUNK UNPACKED IS KEPT: files sit side by side in a bundle, so a run of small
+            // THE LAST CHUNKS UNPACKED ARE KEPT (see RecentChunks): files sit side by side in a bundle, so a run of small
             // reads - the graph survey reads every material in the install - mostly lands in the
             // chunk the read before it unpacked, and reading and unpacking 256 KB again for each is
             // nearly the whole cost. Swapped whole, so a read on another thread sees a chunk and its
             // number together or not at all; the array is never written after it is kept.
             int plainSize = SizeOfChunk(chunk);
-            byte[]? plain = Volatile.Read(ref _recent) is { } recent && recent.Chunk == chunk ? recent.Plain : null;
+            byte[]? plain = Kept(chunk);
             if (plain is null)
             {
                 byte[]? packed = _bytes((int)_starts[chunk], _sizes[chunk]);
@@ -192,7 +202,7 @@ public sealed class BundleFile
                     return null;
                 }
 
-                Volatile.Write(ref _recent, new Recent(chunk, plain));
+                Volatile.Write(ref _recent[(Interlocked.Increment(ref _nextRecent) & int.MaxValue) % RecentChunks], new Recent(chunk, plain));
             }
 
             // Which part of this chunk was asked for: partly the ones at either end of the
@@ -206,5 +216,19 @@ public sealed class BundleFile
         }
 
         return written == length ? wanted : null;
+    }
+
+    /// <summary>A chunk unpacked lately, or null.</summary>
+    private byte[]? Kept(int chunk)
+    {
+        for (var slot = 0; slot < RecentChunks; slot++)
+        {
+            if (Volatile.Read(ref _recent[slot]) is { } recent && recent.Chunk == chunk)
+            {
+                return recent.Plain;
+            }
+        }
+
+        return null;
     }
 }

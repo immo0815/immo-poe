@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using PoEformance.Features;
 using PoEformance.Game.Files;
@@ -275,7 +276,11 @@ public class RoomLayoutTests
             byte[]? got = files.GetValueOrDefault(path);
             if (got is not null)
             {
-                handed.Add(path);
+                // LOCKED: a room's doodads and materials are read on every core at once.
+                lock (handed)
+                {
+                    handed.Add(path);
+                }
             }
 
             return got;
@@ -301,6 +306,66 @@ public class RoomLayoutTests
 
         // AND WHAT EACH SHAPE CAME FROM, so the probe can name the doodad under a pixel.
         Assert.Equal(["Metadata/Doodads/Rock.ao", "Metadata/Doodads/Tree.ao"], model.ShapeSources);
+    }
+
+    [Fact]
+    public void ROOMSDoodadsLoadedOnEveryCoreComeOutInTheLinesOrderEveryTime()
+    {
+        // FORTY DOODAD FILES, each its own mesh, material and sheet, every fourth sharing one - loaded on every core at once
+        // (RoomModels.Lay) and their materials compiled so (MonsterModels.Shaded). The picture must be the one the lines say,
+        // in their order, every time, and a sheet several files wear one decode.
+        const int Many = 40;
+        var room = new StringBuilder(Version31[..(Version31.IndexOf("\n2\n10 20", StringComparison.Ordinal) + 1)]);
+        var files = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+        room.Append(CultureInfo.InvariantCulture, $"{Many}\n");
+        for (var one = 0; one < Many; one++)
+        {
+            string ao = $"Metadata/Doodads/Prop{one:00}.ao";
+            room.Append(CultureInfo.InvariantCulture, $"{one} {one % 7} 0 0 0 0 1 1 0 0 1 \"{ao}\" \"stub\"\n");
+            files[ao] = Encoding.UTF8.GetBytes($"version 3\nclient\n{{\n\tFixedMesh\n\t{{\n\t\tfixed_mesh = \"art/prop{one:00}.fmt\"\n\t}}\n}}\n");
+            files[$"art/prop{one:00}.fmt"] = Packed.Fmt($"art/prop{one:00}.mat");
+            files[$"art/prop{one:00}.mat"] = TileFilesTests.Mat(one % 4 == 0 ? "art/shared.dds" : $"art/prop{one:00}.dds");
+            files[$"art/prop{one:00}.dds"] = TileFilesTests.Dds();
+        }
+
+        files["art/shared.dds"] = TileFilesTests.Dds();
+        room.Append("0\n0\n");
+        files["Metadata/Terrain/Woods/Rooms/Many.arm"] = Encoding.Unicode.GetBytes(room.ToString());
+
+        string[] lines = [.. Enumerable.Range(0, Many).Select(one => $"Metadata/Doodads/Prop{one:00}.ao")];
+        for (var again = 0; again < 20; again++)
+        {
+            var shared = 0;
+            byte[]? Read(string path)
+            {
+                if (path.Equals("art/shared.dds", StringComparison.OrdinalIgnoreCase))
+                {
+                    Interlocked.Increment(ref shared);
+                }
+
+                return files.GetValueOrDefault(path);
+            }
+
+            MonsterModel model = RoomModels.Of(Read, "Metadata/Terrain/Woods/Rooms/Many.arm", shaded: true, doodads: RoomModels.EveryDoodad);
+            Assert.True(model.Ready, model.Why);
+            Assert.Equal(lines, model.ShapeSources);
+            Assert.Equal(lines, model.DoodadFiles.Select(file => file.Ao));
+            Assert.Equal(1, shared);
+
+            // ONE OBJECT FOR THE SHARED SHEET, which is what tells the renderer it is one texture.
+            Mipmaps?[] sheets = [.. Enumerable.Range(0, Many).Where(one => one % 4 == 0).Select(one => model.Skins[one])];
+            Assert.All(sheets, sheet => Assert.Same(sheets[0], sheet));
+            Assert.NotNull(sheets[0]);
+            Assert.NotSame(model.Skins[1], model.Skins[2]);
+
+            // AND EACH DOODAD WHERE ITS LINE PUTS IT: the n-th shape's mesh starts at the n-th line's cell.
+            for (var one = 0; one < Many; one++)
+            {
+                MeshShape shape = model.Mesh.Shapes[one];
+                float x = model.Mesh.Positions[model.Mesh.Indices[shape.From]].X;
+                Assert.InRange(x, (one * 250f / 23f) - 1.01f, (one * 250f / 23f) + 1.01f);
+            }
+        }
     }
 
     [Fact]
@@ -497,8 +562,12 @@ public class RoomLayoutTests
             byte[]? got = files.GetValueOrDefault(path);
             if (got is not null)
             {
-                handed.Add(path);
-                bytes += got.Length;
+                // LOCKED: a room's tiles, doodads and materials are read on every core at once.
+                lock (handed)
+                {
+                    handed.Add(path);
+                    bytes += got.Length;
+                }
             }
 
             return got;
