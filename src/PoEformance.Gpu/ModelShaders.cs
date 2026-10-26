@@ -88,6 +88,10 @@ internal static class ModelShaders
         {
             // x: one where the shape wears a texture; y: the alpha under which a cut-out drops a pixel, or below nought.
             float4 Flags;
+
+            // THE RUN'S SWAY, row vectors in the mesh's frame - RoomSway.At, the identity for a run that does not sway: a ship and
+            // its deck turned by the wobble core's bone as the clock runs, the mesh's own vertices left as they are.
+            row_major float4x4 Sway;
         };
 
         // SceneLight's numbers, model space - ModelGpu.SceneConstants, field for field.
@@ -152,12 +156,15 @@ internal static class ModelShaders
         // MeshPicture's barycentric one.
         Pixel Placed(Corner corner)
         {
+            // SWAYED FIRST, so everything after - the light, the place a program reads - sees the vertex where it stands now.
+            float3 swayedPlace = mul(float4(corner.position, 1.0), Sway).xyz;
+            float3 swayedTurn = mul(float4(corner.normal, 0.0), Sway).xyz;
             Pixel pixel;
-            pixel.position = mul(float4(corner.position, 1.0), Clip);
-            pixel.facing = mul(float4(corner.normal, 0.0), View).xyz;
+            pixel.position = mul(float4(swayedPlace, 1.0), Clip);
+            pixel.facing = mul(float4(swayedTurn, 0.0), View).xyz;
             pixel.spot = corner.spot;
-            pixel.place = corner.position;
-            pixel.turn = corner.normal;
+            pixel.place = swayedPlace;
+            pixel.turn = swayedTurn;
             pixel.tint = corner.tint;
             return pixel;
         }
@@ -699,6 +706,7 @@ internal static class ModelShaders
 
         Cast Casting(Corner corner)
         {
+            corner.position = mul(float4(corner.position, 1.0), Sway).xyz;
             Cast cast;
             float x = (dot(corner.position, ShadowU.xyz) - ShadowU.w) * ShadowSize.x;
             float y = (dot(corner.position, ShadowV.xyz) - ShadowV.w) * ShadowSize.x;

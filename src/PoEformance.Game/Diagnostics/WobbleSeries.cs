@@ -153,8 +153,108 @@ public static class WobbleSeries
                 double period = WobbleProbe.Period(times, angles);
                 said.Append(CultureInfo.InvariantCulture, $"  the turn's angle {angles.Min():0.0000} .. {angles.Max():0.0000} degrees, period {(period > 0 ? period.ToString("0.00", CultureInfo.InvariantCulture) + " s" : "none")}").AppendLine();
             }
+
+            if (FixedPoint(point) is { } fixedPoint)
+            {
+                said.Append(CultureInfo.InvariantCulture, $"  the point the turn holds still: {fixedPoint.Point.X:0.##} {fixedPoint.Point.Y:0.##} {fixedPoint.Point.Z:0.##}, the translation left over {fixedPoint.Residual:0.###} at most, of {fixedPoint.Largest:0.###}").AppendLine();
+            }
         }
 
         return said.ToString();
+    }
+
+    /// <summary>
+    /// The point every row's matrix leaves where it is, fitted over the rows - p (I - R) = t for row vectors - with the most it misses
+    /// any row's translation by, and the largest translation: a pure turn about one point leaves next to nothing over.
+    /// </summary>
+    public static (System.Numerics.Vector3 Point, double Residual, double Largest)? FixedPoint(Point point)
+    {
+        ArgumentNullException.ThrowIfNull(point);
+        if (point.Rows.Count < 3)
+        {
+            return null;
+        }
+
+        // THE NORMAL EQUATIONS over every row: each row's three equations are A p = t with A = (I - R) transposed.
+        double[,] normal = new double[3, 3];
+        double[] right = new double[3];
+        var rows = new List<(double[,] A, double[] T)>(point.Rows.Count);
+        for (var row = 0; row < point.Rows.Count; row++)
+        {
+            byte[] block = point.At(row);
+            float M(int r, int c) => BitConverter.ToSingle(block, Turn + (r * 16) + (c * 4));
+            var a = new double[3, 3];
+            for (var r = 0; r < 3; r++)
+            {
+                for (var c = 0; c < 3; c++)
+                {
+                    a[r, c] = (r == c ? 1 : 0) - M(c, r);
+                }
+            }
+
+            double[] t = [M(3, 0), M(3, 1), M(3, 2)];
+            rows.Add((a, t));
+            for (var i = 0; i < 3; i++)
+            {
+                for (var j = 0; j < 3; j++)
+                {
+                    for (var k = 0; k < 3; k++)
+                    {
+                        normal[i, j] += a[k, i] * a[k, j];
+                    }
+                }
+
+                for (var k = 0; k < 3; k++)
+                {
+                    right[i] += a[k, i] * t[k];
+                }
+            }
+        }
+
+        if (Solve(normal, right) is not { } p)
+        {
+            return null;
+        }
+
+        double residual = 0, largest = 0;
+        foreach ((double[,] a, double[] t) in rows)
+        {
+            for (var k = 0; k < 3; k++)
+            {
+                double fitted = (a[k, 0] * p[0]) + (a[k, 1] * p[1]) + (a[k, 2] * p[2]);
+                residual = Math.Max(residual, Math.Abs(fitted - t[k]));
+                largest = Math.Max(largest, Math.Abs(t[k]));
+            }
+        }
+
+        return (new System.Numerics.Vector3((float)p[0], (float)p[1], (float)p[2]), residual, largest);
+    }
+
+    /// <summary>A three by three system by Cramer's rule, or null where it is singular.</summary>
+    private static double[]? Solve(double[,] m, double[] b)
+    {
+        double Det(double[,] x) =>
+            (x[0, 0] * ((x[1, 1] * x[2, 2]) - (x[1, 2] * x[2, 1])))
+            - (x[0, 1] * ((x[1, 0] * x[2, 2]) - (x[1, 2] * x[2, 0])))
+            + (x[0, 2] * ((x[1, 0] * x[2, 1]) - (x[1, 1] * x[2, 0])));
+        double det = Det(m);
+        if (Math.Abs(det) < 1e-30)
+        {
+            return null;
+        }
+
+        var solved = new double[3];
+        for (var column = 0; column < 3; column++)
+        {
+            var swapped = (double[,])m.Clone();
+            for (var row = 0; row < 3; row++)
+            {
+                swapped[row, column] = b[row];
+            }
+
+            solved[column] = Det(swapped) / det;
+        }
+
+        return solved;
     }
 }

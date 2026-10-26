@@ -240,6 +240,10 @@ public sealed class WobbleProbe
         }
 
         double watchedFor = Stopwatch.GetElapsedTime(_began).TotalSeconds;
+
+        // WHAT EACH POINT MOVES: every entity and component its pointers reach - after the watch, so the watch's clock is its own.
+        Line = "following each wobble point's pointers to the entities they reach";
+        List<string> census = Census(points, all, entities);
         lines.Add(string.Create(
             CultureInfo.InvariantCulture,
             $"wobble: {points.Count} wobble points and {watched.Count - points.Count} doodads by them watched for {watchedFor:0.0} s{(_stop ? " (stopped)" : string.Empty)} - {walked}"));
@@ -253,6 +257,112 @@ public sealed class WobbleProbe
         foreach (Watched point in points)
         {
             PointSeries(point, lines);
+        }
+
+        lines.AddRange(census);
+        return lines;
+    }
+
+    /// <summary>How deep the census follows pointers from a wobble point.</summary>
+    public const int CensusDepth = 4;
+
+    /// <summary>Most blocks the census reads a point.</summary>
+    public const int CensusBlocks = 1500;
+
+    /// <summary>Hops whose blocks are written whole - the WobblePoint's sector and what hangs off it.</summary>
+    private const int CensusWhole = 2;
+
+    /// <summary>
+    /// Every entity and component a wobble point's pointers reach, CensusDepth hops deep, each with the way there - and the blocks
+    /// under its sector (+0x40) whole, two hops deep.
+    /// </summary>
+    /// <remarks>
+    /// WHY: the watch found the WobblePoint a matrix the doodads by it never change, so the engine applies it when it draws - to
+    /// which doodads, nothing read said. The point's +0x40 is a one-element vector holding an object named for its sector
+    /// ("caravan") - the Sector component of an entity of its own, <c>Metadata/MiscellaneousObjects/Sector</c>, which no room line
+    /// names - and that holds a pointer with 10 and 64 beside it: a list, likely of what the sector sways. Two
+    /// doodads alike in a room can only be told apart by their entities, so every pointer reached is matched against every
+    /// entity of both maps and every one of their components.
+    /// </remarks>
+    private List<string> Census(List<Watched> points, List<(uint Id, EntityIdentity Identity, bool Asleep)> all, EntityReader entities)
+    {
+        var known = new Dictionary<ulong, string>();
+        var bases = new HashSet<ulong>();
+        foreach ((uint id, EntityIdentity identity, _) in all)
+        {
+            string name = string.Create(CultureInfo.InvariantCulture, $"entity {id} {identity.Path}");
+            known.TryAdd(identity.Address, name);
+            bases.Add(identity.Address);
+            foreach ((string component, ulong at) in entities.ReadComponents(identity.Address, identity.Details))
+            {
+                if (at != 0)
+                {
+                    known.TryAdd(at, name + " " + component);
+                }
+            }
+        }
+
+        var lines = new List<string>();
+        ulong moduleEnd = _reader.ModuleBase + _reader.ModuleSize;
+        byte[] bytes = new byte[BlockBytes];
+        foreach (Watched point in points)
+        {
+            ulong start = point.Blocks[0].Address;
+            lines.Add(string.Empty);
+            lines.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"=== what {Component} of {point.Id} reaches: its pointers followed {CensusDepth} hops deep ({BlockBytes} bytes a block, at most {CensusBlocks}), every one equal to an entity or a component of one ({known.Count} known) named with the way there"));
+            var seen = new HashSet<ulong> { start };
+            var queue = new Queue<(ulong At, string Way, int Depth)>();
+            queue.Enqueue((start, Component, 0));
+            var whole = new List<string>();
+            int read = 0, found = 0;
+            while (queue.Count > 0 && read < CensusBlocks)
+            {
+                (ulong at, string way, int depth) = queue.Dequeue();
+                if (!_reader.TryRead(at, bytes))
+                {
+                    continue;
+                }
+
+                read++;
+                bool underSector = way.StartsWith(Component + "+0x40", StringComparison.Ordinal);
+                if (underSector && depth <= CensusWhole)
+                {
+                    whole.Add(string.Create(CultureInfo.InvariantCulture, $"  -- {way} 0x{at:X}"));
+                    Hex(bytes, whole);
+                }
+
+                for (var offset = 0; offset + 8 <= bytes.Length; offset += 8)
+                {
+                    ulong pointer = BitConverter.ToUInt64(bytes, offset);
+                    if (pointer == 0)
+                    {
+                        continue;
+                    }
+
+                    string next = string.Create(CultureInfo.InvariantCulture, $"{way}+0x{offset:X}");
+                    if (known.TryGetValue(pointer, out string? name))
+                    {
+                        found++;
+                        lines.Add(string.Create(CultureInfo.InvariantCulture, $"  {next} = 0x{pointer:X}: {name}"));
+                    }
+
+                    // INTO A COMPONENT, NOT INTO AN ENTITY: the point's sector is the Sector component of an entity of its own
+                    // (v0.1.291's census), and what it sways hangs off that component - while an entity's own object leads
+                    // everywhere at once.
+                    if (depth + 1 < CensusDepth && MemoryReaderExtensions.IsPlausiblePointer(pointer)
+                        && (pointer < _reader.ModuleBase || pointer >= moduleEnd) && !bases.Contains(pointer) && seen.Add(pointer))
+                    {
+                        queue.Enqueue((pointer, next + " ->", depth + 1));
+                    }
+                }
+            }
+
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"{found} pointers to entities or their components found over {read} blocks{(queue.Count > 0 ? $", {queue.Count} left unread" : string.Empty)}"));
+            lines.Add(string.Empty);
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"=== the blocks under {Component}+0x40 (its sector) of {point.Id}, {CensusWhole} hops deep, whole"));
+            lines.AddRange(whole);
         }
 
         return lines;

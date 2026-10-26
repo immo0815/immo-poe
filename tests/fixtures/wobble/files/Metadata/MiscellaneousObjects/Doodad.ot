@@ -1,0 +1,29 @@
+version 3
+extends "nothing"
+
+BaseEvents
+{
+	no_serialise = true
+}
+
+Positioned
+{
+	object_size = 1
+	blocking = false
+	static = true
+}
+
+Animated
+{
+
+}
+
+
+client
+{
+	Render
+	{
+	
+	}
+	
+}
