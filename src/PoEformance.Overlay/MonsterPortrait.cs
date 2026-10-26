@@ -1223,6 +1223,7 @@ public sealed class MonsterPortrait
         _drawnTurn = float.NaN;
         _built = _progress is { } progress ? [.. progress.Report()] : [];
         _pictureDue = _model.Ready;
+        _cardDue = _model.Ready;
         Rigged();
         Said();
     }
@@ -1239,12 +1240,28 @@ public sealed class MonsterPortrait
     /// <summary>Whether the model landed and its first picture is still to be drawn - see <see cref="Pictured"/>.</summary>
     private bool _pictureDue;
 
+    /// <summary>Whether the model landed and the card has not drawn it yet - see <see cref="Pictured"/>.</summary>
+    private bool _cardDue;
+
     /// <summary>
     /// The first picture of a model that landed: how long it took to draw - its upload to the card with it - and how long from the
     /// model being asked for until it was shown, which is the wait the person at the pane has.
     /// </summary>
     private void Pictured(long began)
     {
+        // THE CARD'S FIRST PICTURE TOO, where the first was the processor's: until every material's shader has compiled for the card
+        // the processor draws, and how long that takes is what compiling the shaders on every worker is for.
+        if (_cardDue && _onCard)
+        {
+            _cardDue = false;
+            if (!_pictureDue)
+            {
+                _built.Add(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"first picture on the card: shown {(double)(Stopwatch.GetTimestamp() - _chosenAt) / Stopwatch.Frequency:0.000} s after the model was asked for, its shaders compiled"));
+            }
+        }
+
         if (!_pictureDue)
         {
             return;

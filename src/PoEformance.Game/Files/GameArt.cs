@@ -211,6 +211,21 @@ public static class GameArt
             return wide;
         }
 
+        // BC1 AND BC7 BY THE BLOCK DECODER, to Pfim's own pixels - see BlockArt for why.
+        return BlockArt.Decode(dds) ?? DecodeWithPfim(dds);
+    }
+
+    /// <summary>
+    /// A DDS decoded by Pfim alone, its top level as red, green, blue, alpha - or null where Pfim does not read it. What
+    /// <see cref="BlockArt"/> is held against, and what reads every format it does not.
+    /// </summary>
+    public static GamePicture? DecodeWithPfim(byte[]? dds)
+    {
+        if (dds is not { Length: > 4 })
+        {
+            return null;
+        }
+
         try
         {
             using var stream = new MemoryStream(dds, writable: false);
