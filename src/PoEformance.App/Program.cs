@@ -2422,6 +2422,9 @@ internal static class Program
         PoEformance.Game.Files.WaterLookups waterLookups =
             PoEformance.Game.Files.WaterLookups.Read(installed is null ? null : installed.Read);
         PoEformance.Game.Files.ShadeProgram.Use(waterLookups);
+
+        // THE INSTALL'S OWN OODLE for a wobble core's rig - a ship's sway (WobbleRig.Unpacker); the managed decoder does not read it.
+        PoEformance.Features.WobbleRig.Unpacker = installed is null ? null : installed.Unpack;
         Console.WriteLine($"water    {waterLookups.Summary}");
 
         // Each item's own picture. The item carries the PATH of its art, and that file is in

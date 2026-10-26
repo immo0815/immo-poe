@@ -306,7 +306,7 @@ public static class RoomModels
         string firstMissing = string.Empty;
 
         // THE ROOM'S WOBBLE CORES, and which of its lines each sways - see RoomSways. Each core's own line says where it stands.
-        RoomSways? sways = RoomSways.Of(room, counted, Oodle.Decompress);
+        RoomSways? sways = RoomSways.Of(room, counted, WobbleRig.Unpacking);
         var coreAt = new Matrix4x4?[sways?.Count ?? 0];
 
         // WHERE EACH GOES FIRST, and whether it could be seen there at all.

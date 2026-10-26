@@ -478,7 +478,11 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   each frame over the kept stage). READ FROM THE FILES, said under the picture: the zone rule (the census in wobble.txt names the
   Sector's own list in the next capture) and that the bone's skin matrix is the WobblePoint's (wobble-files.txt plays the rig
   beside the watch, `wobble-replay.txt` fits both halves' fixed points). CHOSEN: every core starts its loop at nought. NOT DONE:
-  the processor's picture stands still; the curve at the WobblePoint's bone block (+0x180) is unread.
+  the processor's picture stands still; the curve at the WobblePoint's bone block (+0x180) is unread. v0.1.291 SWAYED NOTHING (its Port
+  capture: "its keyframes did not unpack"): the rig was unpacked with `Oodle.Decompress`, the shipped managed decoder, which refuses this
+  rig's bundle while the install's own (`GameFiles.Unpack`) reads every monster's - so the install's decoder is handed over as it opens
+  (`WobbleRig.Unpacker`, v0.1.292), and a rig that still does not unpack says which decoder ran and what it refused. That capture's census
+  also showed a "sector" IS a room zone: the WobblePoint's Sector lists further Sector entities, one a zone of the boss room.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
