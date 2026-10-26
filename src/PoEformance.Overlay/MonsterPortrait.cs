@@ -1230,6 +1230,9 @@ public sealed class MonsterPortrait
     /// <summary>Where the time of the model shown went, for the capture - see ModelProgress.Report and <see cref="Pictured"/>.</summary>
     private List<string> _built = [];
 
+    /// <summary>The pane's last stage, kept for the next monster set on it - see StageKeep.</summary>
+    private readonly StageKeep _stageKeep = new();
+
     /// <summary>When the model shown was asked for, as Stopwatch counts.</summary>
     private long _chosenAt;
 
@@ -2977,8 +2980,16 @@ public sealed class MonsterPortrait
         _chosenAt = Stopwatch.GetTimestamp();
         _built = [];
         Func<string, byte[]?> read = progress.Timing(_install!);
+
+        // THE STAGE KEPT WHILE IT IS ASKED FOR, and let go of the moment none is - see StageKeep.
+        StageKeep keep = _stageKeep;
+        if (stage.Length == 0)
+        {
+            keep.Forget();
+        }
+
         _loading = load is null
-            ? Task.Run(() => StagedModels.Of(read, one, stage, wearing, shaded, progress, terrain))
+            ? Task.Run(() => StagedModels.Of(read, one, stage, wearing, shaded, progress, terrain, keep))
             : Task.Run(() => load(read, one, path, wearing, progress));
     }
 

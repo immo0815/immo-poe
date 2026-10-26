@@ -33,6 +33,7 @@ public sealed class ModelProgress
     private readonly long _startedTicks = Stopwatch.GetTimestamp();
     private readonly long[] _spent = new long[Kinds];
     private readonly List<StepTime> _steps = [];
+    private readonly List<string> _notes = [];
     private readonly Lock _gate = new();
     private long _stepStarted;
     private long[] _stepSpent = new long[Kinds];
@@ -151,6 +152,15 @@ public sealed class ModelProgress
         };
     }
 
+    /// <summary>A line the report carries after the times - what the build did differently, such as a stage kept.</summary>
+    public void Note(string line)
+    {
+        lock (_gate)
+        {
+            _notes.Add(line);
+        }
+    }
+
     /// <summary>
     /// Where the time went: the whole build, each outermost step with its kinds and the rest, and what fell outside every step - for
     /// the capture (CapturePanes). Asked once the build is done.
@@ -160,9 +170,11 @@ public sealed class ModelProgress
         long ended = Stopwatch.GetTimestamp();
         long[] spent = Spent();
         StepTime[] steps;
+        string[] notes;
         lock (_gate)
         {
             steps = [.. _steps];
+            notes = [.. _notes];
         }
 
         var lines = new List<string>(steps.Length + 3)
@@ -180,6 +192,7 @@ public sealed class ModelProgress
         lines.Add(string.Create(CultureInfo.InvariantCulture, $"outside every step: {InSeconds(ended - _startedTicks - inSteps):0.000} s wall"));
         lines.Add("the kinds are timed exclusively, each on the thread it ran on and summed over threads; \"the rest\" is the wall time less them -"
             + " the .ao, mesh and tile walks, placing and joining - and comes out negative where several threads ran at once");
+        lines.AddRange(notes);
         return lines;
     }
 
