@@ -593,7 +593,16 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   end shows the crests' churn on the water, no spray in the air. The OCEAN MARKUP HUNT found no int grid of the tiles' or
   cells' shapes in Port's terrain or one hop beyond, but a byte grid of one value a three by three cells at terrain +0x6D8
   (1127 x 483; the Canal Hideout's 460 x 460) it could not draw - drawn from v0.1.303 (`OceanMarkupHunt.CellSteps`), schema
-  `Grid6D8`; and `CornerWords638`'s nine kinds go with the corners' ground types for the most part.
+  `Grid6D8`; and `CornerWords638`'s nine kinds go with the corners' ground types for the most part. v0.1.305's capture drew it
+  NOT: the steps counted the walkable grid's width, its stride twice (3382), where Port's 147 tiles are 3381 cells - from
+  v0.1.306 over tiles x 23, the part cell kept as a shape of its own.
+  THE WAVES CROSS THE CHANNEL THE OTHER WAY (v0.1.305, a video of the game and the Monster Book side by side at the checkpoint by
+  the ship, crash on; the foam's brightness along lines through the channel, frame by frame): in the game the foam front reaches
+  the hull's side before the quay's (0.3 to 0.7 s across 220 px) and the gangway's end before the stern's (0.3 to 0.9 s over
+  730 px) - two recordings agree; in the Monster Book it runs along the channel from the stern in (-1.3 to -2.0 s), round the hull
+  as the way in (`ShoreField.Oceans`) routes it. So the game's waves come from the ship's side, as they would were the ship no
+  obstacle to them - which a markup made from the tile map (`ClientTileMap::CalculateMapMarkup`) would not know of. A reading,
+  not yet settled: Grid6D8 drawn is to say whether the engine's grid holds the ship.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

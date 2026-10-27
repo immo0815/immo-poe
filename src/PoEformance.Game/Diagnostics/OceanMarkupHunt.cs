@@ -222,13 +222,24 @@ public static class OceanMarkupHunt
             shapes.Add(new Shape("cells", layers.Width, layers.Rows));
             shapes.Add(new Shape("cell corners", layers.Width + 1, layers.Rows + 1));
 
-            // A CELL IN EVERY k EACH WAY (v0.1.303): Port's terrain holds a grid of one byte a three by three cells at +0x6D8 (1127 x 483,
-            // the Canal Hideout's 460 x 460) that v0.1.302 listed and could not draw.
-            foreach (int every in CellSteps)
+        }
+
+        // A CELL IN EVERY k EACH WAY (v0.1.303): Port's terrain holds a grid of one byte a three by three cells at +0x6D8 (1127 x 483,
+        // the Canal Hideout's 460 x 460) that v0.1.302 listed and could not draw. Counted over the area's own cells, 23 a tile - not the
+        // walkable grid's width, which is its stride twice and a cell more where the tiles' cells are odd: Port's 147 tiles are 3381
+        // cells, its stride 1691 bytes, and v0.1.303 looked for 1128 x 483 beside the grid's 1127 x 483 and drew nothing.
+        int cellsX = tilesX * TerrainGrid.CellsPerTile, cellsY = tilesY * TerrainGrid.CellsPerTile;
+        foreach (int every in CellSteps)
+        {
+            int across = cellsX / every, down = cellsY / every;
+            shapes.Add(new Shape($"cells / {every}", across, down));
+            shapes.Add(new Shape($"cell corners / {every}", across + 1, down + 1));
+            if (cellsX % every != 0 || cellsY % every != 0)
             {
-                int across = (layers.Width + every - 1) / every, down = (layers.Rows + every - 1) / every;
-                shapes.Add(new Shape($"cells / {every}", across, down));
-                shapes.Add(new Shape($"cell corners / {every}", across + 1, down + 1));
+                // The remainder kept as a part cell, should the engine round up rather than down.
+                int upAcross = (cellsX + every - 1) / every, upDown = (cellsY + every - 1) / every;
+                shapes.Add(new Shape($"cells / {every} rounded up", upAcross, upDown));
+                shapes.Add(new Shape($"cell corners / {every} rounded up", upAcross + 1, upDown + 1));
             }
         }
 
