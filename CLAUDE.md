@@ -582,6 +582,18 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   follows the chain hop by hop (`CaptureWaterShore.SprayHops`): the trigger graphs whole, the materials naming them, the particles and
   trails naming those, the effect packages, objects and environments naming those - materials and animated objects walked for the
   chain alone (`ChainExtensions`), a file name under six letters not looked for.
+  PORT ANSWERED (v0.1.302's capture, the player on the pier's end, crash on): the channel goes blue-green between crests (the
+  live client's two videos), 1153 cells walls, 658 of them standing stone; NO CELL UNDER TWO WATER SHAPES - the crash-off
+  rectangles are not layers blended twice, their cause open. THE SPRAY'S CHAIN WHOLE: CrashingWavesTriggerCondition.fxgraph,
+  its update materials under `Metadata/Effects/Spells/environment_effects/Act4_FOUR/crashing_waves/mat/`, the GPU particle
+  `crashing_waves/FX/foamCrash_01.pet` naming them, and the objects carrying it - `crashingwaves_01.ao` to `_03` and doodads
+  of other areas' island tiles (`oceancliffwaves_01.ao`, `*_crashingwaves_01.ao` under `Terrain/Islands/Tiles/Island/` and
+  the prison intro): the spray is LAID AS A DOODAD where a tile wants it, firing as a crest passes. Port's rooms, tiles and
+  loaded files name none of them (a cached file goes unlisted, so it is not settled), and the game's picture at the pier's
+  end shows the crests' churn on the water, no spray in the air. The OCEAN MARKUP HUNT found no int grid of the tiles' or
+  cells' shapes in Port's terrain or one hop beyond, but a byte grid of one value a three by three cells at terrain +0x6D8
+  (1127 x 483; the Canal Hideout's 460 x 460) it could not draw - drawn from v0.1.303 (`OceanMarkupHunt.CellSteps`), schema
+  `Grid6D8`; and `CornerWords638`'s nine kinds go with the corners' ground types for the most part.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

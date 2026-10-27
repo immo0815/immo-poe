@@ -16,6 +16,7 @@ public class OceanMarkupHuntTests
     private const ulong Markup = 0x52_0000;
     private const ulong Hop = 0x53_0000;
     private const ulong HopGrid = 0x54_0000;
+    private const ulong Thirds = 0x55_0000;
 
     private static OffsetSchema LoadSchema()
     {
@@ -65,6 +66,9 @@ public class OceanMarkupHuntTests
 
         Vector(area, terrainAt + 0x300, Markup, markup.Length);
 
+        // A BYTE A THREE BY THREE CELLS, as Port's terrain holds at +0x6D8: 92 by 69 cells over three, 31 by 23.
+        Vector(area, terrainAt + 0x340, Thirds, 31 * 23);
+
         // ONE HOP BEYOND: an object the terrain points to, a byte grid at four times the tiles in it.
         BinaryPrimitives.WriteUInt64LittleEndian(area.AsSpan(terrainAt + 0x400), Hop);
         var hop = new byte[OceanMarkupHunt.WindowBytes];
@@ -78,13 +82,15 @@ public class OceanMarkupHuntTests
             .Place(Corners, new byte[(tilesX + 1) * (tilesY + 1) * 3])
             .Place(Markup, markup)
             .Place(Hop, hop)
-            .Place(HopGrid, new byte[tilesX * 4 * tilesY * 4]);
+            .Place(HopGrid, new byte[tilesX * 4 * tilesY * 4])
+            .Place(Thirds, new byte[31 * 23]);
 
         IReadOnlyList<string> lines = OceanMarkupHunt.Run(fake, schema, Area);
         string text = string.Join('\n', lines);
 
         Assert.Contains("terrain+0x300  252 bytes at 520000: tile corners x2 9x7 of 4 bytes", text, StringComparison.Ordinal);
         Assert.Contains("terrain+0x400 -> +0x10  192 bytes at 540000: tiles x4 16x12 of 1 bytes", text, StringComparison.Ordinal);
+        Assert.Contains("terrain+0x340  713 bytes at 550000: cells / 3 31x23 of 1 bytes", text, StringComparison.Ordinal);
         Assert.Contains("'0' 1 (0x1, ", text, StringComparison.Ordinal);
         Assert.Contains("35 cells, 35 walkable", text, StringComparison.Ordinal);
         Assert.Contains("  000001111", text, StringComparison.Ordinal);
