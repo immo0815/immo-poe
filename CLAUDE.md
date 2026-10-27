@@ -920,7 +920,13 @@ blackc's - the higher taking a hundredfold for each unit between. The height cos
 a twin of the program (`ShadeProgram.Heighted`, the real PBRGroundBN reading colour and normal where the plain one reads colour
 alone) that only a mix weighed by heights takes. The Monster Book's stage switch "ground by the grounds' heights"
 (`RoomKey.GroundHeights`, the key word `groundheights`, a laid or built room; off by default, as DECIDED before) turns it on; the
-probe writes both heights and the share they came to.
+probe writes both heights and the share they came to. THE CAPTURE HOLDS IT AGAINST THE PICTURE TOO (v0.1.312, asked for from the live
+client): ground-on-screen's comparison (`CaptureGroundCompare`) weighs the mask's green and the corners' share by the two grounds'
+heights as the engine does - two candidates more, "mask by heights" and "corners by heights" - each ground's own program run at every
+measured pixel with its reads at the level the picture would take (`ShadeProgram.HeightReader`, the renderer's own rule per triangle:
+a coarser level averages the blue's noughts away, so a height read at the top level is one the game never saw), on every core. Beside
+each pair it writes the heights - how often each ground's comes under a half, how far the weighing moved each share - and
+`ground-on-screen-heights.png` tints the picture by the mask weighed by the heights, the engine's own mix as its shaders write it.
 THE MONSTER BOOK'S ARENA IS BUILT, AND LAID AS WRITTEN (`BuiltRoomModels`, said from the live client: "our harbour diorama is never
 the game's, always mirrored somehow"). The game lays the boss room each instance its own way - Port's build replays: turned 180 (the
 harbour at placement 0), turned 90 and mirrored (placement 4); v0.1.262's instance laid the harbour at placement 1, mirrored - while

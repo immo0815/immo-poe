@@ -788,7 +788,12 @@ internal sealed class GroundPainter
             IReadOnlyList<string> corners = gridded ? definition.CornersOf(pieces[at].X, pieces[at].Y) : definition.Grounds;
             (_, List<(int Order, GroundGroup Group)> grounds, string setWhy, _) = SetOf(corners, gridded);
             bool[] seconds = grounds.Count == 2 && corners.Count == 4 ? [.. corners.Select(corner => OrderOf(corner, gridded) == grounds[1].Order)] : [];
-            subTiles[at] = new SubTileGrounds(corners, [.. grounds.Select(one => one.Group.Name)], setWhy) { Gridded = gridded, Seconds = seconds };
+            subTiles[at] = new SubTileGrounds(corners, [.. grounds.Select(one => one.Group.Name)], setWhy)
+            {
+                Gridded = gridded,
+                Seconds = seconds,
+                Materials = [.. grounds.Select(one => Heaviest(one.Group))],
+            };
         }
 
         string mask = definition.Templates.Count > 0 ? TileTemplate.Read(_read(Clean(definition.Templates[0]))).GroundMask : string.Empty;
@@ -868,6 +873,9 @@ internal sealed record SubTileGrounds(IReadOnlyList<string> Corners, IReadOnlyLi
 
     /// <summary>For a sub-tile of two grounds, which of its four corners - in <see cref="Corners"/>' order - are the second ground's; empty else.</summary>
     public IReadOnlyList<bool> Seconds { get; init; } = [];
+
+    /// <summary>The material each of <see cref="Grounds"/> is painted with - its group's heaviest choice, as Paint takes it.</summary>
+    public IReadOnlyList<string> Materials { get; init; } = [];
 }
 
 /// <summary>

@@ -2975,6 +2975,13 @@ public static class MonsterModels
         }
 
         /// <summary>
+        /// A ground material's program with its textures in hand, the twin that keeps its height where its graphs write one
+        /// (ShadeProgram.Heighted) - what the capture reads the engine's height blending with (CaptureGroundCompare) - or null where it
+        /// does not compile or a texture does not read.
+        /// </summary>
+        internal ShadeProgram? Heighted(Func<string, byte[]?> read, string material) => Bound(read, material, heighted: true).Flat;
+
+        /// <summary>
         /// One material's program and its glossy twin with their textures in hand - even where its colour is one plain read - or null and
         /// why; the twins that carry its height where <paramref name="heighted"/> and its graphs write one (ShadeProgram.Heighted).
         /// </summary>

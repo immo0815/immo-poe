@@ -976,6 +976,13 @@ public sealed partial class ShadeProgram
         registers[Tangent] = Vector4.Zero;
         registers[Binormal] = Vector4.Zero;
         registers[Dropped] = Vector4.Zero;
+        Constants(registers);
+    }
+
+    /// <summary>Only the program's own constants in their registers, and nothing behind - none of the drawing's shared state touched (see HeightReader).</summary>
+    internal void Constants(Span<Vector4> registers)
+    {
+        registers[Behind] = new Vector4(float.MaxValue);
         for (var one = 0; one < _constantAt.Length; one++)
         {
             registers[_constantAt[one]] = _constants[one];
