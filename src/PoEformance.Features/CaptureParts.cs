@@ -389,8 +389,10 @@ public static class CaptureParts
             + "across the mask's atlas drawn - where the tool's mix comes out as a checkerboard - so which ground the game draws there "
             + "is read off its picture (ground-on-screen.png). Each sub-tile's grid corners beside the game's own corner types at that "
             + "place, and each shape's height, green and reach across the mask. And the two ways two grounds may be mixed held against "
-            + "the game's picture pixel by pixel - the mask's green and the corners' share - with moved controls (ground-on-screen-corners.png "
-            + "tinted by the corners). Best with \"game only\" ticked: over the overlay's picture the overlay's own drawing is in the way."),
+            + "the game's picture pixel by pixel - the mask's green and the corners' share, and each weighed by the two grounds' heights as the "
+            + "engine's height blending weighs them, every ground's own program run at each pixel - with moved controls (ground-on-screen-corners.png "
+            + "tinted by the corners, ground-on-screen-heights.png by the mask weighed by the heights). Best with \"game only\" ticked: over the "
+            + "overlay's picture the overlay's own drawing is in the way."),
         new(Water, "Area files", "water", CaptureReport.WaterFile,
             "What the water is drawn from, as the files say: every key the install's environments write in their water "
             + "sections, how many files carry it and what values, every environment's water section file by file - to pick an "

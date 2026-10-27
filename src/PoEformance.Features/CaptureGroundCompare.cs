@@ -25,6 +25,12 @@ namespace PoEformance.Features;
 /// whose ground the camera sees there - the sea floor under a pier's top is left out. What stands on the ground (a crate, the water, a
 /// player) is in the game's picture and not here; the moved controls - the same fields held against the picture a little way off - say
 /// how much correlation such things and the light's large shapes give for nothing.
+///
+/// AND BOTH WEIGHED BY THE GROUNDS' HEIGHTS (v0.1.312, asked for from the live client): the engine's GroundInterpolate weighs the two by
+/// what their graphs write as height where either turns GROUND_HEIGHT_BLENDING on (ShadeProgram.Grounds) - so each ground's own program
+/// is run at every measured pixel, its reads at the level the picture would take (ShadeProgram.HeightReader), and the mask's green and
+/// the corners' share are weighed as the engine weighs them: two candidates more. Their heights are said beside them - how often each
+/// ground's comes under a half, and how far the weighing moved the share - so a candidate that changed nothing is seen to have.
 /// </remarks>
 internal static class CaptureGroundCompare
 {
@@ -38,7 +44,10 @@ internal static class CaptureGroundCompare
     private const int Least = 200;
 
     /// <summary>The candidates, in the order the sums keep them.</summary>
-    private const int Mask = 0, Corners = 1;
+    private const int Mask = 0, Corners = 1, MaskHeights = 2, CornersHeights = 3, Candidates = 4;
+
+    /// <summary>A height under this is a ground's low place, which its neighbour may take.</summary>
+    private const float Low = 0.5f;
 
     /// <summary>The picture's measures, in the order the sums keep them.</summary>
     private const int Brightness = 0, Contrast = 1;
@@ -51,10 +60,21 @@ internal static class CaptureGroundCompare
     /// where there is no picture to measure.
     /// </summary>
     public static string Measure(IReadOnlyList<Piece> pieces, float[] matrix, int width, int height, byte[]? bgr, out GamePicture? picture)
+        => Measure(pieces, matrix, width, height, bgr, null, out picture, out _);
+
+    /// <summary>
+    /// The comparison said, the game's picture tinted by the corners' share, and tinted by the mask's green weighed by the grounds' heights
+    /// - the engine's own mix as its shaders write it - where <paramref name="programs"/> reads them; null where there is no picture.
+    /// </summary>
+    /// <param name="programs">Each ground material's program, bound and keeping its height (MonsterModels.Paints.Heighted), or null for none.</param>
+    public static string Measure(
+        IReadOnlyList<Piece> pieces, float[] matrix, int width, int height, byte[]? bgr, Func<string, ShadeProgram?>? programs,
+        out GamePicture? picture, out GamePicture? heightsPicture)
     {
         ArgumentNullException.ThrowIfNull(pieces);
         ArgumentNullException.ThrowIfNull(matrix);
         picture = null;
+        heightsPicture = null;
         if (bgr is null || bgr.LongLength < (long)width * height * 3 || width <= 0 || height <= 0)
         {
             return "mask against corners: no picture of the game to hold the two against\n";
@@ -67,10 +87,16 @@ internal static class CaptureGroundCompare
         Array.Fill(owner, -1);
         var green = new byte[count];
         var share = new byte[count];
-        var named = new List<(string Name, string Pair, string Pattern)>();
+        var named = new List<Named>();
+        List<Triangle>? triangles = programs is null ? null : [];
+        int[]? triangleOf = programs is null ? null : new int[count];
+        if (triangleOf is not null)
+        {
+            Array.Fill(triangleOf, -1);
+        }
         foreach (Piece piece in pieces)
         {
-            Draw(piece, matrix, width, height, depth, owner, green, share, named);
+            Draw(piece, matrix, width, height, depth, owner, green, share, named, triangles, triangleOf);
         }
 
         if (named.Count == 0)
@@ -80,10 +106,13 @@ internal static class CaptureGroundCompare
 
         (byte[] light, float[] contrast) = Measures(bgr, width, height);
 
+        // THE HEIGHTS, where the grounds' programs read them: the two weighed candidates, and what the heights were.
+        Weighing weighing = Weigh(programs, named, triangles, triangleOf, owner, green, share, width);
+
         // THE SUMS: per sub-tile and per pair of grounds, for each candidate, measure and move.
         var pairs = named.Select(one => one.Pair).Distinct(StringComparer.Ordinal).ToList();
-        var bySubTile = new Sums[named.Count, 2, 2, Moves.Length];
-        var byPair = new Sums[pairs.Count, 2, 2, Moves.Length];
+        var bySubTile = new Sums[named.Count, Candidates, 2, Moves.Length];
+        var byPair = new Sums[pairs.Count, Candidates, 2, Moves.Length];
         int[] pairOf = [.. named.Select(one => pairs.IndexOf(one.Pair))];
         for (var y = 0; y < height; y++)
         {
@@ -96,6 +125,8 @@ internal static class CaptureGroundCompare
                 }
 
                 float byMask = green[at] / 255f, byCorners = share[at] / 255f;
+                bool weighed = weighing.Weighs[id];
+                float byMaskHeights = weighed ? weighing.Mask[at] / 255f : 0f, byCornersHeights = weighed ? weighing.Corners[at] / 255f : 0f;
                 int pair = pairOf[id];
                 for (var move = 0; move < Moves.Length; move++)
                 {
@@ -115,6 +146,17 @@ internal static class CaptureGroundCompare
                     byPair[pair, Mask, Contrast, move].Add(byMask, k);
                     byPair[pair, Corners, Brightness, move].Add(byCorners, l);
                     byPair[pair, Corners, Contrast, move].Add(byCorners, k);
+                    if (weighed)
+                    {
+                        bySubTile[id, MaskHeights, Brightness, move].Add(byMaskHeights, l);
+                        bySubTile[id, MaskHeights, Contrast, move].Add(byMaskHeights, k);
+                        bySubTile[id, CornersHeights, Brightness, move].Add(byCornersHeights, l);
+                        bySubTile[id, CornersHeights, Contrast, move].Add(byCornersHeights, k);
+                        byPair[pair, MaskHeights, Brightness, move].Add(byMaskHeights, l);
+                        byPair[pair, MaskHeights, Contrast, move].Add(byMaskHeights, k);
+                        byPair[pair, CornersHeights, Brightness, move].Add(byCornersHeights, l);
+                        byPair[pair, CornersHeights, Contrast, move].Add(byCornersHeights, k);
+                    }
                 }
             }
         }
@@ -127,22 +169,39 @@ internal static class CaptureGroundCompare
         }
 
         said.Append(string.Create(CultureInfo.InvariantCulture,
-            $"mask against corners: {measured} pixels where the nearest ground is a sub-tile of two grounds, {named.Count} such sub-tiles - the game's picture held against the mix's green at the block's coordinates (mask) and the second ground's share bilinear from the sub-tile's four corners (corners); r is the correlation, moved the same field held against the picture {Moves.Length - 1} ways 85 to 120 pixels off\n"));
+            $"mask against corners: {measured} pixels where the nearest ground is a sub-tile of two grounds, {named.Count} such sub-tiles - the game's picture held against the mix's green at the block's coordinates (mask) and the second ground's share bilinear from the sub-tile's four corners (corners), and each weighed by the two grounds' heights as the engine's height blending weighs them (mask by heights, corners by heights: {weighing.Said}); r is the correlation, moved the same field held against the picture {Moves.Length - 1} ways 85 to 120 pixels off\n"));
         for (var pair = 0; pair < pairs.Count; pair++)
         {
             int inPair = pairOf.Count(one => one == pair);
+            bool weighed = byPair[pair, MaskHeights, Brightness, 0].N > 0;
             said.Append(string.Create(CultureInfo.InvariantCulture, $"  {pairs[pair]} · {byPair[pair, Mask, Brightness, 0].N} pixels in {inPair} sub-tiles\n"));
             foreach ((int measure, string what) in new[] { (Brightness, "brightness"), (Contrast, "local contrast") })
             {
                 said.Append("    ").Append(what).Append(": mask ").Append(Said(Whole(byPair, pair, Mask, measure)))
-                    .Append(" · corners ").Append(Said(Whole(byPair, pair, Corners, measure))).Append('\n');
+                    .Append(" · corners ").Append(Said(Whole(byPair, pair, Corners, measure)));
+                if (weighed)
+                {
+                    said.Append(" · mask by heights ").Append(Said(Whole(byPair, pair, MaskHeights, measure)))
+                        .Append(" · corners by heights ").Append(Said(Whole(byPair, pair, CornersHeights, measure)));
+                }
+
+                said.Append('\n');
                 said.Append("      within each sub-tile, pixel-weighted: mask ").Append(Said(Within(bySubTile, pairOf, pair, Mask, measure)))
-                    .Append(" · corners ").Append(Said(Within(bySubTile, pairOf, pair, Corners, measure))).Append('\n');
+                    .Append(" · corners ").Append(Said(Within(bySubTile, pairOf, pair, Corners, measure)));
+                if (weighed)
+                {
+                    said.Append(" · mask by heights ").Append(Said(Within(bySubTile, pairOf, pair, MaskHeights, measure)))
+                        .Append(" · corners by heights ").Append(Said(Within(bySubTile, pairOf, pair, CornersHeights, measure)));
+                }
+
+                said.Append('\n');
             }
+
+            said.Append("    heights: ").Append(weighing.Of(pairOf, pair)).Append('\n');
         }
 
         said.Append("  each sub-tile of at least ").Append(Least.ToString(CultureInfo.InvariantCulture))
-            .Append(" pixels - its corners in ground.txt's order, the second ground's marked 2; r at no move, mask then corners:\n");
+            .Append(" pixels - its corners in ground.txt's order, the second ground's marked 2; r at no move, mask then corners, and by heights where weighed:\n");
         for (var id = 0; id < named.Count; id++)
         {
             long pixels = bySubTile[id, Mask, Brightness, 0].N;
@@ -152,15 +211,249 @@ internal static class CaptureGroundCompare
             }
 
             said.Append(string.Create(CultureInfo.InvariantCulture,
-                $"    {named[id].Name} · {pixels} px · {named[id].Pair} · corners {named[id].Pattern} · brightness {R(bySubTile[id, Mask, Brightness, 0])} {R(bySubTile[id, Corners, Brightness, 0])} · contrast {R(bySubTile[id, Mask, Contrast, 0])} {R(bySubTile[id, Corners, Contrast, 0])}\n"));
+                $"    {named[id].Name} · {pixels} px · {named[id].Pair} · corners {named[id].Pattern} · brightness {R(bySubTile[id, Mask, Brightness, 0])} {R(bySubTile[id, Corners, Brightness, 0])} · contrast {R(bySubTile[id, Mask, Contrast, 0])} {R(bySubTile[id, Corners, Contrast, 0])}"));
+            if (weighing.Weighs[id])
+            {
+                said.Append(string.Create(CultureInfo.InvariantCulture,
+                    $" · by heights brightness {R(bySubTile[id, MaskHeights, Brightness, 0])} {R(bySubTile[id, CornersHeights, Brightness, 0])} · contrast {R(bySubTile[id, MaskHeights, Contrast, 0])} {R(bySubTile[id, CornersHeights, Contrast, 0])}"));
+            }
+
+            said.Append('\n');
         }
 
         picture = Tinted(bgr, width, height, owner, share);
+        heightsPicture = weighing.Any ? Tinted(bgr, width, height, owner, weighing.Mask) : null;
         return said.ToString();
     }
 
+    /// <summary>One sub-tile of two grounds measured: its name as ground.txt has it, its pair, its corners, and its two grounds' materials.</summary>
+    private readonly record struct Named(string Name, string Pair, string Pattern, string First, string Second);
+
+    /// <summary>One triangle of a sub-tile of two grounds as it lies on the screen and in the world - what a pixel's place is worked out from.</summary>
+    private readonly record struct Triangle(Vector2 A, Vector2 B, Vector2 C, float Wa, float Wb, float Wc, Vector3 Pa, Vector3 Pb, Vector3 Pc, int Id);
+
+    /// <summary>The two candidates weighed by the heights, per pixel; which sub-tiles were weighed; and what the heights came to, per sub-tile.</summary>
+    private sealed class Weighing(int count, int subTiles)
+    {
+        public byte[] Mask { get; } = new byte[count];
+
+        public byte[] Corners { get; } = new byte[count];
+
+        public bool[] Weighs { get; } = new bool[subTiles];
+
+        public string[] Why { get; } = new string[subTiles];
+
+        public long[] Pixels { get; } = new long[subTiles];
+
+        public long[] LowFirst { get; } = new long[subTiles];
+
+        public long[] LowSecond { get; } = new long[subTiles];
+
+        public double[] MaskMoved { get; } = new double[subTiles];
+
+        public double[] CornersMoved { get; } = new double[subTiles];
+
+        public bool Any => Array.Exists(Weighs, one => one);
+
+        public string Said { get; set; } = "not read";
+
+        /// <summary>What the heights came to over one pair's sub-tiles, or why they were not weighed.</summary>
+        public string Of(int[] pairOf, int pair)
+        {
+            long pixels = 0, lowFirst = 0, lowSecond = 0;
+            double maskMoved = 0, cornersMoved = 0;
+            string why = string.Empty;
+            for (var id = 0; id < pairOf.Length; id++)
+            {
+                if (pairOf[id] != pair)
+                {
+                    continue;
+                }
+
+                if (!Weighs[id])
+                {
+                    why = Why[id] ?? string.Empty;
+                    continue;
+                }
+
+                pixels += Pixels[id];
+                lowFirst += LowFirst[id];
+                lowSecond += LowSecond[id];
+                maskMoved += MaskMoved[id];
+                cornersMoved += CornersMoved[id];
+            }
+
+            return pixels == 0
+                ? "not weighed - " + (why.Length > 0 ? why : "no pixel")
+                : string.Create(CultureInfo.InvariantCulture,
+                    $"{pixels} pixels weighed · the first ground's height under {Low} on {100.0 * lowFirst / pixels:0.0}% of them, the second's on {100.0 * lowSecond / pixels:0.0}% · the weighing moved the mask's share by {maskMoved / pixels:0.000} on average and the corners' by {cornersMoved / pixels:0.000}");
+        }
+    }
+
+    /// <summary>
+    /// Each measured pixel's two grounds' heights, read with their own programs at the levels the picture would take, and the mask's green
+    /// and the corners' share weighed by them as the engine weighs them - on every core.
+    /// </summary>
+    private static Weighing Weigh(
+        Func<string, ShadeProgram?>? programs, List<Named> named, List<Triangle>? triangles, int[]? triangleOf, int[] owner, byte[] green, byte[] share,
+        int width)
+    {
+        var weighing = new Weighing(owner.Length, named.Count);
+        if (programs is null || triangles is null || triangleOf is null)
+        {
+            Array.Fill(weighing.Why, "no programs to read the heights with");
+            return weighing;
+        }
+
+        // EACH SUB-TILE'S TWO PROGRAMS, resolved once: weighed where both are there and either turns the height blending on.
+        var resolved = new Dictionary<string, ShadeProgram?>(StringComparer.OrdinalIgnoreCase);
+        ShadeProgram? Of(string material)
+        {
+            if (material.Length == 0)
+            {
+                return null;
+            }
+
+            if (!resolved.TryGetValue(material, out ShadeProgram? program))
+            {
+                program = programs(material);
+                resolved[material] = program;
+            }
+
+            return program;
+        }
+
+        var pairs = new (ShadeProgram? First, ShadeProgram? Second)[named.Count];
+        for (var id = 0; id < named.Count; id++)
+        {
+            ShadeProgram? first = Of(named[id].First), second = Of(named[id].Second);
+            pairs[id] = (first, second);
+            weighing.Why[id] = first is null || second is null
+                ? "a ground's program did not compile or a texture of it did not read: " + (first is null ? named[id].First : named[id].Second)
+                : !first.BlendsGroundHeights && !second.BlendsGroundHeights ? "neither ground's graphs turn the engine's height blending on"
+                : string.Empty;
+            weighing.Weighs[id] = weighing.Why[id].Length == 0;
+        }
+
+        int rows = Rows(owner.Length);
+        var gate = new object();
+        Parallel.For(
+            0,
+            rows,
+            () => new Worker(named.Count),
+            (row, _, worker) =>
+            {
+                int from = (int)((long)row * owner.Length / rows), to = (int)((long)(row + 1) * owner.Length / rows);
+                worker.Run(from, to, width, triangles, triangleOf, owner, green, share, pairs, weighing);
+                return worker;
+            },
+            worker =>
+            {
+                lock (gate)
+                {
+                    worker.AddTo(weighing);
+                }
+            });
+
+        long weighedPixels = weighing.Pixels.Sum();
+        weighing.Said = weighing.Any
+            ? string.Create(CultureInfo.InvariantCulture, $"{weighedPixels} pixels weighed, each ground's own program run at the level the picture would read it, the materials' coordinates the world times {GroundPainter.GroundScale}")
+            : "not weighed - " + (weighing.Why.FirstOrDefault(why => why.Length > 0) ?? "no sub-tile");
+        return weighing;
+    }
+
+    /// <summary>Where a pixel's middle lies in the world on one triangle - its weights on the screen, corrected for the perspective by the corners' inverse w.</summary>
+    private static Vector3 PlaceAt(Triangle one, int x, int y)
+    {
+        float px = x + 0.5f, py = y + 0.5f;
+        Vector2 a = one.A, b = one.B, c = one.C;
+        float area = ((b.X - a.X) * (c.Y - a.Y)) - ((b.Y - a.Y) * (c.X - a.X));
+        float wa = (((b.X - px) * (c.Y - py)) - ((b.Y - py) * (c.X - px))) / area;
+        float wb = (((c.X - px) * (a.Y - py)) - ((c.Y - py) * (a.X - px))) / area;
+        float wc = 1f - wa - wb;
+        float w = (one.Wa * wa) + (one.Wb * wb) + (one.Wc * wc);
+        return ((one.Pa * (one.Wa * wa)) + (one.Pb * (one.Wb * wb)) + (one.Pc * (one.Wc * wc))) / w;
+    }
+
+    /// <summary>How many runs of pixels the weighing is shared out in - a few a core.</summary>
+    private static int Rows(int count) => Math.Max(1, Math.Min(count, Environment.ProcessorCount * 8));
+
+    /// <summary>One thread's readers and tallies over its runs of pixels.</summary>
+    private sealed class Worker(int subTiles)
+    {
+        private readonly Dictionary<ShadeProgram, ShadeProgram.HeightReader> _readers = [];
+        private readonly long[] _pixels = new long[subTiles];
+        private readonly long[] _lowFirst = new long[subTiles];
+        private readonly long[] _lowSecond = new long[subTiles];
+        private readonly double[] _maskMoved = new double[subTiles];
+        private readonly double[] _cornersMoved = new double[subTiles];
+
+        public void Run(
+            int from, int to, int width, List<Triangle> triangles, int[] triangleOf, int[] owner, byte[] green, byte[] share,
+            (ShadeProgram? First, ShadeProgram? Second)[] pairs, Weighing weighing)
+        {
+            int last = -1;
+            ShadeProgram.HeightReader? first = null, second = null;
+            for (int at = from; at < to; at++)
+            {
+                int id = owner[at], index = triangleOf[at];
+                if (id < 0 || index < 0 || !weighing.Weighs[id])
+                {
+                    continue;
+                }
+
+                Triangle one = triangles[index];
+                if (index != last)
+                {
+                    first = Reader(pairs[id].First!);
+                    second = Reader(pairs[id].Second!);
+                    first.Triangle(one.Pa, one.Pb, one.Pc, one.A, one.B, one.C, GroundPainter.GroundScale);
+                    second.Triangle(one.Pa, one.Pb, one.Pc, one.A, one.B, one.C, GroundPainter.GroundScale);
+                    last = index;
+                }
+
+                Vector3 place = PlaceAt(one, at % width, at / width);
+                float h0 = first!.At(place, GroundPainter.GroundScale), h1 = second!.At(place, GroundPainter.GroundScale);
+                float g = green[at] / 255f, c = share[at] / 255f;
+                float byMask = ShadeProgram.WeighedShare(g, h0, h1), byCorners = ShadeProgram.WeighedShare(c, h0, h1);
+                weighing.Mask[at] = (byte)((255f * Math.Clamp(byMask, 0f, 1f)) + 0.5f);
+                weighing.Corners[at] = (byte)((255f * Math.Clamp(byCorners, 0f, 1f)) + 0.5f);
+                _pixels[id]++;
+                _lowFirst[id] += h0 < Low ? 1 : 0;
+                _lowSecond[id] += h1 < Low ? 1 : 0;
+                _maskMoved[id] += MathF.Abs(byMask - g);
+                _cornersMoved[id] += MathF.Abs(byCorners - c);
+            }
+        }
+
+        public void AddTo(Weighing weighing)
+        {
+            for (var id = 0; id < _pixels.Length; id++)
+            {
+                weighing.Pixels[id] += _pixels[id];
+                weighing.LowFirst[id] += _lowFirst[id];
+                weighing.LowSecond[id] += _lowSecond[id];
+                weighing.MaskMoved[id] += _maskMoved[id];
+                weighing.CornersMoved[id] += _cornersMoved[id];
+            }
+        }
+
+        private ShadeProgram.HeightReader Reader(ShadeProgram program)
+        {
+            if (!_readers.TryGetValue(program, out ShadeProgram.HeightReader? reader))
+            {
+                reader = new ShadeProgram.HeightReader(program);
+                _readers[program] = reader;
+            }
+
+            return reader;
+        }
+    }
+
     /// <summary>A piece's ground into the depth buffer, every triangle - its sub-tiles of two grounds with both candidates' values.</summary>
-    private static void Draw(Piece piece, float[] matrix, int width, int height, float[] depth, int[] owner, byte[] green, byte[] share, List<(string Name, string Pair, string Pattern)> named)
+    private static void Draw(
+        Piece piece, float[] matrix, int width, int height, float[] depth, int[] owner, byte[] green, byte[] share, List<Named> named,
+        List<Triangle>? triangles, int[]? triangleOf)
     {
         LaidGround one = piece.One;
         SkinnedMesh ground = one.Ground;
@@ -168,6 +461,7 @@ internal static class CaptureGroundCompare
         Span<Vector2> at = stackalloc Vector2[3];
         Span<Vector4> over = stackalloc Vector4[3];
         Span<float> inverse = stackalloc float[3];
+        Span<Vector3> places = stackalloc Vector3[3];
         int from = 0;
         for (var index = 0; index < one.Pieces.Count; index++)
         {
@@ -180,10 +474,12 @@ internal static class CaptureGroundCompare
             {
                 id = named.Count;
                 seconds = [.. grounds.Seconds.Select(second => second ? 1f : 0f)];
-                named.Add((
+                named.Add(new Named(
                     string.Create(CultureInfo.InvariantCulture, $"{file} c{sub.X}r{sub.Y}"),
                     (grounds.Grounds[0].Length > 0 ? grounds.Grounds[0] : "(the group with no name)") + " + " + grounds.Grounds[1],
-                    string.Join(" ", grounds.Seconds.Select(second => second ? "2" : "1"))));
+                    string.Join(" ", grounds.Seconds.Select(second => second ? "2" : "1")),
+                    grounds.Materials.Count == 2 ? grounds.Materials[0] : string.Empty,
+                    grounds.Materials.Count == 2 ? grounds.Materials[1] : string.Empty));
             }
 
             // The sub-tile's own corner in the mesh: column x - 1, row 1 - y, a tile each way (TileDefinition.CornersOf).
@@ -196,6 +492,7 @@ internal static class CaptureGroundCompare
                     int vertex = ground.Indices[(triangle * 3) + corner];
                     Vector3 file3 = ground.Positions[vertex];
                     Vector3 world = Vector3.Transform(file3, one.Place);
+                    places[corner] = world;
                     (double cx, double cy, double cw) = WorldToScreen.Clip(matrix, world.X, world.Y, world.Z);
                     if (cw <= 1e-6)
                     {
@@ -212,7 +509,15 @@ internal static class CaptureGroundCompare
 
                 if (seen)
                 {
-                    Fill(at, over, inverse, width, height, depth, owner, green, share, id, seconds, piece.Mask);
+                    // THE TRIANGLE KEPT where its pixels' heights are to be read - see Weigh.
+                    int kept = -1;
+                    if (id >= 0 && triangles is not null)
+                    {
+                        kept = triangles.Count;
+                        triangles.Add(new Triangle(at[0], at[1], at[2], inverse[0], inverse[1], inverse[2], places[0], places[1], places[2], id));
+                    }
+
+                    Fill(at, over, inverse, width, height, depth, owner, green, share, id, seconds, piece.Mask, triangleOf, kept);
                 }
             }
         }
@@ -220,7 +525,8 @@ internal static class CaptureGroundCompare
 
     /// <summary>One triangle into the depth buffer, nearer pixels taking it - and, of a sub-tile of two grounds, both candidates' values.</summary>
     private static void Fill(
-        ReadOnlySpan<Vector2> at, ReadOnlySpan<Vector4> over, ReadOnlySpan<float> inverse, int width, int height, float[] depth, int[] owner, byte[] green, byte[] share, int id, float[]? seconds, GamePicture? mask)
+        ReadOnlySpan<Vector2> at, ReadOnlySpan<Vector4> over, ReadOnlySpan<float> inverse, int width, int height, float[] depth, int[] owner, byte[] green, byte[] share, int id, float[]? seconds, GamePicture? mask,
+        int[]? triangleOf, int index)
     {
         Vector2 a = at[0], b = at[1], c = at[2];
         float area = ((b.X - a.X) * (c.Y - a.Y)) - ((b.Y - a.Y) * (c.X - a.X));
@@ -259,6 +565,11 @@ internal static class CaptureGroundCompare
 
                 depth[pixel] = w;
                 owner[pixel] = id;
+                if (triangleOf is not null)
+                {
+                    triangleOf[pixel] = index;
+                }
+
                 if (id < 0)
                 {
                     continue;

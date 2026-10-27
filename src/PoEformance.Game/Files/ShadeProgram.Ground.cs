@@ -208,6 +208,83 @@ public sealed partial class ShadeProgram
     internal (float Share, float FirstHeight, float SecondHeight) Heights(ReadOnlySpan<Vector4> registers)
         => (registers[Weighed.Share].X, registers[Weighed.FirstHeight].X, registers[Weighed.SecondHeight].X);
 
+    /// <summary>Whether the program keeps the height its graphs write - see <see cref="Heighted"/>.</summary>
+    public bool WritesHeight => HeightRegister >= 0;
+
+    /// <summary>
+    /// GroundInterpolate's weighing of two grounds by their heights, for a weight of the second ground <paramref name="share"/> - the second
+    /// ground's share once weighed (see <see cref="Mixing"/>).
+    /// </summary>
+    public static float WeighedShare(float share, float firstHeight, float secondHeight)
+    {
+        float most = MathF.Max(firstHeight, secondHeight);
+        float first = (1f - share) * (1f / (1f + ((most - firstHeight) / HeightThreshold)));
+        float second = share * (1f / (1f + ((most - secondHeight) / HeightThreshold)));
+        return second / (first + second);
+    }
+
+    /// <summary>
+    /// The height a ground's program writes, read at places on the ground outside the drawing - the capture's measure of the engine's
+    /// height blending (CaptureGroundCompare). One a thread: its registers are its own.
+    /// </summary>
+    /// <remarks>
+    /// AT THE LEVEL THE PICTURE WOULD READ, per triangle as the renderer's own rule works it out (<see cref="Levels"/>,
+    /// MeshPicture.Level): a height read from the top level of a texture the game reads three levels down is a height the game never
+    /// saw - PBRGroundBN's comes to nought only where its normal map's blue is nought, which a coarser level averages away.
+    /// </remarks>
+    public sealed class HeightReader
+    {
+        private static readonly Vector3 Up = new(0f, 0f, -1f);
+
+        private readonly ShadeProgram _program;
+        private readonly Vector4[] _registers;
+        private readonly float[] _levels;
+        private readonly Vector2[] _spots;
+
+        /// <summary>A reader for one ground's program, bound - its <see cref="Heighted"/> twin where it has one.</summary>
+        public HeightReader(ShadeProgram program)
+        {
+            ArgumentNullException.ThrowIfNull(program);
+            _program = program;
+            _registers = new Vector4[program.Registers];
+            _levels = new float[Math.Max(1, program.Samples)];
+            _spots = new Vector2[Math.Max(1, program.Samples) * 3];
+
+            // NOT Preset, which hands the drawing in hand its shore through a static: a capture reads heights beside a live picture.
+            program.Constants(_registers);
+        }
+
+        /// <summary>
+        /// The levels the reads take over one triangle of the ground: its corners' places, where they land on the screen in pixels, and
+        /// the materials' tiling - their coordinates the place's x and y times it.
+        /// </summary>
+        public void Triangle(Vector3 p0, Vector3 p1, Vector3 p2, Vector2 c0, Vector2 c1, Vector2 c2, float scale)
+        {
+            if (!_program.WritesHeight)
+            {
+                return;
+            }
+
+            ReadOnlySpan<Vector2> coordinates = [new(p0.X * scale, p0.Y * scale), new(p1.X * scale, p1.Y * scale), new(p2.X * scale, p2.Y * scale)];
+            ReadOnlySpan<Vector3> positions = [p0, p1, p2];
+            ReadOnlySpan<Vector3> normals = [Up, Up, Up];
+            float area = ((c1.X - c0.X) * (c2.Y - c0.Y)) - ((c1.Y - c0.Y) * (c2.X - c0.X));
+            _program.Levels(_registers, coordinates, positions, normals, new Vector3(c0, 0f), new Vector3(c1, 0f), new Vector3(c2, 0f), area, _spots, _levels);
+        }
+
+        /// <summary>The height at a place, its reads at the levels the last <see cref="Triangle"/> set - nought where the program writes none.</summary>
+        public float At(Vector3 place, float scale)
+        {
+            if (!_program.WritesHeight)
+            {
+                return 0f;
+            }
+
+            _ = _program.Colour(_registers, new Vector2(place.X * scale, place.Y * scale), place, Up, _levels);
+            return _registers[_program.HeightRegister].X;
+        }
+    }
+
     /// <summary>
     /// Where a program of two grounds (<see cref="Grounds"/>) leaves the mask's green and each ground's colour - nought to one for none;
     /// what the probe reads of a pixel it ran on (<see cref="Mixed"/>).
