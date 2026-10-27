@@ -523,6 +523,7 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
         Identity(_of, one, chosen);
         ModelTools(one, chosen, one.Name is { Length: > 0 } named ? named : Tail(chosen));
         Stage(chosen);
+        LightSection();
         ImGui.Separator();
 
         // NOTHING IS PLACED BESIDE ANYTHING HERE ANY MORE, and that is the whole of what the model
@@ -701,47 +702,8 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
                 + " the Tile Book's tile is whatever that book is open at."
                 + " The picture frames the whole tile - the wheel zooms in on the monster.");
 
-            // A BUILT ROOM TURNED OVER BY HAND: the game lays a room each instance its own way, mirrored in some, and no camera turns a
-            // mirror away (said from the live client of Port's harbour) - see BuiltRoomModels.MirroredTurn.
-            if (TileBook.IsRoom(currentPath) && RoomKey.Read(current) is { Built.Length: > 0 } built)
-            {
-                bool mirrored = built.Mirrored;
-                if (ImGui.Checkbox("mirrored##monster-stage-mirrored", ref mirrored))
-                {
-                    model.Stage = (built with { Mirrored = mirrored }).ToString();
-                }
-
-                OverlayLayout.Hint("The built room turned over in x. The game lays a room each instance its own way - turned, and in some"
-                    + " instances mirrored - while a room built from the tileset is laid as its file writes it, and no turn of the camera undoes a mirror."
-                    + " Ticked, the tiles and their doodads go where a mirror sends them, mirrored as the game draws a mirrored room;"
-                    + " the boss is only turned, not mirrored.");
-            }
-
-            // THE GROUND'S SQUARES BY HAND: a room's ground of two grounds mixed by the mask's cells, as the engine's shader reads it, or by
-            // the sub-tiles' corners where a shape runs across the cells - see GroundPainter.
-            if (TileBook.IsRoom(currentPath) && RoomKey.Read(current) is var staged && (staged.Built.Length > 0 || staged.Laid.Length > 0))
-            {
-                bool cells = staged.MaskCells;
-                if (ImGui.Checkbox("ground by the mask's cells##monster-stage-mask-cells", ref cells))
-                {
-                    model.Stage = (staged with { MaskCells = cells }).ToString();
-                }
-
-                OverlayLayout.Hint("Where a ground shape's coordinates run across the ground mask's atlas, the mask's green read there comes out"
-                    + " in squares of the two grounds - the checkerboard by Port's ship - while the game draws no squares there."
-                    + " Unticked, such a shape is mixed by the second ground's share of its sub-tile's corners, a soft change across the sub-tile"
-                    + " (chosen, not the engine's); ticked, it is read on the mask's cells as the engine's shader says, squares and all, to hold the two against the game.");
-
-                bool raised = staged.GroundHeights;
-                if (ImGui.Checkbox("ground by the grounds' heights##monster-stage-ground-heights", ref raised))
-                {
-                    model.Stage = (staged with { GroundHeights = raised }).ToString();
-                }
-
-                OverlayLayout.Hint("Two grounds weighed by their heights as the engine's height blending weighs them (GroundInterpolate):"
-                    + " where a ground's graphs turn it on - Port's do - the higher of the two at a pixel takes most of it, so cobblestones stand"
-                    + " out of the sand where the plain mix fades one into the other. A ground's height is what its graphs write, nought where they write none.");
-            }
+            // THE ROOM'S OWN SWITCHES IN COLUMNS, under the combo that chose the room - see RoomSwitches.
+            RoomSwitches(model, current, currentPath);
 
             // WHAT THE SEARCH WENT THROUGH, under the combo once it has run: which areas, which folders, how
             // many tiles the index held - so an empty list says which step was empty rather than nothing.
@@ -761,17 +723,122 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
             }
 
             OverlayLayout.Hint("Any tile's .tdt path, as the Tile Book lists it.");
-
-            if (Lighting is { } lighting && OverlayLayout.Subsection("Light"))
-            {
-                lighting.Draw(model.Showing);
-            }
         }
         finally
         {
             ImGui.Unindent();
         }
     }
+
+    /// <summary>
+    /// The light the picture is drawn under, and what it shows - a fold of its own beside the stage's, no longer inside it.
+    /// </summary>
+    /// <remarks>
+    /// ITS OWN FOLD (asked for from the live client, 2026-10-27): inside the stage's it was a fold within a fold, every one of its switches a
+    /// level further in than the stage it lights, and it falls on a monster standing on nothing as well.
+    /// </remarks>
+    private void LightSection()
+    {
+        if (Model is not { } model || !model.Possible || Lighting is not { } lighting)
+        {
+            return;
+        }
+
+        if (!OverlayLayout.Subsection("Light"))
+        {
+            return;
+        }
+
+        ImGui.Indent();
+        try
+        {
+            lighting.Draw(model.Showing);
+        }
+        finally
+        {
+            ImGui.Unindent();
+        }
+    }
+
+    /// <summary>A room stage's own switches - how a built room is laid, how its ground is mixed - in columns under the stage's combo.</summary>
+    /// <remarks>
+    /// THE ONE PLACE A ROOM'S STAGE KEY IS CHANGED BY HAND, each switch rewriting the key the pane loads (RoomKey): turned over in x for a
+    /// built room alone, the two ground mixes for a built or a laid one.
+    /// </remarks>
+    private static void RoomSwitches(MonsterPortrait model, string current, string currentPath)
+    {
+        if (!TileBook.IsRoom(currentPath))
+        {
+            return;
+        }
+
+        RoomKey staged = RoomKey.Read(current);
+        if (staged.Built.Length == 0 && staged.Laid.Length == 0)
+        {
+            return;
+        }
+
+        bool built = staged.Built.Length > 0;
+        if (!OverlayLayout.Switches("##monster-stage-room", built ? RoomLabels : GroundLabels))
+        {
+            return;
+        }
+
+        try
+        {
+            // A BUILT ROOM TURNED OVER BY HAND: the game lays a room each instance its own way, mirrored in some, and no camera turns a
+            // mirror away (said from the live client of Port's harbour) - see BuiltRoomModels.MirroredTurn.
+            if (built)
+            {
+                ImGui.TableNextColumn();
+                bool mirrored = staged.Mirrored;
+                if (ImGui.Checkbox("mirrored##monster-stage-mirrored", ref mirrored))
+                {
+                    model.Stage = (staged with { Mirrored = mirrored }).ToString();
+                }
+
+                OverlayLayout.Hint("The built room turned over in x. The game lays a room each instance its own way - turned, and in some"
+                    + " instances mirrored - while a room built from the tileset is laid as its file writes it, and no turn of the camera undoes a mirror."
+                    + " Ticked, the tiles and their doodads go where a mirror sends them, mirrored as the game draws a mirrored room;"
+                    + " the boss is only turned, not mirrored.");
+            }
+
+            // THE GROUND'S SQUARES BY HAND: a room's ground of two grounds mixed by the mask's cells, as the engine's shader reads it, or by
+            // the sub-tiles' corners where a shape runs across the cells - see GroundPainter.
+            ImGui.TableNextColumn();
+            bool cells = staged.MaskCells;
+            if (ImGui.Checkbox("ground: mask cells##monster-stage-mask-cells", ref cells))
+            {
+                model.Stage = (staged with { MaskCells = cells }).ToString();
+            }
+
+            OverlayLayout.Hint("Where a ground shape's coordinates run across the ground mask's atlas, the mask's green read there comes out"
+                + " in squares of the two grounds - the checkerboard by Port's ship - while the game draws no squares there."
+                + " Unticked, such a shape is mixed by the second ground's share of its sub-tile's corners, a soft change across the sub-tile"
+                + " (chosen, not the engine's); ticked, it is read on the mask's cells as the engine's shader says, squares and all, to hold the two against the game.");
+
+            ImGui.TableNextColumn();
+            bool raised = staged.GroundHeights;
+            if (ImGui.Checkbox("ground: heights##monster-stage-ground-heights", ref raised))
+            {
+                model.Stage = (staged with { GroundHeights = raised }).ToString();
+            }
+
+            OverlayLayout.Hint("Two grounds weighed by their heights as the engine's height blending weighs them (GroundInterpolate):"
+                + " where a ground's graphs turn it on - Port's do - the higher of the two at a pixel takes most of it, so cobblestones stand"
+                + " out of the sand where the plain mix fades one into the other. A ground's height is what its graphs write, nought where they write none.");
+        }
+        finally
+        {
+            OverlayLayout.EndSwitches();
+        }
+    }
+
+    /// <summary>A built room's switches' visible labels, for their columns.</summary>
+    private static readonly string[] RoomLabels = ["mirrored", "ground: mask cells", "ground: heights"];
+
+    /// <summary>A laid room's switches' visible labels - no mirror, the game laid it.</summary>
+    private static readonly string[] GroundLabels = ["ground: mask cells", "ground: heights"];
 
     /// <summary>One stage in the combo, chosen where it is the one the pane stands on.</summary>
     /// <param name="model">The pane.</param>

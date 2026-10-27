@@ -536,6 +536,40 @@ public static class OverlayLayout
         => ImGui.GetFrameHeight() + ImGui.GetStyle().ItemInnerSpacing.X + ImGui.CalcTextSize(label).X;
 
     /// <summary>
+    /// Begins a grid of switches: as many equal columns as fit the width left, each as wide as the widest of <paramref name="labels"/> - the
+    /// caller puts each switch after <c>ImGui.TableNextColumn()</c> and ends it with <see cref="EndSwitches"/> where this answered true.
+    /// </summary>
+    /// <remarks>
+    /// ALIGNED, NOT FLOWED (asked for from the live client, 2026-10-27: the Monster Book's switches "a hopeless jumble"): a row that wraps
+    /// with <see cref="Flow(float, float, float)"/> puts each line's switches wherever the one before ended, so no two lines line up and a
+    /// switch moves when the pane is resized. Equal columns keep every switch where the eye last found it, and the count still follows the
+    /// pane's width.
+    /// </remarks>
+    /// <param name="id">The grid's ImGui id, unique within its window.</param>
+    /// <param name="labels">The switches' visible labels, for the widest.</param>
+    public static bool Switches(string id, ReadOnlySpan<string> labels)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(id);
+        if (labels.IsEmpty)
+        {
+            return false;
+        }
+
+        float widest = 0f;
+        foreach (string label in labels)
+        {
+            widest = MathF.Max(widest, CheckboxWidth(label));
+        }
+
+        float cell = widest + (ImGui.GetStyle().ItemSpacing.X * 2f);
+        int columns = Math.Clamp((int)(ImGui.GetContentRegionAvail().X / cell), 1, labels.Length);
+        return ImGui.BeginTable(id, columns, ImGuiTableFlags.SizingFixedSame | ImGuiTableFlags.NoSavedSettings);
+    }
+
+    /// <summary>Ends a grid <see cref="Switches"/> began.</summary>
+    public static void EndSwitches() => ImGui.EndTable();
+
+    /// <summary>
     /// One headline figure: its name, its value, and its sentence under the pointer.
     /// </summary>
     /// <remarks>

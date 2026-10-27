@@ -402,6 +402,67 @@ public class SceneLightTests
         Assert.Null(ShadowMap.Framed(ShadowMap.Bounded([], direction), direction, ShadowMap.Usual));
     }
 
+    // ---- the views ----
+
+    /// <summary>
+    /// A channel view writes the channel to the pixel as the engine's debug views do - neither lit, exposed nor graded - its scalars and
+    /// normals through RGBToSRGB (a power of 2.2) so the picture's own sRGB step undoes it, and the normal's two encodings TbnToRGB's and
+    /// the plain one.
+    /// </summary>
+    [Fact]
+    public void ACHANNELViewWritesTheChannelUnlitAndUnexposed()
+    {
+        Assert.Equal(Enum.GetValues<PictureView>().Length, SceneLight.ViewNames.Count);
+
+        var albedo = new Vector3(0.2f, 0.4f, 0.6f);
+        var specular = new Vector3(0.04f, 0.05f, 0.06f);
+        var normal = Vector3.Normalize(new Vector3(-1f, 0f, 1f));
+        SceneLight Viewing(PictureView view) => new([], SceneLight.PointShape.Zero, null)
+        {
+            Ambient = SceneAmbient.None,
+            SunColour = Vector3.One,
+            SunDirection = Vector3.UnitZ,
+            Exposure = 3f,
+            View = view,
+        };
+
+        Vector3 Shaded(PictureView view) => Viewing(view).Shade(albedo, Vector3.Zero, normal, -Vector3.UnitZ, 0.5f, true, specular, 0.5f);
+
+        Assert.Equal(albedo, Shaded(PictureView.Albedo));
+        Assert.Equal(specular, Shaded(PictureView.Specular));
+        AssertNear(new Vector3(MathF.Pow(0.5f, 2.2f)), Shaded(PictureView.Gloss));
+        AssertNear(new Vector3(MathF.Pow(0.5f, 2.2f)), Shaded(PictureView.Roughness));
+        float half = MathF.Sqrt(0.5f);
+        AssertNear(new Vector3(MathF.Pow((1f - half) / 2f, 2.2f), MathF.Pow(0.5f, 2.2f), MathF.Pow((1f + half) / 2f, 2.2f)), Shaded(PictureView.NormalFit));
+        AssertNear(new Vector3(0f, 0f, MathF.Pow(half, 2.2f)), Shaded(PictureView.NormalTrue));
+
+        // A gloss past one is the engine's saturate's; roughness is one less it.
+        AssertNear(Vector3.One, SceneLight.Channel(PictureView.Gloss, albedo, normal, specular, 1.7f));
+        AssertNear(Vector3.Zero, SceneLight.Channel(PictureView.Roughness, albedo, normal, specular, 1.7f));
+        Assert.True(Viewing(PictureView.Albedo).Channelled && !Viewing(PictureView.Picture).Channelled && !Viewing(PictureView.LightingOnly).Channelled);
+    }
+
+    /// <summary>The lighting view is the picture lit as ever, over the engine's grey of a quarter in place of every colour.</summary>
+    [Fact]
+    public void THELIGHTINGViewIsThePictureOverAQuarterGrey()
+    {
+        SceneLight Viewing(PictureView view) => new([], SceneLight.PointShape.Zero, null)
+        {
+            Ambient = SceneAmbient.None,
+            SunColour = new Vector3(1f, 0.5f, 0.25f),
+            SunDirection = Vector3.Normalize(new Vector3(1f, 0f, 1f)),
+            Exposure = 2f,
+            View = view,
+        };
+
+        var specular = new Vector3(0.04f);
+        Vector3 Shaded(PictureView view, Vector3 albedo) => Viewing(view).Shade(albedo, Vector3.Zero, -Vector3.UnitZ, -Vector3.UnitZ, 1f, true, specular, 0.6f);
+
+        Vector3 grey = new(SceneLight.LightingGrey);
+        Assert.Equal(Shaded(PictureView.Picture, grey), Shaded(PictureView.LightingOnly, new Vector3(0.9f, 0.1f, 0.3f)));
+        Assert.NotEqual(Shaded(PictureView.Picture, new Vector3(0.9f, 0.1f, 0.3f)), Shaded(PictureView.LightingOnly, new Vector3(0.9f, 0.1f, 0.3f)));
+    }
+
     // ---- the picture ----
 
     /// <summary>A floor under a point light is brightest under the light, and no light leaves the picture as it was.</summary>

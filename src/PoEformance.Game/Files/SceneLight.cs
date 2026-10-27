@@ -16,6 +16,44 @@ public enum SceneAmbient
 }
 
 /// <summary>
+/// What a picture lit the game's way shows - the lit picture, or one of the material's channels as the engine's own debug views show it.
+/// </summary>
+/// <remarks>
+/// THE ENGINE'S DEBUG VIEWS, ported from their graphs (Metadata/EngineGraphs/debug_*.fxgraph and renderer/nodes/debug.ffx, whole in a capture's
+/// render-debug.txt, v0.1.317) and named as the game's program lists them (v0.1.318's capture, the strings round the table of views): each hands
+/// DebugOutputColor a colour in place of the lit one - the albedo as it is, the specular colour, the gloss and one less it through RGBToSRGB
+/// (<c>pow(saturate(x), 2.2)</c>), the normal through TbnToRGB (<c>(normalize(n) + 1) / 2</c>) and RGBToSRGB, or as it is - while
+/// debug_lighting_only lights a grey of 0.25 in place of the albedo. In the game they are compiled for profiling builds alone
+/// (DebugOverlayIntensity is nought without PROFILING), so a player never sees them; here they are what the picture shows.
+/// </remarks>
+public enum PictureView
+{
+    /// <summary>"Final Color": the lit picture.</summary>
+    Picture,
+
+    /// <summary>"Albedo" (debug_albedo): the albedo, linear.</summary>
+    Albedo,
+
+    /// <summary>"Specular" (debug_specular): the specular colour, linear.</summary>
+    Specular,
+
+    /// <summary>"Gloss" (debug_gloss): <c>pow(saturate(gloss), 2.2)</c>.</summary>
+    Gloss,
+
+    /// <summary>"Roughness" (debug_roughness): <c>pow(1 - saturate(gloss), 2.2)</c>.</summary>
+    Roughness,
+
+    /// <summary>"World Normal (Fit)" (debug_normal): <c>pow((normalize(n) + 1) / 2, 2.2)</c> - black (-1, -1, -1), white (1, 1, 1).</summary>
+    NormalFit,
+
+    /// <summary>"World Normal (True)" (debug_normal2): <c>pow(saturate(n), 2.2)</c> - the normal as it is, its negative parts black.</summary>
+    NormalTrue,
+
+    /// <summary>"Lighting Only" (debug_lighting_only): the picture lit as it is, a grey of 0.25 in place of every albedo, no normal maps.</summary>
+    LightingOnly,
+}
+
+/// <summary>
 /// How a picture is lit the game's way: an area's sun, the player's light, a room's point lights, the environment cube and the exposure - each switchable.
 /// </summary>
 /// <remarks>
@@ -404,6 +442,15 @@ public sealed class SceneLight
     /// <summary>The environment's colour grade, applied after the exposure - see <see cref="ColourGrade"/>; null for none.</summary>
     public ColourGrade? Grade { get; init; }
 
+    /// <summary>What the picture shows - lit, or a material channel as the engine's debug views show it; see <see cref="PictureView"/>.</summary>
+    public PictureView View { get; init; }
+
+    /// <summary>Whether <see cref="View"/> shows a channel in place of the lit colour - every view but the picture and the lighting alone.</summary>
+    public bool Channelled => View is not (PictureView.Picture or PictureView.LightingOnly);
+
+    /// <summary>The grey debug_lighting_only lights in place of an albedo (an additive material's 0.01 is not told apart here).</summary>
+    public const float LightingGrey = 0.25f;
+
     /// <summary>
     /// How many texels the sun's shadow map is across - <see cref="ShadowMap.Usual"/>, or <see cref="ShadowMap.Coarse"/> while the sun is being moved.
     /// </summary>
@@ -537,6 +584,17 @@ public sealed class SceneLight
         Vector3 albedo, Vector3 place, Vector3 normal, Vector3 toEye, float sunShadow, bool glossy, Vector3 specular, float gloss, Vector3 waves,
         float environment = 1f)
     {
+        // A CHANNEL IN PLACE OF THE LIGHT, neither exposed nor graded: the engine's debug views write it straight to the pixel's colour.
+        if (Channelled)
+        {
+            return Channel(View, albedo, normal, specular, gloss);
+        }
+
+        if (View == PictureView.LightingOnly)
+        {
+            albedo = new Vector3(LightingGrey);
+        }
+
         Vector3 diffuse = Vector3.Zero;
         Vector3 shine = Vector3.Zero;
         Vector3 total = Vector3.Zero;
@@ -640,6 +698,35 @@ public sealed class SceneLight
         Vector3 exposed = (colour + shine) * Exposure;
         return Grade is null ? exposed : Grade.Apply(exposed);
     }
+
+    /// <summary>The views as the game's program names them, in <see cref="PictureView"/>'s order - the light panel's list.</summary>
+    public static IReadOnlyList<string> ViewNames { get; } =
+        ["Final Color", "Albedo", "Specular", "Gloss", "Roughness", "World Normal (Fit)", "World Normal (True)", "Lighting Only"];
+
+    /// <summary>
+    /// A channel as the engine's debug view writes it to the pixel - linear, neither exposed nor graded; nought for the picture and the lighting.
+    /// </summary>
+    /// <param name="view">The view.</param>
+    /// <param name="albedo">The surface's colour, linear.</param>
+    /// <param name="normal">The normal the picture is lit with, unit length.</param>
+    /// <param name="specular">The material's specular colour, linear.</param>
+    /// <param name="gloss">Its gloss.</param>
+    public static Vector3 Channel(PictureView view, Vector3 albedo, Vector3 normal, Vector3 specular, float gloss) => view switch
+    {
+        PictureView.Albedo => albedo,
+        PictureView.Specular => specular,
+        PictureView.Gloss => new Vector3(ToLinear(Math.Clamp(gloss, 0f, 1f))),
+        PictureView.Roughness => new Vector3(ToLinear(1f - Math.Clamp(gloss, 0f, 1f))),
+        PictureView.NormalFit => ToLinear((normal + Vector3.One) * 0.5f),
+        PictureView.NormalTrue => ToLinear(normal),
+        _ => Vector3.Zero,
+    };
+
+    /// <summary>RGBToSRGB, which despite its name takes a gamma of 2.2 OFF: <c>pow(saturate(x), 2.2)</c> - so the shown sRGB value is about x.</summary>
+    private static float ToLinear(float value) => MathF.Pow(Math.Clamp(value, 0f, 1f), 2.2f);
+
+    /// <inheritdoc cref="ToLinear(float)"/>
+    private static Vector3 ToLinear(Vector3 value) => new(ToLinear(value.X), ToLinear(value.Y), ToLinear(value.Z));
 
     /// <summary>The medium's scattering colour the engine pulls the water's colour towards on a crest - GetWaterMediumColor's <c>mult_color</c>.</summary>
     public static readonly Vector3 WaterScatterColour = new(0.3f, 0.9f, 0.5f);

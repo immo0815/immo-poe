@@ -98,7 +98,7 @@ public sealed partial class ModelGpu
             ShadowSize = map is null ? default : new Vector4(frame.PerUnit, 1f / frame.PerUnit, frame.Side, 0f),
             Ambient = new Int4(ambient, grade is null ? 0 : 1, ambient == 2 ? light.Cube!.Size : 0, light.PointCount),
             Cells = new Int4(cells.X, cells.Y, cells.Z, (cells.X * cells.Y * cells.Z) + 1),
-            Graded = grade is null ? default : new Int4(grade.Width, grade.Height, grade.Depth, 0),
+            Graded = new Int4(grade?.Width ?? 0, grade?.Height ?? 0, grade?.Depth ?? 0, (int)light.View),
         });
         context.VSSetConstantBuffer(2, _scene);
         context.PSSetConstantBuffer(2, _scene);
