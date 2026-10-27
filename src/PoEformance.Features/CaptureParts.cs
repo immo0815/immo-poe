@@ -418,8 +418,9 @@ public static class CaptureParts
             + "the tool's runs in under the hull: every object script (.ot, .otc) in the install searched for the water's blocking and "
             + "flow (SetWaterBlocking, SetWaterFlow, the program's script commands), each line naming them and the first scripts whole; "
             + "the area's loaded object types that reach one through what they extend; the shader sources naming the shore field; and "
-            + "the game's program's strings naming a shore, the water's blocking or a markup. Searches some tens of thousands of files "
-            + "on every core."),
+            + "the game's program's strings naming a shore, the water's blocking or a markup. And the sea's spray thrown up a quay: "
+            + "every effect graph, particle, effect package and trail naming the engine's spray triggers (CrashingSprayTrigger and its "
+            + "kin), whole, and every file naming one of those by name. Searches some tens of thousands of files on every core."),
 
         new(CountField, "Area files", "count field sweep", CaptureReport.CountFieldFile,
             "The loaded-file table walked for its count field instead of assuming one: what the area-change counter reads, how many "

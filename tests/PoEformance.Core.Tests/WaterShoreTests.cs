@@ -56,6 +56,29 @@ public class WaterShoreTests
         Assert.Contains("=== deepwater: 2 lines", report, StringComparison.Ordinal);
     }
 
+    /// <summary>A graph firing on the crashing waves' trigger, a particle effect naming that graph, and a script nothing names.</summary>
+    private static readonly Dictionary<string, byte[]> Spray = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Metadata/Effects/Graphs/Water/Crash.fxgraph"] = Encoding.UTF8.GetBytes("{\n  \"nodes\": [\n    { \"type\": \"CrashingSprayTrigger\" }\n  ]\n}\n"),
+        ["Metadata/Particles/Water/Drops.pet"] = Wide("version 3\nemitter\n{\n\tspawn_graph = \"Metadata/Effects/Graphs/Water/Crash.fxgraph\"\n}\n"),
+        ["Metadata/Terrain/Objects/Rock.ot"] = Wide("version 2\nextends \"nothing\"\n"),
+    };
+
+    [Fact]
+    public void THESPRAYSGraphIsFoundAndWhatNamesIt()
+    {
+        string text = CaptureWaterShore.Write(path => Spray.GetValueOrDefault(path), [.. Spray.Keys], null, null, null, null);
+        Assert.Contains("1 effect files the spray and 1 files name those", text, StringComparison.Ordinal);
+        Assert.Contains("##### Metadata/Effects/Graphs/Water/Crash.fxgraph", text, StringComparison.Ordinal);
+        Assert.Contains(
+            "Metadata/Particles/Water/Drops.pet  ->  spawn_graph = \"Metadata/Effects/Graphs/Water/Crash.fxgraph\"", text, StringComparison.Ordinal);
+
+        // THE CALLS STAY THE SHORE'S LIST: the graph's line among them, the particle's - found by name alone - not.
+        Assert.Equal(
+            [new CaptureWaterShore.Call("Metadata/Effects/Graphs/Water/Crash.fxgraph", "{ \"type\": \"CrashingSprayTrigger\" }")],
+            CaptureWaterShore.Calls(text));
+    }
+
     [Fact]
     public void ASTOPPEDSearchSaysSo()
     {

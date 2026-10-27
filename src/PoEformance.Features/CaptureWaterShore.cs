@@ -26,22 +26,34 @@ namespace PoEformance.Features;
 /// </remarks>
 public static class CaptureWaterShore
 {
+    /// <summary>
+    /// The words the sea's spray is found by (v0.1.300, asked for from the live client: the spray thrown up Port's quay): water.ffx's
+    /// fragments CrashingSprayTrigger, BreakingSprayTrigger and FloodSprayTrigger tell a particle effect when to fire, and no file read
+    /// so far names which effect - nor the environments' <c>water_splash_ao</c> what it draws. Declared before <see cref="Words"/>,
+    /// which a static initializer reads in order.
+    /// </summary>
+    public static IReadOnlyList<string> SprayWords { get; } = ["SprayTrigger", "CrashingSpray", "OceanSpray", "water_splash"];
+
     /// <summary>The words a file is found by, any case, ASCII or UTF-16.</summary>
     public static IReadOnlyList<string> Words { get; } =
     [
         "SetWaterBlocking", "SetWaterFlow", "WaterBlocking", "water_block", "water_flow",
         "ShoreDeep", "ShoreShallow", "IgnoreDeepWaterMarkup", "OceanMarkup", "ocean_markup", "deepwater",
+        .. SprayWords,
     ];
+
+    /// <summary>The kinds of file a spray's effect is made of, searched beside the rest: graphs, particles, effect packages and trails.</summary>
+    public static IReadOnlyList<string> EffectExtensions { get; } = [".fxgraph", ".pet", ".epk", ".trl"];
 
     /// <summary>The folder the install's walk keeps the files from.</summary>
     public const string Folder = "Metadata/";
 
     /// <summary>
-    /// The kinds of file the walk keeps under <see cref="Folder"/> - object scripts, ground and edge types, environments and the
-    /// masters' lists. Tiles, rooms and masters (<c>.tdt</c>, <c>.arm</c>, <c>.tsi</c>) come from the Tile Book's own walk.
+    /// The kinds of file the walk keeps under <see cref="Folder"/> - object scripts, ground and edge types, environments, the
+    /// masters' lists and the effects' files. Tiles, rooms and masters (<c>.tdt</c>, <c>.arm</c>, <c>.tsi</c>) come from the Tile Book's own walk.
     /// </summary>
     public static IReadOnlyList<string> Extensions { get; } =
-        [".ot", ".otc", ".gt", ".et", ".env", ".gft", ".rs", ".mtd", ".tst", ".ecf", ".tmo", ".ddt", ".dgr", ".tgt", ".toy"];
+        [".ot", ".otc", ".gt", ".et", ".env", ".gft", ".rs", ".mtd", ".tst", ".ecf", ".tmo", ".ddt", ".dgr", ".tgt", ".toy", .. EffectExtensions];
 
     /// <summary>The folder the data tables are walked from.</summary>
     public const string TableFolder = "Data/";
@@ -54,10 +66,13 @@ public static class CaptureWaterShore
         ["shoreline", "WaterBlocking", "water_blocking", "RiverMarkup", "MarkupFlow", "OceanMarkup", "ocean_markup", "JumpFlood", "jump_flood"];
 
     /// <summary>The words the program's strings are found by.</summary>
-    public static IReadOnlyList<string> ProgramWords { get; } = ["shore", "waterblock", "water_block", "setwater", "markup", "deepwater", "deep_water"];
+    public static IReadOnlyList<string> ProgramWords { get; } = ["shore", "waterblock", "water_block", "setwater", "markup", "deepwater", "deep_water", "spray", "splash"];
 
     /// <summary>Most found text files written whole.</summary>
     private const int MostWhole = 60;
+
+    /// <summary>Most effect files whose names the second pass looks for.</summary>
+    private const int MostEffects = 64;
 
     /// <summary>Largest a found text file is written whole.</summary>
     private const int LargestWhole = 96 * 1024;
@@ -206,6 +221,42 @@ public static class CaptureWaterShore
             }
         }
 
+        // THE SPRAY'S EFFECTS, ONE STEP ON: the effect files naming a spray word, whole, and every searched file naming one of them by
+        // its file's name - what fires them, and where.
+        string[] effects = [.. named.Where(path => EffectExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase)
+            && found[path].Lines.Any(line => SprayWords.Any(word => line.Contains(word, StringComparison.OrdinalIgnoreCase))))];
+        string[] effectNames = [.. effects.Select(Path.GetFileName).OfType<string>().Where(name => name.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).Take(MostEffects)];
+        ConcurrentDictionary<string, Hit> loading = new(StringComparer.OrdinalIgnoreCase);
+        if (effectNames.Length > 0 && !search.Stopped)
+        {
+            search.Begin(search.Of + paths.Length);
+            (byte[] Ascii, byte[] Wide)[] effectNeedles =
+                [.. effectNames.Select(name => (Encoding.ASCII.GetBytes(name.ToLowerInvariant()), Encoding.Unicode.GetBytes(name.ToLowerInvariant())))];
+            loading = Searched(read, paths, search, effectNeedles, effectNames).Found;
+        }
+
+        body.AppendLine().Append(CultureInfo.InvariantCulture, $"=== the spray's effect files ({string.Join(", ", EffectExtensions)}) naming {string.Join(", ", SprayWords)}, whole: {effects.Length}").AppendLine();
+        foreach (string path in effects.Take(MostWhole))
+        {
+            if (found[path].Text is { Length: <= LargestWhole } text)
+            {
+                Whole(path, text, body);
+            }
+            else
+            {
+                body.AppendLine().Append("##### ").Append(path).AppendLine("  (binary or too long - its lines above)");
+            }
+        }
+
+        body.AppendLine().Append(CultureInfo.InvariantCulture, $"=== the searched files naming one of those by its file's name ({string.Join(", ", effectNames)}): {loading.Count}").AppendLine();
+        foreach (string path in loading.Keys.Order(StringComparer.OrdinalIgnoreCase))
+        {
+            foreach (string line in loading[path].Lines)
+            {
+                body.Append("  ").Append(path).Append("  ->  ").AppendLine(line);
+            }
+        }
+
         string[] whole = [.. named.Where(path => found[path].Text is { Length: <= LargestWhole }).Take(MostWhole)];
         body.AppendLine().Append(CultureInfo.InvariantCulture, $"=== the found text files whole, the first {MostWhole} of at most {LargestWhole / 1024} KB: {whole.Length}").AppendLine();
         foreach (string path in whole)
@@ -217,7 +268,7 @@ public static class CaptureWaterShore
         string strings = Programs(programs, body);
         string head = string.Create(
             CultureInfo.InvariantCulture,
-            $"water shore: {named.Length} of {paths.Length} files and {tabled.Length} of {datas.Length} data tables name the water's blocking, flow, markup or deep water ({clock.Elapsed.TotalSeconds:0.0} s{stopped}), {reaching.Count} of the area's {types.Length} loaded object types reach one, {grounds} loaded ground types; {(sources < 0 ? "no shader sources" : $"{sources} shader sources name the shore field's words")}; {strings}");
+            $"water shore: {named.Length} of {paths.Length} files and {tabled.Length} of {datas.Length} data tables name the water's blocking, flow, markup, deep water or spray ({clock.Elapsed.TotalSeconds:0.0} s{stopped}), {effects.Length} effect files the spray and {loading.Count} files name those, {reaching.Count} of the area's {types.Length} loaded object types reach one, {grounds} loaded ground types; {(sources < 0 ? "no shader sources" : $"{sources} shader sources name the shore field's words")}; {strings}");
         return head + Environment.NewLine + body;
     }
 
@@ -270,6 +321,11 @@ public static class CaptureWaterShore
     /// on the bytes lowered: each word as ASCII and as UTF-16, whatever the file.
     /// </summary>
     private static (ConcurrentDictionary<string, Hit> Found, long Bytes, int Unread) Searched(Func<string, byte[]?> read, string[] paths, Search search)
+        => Searched(read, paths, search, Needles, Words);
+
+    /// <summary>The same, for other words.</summary>
+    private static (ConcurrentDictionary<string, Hit> Found, long Bytes, int Unread) Searched(
+        Func<string, byte[]?> read, string[] paths, Search search, (byte[] Ascii, byte[] Wide)[] needles, IReadOnlyList<string> words)
     {
         var found = new ConcurrentDictionary<string, Hit>(StringComparer.OrdinalIgnoreCase);
         long bytes = 0;
@@ -287,7 +343,7 @@ public static class CaptureWaterShore
                 }
 
                 mine += content.Length;
-                if (Lines(content) is { } hit)
+                if (Lines(content, needles, words) is { } hit)
                 {
                     found[paths[at]] = hit;
                     search.Hit();
@@ -303,7 +359,7 @@ public static class CaptureWaterShore
     }
 
     /// <summary>A file's lines naming a word, or null where it names none - text files by their lines, binary ones by the string round the word.</summary>
-    private static Hit? Lines(byte[] content)
+    private static Hit? Lines(byte[] content, (byte[] Ascii, byte[] Wide)[] needles, IReadOnlyList<string> words)
     {
         byte[] lowered = ArrayPool<byte>.Shared.Rent(content.Length);
         try
@@ -316,7 +372,7 @@ public static class CaptureWaterShore
             }
 
             bool any = false;
-            foreach ((byte[] ascii, byte[] wide) in Needles)
+            foreach ((byte[] ascii, byte[] wide) in needles)
             {
                 if (low.IndexOf(ascii) >= 0 || low.IndexOf(wide) >= 0)
                 {
@@ -337,13 +393,13 @@ public static class CaptureWaterShore
             if (text)
             {
                 string decoded = StatDescriptionFiles.Decode(content);
-                List<string> lines = [.. decoded.Split('\n').Select(line => line.Trim()).Where(line => Words.Any(word => line.Contains(word, StringComparison.OrdinalIgnoreCase))).Take(MostLines)];
+                List<string> lines = [.. decoded.Split('\n').Select(line => line.Trim()).Where(line => words.Any(word => line.Contains(word, StringComparison.OrdinalIgnoreCase))).Take(MostLines)];
                 return new Hit(lines, decoded);
             }
 
             var strings = new List<string>();
             var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach ((byte[] ascii, byte[] wide) in Needles)
+            foreach ((byte[] ascii, byte[] wide) in needles)
             {
                 Gather(content, low, ascii, wide: false, strings, seen);
                 Gather(content, low, wide, wide: true, strings, seen);

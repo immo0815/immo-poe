@@ -560,7 +560,10 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   (`OceanMarkupHunt`, run at the press) reads it and one hop beyond every pointer in it for lists whose length is a grid of the area's
   shape, each written as a map with its values beside the walkable grid and the corners' ground types; `ocean-markup-replay.txt` reads
   the maps back. Read it before the rule is changed. Still to come, asked for from the live client: the crests' crash against the
-  quay, the spray thrown up it (particles, CrashingSprayTrigger) and the foam running down its face.
+  quay, the spray thrown up it and the foam running down its face. The spray is a particle effect water.ffx's CrashingSprayTrigger,
+  BreakingSprayTrigger and FloodSprayTrigger fire, named in no file read: from v0.1.300 `water-shore.txt` also searches every effect
+  graph, particle, effect package and trail (`CaptureWaterShore.EffectExtensions`) for the spray's words, writes those found whole,
+  and searches again for every file naming one of them by name - read it before the spray is drawn.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
