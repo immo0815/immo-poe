@@ -170,6 +170,9 @@ public static class CaptureParts
     /// <summary>What the engine's shore field is made from: every object script naming the water's blocking or flow, the sources and strings.</summary>
     public const string WaterShore = "water-shore";
 
+    /// <summary>Every string the game's program, data tables and paths hold naming a debug, cheat, test, console or logging function.</summary>
+    public const string DebugStrings = "debug-strings";
+
     /// <summary>The terrain and what it points to searched at the press for the grid the engine's ocean markup is made from.</summary>
     public const string OceanMarkup = "ocean-markup";
 
@@ -427,6 +430,13 @@ public static class CaptureParts
             + "the engine's spray trigger graphs (CrashingSprayTrigger and its kin) whole, then hop by hop what names them - the "
             + "materials, the particles and trails naming those, the effect packages, objects and environments naming those. "
             + "Searches some tens of thousands of files on every core."),
+
+        new(DebugStrings, "Area files", "debug strings", CaptureReport.DebugStringsFile,
+            "What the game left in of its debugging: every string its own program holds (ASCII and UTF-16, with its section and "
+            + "address), every string of its data tables and every install path that names a debug or dbg function, a cheat, a "
+            + "developer's or test switch, the console or a visualisation (show_, draw_, toggle, wireframe, profiler, overlay), or an "
+            + "assert, a trace, a dump or a log - grouped so, the words beside each. The program is searched on three cores, the "
+            + "tables on every core; the offline reader sorts them by shape (C++ type names, identifiers, chat commands, paths)."),
 
         new(CountField, "Area files", "count field sweep", CaptureReport.CountFieldFile,
             "The loaded-file table walked for its count field instead of assuming one: what the area-change counter reads, how many "
