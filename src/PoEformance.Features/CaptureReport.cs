@@ -126,6 +126,9 @@ public static class CaptureReport
     /// <summary>What the install says the engine's shore field is made from - see CaptureWaterShore.</summary>
     public const string WaterShoreFile = "water-shore.txt";
 
+    /// <summary>The program's, the tables' and the paths' strings naming a debug function - see CaptureDebugStrings.</summary>
+    public const string DebugStringsFile = "debug-strings.txt";
+
     /// <summary>The terrain searched for the engine's ocean markup at the press - see OceanMarkupHunt.</summary>
     public const string OceanMarkupFile = "ocean-markup.txt";
 

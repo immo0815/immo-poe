@@ -432,7 +432,7 @@ public sealed class BundleIndex
     }
 
     /// <summary>One place a walk keeps paths from: a folder, what a kept path may end with, and words one of which it must hold.</summary>
-    /// <param name="Folder">A path prefix, e.g. <c>Shaders/</c>. EMPTY MEANS ANYWHERE, and then an extension is required.</param>
+    /// <param name="Folder">A path prefix, e.g. <c>Shaders/</c>. EMPTY MEANS ANYWHERE, and then an extension or a word is required.</param>
     /// <param name="Extensions">What a kept path may end with. An empty one keeps every path in the folder.</param>
     /// <param name="Words">
     /// Null or empty for any path; else a path is kept only where it holds one of them, whatever their case - tested
@@ -447,8 +447,8 @@ public sealed class BundleIndex
     /// THE TILE BOOK'S WALK WANTS TWO TREES: its tiles under <c>Metadata/Terrain/</c>, and the shader
     /// sources a tile's ground dump searches, which are under <c>Shaders/</c> or anywhere by their
     /// extension. A second walk would find nothing - the path text is dropped after the walks the
-    /// session announced - so the places are one call. A place ANYWHERE must name an extension: an
-    /// empty folder with an empty extension would keep all four million paths, and is skipped.
+    /// session announced - so the places are one call. A place ANYWHERE must name an extension or a
+    /// word: an empty folder with an empty extension and no words would keep all four million paths, and is skipped.
     /// </remarks>
     /// <param name="decompress">How to undo Oodle - the same one the bundles are read with.</param>
     /// <param name="places">Where paths are kept from.</param>
@@ -513,8 +513,9 @@ public sealed class BundleIndex
             ends[one] = [.. (place.Extensions ?? []).Select(end => System.Text.Encoding.UTF8.GetBytes(end ?? string.Empty))];
             words[one] = [.. (place.Words ?? []).Where(word => !string.IsNullOrEmpty(word)).Select(word => System.Text.Encoding.UTF8.GetBytes(word.ToLowerInvariant()))];
 
-            // ANYWHERE KEEPS ONLY WHAT AN EXTENSION NAMES - an empty one there would match every path.
-            if (starts[one].Length == 0)
+            // ANYWHERE KEEPS ONLY WHAT AN EXTENSION NAMES - an empty one there would match every path - or what holds one of its
+            // words, which keep a few among the millions as surely (the capture's debug strings, every path naming a debug word).
+            if (starts[one].Length == 0 && words[one].Length == 0)
             {
                 ends[one] = [.. ends[one].Where(end => end.Length > 0)];
             }
