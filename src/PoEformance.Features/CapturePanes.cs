@@ -200,6 +200,12 @@ public static class CapturePanes
             .Append(CultureInfo.InvariantCulture,
                 $"the shore's distance {least:0.###} to {most:0.###} colour units, one being {ShoreField.Reach:0} - CHOSEN, the engine makes its own; picture {picture}, ")
             .AppendLine("row nought the least y, land brown by how far in, water blue by how far out, the shoreline white");
+        body.Append(CultureInfo.InvariantCulture,
+                $"  way in	the distance out to sea the waves run down (ocean_dist): the shore's in the open sea, {ShoreField.Deep:0} or more from land or at the field's edge, and inside it the way a wave travels from there through the water - CHOSEN until the engine's OceanMarkupField is read; ")
+            .Append(CultureInfo.InvariantCulture,
+                $"{shore.BlockedCells} water cells in the waves' way (of {shore.BlockingTriangles} solid triangles asked: a cell where one crosses the water's surface, its top above and its bottom under), {shore.Travelled} cells' way in shorter than their shore's distance, {shore.Unreached} reached by no way; ")
+            .Append(CultureInfo.InvariantCulture, $"picture {Path.ChangeExtension(picture, null)}-way.png, ")
+            .AppendLine($"water by its way in, a white line every {WayStep:0} units - where the game's crests should run - the cells in the way red, land brown");
         Beach(body, model);
     }
 
@@ -274,10 +280,56 @@ public static class CapturePanes
                 rgba[(at * 4) + 3] = 255;
             }
 
-            pictures.Add((panes.Count > 1 ? $"shore-{pane.Book}.png" : ShoreFile, new GamePicture(shore.Width, shore.Height, rgba)));
+            string name = panes.Count > 1 ? $"shore-{pane.Book}.png" : ShoreFile;
+            pictures.Add((name, new GamePicture(shore.Width, shore.Height, rgba)));
+            pictures.Add((Path.ChangeExtension(name, null) + "-way.png", Way(shore)));
         }
 
         return pictures;
+    }
+
+    /// <summary>The step the way-in picture draws its lines at, world units - a quarter of the engine's field wave.</summary>
+    private const float WayStep = 250f;
+
+    /// <summary>
+    /// A shore's way in as a picture: water shaded by its distance out to sea, a white line wherever it crosses a whole <see cref="WayStep"/>
+    /// - the crests' lines - the cells in the waves' way red, land brown.
+    /// </summary>
+    private static GamePicture Way(ShoreField shore)
+    {
+        ReadOnlySpan<float> texels = shore.Texels;
+        int width = shore.Width, height = shore.Height;
+        var ocean = new float[width * height];
+        for (var at = 0; at < ocean.Length; at++)
+        {
+            ocean[at] = (1f - texels[(at * 2) + 1]) * ShoreField.Reach;
+        }
+
+        var rgba = new byte[width * height * 4];
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                int at = (y * width) + x;
+                bool land = texels[at * 2] < 0f;
+                float here = ocean[at];
+                float band = MathF.Floor(here / WayStep);
+                bool line = !land
+                    && ((x + 1 < width && texels[(at + 1) * 2] >= 0f && MathF.Floor(ocean[at + 1] / WayStep) != band)
+                        || (y + 1 < height && texels[(at + width) * 2] >= 0f && MathF.Floor(ocean[at + width] / WayStep) != band));
+                float shade = Math.Clamp(here / ShoreField.Reach, -1f, 1f);
+                (byte r, byte g, byte b) = shore.InTheWay(at) ? ((byte)220, (byte)40, (byte)40)
+                    : land ? ((byte)110, (byte)75, (byte)35)
+                    : line ? ((byte)255, (byte)255, (byte)255)
+                    : ((byte)20, (byte)Math.Clamp(60 + (100 * (1f - shade)), 0, 255), (byte)Math.Clamp(110 + (145 * (1f - shade)), 0, 255));
+                rgba[at * 4] = r;
+                rgba[(at * 4) + 1] = g;
+                rgba[(at * 4) + 2] = b;
+                rgba[(at * 4) + 3] = 255;
+            }
+        }
+
+        return new GamePicture(width, height, rgba);
     }
 
     /// <summary>

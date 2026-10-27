@@ -17,9 +17,20 @@ namespace PoEformance.Game.Files;
 /// otherwise; the shore's distance is each water cell's distance to the nearest land (exact, the grid's own Euclidean
 /// transform), negative on land by its distance to the water; a distance of <see cref="Reach"/> is one colour unit, so the
 /// swell's 25 periods over 2 pi put its crests <see cref="Reach"/> / 3.98 apart - 500, the beach waves' own length in
-/// effects.ffx; the distance out to sea is one less the shore's, so the swell rolls in square to the nearest shore; the
-/// length along the shore is nought (the swell's angle is nought where a file sets none) and the strength one, a beach -
-/// a rocky shore (negative, the clashing state) is not told apart.
+/// effects.ffx; the length along the shore is nought (the swell's angle is nought where a file sets none) and the strength one,
+/// a beach - a rocky shore (negative, the clashing state) is not told apart.
+///
+/// THE DISTANCE OUT TO SEA IS THE WAVES' WAY IN (v0.1.295, asked for from the live client with four in-game videos). Until then it
+/// was one less the shore's, so the swell rolled in square to the nearest shore - and in under Port's ship and out of its other
+/// side, while the game's crests run along the channel between the hull and the quay and bend round the pier's end. The engine
+/// keeps the two apart (water.ffx's ShoreData: <c>shore_dist</c> from red, <c>ocean_dist</c> from blue) and sends its waves down the
+/// slope of the second (GetFieldWaveGeom's <c>planar_wave_dir = -ocean_dist.yz</c>, the swell's tide phase alike), made by its
+/// <c>OceanMarkupField</c> from a marking of deep water and land no file read holds (water-shore.txt looks for it). CHOSEN until it
+/// is read: the distance out to sea is the shore's where the water lies <see cref="Deep"/> or more from land or at the field's edge
+/// - the open sea - and inside that, the open sea's less the way a wave travels from it through the water (<see cref="Travelled"/>):
+/// the same as the shore's along a plain coast, smaller in a channel the farther in, and bent round what stands in the way. In the
+/// way stands the land, and whatever crosses the water's surface (<c>blocking</c> in <see cref="Of"/>) - a hull, a post, a rock -
+/// but not a bridge or a gangway over it.
 /// </remarks>
 public sealed class ShoreField
 {
@@ -38,15 +49,26 @@ public sealed class ShoreField
     /// <summary>The engine's step for the field's slopes: forward differences 30 units apart (GetShorePhaseFields).</summary>
     public const float Eps = 30f;
 
+    /// <summary>How far from land the water is the open sea the waves come in from, in world units - CHOSEN, one wave of the engine's field waves (<c>field_wave_length</c>).</summary>
+    public const float Deep = 1000f;
+
     private readonly float[] _texels;
 
     /// <summary>Each cell's ground where it lies in the beach's band, NaN elsewhere - see <see cref="Beach"/>.</summary>
     private readonly float[] _beach;
 
+    /// <summary>Whether each cell stood in the waves' way - see <see cref="Of"/>.</summary>
+    private readonly bool[] _blocked;
+
     private ShoreField(
         float left, float top, float cell, int width, int height, float[] texels, float level, int land, int waterTriangles, int groundTriangles,
-        int standingTriangles, int standingCells, float[] beach)
+        int standingTriangles, int standingCells, float[] beach, int blockingTriangles, int blockedCells, int travelled, int unreached, bool[] blocked)
     {
+        _blocked = blocked;
+        BlockingTriangles = blockingTriangles;
+        BlockedCells = blockedCells;
+        Travelled = travelled;
+        Unreached = unreached;
         _beach = beach;
         StandingTriangles = standingTriangles;
         StandingCells = standingCells;
@@ -79,6 +101,21 @@ public sealed class ShoreField
 
     /// <summary>How many cells were land by what stands in the sea alone, the ground under them being water.</summary>
     public int StandingCells { get; }
+
+    /// <summary>How many triangles of what may stand in the waves' way were asked - see <see cref="Of"/>.</summary>
+    public int BlockingTriangles { get; }
+
+    /// <summary>How many water cells stood in the waves' way: something crosses the water's surface there.</summary>
+    public int BlockedCells { get; }
+
+    /// <summary>How many water cells took their distance out to sea from the way in, short of the open sea's own.</summary>
+    public int Travelled { get; }
+
+    /// <summary>How many water cells no way from the open sea reached - their distance out to sea is the shore's.</summary>
+    public int Unreached { get; }
+
+    /// <summary>Whether a cell, row by row, stood in the waves' way: something crosses the water's surface there.</summary>
+    public bool InTheWay(int cell) => _blocked[cell];
 
     /// <summary>The box's least x.</summary>
     public float Left { get; }
@@ -144,13 +181,15 @@ public sealed class ShoreField
     /// <param name="water">Whether a shape is water.</param>
     /// <param name="ground">Whether a shape is the room's ground.</param>
     /// <param name="standing">Whether a shape stands in the sea and the sea breaks on it - land where it rises above the water, as the ground is; null for none.</param>
+    /// <param name="blocking">Whether a shape may stand in the waves' way - in it where it crosses the water's surface, its top above and its bottom under; null for none.</param>
     /// <remarks>
     /// WHAT STANDS IN THE SEA (v0.1.236, asked for from the live client: "the waves run on over the rocks in the game, through them
     /// here"): CHOSEN, the shapes whose own material carries the sea's spray (CrashingFoamSurface) - the game's rocks by the sea and
     /// the pier's stones, authored to have the sea crash on them; the ship's timbers carry none, and the game draws no breaking
     /// round its hull. The engine marks its shore in a field it makes itself; which of the room's doodads it counts is read nowhere.
     /// </remarks>
-    public static ShoreField? Of(SkinnedMesh mesh, Func<int, bool> water, Func<int, bool> ground, Func<int, bool>? standing = null)
+    public static ShoreField? Of(
+        SkinnedMesh mesh, Func<int, bool> water, Func<int, bool> ground, Func<int, bool>? standing = null, Func<int, bool>? blocking = null)
     {
         ArgumentNullException.ThrowIfNull(mesh);
         ArgumentNullException.ThrowIfNull(water);
@@ -225,17 +264,270 @@ public sealed class ShoreField
 
         float[] toLand = Distances(land, width, height, true);
         float[] toWater = Distances(land, width, height, false);
+
+        // IN THE WAVES' WAY: a water cell something crosses the surface of, its top above the water and its bottom under.
+        var blocked = new bool[land.Length];
+        int blockingTriangles = 0, blockedCells = 0;
+        if (blocking is not null)
+        {
+            (float[] top, float[] bottom) = Spanned(mesh, blocking, least, cell, width, height, out blockingTriangles);
+            for (var at = 0; at < blocked.Length; at++)
+            {
+                float surface = float.IsNaN(waterTop[at]) ? level : waterTop[at];
+                blocked[at] = !land[at] && !float.IsNaN(top[at]) && top[at] < surface - 1f && bottom[at] > surface + 1f;
+                blockedCells += blocked[at] ? 1 : 0;
+            }
+        }
+
+        var shores = new float[land.Length];
+        for (var at = 0; at < land.Length; at++)
+        {
+            shores[at] = (land[at] ? -toWater[at] : toLand[at]) * cell;
+        }
+
+        float[] oceans = Oceans(shores, land, blocked, width, height, cell, out int travelled, out int unreached);
         var texels = new float[width * height * 2];
         for (var at = 0; at < land.Length; at++)
         {
-            float distance = land[at] ? -toWater[at] : toLand[at];
-            float shore = Math.Clamp(distance * cell / Reach, -1f, 1f);
-            texels[at * 2] = shore;
-            texels[(at * 2) + 1] = 1f - shore;
+            texels[at * 2] = Math.Clamp(shores[at] / Reach, -1f, 1f);
+            texels[(at * 2) + 1] = 1f - Math.Clamp(oceans[at] / Reach, -1f, 1f);
         }
 
         return new ShoreField(
-            least.X, least.Y, cell, width, height, texels, level, lands, waterTriangles, groundTriangles, standingTriangles, standingCells, beach);
+            least.X, least.Y, cell, width, height, texels, level, lands, waterTriangles, groundTriangles, standingTriangles, standingCells, beach,
+            blockingTriangles, blockedCells, travelled, unreached, blocked);
+    }
+
+    /// <summary>
+    /// Each cell's distance out to sea, world units: the shore's on land and in the open sea - <see cref="Deep"/> or more from land,
+    /// or at the field's edge - and inside it the open sea's less the shortest way through the water from it, round what stands in
+    /// the way; a cell in the way takes its water neighbours' way without passing it on. See the class's remarks.
+    /// </summary>
+    /// <remarks>
+    /// A SHORTEST PATH OVER THE GRID'S SIXTEEN WAYS (the eight neighbours and the knight's moves, a step never cutting a corner past a
+    /// cell in the way): one cell, the square root of two or of five - within two percent of the straight line, where eight ways
+    /// alone would draw the crests as octagons, eight percent off.
+    /// </remarks>
+    private static float[] Oceans(float[] shores, bool[] land, bool[] blocked, int width, int height, float cell, out int travelled, out int unreached)
+    {
+        int count = shores.Length;
+        var way = new float[count];
+        Array.Fill(way, float.PositiveInfinity);
+        var heap = new CellHeap(count);
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                int at = (y * width) + x;
+                bool edge = x == 0 || y == 0 || x == width - 1 || y == height - 1;
+                if (!land[at] && !blocked[at] && (shores[at] >= Deep || edge))
+                {
+                    // THE WAY IS KEPT AS THE OPEN SEA'S DISTANCE LESS IT, NEGATED, so the shortest path's sums hold: nought at Deep.
+                    way[at] = -shores[at];
+                    heap.Push(at, way[at]);
+                }
+            }
+        }
+
+        ReadOnlySpan<(int X, int Y, float Cost)> steps =
+        [
+            (1, 0, 1f), (-1, 0, 1f), (0, 1, 1f), (0, -1, 1f),
+            (1, 1, 1.41421356f), (1, -1, 1.41421356f), (-1, 1, 1.41421356f), (-1, -1, 1.41421356f),
+            (1, 2, 2.23606798f), (2, 1, 2.23606798f), (-1, 2, 2.23606798f), (-2, 1, 2.23606798f),
+            (1, -2, 2.23606798f), (2, -1, 2.23606798f), (-1, -2, 2.23606798f), (-2, -1, 2.23606798f),
+        ];
+        var done = new bool[count];
+        while (heap.Pop(out int at, out float reached))
+        {
+            if (done[at] || reached > way[at])
+            {
+                continue;
+            }
+
+            done[at] = true;
+            if (blocked[at])
+            {
+                // IN THE WAY: it takes a way, so the field runs on smoothly under the hull, and passes none on.
+                continue;
+            }
+
+            int x = at % width, y = at / width;
+            foreach ((int dx, int dy, float cost) in steps)
+            {
+                int nx = x + dx, ny = y + dy;
+                if (nx < 0 || ny < 0 || nx >= width || ny >= height)
+                {
+                    continue;
+                }
+
+                int next = (ny * width) + nx;
+                if (land[next] || done[next] || !Clear(land, blocked, width, x, y, dx, dy))
+                {
+                    continue;
+                }
+
+                float through = reached + (cost * cell);
+                if (through < way[next])
+                {
+                    way[next] = through;
+                    heap.Push(next, through);
+                }
+            }
+        }
+
+        var oceans = new float[count];
+        travelled = 0;
+        unreached = 0;
+        for (var at = 0; at < count; at++)
+        {
+            if (land[at])
+            {
+                oceans[at] = shores[at];
+            }
+            else if (float.IsPositiveInfinity(way[at]))
+            {
+                oceans[at] = shores[at];
+                unreached++;
+            }
+            else
+            {
+                oceans[at] = -way[at];
+                travelled += oceans[at] < shores[at] - (0.5f * cell) ? 1 : 0;
+            }
+        }
+
+        return oceans;
+    }
+
+    /// <summary>Whether a step passes no cell in the way: a diagonal's two sides, a knight's move's two cells beside its line.</summary>
+    private static bool Clear(bool[] land, bool[] blocked, int width, int x, int y, int dx, int dy)
+    {
+        bool Open(int cx, int cy)
+        {
+            int at = (cy * width) + cx;
+            return !land[at] && !blocked[at];
+        }
+
+        int ax = Math.Abs(dx), ay = Math.Abs(dy);
+        if (ax + ay == 1)
+        {
+            return true;
+        }
+
+        if (ax == 1 && ay == 1)
+        {
+            return Open(x + dx, y) && Open(x, y + dy);
+        }
+
+        // A KNIGHT'S MOVE crosses the two cells beside the middle of its line.
+        return ax == 2
+            ? Open(x + (dx / 2), y) && Open(x + (dx / 2), y + dy)
+            : Open(x, y + (dy / 2)) && Open(x + dx, y + (dy / 2));
+    }
+
+    /// <summary>A least-first heap of cells by their way - pushed again rather than moved, the stale ones skipped on the way out.</summary>
+    private sealed class CellHeap(int capacity)
+    {
+        private int[] _cells = new int[Math.Max(16, capacity)];
+        private float[] _keys = new float[Math.Max(16, capacity)];
+        private int _count;
+
+        public void Push(int cell, float key)
+        {
+            if (_count == _cells.Length)
+            {
+                Array.Resize(ref _cells, _count * 2);
+                Array.Resize(ref _keys, _count * 2);
+            }
+
+            int at = _count++;
+            while (at > 0)
+            {
+                int parent = (at - 1) >> 1;
+                if (_keys[parent] <= key)
+                {
+                    break;
+                }
+
+                _cells[at] = _cells[parent];
+                _keys[at] = _keys[parent];
+                at = parent;
+            }
+
+            _cells[at] = cell;
+            _keys[at] = key;
+        }
+
+        public bool Pop(out int cell, out float key)
+        {
+            if (_count == 0)
+            {
+                cell = -1;
+                key = 0f;
+                return false;
+            }
+
+            cell = _cells[0];
+            key = _keys[0];
+            int last = --_count;
+            int lastCell = _cells[last];
+            float lastKey = _keys[last];
+            int at = 0;
+            while (true)
+            {
+                int child = (at << 1) + 1;
+                if (child >= last)
+                {
+                    break;
+                }
+
+                if (child + 1 < last && _keys[child + 1] < _keys[child])
+                {
+                    child++;
+                }
+
+                if (_keys[child] >= lastKey)
+                {
+                    break;
+                }
+
+                _cells[at] = _cells[child];
+                _keys[at] = _keys[child];
+                at = child;
+            }
+
+            _cells[at] = lastCell;
+            _keys[at] = lastKey;
+            return true;
+        }
+    }
+
+    /// <summary>The least and the most z of a set of shapes at each cell's middle, NaN where none covers it - its top and its bottom.</summary>
+    private static (float[] Top, float[] Bottom) Spanned(SkinnedMesh mesh, Func<int, bool> wanted, Vector2 least, float cell, int width, int height, out int triangles)
+    {
+        var top = new float[width * height];
+        var bottom = new float[width * height];
+        Array.Fill(top, float.NaN);
+        Array.Fill(bottom, float.NaN);
+        triangles = 0;
+        for (var shape = 0; shape < mesh.Shapes.Count; shape++)
+        {
+            if (!wanted(shape))
+            {
+                continue;
+            }
+
+            MeshShape one = mesh.Shapes[shape];
+            int end = Math.Min(one.From + one.Count, mesh.Indices.Length) - 2;
+            for (int at = one.From; at < end; at += 3)
+            {
+                Vector3 a = mesh.Positions[mesh.Indices[at]], b = mesh.Positions[mesh.Indices[at + 1]], c = mesh.Positions[mesh.Indices[at + 2]];
+                Laid(top, a, b, c, least, cell, width, height, bottom);
+                triangles++;
+            }
+        }
+
+        return (top, bottom);
     }
 
     /// <summary>How far above the water the beach's sheet reaches, in world units - CHOSEN, so nothing is laid on a pier or a quay.</summary>
@@ -362,8 +654,8 @@ public sealed class ShoreField
         return top;
     }
 
-    /// <summary>One triangle's least z written into the cells whose middles it covers.</summary>
-    private static void Laid(float[] top, Vector3 a, Vector3 b, Vector3 c, Vector2 least, float cell, int width, int height)
+    /// <summary>One triangle's least z written into the cells whose middles it covers - and its most into <paramref name="bottom"/> where one is given.</summary>
+    private static void Laid(float[] top, Vector3 a, Vector3 b, Vector3 c, Vector2 least, float cell, int width, int height, float[]? bottom = null)
     {
         float area = ((b.X - a.X) * (c.Y - a.Y)) - ((c.X - a.X) * (b.Y - a.Y));
         if (MathF.Abs(area) < 1e-6f)
@@ -394,6 +686,11 @@ public sealed class ShoreField
                 if (float.IsNaN(top[at]) || z < top[at])
                 {
                     top[at] = z;
+                }
+
+                if (bottom is not null && (float.IsNaN(bottom[at]) || z > bottom[at]))
+                {
+                    bottom[at] = z;
                 }
             }
         }

@@ -172,8 +172,11 @@ internal sealed class CaptureKey
     /// <summary>The install's paths naming a wobble (CaptureWobble.Words under CaptureWobble.Folders), as its walk found them - empty until it has run.</summary>
     public IReadOnlyList<string> WobblePaths { get; set; } = [];
 
-    /// <summary>The install's object scripts (CaptureWaterShore.Extensions under its Folder), as its walk found them - empty until it has run.</summary>
-    public IReadOnlyList<string> ObjectScripts { get; set; } = [];
+    /// <summary>The install's files the water shore part searches (CaptureWaterShore), as the walks found them - empty until they have run.</summary>
+    public IReadOnlyList<string> ShoreFiles { get; set; } = [];
+
+    /// <summary>The install's data tables (CaptureWaterShore.TableExtension under its TableFolder), as the walk found them - empty until it has run.</summary>
+    public IReadOnlyList<string> DataTables { get; set; } = [];
 
     /// <summary>
     /// Starts the light hunt for the area's own environment and hands back its whole report, or null where nothing can search - the light-hunt part. Set by whoever owns the search.
@@ -351,9 +354,11 @@ internal sealed class CaptureKey
         }
 
         var hunt = new FloatHuntProgress();
-        var run = new Run(folder, local, snapshot, client, now, new HashSet<string>(_off, StringComparer.Ordinal), Progress(folder, snapshot, hunt, now))
+        var shore = new CaptureWaterShore.Search();
+        var run = new Run(folder, local, snapshot, client, now, new HashSet<string>(_off, StringComparer.Ordinal), Progress(folder, snapshot, hunt, shore, now))
         {
             Hunt = hunt,
+            Shore = shore,
             Overlay = On(CaptureParts.OverlayPicture) ? ScreenCapture.Grab(client.X, client.Y, client.Width, client.Height) : null,
             Loaded = _loaded(),
             Masters = _masters(),
@@ -441,7 +446,7 @@ internal sealed class CaptureKey
     /// THE LONG ONES SAY WHAT THEY ARE DOING: the rooms how many are read, the memory hunt how much of its budget it has looked
     /// through and how fast, with a stop that keeps what it found; the recording that it closes itself.
     /// </remarks>
-    private CaptureProgress Progress(string folder, WorldSnapshot snapshot, FloatHuntProgress hunt, long now)
+    private CaptureProgress Progress(string folder, WorldSnapshot snapshot, FloatHuntProgress hunt, CaptureWaterShore.Search shore, long now)
     {
         var progress = new CaptureProgress(folder, snapshot.Area.Name.Length > 0 ? snapshot.Area.Name : snapshot.Area.Id, now);
         if (WantsRooms(_off))
@@ -467,6 +472,12 @@ internal sealed class CaptureKey
                     Live = () => Hunting(hunt, progress.Of(CaptureReport.LightHuntFile)),
                     Fraction = () => hunt.Budget > 0 ? (float)((double)hunt.Bytes / hunt.Budget) : 0f,
                     Stop = hunt.Stop,
+                },
+                CaptureParts.WaterShore => new CaptureStep(part.File, part.Label)
+                {
+                    Live = () => shore.Of > 0 ? $"{shore.Done:N0} of {shore.Of:N0} files searched, {shore.Found:N0} name a word" : "waiting for its turn",
+                    Fraction = () => shore.Of > 0 ? (float)((double)shore.Done / shore.Of) : 0f,
+                    Stop = shore.Stop,
                 },
                 _ when CaptureParts.RunsAtPress(part.Key) && _workProgress.TryGetValue(part.Key, out CaptureWorkProgress? work) => new CaptureStep(part.File, part.Label)
                 {
@@ -567,14 +578,15 @@ internal sealed class CaptureKey
         IReadOnlyList<string> environments = Environments;
         IReadOnlyList<string> waterTextures = WaterTextures;
         IReadOnlyList<string> wobblePaths = WobblePaths;
-        IReadOnlyList<string> objectScripts = ObjectScripts;
-        run.Writing = Task.Run(() => Write(run, read, version, shaders, environments, waterTextures, wobblePaths, objectScripts));
+        IReadOnlyList<string> shoreFiles = ShoreFiles;
+        IReadOnlyList<string> dataTables = DataTables;
+        run.Writing = Task.Run(() => Write(run, read, version, shaders, environments, waterTextures, wobblePaths, shoreFiles, dataTables));
     }
 
     /// <summary>Every ticked part of the capture, each on its own so one failing loses only itself.</summary>
     private static void Write(
         Run run, Func<string, byte[]?>? read, string version, IReadOnlyList<string> shaders, IReadOnlyList<string> environments,
-        IReadOnlyList<string> waterTextures, IReadOnlyList<string> wobblePaths, IReadOnlyList<string> objectScripts)
+        IReadOnlyList<string> waterTextures, IReadOnlyList<string> wobblePaths, IReadOnlyList<string> shoreFiles, IReadOnlyList<string> dataTables)
     {
         var parts = new List<string>();
 
@@ -931,7 +943,7 @@ internal sealed class CaptureKey
         {
             if (read is null)
             {
-                Not(CaptureReport.WaterShoreFile, "no install to read the object scripts from");
+                Not(CaptureReport.WaterShoreFile, "no install to read the files from");
             }
             else
             {
@@ -940,7 +952,7 @@ internal sealed class CaptureKey
                     string? install = GameInstall.Find(null);
                     string[] programs = install is null ? []
                         : [.. GameInstall.Names.Select(name => Path.Combine(install, name + ".exe")).Where(File.Exists)];
-                    string text = CaptureWaterShore.Write(read, objectScripts, run.Loaded, shaders, programs);
+                    string text = CaptureWaterShore.Write(read, shoreFiles, dataTables, run.Loaded, shaders, programs, run.Shore);
                     File.WriteAllText(At(CaptureReport.WaterShoreFile), text);
                     return text[..text.IndexOf('\n')].TrimEnd('\r');
                 });
@@ -1386,6 +1398,9 @@ internal sealed class CaptureKey
 
         /// <summary>The light hunt's progress, and its stop - the window's and the writer's.</summary>
         public FloatHuntProgress? Hunt { get; init; }
+
+        /// <summary>The water shore part's search, and its stop - the window's and the writer's.</summary>
+        public CaptureWaterShore.Search? Shore { get; init; }
 
         public DateTime Local { get; } = local;
 

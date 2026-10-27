@@ -457,6 +457,14 @@ public sealed partial class ShadeProgram
         /// <see cref="BeachColour"/>.
         /// </summary>
         Beach,
+
+        /// <summary>
+        /// The engine's field waves (CrashingWavesFragment) at A's place, B's clock and the depth the view crosses (x and y), over C's
+        /// shore with D's swell - its w one where they are drawn: Extra <see cref="FieldColour"/> hands their foam's colour and how much
+        /// it covers, <see cref="FieldNormal"/> E's waves turned by their slope. THE CARD'S ALONE (DECIDED from the live client): the
+        /// processor draws none - its colour nought and its normal E's - see <see cref="Water"/>.
+        /// </summary>
+        Field,
     }
 
     /// <summary>The stages a colour is assembled across, in the order they are run.</summary>
@@ -1355,6 +1363,11 @@ public sealed partial class ShadeProgram
 
                 case Op.Beach:
                     r[step.To] = corner >= 0 ? Vector4.Zero : Beached(r, step);
+                    break;
+
+                // THE FIELD WAVES ARE THE CARD'S: no foam, and the waves as they came.
+                case Op.Field:
+                    r[step.To] = step.Extra == FieldColour || step.E < 0 ? Vector4.Zero : r[step.E];
                     break;
             }
 

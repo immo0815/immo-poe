@@ -431,7 +431,7 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   builds the program from the engine's graph itself (`BreakingOceanWaves.fxgraph`, a fixture under `tests/fixtures/beach-waves`): the
   three textures it binds to the fragment, the graph's mix (the foam covering `0.7 * a`, the film under it by its thickness, specular
   0.05, gloss `1 - roughness`). The wave shape and noise are fixed lookups (`WaterLookups.BeachProfilePath`, `BeachNoisePath`, slots
-  t13 and t14, a material's sheets from t15): `gerstner_positive_wave_profile.dds`, 256 square, two floats a texel, a fixture; and
+  t13 and t14, a material's sheets from t15 - t18 from v0.1.295, after the field waves' t15 to t17): `gerstner_positive_wave_profile.dds`, 256 square, two floats a texel, a fixture; and
   `flow_muddle_blur_01_R16G16.dds`, 512 square R16G16_UNORM, which `FloatArt` now reads as sixteen-bit fractions and the water
   textures part writes whole. THE SHEET IS CHOSEN (said from the live client, 2026-10-12, between laying it flat at the water and on
   the ground - "auf den Boden legen"): `ShoreField.Beach`, a vertex at every shore cell's middle whose ground lies from 300 under the
@@ -498,6 +498,27 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   (`CaptureWaterShore`, v0.1.294) searches every `.ot` and `.otc` under Metadata/ for them on every core, lists each line naming them,
   the area's loaded types reaching one through what they extend, the shader sources naming the field and the program's strings naming a
   shore; `water-shore-replay.txt` reads the lines back. Read it before the ship is made shore.
+  THE BREAKERS ARE THE ENGINE'S FIELD WAVES (v0.1.295, four in-game videos of Port from the live client). MEASURED off the videos, the
+  brightness of every patch of water over time: white-crested fronts 4.9 s apart at the quay's corner, 5.1 s on the open sea, 4.9 s at
+  the pier's end - water.ffx's `field_waves` (`field_wave_length` 1,000, `field_wave_speed` 200: 5 s), not the beach waves (2.5 s) nor
+  the flood waves (25 s); in the channel by the ship the front spans the channel and runs along it, and at the pier's end the crest
+  lines bend round it. The engine sends them (and the swell) down the slope of a second field, `ocean_dist` (ShoreData's blue), kept
+  apart from the shore's distance (red) - and the program names what makes it: `OceanMarkupField`, built from a grid of ints or three
+  point lines, beside `ShoreDeep`, `ShoreShallow` and `IgnoreDeepWaterMarkup`; Port loads `island_ocean_deepwater.gt`, which none of
+  its tile corners holds, among water ground types of other areas. `water-shore.txt` now searches every object script, ground and
+  edge type, environment, master's list, tile and room - and the data tables - for those words on the bytes, ASCII and UTF-16, and
+  writes every ground type the area loaded whole: read it before the way in is changed. UNTIL THEN THE WAY IN IS CHOSEN
+  (`ShoreField.Oceans`): the shore's distance in the open sea (`ShoreField.Deep`, 1,000, or at the field's edge), and inside it the
+  open sea's less the shortest way through the water from there (sixteen ways a cell, within two percent of the straight line),
+  round whatever crosses the water's surface (its top above and its bottom under: the hull, a post, a rock - not a bridge or a
+  gangway); `model-panes.txt` counts the cells in the way and draws `shore-way.png`, a white line every 250 units where the game's
+  crests should run. The field waves are DRAWN ON THE CARD ALONE (DECIDED from the live client): CrashingWavesVertex and
+  CrashingWavesFragment ported line for line (`ShadeHlsl.FieldLibrary`, `Op.Field`), laid on the room's own water - lifted by the crest
+  and the area's height offset (the shape's mean lies under nought; Port's -15 lifts it back), turned by its slope and covered by its
+  foam as the swell's foam covers; their wave shape `gerstner_wave_profile.dds` (read red and blue, GetGerstnerProfile - the profile the
+  program names that neither the swell nor the beach takes), their noise and foam the beach's (CHOSEN, no graph names theirs); fixed
+  slots t15 to t17, a program's sheets from t18; the light panel's water row switches them ("crash", SceneLight.WaterCrash), and with
+  them on the water is drawn lifted whatever the lift. The processor draws none, and the line under the picture says so.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

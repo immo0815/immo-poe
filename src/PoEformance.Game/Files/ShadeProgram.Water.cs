@@ -91,11 +91,19 @@ public sealed partial class ShadeProgram
         int timing = build.Emit(Op.Swizzle, Clock, extra: AllFrom(0));
         build.Into(timing, crossed, Only(1, 0));
         int foam = build.Emit(Op.Foam, Position, timing, WaterShore, WaterSwell);
-        int foamed = build.Emit(Op.Swizzle, foam, extra: AllFrom(3));
+        int swellFoamed = build.Emit(Op.Swizzle, foam, extra: AllFrom(3));
+
+        // THE FIELD WAVES' FOAM, the card's alone (Op.Field): over the swell's, as the swell's lies over the medium.
+        int field = build.Emit(Op.Field, Position, timing, WaterShore, WaterSwell, extra: FieldColour);
+        int fieldFoamed = build.Emit(Op.Swizzle, field, extra: AllFrom(3));
+        int foamed = build.Emit(
+            Op.OneMinus,
+            build.Emit(Op.Multiply, build.Emit(Op.OneMinus, swellFoamed), build.Emit(Op.OneMinus, fieldFoamed)));
 
         // THE COLOUR, the foam's over the medium's by how much it covers (InitWaterSurfaceData's albedo), its w the cover - the
         // foam hiding what lies behind by 1 - (1 - a)^3 (the pass's refracted light, lerped to the absorbed).
-        int colour = build.Emit(Op.Lerp, build.Emit(Op.Multiply, WaterColour, shimmer), foam, foamed);
+        int colour = build.Emit(
+            Op.Lerp, build.Emit(Op.Lerp, build.Emit(Op.Multiply, WaterColour, shimmer), foam, swellFoamed), field, fieldFoamed);
         int clear = build.Emit(Op.OneMinus, foamed);
         int hidden = build.Emit(Op.OneMinus, build.Emit(Op.Multiply, build.Emit(Op.Multiply, clear, clear), clear));
         build.Into(colour, build.Emit(Op.Lerp, cover, build.Constant(Vector4.One), hidden), Only(3, 0));
@@ -105,7 +113,8 @@ public sealed partial class ShadeProgram
         // THE WAVES, for the game light's glints and reflection: the same colour, and the surface the
         // engine lights - the ocean's ripples in the area's wind, its specular the area's reflectiveness,
         // its gloss the engine's (InitWaterSurfaceData), the foam's 0.04 and nought where it covers - see HasWaves.
-        int waves = build.Emit(Op.Waves, Position, WaterWind, timing, WaterShore, WaterSwell);
+        int waves = build.Emit(
+            Op.Field, Position, timing, WaterShore, WaterSwell, build.Emit(Op.Waves, Position, WaterWind, timing, WaterShore, WaterSwell), extra: FieldNormal);
         int specular = build.Emit(
             Op.Lerp, build.Emit(Op.Swizzle, WaterFlow, extra: AllFrom(1)), build.Constant(new Vector4(FoamSpecular)), foamed);
         int gloss = build.Emit(Op.Lerp, build.Constant(new Vector4(WaterGloss)), build.Constant(Vector4.Zero), foamed);
@@ -187,6 +196,7 @@ public sealed partial class ShadeProgram
             ? swells
             : Swells with { Said = lookups.SwellSaid });
         UseBeach(lookups);
+        UseField(lookups);
     }
 
     /// <summary>

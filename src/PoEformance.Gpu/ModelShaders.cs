@@ -58,8 +58,17 @@ internal static class ModelShaders
     /// <summary>The slot the beach waves' noise is read from - ShadeHlsl.BeachNoiseSlot.</summary>
     public const int BeachNoiseSlot = ShadeHlsl.BeachNoiseSlot;
 
-    /// <summary>The slot a program's first sheet is read from; the rest follow.</summary>
-    public const int FirstSheet = 15;
+    /// <summary>The slot the field waves' wave shape is read from - ShadeHlsl.FieldProfileSlot, by the pixel and the vertex shaders alike.</summary>
+    public const int FieldProfileSlot = ShadeHlsl.FieldProfileSlot;
+
+    /// <summary>The slot the field waves' foam colour is read from - ShadeHlsl.FieldFoamColourSlot.</summary>
+    public const int FieldFoamColourSlot = ShadeHlsl.FieldFoamColourSlot;
+
+    /// <summary>The slot the field waves' foam normal is read from - ShadeHlsl.FieldFoamNormalSlot.</summary>
+    public const int FieldFoamNormalSlot = ShadeHlsl.FieldFoamNormalSlot;
+
+    /// <summary>The slot a program's first sheet is read from; the rest follow - after the fixed lookups.</summary>
+    public const int FirstSheet = ShadeHlsl.FieldFoamNormalSlot + 1;
 
     /// <summary>
     /// What every shader here shares: the constants, the resources, the vertex shader, and the light - the picture's lamp and the game's.
@@ -732,10 +741,14 @@ internal static class ModelShaders
     /// </summary>
     public const string Lifting = """
         // MeshPicture.Lifted: the water's vertices lifted by its waves - ShadeProgram.Ocean at the
-        // vertex's x and y in the area's wind, times the lift, taken off z (up is minus z).
+        // vertex's x and y in the area's wind, times the lift, taken off z (up is minus z) - and by the
+        // field waves' crest at the engine's own height, the area's height offset in Flow.z with it, where they are drawn (Swell.w,
+        // the card's alone).
         Pixel PlacedWaves(Corner corner)
         {
-            corner.position.z -= ShadeWaves(corner.position.xy, Wind, float2(Clock.x, 1.0e9), Shore, Swell).w * Flow.w;
+            float2 at = corner.position.xy;
+            corner.position.z -= ShadeWaves(at, Wind, float2(Clock.x, 1.0e9), Shore, Swell).w * Flow.w;
+            corner.position.z += ShadeFieldLift(at, Clock.x, Flow.z, Shore, Swell);
             return Placed(corner);
         }
 
@@ -749,7 +762,7 @@ internal static class ModelShaders
         """;
 
     /// <summary>The fixed shaders' source: <see cref="Common"/>, the waves' and the beach's helpers (ShadeHlsl's) and <see cref="Fixed"/> with <see cref="Lifting"/>.</summary>
-    public static readonly string Model = Common + ShadeHlsl.Library + ShadeHlsl.WavesLibrary + ShadeHlsl.FoamLibrary + ShadeHlsl.BeachLibrary + Fixed + Lifting;
+    public static readonly string Model = Common + ShadeHlsl.Library + ShadeHlsl.WavesLibrary + ShadeHlsl.FoamLibrary + ShadeHlsl.BeachLibrary + ShadeHlsl.FieldLibrary + Fixed + Lifting;
 
     /// <summary>
     /// A program's entry points: MeshPicture.Drawing's solid and mixed passes running it, under the picture's lamp or the game's light.

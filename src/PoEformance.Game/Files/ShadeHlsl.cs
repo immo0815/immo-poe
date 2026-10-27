@@ -30,7 +30,7 @@ namespace PoEformance.Game.Files;
 /// handed in, and what the drawing needs to know of the program as constants - <c>ShadeHasAlpha</c>,
 /// <c>ShadeHasSpecular</c>, <c>ShadeHasGloss</c>, <c>ShadeUsesDepth</c>.
 /// </remarks>
-public static class ShadeHlsl
+public static partial class ShadeHlsl
 {
     /// <summary>The largest float, where nothing solid lies behind - ShadeProgram.Preset's.</summary>
     public const string Nothing = "3.40282347e38";
@@ -335,21 +335,23 @@ public static class ShadeHlsl
         hlsl.Append("static const bool ShadeBeach = ").Append(Truth(program.Beaches)).AppendLine(";");
         hlsl.AppendLine(Library);
         bool sprays = false;
+        bool fields = false;
         foreach (ShadeProgram.Step step in program.Steps)
         {
             sprays |= step.Op == ShadeProgram.Op.Spray;
+            fields |= step.Op == ShadeProgram.Op.Field;
         }
 
         foreach (ShadeProgram.Step step in program.Steps)
         {
-            if (step.Op is ShadeProgram.Op.Waves or ShadeProgram.Op.Foam or ShadeProgram.Op.Spray or ShadeProgram.Op.Beach)
+            if (step.Op is ShadeProgram.Op.Waves or ShadeProgram.Op.Foam or ShadeProgram.Op.Spray or ShadeProgram.Op.Beach or ShadeProgram.Op.Field)
             {
                 hlsl.AppendLine(WavesLibrary);
                 break;
             }
         }
 
-        if (sprays || program.Beaches)
+        if (sprays || program.Beaches || fields)
         {
             hlsl.AppendLine(FoamLibrary);
         }
@@ -359,9 +361,15 @@ public static class ShadeHlsl
             hlsl.AppendLine(SprayLibrary);
         }
 
-        if (program.Beaches)
+        // THE FIELD WAVES READ THE BEACH'S NOISE, PROFILE HELPERS AND RAMPS - its library before theirs.
+        if (program.Beaches || fields)
         {
             hlsl.AppendLine(BeachLibrary);
+        }
+
+        if (fields)
+        {
+            hlsl.AppendLine(FieldLibrary);
         }
 
         hlsl.AppendLine("ShadeOut ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow, float4 wind, float4 shore, float4 swell)");
@@ -402,6 +410,12 @@ public static class ShadeHlsl
         hlsl.AppendLine("    float4 r14 = wind;");
         hlsl.AppendLine("    float4 r15 = shore;");
         hlsl.AppendLine("    float4 r16 = swell;");
+        if (fields)
+        {
+            // THE FIELD WAVES' FOAM IS READ AT THE GRADIENTS OF ITS COORDINATES, taken here outside any branch - see Field.
+            hlsl.AppendLine("    float2 fieldDx = ddx(place.xy);");
+            hlsl.AppendLine("    float2 fieldDy = ddy(place.xy);");
+        }
 
         // EVERY OTHER REGISTER STARTS AT NOUGHT, as the processor's zeroed scratch does - a swizzle
         // writes part of one and leaves the rest as it found it.
@@ -435,6 +449,10 @@ public static class ShadeHlsl
             else if (step.Op == ShadeProgram.Op.Beach)
             {
                 Beach(hlsl, program, step, versions, sprayed);
+            }
+            else if (step.Op == ShadeProgram.Op.Field)
+            {
+                Field(hlsl, step, versions, sprayed);
             }
             else
             {
