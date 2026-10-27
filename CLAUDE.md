@@ -958,7 +958,7 @@ the game's: its sub-tiles' pixel counts come out as at -450 and no other height,
 ground-on-screen - v0.1.262's tint edges, v0.1.264's and v0.1.310's candidates, v0.1.312's heights - WAS MEASURED ON THE WRONG PIXELS, and
 its conclusion for the harbour is void until measured again (The Excavation's, v0.1.256, rests on whether its pieces' fits met their
 levels, not checked). From v0.1.314 `GroundsOver` lays each piece at its tiles' own level, as the game lays a tile's doodads (Marrow,
-Sulphuric) and Port's pier (this capture), and its line says how far the fit would have put each; and from v0.1.315 a LAID ROOM does too,
+Sulphuric) and Port's pier (this capture), and its line says how far the fit would have put each; and from v0.1.316 a LAID ROOM does too,
 DECIDED from the live client on this evidence (`LaidRoomModels.Of`, the built stage at the level already) - the fit kept behind the Tile
 Book's "fitted" switch (`RoomKey.Fitted`, the key word `fitted`; an older key's `level` is the usual now and reads as it). And the choices LINE UP (`CaptureGroundChoices`): the detail summed in cells of 2 units, each
 material read once a cell and shifted up to 24 units each way for its best line-up, its controls the same material shifted 48 and 72

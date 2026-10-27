@@ -50,7 +50,7 @@ namespace PoEformance.Features;
 /// coin toss that shows as pieces turned round. The room that showed it chose "Y turned over,
 /// heights the other way" on 6 of its 14 sloped pieces.
 ///
-/// A PIECE GOES AT ITS TILES' OWN LEVEL (v0.1.315, MEASURED), where the area's own heights are measured
+/// A PIECE GOES AT ITS TILES' OWN LEVEL (v0.1.316, MEASURED), where the area's own heights are measured
 /// from: a tile's sub-tile heights are described relative to its level (TerrainHeightField), the game
 /// stands a tile's doodads at their lines' z plus the level (Marrow, Sulphuric), and the game's own
 /// cobblestones on Port's pier line up with the pier's materials on the plane at its tile's level
@@ -405,7 +405,7 @@ public static class LaidRoomModels
     /// pier and the quay where the area's grid says nought. v0.1.313's capture showed it twice over: the material choices' pixel counts
     /// came out as the harbour drawn at -450 and no other height, and the game's own cobblestones line up with the pier's materials on the
     /// plane at its tile's level, nought, within 16 units. Every comparison the capture drew over the harbour until then was measured on
-    /// the wrong pixels. The laid room lays its pieces so too from v0.1.315; the line says how far the fit would have put each piece.
+    /// the wrong pixels. The laid room lays its pieces so too from v0.1.316; the line says how far the fit would have put each piece.
     /// </remarks>
     /// <param name="read">The install.</param>
     /// <param name="grid">The area, its tiles read.</param>

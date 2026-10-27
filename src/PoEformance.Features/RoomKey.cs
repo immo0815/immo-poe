@@ -16,7 +16,7 @@ namespace PoEformance.Features;
 /// <param name="Doodads">Most doodads placed - see <see cref="RoomModels.UsualDoodads"/>.</param>
 /// <param name="Tools">Whether the level editor's tools are placed too - see <see cref="RoomModels.IsTool"/>.</param>
 /// <param name="Laid">Where the room is drawn as the area laid it - "x,y,turn,area" - or empty for the room as its file has it; see LaidRoomModels.</param>
-/// <param name="Fitted">Whether a laid room's pieces are fitted to the area's ground rather than set at their tiles' own levels, the usual from v0.1.315 - see LaidRoomModels. An older key's word for the levels, "level", is the usual now and reads as it.</param>
+/// <param name="Fitted">Whether a laid room's pieces are fitted to the area's ground rather than set at their tiles' own levels, the usual from v0.1.316 - see LaidRoomModels. An older key's word for the levels, "level", is the usual now and reads as it.</param>
 /// <param name="Heights">How high a doodad that carries a height in its line is set - see <see cref="DoodadHeight"/>.</param>
 /// <param name="Hidden">Whether a laid room keeps what the game's camera cannot see too - see LaidRoomModels.Hiding. Off, the usual, leaves it out.</param>
 /// <param name="Cut">How far under the area's ground a laid room leaves everything out, in world units; nought, the usual, leaves nothing out.</param>
