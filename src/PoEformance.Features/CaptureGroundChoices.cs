@@ -7,39 +7,63 @@ using PoEformance.Game.World;
 namespace PoEformance.Features;
 
 /// <summary>
-/// Which material of its ground's group the game drew on each sub-tile on the screen: every material the group offers run at every
-/// pixel, and its own pattern held against the game's picture.
+/// Which material of its ground's group the game drew on each sub-tile on the screen: every material the group offers read over the
+/// sub-tile's ground, its own pattern lined up with the game's picture.
 /// </summary>
 /// <remarks>
 /// WHY (v0.1.313, asked for from the live client). A MaterialsList group offers several materials with weights - Port's group with no
 /// name Cobblestone01 to 03 and CobblestoneDirt01 twice (30, 25, 40, 20, 20), TropicalFill DrySand01 to 03 (30, 45, 25) - and the game
-/// draws one of them by weight, while the painter takes the heaviest everywhere (GroundPainter.Heaviest). Port's quay shows cobblestones
-/// standing out of sand where no mix the shaders write puts them (v0.1.312's capture: the heights moved nothing between the cobblestone
-/// and the sand), which a cobblestone-in-dirt material on some tiles would draw by itself. Which material the game took, and whether
-/// per tile, per sub-tile or otherwise, is the measurement.
+/// draws one of them by weight, while the painter takes the heaviest everywhere (GroundPainter.Heaviest). Which material the game took,
+/// and whether per tile, per sub-tile or otherwise, is the measurement.
 ///
 /// THE PATTERN, NOT THE COLOUR: the game's light, shadow, fog and grade change a material's colour, its stones' and grains' pattern they
 /// leave. So the picture's detail - its brightness less its mean over nine by nine pixels - is held against each material's brightness as
 /// its own program draws it, at the level the picture reads (ShadeProgram.GroundReader), the materials' coordinates the world times
-/// GroundPainter.GroundScale. A material that lines up correlates; one that does not, or a picture whose coordinates the engine moves
-/// otherwise, does not - the moved controls (the same field against the picture 85 to 120 pixels off) say what nothing gives.
+/// GroundPainter.GroundScale.
 ///
-/// A WINNER IS CLEAR where its correlation stands three spreads over its moved ones and a twentieth over the next material's; a
-/// sub-tile of one ground is the clean test, one of two mixes them and is said apart.
+/// LINED UP, NOT TAKEN AS PLACED (v0.1.314). v0.1.313 held each material at the pixel's place alone and measured nought everywhere, and
+/// its capture of Port's pier said why: lined up, the game's stones and the cobblestone materials correlate at r 0.08 to 0.29, the same
+/// way round as the tool reads them and at the world times 0.004 - and four units off, at nought. The tool's world place of a pixel is
+/// that close and no closer: across the pier the best line-up moved from (2, -12) to (4, -2) units, which a plane 16 units higher made one
+/// shift, (12, 6) - the camera's or the engine's own offset (ground_scalemove_uv's zw, a pass uniform no file holds), which one capture
+/// cannot tell apart. So each material is shifted up to 24 units each way (<see cref="Window"/>) and the best taken; the picture's detail
+/// is summed in cells of two units first (<see cref="Cell"/>), each material read once a cell, so a shift costs a sum over the cells.
+///
+/// THE CONTROLS ARE THE SAME MATERIAL SHIFTED WHERE NOTHING LINES UP - 48 and 72 units, past a stone and short of the 500 the colour
+/// repeats at (<see cref="Away"/>) - and z is how many of their spreads the best line-up stands over their mean. Lined up, Port's pier
+/// stood at z 13 to 39; its water at 2 to 6. A winner is clear at z <see cref="Clear"/> and <see cref="Lead"/> over the next material's
+/// best - both CHOSEN. The materials of one family share their stones (Port's five cobblestones are one layout, fewer stones in each),
+/// so a winner says which density the picture shows, and its lead is small.
 /// </remarks>
 internal static class CaptureGroundChoices
 {
     /// <summary>The detail's window reaches this far each way: nine pixels square, as the comparison's local contrast.</summary>
     private const int Reach = 4;
 
-    /// <summary>The fewest pixels a sub-tile needs for a line of its own.</summary>
+    /// <summary>The fewest pixels a sub-tile needs to be measured.</summary>
     private const int Least = 200;
 
-    /// <summary>How far a winner's correlation must stand over the next material's.</summary>
-    private const double Margin = 0.05;
+    /// <summary>The cells the picture's detail is summed in and each material read at, in world units - two or three pixels near the camera, a fraction of a stone.</summary>
+    private const float Cell = 2f;
 
-    /// <summary>How many spreads of its moved controls a winner's correlation must stand over their mean.</summary>
-    private const double Spreads = 3.0;
+    /// <summary>How far a material is shifted each way for its best line-up, in cells: 24 units, past the 16 Port's pier needed.</summary>
+    private const int Window = 12;
+
+    /// <summary>How far the cells read reach past the sub-tile's own, in cells: the farthest control's shift.</summary>
+    private const int Rim = 37;
+
+    /// <summary>How many spreads of its controls a winner's line-up must stand over their mean - CHOSEN.</summary>
+    private const double Clear = 5.0;
+
+    /// <summary>How far a winner's correlation must stand over the next material's - CHOSEN.</summary>
+    private const double Lead = 0.01;
+
+    /// <summary>The controls' shifts, in cells: 32 ways at 24 cells and 32 at 36 - 48 and 72 units.</summary>
+    private static readonly (int X, int Y)[] Away = [.. Enumerable.Range(0, 64).Select(one =>
+    {
+        double angle = (one % 32) * Math.PI / 16.0, radius = one < 32 ? 24.0 : 36.0;
+        return ((int)Math.Round(radius * Math.Cos(angle)), (int)Math.Round(radius * Math.Sin(angle)));
+    })];
 
     /// <summary>The colours a winner tints its sub-tile in, by its place among the materials named.</summary>
     private static readonly (byte R, byte G, byte B, string Name)[] Palette =
@@ -56,6 +80,14 @@ internal static class CaptureGroundChoices
 
     /// <summary>One sub-tile measured: its name, its piece, its grounds, the materials it may be drawn with and the painter's own.</summary>
     private sealed record SubTile(string Name, int Piece, string PieceName, IReadOnlyList<string> Grounds, Candidate[] Candidates, IReadOnlySet<string> Painted);
+
+    /// <summary>One material's best line-up on one sub-tile: its correlation, the shift in cells, and its controls' mean and spread - NaN where not read.</summary>
+    private readonly record struct Found(double R, int ShiftX, int ShiftY, double AwayMean, double AwaySpread)
+    {
+        public static Found None => new(double.NaN, 0, 0, double.NaN, double.NaN);
+
+        public double Z => AwaySpread > 1e-12 ? (R - AwayMean) / AwaySpread : double.NaN;
+    }
 
     /// <summary>
     /// The choices said, and the game's picture with every sub-tile whose winner is clear tinted in its winner's colour - or null where
@@ -111,30 +143,50 @@ internal static class CaptureGroundChoices
 
         (byte[] light, _) = CaptureGroundCompare.Measures(bgr, width, height);
         float[] detail = Detail(light, width, height);
-        int most = subTiles.Max(one => one.Candidates.Length);
-        int moves = CaptureGroundCompare.Moves.Length;
-        var sums = new CaptureGroundCompare.Sums[subTiles.Count * most * moves];
-        int runs = Math.Max(1, Math.Min(count, Environment.ProcessorCount * 8));
-        var gate = new object();
-        Parallel.For(
-            0,
-            runs,
-            () => new Worker(sums.Length, resolved),
-            (run, _, worker) =>
-            {
-                int from = (int)((long)run * count / runs), to = (int)((long)(run + 1) * count / runs);
-                worker.Run(from, to, width, height, most, owner, triangleOf, triangles, subTiles, detail);
-                return worker;
-            },
-            worker =>
-            {
-                lock (gate)
-                {
-                    worker.AddTo(sums);
-                }
-            });
 
-        return Said(subTiles, sums, most, resolved, owner, bgr, width, height, out picture);
+        // EACH SUB-TILE'S PIXELS, gathered once - a count, then each sub-tile's run in one array.
+        var starts = new int[subTiles.Count + 1];
+        for (var pixel = 0; pixel < count; pixel++)
+        {
+            if (owner[pixel] >= 0 && triangleOf[pixel] >= 0)
+            {
+                starts[owner[pixel] + 1]++;
+            }
+        }
+
+        for (var id = 0; id < subTiles.Count; id++)
+        {
+            starts[id + 1] += starts[id];
+        }
+
+        var gathered = new int[starts[^1]];
+        var filled = (int[])starts.Clone();
+        for (var pixel = 0; pixel < count; pixel++)
+        {
+            if (owner[pixel] >= 0 && triangleOf[pixel] >= 0)
+            {
+                gathered[filled[owner[pixel]]++] = pixel;
+            }
+        }
+
+        int most = subTiles.Max(one => one.Candidates.Length);
+        var found = new Found[subTiles.Count * most];
+        Array.Fill(found, Found.None);
+        int[] measured = [.. Enumerable.Range(0, subTiles.Count).Where(id => starts[id + 1] - starts[id] >= Least).OrderByDescending(id => starts[id + 1] - starts[id])];
+        Parallel.ForEach(
+            measured,
+            () => new Dictionary<ShadeProgram, ShadeProgram.GroundReader>(),
+            (id, _, readers) =>
+            {
+                Register(
+                    gathered.AsSpan(starts[id], starts[id + 1] - starts[id]), width, triangleOf, triangles, detail, subTiles[id].Candidates, resolved, readers,
+                    found.AsSpan(id * most, most));
+                return readers;
+            },
+            _ => { });
+
+        long[] pixels = [.. Enumerable.Range(0, subTiles.Count).Select(id => (long)(starts[id + 1] - starts[id]))];
+        return Said(subTiles, found, most, pixels, resolved, owner, bgr, width, height, out picture);
     }
 
     /// <summary>Every ground triangle of a piece into the depth buffer, its sub-tiles with materials to choose numbered.</summary>
@@ -317,153 +369,229 @@ internal static class CaptureGroundChoices
         return detail;
     }
 
-    /// <summary>One thread's readers and sums over its runs of pixels.</summary>
-    private sealed class Worker(int size, Dictionary<string, ShadeProgram?> programs)
+    /// <summary>
+    /// Every material of one sub-tile lined up with the picture: the detail summed in cells of the sub-tile's ground, each material read
+    /// once a cell over the cells and a rim round them, then its correlation at every shift of the window and at the controls'.
+    /// </summary>
+    private static void Register(
+        ReadOnlySpan<int> pixels, int width, int[] triangleOf, List<CaptureGroundCompare.Triangle> triangles, float[] detail, Candidate[] candidates,
+        Dictionary<string, ShadeProgram?> programs, Dictionary<ShadeProgram, ShadeProgram.GroundReader> readers, Span<Found> found)
     {
-        private readonly CaptureGroundCompare.Sums[] _sums = new CaptureGroundCompare.Sums[size];
-        private readonly Dictionary<ShadeProgram, ShadeProgram.GroundReader> _readers = [];
-
-        public void Run(
-            int from, int to, int width, int height, int most, int[] owner, int[] triangleOf, List<CaptureGroundCompare.Triangle> triangles,
-            List<SubTile> subTiles, float[] detail)
+        // WHERE EACH PIXEL LIES on the ground, and the triangle most of them lie on - whose footprint sets the levels the reads take.
+        int n = pixels.Length;
+        var xs = new float[n];
+        var ys = new float[n];
+        float leastX = float.MaxValue, leastY = float.MaxValue, mostX = float.MinValue, mostY = float.MinValue;
+        double heights = 0;
+        var votes = new Dictionary<int, int>();
+        for (var at = 0; at < n; at++)
         {
-            (int X, int Y)[] moves = CaptureGroundCompare.Moves;
-            int last = -1;
-            var readers = new ShadeProgram.GroundReader?[most];
-            for (int at = from; at < to; at++)
+            int pixel = pixels[at], triangle = triangleOf[pixel];
+            Vector3 place = CaptureGroundCompare.PlaceAt(triangles[triangle], pixel % width, pixel / width);
+            xs[at] = place.X;
+            ys[at] = place.Y;
+            heights += place.Z;
+            leastX = MathF.Min(leastX, place.X);
+            leastY = MathF.Min(leastY, place.Y);
+            mostX = MathF.Max(mostX, place.X);
+            mostY = MathF.Max(mostY, place.Y);
+            votes[triangle] = votes.GetValueOrDefault(triangle) + 1;
+        }
+
+        int across = (int)((mostX - leastX) / Cell) + 1, down = (int)((mostY - leastY) / Cell) + 1;
+        if (!float.IsFinite(leastX) || across <= 0 || down <= 0 || (long)across * down > 4_000_000)
+        {
+            return;
+        }
+
+        // THE DETAIL IN CELLS: each cell's sum and count, and the whole's - a pixel's own detail, so a cell of several weighs them all.
+        var sum = new double[across * down];
+        var weight = new int[across * down];
+        double s1 = 0, s2 = 0;
+        for (var at = 0; at < n; at++)
+        {
+            int cx = Math.Min(across - 1, (int)((xs[at] - leastX) / Cell)), cy = Math.Min(down - 1, (int)((ys[at] - leastY) / Cell));
+            double value = detail[pixels[at]];
+            sum[(cy * across) + cx] += value;
+            weight[(cy * across) + cx]++;
+            s1 += value;
+            s2 += value * value;
+        }
+
+        double spread = s2 - (s1 * s1 / n);
+        if (spread <= 1e-9)
+        {
+            return;
+        }
+
+        int stride = across + (2 * Rim), rows = down + (2 * Rim);
+        var cellsAt = new List<int>();
+        var sums = new List<double>();
+        var weights = new List<double>();
+        for (var cy = 0; cy < down; cy++)
+        {
+            for (var cx = 0; cx < across; cx++)
             {
-                int id = owner[at], index = triangleOf[at];
-                if (id < 0 || index < 0)
+                int cell = (cy * across) + cx;
+                if (weight[cell] > 0)
                 {
-                    continue;
-                }
-
-                CaptureGroundCompare.Triangle one = triangles[index];
-                Candidate[] candidates = subTiles[id].Candidates;
-                if (index != last)
-                {
-                    for (var k = 0; k < candidates.Length; k++)
-                    {
-                        readers[k] = programs[candidates[k].Material] is { } program ? Reader(program) : null;
-                        readers[k]?.Triangle(one.Pa, one.Pb, one.Pc, one.A, one.B, one.C, GroundPainter.GroundScale);
-                    }
-
-                    last = index;
-                }
-
-                int x = at % width, y = at / width;
-                Vector3 place = CaptureGroundCompare.PlaceAt(one, x, y);
-                for (var k = 0; k < candidates.Length; k++)
-                {
-                    if (readers[k] is not { } reader)
-                    {
-                        continue;
-                    }
-
-                    float value = reader.BrightnessAt(place, GroundPainter.GroundScale);
-                    int slot = ((id * most) + k) * moves.Length;
-                    for (var move = 0; move < moves.Length; move++)
-                    {
-                        int mx = x + moves[move].X, my = y + moves[move].Y;
-                        if ((uint)mx < (uint)width && (uint)my < (uint)height)
-                        {
-                            _sums[slot + move].Add(value, detail[(my * width) + mx]);
-                        }
-                    }
+                    cellsAt.Add(((cy + Rim) * stride) + cx + Rim);
+                    sums.Add(sum[cell]);
+                    weights.Add(weight[cell]);
                 }
             }
         }
 
-        public void AddTo(CaptureGroundCompare.Sums[] sums)
+        int[] occupied = [.. cellsAt];
+        double[] cellSums = [.. sums], cellWeights = [.. weights];
+        CaptureGroundCompare.Triangle footprint = triangles[votes.MaxBy(vote => vote.Value).Key];
+        var z = (float)(heights / n);
+        var values = new float[stride * rows];
+        for (var k = 0; k < candidates.Length; k++)
         {
-            for (var at = 0; at < sums.Length; at++)
+            // A MATERIAL TWO GROUPS OFFER is measured once.
+            int earlier = Array.FindIndex(candidates, 0, k, one => string.Equals(one.Material, candidates[k].Material, StringComparison.OrdinalIgnoreCase));
+            if (earlier >= 0)
             {
-                sums[at].Add(in _sums[at]);
+                found[k] = found[earlier];
+                continue;
             }
-        }
 
-        private ShadeProgram.GroundReader Reader(ShadeProgram program)
-        {
-            if (!_readers.TryGetValue(program, out ShadeProgram.GroundReader? reader))
+            if (programs[candidates[k].Material] is not { } program)
+            {
+                continue;
+            }
+
+            if (!readers.TryGetValue(program, out ShadeProgram.GroundReader? reader))
             {
                 reader = new ShadeProgram.GroundReader(program);
-                _readers[program] = reader;
+                readers[program] = reader;
             }
 
-            return reader;
+            reader.Triangle(footprint.Pa, footprint.Pb, footprint.Pc, footprint.A, footprint.B, footprint.C, GroundPainter.GroundScale);
+            float lowest = float.MaxValue, highest = float.MinValue;
+            for (var row = 0; row < rows; row++)
+            {
+                float y = leastY + ((row - Rim + 0.5f) * Cell);
+                for (var column = 0; column < stride; column++)
+                {
+                    float value = reader.BrightnessAt(new Vector3(leastX + ((column - Rim + 0.5f) * Cell), y, z), GroundPainter.GroundScale);
+                    values[(row * stride) + column] = value;
+                    lowest = MathF.Min(lowest, value);
+                    highest = MathF.Max(highest, value);
+                }
+            }
+
+            if (highest - lowest < 1e-6f)
+            {
+                continue;
+            }
+
+            double best = double.NegativeInfinity;
+            int bestX = 0, bestY = 0;
+            for (int shiftY = -Window; shiftY <= Window; shiftY++)
+            {
+                for (int shiftX = -Window; shiftX <= Window; shiftX++)
+                {
+                    double r = Correlate((shiftY * stride) + shiftX, occupied, cellSums, cellWeights, values, s1, spread, n);
+                    if (r > best)
+                    {
+                        (best, bestX, bestY) = (r, shiftX, shiftY);
+                    }
+                }
+            }
+
+            double[] away = [.. Away.Select(shift => Correlate((shift.Y * stride) + shift.X, occupied, cellSums, cellWeights, values, s1, spread, n)).Where(double.IsFinite)];
+            (_, double mean, double spreadAway) = CaptureGroundCompare.Spread(best, away);
+            found[k] = double.IsFinite(best) ? new Found(best, bestX, bestY, mean, spreadAway) : Found.None;
         }
+    }
+
+    /// <summary>The correlation of the detail with a material shifted by some cells - the material read at each cell's own place plus the shift.</summary>
+    private static double Correlate(int shift, int[] cellsAt, double[] sums, double[] weights, float[] value, double s1, double spread, int n)
+    {
+        double sxy = 0, sx = 0, sxx = 0;
+        for (var one = 0; one < cellsAt.Length; one++)
+        {
+            double v = value[cellsAt[one] + shift];
+            double weighed = weights[one] * v;
+            sxy += sums[one] * v;
+            sx += weighed;
+            sxx += weighed * v;
+        }
+
+        double vx = sxx - (sx * sx / n);
+        return vx <= 1e-12 ? double.NaN : (sxy - (s1 * sx / n)) / Math.Sqrt(spread * vx);
     }
 
     /// <summary>What each sub-tile's materials came to, each group's wins beside its weights, each piece's sub-tiles, and the tinted picture.</summary>
     private static string Said(
-        List<SubTile> subTiles, CaptureGroundCompare.Sums[] sums, int most, Dictionary<string, ShadeProgram?> programs, int[] owner, byte[] bgr,
+        List<SubTile> subTiles, Found[] found, int most, long[] pixels, Dictionary<string, ShadeProgram?> programs, int[] owner, byte[] bgr,
         int width, int height, out GamePicture? picture)
     {
-        int moves = CaptureGroundCompare.Moves.Length;
-        (double R, double Mean, double Spread) Of(int id, int k)
-        {
-            int slot = ((id * most) + k) * moves;
-            double[] moved = [.. Enumerable.Range(1, moves - 1).Select(move => sums[slot + move].R).Where(double.IsFinite)];
-            return CaptureGroundCompare.Spread(sums[slot].R, moved);
-        }
+        Found Of(int id, int k) => found[(id * most) + k];
+        string Tail(string path) => Path.GetFileNameWithoutExtension(path.Replace('\\', '/'));
+        string Shift(Found one) => string.Create(CultureInfo.InvariantCulture, $"({one.ShiftX * Cell:+0;-0;0}, {one.ShiftY * Cell:+0;-0;0})");
 
-        // EACH SUB-TILE'S WINNER, where it is clear.
+        // EACH SUB-TILE'S WINNER, where it is clear - against the next MATERIAL, a material two groups offer being one.
         var winners = new int[subTiles.Count];
-        var pixels = new long[subTiles.Count];
+        var leads = new double[subTiles.Count];
         for (var id = 0; id < subTiles.Count; id++)
         {
             winners[id] = -1;
             Candidate[] candidates = subTiles[id].Candidates;
-
-            // THE MOST ANY MATERIAL MEASURED, not the first's: a first material that did not compile measured nothing.
+            int best = -1;
             for (var k = 0; k < candidates.Length; k++)
             {
-                pixels[id] = Math.Max(pixels[id], sums[((id * most) + k) * moves].N);
-            }
-
-            int best = -1, next = -1;
-            for (var k = 0; k < candidates.Length; k++)
-            {
-                double r = Of(id, k).R;
-                if (!double.IsFinite(r))
+                if (double.IsFinite(Of(id, k).R) && (best < 0 || Of(id, k).R > Of(id, best).R))
                 {
-                    continue;
-                }
-
-                if (best < 0 || r > Of(id, best).R)
-                {
-                    next = best;
                     best = k;
                 }
-                else if (next < 0 || r > Of(id, next).R)
+            }
+
+            if (best < 0)
+            {
+                continue;
+            }
+
+            double next = double.NaN;
+            for (var k = 0; k < candidates.Length; k++)
+            {
+                if (double.IsFinite(Of(id, k).R) && !string.Equals(candidates[k].Material, candidates[best].Material, StringComparison.OrdinalIgnoreCase)
+                    && (double.IsNaN(next) || Of(id, k).R > next))
                 {
-                    next = k;
+                    next = Of(id, k).R;
                 }
             }
 
-            if (best >= 0)
-            {
-                (double r, double mean, double spread) = Of(id, best);
-                bool overMoved = !double.IsFinite(mean) || r > mean + (Spreads * spread);
-                bool overNext = next < 0 || r - Of(id, next).R >= Margin;
-                winners[id] = overMoved && overNext && pixels[id] >= Least ? best : -1;
-            }
+            leads[id] = double.IsFinite(next) ? Of(id, best).R - next : double.PositiveInfinity;
+            winners[id] = Of(id, best).Z >= Clear && leads[id] >= Lead && pixels[id] >= Least ? best : -1;
         }
 
         // THE MATERIALS NAMED, each a colour of the picture.
         var materials = subTiles.SelectMany(one => one.Candidates.Select(candidate => candidate.Material)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        string Tail(string path) => Path.GetFileNameWithoutExtension(path.Replace('\\', '/'));
         string ColourOf(string material) => Palette[materials.FindIndex(one => string.Equals(one, material, StringComparison.OrdinalIgnoreCase)) % Palette.Length].Name;
 
-        long measured = pixels.Sum();
+        long measured = Enumerable.Range(0, subTiles.Count).Where(id => pixels[id] >= Least).Sum(id => pixels[id]);
+        int sized = Enumerable.Range(0, subTiles.Count).Count(id => pixels[id] >= Least);
         int oneGround = Enumerable.Range(0, subTiles.Count).Count(id => subTiles[id].Grounds.Count == 1 && pixels[id] >= Least);
         int clear = Enumerable.Range(0, subTiles.Count).Count(id => winners[id] >= 0);
         var said = new StringBuilder();
         said.Append(string.Create(CultureInfo.InvariantCulture,
-            $"material choices: {measured} pixels in {subTiles.Count} sub-tiles - every material each sub-tile's grounds' groups offer, run at every pixel at the level the picture reads (its coordinates the world times {GroundPainter.GroundScale}), its brightness held against the game's picture's detail (its brightness less its mean over nine by nine pixels); r at no move (moved: the same against the picture {CaptureGroundCompare.Moves.Length - 1} ways 85 to 120 pixels off). A winner is clear {Spreads} spreads over its moved controls and {Margin} over the next material; {clear} of {subTiles.Count} sub-tiles have one - {Enumerable.Range(0, subTiles.Count).Count(id => winners[id] >= 0 && subTiles[id].Grounds.Count == 1)} of the {oneGround} of one ground with at least {Least} pixels, the clean test\n"));
+            $"material choices: {measured} pixels in {sized} sub-tiles of at least {Least} pixels - every material each sub-tile's grounds' groups offer, read over the sub-tile's ground at the level the picture reads (its coordinates the world times {GroundPainter.GroundScale}) and held against the game's picture's detail (its brightness less its mean over nine by nine pixels), summed in cells of {Cell} units; each material shifted up to {Window * Cell} units each way for its best line-up (the stones line up within a few units or not at all), z how many spreads that stands over the same material shifted {Away[0].X * Cell} and {Away[32].X * Cell} units, where nothing lines up. A winner is clear at z {Clear} and {Lead} over the next material's best; {clear} of {sized} sub-tiles have one - {Enumerable.Range(0, subTiles.Count).Count(id => winners[id] >= 0 && subTiles[id].Grounds.Count == 1)} of the {oneGround} of one ground, the clean test\n"));
         foreach ((string material, ShadeProgram? program) in programs.Where(one => one.Value is null))
         {
             said.Append("  not read: ").Append(material).Append(" - its graphs did not compile or a texture did not read\n");
+        }
+
+        // WHERE THE WINNERS LINED UP: one shift throughout says the tool's place of a pixel is that far off the game's, the same everywhere.
+        int[] lined = [.. Enumerable.Range(0, subTiles.Count).Where(id => winners[id] >= 0)];
+        if (lined.Length > 0)
+        {
+            float[] alongX = [.. lined.Select(id => Of(id, winners[id]).ShiftX * Cell).Order()], alongY = [.. lined.Select(id => Of(id, winners[id]).ShiftY * Cell).Order()];
+            float Middle(float[] sorted, float share) => sorted[Math.Clamp((int)MathF.Round(share * (sorted.Length - 1)), 0, sorted.Length - 1)];
+            said.Append(string.Create(CultureInfo.InvariantCulture,
+                $"  the clear winners lined up shifted by ({Middle(alongX, 0.5f):+0;-0;0}, {Middle(alongY, 0.5f):+0;-0;0}) units at the median - x {Middle(alongX, 0.25f):+0;-0;0} to {Middle(alongX, 0.75f):+0;-0;0} and y {Middle(alongY, 0.25f):+0;-0;0} to {Middle(alongY, 0.75f):+0;-0;0} over the middle half, all x {alongX[0]:+0;-0;0} to {alongX[^1]:+0;-0;0}, y {alongY[0]:+0;-0;0} to {alongY[^1]:+0;-0;0}\n"));
         }
 
         // EACH GROUP: its materials with their weights, the painter's mark, and how often each won a sub-tile of one ground.
@@ -517,18 +645,26 @@ internal static class CaptureGroundChoices
             said.Append(unclear > 0 ? string.Create(CultureInfo.InvariantCulture, $" · {unclear} unclear") : string.Empty).Append('\n');
         }
 
-        // EACH SUB-TILE, one ground first: every material's r, the winner marked.
-        said.Append("  each sub-tile of at least ").Append(Least.ToString(CultureInfo.InvariantCulture)).Append(" pixels, one ground first - every material's r (moved), the winner marked *:\n");
+        // EACH SUB-TILE, one ground first: every material's best line-up, the winner marked.
+        said.Append("  each sub-tile of at least ").Append(Least.ToString(CultureInfo.InvariantCulture))
+            .Append(" pixels, one ground first - every material's best r, its z over the controls and the shift it lined up at, the winner marked *:\n");
         foreach (int id in Enumerable.Range(0, subTiles.Count).Where(id => pixels[id] >= Least).OrderBy(id => subTiles[id].Grounds.Count).ThenByDescending(id => pixels[id]))
         {
             SubTile one = subTiles[id];
             said.Append("    ").Append(one.Name).Append(string.Create(CultureInfo.InvariantCulture, $" · {pixels[id]} px · ")).Append(string.Join(" + ", one.Grounds)).Append(" ·");
-            for (var k = 0; k < one.Candidates.Length; k++)
+            foreach (int k in Enumerable.Range(0, one.Candidates.Length).OrderByDescending(k => double.IsFinite(Of(id, k).R) ? Of(id, k).R : double.NegativeInfinity))
             {
-                said.Append(' ').Append(k == winners[id] ? "*" : string.Empty).Append(Tail(one.Candidates[k].Material)).Append(' ').Append(CaptureGroundCompare.Said(Of(id, k))).Append(';');
+                Found measure = Of(id, k);
+                said.Append(' ').Append(k == winners[id] ? "*" : string.Empty).Append(Tail(one.Candidates[k].Material)).Append(' ')
+                    .Append(double.IsFinite(measure.R)
+                        ? string.Create(CultureInfo.InvariantCulture, $"r {measure.R:+0.000;-0.000} z {measure.Z:0.0} at {Shift(measure)}")
+                        : "n/a (not read, or the field is even)")
+                    .Append(';');
             }
 
-            said.Append(winners[id] < 0 ? " no clear winner" : string.Empty).Append('\n');
+            said.Append(winners[id] >= 0
+                ? string.Create(CultureInfo.InvariantCulture, $" ahead by {leads[id]:0.000}")
+                : double.IsFinite(leads[id]) ? string.Create(CultureInfo.InvariantCulture, $" no clear winner (ahead by {leads[id]:0.000})") : " no clear winner").Append('\n');
         }
 
         picture = Tinted(bgr, width, height, owner, id => winners[id] < 0 ? -1 : materials.FindIndex(one => string.Equals(one, subTiles[id].Candidates[winners[id]].Material, StringComparison.OrdinalIgnoreCase)));

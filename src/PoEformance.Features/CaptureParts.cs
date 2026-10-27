@@ -384,7 +384,7 @@ public static class CaptureParts
             + "beside it; and every laid tile definition's bytes past what is read. What stands between the rooms' white ground "
             + "and a painted one."),
         new(GroundScreen, "Area files", "ground on screen", CaptureReport.GroundScreenFile,
-            "The laid tiles' ground laid over the game's own picture where the Monster Book's laid room has it: every sub-tile of two "
+            "The laid tiles' ground laid over the game's own picture where the Monster Book's laid room has it, each piece at its tiles' own level: every sub-tile of two "
             + "grounds or more on the screen outlined and named as ground.txt names it, and its ground shapes whose coordinates run "
             + "across the mask's atlas drawn - where the tool's mix comes out as a checkerboard - so which ground the game draws there "
             + "is read off its picture (ground-on-screen.png). Each sub-tile's grid corners beside the game's own corner types at that "
@@ -392,7 +392,8 @@ public static class CaptureParts
             + "the game's picture pixel by pixel - the mask's green and the corners' share, and each weighed by the two grounds' heights as the "
             + "engine's height blending weighs them, every ground's own program run at each pixel - with moved controls (ground-on-screen-corners.png "
             + "tinted by the corners, ground-on-screen-heights.png by the mask weighed by the heights). And which material of its group each "
-            + "sub-tile's pattern follows, every material the group offers run at every pixel against the picture's detail "
+            + "sub-tile's pattern follows, every material the group offers read over the sub-tile and lined up with the picture's detail, "
+            + "shifted up to 24 units for its best line-up, against the same material shifted where nothing lines up "
             + "(ground-on-screen-choices.png tinted by the winners). Best with \"game only\" ticked: over the "
             + "overlay's picture the overlay's own drawing is in the way."),
         new(Water, "Area files", "water", CaptureReport.WaterFile,

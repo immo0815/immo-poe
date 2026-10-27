@@ -140,17 +140,18 @@ public class LaidRoomModelsTests
     }
 
     /// <summary>
-    /// The ground over a block of the area is laid where the room lays it, in world units: the room's highest ground point, moved by the
-    /// room's corner, is the block's - turned and fitted alike, the files lying the way the slope says.
+    /// The ground over a block of the area is laid where the room laid at its tiles' levels lays it, in world units: the room's highest
+    /// ground point, moved by the room's corner, is the block's - turned alike, the files lying the way the slope says.
     /// </summary>
     [Fact]
     public void THEGROUNDOverABlockLiesWhereTheLaidRoomHasItInTheWorld()
     {
         (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement: 6, selector: 1, lies: 2);
-        MonsterModel room = LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0);
+        MonsterModel room = LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, atLevel: true);
 
         List<LaidGround> grounds = LaidRoomModels.GroundsOver(files.GetValueOrDefault, grid, 0, 0, TilesX, TilesY, out string said);
         Assert.StartsWith("heights: drawn with the files mirrored, turned 180° (x, -y) before the game's own turn", said, StringComparison.Ordinal);
+        Assert.Contains("; each piece at its tiles' own level - fitted to the area's ground, ", said, StringComparison.Ordinal);
 
         LaidGround laid = Assert.Single(grounds);
         Assert.Equal(TilePath, laid.Path);
@@ -161,6 +162,22 @@ public class LaidRoomModelsTests
         Assert.Equal(roomTop.X + origin.X, MathF.Round(top.X));
         Assert.Equal(roomTop.Y + origin.Y, MathF.Round(top.Y));
         Assert.Equal(roomTop.Z, top.Z, 0.5f);
+    }
+
+    /// <summary>
+    /// The ground over a block stays at its tile's level where fitting it to the area's ground would move it - as Port's harbour, whose
+    /// sea floor drew the fit 450 units off the pier the game draws at its level - and the line says how far the fit would have put it.
+    /// </summary>
+    [Fact]
+    public void THEGROUNDOverABlockStaysAtItsTilesLevelWhereTheFitWouldMoveIt()
+    {
+        (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement: 3, selector: 0, lies: 3, sunk: 40f);
+
+        LaidGround laid = Assert.Single(LaidRoomModels.GroundsOver(files.GetValueOrDefault, grid, 0, 0, TilesX, TilesY, out string said));
+
+        float highest = laid.Ground.Positions.Max(one => Vector3.Transform(one, laid.Place).Z);
+        Assert.Equal(Plane(250f, 250f) + 40f, highest, 8f);
+        Assert.Contains("; each piece at its tiles' own level - fitted to the area's ground, 1 of 1 would sit over 8 units off it, the farthest slope at tile 1, 1 by -", said, StringComparison.Ordinal);
     }
 
     [Fact]

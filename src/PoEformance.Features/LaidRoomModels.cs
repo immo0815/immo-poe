@@ -394,9 +394,16 @@ public static class LaidRoomModels
     /// tile (0, 0) at the origin - for the capture's picture of the ground on the screen (CaptureGroundScreen).
     /// </summary>
     /// <remarks>
-    /// THE ROOM'S OWN ARITHMETIC, not a second copy of it: the way the files lie is weighed from the block's sloped pieces and each
-    /// piece fitted to the area's ground exactly as <see cref="Of"/> does, so what the capture draws over the game's picture is where
-    /// the Monster Book's laid room has its ground. Placed from the area's corner rather than a room's, so a point is a world point.
+    /// THE ROOM'S OWN ARITHMETIC, not a second copy of it: the way the files lie is weighed from the block's sloped pieces exactly as
+    /// <see cref="Of"/> does, so what the capture draws over the game's picture is where the Monster Book's laid room has its ground.
+    /// Placed from the area's corner rather than a room's, so a point is a world point.
+    ///
+    /// EACH PIECE AT ITS TILES' OWN LEVEL, NOT FITTED (v0.1.314, MEASURED). Fitted to the area's ground - the mean of the area's height less
+    /// the file's - Port's harbour came out 450 units above the game's: the sea floor under its water, 500 down in the file, outweighs the
+    /// pier and the quay where the area's grid says nought. v0.1.313's capture showed it twice over: the material choices' pixel counts
+    /// came out as the harbour drawn at -450 and no other height, and the game's own cobblestones line up with the pier's materials on the
+    /// plane at its tile's level, nought, within 16 units. Every comparison the capture drew over the harbour until then was measured on
+    /// the wrong pixels. The laid room keeps its own choice (<c>atLevel</c>); the line says how far the fit would have put each piece.
     /// </remarks>
     /// <param name="read">The install.</param>
     /// <param name="grid">The area, its tiles read.</param>
@@ -432,6 +439,7 @@ public static class LaidRoomModels
         List<TilePiece> pieces = tiles.Pieces(x, y, wide, tall, id => (Of(id).Width, Of(id).Height));
         (Way[] ways, Way chosen, bool settled, int asked) = Weighed(pieces, Of, grid, 0, 0);
         said = asked > 0 ? Cornered(ways, chosen, asked) + "; " + Heights(ways, chosen, settled) : Heights(ways, chosen, settled);
+        var fits = new List<(float Off, string Piece)>();
         foreach (TilePiece piece in pieces)
         {
             Made one = Of(piece.Id);
@@ -441,10 +449,22 @@ public static class LaidRoomModels
             }
 
             Matrix3x2 flat = chosen.Flat(piece, one, 0, 0);
-            Height height = Way.Measure(piece, one, grid, 0, 0, flat, Level(piece, grid));
-            laid.Add(new LaidGround(tiles.Paths[piece.Id], piece, one.Ground, one.Pieces, Spatial(flat) * Matrix4x4.CreateTranslation(0f, 0f, height.Fitted)));
+            float level = Level(piece, grid);
+            Height height = Way.Measure(piece, one, grid, 0, 0, flat, level);
+            if (height.Samples > 0)
+            {
+                fits.Add((height.Fitted - level, string.Create(CultureInfo.InvariantCulture, $"{Path.GetFileNameWithoutExtension(tiles.Paths[piece.Id])} at tile {piece.MinX}, {piece.MinY}")));
+            }
+
+            laid.Add(new LaidGround(tiles.Paths[piece.Id], piece, one.Ground, one.Pieces, Spatial(flat) * Matrix4x4.CreateTranslation(0f, 0f, level)));
         }
 
+        // BOTH HALVES: where the pieces lie, and where fitting them to the area's ground would have put them instead.
+        (float Off, string Piece) farthest = fits.Count > 0 ? fits.MaxBy(fit => MathF.Abs(fit.Off)) : default;
+        said += fits.Count == 0
+            ? "; each piece at its tiles' own level"
+            : string.Create(CultureInfo.InvariantCulture,
+                $"; each piece at its tiles' own level - fitted to the area's ground, {fits.Count(fit => MathF.Abs(fit.Off) > Fits)} of {fits.Count} would sit over {Fits} units off it, the farthest {farthest.Piece} by {farthest.Off:+0;-0;0}");
         return laid;
     }
 

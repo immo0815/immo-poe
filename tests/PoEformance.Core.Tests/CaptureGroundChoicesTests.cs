@@ -13,11 +13,12 @@ namespace PoEformance.Core.Tests;
 public sealed class CaptureGroundChoicesTests
 {
     /// <summary>
-    /// A sub-tile of one ground whose group offers stripes across x and stripes across y, and a picture of the stripes across x laid where
-    /// the materials' coordinates put them: the stripes across x win, clearly, and the picture is tinted.
+    /// A sub-tile of one ground whose group offers two noises, and a picture of the first drawn six units along x and four back along y
+    /// from where the tool places it - as the game's picture of Port's pier lay a few units off the tool's places: the first wins, lined up
+    /// at that shift, clearly over its controls, and the picture is tinted.
     /// </summary>
     [Fact]
-    public void THEMATERIALWhosePatternThePictureShowsWins()
+    public void THEMATERIALWhosePatternThePictureShowsWinsLinedUp()
     {
         const int width = 100, height = 100;
         var mesh = SkinnedMesh.Of(
@@ -30,10 +31,11 @@ public sealed class CaptureGroundChoicesTests
         var grounds = new SubTileGrounds(["Metadata/Test/sand.gt", "Metadata/Test/sand.gt", "Metadata/Test/sand.gt", "Metadata/Test/sand.gt"], ["Sand"], string.Empty)
         {
             Gridded = true,
-            Materials = ["Art/across-y.mat"],
-            Choices = [[("Art/across-x.mat", 30), ("Art/across-y.mat", 70)]],
+            Materials = ["Art/noise-b.mat"],
+            Choices = [[("Art/noise-a.mat", 30), ("Art/noise-b.mat", 70)]],
         };
 
+        // THE CAMERA: the sub-tile's 250 units across the picture's hundred pixels, x right and y down.
         var matrix = new float[16];
         matrix[0] = 2f / 250f;
         matrix[12] = -1f;
@@ -41,36 +43,39 @@ public sealed class CaptureGroundChoicesTests
         matrix[13] = 1f;
         matrix[15] = 1f;
 
-        // THE PICTURE: the stripes across x, a texel of eight to the materials' unit, at the world's x times the ground scale.
+        ShadeProgram noiseA = Noise(seed: 1), noiseB = Noise(seed: 2);
+        ShadeProgram? Programs(string material) => material switch
+        {
+            "Art/noise-a.mat" => noiseA,
+            "Art/noise-b.mat" => noiseB,
+            _ => null,
+        };
+
+        // THE PICTURE: the first noise as its own program draws it, each pixel's place shifted by (6, -4).
+        var reader = new ShadeProgram.GroundReader(noiseA);
+        reader.Triangle(Vector3.Zero, new Vector3(250f, 0f, 0f), new Vector3(0f, 250f, 0f), Vector2.Zero, new Vector2(width, 0f), new Vector2(0f, height), GroundPainter.GroundScale);
         var bgr = new byte[width * height * 3];
         for (var y = 0; y < height; y++)
         {
             for (var x = 0; x < width; x++)
             {
-                float u = (x + 0.5f) / width * 250f * GroundPainter.GroundScale;
-                byte value = (int)MathF.Floor(u * 8f) % 2 == 0 ? (byte)40 : (byte)210;
+                var place = new Vector3(((x + 0.5f) * 2.5f) + 6f, ((y + 0.5f) * 2.5f) - 4f, 0f);
+                var value = (byte)Math.Clamp((int)(reader.BrightnessAt(place, GroundPainter.GroundScale) * 255f), 0, 255);
                 int at = ((y * width) + x) * 3;
                 bgr[at] = bgr[at + 1] = bgr[at + 2] = value;
             }
         }
 
-        ShadeProgram acrossX = Striped(alongX: true), acrossY = Striped(alongX: false);
-        ShadeProgram? Programs(string material) => material switch
-        {
-            "Art/across-x.mat" => acrossX,
-            "Art/across-y.mat" => acrossY,
-            _ => null,
-        };
-
         string said = CaptureGroundChoices.Measure([new CaptureGroundChoices.Piece(laid, [grounds])], matrix, width, height, bgr, Programs, out GamePicture? picture);
 
-        Assert.StartsWith("material choices: 10000 pixels in 1 sub-tiles", said, StringComparison.Ordinal);
-        Assert.Contains("1 of 1 sub-tiles have one - 1 of the 1 of one ground with at least 200 pixels, the clean test", said, StringComparison.Ordinal);
-        Assert.Contains(" across-x weight 30 (30%), red: won 1 (10000 px);", said, StringComparison.Ordinal);
-        Assert.Contains(" across-y weight 70 (70%), the painter's, green: won 0 (0 px);", said, StringComparison.Ordinal);
-        Assert.Contains("    t at tile 0, 0 · 1 sub-tiles: across-x x1", said, StringComparison.Ordinal);
-        Assert.Contains(" *across-x r +", said, StringComparison.Ordinal);
-        Assert.Contains(" across-y r +0.000", said, StringComparison.Ordinal);
+        Assert.StartsWith("material choices: 10000 pixels in 1 sub-tiles of at least 200 pixels", said, StringComparison.Ordinal);
+        Assert.Contains("1 of 1 sub-tiles have one - 1 of the 1 of one ground, the clean test", said, StringComparison.Ordinal);
+        Assert.Contains("the clear winners lined up shifted by (+6, -4) units at the median", said, StringComparison.Ordinal);
+        Assert.Contains(" noise-a weight 30 (30%), red: won 1 (10000 px);", said, StringComparison.Ordinal);
+        Assert.Contains(" noise-b weight 70 (70%), the painter's, green: won 0 (0 px);", said, StringComparison.Ordinal);
+        Assert.Contains("    t at tile 0, 0 · 1 sub-tiles: noise-a x1", said, StringComparison.Ordinal);
+        Assert.Contains(" *noise-a r +", said, StringComparison.Ordinal);
+        Assert.Contains(" at (+6, -4); noise-b r ", said, StringComparison.Ordinal);
         GamePicture tinted = Assert.IsType<GamePicture>(picture);
         Assert.True(tinted.Rgba[((50 * width) + 50) * 4] > tinted.Rgba[(((50 * width) + 50) * 4) + 2]);
     }
@@ -88,8 +93,8 @@ public sealed class CaptureGroundChoicesTests
         Assert.True(striped[(10 * width) + 11] > 40f);
     }
 
-    /// <summary>A material reading one striped texture at its coordinates - stripes across x or across y, eight texels to the unit.</summary>
-    private static ShadeProgram Striped(bool alongX)
+    /// <summary>A material reading one texture of noise at its coordinates, 64 texels to the unit - a texel about four units of the world.</summary>
+    private static ShadeProgram Noise(int seed)
     {
         string json =
             """
@@ -106,15 +111,15 @@ public sealed class CaptureGroundChoicesTests
         ShadeCompile compiled = ShadeProgram.Compile(
             [(new ShaderInstance("Metadata/Test.fxgraph", new Dictionary<string, ShaderValue[]>()), ShaderGraph.Read(Encoding.UTF8.GetBytes(json)))]);
         Assert.NotNull(compiled.Program);
-        var pixels = new byte[8 * 8 * 4];
-        for (var at = 0; at < 8 * 8; at++)
+        var random = new Random(seed);
+        var pixels = new byte[64 * 64 * 4];
+        for (var at = 0; at < 64 * 64; at++)
         {
-            int column = at % 8, row = at / 8;
-            byte value = (alongX ? column : row) % 2 == 0 ? (byte)40 : (byte)210;
+            var value = (byte)random.Next(20, 236);
             pixels[at * 4] = pixels[(at * 4) + 1] = pixels[(at * 4) + 2] = value;
             pixels[(at * 4) + 3] = 255;
         }
 
-        return compiled.Program.With([Mipmaps.Of(new GamePicture(8, 8, pixels))]);
+        return compiled.Program.With([Mipmaps.Of(new GamePicture(64, 64, pixels))]);
     }
 }

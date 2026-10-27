@@ -943,6 +943,29 @@ next. Per group it writes how often each material won a sub-tile of that ground 
 winners (one winner throughout says the game chooses per tile), every sub-tile's every r, and `ground-on-screen-choices.png` tints each
 clear winner. No material lining up anywhere would question the coordinates themselves - the world times 0.004, the scale the
 environments write and the offset a pass uniform no file holds.
+ITS FIRST CAPTURE (v0.1.313, the same spot on Port's pier) MEASURED NOTHING, AND SAID WHY THE COMPARISONS OVER THE HARBOUR BEFORE IT
+MEASURED NOTHING EITHER. Every material came to r 0.00 +/- 0.01, its controls alike. Held offline against the capture's own files (the
+game's picture, the camera, the colour textures ground.txt writes at 256 texels): the game's cobblestones line up with the pier's
+materials at r 0.08 to 0.29 - z 13 to 39 over the same material shifted where nothing lines up, the water round it 2 to 6 - at the
+world times 0.004 halved by PBRGroundBN's own MultiplyConst2 (the colour repeats every 500 units), the tool's axes as they are (no turn,
+no mirror), and within 16 units: across the pier the best line-up moved from (2, -12) to (4, -2) units, one shift, (12, 6), on a plane
+16 units higher. MEASURED: the ground's texture coordinates are the world's times 0.004, as the environments write - the pass's scale
+settled; its offset (ground_scalemove_uv.zw) and the camera's are within 13 units, which one spot cannot tell apart. Four units off the
+line-up r is nought, and v0.1.313 read each material at the pixel's own place. Nor were its pixels the pier's: `LaidRoomModels.GroundsOver`
+lifted each piece by its FIT to the area's ground - the mean of the area's height less the file's - and Port_Boss_01's sea floor, 500 down
+in the file under the harbour's water where the area's grid says nought, drew the fit to -450. The capture drew the pier 450 units above
+the game's: its sub-tiles' pixel counts come out as at -450 and no other height, within 2%. EVERY COMPARISON OVER PORT'S HARBOUR THROUGH
+ground-on-screen - v0.1.262's tint edges, v0.1.264's and v0.1.310's candidates, v0.1.312's heights - WAS MEASURED ON THE WRONG PIXELS, and
+its conclusion for the harbour is void until measured again (The Excavation's, v0.1.256, rests on whether its pieces' fits met their
+levels, not checked). From v0.1.314 `GroundsOver` lays each piece at its tiles' own level, as the game lays a tile's doodads (Marrow,
+Sulphuric) and Port's pier (this capture), and its line says how far the fit would have put each; the laid room keeps its own choice
+(`atLevel`; the built stage takes the level). And the choices LINE UP (`CaptureGroundChoices`): the detail summed in cells of 2 units, each
+material read once a cell and shifted up to 24 units each way for its best line-up, its controls the same material shifted 48 and 72
+units; a winner is clear at z 5 and 0.01 over the next material, both CHOSEN, and the shift each winner lined up at is written. Offline,
+on this capture's 256-texel textures: PORT'S FIVE COBBLESTONES ARE ONE LAYOUT, fewer stones in each, so a winner says which density the
+picture shows - CobblestoneDirt01 round the player (c12r11 0.110 against Cobblestone03's 0.082, c13r11 0.084 against 0.057),
+Cobblestone03 at c12r8 (0.194 against CobblestoneDirt01's 0.154), the dense ones within 0.01 of each other at the pier's far end. The game
+does not draw the heaviest everywhere; whether it chooses per sub-tile, per tile or by some field is what the next capture's lines say.
 THE MONSTER BOOK'S ARENA IS BUILT, AND LAID AS WRITTEN (`BuiltRoomModels`, said from the live client: "our harbour diorama is never
 the game's, always mirrored somehow"). The game lays the boss room each instance its own way - Port's build replays: turned 180 (the
 harbour at placement 0), turned 90 and mirrored (placement 4); v0.1.262's instance laid the harbour at placement 1, mirrored - while
