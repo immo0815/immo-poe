@@ -979,7 +979,7 @@ public sealed partial class ShadeProgram
         Constants(registers);
     }
 
-    /// <summary>Only the program's own constants in their registers, and nothing behind - none of the drawing's shared state touched (see HeightReader).</summary>
+    /// <summary>Only the program's own constants in their registers, and nothing behind - none of the drawing's shared state touched (see GroundReader).</summary>
     internal void Constants(Span<Vector4> registers)
     {
         registers[Behind] = new Vector4(float.MaxValue);

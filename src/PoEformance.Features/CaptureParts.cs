@@ -391,7 +391,9 @@ public static class CaptureParts
             + "place, and each shape's height, green and reach across the mask. And the two ways two grounds may be mixed held against "
             + "the game's picture pixel by pixel - the mask's green and the corners' share, and each weighed by the two grounds' heights as the "
             + "engine's height blending weighs them, every ground's own program run at each pixel - with moved controls (ground-on-screen-corners.png "
-            + "tinted by the corners, ground-on-screen-heights.png by the mask weighed by the heights). Best with \"game only\" ticked: over the "
+            + "tinted by the corners, ground-on-screen-heights.png by the mask weighed by the heights). And which material of its group each "
+            + "sub-tile's pattern follows, every material the group offers run at every pixel against the picture's detail "
+            + "(ground-on-screen-choices.png tinted by the winners). Best with \"game only\" ticked: over the "
             + "overlay's picture the overlay's own drawing is in the way."),
         new(Water, "Area files", "water", CaptureReport.WaterFile,
             "What the water is drawn from, as the files say: every key the install's environments write in their water "

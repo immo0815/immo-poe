@@ -28,14 +28,14 @@ namespace PoEformance.Features;
 ///
 /// AND BOTH WEIGHED BY THE GROUNDS' HEIGHTS (v0.1.312, asked for from the live client): the engine's GroundInterpolate weighs the two by
 /// what their graphs write as height where either turns GROUND_HEIGHT_BLENDING on (ShadeProgram.Grounds) - so each ground's own program
-/// is run at every measured pixel, its reads at the level the picture would take (ShadeProgram.HeightReader), and the mask's green and
+/// is run at every measured pixel, its reads at the level the picture would take (ShadeProgram.GroundReader), and the mask's green and
 /// the corners' share are weighed as the engine weighs them: two candidates more. Their heights are said beside them - how often each
 /// ground's comes under a half, and how far the weighing moved the share - so a candidate that changed nothing is seen to have.
 /// </remarks>
 internal static class CaptureGroundCompare
 {
     /// <summary>The offsets the candidates are held against the picture at: none first, then the moved controls.</summary>
-    private static readonly (int X, int Y)[] Moves = [(0, 0), (-120, 0), (120, 0), (0, -120), (0, 120), (-85, -85), (85, 85), (-85, 85), (85, -85)];
+    internal static readonly (int X, int Y)[] Moves = [(0, 0), (-120, 0), (120, 0), (0, -120), (0, 120), (-85, -85), (85, 85), (-85, 85), (85, -85)];
 
     /// <summary>The local contrast's window reaches this far each way: nine pixels square, a cobblestone's edge and some of its neighbour.</summary>
     private const int Reach = 4;
@@ -229,8 +229,8 @@ internal static class CaptureGroundCompare
     /// <summary>One sub-tile of two grounds measured: its name as ground.txt has it, its pair, its corners, and its two grounds' materials.</summary>
     private readonly record struct Named(string Name, string Pair, string Pattern, string First, string Second);
 
-    /// <summary>One triangle of a sub-tile of two grounds as it lies on the screen and in the world - what a pixel's place is worked out from.</summary>
-    private readonly record struct Triangle(Vector2 A, Vector2 B, Vector2 C, float Wa, float Wb, float Wc, Vector3 Pa, Vector3 Pb, Vector3 Pc, int Id);
+    /// <summary>One triangle of a sub-tile as it lies on the screen and in the world - what a pixel's place is worked out from.</summary>
+    internal readonly record struct Triangle(Vector2 A, Vector2 B, Vector2 C, float Wa, float Wb, float Wc, Vector3 Pa, Vector3 Pb, Vector3 Pc, int Id);
 
     /// <summary>The two candidates weighed by the heights, per pixel; which sub-tiles were weighed; and what the heights came to, per sub-tile.</summary>
     private sealed class Weighing(int count, int subTiles)
@@ -363,7 +363,7 @@ internal static class CaptureGroundCompare
     }
 
     /// <summary>Where a pixel's middle lies in the world on one triangle - its weights on the screen, corrected for the perspective by the corners' inverse w.</summary>
-    private static Vector3 PlaceAt(Triangle one, int x, int y)
+    internal static Vector3 PlaceAt(Triangle one, int x, int y)
     {
         float px = x + 0.5f, py = y + 0.5f;
         Vector2 a = one.A, b = one.B, c = one.C;
@@ -381,7 +381,7 @@ internal static class CaptureGroundCompare
     /// <summary>One thread's readers and tallies over its runs of pixels.</summary>
     private sealed class Worker(int subTiles)
     {
-        private readonly Dictionary<ShadeProgram, ShadeProgram.HeightReader> _readers = [];
+        private readonly Dictionary<ShadeProgram, ShadeProgram.GroundReader> _readers = [];
         private readonly long[] _pixels = new long[subTiles];
         private readonly long[] _lowFirst = new long[subTiles];
         private readonly long[] _lowSecond = new long[subTiles];
@@ -393,7 +393,7 @@ internal static class CaptureGroundCompare
             (ShadeProgram? First, ShadeProgram? Second)[] pairs, Weighing weighing)
         {
             int last = -1;
-            ShadeProgram.HeightReader? first = null, second = null;
+            ShadeProgram.GroundReader? first = null, second = null;
             for (int at = from; at < to; at++)
             {
                 int id = owner[at], index = triangleOf[at];
@@ -413,7 +413,7 @@ internal static class CaptureGroundCompare
                 }
 
                 Vector3 place = PlaceAt(one, at % width, at / width);
-                float h0 = first!.At(place, GroundPainter.GroundScale), h1 = second!.At(place, GroundPainter.GroundScale);
+                float h0 = first!.HeightAt(place, GroundPainter.GroundScale), h1 = second!.HeightAt(place, GroundPainter.GroundScale);
                 float g = green[at] / 255f, c = share[at] / 255f;
                 float byMask = ShadeProgram.WeighedShare(g, h0, h1), byCorners = ShadeProgram.WeighedShare(c, h0, h1);
                 weighing.Mask[at] = (byte)((255f * Math.Clamp(byMask, 0f, 1f)) + 0.5f);
@@ -438,11 +438,11 @@ internal static class CaptureGroundCompare
             }
         }
 
-        private ShadeProgram.HeightReader Reader(ShadeProgram program)
+        private ShadeProgram.GroundReader Reader(ShadeProgram program)
         {
-            if (!_readers.TryGetValue(program, out ShadeProgram.HeightReader? reader))
+            if (!_readers.TryGetValue(program, out ShadeProgram.GroundReader? reader))
             {
-                reader = new ShadeProgram.HeightReader(program);
+                reader = new ShadeProgram.GroundReader(program);
                 _readers[program] = reader;
             }
 
@@ -693,7 +693,7 @@ internal static class CaptureGroundCompare
         return Spread(Weighted(0), moved);
     }
 
-    private static (double R, double Mean, double Spread) Spread(double r, double[] moved)
+    internal static (double R, double Mean, double Spread) Spread(double r, double[] moved)
     {
         if (moved.Length == 0)
         {
@@ -704,7 +704,7 @@ internal static class CaptureGroundCompare
         return (r, mean, Math.Sqrt(moved.Sum(one => (one - mean) * (one - mean)) / moved.Length));
     }
 
-    private static string Said((double R, double Mean, double Spread) one)
+    internal static string Said((double R, double Mean, double Spread) one)
         => !double.IsFinite(one.R) ? "r n/a (the field is even)"
             : !double.IsFinite(one.Mean) ? string.Create(CultureInfo.InvariantCulture, $"r {one.R:+0.000;-0.000} (no move stays on the picture)")
             : string.Create(CultureInfo.InvariantCulture, $"r {one.R:+0.000;-0.000} (moved {one.Mean:+0.000;-0.000} +/- {one.Spread:0.000})");
@@ -717,6 +717,17 @@ internal static class CaptureGroundCompare
         private double _x, _y, _xx, _yy, _xy;
 
         public long N { get; private set; }
+
+        /// <summary>Another's sums added in - one thread's to the whole's.</summary>
+        public void Add(in Sums other)
+        {
+            N += other.N;
+            _x += other._x;
+            _y += other._y;
+            _xx += other._xx;
+            _yy += other._yy;
+            _xy += other._xy;
+        }
 
         public void Add(double x, double y)
         {
