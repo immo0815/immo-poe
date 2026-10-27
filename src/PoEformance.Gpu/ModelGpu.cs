@@ -541,6 +541,7 @@ public sealed partial class ModelGpu : IDisposable
             Wind = (scene.Water ?? WaterLook.EngineDefault).WindRegister,
             Shore = (scene.Water ?? WaterLook.EngineDefault).ShoreRegister,
             Swell = (scene.Water ?? WaterLook.EngineDefault).SwellRegister with { W = crash ? 1f : 0f },
+            WaterLit = new Vector4((scene.Water ?? WaterLook.EngineDefault).SubsurfaceScattering, 0f, 0f, 0f),
         });
 
         context.RSSetState(_raster);
@@ -1185,6 +1186,7 @@ public sealed partial class ModelGpu : IDisposable
         public Vector4 Wind;
         public Vector4 Shore;
         public Vector4 Swell;
+        public Vector4 WaterLit;
     }
 
     private sealed record Compiled(

@@ -64,9 +64,11 @@ public readonly record struct ProbeFragment(int Triangle, Seen Seen, float Depth
 /// <param name="Added">The light the reflection added, linear.</param>
 /// <param name="Sun">How much of the sun the shadow map lets through to it, nought in shadow - asked for when the waves seemed cut off
 /// along a straight line beside Port's ship (from the live client, v0.1.236): a shadow takes the sun's glints with it.</param>
+/// <param name="Light">Every part of its light where it was lit as the engine's water pass lights it (SceneLight.ShadeWater) - asked for
+/// when the water looked nearer the game under the flat ambient than under the cube (from the live client, v0.1.295); default where not.</param>
 public readonly record struct ProbeWater(
     float Depth, Vector3 Place, Vector3 Normal, Vector3 Waves, Vector3 Reflected, int Step, int HitX, int HitY, float HitDepth,
-    Vector3 HitColour, float Environment, Vector3 Added, float Sun);
+    Vector3 HitColour, float Environment, Vector3 Added, float Sun, WaterLight Light = default);
 
 /// <summary>
 /// How much of the sun reached a fragment the game light shaded at a probed pixel, and - where it was shaded - what cast the shadow.

@@ -147,7 +147,19 @@ public static class PictureProbe
             -1 => " · its reflection met nothing: the environment alone, the ray " + Way(water.Reflected),
             _ => Say($" · its reflection met the solid picture at step {water.Step}, pixel {water.HitX}, {water.HitY}, depth {Number(water.HitDepth)} ({Number(water.HitDepth - water.Depth)} past the water), colour {(int)water.HitColour.X}, {(int)water.HitColour.Y}, {(int)water.HitColour.Z}; the environment's share {Fraction(water.Environment)}, the light it added {water.Added.X:F3}, {water.Added.Y:F3}, {water.Added.Z:F3}; the ray ") + Way(water.Reflected),
         };
-        return line.Append(said).ToString();
+        line.Append(said);
+
+        // EVERY PART OF THE ENGINE'S WATER LIGHT, linear before the exposure and the grade - where the colour came from.
+        WaterLight lit = water.Light;
+        if (lit != default)
+        {
+            line.Append(Say($" · lit as the engine's water pass: the medium {lit.Subsurface.X:F4}, {lit.Subsurface.Y:F4}, {lit.Subsurface.Z:F4} (scattered by the waves' height, exponent {lit.Exponent:F3})"))
+                .Append(Say($", the foam {lit.Foam.X:F3}, {lit.Foam.Y:F3}, {lit.Foam.Z:F3}; the light they give off {lit.Absorbed.X:F4}, {lit.Absorbed.Y:F4}, {lit.Absorbed.Z:F4}, the ambient's {lit.Ambient.X:F4}, {lit.Ambient.Y:F4}, {lit.Ambient.Z:F4}"))
+                .Append(Say($"; the specular kept {lit.Specular.X:F4}, {lit.Specular.Y:F4}, {lit.Specular.Z:F4}; reflectivity {lit.Reflectivity:F4}, refracted {lit.Refracted:F4}"))
+                .Append(Say($"; through the medium {Fraction(lit.Through)}, the shore's ratio {Fraction(lit.Terrain)}, hidden by foam {Fraction(lit.Hidden)}, covering {Fraction(lit.Cover)}"));
+        }
+
+        return line.ToString();
     }
 
     /// <summary>

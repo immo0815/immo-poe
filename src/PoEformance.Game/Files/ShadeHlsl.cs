@@ -53,6 +53,8 @@ public static partial class ShadeHlsl
             float3 specular;
             float gloss;
             float3 waves;
+            float4 waterFoam;
+            float4 waterState;
         };
 
         // ShadeProgram.Read's: an sRGB sheet's colour linearised by the table, its alpha as it is.
@@ -333,6 +335,7 @@ public static partial class ShadeHlsl
         hlsl.Append("static const bool ShadeUsesDepth = ").Append(Truth(program.UsesDepth)).AppendLine(";");
         hlsl.Append("static const bool ShadeHasWaves = ").Append(Truth(program.HasWaves)).AppendLine(";");
         hlsl.Append("static const bool ShadeBeach = ").Append(Truth(program.Beaches)).AppendLine(";");
+        hlsl.Append("static const bool ShadeWater = ").Append(Truth(program.LightsWater)).AppendLine(";");
         hlsl.AppendLine(Library);
         bool sprays = false;
         bool fields = false;
@@ -476,6 +479,12 @@ public static partial class ShadeHlsl
         hlsl.AppendLine(program.WavesRegister >= 0
             ? string.Create(CultureInfo.InvariantCulture, $"    said.waves = r{program.WavesRegister}.xyz;")
             : "    said.waves = float3(0.0, 0.0, 0.0);");
+        hlsl.AppendLine(program.LightsWater
+            ? string.Create(CultureInfo.InvariantCulture, $"    said.waterFoam = r{program.WaterFoamRegister};")
+            : "    said.waterFoam = float4(0.0, 0.0, 0.0, 0.0);");
+        hlsl.AppendLine(program.LightsWater
+            ? string.Create(CultureInfo.InvariantCulture, $"    said.waterState = r{program.WaterStateRegister};")
+            : "    said.waterState = float4(0.0, 0.0, 0.0, 0.0);");
         hlsl.AppendLine("    return said;");
         hlsl.AppendLine("}");
         return hlsl.ToString();
