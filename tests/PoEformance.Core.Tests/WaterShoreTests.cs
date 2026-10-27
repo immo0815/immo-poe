@@ -56,26 +56,32 @@ public class WaterShoreTests
         Assert.Contains("=== deepwater: 2 lines", report, StringComparison.Ordinal);
     }
 
-    /// <summary>A graph firing on the crashing waves' trigger, a particle effect naming that graph, and a script nothing names.</summary>
+    /// <summary>
+    /// The spray's chain as the install has it: a graph firing on the crashing waves' trigger, the update material naming it, the GPU
+    /// particle naming that material, the animated object carrying the particle - and a script nothing names.
+    /// </summary>
     private static readonly Dictionary<string, byte[]> Spray = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["Metadata/Effects/Graphs/Water/Crash.fxgraph"] = Encoding.UTF8.GetBytes("{\n  \"nodes\": [\n    { \"type\": \"CrashingSprayTrigger\" }\n  ]\n}\n"),
-        ["Metadata/Particles/Water/Drops.pet"] = Wide("version 3\nemitter\n{\n\tspawn_graph = \"Metadata/Effects/Graphs/Water/Crash.fxgraph\"\n}\n"),
+        ["Metadata/Effects/Graphs/Water/CrashingTrigger.fxgraph"] = Encoding.UTF8.GetBytes("{\n  \"nodes\": [\n    { \"type\": \"CrashingSprayTrigger\" }\n  ]\n}\n"),
+        ["Metadata/Effects/Water/mat/FoamSpray_U.mat"] = Encoding.UTF8.GetBytes("{\"graphinstances\":[{\"parent\":\"Metadata/Effects/Graphs/Water/CrashingTrigger.fxgraph\"}]}"),
+        ["Metadata/Effects/Water/fx/Splashes.pet"] = Encoding.UTF8.GetBytes("{\n  \"update_material\": \"Metadata/Effects/Water/mat/FoamSpray_U.mat\"\n}\n"),
+        ["Metadata/Effects/Water/WaterSplash.ao"] = Wide("version 2\nAnimatedObject\n{\n\tparticles = \"Metadata/Effects/Water/fx/Splashes.pet\"\n}\n"),
         ["Metadata/Terrain/Objects/Rock.ot"] = Wide("version 2\nextends \"nothing\"\n"),
     };
 
     [Fact]
-    public void THESPRAYSGraphIsFoundAndWhatNamesIt()
+    public void THESPRAYSChainIsFollowedFromItsGraphToWhatCarriesIt()
     {
         string text = CaptureWaterShore.Write(path => Spray.GetValueOrDefault(path), [.. Spray.Keys], null, null, null, null);
-        Assert.Contains("1 effect files the spray and 1 files name those", text, StringComparison.Ordinal);
-        Assert.Contains("##### Metadata/Effects/Graphs/Water/Crash.fxgraph", text, StringComparison.Ordinal);
-        Assert.Contains(
-            "Metadata/Particles/Water/Drops.pet  ->  spawn_graph = \"Metadata/Effects/Graphs/Water/Crash.fxgraph\"", text, StringComparison.Ordinal);
+        Assert.Contains("1 spray trigger graphs and 1 / 1 / 1 files hop by hop naming them", text, StringComparison.Ordinal);
+        Assert.Contains("##### Metadata/Effects/Graphs/Water/CrashingTrigger.fxgraph", text, StringComparison.Ordinal);
+        Assert.Contains("Metadata/Effects/Water/fx/Splashes.pet  ->  \"update_material\": \"Metadata/Effects/Water/mat/FoamSpray_U.mat\"", text, StringComparison.Ordinal);
+        Assert.Contains("Metadata/Effects/Water/WaterSplash.ao  ->  particles = \"Metadata/Effects/Water/fx/Splashes.pet\"", text, StringComparison.Ordinal);
 
-        // THE CALLS STAY THE SHORE'S LIST: the graph's line among them, the particle's - found by name alone - not.
+        // THE CALLS STAY THE SHORE'S LIST: the graph's line among them, the chain's - found by name alone - not; the material and the
+        // object are never searched for the words.
         Assert.Equal(
-            [new CaptureWaterShore.Call("Metadata/Effects/Graphs/Water/Crash.fxgraph", "{ \"type\": \"CrashingSprayTrigger\" }")],
+            [new CaptureWaterShore.Call("Metadata/Effects/Graphs/Water/CrashingTrigger.fxgraph", "{ \"type\": \"CrashingSprayTrigger\" }")],
             CaptureWaterShore.Calls(text));
     }
 

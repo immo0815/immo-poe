@@ -47,11 +47,18 @@ namespace PoEformance.Game.Files;
 /// 450 units across, so with the quay as shore the whole of it stood white (said from the live client: "always white"). The game draws it blue-green between crests, and the
 /// pier's sheltered side dark to its wall (the in-game videos of v0.1.295) - which that formula allows only where the wall is no
 /// shore. So land counts towards the shore's distance where ground lies beside it under no more than <see cref="BeachDeep"/> of
-/// water - the beach's own band - or where what stands in the sea stands; land meeting only deeper water is a WALL
-/// (<see cref="WallCells"/>). Port's ground under its water lies 55 units deep at most or more than 300 (its capture's beach,
-/// 21 to 176 against a level of 125), so any depth between splits it alike. The way in still runs to every land, walls included:
-/// the crests come along the channel and up to the quay. What the engine marks as its shore is its OceanMarkupField, made from an
-/// int grid ClientTileMap::CalculateMapMarkup fills (the program's strings) - read nowhere yet.
+/// water - the beach's own band; land meeting only deeper water is a WALL (<see cref="WallCells"/>). Port's ground under its water
+/// lies 55 units deep at most or more than 300 (its capture's beach, 21 to 176 against a level of 125), so any depth between splits
+/// it alike. The way in still runs to every land, walls included: the crests come along the channel and up to the quay. What the
+/// engine marks as its shore is its OceanMarkupField, made from an int grid ClientTileMap::CalculateMapMarkup fills (the program's
+/// strings) - read nowhere yet.
+///
+/// WHAT STANDS IN THE SEA TAKES THE SAME TEST (v0.1.301). v0.1.299 kept it shore whatever the water beside it, and the channel stood
+/// white again (said from the live client, crash on and off): v0.1.300's capture still put the quay's edge at a shore's distance of
+/// nought, only 495 cells walls - because Port's quay is faced with spraying stone (<c>MSHD_GraveBrickTile01c</c>, OceanSprayFoam)
+/// standing out of the water, while the harbour template's ground there is the quay's top (z 0 to 62) or the floor 375 under
+/// (z 500), nothing between (v0.1.296's ground.txt). Rocks on a beach stand over shallow ground and stay shore; a faced quay or
+/// pier over deep water is a wall (<see cref="StandingWalls"/>).
 /// </remarks>
 public sealed class ShoreField
 {
@@ -157,6 +164,15 @@ public sealed class ShoreField
 
     /// <summary>Whether a cell, row by row, is a wall: land meeting only deep water, from which the shore's distance is not measured.</summary>
     public bool IsWall(int cell) => _walls[cell];
+
+    /// <summary>How many of the walls are what stands in the sea - a spraying stone over deep water, as Port's quay is faced.</summary>
+    public int StandingWalls { get; private init; }
+
+    /// <summary>How many cells lie under two water shapes or more - where water drawn unlifted blends a layer for each.</summary>
+    public int OverlappedCells { get; private init; }
+
+    /// <summary>The most water shapes over one cell.</summary>
+    public int MostLayers { get; private init; }
 
     /// <summary>The box's least x.</summary>
     public float Left { get; }
@@ -274,22 +290,20 @@ public sealed class ShoreField
         int standingTriangles = 0;
         float[]? standingTop = standing is null ? null : Covered(mesh, standing, least, cell, width, height, out standingTriangles);
         var land = new bool[width * height];
-        var shoreLand = new bool[land.Length];
+        var stands = new bool[land.Length];
         var lands = 0;
         var standingCells = 0;
         for (var at = 0; at < land.Length; at++)
         {
             float surface = float.IsNaN(waterTop[at]) ? level : waterTop[at];
             land[at] = !float.IsNaN(groundTop[at]) && groundTop[at] < surface - 1f;
-            bool stands = standingTop is not null && !float.IsNaN(standingTop[at]) && standingTop[at] < surface - 1f;
-            if (!land[at] && stands)
+            stands[at] = standingTop is not null && !float.IsNaN(standingTop[at]) && standingTop[at] < surface - 1f;
+            if (!land[at] && stands[at])
             {
                 land[at] = true;
                 standingCells++;
             }
 
-            // WHAT STANDS IN THE SEA IS SHORE whatever the water beside it (v0.1.236).
-            shoreLand[at] = stands;
             lands += land[at] ? 1 : 0;
         }
 
@@ -298,7 +312,15 @@ public sealed class ShoreField
             return null;
         }
 
+        var shoreLand = new bool[land.Length];
         int walls = Walled(land, shoreLand, groundTop, waterTop, level, width, height, out bool[] wall);
+        int standingWalls = 0;
+        for (var at = 0; at < wall.Length; at++)
+        {
+            standingWalls += wall[at] && stands[at] ? 1 : 0;
+        }
+
+        int overlapped = Layered(mesh, water, least, cell, width, height, out int mostLayers);
 
         // THE BEACH'S BAND, CHOSEN: the ground from BeachDeep under the water standing over it to BeachHigh above it.
         var beach = new float[land.Length];
@@ -348,14 +370,86 @@ public sealed class ShoreField
 
         return new ShoreField(
             least.X, least.Y, cell, width, height, texels, level, lands, waterTriangles, groundTriangles, standingTriangles, standingCells, beach,
-            blockingTriangles, crossingTriangles, blockedCells, travelled, unreached, blocked, crossingShapes, wall, walls);
+            blockingTriangles, crossingTriangles, blockedCells, travelled, unreached, blocked, crossingShapes, wall, walls)
+        {
+            StandingWalls = standingWalls,
+            OverlappedCells = overlapped,
+            MostLayers = mostLayers,
+        };
     }
 
     /// <summary>
-    /// Which land is shore and which a wall: land is shore where what stands in the sea stands on it (<paramref name="shoreLand"/>,
-    /// set already) or where a water cell beside it, of its eight, has ground under it no deeper than <see cref="BeachDeep"/> - and
-    /// a wall where it meets the water and neither holds. Land that meets no water is neither. Fills the rest of
-    /// <paramref name="shoreLand"/> and returns the walls' count.
+    /// How many cells lie under two water shapes or more, and the most at one - where water drawn unlifted blends a layer for each.
+    /// </summary>
+    private static int Layered(SkinnedMesh mesh, Func<int, bool> water, Vector2 least, float cell, int width, int height, out int most)
+    {
+        var layers = new byte[width * height];
+        var last = new int[width * height];
+        Array.Fill(last, -1);
+        for (var shape = 0; shape < mesh.Shapes.Count; shape++)
+        {
+            if (!water(shape))
+            {
+                continue;
+            }
+
+            MeshShape one = mesh.Shapes[shape];
+            int end = Math.Min(one.From + one.Count, mesh.Indices.Length) - 2;
+            for (int at = one.From; at < end; at += 3)
+            {
+                Vector3 a = mesh.Positions[mesh.Indices[at]], b = mesh.Positions[mesh.Indices[at + 1]], c = mesh.Positions[mesh.Indices[at + 2]];
+                Marked(layers, last, shape, a, b, c, least, cell, width, height);
+            }
+        }
+
+        var overlapped = 0;
+        most = 0;
+        foreach (byte count in layers)
+        {
+            overlapped += count >= 2 ? 1 : 0;
+            most = Math.Max(most, count);
+        }
+
+        return overlapped;
+    }
+
+    /// <summary>One triangle counted into the cells whose middles it covers, once a shape a cell.</summary>
+    private static void Marked(byte[] layers, int[] last, int shape, Vector3 a, Vector3 b, Vector3 c, Vector2 least, float cell, int width, int height)
+    {
+        float area = ((b.X - a.X) * (c.Y - a.Y)) - ((c.X - a.X) * (b.Y - a.Y));
+        if (MathF.Abs(area) < 1e-6f)
+        {
+            return;
+        }
+
+        int x0 = Math.Max(0, (int)MathF.Floor(((MathF.Min(a.X, MathF.Min(b.X, c.X)) - least.X) / cell) - 0.5f));
+        int x1 = Math.Min(width - 1, (int)MathF.Ceiling(((MathF.Max(a.X, MathF.Max(b.X, c.X)) - least.X) / cell) - 0.5f));
+        int y0 = Math.Max(0, (int)MathF.Floor(((MathF.Min(a.Y, MathF.Min(b.Y, c.Y)) - least.Y) / cell) - 0.5f));
+        int y1 = Math.Min(height - 1, (int)MathF.Ceiling(((MathF.Max(a.Y, MathF.Max(b.Y, c.Y)) - least.Y) / cell) - 0.5f));
+        for (int y = y0; y <= y1; y++)
+        {
+            float py = least.Y + ((y + 0.5f) * cell);
+            for (int x = x0; x <= x1; x++)
+            {
+                float px = least.X + ((x + 0.5f) * cell);
+                float u = (((b.X - px) * (c.Y - py)) - ((c.X - px) * (b.Y - py))) / area;
+                float v = (((c.X - px) * (a.Y - py)) - ((a.X - px) * (c.Y - py))) / area;
+                int at = (y * width) + x;
+                if (u < 0f || v < 0f || 1f - u - v < 0f || last[at] == shape)
+                {
+                    continue;
+                }
+
+                last[at] = shape;
+                layers[at] = (byte)Math.Min(255, layers[at] + 1);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Which land is shore and which a wall: land is shore where a water cell beside it, of its eight, has ground under it no deeper
+    /// than <see cref="BeachDeep"/> - and a wall where it meets the water and that does not hold, what stands in the sea alike. Land
+    /// that meets no water is neither. Fills <paramref name="shoreLand"/> and returns the walls' count.
     /// </summary>
     private static int Walled(
         bool[] land, bool[] shoreLand, float[] groundTop, float[] waterTop, float level, int width, int height, out bool[] wall)
