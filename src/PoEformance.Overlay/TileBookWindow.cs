@@ -632,7 +632,7 @@ public sealed class TileBookWindow : BookWindow<TileBook>
         {
             // BUILT FROM ITS TILESET where the key names one, else the file alone - see BuiltRoomModels.
             return room.Built.Length > 0
-                ? BuiltRoomModels.Of(read, room.Path, room.Built, shaded: true, doodads: room.Doodads, tools: room.Tools, progress: progress, heights: room.Heights, mirrored: room.Mirrored)
+                ? BuiltRoomModels.Of(read, room.Path, room.Built, shaded: true, doodads: room.Doodads, tools: room.Tools, progress: progress, heights: room.Heights, mirrored: room.Mirrored, maskCells: room.MaskCells)
                 : RoomModels.Of(read, room.Path, shaded: true, doodads: room.Doodads, tools: room.Tools, progress: progress, heights: room.Heights);
         }
 
@@ -643,7 +643,7 @@ public sealed class TileBookWindow : BookWindow<TileBook>
             ? LaidRoomModels.Of(
                 read, room.Path, grid, x, y, turn, shaded: true, doodads: room.Doodads, tools: room.Tools, atLevel: room.AtLevel,
                 progress: progress, heights: room.Heights, entities: entities?.Invoke(),
-                camera: room.Hidden ? null : camera?.Invoke(), sight: !room.Hidden, cut: room.Cut)
+                camera: room.Hidden ? null : camera?.Invoke(), sight: !room.Hidden, cut: room.Cut, maskCells: room.MaskCells)
             : MonsterModel.None with { Why = "the area this place was found in is gone - pick the room's place again" };
     }
 

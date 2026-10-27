@@ -2394,7 +2394,7 @@ public static class MeshPicture
                         if (here && program.MixesGrounds)
                         {
                             (float green, Vector3 firstGround, Vector3 secondGround) = program.Mixed(registers);
-                            _probe!.Add(new ProbeGround(one, away, green, firstGround, secondGround));
+                            _probe!.Add(new ProbeGround(one, away, green, firstGround, secondGround, program.MixesByCorners));
                         }
                     }
                     else if (skinned)

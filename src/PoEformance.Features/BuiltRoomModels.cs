@@ -49,6 +49,7 @@ public static class BuiltRoomModels
     /// <param name="progress">Where the build says how far it has got, or null.</param>
     /// <param name="heights">How high a doodad whose line carries a height is set.</param>
     /// <param name="mirrored">Whether the room is laid turned over in x - see the remarks on <see cref="MirroredTurn"/>.</param>
+    /// <param name="maskCells">Whether the ground's shapes across its mask's atlas stay on the mask's cells rather than mixed by their corners - see GroundPainter.</param>
     public static MonsterModel Of(
         Func<string, byte[]?>? read,
         string? path,
@@ -58,7 +59,8 @@ public static class BuiltRoomModels
         bool tools = false,
         ModelProgress? progress = null,
         DoodadHeight heights = DoodadHeight.File,
-        bool mirrored = false)
+        bool mirrored = false,
+        bool maskCells = false)
     {
         if (read is null)
         {
@@ -165,7 +167,7 @@ public static class BuiltRoomModels
         }
 
         MonsterModel model = LaidRoomModels.Of(
-            read, path, grid, x, build.Y, turn, shaded, doodads, tools, atLevel: true, progress: progress, heights: heights, master: master);
+            read, path, grid, x, build.Y, turn, shaded, doodads, tools, atLevel: true, progress: progress, heights: heights, master: master, maskCells: maskCells);
         string said = build.Said + $" ({pool.Count} tiles in the pool{(unread > 0 ? $", {unread} did not read" : string.Empty)}{fillsSaid})"
             + (mirrored ? "; turned over in x by the switch, as the game lays the room in some instances" : string.Empty);
         return model.Ready

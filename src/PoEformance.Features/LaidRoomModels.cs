@@ -103,6 +103,7 @@ public static class LaidRoomModels
     /// <param name="sight">Whether what the camera cannot see from anywhere the player can stand is left out - see <see cref="Hiding"/>.</param>
     /// <param name="cut">How far under the area's ground, in world units, everything is left out; nought or less leaves nothing out - see <see cref="Hiding"/>.</param>
     /// <param name="master">The area's master (<c>.tsi</c>), whose MaterialsList paints the ground - empty for the one beside the room's <c>Rooms/</c> (see GroundPainter).</param>
+    /// <param name="maskCells">Whether the ground's shapes across its mask's atlas stay on the mask's cells rather than mixed by their corners - see GroundPainter.</param>
     public static MonsterModel Of(
         Func<string, byte[]?>? read,
         string? path,
@@ -120,7 +121,8 @@ public static class LaidRoomModels
         CameraShot? camera = null,
         bool sight = false,
         int cut = 0,
-        string master = "")
+        string master = "",
+        bool maskCells = false)
     {
         if (read is null)
         {
@@ -165,7 +167,7 @@ public static class LaidRoomModels
         var made = new Dictionary<int, Made>();
 
         // THE GROUND'S PAINTER, from the area's MaterialsList - the master given, or the one beside the room's Rooms/.
-        (GroundPainter? painter, string unpainted) = GroundPainter.For(Counted, master.Length > 0 ? master : GroundPainter.MasterBeside(read, path), paints);
+        (GroundPainter? painter, string unpainted) = GroundPainter.For(Counted, master.Length > 0 ? master : GroundPainter.MasterBeside(read, path), paints, maskCells);
         var grounds = new List<MonsterModel>();
         Made Make(int id)
         {

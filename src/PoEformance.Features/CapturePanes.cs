@@ -393,7 +393,9 @@ public static class CapturePanes
 
                 // TWO GROUNDS MIXED ARE WRITTEN AS THE TWO MATERIALS THEY ARE, the name they are worn under being no file.
                 string[] materials = GroundBlend.Parts(worn, out string first, out string second, out string mask) ? [first, second] : [worn];
-                string mixed = materials.Length == 2 ? $" · mixed per pixel by {mask}'s green" : string.Empty;
+                string mixed = materials.Length < 2 ? string.Empty
+                    : mask.Length > 0 ? $" · mixed per pixel by {mask}'s green"
+                    : " · mixed per pixel by its sub-tiles' corners (a shape across the mask's atlas, CHOSEN)";
                 foreach (string material in materials)
                 {
                     if (named.Add(material))
