@@ -111,8 +111,8 @@ public class LaidRoomModelsTests
     [Fact]
     public void APIECEFittedMeetsTheAreasGroundAndAtItsLevelStaysWhereTheFileHasIt()
     {
-        MonsterModel fitted = Laid(placement: 3, selector: 0, lies: 3, sunk: 40f);
-        MonsterModel level = Laid(placement: 3, selector: 0, lies: 3, sunk: 40f, atLevel: true);
+        MonsterModel fitted = Laid(placement: 3, selector: 0, lies: 3, sunk: 40f, fitted: true);
+        MonsterModel level = Laid(placement: 3, selector: 0, lies: 3, sunk: 40f);
 
         Assert.True(fitted.Ready, fitted.Why);
         Assert.True(level.Ready, level.Why);
@@ -130,8 +130,8 @@ public class LaidRoomModelsTests
     [Fact]
     public void ANDWhereTheFileCountsFromItsTilesLevelTheTwoAgree()
     {
-        MonsterModel fitted = Laid(placement: 3, selector: 0, lies: 3, level: -100f);
-        MonsterModel level = Laid(placement: 3, selector: 0, lies: 3, level: -100f, atLevel: true);
+        MonsterModel fitted = Laid(placement: 3, selector: 0, lies: 3, level: -100f, fitted: true);
+        MonsterModel level = Laid(placement: 3, selector: 0, lies: 3, level: -100f);
 
         Assert.Equal(Plane(250f, 250f) - 100f, Highest(fitted).Z, 8f);
         Assert.Equal(Plane(250f, 250f) - 100f, Highest(level).Z, 8f);
@@ -140,8 +140,8 @@ public class LaidRoomModelsTests
     }
 
     /// <summary>
-    /// The ground over a block of the area is laid where the room lays it, in world units: the room's highest ground point, moved by the
-    /// room's corner, is the block's - turned and fitted alike, the files lying the way the slope says.
+    /// The ground over a block of the area is laid where the room laid at its tiles' levels lays it, in world units: the room's highest
+    /// ground point, moved by the room's corner, is the block's - turned alike, the files lying the way the slope says.
     /// </summary>
     [Fact]
     public void THEGROUNDOverABlockLiesWhereTheLaidRoomHasItInTheWorld()
@@ -151,6 +151,7 @@ public class LaidRoomModelsTests
 
         List<LaidGround> grounds = LaidRoomModels.GroundsOver(files.GetValueOrDefault, grid, 0, 0, TilesX, TilesY, out string said);
         Assert.StartsWith("heights: drawn with the files mirrored, turned 180° (x, -y) before the game's own turn", said, StringComparison.Ordinal);
+        Assert.Contains("; each piece at its tiles' own level - fitted to the area's ground, ", said, StringComparison.Ordinal);
 
         LaidGround laid = Assert.Single(grounds);
         Assert.Equal(TilePath, laid.Path);
@@ -161,6 +162,22 @@ public class LaidRoomModelsTests
         Assert.Equal(roomTop.X + origin.X, MathF.Round(top.X));
         Assert.Equal(roomTop.Y + origin.Y, MathF.Round(top.Y));
         Assert.Equal(roomTop.Z, top.Z, 0.5f);
+    }
+
+    /// <summary>
+    /// The ground over a block stays at its tile's level where fitting it to the area's ground would move it - as Port's harbour, whose
+    /// sea floor drew the fit 450 units off the pier the game draws at its level - and the line says how far the fit would have put it.
+    /// </summary>
+    [Fact]
+    public void THEGROUNDOverABlockStaysAtItsTilesLevelWhereTheFitWouldMoveIt()
+    {
+        (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement: 3, selector: 0, lies: 3, sunk: 40f);
+
+        LaidGround laid = Assert.Single(LaidRoomModels.GroundsOver(files.GetValueOrDefault, grid, 0, 0, TilesX, TilesY, out string said));
+
+        float highest = laid.Ground.Positions.Max(one => Vector3.Transform(one, laid.Place).Z);
+        Assert.Equal(Plane(250f, 250f) + 40f, highest, 8f);
+        Assert.Contains("; each piece at its tiles' own level - fitted to the area's ground, 1 of 1 would sit over 8 units off it, the farthest slope at tile 1, 1 by -", said, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -377,7 +394,7 @@ public class LaidRoomModelsTests
     /// </summary>
     /// <param name="level">The tile's own level, which its sub-tile heights are written relative to.</param>
     /// <param name="sunk">How far below the area's ground the file's ground is written.</param>
-    /// <param name="atLevel">Whether the piece is set at its tile's level rather than fitted.</param>
+    /// <param name="fitted">Whether the piece is fitted to the area's ground rather than set at its tile's level, the usual.</param>
     private static MonsterModel Laid(
         int placement,
         byte selector,
@@ -385,7 +402,7 @@ public class LaidRoomModelsTests
         bool flat = false,
         float level = 0f,
         float sunk = 0f,
-        bool atLevel = false,
+        bool fitted = false,
         string? doodads = null,
         IReadOnlyList<WorldEntity>? entities = null,
         DoodadHeight doodadHeights = DoodadHeight.Ground,
@@ -402,7 +419,7 @@ public class LaidRoomModelsTests
             files[path] = Text(text);
         }
 
-        return LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, atLevel: atLevel, heights: doodadHeights, entities: entities);
+        return LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, fitted: fitted, heights: doodadHeights, entities: entities);
     }
 
     /// <summary>The install and the area <see cref="Laid"/> lays its room over.</summary>

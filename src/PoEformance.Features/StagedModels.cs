@@ -172,7 +172,7 @@ public static class StagedModels
         }
 
         return LaidRoomModels.Of(
-            read, room.Path, grid, x, y, turn, shaded: true, doodads: RoomModels.EveryDoodad, tools: room.Tools, atLevel: room.AtLevel,
+            read, room.Path, grid, x, y, turn, shaded: true, doodads: RoomModels.EveryDoodad, tools: room.Tools, fitted: room.Fitted,
             progress: progress, heights: room.Heights, cut: room.Cut, maskCells: room.MaskCells, groundHeights: room.GroundHeights);
     }
 

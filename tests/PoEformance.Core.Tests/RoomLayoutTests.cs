@@ -458,18 +458,20 @@ public class RoomLayoutTests
         Assert.Equal(string.Empty, RoomKey.Read(path + "|laid=nowhere").Laid);
         Assert.False(new RoomKey(path).TryLaid(out _, out _, out _, out _));
 
-        // AND THE PIECES AT THEIR TILES' LEVELS, a word of its own that reads back - and is off unless written.
-        var level = new RoomKey(path, Laid: laid, AtLevel: true);
-        Assert.Equal(path + "|laid=13,21,7,-12345+level", level.ToString());
+        // AND THE PIECES FITTED TO THE AREA'S GROUND, a word of its own that reads back - and off unless written, the pieces then at
+        // their tiles' levels; an older key's word for the levels is the usual now and reads as it.
+        var level = new RoomKey(path, Laid: laid, Fitted: true);
+        Assert.Equal(path + "|laid=13,21,7,-12345+fitted", level.ToString());
         Assert.Equal(level, RoomKey.Read(level.ToString()));
-        Assert.False(RoomKey.Read(key.ToString()).AtLevel);
+        Assert.False(RoomKey.Read(key.ToString()).Fitted);
+        Assert.Equal(new RoomKey(path, Laid: laid), RoomKey.Read(path + "|laid=13,21,7,-12345+level"));
 
         // AND HOW HIGH A DOODAD WITH A HEIGHT IS SET, at its line's height unless written.
         var ground = new RoomKey(path, Heights: DoodadHeight.Ground);
         Assert.Equal(path + "|heights=ground", ground.ToString());
         Assert.Equal(ground, RoomKey.Read(ground.ToString()));
-        var added = new RoomKey(path, Laid: laid, AtLevel: true, Heights: DoodadHeight.Added);
-        Assert.Equal(path + "|laid=13,21,7,-12345+level+heights=added", added.ToString());
+        var added = new RoomKey(path, Laid: laid, Fitted: true, Heights: DoodadHeight.Added);
+        Assert.Equal(path + "|laid=13,21,7,-12345+fitted+heights=added", added.ToString());
         Assert.Equal(added, RoomKey.Read(added.ToString()));
         Assert.Equal(path, new RoomKey(path, Heights: DoodadHeight.File).ToString());
         Assert.Equal(DoodadHeight.File, RoomKey.Read(level.ToString()).Heights);
