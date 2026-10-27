@@ -169,8 +169,13 @@ public sealed record TileDoodadList(int Version, IReadOnlyList<RoomDoodad> Dooda
             return false;
         }
 
+        // THE WHOLE TURN after the angle - see RoomDoodad.Rotation; four that are not a quaternion leave the angle alone.
+        Quaternion? rotation = Real(numbers[afterPairs + 2], out float qx) && Real(numbers[afterPairs + 3], out float qy)
+            && Real(numbers[afterPairs + 4], out float qz) && Real(numbers[afterPairs + 5], out float qw)
+            ? RoomDoodad.RotationOf(qx, qy, qz, qw)
+            : null;
         Vector2? exact = pairs > 0 ? new Vector2(exactX, exactY) : null;
-        doodad = new RoomDoodad(x, y, angle, scale, strings[0].Replace('\\', '/'), strings[3]) { Height = z, Exact = exact };
+        doodad = new RoomDoodad(x, y, angle, scale, strings[0].Replace('\\', '/'), strings[3]) { Height = z, Exact = exact, Rotation = rotation };
         why = string.Empty;
         return true;
     }

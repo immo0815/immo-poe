@@ -56,6 +56,33 @@ public readonly record struct RoomDoodad(int X, int Y, float Turn, float Scale, 
     public Vector2? Exact { get; init; }
 
     /// <summary>
+    /// The line's whole turn - the quaternion after its angle, x, y, z then w - or null where it carries none (a room's line before
+    /// version 18) or one that is not of unit length.
+    /// </summary>
+    /// <remarks>
+    /// THE ANGLE IS ONLY ITS TURN ABOUT THE VERTICAL; the quaternion tips the doodad too. Every line's angle is its quaternion's own
+    /// 2 atan2(z, w) - Port's ladders -0.630 against -0.615, 3.112 against 3.113, pi/2 against pi/2 - and the rest of it leans:
+    /// MEASURED on Port's capture of 2026-10-27 22:54 (v0.1.319), the harbour tile's ladder, whose line
+    /// <c>266 101 1 2896.17 1100.67 5 -1.50117 -0.302463 -0.340666 -0.591037 0.665686 1 0.85</c> leans 54 degrees. Its entity stands at
+    /// the line's place through the tile's laying to the hundredth (33103.83, 9399.33); drawn through
+    /// <c>Matrix4x4.CreateFromQuaternion</c> and then the tile's turn, its box lies along the ladder the game drew against the barrels,
+    /// while turned by the angle alone it stood straight up - as the Monster Book drew it, and the sacks lying in the air and the
+    /// carts floating level over their tipped place beside it (said from the live client). The tilt reversed lies on the floor.
+    /// </remarks>
+    public Quaternion? Rotation { get; init; }
+
+    /// <summary>The line's turn as a matrix - its quaternion where it carries one, else its angle about the vertical; its scale goes before it and its place after.</summary>
+    public Matrix4x4 Turning => Rotation is { } whole ? Matrix4x4.CreateFromQuaternion(whole) : Matrix4x4.CreateRotationZ(Turn);
+
+    /// <summary>A line's four numbers as its turn - null where they are not a quaternion of unit length, to within a hundredth.</summary>
+    public static Quaternion? RotationOf(float x, float y, float z, float w)
+    {
+        var whole = new Quaternion(x, y, z, w);
+        float length = whole.Length();
+        return float.IsFinite(length) && MathF.Abs(length - 1f) <= 0.01f ? Quaternion.Normalize(whole) : null;
+    }
+
+    /// <summary>
     /// Whether the line is a plain prop - a stub under <c>Metadata/MiscellaneousObjects/Doodad</c> - rather than a scripted object the game spawns and removes with play.
     /// </summary>
     /// <remarks>
@@ -721,9 +748,13 @@ public sealed class RoomLayout
         }
 
         float turn = Real(Next(numbers, ref at), "a doodad's angle");
+        Quaternion? rotation = null;
         if (version >= 18)
         {
-            at += 4;
+            // THE WHOLE TURN, x y z w - see RoomDoodad.Rotation.
+            rotation = RoomDoodad.RotationOf(
+                Real(Next(numbers, ref at), "a doodad's turn"), Real(Next(numbers, ref at), "a doodad's turn"),
+                Real(Next(numbers, ref at), "a doodad's turn"), Real(Next(numbers, ref at), "a doodad's turn"));
         }
 
         at++;                                                        // A bool.
@@ -748,7 +779,7 @@ public sealed class RoomLayout
         int next = line.IndexOf('"', after);
         string stub = next >= 0 ? Quoted(line, next).Text : string.Empty;
 
-        return new RoomDoodad(x, y, turn, scale, ao.Replace('\\', '/'), stub) { Height = height, Exact = exact };
+        return new RoomDoodad(x, y, turn, scale, ao.Replace('\\', '/'), stub) { Height = height, Exact = exact, Rotation = rotation };
     }
 
     /// <summary>A zone's line - see <see cref="RoomZone"/>: the name, quoted from version 35, four whole numbers, then from 35 two quoted strings and a number.</summary>
