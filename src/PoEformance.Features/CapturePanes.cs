@@ -203,10 +203,36 @@ public static class CapturePanes
         body.Append(CultureInfo.InvariantCulture,
                 $"  way in	the distance out to sea the waves run down (ocean_dist): the shore's in the open sea, {ShoreField.Deep:0} or more from land or at the field's edge, and inside it the way a wave travels from there through the water - CHOSEN until the engine's OceanMarkupField is read; ")
             .Append(CultureInfo.InvariantCulture,
-                $"{shore.BlockedCells} water cells in the waves' way (of {shore.BlockingTriangles} solid triangles asked: a cell where one crosses the water's surface, its top above and its bottom under), {shore.Travelled} cells' way in shorter than their shore's distance, {shore.Unreached} reached by no way; ")
+                $"{shore.BlockedCells} water cells in the waves' way (of {shore.BlockingTriangles} solid triangles asked, {shore.CrossingTriangles} crossing the water's surface: the cells their waterlines run through), {shore.Travelled} cells' way in shorter than their shore's distance, {shore.Unreached} reached by no way; ")
+            .Append(Crossers(shore, model))
             .Append(CultureInfo.InvariantCulture, $"picture {Path.ChangeExtension(picture, null)}-way.png, ")
             .AppendLine($"water by its way in, a white line every {WayStep:0} units - where the game's crests should run - the cells in the way red, land brown");
         Beach(body, model);
+    }
+
+    /// <summary>What crossed the water's surface, the most triangles first - each shape's material and where it came from: the half the cells in the way were made from.</summary>
+    private static string Crossers(ShoreField shore, MonsterModel model)
+    {
+        if (shore.CrossingShapes.Count == 0)
+        {
+            return "nothing crossing it; ";
+        }
+
+        const int Most = 12;
+        var said = new StringBuilder("crossing it: ");
+        foreach (KeyValuePair<int, int> one in shore.CrossingShapes.OrderByDescending(one => one.Value).Take(Most))
+        {
+            string material = one.Key < model.ShapeMaterials.Count ? Path.GetFileName(model.ShapeMaterials[one.Key]) : "?";
+            string source = one.Key < model.ShapeSources.Count ? model.ShapeSources[one.Key] : "?";
+            said.Append(CultureInfo.InvariantCulture, $"{one.Value} of shape {one.Key}, {material} from {source}; ");
+        }
+
+        if (shore.CrossingShapes.Count > Most)
+        {
+            said.Append(CultureInfo.InvariantCulture, $"and {shore.CrossingShapes.Count - Most} more shapes; ");
+        }
+
+        return said.ToString();
     }
 
     /// <summary>

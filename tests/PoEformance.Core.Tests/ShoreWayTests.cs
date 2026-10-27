@@ -11,17 +11,29 @@ public class ShoreWayTests
 {
     /// <summary>A mesh of flat quads, each its corners' x and y and one z - up is minus z - a shape a quad, or as many as asked.</summary>
     private static SkinnedMesh Quads(params (string Name, (float X0, float Y0, float X1, float Y1, float Z)[] Quads)[] shapes)
+        => Cornered([.. shapes.Select(shape => (shape.Name, shape.Quads.Select(Flat).ToArray()))]);
+
+    /// <summary>A flat quad's four corners.</summary>
+    private static Vector3[] Flat((float X0, float Y0, float X1, float Y1, float Z) quad) =>
+        [new(quad.X0, quad.Y0, quad.Z), new(quad.X1, quad.Y0, quad.Z), new(quad.X1, quad.Y1, quad.Z), new(quad.X0, quad.Y1, quad.Z)];
+
+    /// <summary>A sheer quad from (x0, y0) to (x1, y1), standing from z0 to z1 - a wall, which covers no cell's middle from above.</summary>
+    private static Vector3[] Sheer(float x0, float y0, float x1, float y1, float z0, float z1) =>
+        [new(x0, y0, z0), new(x1, y1, z0), new(x1, y1, z1), new(x0, y0, z1)];
+
+    /// <summary>A mesh of quads given by their four corners, a shape a list of them.</summary>
+    private static SkinnedMesh Cornered(params (string Name, Vector3[][] Quads)[] shapes)
     {
         var places = new List<Vector3>();
         var indices = new List<int>();
         var named = new List<MeshShape>();
-        foreach ((string name, (float X0, float Y0, float X1, float Y1, float Z)[] quads) in shapes)
+        foreach ((string name, Vector3[][] quads) in shapes)
         {
             int from = indices.Count;
-            foreach ((float x0, float y0, float x1, float y1, float z) in quads)
+            foreach (Vector3[] quad in quads)
             {
                 int first = places.Count;
-                places.AddRange([new(x0, y0, z), new(x1, y0, z), new(x1, y1, z), new(x0, y1, z)]);
+                places.AddRange(quad);
                 indices.AddRange([first, first + 1, first + 2, first, first + 2, first + 3]);
             }
 
@@ -34,15 +46,6 @@ public class ShoreWayTests
         Vector3 most = places.Aggregate(new Vector3(float.MinValue), Vector3.Max);
         return SkinnedMesh.Of([.. places], normals, [.. indices], least, most, [.. places.Select(one => new Vector2(one.X, one.Y))], [.. named]);
     }
-
-    /// <summary>The bay of WaterTests: water at nought over -3000..3000, a sea floor 300 under it to x 1000, the quay above it past - and whatever more is asked.</summary>
-    private static SkinnedMesh Bay(params (string Name, (float X0, float Y0, float X1, float Y1, float Z)[] Quads)[] more) => Quads(
-    [
-        ("Water", [(-3000f, -3000f, 3000f, 3000f, 0f)]),
-        ("Sea floor", [(-3000f, -3000f, 1000f, 3000f, 300f)]),
-        ("Quay", [(1000f, -3000f, 3000f, 3000f, -100f)]),
-        .. more,
-    ]);
 
     /// <summary>The field's distance out to sea at a place, world units.</summary>
     private static float Ocean(ShoreField shore, float x, float y)
@@ -97,19 +100,36 @@ public class ShoreWayTests
         Assert.True(shore.Travelled > 0, "no cell took its way in");
     }
 
+    /// <summary>The bay of WaterTests: water at nought over -3000..3000, a sea floor 300 under it to x 1000, the quay above it past - and whatever more is asked.</summary>
+    private static SkinnedMesh Bay(params (string Name, Vector3[][] Quads)[] more) => Cornered(
+    [
+        ("Water", [Flat((-3000f, -3000f, 3000f, 3000f, 0f))]),
+        ("Sea floor", [Flat((-3000f, -3000f, 1000f, 3000f, 300f))]),
+        ("Quay", [Flat((1000f, -3000f, 3000f, 3000f, -100f))]),
+        .. more,
+    ]);
+
     [Fact]
     public void AHULLCROSSINGTheWaterTurnsTheWavesRoundItAndABridgeOverItDoesNot()
     {
-        // A HULL 100 WIDE AND 3,000 LONG between the sea and the quay, its deck 50 above the water and its keel 100 under.
-        (float, float, float, float, float)[] hull = [(100f, -1500f, 200f, 1500f, -50f), (100f, -1500f, 200f, 1500f, 100f)];
-        (float, float, float, float, float)[] bridge = [(100f, -1500f, 200f, 1500f, -50f)];
+        // A HULL 100 WIDE AND 3,000 LONG between the sea and the quay: its deck 50 above the water, its keel 100 under, and its four
+        // sides sheer between them - the sides cross the water, deck and keel do not.
+        Vector3[][] hull =
+        [
+            Flat((100f, -1500f, 200f, 1500f, -50f)), Flat((100f, -1500f, 200f, 1500f, 100f)),
+            Sheer(100f, -1500f, 100f, 1500f, -50f, 100f), Sheer(200f, -1500f, 200f, 1500f, -50f, 100f),
+            Sheer(100f, -1500f, 200f, -1500f, -50f, 100f), Sheer(100f, 1500f, 200f, 1500f, -50f, 100f),
+        ];
+        Vector3[][] bridge = [Flat((100f, -1500f, 200f, 1500f, -50f))];
         ShoreField hulled = ShoreField.Of(Bay(("Hull", hull)), shape => shape == 0, shape => shape is 1 or 2, null, shape => shape == 3)!;
         ShoreField bridged = ShoreField.Of(Bay(("Bridge", bridge)), shape => shape == 0, shape => shape is 1 or 2, null, shape => shape == 3)!;
 
-        // BEHIND THE HULL the way in goes round its ends, 1,500 off: far longer than the 500 straight from the shore.
+        // BEHIND THE HULL the way in goes round its ends, 1,500 off: far longer than the 500 straight from the shore - its waterline,
+        // walked cell by cell, leaves no gap.
         Assert.InRange(Shore(hulled, 500f, 0f), 470f, 530f);
         Assert.True(Ocean(hulled, 500f, 0f) < -300f, $"behind the hull {Ocean(hulled, 500f, 0f)}");
-        Assert.True(hulled.BlockedCells > 400, $"{hulled.BlockedCells} cells in the way");
+        Assert.True(hulled.BlockedCells > 200, $"{hulled.BlockedCells} cells in the way");
+        Assert.Equal(8, hulled.CrossingTriangles);
 
         // THE BRIDGE STANDS OVER THE WATER, NOT IN IT: the waves pass under, the way in the shore's own.
         Assert.InRange(Ocean(bridged, 500f, 0f) - Shore(bridged, 500f, 0f), -30f, 30f);
@@ -117,5 +137,23 @@ public class ShoreWayTests
 
         // IN FRONT OF THE HULL nothing changes.
         Assert.InRange(Ocean(hulled, -500f, 0f) - Shore(hulled, -500f, 0f), -30f, 30f);
+    }
+
+    /// <summary>
+    /// Something over the water and something else under it, at one place, stand in nobody's way - Port's wobble core, an invisible plane
+    /// over the ship, lay over the quay's sunken bricks and barred the channel's side 125 units wide (said from the live client, v0.1.297).
+    /// </summary>
+    [Fact]
+    public void APLANEOVERTheWaterAndStonesUnderItAreNoObstacleTogether()
+    {
+        Vector3[][] plane = [Flat((-500f, -1500f, 900f, 1500f, -360f))];
+        Vector3[][] bricks = [Flat((700f, -1500f, 1000f, 1500f, 240f))];
+        ShoreField shore = ShoreField.Of(
+            Bay(("Plane", plane), ("Bricks", bricks)), shape => shape == 0, shape => shape is 1 or 2, null, shape => shape is 3 or 4)!;
+
+        Assert.Equal(0, shore.BlockedCells);
+        Assert.Equal(0, shore.CrossingTriangles);
+        Assert.Empty(shore.CrossingShapes);
+        Assert.InRange(Ocean(shore, 800f, 0f) - Shore(shore, 800f, 0f), -30f, 30f);
     }
 }
