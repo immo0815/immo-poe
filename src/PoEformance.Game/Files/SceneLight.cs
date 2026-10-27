@@ -380,6 +380,12 @@ public sealed class SceneLight
     /// </remarks>
     public bool WaterCrash { get; init; }
 
+    /// <summary>
+    /// Whether the waves' way in runs round what stands in the water - the hull, posts, rocks - as v0.1.295 to v0.1.306 drew it, rather
+    /// than by the ground alone (ShoreField.Way).
+    /// </summary>
+    public bool WaterWayRound { get; init; }
+
     /// <summary>env_map_rotation: what a normal is put through before the cube is read - the world's axes as the cube's unless the environment turns it, see <see cref="CubeTurnFrom"/>.</summary>
     public Matrix4x4 CubeTurn { get; init; } = CubeSwap;
 

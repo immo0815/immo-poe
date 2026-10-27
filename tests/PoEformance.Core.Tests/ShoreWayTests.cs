@@ -5,7 +5,8 @@ namespace PoEformance.Core.Tests;
 
 /// <summary>
 /// The distance out to sea as the waves' way in (ShoreField, v0.1.295): the shore's along a plain coast, falling along a channel the
-/// farther in, and bent round what crosses the water - Port's crests run along the channel between the ship and the quay in the game.
+/// farther in - by the ground alone (v0.1.307), and on its twin bent round what stands in the water as well, as v0.1.295 to v0.1.306
+/// drew it; the game's waves cross Port's channel from the ship's side.
 /// </summary>
 public class ShoreWayTests
 {
@@ -110,7 +111,7 @@ public class ShoreWayTests
     ]);
 
     [Fact]
-    public void AHULLCROSSINGTheWaterTurnsTheWavesRoundItAndABridgeOverItDoesNot()
+    public void AHULLCROSSINGTheWaterTurnsTheWavesRoundItOnTheRoundWayAloneAndABridgeOverItNever()
     {
         // A HULL 100 WIDE AND 3,000 LONG between the sea and the quay: its deck 50 above the water, its keel 100 under, and its four
         // sides sheer between them - the sides cross the water, deck and keel do not.
@@ -121,11 +122,18 @@ public class ShoreWayTests
             Sheer(100f, -1500f, 200f, -1500f, -50f, 100f), Sheer(100f, 1500f, 200f, 1500f, -50f, 100f),
         ];
         Vector3[][] bridge = [Flat((100f, -1500f, 200f, 1500f, -50f))];
-        ShoreField hulled = ShoreField.Of(Bay(("Hull", hull)), shape => shape == 0, shape => shape is 1 or 2, null, shape => shape == 3)!;
+        ShoreField byGround = ShoreField.Of(Bay(("Hull", hull)), shape => shape == 0, shape => shape is 1 or 2, null, shape => shape == 3)!;
+        ShoreField hulled = byGround.Way(true);
         ShoreField bridged = ShoreField.Of(Bay(("Bridge", bridge)), shape => shape == 0, shape => shape is 1 or 2, null, shape => shape == 3)!;
+        Assert.False(byGround.RoundsWhatStands);
+        Assert.True(hulled.RoundsWhatStands);
+        Assert.Same(byGround, byGround.Way(false));
 
-        // BEHIND THE HULL the way in goes round its ends, 1,500 off: far longer than the 500 straight from the shore - its waterline,
-        // walked cell by cell, leaves no gap.
+        // BY THE GROUND ALONE the waves run on under the hull, the way in the shore's own straight in.
+        Assert.InRange(Ocean(byGround, 500f, 0f) - Shore(byGround, 500f, 0f), -30f, 30f);
+
+        // ON THE ROUND WAY, BEHIND THE HULL, the way in goes round its ends, 1,500 off: far longer than the 500 straight from the shore -
+        // its waterline, walked cell by cell, leaves no gap.
         Assert.InRange(Shore(hulled, 500f, 0f), 470f, 530f);
         Assert.True(Ocean(hulled, 500f, 0f) < -300f, $"behind the hull {Ocean(hulled, 500f, 0f)}");
         Assert.True(hulled.BlockedCells > 200, $"{hulled.BlockedCells} cells in the way");
@@ -195,6 +203,10 @@ public class ShoreWayTests
         // BY THE FACED QUAY the shore is the shallow coast, 1,500 off; BESIDE THE ROCK it is the rock.
         Assert.InRange(Shore(shore, 800f, -1500f), 1400f, 1650f);
         Assert.InRange(Shore(shore, -950f, 1300f), 170f, 230f);
+
+        // THE WAY IN by the ground alone knows no rock: beside it the sea is the coast's, 1,950 off; round what stands, the rock's.
+        Assert.True(Ocean(shore, -950f, 1300f) > 1500f, $"by the ground {Ocean(shore, -950f, 1300f)}");
+        Assert.True(Ocean(shore.Way(true), -950f, 1300f) < 600f, $"round the rock {Ocean(shore.Way(true), -950f, 1300f)}");
     }
 
     [Fact]

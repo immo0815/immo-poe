@@ -111,6 +111,7 @@ public sealed class SceneLightPanel : IMovableSun
     private bool _reflection = true;
     private bool _mirroring = true;
     private bool _crash = true;
+    private bool _wayRound;
     private float _lift = 1f;
 
     /// <summary>How far the ocean ripples' wind is turned from the area's own way, in degrees - see <see cref="Water"/>.</summary>
@@ -250,6 +251,7 @@ public sealed class SceneLightPanel : IMovableSun
             WaterReflection = _reflection,
             WaterScene = _mirroring,
             WaterCrash = _crash,
+            WaterWayRound = _wayRound,
             WaterLift = _lift,
             CubeTurn = SceneLight.CubeTurnFrom(env.HorAngle ?? 0f, env.VertAngle ?? 0f, (SceneLight.CubeReading)_cubeReading),
             CubeBrightness = env.EnvBrightness ?? 1f,
@@ -321,6 +323,12 @@ public sealed class SceneLightPanel : IMovableSun
             + " seconds, a wave of 1,000 units rolling in at 200 a second down the waves' way in from the open sea, breaking as they near the"
             + " shore - the water lifted by their crest, its foam laid over it. Measured off the game's own videos of Port, 4.9 to 5.1 s apart."
             + " CHOSEN: on the room's own water, their wave shape gerstner_wave_profile.dds, their noise and foam the beach's. Drawn by the card alone.",
+            row, "way round");
+        Switch("way round##scene-way-round", ref _wayRound,
+            "The waves' way in (the distance out to sea they run down) round what stands in the water - the ship's hull, posts, rocks - as v0.1.295"
+            + " to v0.1.306 drew it. Off, the default: by the ground alone, the waves running on under the hull - as the game's do by Port's ship,"
+            + " its foam front reaching the hull's side before the quay's (a video of the game, measured frame by frame). Both CHOSEN: the engine's"
+            + " own way in (OceanMarkupField) is read nowhere.",
             row, null);
         float liftWidth = ImGui.GetFontSize() * 7f;
         OverlayLayout.Flow(ImGui.CalcTextSize("lift").X + ImGui.GetStyle().ItemSpacing.X + liftWidth, right, start);

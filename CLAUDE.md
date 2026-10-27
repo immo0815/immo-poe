@@ -603,6 +603,13 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   as the way in (`ShoreField.Oceans`) routes it. So the game's waves come from the ship's side, as they would were the ship no
   obstacle to them - which a markup made from the tile map (`ClientTileMap::CalculateMapMarkup`) would not know of. A reading,
   not yet settled: Grid6D8 drawn is to say whether the engine's grid holds the ship.
+  IT CANNOT (v0.1.306's Port capture): Grid6D8 drawn is a COARSE WALKABLE GRID - 0 on 99% of the walkable cells, 255 on the sea and
+  the town's fill alike, 127 and 180 along the edges, its map the walkable grid's at 1127 x 483 shape for shape (schema `Grid6D8`) -
+  and the hunt found no other grid of the area's proportions in the terrain or one hop beyond. So THE WAY IN RUNS BY THE GROUND
+  ALONE from v0.1.307, CHOSEN from the live client on the video's evidence: the open sea measured from the ground and nothing but the
+  ground in the waves' way (`ShoreField.Way`); what stands in the water stays shore for the shore's distance. The way round it as well
+  is kept as the field's twin, the light panel's water row's "way round" (`SceneLight.WaterWayRound`), so the two can be held against
+  the game; `model-panes.txt` counts both and draws both, `shore-way.png` and `shore-way-round.png`.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
