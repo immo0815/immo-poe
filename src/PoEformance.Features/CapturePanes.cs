@@ -198,7 +198,9 @@ public static class CapturePanes
             .Append(CultureInfo.InvariantCulture,
                 $"{shore.Width} x {shore.Height} cells of {shore.CellSize:0.#} from ({shore.Left:0}, {shore.Top:0}), {shore.LandCells} land, ")
             .Append(CultureInfo.InvariantCulture,
-                $"{shore.WallCells} of it walls meeting only water deeper than {ShoreField.BeachDeep:0} over its ground - no shore, the shore's distance measured past them, CHOSEN; ")
+                $"{shore.WallCells} of it walls meeting only water deeper than {ShoreField.BeachDeep:0} over its ground ({shore.StandingWalls} of them what stands in the sea) - no shore, the shore's distance measured past them, CHOSEN; ")
+            .Append(CultureInfo.InvariantCulture,
+                $"{shore.OverlappedCells} cells under two water shapes or more (at most {shore.MostLayers}) - where water drawn unlifted blends a layer for each; ")
             .Append(CultureInfo.InvariantCulture,
                 $"the shore's distance {least:0.###} to {most:0.###} colour units, one being {ShoreField.Reach:0} - CHOSEN, the engine makes its own; picture {picture}, ")
             .AppendLine("row nought the least y, land brown by how far in, the walls grey, water blue by how far out, the shoreline white");

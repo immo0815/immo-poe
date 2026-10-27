@@ -169,6 +169,34 @@ public class ShoreWayTests
         Assert.InRange(Ocean(shore, 800f, 1500f) - Shore(shore, 800f, 1500f), -30f, 30f);
     }
 
+    /// <summary>
+    /// What stands in the sea takes the same test - Port's quay is faced with spraying stone standing out of water 375 deep, and v0.1.299
+    /// kept it shore for that, the channel white (said from the live client, v0.1.300).
+    /// </summary>
+    [Fact]
+    public void ASPRAYINGFacingOverDeepWaterIsAWallARockInTheShallowsIsShore()
+    {
+        // THE SAME COAST AT x 1000, its quay south of y 0 faced with stone standing out of the water; a rock in the shallows north.
+        ShoreField shore = ShoreField.Of(
+            Quads(
+                ("Water", [(-3000f, -3000f, 3000f, 3000f, 0f)]),
+                ("Deep floor", [(-3000f, -3000f, 1000f, 0f, 500f)]),
+                ("Shallow floor", [(-3000f, 0f, 1000f, 3000f, 50f)]),
+                ("Land", [(1000f, -3000f, 3000f, 3000f, -100f)]),
+                ("Facing", [(975f, -3000f, 1000f, -100f, -50f)]),
+                ("Rock", [(-1000f, 1000f, -900f, 1100f, -50f)])),
+            shape => shape == 0,
+            shape => shape is 1 or 2 or 3,
+            shape => shape is 4 or 5,
+            shape => false)!;
+
+        Assert.True(shore.StandingWalls > 50, $"{shore.StandingWalls} standing walls");
+
+        // BY THE FACED QUAY the shore is the shallow coast, 1,500 off; BESIDE THE ROCK it is the rock.
+        Assert.InRange(Shore(shore, 800f, -1500f), 1400f, 1650f);
+        Assert.InRange(Shore(shore, -950f, 1300f), 170f, 230f);
+    }
+
     [Fact]
     public void AFLOORATTheBeachsDepthIsStillShore()
     {

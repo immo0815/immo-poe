@@ -564,6 +564,17 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   BreakingSprayTrigger and FloodSprayTrigger fire, named in no file read: from v0.1.300 `water-shore.txt` also searches every effect
   graph, particle, effect package and trail (`CaptureWaterShore.EffectExtensions`) for the spray's words, writes those found whole,
   and searches again for every file naming one of them by name - read it before the spray is drawn.
+  v0.1.299 LEFT THE CHANNEL WHITE (said from the live client, crash on and off): its capture (v0.1.300) still put the quay's edge
+  at a shore's distance of nought, 495 cells walls elsewhere. The rule had kept what stands in the sea shore whatever the water beside
+  it, and Port's quay is faced with spraying stone (`MSHD_GraveBrickTile01c`) standing out of the water, over ground that is the
+  quay's top (template z 0 to 62) or the floor 375 under (z 500), nothing between (v0.1.296's ground.txt). From v0.1.301 WHAT STANDS
+  IN THE SEA TAKES THE SAME TEST: rocks on a beach stay shore, a faced quay or pier over deep water is a wall
+  (`ShoreField.StandingWalls`). With crash off that capture's channel showed foam in rectangles with straight edges; the harbour's
+  planes (`WaterPlane3x3`, 69 apart from 34 to 379 in its `.tmd`) reach past its 15 sub-tiles and may lie over the fill tiles' own,
+  and water drawn unlifted blends once a shape - so `model-panes.txt` now counts the cells under two water shapes or more
+  (`ShoreField.OverlappedCells`, `MostLayers`). The ocean markup hunt runs in the area the player STANDS in: that capture's was the
+  Canal Hideout's (no sea, no markup grid), and found two unnamed grids beside the known ones - terrain +0x100 and +0x118, the walkable
+  and projectile grids' near twins, and +0x638, eight bytes a tile corner (schema `Grid100`, `Grid118`, `CornerWords638`).
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

@@ -2194,7 +2194,7 @@ public sealed class MonsterPortrait
                     + " rolling in the wind - " + ShadeProgram.Ripples.Said + "; the wind's way, height, speed and"
                     + " directionness the engine's former constants where the file sets none, a reading until measured, its way turned by the light"
                     + " panel's wind; the swell rolling in to the shore the engine's formula over a shore made here from the room's ground and what"
-                    + " stands in the sea (the shapes whose material sprays: the rocks and the pier's stones), a wall rising out of water deeper"
+                    + " stands in the sea (the shapes whose material sprays: the rocks and the pier's stones), a wall - spraying stone too - rising out of water deeper"
                     + " than " + ShoreField.BeachDeep.ToString("0", CultureInfo.InvariantCulture) + " no shore, CHOSEN until the engine's is read,"
                     + " down a way in from the open sea round whatever crosses the water - the ship's hull among it - CHOSEN until the engine's"
                     + " OceanMarkupField is read - " + ShadeProgram.Swells.Said + "; its foam the engine's trail foam (GetFoamColor3) from the"
