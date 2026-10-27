@@ -652,6 +652,12 @@ public sealed partial class ShadeProgram
         => type is not null && (Evaluated.Contains(type) || ReadBy(type) is not null || type == "InputTexture");
 
     /// <summary>
+    /// Whether a graph node of this type writes one of the values the compiler tracks - <c>AlbedoColor</c>, <c>EmissiveColor</c> -
+    /// which it is not evaluated as but carried through as an output; with <see cref="Knows"/>, every node the compile handles.
+    /// </summary>
+    public static bool Writes(string type) => type is not null && Written(type) is not null;
+
+    /// <summary>
     /// Compiles the colour a material's graphs compute, or says why it cannot.
     /// </summary>
     /// <param name="chain">The material's graph instances in its own order, each with its graph.</param>

@@ -181,6 +181,9 @@ internal sealed class CaptureKey
     /// <summary>The install's paths naming a debug word (CaptureDebugStrings.PathWords), as the walk found them - empty until it has run.</summary>
     public IReadOnlyList<string> DebugPaths { get; set; } = [];
 
+    /// <summary>The install's engine graphs (CaptureRenderDebug.Folder), as the walk found them - empty until it has run.</summary>
+    public IReadOnlyList<string> EngineGraphs { get; set; } = [];
+
     /// <summary>
     /// Starts the light hunt for the area's own environment and hands back its whole report, or null where nothing can search - the light-hunt part. Set by whoever owns the search.
     /// </summary>
@@ -592,14 +595,15 @@ internal sealed class CaptureKey
         IReadOnlyList<string> shoreFiles = ShoreFiles;
         IReadOnlyList<string> dataTables = DataTables;
         IReadOnlyList<string> debugPaths = DebugPaths;
-        run.Writing = Task.Run(() => Write(run, read, version, shaders, environments, waterTextures, wobblePaths, shoreFiles, dataTables, debugPaths));
+        IReadOnlyList<string> engineGraphs = EngineGraphs;
+        run.Writing = Task.Run(() => Write(run, read, version, shaders, environments, waterTextures, wobblePaths, shoreFiles, dataTables, debugPaths, engineGraphs));
     }
 
     /// <summary>Every ticked part of the capture, each on its own so one failing loses only itself.</summary>
     private static void Write(
         Run run, Func<string, byte[]?>? read, string version, IReadOnlyList<string> shaders, IReadOnlyList<string> environments,
         IReadOnlyList<string> waterTextures, IReadOnlyList<string> wobblePaths, IReadOnlyList<string> shoreFiles, IReadOnlyList<string> dataTables,
-        IReadOnlyList<string> debugPaths)
+        IReadOnlyList<string> debugPaths, IReadOnlyList<string> engineGraphs)
     {
         var parts = new List<string>();
 
@@ -994,6 +998,26 @@ internal sealed class CaptureKey
                 {
                     string text = CaptureDebugStrings.Write(read, programs, dataTables, debugPaths, run.Debugs);
                     File.WriteAllText(At(CaptureReport.DebugStringsFile), text);
+                    return text[..text.IndexOf('\n')].TrimEnd('\r');
+                });
+            }
+        }
+
+        if (On(CaptureParts.RenderDebug))
+        {
+            if (read is null)
+            {
+                Not(CaptureReport.RenderDebugFile, "no install to read the engine's graphs from");
+            }
+            else
+            {
+                Part(CaptureReport.RenderDebugFile, () =>
+                {
+                    string? install = GameInstall.Find(null);
+                    string[] programs = install is null ? []
+                        : [.. GameInstall.Names.Select(name => Path.Combine(install, name + ".exe")).Where(File.Exists)];
+                    string text = CaptureRenderDebug.Write(read, programs, engineGraphs, shaders);
+                    File.WriteAllText(At(CaptureReport.RenderDebugFile), text);
                     return text[..text.IndexOf('\n')].TrimEnd('\r');
                 });
             }

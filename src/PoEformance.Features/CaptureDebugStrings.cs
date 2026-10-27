@@ -116,7 +116,7 @@ public static class CaptureDebugStrings
     }
 
     /// <summary>One section of the program, to say where a string stands.</summary>
-    private readonly record struct Section(string Name, long Raw, long Size, long Virtual, bool Code);
+    internal readonly record struct Section(string Name, long Raw, long Size, long Virtual, bool Code);
 
     /// <summary>The part's text: a line saying what it found, the words, then the program's, the tables' and the paths' strings group by group. Never throws on a missing file.</summary>
     /// <param name="read">How to get a file out of the install, by path - null where there is no install to read, and the tables are left out.</param>
@@ -454,7 +454,7 @@ public static class CaptureDebugStrings
     }
 
     /// <summary>The program's sections from its PE header, and its image base - none where it is not one.</summary>
-    private static Section[] Sections(ReadOnlySpan<byte> bytes, out ulong imageBase)
+    internal static Section[] Sections(ReadOnlySpan<byte> bytes, out ulong imageBase)
     {
         imageBase = 0;
         if (bytes.Length < 0x40 || bytes[0] != (byte)'M' || bytes[1] != (byte)'Z')
@@ -497,7 +497,7 @@ public static class CaptureDebugStrings
     }
 
     /// <summary>Where a file offset stands: its section (a star after an executable one) and relative address, or the offset itself.</summary>
-    private static string Located(long offset, Section[] sections)
+    internal static string Located(long offset, Section[] sections)
     {
         foreach (Section section in sections)
         {
