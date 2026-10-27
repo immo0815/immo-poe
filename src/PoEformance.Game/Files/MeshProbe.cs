@@ -125,6 +125,35 @@ public readonly record struct ProbeBeach(
     int Triangle, float Depth, Vector3 Place, float Lift, float Shore, float Foam, float Thickness, float Path, float Cover, Vector3 Colour);
 
 /// <summary>
+/// What the swell's foam (ShadeProgram.Foam) was made of at a probed pixel of water: the shore field there, the tide's phase, the
+/// cross-section read at it, and every term between them and the cover.
+/// </summary>
+/// <remarks>
+/// WRITTEN WHEN PORT'S CHANNEL SHOWED FOAM IN RECTANGLES WITH STRAIGHT EDGES with the field waves off (said from the live client,
+/// v0.1.301; their cause asked after again at v0.1.308). The swell's foam is the one foam drawn there then, and every term of it - the
+/// shore's distance, the way in, the depth the view crosses, the shallows - may change along a straight line: a wall's edge, a sunken
+/// stone's, a water plane's. Worked out by the same function that draws it, at the pixel's own place, clock and depth.
+/// </remarks>
+/// <param name="Place">The water's place, x and y, as the program reads it.</param>
+/// <param name="Depth">How much water the view crosses to the solid behind (<c>gBufferDelta</c>); <see cref="float.MaxValue"/> where nothing is behind.</param>
+/// <param name="ShoreDist">The shore field's distance there, colour units.</param>
+/// <param name="OceanDist">The way in there, colour units.</param>
+/// <param name="Tide">The tide's phase there, nought to one.</param>
+/// <param name="Profile">The cross-section read at the phase: the swell's height, its slope, the trail's strength (z) and the front's phase (w).</param>
+/// <param name="Leading">Whether the place is on the swell's leading edge, where the front's phase counts.</param>
+/// <param name="Trail">The trail's strength the foam takes: the cross-section's green times the depth to 25 units.</param>
+/// <param name="Front">The front's phase the foam takes, the shallows worked in.</param>
+/// <param name="Shallow">The shallows' share.</param>
+/// <param name="ShallowFoam">The shallows' foam term, <c>-(shoreDist - 0.18) * 10</c>.</param>
+/// <param name="Cover">What the foam came to: how much it covers.</param>
+/// <param name="CellX">The shore field's cell, its column.</param>
+/// <param name="CellY">Its row.</param>
+/// <param name="Cell">What the cell is: water, land, a wall, or something crossing the water's surface there.</param>
+public readonly record struct ProbeSwell(
+    Vector2 Place, float Depth, float ShoreDist, float OceanDist, float Tide, Vector4 Profile, bool Leading, float Trail, float Front,
+    float Shallow, float ShallowFoam, float Cover, int CellX, int CellY, string Cell);
+
+/// <summary>
 /// Every fragment one pixel of a drawing was made of, in the order the drawing met them.
 /// </summary>
 /// <remarks>
@@ -146,6 +175,7 @@ public sealed class PixelProbe
     private readonly List<ProbeSun> _suns = [];
     private readonly List<ProbeBeach> _beaches = [];
     private readonly List<ProbeGround> _grounds = [];
+    private readonly List<ProbeSwell> _swells = [];
 
     /// <param name="x">The pixel's column, from the left.</param>
     /// <param name="y">The pixel's row, from the top.</param>
@@ -192,6 +222,11 @@ public sealed class PixelProbe
 
     internal void Add(ProbeGround ground) => _grounds.Add(ground);
 
+    /// <summary>Every water fragment's swell foam worked out at the pixel - see <see cref="ProbeSwell"/>.</summary>
+    public IReadOnlyList<ProbeSwell> Swells => _swells;
+
+    internal void Add(ProbeSwell swell) => _swells.Add(swell);
+
     /// <summary>Names what cast the shadow on one of <see cref="Suns"/>.</summary>
     internal void Cast(int sun, int caster, float away) => _suns[sun] = _suns[sun] with { Caster = caster, CasterAway = away };
 
@@ -202,6 +237,7 @@ public sealed class PixelProbe
         _suns.Clear();
         _beaches.Clear();
         _grounds.Clear();
+        _swells.Clear();
         Final = float.MaxValue;
         Drawn = false;
     }

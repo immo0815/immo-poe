@@ -256,6 +256,18 @@ public sealed class ShoreField
     }
 
     /// <summary>
+    /// The cell a place falls in, clamped to the field, and what it is: water, land, a wall, or water something crosses the surface of -
+    /// for the probe (ProbeSwell), which asks whether a straight edge in the picture is one of the field's.
+    /// </summary>
+    public string CellAt(Vector2 place, out int x, out int y)
+    {
+        x = Math.Clamp((int)MathF.Floor((place.X - Left) / CellSize), 0, Width - 1);
+        y = Math.Clamp((int)MathF.Floor((place.Y - Top) / CellSize), 0, Height - 1);
+        int at = (y * Width) + x;
+        return IsWall(at) ? "a wall" : _texels[at * 2] < 0f ? "land" : InTheWay(at) ? "water something crosses the surface of" : "water";
+    }
+
+    /// <summary>
     /// The field at a place and the distance out to sea's slope as GetShorePhaseFields gives it: forward differences <see cref="Eps"/> apart, negated.
     /// </summary>
     public void Fields(Vector2 place, out float shore, out float ocean, out Vector2 oceanSlope)

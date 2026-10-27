@@ -616,6 +616,13 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   window), both at 5.2 to 5.4 s a wave - "by far the best Port scene built yet, identical to the game's look and waves but for
   the smallest details" (said from the live client). Its capture's way in by the ground: 5,575 cells shorter than their distance to
   the ground, 3 unreached; round what stands: 8,683 and 399.
+  THE CRASH-OFF RECTANGLES are asked after again (from the live client, v0.1.308: crash stays on - it is what makes the breakers the
+  game's - but the processor draws no field waves, the probe's click among it, and the swell's foam under them is the same).
+  Not the shallows: their foam term (`-(shoreDist - 0.18) * 10`) is on along Port's two beaches alone (v0.1.307's shore.png: 3,252
+  water cells under 0.18 colour units, none in the channel). So from v0.1.309 the probe writes the swell's foam term by term at a
+  water pixel (`ProbeSwell`, `ShadeProgram.SwellProbe`, the drawing's own `FoamTermsAt`): the shore field's cell and what it is, the
+  shore's distance, the way in, the tide's phase, the cross-section read there, the depth the view crosses, the trail, the front,
+  the shallows and the cover. Probe a rectangle's inside and its edge with crash off, then capture.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

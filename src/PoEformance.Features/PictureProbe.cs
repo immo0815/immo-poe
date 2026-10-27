@@ -72,6 +72,11 @@ public static class PictureProbe
             lines.Add(Watered(water));
         }
 
+        foreach (ProbeSwell swell in probe.Swells)
+        {
+            lines.Add(Swelled(swell));
+        }
+
         foreach (ProbeGround ground in probe.Grounds)
         {
             lines.Add(Grounded(ground));
@@ -111,6 +116,20 @@ public static class PictureProbe
             + Say($" · the shore {beach.Shore:F3} colour units ({Number(beach.Shore * ShoreField.Reach)}, {(beach.Shore >= 0f ? "out at sea" : "in on land")})")
             + Say($" · foam {Fraction(beach.Foam)}, the film {Fraction(beach.Thickness)} thick over {path}, letting through {Fraction(through)}")
             + Say($" · cover {Fraction(beach.Cover)} · colour {beach.Colour.X:F3}, {beach.Colour.Y:F3}, {beach.Colour.Z:F3} linear");
+    }
+
+    /// <summary>
+    /// The swell's foam at the pixel, term by term - the shore field's cell and distances, the tide, the cross-section read at it, and
+    /// what the foam came to - see <see cref="ProbeSwell"/>.
+    /// </summary>
+    public static string Swelled(ProbeSwell swell)
+    {
+        string depth = swell.Depth < float.MaxValue ? Number(swell.Depth) + " units of water to the solid behind" : "nothing solid behind";
+        return Say($"  swell's foam at ({Number(swell.Place.X)}, {Number(swell.Place.Y)}) · the shore field's cell {swell.CellX}, {swell.CellY}, {swell.Cell}")
+            + Say($" · the shore {swell.ShoreDist:F3} colour units ({Number(swell.ShoreDist * ShoreField.Reach)}), the way in {swell.OceanDist:F3} ({Number(swell.OceanDist * ShoreField.Reach)})")
+            + Say($" · the tide's phase {swell.Tide:F3}{(swell.Leading ? ", on the leading edge" : string.Empty)}, the cross-section {swell.Profile.X:F3}, {swell.Profile.Y:F3}, trail {swell.Profile.Z:F3}, front {swell.Profile.W:F3}")
+            + Say($" · {depth} · the trail taken {swell.Trail:F3}, the front {swell.Front:F3}, the shallows {swell.Shallow:F3} (their foam term {swell.ShallowFoam:F3})")
+            + Say($" · covering {Fraction(swell.Cover)}");
     }
 
     /// <summary>How much of the sun reached a fragment, and what cast the shadow where it did not - see <see cref="ProbeSun"/>.</summary>

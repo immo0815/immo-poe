@@ -381,6 +381,15 @@ public sealed partial class ShadeProgram
             return Vector4.Zero;
         }
 
+        FoamTerms terms = FoamTermsAt(sheet, place, swell, clock, depth, shore);
+        return FoamColour(place, terms.Trail, terms.Front, 0.4f, 0.05f, 0.6f, terms.Shallow, terms.ShallowFoam);
+    }
+
+    /// <summary>The terms the swell's foam is made of at a place - what <see cref="Foam(WaterSheet, Vector2, Vector4, float, float, ShoreField?)"/> draws and the probe says.</summary>
+    private readonly record struct FoamTerms(Tide Tide, float Trail, float Front, float Shallow, float ShallowFoam);
+
+    private static FoamTerms FoamTermsAt(WaterSheet sheet, Vector2 place, Vector4 swell, float clock, float depth, ShoreField shore)
+    {
         Tide tide = TideAt(sheet, place, swell, clock, shore);
         float trail = Saturated(tide.Profile.Z) * Saturated(depth / 25f);
         float front = tide.Leading ? tide.Profile.W : 0f;
@@ -388,7 +397,32 @@ public sealed partial class ShadeProgram
         float shallowFoam = -(tide.ShoreDist - 0.18f) * 10f;
         shallow = Saturated(MathF.Max(shallow, shallowFoam));
         front = Saturated(shallowFoam < 1f ? front / (0.1f + (1f - Saturated(shallowFoam))) : 1f);
-        return FoamColour(place, trail, front, 0.4f, 0.05f, 0.6f, shallow, shallowFoam);
+        return new FoamTerms(tide, trail, front, shallow, shallowFoam);
+    }
+
+    /// <summary>
+    /// The swell's foam at a probed pixel of water, term by term - see <see cref="ProbeSwell"/>: worked out by the same functions that draw it.
+    /// </summary>
+    /// <param name="place">Where on the water, in world units.</param>
+    /// <param name="swell">The area's swell - WaterLook.SwellRegister.</param>
+    /// <param name="clock">The clock, in seconds.</param>
+    /// <param name="depth">How much water the view crosses to the solid behind.</param>
+    /// <param name="shore">The room's shore.</param>
+    public static ProbeSwell SwellProbe(Vector2 place, Vector4 swell, float clock, float depth, ShoreField shore)
+        => SwellProbe(Swells, place, swell, clock, depth, shore);
+
+    /// <summary>The same, over a given cross-section.</summary>
+    public static ProbeSwell SwellProbe(WaterSheet sheet, Vector2 place, Vector4 swell, float clock, float depth, ShoreField shore)
+    {
+        ArgumentNullException.ThrowIfNull(sheet);
+        ArgumentNullException.ThrowIfNull(shore);
+        FoamTerms terms = FoamTermsAt(sheet, place, swell, clock, depth, shore);
+        Vector4 foam = FoamColour(place, terms.Trail, terms.Front, 0.4f, 0.05f, 0.6f, terms.Shallow, terms.ShallowFoam);
+        shore.At(place, out _, out float ocean);
+        string cell = shore.CellAt(place, out int cellX, out int cellY);
+        return new ProbeSwell(
+            place, depth, terms.Tide.ShoreDist, ocean, terms.Tide.Phase, terms.Tide.Profile, terms.Tide.Leading, terms.Trail, terms.Front,
+            terms.Shallow, terms.ShallowFoam, foam.W, cellX, cellY, cell);
     }
 
     /// <summary>GetFoamColor3, its leading edge's textured layers left out (see <see cref="Foam(Vector2, Vector4, float, float, ShoreField?)"/>) and no offset.</summary>

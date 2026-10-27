@@ -2282,7 +2282,7 @@ public static class MeshPicture
                             Vector3 waterLit = watered
                                 ? WaterScened(
                                     program, mixedWater, mixedSpecular, mixedGloss, (first * p0) + (second * p1) + (third * p2),
-                                    (first * n0) + (second * n1) + (third * n2), mixedWaves, x, y, away, here ? one : -1, out cover)
+                                    (first * n0) + (second * n1) + (third * n2), mixedWaves, x, y, away, held, here ? one : -1, out cover)
                                 : default;
 
                             // THE PROGRAM'S ALPHA WHERE ITS GRAPHS SET ONE, the texture's where they
@@ -2442,7 +2442,7 @@ public static class MeshPicture
                     Vector3 shown = scened && program is { LightsWater: true }
                         ? WaterScened(
                             program, water, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves,
-                            x, y, away, here ? one : -1, out _)
+                            x, y, away, held, here ? one : -1, out _)
                         : scened
                         ? Scened(program, colour, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves, away: away, fragment: here ? one : -1)
                         : Lit(program, colour, specular, gloss, (first * f0) + (second * f1) + (third * f2));
@@ -2578,7 +2578,7 @@ public static class MeshPicture
         /// </remarks>
         private Vector3 WaterScened(
             ShadeProgram program, ShadeProgram.WaterOut water, Vector3 specular, float gloss, Vector3 place, Vector3 turn, Vector3 waves,
-            int x, int y, float away, int fragment, out float cover)
+            int x, int y, float away, float held, int fragment, out float cover)
         {
             Vector3 normal = turn.LengthSquared() > 1e-12f ? Vector3.Normalize(turn) : _toEye;
             if (Vector3.Dot(normal, _toEye) < 0f)
@@ -2609,6 +2609,13 @@ public static class MeshPicture
             if (probed)
             {
                 _probe!.Add(ray with { Environment = environment, Added = mirrored, Light = terms });
+
+                // THE SWELL'S FOAM TERM BY TERM, where a shore is drawn under it - the foam the picture shows with the field waves off.
+                if (_water.Shore is { } shore)
+                {
+                    _probe.Add(ShadeProgram.SwellProbe(
+                        new Vector2(place.X, place.Y), _water.SwellRegister, _time, held < float.MaxValue ? held - away : float.MaxValue, shore));
+                }
             }
 
             return new Vector3(ShadeProgram.Srgb(lit.X), ShadeProgram.Srgb(lit.Y), ShadeProgram.Srgb(lit.Z));

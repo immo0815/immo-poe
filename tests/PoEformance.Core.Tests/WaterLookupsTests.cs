@@ -143,6 +143,36 @@ public sealed class WaterLookupsTests
         Assert.Equal(0f, ShadeProgram.Foam(ShadeProgram.Swells, new Vector2(500f, 0f), swell, 3f, 100f, shore).W);
     }
 
+    /// <summary>
+    /// THE PROBE'S SWELL LINE IS THE FOAM DRAWN, term by term: the same cover at every place and clock, the shore's distance the field's,
+    /// and the field's cell named - asked for when Port's channel showed foam in rectangles with the field waves off.
+    /// </summary>
+    [Fact]
+    public void THEPROBESSwellIsTheFoamDrawn()
+    {
+        WaterSheet sheet = WaterLookups.Read(Engine).Swells!;
+        ShoreField shore = ShoreField.Of(WaterTests.Bay(), shape => shape == 0, shape => shape > 0)!;
+        Vector4 swell = WaterLook.EngineDefault.SwellRegister;
+        var covered = 0;
+        for (float clock = 0f; clock < 10f; clock += 0.5f)
+        {
+            foreach (float out_ in (float[])[50f, 300f, 500f, 800f, 1500f])
+            {
+                var place = new Vector2(1000f - out_, 0f);
+                ProbeSwell probe = ShadeProgram.SwellProbe(sheet, place, swell, clock, 100f, shore);
+                Assert.Equal(ShadeProgram.Foam(sheet, place, swell, clock, 100f, shore).W, probe.Cover);
+                shore.At(place, out float near, out float ocean);
+                Assert.Equal(near, probe.ShoreDist);
+                Assert.Equal(ocean, probe.OceanDist);
+                Assert.Equal("water", probe.Cell);
+                covered += probe.Cover > 0.05f ? 1 : 0;
+            }
+        }
+
+        Assert.True(covered > 5, $"{covered} probes covered");
+        Assert.Equal("land", ShadeProgram.SwellProbe(sheet, new Vector2(2000f, 0f), swell, 0f, 100f, shore).Cell);
+    }
+
     /// <summary>The engine's lookups as the capture writes them, out of tests/fixtures/water-lookups.</summary>
     private static byte[]? Engine(string path)
     {
