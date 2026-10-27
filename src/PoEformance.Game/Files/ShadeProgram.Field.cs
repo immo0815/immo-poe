@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace PoEformance.Game.Files;
 
 /// <summary>The engine's field waves on the card - see <see cref="Op.Field"/> and ShadeHlsl.FieldLibrary.</summary>
@@ -22,6 +24,11 @@ namespace PoEformance.Game.Files;
 /// that neither the swell nor the beach takes); their noise the beach's (flow_muddle), and the scrolling layers' turbulence that same
 /// noise; their foam the beach graph's (SeaFoam colour and normal). The processor draws none (DECIDED from the live client: "the
 /// card alone is fine"), and the light panel's water row switches them (SceneLight.WaterCrash).
+///
+/// THE PROBE WORKS THEM OUT ON THE PROCESSOR (<see cref="FieldProbe"/>, v0.1.322, asked for from the live client): Port's crests in the
+/// channel by the ship came out white from the hull on, where the game's stay a dark ridge until near the quay, and which term makes
+/// them white - the shore's distance off the CHOSEN field, the noise moving the break, the near-shore term - a picture cannot say.
+/// The same functions as the card's, line for line, at the place the card's lifted water meets the view; still nothing drawn.
 /// </remarks>
 public sealed partial class ShadeProgram
 {

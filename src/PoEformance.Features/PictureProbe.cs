@@ -77,6 +77,11 @@ public static class PictureProbe
             lines.Add(Swelled(swell));
         }
 
+        foreach (ProbeField field in probe.Fields)
+        {
+            lines.Add(Fielded(field));
+        }
+
         foreach (ProbeGround ground in probe.Grounds)
         {
             lines.Add(Grounded(ground));
@@ -137,6 +142,29 @@ public static class PictureProbe
             + Say($" · the tide's phase {swell.Tide:F3}{(swell.Leading ? ", on the leading edge" : string.Empty)}, the cross-section {swell.Profile.X:F3}, {swell.Profile.Y:F3}, trail {swell.Profile.Z:F3}, front {swell.Profile.W:F3}")
             + Say($" · {depth} · the trail taken {swell.Trail:F3}, the front {swell.Front:F3}, the shallows {swell.Shallow:F3} (their foam term {swell.ShallowFoam:F3})")
             + Say($" · covering {Fraction(swell.Cover)}");
+    }
+
+    /// <summary>
+    /// The field waves at the pixel, term by term - where the card's lifted water meets the view, the shore's distances, the noise and the
+    /// break phase, the crest, and every term of the foam with what it came to - see <see cref="ProbeField"/>.
+    /// </summary>
+    public static string Fielded(ProbeField field)
+    {
+        string state = field.On ? "drawn on the card" : "off, the card drawing none - what they would be";
+        string met = float.IsNaN(field.Off)
+            ? Say($" · the view runs along the water, so at the processor's place ({Number(field.Drawn.X)}, {Number(field.Drawn.Y)}, {Number(field.Drawn.Z)})")
+            : Say($" · at ({Number(field.Place.X)}, {Number(field.Place.Y)}, {Number(field.Place.Z)}), where the card's lifted water meets the view (missed by {field.Off:F2}; the processor's water, unlifted by them, at ({Number(field.Drawn.X)}, {Number(field.Drawn.Y)}, {Number(field.Drawn.Z)}))");
+        string laid = field.Overlaid
+            ? Say($" · its two nodes overlapping, each layer dissolved apart (by {field.Layers.X:F3} and {field.Layers.Y:F3}) and laid one over the other")
+            : " · its two layers blended and dissolved by that profile";
+        FieldFoamProfile profile = field.Profile;
+        return Say($"  field waves, {state}{met}")
+            + Say($" · the shore {Number(field.ShoreDist)} units off the room's shore field (CHOSEN; rising {field.ShoreSlope.X:F2}, {field.ShoreSlope.Y:F2}), the way in {Number(field.OceanDist)} (the waves running {field.Way.X:F2}, {field.Way.Y:F2})")
+            + Say($" · the noise {field.Noise:F3}, so the break's centre {field.Centre:F3} (over a half lowers the break) · 1 - shore x 0.0002 = {field.Raw:F3}, the break phase {field.BreakPhase:F3}")
+            + Say($" · the wave's coordinate {field.WaveCoord:F3}, the foam's place in its wave {field.Interp:F3} (nought its front) · the crest moves the water {Number(field.Lift)} along z (up is minus z; the height offset {Number(field.HeightOffset)} in it)")
+            + Say($" · the foam's profile there: the break lets {profile.BreakFoam:F3} form, spike {profile.Spike:F3} + tail {profile.Tail:F3} + constant {profile.Constant:F3}, the wave's own {profile.Wave:F3} once lerped by the break phase, the near-shore term {profile.NearShore:F3}, so {profile.Intensity:F3}, sharpness {profile.Sharpness:F3}")
+            + laid
+            + Say($" · covering {Fraction(field.Cover)}, colour {field.Colour.X:F3}, {field.Colour.Y:F3}, {field.Colour.Z:F3} linear, read at level {field.Level:F1}");
     }
 
     /// <summary>How much of the sun reached a fragment, and what cast the shadow where it did not - see <see cref="ProbeSun"/>.</summary>

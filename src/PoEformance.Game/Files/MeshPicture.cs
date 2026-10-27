@@ -2630,6 +2630,14 @@ public static class MeshPicture
                 {
                     _probe.Add(ShadeProgram.SwellProbe(
                         new Vector2(place.X, place.Y), _water.SwellRegister, _time, held < float.MaxValue ? held - away : float.MaxValue, shore));
+
+                    // THE FIELD WAVES TERM BY TERM, the card's alone - worked out at the place the card's lifted water meets the view, a
+                    // pixel's step across and down handed over for the gradients its foam is read at. The view is a turn (and the turn-over
+                    // in x), so its inverse is its transpose.
+                    Matrix4x4 back = Matrix4x4.Transpose(_view);
+                    Vector3 right = Vector3.TransformNormal(new Vector3(1f / _scale, 0f, 0f), back);
+                    Vector3 down = Vector3.TransformNormal(new Vector3(0f, 1f / _scale, 0f), back);
+                    _probe.Add(ShadeProgram.FieldProbe(place, _toEye, right, down, _time, _water.FlowRegister.Z, shore, _scene!.WaterCrash));
                 }
             }
 

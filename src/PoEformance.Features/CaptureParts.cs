@@ -477,8 +477,8 @@ public static class CaptureParts
             "The whole report of the last \"find the readings\" in the Tile Book's Light fold: every reading, where each was found, "
             + "the raw angles beside them. Nothing where none has run."),
         new(ModelProbe, "Windows", "model probe", CaptureReport.ProbeFile,
-            "What the last probe click in a model pane listed under that pixel, and how each translucent layer came out over the "
-            + "picture - for every book whose probe is on. Nothing where none is."),
+            "What the last probe click in a model pane listed under that pixel - on water, the swell's foam and the field waves term "
+            + "by term - and how each translucent layer came out over the picture - for every book whose probe is on. Nothing where none is."),
         new(ModelPanes, "Windows", "model panes", CaptureReport.PanesFile,
             "Every model pane showing a model: its lines under the picture, a room stage's own among them, and every doodad file "
             + "of the room it shows with what became of its lines - laid, not drawn, left out by the cap, unseen - its box, where "

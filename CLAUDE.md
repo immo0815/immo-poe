@@ -639,6 +639,21 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   the shallows and the cover. Probe a rectangle's inside and its edge with crash off, then capture.
   On v0.1.309 the rectangles were no longer to be seen (said from the live client, with a picture) - though that build changed
   nothing they could come from, only the probe. Their cause is NOT FOUND; if they come back, probe one and capture.
+  THE CRESTS RISE WHITE BY THE SHIP (asked from the live client with v0.1.321's video: "some waves seem to come up from under the
+  ship again"). Nothing in the waves changed after v0.1.307, and v0.1.307's own measuring video shows the same. The direction is the
+  game's (the front reaches the hull's side first and the quay about a second later), but the Monster Book's crest is white foam from
+  the hull on, where the game's stays a dark ridge with a few streaks over the first two thirds of the channel and whitens only near
+  the quay (the brightness along lines across the channel, frame by frame: crests 100 to 150 against 207 to 252 near the quay; the
+  Monster Book's 225 to 235 from the hull). The field waves' foam is the break phase's - `1 - shore * 0.0002` ramped about
+  `0.5 + 0.3 * noise` (GetBreakPhaseField) - and the shore's distance there is the CHOSEN field's: v0.1.319's `shore.png` puts the
+  channel at 1,000 to 1,600 units, measured straight through the pier to the rocks behind it (the quay a wall since v0.1.299/301),
+  which ramps to 0.66 to 0.8 - where `PolyStep(break, 0.53, 0.95)` already lets foam form whole (0.999 at 0.66). The engine's own
+  field is unread and its noise stood in for. So from v0.1.322 the probe writes the field waves term by term at a water pixel
+  (`ProbeField`, `ShadeProgram.FieldProbe` - the card's functions on the processor, which draws none): where the card's lifted water
+  meets the view (the nearest crossing, marched), the shore's distance and the way in, the noise and the break's centre, the break
+  phase, the wave's coordinate and the crest's lift, the foam's profile term by term (the break's share, spike, tail, constant, the
+  near-shore term) and what it covers at the level the card reads it. Probe a crest by the hull and one by the quay, crash on, then
+  capture - before the shore's distance or the break is given a rule.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
