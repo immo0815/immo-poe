@@ -169,7 +169,7 @@ public static class BuiltRoomModels
         }
 
         MonsterModel model = LaidRoomModels.Of(
-            read, path, grid, x, build.Y, turn, shaded, doodads, tools, atLevel: true, progress: progress, heights: heights, master: master, maskCells: maskCells, groundHeights: groundHeights);
+            read, path, grid, x, build.Y, turn, shaded, doodads, tools, progress: progress, heights: heights, master: master, maskCells: maskCells, groundHeights: groundHeights);
         string said = build.Said + $" ({pool.Count} tiles in the pool{(unread > 0 ? $", {unread} did not read" : string.Empty)}{fillsSaid})"
             + (mirrored ? "; turned over in x by the switch, as the game lays the room in some instances" : string.Empty);
         return model.Ready

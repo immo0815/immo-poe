@@ -111,8 +111,8 @@ public class LaidRoomModelsTests
     [Fact]
     public void APIECEFittedMeetsTheAreasGroundAndAtItsLevelStaysWhereTheFileHasIt()
     {
-        MonsterModel fitted = Laid(placement: 3, selector: 0, lies: 3, sunk: 40f);
-        MonsterModel level = Laid(placement: 3, selector: 0, lies: 3, sunk: 40f, atLevel: true);
+        MonsterModel fitted = Laid(placement: 3, selector: 0, lies: 3, sunk: 40f, fitted: true);
+        MonsterModel level = Laid(placement: 3, selector: 0, lies: 3, sunk: 40f);
 
         Assert.True(fitted.Ready, fitted.Why);
         Assert.True(level.Ready, level.Why);
@@ -130,8 +130,8 @@ public class LaidRoomModelsTests
     [Fact]
     public void ANDWhereTheFileCountsFromItsTilesLevelTheTwoAgree()
     {
-        MonsterModel fitted = Laid(placement: 3, selector: 0, lies: 3, level: -100f);
-        MonsterModel level = Laid(placement: 3, selector: 0, lies: 3, level: -100f, atLevel: true);
+        MonsterModel fitted = Laid(placement: 3, selector: 0, lies: 3, level: -100f, fitted: true);
+        MonsterModel level = Laid(placement: 3, selector: 0, lies: 3, level: -100f);
 
         Assert.Equal(Plane(250f, 250f) - 100f, Highest(fitted).Z, 8f);
         Assert.Equal(Plane(250f, 250f) - 100f, Highest(level).Z, 8f);
@@ -147,7 +147,7 @@ public class LaidRoomModelsTests
     public void THEGROUNDOverABlockLiesWhereTheLaidRoomHasItInTheWorld()
     {
         (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement: 6, selector: 1, lies: 2);
-        MonsterModel room = LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, atLevel: true);
+        MonsterModel room = LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0);
 
         List<LaidGround> grounds = LaidRoomModels.GroundsOver(files.GetValueOrDefault, grid, 0, 0, TilesX, TilesY, out string said);
         Assert.StartsWith("heights: drawn with the files mirrored, turned 180° (x, -y) before the game's own turn", said, StringComparison.Ordinal);
@@ -394,7 +394,7 @@ public class LaidRoomModelsTests
     /// </summary>
     /// <param name="level">The tile's own level, which its sub-tile heights are written relative to.</param>
     /// <param name="sunk">How far below the area's ground the file's ground is written.</param>
-    /// <param name="atLevel">Whether the piece is set at its tile's level rather than fitted.</param>
+    /// <param name="fitted">Whether the piece is fitted to the area's ground rather than set at its tile's level, the usual.</param>
     private static MonsterModel Laid(
         int placement,
         byte selector,
@@ -402,7 +402,7 @@ public class LaidRoomModelsTests
         bool flat = false,
         float level = 0f,
         float sunk = 0f,
-        bool atLevel = false,
+        bool fitted = false,
         string? doodads = null,
         IReadOnlyList<WorldEntity>? entities = null,
         DoodadHeight doodadHeights = DoodadHeight.Ground,
@@ -419,7 +419,7 @@ public class LaidRoomModelsTests
             files[path] = Text(text);
         }
 
-        return LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, atLevel: atLevel, heights: doodadHeights, entities: entities);
+        return LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, fitted: fitted, heights: doodadHeights, entities: entities);
     }
 
     /// <summary>The install and the area <see cref="Laid"/> lays its room over.</summary>

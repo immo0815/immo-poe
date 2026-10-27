@@ -16,7 +16,7 @@ namespace PoEformance.Features;
 /// <param name="Doodads">Most doodads placed - see <see cref="RoomModels.UsualDoodads"/>.</param>
 /// <param name="Tools">Whether the level editor's tools are placed too - see <see cref="RoomModels.IsTool"/>.</param>
 /// <param name="Laid">Where the room is drawn as the area laid it - "x,y,turn,area" - or empty for the room as its file has it; see LaidRoomModels.</param>
-/// <param name="AtLevel">Whether a laid room's pieces are set at their tiles' own levels rather than fitted to the area's ground - see LaidRoomModels.</param>
+/// <param name="Fitted">Whether a laid room's pieces are fitted to the area's ground rather than set at their tiles' own levels, the usual from v0.1.315 - see LaidRoomModels. An older key's word for the levels, "level", is the usual now and reads as it.</param>
 /// <param name="Heights">How high a doodad that carries a height in its line is set - see <see cref="DoodadHeight"/>.</param>
 /// <param name="Hidden">Whether a laid room keeps what the game's camera cannot see too - see LaidRoomModels.Hiding. Off, the usual, leaves it out.</param>
 /// <param name="Cut">How far under the area's ground a laid room leaves everything out, in world units; nought, the usual, leaves nothing out.</param>
@@ -29,7 +29,7 @@ public readonly record struct RoomKey(
     int Doodads = RoomModels.UsualDoodads,
     bool Tools = false,
     string Laid = "",
-    bool AtLevel = false,
+    bool Fitted = false,
     DoodadHeight Heights = DoodadHeight.File,
     bool Hidden = false,
     int Cut = 0,
@@ -86,8 +86,8 @@ public readonly record struct RoomKey(
     /// <summary>The word saying the editor's tools are placed.</summary>
     public const string ToolsWord = "tools";
 
-    /// <summary>The word saying a laid room's pieces are set at their tiles' own levels.</summary>
-    public const string LevelWord = "level";
+    /// <summary>The word saying a laid room's pieces are fitted to the area's ground.</summary>
+    public const string FittedWord = "fitted";
 
     /// <summary>What starts the word naming how doodads with a height are set where it is not the usual; "ground" or "added" follows.</summary>
     public const string HeightsWord = "heights=";
@@ -95,7 +95,7 @@ public readonly record struct RoomKey(
     /// <summary>The key as a string - the bare path at the usual choices.</summary>
     public override string ToString()
     {
-        if (Doodads == RoomModels.UsualDoodads && !Tools && Laid.Length == 0 && !AtLevel && Heights == DoodadHeight.File && !Hidden && Cut <= 0 && Built.Length == 0 && !Mirrored && !MaskCells && !GroundHeights)
+        if (Doodads == RoomModels.UsualDoodads && !Tools && Laid.Length == 0 && !Fitted && Heights == DoodadHeight.File && !Hidden && Cut <= 0 && Built.Length == 0 && !Mirrored && !MaskCells && !GroundHeights)
         {
             return Path;
         }
@@ -116,9 +116,9 @@ public readonly record struct RoomKey(
             words.Add(LaidWord + Laid);
         }
 
-        if (AtLevel)
+        if (Fitted)
         {
-            words.Add(LevelWord);
+            words.Add(FittedWord);
         }
 
         if (Heights != DoodadHeight.File)
@@ -203,7 +203,7 @@ public readonly record struct RoomKey(
 
         int doodads = RoomModels.UsualDoodads;
         var tools = false;
-        var level = false;
+        var fitted = false;
         var heights = DoodadHeight.File;
         var hidden = false;
         var cut = 0;
@@ -230,9 +230,9 @@ public readonly record struct RoomKey(
             {
                 laid = word[LaidWord.Length..].ToString();
             }
-            else if (word.SequenceEqual(LevelWord))
+            else if (word.SequenceEqual(FittedWord))
             {
-                level = true;
+                fitted = true;
             }
             else if (word.StartsWith(HeightsWord, StringComparison.Ordinal))
             {
@@ -267,7 +267,7 @@ public readonly record struct RoomKey(
             }
         }
 
-        RoomKey read = new(key[..mark], doodads, tools, laid, level, heights, hidden, cut, built, mirrored, maskCells, groundHeights);
+        RoomKey read = new(key[..mark], doodads, tools, laid, fitted, heights, hidden, cut, built, mirrored, maskCells, groundHeights);
         return read.Laid.Length == 0 || read.TryLaid(out _, out _, out _, out _) ? read : read with { Laid = string.Empty };
     }
 }
