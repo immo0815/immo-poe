@@ -66,7 +66,7 @@ public class OceanMarkupHuntTests
 
         Vector(area, terrainAt + 0x300, Markup, markup.Length);
 
-        // A BYTE A THREE BY THREE CELLS, as Port's terrain holds at +0x6D8: 92 by 69 cells over three, 31 by 23.
+        // A BYTE A THREE BY THREE CELLS, as Port's terrain holds at +0x6D8: 92 by 69 cells over three, the part cell kept, 31 by 23.
         Vector(area, terrainAt + 0x340, Thirds, 31 * 23);
 
         // ONE HOP BEYOND: an object the terrain points to, a byte grid at four times the tiles in it.
@@ -90,7 +90,7 @@ public class OceanMarkupHuntTests
 
         Assert.Contains("terrain+0x300  252 bytes at 520000: tile corners x2 9x7 of 4 bytes", text, StringComparison.Ordinal);
         Assert.Contains("terrain+0x400 -> +0x10  192 bytes at 540000: tiles x4 16x12 of 1 bytes", text, StringComparison.Ordinal);
-        Assert.Contains("terrain+0x340  713 bytes at 550000: cells / 3 31x23 of 1 bytes", text, StringComparison.Ordinal);
+        Assert.Contains("terrain+0x340  713 bytes at 550000: cells / 3 rounded up 31x23 of 1 bytes", text, StringComparison.Ordinal);
         Assert.Contains("'0' 1 (0x1, ", text, StringComparison.Ordinal);
         Assert.Contains("35 cells, 35 walkable", text, StringComparison.Ordinal);
         Assert.Contains("  000001111", text, StringComparison.Ordinal);
@@ -101,6 +101,33 @@ public class OceanMarkupHuntTests
         Assert.Equal(7, corners.Rows.Count);
         Assert.All(corners.Rows, row => Assert.Equal("000001111", row));
         Assert.Contains("'0' x35, '1' x28", OceanMarkupHunt.Report([corners]), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ACELLSTEPGridIsCountedOverTheAreasCellsNotTheWalkableGridsStride()
+    {
+        OffsetSchema schema = LoadSchema();
+        int terrainAt = schema.Structs["AreaInstance"].OffsetOf("TerrainMetadata");
+        StructDef terrain = schema.Structs["TerrainMetadata"];
+
+        // AN ODD NUMBER OF TILES, as Port's 147: 3 by 3 tiles are 69 by 69 cells, the walkable grid's stride 35 bytes - 70 cells, one
+        // more than the area has - and a byte grid of one value a three by three cells is 23 by 23, as 1127 x 483 is Port's 3381 x 1449.
+        const int tiles = 3, cells = tiles * 23, stride = (cells + 1) / 2;
+        var area = new byte[terrainAt + OceanMarkupHunt.TerrainBytes];
+        var terrainBlock = area.AsSpan(terrainAt);
+        BinaryPrimitives.WriteInt64LittleEndian(terrainBlock[terrain.OffsetOf("TotalTilesX")..], tiles);
+        BinaryPrimitives.WriteInt64LittleEndian(terrainBlock[terrain.OffsetOf("TotalTilesY")..], tiles);
+        BinaryPrimitives.WriteInt32LittleEndian(terrainBlock[terrain.OffsetOf("BytesPerRow")..], stride);
+        Vector(area, terrainAt + terrain.OffsetOf("GridWalkableData"), Walkable, stride * cells);
+        Vector(area, terrainAt + 0x340, Thirds, 23 * 23);
+
+        var fake = new FakeMemoryReader()
+            .Place(Area, area)
+            .Place(Walkable, new byte[stride * cells])
+            .Place(Thirds, new byte[23 * 23]);
+
+        string text = string.Join('\n', OceanMarkupHunt.Run(fake, schema, Area));
+        Assert.Contains("terrain+0x340  529 bytes at 550000: cells / 3 23x23 of 1 bytes", text, StringComparison.Ordinal);
     }
 
     [Fact]
