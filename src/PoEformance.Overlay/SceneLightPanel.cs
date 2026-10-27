@@ -344,14 +344,19 @@ public sealed class SceneLightPanel : IMovableSun
                     + "flat: the picture's own, the same from every direction.\n"
                     + "Where the .env gives gi_env_occlusion, that share of the cube is the game's GI instead, which is not drawn - the flat ambient stands in for it.");
 
-                Label("flat", column);
-                ImGui.SetNextItemWidth(ImGui.GetFontSize() * 7f);
-                if (ImGui.SliderFloat("##scene-flat", ref _flat, 0f, 0.5f, "%.3f"))
+                // THE FLAT AMBIENT ONLY WHERE IT LIGHTS SOMETHING (asked for from the live client, 2026-10-27): under the flat ambient, and
+                // under the cube where it stands in - for the GI's share, or for a cube not read. Hidden, it keeps its value.
+                if (FlatLights(out string stands))
                 {
-                    _version++;
-                }
+                    Label("flat", column);
+                    ImGui.SetNextItemWidth(ImGui.GetFontSize() * 7f);
+                    if (ImGui.SliderFloat("##scene-flat", ref _flat, 0f, 0.5f, "%.3f"))
+                    {
+                        _version++;
+                    }
 
-                OverlayLayout.Hint("The flat ambient's light, linear. The picture's usual is 0.04 - 0.22 on the screen's value.");
+                    OverlayLayout.Hint("The flat ambient's light, linear. The picture's usual is 0.04 - 0.22 on the screen's value." + stands);
+                }
             }
             finally
             {
@@ -919,6 +924,40 @@ public sealed class SceneLightPanel : IMovableSun
         _cubeRows = [.. rows];
         _cubeItems = string.Join('\0', labels) + "\0";
         _cubeWidest = labels.Max(one => ComboWidth(one));
+    }
+
+    /// <summary>
+    /// Whether the flat ambient lights anything as the picture is lit: under the flat ambient always, under the cube where
+    /// <see cref="SceneLight"/> lets it stand in - for a cube not read, or for the share gi_env_occlusion leaves to the game's GI.
+    /// </summary>
+    /// <param name="stands">What it stands in for under the cube, a sentence for the hint; empty under the flat ambient.</param>
+    private bool FlatLights(out string stands)
+    {
+        stands = string.Empty;
+        if (_ambient == (int)SceneAmbient.Flat)
+        {
+            return true;
+        }
+
+        if (_ambient != (int)SceneAmbient.Cube)
+        {
+            return false;
+        }
+
+        if (_cube is null)
+        {
+            stands = "\nHere it lights in place of the cube, which was not read - see details.";
+            return true;
+        }
+
+        if (_environment.GiEnvOcclusion is float share && share > 0f)
+        {
+            stands = string.Create(CultureInfo.InvariantCulture,
+                $"\nHere it stands in for the game's GI, which is not drawn: it lights times gi_env_occlusion {Math.Min(share, 1f):0.##}, the cube's share the GI takes.");
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>
