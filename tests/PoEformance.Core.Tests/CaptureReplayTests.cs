@@ -73,6 +73,20 @@ public partial class CaptureReplayTests
         Assert.StartsWith("water shore replay: ", replay, StringComparison.Ordinal);
     }
 
+    /// <summary>The ocean markup hunt's grids read back from ocean-markup.txt - ocean-markup-replay.txt.</summary>
+    [Fact]
+    public void THEOCEANMarkupHuntIsReadBackFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder || CaptureParts.Find(folder, CaptureReport.OceanMarkupFile) is not { } path || !File.Exists(path))
+        {
+            return;
+        }
+
+        string replay = PoEformance.Game.Diagnostics.OceanMarkupHunt.Report(PoEformance.Game.Diagnostics.OceanMarkupHunt.Read(File.ReadAllText(path)));
+        File.WriteAllText(Path.Combine(folder, "ocean-markup-replay.txt"), replay);
+        Assert.StartsWith("ocean markup replay: ", replay, StringComparison.Ordinal);
+    }
+
     /// <summary>Places every room of the capture by its doodads and writes the result beside the capture's files.</summary>
     [Fact]
     public void THEPLACINGRunsAgainFromACapture()

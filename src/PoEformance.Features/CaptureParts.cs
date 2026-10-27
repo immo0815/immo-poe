@@ -170,6 +170,9 @@ public static class CaptureParts
     /// <summary>What the engine's shore field is made from: every object script naming the water's blocking or flow, the sources and strings.</summary>
     public const string WaterShore = "water-shore";
 
+    /// <summary>The terrain and what it points to searched at the press for the grid the engine's ocean markup is made from.</summary>
+    public const string OceanMarkup = "ocean-markup";
+
     /// <summary>The memory recording itself.</summary>
     public const string Memory = "memory";
 
@@ -199,7 +202,7 @@ public static class CaptureParts
     /// lines under the buttons that nobody playing reads. They read the file table and the bundles, which takes seconds, so they
     /// cannot be asked for on the frame the key goes down as a window's text is.
     /// </remarks>
-    public static bool RunsAtPress(string key) => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble;
+    public static bool RunsAtPress(string key) => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup;
 
     /// <summary>
     /// A heading as the Keys page writes it. The headings themselves stay as they are: they are what <see cref="FolderOfGroup"/> keys
@@ -479,6 +482,12 @@ public static class CaptureParts
             + "changes is written with its range and period, the first read of every block whole, and the WobblePoint's changing "
             + "fields as a table over time - what moves the ship, by how much and how often. Stand within sight of the ship; the "
             + "window shows how far it is and stops it on a click."),
+        new(OceanMarkup, "Memory", "ocean markup hunt", CaptureReport.OceanMarkupFile,
+            "Where the engine keeps its sea's shore: the area's terrain - the game's tile map, whose CalculateMapMarkup fills the grid "
+            + "the engine's OceanMarkupField is made from - and every object it points to, searched for lists whose length is a grid "
+            + "of the area's shape (its tiles, their corners or its cells, at several resolutions). Each found is written as a map, "
+            + "its values counted, beside the walkable grid and the corners' ground types at the same places - what the tool's own "
+            + "shore, chosen until then, is to be held against. A few megabytes of reads, past the recording."),
         new(Memory, "Memory", "memory recording", CaptureReport.MemoryFile,
             "The overlay's own reads for three seconds, and inside them one pass reading once more from nothing whatever the "
             + "ticked parts above ask for - memory.txt beside it says what the pass read where. Replays with --replay, game closed."),

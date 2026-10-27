@@ -120,6 +120,9 @@ public static class CaptureReport
     /// <summary>What the install says the engine's shore field is made from - see CaptureWaterShore.</summary>
     public const string WaterShoreFile = "water-shore.txt";
 
+    /// <summary>The terrain searched for the engine's ocean markup at the press - see OceanMarkupHunt.</summary>
+    public const string OceanMarkupFile = "ocean-markup.txt";
+
     /// <summary>The survey of the entity maps for the rooms' doodads, and every sighting.</summary>
     public const string DoodadsFile = "doodads.txt";
 

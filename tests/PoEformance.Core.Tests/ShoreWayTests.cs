@@ -140,6 +140,45 @@ public class ShoreWayTests
     }
 
     /// <summary>
+    /// A quay rising out of deep water is no shore, the same coast over shallow ground is - Port's channel by the quay stood white
+    /// whatever the crests did, the engine's field-wave foam being whole within 150 of a shore (said from the live client, v0.1.298).
+    /// </summary>
+    [Fact]
+    public void AWALLOUTOFDeepWaterIsNoShoreButTheWavesStillRunUpToIt()
+    {
+        // ONE COAST AT x 1000: south of y 0 a quay over a floor 500 under the water, north of it the same land over a floor 50 under.
+        ShoreField shore = ShoreField.Of(
+            Quads(
+                ("Water", [(-3000f, -3000f, 3000f, 3000f, 0f)]),
+                ("Deep floor", [(-3000f, -3000f, 1000f, 0f, 500f)]),
+                ("Shallow floor", [(-3000f, 0f, 1000f, 3000f, 50f)]),
+                ("Land", [(1000f, -3000f, 3000f, 3000f, -100f)])),
+            shape => shape == 0,
+            shape => shape is 1 or 2 or 3,
+            null,
+            shape => false)!;
+
+        Assert.True(shore.WallCells > 50, $"{shore.WallCells} wall cells");
+
+        // BY THE WALL the shore is the shallow coast's nearest corner, 1,500 away - but the way in is the wall's own 200.
+        Assert.InRange(Shore(shore, 800f, -1500f), 1400f, 1650f);
+        Assert.InRange(Ocean(shore, 800f, -1500f), 150f, 260f);
+
+        // BY THE SHALLOW COAST both are its 200.
+        Assert.InRange(Shore(shore, 800f, 1500f), 170f, 230f);
+        Assert.InRange(Ocean(shore, 800f, 1500f) - Shore(shore, 800f, 1500f), -30f, 30f);
+    }
+
+    [Fact]
+    public void AFLOORATTheBeachsDepthIsStillShore()
+    {
+        // THE BAY'S FLOOR LIES 300 UNDER, the beach's own depth: its quay stays a shore, as every water test has it.
+        ShoreField shore = ShoreField.Of(Bay(), shape => shape == 0, shape => shape is 1 or 2, null, shape => false)!;
+        Assert.InRange(Shore(shore, 500f, 0f), 470f, 530f);
+        Assert.InRange(Shore(shore, -1000f, 0f), 1970f, 2000f);
+    }
+
+    /// <summary>
     /// Something over the water and something else under it, at one place, stand in nobody's way - Port's wobble core, an invisible plane
     /// over the ship, lay over the quay's sunken bricks and barred the channel's side 125 units wide (said from the live client, v0.1.297).
     /// </summary>

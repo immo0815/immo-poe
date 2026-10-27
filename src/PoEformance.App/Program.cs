@@ -3615,6 +3615,18 @@ internal static class Program
                 () => wobble?.Fraction ?? 0f,
                 () => wobble?.Stop()));
 
+        // THE OCEAN MARKUP HUNT: the grid the engine's sea shore is made from, looked for in the terrain at the press - see
+        // OceanMarkupHunt. Past the tap: a few megabytes of reads would crowd the capture's recording.
+        overlay.OfferCaptureWork(
+            PoEformance.Features.CaptureParts.OceanMarkup,
+            _ =>
+            {
+                PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
+                PoEformance.Core.Diagnostics.GameChainAddresses chain =
+                    PoEformance.Core.Diagnostics.GameChain.Resolve(untapped, schema, gameStatesStatic);
+                return PoEformance.Game.Diagnostics.OceanMarkupHunt.Run(untapped, schema, chain.AreaInstance);
+            });
+
         // NEEDS NO INSTALL: it reads memory rather than the game's files. The one thing it needs is
         // the loaded-file table.
         overlay.OfferCaptureWork(PoEformance.Features.CaptureParts.RoomPlacements, _ =>

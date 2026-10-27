@@ -547,6 +547,20 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   itself, and the cells it stands in the way in are those its waterline runs through, walked one step along x or y at a time
   (`ShoreField.Crossing`, `Walked`) - a sheer wall covers no cell's middle and blocks all the same, a hull's waterline closes round it.
   The way-in line in `model-panes.txt` now names the shapes that crossed, the most triangles first (`ShoreField.CrossingShapes`).
+  The channel then stood WHITE THROUGHOUT, between crests too (said from the live client, v0.1.298), while the game draws it blue-green
+  between crests and the pier's sheltered side dark to its wall. That is the field waves' foam as written: GetFieldFoamProfile adds
+  `saturate(exp(-(shore_dist - 150) / 100)) * 0.7` - whole foam within 150 of a shore - to a breaking foam of 0.4 to 0.7 near one, and
+  the channel (some 300 to 450 units across, off v0.1.296's `shore.png`) lay wholly near the quay. So A WALL OUT OF DEEP WATER IS NO
+  SHORE from v0.1.299, CHOSEN from the live client: land counts towards the shore's distance where ground lies beside it under no more
+  than `ShoreField.BeachDeep` (300) of water, or where what stands in the sea stands; land meeting only deeper water is a wall
+  (`ShoreField.WallCells`, grey in `shore.png`). Port's ground under its water lies 55 deep at most or past 300 (its beach sheet, 21 to
+  176 against a level of 125). The way in still runs to every land, walls included. What the engine counts is its OceanMarkupField's,
+  made from an int grid `ClientTileMap::CalculateMapMarkup` fills - a method that takes and returns nothing, so it keeps what it works
+  out - and the terrain at AreaInstance + TerrainMetadata is a C++ object of its own, the likeliest ClientTileMap: `ocean-markup.txt`
+  (`OceanMarkupHunt`, run at the press) reads it and one hop beyond every pointer in it for lists whose length is a grid of the area's
+  shape, each written as a map with its values beside the walkable grid and the corners' ground types; `ocean-markup-replay.txt` reads
+  the maps back. Read it before the rule is changed. Still to come, asked for from the live client: the crests' crash against the
+  quay, the spray thrown up it (particles, CrashingSprayTrigger) and the foam running down its face.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
