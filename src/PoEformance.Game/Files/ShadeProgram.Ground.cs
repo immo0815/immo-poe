@@ -32,8 +32,9 @@ public sealed partial class ShadeProgram
     /// not where either ground's program reads the triangle's tangent frame, which the picture takes from the mesh's own
     /// coordinates - the block's here, not the material's - nor for any of the water's programs.
     /// </remarks>
-    public static ShadeProgram? Grounds(ShadeProgram first, ShadeProgram second, ShadeTexture mask, Mipmaps? maskSheet, float scale)
-        => Mixing(first, second, mask, maskSheet, scale);
+    /// <param name="heights">Whether the two are weighed by their heights where either's graphs turn that on - see <see cref="Mixing"/>.</param>
+    public static ShadeProgram? Grounds(ShadeProgram first, ShadeProgram second, ShadeTexture mask, Mipmaps? maskSheet, float scale, bool heights = false)
+        => Mixing(first, second, mask, maskSheet, scale, heights);
 
     /// <summary>
     /// Two ground materials mixed per pixel by the second ground's share of the sub-tile's corners, which the mesh carries in its
@@ -42,19 +43,29 @@ public sealed partial class ShadeProgram
     /// <param name="first">The ground at share nought, bound.</param>
     /// <param name="second">The ground at share one, bound.</param>
     /// <param name="scale">The ground materials' tiling, as <see cref="Grounds"/> takes it.</param>
+    /// <param name="heights">Whether the two are weighed by their heights where either's graphs turn that on - see <see cref="Mixing"/>.</param>
     /// <remarks>
     /// CHOSEN, NOT THE ENGINE'S (v0.1.310, from the live client): a stand-in where the mask's green at the block's own coordinates
     /// comes out in squares - see GroundPainter. The share is worked out per vertex, bilinear from the sub-tile's four corners in the
     /// definition's ground grid, and runs across each triangle as any coordinate does; everything after the weight is the mask's
     /// program's, step for step.
     /// </remarks>
-    public static ShadeProgram? GroundsByCorners(ShadeProgram first, ShadeProgram second, float scale) => Mixing(first, second, null, null, scale);
+    public static ShadeProgram? GroundsByCorners(ShadeProgram first, ShadeProgram second, float scale, bool heights = false)
+        => Mixing(first, second, null, null, scale, heights);
 
     /// <summary>Whether the program mixes two grounds by the corners' share in its coordinates rather than a mask - see <see cref="GroundsByCorners"/>.</summary>
     public bool MixesByCorners { get; private init; }
 
     /// <summary>The program behind <see cref="Grounds"/> and <see cref="GroundsByCorners"/>: the weight from the mask where there is one, from the coordinates' first channel where not.</summary>
-    private static ShadeProgram? Mixing(ShadeProgram first, ShadeProgram second, ShadeTexture? mask, Mipmaps? maskSheet, float scale)
+    /// <remarks>
+    /// WEIGHED BY THEIR HEIGHTS AS THE ENGINE WEIGHS THEM, where <paramref name="heights"/> and either ground's graphs carry
+    /// <see cref="HeightBlendingNode"/> (its macro, GROUND_HEIGHT_BLENDING, is the whole ground shader's): GroundInterpolate (ground.ffx)
+    /// as written - each weight times <c>1 / (1 + (max_height - height) / 0.01)</c>, the weights then divided by their sum, and the
+    /// surfaces added up by them, the first's then the second's. A ground's height is what its graphs write (<see cref="Heighted"/>,
+    /// PBRGroundBN's the SmoothStep of its normal map's blue), nought where they write none, as InitSurfaceData leaves it - so the two
+    /// handed in are their Heighted twins where they have them.
+    /// </remarks>
+    private static ShadeProgram? Mixing(ShadeProgram first, ShadeProgram second, ShadeTexture? mask, Mipmaps? maskSheet, float scale, bool heights)
     {
         ArgumentNullException.ThrowIfNull(first);
         ArgumentNullException.ThrowIfNull(second);
@@ -105,11 +116,19 @@ public sealed partial class ShadeProgram
             samples.Add(read + first.Textures.Count);
         }
 
-        int Lerped(int from, int to)
+        int Emitted(Op op, int a, int b = -1, int c = -1, int extra = 0)
         {
             int into = next++;
-            steps.Add(new Step(Op.Lerp, into, from, to, green, -1, -1, 0));
+            steps.Add(new Step(op, into, a, b, c, -1, -1, extra));
             return into;
+        }
+
+        int Constant(Vector4 value)
+        {
+            int at = next++;
+            constantAt.Add(at);
+            constants.Add(value);
+            return at;
         }
 
         int nothing = -1;
@@ -117,13 +136,32 @@ public sealed partial class ShadeProgram
         {
             if (nothing < 0)
             {
-                nothing = next++;
-                constantAt.Add(nothing);
-                constants.Add(Vector4.Zero);
+                nothing = Constant(Vector4.Zero);
             }
 
             return nothing;
         }
+
+        // THE ENGINE'S HEIGHT BLENDING, GroundInterpolate as written - see the remarks.
+        bool byHeight = heights && (first.BlendsGroundHeights || second.BlendsGroundHeights);
+        int share = green, firstShare = -1, firstHeight = -1, secondHeight = -1;
+        if (byHeight)
+        {
+            firstHeight = first.HeightRegister >= 0 ? Emitted(Op.Swizzle, Moved(first.HeightRegister, firstBase), extra: AllFrom(0)) : Nothing();
+            secondHeight = second.HeightRegister >= 0 ? Emitted(Op.Swizzle, Moved(second.HeightRegister, secondBase), extra: AllFrom(0)) : Nothing();
+            int one = Constant(Vector4.One), threshold = Constant(new Vector4(HeightThreshold));
+            int most = Emitted(Op.Max, firstHeight, secondHeight);
+            int Weighed(int weight, int height)
+                => Emitted(Op.Multiply, weight, Emitted(Op.Divide, one, Emitted(Op.Add, one, Emitted(Op.Divide, Emitted(Op.Subtract, most, height), threshold))));
+
+            int x = Weighed(Emitted(Op.OneMinus, green), firstHeight), y = Weighed(green, secondHeight);
+            int sum = Emitted(Op.Add, x, y);
+            firstShare = Emitted(Op.Divide, x, sum);
+            share = Emitted(Op.Divide, y, sum);
+        }
+
+        int Lerped(int from, int to)
+            => byHeight ? Emitted(Op.MultiplyAdd, to, share, Emitted(Op.Multiply, from, firstShare)) : Emitted(Op.Lerp, from, to, green);
 
         int firstSpecular = Moved(first._specular, firstBase), secondSpecular = Moved(second._specular, secondBase);
         int firstGloss = Moved(first._gloss, firstBase), secondGloss = Moved(second._gloss, secondBase);
@@ -150,8 +188,25 @@ public sealed partial class ShadeProgram
         {
             Mix = (green, Moved(first._result, firstBase), Moved(second._result, secondBase)),
             MixesByCorners = mask is null,
+            Weighed = (share, firstHeight, secondHeight),
         };
     }
+
+    /// <summary>GroundInterpolate's height_threshold: how far below the highest ground's height a ground's weight halves.</summary>
+    public const float HeightThreshold = 0.01f;
+
+    /// <summary>
+    /// Where a program of two grounds weighed by their heights leaves the second ground's share once weighed and each ground's height;
+    /// the heights below nought where it is not weighed so - see <see cref="Mixing"/>.
+    /// </summary>
+    internal (int Share, int FirstHeight, int SecondHeight) Weighed { get; private init; } = (-1, -1, -1);
+
+    /// <summary>Whether the program weighs its two grounds by their heights - see <see cref="Mixing"/>.</summary>
+    public bool MixesByHeights => Weighed.FirstHeight >= 0;
+
+    /// <summary>The second ground's share once weighed by the heights, and each ground's height, as a run of this program left them in its registers.</summary>
+    internal (float Share, float FirstHeight, float SecondHeight) Heights(ReadOnlySpan<Vector4> registers)
+        => (registers[Weighed.Share].X, registers[Weighed.FirstHeight].X, registers[Weighed.SecondHeight].X);
 
     /// <summary>
     /// Where a program of two grounds (<see cref="Grounds"/>) leaves the mask's green and each ground's colour - nought to one for none;

@@ -731,6 +731,16 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
                     + " in squares of the two grounds - the checkerboard by Port's ship - while the game draws no squares there."
                     + " Unticked, such a shape is mixed by the second ground's share of its sub-tile's corners, a soft change across the sub-tile"
                     + " (chosen, not the engine's); ticked, it is read on the mask's cells as the engine's shader says, squares and all, to hold the two against the game.");
+
+                bool raised = staged.GroundHeights;
+                if (ImGui.Checkbox("ground by the grounds' heights##monster-stage-ground-heights", ref raised))
+                {
+                    model.Stage = (staged with { GroundHeights = raised }).ToString();
+                }
+
+                OverlayLayout.Hint("Two grounds weighed by their heights as the engine's height blending weighs them (GroundInterpolate):"
+                    + " where a ground's graphs turn it on - Port's do - the higher of the two at a pixel takes most of it, so cobblestones stand"
+                    + " out of the sand where the plain mix fades one into the other. A ground's height is what its graphs write, nought where they write none.");
             }
 
             // WHAT THE SEARCH WENT THROUGH, under the combo once it has run: which areas, which folders, how

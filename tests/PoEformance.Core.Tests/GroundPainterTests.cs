@@ -159,6 +159,14 @@ public sealed class GroundPainterTests
         Assert.Equal(12, kept.Mesh.Positions.Length);
         Assert.Equal(coordinates[6], kept.Mesh.Coordinates[6]);
         Assert.Contains("1 of them with shapes across the mask's atlas kept on its cells by the switch", onCells.Said(), StringComparison.Ordinal);
+
+        // WEIGHED BY THEIR HEIGHTS by the other switch: the same shapes, under names that say so.
+        GroundPainter raised = Painter(Read, heights: true);
+        MonsterModel? weighed = raised.Paint(Gridded, ground, pieces, Matrix4x4.Identity, "ground of gridded.tdt");
+        Assert.NotNull(weighed);
+        Assert.Equal(["Art/sand2.mat", GroundBlend.Cornered("Art/rock.mat", "Art/sand2.mat", heights: true)], weighed!.ShapeMaterials);
+        Assert.Contains("weighed by the grounds' heights as the engine's GROUND_HEIGHT_BLENDING weighs them", raised.Said(), StringComparison.Ordinal);
+        Assert.Contains("the engine's height blending left out by the switch", painter.Said(), StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -248,9 +256,9 @@ public sealed class GroundPainterTests
         Assert.Equal("no master to name a MaterialsList", why);
     }
 
-    private static GroundPainter Painter(Func<string, byte[]?>? read = null, bool maskCells = false)
+    private static GroundPainter Painter(Func<string, byte[]?>? read = null, bool maskCells = false, bool heights = false)
     {
-        (GroundPainter? painter, string why) = GroundPainter.For(read ?? Install, Master, new MonsterModels.Paints(), maskCells);
+        (GroundPainter? painter, string why) = GroundPainter.For(read ?? Install, Master, new MonsterModels.Paints(), maskCells, heights);
         Assert.True(painter is not null, why);
         Assert.Equal("Metadata/Terrain/Maps/Test/materials.mtd", painter!.From);
         return painter;

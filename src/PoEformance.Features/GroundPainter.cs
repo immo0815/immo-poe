@@ -35,9 +35,11 @@ namespace PoEformance.Features;
 /// second ground where its three vertices' green averaged a half or more, and Port's harbour showed the ocean's black in
 /// patches with straight, toothed edges on its beach (said from the live client, v0.1.242's probe on one: blackc.mat under
 /// a thin sea and a thin beach film). That split stays where the two cannot be run as one program, and the line under the
-/// picture says why. NOT DRAWN, DECIDED from the live client (2026-10-12): the engine's height blending
-/// (GROUND_HEIGHT_BLENDING, which Port's ground graph PBRGroundBN.fxgraph turns on - the weights sharpened by the materials'
-/// height maps, blackc.mat's height nought). Three or four grounds (the engine's red atlas, placed by transforms no file
+/// picture says why. THE ENGINE'S HEIGHT BLENDING (GROUND_HEIGHT_BLENDING, which Port's ground graph PBRGroundBN.fxgraph turns on -
+/// the weights sharpened by the materials' heights, blackc.mat's nought) was left out, DECIDED from the live client (2026-10-12),
+/// and is drawn from v0.1.311 behind a switch (RoomKey.GroundHeights), asked for from the live client: v0.1.309's capture of Port's
+/// quay showed cobblestones standing out of the sand where neither the mask's squares nor the corners' share put them
+/// (ShadeProgram.Grounds). Three or four grounds (the engine's red atlas, placed by transforms no file
 /// holds) are drawn as the two most of their corners name (CHOSEN, see SetOf); the capture's picture of the ground on the
 /// screen still marks them as the engine's own (SubTilesOf).
 ///
@@ -85,16 +87,20 @@ internal sealed class GroundPainter
 
     /// <summary>Whether the shapes across the mask's atlas stay on its cells - the switch, see the remarks.</summary>
     private readonly bool _maskCells;
+
+    /// <summary>Whether two grounds are weighed by their heights where their graphs turn that on - the switch, see the remarks.</summary>
+    private readonly bool _heights;
     private int _byCorners;
     private int _cornerShapes;
     private int _keptOnCells;
 
-    private GroundPainter(Func<string, byte[]?> read, GroundMaterials list, string from, MonsterModels.Paints paints, bool maskCells)
+    private GroundPainter(Func<string, byte[]?> read, GroundMaterials list, string from, MonsterModels.Paints paints, bool maskCells, bool heights)
     {
         _read = read;
         _list = list;
         _paints = paints;
         _maskCells = maskCells;
+        _heights = heights;
         From = from;
         _unnamedGroup = -1;
         for (var at = 0; at < list.Groups.Count && _unnamedGroup < 0; at++)
@@ -113,7 +119,9 @@ internal sealed class GroundPainter
     /// <param name="master">The area's master (<c>.tsi</c>).</param>
     /// <param name="paints">The room's paint cache, so the ground's textures are read once with everything else's.</param>
     /// <param name="maskCells">Whether the shapes across the mask's atlas stay on its cells rather than mixed by their corners - see the remarks.</param>
-    public static (GroundPainter? Painter, string Why) For(Func<string, byte[]?> read, string master, MonsterModels.Paints paints, bool maskCells = false)
+    /// <param name="heights">Whether two grounds are weighed by their heights where their graphs turn that on - see the remarks.</param>
+    public static (GroundPainter? Painter, string Why) For(
+        Func<string, byte[]?> read, string master, MonsterModels.Paints paints, bool maskCells = false, bool heights = false)
     {
         ArgumentNullException.ThrowIfNull(read);
         ArgumentNullException.ThrowIfNull(paints);
@@ -128,7 +136,7 @@ internal sealed class GroundPainter
             GroundMaterials list = GroundMaterials.Read(read(candidate));
             if (list.Groups.Count > 0)
             {
-                return (new GroundPainter(read, list, candidate, paints, maskCells), string.Empty);
+                return (new GroundPainter(read, list, candidate, paints, maskCells, heights), string.Empty);
             }
         }
 
@@ -242,12 +250,15 @@ internal sealed class GroundPainter
                 + string.Join(", ", _split.OrderByDescending(one => one.Value).Select(one => string.Create(CultureInfo.InvariantCulture, $"{one.Value} {one.Key}")));
         string reduced = _reduced == 0 ? string.Empty
             : string.Create(CultureInfo.InvariantCulture, $", {_reduced} of three or four grounds drawn as the two most of their corners name, ties to the list's first - CHOSEN, a stand-in for the engine's own mask placed by transforms no file holds");
+        string heights = _heights
+            ? "weighed by the grounds' heights as the engine's GROUND_HEIGHT_BLENDING weighs them (GroundInterpolate), where a ground's graphs turn it on - by the switch"
+            : "the engine's height blending left out by the switch";
         string corners = _maskCells
             ? string.Create(CultureInfo.InvariantCulture, $", {_keptOnCells} of them with shapes across the mask's atlas kept on its cells by the switch, squares and all")
             : _byCorners == 0 && _keptOnCells == 0 ? string.Empty
             : string.Create(CultureInfo.InvariantCulture, $", of them {_byCorners} with shapes across the mask's atlas ({_cornerShapes} shapes) mixed instead by the second ground's share of their sub-tile's corners, bilinear - CHOSEN, a stand-in: the game draws no squares there and what it reads is not measured{(_keptOnCells > 0 ? $"; {_keptOnCells} more left on the mask, their corners' mix not running" : string.Empty)}");
         return string.Create(CultureInfo.InvariantCulture,
-            $"ground: painted from {From}, each sub-tile from its own corners in its definition's ground grid ({_gridded} pieces; {_cornered} from the tile's four corners, their definition carrying no grid; {_unnamed} sub-tiles with a corner the grid leaves unnamed, taken as the MaterialsList's group with no name - the game holds its null slot there, and that it draws this group is DECIDED) - {_one} sub-tiles of one ground, {_mixed} of two mixed per pixel by the template mask's green at the block's own coordinates as the engine mixes them (GroundGenerateWeights_1a1b; the MaterialsList's first ground at green nought, as Port's three families agree - one area; its height blending not drawn, DECIDED){corners}{reduced}{split}, plain: {plain}; the materials' coordinates the world times {GroundScale} (the environments' ground_scale, likely and not measured), a group's heaviest choice where the game draws by weight");
+            $"ground: painted from {From}, each sub-tile from its own corners in its definition's ground grid ({_gridded} pieces; {_cornered} from the tile's four corners, their definition carrying no grid; {_unnamed} sub-tiles with a corner the grid leaves unnamed, taken as the MaterialsList's group with no name - the game holds its null slot there, and that it draws this group is DECIDED) - {_one} sub-tiles of one ground, {_mixed} of two mixed per pixel by the template mask's green at the block's own coordinates as the engine mixes them (GroundGenerateWeights_1a1b; the MaterialsList's first ground at green nought, as Port's three families agree - one area; {heights}){corners}{reduced}{split}, plain: {plain}; the materials' coordinates the world times {GroundScale} (the environments' ground_scale, likely and not measured), a group's heaviest choice where the game draws by weight");
     }
 
     /// <summary>How a tile's ground is painted, worked out once whatever number of pieces lay it - and what it comes to, sub-tile by sub-tile.</summary>
@@ -438,7 +449,7 @@ internal sealed class GroundPainter
             }
 
             // MIXED PER PIXEL as the engine mixes them, where the two grounds' programs run as one - see the remarks.
-            if (_paints.Grounds(_read, first, second, Clean(mask), GroundScale, out string unmixed) is { } mixed)
+            if (_paints.Grounds(_read, first, second, Clean(mask), GroundScale, _heights, out string unmixed) is { } mixed)
             {
                 mixedGrounds += run.SubTiles;
 
@@ -464,7 +475,7 @@ internal sealed class GroundPainter
                         }
                     }
 
-                    if (wide.Count > 0 && !_maskCells && _paints.GroundsByCorners(_read, first, second, GroundScale, out _) is { } cornered)
+                    if (wide.Count > 0 && !_maskCells && _paints.GroundsByCorners(_read, first, second, GroundScale, _heights, out _) is { } cornered)
                     {
                         onCells = narrow;
                         byCorners += wideSubTiles;
@@ -875,16 +886,28 @@ internal static class GroundBlend
 
     private const string ByCorners = " by its sub-tiles' corners";
 
-    /// <summary>The name for two grounds mixed by a mask.</summary>
-    public static string Name(string first, string second, string mask) => first + With + second + By + mask;
+    private const string ByHeights = ", weighed by their heights";
 
-    /// <summary>The name for two grounds mixed by the second's share of the sub-tile's corners - see GroundPainter.</summary>
-    public static string Cornered(string first, string second) => first + With + second + ByCorners;
+    /// <summary>The name for two grounds mixed by a mask - weighed by their heights where <paramref name="heights"/>.</summary>
+    public static string Name(string first, string second, string mask, bool heights = false)
+        => first + With + second + By + mask + (heights ? ByHeights : string.Empty);
+
+    /// <summary>The name for two grounds mixed by the second's share of the sub-tile's corners - see GroundPainter - weighed by their heights where <paramref name="heights"/>.</summary>
+    public static string Cornered(string first, string second, bool heights = false)
+        => first + With + second + ByCorners + (heights ? ByHeights : string.Empty);
+
+    /// <summary>Whether a name says its two grounds are weighed by their heights where their graphs turn that on (ShadeProgram.Grounds).</summary>
+    public static bool Heighted(string material) => material.EndsWith(ByHeights, StringComparison.Ordinal);
 
     /// <summary>The two grounds and the mask a name says - the mask empty where they are mixed by the corners - or false where it is a material's own path.</summary>
     public static bool Parts(string material, out string first, out string second, out string mask)
     {
         first = second = mask = string.Empty;
+        if (Heighted(material))
+        {
+            material = material[..^ByHeights.Length];
+        }
+
         int with = material.IndexOf(With, StringComparison.Ordinal);
         if (with <= 0)
         {
@@ -913,7 +936,8 @@ internal static class GroundBlend
     /// <summary>The name as a picture's lines say it - the files' own names.</summary>
     public static string Short(string material)
         => Parts(material, out string first, out string second, out string mask)
-            ? mask.Length > 0 ? $"{Tail(first)} + {Tail(second)} by {Tail(mask)}'s green" : $"{Tail(first)} + {Tail(second)} by the sub-tiles' corners"
+            ? (mask.Length > 0 ? $"{Tail(first)} + {Tail(second)} by {Tail(mask)}'s green" : $"{Tail(first)} + {Tail(second)} by the sub-tiles' corners")
+                + (Heighted(material) ? ByHeights : string.Empty)
             : Tail(material);
 
     private static string Tail(string path) => path[(path.LastIndexOfAny(['/', '\\']) + 1)..];

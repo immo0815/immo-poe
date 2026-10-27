@@ -2915,10 +2915,11 @@ public static class MonsterModels
         /// <param name="second">The ground at green one.</param>
         /// <param name="mask">The template's ground mask.</param>
         /// <param name="scale">The ground materials' tiling - see ShadeProgram.Grounds.</param>
+        /// <param name="heights">Whether the two are weighed by their heights where their graphs turn that on - see ShadeProgram.Grounds.</param>
         /// <param name="why">Why there is none, where there is none.</param>
-        public string? Grounds(Func<string, byte[]?> read, string first, string second, string mask, float scale, out string why)
+        public string? Grounds(Func<string, byte[]?> read, string first, string second, string mask, float scale, bool heights, out string why)
         {
-            (string? name, why) = _mixed.Get(GroundBlend.Name(first, second, mask), name => Mixed(read, name, first, second, mask, scale));
+            (string? name, why) = _mixed.Get(GroundBlend.Name(first, second, mask, heights), name => Mixed(read, name, first, second, mask, scale, heights));
             return name;
         }
 
@@ -2930,23 +2931,29 @@ public static class MonsterModels
         /// <param name="first">The ground at share nought.</param>
         /// <param name="second">The ground at share one.</param>
         /// <param name="scale">The ground materials' tiling - see ShadeProgram.Grounds.</param>
+        /// <param name="heights">Whether the two are weighed by their heights where their graphs turn that on - see ShadeProgram.Grounds.</param>
         /// <param name="why">Why there is none, where there is none.</param>
-        public string? GroundsByCorners(Func<string, byte[]?> read, string first, string second, float scale, out string why)
+        public string? GroundsByCorners(Func<string, byte[]?> read, string first, string second, float scale, bool heights, out string why)
         {
-            (string? name, why) = _mixed.Get(GroundBlend.Cornered(first, second), name => Mixed(read, name, first, second, string.Empty, scale));
+            (string? name, why) = _mixed.Get(GroundBlend.Cornered(first, second, heights), name => Mixed(read, name, first, second, string.Empty, scale, heights));
             return name;
         }
 
-        /// <summary>The program of two grounds made and registered: mixed by the mask's green, or by the corners' share where <paramref name="mask"/> is empty.</summary>
-        private (string? Name, string Why) Mixed(Func<string, byte[]?> read, string name, string first, string second, string mask, float scale)
+        /// <summary>
+        /// The program of two grounds made and registered: mixed by the mask's green, or by the corners' share where <paramref name="mask"/>
+        /// is empty - each ground's twin carrying its height where weighed by the heights (ShadeProgram.Heighted).
+        /// </summary>
+        private (string? Name, string Why) Mixed(Func<string, byte[]?> read, string name, string first, string second, string mask, float scale, bool heights)
         {
-            (ShadeProgram? flatFirst, ShadeProgram? shineFirst, string whyFirst) = Bound(read, first);
-            (ShadeProgram? flatSecond, ShadeProgram? shineSecond, string whySecond) = Bound(read, second);
+            (ShadeProgram? flatFirst, ShadeProgram? shineFirst, string whyFirst) = Bound(read, first, heights);
+            (ShadeProgram? flatSecond, ShadeProgram? shineSecond, string whySecond) = Bound(read, second, heights);
             bool cornered = mask.Length == 0;
             Mipmaps? sheet = cornered ? null : Sheet(read, mask);
             ShadeTexture? texture = cornered ? null : new ShadeTexture(mask, false);
             ShadeProgram? Made(ShadeProgram one, ShadeProgram other)
-                => texture is { } mask ? ShadeProgram.Grounds(one, other, mask, sheet, scale) : ShadeProgram.GroundsByCorners(one, other, scale);
+                => texture is { } mask
+                    ? ShadeProgram.Grounds(one, other, mask, sheet, scale, heights)
+                    : ShadeProgram.GroundsByCorners(one, other, scale, heights);
 
             ShadeProgram? flat = flatFirst is null || flatSecond is null || (!cornered && sheet is null)
                 ? null
@@ -2967,13 +2974,18 @@ public static class MonsterModels
             return (name, string.Empty);
         }
 
-        /// <summary>One material's program and its glossy twin with their textures in hand - even where its colour is one plain read - or null and why.</summary>
-        private (ShadeProgram? Flat, ShadeProgram? Glossy, string Why) Bound(Func<string, byte[]?> read, string material)
+        /// <summary>
+        /// One material's program and its glossy twin with their textures in hand - even where its colour is one plain read - or null and
+        /// why; the twins that carry its height where <paramref name="heighted"/> and its graphs write one (ShadeProgram.Heighted).
+        /// </summary>
+        private (ShadeProgram? Flat, ShadeProgram? Glossy, string Why) Bound(Func<string, byte[]?> read, string material, bool heighted)
         {
-            if (Compiled(read, material).Compiled.Program is not { } program)
+            if (Compiled(read, material).Compiled.Program is not { } compiled)
             {
                 return (null, null, "a ground whose graphs did not compile: " + material);
             }
+
+            ShadeProgram program = heighted && compiled.Heighted is { } raised ? raised : compiled;
 
             var sheets = new Mipmaps?[program.Textures.Count];
             for (var one = 0; one < sheets.Length; one++)

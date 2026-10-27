@@ -98,13 +98,17 @@ public static class PictureProbe
     /// <summary>Two grounds mixed at the pixel: the mask's green or the corners' share, each ground's colour and what the mix made of them - see <see cref="ProbeGround"/>.</summary>
     public static string Grounded(ProbeGround ground)
     {
-        Vector3 mixed = Vector3.Lerp(ground.First, ground.Second, ground.Green);
+        Vector3 mixed = Vector3.Lerp(ground.First, ground.Second, ground.Share);
         string weight = ground.Cornered
             ? "the sub-tile's corners' share, bilinear (CHOSEN for a shape across the mask's atlas)"
             : "the mask's green";
+        string heights = ground.ByHeights
+            ? Say($" · weighed by their heights {ground.FirstHeight:F3} and {ground.SecondHeight:F3} as the engine's height blending weighs them, the second ground's share then {ground.Share:F3}")
+            : string.Empty;
         return Say($"  ground mix at depth {Number(ground.Depth)} · {weight} {ground.Green:F3}, the second ground's share")
+            + heights
             + Say($" · the first ground {ground.First.X:F3}, {ground.First.Y:F3}, {ground.First.Z:F3}, the second {ground.Second.X:F3}, {ground.Second.Y:F3}, {ground.Second.Z:F3}")
-            + Say($" · mixed {mixed.X:F3}, {mixed.Y:F3}, {mixed.Z:F3} linear, before the light · the engine's height blending not drawn");
+            + Say($" · mixed {mixed.X:F3}, {mixed.Y:F3}, {mixed.Z:F3} linear, before the light{(ground.ByHeights ? string.Empty : " · the engine's height blending not drawn")}");
     }
 
     /// <summary>

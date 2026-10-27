@@ -766,7 +766,8 @@ the materials' coordinates out of the place (CreateProjectedCoords) and runs bot
 `lerp(first, second, green)` (GroundGenerateWeights_1a1b). Until then a triangle took the second ground where its vertices'
 green averaged a half, and Port's beach showed the ocean's black (`blackc.mat`) in patches with straight, toothed edges under
 the thin sea and beach film (v0.1.242's probe on one, said from the live client). The split by triangle stays only where the two
-cannot run as one program, and the line under the picture says why. NOT DRAWN, DECIDED from the live client: the engine's
+cannot run as one program, and the line under the picture says why. NOT DRAWN, DECIDED from the live client (drawn behind a
+switch from v0.1.311 - see THE ENGINE'S HEIGHT BLENDING below): the engine's
 height blending (GROUND_HEIGHT_BLENDING, which Port's PBRGroundBN.fxgraph turns on with EnableGroundHeightBlending: each weight
 times `1 / (1 + (max_height - height) / 0.01)`, a material's height its texture's, blackc.mat's nought) - with it the
 cobblestone would stand over the black almost everywhere but where the mask is wholly green. KEPT FOR WHEN IT IS NEEDED (asked
@@ -900,6 +901,26 @@ shape's vertices and carried in the coordinates' first channel (`ShadeProgram.Gr
 other shape stays on the mask. The Monster Book's stage switch "ground by the mask's cells" (`RoomKey.MaskCells`, the key word
 `maskcells`, a laid or built room) keeps them on the mask as before, squares and all, for holding the two against the game. The line
 under the picture counts both, the probe says which weight a pixel took, and `model-panes.txt` writes the corner mix as such.
+Held against the game (said from the live client with two pictures of the stern, switch on and off): the squares are gone. Held
+against the game's picture of Port's quay by the crates and sandbags (v0.1.309's capture, the cobblestone and the dry sand, 685,179
+pixels in 18 sub-tiles): neither the mask nor the corners' share follows it better than the same fields moved (brightness mask r
+-0.139 against -0.090 +/- 0.036, corners -0.131 against -0.111 +/- 0.037) - the game draws cobblestones standing out of the sand,
+dense where the corners' share puts sand. So the corner mix stays the default as the better of the two, not as the game's.
+THE ENGINE'S HEIGHT BLENDING BEHIND A SWITCH (v0.1.311, asked for from the live client on that picture). GroundInterpolate (ground.ffx,
+whole in ground.txt) as written (`ShadeProgram.Grounds`, `Mixing`): where GROUND_HEIGHT_BLENDING is defined - the macro of the fragment
+EnableGroundHeightBlending, which PBRGroundBN.fxgraph carries and which is the whole ground shader's, so either ground turns it on
+(`ShadeProgram.BlendsGroundHeights`) - each weight is multiplied by `1 / (1 + (max_height - height) / 0.01)`, the weights divided by
+their sum, and the two surfaces added up by them. A ground's height is what its graphs write (the Height extension point, a channel
+the compile now follows), nought where none writes one (InitSurfaceData; blackc.mat's BasicColour). PBRGroundBN writes it as the
+SmoothStep node of its normal map's BLUE (`NormalAOGloss`, read at the graph's own coordinates, half the projected ones) with
+`Height_Center` and `Height_Steepness` - ConstantFloats Port's ground materials leave at 0 (ConstantFloat's default) and 1 - which
+comes to `1 - (1 - blue)^1999`: one wherever the blue rises past about 0.003, nought only where it is nought. So two of Port's
+grounds both near one weigh as before, and the height decides where one of them is nought - in the texture's darkest blue, or
+blackc's - the higher taking a hundredfold for each unit between. The height costs the normal map's read, so it is compiled into
+a twin of the program (`ShadeProgram.Heighted`, the real PBRGroundBN reading colour and normal where the plain one reads colour
+alone) that only a mix weighed by heights takes. The Monster Book's stage switch "ground by the grounds' heights"
+(`RoomKey.GroundHeights`, the key word `groundheights`, a laid or built room; off by default, as DECIDED before) turns it on; the
+probe writes both heights and the share they came to.
 THE MONSTER BOOK'S ARENA IS BUILT, AND LAID AS WRITTEN (`BuiltRoomModels`, said from the live client: "our harbour diorama is never
 the game's, always mirrored somehow"). The game lays the boss room each instance its own way - Port's build replays: turned 180 (the
 harbour at placement 0), turned 90 and mirrored (placement 4); v0.1.262's instance laid the harbour at placement 1, mirrored - while

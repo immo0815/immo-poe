@@ -309,6 +309,12 @@ public class RoomBuilderTests
         Assert.True(read.Mirrored);
         Assert.False(RoomKey.Read((read with { MaskCells = false }).ToString()).MaskCells);
         Assert.Equal("x.arm", new RoomKey("x.arm").ToString());
+
+        // AND ONE WHOSE TWO GROUNDS ARE WEIGHED BY THEIR HEIGHTS.
+        string heighted = (read with { GroundHeights = true }).ToString();
+        Assert.EndsWith("+maskcells+groundheights", heighted, StringComparison.Ordinal);
+        Assert.True(RoomKey.Read(heighted).GroundHeights);
+        Assert.False(read.GroundHeights);
     }
 
     /// <summary>

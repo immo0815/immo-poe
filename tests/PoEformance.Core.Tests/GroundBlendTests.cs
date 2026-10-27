@@ -105,6 +105,61 @@ public sealed class GroundBlendTests
         Assert.Contains("the sub-tile's corners' share, bilinear (CHOSEN for a shape across the mask's atlas)", PictureProbe.Grounded(ground), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A graph that writes a height compiles a twin keeping it, and one carrying EnableGroundHeightBlending says so; a graph writing no
+    /// height has no twin - so a ground drawn alone reads nothing more than before.
+    /// </summary>
+    [Fact]
+    public void AGRAPHWritingAHeightCompilesATwinKeepingIt()
+    {
+        ShadeProgram raised = Compiled(Raised(0.2f, 0.3f, 0.4f, 0.5f, blends: true));
+        Assert.True(raised.BlendsGroundHeights);
+        Assert.NotNull(raised.Heighted);
+        Assert.True(raised.Heighted.BlendsGroundHeights);
+
+        ShadeProgram flat = Compiled(Constant(0f, 0f, 1f));
+        Assert.Null(flat.Heighted);
+        Assert.False(flat.BlendsGroundHeights);
+        Assert.False(Compiled(Raised(0.2f, 0.3f, 0.4f, 0.5f, blends: false)).BlendsGroundHeights);
+    }
+
+    /// <summary>
+    /// Weighed by their heights as GroundInterpolate weighs them: at a share of a half, a first ground half a unit higher than the second
+    /// takes 0.5 / (0.5 + 0.5 / 51) of the pixel - each weight times 1 / (1 + (highest - height) / 0.01), then divided by their sum - and
+    /// the probe says the heights and the share they came to. Off, or where neither graph turns it on, the two mix by the share alone.
+    /// </summary>
+    [Fact]
+    public void TWOGroundsAreWeighedByTheirHeightsAsTheEngineWeighsThem()
+    {
+        ShadeProgram high = Compiled(Raised(1f, 0f, 0f, 0.5f, blends: true)).Heighted!;
+        ShadeProgram low = Compiled(Constant(0f, 0f, 1f));
+        SkinnedMesh half = Shared(_ => 0.5f);
+
+        ShadeProgram weighed = ShadeProgram.GroundsByCorners(high, low, Tiling, heights: true)!;
+        Assert.True(weighed.MixesByHeights);
+        float expected = (0.5f / (1f + (0.5f / ShadeProgram.HeightThreshold))) / (0.5f + (0.5f / (1f + (0.5f / ShadeProgram.HeightThreshold))));
+        int middle = PixelAt(half, Vector3.Zero);
+        var probe = new PixelProbe(middle / 4 % Size, middle / 4 / Size);
+        _ = MeshPicture.Of(half, new MeshPicture.Canvas(Size) { Probe = probe }, tilt: Down, blends: [MaterialBlend.Opaque], shades: [weighed]);
+        ProbeGround ground = Assert.Single(probe.Grounds);
+        Assert.True(ground.ByHeights);
+        Assert.Equal(0.5f, ground.Green, 5);
+        Assert.Equal(0.5f, ground.FirstHeight, 5);
+        Assert.Equal(0f, ground.SecondHeight, 5);
+        Assert.Equal(expected, ground.Share, 5);
+        Assert.Contains("weighed by their heights 0.500 and 0.000 as the engine's height blending weighs them, the second ground's share then 0.019", PictureProbe.Grounded(ground), StringComparison.Ordinal);
+
+        // THE RED THE FIRST GROUND'S AND THE BLUE THE SECOND'S, at their weights.
+        byte[] drawn = Drawn(half, weighed);
+        byte[] plain = Drawn(half, ShadeProgram.GroundsByCorners(high, low, Tiling)!);
+        Assert.True(drawn[middle] > plain[middle] && drawn[middle + 2] < plain[middle + 2]);
+
+        // OFF, OR TURNED ON BY NEITHER: the share alone.
+        Assert.False(ShadeProgram.GroundsByCorners(high, low, Tiling)!.MixesByHeights);
+        ShadeProgram unturned = Compiled(Raised(1f, 0f, 0f, 0.5f, blends: false)).Heighted!;
+        Assert.False(ShadeProgram.GroundsByCorners(unturned, low, Tiling, heights: true)!.MixesByHeights);
+    }
+
     /// <summary>The paint cache mixes two materials under a name of their own - opaque, its program the mixed one - and says why where it cannot.</summary>
     [Fact]
     public void THEPAINTCacheMixesTwoGroundsUnderANameOfTheirOwn()
@@ -120,7 +175,7 @@ public sealed class GroundBlendTests
         byte[]? Read(string path) => files.GetValueOrDefault(path);
 
         var paints = new MonsterModels.Paints();
-        string? name = paints.Grounds(Read, "Art/Town.mat", "Art/blackc.mat", "Art/masks/newmask.dds", GroundPainter.GroundScale, out string why);
+        string? name = paints.Grounds(Read, "Art/Town.mat", "Art/blackc.mat", "Art/masks/newmask.dds", GroundPainter.GroundScale, heights: false, out string why);
         Assert.NotNull(name);
         Assert.Empty(why);
         Assert.True(GroundBlend.Parts(name, out string first, out string second, out string mask));
@@ -134,11 +189,11 @@ public sealed class GroundBlendTests
         Assert.Equal([new ShadeTexture("Art/masks/newmask.dds", false)], shade.Program.Textures);
 
         // A GROUND WHOSE GRAPHS DO NOT COMPILE IS NOT MIXED, and the line says which.
-        Assert.Null(paints.Grounds(Read, "Art/Town.mat", "Art/Nothing.mat", "Art/masks/newmask.dds", GroundPainter.GroundScale, out string not));
+        Assert.Null(paints.Grounds(Read, "Art/Town.mat", "Art/Nothing.mat", "Art/masks/newmask.dds", GroundPainter.GroundScale, heights: false, out string not));
         Assert.Contains("Art/Nothing.mat", not, StringComparison.Ordinal);
 
         // BY THE CORNERS, under a name of their own that says no mask, its program reading none.
-        string? byCorners = paints.GroundsByCorners(Read, "Art/Town.mat", "Art/blackc.mat", GroundPainter.GroundScale, out string cornersWhy);
+        string? byCorners = paints.GroundsByCorners(Read, "Art/Town.mat", "Art/blackc.mat", GroundPainter.GroundScale, heights: false, out string cornersWhy);
         Assert.NotNull(byCorners);
         Assert.Empty(cornersWhy);
         Assert.NotEqual(name, byCorners);
@@ -149,6 +204,16 @@ public sealed class GroundBlendTests
         Assert.NotNull(cornerShade.Program);
         Assert.True(cornerShade.Program.MixesByCorners);
         Assert.Empty(cornerShade.Program.Textures);
+
+        // WEIGHED BY THEIR HEIGHTS, under a name of its own that says so.
+        string? heighted = paints.Grounds(Read, "Art/Town.mat", "Art/blackc.mat", "Art/masks/newmask.dds", GroundPainter.GroundScale, heights: true, out _);
+        Assert.NotNull(heighted);
+        Assert.NotEqual(name, heighted);
+        Assert.True(GroundBlend.Heighted(heighted));
+        Assert.False(GroundBlend.Heighted(name));
+        Assert.True(GroundBlend.Parts(heighted, out _, out _, out string heightedMask));
+        Assert.Equal("Art/masks/newmask.dds", heightedMask);
+        Assert.Equal("Town.mat + blackc.mat by newmask.dds's green, weighed by their heights", GroundBlend.Short(heighted));
 
         // AND A MATERIAL'S OWN PATH IS NO MIX.
         Assert.False(GroundBlend.Parts("Art/Town.mat", out _, out _, out _));
@@ -222,6 +287,20 @@ public sealed class GroundBlendTests
               {"type":"AlbedoColor","index":0,"stage":"Texturing_Init"}],
              "links":[
               {"src":{"type":"ConstantPixel3","index":0,"variable":"output"},"dst":{"type":"AlbedoColor","index":0,"stage":"Texturing_Init","variable":"input","swizzle":"xyz"}}]}
+            """);
+
+    /// <summary>A constant colour and a constant height, with or without the fragment that turns the engine's height blending on.</summary>
+    private static string Raised(float red, float green, float blue, float height, bool blends) =>
+        string.Create(System.Globalization.CultureInfo.InvariantCulture,
+            $$$"""
+            {"nodes":[
+              {"type":"ConstantPixel3","index":0,"parameters":[{"value":[{{{red}}},{{{green}}},{{{blue}}}]}]},
+              {"type":"AlbedoColor","index":0,"stage":"Texturing_Init"},
+              {"type":"ConstantFloat","index":0,"parameters":[{"value":{{{height}}}}]},
+              {"type":"Height","index":0,"stage":"Texturing_Init"}{{{(blends ? ",\n  {\"type\":\"EnableGroundHeightBlending\",\"index\":0}" : string.Empty)}}}],
+             "links":[
+              {"src":{"type":"ConstantPixel3","index":0,"variable":"output"},"dst":{"type":"AlbedoColor","index":0,"stage":"Texturing_Init","variable":"input","swizzle":"xyz"}},
+              {"src":{"type":"ConstantFloat","index":0,"variable":"output"},"dst":{"type":"Height","index":0,"stage":"Texturing_Init","variable":"input"}}]}
             """);
 
     /// <summary>Red and yellow stripes, eight texels across - something the coordinates show in.</summary>
