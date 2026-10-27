@@ -1077,7 +1077,11 @@ Measured on the committed captures (`lattice-replay.txt`, `joins-replay.txt`, `o
   in it on every cell (2875 of 2875) and a chasm five (395 of 395; 3413 of 3413 over the Grotto's abyss); no walkable
   cell is ever nought. And both grids are the same kind of value: nought where they stop a body or a projectile, then
   counting up from the noughts to a cap of five - the walkable grid's 1 to 5 are a distance from the nearest unwalkable
-  cell, not a flag. Whether a diagonal step counts as one is not settled.
+  cell, not a flag. Whether a diagonal step counts as one is not settled. THE ENGINE'S OWN SOURCE AGREES (v0.1.317's
+  `render-debug.txt`, the engine's debug views): utilitynodes.ffx's `SceneColliders` reads one texture (`walkability_sampler`)
+  holding both - its z the walkability's distance and its w the projectiles', each `(value - 0.5) * 4` bilinear and clamped to
+  `STATIC_COLLIDERS_MAX_DIST`, 400 units - and `debug_walkability.fxgraph` paints the first as a hue, distance / 400. How the
+  grids' 0 to 5 map onto those units is not read.
   `TerrainReader` reads it beside the walkable grid (`TerrainGrid.CanShootOver`, `IsClearShot`, `IsShotOnly`; the walkable
   grid's length or nothing, `ShotNote` says why), and two things read it (v0.1.218): the rule fact `MonsterCountInShot`,
   `MonsterCountInSight`'s line over the projectiles' grid - beside it, not instead of it, so every rule written keeps its

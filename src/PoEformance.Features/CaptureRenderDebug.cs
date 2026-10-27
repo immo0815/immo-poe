@@ -54,9 +54,15 @@ public static class CaptureRenderDebug
     /// <summary>The largest source written whole; a larger one is named with its size.</summary>
     private const int LargestSource = 512 * 1024;
 
-    private static readonly byte[] DebugBytes = Encoding.ASCII.GetBytes(DebugPrefix);
-
-    private static readonly byte[] FolderBytes = Encoding.ASCII.GetBytes(Folder);
+    /// <summary>
+    /// The folder and the debug prefix as the program may spell them: ASCII, and UTF-16 - which is how PathOfExileSteam.exe holds all 48
+    /// of its engine graphs' paths (v0.1.317's Port capture, whose search took ASCII alone and found none).
+    /// </summary>
+    private static readonly (byte[] Folder, byte[] Debug, bool Wide)[] Spellings =
+    [
+        (Encoding.ASCII.GetBytes(Folder), Encoding.ASCII.GetBytes(DebugPrefix), false),
+        (Encoding.Unicode.GetBytes(Folder), Encoding.Unicode.GetBytes(DebugPrefix), true),
+    ];
 
     /// <summary>The part's text: a line saying what it found, then the program's window, the graphs, the compile's reading of them, the textures and the sources. Never throws on a missing file.</summary>
     /// <param name="read">How to get a file out of the install, by path.</param>
@@ -141,19 +147,17 @@ public static class CaptureRenderDebug
 
             CaptureDebugStrings.Section[] sections = CaptureDebugStrings.Sections(bytes, out ulong imageBase);
             long first = long.MaxValue, last = -1;
-            foreach (int at in Occurrences(bytes, FolderBytes))
+            foreach ((byte[] folder, byte[] debug, bool wide) in Spellings)
             {
-                int end = at;
-                while (end < bytes.Length && bytes[end] is >= 0x21 and <= 0x7E)
+                foreach (int at in Occurrences(bytes, folder))
                 {
-                    end++;
-                }
-
-                named.Add(Encoding.ASCII.GetString(bytes, at, end - at));
-                if (bytes.AsSpan(at).StartsWith(DebugBytes))
-                {
-                    first = Math.Min(first, at);
-                    last = Math.Max(last, end);
+                    (string text, int end) = RunAt(bytes, at, bytes.Length, wide);
+                    named.Add(text.TrimEnd());
+                    if (bytes.AsSpan(at).StartsWith(debug))
+                    {
+                        first = Math.Min(first, at);
+                        last = Math.Max(last, end);
+                    }
                 }
             }
 
@@ -163,33 +167,86 @@ public static class CaptureRenderDebug
                 continue;
             }
 
-            long from = Math.Max(0, first - Margin);
-            long to = Math.Min(Math.Min(bytes.Length, last + Margin), from + WidestWindow);
-            body.Append(CultureInfo.InvariantCulture, $"- {program}: {bytes.Length:N0} bytes, image base 0x{imageBase:X}, the debug views' paths from {CaptureDebugStrings.Located(first, sections)} to {CaptureDebugStrings.Located(last, sections)}; printed from {CaptureDebugStrings.Located(from, sections)}, {to - from:N0} bytes").AppendLine();
-            for (long at = from; at < to; at++)
+            int from = (int)Math.Max(0, first - Margin);
+            int to = (int)Math.Min(Math.Min(bytes.Length, last + Margin), from + WidestWindow);
+            body.Append(CultureInfo.InvariantCulture, $"- {program}: {bytes.Length:N0} bytes, image base 0x{imageBase:X}, the debug views' paths from {CaptureDebugStrings.Located(first, sections)} to {CaptureDebugStrings.Located(last, sections)}; printed from {CaptureDebugStrings.Located(from, sections)}, {to - from:N0} bytes, UTF-16 runs marked").AppendLine();
+            foreach ((int at, string text, bool wide) in Runs(bytes, from, to))
             {
-                if (bytes[at] is < 0x20 or > 0x7E)
-                {
-                    continue;
-                }
-
-                long end = at;
-                while (end < to && bytes[end] is >= 0x20 and <= 0x7E)
-                {
-                    end++;
-                }
-
-                if (end - at >= ShortestRun)
-                {
-                    body.Append("  ").Append(CaptureDebugStrings.Located(at, sections)).Append("  ").AppendLine(Encoding.ASCII.GetString(bytes, (int)at, (int)(end - at)));
-                    printed++;
-                }
-
-                at = end;
+                body.Append("  ").Append(CaptureDebugStrings.Located(at, sections)).Append("  ").Append(text).AppendLine(wide ? "  (UTF-16)" : string.Empty);
+                printed++;
             }
         }
 
         return printed;
+    }
+
+    /// <summary>The printable run starting at <paramref name="at"/>, ASCII or UTF-16 with each high byte nought, and where it ends.</summary>
+    private static (string Text, int End) RunAt(byte[] bytes, int at, int to, bool wide)
+    {
+        int end = at;
+        if (wide)
+        {
+            while (end + 1 < to && bytes[end] is >= 0x20 and <= 0x7E && bytes[end + 1] == 0)
+            {
+                end += 2;
+            }
+
+            return (Encoding.Unicode.GetString(bytes, at, end - at), end);
+        }
+
+        while (end < to && bytes[end] is >= 0x20 and <= 0x7E)
+        {
+            end++;
+        }
+
+        return (Encoding.ASCII.GetString(bytes, at, end - at), end);
+    }
+
+    /// <summary>
+    /// Every printable run of at least <see cref="ShortestRun"/> characters between two offsets, ASCII and UTF-16 at either alignment, in
+    /// the order they stand. The two cannot overlap: UTF-16 text is a printable byte and a nought by turns, which no ASCII run of three spans.
+    /// </summary>
+    private static List<(int At, string Text, bool Wide)> Runs(byte[] bytes, int from, int to)
+    {
+        var runs = new List<(int At, string Text, bool Wide)>();
+        for (int at = from; at < to;)
+        {
+            (string text, int end) = RunAt(bytes, at, to, false);
+            if (text.Length >= ShortestRun)
+            {
+                runs.Add((at, text, false));
+            }
+
+            at = Math.Max(end, at + 1);
+        }
+
+        for (var alignment = 0; alignment < 2; alignment++)
+        {
+            for (int at = from + ((from + alignment) & 1); at + 1 < to;)
+            {
+                (string text, int end) = RunAt(bytes, at, to, true);
+
+                // AN ASCII STRING'S LAST LETTER AND ITS NOUGHT READ AS ONE UTF-16 CHARACTER where the wide run starts at an odd
+                // offset straight after it - "lMetadata/EngineGraphs/debug_projectiles.fxgraph" in v0.1.314's debug strings. The
+                // letter belongs to the ASCII run, printed apart.
+                int start = at;
+                if (text.Length > 0 && start > 0 && bytes[start - 1] is >= 0x20 and <= 0x7E)
+                {
+                    start += 2;
+                    text = text[1..];
+                }
+
+                if (text.Length >= ShortestRun)
+                {
+                    runs.Add((start, text, true));
+                }
+
+                at = Math.Max(end, at + 2);
+            }
+        }
+
+        runs.Sort((left, right) => left.At.CompareTo(right.At));
+        return runs;
     }
 
     /// <summary>Every place the bytes hold the needle.</summary>
@@ -330,7 +387,10 @@ public static class CaptureRenderDebug
             said.Append(CultureInfo.InvariantCulture, $"  {type}: {users.Count(IsDebug)} debug views, {users.Count} graphs - ").AppendLine(string.Join(", ", users.Select(Short)));
         }
 
-        return string.Create(CultureInfo.InvariantCulture, $"{viewsKnown} of {views} debug views known to the compile node for node, {unknown.Count} node types unknown{(unread > 0 ? $", {unread} not graphs" : string.Empty)}");
+        // THE VIEWS' OWN COUNT FIRST: the folder's other graphs are whole pipelines (particles, trails, the vertex and pixel stages),
+        // and their 600-odd node types drowned the views' few in v0.1.317's first capture.
+        int theirs = unknown.Count(one => one.Value.Any(IsDebug));
+        return string.Create(CultureInfo.InvariantCulture, $"{viewsKnown} of {views} debug views known to the compile node for node, {theirs} node types the views use unknown ({unknown.Count} in all){(unread > 0 ? $", {unread} not graphs" : string.Empty)}");
     }
 
     /// <summary>The textures the graphs name with their headers, and the other files with whether the install holds them.</summary>
