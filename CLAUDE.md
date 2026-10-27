@@ -519,6 +519,21 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   program names that neither the swell nor the beach takes), their noise and foam the beach's (CHOSEN, no graph names theirs); fixed
   slots t15 to t17, a program's sheets from t18; the light panel's water row switches them ("crash", SceneLight.WaterCrash), and with
   them on the water is drawn lifted whatever the lift. The processor draws none, and the line under the picture says so.
+  THE WATER IS LIT AS THE ENGINE'S WATER PASS LIGHTS IT (v0.1.296, asked for from the live client: with the field waves on, Port's
+  water came nearest the game under the FLAT ambient, while the cube is the engine's). The engine does not light water as an albedo
+  (water.ffx, lighting.ffx, whole in `water.txt`): GetWaterMediumColor sets the medium's diffuse colour to nought and hands the area's
+  colour over as its subsurface colour, `pow(colour / (0.3, 0.9, 0.5), 1 / (1 + max(-0.9, 250 * height * 5e-5 * water_subsurface_scattering)))
+  * (0.3, 0.9, 0.5)` - a crest lifted greener, a trough darkened (GetTotalWaveSurfaceNumerical's `curvature`, the ocean's height); the
+  foam is the albedo, the medium less it, translucency 3 and front scattering 1, so every light adds `saturate((N.L + 3) / 4)` of itself on
+  the medium (ComputeDiffuse), N the waves' normal for all of it; the cube's diffuse light falls on both less gi_env_occlusion, the GI
+  on the albedo alone; and BuildWaterRefraction mixes `specular * (1 - ratio^3) + (behind * T + absorbed * (1 - T)) * lerp(1 - reflectivity,
+  1, ratio)`, the foam hiding by `1 - (1 - a)^3`, `reflectivity = lerp(Fresnel(N.V), 1, specular) * (1 - ratio)` - its reflection thinned
+  by the shore's ratio alone, where this tool had thinned it with the medium's cover. `SceneLight.ShadeWater` ports it line for line, the
+  card's `WaterShaded` the same, handed its parts by the water's glossy twin (`ShadeProgram.WaterOut`: the foam as albedo, what gets
+  through, the ratio, the colour's pattern, the waves' height); `water.subsurface_scattering` is WaterLook's, Port's default one. As a layer
+  its cover is one less the share of what lies behind, its colour the rest over that cover. The probe's water line writes every part
+  (`WaterLight`). NOT DRAWN: the refraction's bend and caustics, the terrain water colour, and the tidal state's own water_to_terrain_ratio
+  and ground water ratio - both read off the shore field, whose scale is CHOSEN.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

@@ -21,7 +21,8 @@ namespace PoEformance.Gpu;
 ///
 /// THE GAME'S LIGHT IS SceneLight.Shade, line for line (Lighted): the sun through its shadow map, the
 /// point lights through the same grid, the flat ambient or the diffuse cube, a glossy material's lobe
-/// and environment, the exposure and the colour grade. Every table the processor reads by - sRGB to
+/// and environment, the exposure and the colour grade - and the open water's SceneLight.ShadeWater
+/// (WaterShaded), the engine's water pass, its cover its light's. Every table the processor reads by - sRGB to
 /// light and back, the grade's gamma, the gloss environment - is handed over as it is rather than
 /// worked out again, so both pictures read the same entry; and the cube and the grade are read texel
 /// by texel as CubeMap.Sample and ColourGrade.Sample read them, not through the card's own filtering,
@@ -91,6 +92,7 @@ internal static class ModelShaders
             float4 Wind;      // the ocean ripples' wind: its way's angle, their height, their speed, their directionness - ShadeProgram.WaterWind
             float4 Shore;     // the room's shore's box: its least x and y, world units a texel, one where there is a shore - ShadeProgram.WaterShore
             float4 Swell;     // the ocean's swell: its height, its period, its intensity - ShadeProgram.WaterSwell
+            float4 WaterLit;  // x: the medium's scattering, water_subsurface_scattering - SceneLight.ShadeWater
         };
 
         cbuffer Part : register(b1)
@@ -872,6 +874,177 @@ internal static class ModelShaders
             return ((seen * bias) + (seen * scale * specular)) * (1.0 - environment);
         }
 
+        // SceneLight.WaterLit: one light on the water - its share on the foam and on the medium, ComputeDiffuse's wrap.
+        void WaterLight(float3 light, float3 towards, float3 normal, inout float3 diffuse, inout float3 through)
+        {
+            float lit = dot(normal, towards);
+            diffuse += light * saturate(lit);
+            through += light * saturate((lit + {{ShadeHlsl.Number(SceneLight.WaterTranslucency)}}) / (1.0 + {{ShadeHlsl.Number(SceneLight.WaterTranslucency)}}));
+        }
+
+        // SceneLight.WaterSky: the specular cube along a way times the cube's brightness, none of it the GI's.
+        float3 WaterSky(float3 direction, float3 total)
+        {
+            if (Ambient.x == 2)
+            {
+                return MirrorRead(mul(float4(direction, 0.0), CubeTurn).xyz) * (Surround.y + (total * Surround.z));
+            }
+
+            return Ambient.x == 1 ? Surround.xxx : float3(0.0, 0.0, 0.0);
+        }
+
+        // SceneLight.ShadeWater: one pixel of open water lit as the engine's water pass lights it - the layer's colour, linear,
+        // exposed and graded, and its cover in w; a cover of nought drops the pixel.
+        float4 WaterShaded(ShadeOut said, float3 place, float sun, float environment, float3 mirrored)
+        {
+            float terrain = saturate(said.waterState.y);
+            if (terrain > 0.999999)
+            {
+                return float4(0.0, 0.0, 0.0, 0.0);
+            }
+
+            float3 normal = dot(said.waves, said.waves) > 1e-12 ? normalize(said.waves) : ToEye.xyz;
+            if (dot(normal, ToEye.xyz) < 0.0)
+            {
+                normal = -normal;
+            }
+
+            float share = saturate(said.waterFoam.w);
+            float exponent = 1.0 / (1.0 + max(-0.9, 250.0 * said.waterState.w * 5e-5 * WaterLit.x));
+            float3 scatter = float3({{ShadeHlsl.Number(SceneLight.WaterScatterColour.X)}}, {{ShadeHlsl.Number(SceneLight.WaterScatterColour.Y)}}, {{ShadeHlsl.Number(SceneLight.WaterScatterColour.Z)}});
+            float3 subsurface = pow(max(Water.xyz * said.waterState.z, 0.0) / scatter, exponent) * scatter * (1.0 - share);
+            float3 albedo = max(said.waterFoam.xyz, 0.0);
+            float3 specular = said.specular;
+            float gloss = said.gloss;
+            float facing = max(dot(normal, ToEye.xyz), 1e-4);
+            bool glints = Finish.y > 0.5;
+            float3 diffuse = float3(0.0, 0.0, 0.0);
+            float3 through = float3(0.0, 0.0, 0.0);
+            float3 shine = float3(0.0, 0.0, 0.0);
+            float3 total = float3(0.0, 0.0, 0.0);
+            if (SunColour.w > 0.5 && sun > 0.0)
+            {
+                float3 light = SunColour.rgb * sun;
+                WaterLight(light, -SunTravels.xyz, normal, diffuse, through);
+                if (glints)
+                {
+                    Glinted(light, -SunTravels.xyz, normal, facing, specular, gloss, shine);
+                }
+
+                total += light;
+            }
+
+            if (Ambient.w > 0)
+            {
+                float3 at = (place - CellLeast.xyz) / CellLeast.w;
+                if (at.x >= 0.0 && at.y >= 0.0 && at.z >= 0.0)
+                {
+                    int3 cell = int3(at);
+                    if (cell.x < Cells.x && cell.y < Cells.y && cell.z < Cells.z)
+                    {
+                        int index = (((cell.z * Cells.y) + cell.y) * Cells.x) + cell.x;
+                        int upto = (int)Reach.Load(index + 1);
+                        for (int entry = (int)Reach.Load(index); entry < upto; entry++)
+                        {
+                            int one = (int)Reach.Load(Cells.w + entry) * 3;
+                            float4 where = Points.Load(one);
+                            float4 tint = Points.Load(one + 1);
+                            float zero = Points.Load(one + 2).x;
+                            float3 offset = where.xyz - place;
+                            float squared = dot(offset, offset);
+                            if (squared >= where.w * where.w)
+                            {
+                                continue;
+                            }
+
+                            float distance = sqrt(squared);
+                            float ratio = distance / where.w;
+                            float fade = max(0.0, 1.0 - (ratio * ratio * ratio * ratio));
+                            float divisor = (distance / tint.w) + 1.0;
+                            float attenuation = min(10.0, zero * fade * fade / (divisor * divisor));
+                            if (!(attenuation > 0.0))
+                            {
+                                continue;
+                            }
+
+                            float3 light = tint.rgb * attenuation;
+                            float3 towards = distance > 1e-4 ? offset / distance : normal;
+                            WaterLight(light, towards, normal, diffuse, through);
+                            if (glints)
+                            {
+                                Glinted(light, towards, normal, facing, specular, gloss, shine);
+                            }
+
+                            total += light;
+                        }
+                    }
+                }
+            }
+
+            // THE AMBIENT on the foam and the medium alike, the GI's stand-in on the foam alone.
+            float3 ambient = float3(0.0, 0.0, 0.0);
+            if (Ambient.x == 2)
+            {
+                ambient = (CubeRead(mul(float4(normal, 0.0), CubeTurn).xyz) * (Surround.y + (total * Surround.z)) * (1.0 - Surround.w) * (albedo + subsurface))
+                    + (albedo * (Surround.x * Surround.w));
+            }
+            else if (Ambient.x == 1)
+            {
+                ambient = (albedo + subsurface) * Surround.x;
+            }
+
+            if (Finish.z > 0.5)
+            {
+                float bias;
+                float scale;
+                GlossEnvironment(facing, gloss, bias, scale);
+                float3 reflected = (2.0 * dot(normal, ToEye.xyz) * normal) - ToEye.xyz;
+                float3 seen = WaterSky(reflected, total) * environment;
+                shine += (seen * bias) + (seen * scale * specular);
+            }
+
+            float brightest = max(shine.x, max(shine.y, shine.z));
+            if (brightest > {{ShadeHlsl.Number(SceneLight.WaterSpecularCap)}})
+            {
+                shine *= {{ShadeHlsl.Number(SceneLight.WaterSpecularCap)}} / brightest;
+            }
+
+            float fresnel = GlossFresnel(saturate(dot(normal, ToEye.xyz)));
+            float reflectivity = (fresnel + (specular.x * (1.0 - fresnel))) * (1.0 - terrain);
+            float refracted = (1.0 - reflectivity) + (reflectivity * terrain);
+            float kept = 1.0 - (terrain * terrain * terrain);
+            float3 absorbed = (diffuse * albedo) + ambient + (through * subsurface);
+            float clear = 1.0 - share;
+            float hidden = 1.0 - (clear * clear * clear);
+            float passing = saturate(said.waterState.x);
+            float mixed = ((1.0 - hidden) * refracted * (1.0 - passing)) + hidden;
+            float cover = 1.0 - ((1.0 - hidden) * refracted * passing);
+            if (!(cover > 1e-6))
+            {
+                return float4(0.0, 0.0, 0.0, 0.0);
+            }
+
+            float3 layer = ((shine * kept) + (absorbed * mixed)) * (Finish.x / cover);
+            float3 graded = Ambient.y != 0 ? Graded3(layer) : layer;
+            return float4(graded + (mirrored * (kept / cover)), cover);
+        }
+
+        // MeshPicture.Drawing.WaterScened: the water's layer under the game's light, sRGB, its cover in w.
+        float4 WaterSceneLit(ShadeOut said, float3 place, float3 turn, float4 position)
+        {
+            float3 normal = Toward(turn);
+            float sun = SunTravels.w > 0.5 ? SunReaches(place, normal) : 1.0;
+            float environment = 1.0;
+            float3 mirrored = float3(0.0, 0.0, 0.0);
+            if (ShadeHasSpecular && ShadeHasGloss && Finish.z > 0.5 && ToEye.w > 0.5)
+            {
+                mirrored = Mirrored(said.waves, normal, position, place, said.specular, said.gloss, environment);
+            }
+
+            float4 lit = WaterShaded(said, place, sun, environment, mirrored);
+            return float4(Srgb(lit.rgb), lit.w);
+        }
+
         // MeshPicture.Drawing.Scened with a program.
         float3 SceneLit(float3 colour, float3 specular, float gloss, float3 place, float3 turn, float3 waves, float4 position)
         {
@@ -912,6 +1085,12 @@ internal static class ModelShaders
                 discard;
             }
 
+            // THE WATER LIT AS THE ENGINE'S WATER PASS LIGHTS IT, whole where it is drawn solid.
+            if (ShadeWater && scened)
+            {
+                return float4(WaterSceneLit(said, pixel.place, pixel.turn, pixel.position).rgb, 1.0);
+            }
+
             float3 shown = scened
                 ? SceneLit(said.colour, said.specular, said.gloss, pixel.place, pixel.turn, said.waves, pixel.position)
                 : LampLit(said.colour, said.specular, said.gloss, pixel.facing);
@@ -922,6 +1101,20 @@ internal static class ModelShaders
         {
             float skinned = Flags.x > 0.5 ? Skin.Sample(Wrap, pixel.spot).a : 0.5;
             ShadeOut said = Ran(pixel, true);
+
+            // THE WATER'S COVER IS ITS LIGHT'S (SceneLight.ShadeWater): what lies behind seen through the medium and the surface.
+            if (ShadeWater && scened)
+            {
+                float4 water = said.dropped ? float4(0.0, 0.0, 0.0, 0.0) : WaterSceneLit(said, pixel.place, pixel.turn, pixel.position);
+                if (!(water.w > 0.0))
+                {
+                    discard;
+                }
+
+                float covered = saturate(water.w);
+                return float4(water.rgb * covered, covered);
+            }
+
             float cover = ShadeHasAlpha ? said.alpha : skinned;
             if (said.dropped || !(cover > 0.0))
             {

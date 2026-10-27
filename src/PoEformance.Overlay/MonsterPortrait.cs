@@ -542,6 +542,7 @@ public sealed class MonsterPortrait
 
     /// <summary>Whether the line was made with the field waves drawn - the card's, with the light's crash switch on.</summary>
     private bool _waterSaidCrash;
+    private bool _waterSaidLit;
     private Vector3[] _posed = [];
     private Vector3[] _posedNormals = [];
 
@@ -2181,10 +2182,14 @@ public sealed class MonsterPortrait
         {
             WaterLook water = Watered();
             bool crashing = _onCard && _drawnLight is { WaterCrash: true };
-            if (_waterSaid.Length == 0 || water != _waterSaidFor || crashing != _waterSaidCrash)
+
+            // THE ENGINE'S WATER PASS LIGHTS THE GLOSSY TWIN under the game light alone - SceneLight.ShadeWater.
+            bool engineLit = _drawnLight is not null && !FlatLight;
+            if (_waterSaid.Length == 0 || water != _waterSaidFor || crashing != _waterSaidCrash || engineLit != _waterSaidLit)
             {
                 _waterSaidFor = water;
                 _waterSaidCrash = crashing;
+                _waterSaidLit = engineLit;
                 _waterSaid = ImGuiText.Escape(water.Line() + " (its colour's pattern a moving noise; its waves the engine's ocean ripples, three octaves"
                     + " rolling in the wind - " + ShadeProgram.Ripples.Said + "; the wind's way, height, speed and"
                     + " directionness the engine's former constants where the file sets none, a reading until measured, its way turned by the light"
@@ -2198,6 +2203,13 @@ public sealed class MonsterPortrait
                     + " panel's water switches - the scene reflected by the engine's screen ray, its dither a 4 by 4 Bayer, a reading - and the surface"
                     + " lifted by them times its lift - which the engine does per pixel only - and, lifted, drawn as one surface whose"
                     + " nearest crossing of each pixel alone shows, DECIDED"
+                    + (engineLit
+                        ? "; lit as the engine's water pass lights it (BuildWaterRefraction as written: its colour light let through, not an"
+                          + " albedo - every light wrapped round it, the cube on it, lifted greener on a crest and darkened in a trough by the"
+                          + " waves' height and the area's scattering - what lies behind seen through the medium and one less the surface's"
+                          + " reflectivity, the reflection thinned by nothing but the shore's ratio; the refraction's bend, its caustics, the"
+                          + " terrain water colour and the tidal state's own ratio to the shore not drawn)"
+                        : string.Empty)
                     + (water.HeightOffset != 0f ? "; its height offset not applied - it moves the beach and flood waves alone)" : ")")
                     + (_wearsBeach
                         ? "; the beach waves the engine's (BreakingWavesVertex and BreakingWavesFragment as written, BreakingOceanWaves.fxgraph's mix):"

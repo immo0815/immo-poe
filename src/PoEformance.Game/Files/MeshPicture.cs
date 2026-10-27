@@ -1786,6 +1786,10 @@ public static class MeshPicture
         private readonly float _time;
         private readonly Vector3 _dust;
         private readonly WaterLook _water;
+
+        /// <summary>The area's water colour, linear, and its scattering - what SceneLight.ShadeWater lights the medium with.</summary>
+        private readonly Vector3 _waterColour;
+        private readonly float _waterScattering;
         private readonly Vector4 _eye;
         private readonly int[] _shades;
         private readonly float[] _shadeLevels;
@@ -1833,6 +1837,9 @@ public static class MeshPicture
             _time = canvas.Time;
             _dust = canvas.Dust;
             _water = canvas.Water;
+            Vector4 waterColour = _water.ColourRegister;
+            _waterColour = new Vector3(waterColour.X, waterColour.Y, waterColour.Z);
+            _waterScattering = _water.SubsurfaceScattering;
             _eye = drawn.Eye;
             _programs = drawn.Programs;
             _shades = canvas.Shades;
@@ -2249,8 +2256,17 @@ public static class MeshPicture
                                 out Vector3 mixedSpecular,
                                 out float mixedGloss,
                                 out Vector3 mixedWaves,
+                                out ShadeProgram.WaterOut mixedWater,
                                 tinted ? (first * v0) + (second * v1) + (third * v2) : default,
                                 held);
+
+                            // THE WATER'S COVER IS ITS LIGHT'S (SceneLight.ShadeWater): what lies behind seen through the medium and the surface.
+                            bool watered = scened && program.LightsWater && !float.IsNegativeInfinity(cover);
+                            Vector3 waterLit = watered
+                                ? WaterScened(
+                                    program, mixedWater, mixedSpecular, mixedGloss, (first * p0) + (second * p1) + (third * p2),
+                                    (first * n0) + (second * n1) + (third * n2), mixedWaves, x, y, away, here ? one : -1, out cover)
+                                : default;
 
                             // THE PROGRAM'S ALPHA WHERE ITS GRAPHS SET ONE, the texture's where they
                             // do not - a mixed shape whose graphs only colour it is drawn as it was.
@@ -2280,7 +2296,9 @@ public static class MeshPicture
                                 ProbedBeach(one, away, held, (first * p0) + (second * p1) + (third * p2), cover);
                             }
 
-                            Vector3 lit = scened
+                            Vector3 lit = watered
+                                ? waterLit
+                                : scened
                                 ? Scened(program, mixed, mixedSpecular, mixedGloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), mixedWaves, x, y, away, here ? one : -1)
                                 : Lit(program, mixed, mixedSpecular, mixedGloss, (first * f0) + (second * f1) + (third * f2));
                             Over(at, blend, new Vector4(lit, cover));
@@ -2316,6 +2334,7 @@ public static class MeshPicture
                     Vector3 specular = default;
                     float gloss = 0f;
                     Vector3 waves = default;
+                    ShadeProgram.WaterOut water = default;
                     if (program is not null)
                     {
                         // A CUT-OUT SHAPE IS CUT ON THE ALPHA ITS GRAPHS LEAVE where they set one - the
@@ -2343,6 +2362,7 @@ public static class MeshPicture
                             out specular,
                             out gloss,
                             out waves,
+                            out water,
                             tinted ? (first * v0) + (second * v1) + (third * v2) : default);
                         if ((cut && program.HasAlpha && alpha < CutoutAlpha) || float.IsNegativeInfinity(alpha))
                         {
@@ -2401,7 +2421,12 @@ public static class MeshPicture
                         _probe!.Add(new ProbeFragment(one, Seen.Solid, away, held, 0f));
                     }
 
-                    Vector3 shown = scened
+                    // THE WATER WHOLE where it is drawn solid - its cover left out.
+                    Vector3 shown = scened && program is { LightsWater: true }
+                        ? WaterScened(
+                            program, water, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves,
+                            x, y, away, here ? one : -1, out _)
+                        : scened
                         ? Scened(program, colour, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves, away: away, fragment: here ? one : -1)
                         : Lit(program, colour, specular, gloss, (first * f0) + (second * f1) + (third * f2));
                     _pixels[at * 4] = Byte(shown.X);
@@ -2523,6 +2548,52 @@ public static class MeshPicture
 
             // THE PICTURE'S OWN LIGHT IS ADDED AS IT WAS DRAWN, exposed and graded already.
             Vector3 lit = _scene!.Shade(albedo, place, normal, _toEye, sun, glossy, specular, gloss, waves, environment) + mirrored;
+            return new Vector3(ShadeProgram.Srgb(lit.X), ShadeProgram.Srgb(lit.Y), ShadeProgram.Srgb(lit.Z));
+        }
+
+        /// <summary>
+        /// One pixel of open water under the game's light, lit as the engine's water pass lights it (SceneLight.ShadeWater) - sRGB nought to one, and
+        /// how much it covers what lies behind; a cover of nought or less drops it.
+        /// </summary>
+        /// <remarks>
+        /// THE PROBE'S PIXEL SAYS WHERE ITS COLOUR CAME FROM: what its reflection of the picture met, as <see cref="Scened"/> says it, and every
+        /// part of the light - the medium's scattered colour, the foam, the light they give off, the specular kept, the reflectivity and the cover.
+        /// </remarks>
+        private Vector3 WaterScened(
+            ShadeProgram program, ShadeProgram.WaterOut water, Vector3 specular, float gloss, Vector3 place, Vector3 turn, Vector3 waves,
+            int x, int y, float away, int fragment, out float cover)
+        {
+            Vector3 normal = turn.LengthSquared() > 1e-12f ? Vector3.Normalize(turn) : _toEye;
+            if (Vector3.Dot(normal, _toEye) < 0f)
+            {
+                normal = -normal;
+            }
+
+            float sun = _shadow?.Lit(place, normal) ?? 1f;
+            if (fragment >= 0)
+            {
+                _probe!.Add(new ProbeSun(fragment, away, place, normal, sun));
+            }
+
+            float environment = 1f;
+            Vector3 mirrored = Vector3.Zero;
+            bool probed = _probeAt >= 0 && (y * _size) + x == _probeAt;
+            ProbeWater ray = probed
+                ? new ProbeWater(away, place, normal, waves, Vector3.Zero, -2, -1, -1, float.MaxValue, Vector3.Zero, 1f, Vector3.Zero, sun)
+                : default;
+            if (_opaque is not null && program is { HasSpecular: true, HasGloss: true } && waves != Vector3.Zero && _scene!.WaterReflection && _scene.WaterScene)
+            {
+                mirrored = Mirrored(waves, normal, x, y, away, specular, gloss, out environment, probed, ref ray);
+            }
+
+            Vector3 lit = _scene!.ShadeWater(
+                water, _waterColour * water.Shimmer, _waterScattering, place, waves, _toEye, sun, specular, gloss, environment, mirrored, out cover,
+                out WaterLight terms);
+            if (probed)
+            {
+                _probe!.Add(ray with { Environment = environment, Added = mirrored, Light = terms });
+            }
+
             return new Vector3(ShadeProgram.Srgb(lit.X), ShadeProgram.Srgb(lit.Y), ShadeProgram.Srgb(lit.Z));
         }
 

@@ -492,7 +492,8 @@ public class WaterTests
     }
 
     /// <summary>
-    /// Under the game light the waves glint and reflect where the switches say, and with both off - or under the picture's lamp - the water is drawn as it was without them.
+    /// Under the game light the waves glint and reflect where the switches say, the twin lighting its water as the engine's pass does whatever they say;
+    /// under the picture's lamp the water is drawn as it was without them.
     /// </summary>
     [Fact]
     public void THEWAVESGlintAndReflectByTheSwitchesAndOnlyUnderTheGameLight()
@@ -517,8 +518,9 @@ public class WaterTests
             blends: [MaterialBlend.Opaque, MaterialBlend.Alpha],
             shades: [null, program]).Rgba];
 
-        byte[] none = Drawn(plain, Light(glints: false, reflection: false));
-        Assert.Equal(none, Drawn(waves, Light(glints: false, reflection: false)));
+        // THE TWIN'S WATER IS THE ENGINE'S PASS'S under the game light (SceneLight.ShadeWater), the plain program's an albedo lit.
+        byte[] none = Drawn(waves, Light(glints: false, reflection: false));
+        Assert.NotEqual(Drawn(plain, Light(glints: false, reflection: false)), none);
         Assert.Equal(Drawn(plain, null), Drawn(waves, null));
 
         long Brightness(byte[] rgba)

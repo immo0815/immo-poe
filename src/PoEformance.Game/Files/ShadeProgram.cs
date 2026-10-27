@@ -337,12 +337,15 @@ public sealed partial class ShadeProgram
     private readonly int _specular;
     private readonly int _gloss;
     private readonly int _waves;
+    private readonly int _waterFoam;
+    private readonly int _waterState;
     private readonly int[] _sampleTexture;
     private readonly Mipmaps?[] _sheets;
 
     private ShadeProgram(
         Step[] steps, int[] constantAt, Vector4[] constants, int registers, int result, int specular, int gloss,
-        ShadeTexture[] textures, int[] sampleTexture, int plain, IReadOnlyList<string> graphs, Mipmaps?[] sheets, bool hasAlpha, int waves = -1)
+        ShadeTexture[] textures, int[] sampleTexture, int plain, IReadOnlyList<string> graphs, Mipmaps?[] sheets, bool hasAlpha, int waves = -1,
+        int waterFoam = -1, int waterState = -1)
     {
         HasAlpha = hasAlpha;
         _steps = steps;
@@ -353,6 +356,8 @@ public sealed partial class ShadeProgram
         _specular = specular;
         _gloss = gloss;
         _waves = waves;
+        _waterFoam = waterFoam;
+        _waterState = waterState;
         Textures = textures;
         _sampleTexture = sampleTexture;
         Plain = plain;
@@ -554,13 +559,19 @@ public sealed partial class ShadeProgram
     /// Whether a run also leaves a normal of its own for the specular light - the water's waves (see <see cref="Water"/>).
     /// </summary>
     /// <remarks>
-    /// THE SPECULAR LIGHT ONLY. The engine's water lights its surface with the waves' normal and its
-    /// medium by what lies behind; the picture lights the colour with the mesh's normal as it lights
-    /// every colour, and the sun's glints and the environment's reflection - the two the waves are seen
-    /// by - with this one, each where the game light asks for it (SceneLight.WaterGlints and
-    /// WaterReflection). The picture's own lamp draws such a program as it drew it before it had one.
+    /// THE WATER'S WHOLE LIGHT under the game light (v0.1.296, <see cref="LightsWater"/>): the engine's water lights its surface
+    /// with the waves' normal for everything - the lights on its foam and its medium, the cube, the reflectivity - and so does
+    /// SceneLight.ShadeWater; the sun's glints and the environment's reflection are still each where the game light asks for them
+    /// (SceneLight.WaterGlints and WaterReflection). Before, the colour took the mesh's normal as every colour does and only the
+    /// specular light this one. The picture's own lamp draws such a program as it drew it before it had one.
     /// </remarks>
     public bool HasWaves => _waves >= 0 && !Beaches;
+
+    /// <summary>
+    /// Whether the program is the engine's open water lit as its water pass lights it - its colour handed over in parts (<see cref="WaterOut"/>)
+    /// for SceneLight.ShadeWater rather than as one albedo; see <see cref="Water"/>.
+    /// </summary>
+    public bool LightsWater => _waterFoam >= 0 && _waterState >= 0;
 
     /// <summary>
     /// The same colour with the glossiness worked out too, for the game's own lighting; null where it is this program.
@@ -842,6 +853,12 @@ public sealed partial class ShadeProgram
     /// <summary>The register the waves' normal is left in, or below nought for none - see <see cref="HasWaves"/>.</summary>
     internal int WavesRegister => _waves;
 
+    /// <summary>The register the water's foam is left in - <see cref="WaterOut.Foam"/> and <see cref="WaterOut.Share"/> - or below nought for none.</summary>
+    internal int WaterFoamRegister => _waterFoam;
+
+    /// <summary>The register the water's state is left in - <see cref="WaterOut"/>'s through, terrain, shimmer and height - or below nought for none.</summary>
+    internal int WaterStateRegister => _waterState;
+
     /// <summary>This program with its textures in hand, one per entry of <see cref="Textures"/>.</summary>
     public ShadeProgram With(IReadOnlyList<Mipmaps?> sheets)
     {
@@ -855,7 +872,7 @@ public sealed partial class ShadeProgram
         // NOT THE GLOSSY ONE: it reads a texture this does not, and is bound on its own - see Glossy.
         return new ShadeProgram(
             _steps, _constantAt, _constants, Registers, _result, _specular, _gloss,
-            [.. Textures], _sampleTexture, Plain, Graphs, bound, HasAlpha, _waves)
+            [.. Textures], _sampleTexture, Plain, Graphs, bound, HasAlpha, _waves, _waterFoam, _waterState)
         {
             Mix = Mix,
         };
@@ -968,6 +985,15 @@ public sealed partial class ShadeProgram
     internal Vector3 Colour(
         Span<Vector4> registers, Vector2 coordinates, Vector3 position, Vector3 normal, ReadOnlySpan<float> levels,
         out float alpha, out Vector3 specular, out float gloss, out Vector3 waves, Vector4 vertexColour = default, float behind = float.MaxValue)
+        => Colour(registers, coordinates, position, normal, levels, out alpha, out specular, out gloss, out waves, out _, vertexColour, behind);
+
+    /// <summary>
+    /// The same, and the water's parts where the program lights as the engine's water pass does - default where <see cref="LightsWater"/> says it does not.
+    /// </summary>
+    internal Vector3 Colour(
+        Span<Vector4> registers, Vector2 coordinates, Vector3 position, Vector3 normal, ReadOnlySpan<float> levels,
+        out float alpha, out Vector3 specular, out float gloss, out Vector3 waves, out WaterOut water, Vector4 vertexColour = default,
+        float behind = float.MaxValue)
     {
         registers[Coordinates] = new Vector4(coordinates, 0f, 0f);
         if (UsesDepth)
@@ -1002,6 +1028,7 @@ public sealed partial class ShadeProgram
         specular = _specular >= 0 ? new Vector3(registers[_specular].X, registers[_specular].Y, registers[_specular].Z) : default;
         gloss = _gloss >= 0 ? registers[_gloss].X : 0f;
         waves = _waves >= 0 ? new Vector3(registers[_waves].X, registers[_waves].Y, registers[_waves].Z) : default;
+        water = LightsWater ? new WaterOut(registers[_waterFoam], registers[_waterState]) : default;
         return new Vector3(Srgb(colour.X), Srgb(colour.Y), Srgb(colour.Z));
     }
 
@@ -1524,7 +1551,8 @@ public sealed partial class ShadeProgram
     internal const float Dielectric = 0.04f;
 
     private static ShadeProgram? Finish(
-        Builder build, int result, int specular, int gloss, List<string> graphs, bool hasAlpha, bool plainable, int waves = -1)
+        Builder build, int result, int specular, int gloss, List<string> graphs, bool hasAlpha, bool plainable, int waves = -1,
+        int waterFoam = -1, int waterState = -1)
     {
         List<Step> steps = build.Steps;
         var live = new bool[build.Next];
@@ -1532,6 +1560,8 @@ public sealed partial class ShadeProgram
         Live(live, specular);
         Live(live, gloss);
         Live(live, waves);
+        Live(live, waterFoam);
+        Live(live, waterState);
         var keep = new bool[steps.Count];
         for (int at = steps.Count - 1; at >= 0; at--)
         {
@@ -1652,7 +1682,8 @@ public sealed partial class ShadeProgram
         ShadeTexture[] named = [.. textures];
         return new ShadeProgram(
             [.. kept], [.. constantAt], [.. constants], next, map[result], Mapped(map, specular), Mapped(map, gloss),
-            named, [.. sampleTextures], plain >= 0 ? textureMap[plain] : -1, graphs, new Mipmaps?[named.Length], hasAlpha, Mapped(map, waves));
+            named, [.. sampleTextures], plain >= 0 ? textureMap[plain] : -1, graphs, new Mipmaps?[named.Length], hasAlpha, Mapped(map, waves),
+            Mapped(map, waterFoam), Mapped(map, waterState));
     }
 
     private static void Live(bool[] live, int register)

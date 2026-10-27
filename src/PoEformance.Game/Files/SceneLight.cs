@@ -635,6 +635,209 @@ public sealed class SceneLight
         return Grade is null ? exposed : Grade.Apply(exposed);
     }
 
+    /// <summary>The medium's scattering colour the engine pulls the water's colour towards on a crest - GetWaterMediumColor's <c>mult_color</c>.</summary>
+    public static readonly Vector3 WaterScatterColour = new(0.3f, 0.9f, 0.5f);
+
+    /// <summary>How the water's own colour takes the sun - ComputeDiffuse's subsurface wrap: InitWaterSurfaceData's <c>subsurface_translucency</c>.</summary>
+    public const float WaterTranslucency = 3f;
+
+    /// <summary>The most a channel of the water's specular light reaches - ClampSpecularLight's <c>max_val</c>.</summary>
+    public const float WaterSpecularCap = 10f;
+
+    /// <summary>
+    /// One pixel of open water lit as the engine's water pass lights it - BuildWaterRefraction - as a layer: its colour, linear, exposed
+    /// and graded, and how much it covers what lies behind; a cover of nought or less drops the pixel.
+    /// </summary>
+    /// <param name="water">The parts the program handed over - see ShadeProgram.WaterOut.</param>
+    /// <param name="medium">The area's water colour, linear (<c>pow(open_water_color, 2.2)</c>), times the colour's pattern.</param>
+    /// <param name="scattering">The area's <c>water_subsurface_scattering</c>.</param>
+    /// <param name="place">Where the pixel is, model space.</param>
+    /// <param name="waves">The waves' normal there, unit length.</param>
+    /// <param name="toEye">The way to the eye, unit length.</param>
+    /// <param name="sunShadow">How much of the sun reaches it.</param>
+    /// <param name="specular">The surface's specular colour - the area's reflectiveness lerped to the foam's 0.04.</param>
+    /// <param name="gloss">Its gloss - the engine's 0.99 lerped to nought by the foam.</param>
+    /// <param name="environment">The environment's share of the reflection - less where the picture itself is reflected.</param>
+    /// <param name="mirrored">The picture's own reflection, already lit, exposed and graded - ScreenReflection.</param>
+    /// <param name="cover">How much of what lies behind the layer covers.</param>
+    /// <param name="terms">Every part worked out on the way, for the probe.</param>
+    /// <remarks>
+    /// AS WRITTEN (water.ffx's GetWaterMediumColor, InitWaterSurfaceData, ApplyWaterSurfaceLighting, BuildWaterRefraction and
+    /// GetRefractedWaterLight; lighting.ffx's ComputeDiffuse, ComputeLight and AddDiffuseEnvironmentLight), asked for from the live
+    /// client after the water looked nearer the game under the flat ambient than under the cube (v0.1.295):
+    /// <list type="bullet">
+    /// <item>THE WATER'S ALBEDO IS BLACK; its colour is light it lets through. The medium's diffuse colour is nought and its colour
+    /// is the subsurface colour, <c>pow(colour / (0.3, 0.9, 0.5), 1 / (1 + max(-0.9, 250 * height * 5e-5 * scattering))) * (0.3, 0.9, 0.5)</c> -
+    /// a crest's colour lifted towards that green, a trough's darkened - less the foam's share; the foam is the albedo.</item>
+    /// <item>EVERY LIGHT ADDS <c>saturate(N.L)</c> of itself on the foam and <c>saturate((N.L + 3) / 4)</c> on the medium (front scattering
+    /// one), N the waves' normal - not the mesh's - for all of it; the sun through its shadow.</item>
+    /// <item>THE AMBIENT is the diffuse cube along the waves' normal times the cube's brightness on the foam and the medium together, less
+    /// the GI's share; the GI's own light falls on the albedo alone (<c>indirect_color.rgb * albedo</c>), so the flat ambient stands in for it
+    /// on the foam and on nothing else.</item>
+    /// <item>THE SPECULAR - the lights' lobes and the environment along the waves' reflection - is capped at ten a channel and thinned by
+    /// <c>1 - ratio^3</c> towards the floor, the shore's <c>water_to_terrain_ratio</c>; nothing else weakens it, the water's depth least of all.</item>
+    /// <item>WHAT LIES BEHIND AND THE MEDIUM'S LIGHT ARE MIXED by what gets through, then taken times <c>1 - reflectivity</c>,
+    /// <c>reflectivity = lerp(Fresnel(N.V), 1, specular) * (1 - ratio)</c>, the ratio lifting it back to one; the foam hides both by
+    /// <c>1 - (1 - foam)^3</c>.</item>
+    /// </list>
+    /// So the pixel is <c>specular + absorbed * k + behind * d</c>; as a layer over what lies behind its cover is <c>1 - d</c> and its
+    /// colour the rest over the cover - exposed and graded there, as every layer is before it is mixed.
+    /// NOT DRAWN: the refraction's bend and its caustics, the terrain water colour (the medium's colour over ground under water), the
+    /// tidal state's own water_to_terrain_ratio and the ground water ratio's thirtyfold - both of them read off the shore field, whose
+    /// scale is CHOSEN.
+    /// </remarks>
+    public Vector3 ShadeWater(
+        ShadeProgram.WaterOut water, Vector3 medium, float scattering, Vector3 place, Vector3 waves, Vector3 toEye, float sunShadow,
+        Vector3 specular, float gloss, float environment, Vector3 mirrored, out float cover, out WaterLight terms)
+    {
+        float terrain = Math.Clamp(water.Terrain, 0f, 1f);
+        if (terrain > 0.999999f)
+        {
+            cover = 0f;
+            terms = default;
+            return Vector3.Zero;
+        }
+
+        Vector3 normal = waves.LengthSquared() > 1e-12f ? Vector3.Normalize(waves) : toEye;
+        if (Vector3.Dot(normal, toEye) < 0f)
+        {
+            normal = -normal;
+        }
+
+        // THE MEDIUM: black albedo, its colour scattered by the waves' height - GetWaterMediumColor.
+        float share = Math.Clamp(water.Share, 0f, 1f);
+        float exponent = 1f / (1f + MathF.Max(-0.9f, 250f * water.Height * 5e-5f * scattering));
+        Vector3 scatter = WaterScatterColour;
+        Vector3 subsurface = new Vector3(
+            MathF.Pow(MathF.Max(medium.X, 0f) / scatter.X, exponent),
+            MathF.Pow(MathF.Max(medium.Y, 0f) / scatter.Y, exponent),
+            MathF.Pow(MathF.Max(medium.Z, 0f) / scatter.Z, exponent)) * scatter * (1f - share);
+        Vector3 albedo = Vector3.Max(water.Foam, Vector3.Zero);
+
+        float facing = MathF.Max(Vector3.Dot(normal, toEye), 1e-4f);
+        bool glints = WaterGlints;
+        Vector3 diffuse = Vector3.Zero, through = Vector3.Zero, shine = Vector3.Zero, total = Vector3.Zero;
+        if (SunColour != Vector3.Zero && sunShadow > 0f)
+        {
+            Vector3 light = SunColour * sunShadow;
+            Vector3 towards = -SunDirection;
+            WaterLit(light, towards, normal, ref diffuse, ref through);
+            if (glints)
+            {
+                Glinted(light, towards, normal, toEye, facing, specular, gloss, ref shine);
+            }
+
+            total += light;
+        }
+
+        if (_lights.Length > 0)
+        {
+            int cell = CellIndex(place);
+            if (cell >= 0)
+            {
+                for (int at = _cellStarts[cell], upto = _cellStarts[cell + 1]; at < upto; at++)
+                {
+                    ref readonly Point one = ref _lights[_cellEntries[at]];
+                    Vector3 offset = one.Position - place;
+                    float squared = offset.LengthSquared();
+                    if (squared >= one.Cutoff * one.Cutoff)
+                    {
+                        continue;
+                    }
+
+                    float distance = MathF.Sqrt(squared);
+                    float ratio = distance / one.Cutoff;
+                    float fade = MathF.Max(0f, 1f - (ratio * ratio * ratio * ratio));
+                    float divisor = (distance / one.Core) + 1f;
+                    float attenuation = MathF.Min(10f, one.Zero * fade * fade / (divisor * divisor));
+                    if (!(attenuation > 0f))
+                    {
+                        continue;
+                    }
+
+                    Vector3 light = one.Colour * attenuation;
+                    Vector3 towards = distance > 1e-4f ? offset / distance : normal;
+                    WaterLit(light, towards, normal, ref diffuse, ref through);
+                    if (glints)
+                    {
+                        Glinted(light, towards, normal, toEye, facing, specular, gloss, ref shine);
+                    }
+
+                    total += light;
+                }
+            }
+        }
+
+        // THE AMBIENT on the foam and the medium alike, the GI's stand-in on the foam alone.
+        Vector3 ambient = Ambient switch
+        {
+            SceneAmbient.Cube when Cube is not null =>
+                (Cube.Sample(Vector3.TransformNormal(normal, CubeTurn)) * (new Vector3(CubeBrightness) + (total * DirectLightEnvRatio))
+                    * (1f - GiEnvOcclusion) * (albedo + subsurface))
+                + (albedo * (FlatAmbient * GiEnvOcclusion)),
+            SceneAmbient.Flat or SceneAmbient.Cube => (albedo + subsurface) * FlatAmbient,
+            _ => Vector3.Zero,
+        };
+
+        // THE ENVIRONMENT ALONG THE WAVES' REFLECTION - AddSpecularEnvironmentLight: the specular cube times the cube's brightness.
+        if (WaterReflection)
+        {
+            GlossLight.Environment(facing, gloss, out float bias, out float scale);
+            Vector3 reflected = (2f * Vector3.Dot(normal, toEye) * normal) - toEye;
+            Vector3 seen = WaterSky(reflected, total) * environment;
+            shine += (seen * bias) + (seen * scale * specular);
+        }
+
+        float brightest = MathF.Max(shine.X, MathF.Max(shine.Y, shine.Z));
+        if (brightest > WaterSpecularCap)
+        {
+            shine *= WaterSpecularCap / brightest;
+        }
+
+        float fresnel = GlossLight.Fresnel(Math.Clamp(Vector3.Dot(normal, toEye), 0f, 1f));
+        float reflectivity = (fresnel + (specular.X * (1f - fresnel))) * (1f - terrain);
+        float refracted = (1f - reflectivity) + (reflectivity * terrain);
+        float kept = 1f - (terrain * terrain * terrain);
+        Vector3 absorbed = (diffuse * albedo) + ambient + (through * subsurface);
+        float clear = 1f - share;
+        float hidden = 1f - (clear * clear * clear);
+        float passing = Math.Clamp(water.Through, 0f, 1f);
+        float mixed = ((1f - hidden) * refracted * (1f - passing)) + hidden;
+        float behind = (1f - hidden) * refracted * passing;
+        cover = 1f - behind;
+        terms = new WaterLight(
+            subsurface, exponent, albedo, absorbed, ambient, shine * kept, reflectivity, refracted, passing, terrain, hidden, cover);
+        if (!(cover > 1e-6f))
+        {
+            cover = 0f;
+            return Vector3.Zero;
+        }
+
+        Vector3 layer = ((shine * kept) + (absorbed * mixed)) * (Exposure / cover);
+        Vector3 graded = Grade is null ? layer : Grade.Apply(layer);
+        return graded + (mirrored * (kept / cover));
+    }
+
+    /// <summary>One light on the water: its diffuse share on the foam, <c>saturate(N.L)</c>, and its share on the medium, <c>saturate((N.L + 3) / 4)</c> - ComputeDiffuse.</summary>
+    private static void WaterLit(Vector3 light, Vector3 towards, Vector3 normal, ref Vector3 diffuse, ref Vector3 through)
+    {
+        float lit = Vector3.Dot(normal, towards);
+        diffuse += light * Math.Clamp(lit, 0f, 1f);
+        through += light * Math.Clamp((lit + WaterTranslucency) / (1f + WaterTranslucency), 0f, 1f);
+    }
+
+    /// <summary>
+    /// The environment's light along one way on the water - AddSpecularEnvironmentLight's: the specular cube times <c>cube_brightness.x + total * direct_light_env_ratio</c>,
+    /// none of it the GI's; the flat ambient where the ambient is flat.
+    /// </summary>
+    private Vector3 WaterSky(Vector3 direction, Vector3 total) => Ambient switch
+    {
+        SceneAmbient.Cube when Cube is not null =>
+            (Mirror ?? Cube).Sample(Vector3.TransformNormal(direction, CubeTurn)) * (new Vector3(CubeBrightness) + (total * DirectLightEnvRatio)),
+        SceneAmbient.Flat or SceneAmbient.Cube => new Vector3(FlatAmbient),
+        _ => Vector3.Zero,
+    };
+
     /// <summary>The environment's light coming from one way, as the surround is lit: the specular cube where there is one, the diffuse cube where not, the flat ambient or nothing as the ambient is.</summary>
     private Vector3 Reflected(Vector3 direction, Vector3 total)
     {
@@ -743,3 +946,22 @@ public sealed class SceneLight
     /// <param name="Z">How many along z.</param>
     public readonly record struct LightCells(Vector3 Least, float Size, int X, int Y, int Z);
 }
+
+/// <summary>
+/// What SceneLight.ShadeWater worked out at one pixel of water, part by part - for the probe, which then says where the water's colour came from.
+/// </summary>
+/// <param name="Subsurface">The medium's colour as light lets it through: scattered by the waves' height, less the foam's share - linear.</param>
+/// <param name="Exponent">The scattering's exponent, <c>1 / (1 + max(-0.9, 250 * height * 5e-5 * scattering))</c> - under one on a crest.</param>
+/// <param name="Foam">The foam's albedo times its cover, linear.</param>
+/// <param name="Absorbed">The light the medium and the foam give off: the lights on both, the ambient and the GI's stand-in - <c>absorb_light</c>.</param>
+/// <param name="Ambient">The ambient's share of it.</param>
+/// <param name="Specular">The specular light kept - the lights' lobes and the environment's reflection, times <c>1 - ratio^3</c>.</param>
+/// <param name="Reflectivity">How much the surface reflects, <c>lerp(Fresnel(N.V), 1, specular) * (1 - ratio)</c>.</param>
+/// <param name="Refracted">How much of what lies under the surface is seen - <c>lerp(1 - reflectivity, 1, ratio)</c>.</param>
+/// <param name="Through">How much of what lies behind gets through the medium.</param>
+/// <param name="Terrain">The shore's <c>water_to_terrain_ratio</c>.</param>
+/// <param name="Hidden">How much the foam hides of what lies under it, <c>1 - (1 - foam)^3</c>.</param>
+/// <param name="Cover">How much of what lies behind the water covers as a layer.</param>
+public readonly record struct WaterLight(
+    Vector3 Subsurface, float Exponent, Vector3 Foam, Vector3 Absorbed, Vector3 Ambient, Vector3 Specular, float Reflectivity, float Refracted,
+    float Through, float Terrain, float Hidden, float Cover);
