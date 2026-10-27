@@ -24,39 +24,21 @@
   </PropertyGroup>
 
   <!--
-    SIX SixLabors.ImageSharp ADVISORIES, five published 2026-10-07 and one (v76p) by 2026-10-26,
-    that do not reach this tool - suppressed one by one, so a seventh still fails the restore the
-    way these did (NU1902/NU1903 as errors, which stopped publish, CI and every pull request at once).
+    THE SIX LABORS LICENSE. ImageSharp 3.2.0 and later refuse to build anything but Debug without
+    a license key (SixLabors.Licensing's ValidateLicenseTask, run before CoreCompile in every project
+    referencing the package directly). sixlabors.lic beside this file is a free COMMUNITY license
+    for open-source projects, scoped to the three assemblies that reference ImageSharp -
+    ClickableTransparentOverlay, PoEformance.Overlay and IconBaker - which Six Labors allows to be
+    committed to a public repository. Named here because the package only looks for the file under
+    each project's own folder. It runs out on 2028-01-25 (its ExpiryDateUtc); a new one comes from
+    the same form at sixlabors.com, and an assembly added that references ImageSharp needs its name
+    added to it.
 
-    WHY NOT THE FIX. Every one is fixed in 3.2.0 and 4.1.2, and neither builds a Release without a
-    Six Labors license key: 3.2.0's build targets carry the same SixLabors.Licensing
-    ValidateLicenseTask as 4.x, an error in every configuration but Debug (read from the 3.2.0
-    package, 2026-10-27). ClickableTransparentOverlay 11.1.0 - the newest - is compiled against 3.x,
-    so a 4.x underneath it fails at run time if anything it calls moved. Taking either is a decision
-    about a license, not a version bump. Drop these lines when the tool takes a license key, or a
-    fixed 3.x ships without the check.
-
-    WHY EACH DOES NOT REACH IT. Checked against the 3.1.12 source, not assumed:
-    - gwg2: ICC CLUT tables allocated from unchecked sizes. 3.1.12 keeps a profile's bytes and
-      parses its tag data only when IccProfile.Entries is read; a decode reads the 128-byte
-      header and nothing else, and the tool never reads a profile.
-    - j3p4: HistogramEqualization on a float TIFF. Never called.
-    - j9gm, jjfr: the TIFF CCITT T4 and T6 ENCODERS. The tool only ever encodes PNG.
-    - wmxv: the BigTIFF reader looping on a malformed entry count. Every decode names a
-      configuration without TIFF (IconCache.WithoutTiff; IconBaker decodes PNG only), so no
-      file anybody points a setting at reaches that reader.
-    - v76p: a tiled fax TIFF writing past its tile buffer while DECODING. The same ground as wmxv:
-      no decode names a configuration with TIFF. The one decode on the default configuration is
-      ClickableTransparentOverlay's AddOrGetImagePointer taking a file path, and nothing calls it -
-      every texture goes through the overload taking an already decoded image.
+    Before it (up to v0.1.304) the tool stayed on 3.1.12 and suppressed six advisories one by one,
+    each checked not to reach it; 3.2.0 fixes all six.
   -->
-  <ItemGroup>
-    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-gwg2-r3hj-4w44" />
-    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-j3p4-wp97-rph4" />
-    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-j9gm-c75j-xc9q" />
-    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-jjfr-hcj7-qf5w" />
-    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-wmxv-xphr-5c9g" />
-    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-v76p-62qx-wwq2" />
-  </ItemGroup>
+  <PropertyGroup>
+    <SixLaborsLicenseFile>$(MSBuildThisFileDirectory)sixlabors.lic</SixLaborsLicenseFile>
+  </PropertyGroup>
 
 </Project>

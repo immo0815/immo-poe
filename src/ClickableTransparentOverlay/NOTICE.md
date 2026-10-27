@@ -13,7 +13,7 @@ as pixels in memory.
 Every change is marked in the source with a `// PoEformance:` comment.
 
 - `ClickableTransparentOverlay.csproj` - written for this solution: `net10.0-windows`, ImageSharp
-  3.1.12 instead of 3.1.6 (security advisories), nullable analysis off (upstream's own
+  3.2.0 instead of 3.1.6 (security advisories), nullable analysis off (upstream's own
   annotations do not hold and the solution treats warnings as errors), no packaging settings.
 - `Overlay.cs`
   - `Device` and `DeviceContext`: the D3D11 device and its immediate context, protected.

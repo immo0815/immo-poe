@@ -161,17 +161,18 @@ public sealed class IconCache : IDisposable
     }
 
     /// <summary>
-    /// A configuration knowing every format ImageSharp 3.1 knows by default except TIFF.
+    /// A configuration knowing every format ImageSharp 3.2 knows by default except TIFF.
     /// </summary>
     /// <remarks>
-    /// THE GROUND THE AUDIT SUPPRESSION IN Directory.Build.props STANDS ON. Of the advisories
-    /// suppressed there, the one a decode could reach is the BigTIFF reader looping on a malformed
-    /// entry count, and a picture this tool decodes is any file a person points a setting at - so
-    /// TIFF is left out rather than trusted not to turn up. Everything else stays: the atlas folder
+    /// TIFF IS LEFT OUT because a picture this tool decodes is any file a person points a setting
+    /// at, and the TIFF reader is where ImageSharp's advisories land: two of the six that kept the
+    /// tool on 3.1.12 under audit suppressions until v0.1.304 were in its decoder (a BigTIFF loop, a
+    /// tiled fax write past its buffer), and this configuration is why neither reached it. 3.2.0
+    /// fixes both; the next one will find TIFF missing too. Everything else stays: the atlas folder
     /// takes JPEG and BMP as well as PNG, and a marker icon may be anything ImageSharp reads.
-    /// A .tif chosen as an icon now fails as an unknown format, which every caller already treats
+    /// A .tif chosen as an icon fails as an unknown format, which every caller already treats
     /// as "not a picture we can draw". The list is Configuration.CreateDefaultInstance's at
-    /// v3.1.12, minus TiffConfigurationModule.
+    /// v3.1.12 and v3.2.0 alike, minus TiffConfigurationModule.
     /// </remarks>
     internal static Configuration WithoutTiff() => new(
         new PngConfigurationModule(),
