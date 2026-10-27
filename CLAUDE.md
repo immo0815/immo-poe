@@ -575,6 +575,13 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   (`ShoreField.OverlappedCells`, `MostLayers`). The ocean markup hunt runs in the area the player STANDS in: that capture's was the
   Canal Hideout's (no sea, no markup grid), and found two unnamed grids beside the known ones - terrain +0x100 and +0x118, the walkable
   and projectile grids' near twins, and +0x638, eight bytes a tile corner (schema `Grid100`, `Grid118`, `CornerWords638`).
+  THE SPRAY'S GRAPHS FOUND (v0.1.300's water-shore.txt): `Metadata/Effects/Graphs/GPUParticles/Update/Water/` holds
+  `CrashingWavesTriggerCondition.fxgraph` and its breaking and flood kin, and no particle, effect package or trail names them - a GPU
+  particle (.pet, JSON) names an `update_material` and a `render_material`, and the material names its graph; the program names
+  `splashywater` (Port's ocean material sets it), `NonsplashyOcean` and the environments' `water_splash_ao`. So from v0.1.302 the part
+  follows the chain hop by hop (`CaptureWaterShore.SprayHops`): the trigger graphs whole, the materials naming them, the particles and
+  trails naming those, the effect packages, objects and environments naming those - materials and animated objects walked for the
+  chain alone (`ChainExtensions`), a file name under six letters not looked for.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

@@ -45,6 +45,28 @@ public static class CaptureWaterShore
     /// <summary>The kinds of file a spray's effect is made of, searched beside the rest: graphs, particles, effect packages and trails.</summary>
     public static IReadOnlyList<string> EffectExtensions { get; } = [".fxgraph", ".pet", ".epk", ".trl"];
 
+    /// <summary>
+    /// The kinds walked for the spray's chain alone - read only in its hops, never in the search for the words: materials (a GPU
+    /// particle runs its update graph through one, <c>update_material</c>) and animated objects (which carry effect packages).
+    /// </summary>
+    public static IReadOnlyList<string> ChainExtensions { get; } = [".mat", ".ao", ".aoc"];
+
+    /// <summary>
+    /// The spray's chain from the engine's trigger graphs (v0.1.302): what names them, what names those, and on - each hop reading
+    /// only the kinds that may name the hop before. v0.1.300's capture found the graphs (<c>Metadata/Effects/Graphs/GPUParticles/Update/
+    /// Water/*TriggerCondition.fxgraph</c>) and no particle, effect package or trail naming them: a GPU particle names its update
+    /// MATERIAL, which names the graph.
+    /// </summary>
+    private static readonly (string Says, string[] Kinds)[] SprayHops =
+    [
+        ("the materials naming them", [".mat"]),
+        ("the particles and trails naming those", [".pet", ".trl"]),
+        ("the effect packages, objects and environments naming those", [".epk", ".ao", ".aoc", ".ot", ".otc", ".env"]),
+    ];
+
+    /// <summary>The shortest file name a hop looks for - shorter ones (arm, root, box) stand in too many files to say anything.</summary>
+    private const int ShortestName = 6;
+
     /// <summary>The folder the install's walk keeps the files from.</summary>
     public const string Folder = "Metadata/";
 
@@ -53,7 +75,7 @@ public static class CaptureWaterShore
     /// masters' lists and the effects' files. Tiles, rooms and masters (<c>.tdt</c>, <c>.arm</c>, <c>.tsi</c>) come from the Tile Book's own walk.
     /// </summary>
     public static IReadOnlyList<string> Extensions { get; } =
-        [".ot", ".otc", ".gt", ".et", ".env", ".gft", ".rs", ".mtd", ".tst", ".ecf", ".tmo", ".ddt", ".dgr", ".tgt", ".toy", .. EffectExtensions];
+        [".ot", ".otc", ".gt", ".et", ".env", ".gft", ".rs", ".mtd", ".tst", ".ecf", ".tmo", ".ddt", ".dgr", ".tgt", ".toy", .. EffectExtensions, .. ChainExtensions];
 
     /// <summary>The folder the data tables are walked from.</summary>
     public const string TableFolder = "Data/";
@@ -155,7 +177,8 @@ public static class CaptureWaterShore
         search ??= new Search();
         var body = new StringBuilder();
 
-        string[] paths = [.. (files ?? []).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase)];
+        string[] every = [.. (files ?? []).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase)];
+        string[] paths = [.. every.Where(path => !ChainExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))];
         string[] datas = [.. (tables ?? []).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase)];
         search.Begin(paths.Length + datas.Length);
         var clock = Stopwatch.StartNew();
@@ -221,40 +244,50 @@ public static class CaptureWaterShore
             }
         }
 
-        // THE SPRAY'S EFFECTS, ONE STEP ON: the effect files naming a spray word, whole, and every searched file naming one of them by
-        // its file's name - what fires them, and where.
-        string[] effects = [.. named.Where(path => EffectExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase)
-            && found[path].Lines.Any(line => SprayWords.Any(word => line.Contains(word, StringComparison.OrdinalIgnoreCase))))];
-        string[] effectNames = [.. effects.Select(Path.GetFileName).OfType<string>().Where(name => name.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).Take(MostEffects)];
-        ConcurrentDictionary<string, Hit> loading = new(StringComparer.OrdinalIgnoreCase);
-        if (effectNames.Length > 0 && !search.Stopped)
+        // THE SPRAY'S CHAIN: the engine's trigger graphs whole, then hop by hop what names them - see SprayHops.
+        string[] triggers = [.. named.Where(path => path.EndsWith(".fxgraph", StringComparison.OrdinalIgnoreCase)
+            && found[path].Lines.Any(line => line.Contains("SprayTrigger", StringComparison.OrdinalIgnoreCase)))];
+        body.AppendLine().Append(CultureInfo.InvariantCulture, $"=== the spray's trigger graphs (.fxgraph naming a SprayTrigger), whole: {triggers.Length}").AppendLine();
+        foreach (string path in triggers.Take(MostWhole))
         {
-            search.Begin(search.Of + paths.Length);
-            (byte[] Ascii, byte[] Wide)[] effectNeedles =
-                [.. effectNames.Select(name => (Encoding.ASCII.GetBytes(name.ToLowerInvariant()), Encoding.Unicode.GetBytes(name.ToLowerInvariant())))];
-            loading = Searched(read, paths, search, effectNeedles, effectNames).Found;
+            WholeOrSaid(path, found[path], body);
         }
 
-        body.AppendLine().Append(CultureInfo.InvariantCulture, $"=== the spray's effect files ({string.Join(", ", EffectExtensions)}) naming {string.Join(", ", SprayWords)}, whole: {effects.Length}").AppendLine();
-        foreach (string path in effects.Take(MostWhole))
+        var hopsFound = new List<int>();
+        string[] previous = triggers;
+        var seen = new HashSet<string>(triggers, StringComparer.OrdinalIgnoreCase);
+        for (var hop = 0; hop < SprayHops.Length; hop++)
         {
-            if (found[path].Text is { Length: <= LargestWhole } text)
+            (string says, string[] kinds) = SprayHops[hop];
+            string[] names = [.. previous.Select(Path.GetFileNameWithoutExtension).OfType<string>().Where(name => name.Length >= ShortestName)
+                .Select(name => name.ToLowerInvariant()).Distinct(StringComparer.Ordinal).Take(MostEffects)];
+            string[] kindPaths = [.. every.Where(path => kinds.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))];
+            ConcurrentDictionary<string, Hit> naming = new(StringComparer.OrdinalIgnoreCase);
+            if (names.Length > 0 && kindPaths.Length > 0 && !search.Stopped)
             {
-                Whole(path, text, body);
+                search.Begin(search.Of + kindPaths.Length);
+                (byte[] Ascii, byte[] Wide)[] needles = [.. names.Select(name => (Encoding.ASCII.GetBytes(name), Encoding.Unicode.GetBytes(name)))];
+                naming = Searched(read, kindPaths, search, needles, names).Found;
             }
-            else
-            {
-                body.AppendLine().Append("##### ").Append(path).AppendLine("  (binary or too long - its lines above)");
-            }
-        }
 
-        body.AppendLine().Append(CultureInfo.InvariantCulture, $"=== the searched files naming one of those by its file's name ({string.Join(", ", effectNames)}): {loading.Count}").AppendLine();
-        foreach (string path in loading.Keys.Order(StringComparer.OrdinalIgnoreCase))
-        {
-            foreach (string line in loading[path].Lines)
+            string[] hits = [.. naming.Keys.Where(seen.Add).Order(StringComparer.OrdinalIgnoreCase)];
+            hopsFound.Add(hits.Length);
+            body.AppendLine().Append(CultureInfo.InvariantCulture,
+                $"=== the spray's chain, hop {hop + 1}: {says} ({string.Join(", ", kinds)}, {kindPaths.Length} searched for {string.Join(", ", names)}): {hits.Length}").AppendLine();
+            foreach (string path in hits)
             {
-                body.Append("  ").Append(path).Append("  ->  ").AppendLine(line);
+                foreach (string line in naming[path].Lines)
+                {
+                    body.Append("  ").Append(path).Append("  ->  ").AppendLine(line);
+                }
             }
+
+            foreach (string path in hits.Take(MostWhole / SprayHops.Length))
+            {
+                WholeOrSaid(path, naming[path], body);
+            }
+
+            previous = hits;
         }
 
         string[] whole = [.. named.Where(path => found[path].Text is { Length: <= LargestWhole }).Take(MostWhole)];
@@ -268,7 +301,7 @@ public static class CaptureWaterShore
         string strings = Programs(programs, body);
         string head = string.Create(
             CultureInfo.InvariantCulture,
-            $"water shore: {named.Length} of {paths.Length} files and {tabled.Length} of {datas.Length} data tables name the water's blocking, flow, markup, deep water or spray ({clock.Elapsed.TotalSeconds:0.0} s{stopped}), {effects.Length} effect files the spray and {loading.Count} files name those, {reaching.Count} of the area's {types.Length} loaded object types reach one, {grounds} loaded ground types; {(sources < 0 ? "no shader sources" : $"{sources} shader sources name the shore field's words")}; {strings}");
+            $"water shore: {named.Length} of {paths.Length} files and {tabled.Length} of {datas.Length} data tables name the water's blocking, flow, markup, deep water or spray ({clock.Elapsed.TotalSeconds:0.0} s{stopped}), {triggers.Length} spray trigger graphs and {string.Join(" / ", hopsFound)} files hop by hop naming them, {reaching.Count} of the area's {types.Length} loaded object types reach one, {grounds} loaded ground types; {(sources < 0 ? "no shader sources" : $"{sources} shader sources name the shore field's words")}; {strings}");
         return head + Environment.NewLine + body;
     }
 
@@ -469,6 +502,19 @@ public static class CaptureWaterShore
         }
 
         return grounds.Length;
+    }
+
+    /// <summary>A found file whole where it is text and short enough, or a line saying it is not.</summary>
+    private static void WholeOrSaid(string path, Hit hit, StringBuilder body)
+    {
+        if (hit.Text is { Length: <= LargestWhole } text)
+        {
+            Whole(path, text, body);
+        }
+        else
+        {
+            body.AppendLine().Append("##### ").Append(path).AppendLine("  (binary or too long - its lines above)");
+        }
     }
 
     /// <summary>Writes a file's text whole under its path.</summary>
