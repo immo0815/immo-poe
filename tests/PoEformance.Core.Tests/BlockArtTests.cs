@@ -6,6 +6,12 @@ using Xunit.Abstractions;
 namespace PoEformance.Core.Tests;
 
 /// <summary>The BC1 and BC7 block decoder, held against Pfim pixel for pixel - it replaced Pfim for those two, and must draw the same.</summary>
+/// <remarks>
+/// RUN ALONE (<see cref="AloneOnTheMachine"/>): the decoder is faster than Pfim by decoding its rows on every core, and Pfim on one.
+/// While the other test classes ran beside it on every core the two came out equal (CI, v0.1.314: Pfim 342.2 ms, blocks 343.4 ms),
+/// and the best of three does not help when all three are taken on a full machine.
+/// </remarks>
+[Collection(nameof(AloneOnTheMachine))]
 public class BlockArtTests(ITestOutputHelper output)
 {
     [Theory]
@@ -161,3 +167,7 @@ public class BlockArtTests(ITestOutputHelper output)
         return stream.ToArray();
     }
 }
+
+/// <summary>Tests that measure time: xUnit runs this collection after every other one, with nothing beside it.</summary>
+[CollectionDefinition(nameof(AloneOnTheMachine), DisableParallelization = true)]
+public sealed class AloneOnTheMachine;
