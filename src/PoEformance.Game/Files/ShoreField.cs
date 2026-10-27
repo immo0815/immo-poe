@@ -31,6 +31,14 @@ namespace PoEformance.Game.Files;
 /// the same as the shore's along a plain coast, smaller in a channel the farther in, and bent round what stands in the way. In the
 /// way stands the land, and whatever crosses the water's surface (<c>blocking</c> in <see cref="Of"/>) - a hull, a post, a rock -
 /// but not a bridge or a gangway over it.
+///
+/// ONE THING CROSSES, NOT TWO TOGETHER (v0.1.298, a bar "in the way" along Port's quay, seen from the live client): a cell stood in
+/// the way where anything of what may block stood above the water and anything under it - the least and the most z over every such
+/// shape at the cell's middle. Port's wobble core, an invisible plane 360 over the water, lay over the quay's sunken foundation
+/// bricks 240 under it, and the two together barred the channel's side by the quay, 125 units wide and the plane's length, the
+/// waves' way in breaking off along its edge. Now a triangle stands in the way where it itself runs from above the water to under it,
+/// and the cells it does so in are those its WATERLINE runs through - where it meets the water's plane, walked cell by cell, so a
+/// sheer wall, which covers no cell's middle, stands in the way all the same, and a hull's waterline closes round it.
 /// </remarks>
 public sealed class ShoreField
 {
@@ -62,10 +70,13 @@ public sealed class ShoreField
 
     private ShoreField(
         float left, float top, float cell, int width, int height, float[] texels, float level, int land, int waterTriangles, int groundTriangles,
-        int standingTriangles, int standingCells, float[] beach, int blockingTriangles, int blockedCells, int travelled, int unreached, bool[] blocked)
+        int standingTriangles, int standingCells, float[] beach, int blockingTriangles, int crossingTriangles, int blockedCells, int travelled,
+        int unreached, bool[] blocked, IReadOnlyDictionary<int, int> crossingShapes)
     {
         _blocked = blocked;
         BlockingTriangles = blockingTriangles;
+        CrossingTriangles = crossingTriangles;
+        CrossingShapes = crossingShapes;
         BlockedCells = blockedCells;
         Travelled = travelled;
         Unreached = unreached;
@@ -104,6 +115,12 @@ public sealed class ShoreField
 
     /// <summary>How many triangles of what may stand in the waves' way were asked - see <see cref="Of"/>.</summary>
     public int BlockingTriangles { get; }
+
+    /// <summary>How many of them crossed the water's surface, each laying its waterline in the way.</summary>
+    public int CrossingTriangles { get; }
+
+    /// <summary>The shapes that crossed the water's surface, by their index in the mesh, with how many of their triangles did - for the capture's line.</summary>
+    public IReadOnlyDictionary<int, int> CrossingShapes { get; }
 
     /// <summary>How many water cells stood in the waves' way: something crosses the water's surface there.</summary>
     public int BlockedCells { get; }
@@ -181,7 +198,7 @@ public sealed class ShoreField
     /// <param name="water">Whether a shape is water.</param>
     /// <param name="ground">Whether a shape is the room's ground.</param>
     /// <param name="standing">Whether a shape stands in the sea and the sea breaks on it - land where it rises above the water, as the ground is; null for none.</param>
-    /// <param name="blocking">Whether a shape may stand in the waves' way - in it where it crosses the water's surface, its top above and its bottom under; null for none.</param>
+    /// <param name="blocking">Whether a shape may stand in the waves' way - in it where one of its triangles crosses the water's surface, along that triangle's waterline; null for none.</param>
     /// <remarks>
     /// WHAT STANDS IN THE SEA (v0.1.236, asked for from the live client: "the waves run on over the rocks in the game, through them
     /// here"): CHOSEN, the shapes whose own material carries the sea's spray (CrashingFoamSurface) - the game's rocks by the sea and
@@ -265,16 +282,17 @@ public sealed class ShoreField
         float[] toLand = Distances(land, width, height, true);
         float[] toWater = Distances(land, width, height, false);
 
-        // IN THE WAVES' WAY: a water cell something crosses the surface of, its top above the water and its bottom under.
+        // IN THE WAVES' WAY: a water cell a triangle's waterline runs through - see the remarks.
         var blocked = new bool[land.Length];
-        int blockingTriangles = 0, blockedCells = 0;
+        int blockingTriangles = 0, crossingTriangles = 0, blockedCells = 0;
+        var crossingShapes = new Dictionary<int, int>();
         if (blocking is not null)
         {
-            (float[] top, float[] bottom) = Spanned(mesh, blocking, least, cell, width, height, out blockingTriangles);
+            bool[] crossed = Crossing(
+                mesh, blocking, waterTop, level, least, cell, width, height, crossingShapes, out blockingTriangles, out crossingTriangles);
             for (var at = 0; at < blocked.Length; at++)
             {
-                float surface = float.IsNaN(waterTop[at]) ? level : waterTop[at];
-                blocked[at] = !land[at] && !float.IsNaN(top[at]) && top[at] < surface - 1f && bottom[at] > surface + 1f;
+                blocked[at] = !land[at] && crossed[at];
                 blockedCells += blocked[at] ? 1 : 0;
             }
         }
@@ -295,7 +313,7 @@ public sealed class ShoreField
 
         return new ShoreField(
             least.X, least.Y, cell, width, height, texels, level, lands, waterTriangles, groundTriangles, standingTriangles, standingCells, beach,
-            blockingTriangles, blockedCells, travelled, unreached, blocked);
+            blockingTriangles, crossingTriangles, blockedCells, travelled, unreached, blocked, crossingShapes);
     }
 
     /// <summary>
@@ -502,14 +520,22 @@ public sealed class ShoreField
         }
     }
 
-    /// <summary>The least and the most z of a set of shapes at each cell's middle, NaN where none covers it - its top and its bottom.</summary>
-    private static (float[] Top, float[] Bottom) Spanned(SkinnedMesh mesh, Func<int, bool> wanted, Vector2 least, float cell, int width, int height, out int triangles)
+    /// <summary>
+    /// The cells a set of shapes crosses the water's surface in: every triangle whose own z runs from above the water to under it,
+    /// its waterline - the segment where it meets the water's plane - walked through each cell it passes.
+    /// </summary>
+    /// <remarks>
+    /// THE WATER'S PLANE AT THE TRIANGLE'S MIDDLE: the highest water over that cell, the room's level where none covers it. A vertex
+    /// is under the water where its z is the plane's or more (up is minus z), so a crossing triangle has exactly two edges from one
+    /// side to the other, and its waterline runs between their crossings.
+    /// </remarks>
+    private static bool[] Crossing(
+        SkinnedMesh mesh, Func<int, bool> wanted, float[] waterTop, float level, Vector2 least, float cell, int width, int height,
+        Dictionary<int, int> shapes, out int triangles, out int crossing)
     {
-        var top = new float[width * height];
-        var bottom = new float[width * height];
-        Array.Fill(top, float.NaN);
-        Array.Fill(bottom, float.NaN);
+        var crossed = new bool[width * height];
         triangles = 0;
+        crossing = 0;
         for (var shape = 0; shape < mesh.Shapes.Count; shape++)
         {
             if (!wanted(shape))
@@ -522,12 +548,89 @@ public sealed class ShoreField
             for (int at = one.From; at < end; at += 3)
             {
                 Vector3 a = mesh.Positions[mesh.Indices[at]], b = mesh.Positions[mesh.Indices[at + 1]], c = mesh.Positions[mesh.Indices[at + 2]];
-                Laid(top, a, b, c, least, cell, width, height, bottom);
                 triangles++;
+                float high = MathF.Min(a.Z, MathF.Min(b.Z, c.Z)), low = MathF.Max(a.Z, MathF.Max(b.Z, c.Z));
+                int mx = (int)MathF.Floor((((a.X + b.X + c.X) / 3f) - least.X) / cell);
+                int my = (int)MathF.Floor((((a.Y + b.Y + c.Y) / 3f) - least.Y) / cell);
+                float surface = mx >= 0 && my >= 0 && mx < width && my < height && !float.IsNaN(waterTop[(my * width) + mx])
+                    ? waterTop[(my * width) + mx]
+                    : level;
+                if (!(high < surface - 1f && low > surface + 1f))
+                {
+                    continue;
+                }
+
+                crossing++;
+                shapes[shape] = shapes.GetValueOrDefault(shape) + 1;
+                Vector2 first = default, second = default;
+                var ends = 0;
+                Meets(a, b, surface, ref first, ref second, ref ends);
+                Meets(b, c, surface, ref first, ref second, ref ends);
+                Meets(c, a, surface, ref first, ref second, ref ends);
+                if (ends == 2)
+                {
+                    Walked(crossed, first, second, least, cell, width, height);
+                }
             }
         }
 
-        return (top, bottom);
+        return crossed;
+    }
+
+    /// <summary>Where an edge from one side of the water's plane to the other meets it - the first or the second end of a waterline.</summary>
+    private static void Meets(Vector3 from, Vector3 to, float surface, ref Vector2 first, ref Vector2 second, ref int ends)
+    {
+        if ((from.Z >= surface) == (to.Z >= surface))
+        {
+            return;
+        }
+
+        float share = (surface - from.Z) / (to.Z - from.Z);
+        var meeting = new Vector2(from.X + ((to.X - from.X) * share), from.Y + ((to.Y - from.Y) * share));
+        if (ends == 0)
+        {
+            first = meeting;
+        }
+        else
+        {
+            second = meeting;
+        }
+
+        ends++;
+    }
+
+    /// <summary>Marks every cell a segment passes through, one step along x or y at a time - so a run of them leaves no gap a diagonal step slips through.</summary>
+    private static void Walked(bool[] marks, Vector2 from, Vector2 to, Vector2 least, float cell, int width, int height)
+    {
+        float x0 = (from.X - least.X) / cell, y0 = (from.Y - least.Y) / cell;
+        float x1 = (to.X - least.X) / cell, y1 = (to.Y - least.Y) / cell;
+        int x = (int)MathF.Floor(x0), y = (int)MathF.Floor(y0);
+        int xEnd = (int)MathF.Floor(x1), yEnd = (int)MathF.Floor(y1);
+        float dx = x1 - x0, dy = y1 - y0;
+        int stepX = dx > 0f ? 1 : -1, stepY = dy > 0f ? 1 : -1;
+        float deltaX = dx != 0f ? MathF.Abs(1f / dx) : float.PositiveInfinity;
+        float deltaY = dy != 0f ? MathF.Abs(1f / dy) : float.PositiveInfinity;
+        float nextX = dx > 0f ? (x + 1 - x0) * deltaX : dx < 0f ? (x0 - x) * deltaX : float.PositiveInfinity;
+        float nextY = dy > 0f ? (y + 1 - y0) * deltaY : dy < 0f ? (y0 - y) * deltaY : float.PositiveInfinity;
+        int steps = Math.Abs(xEnd - x) + Math.Abs(yEnd - y);
+        for (var step = 0; step <= steps; step++)
+        {
+            if (x >= 0 && y >= 0 && x < width && y < height)
+            {
+                marks[(y * width) + x] = true;
+            }
+
+            if (nextX < nextY)
+            {
+                nextX += deltaX;
+                x += stepX;
+            }
+            else
+            {
+                nextY += deltaY;
+                y += stepY;
+            }
+        }
     }
 
     /// <summary>How far above the water the beach's sheet reaches, in world units - CHOSEN, so nothing is laid on a pier or a quay.</summary>
@@ -654,8 +757,8 @@ public sealed class ShoreField
         return top;
     }
 
-    /// <summary>One triangle's least z written into the cells whose middles it covers - and its most into <paramref name="bottom"/> where one is given.</summary>
-    private static void Laid(float[] top, Vector3 a, Vector3 b, Vector3 c, Vector2 least, float cell, int width, int height, float[]? bottom = null)
+    /// <summary>One triangle's least z written into the cells whose middles it covers.</summary>
+    private static void Laid(float[] top, Vector3 a, Vector3 b, Vector3 c, Vector2 least, float cell, int width, int height)
     {
         float area = ((b.X - a.X) * (c.Y - a.Y)) - ((c.X - a.X) * (b.Y - a.Y));
         if (MathF.Abs(area) < 1e-6f)
@@ -686,11 +789,6 @@ public sealed class ShoreField
                 if (float.IsNaN(top[at]) || z < top[at])
                 {
                     top[at] = z;
-                }
-
-                if (bottom is not null && (float.IsNaN(bottom[at]) || z > bottom[at]))
-                {
-                    bottom[at] = z;
                 }
             }
         }

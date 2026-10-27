@@ -539,6 +539,14 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   (`transparentobjectsc.mat`, Zero under ForceAlphaTest) was cut away when drawn but cast solid, the shadow map cutting through a
   texture it has not. A cut-out shape whose program's alpha is one number under the cut now casts nothing on either drawing
   (`ShadeProgram.FixedAlpha`, `CutAway`; MeshPicture's `Casts`, ModelGpu's `Casting`), as the engine's shadow pass clips it (v0.1.297).
+  With that gone, a straight "obstacle" still stood in the channel along Port's quay, the swell's foam and the breakers stopping at it
+  with and without the field waves (said from the live client, v0.1.297). It was the way in's: v0.1.295's rule put a cell in the waves'
+  way where ANY blocking shape stood above the water and ANY under it - the least and most z over all of them at the cell's middle - and
+  the same wobble plane over the quay's sunken foundation bricks (`MSHD_GraveBrickTile01c`, 240 under the water, the probe's) made a
+  bar 125 units wide along the quay, the plane's length, red in `shore-way.png`. From v0.1.298 one triangle has to cross the surface
+  itself, and the cells it stands in the way in are those its waterline runs through, walked one step along x or y at a time
+  (`ShoreField.Crossing`, `Walked`) - a sheer wall covers no cell's middle and blocks all the same, a hull's waterline closes round it.
+  The way-in line in `model-panes.txt` now names the shapes that crossed, the most triangles first (`ShoreField.CrossingShapes`).
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
