@@ -35,6 +35,11 @@ already cost real time on this project.
   allows, because it is the probe's own result and not a diagnosis kept out of the catalogue. Only the
   click's drawing is the processor's (v0.1.238): left on the processor while the probe stood on, a room
   with running water drew at five frames a second on every core, and a capture pressed then took ages.
+  And the pane draws a material's channels as the engine's own debug views do (v0.1.319, the light panel's
+  "shows" row, `PictureView`, names as the game's program lists them): albedo, specular, gloss, roughness, the
+  normal two ways - written unlit, unexposed and ungraded, through RGBToSRGB as debug.ffx writes them - and the
+  light alone over a quarter grey. Ask it whether a texture or a light is wrong before theorising about either.
+  The water's layer is left out of a channel view (CHOSEN: the engine draws water in a pass of its own).
 - **`adamthedash/poe_data_tools`** is to the game's FILE formats what GameHelper2 is to its
   memory: working parsers for `.ao`, `.sm`, `.smd`, `.fmt`, `.mat` and `.ast`. Clone it and
   read the parser, not a diagram of it — `crates/poe_data_tools-lib/src/file_parsers/`.

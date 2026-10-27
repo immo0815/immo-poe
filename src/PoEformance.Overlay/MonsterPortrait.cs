@@ -157,6 +157,14 @@ public sealed class MonsterPortrait
     /// <summary>The line that says what the floor's squares are.</summary>
     private const string FloorSaid = "floor: 250 units to a tile, ten squares each · x red · y green";
 
+    /// <summary>The line under a picture showing a view other than the lit picture - what it shows, and what it leaves out.</summary>
+    private static string ViewSaid(PictureView view) => "view: " + SceneLight.ViewNames[(int)view] + view switch
+    {
+        PictureView.LightingOnly => " - the game light on a grey of 0.25 in place of every albedo (the engine's debug_lighting_only)",
+        _ => " - the material's channel as the engine's debug view writes it, neither exposed nor graded; the water's layer left out (CHOSEN),"
+            + " the normal the one the picture is lit with, turned to the eye",
+    };
+
     /// <summary>What the greying slider is, said where somebody asks it.</summary>
     /// <remarks>
     /// The number and its evidence, because it is the one control here whose right value is not
@@ -2177,6 +2185,12 @@ public sealed class MonsterPortrait
         if (_stageMove.Length > 0)
         {
             _status.Add(_stageMove);
+        }
+
+        // THE VIEW SAYS WHAT IT SHOWS, so a channel's picture is never taken for a lit one - see PictureView.
+        if (_drawnLight is { View: not PictureView.Picture } viewed)
+        {
+            _status.Add(ViewSaid(viewed.View));
         }
 
         if (_wearsWater)

@@ -121,7 +121,7 @@ internal static class ModelShaders
             float4 ShadowSize;  // x: texels per unit; y: units per texel; z: texels across
             int4 Ambient;       // x: nought none, one flat, two the cube; y: one where graded; z: the cube's side; w: point lights
             int4 Cells;         // xyz: the light grid's cells each way; w: where the cells' entries start in Reach
-            int4 Graded;        // xyz: the grade's texels each way
+            int4 Graded;        // xyz: the grade's texels each way; w: the picture's view - SceneLight.View
         };
 
         Texture2D Skin : register(t0);
@@ -530,9 +530,40 @@ internal static class ModelShaders
             return Ambient.x == 1 ? Surround.xxx : float3(0.0, 0.0, 0.0);
         }
 
+        // SceneLight.Channelled: whether the view shows a channel in place of the light.
+        bool Channelled()
+        {
+            return Graded.w > 0 && Graded.w != {{(int)PictureView.LightingOnly}};
+        }
+
+        // SceneLight.Channel: a channel as the engine's debug views write it - linear, neither exposed nor graded.
+        float3 Channel(float3 albedo, float3 normal, float3 specular, float gloss)
+        {
+            switch (Graded.w)
+            {
+                case {{(int)PictureView.Albedo}}: return albedo;
+                case {{(int)PictureView.Specular}}: return specular;
+                case {{(int)PictureView.Gloss}}: return float3(1.0, 1.0, 1.0) * pow(saturate(gloss), 2.2);
+                case {{(int)PictureView.Roughness}}: return float3(1.0, 1.0, 1.0) * pow(1.0 - saturate(gloss), 2.2);
+                case {{(int)PictureView.NormalFit}}: return pow(saturate((normal + 1.0) * 0.5), 2.2);
+                case {{(int)PictureView.NormalTrue}}: return pow(saturate(normal), 2.2);
+                default: return float3(0.0, 0.0, 0.0);
+            }
+        }
+
         // SceneLight.Shade: every light, the surround, a glossy material's environment, the waves' own specular, the exposure, the grade.
         float3 Lighted(float3 albedo, float3 place, float3 normal, float sun, bool glossy, float3 specular, float gloss, float3 waves, float environment)
         {
+            if (Channelled())
+            {
+                return Channel(albedo, normal, specular, gloss);
+            }
+
+            if (Graded.w == {{(int)PictureView.LightingOnly}})
+            {
+                albedo = float3(1.0, 1.0, 1.0) * {{SceneLight.LightingGrey.ToString("0.0###", System.Globalization.CultureInfo.InvariantCulture)}};
+            }
+
             float3 diffuse = float3(0.0, 0.0, 0.0);
             float3 shine = float3(0.0, 0.0, 0.0);
             float3 total = float3(0.0, 0.0, 0.0);
@@ -1045,6 +1076,12 @@ internal static class ModelShaders
             return float4(Srgb(lit.rgb), lit.w);
         }
 
+        // MeshPicture.Drawing.WaterScened in a channel view: the water's layer left out.
+        float4 WaterSceneLitOrNot(ShadeOut said, float3 place, float3 turn, float4 position)
+        {
+            return Channelled() ? float4(0.0, 0.0, 0.0, 0.0) : WaterSceneLit(said, place, turn, position);
+        }
+
         // MeshPicture.Drawing.Scened with a program.
         float3 SceneLit(float3 colour, float3 specular, float gloss, float3 place, float3 turn, float3 waves, float4 position)
         {
@@ -1061,7 +1098,7 @@ internal static class ModelShaders
             float3 wavy = ShadeHasWaves ? waves : float3(0.0, 0.0, 0.0);
             float environment = 1.0;
             float3 mirrored = float3(0.0, 0.0, 0.0);
-            if (ShadeHasWaves && glossy && Finish.z > 0.5 && ToEye.w > 0.5)
+            if (ShadeHasWaves && glossy && Finish.z > 0.5 && ToEye.w > 0.5 && !Channelled())
             {
                 mirrored = Mirrored(wavy, normal, position, place, specular, gloss, environment);
             }
@@ -1085,8 +1122,8 @@ internal static class ModelShaders
                 discard;
             }
 
-            // THE WATER LIT AS THE ENGINE'S WATER PASS LIGHTS IT, whole where it is drawn solid.
-            if (ShadeWater && scened)
+            // THE WATER LIT AS THE ENGINE'S WATER PASS LIGHTS IT, whole where it is drawn solid; in a channel view its program's channels.
+            if (ShadeWater && scened && !Channelled())
             {
                 return float4(WaterSceneLit(said, pixel.place, pixel.turn, pixel.position).rgb, 1.0);
             }
@@ -1105,7 +1142,7 @@ internal static class ModelShaders
             // THE WATER'S COVER IS ITS LIGHT'S (SceneLight.ShadeWater): what lies behind seen through the medium and the surface.
             if (ShadeWater && scened)
             {
-                float4 water = said.dropped ? float4(0.0, 0.0, 0.0, 0.0) : WaterSceneLit(said, pixel.place, pixel.turn, pixel.position);
+                float4 water = said.dropped ? float4(0.0, 0.0, 0.0, 0.0) : WaterSceneLitOrNot(said, pixel.place, pixel.turn, pixel.position);
                 if (!(water.w > 0.0))
                 {
                     discard;

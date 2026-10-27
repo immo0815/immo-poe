@@ -163,6 +163,31 @@ public class ModelGpuTests
             draws: 2);
     }
 
+    /// <summary>Every view the light panel offers - the lit picture, the engine's debug channels, the lighting alone - draws the processor's picture.</summary>
+    [GpuFact]
+    public void EVERYViewIsTheProcessorsPicture()
+    {
+        foreach (PictureView view in Enum.GetValues<PictureView>())
+        {
+            var light = new SceneLight([], SceneLight.PointShape.Zero, null)
+            {
+                SunColour = new Vector3(1.6f, 1.4f, 1.2f),
+                SunDirection = Vector3.Normalize(new Vector3(1.1f, -1f, 0.6f)),
+                Exposure = 1.5f,
+                View = view,
+            };
+            Same(
+                new ModelScene(
+                    Stage(),
+                    Turn: 0.3f,
+                    Tilt: 0.2f,
+                    Skins: [Plain(new Vector4(0.7f, 0.6f, 0.4f, 1f)), Checker(64, 8, alpha: true)],
+                    Blends: [MaterialBlend.Opaque, MaterialBlend.Cutout],
+                    Light: light),
+                draws: 2);
+        }
+    }
+
     /// <summary>
     /// A monster posed on a stage is sent alone and cast over the stage's kept shadow - and the picture is the processor's of the whole mesh, on the frame a pose arrives, on the frames it holds, and for new arrays.
     /// </summary>

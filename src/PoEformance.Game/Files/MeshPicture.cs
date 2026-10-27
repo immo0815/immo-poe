@@ -2445,8 +2445,8 @@ public static class MeshPicture
                         _probe!.Add(new ProbeFragment(one, Seen.Solid, away, held, 0f));
                     }
 
-                    // THE WATER WHOLE where it is drawn solid - its cover left out.
-                    Vector3 shown = scened && program is { LightsWater: true }
+                    // THE WATER WHOLE where it is drawn solid - its cover left out; in a channel view its program's channels, as any surface's.
+                    Vector3 shown = scened && program is { LightsWater: true } && !_scene!.Channelled
                         ? WaterScened(
                             program, water, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves,
                             x, y, away, held, here ? one : -1, out _)
@@ -2560,7 +2560,7 @@ public static class MeshPicture
             ProbeWater ray = probed
                 ? new ProbeWater(away, place, normal, waves, Vector3.Zero, -2, -1, -1, float.MaxValue, Vector3.Zero, 1f, Vector3.Zero, sun)
                 : default;
-            if (_opaque is not null && glossy && waves != Vector3.Zero && _scene!.WaterReflection && _scene.WaterScene)
+            if (_opaque is not null && glossy && waves != Vector3.Zero && _scene!.WaterReflection && _scene.WaterScene && !_scene.Channelled)
             {
                 mirrored = Mirrored(waves, normal, x, y, away, specular, gloss, out environment, probed, ref ray);
             }
@@ -2587,6 +2587,14 @@ public static class MeshPicture
             ShadeProgram program, ShadeProgram.WaterOut water, Vector3 specular, float gloss, Vector3 place, Vector3 turn, Vector3 waves,
             int x, int y, float away, float held, int fragment, out float cover)
         {
+            // A CHANNEL VIEW LEAVES THE WATER'S LAYER OUT - CHOSEN: the engine draws its water in a pass of its own, which its material
+            // debug views are not read to reach, and the floor under it is what a channel is looked at for.
+            if (_scene!.Channelled)
+            {
+                cover = 0f;
+                return Vector3.Zero;
+            }
+
             Vector3 normal = turn.LengthSquared() > 1e-12f ? Vector3.Normalize(turn) : _toEye;
             if (Vector3.Dot(normal, _toEye) < 0f)
             {
