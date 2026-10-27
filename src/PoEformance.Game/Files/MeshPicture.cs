@@ -2394,7 +2394,14 @@ public static class MeshPicture
                         if (here && program.MixesGrounds)
                         {
                             (float green, Vector3 firstGround, Vector3 secondGround) = program.Mixed(registers);
-                            _probe!.Add(new ProbeGround(one, away, green, firstGround, secondGround, program.MixesByCorners));
+                            (float share, float firstHeight, float secondHeight) = program.MixesByHeights ? program.Heights(registers) : (green, 0f, 0f);
+                            _probe!.Add(new ProbeGround(one, away, green, firstGround, secondGround, program.MixesByCorners)
+                            {
+                                Share = share,
+                                ByHeights = program.MixesByHeights,
+                                FirstHeight = firstHeight,
+                                SecondHeight = secondHeight,
+                            });
                         }
                     }
                     else if (skinned)

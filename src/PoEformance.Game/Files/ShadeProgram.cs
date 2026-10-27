@@ -322,7 +322,7 @@ public sealed partial class ShadeProgram
     /// neither.
     /// </remarks>
     private static readonly string[] Channels =
-        ["UV", "WorldPos", "WorldNormal", "Albedo", "IndirectColor", "SpecularColor", "EmissiveColor", "SubsurfaceColor", "Glossiness", "TbnNormal", "TbnBasis"];
+        ["UV", "WorldPos", "WorldNormal", "Albedo", "IndirectColor", "SpecularColor", "EmissiveColor", "SubsurfaceColor", "Glossiness", "TbnNormal", "TbnBasis", "Height"];
 
     private const int FirstFollowed = 4;
 
@@ -606,6 +606,29 @@ public sealed partial class ShadeProgram
     /// </remarks>
     public ShadeProgram? Glossy { get; private set; }
 
+    /// <summary>The fragment whose macro turns the engine's ground height blending on for the whole ground shader (ground.ffx, EnableGroundHeightBlending).</summary>
+    internal const string HeightBlendingNode = "EnableGroundHeightBlending";
+
+    /// <summary>
+    /// The same program with the height its graphs write kept too - <see cref="HeightRegister"/> - and its own glossy twin; null where
+    /// no graph writes one.
+    /// </summary>
+    /// <remarks>
+    /// A TWIN, BECAUSE THE HEIGHT COSTS A TEXTURE READ. PBRGroundBN writes the height from the blue of its normal map through a
+    /// SmoothStep, which nothing on the way to the colour reads: only two grounds mixed by their heights (Grounds) want it, so a ground
+    /// drawn alone keeps the program it had. Not carried by <see cref="With"/>, as <see cref="Glossy"/> is not.
+    /// </remarks>
+    public ShadeProgram? Heighted { get; private set; }
+
+    /// <summary>The register the height is left in, or below nought for none - see <see cref="Heighted"/>.</summary>
+    internal int HeightRegister { get; private init; } = -1;
+
+    /// <summary>
+    /// Whether one of the graphs carries <see cref="HeightBlendingNode"/>, whose macro the engine defines for the whole ground shader the
+    /// material is compiled into - so two grounds are mixed by their heights where either says so (ground.ffx, GroundInterpolate).
+    /// </summary>
+    public bool BlendsGroundHeights { get; private set; }
+
     /// <summary>
     /// Whether the graphs set the colour's alpha, which a cut-out shape is then cut on instead of its texture's.
     /// </summary>
@@ -666,7 +689,11 @@ public sealed partial class ShadeProgram
             ["SubsurfaceColor"] = new(build.Constant(Vector4.Zero), 0),
             ["TbnNormal"] = new(build.Constant(new Vector4(0f, 0f, 1f, 0f)), 0),
             ["TbnBasis"] = new(Basis, 0),
+
+            // NOUGHT, as InitSurfaceData and GroundMaterialZero leave it: the height a ground mixed by its height weighs by - see Heighted.
+            ["Height"] = new(build.Constant(Vector4.Zero), 0),
         };
+        int noHeight = state["Height"].Register;
 
         // A FOLLOWED CHANNEL WHOSE WRITE WAS LEFT OUT, by the graph that wrote it - see Channels.
         var lost = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -848,6 +875,31 @@ public sealed partial class ShadeProgram
             program.Glossy = Finish(build, albedo.Register, specular, gloss, graphs, cutsOnAlpha, plainable: false);
         }
 
+        // THE HEIGHT, where a graph wrote one, in a twin of its own and its glossy twin - see Heighted.
+        if (program is not null)
+        {
+            program.BlendsGroundHeights = chain.Any(one => one.Graph.Nodes.Any(node => node.Type == HeightBlendingNode));
+            if (state.TryGetValue("Height", out Held raised) && raised.Register != noHeight)
+            {
+                int heightedSpecular = program.HasSpecular ? specular : -1;
+                ShadeProgram? heighted = Finish(build, albedo.Register, heightedSpecular, -1, graphs, cutsOnAlpha, plainable: false, height: raised.Register);
+                if (heighted is not null)
+                {
+                    heighted.BlendsGroundHeights = program.BlendsGroundHeights;
+                    if (program.Glossy is not null)
+                    {
+                        heighted.Glossy = Finish(build, albedo.Register, specular, gloss, graphs, cutsOnAlpha, plainable: false, height: raised.Register);
+                        if (heighted.Glossy is { } glossy)
+                        {
+                            glossy.BlendsGroundHeights = program.BlendsGroundHeights;
+                        }
+                    }
+                }
+
+                program.Heighted = heighted;
+            }
+        }
+
         return new ShadeCompile(program, skipped);
     }
 
@@ -895,6 +947,9 @@ public sealed partial class ShadeProgram
         {
             Mix = Mix,
             MixesByCorners = MixesByCorners,
+            Weighed = Weighed,
+            HeightRegister = HeightRegister,
+            BlendsGroundHeights = BlendsGroundHeights,
         };
     }
 
@@ -1572,7 +1627,7 @@ public sealed partial class ShadeProgram
 
     private static ShadeProgram? Finish(
         Builder build, int result, int specular, int gloss, List<string> graphs, bool hasAlpha, bool plainable, int waves = -1,
-        int waterFoam = -1, int waterState = -1)
+        int waterFoam = -1, int waterState = -1, int height = -1)
     {
         List<Step> steps = build.Steps;
         var live = new bool[build.Next];
@@ -1582,6 +1637,7 @@ public sealed partial class ShadeProgram
         Live(live, waves);
         Live(live, waterFoam);
         Live(live, waterState);
+        Live(live, height);
         var keep = new bool[steps.Count];
         for (int at = steps.Count - 1; at >= 0; at--)
         {
@@ -1703,7 +1759,10 @@ public sealed partial class ShadeProgram
         return new ShadeProgram(
             [.. kept], [.. constantAt], [.. constants], next, map[result], Mapped(map, specular), Mapped(map, gloss),
             named, [.. sampleTextures], plain >= 0 ? textureMap[plain] : -1, graphs, new Mipmaps?[named.Length], hasAlpha, Mapped(map, waves),
-            Mapped(map, waterFoam), Mapped(map, waterState));
+            Mapped(map, waterFoam), Mapped(map, waterState))
+        {
+            HeightRegister = Mapped(map, height),
+        };
     }
 
     private static void Live(bool[] live, int register)
@@ -2070,6 +2129,7 @@ public sealed partial class ShadeProgram
         "Glossiness" => "Glossiness",
         "TbnNormal" => "TbnNormal",
         "TbnBasis" => "TbnBasis",
+        "Height" => "Height",
         _ => null,
     };
 
@@ -2087,6 +2147,7 @@ public sealed partial class ShadeProgram
         "InputGlossiness" => "Glossiness",
         "InputTbnNormal" => "TbnNormal",
         "InputTbnBasis" => "TbnBasis",
+        "InputHeight" => "Height",
         _ => null,
     };
 
