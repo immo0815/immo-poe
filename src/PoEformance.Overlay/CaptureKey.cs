@@ -849,11 +849,13 @@ internal sealed class CaptureKey
                         : run.Overlay is not null ? (run.Overlay, "the game with the overlay - tick \"the game alone\" for a clean picture")
                         : ((byte[]?)null, "black - no picture of the game was taken");
                     string said = CaptureGroundScreen.Write(
-                        read, run.Snapshot, run.Loaded, run.Masters, shot, client.Width, client.Height, over, out GamePicture? picture, out GamePicture? corners, out GamePicture? heights);
+                        read, run.Snapshot, run.Loaded, run.Masters, shot, client.Width, client.Height, over, out GamePicture? picture, out GamePicture? corners, out GamePicture? heights,
+                        out GamePicture? choices);
                     File.WriteAllText(At(CaptureReport.GroundScreenFile), said);
                     foreach ((GamePicture? one, string file) in new[]
                     {
                         (picture, CaptureReport.GroundScreenShot), (corners, CaptureReport.GroundScreenCorners), (heights, CaptureReport.GroundScreenHeights),
+                        (choices, CaptureReport.GroundScreenChoices),
                     })
                     {
                         if (one is { } drawn)

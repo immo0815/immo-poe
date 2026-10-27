@@ -793,6 +793,7 @@ internal sealed class GroundPainter
                 Gridded = gridded,
                 Seconds = seconds,
                 Materials = [.. grounds.Select(one => Heaviest(one.Group))],
+                Choices = [.. grounds.Select(one => ChoicesOf(one.Group))],
             };
         }
 
@@ -806,6 +807,10 @@ internal sealed class GroundPainter
         string name = NameOf(groundType);
         return name.Length > 0 && _list.Groups.Any(group => string.Equals(group.Name, name, StringComparison.OrdinalIgnoreCase));
     }
+
+    /// <summary>A group's choices with their weights, in file order - nought for a lone choice, whose weight the file omits.</summary>
+    private static IReadOnlyList<(string Material, int Weight)> ChoicesOf(GroundGroup group)
+        => [.. group.Choices.Select((choice, at) => (choice.Material, at < group.Weights.Count ? group.Weights[at] : 0))];
 
     /// <summary>A group's heaviest choice - its only one where it has one.</summary>
     private static string Heaviest(GroundGroup group)
@@ -876,6 +881,9 @@ internal sealed record SubTileGrounds(IReadOnlyList<string> Corners, IReadOnlyLi
 
     /// <summary>The material each of <see cref="Grounds"/> is painted with - its group's heaviest choice, as Paint takes it.</summary>
     public IReadOnlyList<string> Materials { get; init; } = [];
+
+    /// <summary>Every material each of <see cref="Grounds"/>' groups offers, with its weight - what the game draws one from (CaptureGroundChoices).</summary>
+    public IReadOnlyList<IReadOnlyList<(string Material, int Weight)>> Choices { get; init; } = [];
 }
 
 /// <summary>

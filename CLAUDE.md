@@ -923,10 +923,26 @@ alone) that only a mix weighed by heights takes. The Monster Book's stage switch
 probe writes both heights and the share they came to. THE CAPTURE HOLDS IT AGAINST THE PICTURE TOO (v0.1.312, asked for from the live
 client): ground-on-screen's comparison (`CaptureGroundCompare`) weighs the mask's green and the corners' share by the two grounds'
 heights as the engine does - two candidates more, "mask by heights" and "corners by heights" - each ground's own program run at every
-measured pixel with its reads at the level the picture would take (`ShadeProgram.HeightReader`, the renderer's own rule per triangle:
+measured pixel with its reads at the level the picture would take (`ShadeProgram.GroundReader`, the renderer's own rule per triangle:
 a coarser level averages the blue's noughts away, so a height read at the top level is one the game never saw), on every core. Beside
 each pair it writes the heights - how often each ground's comes under a half, how far the weighing moved each share - and
 `ground-on-screen-heights.png` tints the picture by the mask weighed by the heights, the engine's own mix as its shaders write it.
+ITS FIRST CAPTURE (v0.1.312, Port's quay by the crates and sandbags) SETTLED IT FOR THE COBBLESTONE AND THE SAND: at the level the
+picture reads, both grounds' heights stand over a half on every one of 1,017,832 pixels, and the weighing moved neither share by
+anything (0.000) - the height blending changes nothing between them. It moves only against the ocean's black, which writes no height:
+IslandOcean + TropicalFill by 0.275 (mask) and 0.454 (corners), the group with no name + IslandOcean by 0.391 (corners) - the black
+giving way - and none of the four candidates follows the picture there better than the moved controls (the best, the mask's local
+contrast, +0.409 against +0.317 +/- 0.060). So the switch stays off by default, and what lays the cobblestones through the sand is not
+the mix: WHICH MATERIAL OF ITS GROUP THE GAME DRAWS is the next question. A group offers several with weights - Port's group with no
+name Cobblestone01 to 03 and CobblestoneDirt01 twice (30, 25, 40, 20, 20), TropicalFill DrySand01 to 03 (30, 45, 25) - while the
+painter takes the heaviest everywhere (`GroundPainter.Heaviest`). ground-on-screen measures it from v0.1.313 (`CaptureGroundChoices`):
+every material each sub-tile's groups offer is run at every pixel at the level the picture reads (`ShadeProgram.GroundReader`), and its
+brightness held against the picture's DETAIL - its brightness less its mean over nine by nine pixels, which the light, shadow and
+grade leave the pattern in - with the moved controls; a winner is clear three spreads over its moved ones and a twentieth over the
+next. Per group it writes how often each material won a sub-tile of that ground alone beside its weight, per piece its sub-tiles'
+winners (one winner throughout says the game chooses per tile), every sub-tile's every r, and `ground-on-screen-choices.png` tints each
+clear winner. No material lining up anywhere would question the coordinates themselves - the world times 0.004, the scale the
+environments write and the offset a pass uniform no file holds.
 THE MONSTER BOOK'S ARENA IS BUILT, AND LAID AS WRITTEN (`BuiltRoomModels`, said from the live client: "our harbour diorama is never
 the game's, always mirrored somehow"). The game lays the boss room each instance its own way - Port's build replays: turned 180 (the
 harbour at placement 0), turned 90 and mirrored (placement 4); v0.1.262's instance laid the harbour at placement 1, mirrored - while

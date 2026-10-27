@@ -58,6 +58,7 @@ public static class CaptureGroundScreen
     /// <param name="picture">The picture drawn over.</param>
     /// <param name="cornerPicture">The game's picture tinted by the corners' share of the second ground - see CaptureGroundCompare.</param>
     /// <param name="heightsPicture">The game's picture tinted by the mask's green weighed by the grounds' heights, the engine's own mix - see CaptureGroundCompare.</param>
+    /// <param name="choicesPicture">The game's picture tinted by the material of its group each sub-tile's pattern follows - see CaptureGroundChoices.</param>
     public static string Write(
         Func<string, byte[]?> read,
         WorldSnapshot snapshot,
@@ -69,7 +70,8 @@ public static class CaptureGroundScreen
         string pictureSaid,
         out GamePicture? picture,
         out GamePicture? cornerPicture,
-        out GamePicture? heightsPicture)
+        out GamePicture? heightsPicture,
+        out GamePicture? choicesPicture)
     {
         ArgumentNullException.ThrowIfNull(read);
         ArgumentNullException.ThrowIfNull(snapshot);
@@ -78,6 +80,7 @@ public static class CaptureGroundScreen
         picture = null;
         cornerPicture = null;
         heightsPicture = null;
+        choicesPicture = null;
         if (snapshot.Terrain is not { Tiles: not null } grid)
         {
             return "ground on screen: the area's tiles were not read\n";
@@ -222,6 +225,9 @@ public static class CaptureGroundScreen
         picture = canvas.Picture;
         string measured = CaptureGroundCompare.Measure(
             compared, matrix, width, height, bgr, material => paints.Heighted(read, material), out cornerPicture, out heightsPicture);
+        string chosenMaterials = CaptureGroundChoices.Measure(
+            [.. compared.Select(one => new CaptureGroundChoices.Piece(one.One, one.SubTiles))], matrix, width, height, bgr,
+            material => paints.Plain(read, material), out choicesPicture);
         var said = new StringBuilder();
         said.Append(string.Create(CultureInfo.InvariantCulture,
             $"ground on screen: {mixed} sub-tiles of two or more grounds on the screen, {wideOnes} of them with ground shapes across the mask's atlas; {laid.Count} pieces over tiles {x0}..{x1}, {y0}..{y1}"))
@@ -232,6 +238,7 @@ public static class CaptureGroundScreen
             .AppendLine();
         said.Append("how the files lie: ").AppendLine(ways);
         said.Append(measured);
+        said.Append(chosenMaterials);
         said.Append("grounds named by ").Append(chosen).Append("'s MaterialsList (").Append(painter.From)
             .AppendLine(") - of the area's masters, the one whose list names the most of the ground types at the laid pieces' corners:");
         foreach (string line in weighed)

@@ -102,6 +102,9 @@ public static class CaptureReport
     /// <summary>The game's picture tinted by the mask's green weighed by the grounds' heights - the engine's own mix; see CaptureGroundCompare.</summary>
     public const string GroundScreenHeights = "ground-on-screen-heights.png";
 
+    /// <summary>The game's picture tinted by the material of its group each sub-tile's pattern follows; see CaptureGroundChoices.</summary>
+    public const string GroundScreenChoices = "ground-on-screen-choices.png";
+
     /// <summary>What the water is drawn from - see CaptureWater.</summary>
     public const string WaterFile = "water.txt";
 
