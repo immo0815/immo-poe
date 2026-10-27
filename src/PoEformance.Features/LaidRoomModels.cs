@@ -972,7 +972,7 @@ public static class LaidRoomModels
 
             Vector2 inRoom = world - corner;
             into.Add((line, Matrix4x4.CreateScale(line.Scale > 0f ? line.Scale : 1f)
-                * Matrix4x4.CreateRotationZ(line.Turn)
+                * line.Turning
                 * turn
                 * Matrix4x4.CreateTranslation(inRoom.X, inRoom.Y, z)));
         }

@@ -111,6 +111,15 @@ line's −115, and seepage's offices drew right once every doodad was set at its
 on the ground. A doodad whose line carries no value stands on the ground. `RoomDoodad.Height`
 holds the value, and the Tile Book's "doodad z" button keeps the two wrong readings for comparison.
 
+The same lines carry a whole TURN, read past for a year: after the angle come four numbers, a unit quaternion x y z w, and the
+angle is only its turn about the vertical, `2 atan2(z, w)` - on every flat line of every capture held against it (Port, Augury,
+Marrow, Oasis, Steaming Springs, Steppe, Sulphuric, the Grotto, Traitor's Passage), while one line in ten or so also LEANS. A room's
+`.arm` from version 18 and a tile's `.tmd` alike. Port's harbour ladder showed it (v0.1.321, said from the live client with the game's
+picture beside the Monster Book's: the ladder stood up into the sky, a sack lay level in the air, carts floated): its `.tmd` line leans
+54 degrees, and drawn through `Matrix4x4.CreateFromQuaternion` and then the tile's turn, its box lies along the ladder the game drew
+against the barrels (`ATILESDoodadLeansByItsQuaternionWhereTheGameDrewIt`); the tilt reversed lies on the floor. `RoomDoodad.Rotation`
+holds it and `Turning` draws with it, the angle alone where a line carries no quaternion of unit length.
+
 ## The two screen-space systems
 
 The game projects to the screen in **two independent ways**, and mixing them up looks
@@ -972,6 +981,12 @@ on this capture's 256-texel textures: PORT'S FIVE COBBLESTONES ARE ONE LAYOUT, f
 picture shows - CobblestoneDirt01 round the player (c12r11 0.110 against Cobblestone03's 0.082, c13r11 0.084 against 0.057),
 Cobblestone03 at c12r8 (0.194 against CobblestoneDirt01's 0.154), the dense ones within 0.01 of each other at the pier's far end. The game
 does not draw the heaviest everywhere; whether it chooses per sub-tile, per tile or by some field is what the next capture's lines say.
+ITS CAPTURE (v0.1.319, Port's pier again) LINED EVERY CLEAR WINNER UP AT NO SHIFT, (0, 0): the tool's place of a pixel is the game's to
+within a cell of 2 units, so ground_scalemove_uv.zw is nought - MEASURED; the 16 units the offline reading needed were its flat plane's.
+Of the 16 sub-tiles of the group with no name alone on the screen, 4 had a clear winner - Cobblestone03 three (c12r14, c12r17, c13r19),
+CobblestoneDirt01 one (c12r15, 0.162 against 0.126) - and the rest stood within 0.01 of the next material; the two that win are the
+group's two heaviest (40, and 20 + 20), Cobblestone01 and 02 (30, 25) never. Whether the game draws one of them a sub-tile by weight
+or mixes them is not yet told.
 THE MONSTER BOOK'S ARENA IS BUILT, AND LAID AS WRITTEN (`BuiltRoomModels`, said from the live client: "our harbour diorama is never
 the game's, always mirrored somehow"). The game lays the boss room each instance its own way - Port's build replays: turned 180 (the
 harbour at placement 0), turned 90 and mirrored (placement 4); v0.1.262's instance laid the harbour at placement 1, mirrored - while
