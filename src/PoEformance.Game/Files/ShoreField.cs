@@ -14,7 +14,7 @@ namespace PoEformance.Game.Files;
 ///
 /// MADE HERE, and every part of it chosen: a grid of <see cref="CellSize"/> over the water and a margin; a cell is LAND where
 /// the room's ground rises above the water standing over it (or over the room's water level where no plane covers it), WATER
-/// otherwise; the shore's distance is each water cell's distance to the nearest land (exact, the grid's own Euclidean
+/// otherwise; the shore's distance is each water cell's distance to the nearest land that is shore and not a wall (exact, the grid's own Euclidean
 /// transform), negative on land by its distance to the water; a distance of <see cref="Reach"/> is one colour unit, so the
 /// swell's 25 periods over 2 pi put its crests <see cref="Reach"/> / 3.98 apart - 500, the beach waves' own length in
 /// effects.ffx; the length along the shore is nought (the swell's angle is nought where a file sets none) and the strength one,
@@ -39,6 +39,19 @@ namespace PoEformance.Game.Files;
 /// waves' way in breaking off along its edge. Now a triangle stands in the way where it itself runs from above the water to under it,
 /// and the cells it does so in are those its WATERLINE runs through - where it meets the water's plane, walked cell by cell, so a
 /// sheer wall, which covers no cell's middle, stands in the way all the same, and a hull's waterline closes round it.
+///
+/// A WALL OUT OF DEEP WATER IS NO SHORE (v0.1.299, CHOSEN from the live client, "the channel by the quay stays white"). The field
+/// waves' foam is GetFieldFoamProfile's, which adds <c>saturate(exp(-(shore_dist - 150) / 100)) * 0.7</c> - whole foam within 150
+/// units of the shore, whatever the crests do - to a breaking foam of 0.4 to 0.7 where the shore is near (its break phase
+/// <c>1 - shore_dist / 5000</c>). Measured off Port's capture (v0.1.296) the channel between the ship and the quay is some 300 to
+/// 450 units across, so with the quay as shore the whole of it stood white (said from the live client: "always white"). The game draws it blue-green between crests, and the
+/// pier's sheltered side dark to its wall (the in-game videos of v0.1.295) - which that formula allows only where the wall is no
+/// shore. So land counts towards the shore's distance where ground lies beside it under no more than <see cref="BeachDeep"/> of
+/// water - the beach's own band - or where what stands in the sea stands; land meeting only deeper water is a WALL
+/// (<see cref="WallCells"/>). Port's ground under its water lies 55 units deep at most or more than 300 (its capture's beach,
+/// 21 to 176 against a level of 125), so any depth between splits it alike. The way in still runs to every land, walls included:
+/// the crests come along the channel and up to the quay. What the engine marks as its shore is its OceanMarkupField, made from an
+/// int grid ClientTileMap::CalculateMapMarkup fills (the program's strings) - read nowhere yet.
 /// </remarks>
 public sealed class ShoreField
 {
@@ -68,11 +81,16 @@ public sealed class ShoreField
     /// <summary>Whether each cell stood in the waves' way - see <see cref="Of"/>.</summary>
     private readonly bool[] _blocked;
 
+    /// <summary>Whether each cell is a wall - land meeting only deep water, no shore - see the remarks.</summary>
+    private readonly bool[] _walls;
+
     private ShoreField(
         float left, float top, float cell, int width, int height, float[] texels, float level, int land, int waterTriangles, int groundTriangles,
         int standingTriangles, int standingCells, float[] beach, int blockingTriangles, int crossingTriangles, int blockedCells, int travelled,
-        int unreached, bool[] blocked, IReadOnlyDictionary<int, int> crossingShapes)
+        int unreached, bool[] blocked, IReadOnlyDictionary<int, int> crossingShapes, bool[] walls, int wallCells)
     {
+        _walls = walls;
+        WallCells = wallCells;
         _blocked = blocked;
         BlockingTriangles = blockingTriangles;
         CrossingTriangles = crossingTriangles;
@@ -133,6 +151,12 @@ public sealed class ShoreField
 
     /// <summary>Whether a cell, row by row, stood in the waves' way: something crosses the water's surface there.</summary>
     public bool InTheWay(int cell) => _blocked[cell];
+
+    /// <summary>How many land cells meet the water as a wall - only water deeper than <see cref="BeachDeep"/> beside them - and are no shore.</summary>
+    public int WallCells { get; }
+
+    /// <summary>Whether a cell, row by row, is a wall: land meeting only deep water, from which the shore's distance is not measured.</summary>
+    public bool IsWall(int cell) => _walls[cell];
 
     /// <summary>The box's least x.</summary>
     public float Left { get; }
@@ -250,18 +274,22 @@ public sealed class ShoreField
         int standingTriangles = 0;
         float[]? standingTop = standing is null ? null : Covered(mesh, standing, least, cell, width, height, out standingTriangles);
         var land = new bool[width * height];
+        var shoreLand = new bool[land.Length];
         var lands = 0;
         var standingCells = 0;
         for (var at = 0; at < land.Length; at++)
         {
             float surface = float.IsNaN(waterTop[at]) ? level : waterTop[at];
             land[at] = !float.IsNaN(groundTop[at]) && groundTop[at] < surface - 1f;
-            if (!land[at] && standingTop is not null && !float.IsNaN(standingTop[at]) && standingTop[at] < surface - 1f)
+            bool stands = standingTop is not null && !float.IsNaN(standingTop[at]) && standingTop[at] < surface - 1f;
+            if (!land[at] && stands)
             {
                 land[at] = true;
                 standingCells++;
             }
 
+            // WHAT STANDS IN THE SEA IS SHORE whatever the water beside it (v0.1.236).
+            shoreLand[at] = stands;
             lands += land[at] ? 1 : 0;
         }
 
@@ -269,6 +297,8 @@ public sealed class ShoreField
         {
             return null;
         }
+
+        int walls = Walled(land, shoreLand, groundTop, waterTop, level, width, height, out bool[] wall);
 
         // THE BEACH'S BAND, CHOSEN: the ground from BeachDeep under the water standing over it to BeachHigh above it.
         var beach = new float[land.Length];
@@ -297,13 +327,18 @@ public sealed class ShoreField
             }
         }
 
+        // THE WAY IN RUNS TO ANY LAND, walls included - the crests run along a channel and up to a quay - while the shore's distance
+        // is to the shore alone (see the remarks).
+        float[] toShore = walls == 0 ? toLand : Distances(shoreLand, width, height, true);
+        var nearLand = new float[land.Length];
         var shores = new float[land.Length];
         for (var at = 0; at < land.Length; at++)
         {
-            shores[at] = (land[at] ? -toWater[at] : toLand[at]) * cell;
+            nearLand[at] = (land[at] ? -toWater[at] : toLand[at]) * cell;
+            shores[at] = land[at] ? nearLand[at] : toShore[at] * cell;
         }
 
-        float[] oceans = Oceans(shores, land, blocked, width, height, cell, out int travelled, out int unreached);
+        float[] oceans = Oceans(nearLand, land, blocked, width, height, cell, out int travelled, out int unreached);
         var texels = new float[width * height * 2];
         for (var at = 0; at < land.Length; at++)
         {
@@ -313,7 +348,64 @@ public sealed class ShoreField
 
         return new ShoreField(
             least.X, least.Y, cell, width, height, texels, level, lands, waterTriangles, groundTriangles, standingTriangles, standingCells, beach,
-            blockingTriangles, crossingTriangles, blockedCells, travelled, unreached, blocked, crossingShapes);
+            blockingTriangles, crossingTriangles, blockedCells, travelled, unreached, blocked, crossingShapes, wall, walls);
+    }
+
+    /// <summary>
+    /// Which land is shore and which a wall: land is shore where what stands in the sea stands on it (<paramref name="shoreLand"/>,
+    /// set already) or where a water cell beside it, of its eight, has ground under it no deeper than <see cref="BeachDeep"/> - and
+    /// a wall where it meets the water and neither holds. Land that meets no water is neither. Fills the rest of
+    /// <paramref name="shoreLand"/> and returns the walls' count.
+    /// </summary>
+    private static int Walled(
+        bool[] land, bool[] shoreLand, float[] groundTop, float[] waterTop, float level, int width, int height, out bool[] wall)
+    {
+        wall = new bool[land.Length];
+        var walls = 0;
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                int at = (y * width) + x;
+                if (!land[at] || shoreLand[at])
+                {
+                    continue;
+                }
+
+                bool meets = false, gentle = false;
+                for (int dy = -1; dy <= 1 && !gentle; dy++)
+                {
+                    for (int dx = -1; dx <= 1; dx++)
+                    {
+                        int nx = x + dx, ny = y + dy;
+                        if ((dx == 0 && dy == 0) || nx < 0 || ny < 0 || nx >= width || ny >= height)
+                        {
+                            continue;
+                        }
+
+                        int next = (ny * width) + nx;
+                        if (land[next])
+                        {
+                            continue;
+                        }
+
+                        meets = true;
+                        float surface = float.IsNaN(waterTop[next]) ? level : waterTop[next];
+                        if (!float.IsNaN(groundTop[next]) && groundTop[next] <= surface + BeachDeep)
+                        {
+                            gentle = true;
+                            break;
+                        }
+                    }
+                }
+
+                shoreLand[at] = gentle;
+                wall[at] = meets && !gentle;
+                walls += wall[at] ? 1 : 0;
+            }
+        }
+
+        return walls;
     }
 
     /// <summary>
