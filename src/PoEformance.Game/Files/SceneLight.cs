@@ -371,6 +371,15 @@ public sealed class SceneLight
     /// </remarks>
     public float WaterLift { get; init; }
 
+    /// <summary>
+    /// Whether the engine's field waves are drawn on the water - its breakers every five seconds (ShadeProgram.Field); the card's alone.
+    /// </summary>
+    /// <remarks>
+    /// THEIR CREST LIFTS THE WATER AT THE ENGINE'S OWN HEIGHT, whatever <see cref="WaterLift"/> says: CrashingWavesVertex moves its
+    /// vertices, as the beach waves' do. The processor's picture draws none, and the line under it says so.
+    /// </remarks>
+    public bool WaterCrash { get; init; }
+
     /// <summary>env_map_rotation: what a normal is put through before the cube is read - the world's axes as the cube's unless the environment turns it, see <see cref="CubeTurnFrom"/>.</summary>
     public Matrix4x4 CubeTurn { get; init; } = CubeSwap;
 

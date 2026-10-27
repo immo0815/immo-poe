@@ -2423,6 +2423,30 @@ internal static class Program
             PoEformance.Game.Files.WaterLookups.Read(installed is null ? null : installed.Read);
         PoEformance.Game.Files.ShadeProgram.Use(waterLookups);
 
+        // THE FIELD WAVES' FOAM - the beach graph's two sheets, 2048 and 1024 square - decoded off this thread: the card draws white
+        // foam until they are in (ShadeProgram.UseFieldFoam), and the startup does not wait on them.
+        if (installed is not null)
+        {
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    PoEformance.Game.Files.Mipmaps? Sheet(string path) =>
+                        PoEformance.Game.Files.GameArt.ReadRaw(installed.Read, path) is { Length: > 0 } raw
+                            ? PoEformance.Game.Files.Mipmaps.Of(PoEformance.Game.Files.GameArt.Decode(raw))
+                            : null;
+                    PoEformance.Game.Files.ShadeProgram.UseFieldFoam(
+                        Sheet(PoEformance.Game.Files.ShadeProgram.FieldFoamColourPath),
+                        Sheet(PoEformance.Game.Files.ShadeProgram.FieldFoamNormalPath),
+                        "the beach graph's foam did not read");
+                }
+                catch (Exception failed) when (failed is IOException or InvalidDataException or UnauthorizedAccessException)
+                {
+                    PoEformance.Game.Files.ShadeProgram.UseFieldFoam(null, null, failed.Message);
+                }
+            });
+        }
+
         // THE INSTALL'S OWN OODLE for a wobble core's rig - a ship's sway (WobbleRig.Unpacker); the managed decoder does not read it.
         PoEformance.Features.WobbleRig.Unpacker = installed is null ? null : installed.Unpack;
         Console.WriteLine($"water    {waterLookups.Summary}");
@@ -3461,9 +3485,12 @@ internal static class Program
                     new PoEformance.Game.Files.BundleIndex.WalkPlace(
                         string.Empty, [TextureExtension], PoEformance.Features.CaptureWaterTextures.Words),
 
-                    // AND EVERY OBJECT SCRIPT, for the capture's water shore part: which of them block the water.
+                    // AND EVERY OBJECT SCRIPT, GROUND TYPE AND MASTER'S LIST, and every data table, for the capture's water shore part:
+                    // which of them block the water or mark the ocean.
                     new PoEformance.Game.Files.BundleIndex.WalkPlace(
                         PoEformance.Features.CaptureWaterShore.Folder, PoEformance.Features.CaptureWaterShore.Extensions),
+                    new PoEformance.Game.Files.BundleIndex.WalkPlace(
+                        PoEformance.Features.CaptureWaterShore.TableFolder, [PoEformance.Features.CaptureWaterShore.TableExtension]),
 
                     // AND EVERY PATH NAMING A WOBBLE, for the capture's wobble files part: what sways Port's ship.
                     .. PoEformance.Features.CaptureWobble.Folders.Select(folder =>
@@ -3478,8 +3505,9 @@ internal static class Program
                 overlay.MaterialFiles = found[3];
                 overlay.EnvironmentFiles = found[4];
                 overlay.WaterTextureFiles = found[5];
-                overlay.ObjectScripts = found[6];
-                overlay.WobblePaths = [.. found.Skip(7).SelectMany(one => one).Distinct(StringComparer.OrdinalIgnoreCase)];
+                overlay.ShoreFiles = [.. found[6], .. found[0]];
+                overlay.DataTables = found[7];
+                overlay.WobblePaths = [.. found.Skip(8).SelectMany(one => one).Distinct(StringComparer.OrdinalIgnoreCase)];
                 overlay.TileFiles = tiles;
             });
         }

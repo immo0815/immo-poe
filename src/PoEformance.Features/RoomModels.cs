@@ -553,14 +553,19 @@ public static class RoomModels
 
     /// <summary>
     /// A room's shore from its water and its ground, and - once its materials are compiled - what stands in the sea: every shape whose
-    /// program draws the sea's spray on it (ShadeProgram.Sprays). See ShoreField.Of.
+    /// program draws the sea's spray on it (ShadeProgram.Sprays). What may stand in the waves' way is every solid shape that is neither
+    /// water, the ground nor the beach's sheet - the ship's hull among them (CHOSEN, see ShoreField's remarks). See ShoreField.Of.
     /// </summary>
     internal static ShoreField? ShoreOf(SkinnedMesh mesh, IReadOnlyList<string> modes, IReadOnlyList<string> sources, IReadOnlyList<ShadeProgram?>? shades)
         => ShoreField.Of(
             mesh,
             shape => shape < modes.Count && modes[shape] == "water",
             shape => shape < sources.Count && sources[shape].StartsWith(GroundSource, StringComparison.Ordinal),
-            shades is null ? null : shape => shape < shades.Count && shades[shape] is { Sprays: true });
+            shades is null ? null : shape => shape < shades.Count && shades[shape] is { Sprays: true },
+            shape => shape < modes.Count && shape < sources.Count
+                && MaterialBlends.Of(modes[shape]) is MaterialBlend.Opaque or MaterialBlend.Cutout
+                && !sources[shape].StartsWith(GroundSource, StringComparison.Ordinal)
+                && sources[shape] != BeachSource);
 
     /// <summary>What the beach waves' sheet is named as the source of its shape - see <see cref="Piled"/>.</summary>
     internal const string BeachSource = "the beach waves' sheet over the shore's ground";

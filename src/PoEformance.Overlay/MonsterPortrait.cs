@@ -539,6 +539,9 @@ public sealed class MonsterPortrait
     private string _waterSaid = string.Empty;
 
     private WaterLook _waterSaidFor;
+
+    /// <summary>Whether the line was made with the field waves drawn - the card's, with the light's crash switch on.</summary>
+    private bool _waterSaidCrash;
     private Vector3[] _posed = [];
     private Vector3[] _posedNormals = [];
 
@@ -2177,15 +2180,18 @@ public sealed class MonsterPortrait
         if (_wearsWater)
         {
             WaterLook water = Watered();
-            if (_waterSaid.Length == 0 || water != _waterSaidFor)
+            bool crashing = _onCard && _drawnLight is { WaterCrash: true };
+            if (_waterSaid.Length == 0 || water != _waterSaidFor || crashing != _waterSaidCrash)
             {
                 _waterSaidFor = water;
+                _waterSaidCrash = crashing;
                 _waterSaid = ImGuiText.Escape(water.Line() + " (its colour's pattern a moving noise; its waves the engine's ocean ripples, three octaves"
                     + " rolling in the wind - " + ShadeProgram.Ripples.Said + "; the wind's way, height, speed and"
                     + " directionness the engine's former constants where the file sets none, a reading until measured, its way turned by the light"
                     + " panel's wind; the swell rolling in to the shore the engine's formula over a shore made here from the room's ground and what"
-                    + " stands in the sea (the shapes whose material sprays: the rocks and the pier's stones, not the ship), CHOSEN"
-                    + " until the engine's is read - " + ShadeProgram.Swells.Said + "; its foam the engine's trail foam (GetFoamColor3) from the"
+                    + " stands in the sea (the shapes whose material sprays: the rocks and the pier's stones), CHOSEN until the engine's is read,"
+                    + " down a way in from the open sea round whatever crosses the water - the ship's hull among it - CHOSEN until the engine's"
+                    + " OceanMarkupField is read - " + ShadeProgram.Swells.Said + "; its foam the engine's trail foam (GetFoamColor3) from the"
                     + " cross-section's green and alpha, none where the stand-in stands, its leading edge's textured layers and the orbit's"
                     + " offsets not drawn; what stands in it sprayed and wetted as its own material says (CrashingFoamSurface: a crashing wave"
                     + " every five seconds running up from the water's line, over the same CHOSEN shore); their glints and reflection under the game light, by the light"
@@ -2201,6 +2207,11 @@ public sealed class MonsterPortrait
                           + " out of it, at the engine's own height (" + water.HeightOffset.ToString("0.##", CultureInfo.InvariantCulture) + " the area's offset), the sea measuring its depth to"
                           + " it - the sheet, the shore's distances (its travel half a wave less, so the waves break at the waterline) and the film's"
                           + " colour (the area's water) CHOSEN; its refraction, caustics, wet sand and spray not drawn"
+                        : string.Empty)
+                    + (crashing
+                        ? "; the field waves the engine's (CrashingWavesVertex and CrashingWavesFragment as written): breakers every five seconds"
+                          + " rolling in down the way in and breaking as they near the shore - over " + ShadeProgram.FieldSaid + "; laid on the room's"
+                          + " own water, lifted by the crest and the area's offset, the foam over it as the swell's - CHOSEN; the card's alone"
                         : string.Empty));
             }
 

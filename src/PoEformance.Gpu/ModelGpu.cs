@@ -123,6 +123,9 @@ public sealed partial class ModelGpu : IDisposable
     private ID3D11Texture2D _beachNoise;
     private ID3D11ShaderResourceView _beachNoised;
     private WaterSheet _beachNoiseOf;
+    private ID3D11Texture2D _fieldProfile;
+    private ID3D11ShaderResourceView _fieldProfiled;
+    private WaterSheet _fieldProfileOf;
     private ID3D11Texture2D _ripples;
     private ID3D11ShaderResourceView _rippled;
     private WaterSheet _ripplesOf;
@@ -190,6 +193,8 @@ public sealed partial class ModelGpu : IDisposable
         (_beachProfile, _beachProfiled) = Sheet(device, _beachProfileOf, Format.R32G32B32A32_Float);
         _beachNoiseOf = ShadeProgram.BeachNoise;
         (_beachNoise, _beachNoised) = Sheet(device, _beachNoiseOf, Format.R32G32B32A32_Float);
+        _fieldProfileOf = ShadeProgram.FieldProfile;
+        (_fieldProfile, _fieldProfiled) = Sheet(device, _fieldProfileOf, Format.R32G32B32A32_Float);
         _ripplesOf = ShadeProgram.Ripples;
         (_ripples, _rippled) = Sheet(device, _ripplesOf, Format.R32G32B32A32_Float);
         _swellsOf = ShadeProgram.Swells;
@@ -465,6 +470,11 @@ public sealed partial class ModelGpu : IDisposable
         SceneLight? light = scene.Light;
         float lift = light?.WaterLift ?? 0f;
 
+        // THE FIELD WAVES, THE CARD'S ALONE (ShadeProgram.Field): their crest lifts the water whatever the lift, so the water is drawn
+        // lifted - its vertices moved and as one surface - wherever they are on.
+        bool crash = light?.WaterCrash ?? false;
+        bool lifting = lift > 0f || crash;
+
         // EVERY PROGRAM'S SHADER IN HAND BEFORE ANYTHING IS DRAWN, so a picture is never half the card's.
         if (_runShaders.Length < plan.Runs.Length)
         {
@@ -530,7 +540,7 @@ public sealed partial class ModelGpu : IDisposable
             Flow = (scene.Water ?? WaterLook.EngineDefault).FlowRegister with { W = lift },
             Wind = (scene.Water ?? WaterLook.EngineDefault).WindRegister,
             Shore = (scene.Water ?? WaterLook.EngineDefault).ShoreRegister,
-            Swell = (scene.Water ?? WaterLook.EngineDefault).SwellRegister,
+            Swell = (scene.Water ?? WaterLook.EngineDefault).SwellRegister with { W = crash ? 1f : 0f },
         });
 
         context.RSSetState(_raster);
@@ -561,6 +571,13 @@ public sealed partial class ModelGpu : IDisposable
         context.VSSetShaderResource(ModelShaders.BeachProfileSlot, _beachProfiled);
         context.PSSetShaderResource(ModelShaders.BeachNoiseSlot, _beachNoised);
         context.VSSetShaderResource(ModelShaders.BeachNoiseSlot, _beachNoised);
+        context.PSSetShaderResource(ModelShaders.FieldProfileSlot, _fieldProfiled);
+        context.VSSetShaderResource(ModelShaders.FieldProfileSlot, _fieldProfiled);
+
+        // THE FIELD WAVES' FOAM, uploaded the first time the waves are drawn with them on - two sheets with their levels.
+        bool fielded = crash && Array.Exists(plan.Programs, one => one.HasWaves);
+        context.PSSetShaderResource(ModelShaders.FieldFoamColourSlot, fielded ? Skin(ShadeProgram.FieldFoamColour).View : null!);
+        context.PSSetShaderResource(ModelShaders.FieldFoamNormalSlot, fielded ? Skin(ShadeProgram.FieldFoamNormal).View : null!);
         ID3D11ShaderResourceView? shoreView = scene.Water?.Shore is { } shore ? Shored(shore).View : null;
         context.PSSetShaderResource(ModelShaders.ShoreSlot, shoreView!);
         context.VSSetShaderResource(ModelShaders.ShoreSlot, shoreView!);
@@ -622,7 +639,7 @@ public sealed partial class ModelGpu : IDisposable
 
             // THE LIFTED WATER AS ONE SURFACE where its first run comes - see Surfaced. A card that cannot copy its
             // depth back draws it as any mixed shape.
-            bool surface = lift > 0f && FeatureLevel >= FeatureLevel.Level_10_1 && Array.Exists(plan.Runs, one => Sea(one, plan));
+            bool surface = lifting && FeatureLevel >= FeatureLevel.Level_10_1 && Array.Exists(plan.Runs, one => Sea(one, plan));
             var surfaced = false;
             for (var at = 0; at < plan.Runs.Length; at++)
             {
@@ -667,7 +684,7 @@ public sealed partial class ModelGpu : IDisposable
                 }
 
                 // THE WATER LIFTED BY ITS WAVES - MeshPicture.Lifted - where the game light asks for it.
-                bool waves = lift > 0f && run.Shade >= 0 && plan.Programs[run.Shade].HasWaves;
+                bool waves = lifting && run.Shade >= 0 && plan.Programs[run.Shade].HasWaves;
                 if (waves != lifted)
                 {
                     context.VSSetShader(waves ? _placedWaves : _placed);
@@ -894,6 +911,8 @@ public sealed partial class ModelGpu : IDisposable
         _beachProfile.Dispose();
         _beachNoised.Dispose();
         _beachNoise.Dispose();
+        _fieldProfiled.Dispose();
+        _fieldProfile.Dispose();
         _placed.Dispose();
         if (_owns)
         {
@@ -1638,6 +1657,15 @@ public sealed partial class ModelGpu : IDisposable
             _beachNoise.Dispose();
             (_beachNoise, _beachNoised) = Sheet(_device, noise, Format.R32G32B32A32_Float);
             _beachNoiseOf = noise;
+        }
+
+        WaterSheet field = ShadeProgram.FieldProfile;
+        if (!ReferenceEquals(field, _fieldProfileOf))
+        {
+            _fieldProfiled.Dispose();
+            _fieldProfile.Dispose();
+            (_fieldProfile, _fieldProfiled) = Sheet(_device, field, Format.R32G32B32A32_Float);
+            _fieldProfileOf = field;
         }
     }
 

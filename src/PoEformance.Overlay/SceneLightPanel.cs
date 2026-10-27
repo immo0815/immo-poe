@@ -110,6 +110,7 @@ public sealed class SceneLightPanel : IMovableSun
     private bool _glints = true;
     private bool _reflection = true;
     private bool _mirroring = true;
+    private bool _crash = true;
     private float _lift = 1f;
 
     /// <summary>How far the ocean ripples' wind is turned from the area's own way, in degrees - see <see cref="Water"/>.</summary>
@@ -248,6 +249,7 @@ public sealed class SceneLightPanel : IMovableSun
             WaterGlints = _glints,
             WaterReflection = _reflection,
             WaterScene = _mirroring,
+            WaterCrash = _crash,
             WaterLift = _lift,
             CubeTurn = SceneLight.CubeTurnFrom(env.HorAngle ?? 0f, env.VertAngle ?? 0f, (SceneLight.CubeReading)_cubeReading),
             CubeBrightness = env.EnvBrightness ?? 1f,
@@ -313,7 +315,13 @@ public sealed class SceneLightPanel : IMovableSun
         Switch("scene##scene-mirror", ref _mirroring,
             "The waves' reflection takes in the picture itself where its ray meets it - the engine's screen-space reflection (CastScreenRay):"
             + " twenty steps of a fiftieth of the picture, a surface hit where it lies in front of the ray by less than fifty units, its share fading"
-            + " into the cube's the farther the hit. The ship and the pier in the water. Only with reflection on.", row, null);
+            + " into the cube's the farther the hit. The ship and the pier in the water. Only with reflection on.", row, "crash");
+        Switch("crash##scene-crash", ref _crash,
+            "The engine's field waves (CrashingWavesVertex and CrashingWavesFragment, ported as written): white-crested breakers every five"
+            + " seconds, a wave of 1,000 units rolling in at 200 a second down the waves' way in from the open sea, breaking as they near the"
+            + " shore - the water lifted by their crest, its foam laid over it. Measured off the game's own videos of Port, 4.9 to 5.1 s apart."
+            + " CHOSEN: on the room's own water, their wave shape gerstner_wave_profile.dds, their noise and foam the beach's. Drawn by the card alone.",
+            row, null);
         float liftWidth = ImGui.GetFontSize() * 7f;
         OverlayLayout.Flow(ImGui.CalcTextSize("lift").X + ImGui.GetStyle().ItemSpacing.X + liftWidth, right, start);
         Named("lift");

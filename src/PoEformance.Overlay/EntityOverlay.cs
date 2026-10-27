@@ -1981,15 +1981,27 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         }
     }
 
-    /// <summary>The install's object scripts, for the capture's water shore part - see CaptureWaterShore.</summary>
+    /// <summary>The install's files the capture's water shore part searches - see CaptureWaterShore.</summary>
     /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
-    public IReadOnlyList<string> ObjectScripts
+    public IReadOnlyList<string> ShoreFiles
     {
-        get => _capture.ObjectScripts;
+        get => _capture.ShoreFiles;
         set
         {
             ArgumentNullException.ThrowIfNull(value);
-            _capture.ObjectScripts = value;
+            _capture.ShoreFiles = value;
+        }
+    }
+
+    /// <summary>The install's data tables, for the capture's water shore part - see CaptureWaterShore.</summary>
+    /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
+    public IReadOnlyList<string> DataTables
+    {
+        get => _capture.DataTables;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _capture.DataTables = value;
         }
     }
 
