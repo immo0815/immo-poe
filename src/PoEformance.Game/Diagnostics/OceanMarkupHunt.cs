@@ -55,6 +55,9 @@ public static class OceanMarkupHunt
     /// <summary>The tile multiples a grid may be laid at: whole tiles, the shoreline's resolutions, sub-tiles and cells.</summary>
     private static readonly int[] Multiples = [1, 2, 3, 4, 6, 8, 12, 16, 23, 46];
 
+    /// <summary>The cell steps a grid may be laid at - a grid of one value a k by k cells.</summary>
+    private static readonly int[] CellSteps = [2, 3, 4, 6, 8];
+
     /// <summary>The element sizes a vector is read as.</summary>
     private static readonly int[] Sizes = [1, 2, 4, 8, 16];
 
@@ -218,7 +221,15 @@ public static class OceanMarkupHunt
         {
             shapes.Add(new Shape("cells", layers.Width, layers.Rows));
             shapes.Add(new Shape("cell corners", layers.Width + 1, layers.Rows + 1));
-            shapes.Add(new Shape("half cells", layers.Width / 2, layers.Rows / 2));
+
+            // A CELL IN EVERY k EACH WAY (v0.1.303): Port's terrain holds a grid of one byte a three by three cells at +0x6D8 (1127 x 483,
+            // the Canal Hideout's 460 x 460) that v0.1.302 listed and could not draw.
+            foreach (int every in CellSteps)
+            {
+                int across = (layers.Width + every - 1) / every, down = (layers.Rows + every - 1) / every;
+                shapes.Add(new Shape($"cells / {every}", across, down));
+                shapes.Add(new Shape($"cell corners / {every}", across + 1, down + 1));
+            }
         }
 
         return [.. shapes.Distinct()];

@@ -24,16 +24,17 @@
   </PropertyGroup>
 
   <!--
-    FIVE SixLabors.ImageSharp ADVISORIES, published 2026-10-07, that do not reach this tool -
-    suppressed one by one, so a sixth still fails the restore the way these did (NU1902/NU1903 as
-    errors, which stopped publish, CI and every pull request at once).
+    SIX SixLabors.ImageSharp ADVISORIES, five published 2026-10-07 and one (v76p) by 2026-10-26,
+    that do not reach this tool - suppressed one by one, so a seventh still fails the restore the
+    way these did (NU1902/NU1903 as errors, which stopped publish, CI and every pull request at once).
 
-    WHY NOT THE FIX. Every one is fixed only in 4.1.2; no 3.1.x after 3.1.12 exists. ImageSharp 4
-    refuses to build a Release without a Six Labors license key (its build targets fail every
-    configuration but Debug), and ClickableTransparentOverlay 11.1.0 - the newest - is compiled
-    against 3.x, so a 4.x underneath it fails at run time if anything it calls moved. Taking 4.x is
-    a decision about a license, not a version bump. Drop these lines when either changes: a fixed
-    3.1.x ships, or the tool moves to 4.x.
+    WHY NOT THE FIX. Every one is fixed in 3.2.0 and 4.1.2, and neither builds a Release without a
+    Six Labors license key: 3.2.0's build targets carry the same SixLabors.Licensing
+    ValidateLicenseTask as 4.x, an error in every configuration but Debug (read from the 3.2.0
+    package, 2026-10-27). ClickableTransparentOverlay 11.1.0 - the newest - is compiled against 3.x,
+    so a 4.x underneath it fails at run time if anything it calls moved. Taking either is a decision
+    about a license, not a version bump. Drop these lines when the tool takes a license key, or a
+    fixed 3.x ships without the check.
 
     WHY EACH DOES NOT REACH IT. Checked against the 3.1.12 source, not assumed:
     - gwg2: ICC CLUT tables allocated from unchecked sizes. 3.1.12 keeps a profile's bytes and
@@ -44,6 +45,10 @@
     - wmxv: the BigTIFF reader looping on a malformed entry count. Every decode names a
       configuration without TIFF (IconCache.WithoutTiff; IconBaker decodes PNG only), so no
       file anybody points a setting at reaches that reader.
+    - v76p: a tiled fax TIFF writing past its tile buffer while DECODING. The same ground as wmxv:
+      no decode names a configuration with TIFF. The one decode on the default configuration is
+      ClickableTransparentOverlay's AddOrGetImagePointer taking a file path, and nothing calls it -
+      every texture goes through the overload taking an already decoded image.
   -->
   <ItemGroup>
     <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-gwg2-r3hj-4w44" />
@@ -51,6 +56,7 @@
     <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-j9gm-c75j-xc9q" />
     <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-jjfr-hcj7-qf5w" />
     <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-wmxv-xphr-5c9g" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-v76p-62qx-wwq2" />
   </ItemGroup>
 
 </Project>
