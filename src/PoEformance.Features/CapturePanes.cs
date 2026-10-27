@@ -204,13 +204,16 @@ public static class CapturePanes
             .Append(CultureInfo.InvariantCulture,
                 $"the shore's distance {least:0.###} to {most:0.###} colour units, one being {ShoreField.Reach:0} - CHOSEN, the engine makes its own; picture {picture}, ")
             .AppendLine("row nought the least y, land brown by how far in, the walls grey, water blue by how far out, the shoreline white");
+        ShoreField round = shore.Way(true);
+        string way = Path.ChangeExtension(picture, null);
         body.Append(CultureInfo.InvariantCulture,
-                $"  way in	the distance out to sea the waves run down (ocean_dist): the shore's in the open sea, {ShoreField.Deep:0} or more from land or at the field's edge, and inside it the way a wave travels from there through the water - CHOSEN until the engine's OceanMarkupField is read; ")
+                $"  way in	the distance out to sea the waves run down (ocean_dist): the open sea's, {ShoreField.Deep:0} or more from land or at the field's edge, and inside it the way a wave travels from there through the water - CHOSEN until the engine's OceanMarkupField is read; ")
             .Append(CultureInfo.InvariantCulture,
-                $"{shore.BlockedCells} water cells in the waves' way (of {shore.BlockingTriangles} solid triangles asked, {shore.CrossingTriangles} crossing the water's surface: the cells their waterlines run through), {shore.Travelled} cells' way in shorter than their shore's distance, {shore.Unreached} reached by no way; ")
+                $"BY THE GROUND ALONE, the default from v0.1.307: {shore.Travelled} cells' way in shorter than their distance to the ground, {shore.Unreached} reached by no way, picture {way}-way.png; ")
+            .Append(CultureInfo.InvariantCulture,
+                $"ROUND WHAT STANDS IN THE WATER as well, the light panel's \"way round\": {shore.StandingCells} cells of what stands in the sea and {round.BlockedCells} water cells in the way (of {round.BlockingTriangles} solid triangles asked, {round.CrossingTriangles} crossing the water's surface: the cells their waterlines run through), {round.Travelled} cells' way in shorter than their shore's distance, {round.Unreached} reached by no way, picture {way}-way-round.png; ")
             .Append(Crossers(shore, model))
-            .Append(CultureInfo.InvariantCulture, $"picture {Path.ChangeExtension(picture, null)}-way.png, ")
-            .AppendLine($"water by its way in, a white line every {WayStep:0} units - where the game's crests should run - the cells in the way red, land brown");
+            .AppendLine($"each picture water by its way in, a white line every {WayStep:0} units - where the game's crests should run - land brown, the cells something crosses red, bright where they stand in the way");
         Beach(body, model);
     }
 
@@ -314,6 +317,7 @@ public static class CapturePanes
             string name = panes.Count > 1 ? $"shore-{pane.Book}.png" : ShoreFile;
             pictures.Add((name, new GamePicture(shore.Width, shore.Height, rgba)));
             pictures.Add((Path.ChangeExtension(name, null) + "-way.png", Way(shore)));
+            pictures.Add((Path.ChangeExtension(name, null) + "-way-round.png", Way(shore.Way(true))));
         }
 
         return pictures;
@@ -324,7 +328,7 @@ public static class CapturePanes
 
     /// <summary>
     /// A shore's way in as a picture: water shaded by its distance out to sea, a white line wherever it crosses a whole <see cref="WayStep"/>
-    /// - the crests' lines - the cells in the waves' way red, land brown.
+    /// - the crests' lines - land brown, the cells something crosses red: bright where the way runs round them, dark where it runs under.
     /// </summary>
     private static GamePicture Way(ShoreField shore)
     {
@@ -349,7 +353,7 @@ public static class CapturePanes
                     && ((x + 1 < width && texels[(at + 1) * 2] >= 0f && MathF.Floor(ocean[at + 1] / WayStep) != band)
                         || (y + 1 < height && texels[(at + width) * 2] >= 0f && MathF.Floor(ocean[at + width] / WayStep) != band));
                 float shade = Math.Clamp(here / ShoreField.Reach, -1f, 1f);
-                (byte r, byte g, byte b) = shore.InTheWay(at) ? ((byte)220, (byte)40, (byte)40)
+                (byte r, byte g, byte b) = shore.InTheWay(at) ? (shore.RoundsWhatStands ? ((byte)220, (byte)40, (byte)40) : ((byte)110, (byte)25, (byte)25))
                     : land ? ((byte)110, (byte)75, (byte)35)
                     : line ? ((byte)255, (byte)255, (byte)255)
                     : ((byte)20, (byte)Math.Clamp(60 + (100 * (1f - shade)), 0, 255), (byte)Math.Clamp(110 + (145 * (1f - shade)), 0, 255));

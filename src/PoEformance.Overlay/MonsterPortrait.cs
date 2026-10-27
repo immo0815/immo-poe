@@ -814,8 +814,9 @@ public sealed class MonsterPortrait
     /// <remarks>See ShadeProgram.Water: an Ocean material is drawn as the area's water, whose file sets it or leaves the engine's default.</remarks>
     public Func<WaterLook>? SceneWater { get; set; }
 
-    /// <summary>The area's water, over the room's own shore where the model is a room that has one - see ShoreField.</summary>
-    private WaterLook Watered() => (SceneWater?.Invoke() ?? WaterLook.EngineDefault) with { Shore = _model.Shore };
+    /// <summary>The area's water, over the room's own shore where the model is a room that has one, its way in the light's - see ShoreField.Way.</summary>
+    private WaterLook Watered()
+        => (SceneWater?.Invoke() ?? WaterLook.EngineDefault) with { Shore = _model.Shore?.Way(Lit() is { WaterWayRound: true }) };
 
     private WaterLook _drawnWater = WaterLook.EngineDefault;
 
