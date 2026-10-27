@@ -610,6 +610,12 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   ground in the waves' way (`ShoreField.Way`); what stands in the water stays shore for the shore's distance. The way round it as well
   is kept as the field's twin, the light panel's water row's "way round" (`SceneLight.WaterWayRound`), so the two can be held against
   the game; `model-panes.txt` counts both and draws both, `shore-way.png` and `shore-way-round.png`.
+  MEASURED (v0.1.307, a side-by-side video at the checkpoint by the ship, crash on, way round off): the Monster Book's front now
+  reaches the channel's gangway end 0.6 s before its stern end (correlation 0.62) and the hull's side before the pier's, as the
+  game's does (the game's half there: the quay side 0.67 s after the hull's; the rest of its lines lay under the Monster Book's
+  window), both at 5.2 to 5.4 s a wave - "by far the best Port scene built yet, identical to the game's look and waves but for
+  the smallest details" (said from the live client). Its capture's way in by the ground: 5,575 cells shorter than their distance to
+  the ground, 3 unreached; round what stands: 8,683 and 399.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
