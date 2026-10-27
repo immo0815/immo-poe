@@ -173,6 +173,9 @@ public static class CaptureParts
     /// <summary>Every string the game's program, data tables and paths hold naming a debug, cheat, test, console or logging function.</summary>
     public const string DebugStrings = "debug-strings";
 
+    /// <summary>The engine's own debug views: its graphs whole, what the compile makes of them, their sources and the program's table of them.</summary>
+    public const string RenderDebug = "render-debug";
+
     /// <summary>The terrain and what it points to searched at the press for the grid the engine's ocean markup is made from.</summary>
     public const string OceanMarkup = "ocean-markup";
 
@@ -437,6 +440,13 @@ public static class CaptureParts
             + "developer's or test switch, the console or a visualisation (show_, draw_, toggle, wireframe, profiler, overlay), or an "
             + "assert, a trace, a dump or a log - grouped so, the words beside each. The program is searched on three cores, the "
             + "tables on every core; the offline reader sorts them by shape (C++ type names, identifiers, chat commands, paths)."),
+
+        new(RenderDebug, "Area files", "render debug views", CaptureReport.RenderDebugFile,
+            "The engine's own debug views, to build them in the Monster Book: every graph under Metadata/EngineGraphs/ whole - the "
+            + "debug_*.fxgraph first (albedo, normals, overdraw, walkability, the ocean and river markup and some forty more) - and "
+            + "every graph they name; what the compile makes of each, node type by node type, and the node types it does not know "
+            + "yet; the textures they name with their headers; the debug pass's shader sources whole, and those naming an unknown "
+            + "node; and every string of the game's program round its table of the views, at its address."),
 
         new(CountField, "Area files", "count field sweep", CaptureReport.CountFieldFile,
             "The loaded-file table walked for its count field instead of assuming one: what the area-change counter reads, how many "

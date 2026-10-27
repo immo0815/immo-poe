@@ -1993,6 +1993,18 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         }
     }
 
+    /// <summary>The install's engine graphs (the debug views among them), for the capture's render debug part - see CaptureRenderDebug.</summary>
+    /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
+    public IReadOnlyList<string> EngineGraphs
+    {
+        get => _capture.EngineGraphs;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _capture.EngineGraphs = value;
+        }
+    }
+
     /// <summary>The install's paths naming a debug, test or console word, for the capture's debug strings part - see CaptureDebugStrings.</summary>
     /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
     public IReadOnlyList<string> DebugPaths

@@ -129,6 +129,9 @@ public static class CaptureReport
     /// <summary>The program's, the tables' and the paths' strings naming a debug function - see CaptureDebugStrings.</summary>
     public const string DebugStringsFile = "debug-strings.txt";
 
+    /// <summary>The engine's debug views' graphs, sources and program table - see CaptureRenderDebug.</summary>
+    public const string RenderDebugFile = "render-debug.txt";
+
     /// <summary>The terrain searched for the engine's ocean markup at the press - see OceanMarkupHunt.</summary>
     public const string OceanMarkupFile = "ocean-markup.txt";
 
