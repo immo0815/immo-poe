@@ -533,7 +533,12 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   through, the ratio, the colour's pattern, the waves' height); `water.subsurface_scattering` is WaterLook's, Port's default one. As a layer
   its cover is one less the share of what lies behind, its colour the rest over that cover. The probe's water line writes every part
   (`WaterLight`). NOT DRAWN: the refraction's bend and caustics, the terrain water colour, and the tidal state's own water_to_terrain_ratio
-  and ground water ratio - both read off the shore field, whose scale is CHOSEN.
+  and ground water ratio - both read off the shore field, whose scale is CHOSEN. Its first capture (v0.1.296, Cube Ambient, "by far
+  nearer the original", said from the live client) put the probed open water at about sRGB (42, 62, 58) before the grade, the game's
+  open water (50, 72, 70) at the median - and found a rectangle of false shadow beside the ship: the wobble core's plane
+  (`transparentobjectsc.mat`, Zero under ForceAlphaTest) was cut away when drawn but cast solid, the shadow map cutting through a
+  texture it has not. A cut-out shape whose program's alpha is one number under the cut now casts nothing on either drawing
+  (`ShadeProgram.FixedAlpha`, `CutAway`; MeshPicture's `Casts`, ModelGpu's `Casting`), as the engine's shadow pass clips it (v0.1.297).
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

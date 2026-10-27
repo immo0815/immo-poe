@@ -851,7 +851,7 @@ public static class MeshPicture
         // A POINT'S DEPTH IS THE VIEW'S THIRD COLUMN, the way into the picture - see ShadeProgram.Eye.
         var eye = new Vector4(view.M13, view.M23, view.M33, view.M43);
         ShadowMap? shadow = scene is { SunShadows: true } && scene.SunColour != Vector3.Zero
-            ? Shadowed(canvas, mesh, places, positions == mesh.Positions, triangles, scene.SunDirection, scene.ShadowSide, palette)
+            ? Shadowed(canvas, mesh, places, positions == mesh.Positions, triangles, scene.SunDirection, scene.ShadowSide, palette, programs)
             : null;
         var drawn = new Drawn(mesh, triangles, lamp, ink, palette, translucent, programs, stride, places, turns, ticking, clocked, eye)
         {
@@ -874,7 +874,7 @@ public static class MeshPicture
             probe.Drawn = true;
             if (shadow is not null)
             {
-                Shaders(canvas, mesh, places, triangles, shadow, probe, palette);
+                Shaders(canvas, mesh, places, triangles, shadow, probe, palette, programs);
             }
         }
         if (clocked > 0)
@@ -1204,10 +1204,13 @@ public static class MeshPicture
     /// cut-out where its texture keeps the texel), the nearest hit taken - started off the surface as the map's own test starts
     /// (ShadowMap.Lit). Every triangle once a probed fragment, in slices on every core: a click's cost, never a drawing's.
     /// </remarks>
-    private static void Shaders(Canvas canvas, SkinnedMesh mesh, Vector3[] places, int triangles, ShadowMap shadow, PixelProbe probe, Mipmaps?[] palette)
+    private static void Shaders(
+        Canvas canvas, SkinnedMesh mesh, Vector3[] places, int triangles, ShadowMap shadow, PixelProbe probe, Mipmaps?[] palette, ShadeProgram[] programs)
     {
         MaterialBlend[] blends = canvas.Blends;
         int[] wears = canvas.Wears;
+        int[] shadeOf = canvas.Shades;
+        bool[] cutAway = CutAway(programs);
         int[] indices = mesh.Indices;
         Vector2[] coordinates = mesh.Coordinates;
         bool coordinated = mesh.Coordinated;
@@ -1231,7 +1234,7 @@ public static class MeshPicture
                 for (int one = first; one < upto; one++)
                 {
                     MaterialBlend blend = blends[one];
-                    if (Translucent(blend) || one == sun.Triangle)
+                    if (!Casts(blends, shadeOf, cutAway, one) || one == sun.Triangle)
                     {
                         continue;
                     }
@@ -1301,7 +1304,8 @@ public static class MeshPicture
     }
 
     private static ShadowMap? Shadowed(
-        Canvas canvas, SkinnedMesh mesh, Vector3[] places, bool still, int triangles, Vector3 direction, int side, Mipmaps?[] palette)
+        Canvas canvas, SkinnedMesh mesh, Vector3[] places, bool still, int triangles, Vector3 direction, int side, Mipmaps?[] palette,
+        ShadeProgram[] programs)
     {
         if (still && canvas.ShadowFor is { } was && ReferenceEquals(was.Mesh, mesh) && was.Direction == direction && was.Side == side
             && canvas.Shadow is not null)
@@ -1311,11 +1315,13 @@ public static class MeshPicture
 
         MaterialBlend[] blends = canvas.Blends;
         int[] wears = canvas.Wears;
+        int[] shadeOf = canvas.Shades;
         Vector2[] coordinates = mesh.Coordinates;
         bool coordinated = mesh.Coordinated;
+        bool[] cutAway = CutAway(programs);
         ShadowMap? map = ShadowMap.Build(
             places, mesh.Indices, triangles, direction,
-            one => !Translucent(blends[one]),
+            one => Casts(blends, shadeOf, cutAway, one),
             one => blends[one] == MaterialBlend.Cutout && coordinated && palette[wears[one]] is { } skin ? (skin, coordinates) : null,
             canvas.Threads,
             side);
@@ -1323,6 +1329,17 @@ public static class MeshPicture
         canvas.ShadowFor = still ? (mesh, direction, side) : null;
         return map;
     }
+
+    /// <summary>Each program's <see cref="ShadeProgram.CutAway"/> at the picture's cut.</summary>
+    private static bool[] CutAway(ShadeProgram[] programs) => Array.ConvertAll(programs, one => one.CutAway(CutoutAlpha));
+
+    /// <summary>
+    /// Whether a triangle casts the sun's shadow: solid, shadow-only and cut out - but not a cut-out shape its program cuts away at every
+    /// pixel, which the engine's shadow pass clips as its drawing does (ShadeProgram.FixedAlpha).
+    /// </summary>
+    private static bool Casts(MaterialBlend[] blends, int[] shadeOf, bool[] cutAway, int one)
+        => !Translucent(blends[one])
+            && !(blends[one] == MaterialBlend.Cutout && one < shadeOf.Length && shadeOf[one] >= 0 && cutAway[shadeOf[one]]);
 
     /// <summary>Whether a triangle is drawn in the second pass - mixed or added, not solid or cut out.</summary>
     private static bool Translucent(MaterialBlend blend) => blend is MaterialBlend.Alpha or MaterialBlend.Additive;

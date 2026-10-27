@@ -225,12 +225,14 @@ public sealed partial class ModelGpu
     /// MERGED BECAUSE THE ORDER DOES NOT MATTER - the map keeps the nearest depth whichever is drawn
     /// first - and a solid caster reads no texture, so a room's thousands of runs are a few draws.
     /// </remarks>
-    private static Run[] Casting(List<Run> runs, Mipmaps?[] palette)
+    private static Run[] Casting(List<Run> runs, Mipmaps?[] palette, List<ShadeProgram> programs)
     {
         var casts = new List<Run>();
         foreach (Run run in runs)
         {
-            if (run.Blend is MaterialBlend.Alpha or MaterialBlend.Additive)
+            // NOR A CUT-OUT SHAPE ITS PROGRAM CUTS AWAY AT EVERY PIXEL - MeshPicture's Casts, ShadeProgram.FixedAlpha.
+            if (run.Blend is MaterialBlend.Alpha or MaterialBlend.Additive
+                || (run.Blend == MaterialBlend.Cutout && run.Shade >= 0 && programs[run.Shade].CutAway(MeshPicture.CutoutAlpha)))
             {
                 continue;
             }

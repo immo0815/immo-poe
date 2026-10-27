@@ -1563,7 +1563,7 @@ public sealed partial class ModelGpu : IDisposable
             }
 
             Mipmaps?[] worn = [.. palette];
-            return new Plan([.. runs], Casting(runs, worn), worn, [.. programs], translucent, behind, swaying);
+            return new Plan([.. runs], Casting(runs, worn, programs), worn, [.. programs], translucent, behind, swaying);
         }
 
         private static void Fill<T>(T[] into, MeshShape shape, T value, int triangles)
