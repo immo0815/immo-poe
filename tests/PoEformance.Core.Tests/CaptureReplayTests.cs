@@ -73,6 +73,20 @@ public partial class CaptureReplayTests
         Assert.StartsWith("water shore replay: ", replay, StringComparison.Ordinal);
     }
 
+    /// <summary>The program's, tables' and paths' debug strings read back from debug-strings.txt and sorted by shape - debug-strings-replay.txt.</summary>
+    [Fact]
+    public void THEDEBUGStringsAreReadBackFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder || CaptureParts.Find(folder, CaptureReport.DebugStringsFile) is not { } path || !File.Exists(path))
+        {
+            return;
+        }
+
+        string replay = CaptureDebugStrings.Report(CaptureDebugStrings.Read(File.ReadAllText(path)));
+        File.WriteAllText(Path.Combine(folder, "debug-strings-replay.txt"), replay);
+        Assert.StartsWith("debug strings replay: ", replay, StringComparison.Ordinal);
+    }
+
     /// <summary>The ocean markup hunt's grids read back from ocean-markup.txt - ocean-markup-replay.txt.</summary>
     [Fact]
     public void THEOCEANMarkupHuntIsReadBackFromACapture()

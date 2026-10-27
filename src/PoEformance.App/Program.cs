@@ -3492,6 +3492,9 @@ internal static class Program
                     new PoEformance.Game.Files.BundleIndex.WalkPlace(
                         PoEformance.Features.CaptureWaterShore.TableFolder, [PoEformance.Features.CaptureWaterShore.TableExtension]),
 
+                    // AND EVERY PATH ANYWHERE NAMING A DEBUG, TEST OR CONSOLE WORD, for the capture's debug strings part.
+                    new PoEformance.Game.Files.BundleIndex.WalkPlace(string.Empty, [string.Empty], PoEformance.Features.CaptureDebugStrings.PathWords),
+
                     // AND EVERY PATH NAMING A WOBBLE, for the capture's wobble files part: what sways Port's ship.
                     .. PoEformance.Features.CaptureWobble.Folders.Select(folder =>
                         new PoEformance.Game.Files.BundleIndex.WalkPlace(folder, [string.Empty], PoEformance.Features.CaptureWobble.Words)),
@@ -3507,7 +3510,8 @@ internal static class Program
                 overlay.WaterTextureFiles = found[5];
                 overlay.ShoreFiles = [.. found[6], .. found[0]];
                 overlay.DataTables = found[7];
-                overlay.WobblePaths = [.. found.Skip(8).SelectMany(one => one).Distinct(StringComparer.OrdinalIgnoreCase)];
+                overlay.DebugPaths = found[8];
+                overlay.WobblePaths = [.. found.Skip(9).SelectMany(one => one).Distinct(StringComparer.OrdinalIgnoreCase)];
                 overlay.TileFiles = tiles;
             });
         }

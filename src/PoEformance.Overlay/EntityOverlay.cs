@@ -1993,6 +1993,18 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         }
     }
 
+    /// <summary>The install's paths naming a debug, test or console word, for the capture's debug strings part - see CaptureDebugStrings.</summary>
+    /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
+    public IReadOnlyList<string> DebugPaths
+    {
+        get => _capture.DebugPaths;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _capture.DebugPaths = value;
+        }
+    }
+
     /// <summary>The install's data tables, for the capture's water shore part - see CaptureWaterShore.</summary>
     /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
     public IReadOnlyList<string> DataTables
