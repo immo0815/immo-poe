@@ -208,6 +208,65 @@ public class PictureProbeTests
         Assert.EndsWith(" · in the sun", PictureProbe.Lines(open, model, null)[^1], StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A cut-out roof its program cuts away at every pixel - transparentobjectsc.mat's Zero under ForceAlphaTest - casts no shadow, as the
+    /// engine's shadow pass clips it: Port's wobble core laid a rectangle of shadow on the harbour beside the ship (v0.1.296's capture).
+    /// </summary>
+    [Fact]
+    public void ACUTOUTShapeThatNeverShowsCastsNoShadow()
+    {
+        Vector3[] places =
+        [
+            new(-400f, -400f, 0f), new(400f, -400f, 0f), new(400f, 400f, 0f), new(-400f, 400f, 0f),
+            new(100f, -100f, -200f), new(300f, -100f, -200f), new(300f, 100f, -200f), new(100f, 100f, -200f),
+        ];
+        var normals = new Vector3[places.Length];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+
+        // COORDINATES, so the roof's program runs at all.
+        var spots = new Vector2[places.Length];
+        Array.Fill(spots, new Vector2(0.5f, 0.5f));
+        var scene = SkinnedMesh.Of(
+            places, normals, [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7], new Vector3(-400f, -400f, -200f), new Vector3(400f, 400f, 0f), spots,
+            [new MeshShape("Floor", 0, 6), new MeshShape("Roof", 6, 6)]);
+        ShaderGraph graph = ShaderGraph.Read(System.Text.Encoding.UTF8.GetBytes(
+            """
+            {"nodes":[
+              {"type":"Zero","index":1},
+              {"type":"AlbedoColor","index":0,"stage":"Texturing_Init"}],
+             "links":[
+              {"src":{"type":"Zero","index":1,"variable":"output"},"dst":{"type":"AlbedoColor","index":0,"stage":"Texturing_Init","variable":"input"}}]}
+            """));
+        ShadeProgram hidden = ShadeProgram.Compile(
+            [(new ShaderInstance("Metadata/Art/Textures/masks/transparentobjectsc.fxgraph", new Dictionary<string, ShaderValue[]>()), graph)]).Program!;
+        Assert.Equal(0f, hidden.FixedAlpha);
+        Assert.True(hidden.CutAway(MeshPicture.CutoutAlpha));
+        Assert.Null(ShadeProgram.Water().FixedAlpha);
+
+        var light = new SceneLight([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1.5f),
+            SunDirection = Vector3.Normalize(new Vector3(-1f, 0f, 1f)),
+            SunShadows = true,
+            Ambient = SceneAmbient.Flat,
+            FlatAmbient = 0.3f,
+        };
+
+        // THE FLOOR'S MIDDLE, under the roof along the sun: in the sun with the roof cut away, in its shadow with the roof solid.
+        (int x, int y) = PixelOf(scene, Vector3.Zero);
+        float SunAt(MaterialBlend roof)
+        {
+            var probe = new PixelProbe(x, y);
+            _ = MeshPicture.Of(
+                scene, new MeshPicture.Canvas(Size) { Light = light, Probe = probe }, tilt: Down,
+                blends: [MaterialBlend.Opaque, roof], shades: [null, hidden]);
+            return Assert.Single(probe.Suns).Sun;
+        }
+
+        Assert.Equal(1f, SunAt(MaterialBlend.Cutout));
+        Assert.Equal(0f, SunAt(MaterialBlend.Opaque));
+    }
+
     /// <summary>The room's model of the scene: the floor a tile's ground, the layer a doodad's mud.</summary>
     private static MonsterModel Model(SkinnedMesh scene) => new(scene, null, "scene", string.Empty, string.Empty)
     {

@@ -372,7 +372,26 @@ public sealed partial class ShadeProgram
         UsesTime = result == Clock || specular == Clock || gloss == Clock || steps.Any(one => one.Reads(Clock));
         Sprays = steps.Any(one => one.Op == Op.Spray);
         Beaches = steps.Any(one => one.Op == Op.Beach);
+
+        // A CONSTANT RESULT: a constant register no step writes into.
+        int fixedAt = Array.IndexOf(constantAt, result);
+        FixedAlpha = hasAlpha && fixedAt >= 0 && !steps.Any(one => one.To == result) ? constants[fixedAt].W : null;
     }
+
+    /// <summary>
+    /// The alpha the graphs leave where it is one number at every pixel - null where it changes, or where they set none (<see cref="HasAlpha"/>).
+    /// </summary>
+    /// <remarks>
+    /// WHAT A CUT-OUT SHAPE THAT NEVER SHOWS IS TOLD BY: transparentobjectsc.mat writes Zero to the colour, alpha and all, under
+    /// ForceAlphaTest, so the engine clips every pixel of it - in its shadow pass too, which runs the same AlphaTestClipping. Drawn it was
+    /// cut away (<see cref="HasAlpha"/>), but the shadow map, which cuts a shape through its texture alone and this one has none, cast it
+    /// solid: Port's wobble core, a plane 2,750 by 4,000 units over the ship's deck, laid a rectangle of shadow on the harbour beside the
+    /// hull (the probe's "cast by transparentobjectsc.mat", v0.1.296's capture, and seen in the picture from the live client).
+    /// </remarks>
+    public float? FixedAlpha { get; }
+
+    /// <summary>Whether a cut-out shape of this program is cut away at every pixel - its alpha one number under the cut - and so neither drawn nor casting.</summary>
+    public bool CutAway(float cutoff) => FixedAlpha is { } alpha && !(alpha >= cutoff);
 
     /// <summary>
     /// Whether the material draws the sea's spray on itself (CrashingFoamSurface) - the game's own word that the sea breaks on it; see ShoreField.Of.
