@@ -22,6 +22,7 @@ namespace PoEformance.Features;
 /// <param name="Cut">How far under the area's ground a laid room leaves everything out, in world units; nought, the usual, leaves nothing out.</param>
 /// <param name="Built">The tileset the room is built from without the area - a tile list or the master naming it - or empty; see BuiltRoomModels. A key names a place or a tileset, not both: the place wins where both are written.</param>
 /// <param name="Mirrored">Whether a room built from the tileset is laid turned over in x, as the game lays it in some instances - see BuiltRoomModels.</param>
+/// <param name="MaskCells">Whether a laid or built room's ground keeps the shapes across its mask's atlas on the mask's cells, squares and all, rather than mixed by their sub-tiles' corners - see GroundPainter.</param>
 public readonly record struct RoomKey(
     string Path,
     int Doodads = RoomModels.UsualDoodads,
@@ -32,7 +33,8 @@ public readonly record struct RoomKey(
     bool Hidden = false,
     int Cut = 0,
     string Built = "",
-    bool Mirrored = false)
+    bool Mirrored = false,
+    bool MaskCells = false)
 {
     /// <summary>What starts the word naming the tileset a room is built from.</summary>
     public const string BuiltWord = "built=";
@@ -70,6 +72,9 @@ public readonly record struct RoomKey(
     /// <summary>The word saying a built room is laid turned over in x.</summary>
     public const string MirroredWord = "mirrored";
 
+    /// <summary>The word saying the ground's shapes across its mask's atlas stay on the mask's cells.</summary>
+    public const string MaskCellsWord = "maskcells";
+
     /// <summary>What starts the word naming the cap; its number follows.</summary>
     public const string DoodadsWord = "doodads=";
 
@@ -85,7 +90,7 @@ public readonly record struct RoomKey(
     /// <summary>The key as a string - the bare path at the usual choices.</summary>
     public override string ToString()
     {
-        if (Doodads == RoomModels.UsualDoodads && !Tools && Laid.Length == 0 && !AtLevel && Heights == DoodadHeight.File && !Hidden && Cut <= 0 && Built.Length == 0 && !Mirrored)
+        if (Doodads == RoomModels.UsualDoodads && !Tools && Laid.Length == 0 && !AtLevel && Heights == DoodadHeight.File && !Hidden && Cut <= 0 && Built.Length == 0 && !Mirrored && !MaskCells)
         {
             return Path;
         }
@@ -134,6 +139,11 @@ public readonly record struct RoomKey(
         if (Mirrored)
         {
             words.Add(MirroredWord);
+        }
+
+        if (MaskCells)
+        {
+            words.Add(MaskCellsWord);
         }
 
         return string.Concat(Path, TileKey.Mark.ToString(), string.Join(TileKey.WordMark, words));
@@ -190,6 +200,7 @@ public readonly record struct RoomKey(
         string laid = string.Empty;
         string built = string.Empty;
         var mirrored = false;
+        var maskCells = false;
         ReadOnlySpan<char> words = key.AsSpan(mark + 1);
         foreach (Range one in words.Split(TileKey.WordMark))
         {
@@ -235,9 +246,13 @@ public readonly record struct RoomKey(
             {
                 mirrored = true;
             }
+            else if (word.SequenceEqual(MaskCellsWord))
+            {
+                maskCells = true;
+            }
         }
 
-        RoomKey read = new(key[..mark], doodads, tools, laid, level, heights, hidden, cut, built, mirrored);
+        RoomKey read = new(key[..mark], doodads, tools, laid, level, heights, hidden, cut, built, mirrored, maskCells);
         return read.Laid.Length == 0 || read.TryLaid(out _, out _, out _, out _) ? read : read with { Laid = string.Empty };
     }
 }

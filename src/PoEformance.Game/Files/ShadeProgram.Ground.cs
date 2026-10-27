@@ -33,6 +33,28 @@ public sealed partial class ShadeProgram
     /// coordinates - the block's here, not the material's - nor for any of the water's programs.
     /// </remarks>
     public static ShadeProgram? Grounds(ShadeProgram first, ShadeProgram second, ShadeTexture mask, Mipmaps? maskSheet, float scale)
+        => Mixing(first, second, mask, maskSheet, scale);
+
+    /// <summary>
+    /// Two ground materials mixed per pixel by the second ground's share of the sub-tile's corners, which the mesh carries in its
+    /// coordinates' first channel - or null where the two cannot be run as one (see <see cref="Grounds"/>).
+    /// </summary>
+    /// <param name="first">The ground at share nought, bound.</param>
+    /// <param name="second">The ground at share one, bound.</param>
+    /// <param name="scale">The ground materials' tiling, as <see cref="Grounds"/> takes it.</param>
+    /// <remarks>
+    /// CHOSEN, NOT THE ENGINE'S (v0.1.310, from the live client): a stand-in where the mask's green at the block's own coordinates
+    /// comes out in squares - see GroundPainter. The share is worked out per vertex, bilinear from the sub-tile's four corners in the
+    /// definition's ground grid, and runs across each triangle as any coordinate does; everything after the weight is the mask's
+    /// program's, step for step.
+    /// </remarks>
+    public static ShadeProgram? GroundsByCorners(ShadeProgram first, ShadeProgram second, float scale) => Mixing(first, second, null, null, scale);
+
+    /// <summary>Whether the program mixes two grounds by the corners' share in its coordinates rather than a mask - see <see cref="GroundsByCorners"/>.</summary>
+    public bool MixesByCorners { get; private init; }
+
+    /// <summary>The program behind <see cref="Grounds"/> and <see cref="GroundsByCorners"/>: the weight from the mask where there is one, from the coordinates' first channel where not.</summary>
+    private static ShadeProgram? Mixing(ShadeProgram first, ShadeProgram second, ShadeTexture? mask, Mipmaps? maskSheet, float scale)
     {
         ArgumentNullException.ThrowIfNull(first);
         ArgumentNullException.ThrowIfNull(second);
@@ -48,12 +70,22 @@ public sealed partial class ShadeProgram
         int maskTexture = first.Textures.Count + second.Textures.Count;
         int next = Fixed;
 
-        // THE MASK'S GREEN, at the block's own coordinates - the first read.
-        int texel = next++;
-        samples.Add(maskTexture);
-        steps.Add(new Step(Op.Sample, texel, Coordinates, 0, -1, -1, -1, maskTexture));
-        int green = next++;
-        steps.Add(new Step(Op.Swizzle, green, texel, -1, -1, -1, -1, AllFrom(1)));
+        // THE WEIGHT FIRST, before the coordinates' register is given the materials': the mask's green at the block's own
+        // coordinates, or the corners' share the mesh carries in their first channel.
+        int green;
+        if (mask is not null)
+        {
+            int texel = next++;
+            samples.Add(maskTexture);
+            steps.Add(new Step(Op.Sample, texel, Coordinates, 0, -1, -1, -1, maskTexture));
+            green = next++;
+            steps.Add(new Step(Op.Swizzle, green, texel, -1, -1, -1, -1, AllFrom(1)));
+        }
+        else
+        {
+            green = next++;
+            steps.Add(new Step(Op.Swizzle, green, Coordinates, -1, -1, -1, -1, AllFrom(0)));
+        }
 
         // THE MATERIALS' COORDINATES, the engine's projected ones, in the coordinates' own register for both grounds to read.
         int tiling = next++;
@@ -110,13 +142,14 @@ public sealed partial class ShadeProgram
             return null;
         }
 
-        ShadeTexture[] textures = [.. first.Textures, .. second.Textures, mask];
-        Mipmaps?[] sheets = [.. first._sheets, .. second._sheets, maskSheet];
+        ShadeTexture[] textures = mask is { } masked ? [.. first.Textures, .. second.Textures, masked] : [.. first.Textures, .. second.Textures];
+        Mipmaps?[] sheets = mask is not null ? [.. first._sheets, .. second._sheets, maskSheet] : [.. first._sheets, .. second._sheets];
         return new ShadeProgram(
             [.. steps], [.. constantAt], [.. constants], next, result, specular, gloss, textures, [.. samples], -1,
             [.. first.Graphs, .. second.Graphs], sheets, hasAlpha: false)
         {
             Mix = (green, Moved(first._result, firstBase), Moved(second._result, secondBase)),
+            MixesByCorners = mask is null,
         };
     }
 
@@ -126,10 +159,10 @@ public sealed partial class ShadeProgram
     /// </summary>
     internal (int Green, int First, int Second) Mix { get; private init; } = (-1, -1, -1);
 
-    /// <summary>Whether the program is two grounds mixed by a mask's green - see <see cref="Grounds"/>.</summary>
+    /// <summary>Whether the program is two grounds mixed per pixel, by a mask's green or the corners' share - see <see cref="Grounds"/>.</summary>
     public bool MixesGrounds => Mix.Green >= 0;
 
-    /// <summary>The mask's green and the two grounds' colours, linear, as a run of this program left them in its registers.</summary>
+    /// <summary>The weight - the mask's green or the corners' share - and the two grounds' colours, linear, as a run of this program left them in its registers.</summary>
     internal (float Green, Vector3 First, Vector3 Second) Mixed(ReadOnlySpan<Vector4> registers)
     {
         Vector4 first = registers[Mix.First], second = registers[Mix.Second];

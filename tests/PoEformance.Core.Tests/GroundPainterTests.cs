@@ -112,6 +112,56 @@ public sealed class GroundPainterTests
     }
 
     /// <summary>
+    /// A shape of a two-ground sub-tile whose block coordinates reach a cell of the mask's atlas or more across is mixed by the second
+    /// ground's share of its sub-tile's corners instead, on copies of its vertices - and kept on the mask's cells by the switch.
+    /// </summary>
+    [Fact]
+    public void ASHAPEAcrossTheMasksAtlasIsMixedByItsSubTilesCorners()
+    {
+        const string Gridded = "gridded.tdt", GridSand = "Metadata/Terrain/Test/sand.gt", GridRock = "Metadata/Terrain/Test/rock.gt";
+        byte[]? Read(string path) => path switch
+        {
+            // The left sub-tile's four corners sand; the right one's sand on its left side and rock on its right.
+            Gridded => TileFilesTests.Tdt(template: Template, grounds: true, grid: [5, 5, 6, 5, 5, 6]),
+            GridSand => CaptureGroundTests.Text("Sand\n1 1 0 0\n"),
+            GridRock => CaptureGroundTests.Text("Rock\n1 1 0 0\n"),
+            _ => Mixable(path),
+        };
+
+        // THE RIGHT SUB-TILE'S COORDINATES RUN 40 ACROSS the mask two texels wide: 80 texels, past a cell of the atlas.
+        SkinnedMesh narrow = TwoSubTiles();
+        Vector2[] coordinates = [.. narrow.Positions.Select((place, at) => at < 6 ? narrow.Coordinates[at] : new Vector2((place.X - 250f) / 250f * 40f, 0.25f))];
+        SkinnedMesh ground = SkinnedMesh.Of(narrow.Positions, narrow.Normals, narrow.Indices, narrow.Least, narrow.Most, coordinates, narrow.Shapes);
+        GroundPiece[] pieces = [new GroundPiece(1, 1, 2), new GroundPiece(2, 1, 2)];
+
+        GroundPainter painter = Painter(Read);
+        MonsterModel? painted = painter.Paint(Gridded, ground, pieces, Matrix4x4.CreateTranslation(500f, 250f, 0f), "ground of gridded.tdt");
+
+        // Rock is listed first, so the share is sand's: whole at the sub-tile's left edge (x 250), nought at its right (x 500).
+        Assert.NotNull(painted);
+        Assert.Equal(["Art/sand2.mat", GroundBlend.Cornered("Art/rock.mat", "Art/sand2.mat")], painted!.ShapeMaterials);
+        Assert.Equal(18, painted.Mesh.Positions.Length);
+        Assert.Equal([12, 13, 14, 15, 16, 17], painted.Mesh.Indices[6..12]);
+        for (var copy = 0; copy < 6; copy++)
+        {
+            Vector3 place = painted.Mesh.Positions[12 + copy];
+            Assert.Equal(ground.Positions[6 + copy], place);
+            Assert.Equal(1f - ((place.X - 250f) / 250f), painted.Mesh.Coordinates[12 + copy].X, 5);
+        }
+
+        Assert.Contains("of them 1 with shapes across the mask's atlas (1 shapes) mixed instead by the second ground's share of their sub-tile's corners", painter.Said(), StringComparison.Ordinal);
+
+        // THE SWITCH keeps it on the mask's cells, as before: no copies, the block's coordinates.
+        GroundPainter onCells = Painter(Read, maskCells: true);
+        MonsterModel? kept = onCells.Paint(Gridded, ground, pieces, Matrix4x4.Identity, "ground of gridded.tdt");
+        Assert.NotNull(kept);
+        Assert.Equal(["Art/sand2.mat", GroundBlend.Name("Art/rock.mat", "Art/sand2.mat", Mask)], kept!.ShapeMaterials);
+        Assert.Equal(12, kept.Mesh.Positions.Length);
+        Assert.Equal(coordinates[6], kept.Mesh.Coordinates[6]);
+        Assert.Contains("1 of them with shapes across the mask's atlas kept on its cells by the switch", onCells.Said(), StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// A corner the grid leaves unnamed takes the MaterialsList's group with no name - the game holds its null slot there: a sub-tile
     /// of sand and unnamed corners mixes the two, the unnamed group listed first, and one with no corner named wears the group alone.
     /// </summary>
@@ -198,9 +248,9 @@ public sealed class GroundPainterTests
         Assert.Equal("no master to name a MaterialsList", why);
     }
 
-    private static GroundPainter Painter(Func<string, byte[]?>? read = null)
+    private static GroundPainter Painter(Func<string, byte[]?>? read = null, bool maskCells = false)
     {
-        (GroundPainter? painter, string why) = GroundPainter.For(read ?? Install, Master, new MonsterModels.Paints());
+        (GroundPainter? painter, string why) = GroundPainter.For(read ?? Install, Master, new MonsterModels.Paints(), maskCells);
         Assert.True(painter is not null, why);
         Assert.Equal("Metadata/Terrain/Maps/Test/materials.mtd", painter!.From);
         return painter;

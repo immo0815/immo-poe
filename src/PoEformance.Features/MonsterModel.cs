@@ -2922,25 +2922,45 @@ public static class MonsterModels
             return name;
         }
 
+        /// <summary>
+        /// The name a tile's ground of two grounds wears when they are mixed by the second ground's share of the sub-tile's corners
+        /// (ShadeProgram.GroundsByCorners) - registered as <see cref="Grounds"/> registers its own - or null and why not.
+        /// </summary>
+        /// <param name="read">How to get a file out of the install, by path.</param>
+        /// <param name="first">The ground at share nought.</param>
+        /// <param name="second">The ground at share one.</param>
+        /// <param name="scale">The ground materials' tiling - see ShadeProgram.Grounds.</param>
+        /// <param name="why">Why there is none, where there is none.</param>
+        public string? GroundsByCorners(Func<string, byte[]?> read, string first, string second, float scale, out string why)
+        {
+            (string? name, why) = _mixed.Get(GroundBlend.Cornered(first, second), name => Mixed(read, name, first, second, string.Empty, scale));
+            return name;
+        }
+
+        /// <summary>The program of two grounds made and registered: mixed by the mask's green, or by the corners' share where <paramref name="mask"/> is empty.</summary>
         private (string? Name, string Why) Mixed(Func<string, byte[]?> read, string name, string first, string second, string mask, float scale)
         {
             (ShadeProgram? flatFirst, ShadeProgram? shineFirst, string whyFirst) = Bound(read, first);
             (ShadeProgram? flatSecond, ShadeProgram? shineSecond, string whySecond) = Bound(read, second);
-            Mipmaps? sheet = Sheet(read, mask);
-            var texture = new ShadeTexture(mask, false);
-            ShadeProgram? flat = flatFirst is null || flatSecond is null || sheet is null
+            bool cornered = mask.Length == 0;
+            Mipmaps? sheet = cornered ? null : Sheet(read, mask);
+            ShadeTexture? texture = cornered ? null : new ShadeTexture(mask, false);
+            ShadeProgram? Made(ShadeProgram one, ShadeProgram other)
+                => texture is { } mask ? ShadeProgram.Grounds(one, other, mask, sheet, scale) : ShadeProgram.GroundsByCorners(one, other, scale);
+
+            ShadeProgram? flat = flatFirst is null || flatSecond is null || (!cornered && sheet is null)
                 ? null
-                : ShadeProgram.Grounds(flatFirst, flatSecond, texture, sheet, scale);
+                : Made(flatFirst, flatSecond);
             if (flat is null)
             {
                 return (null, flatFirst is null ? whyFirst
                     : flatSecond is null ? whySecond
-                    : sheet is null ? "its mask did not read: " + mask
+                    : !cornered && sheet is null ? "its mask did not read: " + mask
                     : "the two grounds' programs cannot be run as one (more registers than a program takes, or one reads the triangle's tangent frame)");
             }
 
             ShadeProgram? shine = shineFirst is not null || shineSecond is not null
-                ? ShadeProgram.Grounds(shineFirst ?? flatFirst!, shineSecond ?? flatSecond!, texture, sheet, scale)
+                ? Made(shineFirst ?? flatFirst!, shineSecond ?? flatSecond!)
                 : null;
             _shades.Set(name, new Shade(flat, null, [], shine));
             _modes.Set(name, (string.Empty, string.Empty));

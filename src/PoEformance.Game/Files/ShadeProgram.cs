@@ -894,6 +894,7 @@ public sealed partial class ShadeProgram
             [.. Textures], _sampleTexture, Plain, Graphs, bound, HasAlpha, _waves, _waterFoam, _waterState)
         {
             Mix = Mix,
+            MixesByCorners = MixesByCorners,
         };
     }
 

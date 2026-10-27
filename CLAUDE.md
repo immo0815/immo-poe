@@ -623,6 +623,8 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   water pixel (`ProbeSwell`, `ShadeProgram.SwellProbe`, the drawing's own `FoamTermsAt`): the shore field's cell and what it is, the
   shore's distance, the way in, the tide's phase, the cross-section read there, the depth the view crosses, the trail, the front,
   the shallows and the cover. Probe a rectangle's inside and its edge with crash off, then capture.
+  On v0.1.309 the rectangles were no longer to be seen (said from the live client, with a picture) - though that build changed
+  nothing they could come from, only the probe. Their cause is NOT FOUND; if they come back, probe one and capture.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
@@ -883,6 +885,21 @@ ground's share bilinear from the sub-tile's four corners (`SubTileGrounds.Second
 and local contrast - per pair of grounds, across and within sub-tiles, against the same fields moved 85 to 120 pixels - and
 `ground-on-screen-corners.png` tinted by the corners' share. Neither field is the engine's transition; which one the picture
 follows is what to read before the mix is changed.
+THE SHAPES ACROSS THE ATLAS ARE MIXED BY THEIR CORNERS (v0.1.310), CHOSEN from the live client with the old mix kept behind a switch -
+built before the comparison settled anything, and said so. A black rectangle in squares lay on the sand by the ship's stern in Port's
+built harbour (v0.1.309's probe there: `blackc.mat + G_KGB_DrySand02.mat by newmask.dds's green`, the green 0.004 - the ocean's black -
+beside squares at 1.000). It is the checkerboard above: Port_Boss_01 has 18 ground shapes in 17 sub-tiles of two grounds whose block
+coordinates reach a cell of the atlas or more across (c4r2, c5r2, c6r2 to c6r6, c1r6 to c5r6, c13r10, c13r11, c14r11, c14r12, c15r12 -
+the shore strip, the slopes and the pier's edge). That capture's comparison settles nothing: on the screen the two candidates follow the
+picture no better than the same fields moved (IslandOcean + TropicalFill, 312,534 pixels in 17 sub-tiles: brightness mask r -0.002
+against -0.047 +/- 0.131 moved, corners +0.237 against +0.198 +/- 0.138), most of those sub-tiles lying under the water. So
+`GroundPainter` now mixes exactly those shapes - a shape of a two-ground sub-tile, in a definition with a ground grid, whose block
+coordinates span 64 texels or more of the mask along either axis, the capture's own rule (`GroundPainter.AtlasCell`, `Across`) - by the
+second ground's share of the sub-tile's four corners, bilinear (`CaptureGroundCompare.Share`), worked out per vertex on copies of the
+shape's vertices and carried in the coordinates' first channel (`ShadeProgram.GroundsByCorners`, worn as `GroundBlend.Cornered`); every
+other shape stays on the mask. The Monster Book's stage switch "ground by the mask's cells" (`RoomKey.MaskCells`, the key word
+`maskcells`, a laid or built room) keeps them on the mask as before, squares and all, for holding the two against the game. The line
+under the picture counts both, the probe says which weight a pixel took, and `model-panes.txt` writes the corner mix as such.
 THE MONSTER BOOK'S ARENA IS BUILT, AND LAID AS WRITTEN (`BuiltRoomModels`, said from the live client: "our harbour diorama is never
 the game's, always mirrored somehow"). The game lays the boss room each instance its own way - Port's build replays: turned 180 (the
 harbour at placement 0), turned 90 and mirrored (placement 4); v0.1.262's instance laid the harbour at placement 1, mirrored - while

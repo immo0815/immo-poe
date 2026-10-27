@@ -713,8 +713,24 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
 
                 OverlayLayout.Hint("The built room turned over in x. The game lays a room each instance its own way - turned, and in some"
                     + " instances mirrored - while a room built from the tileset is laid as its file writes it, and no turn of the camera undoes a mirror."
-                    + " Ticked, the tiles go the way a mirror sends them and the doodads and the boss are turned to face the way it sends them, not mirrored,"
-                    + " as the game turns them.");
+                    + " Ticked, the tiles and their doodads go where a mirror sends them, mirrored as the game draws a mirrored room;"
+                    + " the boss is only turned, not mirrored.");
+            }
+
+            // THE GROUND'S SQUARES BY HAND: a room's ground of two grounds mixed by the mask's cells, as the engine's shader reads it, or by
+            // the sub-tiles' corners where a shape runs across the cells - see GroundPainter.
+            if (TileBook.IsRoom(currentPath) && RoomKey.Read(current) is var staged && (staged.Built.Length > 0 || staged.Laid.Length > 0))
+            {
+                bool cells = staged.MaskCells;
+                if (ImGui.Checkbox("ground by the mask's cells##monster-stage-mask-cells", ref cells))
+                {
+                    model.Stage = (staged with { MaskCells = cells }).ToString();
+                }
+
+                OverlayLayout.Hint("Where a ground shape's coordinates run across the ground mask's atlas, the mask's green read there comes out"
+                    + " in squares of the two grounds - the checkerboard by Port's ship - while the game draws no squares there."
+                    + " Unticked, such a shape is mixed by the second ground's share of its sub-tile's corners, a soft change across the sub-tile"
+                    + " (chosen, not the engine's); ticked, it is read on the mask's cells as the engine's shader says, squares and all, to hold the two against the game.");
             }
 
             // WHAT THE SEARCH WENT THROUGH, under the combo once it has run: which areas, which folders, how

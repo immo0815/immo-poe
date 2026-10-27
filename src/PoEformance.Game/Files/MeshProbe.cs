@@ -98,10 +98,11 @@ public readonly record struct ProbeSun(int Triangle, float Depth, Vector3 Place,
 /// </remarks>
 /// <param name="Triangle">The ground's triangle.</param>
 /// <param name="Depth">Its depth along the view.</param>
-/// <param name="Green">The mask's green at the pixel - the second ground's share.</param>
+/// <param name="Green">The mask's green at the pixel, or the corners' share where <paramref name="Cornered"/> - the second ground's share.</param>
 /// <param name="First">The first ground's colour there, linear.</param>
 /// <param name="Second">The second ground's colour there, linear.</param>
-public readonly record struct ProbeGround(int Triangle, float Depth, float Green, Vector3 First, Vector3 Second);
+/// <param name="Cornered">Whether the two are mixed by the second ground's share of the sub-tile's corners rather than the mask - see ShadeProgram.GroundsByCorners.</param>
+public readonly record struct ProbeGround(int Triangle, float Depth, float Green, Vector3 First, Vector3 Second, bool Cornered = false);
 
 /// <summary>
 /// What the beach waves made of a probed pixel: where the sheet stood, its waves' lift there, the shore's distances and the graph's mix.
