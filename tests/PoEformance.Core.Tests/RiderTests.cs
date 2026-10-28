@@ -106,7 +106,10 @@ public sealed class RiderTests
             // THE FIXTURE BINDS EVERY VERTEX TO ITS OWN BONE 1, the helm - his bone 3 now.
             Assert.Equal(3, said.Mesh.Bones[16]);
             Assert.Equal<byte>([255, 0, 0, 0], said.Mesh.Weights[16..20]);
-            Assert.Contains("playing its animation of the same name in step", said.Move, StringComparison.Ordinal);
+
+            // AND HE STILL MOVES: v0.1.329 said the riding in Move, which is why a model does NOT animate, and stopped him whole.
+            Assert.Equal(string.Empty, said.Move);
+            Assert.True(said.Moves);
         }
         else
         {
