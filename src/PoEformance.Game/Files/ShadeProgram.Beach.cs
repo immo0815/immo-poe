@@ -11,6 +11,9 @@ public sealed partial class ShadeProgram
     /// <summary>What the beach program is named in a picture's lines.</summary>
     public const string BeachName = "the engine's beach waves (BreakingOceanWaves.fxgraph: BreakingWavesVertex and BreakingWavesFragment)";
 
+    /// <summary>What the beach's wetness program is named by - see <see cref="Wetness"/>.</summary>
+    public const string BeachWetnessName = "the wetness the beach waves cast (BreakingOceanWavesWetness.fxgraph: BreakingWavesFragment's wetness)";
+
     /// <summary>beach_waves' <c>beach_wave_speed</c>, in units a second.</summary>
     public const float BeachWaveSpeed = 200f;
 
@@ -92,9 +95,9 @@ public sealed partial class ShadeProgram
 
     /// <summary>
     /// What the beach waves hand their graph: the colour and how much it covers, linear, the surface's normal and its gloss - and, for
-    /// the probe, the foam's share of the cover and the film's thickness under it.
+    /// the probe, the foam's share of the cover and the film's thickness under it; and the wetness BreakingWavesFragment casts.
     /// </summary>
-    public readonly record struct BeachLook(Vector4 Colour, Vector3 Normal, float Gloss, float Foam = 0f, float Thickness = 0f);
+    public readonly record struct BeachLook(Vector4 Colour, Vector3 Normal, float Gloss, float Foam = 0f, float Thickness = 0f, float Wetness = 0f);
 
     /// <summary>How the beach waves read their three textures: a sheet's texel at coordinates at its top level, and its average.</summary>
     public interface IBeachTextures : ISprayTextures
@@ -129,6 +132,9 @@ public sealed partial class ShadeProgram
     /// <summary>The surface's normal in xyz, its gloss in w.</summary>
     internal const int BeachNormal = 1;
 
+    /// <summary>The wetness the fragment casts, in all four - see <see cref="Wetness"/>.</summary>
+    internal const int BeachWetness = 2;
+
     /// <summary>
     /// One output of the beach step: A the place, B the clock and the depth the view crosses behind (x and y), C the shore's register,
     /// D the area's water colour; Extra the three sheets a byte each and in its top byte which output.
@@ -148,7 +154,12 @@ public sealed partial class ShadeProgram
         }
 
         BeachLook beach = s_beach;
-        return (step.Extra >> 24) == BeachColour ? beach.Colour : new Vector4(beach.Normal, beach.Gloss);
+        return (step.Extra >> 24) switch
+        {
+            BeachColour => beach.Colour,
+            BeachNormal => new Vector4(beach.Normal, beach.Gloss),
+            _ => new Vector4(beach.Wetness),
+        };
     }
 
     /// <summary>
@@ -177,6 +188,15 @@ public sealed partial class ShadeProgram
         int specular = build.Constant(new Vector4(BeachSpecular));
         beach.Glossy = Finish(build, colour, specular, gloss, [BeachName], hasAlpha: true, plainable: false, normal)
             ?? throw new InvalidOperationException("the beach's light does not fit its registers");
+
+        // AND THE WETNESS IT CASTS, a program of its own whose colour's alpha it is - BreakingOceanWavesWetness.fxgraph writes
+        // BreakingWavesFragment's wetness into the albedo's w under the blend mode Wetness, over the same moved vertices. Both
+        // programs carry it, the flat and the glossy, so whichever a picture draws casts.
+        int wet = build.Emit(Op.Beach, Position, packed, WaterShore, WaterColour, extra: sheets | (BeachWetness << 24));
+        ShadeProgram wetness = Finish(build, wet, -1, -1, [BeachWetnessName], hasAlpha: true, plainable: false)
+            ?? throw new InvalidOperationException("the beach's wetness does not fit its registers");
+        beach.Wetness = wetness;
+        beach.Glossy.Wetness = wetness;
         return beach;
     }
 
@@ -326,11 +346,22 @@ public sealed partial class ShadeProgram
         Vector3 albedo = cover > 0f
             ? ((new Vector3(surface.Colour.X, surface.Colour.Y, surface.Colour.Z) * foam) + (water * film)) / cover
             : Vector3.Zero;
-        return new BeachLook(new Vector4(albedo, cover), normal, Saturated(1f - surface.Rough), foam, thickness);
+        return new BeachLook(new Vector4(albedo, cover), normal, Saturated(1f - surface.Rough), foam, thickness, BeachWetted(place, front, surface, noise));
     }
 
-    /// <summary>GetBeachWaveFront: the two foam waves and the two geometry waves at a place - the foam's only where asked for.</summary>
-    private readonly record struct Front(WavePhase Foam0, WavePhase Foam1, WavePhase Geom0, WavePhase Geom1);
+    /// <summary>
+    /// BreakingWavesFragment's wetness as written: the foam's subsurface past a tenth, at least the shore's own band - eight tenths
+    /// wherever the shore's coordinate stands within 1.4 of the waterline, frayed by the noise's red at a thousandth of the place.
+    /// </summary>
+    private static float BeachWetted(Vector2 place, in Front front, in Surface surface, WaterSheet noise)
+    {
+        float fromFoam = MathSmoothStep(surface.Subsurface, 0.1f, 0.5f);
+        float band = 0.8f * Saturated((front.ShoreX + 1.4f + ((NoiseAt(noise, place * 1e-3f).X - 0.5f) * 0.5f)) * 3.1f);
+        return MathF.Max(fromFoam, band);
+    }
+
+    /// <summary>GetBeachWaveFront: the two foam waves and the two geometry waves at a place - the foam's only where asked for - and its shore coordinate's x.</summary>
+    private readonly record struct Front(WavePhase Foam0, WavePhase Foam1, WavePhase Geom0, WavePhase Geom1, float ShoreX);
 
     /// <summary>One wave of the front: beach_waves' WavePhase.</summary>
     private struct WavePhase
@@ -376,7 +407,7 @@ public sealed partial class ShadeProgram
             foam1 = BuildWavePhase(place, dir, f1, shoreCoord, globalFront - new Vector3(f1, 0f, 0f), clock, noise);
         }
 
-        return new Front(foam0, foam1, geom0, geom1);
+        return new Front(foam0, foam1, geom0, geom1, shoreCoord.X);
     }
 
     /// <summary>BuildWavePhase as written.</summary>

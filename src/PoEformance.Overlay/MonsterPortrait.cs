@@ -577,6 +577,9 @@ public sealed class MonsterPortrait
     /// <summary>Whether the line was made with the field waves drawn - the card's, with the light's crash switch on.</summary>
     private bool _waterSaidCrash;
     private bool _waterSaidGround;
+
+    /// <summary>Whether the line was made with the card's wetness pass drawn - the light's wetness switch on.</summary>
+    private bool _waterSaidWet;
     private bool _waterSaidLit;
     private Vector3[] _posed = [];
     private Vector3[] _posedNormals = [];
@@ -2458,14 +2461,17 @@ public sealed class MonsterPortrait
             WaterLook water = Watered();
             bool crashing = _onCard && _drawnLight is { WaterCrash: true };
             bool byGround = crashing && _drawnLight is { WaterBreakByGround: true };
+            bool wetting = _onCard && _drawnLight is { WaterWetness: true };
 
             // THE ENGINE'S WATER PASS LIGHTS THE GLOSSY TWIN under the game light alone - SceneLight.ShadeWater.
             bool engineLit = _drawnLight is not null && !FlatLight;
-            if (_waterSaid.Length == 0 || water != _waterSaidFor || crashing != _waterSaidCrash || byGround != _waterSaidGround || engineLit != _waterSaidLit)
+            if (_waterSaid.Length == 0 || water != _waterSaidFor || crashing != _waterSaidCrash || byGround != _waterSaidGround || engineLit != _waterSaidLit
+                || wetting != _waterSaidWet)
             {
                 _waterSaidFor = water;
                 _waterSaidCrash = crashing;
                 _waterSaidGround = byGround;
+                _waterSaidWet = wetting;
                 _waterSaidLit = engineLit;
                 _waterSaid = ImGuiText.Escape(water.Line() + " (its colour's pattern a moving noise; its waves the engine's ocean ripples, three octaves"
                     + " rolling in the wind - " + ShadeProgram.Ripples.Said + "; the wind's way, height, speed and"
@@ -2506,6 +2512,12 @@ public sealed class MonsterPortrait
                               ? "; their break phase off the shore's distance to the ground alone, the rocks and the pier's stones no shore for it"
                                 + " (the light panel's \"break by ground\", CHOSEN)"
                               : string.Empty)
+                        : string.Empty)
+                    + (wetting
+                        ? "; the engine's wetness pass (WaterComputeWetness and BreakingOceanWavesWetness.fxgraph cast, ReadPixelWetness read):"
+                          + " what the water covers and the beach waves wash darkened where its graph reads it - the quay, the rocks, the crates,"
+                          + " the ship - drying over " + ModelGpu.WetFade.ToString("0.#", CultureInfo.InvariantCulture) + " s, CHOSEN; the gloss"
+                          + " and normal its graph also turns not drawn; the card's alone"
                         : string.Empty));
             }
 

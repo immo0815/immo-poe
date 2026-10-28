@@ -114,6 +114,7 @@ public sealed class SceneLightPanel : IMovableSun
     private bool _wayRound;
     private bool _pastWalls;
     private bool _breakByGround;
+    private bool _wetness = true;
     private float _lift = 1f;
 
     /// <summary>How far the ocean ripples' wind is turned from the area's own way, in degrees - see <see cref="Water"/>.</summary>
@@ -259,6 +260,7 @@ public sealed class SceneLightPanel : IMovableSun
             WaterWayRound = _wayRound,
             WaterPastWalls = _pastWalls,
             WaterBreakByGround = _breakByGround,
+            WaterWetness = _wetness,
             WaterLift = _lift,
             CubeTurn = SceneLight.CubeTurnFrom(env.HorAngle ?? 0f, env.VertAngle ?? 0f, (SceneLight.CubeReading)_cubeReading),
             CubeBrightness = env.EnvBrightness ?? 1f,
@@ -368,7 +370,7 @@ public sealed class SceneLightPanel : IMovableSun
             }
         }
 
-        if (Fold(Count("water", _glints, _reflection, _mirroring, _crash, _wayRound, _pastWalls, _breakByGround) + "###scene-fold-water", open: false))
+        if (Fold(Count("water", _glints, _reflection, _mirroring, _crash, _wayRound, _pastWalls, _breakByGround, _wetness) + "###scene-fold-water", open: false))
         {
             try
             {
@@ -490,8 +492,8 @@ public sealed class SceneLightPanel : IMovableSun
                     "The waves' way in past the walls: a quay's or a pier's own ground - land whose nearest coast is a wall out of deep water,"
                     + " within 800 units of it - in no wave's way and not measured from, so the crests run on along its face. Measured at Port's"
                     + " pier (a video read through a capture's camera): 27 degrees off the game's way at the median, where by the ground and round"
-                    + " what stands are 81 and 82 off, running square onto the pier. CHOSEN, to hold against the game: the engine's own way in"
-                    + " (OceanMarkupField) is read nowhere, and the channel by the ship is still to be measured. Wins over way round.");
+                    + " what stands are 81 and 82 off, running square onto the pier - but in the channel by the ship 27 off, where by the ground"
+                    + " is 15. CHOSEN, to hold against the game: the engine's own way in (OceanMarkupField) is read nowhere. Wins over way round.");
                 Switch("break by ground##scene-break-ground", ref _breakByGround,
                     "The field waves' break phase off the shore's distance to the ground alone - the rocks and the pier's stones that stand in the sea"
                     + " no shore for it - rather than the shore's distance the swell takes, which counts them. The break phase (1 - shore x 0.0002,"
@@ -499,6 +501,12 @@ public sealed class SceneLightPanel : IMovableSun
                     + " quay both at full foam off a shore's distance of 1,000 to 1,400 measured to the rocks behind the pier, where the game's"
                     + " crest stays dark by the hull. CHOSEN, to hold against the game: the engine's own shore field (OceanMarkupField, made from"
                     + " the tile map) is read nowhere. Only with crash on; the card's alone.");
+                Switch("wetness##scene-wetness", ref _wetness,
+                    "The engine's wetness pass: the water casts its wetness where it covers a surface - a tenth wet a unit under it, two thirds"
+                    + " ten under, wet through 33 under (WaterComputeWetness) - and the beach waves theirs (BreakingOceanWavesWetness.fxgraph), and what reads it is drawn"
+                    + " darker where wet, to three tenths (specular_wetness_mult: Port's quay, rocks, crates and ship). So a crest that climbs the"
+                    + " quay's face leaves it dark. CHOSEN: it dries over a second once the water has gone, as the game's quay looks in a video;"
+                    + " the read waits a frame behind the cast, and a moved picture starts dry. The card's alone.");
             }
             finally
             {
@@ -567,7 +575,7 @@ public sealed class SceneLightPanel : IMovableSun
     private static readonly string[] LightLabels = ["room", "sun", "shadows", "player", "exposure", "colour grade"];
 
     /// <summary>The water's switches' visible labels, for their columns.</summary>
-    private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "crash", "way round", "past walls", "break by ground"];
+    private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "crash", "way round", "past walls", "break by ground", "wetness"];
 
     /// <summary>A row's label in the label column, the row's controls after it - and where those start, for a row that wraps.</summary>
     private static float Label(string text, float column)

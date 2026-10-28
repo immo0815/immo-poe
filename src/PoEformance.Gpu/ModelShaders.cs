@@ -901,6 +901,7 @@ internal static class ModelShaders
         ShadeOut Ran(Pixel pixel, bool translucent)
         {
             float behind = translucent && ShadeUsesDepth ? BehindAt(pixel.position) : 3.40282347e38;
+            ShadePixel = pixel.position.xy;
             return ShadeRun(Wrap, pixel.spot, pixel.place, pixel.turn, pixel.tint, behind, Clock.x, Eye, Dust.xyz, Water, Flow, Wind, Shore, Swell, Viewer);
         }
 
@@ -1294,6 +1295,77 @@ internal static class ModelShaders
         float4 ProgramMixedScened(Pixel pixel) : SV_Target
         {
             return Mixing(pixel, true);
+        }
+
+        // A CASTER'S WETNESS - ShadeProgram.Wetness, the colour's alpha its wetness - into the wetness pass's target (ModelGpu's Wet).
+        float4 ProgramWet(Pixel pixel) : SV_Target
+        {
+            ShadeOut said = Ran(pixel, true);
+            if (said.dropped)
+            {
+                discard;
+            }
+
+            return float4(saturate(said.alpha), 0.0, 0.0, 0.0);
+        }
+        """;
+
+    /// <summary>
+    /// The water's wetness caster - <see cref="Common"/>, ShadeHlsl's library and <c>WaterWet</c> - drawn over the water's own vertex shaders.
+    /// </summary>
+    /// <remarks>
+    /// WaterComputeWetness AS WRITTEN (water.ffx's BuildWaterWetness, the caster's alpha under the blend mode Wetness): one less the
+    /// cube of <c>saturate(1 - gap * 0.03)</c>, the gap the view crosses from the water to what lies behind it - ShadeProgram's
+    /// DepthDistance, along the pixel's own ray in perspective - so a surface under the water by a thirtieth is a little wet and one
+    /// 33 under it wet through, and one standing out of the water none. The tidal state's own ratio to the terrain, which the
+    /// engine takes the larger of, is not drawn here as the water's light does not draw it (SceneLight.ShadeWater). Which graph the
+    /// engine casts the water's wetness with (water_default_wetness.fxgraph) is not read: the fragment is the only one that works
+    /// a water's wetness out, and the water textures' part writes the graph whole from v0.1.336.
+    /// </remarks>
+    public static readonly string Wetting = Common + ShadeHlsl.Library + """
+        float4 WaterWet(Pixel pixel) : SV_Target
+        {
+            float held = Behind.Load(int3(pixel.position.xy, 0));
+            if (!(held > 0.0))
+            {
+                discard;
+            }
+
+            float behind = Depth.z > 0.5 ? Depth.y / held : (0.5 - held) * 2.0 * Depth.x;
+            float4 at = float4(pixel.place, 1.0);
+            float gap = behind - ShadeDeep(Eye, at);
+            if (Viewer.w > 0.5)
+            {
+                gap *= length(ShadeRaying(Eye, Viewer, behind, at));
+            }
+
+            float ratio = saturate(1.0 - (max(gap, 0.0) * 0.03));
+            return float4(1.0 - (ratio * ratio * ratio), 0.0, 0.0, 0.0);
+        }
+        """;
+
+    /// <summary>
+    /// The wetness pass's drying: last frame's wetness, less what dries in the time since, into this frame's target - or nought where
+    /// the picture starts again (ModelGpu's Wet).
+    /// </summary>
+    public const string Drying = """
+        cbuffer Dry : register(b4)
+        {
+            float4 Dry;  // x: how much the wetness falls this frame; y: one where it starts again from nought
+        };
+
+        Texture2D<float> Held : register(t0);
+
+        float4 Whole(uint corner : SV_VertexID) : SV_Position
+        {
+            float2 at = float2((corner << 1) & 2, corner & 2);
+            return float4((at * float2(2.0, -2.0)) + float2(-1.0, 1.0), 0.0, 1.0);
+        }
+
+        float4 Dried(float4 position : SV_Position) : SV_Target
+        {
+            float left = Dry.y > 0.5 ? 0.0 : max(Held.Load(int3(position.xy, 0)) - Dry.x, 0.0);
+            return float4(left, 0.0, 0.0, 0.0);
         }
         """;
 

@@ -163,20 +163,26 @@ public class ContactFadeTests
     /// <remarks>
     /// SloppyMud02_MCFc is the mud that came out as a slab over the floor: DielectricSpecGlossBN's
     /// colour at the march's coordinates, faded by ParallaxUvSpaceContactFade. Its wetness graph reads
-    /// the pixel's wetness, which no file says, and only ever touched the specular.
+    /// the pixel's wetness - the card's wetness pass's, dry on the processor (ShadeProgram.ReadsWetness) -
+    /// and darkens the colour by it before the fade.
     /// </remarks>
     [Theory]
-    [InlineData("Art/Models/Terrain/Jungle/Tiles/Jungle/Textures/SloppyMud02_MCFc.mat", ParallaxPath, true, "ReadPixelWetness in specular_wetness_mult")]
-    [InlineData("Art/Models/Terrain/Jungle/Tiles/Jungle/Textures/Dung01c.mat", ParallaxPath, true, "")]
-    [InlineData("Art/Models/Terrain/Jungle/Tiles/VaalInterior/Textures/DamagedStone01MCFc.mat", MaskedPath, false, "")]
-    public void THEOFFICESGroundLayersFromTheInstallCompileWhole(string material, string fade, bool marches, string skipped)
+    [InlineData("Art/Models/Terrain/Jungle/Tiles/Jungle/Textures/SloppyMud02_MCFc.mat", ParallaxPath, true, true)]
+    [InlineData("Art/Models/Terrain/Jungle/Tiles/Jungle/Textures/Dung01c.mat", ParallaxPath, true, false)]
+    [InlineData("Art/Models/Terrain/Jungle/Tiles/VaalInterior/Textures/DamagedStone01MCFc.mat", MaskedPath, false, false)]
+    public void THEOFFICESGroundLayersFromTheInstallCompileWhole(string material, string fade, bool marches, bool wets)
     {
         IReadOnlyList<ShaderInstance> instances = ShaderGraph.Instances(File.ReadAllBytes(FixturePath(material)));
         ShadeCompile compiled = ShadeProgram.Compile([.. instances.Select(one => (one, ShaderGraph.Read(File.ReadAllBytes(FixturePath(one.Parent)))))]);
 
         Assert.NotNull(compiled.Program);
-        Assert.Equal(skipped.Length == 0 ? [] : [skipped], compiled.Skipped);
-        Assert.Equal(["Metadata/Materials/DielectricSpecGlossBN.fxgraph", fade], compiled.Program.Graphs);
+        Assert.Empty(compiled.Skipped);
+        Assert.Equal(
+            wets
+                ? ["Metadata/Materials/DielectricSpecGlossBN.fxgraph", "Metadata/EngineGraphs/specular_wetness_mult.fxgraph", fade]
+                : ["Metadata/Materials/DielectricSpecGlossBN.fxgraph", fade],
+            compiled.Program.Graphs);
+        Assert.Equal(wets, compiled.Program.ReadsWetness);
         Assert.True(compiled.Program.HasAlpha);
         Assert.True(compiled.Program.UsesDepth);
         Assert.True(compiled.Program.Discards);
