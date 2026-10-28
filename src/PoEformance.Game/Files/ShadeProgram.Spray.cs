@@ -72,7 +72,12 @@ public sealed partial class ShadeProgram
             s_sprayKey = key;
             if (probe is not null)
             {
-                probe.Add(terms with { Triangle = s_sprayTriangle, Depth = s_sprayDepth });
+                SprayRise[]? rise = terms.Shore
+                    ? Rising(
+                        new Vector3(place.X, place.Y, place.Z), new Vector3(normal.X, normal.Y, normal.Z), packed.X, packed.Y, packed.Z, shore!,
+                        new TopLevels(this), sheets & 0xFF, (sheets >> 8) & 0xFF, (sheets >> 16) & 0xFF)
+                    : null;
+                probe.Add(terms with { Triangle = s_sprayTriangle, Depth = s_sprayDepth, Rise = rise });
                 s_sprayProbe = null;
             }
         }
@@ -84,6 +89,61 @@ public sealed partial class ShadeProgram
             SprayNormal => new Vector4(spray.Normal, spray.Ao),
             _ => new Vector4(spray.Wetness, spray.Gloss, 0f, 0f),
         };
+    }
+
+    /// <summary>How far above the shore field's water level the probe's sweep runs the spray - from under it to past where the game's quay streaks.</summary>
+    private static readonly float[] RiseHeights = [-25f, 0f, 50f, 100f, 150f, 200f, 300f];
+
+    /// <summary>The sweep's steps over one crashing wave.</summary>
+    private const int RiseSteps = 50;
+
+    /// <summary>A cover the sweep counts as shown - a twentieth.</summary>
+    private const float RiseShown = 0.05f;
+
+    /// <summary>
+    /// The spray at the probed place moved up its face to each of <see cref="RiseHeights"/>, run over one crashing wave from the clock -
+    /// see <see cref="SprayRise"/>. Up the face is the way within the surface that rises most (up is minus z); a surface within some
+    /// twelve degrees of level, whose way up would carry the place far across it, is moved straight up.
+    /// </summary>
+    public static SprayRise[] Rising<TRead>(
+        Vector3 place, Vector3 normal, float curvature, float sprayHeight, float clock, ShoreField shore,
+        TRead read, int colourSheet, int normalSheet, int noiseSheet)
+        where TRead : struct, ISprayTextures
+    {
+        ArgumentNullException.ThrowIfNull(shore);
+        float length = normal.LengthSquared();
+        Vector3 facing = length > 1e-12f ? normal / MathF.Sqrt(length) : Vector3.UnitZ;
+        var up = new Vector3(0f, 0f, -1f);
+        Vector3 along = up - (facing * Vector3.Dot(facing, up));
+        along = along.LengthSquared() > 1e-6f ? Vector3.Normalize(along) : up;
+        along = along.Z < -0.2f ? along : up;
+
+        const float step = FieldWaveLength / FieldWaveSpeed / RiseSteps;
+        var rise = new SprayRise[RiseHeights.Length];
+        for (var at = 0; at < rise.Length; at++)
+        {
+            float above = RiseHeights[at];
+            Vector3 point = place + (along * (((shore.Level - above) - place.Z) / along.Z));
+            float peak = -1f, peakAt = 0f, peakPhase = 0f, foamMost = 0f, alphaMost = 0f;
+            var shown = 0;
+            for (var k = 0; k < RiseSteps; k++)
+            {
+                ProbeSpray terms = default;
+                Spraying(point, facing, curvature, sprayHeight, clock + (k * step), shore, read, colourSheet, normalSheet, noiseSheet, true, ref terms);
+                if (terms.Cover > peak)
+                {
+                    (peak, peakAt, peakPhase) = (terms.Cover, k * step, terms.Phase);
+                }
+
+                shown += terms.Cover > RiseShown ? 1 : 0;
+                foamMost = MathF.Max(foamMost, terms.Foam);
+                alphaMost = MathF.Max(alphaMost, terms.FoamAlpha);
+            }
+
+            rise[at] = new SprayRise(above, peak, peakAt, peakPhase, shown * step, foamMost, alphaMost);
+        }
+
+        return rise;
     }
 
     /// <summary>The spray step's outputs, in its Extra's top byte: the foam's colour and cover.</summary>

@@ -785,7 +785,7 @@ public sealed partial class ModelGpu : IDisposable
         if (wets)
         {
             context.PSSetShaderResource(ShadeHlsl.WetnessSlot, null!);
-            Wet(context, target, plan, clip, scene.Time, lifting);
+            Wet(context, target, plan, clip, scene.Time);
         }
 
         Unbound();

@@ -262,11 +262,33 @@ public readonly record struct ProbeField(
 /// <param name="Cover">What the foam came to: how much it covers - the node's colour's alpha.</param>
 /// <param name="Wetness">How wet it leaves the surface, the band ramped by the curvature.</param>
 /// <param name="Colour">The foam's colour, linear.</param>
+/// <param name="Rise">The same node up the face over one crashing wave from the probe's clock, or null - see <see cref="SprayRise"/>.</param>
 public readonly record struct ProbeSpray(
     int Triangle, float Depth, Vector3 Place, Vector3 Normal, float Curvature, float SprayHeight, float Clock, bool Shore, float Level,
     int CellX, int CellY, string Cell, float ShoreDist, float OceanDist, Vector2 OceanSlope, float Stationary, float Advected, float WaveCoord,
     float Phase, float Intensity, float Above, float Below, float Inland, float Band, float Fade, float Foam, Vector3 Flow, float FoamAlpha,
-    float Cover, float Wetness, Vector3 Colour);
+    float Cover, float Wetness, Vector3 Colour, IReadOnlyList<SprayRise>? Rise = null);
+
+/// <summary>
+/// The sea's spray at one height up a probed face, run over one crashing wave: how much its foam ever covers there, when, and for how long.
+/// </summary>
+/// <remarks>
+/// WRITTEN WHEN THE GAME'S QUAY SHOWED ITS WATER RUNNING DOWN THE FACE for a second or so after every crest, and the Monster Book's face
+/// above the water did not change at all (a side-by-side video from the live client, v0.1.336). CrashingFoamSurface can only draw thin
+/// streaks there: the moss blend leaves the curvature at 0.973, so the foam's strength reaches a few hundredths at most, and the cover
+/// passes only where the foam texture's own alpha nears one and drops the threshold to as much (<c>SmoothStep(foam, 1 - Gain(alpha,
+/// 0.1), 0.5)</c>). One probed pixel at one moment almost never lands on such a texel, so the node is run again at the probe's place
+/// moved up the face, a tenth of a second apart over a whole wave - the arithmetic that draws, its textures at their top level as the
+/// processor reads them (the card reads the level the picture asks for).
+/// </remarks>
+/// <param name="Above">How far above the shore field's water level, in units.</param>
+/// <param name="Peak">The largest cover over the wave.</param>
+/// <param name="PeakAt">When, in seconds after the probe's clock.</param>
+/// <param name="PeakPhase">The spray's phase then.</param>
+/// <param name="Shown">How long the cover stays over a twentieth, in seconds.</param>
+/// <param name="FoamMost">The foam's largest strength over the wave.</param>
+/// <param name="AlphaMost">The foam texture's largest alpha read there over the wave.</param>
+public readonly record struct SprayRise(float Above, float Peak, float PeakAt, float PeakPhase, float Shown, float FoamMost, float AlphaMost);
 
 /// <summary>
 /// Every fragment one pixel of a drawing was made of, in the order the drawing met them.

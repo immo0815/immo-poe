@@ -859,7 +859,46 @@ public sealed class MonsterPortrait
     /// is drawn from his texture as he is alone, and the ground under him is the tile book's ground.
     /// </remarks>
     private IReadOnlyList<ShadeProgram?>? ShadesOf(MonsterModel model)
-        => !Shaded && !model.Staged ? null : FlatLight || model.GlossShades.Count == 0 ? model.Shades : model.GlossShades;
+    {
+        IReadOnlyList<ShadeProgram?>? shades = !Shaded && !model.Staged ? null : FlatLight || model.GlossShades.Count == 0 ? model.Shades : model.GlossShades;
+        return shades is not null && SceneLit?.Invoke(model) is { SprayOccluded: true } ? Occluded(shades) : shades;
+    }
+
+    /// <summary>The list <see cref="Occluded"/> last swapped, and what it came to - the same list while neither changes, so nothing redraws.</summary>
+    private (IReadOnlyList<ShadeProgram?> Of, IReadOnlyList<ShadeProgram?> Swapped, int Count)? _occluded;
+
+    /// <summary>The line saying how many shapes' spray the switch swapped, and the count it was made for.</summary>
+    private string _occludedSaid = string.Empty;
+
+    private int _occludedSaidFor = -1;
+
+    /// <summary>
+    /// A list with every program that has one swapped for its twin whose spray reads the stone's own occlusion (ShadeProgram.Occluded) -
+    /// the light panel's "spray from occlusion"; the list itself where none has one. Both drawings take it.
+    /// </summary>
+    private IReadOnlyList<ShadeProgram?> Occluded(IReadOnlyList<ShadeProgram?> shades)
+    {
+        if (_occluded is { } held && ReferenceEquals(held.Of, shades))
+        {
+            return held.Swapped;
+        }
+
+        ShadeProgram?[]? swapped = null;
+        var count = 0;
+        for (var at = 0; at < shades.Count; at++)
+        {
+            if (shades[at]?.Occluded is { } twin)
+            {
+                swapped ??= [.. shades];
+                swapped[at] = twin;
+                count++;
+            }
+        }
+
+        IReadOnlyList<ShadeProgram?> result = swapped ?? shades;
+        _occluded = (shades, result, count);
+        return result;
+    }
 
     /// <summary>The list the last picture was drawn with, compared by reference - a press of the light button redraws.</summary>
     private IReadOnlyList<ShadeProgram?>? _drawnShades;
@@ -2515,13 +2554,30 @@ public sealed class MonsterPortrait
                         : string.Empty)
                     + (wetting
                         ? "; the engine's wetness pass (WaterComputeWetness and BreakingOceanWavesWetness.fxgraph cast, ReadPixelWetness read):"
-                          + " what the water covers and the beach waves wash darkened where its graph reads it - the quay, the rocks, the crates,"
+                          + " what the still water covers and the beach waves wash darkened where its graph reads it - the quay, the rocks, the crates,"
                           + " the ship - drying over " + ModelGpu.WetFade.ToString("0.#", CultureInfo.InvariantCulture) + " s, CHOSEN; the gloss"
                           + " and normal its graph also turns not drawn; the card's alone"
                         : string.Empty));
             }
 
             _status.Add(_waterSaid);
+        }
+
+        // THE SPRAY'S TWINS ARE SAID while the light panel swaps them in - see Occluded.
+        if (_drawnLight is { SprayOccluded: true } && _occluded is { } occluded)
+        {
+            int swapped = occluded.Count;
+            if (swapped != _occludedSaidFor)
+            {
+                _occludedSaidFor = swapped;
+                _occludedSaid = swapped == 0
+                    ? "spray from occlusion (the light panel's): no shape here carries a spray whose occlusion a graph before it set to one"
+                    : "spray from occlusion (the light panel's, CHOSEN): " + swapped.ToString(CultureInfo.InvariantCulture)
+                      + " shapes' spray reads the stone's own occlusion, which a graph before it set to one (Port's quay: TRO_MossBlend) - off"
+                      + " draws the files as compiled";
+            }
+
+            _status.Add(_occludedSaid);
         }
 
         // WHERE THE FILES WENT, and it stays up until the next export rather than flashing: the

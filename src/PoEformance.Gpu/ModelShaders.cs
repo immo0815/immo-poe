@@ -1318,9 +1318,11 @@ internal static class ModelShaders
     /// cube of <c>saturate(1 - gap * 0.03)</c>, the gap the view crosses from the water to what lies behind it - ShadeProgram's
     /// DepthDistance, along the pixel's own ray in perspective - so a surface under the water by a thirtieth is a little wet and one
     /// 33 under it wet through, and one standing out of the water none. The tidal state's own ratio to the terrain, which the
-    /// engine takes the larger of, is not drawn here as the water's light does not draw it (SceneLight.ShadeWater). Which graph the
-    /// engine casts the water's wetness with (water_default_wetness.fxgraph) is not read: the fragment is the only one that works
-    /// a water's wetness out, and the water textures' part writes the graph whole from v0.1.336.
+    /// engine takes the larger of, is not drawn here as the water's light does not draw it (SceneLight.ShadeWater). The engine's caster
+    /// (water_default_wetness.fxgraph, read in v0.1.336's capture) is this fragment's opacity as the alpha over the mesh's own place,
+    /// so it is drawn over the still water's vertex shader alone, never the lifted one (ModelGpu's Wet). That graph names its blend
+    /// mode BackgroundGBufferSurfaces where the river's (water_flowing_wetness.fxgraph) names Wetness - what the engine makes of that
+    /// is in no file read.
     /// </remarks>
     public static readonly string Wetting = Common + ShadeHlsl.Library + """
         float4 WaterWet(Pixel pixel) : SV_Target

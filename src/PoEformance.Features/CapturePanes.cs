@@ -133,6 +133,7 @@ public static class CapturePanes
             }
 
             Shore(body, model, panes.Count > 1 ? $"shore-{pane.Book}.png" : ShoreFile);
+            Seams(body, model);
 
             if (model.DoodadFiles.Count == 0)
             {
@@ -222,6 +223,31 @@ public static class CapturePanes
     /// <summary>
     /// The shore the room's swell rolls in to, as made (ShoreField, CHOSEN): what it was made from and what came of it - and where its picture lies.
     /// </summary>
+    /// <summary>Where the room's water shapes meet, as drawn - whether their edges carry each other's corners (WaterSeams), where it has two or more.</summary>
+    private static void Seams(StringBuilder body, MonsterModel model)
+    {
+        var water = new bool[model.Mesh.Shapes.Count];
+        for (var shape = 0; shape < water.Length && shape < model.Modes.Count; shape++)
+        {
+            water[shape] = model.Modes[shape] == "water";
+        }
+
+        WaterSeams seams = WaterSeams.Of(model.Mesh, water);
+        if (seams.Edges == 0)
+        {
+            return;
+        }
+
+        body.Append(CultureInfo.InvariantCulture,
+                $"  water seams\tthe water shapes' {seams.Edges} border edges as drawn: {seams.Matched} meet another water shape corner to corner, ")
+            .Append(CultureInfo.InvariantCulture,
+                $"{seams.Junctions} carry {seams.Corners} corners of another in their middle - T-junctions, which open a crack onto what lies beneath once the water is lifted - ")
+            .Append(CultureInfo.InvariantCulture, $"and {seams.Outer} run along no other water shape (the water's own border)")
+            .AppendLine(seams.Samples.Count == 0
+                ? string.Empty
+                : "; such corners at " + string.Join(", ", seams.Samples.Select(one => string.Create(CultureInfo.InvariantCulture, $"({one.X:0.#}, {one.Y:0.#})"))));
+    }
+
     private static void Shore(StringBuilder body, MonsterModel model, string picture)
     {
         if (model.Shore is not { } shore)
