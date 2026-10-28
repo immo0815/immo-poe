@@ -3624,16 +3624,27 @@ internal static class Program
                 () => wobble?.Stop()));
 
         // THE OCEAN MARKUP HUNT: the grid the engine's sea shore is made from, looked for in the terrain at the press - see
-        // OceanMarkupHunt. Past the tap: a few megabytes of reads would crowd the capture's recording.
+        // OceanMarkupHunt - and then the numbers its shore field is drawn by, in the whole of memory on every core - see
+        // ShoreFieldHunt. Past the tap: a few megabytes of reads would crowd the capture's recording. One hunt a press, made at
+        // the press, so its line and its stop in the capture's window are that press's.
+        PoEformance.Game.Diagnostics.ShoreFieldHunt.Running? shoreHunt = null;
         overlay.OfferCaptureWork(
             PoEformance.Features.CaptureParts.OceanMarkup,
             _ =>
             {
+                var running = new PoEformance.Game.Diagnostics.ShoreFieldHunt.Running();
+                shoreHunt = running;
                 PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
                 PoEformance.Core.Diagnostics.GameChainAddresses chain =
                     PoEformance.Core.Diagnostics.GameChain.Resolve(untapped, schema, gameStatesStatic);
-                return PoEformance.Game.Diagnostics.OceanMarkupHunt.Run(untapped, schema, chain.AreaInstance);
-            });
+                IReadOnlyList<string> grids = PoEformance.Game.Diagnostics.OceanMarkupHunt.Run(untapped, schema, chain.AreaInstance);
+                return [.. grids, string.Empty, .. PoEformance.Game.Diagnostics.ShoreFieldHunt.Run(
+                    untapped, untapped as PoEformance.Core.Memory.IMemoryRegions, schema, chain.AreaInstance, running)];
+            },
+            new PoEformance.Overlay.CaptureWorkProgress(
+                () => shoreHunt?.Line ?? "starting",
+                () => shoreHunt?.Fraction ?? 0f,
+                () => shoreHunt?.Progress.Stop()));
 
         // NEEDS NO INSTALL: it reads memory rather than the game's files. The one thing it needs is
         // the loaded-file table.
