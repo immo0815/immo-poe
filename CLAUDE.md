@@ -816,6 +816,20 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   (DECIDED from the live client) until the channel between the ship and the pier - where by the ground matched the game (v0.1.307) - is
   measured the same way. The reading is scratch arithmetic over the capture's own files (`capture.txt`'s camera, `shore-field.bin`): no
   part reads a video.
+  THE CHANNEL MEASURED (v0.1.335, over v0.1.334's `shore-field.bin` and the game's half of v0.1.307's side-by-side video at the checkpoint
+  by the ship - the one recording whose game picture shows the channel; v0.1.334's own video lay under the Monster Book's window there).
+  That instance laid the boss room otherwise, so its frame is fitted on the two objects of the room both instances hold,
+  `Checkpoint_Endgame_Boss` and `BossForceFieldDoorVisuals`: 725.1 units apart in both, a quarter turn between them, `(x, y)` to `(y, -x)`
+  about the first - a mirror would want its axis 58 degrees off the grid - and today's waterlines drawn through v0.1.307's camera lie on
+  that picture's quay and hull. Over 272 water cells of the channel's land half the game's crests cross it from the hull to the quay, ten
+  degrees towards the land; off the game's way, the median and the share within 30 degrees - by the ground 15 and 76% (98% within 60),
+  round what stands 72 and 10%, past the walls at any reach 27 and 54%, its crests turned towards the channel's sea end, the straight way
+  to the nearest ground that steers. The pier measured again from v0.1.334's video at v0.1.333's spot: by the ground 82 and 6%, past the
+  walls 22 to 26 and 56 to 67% - the first reading holds. SO NO WAY IN READ SO FAR FITS BOTH: "past walls" stays a switch and by the
+  ground the default, as DECIDED from the live client. A lead, not a rule: the game's corners name no ground on the pier and on the quay
+  at the channel's head (ground-grid-replay.txt's null slot, tile columns 131 to 133 of that instance); leaving every cell that touches
+  one out of the land fits the pier at 18 degrees (69% within 30) but the channel at 38 (41%), the quay's ground going with it. The
+  engine's OceanMarkupField stays unread.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

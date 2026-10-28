@@ -83,9 +83,12 @@ namespace PoEformance.Game.Files;
 /// the pier). The game's crests run along the pier towards the land. Off the game's way, the median and the share within 60 degrees: by
 /// the ground 81 degrees and 20%, round what stands 82 and 19%, past the walls at 400 75 and 31% - the pier, some 900 across, kept its
 /// middle - and past the walls at 800 or any reach beyond 27 and 90%, as is the straight distance to the nearest beach; what is left is a
-/// turn of about 21 degrees the same way throughout, its cause unread. The wavelength came to 814 units against the engine's 1,000. Not
-/// yet the default (DECIDED from the live client): by the ground matched the game in the channel between the ship and the pier
-/// (v0.1.307), and the channel is measured the same way before the default changes.
+/// turn of about 21 degrees the same way throughout, its cause unread. The wavelength came to 814 units against the engine's 1,000.
+///
+/// AND IN THE CHANNEL between the ship and the quay (v0.1.307's video, its instance's frame fitted on the room's two fixed objects and
+/// read onto v0.1.334's field): the game's crests cross it from the hull to the quay; by the ground 15 degrees off at the median and 76%
+/// within 30, past the walls 27 and 54%, its crests turned towards the channel's sea end. No way in read so far fits both places, so this
+/// one is not the default (DECIDED from the live client) - a switch to hold against the game until the engine's own is read.
 /// </remarks>
 public sealed class ShoreField
 {
