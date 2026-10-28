@@ -768,13 +768,12 @@ public static class MonsterModels
             parts.AddRange(Dressing(counted, found.Files, rig, paints, skin, told, riding));
         }
 
-        // THE PIECES THAT PLAY THEIR OWN ANIMATIONS RIDE HIS RIG, their bones after his - see AnimationSkeleton.Carrying.
+        // THE PIECES THAT PLAY THEIR OWN ANIMATIONS RIDE HIS RIG, their bones after his - see AnimationSkeleton.Carrying. Said by
+        // the parts' own account (PartKind.Played), NOT in Move: Move is why a model does NOT animate, and v0.1.329 wrote a line
+        // there that stopped Malgor's every animation and took his list of them away (said from the live client with a picture).
         if (riding.Rigs.Count > 0 && rig.Carrying(riding.Rigs) is { } carrying)
         {
             rig = carrying;
-            move += string.Create(
-                System.Globalization.CultureInfo.InvariantCulture,
-                $" · {riding.Rigs.Count} part{(riding.Rigs.Count == 1 ? string.Empty : "s")} on {(riding.Rigs.Count == 1 ? "a rig" : "rigs")} of {(riding.Rigs.Count == 1 ? "its" : "their")} own playing {(riding.Rigs.Count == 1 ? "its" : "their")} animation of the same name in step (by the seconds of each one's rate - CHOSEN)");
         }
 
         // THE MONSTER WITHOUT WHAT HE IS WEARING, taken BEFORE the join and kept - see
