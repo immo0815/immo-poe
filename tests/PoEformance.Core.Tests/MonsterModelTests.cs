@@ -778,7 +778,7 @@ public class MonsterModelTests
         Assert.Equal(2, said.Mesh.Triangles);
     }
 
-    private static MonsterVariety Named(string path)
+    internal static MonsterVariety Named(string path)
         => new(Name: "test", AoFiles: [path]);
 
     /// <summary>
@@ -803,14 +803,14 @@ public class MonsterModelTests
     }
 
     /// <summary>A stand-in install: the paths a walk may ask for, and their bytes.</summary>
-    private sealed class Fake
+    internal sealed class Fake
     {
         public Dictionary<string, byte[]> Files { get; } = new(StringComparer.OrdinalIgnoreCase);
 
         public byte[]? Read(string path) => Files.TryGetValue(path, out byte[]? said) ? said : null;
     }
 
-    private static Fake Install()
+    internal static Fake Install()
     {
         var install = new Fake();
         install.Files["body.ao"] = Ao(skin: "art/mesh.sm");
@@ -833,7 +833,7 @@ public class MonsterModelTests
     /// inside one pair of quotes. Taken whole that is a path no install has, which is exactly
     /// the trap the walk has to get past.
     /// </param>
-    private static byte[] Ao(
+    internal static byte[] Ao(
         string? extends = null,
         string? skin = null,
         string? material = null,
@@ -1761,7 +1761,7 @@ public class MonsterModelTests
         Assert.Equal(2, said.Mesh.Triangles);
     }
 
-    private static byte[] Sm(string geometry, string material) => Encoding.UTF8.GetBytes(
+    internal static byte[] Sm(string geometry, string material) => Encoding.UTF8.GetBytes(
         $"version 6\nSkinnedMeshData \"{geometry}\"\nMaterials 1\n\t\"{material}\" 1\n"
         + "BoundingBox -1 -1 -1 1 1 1\n");
 
@@ -1779,7 +1779,7 @@ public class MonsterModelTests
     /// coordinates really takes - the slots exist and hold nothing. The layout is unchanged, so
     /// this differs from a coordinated mesh in the one way that matters and in no other.
     /// </param>
-    private static byte[] Smd(bool coordinated = true)
+    internal static byte[] Smd(bool coordinated = true)
     {
         var file = new List<byte>();
         void U8(int v) => file.Add((byte)v);

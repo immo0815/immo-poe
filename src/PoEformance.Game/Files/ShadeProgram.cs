@@ -163,8 +163,9 @@ public sealed partial class ShadeProgram
     /// The way into the picture in the model's space, in xyz, and the depth of the model's origin, in w - set per drawing.
     /// </summary>
     /// <remarks>
-    /// THE PICTURE'S CAMERA IS ORTHOGRAPHIC, so every view ray runs the same way and a point's depth
-    /// is one dot product: <c>dot(p, Eye.xyz) + Eye.w</c>, the view matrix's third column. That is
+    /// A POINT'S DEPTH IS ONE DOT PRODUCT, on a parallel view and in perspective alike (the view's origin is then
+    /// the eye): <c>dot(p, Eye.xyz) + Eye.w</c>, the view matrix's third column. On a parallel view every view
+    /// ray runs the same way, and that is
     /// also the engine's <c>world_view_dir</c> - <c>-normalize(camera - world_pos)</c> points from the
     /// eye into the scene - and its depth along the ray, which DepthDistance takes the difference of.
     /// </remarks>
@@ -212,8 +213,20 @@ public sealed partial class ShadeProgram
     /// <summary>The swell the ocean reads - set per drawing. See WaterLook.SwellRegister and <see cref="Ocean"/>.</summary>
     internal const int WaterSwell = 16;
 
+    /// <summary>
+    /// Where the eye stands in the model's space, in xyz, and one in w where the picture is drawn in perspective - set per drawing, nought on a parallel view.
+    /// </summary>
+    /// <remarks>
+    /// WHAT <see cref="Eye"/> CANNOT SAY IN PERSPECTIVE: the view rays fan out from the eye, so the way from it to a point, and how far
+    /// along that way a depth difference reaches, are the point's own. A point's depth along the view is still <see cref="Eye"/>'s one
+    /// dot product - the view's origin is then the eye - and the ray of the engine's world_view_dir, <c>(p - eye) / depth(p)</c>, is the
+    /// one way per point the depth's steps take: ViewDir its direction, DepthDistance its length times the difference of the depths, and
+    /// MaskedContactFade its z times that difference. On a parallel view the ray is Eye.xyz for every point, as before.
+    /// </remarks>
+    internal const int Viewer = 17;
+
     /// <summary>How many registers are the mesh's own, before any a program allocates.</summary>
-    private const int Fixed = 17;
+    private const int Fixed = 18;
 
     /// <summary>
     /// The shore of the drawing the thread is running a program for - set by <see cref="Preset"/>, read by the waves' step.
@@ -322,7 +335,7 @@ public sealed partial class ShadeProgram
     /// neither.
     /// </remarks>
     private static readonly string[] Channels =
-        ["UV", "WorldPos", "WorldNormal", "Albedo", "IndirectColor", "SpecularColor", "EmissiveColor", "SubsurfaceColor", "Glossiness", "TbnNormal", "TbnBasis"];
+        ["UV", "WorldPos", "WorldNormal", "Albedo", "IndirectColor", "SpecularColor", "EmissiveColor", "SubsurfaceColor", "Glossiness", "TbnNormal", "TbnBasis", "Height"];
 
     private const int FirstFollowed = 4;
 
@@ -337,12 +350,15 @@ public sealed partial class ShadeProgram
     private readonly int _specular;
     private readonly int _gloss;
     private readonly int _waves;
+    private readonly int _waterFoam;
+    private readonly int _waterState;
     private readonly int[] _sampleTexture;
     private readonly Mipmaps?[] _sheets;
 
     private ShadeProgram(
         Step[] steps, int[] constantAt, Vector4[] constants, int registers, int result, int specular, int gloss,
-        ShadeTexture[] textures, int[] sampleTexture, int plain, IReadOnlyList<string> graphs, Mipmaps?[] sheets, bool hasAlpha, int waves = -1)
+        ShadeTexture[] textures, int[] sampleTexture, int plain, IReadOnlyList<string> graphs, Mipmaps?[] sheets, bool hasAlpha, int waves = -1,
+        int waterFoam = -1, int waterState = -1)
     {
         HasAlpha = hasAlpha;
         _steps = steps;
@@ -353,6 +369,8 @@ public sealed partial class ShadeProgram
         _specular = specular;
         _gloss = gloss;
         _waves = waves;
+        _waterFoam = waterFoam;
+        _waterState = waterState;
         Textures = textures;
         _sampleTexture = sampleTexture;
         Plain = plain;
@@ -367,7 +385,26 @@ public sealed partial class ShadeProgram
         UsesTime = result == Clock || specular == Clock || gloss == Clock || steps.Any(one => one.Reads(Clock));
         Sprays = steps.Any(one => one.Op == Op.Spray);
         Beaches = steps.Any(one => one.Op == Op.Beach);
+
+        // A CONSTANT RESULT: a constant register no step writes into.
+        int fixedAt = Array.IndexOf(constantAt, result);
+        FixedAlpha = hasAlpha && fixedAt >= 0 && !steps.Any(one => one.To == result) ? constants[fixedAt].W : null;
     }
+
+    /// <summary>
+    /// The alpha the graphs leave where it is one number at every pixel - null where it changes, or where they set none (<see cref="HasAlpha"/>).
+    /// </summary>
+    /// <remarks>
+    /// WHAT A CUT-OUT SHAPE THAT NEVER SHOWS IS TOLD BY: transparentobjectsc.mat writes Zero to the colour, alpha and all, under
+    /// ForceAlphaTest, so the engine clips every pixel of it - in its shadow pass too, which runs the same AlphaTestClipping. Drawn it was
+    /// cut away (<see cref="HasAlpha"/>), but the shadow map, which cuts a shape through its texture alone and this one has none, cast it
+    /// solid: Port's wobble core, a plane 2,750 by 4,000 units over the ship's deck, laid a rectangle of shadow on the harbour beside the
+    /// hull (the probe's "cast by transparentobjectsc.mat", v0.1.296's capture, and seen in the picture from the live client).
+    /// </remarks>
+    public float? FixedAlpha { get; }
+
+    /// <summary>Whether a cut-out shape of this program is cut away at every pixel - its alpha one number under the cut - and so neither drawn nor casting.</summary>
+    public bool CutAway(float cutoff) => FixedAlpha is { } alpha && !(alpha >= cutoff);
 
     /// <summary>
     /// Whether the material draws the sea's spray on itself (CrashingFoamSurface) - the game's own word that the sea breaks on it; see ShoreField.Of.
@@ -457,6 +494,17 @@ public sealed partial class ShadeProgram
         /// <see cref="BeachColour"/>.
         /// </summary>
         Beach,
+
+        /// <summary>
+        /// The engine's field waves (CrashingWavesFragment) at A's place, B's clock and the depth the view crosses (x and y), over C's
+        /// shore with D's swell - its w one where they are drawn: Extra <see cref="FieldColour"/> hands their foam's colour and how much
+        /// it covers, <see cref="FieldNormal"/> E's waves turned by their slope. THE CARD'S ALONE (DECIDED from the live client): the
+        /// processor draws none - its colour nought and its normal E's - see <see cref="Water"/>.
+        /// </summary>
+        Field,
+
+        /// <summary>ViewDir: the way from the eye into the picture at A's place - Eye.xyz on a parallel view, from the eye to the place in perspective (see <see cref="Viewer"/>).</summary>
+        ViewWay,
     }
 
     /// <summary>The stages a colour is assembled across, in the order they are run.</summary>
@@ -546,13 +594,19 @@ public sealed partial class ShadeProgram
     /// Whether a run also leaves a normal of its own for the specular light - the water's waves (see <see cref="Water"/>).
     /// </summary>
     /// <remarks>
-    /// THE SPECULAR LIGHT ONLY. The engine's water lights its surface with the waves' normal and its
-    /// medium by what lies behind; the picture lights the colour with the mesh's normal as it lights
-    /// every colour, and the sun's glints and the environment's reflection - the two the waves are seen
-    /// by - with this one, each where the game light asks for it (SceneLight.WaterGlints and
-    /// WaterReflection). The picture's own lamp draws such a program as it drew it before it had one.
+    /// THE WATER'S WHOLE LIGHT under the game light (v0.1.296, <see cref="LightsWater"/>): the engine's water lights its surface
+    /// with the waves' normal for everything - the lights on its foam and its medium, the cube, the reflectivity - and so does
+    /// SceneLight.ShadeWater; the sun's glints and the environment's reflection are still each where the game light asks for them
+    /// (SceneLight.WaterGlints and WaterReflection). Before, the colour took the mesh's normal as every colour does and only the
+    /// specular light this one. The picture's own lamp draws such a program as it drew it before it had one.
     /// </remarks>
     public bool HasWaves => _waves >= 0 && !Beaches;
+
+    /// <summary>
+    /// Whether the program is the engine's open water lit as its water pass lights it - its colour handed over in parts (<see cref="WaterOut"/>)
+    /// for SceneLight.ShadeWater rather than as one albedo; see <see cref="Water"/>.
+    /// </summary>
+    public bool LightsWater => _waterFoam >= 0 && _waterState >= 0;
 
     /// <summary>
     /// The same colour with the glossiness worked out too, for the game's own lighting; null where it is this program.
@@ -567,6 +621,29 @@ public sealed partial class ShadeProgram
     /// not this program's.
     /// </remarks>
     public ShadeProgram? Glossy { get; private set; }
+
+    /// <summary>The fragment whose macro turns the engine's ground height blending on for the whole ground shader (ground.ffx, EnableGroundHeightBlending).</summary>
+    internal const string HeightBlendingNode = "EnableGroundHeightBlending";
+
+    /// <summary>
+    /// The same program with the height its graphs write kept too - <see cref="HeightRegister"/> - and its own glossy twin; null where
+    /// no graph writes one.
+    /// </summary>
+    /// <remarks>
+    /// A TWIN, BECAUSE THE HEIGHT COSTS A TEXTURE READ. PBRGroundBN writes the height from the blue of its normal map through a
+    /// SmoothStep, which nothing on the way to the colour reads: only two grounds mixed by their heights (Grounds) want it, so a ground
+    /// drawn alone keeps the program it had. Not carried by <see cref="With"/>, as <see cref="Glossy"/> is not.
+    /// </remarks>
+    public ShadeProgram? Heighted { get; private set; }
+
+    /// <summary>The register the height is left in, or below nought for none - see <see cref="Heighted"/>.</summary>
+    internal int HeightRegister { get; private init; } = -1;
+
+    /// <summary>
+    /// Whether one of the graphs carries <see cref="HeightBlendingNode"/>, whose macro the engine defines for the whole ground shader the
+    /// material is compiled into - so two grounds are mixed by their heights where either says so (ground.ffx, GroundInterpolate).
+    /// </summary>
+    public bool BlendsGroundHeights { get; private set; }
 
     /// <summary>
     /// Whether the graphs set the colour's alpha, which a cut-out shape is then cut on instead of its texture's.
@@ -589,6 +666,12 @@ public sealed partial class ShadeProgram
     /// </remarks>
     public static bool Knows(string type)
         => type is not null && (Evaluated.Contains(type) || ReadBy(type) is not null || type == "InputTexture");
+
+    /// <summary>
+    /// Whether a graph node of this type writes one of the values the compiler tracks - <c>AlbedoColor</c>, <c>EmissiveColor</c> -
+    /// which it is not evaluated as but carried through as an output; with <see cref="Knows"/>, every node the compile handles.
+    /// </summary>
+    public static bool Writes(string type) => type is not null && Written(type) is not null;
 
     /// <summary>
     /// Compiles the colour a material's graphs compute, or says why it cannot.
@@ -628,7 +711,11 @@ public sealed partial class ShadeProgram
             ["SubsurfaceColor"] = new(build.Constant(Vector4.Zero), 0),
             ["TbnNormal"] = new(build.Constant(new Vector4(0f, 0f, 1f, 0f)), 0),
             ["TbnBasis"] = new(Basis, 0),
+
+            // NOUGHT, as InitSurfaceData and GroundMaterialZero leave it: the height a ground mixed by its height weighs by - see Heighted.
+            ["Height"] = new(build.Constant(Vector4.Zero), 0),
         };
+        int noHeight = state["Height"].Register;
 
         // A FOLLOWED CHANNEL WHOSE WRITE WAS LEFT OUT, by the graph that wrote it - see Channels.
         var lost = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -810,6 +897,31 @@ public sealed partial class ShadeProgram
             program.Glossy = Finish(build, albedo.Register, specular, gloss, graphs, cutsOnAlpha, plainable: false);
         }
 
+        // THE HEIGHT, where a graph wrote one, in a twin of its own and its glossy twin - see Heighted.
+        if (program is not null)
+        {
+            program.BlendsGroundHeights = chain.Any(one => one.Graph.Nodes.Any(node => node.Type == HeightBlendingNode));
+            if (state.TryGetValue("Height", out Held raised) && raised.Register != noHeight)
+            {
+                int heightedSpecular = program.HasSpecular ? specular : -1;
+                ShadeProgram? heighted = Finish(build, albedo.Register, heightedSpecular, -1, graphs, cutsOnAlpha, plainable: false, height: raised.Register);
+                if (heighted is not null)
+                {
+                    heighted.BlendsGroundHeights = program.BlendsGroundHeights;
+                    if (program.Glossy is not null)
+                    {
+                        heighted.Glossy = Finish(build, albedo.Register, specular, gloss, graphs, cutsOnAlpha, plainable: false, height: raised.Register);
+                        if (heighted.Glossy is { } glossy)
+                        {
+                            glossy.BlendsGroundHeights = program.BlendsGroundHeights;
+                        }
+                    }
+                }
+
+                program.Heighted = heighted;
+            }
+        }
+
         return new ShadeCompile(program, skipped);
     }
 
@@ -834,6 +946,12 @@ public sealed partial class ShadeProgram
     /// <summary>The register the waves' normal is left in, or below nought for none - see <see cref="HasWaves"/>.</summary>
     internal int WavesRegister => _waves;
 
+    /// <summary>The register the water's foam is left in - <see cref="WaterOut.Foam"/> and <see cref="WaterOut.Share"/> - or below nought for none.</summary>
+    internal int WaterFoamRegister => _waterFoam;
+
+    /// <summary>The register the water's state is left in - <see cref="WaterOut"/>'s through, terrain, shimmer and height - or below nought for none.</summary>
+    internal int WaterStateRegister => _waterState;
+
     /// <summary>This program with its textures in hand, one per entry of <see cref="Textures"/>.</summary>
     public ShadeProgram With(IReadOnlyList<Mipmaps?> sheets)
     {
@@ -847,9 +965,13 @@ public sealed partial class ShadeProgram
         // NOT THE GLOSSY ONE: it reads a texture this does not, and is bound on its own - see Glossy.
         return new ShadeProgram(
             _steps, _constantAt, _constants, Registers, _result, _specular, _gloss,
-            [.. Textures], _sampleTexture, Plain, Graphs, bound, HasAlpha, _waves)
+            [.. Textures], _sampleTexture, Plain, Graphs, bound, HasAlpha, _waves, _waterFoam, _waterState)
         {
             Mix = Mix,
+            MixesByCorners = MixesByCorners,
+            Weighed = Weighed,
+            HeightRegister = HeightRegister,
+            BlendsGroundHeights = BlendsGroundHeights,
         };
     }
 
@@ -860,7 +982,8 @@ public sealed partial class ShadeProgram
     /// <param name="time">The clock - see <see cref="Clock"/>.</param>
     /// <param name="eye">The way into the picture and the origin's depth - see <see cref="Eye"/>.</param>
     /// <param name="dust">The area's dust colour - see <see cref="Dust"/>.</param>
-    internal void Preset(Span<Vector4> registers, float time, Vector4 eye, Vector3 dust, WaterLook? water = null)
+    /// <param name="viewer">Where the eye stands and one, in perspective; nought on a parallel view - see <see cref="Viewer"/>.</param>
+    internal void Preset(Span<Vector4> registers, float time, Vector4 eye, Vector3 dust, WaterLook? water = null, Vector4 viewer = default)
     {
         registers[Clock] = new Vector4(time);
         registers[Dust] = new Vector4(dust, 0f);
@@ -873,9 +996,17 @@ public sealed partial class ShadeProgram
         s_shore = look.Shore;
         registers[Behind] = new Vector4(float.MaxValue);
         registers[Eye] = eye;
+        registers[Viewer] = viewer;
         registers[Tangent] = Vector4.Zero;
         registers[Binormal] = Vector4.Zero;
         registers[Dropped] = Vector4.Zero;
+        Constants(registers);
+    }
+
+    /// <summary>Only the program's own constants in their registers, and nothing behind - none of the drawing's shared state touched (see GroundReader).</summary>
+    internal void Constants(Span<Vector4> registers)
+    {
+        registers[Behind] = new Vector4(float.MaxValue);
         for (var one = 0; one < _constantAt.Length; one++)
         {
             registers[_constantAt[one]] = _constants[one];
@@ -960,6 +1091,15 @@ public sealed partial class ShadeProgram
     internal Vector3 Colour(
         Span<Vector4> registers, Vector2 coordinates, Vector3 position, Vector3 normal, ReadOnlySpan<float> levels,
         out float alpha, out Vector3 specular, out float gloss, out Vector3 waves, Vector4 vertexColour = default, float behind = float.MaxValue)
+        => Colour(registers, coordinates, position, normal, levels, out alpha, out specular, out gloss, out waves, out _, vertexColour, behind);
+
+    /// <summary>
+    /// The same, and the water's parts where the program lights as the engine's water pass does - default where <see cref="LightsWater"/> says it does not.
+    /// </summary>
+    internal Vector3 Colour(
+        Span<Vector4> registers, Vector2 coordinates, Vector3 position, Vector3 normal, ReadOnlySpan<float> levels,
+        out float alpha, out Vector3 specular, out float gloss, out Vector3 waves, out WaterOut water, Vector4 vertexColour = default,
+        float behind = float.MaxValue)
     {
         registers[Coordinates] = new Vector4(coordinates, 0f, 0f);
         if (UsesDepth)
@@ -994,6 +1134,7 @@ public sealed partial class ShadeProgram
         specular = _specular >= 0 ? new Vector3(registers[_specular].X, registers[_specular].Y, registers[_specular].Z) : default;
         gloss = _gloss >= 0 ? registers[_gloss].X : 0f;
         waves = _waves >= 0 ? new Vector3(registers[_waves].X, registers[_waves].Y, registers[_waves].Z) : default;
+        water = LightsWater ? new WaterOut(registers[_waterFoam], registers[_waterState]) : default;
         return new Vector3(Srgb(colour.X), Srgb(colour.Y), Srgb(colour.Z));
     }
 
@@ -1312,8 +1453,14 @@ public sealed partial class ShadeProgram
                 case Op.Depth:
                 {
                     // DepthDistance: length(bottom - camera) - length(world_pos - camera), which on a
-                    // parallel view is the difference of the two depths along it.
+                    // parallel view is the difference of the two depths along it - and in perspective
+                    // that difference along the point's own ray, see Viewer.
                     float distance = r[Behind].X - Deep(r, r[step.A]);
+                    if (r[Viewer].W > 0.5f)
+                    {
+                        distance *= Raying(r, r[step.A]).Length();
+                    }
+
                     if (step.Extra != 0 && distance < 0f)
                     {
                         r[Dropped] = Vector4.One;
@@ -1325,6 +1472,10 @@ public sealed partial class ShadeProgram
 
                 case Op.ContactFade:
                     r[step.To] = Faded(r, step);
+                    break;
+
+                case Op.ViewWay:
+                    r[step.To] = Viewed(r, r[step.A]);
                     break;
 
                 case Op.Parallax:
@@ -1356,6 +1507,11 @@ public sealed partial class ShadeProgram
                 case Op.Beach:
                     r[step.To] = corner >= 0 ? Vector4.Zero : Beached(r, step);
                     break;
+
+                // THE FIELD WAVES ARE THE CARD'S: no foam, and the waves as they came.
+                case Op.Field:
+                    r[step.To] = step.Extra == FieldColour || step.E < 0 ? Vector4.Zero : r[step.E];
+                    break;
             }
 
             if (step.Splat)
@@ -1373,6 +1529,46 @@ public sealed partial class ShadeProgram
         return (point.X * eye.X) + (point.Y * eye.Y) + (point.Z * eye.Z) + eye.W;
     }
 
+    /// <summary>ViewDir at a place: Eye's way on a parallel view, the way from the eye to the place in perspective - see <see cref="Viewer"/>.</summary>
+    private static Vector4 Viewed(Span<Vector4> r, Vector4 place)
+    {
+        Vector4 viewer = r[Viewer];
+        Vector4 eye = r[Eye];
+        if (viewer.W > 0.5f)
+        {
+            var way = new Vector3(place.X - viewer.X, place.Y - viewer.Y, place.Z - viewer.Z);
+            float length = way.Length();
+            if (length > 1e-6f)
+            {
+                return new Vector4(way / length, 0f);
+            }
+        }
+
+        return new Vector4(eye.X, eye.Y, eye.Z, 0f);
+    }
+
+    /// <summary>
+    /// The view's ray through a point, a unit of depth long - Eye.xyz on a parallel view, <c>(p - eye) / depth(p)</c> in perspective; see <see cref="Viewer"/>.
+    /// </summary>
+    /// <remarks>
+    /// THE PARALLEL VIEW'S RAY UNTOUCHED, so every picture drawn before perspective is drawn to the bit. Where nothing solid lies behind
+    /// (Behind the largest float) the difference it scales is already past any fade, and a point at the eye has no ray: both keep Eye's.
+    /// </remarks>
+    private static Vector3 Raying(Span<Vector4> r, Vector4 point)
+    {
+        Vector4 viewer = r[Viewer];
+        Vector4 eye = r[Eye];
+        if (!(viewer.W > 0.5f) || !(r[Behind].X < float.MaxValue))
+        {
+            return new Vector3(eye.X, eye.Y, eye.Z);
+        }
+
+        float deep = Deep(r, point);
+        return deep > 1e-6f
+            ? new Vector3(point.X - viewer.X, point.Y - viewer.Y, point.Z - viewer.Z) / deep
+            : new Vector3(eye.X, eye.Y, eye.Z);
+    }
+
     /// <summary>
     /// MaskedContactFade, as <c>shaders/renderer/nodes</c> writes it: the alpha times how far the solid surface lies below, over the fade distance - and discarded where it lies above.
     /// </summary>
@@ -1387,7 +1583,7 @@ public sealed partial class ShadeProgram
     private static Vector4 Faded(Span<Vector4> r, Step step)
     {
         Vector4 albedo = r[step.A];
-        float surface = r[Eye].Z * (r[Behind].X - Deep(r, r[step.B]));
+        float surface = Raying(r, r[step.B]).Z * (r[Behind].X - Deep(r, r[step.B]));
         if (surface < 0f)
         {
             r[Dropped] = Vector4.One;
@@ -1511,7 +1707,8 @@ public sealed partial class ShadeProgram
     internal const float Dielectric = 0.04f;
 
     private static ShadeProgram? Finish(
-        Builder build, int result, int specular, int gloss, List<string> graphs, bool hasAlpha, bool plainable, int waves = -1)
+        Builder build, int result, int specular, int gloss, List<string> graphs, bool hasAlpha, bool plainable, int waves = -1,
+        int waterFoam = -1, int waterState = -1, int height = -1)
     {
         List<Step> steps = build.Steps;
         var live = new bool[build.Next];
@@ -1519,6 +1716,9 @@ public sealed partial class ShadeProgram
         Live(live, specular);
         Live(live, gloss);
         Live(live, waves);
+        Live(live, waterFoam);
+        Live(live, waterState);
+        Live(live, height);
         var keep = new bool[steps.Count];
         for (int at = steps.Count - 1; at >= 0; at--)
         {
@@ -1639,7 +1839,11 @@ public sealed partial class ShadeProgram
         ShadeTexture[] named = [.. textures];
         return new ShadeProgram(
             [.. kept], [.. constantAt], [.. constants], next, map[result], Mapped(map, specular), Mapped(map, gloss),
-            named, [.. sampleTextures], plain >= 0 ? textureMap[plain] : -1, graphs, new Mipmaps?[named.Length], hasAlpha, Mapped(map, waves));
+            named, [.. sampleTextures], plain >= 0 ? textureMap[plain] : -1, graphs, new Mipmaps?[named.Length], hasAlpha, Mapped(map, waves),
+            Mapped(map, waterFoam), Mapped(map, waterState))
+        {
+            HeightRegister = Mapped(map, height),
+        };
     }
 
     private static void Live(bool[] live, int register)
@@ -2006,6 +2210,7 @@ public sealed partial class ShadeProgram
         "Glossiness" => "Glossiness",
         "TbnNormal" => "TbnNormal",
         "TbnBasis" => "TbnBasis",
+        "Height" => "Height",
         _ => null,
     };
 
@@ -2023,6 +2228,7 @@ public sealed partial class ShadeProgram
         "InputGlossiness" => "Glossiness",
         "InputTbnNormal" => "TbnNormal",
         "InputTbnBasis" => "TbnBasis",
+        "InputHeight" => "Height",
         _ => null,
     };
 
@@ -2989,9 +3195,9 @@ public sealed partial class ShadeProgram
                         ? build.Emit(Op.Depth, deep, extra: node.Type == "DepthDistance" ? 1 : 0)
                         : null;
 
-                // -normalize(camera - world_pos): one way everywhere on a parallel view - see Eye.
+                // -normalize(camera - world_pos): one way everywhere on a parallel view, the place's own in perspective - see Viewer.
                 case "ViewDir":
-                    return build.Emit(Op.Multiply, Eye, build.Constant(new Vector4(1f, 1f, 1f, 0f)));
+                    return build.Emit(Op.ViewWay, Position);
 
                 case "MaskedContactFade":
                     return Port(node, "in_albedo") is { } faded && Port(node, "world_pos") is { } contact && Port(node, "world_normal") is { } facing

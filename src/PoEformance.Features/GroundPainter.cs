@@ -35,11 +35,25 @@ namespace PoEformance.Features;
 /// second ground where its three vertices' green averaged a half or more, and Port's harbour showed the ocean's black in
 /// patches with straight, toothed edges on its beach (said from the live client, v0.1.242's probe on one: blackc.mat under
 /// a thin sea and a thin beach film). That split stays where the two cannot be run as one program, and the line under the
-/// picture says why. NOT DRAWN, DECIDED from the live client (2026-10-12): the engine's height blending
-/// (GROUND_HEIGHT_BLENDING, which Port's ground graph PBRGroundBN.fxgraph turns on - the weights sharpened by the materials'
-/// height maps, blackc.mat's height nought). Three or four grounds (the engine's red atlas, placed by transforms no file
+/// picture says why. THE ENGINE'S HEIGHT BLENDING (GROUND_HEIGHT_BLENDING, which Port's ground graph PBRGroundBN.fxgraph turns on -
+/// the weights sharpened by the materials' heights, blackc.mat's nought) was left out, DECIDED from the live client (2026-10-12),
+/// and is drawn from v0.1.311 behind a switch (RoomKey.GroundHeights), asked for from the live client: v0.1.309's capture of Port's
+/// quay showed cobblestones standing out of the sand where neither the mask's squares nor the corners' share put them
+/// (ShadeProgram.Grounds). Three or four grounds (the engine's red atlas, placed by transforms no file
 /// holds) are drawn as the two most of their corners name (CHOSEN, see SetOf); the capture's picture of the ground on the
 /// screen still marks them as the engine's own (SubTilesOf).
+///
+/// THE SHAPES ACROSS THE MASK'S ATLAS ARE MIXED BY THEIR CORNERS (v0.1.310), CHOSEN from the live client: a shape whose block
+/// coordinates reach a cell of the atlas (64 texels) or more across the mask, in a sub-tile of two grounds, reads the atlas's cells
+/// as squares - Port's checkerboard of the ocean's black and the dry sand by the ship's stern (v0.1.309's probe: the mask's green
+/// 0.004 beside 1.000), its slopes and the pier's edge - while the game draws no squares there (measured at The Excavation,
+/// v0.1.256, and Port's quay, v0.1.262) and what it reads is not measured. Such a shape is mixed instead by the second ground's
+/// share of its sub-tile's four corners in the grid, bilinear across the sub-tile (CaptureGroundCompare.Share, the candidate the
+/// capture holds against the picture), worked out per vertex and carried in the coordinates' first channel
+/// (ShadeProgram.GroundsByCorners) - its vertices copied, so a vertex it shares with a shape on the mask keeps the block's
+/// coordinates there. Every other shape stays on the mask, and a switch (RoomKey.MaskCells) keeps them all on it, the squares and
+/// all, to hold the two against the game. A sub-tile whose corners are the tile's four, its definition carrying no grid, stays on
+/// the mask.
 /// </remarks>
 internal sealed class GroundPainter
 {
@@ -48,6 +62,9 @@ internal sealed class GroundPainter
 
     /// <summary>Green at or over this, averaged over a triangle's vertices, is the second ground's.</summary>
     private const float Half = 0.5f;
+
+    /// <summary>The ground masks' atlas cell, in texels: newmask.dds is four by eight cells of 64 (v0.1.199) - a shape reaching one across is mixed by its corners.</summary>
+    internal const int AtlasCell = 64;
 
     private readonly Func<string, byte[]?> _read;
     private readonly GroundMaterials _list;
@@ -68,11 +85,22 @@ internal sealed class GroundPainter
     private readonly int _unnamedGroup;
     private int _cornered;
 
-    private GroundPainter(Func<string, byte[]?> read, GroundMaterials list, string from, MonsterModels.Paints paints)
+    /// <summary>Whether the shapes across the mask's atlas stay on its cells - the switch, see the remarks.</summary>
+    private readonly bool _maskCells;
+
+    /// <summary>Whether two grounds are weighed by their heights where their graphs turn that on - the switch, see the remarks.</summary>
+    private readonly bool _heights;
+    private int _byCorners;
+    private int _cornerShapes;
+    private int _keptOnCells;
+
+    private GroundPainter(Func<string, byte[]?> read, GroundMaterials list, string from, MonsterModels.Paints paints, bool maskCells, bool heights)
     {
         _read = read;
         _list = list;
         _paints = paints;
+        _maskCells = maskCells;
+        _heights = heights;
         From = from;
         _unnamedGroup = -1;
         for (var at = 0; at < list.Groups.Count && _unnamedGroup < 0; at++)
@@ -90,7 +118,10 @@ internal sealed class GroundPainter
     /// <param name="read">How to get a file out of the install, by path.</param>
     /// <param name="master">The area's master (<c>.tsi</c>).</param>
     /// <param name="paints">The room's paint cache, so the ground's textures are read once with everything else's.</param>
-    public static (GroundPainter? Painter, string Why) For(Func<string, byte[]?> read, string master, MonsterModels.Paints paints)
+    /// <param name="maskCells">Whether the shapes across the mask's atlas stay on its cells rather than mixed by their corners - see the remarks.</param>
+    /// <param name="heights">Whether two grounds are weighed by their heights where their graphs turn that on - see the remarks.</param>
+    public static (GroundPainter? Painter, string Why) For(
+        Func<string, byte[]?> read, string master, MonsterModels.Paints paints, bool maskCells = false, bool heights = false)
     {
         ArgumentNullException.ThrowIfNull(read);
         ArgumentNullException.ThrowIfNull(paints);
@@ -105,7 +136,7 @@ internal sealed class GroundPainter
             GroundMaterials list = GroundMaterials.Read(read(candidate));
             if (list.Groups.Count > 0)
             {
-                return (new GroundPainter(read, list, candidate, paints), string.Empty);
+                return (new GroundPainter(read, list, candidate, paints, maskCells, heights), string.Empty);
             }
         }
 
@@ -163,6 +194,9 @@ internal sealed class GroundPainter
         _unnamed += plan.Unnamed;
         _reduced += plan.Reduced;
         _cornered += plan.Gridded ? 0 : 1;
+        _byCorners += plan.ByCorners;
+        _cornerShapes += plan.CornerShapes;
+        _keptOnCells += plan.KeptOnCells;
         foreach ((string why, int count) in plan.Plain)
         {
             _plain[why] = _plain.GetValueOrDefault(why) + count;
@@ -180,9 +214,16 @@ internal sealed class GroundPainter
 
         // THE ENGINE'S COORDINATES, from where the piece lies - so a pattern runs on across the pieces as the game's does. A sub-tile
         // of two grounds mixed keeps the block's own, for the mask, and its program works these out of the place (ShadeProgram.Grounds).
-        // A sub-tile's vertices are its own - the block joins the sub-tiles' meshes whole - so each takes its sub-tile's kind.
-        var coordinates = new Vector2[ground.Positions.Length];
-        for (var vertex = 0; vertex < coordinates.Length; vertex++)
+        // A sub-tile's vertices are its own - the block joins the sub-tiles' meshes whole - so each takes its sub-tile's kind. The copies
+        // a shape mixed by its corners draws carry the second ground's share there instead.
+        int vertices = ground.Positions.Length;
+        var coordinates = new Vector2[vertices + plan.Extra.Length];
+        for (var copy = 0; copy < plan.Extra.Length; copy++)
+        {
+            coordinates[vertices + copy] = new Vector2(plan.Shares[copy], 0f);
+        }
+
+        for (var vertex = 0; vertex < vertices; vertex++)
         {
             if (plan.Own[vertex])
             {
@@ -195,7 +236,7 @@ internal sealed class GroundPainter
         }
 
         SkinnedMesh painted = SkinnedMesh.Of(
-            ground.Positions, ground.Normals, plan.Indices, ground.Least, ground.Most, coordinates, plan.Shapes, ground.Facts);
+            plan.Positions ?? ground.Positions, plan.Normals ?? ground.Normals, plan.Indices, ground.Least, ground.Most, coordinates, plan.Shapes, ground.Facts);
         return MonsterModels.Worn(_read, painted, plan.Named, paintTheRest: false, source, "a tile's ground is static", _paints);
     }
 
@@ -209,8 +250,15 @@ internal sealed class GroundPainter
                 + string.Join(", ", _split.OrderByDescending(one => one.Value).Select(one => string.Create(CultureInfo.InvariantCulture, $"{one.Value} {one.Key}")));
         string reduced = _reduced == 0 ? string.Empty
             : string.Create(CultureInfo.InvariantCulture, $", {_reduced} of three or four grounds drawn as the two most of their corners name, ties to the list's first - CHOSEN, a stand-in for the engine's own mask placed by transforms no file holds");
+        string heights = _heights
+            ? "weighed by the grounds' heights as the engine's GROUND_HEIGHT_BLENDING weighs them (GroundInterpolate), where a ground's graphs turn it on - by the switch"
+            : "the engine's height blending left out by the switch";
+        string corners = _maskCells
+            ? string.Create(CultureInfo.InvariantCulture, $", {_keptOnCells} of them with shapes across the mask's atlas kept on its cells by the switch, squares and all")
+            : _byCorners == 0 && _keptOnCells == 0 ? string.Empty
+            : string.Create(CultureInfo.InvariantCulture, $", of them {_byCorners} with shapes across the mask's atlas ({_cornerShapes} shapes) mixed instead by the second ground's share of their sub-tile's corners, bilinear - CHOSEN, a stand-in: the game draws no squares there and what it reads is not measured{(_keptOnCells > 0 ? $"; {_keptOnCells} more left on the mask, their corners' mix not running" : string.Empty)}");
         return string.Create(CultureInfo.InvariantCulture,
-            $"ground: painted from {From}, each sub-tile from its own corners in its definition's ground grid ({_gridded} pieces; {_cornered} from the tile's four corners, their definition carrying no grid; {_unnamed} sub-tiles with a corner the grid leaves unnamed, taken as the MaterialsList's group with no name - the game holds its null slot there, and that it draws this group is DECIDED) - {_one} sub-tiles of one ground, {_mixed} of two mixed per pixel by the template mask's green at the block's own coordinates as the engine mixes them (GroundGenerateWeights_1a1b; the MaterialsList's first ground at green nought, as Port's three families agree - one area; its height blending not drawn, DECIDED){reduced}{split}, plain: {plain}; the materials' coordinates the world times {GroundScale} (the environments' ground_scale, likely and not measured), a group's heaviest choice where the game draws by weight");
+            $"ground: painted from {From}, each sub-tile from its own corners in its definition's ground grid ({_gridded} pieces; {_cornered} from the tile's four corners, their definition carrying no grid; {_unnamed} sub-tiles with a corner the grid leaves unnamed, taken as the MaterialsList's group with no name - the game holds its null slot there, and that it draws this group is DECIDED) - {_one} sub-tiles of one ground, {_mixed} of two mixed per pixel by the template mask's green at the block's own coordinates as the engine mixes them (GroundGenerateWeights_1a1b; the MaterialsList's first ground at green nought, as Port's three families agree - one area; {heights}){corners}{reduced}{split}, plain: {plain}; the materials' coordinates the world times {GroundScale} (the environments' ground_scale, likely and not measured), a group's heaviest choice where the game draws by weight");
     }
 
     /// <summary>How a tile's ground is painted, worked out once whatever number of pieces lay it - and what it comes to, sub-tile by sub-tile.</summary>
@@ -240,6 +288,27 @@ internal sealed class GroundPainter
         /// <summary>Sub-tiles split by triangle, by why the two could not be mixed.</summary>
         public IReadOnlyDictionary<string, int> Splits { get; init; } = new Dictionary<string, int>();
 
+        /// <summary>The block's vertex each copy past its own is of, for the shapes mixed by their corners - see the class's remarks.</summary>
+        public int[] Extra { get; init; } = [];
+
+        /// <summary>The second ground's share at each copy, its sub-tile's corners' bilinear.</summary>
+        public float[] Shares { get; init; } = [];
+
+        /// <summary>The block's positions with the copies after them, or null where there are none - the same for every piece laid.</summary>
+        public Vector3[]? Positions { get; init; }
+
+        /// <summary>The block's normals likewise.</summary>
+        public Vector3[]? Normals { get; init; }
+
+        /// <summary>Sub-tiles of two grounds with shapes across the mask's atlas mixed by their corners.</summary>
+        public int ByCorners { get; init; }
+
+        /// <summary>The shapes those are, each counted once a sub-tile.</summary>
+        public int CornerShapes { get; init; }
+
+        /// <summary>Sub-tiles of two grounds with shapes across the mask's atlas left on its cells - by the switch, or the corners' mix not running.</summary>
+        public int KeptOnCells { get; init; }
+
         public static Plan Plained(string why, int subTiles) => new([], [], [], []) { Plain = new Dictionary<string, int> { [why] = subTiles } };
     }
 
@@ -251,6 +320,9 @@ internal sealed class GroundPainter
         public string Why { get; } = why;
 
         public List<int> Triangles { get; } = [];
+
+        /// <summary>Each sub-tile of the run: its place in the tile's list of sub-tiles and its run of the block's triangles.</summary>
+        public List<(int SubTile, int First, int Count)> Pieces { get; } = [];
 
         public int SubTiles { get; set; }
     }
@@ -284,9 +356,10 @@ internal sealed class GroundPainter
         var runs = new Dictionary<string, Run>(StringComparer.Ordinal);
         var order = new List<Run>();
         var at = 0;
-        int unnamedCorners = 0, reducedSubTiles = 0;
+        int unnamedCorners = 0, reducedSubTiles = 0, subTile = -1;
         foreach ((int count, IReadOnlyList<string> corners) in subTiles)
         {
+            subTile++;
             (string key, List<(int Order, GroundGroup Group)> grounds, string setWhy, bool reduced) = SetOf(corners, gridded, twoOfMore: true);
             unnamedCorners += gridded && corners.Any(corner => corner.Length == 0) ? 1 : 0;
             reducedSubTiles += reduced ? 1 : 0;
@@ -298,6 +371,7 @@ internal sealed class GroundPainter
             }
 
             run.SubTiles++;
+            run.Pieces.Add((subTile, at, count));
             for (var one = 0; one < count; one++)
             {
                 run.Triangles.Add(at + one);
@@ -313,14 +387,22 @@ internal sealed class GroundPainter
         var own = new bool[ground.Positions.Length];
         var plain = new Dictionary<string, int>(StringComparer.Ordinal);
         var splits = new Dictionary<string, int>(StringComparer.Ordinal);
-        int oneGround = 0, mixedGrounds = 0, splitGrounds = 0;
+        int oneGround = 0, mixedGrounds = 0, splitGrounds = 0, byCorners = 0, cornerShapes = 0, keptOnCells = 0;
+        var extra = new List<int>();
+        var shares = new List<float>();
+        var copies = new Dictionary<int, int>();
+        int[]? shapeOf = null;
 
-        void Shape(IEnumerable<int> triangleList, string? material)
+        void Shape(IEnumerable<int> triangleList, string? material, bool copied = false)
         {
             int from = indices.Count;
             foreach (int triangle in triangleList)
             {
-                indices.AddRange([ground.Indices[triangle * 3], ground.Indices[(triangle * 3) + 1], ground.Indices[(triangle * 3) + 2]]);
+                for (var corner = 0; corner < 3; corner++)
+                {
+                    int vertex = ground.Indices[(triangle * 3) + corner];
+                    indices.Add(copied ? copies[vertex] : vertex);
+                }
             }
 
             string name = shapes.Count.ToString(CultureInfo.InvariantCulture);
@@ -367,15 +449,67 @@ internal sealed class GroundPainter
             }
 
             // MIXED PER PIXEL as the engine mixes them, where the two grounds' programs run as one - see the remarks.
-            if (_paints.Grounds(_read, first, second, Clean(mask), GroundScale, out string unmixed) is { } mixed)
+            if (_paints.Grounds(_read, first, second, Clean(mask), GroundScale, _heights, out string unmixed) is { } mixed)
             {
                 mixedGrounds += run.SubTiles;
-                foreach (int triangle in run.Triangles)
+
+                // THE SHAPES ACROSS THE MASK'S ATLAS BY THEIR CORNERS, each sub-tile's own - see the class's remarks.
+                List<int> onCells = run.Triangles;
+                var wide = new List<int>();
+                string? byCornersName = null;
+                if (gridded)
+                {
+                    shapeOf ??= ShapesOf(ground, triangles);
+                    var narrow = new List<int>(run.Triangles.Count);
+                    int wideShapes = 0, wideSubTiles = 0;
+                    var firstOfWide = new List<(int SubTile, int From)>();
+                    foreach ((int piece, int first0, int count) in run.Pieces)
+                    {
+                        int from = wide.Count;
+                        int found = Across(ground, shapeOf, first0, count, picture, narrow, wide);
+                        wideShapes += found;
+                        wideSubTiles += found > 0 ? 1 : 0;
+                        if (wide.Count > from)
+                        {
+                            firstOfWide.Add((piece, from));
+                        }
+                    }
+
+                    if (wide.Count > 0 && !_maskCells && _paints.GroundsByCorners(_read, first, second, GroundScale, _heights, out _) is { } cornered)
+                    {
+                        onCells = narrow;
+                        byCorners += wideSubTiles;
+                        cornerShapes += wideShapes;
+                        for (var one = 0; one < firstOfWide.Count; one++)
+                        {
+                            (int piece, int from) = firstOfWide[one];
+                            int to = one + 1 < firstOfWide.Count ? firstOfWide[one + 1].From : wide.Count;
+                            Copied(ground, wide, from, to, pieces[piece], Seconds(subTiles[piece].Corners, run.Grounds[1].Order), extra, shares, copies);
+                        }
+
+                        byCornersName = cornered;
+                    }
+                    else
+                    {
+                        keptOnCells += wideSubTiles;
+                    }
+                }
+
+                foreach (int triangle in onCells)
                 {
                     own[ground.Indices[triangle * 3]] = own[ground.Indices[(triangle * 3) + 1]] = own[ground.Indices[(triangle * 3) + 2]] = true;
                 }
 
-                Shape(run.Triangles, mixed);
+                if (onCells.Count > 0)
+                {
+                    Shape(onCells, mixed);
+                }
+
+                if (byCornersName is not null)
+                {
+                    Shape(wide, byCornersName, copied: true);
+                }
+
                 continue;
             }
 
@@ -400,8 +534,26 @@ internal sealed class GroundPainter
             Shape(seconds, second);
         }
 
+        // THE COPIES' PLACES ONCE, whatever number of pieces lay the tile: they lie in the block's own frame.
+        Vector3[]? positions = null, normals = null;
+        if (extra.Count > 0)
+        {
+            int vertices = ground.Positions.Length;
+            positions = new Vector3[vertices + extra.Count];
+            normals = new Vector3[positions.Length];
+            ground.Positions.CopyTo(positions, 0);
+            ground.Normals.CopyTo(normals, 0);
+            for (var copy = 0; copy < extra.Count; copy++)
+            {
+                positions[vertices + copy] = ground.Positions[extra[copy]];
+                normals[vertices + copy] = ground.Normals[extra[copy]];
+            }
+        }
+
         return new Plan([.. indices], shapes, named, own)
         {
+            Positions = positions,
+            Normals = normals,
             One = oneGround,
             Mixed = mixedGrounds,
             Split = splitGrounds,
@@ -410,7 +562,113 @@ internal sealed class GroundPainter
             Reduced = reducedSubTiles,
             Plain = plain,
             Splits = splits,
+            Extra = [.. extra],
+            Shares = [.. shares],
+            ByCorners = byCorners,
+            CornerShapes = cornerShapes,
+            KeptOnCells = keptOnCells,
         };
+    }
+
+    /// <summary>The block's shape each triangle is of, by its place in the block's shapes, or -1 for none.</summary>
+    private static int[] ShapesOf(SkinnedMesh ground, int triangles)
+    {
+        var shapeOf = new int[triangles];
+        Array.Fill(shapeOf, -1);
+        for (var index = 0; index < ground.Shapes.Count; index++)
+        {
+            MeshShape shape = ground.Shapes[index];
+            int to = Math.Min(triangles, (shape.From + shape.Count) / 3);
+            for (int triangle = Math.Max(0, shape.From / 3); triangle < to; triangle++)
+            {
+                shapeOf[triangle] = index;
+            }
+        }
+
+        return shapeOf;
+    }
+
+    /// <summary>
+    /// One sub-tile's triangles, shape by shape, into those whose shape's block coordinates reach a cell of the mask's atlas or more
+    /// across - <paramref name="wide"/> - and the rest; how many shapes were wide.
+    /// </summary>
+    /// <remarks>
+    /// THE CAPTURE'S RULE (CaptureGroundScreen, "across the mask's atlas"): the coordinates' reach over the shape's vertices in the
+    /// sub-tile, in the mask's texels, a cell or more along either axis.
+    /// </remarks>
+    private static int Across(SkinnedMesh ground, int[] shapeOf, int first, int count, GamePicture mask, List<int> narrow, List<int> wide)
+    {
+        int found = 0, end = first + count;
+        for (int start = first; start < end;)
+        {
+            int shape = shapeOf[start], stop = start + 1;
+            while (stop < end && shapeOf[stop] == shape)
+            {
+                stop++;
+            }
+
+            float leastU = float.MaxValue, mostU = float.MinValue, leastV = float.MaxValue, mostV = float.MinValue;
+            for (int index = start * 3; index < stop * 3; index++)
+            {
+                Vector2 uv = ground.Coordinates[ground.Indices[index]];
+                leastU = MathF.Min(leastU, uv.X);
+                mostU = MathF.Max(mostU, uv.X);
+                leastV = MathF.Min(leastV, uv.Y);
+                mostV = MathF.Max(mostV, uv.Y);
+            }
+
+            bool across = (mostU - leastU) * mask.Width >= AtlasCell || (mostV - leastV) * mask.Height >= AtlasCell;
+            found += across ? 1 : 0;
+            for (int triangle = start; triangle < stop; triangle++)
+            {
+                (across ? wide : narrow).Add(triangle);
+            }
+
+            start = stop;
+        }
+
+        return found;
+    }
+
+    /// <summary>Which of a sub-tile's four corners, in the grid's order, are the second ground's - one, or nought for the first's or any other.</summary>
+    private float[] Seconds(IReadOnlyList<string> corners, int second)
+    {
+        var seconds = new float[4];
+        for (var corner = 0; corner < seconds.Length && corner < corners.Count; corner++)
+        {
+            seconds[corner] = OrderOf(corners[corner], unnamedIsDefault: true) == second ? 1f : 0f;
+        }
+
+        return seconds;
+    }
+
+    /// <summary>
+    /// A copy of every vertex of one sub-tile's wide triangles, each with the second ground's share at it - the corners' bilinear at
+    /// its place in the sub-tile, the frame TileDefinition.CornersOf numbers them in.
+    /// </summary>
+    private static void Copied(
+        SkinnedMesh ground, List<int> wide, int from, int to, GroundPiece piece, float[] seconds, List<int> extra, List<float> shares, Dictionary<int, int> copies)
+    {
+        // The sub-tile's own corner in the block: column x - 1, row 1 - y, a tile each way (as CaptureGroundCompare lays it).
+        float left = (piece.X - 1) * TileModels.Side, bottom = (1 - piece.Y) * TileModels.Side;
+        int count = ground.Positions.Length;
+        for (int at = from; at < to; at++)
+        {
+            for (var corner = 0; corner < 3; corner++)
+            {
+                int vertex = ground.Indices[(wide[at] * 3) + corner];
+                if (copies.ContainsKey(vertex))
+                {
+                    continue;
+                }
+
+                Vector3 place = ground.Positions[vertex];
+                float s = Math.Clamp((place.X - left) / TileModels.Side, 0f, 1f), t = Math.Clamp((place.Y - bottom) / TileModels.Side, 0f, 1f);
+                copies[vertex] = count + extra.Count;
+                extra.Add(vertex);
+                shares.Add(CaptureGroundCompare.Share(seconds, s, t));
+            }
+        }
     }
 
     /// <summary>
@@ -530,7 +788,13 @@ internal sealed class GroundPainter
             IReadOnlyList<string> corners = gridded ? definition.CornersOf(pieces[at].X, pieces[at].Y) : definition.Grounds;
             (_, List<(int Order, GroundGroup Group)> grounds, string setWhy, _) = SetOf(corners, gridded);
             bool[] seconds = grounds.Count == 2 && corners.Count == 4 ? [.. corners.Select(corner => OrderOf(corner, gridded) == grounds[1].Order)] : [];
-            subTiles[at] = new SubTileGrounds(corners, [.. grounds.Select(one => one.Group.Name)], setWhy) { Gridded = gridded, Seconds = seconds };
+            subTiles[at] = new SubTileGrounds(corners, [.. grounds.Select(one => one.Group.Name)], setWhy)
+            {
+                Gridded = gridded,
+                Seconds = seconds,
+                Materials = [.. grounds.Select(one => Heaviest(one.Group))],
+                Choices = [.. grounds.Select(one => ChoicesOf(one.Group))],
+            };
         }
 
         string mask = definition.Templates.Count > 0 ? TileTemplate.Read(_read(Clean(definition.Templates[0]))).GroundMask : string.Empty;
@@ -543,6 +807,10 @@ internal sealed class GroundPainter
         string name = NameOf(groundType);
         return name.Length > 0 && _list.Groups.Any(group => string.Equals(group.Name, name, StringComparison.OrdinalIgnoreCase));
     }
+
+    /// <summary>A group's choices with their weights, in file order - nought for a lone choice, whose weight the file omits.</summary>
+    private static IReadOnlyList<(string Material, int Weight)> ChoicesOf(GroundGroup group)
+        => [.. group.Choices.Select((choice, at) => (choice.Material, at < group.Weights.Count ? group.Weights[at] : 0))];
 
     /// <summary>A group's heaviest choice - its only one where it has one.</summary>
     private static string Heaviest(GroundGroup group)
@@ -610,6 +878,12 @@ internal sealed record SubTileGrounds(IReadOnlyList<string> Corners, IReadOnlyLi
 
     /// <summary>For a sub-tile of two grounds, which of its four corners - in <see cref="Corners"/>' order - are the second ground's; empty else.</summary>
     public IReadOnlyList<bool> Seconds { get; init; } = [];
+
+    /// <summary>The material each of <see cref="Grounds"/> is painted with - its group's heaviest choice, as Paint takes it.</summary>
+    public IReadOnlyList<string> Materials { get; init; } = [];
+
+    /// <summary>Every material each of <see cref="Grounds"/>' groups offers, with its weight - what the game draws one from (CaptureGroundChoices).</summary>
+    public IReadOnlyList<IReadOnlyList<(string Material, int Weight)>> Choices { get; init; } = [];
 }
 
 /// <summary>
@@ -626,16 +900,45 @@ internal static class GroundBlend
 
     private const string By = " by the green of ";
 
-    /// <summary>The name for two grounds mixed by a mask.</summary>
-    public static string Name(string first, string second, string mask) => first + With + second + By + mask;
+    private const string ByCorners = " by its sub-tiles' corners";
 
-    /// <summary>The two grounds and the mask a name says, or false where it is a material's own path.</summary>
+    private const string ByHeights = ", weighed by their heights";
+
+    /// <summary>The name for two grounds mixed by a mask - weighed by their heights where <paramref name="heights"/>.</summary>
+    public static string Name(string first, string second, string mask, bool heights = false)
+        => first + With + second + By + mask + (heights ? ByHeights : string.Empty);
+
+    /// <summary>The name for two grounds mixed by the second's share of the sub-tile's corners - see GroundPainter - weighed by their heights where <paramref name="heights"/>.</summary>
+    public static string Cornered(string first, string second, bool heights = false)
+        => first + With + second + ByCorners + (heights ? ByHeights : string.Empty);
+
+    /// <summary>Whether a name says its two grounds are weighed by their heights where their graphs turn that on (ShadeProgram.Grounds).</summary>
+    public static bool Heighted(string material) => material.EndsWith(ByHeights, StringComparison.Ordinal);
+
+    /// <summary>The two grounds and the mask a name says - the mask empty where they are mixed by the corners - or false where it is a material's own path.</summary>
     public static bool Parts(string material, out string first, out string second, out string mask)
     {
         first = second = mask = string.Empty;
+        if (Heighted(material))
+        {
+            material = material[..^ByHeights.Length];
+        }
+
         int with = material.IndexOf(With, StringComparison.Ordinal);
+        if (with <= 0)
+        {
+            return false;
+        }
+
+        if (material.EndsWith(ByCorners, StringComparison.Ordinal) && material.Length - ByCorners.Length > with + With.Length)
+        {
+            first = material[..with];
+            second = material[(with + With.Length)..^ByCorners.Length];
+            return true;
+        }
+
         int by = material.LastIndexOf(By, StringComparison.Ordinal);
-        if (with <= 0 || by <= with)
+        if (by <= with)
         {
             return false;
         }
@@ -646,10 +949,11 @@ internal static class GroundBlend
         return true;
     }
 
-    /// <summary>The name as a picture's lines say it - the three files' own names.</summary>
+    /// <summary>The name as a picture's lines say it - the files' own names.</summary>
     public static string Short(string material)
         => Parts(material, out string first, out string second, out string mask)
-            ? $"{Tail(first)} + {Tail(second)} by {Tail(mask)}'s green"
+            ? (mask.Length > 0 ? $"{Tail(first)} + {Tail(second)} by {Tail(mask)}'s green" : $"{Tail(first)} + {Tail(second)} by the sub-tiles' corners")
+                + (Heighted(material) ? ByHeights : string.Empty)
             : Tail(material);
 
     private static string Tail(string path) => path[(path.LastIndexOfAny(['/', '\\']) + 1)..];

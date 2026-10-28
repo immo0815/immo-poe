@@ -62,8 +62,9 @@ public sealed class WaterLookups
 
     private WaterLookups(
         WaterSheet? ripples, WaterSheet? swells, string rippleSaid, string swellSaid, IReadOnlyList<string> lines,
-        WaterSheet? beachProfile, WaterSheet? beachNoise, string beachSaid)
+        WaterSheet? beachProfile, WaterSheet? beachNoise, string beachSaid, WaterSheet? fieldProfile = null)
     {
+        FieldProfile = fieldProfile;
         Ripples = ripples;
         Swells = swells;
         RippleSaid = rippleSaid;
@@ -82,6 +83,9 @@ public sealed class WaterLookups
 
     /// <summary>What the beach waves are drawn over: the engine's two lookups, or which stands in and why.</summary>
     public string BeachSaid { get; }
+
+    /// <summary>The field waves' wave shape (ShadeProgram.FieldProfilePath), four floats a texel - read red and blue - or null where it is not taken.</summary>
+    public WaterSheet? FieldProfile { get; }
 
     /// <summary>What the ripples are drawn over: the engine's texture, or the stand-in and why.</summary>
     public string RippleSaid { get; }
@@ -127,7 +131,13 @@ public sealed class WaterLookups
             _ => "the beach waves stand flat, their noise a half - neither of the engine's lookups read",
         };
         lines.Add("beach waves: " + beachSaid);
-        return new WaterLookups(ripples, swells, rippleSaid, swellSaid, lines, beachProfile, beachNoise, beachSaid);
+
+        // THE FIELD WAVES' SHAPE, the profile the program names that neither the swell nor the beach takes - see ShadeProgram.Field.
+        WaterSheet? fieldProfile = Whole(
+            decoded.TryGetValue(ShadeProgram.FieldProfilePath, out FloatPicture? field) ? field : Picture(read, ShadeProgram.FieldProfilePath, lines),
+            lines,
+            "field waves' wave shape (gerstner_wave_profile.dds)");
+        return new WaterLookups(ripples, swells, rippleSaid, swellSaid, lines, beachProfile, beachNoise, beachSaid, fieldProfile);
     }
 
     /// <summary>

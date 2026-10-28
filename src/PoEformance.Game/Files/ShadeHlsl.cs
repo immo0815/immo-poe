@@ -30,7 +30,7 @@ namespace PoEformance.Game.Files;
 /// handed in, and what the drawing needs to know of the program as constants - <c>ShadeHasAlpha</c>,
 /// <c>ShadeHasSpecular</c>, <c>ShadeHasGloss</c>, <c>ShadeUsesDepth</c>.
 /// </remarks>
-public static class ShadeHlsl
+public static partial class ShadeHlsl
 {
     /// <summary>The largest float, where nothing solid lies behind - ShadeProgram.Preset's.</summary>
     public const string Nothing = "3.40282347e38";
@@ -53,6 +53,8 @@ public static class ShadeHlsl
             float3 specular;
             float gloss;
             float3 waves;
+            float4 waterFoam;
+            float4 waterState;
         };
 
         // ShadeProgram.Read's: an sRGB sheet's colour linearised by the table, its alpha as it is.
@@ -267,6 +269,34 @@ public static class ShadeHlsl
         {
             return (at.x * eye.x) + (at.y * eye.y) + (at.z * eye.z) + eye.w;
         }
+
+        // ShadeProgram.Raying: the view's ray through a point, a unit of depth long - the eye's way on a parallel view.
+        float3 ShadeRaying(float4 eye, float4 viewer, float behind, float4 at)
+        {
+            if (!(viewer.w > 0.5) || !(behind < 3.40282347e38))
+            {
+                return eye.xyz;
+            }
+
+            float deep = ShadeDeep(eye, at);
+            return deep > 1e-6 ? (at.xyz - viewer.xyz) / deep : eye.xyz;
+        }
+
+        // ShadeProgram.Viewed: ViewDir - the eye's way on a parallel view, from the eye to the place in perspective.
+        float4 ShadeViewed(float4 eye, float4 viewer, float4 at)
+        {
+            if (viewer.w > 0.5)
+            {
+                float3 way = at.xyz - viewer.xyz;
+                float length = sqrt(dot(way, way));
+                if (length > 1e-6)
+                {
+                    return float4(way / length, 0.0);
+                }
+            }
+
+            return float4(eye.xyz, 0.0);
+        }
         """;
 
     /// <summary>The slot the ripple texture is read from - ShadeProgram.Ripples, bound by the drawing for the pixel and the vertex shaders alike.</summary>
@@ -312,7 +342,7 @@ public static class ShadeHlsl
     /// <param name="program">The program.</param>
     /// <param name="firstSheet">The texture slot its first sheet is read from; the rest follow.</param>
     /// <remarks>
-    /// <c>ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow, float4 wind, float4 shore, float4 swell)</c>:
+    /// <c>ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow, float4 wind, float4 shore, float4 swell, float4 viewer)</c>:
     /// the coordinates, the place and the interpolated normal in the model's space, the vertex
     /// colour, the solid depth behind (<see cref="Nothing"/> where none), the clock, the way into
     /// the picture, the area's dust colour and its water - ShadeProgram's fixed registers, in its order.
@@ -333,23 +363,26 @@ public static class ShadeHlsl
         hlsl.Append("static const bool ShadeUsesDepth = ").Append(Truth(program.UsesDepth)).AppendLine(";");
         hlsl.Append("static const bool ShadeHasWaves = ").Append(Truth(program.HasWaves)).AppendLine(";");
         hlsl.Append("static const bool ShadeBeach = ").Append(Truth(program.Beaches)).AppendLine(";");
+        hlsl.Append("static const bool ShadeWater = ").Append(Truth(program.LightsWater)).AppendLine(";");
         hlsl.AppendLine(Library);
         bool sprays = false;
+        bool fields = false;
         foreach (ShadeProgram.Step step in program.Steps)
         {
             sprays |= step.Op == ShadeProgram.Op.Spray;
+            fields |= step.Op == ShadeProgram.Op.Field;
         }
 
         foreach (ShadeProgram.Step step in program.Steps)
         {
-            if (step.Op is ShadeProgram.Op.Waves or ShadeProgram.Op.Foam or ShadeProgram.Op.Spray or ShadeProgram.Op.Beach)
+            if (step.Op is ShadeProgram.Op.Waves or ShadeProgram.Op.Foam or ShadeProgram.Op.Spray or ShadeProgram.Op.Beach or ShadeProgram.Op.Field)
             {
                 hlsl.AppendLine(WavesLibrary);
                 break;
             }
         }
 
-        if (sprays || program.Beaches)
+        if (sprays || program.Beaches || fields)
         {
             hlsl.AppendLine(FoamLibrary);
         }
@@ -359,12 +392,18 @@ public static class ShadeHlsl
             hlsl.AppendLine(SprayLibrary);
         }
 
-        if (program.Beaches)
+        // THE FIELD WAVES READ THE BEACH'S NOISE, PROFILE HELPERS AND RAMPS - its library before theirs.
+        if (program.Beaches || fields)
         {
             hlsl.AppendLine(BeachLibrary);
         }
 
-        hlsl.AppendLine("ShadeOut ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow, float4 wind, float4 shore, float4 swell)");
+        if (fields)
+        {
+            hlsl.AppendLine(FieldLibrary);
+        }
+
+        hlsl.AppendLine("ShadeOut ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow, float4 wind, float4 shore, float4 swell, float4 viewer)");
         hlsl.AppendLine("{");
 
         // THE FIXED REGISTERS, as Colour and Preset set them.
@@ -402,6 +441,13 @@ public static class ShadeHlsl
         hlsl.AppendLine("    float4 r14 = wind;");
         hlsl.AppendLine("    float4 r15 = shore;");
         hlsl.AppendLine("    float4 r16 = swell;");
+        hlsl.AppendLine("    float4 r17 = viewer;");
+        if (fields)
+        {
+            // THE FIELD WAVES' FOAM IS READ AT THE GRADIENTS OF ITS COORDINATES, taken here outside any branch - see Field.
+            hlsl.AppendLine("    float2 fieldDx = ddx(place.xy);");
+            hlsl.AppendLine("    float2 fieldDy = ddy(place.xy);");
+        }
 
         // EVERY OTHER REGISTER STARTS AT NOUGHT, as the processor's zeroed scratch does - a swizzle
         // writes part of one and leaves the rest as it found it.
@@ -436,6 +482,10 @@ public static class ShadeHlsl
             {
                 Beach(hlsl, program, step, versions, sprayed);
             }
+            else if (step.Op == ShadeProgram.Op.Field)
+            {
+                Field(hlsl, step, versions, sprayed);
+            }
             else
             {
                 Step(hlsl, program, step, ref parallax);
@@ -458,6 +508,12 @@ public static class ShadeHlsl
         hlsl.AppendLine(program.WavesRegister >= 0
             ? string.Create(CultureInfo.InvariantCulture, $"    said.waves = r{program.WavesRegister}.xyz;")
             : "    said.waves = float3(0.0, 0.0, 0.0);");
+        hlsl.AppendLine(program.LightsWater
+            ? string.Create(CultureInfo.InvariantCulture, $"    said.waterFoam = r{program.WaterFoamRegister};")
+            : "    said.waterFoam = float4(0.0, 0.0, 0.0, 0.0);");
+        hlsl.AppendLine(program.LightsWater
+            ? string.Create(CultureInfo.InvariantCulture, $"    said.waterState = r{program.WaterStateRegister};")
+            : "    said.waterState = float4(0.0, 0.0, 0.0, 0.0);");
         hlsl.AppendLine("    return said;");
         hlsl.AppendLine("}");
         return hlsl.ToString();
@@ -724,8 +780,9 @@ public static class ShadeHlsl
                 return (mixed.x - 0.4) * 3.0;
             }
 
-            // ShoreField.At: the four nearest texels' centres of the room's shore, held at the box's edges.
-            void ShadeShoreAt(float2 place, float4 box, out float shore, out float ocean)
+            // ShoreField.At and GroundAt: the four nearest texels' centres of the room's shore, held at the box's edges - the shore's
+            // distance, the distance out to sea and the ground's shore's distance (ShoreField.CardTexels).
+            float3 ShadeShoreAll(float2 place, float4 box)
             {
                 uint width;
                 uint height;
@@ -738,13 +795,18 @@ public static class ShadeHlsl
                 int y1 = min(y0 + 1, (int)height - 1);
                 float fx = sx - x0;
                 float fy = sy - y0;
-                float2 a = ShadeShore.Load(int3(x0, y0, 0)).xy;
-                float2 b = ShadeShore.Load(int3(x1, y0, 0)).xy;
-                float2 c = ShadeShore.Load(int3(x0, y1, 0)).xy;
-                float2 d = ShadeShore.Load(int3(x1, y1, 0)).xy;
-                float2 top = a + ((b - a) * fx);
-                float2 bottom = c + ((d - c) * fx);
-                float2 mixed = top + ((bottom - top) * fy);
+                float3 a = ShadeShore.Load(int3(x0, y0, 0)).xyz;
+                float3 b = ShadeShore.Load(int3(x1, y0, 0)).xyz;
+                float3 c = ShadeShore.Load(int3(x0, y1, 0)).xyz;
+                float3 d = ShadeShore.Load(int3(x1, y1, 0)).xyz;
+                float3 top = a + ((b - a) * fx);
+                float3 bottom = c + ((d - c) * fx);
+                return top + ((bottom - top) * fy);
+            }
+
+            void ShadeShoreAt(float2 place, float4 box, out float shore, out float ocean)
+            {
+                float3 mixed = ShadeShoreAll(place, box);
                 shore = mixed.x;
                 ocean = mixed.y;
             }
@@ -1024,7 +1086,7 @@ public static class ShadeHlsl
     }
 
     /// <summary>The registers the mesh and the drawing set before the program's own - ShadeProgram's Fixed.</summary>
-    private const int FixedRegisters = ShadeProgram.WaterSwell + 1;
+    private const int FixedRegisters = ShadeProgram.Viewer + 1;
 
     /// <summary>One step as one statement - ShadeProgram.Run's case for its op.</summary>
     private static void Step(StringBuilder hlsl, ShadeProgram program, ShadeProgram.Step step, ref int parallax)
@@ -1117,8 +1179,9 @@ public static class ShadeHlsl
 
                 case ShadeProgram.Op.Depth:
                     // length(bottom - camera) - length(world_pos - camera): on a parallel view, the
-                    // difference of the two depths along it.
+                    // difference of the two depths along it - and in perspective along the point's own ray (ShadeProgram.Viewer).
                     hlsl.Append("    { float distance = r6.x - ShadeDeep(r7, ").Append(a).AppendLine(");");
+                    hlsl.Append("      if (r17.w > 0.5) { distance *= length(ShadeRaying(r7, r17, r6.x, ").Append(a).AppendLine(")); }");
                     if (step.Extra != 0)
                     {
                         hlsl.AppendLine("      if (distance < 0.0) { r10 = float4(1.0, 1.0, 1.0, 1.0); }");
@@ -1129,7 +1192,7 @@ public static class ShadeHlsl
 
                 case ShadeProgram.Op.ContactFade:
                     hlsl.Append("    { float4 albedo = ").Append(a).AppendLine(";");
-                    hlsl.Append("      float surface = r7.z * (r6.x - ShadeDeep(r7, ").Append(b).AppendLine("));");
+                    hlsl.Append("      float surface = ShadeRaying(r7, r17, r6.x, ").Append(b).Append(").z * (r6.x - ShadeDeep(r7, ").Append(b).AppendLine("));");
                     hlsl.AppendLine("      if (surface < 0.0) { r10 = float4(1.0, 1.0, 1.0, 1.0); }");
                     hlsl.Append("      float fade = ").Append(d).Append(".x * 10.0 * (1.0 - pow(saturate(1.0 - abs(").Append(c).AppendLine(".z)), 0.2));");
                     hlsl.AppendLine("      float ratio = fade > 0.0 ? saturate(surface / fade) : surface > 0.0 ? 1.0 : 0.0;");
@@ -1139,6 +1202,10 @@ public static class ShadeHlsl
 
                 case ShadeProgram.Op.Parallax:
                     Parallax(hlsl, program, step, parallax++);
+                    break;
+
+                case ShadeProgram.Op.ViewWay:
+                    hlsl.Append("    ").Append(to).Append(" = ShadeViewed(r7, r17, ").Append(a).AppendLine(");");
                     break;
 
                 // A STEP LEFT OUT WOULD BE A COLOUR GONE WRONG WITHOUT A WORD - an op added to the

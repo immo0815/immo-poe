@@ -58,6 +58,75 @@ public sealed class AnimationTracks
     /// <summary>Nothing read.</summary>
     public static AnimationTracks None { get; } = new([], []);
 
+    /// <summary>Nothing read, and why.</summary>
+    public static AnimationTracks Unread(string why) => new([], []) { Why = why };
+
+    /// <summary>
+    /// These tracks less any past the rig's own bones - a light's, which a rig carrying another's bones after its own would
+    /// otherwise hand to the first of those. See AnimationSkeleton.Played.
+    /// </summary>
+    public AnimationTracks Mine(int bones)
+    {
+        if (Array.TrueForAll(_tracks, one => one.Bone >= 0 && one.Bone < bones))
+        {
+            return this;
+        }
+
+        return new AnimationTracks(_keys, Array.FindAll(_tracks, one => one.Bone >= 0 && one.Bone < bones))
+        {
+            Frames = Frames,
+            Bytes = Bytes,
+            Why = Why,
+        };
+    }
+
+    /// <summary>
+    /// These tracks and a rider's, its bones numbered from <paramref name="first"/> and its times in these frames - each of its
+    /// frames <paramref name="rate"/> of these. This one's length stands. See AnimationSkeleton.Played.
+    /// </summary>
+    /// <param name="rider">The rider's animation, read.</param>
+    /// <param name="bones">The rider's own bone count: a track past it is a light of its, not carried.</param>
+    /// <param name="first">The number the rider's first bone has in the carrying rig.</param>
+    /// <param name="rate">This animation's frames a second over the rider's.</param>
+    public AnimationTracks With(AnimationTracks rider, int bones, int first, float rate)
+    {
+        ArgumentNullException.ThrowIfNull(rider);
+        var keys = new float[_keys.Length + rider._keys.Length];
+        _keys.CopyTo(keys, 0);
+        rider._keys.CopyTo(keys, _keys.Length);
+
+        var tracks = new List<BoneTrack>(_tracks.Length + rider._tracks.Length);
+        tracks.AddRange(_tracks);
+        foreach (BoneTrack track in rider._tracks)
+        {
+            if (track.Bone < 0 || track.Bone >= bones)
+            {
+                continue;
+            }
+
+            // EVERY KEY'S TIME, the first float of each, into this animation's frames.
+            int at = _keys.Length + track.At;
+            for (var key = 0; key < track.Scales; key++, at += Straight)
+            {
+                keys[at] *= rate;
+            }
+
+            for (var key = 0; key < track.Rotations; key++, at += Turned)
+            {
+                keys[at] *= rate;
+            }
+
+            for (var key = 0; key < track.Positions; key++, at += Straight)
+            {
+                keys[at] *= rate;
+            }
+
+            tracks.Add(track with { Bone = track.Bone + first, At = track.At + _keys.Length });
+        }
+
+        return new AnimationTracks(keys, [.. tracks]) { Frames = Frames, Bytes = Bytes + rider.Bytes, Why = Why };
+    }
+
     /// <summary>One track per bone the animation moves, in the order the block lists them.</summary>
     public IReadOnlyList<BoneTrack> Tracks => _tracks;
 

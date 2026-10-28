@@ -3,6 +3,23 @@ using System.Numerics;
 
 namespace PoEformance.Game.Files;
 
+/// <summary>
+/// One of a room's zones: a named rectangle of its cells, inclusive, in the doodads' own unit, with the object type and environment it may name.
+/// </summary>
+/// <remarks>
+/// poe_data_tools' <c>Zone</c> (<c>name x_min y_min x_max y_max</c>, from version 35 the name quoted and two quoted strings and a
+/// whole number after - <c>disable_teleports</c>, <c>env_file</c> and <c>uint1</c> there). READ FOR THE WOBBLE: a wobble core's
+/// WobblePoint names its <c>sector</c> - "caravan" for Port's ship - and Port's boss room writes
+/// <c>"caravan" 26 -102 261 454 "" "" 0</c>, the rectangle round the ship, its least x the ship's hull's own (cell 27). Beside it
+/// <c>"hide_teleports" ... "Metadata/MiscellaneousObjects/SectorDisableInstantTeleports"</c> and four <c>no_movement_skills</c>: a
+/// zone may run past the room's grid, and one name may stand for several.
+/// </remarks>
+public readonly record struct RoomZone(string Name, int LeastX, int LeastY, int MostX, int MostY, string Type, string Environment)
+{
+    /// <summary>Whether a cell lies in the zone, its edges included.</summary>
+    public bool Holds(int x, int y) => x >= LeastX && x <= MostX && y >= LeastY && y <= MostY;
+}
+
 /// <summary>One doodad a room places: a model, where, turned how far, and how big.</summary>
 /// <param name="X">Across the room, in the file's own unit - see <see cref="RoomLayout"/>.</param>
 /// <param name="Y">Down the room, in the same unit.</param>
@@ -37,6 +54,33 @@ public readonly record struct RoomDoodad(int X, int Y, float Turn, float Scale, 
     /// cell rounds; the doodad heights line says how far each is from where the entity really is.
     /// </remarks>
     public Vector2? Exact { get; init; }
+
+    /// <summary>
+    /// The line's whole turn - the quaternion after its angle, x, y, z then w - or null where it carries none (a room's line before
+    /// version 18) or one that is not of unit length.
+    /// </summary>
+    /// <remarks>
+    /// THE ANGLE IS ONLY ITS TURN ABOUT THE VERTICAL; the quaternion tips the doodad too. Every line's angle is its quaternion's own
+    /// 2 atan2(z, w) - Port's ladders -0.630 against -0.615, 3.112 against 3.113, pi/2 against pi/2 - and the rest of it leans:
+    /// MEASURED on Port's capture of 2026-10-27 22:54 (v0.1.319), the harbour tile's ladder, whose line
+    /// <c>266 101 1 2896.17 1100.67 5 -1.50117 -0.302463 -0.340666 -0.591037 0.665686 1 0.85</c> leans 54 degrees. Its entity stands at
+    /// the line's place through the tile's laying to the hundredth (33103.83, 9399.33); drawn through
+    /// <c>Matrix4x4.CreateFromQuaternion</c> and then the tile's turn, its box lies along the ladder the game drew against the barrels,
+    /// while turned by the angle alone it stood straight up - as the Monster Book drew it, and the sacks lying in the air and the
+    /// carts floating level over their tipped place beside it (said from the live client). The tilt reversed lies on the floor.
+    /// </remarks>
+    public Quaternion? Rotation { get; init; }
+
+    /// <summary>The line's turn as a matrix - its quaternion where it carries one, else its angle about the vertical; its scale goes before it and its place after.</summary>
+    public Matrix4x4 Turning => Rotation is { } whole ? Matrix4x4.CreateFromQuaternion(whole) : Matrix4x4.CreateRotationZ(Turn);
+
+    /// <summary>A line's four numbers as its turn - null where they are not a quaternion of unit length, to within a hundredth.</summary>
+    public static Quaternion? RotationOf(float x, float y, float z, float w)
+    {
+        var whole = new Quaternion(x, y, z, w);
+        float length = whole.Length();
+        return float.IsFinite(length) && MathF.Abs(length - 1f) <= 0.01f ? Quaternion.Normalize(whole) : null;
+    }
 
     /// <summary>
     /// Whether the line is a plain prop - a stub under <c>Metadata/MiscellaneousObjects/Doodad</c> - rather than a scripted object the game spawns and removes with play.
@@ -279,6 +323,9 @@ public sealed class RoomLayout
     /// <summary>Why the slot grid did not read, or empty. A grid that will not read leaves the doodads standing.</summary>
     public string SlotsWhy { get; private init; } = string.Empty;
 
+    /// <summary>The zones, in the file's order - see <see cref="RoomZone"/>; empty where the file has none or its tail did not read as far.</summary>
+    public IReadOnlyList<RoomZone> Zones { get; private init; } = [];
+
     /// <summary>The points of interest, every group's in the file's order - see <see cref="RoomPoint"/>.</summary>
     public IReadOnlyList<RoomPoint> Points { get; private init; } = [];
 
@@ -435,7 +482,8 @@ public sealed class RoomLayout
             doodads.Add(Doodad(line, version));
         }
 
-        (int[] overrides, string overridesWhy) = Tail(lines, at, version, width, height);
+        var zones = new List<RoomZone>();
+        (int[] overrides, string overridesWhy) = Tail(lines, at, version, width, height, zones);
         return new RoomLayout
         {
             Version = version,
@@ -450,6 +498,7 @@ public sealed class RoomLayout
             GroundOverrides = overrides,
             OverridesWhy = overridesWhy,
             Points = points,
+            Zones = zones,
         };
     }
 
@@ -460,7 +509,7 @@ public sealed class RoomLayout
     /// GIVEN UP, NOT THROWN, where it does not read: the grid and the doodads before it are the room,
     /// and a tail this does not know must not cost them.
     /// </remarks>
-    private static (int[] Overrides, string Why) Tail(string[] lines, int at, int version, int width, int height)
+    private static (int[] Overrides, string Why) Tail(string[] lines, int at, int version, int width, int height, List<RoomZone> zones)
     {
         try
         {
@@ -478,7 +527,10 @@ public sealed class RoomLayout
 
             if (version >= 27)
             {
-                Group(lines, ref at, version, terminatedFrom: 33);   // Zones.
+                foreach (string line in Group(lines, ref at, version, terminatedFrom: 33))
+                {
+                    zones.Add(Zone(line, version));
+                }
             }
 
             if (at < lines.Length && Tags(lines[at]))
@@ -696,9 +748,13 @@ public sealed class RoomLayout
         }
 
         float turn = Real(Next(numbers, ref at), "a doodad's angle");
+        Quaternion? rotation = null;
         if (version >= 18)
         {
-            at += 4;
+            // THE WHOLE TURN, x y z w - see RoomDoodad.Rotation.
+            rotation = RoomDoodad.RotationOf(
+                Real(Next(numbers, ref at), "a doodad's turn"), Real(Next(numbers, ref at), "a doodad's turn"),
+                Real(Next(numbers, ref at), "a doodad's turn"), Real(Next(numbers, ref at), "a doodad's turn"));
         }
 
         at++;                                                        // A bool.
@@ -723,7 +779,53 @@ public sealed class RoomLayout
         int next = line.IndexOf('"', after);
         string stub = next >= 0 ? Quoted(line, next).Text : string.Empty;
 
-        return new RoomDoodad(x, y, turn, scale, ao.Replace('\\', '/'), stub) { Height = height, Exact = exact };
+        return new RoomDoodad(x, y, turn, scale, ao.Replace('\\', '/'), stub) { Height = height, Exact = exact, Rotation = rotation };
+    }
+
+    /// <summary>A zone's line - see <see cref="RoomZone"/>: the name, quoted from version 35, four whole numbers, then from 35 two quoted strings and a number.</summary>
+    private static RoomZone Zone(string line, int version)
+    {
+        string text = line.Trim();
+        string name;
+        string rest;
+        if (text.StartsWith('"'))
+        {
+            (name, int after) = Quoted(text, 0);
+            rest = text[after..];
+        }
+        else
+        {
+            int space = text.IndexOfAny([' ', '\t']);
+            name = space < 0 ? text : text[..space];
+            rest = space < 0 ? string.Empty : text[space..];
+        }
+
+        int quote = rest.IndexOf('"', StringComparison.Ordinal);
+        string[] numbers = Words(quote < 0 ? rest : rest[..quote]);
+        if (numbers.Length < 4)
+        {
+            throw new FormatException($"a zone line with {numbers.Length} numbers where four are its rectangle");
+        }
+
+        string type = string.Empty, environment = string.Empty;
+        if (version >= 35 && quote >= 0)
+        {
+            (type, int after) = Quoted(rest, quote);
+            int next = rest.IndexOf('"', after);
+            if (next >= 0)
+            {
+                (environment, _) = Quoted(rest, next);
+            }
+        }
+
+        return new RoomZone(
+            name,
+            Whole(numbers[0], "a zone's least x"),
+            Whole(numbers[1], "a zone's least y"),
+            Whole(numbers[2], "a zone's most x"),
+            Whole(numbers[3], "a zone's most y"),
+            type.Replace('\\', '/'),
+            environment.Replace('\\', '/'));
     }
 
     private static (string Text, int After) Quoted(string line, int open)

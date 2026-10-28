@@ -12,7 +12,7 @@
   <ItemGroup>
     <!-- Pinned explicitly: upstream ClickableTransparentOverlay asks for 3.1.6, which carries
          known high-severity advisories. The vendored copy asks for 3.1.12 as well. -->
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.2.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PoEformance.Features\PoEformance.Features.csproj" />
@@ -42,13 +42,17 @@
          scripts/name-icon-cells.py can regenerate the table above without losing them. Written
          by tools/IconBaker. -->
     <EmbeddedResource Include="..\..\assets\icon-names-custom.tsv" LogicalName="PoEformance.Overlay.assets.icon-names-custom.tsv" />
-    <!-- The art of the five buttons down the model pane's right edge, linked and pinned for the
+    <!-- The art of the buttons down the model pane's right edge, linked and pinned for the
          same reasons as the sheet: MonsterPortrait.SideIcon matches on the END of the resource
-         name. The sheet three were cut from (3dMV_light-cpugpu-probe.png) stays out. -->
+         name. The sheet three were cut from (3dMV_light-cpugpu-probe.png) stays out. The camera's
+         three (reset, the game's view, perspective) were drawn on the orbit's tile in its style. -->
     <EmbeddedResource Include="..\..\assets\3dMV_cpugpu.png" LogicalName="PoEformance.Overlay.assets.3dMV_cpugpu.png" />
     <EmbeddedResource Include="..\..\assets\3dMV_light.png" LogicalName="PoEformance.Overlay.assets.3dMV_light.png" />
     <EmbeddedResource Include="..\..\assets\3dMV_orbit.png" LogicalName="PoEformance.Overlay.assets.3dMV_orbit.png" />
     <EmbeddedResource Include="..\..\assets\3dMV_probe.png" LogicalName="PoEformance.Overlay.assets.3dMV_probe.png" />
     <EmbeddedResource Include="..\..\assets\3dMV_clock.png" LogicalName="PoEformance.Overlay.assets.3dMV_clock.png" />
+    <EmbeddedResource Include="..\..\assets\3dMV_reset.png" LogicalName="PoEformance.Overlay.assets.3dMV_reset.png" />
+    <EmbeddedResource Include="..\..\assets\3dMV_game.png" LogicalName="PoEformance.Overlay.assets.3dMV_game.png" />
+    <EmbeddedResource Include="..\..\assets\3dMV_perspective.png" LogicalName="PoEformance.Overlay.assets.3dMV_perspective.png" />
   </ItemGroup>
 </Project>

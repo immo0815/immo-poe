@@ -1,0 +1,11 @@
+version 3
+extends "Metadata/MiscellaneousObjects/Doodad_Distant_4"
+
+
+client
+{
+	BaseEvents
+	{
+		on_construction_complete = { this.no_wobble = true; }
+	}
+}

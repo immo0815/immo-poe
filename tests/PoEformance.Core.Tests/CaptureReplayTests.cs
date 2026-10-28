@@ -39,6 +39,68 @@ public partial class CaptureReplayTests
     /// <summary>The capture's folder, from POEF_CAPTURE - or null, and the replay does nothing.</summary>
     private static string? Folder => Environment.GetEnvironmentVariable("POEF_CAPTURE");
 
+    /// <summary>The wobble watch read back: each wobble point's changed fields with their period, and its turn over time - wobble-replay.txt.</summary>
+    [Fact]
+    public void THEWOBBLEWatchIsReadBackFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder || CaptureParts.Find(folder, CaptureReport.WobbleFile) is not { } path || !File.Exists(path))
+        {
+            return;
+        }
+
+        // THE GAME'S SWAY BESIDE THE TOOL'S: the watch, and the cores as WobbleRig plays them (wobble-files.txt), where it was written.
+        string played = CaptureParts.Find(folder, CaptureReport.WobbleFilesFile);
+        string replay = PoEformance.Game.Diagnostics.WobbleSeries.Report(
+        [
+            .. PoEformance.Game.Diagnostics.WobbleSeries.Read(File.ReadAllText(path)),
+            .. File.Exists(played) ? PoEformance.Game.Diagnostics.WobbleSeries.Read(File.ReadAllText(played)) : [],
+        ]);
+        File.WriteAllText(Path.Combine(folder, "wobble-replay.txt"), replay);
+        Assert.StartsWith("wobble replay: ", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>The object scripts naming the water's blocking or flow, read back from water-shore.txt - water-shore-replay.txt.</summary>
+    [Fact]
+    public void THEWATERSHOREScriptsAreReadBackFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder || CaptureParts.Find(folder, CaptureReport.WaterShoreFile) is not { } path || !File.Exists(path))
+        {
+            return;
+        }
+
+        string replay = CaptureWaterShore.Report(CaptureWaterShore.Calls(File.ReadAllText(path)));
+        File.WriteAllText(Path.Combine(folder, "water-shore-replay.txt"), replay);
+        Assert.StartsWith("water shore replay: ", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>The program's, tables' and paths' debug strings read back from debug-strings.txt and sorted by shape - debug-strings-replay.txt.</summary>
+    [Fact]
+    public void THEDEBUGStringsAreReadBackFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder || CaptureParts.Find(folder, CaptureReport.DebugStringsFile) is not { } path || !File.Exists(path))
+        {
+            return;
+        }
+
+        string replay = CaptureDebugStrings.Report(CaptureDebugStrings.Read(File.ReadAllText(path)));
+        File.WriteAllText(Path.Combine(folder, "debug-strings-replay.txt"), replay);
+        Assert.StartsWith("debug strings replay: ", replay, StringComparison.Ordinal);
+    }
+
+    /// <summary>The ocean markup hunt's grids read back from ocean-markup.txt - ocean-markup-replay.txt.</summary>
+    [Fact]
+    public void THEOCEANMarkupHuntIsReadBackFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder || CaptureParts.Find(folder, CaptureReport.OceanMarkupFile) is not { } path || !File.Exists(path))
+        {
+            return;
+        }
+
+        string replay = PoEformance.Game.Diagnostics.OceanMarkupHunt.Report(PoEformance.Game.Diagnostics.OceanMarkupHunt.Read(File.ReadAllText(path)));
+        File.WriteAllText(Path.Combine(folder, "ocean-markup-replay.txt"), replay);
+        Assert.StartsWith("ocean markup replay: ", replay, StringComparison.Ordinal);
+    }
+
     /// <summary>Places every room of the capture by its doodads and writes the result beside the capture's files.</summary>
     [Fact]
     public void THEPLACINGRunsAgainFromACapture()

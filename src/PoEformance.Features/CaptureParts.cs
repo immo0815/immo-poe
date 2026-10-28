@@ -152,6 +152,9 @@ public static class CaptureParts
     /// <summary>The model panes' lines under their pictures, and every doodad file of a room shown with what became of it.</summary>
     public const string ModelPanes = "model-panes";
 
+    /// <summary>The Monster Book's monster: where the stage stands him, his parts as hung, his lowest point in every animation, his files whole, and the game's entity of him.</summary>
+    public const string MonsterFiles = "monster-files";
+
     /// <summary>The Memory Dissector's places, route and last search.</summary>
     public const string Dissector = "dissector";
 
@@ -160,6 +163,24 @@ public static class CaptureParts
 
     /// <summary>The light hunt run at the press: the sun, the sky's turn, the dust and the water as the game's memory holds them.</summary>
     public const string LightHunt = "light-hunt";
+
+    /// <summary>The wobble points and the doodads by them, watched for seconds from the press: what sways a ship.</summary>
+    public const string Wobble = "wobble";
+
+    /// <summary>The install's files of the engine's wobble: the object types, every path naming one, the sources and the program's strings.</summary>
+    public const string WobbleFiles = "wobble-files";
+
+    /// <summary>What the engine's shore field is made from: every object script naming the water's blocking or flow, the sources and strings.</summary>
+    public const string WaterShore = "water-shore";
+
+    /// <summary>Every string the game's program, data tables and paths hold naming a debug, cheat, test, console or logging function.</summary>
+    public const string DebugStrings = "debug-strings";
+
+    /// <summary>The engine's own debug views: its graphs whole, what the compile makes of them, their sources and the program's table of them.</summary>
+    public const string RenderDebug = "render-debug";
+
+    /// <summary>The terrain and what it points to searched at the press for the grid the engine's ocean markup is made from.</summary>
+    public const string OceanMarkup = "ocean-markup";
 
     /// <summary>The memory recording itself.</summary>
     public const string Memory = "memory";
@@ -190,7 +211,7 @@ public static class CaptureParts
     /// lines under the buttons that nobody playing reads. They read the file table and the bundles, which takes seconds, so they
     /// cannot be asked for on the frame the key goes down as a window's text is.
     /// </remarks>
-    public static bool RunsAtPress(string key) => key is CountField or RoomsInside or RoomsExported or RoomPlacements;
+    public static bool RunsAtPress(string key) => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup;
 
     /// <summary>
     /// A heading as the Keys page writes it. The headings themselves stay as they are: they are what <see cref="FolderOfGroup"/> keys
@@ -372,13 +393,18 @@ public static class CaptureParts
             + "beside it; and every laid tile definition's bytes past what is read. What stands between the rooms' white ground "
             + "and a painted one."),
         new(GroundScreen, "Area files", "ground on screen", CaptureReport.GroundScreenFile,
-            "The laid tiles' ground laid over the game's own picture where the Monster Book's laid room has it: every sub-tile of two "
+            "The laid tiles' ground laid over the game's own picture where the Monster Book's laid room has it, each piece at its tiles' own level: every sub-tile of two "
             + "grounds or more on the screen outlined and named as ground.txt names it, and its ground shapes whose coordinates run "
             + "across the mask's atlas drawn - where the tool's mix comes out as a checkerboard - so which ground the game draws there "
             + "is read off its picture (ground-on-screen.png). Each sub-tile's grid corners beside the game's own corner types at that "
             + "place, and each shape's height, green and reach across the mask. And the two ways two grounds may be mixed held against "
-            + "the game's picture pixel by pixel - the mask's green and the corners' share - with moved controls (ground-on-screen-corners.png "
-            + "tinted by the corners). Best with \"game only\" ticked: over the overlay's picture the overlay's own drawing is in the way."),
+            + "the game's picture pixel by pixel - the mask's green and the corners' share, and each weighed by the two grounds' heights as the "
+            + "engine's height blending weighs them, every ground's own program run at each pixel - with moved controls (ground-on-screen-corners.png "
+            + "tinted by the corners, ground-on-screen-heights.png by the mask weighed by the heights). And which material of its group each "
+            + "sub-tile's pattern follows, every material the group offers read over the sub-tile and lined up with the picture's detail, "
+            + "shifted up to 24 units for its best line-up, against the same material shifted where nothing lines up "
+            + "(ground-on-screen-choices.png tinted by the winners). Best with \"game only\" ticked: over the "
+            + "overlay's picture the overlay's own drawing is in the way."),
         new(Water, "Area files", "water", CaptureReport.WaterFile,
             "What the water is drawn from, as the files say: every key the install's environments write in their water "
             + "sections, how many files carry it and what values, every environment's water section file by file - to pick an "
@@ -394,6 +420,36 @@ public static class CaptureParts
             + "takes of them and why. What stands between the tool's stand-in waves and the game's. And the engine's beach waves - the "
             + "foam that floods the rocks: the graphs the program names for them (BreakingOceanWaves and its kin) whole, every graph "
             + "they name, and the textures they name with their headers."),
+
+        new(WobbleFiles, "Area files", "wobble files", CaptureReport.WobbleFilesFile,
+            "What the install says of the engine's wobble - what sways Port's ship, whose model has no rig and no animation: the object "
+            + "types (.ot, .otc, .ao, .aoc) of every loaded path naming a wobble and of the doodads that may and may not sway, each "
+            + "followed through what it extends, whole; every install path naming a wobble, the text files among them whole; the "
+            + "shader sources naming one, and the game's program's strings naming one."),
+
+        new(WaterShore, "Area files", "water's shore", CaptureReport.WaterShoreFile,
+            "What the engine's shore field is made from - where its swell runs, which in Port runs between the ship and the quay while "
+            + "the tool's runs in under the hull: every object script (.ot, .otc) in the install searched for the water's blocking and "
+            + "flow (SetWaterBlocking, SetWaterFlow, the program's script commands), each line naming them and the first scripts whole; "
+            + "the area's loaded object types that reach one through what they extend; the shader sources naming the shore field; and "
+            + "the game's program's strings naming a shore, the water's blocking or a markup. And the sea's spray thrown up a quay: "
+            + "the engine's spray trigger graphs (CrashingSprayTrigger and its kin) whole, then hop by hop what names them - the "
+            + "materials, the particles and trails naming those, the effect packages, objects and environments naming those. "
+            + "Searches some tens of thousands of files on every core."),
+
+        new(DebugStrings, "Area files", "debug strings", CaptureReport.DebugStringsFile,
+            "What the game left in of its debugging: every string its own program holds (ASCII and UTF-16, with its section and "
+            + "address), every string of its data tables and every install path that names a debug or dbg function, a cheat, a "
+            + "developer's or test switch, the console or a visualisation (show_, draw_, toggle, wireframe, profiler, overlay), or an "
+            + "assert, a trace, a dump or a log - grouped so, the words beside each. The program is searched on three cores, the "
+            + "tables on every core; the offline reader sorts them by shape (C++ type names, identifiers, chat commands, paths)."),
+
+        new(RenderDebug, "Area files", "render debug views", CaptureReport.RenderDebugFile,
+            "The engine's own debug views, to build them in the Monster Book: every graph under Metadata/EngineGraphs/ whole - the "
+            + "debug_*.fxgraph first (albedo, normals, overdraw, walkability, the ocean and river markup and some forty more) - and "
+            + "every graph they name; what the compile makes of each, node type by node type, and the node types it does not know "
+            + "yet; the textures they name with their headers; the debug pass's shader sources whole, and those naming an unknown "
+            + "node; and every string of the game's program round its table of the views, at its address."),
 
         new(CountField, "Area files", "count field sweep", CaptureReport.CountFieldFile,
             "The loaded-file table walked for its count field instead of assuming one: what the area-change counter reads, how many "
@@ -424,14 +480,20 @@ public static class CaptureParts
             "The whole report of the last \"find the readings\" in the Tile Book's Light fold: every reading, where each was found, "
             + "the raw angles beside them. Nothing where none has run."),
         new(ModelProbe, "Windows", "model probe", CaptureReport.ProbeFile,
-            "What the last probe click in a model pane listed under that pixel, and how each translucent layer came out over the "
-            + "picture - for every book whose probe is on. Nothing where none is."),
+            "What the last probe click in a model pane listed under that pixel - on water, the swell's foam and the field waves term "
+            + "by term - and how each translucent layer came out over the picture - for every book whose probe is on. Nothing where none is."),
         new(ModelPanes, "Windows", "model panes", CaptureReport.PanesFile,
             "Every model pane showing a model: its lines under the picture, a room stage's own among them, and every doodad file "
             + "of the room it shows with what became of its lines - laid, not drawn, left out by the cap, unseen - its box, where "
             + "its first line puts it and its materials; each file that did not draw written whole with what it extends; the materials "
             + "under the probe, those drawn plain and those naming a shore's node or with nodes left out, whole, each program texture's "
             + "header beside them. Nothing where no pane shows a model."),
+        new(MonsterFiles, "Windows", "monster's files", CaptureReport.MonsterFilesFile,
+            "The Monster Book's monster as the tool builds and stands it: where the stage put him and the floor it found at nine points round "
+            + "his place, the rest's lowest point, each part with its socket and box, his lowest point and root bone in every animation, each "
+            + "socketed part's bone in every animation, every part with a rig of its own played by that rig, and "
+            + "every .ao and object type file of him whole - beside the game's own entity of him where one is near (its place, the terrain's "
+            + "height under it, its bounds, the animation it plays). Stand where the game shows him with him on the Monster Book's stage."),
         new(Dissector, "Windows", "dissector", CaptureReport.DissectorFile,
             "The places the Memory Dissector has open, the route walked to them, and what its last search found with the bytes "
             + "round each place. Nothing where it is untouched."),
@@ -449,6 +511,19 @@ public static class CaptureParts
             + "What the engine draws an area's water with where its file "
             + "sets no colour. It looks through up to sixteen gigabytes on every core: the capture's window shows how far it is "
             + "and where its time goes, and stops it on a click - what it found until then is written, as it is at five minutes."),
+        new(Wobble, "Memory", "wobble watch", CaptureReport.WobbleFile,
+            "Every entity carrying a WobblePoint - the wobble core the game lays beside a ship - and the doodads standing by it, "
+            + "watched for twenty seconds from the press: the WobblePoint as fast as it reads, every component of the doodads and one "
+            + "hop beyond each pointer in them twenty times a second, with a doodad that may not sway as the control. Every field that "
+            + "changes is written with its range and period, the first read of every block whole, and the WobblePoint's changing "
+            + "fields as a table over time - what moves the ship, by how much and how often. Stand within sight of the ship; the "
+            + "window shows how far it is and stops it on a click."),
+        new(OceanMarkup, "Memory", "ocean markup hunt", CaptureReport.OceanMarkupFile,
+            "Where the engine keeps its sea's shore: the area's terrain - the game's tile map, whose CalculateMapMarkup fills the grid "
+            + "the engine's OceanMarkupField is made from - and every object it points to, searched for lists whose length is a grid "
+            + "of the area's shape (its tiles, their corners or its cells, at several resolutions). Each found is written as a map, "
+            + "its values counted, beside the walkable grid and the corners' ground types at the same places - what the tool's own "
+            + "shore, chosen until then, is to be held against. A few megabytes of reads, past the recording."),
         new(Memory, "Memory", "memory recording", CaptureReport.MemoryFile,
             "The overlay's own reads for three seconds, and inside them one pass reading once more from nothing whatever the "
             + "ticked parts above ask for - memory.txt beside it says what the pass read where. Replays with --replay, game closed."),

@@ -50,13 +50,15 @@ namespace PoEformance.Features;
 /// coin toss that shows as pieces turned round. The room that showed it chose "Y turned over,
 /// heights the other way" on 6 of its 14 sloped pieces.
 ///
-/// HOW HIGH A PIECE GOES IS NOT SETTLED, and the line says what each answer would do. Fitted, each
-/// piece is raised until its ground meets the area's on average - which is exact only where the file's
-/// ground has the shape the area's heights have, and the sloped pieces say it often does not. At its
-/// tile's level, it goes where the area's own heights are measured from: a tile's sub-tile heights
-/// are described relative to its level (TerrainHeightField), and a file's ground counted from the
-/// same level would be set there unfitted. Seepage's offices, fitted, came out with their sand over
-/// floors the game shows bare - which of the two the game does is what the switch and the line are for.
+/// A PIECE GOES AT ITS TILES' OWN LEVEL (v0.1.316, MEASURED), where the area's own heights are measured
+/// from: a tile's sub-tile heights are described relative to its level (TerrainHeightField), the game
+/// stands a tile's doodads at their lines' z plus the level (Marrow, Sulphuric), and the game's own
+/// cobblestones on Port's pier line up with the pier's materials on the plane at its tile's level
+/// (v0.1.313's capture, within 16 units). Fitted - raised until its ground meets the area's on average,
+/// the way laid rooms went until v0.1.314 - Port's harbour came out 450 units too high, the sea floor
+/// under its water outweighing the pier; Seepage's offices, fitted, came out with their sand over floors
+/// the game shows bare. The fit stays behind a switch (<c>fitted</c>), and the line says how far each
+/// piece's fit lies from its level either way.
 ///
 /// AND A PIECE SEVERAL TILES ACROSS IS CHECKED AGAINST THE AREA'S OWN INDEX: every one of its area
 /// tiles names the column and row of the file it holds, so where the drawing puts each sub-tile can
@@ -95,7 +97,7 @@ public static class LaidRoomModels
     /// <param name="shaded">Whether each material's shader graphs are read.</param>
     /// <param name="doodads">Most doodads placed, and the measure of the tiles' triangles too - see RoomModels.UsualDoodads.</param>
     /// <param name="tools">Whether the level editor's tools are placed too.</param>
-    /// <param name="atLevel">Whether each piece is set at its tiles' own level rather than fitted to the area's ground - see the remarks.</param>
+    /// <param name="fitted">Whether each piece is fitted to the area's ground rather than set at its tiles' own level - see the remarks.</param>
     /// <param name="progress">Where the build says how far it has got, or null - see <see cref="ModelProgress"/>.</param>
     /// <param name="heights">How high a doodad whose line carries a height is set - see <see cref="DoodadHeight"/>.</param>
     /// <param name="entities">The area's entities in memory, to hold the room's doodads against - see <see cref="HeightsSaid"/> - or null.</param>
@@ -103,6 +105,8 @@ public static class LaidRoomModels
     /// <param name="sight">Whether what the camera cannot see from anywhere the player can stand is left out - see <see cref="Hiding"/>.</param>
     /// <param name="cut">How far under the area's ground, in world units, everything is left out; nought or less leaves nothing out - see <see cref="Hiding"/>.</param>
     /// <param name="master">The area's master (<c>.tsi</c>), whose MaterialsList paints the ground - empty for the one beside the room's <c>Rooms/</c> (see GroundPainter).</param>
+    /// <param name="maskCells">Whether the ground's shapes across its mask's atlas stay on the mask's cells rather than mixed by their corners - see GroundPainter.</param>
+    /// <param name="groundHeights">Whether two grounds are weighed by their heights where their graphs turn that on, as the engine's height blending weighs them - see GroundPainter.</param>
     public static MonsterModel Of(
         Func<string, byte[]?>? read,
         string? path,
@@ -113,14 +117,16 @@ public static class LaidRoomModels
         bool shaded = false,
         int doodads = RoomModels.UsualDoodads,
         bool tools = false,
-        bool atLevel = false,
+        bool fitted = false,
         ModelProgress? progress = null,
         DoodadHeight heights = DoodadHeight.File,
         IReadOnlyList<WorldEntity>? entities = null,
         CameraShot? camera = null,
         bool sight = false,
         int cut = 0,
-        string master = "")
+        string master = "",
+        bool maskCells = false,
+        bool groundHeights = false)
     {
         if (read is null)
         {
@@ -165,7 +171,7 @@ public static class LaidRoomModels
         var made = new Dictionary<int, Made>();
 
         // THE GROUND'S PAINTER, from the area's MaterialsList - the master given, or the one beside the room's Rooms/.
-        (GroundPainter? painter, string unpainted) = GroundPainter.For(Counted, master.Length > 0 ? master : GroundPainter.MasterBeside(read, path), paints);
+        (GroundPainter? painter, string unpainted) = GroundPainter.For(Counted, master.Length > 0 ? master : GroundPainter.MasterBeside(read, path), paints, maskCells, groundHeights);
         var grounds = new List<MonsterModel>();
         Made Make(int id)
         {
@@ -259,7 +265,7 @@ public static class LaidRoomModels
                 fitsAtLevel += height.MissAtLevel <= Fits ? 1 : 0;
             }
 
-            float lift = atLevel ? level : height.Fitted;
+            float lift = fitted ? height.Fitted : level;
             Matrix4x4 place = Spatial(flat) * Matrix4x4.CreateTranslation(0f, 0f, lift);
             if (one.Doodads.Lines.Count > 0)
             {
@@ -340,7 +346,7 @@ public static class LaidRoomModels
                 + (capped > 0 ? string.Create(CultureInfo.InvariantCulture, $", {capped} left out to keep it turnable - the doodads slider raises it") : string.Empty)
                 + (unturned > 0 ? string.Create(CultureInfo.InvariantCulture, $", {unturned} laid no way the game's tables said - drawn as their files have them") : string.Empty),
             Heights(ways, chosen, settled),
-            Levels(above, fitsFitted, fitsAtLevel, atLevel),
+            Levels(above, fitsFitted, fitsAtLevel, fitted),
         };
         if (asked > 0)
         {
@@ -390,9 +396,16 @@ public static class LaidRoomModels
     /// tile (0, 0) at the origin - for the capture's picture of the ground on the screen (CaptureGroundScreen).
     /// </summary>
     /// <remarks>
-    /// THE ROOM'S OWN ARITHMETIC, not a second copy of it: the way the files lie is weighed from the block's sloped pieces and each
-    /// piece fitted to the area's ground exactly as <see cref="Of"/> does, so what the capture draws over the game's picture is where
-    /// the Monster Book's laid room has its ground. Placed from the area's corner rather than a room's, so a point is a world point.
+    /// THE ROOM'S OWN ARITHMETIC, not a second copy of it: the way the files lie is weighed from the block's sloped pieces exactly as
+    /// <see cref="Of"/> does, so what the capture draws over the game's picture is where the Monster Book's laid room has its ground.
+    /// Placed from the area's corner rather than a room's, so a point is a world point.
+    ///
+    /// EACH PIECE AT ITS TILES' OWN LEVEL, NOT FITTED (v0.1.314, MEASURED). Fitted to the area's ground - the mean of the area's height less
+    /// the file's - Port's harbour came out 450 units above the game's: the sea floor under its water, 500 down in the file, outweighs the
+    /// pier and the quay where the area's grid says nought. v0.1.313's capture showed it twice over: the material choices' pixel counts
+    /// came out as the harbour drawn at -450 and no other height, and the game's own cobblestones line up with the pier's materials on the
+    /// plane at its tile's level, nought, within 16 units. Every comparison the capture drew over the harbour until then was measured on
+    /// the wrong pixels. The laid room lays its pieces so too from v0.1.316; the line says how far the fit would have put each piece.
     /// </remarks>
     /// <param name="read">The install.</param>
     /// <param name="grid">The area, its tiles read.</param>
@@ -428,6 +441,7 @@ public static class LaidRoomModels
         List<TilePiece> pieces = tiles.Pieces(x, y, wide, tall, id => (Of(id).Width, Of(id).Height));
         (Way[] ways, Way chosen, bool settled, int asked) = Weighed(pieces, Of, grid, 0, 0);
         said = asked > 0 ? Cornered(ways, chosen, asked) + "; " + Heights(ways, chosen, settled) : Heights(ways, chosen, settled);
+        var fits = new List<(float Off, string Piece)>();
         foreach (TilePiece piece in pieces)
         {
             Made one = Of(piece.Id);
@@ -437,10 +451,22 @@ public static class LaidRoomModels
             }
 
             Matrix3x2 flat = chosen.Flat(piece, one, 0, 0);
-            Height height = Way.Measure(piece, one, grid, 0, 0, flat, Level(piece, grid));
-            laid.Add(new LaidGround(tiles.Paths[piece.Id], piece, one.Ground, one.Pieces, Spatial(flat) * Matrix4x4.CreateTranslation(0f, 0f, height.Fitted)));
+            float level = Level(piece, grid);
+            Height height = Way.Measure(piece, one, grid, 0, 0, flat, level);
+            if (height.Samples > 0)
+            {
+                fits.Add((height.Fitted - level, string.Create(CultureInfo.InvariantCulture, $"{Path.GetFileNameWithoutExtension(tiles.Paths[piece.Id])} at tile {piece.MinX}, {piece.MinY}")));
+            }
+
+            laid.Add(new LaidGround(tiles.Paths[piece.Id], piece, one.Ground, one.Pieces, Spatial(flat) * Matrix4x4.CreateTranslation(0f, 0f, level)));
         }
 
+        // BOTH HALVES: where the pieces lie, and where fitting them to the area's ground would have put them instead.
+        (float Off, string Piece) farthest = fits.Count > 0 ? fits.MaxBy(fit => MathF.Abs(fit.Off)) : default;
+        said += fits.Count == 0
+            ? "; each piece at its tiles' own level"
+            : string.Create(CultureInfo.InvariantCulture,
+                $"; each piece at its tiles' own level - fitted to the area's ground, {fits.Count(fit => MathF.Abs(fit.Off) > Fits)} of {fits.Count} would sit over {Fits} units off it, the farthest {farthest.Piece} by {farthest.Off:+0;-0;0}");
         return laid;
     }
 
@@ -618,9 +644,9 @@ public static class LaidRoomModels
     }
 
     /// <summary>What the two ways of setting a piece's height said, for the line under the picture.</summary>
-    private static string Levels(List<float> above, int fitsFitted, int fitsAtLevel, bool atLevel)
+    private static string Levels(List<float> above, int fitsFitted, int fitsAtLevel, bool fitted)
     {
-        string drawn = atLevel ? "drawn at the tiles' levels" : "drawn fitted";
+        string drawn = fitted ? "drawn fitted" : "drawn at the tiles' levels";
         if (above.Count == 0)
         {
             return "level: no piece with a ground to measure - " + drawn;
@@ -946,7 +972,7 @@ public static class LaidRoomModels
 
             Vector2 inRoom = world - corner;
             into.Add((line, Matrix4x4.CreateScale(line.Scale > 0f ? line.Scale : 1f)
-                * Matrix4x4.CreateRotationZ(line.Turn)
+                * line.Turning
                 * turn
                 * Matrix4x4.CreateTranslation(inRoom.X, inRoom.Y, z)));
         }

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Numerics;
 using System.Text;
+using PoEformance.Game.Entities;
 using PoEformance.Game.Files;
 
 namespace PoEformance.Features;
@@ -21,6 +22,18 @@ public sealed record CapturePane(string Book, IReadOnlyList<string> Lines, Monst
 
     /// <summary>Where the time of building the model and drawing its first picture went - see ModelProgress.Report.</summary>
     public IReadOnlyList<string> Built { get; init; } = [];
+
+    /// <summary>Where the picture on screen was looked at from - see CameraPose - or null where nothing was drawn.</summary>
+    public CameraPose? View { get; init; }
+
+    /// <summary>The monster's row, for the .ao files it names - null where the pane shows no monster (CaptureMonsterFiles).</summary>
+    public MonsterVariety? Variety { get; init; }
+
+    /// <summary>The monster's metadata path as the book asked for it - empty where it shows none.</summary>
+    public string Path { get; init; } = string.Empty;
+
+    /// <summary>How the install unpacks a bundle of keyframes, or null where nothing can - the pane's own (MonsterPortrait).</summary>
+    public Func<ReadOnlyMemory<byte>, int, byte[]?>? Unpack { get; init; }
 }
 
 /// <summary>
@@ -40,6 +53,19 @@ public sealed record CapturePane(string Book, IReadOnlyList<string> Lines, Monst
 /// </remarks>
 public static class CapturePanes
 {
+    /// <summary>
+    /// The camera's line: the pose as the pane holds it, and what it comes to - the eye, the way it looks, the near plane - so a probe's
+    /// depths and a picture's framing can be read back from the capture.
+    /// </summary>
+    public static string Camera(in CameraPose view)
+    {
+        static string At(Vector3 point) => string.Create(CultureInfo.InvariantCulture, $"({point.X:0.###}, {point.Y:0.###}, {point.Z:0.###})");
+        const float Degrees = 180f / MathF.PI;
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"{(view.Parallel ? "parallel" : $"perspective, {CameraPose.FieldOfView * Degrees:0.#} degrees top to bottom")}, focus {At(view.Focus)}, turn {view.Turn * Degrees:0.##} degrees, tilt {view.Tilt * Degrees:0.##} degrees, distance {view.Distance:0.###} - the eye at {At(view.Eye)} looking along {At(view.Forward)}, right {At(view.Right)}{(view.Parallel ? string.Empty : string.Create(CultureInfo.InvariantCulture, $", near plane {view.Near:0.###}"))}");
+    }
+
     /// <summary>Most files written whole - the doodad files that did not draw, the first named first.</summary>
     private const int MostWhole = 32;
 
@@ -66,6 +92,11 @@ public static class CapturePanes
             if (model.Stage.Length > 0)
             {
                 body.Append("  stage\t").AppendLine(model.Stage);
+            }
+
+            if (pane.View is { Valid: true } view)
+            {
+                body.Append("  camera\t").AppendLine(Camera(view));
             }
 
             foreach (string line in pane.Lines)
@@ -108,7 +139,7 @@ public static class CapturePanes
             body.AppendLine().Append(CultureInfo.InvariantCulture, $"=== the doodad files that did not draw, whole, with what each extends ({unlaid.Count})").AppendLine();
             foreach (DoodadFile file in unlaid.Take(MostWhole))
             {
-                Chain(body, read, file.Ao);
+                Chain(body, read, file.Ao, "did not draw");
             }
 
             if (unlaid.Count > MostWhole)
@@ -117,12 +148,54 @@ public static class CapturePanes
             }
         }
 
+        int moving = Moving(body, read, panes);
+
         var said = new StringBuilder();
         said.Append(CultureInfo.InvariantCulture,
-            $"{panes.Count} model panes showing a model, {files} doodad files of their rooms with what became of each one's lines, {unlaid.Count} that did not draw written whole")
+            $"{panes.Count} model panes showing a model, {files} doodad files of their rooms with what became of each one's lines, {unlaid.Count} that did not draw written whole, {moving} with a rig or among the largest written whole")
             .AppendLine();
         said.Append(body);
         return said.ToString();
+    }
+
+    /// <summary>How many of the largest doodad files are written whole beside those with a rig - see <see cref="Moving"/>.</summary>
+    private const int Largest = 3;
+
+    /// <summary>
+    /// Every doodad file of the rooms shown that carries a rig, and the few largest, written whole with what each extends and its
+    /// rig's animations - and how many were.
+    /// </summary>
+    /// <remarks>
+    /// WRITTEN FOR PORT'S SHIP (asked for from the live client): in the game boss_boat.ao rocks with the waves, in the Monster Book it
+    /// stands still, as every doodad of a laid room does (RoomModels: a rig stays in its rest pose). Its materials are plain PBR
+    /// graphs with no vertex motion (v0.1.287's capture), so what moves it is its .ao - a rig and an animation the game plays - or
+    /// the engine itself; the file says which. The largest go in whatever they carry, the ship being 355,726 triangles of a room.
+    /// </remarks>
+    private static int Moving(StringBuilder body, Func<string, byte[]?>? read, IReadOnlyList<CapturePane> panes)
+    {
+        DoodadFile[] all = [.. panes.SelectMany(pane => pane.Model.DoodadFiles).DistinctBy(file => file.Ao, StringComparer.OrdinalIgnoreCase)];
+        DoodadFile[] rigged = [.. all.Where(file => file.Rig.Length > 0 || file.Animations.Count > 0)];
+        DoodadFile[] largest = [.. all.Except(rigged).OrderByDescending(file => file.Triangles).Take(Largest)];
+        if (rigged.Length + largest.Length == 0)
+        {
+            return 0;
+        }
+
+        body.AppendLine().Append(CultureInfo.InvariantCulture,
+            $"=== the doodad files with a rig ({rigged.Length}) and the {largest.Length} largest without one, whole, with their animations - what the game may move them by").AppendLine();
+        foreach (DoodadFile file in rigged.Concat(largest).Take(MostWhole))
+        {
+            body.AppendLine().Append("  ").Append(file.Ao).Append(CultureInfo.InvariantCulture, $"  {file.Triangles} triangles, {file.Lines} lines, {file.Laid} laid")
+                .AppendLine(file.Rig.Length > 0 ? "  rig " + file.Rig : "  no rig");
+            foreach (string animation in file.Animations)
+            {
+                body.Append("    animation\t").AppendLine(animation);
+            }
+
+            Chain(body, read, file.Ao, file.Rig.Length > 0 ? "has a rig" : "among the largest");
+        }
+
+        return Math.Min(rigged.Length + largest.Length, MostWhole);
     }
 
     /// <summary>The picture of a pane's shore beside the part - see <see cref="ShorePictures"/>.</summary>
@@ -154,11 +227,61 @@ public static class CapturePanes
         body.Append(CultureInfo.InvariantCulture,
             $"  shore\tmade from {shore.WaterTriangles} water and {shore.GroundTriangles} ground triangles, and {shore.StandingTriangles} of what stands in the sea (CHOSEN: the shapes whose material sprays, {shore.StandingCells} cells land by them alone), against a water level of {shore.Level:0.#}: ")
             .Append(CultureInfo.InvariantCulture,
-                $"{shore.Width} x {shore.Height} cells of {shore.CellSize:0.#} from ({shore.Left:0}, {shore.Top:0}), {shore.LandCells} land; ")
+                $"{shore.Width} x {shore.Height} cells of {shore.CellSize:0.#} from ({shore.Left:0}, {shore.Top:0}), {shore.LandCells} land, ")
+            .Append(CultureInfo.InvariantCulture,
+                $"{shore.WallCells} of it walls meeting only water deeper than {ShoreField.BeachDeep:0} over its ground ({shore.StandingWalls} of them what stands in the sea) - no shore, the shore's distance measured past them, CHOSEN; ")
+            .Append(CultureInfo.InvariantCulture,
+                $"{shore.OverlappedCells} cells under two water shapes or more (at most {shore.MostLayers}) - where water drawn unlifted blends a layer for each; ")
             .Append(CultureInfo.InvariantCulture,
                 $"the shore's distance {least:0.###} to {most:0.###} colour units, one being {ShoreField.Reach:0} - CHOSEN, the engine makes its own; picture {picture}, ")
-            .AppendLine("row nought the least y, land brown by how far in, water blue by how far out, the shoreline white");
+            .AppendLine("row nought the least y, land brown by how far in, the walls grey, water blue by how far out, the shoreline white");
+        float groundLeast = float.MaxValue, groundMost = float.MinValue;
+        foreach (float one in shore.GroundTexels)
+        {
+            groundLeast = MathF.Min(groundLeast, one);
+            groundMost = MathF.Max(groundMost, one);
+        }
+
+        string way = Path.ChangeExtension(picture, null);
+        body.Append(CultureInfo.InvariantCulture,
+                $"  ground's shore	the distance to the shore of the ground alone, what stands in the sea no shore - the field waves' break phase takes it where the light panel's \"break by ground\" says, CHOSEN: ")
+            .AppendLine(CultureInfo.InvariantCulture,
+                $"{shore.GroundFarther} water cells farther from it than from the shore, its distance {groundLeast:0.###} to {groundMost:0.###} colour units; picture {way}-ground.png, coloured as {picture}");
+        ShoreField round = shore.Way(true);
+        body.Append(CultureInfo.InvariantCulture,
+                $"  way in	the distance out to sea the waves run down (ocean_dist): the open sea's, {ShoreField.Deep:0} or more from land or at the field's edge, and inside it the way a wave travels from there through the water - CHOSEN until the engine's OceanMarkupField is read; ")
+            .Append(CultureInfo.InvariantCulture,
+                $"BY THE GROUND ALONE, the default from v0.1.307: {shore.Travelled} cells' way in shorter than their distance to the ground, {shore.Unreached} reached by no way, picture {way}-way.png; ")
+            .Append(CultureInfo.InvariantCulture,
+                $"ROUND WHAT STANDS IN THE WATER as well, the light panel's \"way round\": {shore.StandingCells} cells of what stands in the sea and {round.BlockedCells} water cells in the way (of {round.BlockingTriangles} solid triangles asked, {round.CrossingTriangles} crossing the water's surface: the cells their waterlines run through), {round.Travelled} cells' way in shorter than their shore's distance, {round.Unreached} reached by no way, picture {way}-way-round.png; ")
+            .Append(Crossers(shore, model))
+            .AppendLine($"each picture water by its way in, a white line every {WayStep:0} units - where the game's crests should run - land brown, the cells something crosses red, bright where they stand in the way");
         Beach(body, model);
+    }
+
+    /// <summary>What crossed the water's surface, the most triangles first - each shape's material and where it came from: the half the cells in the way were made from.</summary>
+    private static string Crossers(ShoreField shore, MonsterModel model)
+    {
+        if (shore.CrossingShapes.Count == 0)
+        {
+            return "nothing crossing it; ";
+        }
+
+        const int Most = 12;
+        var said = new StringBuilder("crossing it: ");
+        foreach (KeyValuePair<int, int> one in shore.CrossingShapes.OrderByDescending(one => one.Value).Take(Most))
+        {
+            string material = one.Key < model.ShapeMaterials.Count ? Path.GetFileName(model.ShapeMaterials[one.Key]) : "?";
+            string source = one.Key < model.ShapeSources.Count ? model.ShapeSources[one.Key] : "?";
+            said.Append(CultureInfo.InvariantCulture, $"{one.Value} of shape {one.Key}, {material} from {source}; ");
+        }
+
+        if (shore.CrossingShapes.Count > Most)
+        {
+            said.Append(CultureInfo.InvariantCulture, $"and {shore.CrossingShapes.Count - Most} more shapes; ");
+        }
+
+        return said.ToString();
     }
 
     /// <summary>
@@ -218,24 +341,81 @@ public static class CapturePanes
                 continue;
             }
 
-            ReadOnlySpan<float> texels = shore.Texels;
-            var rgba = new byte[shore.Width * shore.Height * 4];
-            for (var at = 0; at < shore.Width * shore.Height; at++)
+            string name = panes.Count > 1 ? $"shore-{pane.Book}.png" : ShoreFile;
+            pictures.Add((name, Distances(shore, at => shore.Texels[at * 2])));
+            pictures.Add((Path.ChangeExtension(name, null) + "-ground.png", Distances(shore, at => shore.GroundTexels[at])));
+            pictures.Add((Path.ChangeExtension(name, null) + "-way.png", Way(shore)));
+            pictures.Add((Path.ChangeExtension(name, null) + "-way-round.png", Way(shore.Way(true))));
+        }
+
+        return pictures;
+    }
+
+    /// <summary>
+    /// A shore's distances as a picture, row nought the least y: land brown by how far in, the walls grey, water blue by how far out,
+    /// the shoreline white.
+    /// </summary>
+    private static GamePicture Distances(ShoreField shore, Func<int, float> distanceOf)
+    {
+        var rgba = new byte[shore.Width * shore.Height * 4];
+        for (var at = 0; at < shore.Width * shore.Height; at++)
+        {
+            float distance = distanceOf(at);
+            (byte r, byte g, byte b) = shore.IsWall(at) ? ((byte)150, (byte)150, (byte)150)
+                : MathF.Abs(distance) < 0.01f ? ((byte)255, (byte)255, (byte)255)
+                : distance < 0f ? ((byte)(90 + (120 * -distance)), (byte)(60 + (60 * -distance)), (byte)30)
+                : ((byte)20, (byte)(60 + (100 * (1f - distance))), (byte)(110 + (145 * (1f - distance))));
+            rgba[at * 4] = r;
+            rgba[(at * 4) + 1] = g;
+            rgba[(at * 4) + 2] = b;
+            rgba[(at * 4) + 3] = 255;
+        }
+
+        return new GamePicture(shore.Width, shore.Height, rgba);
+    }
+
+    /// <summary>The step the way-in picture draws its lines at, world units - a quarter of the engine's field wave.</summary>
+    private const float WayStep = 250f;
+
+    /// <summary>
+    /// A shore's way in as a picture: water shaded by its distance out to sea, a white line wherever it crosses a whole <see cref="WayStep"/>
+    /// - the crests' lines - land brown, the cells something crosses red: bright where the way runs round them, dark where it runs under.
+    /// </summary>
+    private static GamePicture Way(ShoreField shore)
+    {
+        ReadOnlySpan<float> texels = shore.Texels;
+        int width = shore.Width, height = shore.Height;
+        var ocean = new float[width * height];
+        for (var at = 0; at < ocean.Length; at++)
+        {
+            ocean[at] = (1f - texels[(at * 2) + 1]) * ShoreField.Reach;
+        }
+
+        var rgba = new byte[width * height * 4];
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
             {
-                float distance = texels[at * 2];
-                (byte r, byte g, byte b) = MathF.Abs(distance) < 0.01f ? ((byte)255, (byte)255, (byte)255)
-                    : distance < 0f ? ((byte)(90 + (120 * -distance)), (byte)(60 + (60 * -distance)), (byte)30)
-                    : ((byte)20, (byte)(60 + (100 * (1f - distance))), (byte)(110 + (145 * (1f - distance))));
+                int at = (y * width) + x;
+                bool land = texels[at * 2] < 0f;
+                float here = ocean[at];
+                float band = MathF.Floor(here / WayStep);
+                bool line = !land
+                    && ((x + 1 < width && texels[(at + 1) * 2] >= 0f && MathF.Floor(ocean[at + 1] / WayStep) != band)
+                        || (y + 1 < height && texels[(at + width) * 2] >= 0f && MathF.Floor(ocean[at + width] / WayStep) != band));
+                float shade = Math.Clamp(here / ShoreField.Reach, -1f, 1f);
+                (byte r, byte g, byte b) = shore.InTheWay(at) ? (shore.RoundsWhatStands ? ((byte)220, (byte)40, (byte)40) : ((byte)110, (byte)25, (byte)25))
+                    : land ? ((byte)110, (byte)75, (byte)35)
+                    : line ? ((byte)255, (byte)255, (byte)255)
+                    : ((byte)20, (byte)Math.Clamp(60 + (100 * (1f - shade)), 0, 255), (byte)Math.Clamp(110 + (145 * (1f - shade)), 0, 255));
                 rgba[at * 4] = r;
                 rgba[(at * 4) + 1] = g;
                 rgba[(at * 4) + 2] = b;
                 rgba[(at * 4) + 3] = 255;
             }
-
-            pictures.Add((panes.Count > 1 ? $"shore-{pane.Book}.png" : ShoreFile, new GamePicture(shore.Width, shore.Height, rgba)));
         }
 
-        return pictures;
+        return new GamePicture(width, height, rgba);
     }
 
     /// <summary>
@@ -264,7 +444,9 @@ public static class CapturePanes
 
                 // TWO GROUNDS MIXED ARE WRITTEN AS THE TWO MATERIALS THEY ARE, the name they are worn under being no file.
                 string[] materials = GroundBlend.Parts(worn, out string first, out string second, out string mask) ? [first, second] : [worn];
-                string mixed = materials.Length == 2 ? $" · mixed per pixel by {mask}'s green" : string.Empty;
+                string mixed = materials.Length < 2 ? string.Empty
+                    : (mask.Length > 0 ? $" · mixed per pixel by {mask}'s green" : " · mixed per pixel by its sub-tiles' corners (a shape across the mask's atlas, CHOSEN)")
+                        + (GroundBlend.Heighted(worn) ? ", weighed by their heights where their graphs turn that on (the engine's height blending)" : string.Empty);
                 foreach (string material in materials)
                 {
                     if (named.Add(material))
@@ -509,10 +691,10 @@ public static class CapturePanes
     /// One .ao written whole, then every file it extends, breadth first - each read as the model walk reads it, the
     /// extension added where the extends line has none.
     /// </summary>
-    private static void Chain(StringBuilder body, Func<string, byte[]?>? read, string ao)
+    private static void Chain(StringBuilder body, Func<string, byte[]?>? read, string ao, string reason)
     {
         var queue = new Queue<(string Path, string Why)>();
-        queue.Enqueue((ao, "did not draw"));
+        queue.Enqueue((ao, reason));
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int written = 0;
         while (queue.Count > 0 && written < MostDeep)

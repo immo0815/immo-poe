@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using PoEformance.Game.Entities;
 using PoEformance.Game.Files;
@@ -198,6 +199,9 @@ public sealed record MonsterModel(
     /// <summary>What reading those lights came to, for the line under a lit picture - see RoomLights.Gathered.</summary>
     public string LightsSaid { get; init; } = string.Empty;
 
+    /// <summary>Where a stage stood its monster and the floor it found there - see <see cref="StageStanding"/>; null for anything but a staged monster.</summary>
+    public StageStanding? Standing { get; init; }
+
     /// <summary>A room's doodad files and what became of each one's lines - see <see cref="DoodadFile"/>. Empty for anything but a room.</summary>
     public IReadOnlyList<DoodadFile> DoodadFiles { get; init; } = [];
 
@@ -309,6 +313,14 @@ public sealed record MonsterModel(
     /// with, and the same mud is worn by a tile, a doodad and a pile of rubble. See MeshPicture's PixelProbe.
     /// </remarks>
     public IReadOnlyList<string> ShapeSources { get; init; } = [];
+
+    /// <summary>
+    /// Per shape, which of <see cref="Sways"/> turns it as the clock runs, or -1 for none - a ship and its deck's load (RoomSways); empty for a model that sways nothing.
+    /// </summary>
+    public IReadOnlyList<int> ShapeSways { get; init; } = [];
+
+    /// <summary>The wobble cores laid in it, each with its rig played and where it stands - see RoomSway.</summary>
+    public IReadOnlyList<RoomSway> Sways { get; init; } = [];
 
     /// <summary>
     /// The room's shore, for the ocean's swell - made from its water and its ground (ShoreField.Of, CHOSEN); null where it has no water, no ground over it, or is no room.
@@ -750,9 +762,18 @@ public static class MonsterModels
         int sections = parts.Count;
 
         var told = new List<PartFit>();
+        var riding = new Riding(rig);
         if (wearing)
         {
-            parts.AddRange(Dressing(counted, found.Files, rig, paints, skin, told));
+            parts.AddRange(Dressing(counted, found.Files, rig, paints, skin, told, riding));
+        }
+
+        // THE PIECES THAT PLAY THEIR OWN ANIMATIONS RIDE HIS RIG, their bones after his - see AnimationSkeleton.Carrying. Said by
+        // the parts' own account (PartKind.Played), NOT in Move: Move is why a model does NOT animate, and v0.1.329 wrote a line
+        // there that stopped Malgor's every animation and took his list of them away (said from the live client with a picture).
+        if (riding.Rigs.Count > 0 && rig.Carrying(riding.Rigs) is { } carrying)
+        {
+            rig = carrying;
         }
 
         // THE MONSTER WITHOUT WHAT HE IS WEARING, taken BEFORE the join and kept - see
@@ -1034,7 +1055,8 @@ public static class MonsterModels
         AnimationSkeleton parent,
         Paints paints,
         Mipmaps? fallback,
-        List<PartFit> told)
+        List<PartFit> told,
+        Riding riding)
     {
         var parts = new List<Part>();
         if (SkeletonPose.Of(parent) is not { } rest)
@@ -1098,7 +1120,7 @@ public static class MonsterModels
             // THE PIECE IS READ BEFORE ITS CHILDREN ARE QUEUED, because what it turns into IS the
             // rig they are authored against - see Fit. The order parts come out in is the order
             // they are dequeued, which this does not change.
-            (Part? part, Fit inner_, PartFit fit) = Worn(read, ao, one_, paints, fallback, body);
+            (Part? part, Fit inner_, PartFit fit) = Worn(read, ao, one_, paints, fallback, body, riding);
             told.Add(fit);
             if (part is { } worn)
             {
@@ -1631,7 +1653,8 @@ public static class MonsterModels
         Hangs_ hung,
         Paints paints,
         Mipmaps? fallback,
-        Fit body)
+        Fit body,
+        Riding riding)
     {
         (_, Matrix4x4 place, int bone, Matrix4x4 put, int socket, _, _, bool rooted, Fit fit) = hung;
 
@@ -1686,9 +1709,58 @@ public static class MonsterModels
             return (worn, map.Under, Told(hung, where, PartKind.Skin, counted, worn));
         }
 
+        // A "<root>" PIECE ON A RIG OF ITS OWN WHOSE ANIMATIONS CARRY HIS NAMES RIDES HIS RIG: its vertices keep its own bones,
+        // numbered after his, and its own animation of each name plays in step with his - see AnimationSkeleton.Carrying. Malgor's
+        // ship's wheel, which every other answer here left at his origin while the game hangs it round his neck.
+        if (rooted && hung.Depth == 1
+            && Entryed(chain, RigBlock, RigEntry) is { Length: > 0 } own
+            && riding.Take(Read(read, own, AnimationSkeleton.Read), mesh) is >= 0 and int first)
+        {
+            var moved = new byte[mesh.Bones.Length];
+            for (var one = 0; one < moved.Length; one++)
+            {
+                moved[one] = (byte)Math.Min(first + mesh.Bones[one], byte.MaxValue);
+            }
+
+            var ridden = new Part(mesh, moved, mesh.Weights, null, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
+            return (ridden, body, Told(hung, where, PartKind.Played, counted, ridden));
+        }
+
         (byte[] bones, byte[] weights) = Bound(mesh.Positions.Length, bone);
         var rigid = new Part(mesh, bones, weights, place, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
         return (rigid, body, Told(hung, where, PartKind.Rigid, counted, rigid));
+    }
+
+    /// <summary>
+    /// The rigs of the pieces that play their own animations, gathered as the monster is dressed, each numbered after his bones and
+    /// those gathered before it - see AnimationSkeleton.Carrying.
+    /// </summary>
+    private sealed class Riding(AnimationSkeleton parent)
+    {
+        private readonly HashSet<string> _names = new(parent.Animations.Select(one => one.Name), StringComparer.Ordinal);
+        private int _next = parent.Bones.Count;
+
+        /// <summary>The rigs taken, in the order their bones follow his.</summary>
+        public List<AnimationSkeleton> Rigs { get; } = [];
+
+        /// <summary>
+        /// The number a piece's own rig's first bone takes after his, or -1 where it does not ride: its rig does not hold together,
+        /// its mesh is not weighted to it, the palette would pass the format's limit, or none of its animations carries one of his names.
+        /// </summary>
+        public int Take(AnimationSkeleton own, SkinnedMesh mesh)
+        {
+            if (!own.Ready || SkeletonPose.Of(own) is null || mesh.Bones.Length != mesh.Positions.Length * 4
+                || SkeletonPose.Highest(mesh) >= own.Bones.Count || _next + own.Bones.Count > AnimationSkeleton.MostBones
+                || !own.Animations.Any(one => _names.Contains(one.Name)))
+            {
+                return -1;
+            }
+
+            int first = _next;
+            _next += own.Bones.Count;
+            Rigs.Add(own);
+            return first;
+        }
     }
 
     /// <summary>One line of the walk's account of itself - see <see cref="PartFit"/>.</summary>
@@ -1770,8 +1842,8 @@ public static class MonsterModels
     /// flat clumps. The attachment line was carrying the answer the whole time.
     ///
     /// WHAT IS STILL ASKED OF THE RIG is only the other half: a "&lt;root&gt;" piece that shares
-    /// nothing but the root has no bones to be moved onto and stays where it is. Malgor's ship's
-    /// wheel is that piece, and it is the one thing here still not settled.
+    /// nothing but the root has no bones to be moved onto. Malgor's ship's wheel is that piece, and
+    /// from v0.1.329 it rides his rig and plays its own animations in step - see Riding.
     /// </remarks>
     private readonly record struct Retarget(byte[] Bones, Matrix4x4[] Into, Fit Under);
 
@@ -1900,8 +1972,8 @@ public static class MonsterModels
             }
         }
 
-        // A "<root>" PIECE WITH NOTHING SHARED HAS NOWHERE TO GO, so it is left where it is -
-        // Malgor's ship's wheel, and the one case here still unsettled. A SOCKETED piece always
+        // A "<root>" PIECE WITH NOTHING SHARED HAS NOWHERE TO GO here - Malgor's ship's wheel, which
+        // rides his rig instead where its own animations carry his names (Worn, Riding). A SOCKETED piece always
         // has somewhere: its socket, which is where it used to go wholesale, so the map can only
         // improve on that and is always worth returning.
         // A BONE THAT MATCHED NOTHING AND IS NOT A ROOT OF ITS OWN RIG - see PartFit.Strays.
@@ -2038,6 +2110,53 @@ public static class MonsterModels
     /// The body's walk has followed extends from the start; the pieces' did not, which is the
     /// kind of gap that only shows on the one monster built that way.
     /// </remarks>
+    /// <summary>
+    /// A piece's OWN rig and mesh, as the chain of its .ao names them - for the capture's monster-files part, which plays a piece by its
+    /// own rig to see where its animations put it. Nothing here draws.
+    /// </summary>
+    /// <remarks>
+    /// MALGOR'S SHIP'S WHEEL ASKED IT (v0.1.328): a "&lt;root&gt;" piece sharing no bone but the root, left at his origin - while in the
+    /// game it hangs round his neck in his second phase (said from the live client). Its rig of ten bones carries animations of its own,
+    /// which nothing here has ever played. The mesh is the piece's skin, or its fixed mesh where it is a prop.
+    /// </remarks>
+    internal static (AnimationSkeleton Rig, string RigPath, SkinnedMesh Mesh) Piece(Func<string, byte[]?> read, string path)
+    {
+        AnimatedObject ao = Object(read, path);
+        if (!ao.Ready)
+        {
+            return (AnimationSkeleton.None, string.Empty, SkinnedMesh.None);
+        }
+
+        List<AnimatedObject> chain = Whole(read, ao);
+        string rig = Entryed(chain, RigBlock, RigEntry);
+        string skin = Skin(chain);
+        SkinnedMesh mesh = SkinnedMesh.None;
+        if (skin.Length > 0)
+        {
+            MeshManifest manifest = Read(read, skin, MeshManifest.Read);
+            mesh = manifest.Ready ? Read(read, manifest.Geometry, SkinnedMesh.Read) : SkinnedMesh.None;
+        }
+        else if (Entryed(chain, PropBlock, PropEntry) is { Length: > 0 } prop)
+        {
+            mesh = Read(read, prop, FixedMesh.Read).Mesh;
+        }
+
+        return (rig.Length > 0 ? Read(read, rig, AnimationSkeleton.Read) : AnimationSkeleton.None, rig, mesh);
+    }
+
+    /// <summary>The bone a socket names in the monster's own rig, the mounts it spells out in full included - see <see cref="Mounts"/>.</summary>
+    internal static int SocketOf(AnimationSkeleton rig, string socket)
+    {
+        ArgumentNullException.ThrowIfNull(rig);
+        var where = new Dictionary<string, int>(rig.Bones.Count, StringComparer.OrdinalIgnoreCase);
+        for (var one = 0; one < rig.Bones.Count; one++)
+        {
+            where.TryAdd(rig.Bones[one].Name, one);
+        }
+
+        return socket.Length > 0 && Mounts(where, socket, out int at) ? at : -1;
+    }
+
     private static List<AnimatedObject> Whole(Func<string, byte[]?> read, AnimatedObject ao)
     {
         var chain = new List<AnimatedObject> { ao };
@@ -2664,17 +2783,38 @@ public static class MonsterModels
             return GameArt.ReadRaw(read, texture);
         }
 
-        /// <summary>A texture's bytes decoded, with its levels - timed, see ModelProgress.Time.</summary>
+        /// <summary>
+        /// A texture with its levels: the file's own, kept as its blocks, where it carries every one (Mipmaps.Kept(BlockTexture)) - else
+        /// decoded and halved, timed (ModelProgress.Time); counted by its format either way (ModelProgress.Kept, Decoded).
+        /// </summary>
+        /// <remarks>
+        /// NOTHING DECODED HERE FOR A BLOCK FILE (v0.1.326): decoding was most of a stage's build (Port, v0.1.319: 25 of the build's
+        /// thread-seconds, mipmaps 8 more), and the card reads the blocks as they are. The processor decodes them behind the load.
+        /// </remarks>
         public Mipmaps? Levels(byte[] bytes)
         {
+            if (Mipmaps.Kept(BlockTexture.Of(bytes)) is { } kept)
+            {
+                Progress?.Kept(ModelDump.Format(bytes), (long)kept.Width * kept.Height, kept.Count);
+                return kept;
+            }
+
+            long started = Stopwatch.GetTimestamp();
             GamePicture? top;
             using (ModelProgress.Time(Progress, BuildWork.Decoding))
             {
                 top = GameArt.Decode(bytes);
             }
 
-            using ModelProgress.Timed timed = ModelProgress.Time(Progress, BuildWork.Mipmapping);
-            return Mipmaps.Of(top);
+            long decoded = Stopwatch.GetTimestamp();
+            Mipmaps? levels;
+            using (ModelProgress.Time(Progress, BuildWork.Mipmapping))
+            {
+                levels = Mipmaps.Of(top);
+            }
+
+            Progress?.Decoded(ModelDump.Format(bytes), top is { Ready: true } picture ? (long)picture.Width * picture.Height : 0, decoded - started, Stopwatch.GetTimestamp() - decoded);
+            return levels;
         }
 
         /// <summary>
@@ -2898,45 +3038,87 @@ public static class MonsterModels
         /// <param name="second">The ground at green one.</param>
         /// <param name="mask">The template's ground mask.</param>
         /// <param name="scale">The ground materials' tiling - see ShadeProgram.Grounds.</param>
+        /// <param name="heights">Whether the two are weighed by their heights where their graphs turn that on - see ShadeProgram.Grounds.</param>
         /// <param name="why">Why there is none, where there is none.</param>
-        public string? Grounds(Func<string, byte[]?> read, string first, string second, string mask, float scale, out string why)
+        public string? Grounds(Func<string, byte[]?> read, string first, string second, string mask, float scale, bool heights, out string why)
         {
-            (string? name, why) = _mixed.Get(GroundBlend.Name(first, second, mask), name => Mixed(read, name, first, second, mask, scale));
+            (string? name, why) = _mixed.Get(GroundBlend.Name(first, second, mask, heights), name => Mixed(read, name, first, second, mask, scale, heights));
             return name;
         }
 
-        private (string? Name, string Why) Mixed(Func<string, byte[]?> read, string name, string first, string second, string mask, float scale)
+        /// <summary>
+        /// The name a tile's ground of two grounds wears when they are mixed by the second ground's share of the sub-tile's corners
+        /// (ShadeProgram.GroundsByCorners) - registered as <see cref="Grounds"/> registers its own - or null and why not.
+        /// </summary>
+        /// <param name="read">How to get a file out of the install, by path.</param>
+        /// <param name="first">The ground at share nought.</param>
+        /// <param name="second">The ground at share one.</param>
+        /// <param name="scale">The ground materials' tiling - see ShadeProgram.Grounds.</param>
+        /// <param name="heights">Whether the two are weighed by their heights where their graphs turn that on - see ShadeProgram.Grounds.</param>
+        /// <param name="why">Why there is none, where there is none.</param>
+        public string? GroundsByCorners(Func<string, byte[]?> read, string first, string second, float scale, bool heights, out string why)
         {
-            (ShadeProgram? flatFirst, ShadeProgram? shineFirst, string whyFirst) = Bound(read, first);
-            (ShadeProgram? flatSecond, ShadeProgram? shineSecond, string whySecond) = Bound(read, second);
-            Mipmaps? sheet = Sheet(read, mask);
-            var texture = new ShadeTexture(mask, false);
-            ShadeProgram? flat = flatFirst is null || flatSecond is null || sheet is null
+            (string? name, why) = _mixed.Get(GroundBlend.Cornered(first, second, heights), name => Mixed(read, name, first, second, string.Empty, scale, heights));
+            return name;
+        }
+
+        /// <summary>
+        /// The program of two grounds made and registered: mixed by the mask's green, or by the corners' share where <paramref name="mask"/>
+        /// is empty - each ground's twin carrying its height where weighed by the heights (ShadeProgram.Heighted).
+        /// </summary>
+        private (string? Name, string Why) Mixed(Func<string, byte[]?> read, string name, string first, string second, string mask, float scale, bool heights)
+        {
+            (ShadeProgram? flatFirst, ShadeProgram? shineFirst, string whyFirst) = Bound(read, first, heights);
+            (ShadeProgram? flatSecond, ShadeProgram? shineSecond, string whySecond) = Bound(read, second, heights);
+            bool cornered = mask.Length == 0;
+            Mipmaps? sheet = cornered ? null : Sheet(read, mask);
+            ShadeTexture? texture = cornered ? null : new ShadeTexture(mask, false);
+            ShadeProgram? Made(ShadeProgram one, ShadeProgram other)
+                => texture is { } mask
+                    ? ShadeProgram.Grounds(one, other, mask, sheet, scale, heights)
+                    : ShadeProgram.GroundsByCorners(one, other, scale, heights);
+
+            ShadeProgram? flat = flatFirst is null || flatSecond is null || (!cornered && sheet is null)
                 ? null
-                : ShadeProgram.Grounds(flatFirst, flatSecond, texture, sheet, scale);
+                : Made(flatFirst, flatSecond);
             if (flat is null)
             {
                 return (null, flatFirst is null ? whyFirst
                     : flatSecond is null ? whySecond
-                    : sheet is null ? "its mask did not read: " + mask
+                    : !cornered && sheet is null ? "its mask did not read: " + mask
                     : "the two grounds' programs cannot be run as one (more registers than a program takes, or one reads the triangle's tangent frame)");
             }
 
             ShadeProgram? shine = shineFirst is not null || shineSecond is not null
-                ? ShadeProgram.Grounds(shineFirst ?? flatFirst!, shineSecond ?? flatSecond!, texture, sheet, scale)
+                ? Made(shineFirst ?? flatFirst!, shineSecond ?? flatSecond!)
                 : null;
             _shades.Set(name, new Shade(flat, null, [], shine));
             _modes.Set(name, (string.Empty, string.Empty));
             return (name, string.Empty);
         }
 
-        /// <summary>One material's program and its glossy twin with their textures in hand - even where its colour is one plain read - or null and why.</summary>
-        private (ShadeProgram? Flat, ShadeProgram? Glossy, string Why) Bound(Func<string, byte[]?> read, string material)
+        /// <summary>
+        /// A ground material's program with its textures in hand, the twin that keeps its height where its graphs write one
+        /// (ShadeProgram.Heighted) - what the capture reads the engine's height blending with (CaptureGroundCompare) - or null where it
+        /// does not compile or a texture does not read.
+        /// </summary>
+        internal ShadeProgram? Heighted(Func<string, byte[]?> read, string material) => Bound(read, material, heighted: true).Flat;
+
+        /// <summary>A ground material's own program with its textures in hand - what the capture reads its colour with (CaptureGroundChoices) - or null.</summary>
+        internal ShadeProgram? Plain(Func<string, byte[]?> read, string material) => Bound(read, material, heighted: false).Flat;
+
+        /// <summary>
+        /// One material's program and its glossy twin with their textures in hand - even where its colour is one plain read - or null and
+        /// why; the twins that carry its height where <paramref name="heighted"/> and its graphs write one (ShadeProgram.Heighted).
+        /// </summary>
+        private (ShadeProgram? Flat, ShadeProgram? Glossy, string Why) Bound(Func<string, byte[]?> read, string material, bool heighted)
         {
-            if (Compiled(read, material).Compiled.Program is not { } program)
+            if (Compiled(read, material).Compiled.Program is not { } compiled)
             {
                 return (null, null, "a ground whose graphs did not compile: " + material);
             }
+
+            ShadeProgram program = heighted && compiled.Heighted is { } raised ? raised : compiled;
 
             var sheets = new Mipmaps?[program.Textures.Count];
             for (var one = 0; one < sheets.Length; one++)

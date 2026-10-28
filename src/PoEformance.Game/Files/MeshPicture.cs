@@ -122,6 +122,55 @@ public static class MeshPicture
         /// <summary>Whether there is anything to see: a mesh with a box to fit.</summary>
         public bool Ready => Scale > 0f;
 
+        /// <summary>
+        /// Whether the picture is drawn in perspective from <see cref="Viewer"/>: the view's origin is then the eye, and
+        /// <see cref="Scale"/> is shares of the side per unit across at a unit's depth - <see cref="CameraPose.Focal"/>.
+        /// </summary>
+        public bool Perspective { get; init; }
+
+        /// <summary>Where the eye stands in the model's space, in perspective.</summary>
+        public Vector3 Viewer { get; init; }
+
+        /// <summary>The depth from the eye under which nothing is drawn, in perspective - see <see cref="CameraPose.Near"/>.</summary>
+        public float Near { get; init; }
+
+        /// <summary>The camera a pose looks from - see <see cref="CameraPose"/>.</summary>
+        /// <param name="mesh">What is looked at. Nothing, or a mesh with no box, gives a camera that is not <see cref="Ready"/>.</param>
+        /// <param name="pose">Where from.</param>
+        /// <remarks>
+        /// PARALLEL, THE VIEW'S ORIGIN IS THE FOCUS and the scale is the focus plane's, <see cref="CameraPose.Focal"/> over the distance -
+        /// so the pose fitted to a box with no pan is <see cref="Of(SkinnedMesh?, float, float, float, Vector2)"/>'s camera. IN PERSPECTIVE
+        /// THE VIEW'S ORIGIN IS THE EYE, so a point's view z is its depth from the eye - what the depth buffers, ShadeProgram.Eye and the
+        /// near plane all measure.
+        /// </remarks>
+        public static Camera Of(SkinnedMesh? mesh, in CameraPose pose)
+        {
+            if (mesh is not { Ready: true } || !pose.Valid)
+            {
+                return default;
+            }
+
+            float reach = CameraPose.Reach(mesh);
+            if (!(reach > 0f))
+            {
+                return default;
+            }
+
+            Matrix4x4 turning = CameraPose.Turning(pose.Turn, pose.Tilt);
+            if (pose.Parallel)
+            {
+                return new Camera(Matrix4x4.CreateTranslation(-pose.Focus) * turning, CameraPose.Focal / pose.Distance, new Vector2(0.5f), pose.Tilt, reach);
+            }
+
+            Vector3 eye = pose.Eye;
+            return new Camera(Matrix4x4.CreateTranslation(-eye) * turning, CameraPose.Focal, new Vector2(0.5f), pose.Tilt, reach)
+            {
+                Perspective = true,
+                Viewer = eye,
+                Near = pose.Near,
+            };
+        }
+
         /// <summary>The camera that fits this mesh's box, turned, tilted, zoomed and panned.</summary>
         /// <param name="mesh">What is looked at. Nothing, or a mesh with no box, gives a camera that is not <see cref="Ready"/>.</param>
         /// <param name="turn">Rotation about the model's up axis, in radians.</param>
@@ -174,11 +223,21 @@ public static class MeshPicture
         }
 
         /// <summary>Where a point of the model lands: x and y as shares of the side, z as the depth, nearer being less.</summary>
+        /// <remarks>In perspective a point at or behind the eye has no place on the picture: x and y are then not numbers, and z says why.</remarks>
         public Vector3 Place(Vector3 point)
         {
             Vector3 seen = Vector3.Transform(point, View);
+            if (Perspective)
+            {
+                float over = seen.Z > 0f ? Scale / seen.Z : float.NaN;
+                return new Vector3((seen.X * over) + Centre.X, (seen.Y * over) + Centre.Y, seen.Z);
+            }
+
             return new Vector3((seen.X * Scale) + Centre.X, (seen.Y * Scale) + Centre.Y, seen.Z);
         }
+
+        /// <summary>Whether a point's place is on the picture's side of the near plane - always, on a parallel view.</summary>
+        public bool InFront(Vector3 placed) => !Perspective || placed.Z > Near;
     }
 
     /// <summary>
@@ -384,6 +443,23 @@ public static class MeshPicture
         /// </remarks>
         public SceneLight? Light { get; set; }
 
+        /// <summary>
+        /// Where the next drawing is looked at from, or null for the turn, tilt, zoom and pan it is handed - see <see cref="CameraPose"/>.
+        /// </summary>
+        /// <remarks>ON THE CANVAS LIKE THE LIGHT: set it, then draw. Null is the usual, and every caller but the model pane leaves it so.</remarks>
+        public CameraPose? Pose { get; set; }
+
+        /// <summary>
+        /// The bounds along the sun of the vertices from <c>From</c> on, where a pose moves them - PoseHull's - for the sun's map to be laid
+        /// over in place of those vertices' own; null where the map is laid over the vertices drawn.
+        /// </summary>
+        /// <remarks>
+        /// SET WHERE THE GRAPHICS CARD SKINS THE SAME POSE: it lays its map over the hull, not knowing the posed vertices, and the
+        /// processor's picture is the card's reference - so it lays its map the same way. The vertices before <c>From</c>, a stage's,
+        /// are bounded by where the mesh puts them, as the card's are.
+        /// </remarks>
+        public (int From, ShadowBounds Bounds)? Hull { get; set; }
+
         /// <summary>The last sun's shadow map and what it was drawn for, kept while neither changes - see <see cref="ShadowMap"/>.</summary>
         internal ShadowMap? Shadow { get; set; }
 
@@ -518,6 +594,34 @@ public static class MeshPicture
             }
 
             Array.Fill(Stamps, -1);
+        }
+
+        /// <summary>Where each vertex is in the view - the eye at the origin - for a drawing in perspective. See <see cref="Drawing"/>'s Edges.</summary>
+        internal Vector3[] Seen { get; private set; } = [];
+
+        /// <summary>The first and last column each triangle reaches, for a drawing in perspective - see <see cref="Reached"/>.</summary>
+        internal int[] Lefts { get; private set; } = [];
+
+        /// <inheritdoc cref="Lefts"/>
+        internal int[] Rights { get; private set; } = [];
+
+        /// <summary>Which triangles cross the near plane, for a drawing in perspective: their texture levels are the finest - see <see cref="Reached"/>.</summary>
+        internal bool[] Cut { get; private set; } = [];
+
+        /// <summary>Room for a drawing in perspective's own per-vertex and per-triangle numbers.</summary>
+        internal void Perspective(int vertices, int triangles)
+        {
+            if (Seen.Length < vertices)
+            {
+                Seen = new Vector3[vertices];
+            }
+
+            if (Lefts.Length < triangles)
+            {
+                Lefts = new int[triangles];
+                Rights = new int[triangles];
+                Cut = new bool[triangles];
+            }
         }
 
         internal void Fit(int vertices, int triangles)
@@ -660,7 +764,7 @@ public static class MeshPicture
         Array.Clear(pixels);
         canvas.Last = null;
 
-        Camera camera = Camera.Of(mesh, turn, tilt, zoom, pan);
+        Camera camera = canvas.Pose is { } pose ? Camera.Of(mesh, pose) : Camera.Of(mesh, turn, tilt, zoom, pan);
         if (mesh is null || !camera.Ready)
         {
             return new GamePicture(size, size, pixels);
@@ -727,12 +831,32 @@ public static class MeshPicture
             places = Beached(canvas, mesh, places, programs, triangles);
         }
 
+        // IN PERSPECTIVE every vertex's place in the view is kept beside where it lands: a triangle is drawn from the view's
+        // places (Drawing's Edges), and one crossing the near plane has no corners on the picture to draw from.
+        bool perspective = camera.Perspective;
+        float near = camera.Near;
+        if (perspective)
+        {
+            canvas.Perspective(vertices, triangles);
+        }
+
+        Vector3[] seen = canvas.Seen;
         Sliced(canvas, vertices, (from, upto) =>
         {
             for (int point = from; point < upto; point++)
             {
                 Vector3 place = Vector3.Transform(places[point], view);
-                corners[point] = new Vector3((place.X * scale) + centre.X, (place.Y * scale) + centre.Y, place.Z);
+                if (perspective)
+                {
+                    seen[point] = place;
+                    float over = place.Z > near ? scale / place.Z : 0f;
+                    corners[point] = new Vector3((place.X * over) + centre.X, (place.Y * over) + centre.Y, place.Z);
+                }
+                else
+                {
+                    corners[point] = new Vector3((place.X * scale) + centre.X, (place.Y * scale) + centre.Y, place.Z);
+                }
+
                 facings[point] = Vector3.TransformNormal(turns[point], view);
             }
         });
@@ -768,6 +892,9 @@ public static class MeshPicture
         float time = canvas.Time;
         Vector3 dust = canvas.Dust;
         WaterLook water = canvas.Water;
+        int[] lefts = canvas.Lefts;
+        int[] rights = canvas.Rights;
+        bool[] cuts = canvas.Cut;
         Sliced(canvas, triangles, (from, upto) =>
         {
             Span<Vector4> scratch = shaded ? stackalloc Vector4[ShadeProgram.MostRegisters] : default;
@@ -783,15 +910,52 @@ public static class MeshPicture
                 Vector3 b = corners[indices[(one * 3) + 1]];
                 Vector3 c = corners[indices[(one * 3) + 2]];
                 float area = Cross(a, b, c);
-                if (!(MathF.Abs(area) >= 1e-6f))
+                bool cut = false;
+                if (perspective)
                 {
-                    tops[one] = int.MaxValue;
-                    feet[one] = int.MinValue;
-                    continue;
+                    // IN PERSPECTIVE THE REACH IS THE PART PAST THE NEAR PLANE'S - see Reached.
+                    if (!Reached(
+                            seen[indices[one * 3]], seen[indices[(one * 3) + 1]], seen[indices[(one * 3) + 2]], near, scale, centre, size,
+                            out int top, out int foot, out int left, out int right, out cut)
+                        || (!cut && !(MathF.Abs(area) >= 1e-6f)))
+                    {
+                        tops[one] = int.MaxValue;
+                        feet[one] = int.MinValue;
+                        cuts[one] = false;
+                        continue;
+                    }
+
+                    tops[one] = top;
+                    feet[one] = foot;
+                    lefts[one] = left;
+                    rights[one] = right;
+                    cuts[one] = cut;
+                }
+                else
+                {
+                    if (!(MathF.Abs(area) >= 1e-6f))
+                    {
+                        tops[one] = int.MaxValue;
+                        feet[one] = int.MinValue;
+                        continue;
+                    }
+
+                    tops[one] = Math.Max(0, (int)MathF.Floor(Min3(a.Y, b.Y, c.Y)));
+                    feet[one] = Math.Min(size - 1, (int)MathF.Ceiling(Max3(a.Y, b.Y, c.Y)));
                 }
 
-                tops[one] = Math.Max(0, (int)MathF.Floor(Min3(a.Y, b.Y, c.Y)));
-                feet[one] = Math.Min(size - 1, (int)MathF.Ceiling(Max3(a.Y, b.Y, c.Y)));
+                // A TRIANGLE THROUGH THE NEAR PLANE HAS NO CORNERS ON THE PICTURE to measure its texels against, and what is
+                // nearest the eye is most of what shows of it: its reads take the finest level.
+                if (cut)
+                {
+                    levels[one] = 0f;
+                    if (shaded && shadeOf[one] >= 0)
+                    {
+                        shadeLevels.AsSpan(one * stride, programs[shadeOf[one]].Samples).Clear();
+                    }
+
+                    continue;
+                }
 
                 // AGAINST THE TEXTURE THIS TRIANGLE WEARS, because the level is worked out from how
                 // many texels a pixel steps across and the parts of a monster are not all painted
@@ -851,7 +1015,7 @@ public static class MeshPicture
         // A POINT'S DEPTH IS THE VIEW'S THIRD COLUMN, the way into the picture - see ShadeProgram.Eye.
         var eye = new Vector4(view.M13, view.M23, view.M33, view.M43);
         ShadowMap? shadow = scene is { SunShadows: true } && scene.SunColour != Vector3.Zero
-            ? Shadowed(canvas, mesh, places, positions == mesh.Positions, triangles, scene.SunDirection, scene.ShadowSide, palette)
+            ? Shadowed(canvas, mesh, places, positions == mesh.Positions, triangles, scene.SunDirection, scene.ShadowSide, palette, programs)
             : null;
         var drawn = new Drawn(mesh, triangles, lamp, ink, palette, translucent, programs, stride, places, turns, ticking, clocked, eye)
         {
@@ -862,6 +1026,10 @@ public static class MeshPicture
             Opaque = mirrors ? canvas.Opaque() : null,
             Water = sea,
             Beach = beach,
+            Perspective = perspective,
+            Near = near,
+            Viewer = camera.Viewer,
+            Centre = centre,
         };
         PixelProbe? probe = canvas.Probe is { } asked && asked.X >= 0 && asked.X < size && asked.Y >= 0 && asked.Y < size ? asked : null;
         probe?.Clear();
@@ -874,7 +1042,7 @@ public static class MeshPicture
             probe.Drawn = true;
             if (shadow is not null)
             {
-                Shaders(canvas, mesh, places, triangles, shadow, probe, palette);
+                Shaders(canvas, mesh, places, triangles, shadow, probe, palette, programs);
             }
         }
         if (clocked > 0)
@@ -1034,8 +1202,9 @@ public static class MeshPicture
                 Vector3 b = corners[indices[(one * 3) + 1]];
                 Vector3 c = corners[indices[(one * 3) + 2]];
                 float area = Cross(a, b, c);
-                if (!(MathF.Abs(area) >= 1e-6f))
+                if (!(MathF.Abs(area) >= 1e-6f) || (drawn.Perspective && canvas.Cut[one]))
                 {
+                    // THROUGH THE NEAR PLANE ITS LEVELS STAY THE FINEST the whole drawing gave them - see Reached.
                     continue;
                 }
 
@@ -1189,6 +1358,18 @@ public static class MeshPicture
 
         /// <summary>The first of the lifted water's triangles in the mesh, where the surface is drawn among the translucent ones, or -1 for none.</summary>
         public int Water { get; init; } = -1;
+
+        /// <summary>Whether the picture is drawn in perspective - see Camera.Perspective. <see cref="Scale"/> is then the focal length in pixels.</summary>
+        public bool Perspective { get; init; }
+
+        /// <summary>The near plane's depth, in perspective.</summary>
+        public float Near { get; init; }
+
+        /// <summary>The eye's place in the model's space, in perspective.</summary>
+        public Vector3 Viewer { get; init; }
+
+        /// <summary>Where the view's axis meets the picture, in pixels.</summary>
+        public Vector2 Centre { get; init; }
     }
 
     /// <summary>
@@ -1204,10 +1385,13 @@ public static class MeshPicture
     /// cut-out where its texture keeps the texel), the nearest hit taken - started off the surface as the map's own test starts
     /// (ShadowMap.Lit). Every triangle once a probed fragment, in slices on every core: a click's cost, never a drawing's.
     /// </remarks>
-    private static void Shaders(Canvas canvas, SkinnedMesh mesh, Vector3[] places, int triangles, ShadowMap shadow, PixelProbe probe, Mipmaps?[] palette)
+    private static void Shaders(
+        Canvas canvas, SkinnedMesh mesh, Vector3[] places, int triangles, ShadowMap shadow, PixelProbe probe, Mipmaps?[] palette, ShadeProgram[] programs)
     {
         MaterialBlend[] blends = canvas.Blends;
         int[] wears = canvas.Wears;
+        int[] shadeOf = canvas.Shades;
+        bool[] cutAway = CutAway(programs);
         int[] indices = mesh.Indices;
         Vector2[] coordinates = mesh.Coordinates;
         bool coordinated = mesh.Coordinated;
@@ -1231,7 +1415,7 @@ public static class MeshPicture
                 for (int one = first; one < upto; one++)
                 {
                     MaterialBlend blend = blends[one];
-                    if (Translucent(blend) || one == sun.Triangle)
+                    if (!Casts(blends, shadeOf, cutAway, one) || one == sun.Triangle)
                     {
                         continue;
                     }
@@ -1269,6 +1453,77 @@ public static class MeshPicture
         }
     }
 
+    /// <summary>
+    /// How far along a ray it first meets the mesh, either face of any triangle - the point a double click looks at, and the wheel zooms towards.
+    /// </summary>
+    /// <param name="mesh">The mesh: its triangles.</param>
+    /// <param name="positions">Where its vertices are now - its own, or a pose of the same length.</param>
+    /// <param name="from">Where the ray starts.</param>
+    /// <param name="way">Its way, a unit long.</param>
+    /// <param name="away">How far along it the nearest crossing lies.</param>
+    /// <param name="threads">How many threads may share the triangles; under one every processor.</param>
+    /// <param name="shown">Which shapes are drawn, by their place in the mesh - null for all. A shape the picture does not show cannot be picked.</param>
+    /// <returns>False where the ray meets nothing.</returns>
+    /// <remarks>
+    /// EVERY TRIANGLE ONCE, in slices on every core: a click's cost, never a drawing's - Port's stage of two and a quarter million
+    /// triangles is a few milliseconds. Translucent shapes count as any other: a click on the sea looks at the sea. A shape drawn only
+    /// into the shadow, or cut away whole, does not: Port's wobble core is a plane over the quay nobody sees.
+    /// </remarks>
+    public static bool Pick(SkinnedMesh? mesh, Vector3[] positions, Vector3 from, Vector3 way, out float away, int threads = 0, Func<int, bool>? shown = null)
+    {
+        away = 0f;
+        if (mesh is not { Ready: true } || positions is null || positions.Length != mesh.Positions.Length || !(way.LengthSquared() > 0f))
+        {
+            return false;
+        }
+
+        int[] indices = mesh.Indices;
+        int triangles = indices.Length / 3;
+        bool[]? hidden = null;
+        if (shown is not null)
+        {
+            for (var shape = 0; shape < mesh.Shapes.Count; shape++)
+            {
+                if (shown(shape))
+                {
+                    continue;
+                }
+
+                hidden ??= new bool[triangles];
+                MeshShape part = mesh.Shapes[shape];
+                int first = Math.Clamp(part.From / 3, 0, triangles);
+                Array.Fill(hidden, true, first, Math.Clamp((part.From + part.Count) / 3, first, triangles) - first);
+            }
+        }
+
+        float nearest = float.MaxValue;
+        var gate = new object();
+        const int least = 16384;
+        int slices = Math.Max(1, Math.Min((threads > 0 ? threads : Environment.ProcessorCount) * 4, (triangles + least - 1) / least));
+        int each = (triangles + slices - 1) / slices;
+        Parallel.For(0, slices, slice =>
+        {
+            float best = float.MaxValue;
+            for (int one = slice * each, upto = Math.Min(triangles, (slice + 1) * each); one < upto; one++)
+            {
+                if ((hidden is null || !hidden[one])
+                    && Crossed(from, way, positions[indices[one * 3]], positions[indices[(one * 3) + 1]], positions[indices[(one * 3) + 2]], out float at, out _, out _)
+                    && at < best)
+                {
+                    best = at;
+                }
+            }
+
+            lock (gate)
+            {
+                nearest = MathF.Min(nearest, best);
+            }
+        });
+
+        away = nearest;
+        return nearest < float.MaxValue;
+    }
+
     /// <summary>Where a ray crosses a triangle, either face - Moller and Trumbore's test - past a hair of its start.</summary>
     private static bool Crossed(Vector3 from, Vector3 way, Vector3 a, Vector3 b, Vector3 c, out float away, out float u, out float v)
     {
@@ -1301,7 +1556,8 @@ public static class MeshPicture
     }
 
     private static ShadowMap? Shadowed(
-        Canvas canvas, SkinnedMesh mesh, Vector3[] places, bool still, int triangles, Vector3 direction, int side, Mipmaps?[] palette)
+        Canvas canvas, SkinnedMesh mesh, Vector3[] places, bool still, int triangles, Vector3 direction, int side, Mipmaps?[] palette,
+        ShadeProgram[] programs)
     {
         if (still && canvas.ShadowFor is { } was && ReferenceEquals(was.Mesh, mesh) && was.Direction == direction && was.Side == side
             && canvas.Shadow is not null)
@@ -1311,18 +1567,42 @@ public static class MeshPicture
 
         MaterialBlend[] blends = canvas.Blends;
         int[] wears = canvas.Wears;
+        int[] shadeOf = canvas.Shades;
         Vector2[] coordinates = mesh.Coordinates;
         bool coordinated = mesh.Coordinated;
+        bool[] cutAway = CutAway(programs);
+
+        // A POSE'S HULL, as the card lays its map over it (see Canvas.Hull): the stage's own vertices before it bounded where the
+        // mesh puts them - the card's StageBounds.
+        ShadowBounds? bounds = null;
+        if (!still && canvas.Hull is { } hull)
+        {
+            int from = Math.Clamp(hull.From, 0, mesh.Positions.Length);
+            bounds = from > 0 ? ShadowMap.Bounded(mesh.Positions.AsSpan(0, from), direction).With(hull.Bounds) : hull.Bounds;
+        }
+
         ShadowMap? map = ShadowMap.Build(
             places, mesh.Indices, triangles, direction,
-            one => !Translucent(blends[one]),
+            one => Casts(blends, shadeOf, cutAway, one),
             one => blends[one] == MaterialBlend.Cutout && coordinated && palette[wears[one]] is { } skin ? (skin, coordinates) : null,
             canvas.Threads,
-            side);
+            side,
+            bounds);
         canvas.Shadow = map;
         canvas.ShadowFor = still ? (mesh, direction, side) : null;
         return map;
     }
+
+    /// <summary>Each program's <see cref="ShadeProgram.CutAway"/> at the picture's cut.</summary>
+    private static bool[] CutAway(ShadeProgram[] programs) => Array.ConvertAll(programs, one => one.CutAway(CutoutAlpha));
+
+    /// <summary>
+    /// Whether a triangle casts the sun's shadow: solid, shadow-only and cut out - but not a cut-out shape its program cuts away at every
+    /// pixel, which the engine's shadow pass clips as its drawing does (ShadeProgram.FixedAlpha).
+    /// </summary>
+    private static bool Casts(MaterialBlend[] blends, int[] shadeOf, bool[] cutAway, int one)
+        => !Translucent(blends[one])
+            && !(blends[one] == MaterialBlend.Cutout && one < shadeOf.Length && shadeOf[one] >= 0 && cutAway[shadeOf[one]]);
 
     /// <summary>Whether a triangle is drawn in the second pass - mixed or added, not solid or cut out.</summary>
     private static bool Translucent(MaterialBlend blend) => blend is MaterialBlend.Alpha or MaterialBlend.Additive;
@@ -1786,6 +2066,10 @@ public static class MeshPicture
         private readonly float _time;
         private readonly Vector3 _dust;
         private readonly WaterLook _water;
+
+        /// <summary>The area's water colour, linear, and its scattering - what SceneLight.ShadeWater lights the medium with.</summary>
+        private readonly Vector3 _waterColour;
+        private readonly float _waterScattering;
         private readonly Vector4 _eye;
         private readonly int[] _shades;
         private readonly float[] _shadeLevels;
@@ -1822,17 +2106,36 @@ public static class MeshPicture
         private readonly SceneLight? _scene;
         private readonly ShadowMap? _shadow;
 
-        /// <summary>The way to the eye in the model's space, which is where the scene's lights are.</summary>
+        /// <summary>The way to the eye in the model's space, which is where the scene's lights are - on a parallel view; see <see cref="EyeWay"/>.</summary>
         private readonly Vector3 _toEye;
+
+        /// <summary>Whether the picture is drawn in perspective - see <see cref="Edged"/> - and from where, with the near plane's depth.</summary>
+        private readonly bool _perspective;
+        private readonly Vector3 _viewer;
+        private readonly float _near;
+        private readonly Vector2 _centre;
+        private readonly Vector3[] _seen;
+        private readonly int[] _lefts;
+        private readonly int[] _rights;
 
         public Drawing(Canvas canvas, Drawn drawn, PixelProbe? probe)
         {
+            _perspective = drawn.Perspective;
+            _viewer = drawn.Viewer;
+            _near = drawn.Near;
+            _centre = drawn.Centre;
+            _seen = canvas.Seen;
+            _lefts = canvas.Lefts;
+            _rights = canvas.Rights;
             SkinnedMesh mesh = drawn.Mesh;
             _probe = probe;
             _probeAt = probe is null ? -1 : (probe.Y * canvas.Size) + probe.X;
             _time = canvas.Time;
             _dust = canvas.Dust;
             _water = canvas.Water;
+            Vector4 waterColour = _water.ColourRegister;
+            _waterColour = new Vector3(waterColour.X, waterColour.Y, waterColour.Z);
+            _waterScattering = _water.SubsurfaceScattering;
             _eye = drawn.Eye;
             _programs = drawn.Programs;
             _shades = canvas.Shades;
@@ -1882,6 +2185,19 @@ public static class MeshPicture
             // so its inverse is its transpose - and the eye is the other way.
             var into = new Vector3(drawn.Eye.X, drawn.Eye.Y, drawn.Eye.Z);
             _toEye = into.LengthSquared() > 0f ? -Vector3.Normalize(into) : -Vector3.UnitZ;
+        }
+
+        /// <summary>The way from a point to the eye, in the model's space: one way everywhere on a parallel view, from the point to the eye in perspective.</summary>
+        private Vector3 EyeWay(Vector3 place)
+        {
+            if (!_perspective)
+            {
+                return _toEye;
+            }
+
+            Vector3 way = _viewer - place;
+            float length = way.Length();
+            return length > 1e-6f ? way / length : _toEye;
         }
 
         /// <summary>Draws every triangle's part that falls in the rows from <paramref name="top"/> up to <paramref name="end"/>.</summary>
@@ -2028,40 +2344,55 @@ public static class MeshPicture
             Vector3 c0 = _corners[_indices[one * 3]];
             Vector3 c1 = _corners[_indices[(one * 3) + 1]];
             Vector3 c2 = _corners[_indices[(one * 3) + 2]];
-            float area = Cross(c0, c1, c2);
-            float sign = area < 0f ? -1f : 1f;
-            float total = area * sign;
-            float inv = 1f / total;
-            float a0 = -(c2.Y - c1.Y) * sign;
-            float b0 = (c2.X - c1.X) * sign;
-            float k0 = (((c2.Y - c1.Y) * c1.X) - ((c2.X - c1.X) * c1.Y)) * sign;
-            float a1 = -(c0.Y - c2.Y) * sign;
-            float b1 = (c0.X - c2.X) * sign;
-            float k1 = (((c0.Y - c2.Y) * c2.X) - ((c0.X - c2.X) * c2.Y)) * sign;
-            int least = Math.Max(0, (int)MathF.Floor(Min3(c0.X, c1.X, c2.X)));
-            int most = Math.Min(_size - 1, (int)MathF.Ceiling(Max3(c0.X, c1.X, c2.X)));
+            Edges edges = Edged(one, c0, c1, c2);
+            if (!edges.Drawn)
+            {
+                return;
+            }
+
+            float a0 = edges.A0, b0 = edges.B0, k0 = edges.K0, a1 = edges.A1, b1 = edges.B1, k1 = edges.K1, a2 = edges.A2, b2 = edges.B2, k2 = edges.K2;
+            float total = edges.Total, inv = edges.Inv;
+            int least = edges.Least, most = edges.Most;
+            bool perspective = _perspective;
             for (int y = top; y <= foot; y++)
             {
                 float py = y + 0.5f;
                 float px = least + 0.5f;
                 float row0 = (a0 * px) + (b0 * py) + k0;
                 float row1 = (a1 * px) + (b1 * py) + k1;
+                float row2 = (a2 * px) + (b2 * py) + k2;
                 int at = (y * _size) + least;
                 for (int x = least; x <= most; x++, at++)
                 {
                     float along = x - least;
                     float w0 = row0 + (a0 * along);
                     float w1 = row1 + (a1 * along);
-                    float w2 = total - w0 - w1;
+                    float w2 = perspective ? row2 + (a2 * along) : total - w0 - w1;
                     if (w0 < 0f || w1 < 0f || w2 < 0f)
                     {
                         continue;
                     }
 
-                    float first = w0 * inv;
-                    float second = w1 * inv;
-                    float third = w2 * inv;
-                    float away = (first * c0.Z) + (second * c1.Z) + (third * c2.Z);
+                    float away;
+                    if (perspective)
+                    {
+                        float sum = w0 + w1 + w2;
+                        if (!(sum > 0f) || sum * _near > total)
+                        {
+                            continue;
+                        }
+
+                        // AS RASTERISE WORKS IT OUT, to the operation - see the remarks.
+                        away = total * (1f / sum);
+                    }
+                    else
+                    {
+                        float first = w0 * inv;
+                        float second = w1 * inv;
+                        float third = w2 * inv;
+                        away = (first * c0.Z) + (second * c1.Z) + (third * c2.Z);
+                    }
+
                     if (away < _depth[at] && away < _waterNear[at])
                     {
                         _waterNear[at] = away;
@@ -2069,6 +2400,90 @@ public static class MeshPicture
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// A triangle's three edge functions over the picture - each a sum of a pixel's column and row - and the columns it reaches.
+        /// </summary>
+        /// <remarks>
+        /// ON A PARALLEL VIEW the weights are the corners' own on the picture: w0 grows away from the edge c1-c2, w1 from c2-c0, and w2 is
+        /// what is left of the area - the weights over the area, and the depth their sum of the corners'.
+        ///
+        /// IN PERSPECTIVE they are the weights of the point the pixel's ray meets, from the corners' places in the view (the eye at the
+        /// origin): for the ray r = ((x - cx) / f, (y - cy) / f, 1) through a pixel, the point's weights are r · (v1 × v2), r · (v2 × v0)
+        /// and r · (v0 × v1) over their sum r · n, n the triangle's normal, and its depth is (v0 · n) over that sum. Each is a sum of the
+        /// pixel's column and row, so a row is walked as the parallel one is - and the weights are the perspective-correct ones, every
+        /// coordinate and normal interpolated as the card's own interpolation does. No triangle is cut at the near plane: the ray meets the
+        /// plane behind the eye where the sum's sign turns, and in front of the near plane only where the depth comes past it - a test per
+        /// pixel (see <see cref="Reached"/> for the columns and rows it is asked of).
+        /// </remarks>
+        private Edges Edged(int one, Vector3 c0, Vector3 c1, Vector3 c2)
+        {
+            if (!_perspective)
+            {
+                float area = Cross(c0, c1, c2);
+                float sign = area < 0f ? -1f : 1f;
+                float total = area * sign;
+                return new Edges
+                {
+                    Drawn = true,
+                    A0 = -(c2.Y - c1.Y) * sign,
+                    B0 = (c2.X - c1.X) * sign,
+                    K0 = (((c2.Y - c1.Y) * c1.X) - ((c2.X - c1.X) * c1.Y)) * sign,
+                    A1 = -(c0.Y - c2.Y) * sign,
+                    B1 = (c0.X - c2.X) * sign,
+                    K1 = (((c0.Y - c2.Y) * c2.X) - ((c0.X - c2.X) * c2.Y)) * sign,
+                    Total = total,
+                    Inv = 1f / total,
+                    Least = Math.Max(0, (int)MathF.Floor(Min3(c0.X, c1.X, c2.X))),
+                    Most = Math.Min(_size - 1, (int)MathF.Ceiling(Max3(c0.X, c1.X, c2.X))),
+                };
+            }
+
+            Vector3 v0 = _seen[_indices[one * 3]];
+            Vector3 v1 = _seen[_indices[(one * 3) + 1]];
+            Vector3 v2 = _seen[_indices[(one * 3) + 2]];
+            float through = Vector3.Dot(v0, Vector3.Cross(v1 - v0, v2 - v0));
+            if (!(through != 0f) || !float.IsFinite(through))
+            {
+                return default;
+            }
+
+            float turned = through < 0f ? -1f : 1f;
+            Vector3 e0 = Vector3.Cross(v1, v2) * turned;
+            Vector3 e1 = Vector3.Cross(v2, v0) * turned;
+            Vector3 e2 = Vector3.Cross(v0, v1) * turned;
+            float per = 1f / _scale;
+            return new Edges
+            {
+                Drawn = true,
+                A0 = e0.X * per,
+                B0 = e0.Y * per,
+                K0 = e0.Z - (((_centre.X * e0.X) + (_centre.Y * e0.Y)) * per),
+                A1 = e1.X * per,
+                B1 = e1.Y * per,
+                K1 = e1.Z - (((_centre.X * e1.X) + (_centre.Y * e1.Y)) * per),
+                A2 = e2.X * per,
+                B2 = e2.Y * per,
+                K2 = e2.Z - (((_centre.X * e2.X) + (_centre.Y * e2.Y)) * per),
+                Total = through * turned,
+                Least = _lefts[one],
+                Most = _rights[one],
+            };
+        }
+
+        /// <summary>What <see cref="Edged"/> works out for one triangle.</summary>
+        private struct Edges
+        {
+            public bool Drawn;
+            public float A0, B0, K0, A1, B1, K1, A2, B2, K2;
+
+            /// <summary>On a parallel view the area; in perspective the depth's numerator, v0 · n.</summary>
+            public float Total;
+
+            /// <summary>One over the area, on a parallel view.</summary>
+            public float Inv;
+            public int Least, Most;
         }
 
         /// <summary>Keeps the band's rows of the still part, or puts them back.</summary>
@@ -2105,21 +2520,17 @@ public static class MeshPicture
             Vector3 f2 = _facings[i2];
 
             // The three edge functions, turned so that inside is where all three are positive
-            // whichever way the triangle winds: w0 grows away from the edge c1-c2, w1 from c2-c0,
-            // and w2 is what is left of the area.
-            float area = Cross(c0, c1, c2);
-            float sign = area < 0f ? -1f : 1f;
-            float total = area * sign;
-            float inv = 1f / total;
-            float a0 = -(c2.Y - c1.Y) * sign;
-            float b0 = (c2.X - c1.X) * sign;
-            float k0 = (((c2.Y - c1.Y) * c1.X) - ((c2.X - c1.X) * c1.Y)) * sign;
-            float a1 = -(c0.Y - c2.Y) * sign;
-            float b1 = (c0.X - c2.X) * sign;
-            float k1 = (((c0.Y - c2.Y) * c2.X) - ((c0.X - c2.X) * c2.Y)) * sign;
+            // whichever way the triangle winds - see Edged.
+            Edges edges = Edged(one, c0, c1, c2);
+            if (!edges.Drawn)
+            {
+                return;
+            }
 
-            int least = Math.Max(0, (int)MathF.Floor(Min3(c0.X, c1.X, c2.X)));
-            int most = Math.Min(_size - 1, (int)MathF.Ceiling(Max3(c0.X, c1.X, c2.X)));
+            float a0 = edges.A0, b0 = edges.B0, k0 = edges.K0, a1 = edges.A1, b1 = edges.B1, k1 = edges.K1, a2 = edges.A2, b2 = edges.B2, k2 = edges.K2;
+            float total = edges.Total, inv = edges.Inv;
+            int least = edges.Least, most = edges.Most;
+            bool perspective = _perspective;
             float level = _levels[one];
 
             // ONE TEST PER TRIANGLE, so a drawing nobody probes asks nothing per pixel but one false.
@@ -2145,7 +2556,7 @@ public static class MeshPicture
             ReadOnlySpan<float> shadeLevels = program is null
                 ? default
                 : new ReadOnlySpan<float>(_shadeLevels, one * _stride, program.Samples);
-            program?.Preset(registers, _time, _eye, _dust, _water);
+            program?.Preset(registers, _time, _eye, _dust, _water, _perspective ? new Vector4(_viewer, 1f) : default);
             Vector3 p0 = default, p1 = default, p2 = default, n0 = default, n1 = default, n2 = default;
             Vector4 v0 = default, v1 = default, v2 = default;
             bool tinted = program is { UsesVertexColour: true };
@@ -2189,6 +2600,7 @@ public static class MeshPicture
                 float px = least + 0.5f;
                 float row0 = (a0 * px) + (b0 * py) + k0;
                 float row1 = (a1 * px) + (b1 * py) + k1;
+                float row2 = (a2 * px) + (b2 * py) + k2;
                 int at = (y * _size) + least;
 
                 for (int x = least; x <= most; x++, at++)
@@ -2198,16 +2610,38 @@ public static class MeshPicture
                     float along = x - least;
                     float w0 = row0 + (a0 * along);
                     float w1 = row1 + (a1 * along);
-                    float w2 = total - w0 - w1;
+                    float w2 = perspective ? row2 + (a2 * along) : total - w0 - w1;
                     if (w0 < 0f || w1 < 0f || w2 < 0f)
                     {
                         continue;
                     }
 
-                    float first = w0 * inv;
-                    float second = w1 * inv;
-                    float third = w2 * inv;
-                    float away = (first * c0.Z) + (second * c1.Z) + (third * c2.Z);
+                    float first, second, third, away;
+                    if (perspective)
+                    {
+                        // THE WEIGHTS OF THE POINT THE PIXEL'S RAY MEETS, and its depth: the sum is the ray's meeting with the
+                        // triangle's plane, nought where it runs alongside and past the total where the point lies nearer than the
+                        // near plane - see Edged.
+                        float sum = w0 + w1 + w2;
+                        if (!(sum > 0f) || sum * _near > total)
+                        {
+                            continue;
+                        }
+
+                        float over = 1f / sum;
+                        first = w0 * over;
+                        second = w1 * over;
+                        third = w2 * over;
+                        away = total * over;
+                    }
+                    else
+                    {
+                        first = w0 * inv;
+                        second = w1 * inv;
+                        third = w2 * inv;
+                        away = (first * c0.Z) + (second * c1.Z) + (third * c2.Z);
+                    }
+
                     float held = _depth[at];
                     bool here = probing && at == _probeAt;
                     if (away >= held && !(ranked && away == held && one < _winners![at]))
@@ -2249,8 +2683,17 @@ public static class MeshPicture
                                 out Vector3 mixedSpecular,
                                 out float mixedGloss,
                                 out Vector3 mixedWaves,
+                                out ShadeProgram.WaterOut mixedWater,
                                 tinted ? (first * v0) + (second * v1) + (third * v2) : default,
                                 held);
+
+                            // THE WATER'S COVER IS ITS LIGHT'S (SceneLight.ShadeWater): what lies behind seen through the medium and the surface.
+                            bool watered = scened && program.LightsWater && !float.IsNegativeInfinity(cover);
+                            Vector3 waterLit = watered
+                                ? WaterScened(
+                                    program, mixedWater, mixedSpecular, mixedGloss, (first * p0) + (second * p1) + (third * p2),
+                                    (first * n0) + (second * n1) + (third * n2), mixedWaves, x, y, away, held, here ? one : -1, out cover)
+                                : default;
 
                             // THE PROGRAM'S ALPHA WHERE ITS GRAPHS SET ONE, the texture's where they
                             // do not - a mixed shape whose graphs only colour it is drawn as it was.
@@ -2280,7 +2723,9 @@ public static class MeshPicture
                                 ProbedBeach(one, away, held, (first * p0) + (second * p1) + (third * p2), cover);
                             }
 
-                            Vector3 lit = scened
+                            Vector3 lit = watered
+                                ? waterLit
+                                : scened
                                 ? Scened(program, mixed, mixedSpecular, mixedGloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), mixedWaves, x, y, away, here ? one : -1)
                                 : Lit(program, mixed, mixedSpecular, mixedGloss, (first * f0) + (second * f1) + (third * f2));
                             Over(at, blend, new Vector4(lit, cover));
@@ -2316,6 +2761,7 @@ public static class MeshPicture
                     Vector3 specular = default;
                     float gloss = 0f;
                     Vector3 waves = default;
+                    ShadeProgram.WaterOut water = default;
                     if (program is not null)
                     {
                         // A CUT-OUT SHAPE IS CUT ON THE ALPHA ITS GRAPHS LEAVE where they set one - the
@@ -2343,6 +2789,7 @@ public static class MeshPicture
                             out specular,
                             out gloss,
                             out waves,
+                            out water,
                             tinted ? (first * v0) + (second * v1) + (third * v2) : default);
                         if ((cut && program.HasAlpha && alpha < CutoutAlpha) || float.IsNegativeInfinity(alpha))
                         {
@@ -2357,15 +2804,21 @@ public static class MeshPicture
                         if (here && program.MixesGrounds)
                         {
                             (float green, Vector3 firstGround, Vector3 secondGround) = program.Mixed(registers);
-                            _probe!.Add(new ProbeGround(one, away, green, firstGround, secondGround));
+                            (float share, float firstHeight, float secondHeight) = program.MixesByHeights ? program.Heights(registers) : (green, 0f, 0f);
+                            _probe!.Add(new ProbeGround(one, away, green, firstGround, secondGround, program.MixesByCorners)
+                            {
+                                Share = share,
+                                ByHeights = program.MixesByHeights,
+                                FirstHeight = firstHeight,
+                                SecondHeight = secondHeight,
+                            });
                         }
                     }
                     else if (skinned)
                     {
-                        // AFFINE INTERPOLATION IS EXACT HERE. The projection is orthographic, so a
-                        // coordinate across the triangle really is linear in screen space - the
-                        // perspective correction a game renderer needs would be dividing by a w
-                        // that is always one.
+                        // THE WEIGHTS ARE THE POINT'S OWN, so this is exact: affine on a parallel view, where a
+                        // coordinate across the triangle is linear on the picture, and perspective-correct
+                        // in perspective - see Edged.
                         Vector2 spot = (first * s0) + (second * s1) + (third * s2);
                         if (blend == MaterialBlend.Cutout)
                         {
@@ -2401,7 +2854,12 @@ public static class MeshPicture
                         _probe!.Add(new ProbeFragment(one, Seen.Solid, away, held, 0f));
                     }
 
-                    Vector3 shown = scened
+                    // THE WATER WHOLE where it is drawn solid - its cover left out; in a channel view its program's channels, as any surface's.
+                    Vector3 shown = scened && program is { LightsWater: true } && !_scene!.Channelled
+                        ? WaterScened(
+                            program, water, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves,
+                            x, y, away, held, here ? one : -1, out _)
+                        : scened
                         ? Scened(program, colour, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves, away: away, fragment: here ? one : -1)
                         : Lit(program, colour, specular, gloss, (first * f0) + (second * f1) + (third * f2));
                     _pixels[at * 4] = Byte(shown.X);
@@ -2485,8 +2943,9 @@ public static class MeshPicture
                 waves = default;
             }
 
-            Vector3 normal = turn.LengthSquared() > 1e-12f ? Vector3.Normalize(turn) : _toEye;
-            if (Vector3.Dot(normal, _toEye) < 0f)
+            Vector3 toEye = EyeWay(place);
+            Vector3 normal = turn.LengthSquared() > 1e-12f ? Vector3.Normalize(turn) : toEye;
+            if (Vector3.Dot(normal, toEye) < 0f)
             {
                 normal = -normal;
             }
@@ -2511,9 +2970,9 @@ public static class MeshPicture
             ProbeWater ray = probed
                 ? new ProbeWater(away, place, normal, waves, Vector3.Zero, -2, -1, -1, float.MaxValue, Vector3.Zero, 1f, Vector3.Zero, sun)
                 : default;
-            if (_opaque is not null && glossy && waves != Vector3.Zero && _scene!.WaterReflection && _scene.WaterScene)
+            if (_opaque is not null && glossy && waves != Vector3.Zero && _scene!.WaterReflection && _scene.WaterScene && !_scene.Channelled)
             {
-                mirrored = Mirrored(waves, normal, x, y, away, specular, gloss, out environment, probed, ref ray);
+                mirrored = Mirrored(waves, normal, toEye, place, x, y, away, specular, gloss, out environment, probed, ref ray);
             }
 
             if (probed)
@@ -2522,7 +2981,81 @@ public static class MeshPicture
             }
 
             // THE PICTURE'S OWN LIGHT IS ADDED AS IT WAS DRAWN, exposed and graded already.
-            Vector3 lit = _scene!.Shade(albedo, place, normal, _toEye, sun, glossy, specular, gloss, waves, environment) + mirrored;
+            Vector3 lit = _scene!.Shade(albedo, place, normal, toEye, sun, glossy, specular, gloss, waves, environment) + mirrored;
+            return new Vector3(ShadeProgram.Srgb(lit.X), ShadeProgram.Srgb(lit.Y), ShadeProgram.Srgb(lit.Z));
+        }
+
+        /// <summary>
+        /// One pixel of open water under the game's light, lit as the engine's water pass lights it (SceneLight.ShadeWater) - sRGB nought to one, and
+        /// how much it covers what lies behind; a cover of nought or less drops it.
+        /// </summary>
+        /// <remarks>
+        /// THE PROBE'S PIXEL SAYS WHERE ITS COLOUR CAME FROM: what its reflection of the picture met, as <see cref="Scened"/> says it, and every
+        /// part of the light - the medium's scattered colour, the foam, the light they give off, the specular kept, the reflectivity and the cover.
+        /// </remarks>
+        private Vector3 WaterScened(
+            ShadeProgram program, ShadeProgram.WaterOut water, Vector3 specular, float gloss, Vector3 place, Vector3 turn, Vector3 waves,
+            int x, int y, float away, float held, int fragment, out float cover)
+        {
+            // A CHANNEL VIEW LEAVES THE WATER'S LAYER OUT - CHOSEN: the engine draws its water in a pass of its own, which its material
+            // debug views are not read to reach, and the floor under it is what a channel is looked at for.
+            if (_scene!.Channelled)
+            {
+                cover = 0f;
+                return Vector3.Zero;
+            }
+
+            Vector3 toEye = EyeWay(place);
+            Vector3 normal = turn.LengthSquared() > 1e-12f ? Vector3.Normalize(turn) : toEye;
+            if (Vector3.Dot(normal, toEye) < 0f)
+            {
+                normal = -normal;
+            }
+
+            float sun = _shadow?.Lit(place, normal) ?? 1f;
+            if (fragment >= 0)
+            {
+                _probe!.Add(new ProbeSun(fragment, away, place, normal, sun));
+            }
+
+            float environment = 1f;
+            Vector3 mirrored = Vector3.Zero;
+            bool probed = _probeAt >= 0 && (y * _size) + x == _probeAt;
+            ProbeWater ray = probed
+                ? new ProbeWater(away, place, normal, waves, Vector3.Zero, -2, -1, -1, float.MaxValue, Vector3.Zero, 1f, Vector3.Zero, sun)
+                : default;
+            if (_opaque is not null && program is { HasSpecular: true, HasGloss: true } && waves != Vector3.Zero && _scene!.WaterReflection && _scene.WaterScene)
+            {
+                mirrored = Mirrored(waves, normal, toEye, place, x, y, away, specular, gloss, out environment, probed, ref ray);
+            }
+
+            Vector3 lit = _scene!.ShadeWater(
+                water, _waterColour * water.Shimmer, _waterScattering, place, waves, toEye, sun, specular, gloss, environment, mirrored, out cover,
+                out WaterLight terms);
+            if (probed)
+            {
+                _probe!.Add(ray with { Environment = environment, Added = mirrored, Light = terms });
+
+                // THE SWELL'S FOAM TERM BY TERM, where a shore is drawn under it - the foam the picture shows with the field waves off.
+                if (_water.Shore is { } shore)
+                {
+                    _probe.Add(ShadeProgram.SwellProbe(
+                        new Vector2(place.X, place.Y), _water.SwellRegister, _time, held < float.MaxValue ? held - away : float.MaxValue, shore));
+
+                    // THE FIELD WAVES TERM BY TERM, the card's alone - worked out at the place the card's lifted water meets the view, a
+                    // pixel's step across and down handed over for the gradients its foam is read at. The view is a turn (and the turn-over
+                    // in x), so its inverse is its transpose. In perspective a pixel's step is the point's depth over the focal length,
+                    // and each of the three rays runs from the eye.
+                    Matrix4x4 back = Matrix4x4.Transpose(_view);
+                    float step = _perspective ? away / _scale : 1f / _scale;
+                    Vector3 right = Vector3.TransformNormal(new Vector3(step, 0f, 0f), back);
+                    Vector3 down = Vector3.TransformNormal(new Vector3(0f, step, 0f), back);
+                    _probe.Add(ShadeProgram.FieldProbe(
+                        place, toEye, right, down, _time, _water.FlowRegister.Z, shore, _scene!.WaterCrash, _scene.WaterBreakByGround,
+                        _perspective ? _viewer : null));
+                }
+            }
+
             return new Vector3(ShadeProgram.Srgb(lit.X), ShadeProgram.Srgb(lit.Y), ShadeProgram.Srgb(lit.Z));
         }
 
@@ -2535,13 +3068,16 @@ public static class MeshPicture
         /// colour where it first meets a surface, linear, weighed by the split sum as the cube is.
         /// </remarks>
         private Vector3 Mirrored(
-            Vector3 waves, Vector3 normal, int x, int y, float away, Vector3 specular, float gloss, out float environment, bool probed, ref ProbeWater ray)
+            Vector3 waves, Vector3 normal, Vector3 toEye, Vector3 place, int x, int y, float away, Vector3 specular, float gloss, out float environment,
+            bool probed, ref ProbeWater ray)
         {
             environment = 1f;
-            Vector3 reflected = (2f * Vector3.Dot(waves, _toEye) * waves) - _toEye;
+            Vector3 reflected = (2f * Vector3.Dot(waves, toEye) * waves) - toEye;
             reflected += normal * MathF.Max(0f, -Vector3.Dot(reflected, normal));
             Vector3 inView = Vector3.TransformNormal(reflected, _view);
-            int step = ScreenReflection.March(x, y, away, new Vector2(inView.X, inView.Y) * _scale, inView.Z, _size, _depth, out int hitX, out int hitY);
+            int step = _perspective
+                ? ScreenReflection.MarchSeen(x, y, Vector3.Transform(place, _view), inView, _scale, _size, _depth, out int hitX, out int hitY)
+                : ScreenReflection.March(x, y, away, new Vector2(inView.X, inView.Y) * _scale, inView.Z, _size, _depth, out hitX, out hitY);
             if (probed)
             {
                 ray = ray with { Reflected = reflected, Step = step };
@@ -2567,7 +3103,7 @@ public static class MeshPicture
 
             var seen = new Vector3(
                 ShadeProgram.Linear(_opaque![at] / 255f), ShadeProgram.Linear(_opaque[at + 1] / 255f), ShadeProgram.Linear(_opaque[at + 2] / 255f));
-            GlossLight.Environment(MathF.Max(Vector3.Dot(waves, _toEye), 1e-4f), gloss, out float bias, out float scale);
+            GlossLight.Environment(MathF.Max(Vector3.Dot(waves, toEye), 1e-4f), gloss, out float bias, out float scale);
             return ((seen * bias) + (seen * scale * specular)) * (1f - environment);
         }
 
@@ -2671,10 +3207,12 @@ public static class MeshPicture
     /// Which level of the skin a triangle reads, as a number that may fall between two of them.
     /// </summary>
     /// <remarks>
-    /// ONE NUMBER PER TRIANGLE, AND THAT IS EXACT HERE rather than an approximation: the projection
-    /// is orthographic and the coordinates are interpolated linearly, so how many texels one pixel
-    /// steps across is the same at every pixel of the triangle. A game renderer works it out per
-    /// pixel because perspective changes it across a face; this one has no perspective.
+    /// ONE NUMBER PER TRIANGLE, AND ON A PARALLEL VIEW THAT IS EXACT rather than an approximation: the
+    /// coordinates are interpolated linearly, so how many texels one pixel steps across is the same at
+    /// every pixel of the triangle. IN PERSPECTIVE (CameraPose) it is the triangle's average, from its
+    /// corners on the picture - the card works it out per block of pixels, as a game renderer does, and
+    /// the two part where a triangle runs far into the distance; a triangle through the near plane takes
+    /// the finest level (see Reached). The card is the picture; the processor's serves the probe.
     ///
     /// THE LONGER OF THE TWO STEPS DECIDES, as a graphics card's sampler does. A face seen nearly
     /// edge-on steps across many texels in one screen direction and few in the other, and the
@@ -2886,6 +3424,84 @@ public static class MeshPicture
     /// <summary>Twice the signed area of a triangle, flattened onto the screen.</summary>
     private static float Cross(Vector3 a, Vector3 b, Vector3 c)
         => ((b.X - a.X) * (c.Y - a.Y)) - ((b.Y - a.Y) * (c.X - a.X));
+
+    /// <summary>
+    /// A triangle's reach on a picture in perspective: the rows and columns its part past the near plane covers - false where none of
+    /// it is drawn, being behind the near plane, off the picture, or edge on to the eye.
+    /// </summary>
+    /// <param name="a">A corner's place in the view, the eye at the origin.</param>
+    /// <param name="b">The second.</param>
+    /// <param name="c">The third.</param>
+    /// <param name="near">The near plane's depth.</param>
+    /// <param name="focal">Pixels across per unit at a unit's depth.</param>
+    /// <param name="centre">Where the view's axis meets the picture, in pixels.</param>
+    /// <param name="size">The picture's side.</param>
+    /// <param name="cut">Whether the triangle crosses the near plane.</param>
+    /// <remarks>
+    /// THE NEAR PLANE CUTS THE TRIANGLE INTO THE POLYGON THAT IS DRAWN, three or four corners, and its box on the picture is that
+    /// polygon's. The triangle itself is never cut: Drawing's Edges finds each pixel's point on it from the view's places, which is right
+    /// on both sides of the eye, and the near plane is a test per pixel there - so the box only has to hold what that test lets through.
+    /// </remarks>
+    internal static bool Reached(
+        Vector3 a, Vector3 b, Vector3 c, float near, float focal, Vector2 centre, int size,
+        out int top, out int foot, out int left, out int right, out bool cut)
+    {
+        top = foot = left = right = 0;
+        cut = !(a.Z > near && b.Z > near && c.Z > near);
+        if (!(a.Z > near || b.Z > near || c.Z > near))
+        {
+            return false;
+        }
+
+        // EDGE ON: its plane runs through the eye, and it is a line on the picture no pixel's ray meets.
+        Vector3 normal = Vector3.Cross(b - a, c - a);
+        float through = Vector3.Dot(a, normal);
+        if (!(MathF.Abs(through) > 1e-6f * a.Length() * normal.Length()))
+        {
+            return false;
+        }
+
+        float least = float.PositiveInfinity, most = float.NegativeInfinity, low = float.PositiveInfinity, high = float.NegativeInfinity;
+        void Grow(Vector3 point)
+        {
+            float over = focal / point.Z;
+            float x = (point.X * over) + centre.X, y = (point.Y * over) + centre.Y;
+            least = MathF.Min(least, x);
+            most = MathF.Max(most, x);
+            low = MathF.Min(low, y);
+            high = MathF.Max(high, y);
+        }
+
+        void Edge(Vector3 from, Vector3 to)
+        {
+            bool fromIn = from.Z > near;
+            if (fromIn)
+            {
+                Grow(from);
+            }
+
+            if (fromIn != (to.Z > near))
+            {
+                float t = (near - from.Z) / (to.Z - from.Z);
+                Vector3 met = from + ((to - from) * t);
+                Grow(met with { Z = near });
+            }
+        }
+
+        Edge(a, b);
+        Edge(b, c);
+        Edge(c, a);
+        if (!float.IsFinite(least) || !float.IsFinite(most) || !float.IsFinite(low) || !float.IsFinite(high))
+        {
+            return false;
+        }
+
+        top = (int)Math.Clamp(MathF.Floor(low), 0f, size);
+        foot = (int)Math.Clamp(MathF.Ceiling(high), -1f, size - 1);
+        left = (int)Math.Clamp(MathF.Floor(least), 0f, size);
+        right = (int)Math.Clamp(MathF.Ceiling(most), -1f, size - 1);
+        return top <= foot && left <= right;
+    }
 
     private static float Min3(float a, float b, float c) => MathF.Min(a, MathF.Min(b, c));
 

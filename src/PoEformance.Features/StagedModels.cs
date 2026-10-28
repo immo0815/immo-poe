@@ -14,6 +14,17 @@ namespace PoEformance.Features;
 public sealed record RoomSpot(Vector2 At, float Turn, string Tag, int Others);
 
 /// <summary>
+/// Where a stage stood its monster, and the floor it found there - for the capture's monster-files part (CaptureMonsterFiles).
+/// </summary>
+/// <param name="At">The point the monster stands at, in the stage's frame.</param>
+/// <param name="Turn">His turn about the vertical, in radians.</param>
+/// <param name="Scale">His size against his file's.</param>
+/// <param name="Floor">The floor he was set on - his origin landing there, as the game stands him - in the stage's z.</param>
+/// <param name="Found">Whether any floor was found, or the tile's lowest point stood in for it.</param>
+/// <param name="Floors">Each place the floor was asked at, off <paramref name="At"/>, with the floor there - infinity where none faced up.</param>
+public sealed record StageStanding(Vector2 At, float Turn, float Scale, float Floor, bool Found, IReadOnlyList<(Vector2 Off, float Height)> Floors);
+
+/// <summary>
 /// A monster standing in the middle of a terrain tile - its arena, or any tile the book is pointed at - or of a room as the area laid it, as one model.
 /// </summary>
 /// <remarks>
@@ -159,7 +170,7 @@ public static class StagedModels
         {
             if (room.Built.Length > 0)
             {
-                return BuiltRoomModels.Of(read, room.Path, room.Built, shaded: true, doodads: RoomModels.EveryDoodad, tools: room.Tools, progress: progress, heights: room.Heights, mirrored: room.Mirrored);
+                return BuiltRoomModels.Of(read, room.Path, room.Built, shaded: true, doodads: RoomModels.EveryDoodad, tools: room.Tools, progress: progress, heights: room.Heights, mirrored: room.Mirrored, maskCells: room.MaskCells, groundHeights: room.GroundHeights);
             }
 
             return MonsterModel.None with { Why = "a room is a stage only as the area laid it or built from its tileset - its file alone is doodads over nothing" };
@@ -172,8 +183,8 @@ public static class StagedModels
         }
 
         return LaidRoomModels.Of(
-            read, room.Path, grid, x, y, turn, shaded: true, doodads: RoomModels.EveryDoodad, tools: room.Tools, atLevel: room.AtLevel,
-            progress: progress, heights: room.Heights, cut: room.Cut);
+            read, room.Path, grid, x, y, turn, shaded: true, doodads: RoomModels.EveryDoodad, tools: room.Tools, fitted: room.Fitted,
+            progress: progress, heights: room.Heights, cut: room.Cut, maskCells: room.MaskCells, groundHeights: room.GroundHeights);
     }
 
     /// <summary>
@@ -195,17 +206,19 @@ public static class StagedModels
         float floor;
         float turn = 0f;
         string where;
+        var floors = new List<(Vector2 Off, float Height)>(9);
         if (tile.BossSpot is { } spot)
         {
             // WHERE THE ROOM NAMES ITS BOSS, on the floor round the place rather than at it: a throne at the place has a seat
             // that faces up, and the boss stands on the deck under it - sitting in it and rising out of it are his animation's.
             (middle.X, middle.Y, turn) = (spot.At.X, spot.At.Y, spot.Turn);
-            found = FloorAround(tile.Mesh, tile.Blends, spot.At.X, spot.At.Y, out floor);
+            found = FloorAround(tile.Mesh, tile.Blends, spot.At.X, spot.At.Y, out floor, floors);
             where = string.Create(CultureInfo.InvariantCulture, $"where the room names its boss (\"{spot.Tag}\", facing {spot.Turn * 180f / MathF.PI:0}°{(spot.Others > 0 ? $"; {spot.Others} more boss places passed over" : string.Empty)})");
         }
         else
         {
             found = Floor(tile.Mesh, tile.Blends, middle.X, middle.Y, out floor);
+            floors.Add((Vector2.Zero, floor));
             where = "at its middle";
         }
 
@@ -214,11 +227,15 @@ public static class StagedModels
             floor = tile.Mesh.Most.Z;
         }
 
-        // SCALED ABOUT ITS OWN ORIGIN, TURNED, AND THEN MOVED, as row vectors multiply: the monster's feet - its
-        // greatest z, the files' up being minus z - land on the floor.
+        // SCALED ABOUT ITS OWN ORIGIN, TURNED, AND THEN MOVED, as row vectors multiply: the monster's ORIGIN lands on the floor,
+        // as the game stands him. MEASURED on Malgor (Port's capture of v0.1.328): his entity's Render z is the terrain under him
+        // less its CharacterModelBounds z, -335.938 - 143.481 = -479.419, and that bound is half his rest height over his origin
+        // (286.962) - the game's box runs from his origin up, his origin on the ground, as the player's and every object's does
+        // in the same capture. Before v0.1.329 the rest's lowest point was set there instead (DECIDED from the live client for
+        // every monster), and Malgor's bind pose hangs 209.7 under his feet: he floated by that much in every animation.
         Matrix4x4 place = Matrix4x4.CreateScale(scale)
             * Matrix4x4.CreateRotationZ(turn)
-            * Matrix4x4.CreateTranslation(middle.X, middle.Y, floor - (actor.Mesh.Most.Z * scale));
+            * Matrix4x4.CreateTranslation(middle.X, middle.Y, floor);
 
         var pile = new ModelPile();
         pile.Add(tile, Matrix4x4.Identity, stage);
@@ -279,6 +296,7 @@ public static class StagedModels
             Actor = actor,
             ActorFirst = first,
             ActorPlace = place,
+            Standing = new StageStanding(new Vector2(middle.X, middle.Y), turn, scale, floor, found, floors),
             Stage = stage,
             StageSaid = said,
 
@@ -302,14 +320,17 @@ public static class StagedModels
     /// THE MIDDLE OF NINE, so one surface at the point itself - the seat of the throne a boss is set on - does not lift him off
     /// the deck the rest stand on, nor one hole in the ring drop him through it.
     /// </remarks>
-    private static bool FloorAround(SkinnedMesh mesh, IReadOnlyList<MaterialBlend>? blends, float x, float y, out float height)
+    /// <param name="asked">Each place asked, off the point, with the floor there - infinity where none faced up.</param>
+    private static bool FloorAround(SkinnedMesh mesh, IReadOnlyList<MaterialBlend>? blends, float x, float y, out float height, List<(Vector2 Off, float Height)> asked)
     {
         var floors = new List<float>(9);
         for (var one = -1; one < 8; one++)
         {
             (float sin, float cos) = MathF.SinCos(one * MathF.PI / 4f);
             float r = one < 0 ? 0f : Around;
-            if (Floor(mesh, blends, x + (r * cos), y + (r * sin), out float found))
+            bool hit = Floor(mesh, blends, x + (r * cos), y + (r * sin), out float found);
+            asked.Add((new Vector2(r * cos, r * sin), found));
+            if (hit)
             {
                 floors.Add(found);
             }

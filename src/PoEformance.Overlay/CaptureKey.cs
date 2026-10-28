@@ -92,6 +92,9 @@ internal sealed class CaptureKey
     /// <summary>The diagnoses that take seconds, by part key - each started as the key goes down. See <see cref="OfferWork"/>.</summary>
     private readonly Dictionary<string, Func<string, IReadOnlyList<string>?>> _works = new(StringComparer.Ordinal);
 
+    /// <summary>What a piece of work says of itself in the window while it runs, by part key - see <see cref="OfferWork"/>.</summary>
+    private readonly Dictionary<string, CaptureWorkProgress> _workProgress = new(StringComparer.Ordinal);
+
     /// <summary>The model panes, asked for as the key goes down - see <see cref="OfferPanes"/>.</summary>
     private Func<IReadOnlyList<CapturePane>>? _panes;
 
@@ -166,6 +169,21 @@ internal sealed class CaptureKey
     /// <summary>The install's textures whose paths name the water (CaptureWaterTextures.Words), as its walk found them - empty until it has run.</summary>
     public IReadOnlyList<string> WaterTextures { get; set; } = [];
 
+    /// <summary>The install's paths naming a wobble (CaptureWobble.Words under CaptureWobble.Folders), as its walk found them - empty until it has run.</summary>
+    public IReadOnlyList<string> WobblePaths { get; set; } = [];
+
+    /// <summary>The install's files the water shore part searches (CaptureWaterShore), as the walks found them - empty until they have run.</summary>
+    public IReadOnlyList<string> ShoreFiles { get; set; } = [];
+
+    /// <summary>The install's data tables (CaptureWaterShore.TableExtension under its TableFolder), as the walk found them - empty until it has run.</summary>
+    public IReadOnlyList<string> DataTables { get; set; } = [];
+
+    /// <summary>The install's paths naming a debug word (CaptureDebugStrings.PathWords), as the walk found them - empty until it has run.</summary>
+    public IReadOnlyList<string> DebugPaths { get; set; } = [];
+
+    /// <summary>The install's engine graphs (CaptureRenderDebug.Folder), as the walk found them - empty until it has run.</summary>
+    public IReadOnlyList<string> EngineGraphs { get; set; } = [];
+
     /// <summary>
     /// Starts the light hunt for the area's own environment and hands back its whole report, or null where nothing can search - the light-hunt part. Set by whoever owns the search.
     /// </summary>
@@ -224,11 +242,16 @@ internal sealed class CaptureKey
     /// Given the path of the part's file, its lines to write there - or null where the work wrote that file itself (the room
     /// export, whose writer takes a path).
     /// </param>
-    public void OfferWork(string key, Func<string, IReadOnlyList<string>?> work)
+    /// <param name="progress">What it says of itself in the window while it runs - how far, and a stop that keeps what it found - or null for a line saying nothing.</param>
+    public void OfferWork(string key, Func<string, IReadOnlyList<string>?> work, CaptureWorkProgress? progress = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(key);
         ArgumentNullException.ThrowIfNull(work);
         _works[key] = work;
+        if (progress is not null)
+        {
+            _workProgress[key] = progress;
+        }
     }
 
     /// <summary>
@@ -337,9 +360,13 @@ internal sealed class CaptureKey
         }
 
         var hunt = new FloatHuntProgress();
-        var run = new Run(folder, local, snapshot, client, now, new HashSet<string>(_off, StringComparer.Ordinal), Progress(folder, snapshot, hunt, now))
+        var shore = new CaptureWaterShore.Search();
+        var debugs = new CaptureWaterShore.Search();
+        var run = new Run(folder, local, snapshot, client, now, new HashSet<string>(_off, StringComparer.Ordinal), Progress(folder, snapshot, hunt, shore, debugs, now))
         {
             Hunt = hunt,
+            Shore = shore,
+            Debugs = debugs,
             Overlay = On(CaptureParts.OverlayPicture) ? ScreenCapture.Grab(client.X, client.Y, client.Width, client.Height) : null,
             Loaded = _loaded(),
             Masters = _masters(),
@@ -375,7 +402,7 @@ internal sealed class CaptureKey
         }
 
         // THE PANES AS THEY STAND, their models immutable - the files they name are read with the rest, off this thread.
-        if (On(CaptureParts.ModelPanes) && _panes is { } panes)
+        if ((On(CaptureParts.ModelPanes) || On(CaptureParts.MonsterFiles)) && _panes is { } panes)
         {
             run.Panes = panes();
         }
@@ -427,7 +454,7 @@ internal sealed class CaptureKey
     /// THE LONG ONES SAY WHAT THEY ARE DOING: the rooms how many are read, the memory hunt how much of its budget it has looked
     /// through and how fast, with a stop that keeps what it found; the recording that it closes itself.
     /// </remarks>
-    private CaptureProgress Progress(string folder, WorldSnapshot snapshot, FloatHuntProgress hunt, long now)
+    private CaptureProgress Progress(string folder, WorldSnapshot snapshot, FloatHuntProgress hunt, CaptureWaterShore.Search shore, CaptureWaterShore.Search debugs, long now)
     {
         var progress = new CaptureProgress(folder, snapshot.Area.Name.Length > 0 ? snapshot.Area.Name : snapshot.Area.Id, now);
         if (WantsRooms(_off))
@@ -453,6 +480,24 @@ internal sealed class CaptureKey
                     Live = () => Hunting(hunt, progress.Of(CaptureReport.LightHuntFile)),
                     Fraction = () => hunt.Budget > 0 ? (float)((double)hunt.Bytes / hunt.Budget) : 0f,
                     Stop = hunt.Stop,
+                },
+                CaptureParts.WaterShore => new CaptureStep(part.File, part.Label)
+                {
+                    Live = () => shore.Of > 0 ? $"{shore.Done:N0} of {shore.Of:N0} files searched, {shore.Found:N0} name a word" : "waiting for its turn",
+                    Fraction = () => shore.Of > 0 ? (float)((double)shore.Done / shore.Of) : 0f,
+                    Stop = shore.Stop,
+                },
+                CaptureParts.DebugStrings => new CaptureStep(part.File, part.Label)
+                {
+                    Live = () => debugs.Of > 0 ? $"{debugs.Done:N0} of {debugs.Of:N0} files searched (the program, then the data tables), {debugs.Found:N0} hold a word" : "waiting for its turn",
+                    Fraction = () => debugs.Of > 0 ? (float)((double)debugs.Done / debugs.Of) : 0f,
+                    Stop = debugs.Stop,
+                },
+                _ when CaptureParts.RunsAtPress(part.Key) && _workProgress.TryGetValue(part.Key, out CaptureWorkProgress? work) => new CaptureStep(part.File, part.Label)
+                {
+                    Live = work.Live,
+                    Fraction = work.Fraction,
+                    Stop = work.Stop,
                 },
                 _ when CaptureParts.RunsAtPress(part.Key) => new CaptureStep(part.File, part.Label)
                 {
@@ -546,13 +591,19 @@ internal sealed class CaptureKey
         IReadOnlyList<string> shaders = Shaders;
         IReadOnlyList<string> environments = Environments;
         IReadOnlyList<string> waterTextures = WaterTextures;
-        run.Writing = Task.Run(() => Write(run, read, version, shaders, environments, waterTextures));
+        IReadOnlyList<string> wobblePaths = WobblePaths;
+        IReadOnlyList<string> shoreFiles = ShoreFiles;
+        IReadOnlyList<string> dataTables = DataTables;
+        IReadOnlyList<string> debugPaths = DebugPaths;
+        IReadOnlyList<string> engineGraphs = EngineGraphs;
+        run.Writing = Task.Run(() => Write(run, read, version, shaders, environments, waterTextures, wobblePaths, shoreFiles, dataTables, debugPaths, engineGraphs));
     }
 
     /// <summary>Every ticked part of the capture, each on its own so one failing loses only itself.</summary>
     private static void Write(
         Run run, Func<string, byte[]?>? read, string version, IReadOnlyList<string> shaders, IReadOnlyList<string> environments,
-        IReadOnlyList<string> waterTextures)
+        IReadOnlyList<string> waterTextures, IReadOnlyList<string> wobblePaths, IReadOnlyList<string> shoreFiles, IReadOnlyList<string> dataTables,
+        IReadOnlyList<string> debugPaths, IReadOnlyList<string> engineGraphs)
     {
         var parts = new List<string>();
 
@@ -814,9 +865,15 @@ internal sealed class CaptureKey
                     (byte[]? shot, string over) = run.Game is not null ? (run.Game, "the game alone")
                         : run.Overlay is not null ? (run.Overlay, "the game with the overlay - tick \"the game alone\" for a clean picture")
                         : ((byte[]?)null, "black - no picture of the game was taken");
-                    string said = CaptureGroundScreen.Write(read, run.Snapshot, run.Loaded, run.Masters, shot, client.Width, client.Height, over, out GamePicture? picture, out GamePicture? corners);
+                    string said = CaptureGroundScreen.Write(
+                        read, run.Snapshot, run.Loaded, run.Masters, shot, client.Width, client.Height, over, out GamePicture? picture, out GamePicture? corners, out GamePicture? heights,
+                        out GamePicture? choices);
                     File.WriteAllText(At(CaptureReport.GroundScreenFile), said);
-                    foreach ((GamePicture? one, string file) in new[] { (picture, CaptureReport.GroundScreenShot), (corners, CaptureReport.GroundScreenCorners) })
+                    foreach ((GamePicture? one, string file) in new[]
+                    {
+                        (picture, CaptureReport.GroundScreenShot), (corners, CaptureReport.GroundScreenCorners), (heights, CaptureReport.GroundScreenHeights),
+                        (choices, CaptureReport.GroundScreenChoices),
+                    })
                     {
                         if (one is { } drawn)
                         {
@@ -880,6 +937,87 @@ internal sealed class CaptureKey
                         }
                     }
 
+                    return text[..text.IndexOf('\n')].TrimEnd('\r');
+                });
+            }
+        }
+
+        if (On(CaptureParts.WobbleFiles))
+        {
+            if (read is null)
+            {
+                Not(CaptureReport.WobbleFilesFile, "no install to read the wobble's files from");
+            }
+            else
+            {
+                Part(CaptureReport.WobbleFilesFile, () =>
+                {
+                    string? install = GameInstall.Find(null);
+                    string[] programs = install is null ? []
+                        : [.. GameInstall.Names.Select(name => Path.Combine(install, name + ".exe")).Where(File.Exists)];
+                    string text = CaptureWobble.Write(read, run.Loaded, wobblePaths, shaders, programs);
+                    File.WriteAllText(At(CaptureReport.WobbleFilesFile), text);
+                    return text[..text.IndexOf('\n')].TrimEnd('\r');
+                });
+            }
+        }
+
+        if (On(CaptureParts.WaterShore))
+        {
+            if (read is null)
+            {
+                Not(CaptureReport.WaterShoreFile, "no install to read the files from");
+            }
+            else
+            {
+                Part(CaptureReport.WaterShoreFile, () =>
+                {
+                    string? install = GameInstall.Find(null);
+                    string[] programs = install is null ? []
+                        : [.. GameInstall.Names.Select(name => Path.Combine(install, name + ".exe")).Where(File.Exists)];
+                    string text = CaptureWaterShore.Write(read, shoreFiles, dataTables, run.Loaded, shaders, programs, run.Shore);
+                    File.WriteAllText(At(CaptureReport.WaterShoreFile), text);
+                    return text[..text.IndexOf('\n')].TrimEnd('\r');
+                });
+            }
+        }
+
+        if (On(CaptureParts.DebugStrings))
+        {
+            // THE PROGRAM IS READ FROM DISK, so it is searched even where the install's files cannot be read; the tables need them.
+            string? install = GameInstall.Find(null);
+            string[] programs = install is null ? []
+                : [.. GameInstall.Names.Select(name => Path.Combine(install, name + ".exe")).Where(File.Exists)];
+            if (programs.Length == 0 && read is null)
+            {
+                Not(CaptureReport.DebugStringsFile, "no install: neither the game's program nor its files to search");
+            }
+            else
+            {
+                Part(CaptureReport.DebugStringsFile, () =>
+                {
+                    string text = CaptureDebugStrings.Write(read, programs, dataTables, debugPaths, run.Debugs);
+                    File.WriteAllText(At(CaptureReport.DebugStringsFile), text);
+                    return text[..text.IndexOf('\n')].TrimEnd('\r');
+                });
+            }
+        }
+
+        if (On(CaptureParts.RenderDebug))
+        {
+            if (read is null)
+            {
+                Not(CaptureReport.RenderDebugFile, "no install to read the engine's graphs from");
+            }
+            else
+            {
+                Part(CaptureReport.RenderDebugFile, () =>
+                {
+                    string? install = GameInstall.Find(null);
+                    string[] programs = install is null ? []
+                        : [.. GameInstall.Names.Select(name => Path.Combine(install, name + ".exe")).Where(File.Exists)];
+                    string text = CaptureRenderDebug.Write(read, programs, engineGraphs, shaders);
+                    File.WriteAllText(At(CaptureReport.RenderDebugFile), text);
                     return text[..text.IndexOf('\n')].TrimEnd('\r');
                 });
             }
@@ -977,6 +1115,25 @@ internal sealed class CaptureKey
                         image.SaveAsPng(At(file));
                     }
 
+                    return text[..text.IndexOf('\n')];
+                });
+            }
+        }
+
+        if (On(CaptureParts.MonsterFiles))
+        {
+            CapturePane? monster = run.Panes?.FirstOrDefault(one => one.Book == "monster" && one.Path.Length > 0);
+            if (monster is null)
+            {
+                Not(CaptureReport.MonsterFilesFile, "the Monster Book showed no monster when the key went down");
+            }
+            else
+            {
+                Vector2? feet = run.Snapshot.Player is { } you ? new Vector2(you.WorldX, you.WorldY) : null;
+                Part(CaptureReport.MonsterFilesFile, () =>
+                {
+                    string text = CaptureMonsterFiles.Write(read, monster, run.Snapshot.Entities, feet);
+                    File.WriteAllText(At(CaptureReport.MonsterFilesFile), text);
                     return text[..text.IndexOf('\n')];
                 });
             }
@@ -1325,6 +1482,12 @@ internal sealed class CaptureKey
         /// <summary>The light hunt's progress, and its stop - the window's and the writer's.</summary>
         public FloatHuntProgress? Hunt { get; init; }
 
+        /// <summary>The water shore part's search, and its stop - the window's and the writer's.</summary>
+        public CaptureWaterShore.Search? Shore { get; init; }
+
+        /// <summary>The debug strings part's search, and its stop - the window's and the writer's.</summary>
+        public CaptureWaterShore.Search? Debugs { get; init; }
+
         public DateTime Local { get; } = local;
 
         public WorldSnapshot Snapshot { get; } = snapshot;
@@ -1396,3 +1559,9 @@ internal sealed class CaptureKey
         public List<string> LeftOut { get; set; } = [];
     }
 }
+
+/// <summary>What a piece of capture work started at the press says of itself in the capture's window - see CaptureKey.OfferWork.</summary>
+/// <param name="Live">Its line: what it is doing.</param>
+/// <param name="Fraction">How far it is, nought to one.</param>
+/// <param name="Stop">Stops it early, what it found until then kept - or null where it cannot be stopped.</param>
+public sealed record CaptureWorkProgress(Func<string> Live, Func<float> Fraction, Action? Stop);

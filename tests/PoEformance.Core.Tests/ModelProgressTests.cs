@@ -105,6 +105,48 @@ public class ModelProgressTests
         Assert.InRange(progress.SecondsOn(BuildWork.Reading), 0.02, 10);
     }
 
+    [Fact]
+    public void STEPSOfOneNameAreOneLineAndTexturesAreCountedByFormat()
+    {
+        var progress = new ModelProgress();
+        for (var one = 0; one < 3; one++)
+        {
+            using ModelProgress.Step step = ModelProgress.Begin(progress, "painting the shapes", 2);
+        }
+
+        using (ModelProgress.Begin(progress, "laying the doodads", 5))
+        {
+        }
+
+        progress.Decoded("BC7_UNORM_SRGB", 2048 * 2048, Stopwatch.Frequency / 10, Stopwatch.Frequency / 100);
+        progress.Decoded("BC7_UNORM_SRGB", 1024 * 1024, Stopwatch.Frequency / 10, 0);
+        progress.Decoded("DXT1", 512 * 512, Stopwatch.Frequency / 100, 0);
+
+        IReadOnlyList<string> report = progress.Report();
+        Assert.Single(report, line => line.StartsWith("step \"painting the shapes\" x3 (6 things): ", StringComparison.Ordinal));
+        Assert.Single(report, line => line.StartsWith("step \"laying the doodads\" (5 things): ", StringComparison.Ordinal));
+
+        // THE COSTLIEST FORMAT FIRST, with its count, pixels and time.
+        string[] textures = [.. report.Where(line => line.StartsWith("textures ", StringComparison.Ordinal))];
+        Assert.Equal(2, textures.Length);
+        Assert.StartsWith("textures BC7_UNORM_SRGB: 2 decoded, 5.2 million pixels at the top level, decoding 0.200 s and mipmaps 0.010 s", textures[0], StringComparison.Ordinal);
+        Assert.StartsWith("textures DXT1: 1 decoded, 0.3 million pixels", textures[1], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ATEXTURESFormatIsSaidInAWord()
+    {
+        Assert.Equal("uncompressed 32 bit", ModelDump.Format(TileFilesTests.Dds()));
+        Assert.Equal("not a DDS", ModelDump.Format([1, 2, 3]));
+
+        byte[] dx10 = new byte[148];
+        "DDS "u8.CopyTo(dx10);
+        BitConverter.GetBytes(0x4u).CopyTo(dx10, 80);
+        "DX10"u8.CopyTo(dx10.AsSpan(84));
+        BitConverter.GetBytes(99).CopyTo(dx10, 128);
+        Assert.Equal("BC7_UNORM_SRGB", ModelDump.Format(dx10));
+    }
+
     private static void Spin(double seconds)
     {
         long until = Stopwatch.GetTimestamp() + (long)(seconds * Stopwatch.Frequency);

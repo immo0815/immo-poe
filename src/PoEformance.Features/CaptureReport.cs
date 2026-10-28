@@ -99,6 +99,12 @@ public static class CaptureReport
     /// <summary>The game's picture tinted by the corners' share of the second ground - see CaptureGroundCompare.</summary>
     public const string GroundScreenCorners = "ground-on-screen-corners.png";
 
+    /// <summary>The game's picture tinted by the mask's green weighed by the grounds' heights - the engine's own mix; see CaptureGroundCompare.</summary>
+    public const string GroundScreenHeights = "ground-on-screen-heights.png";
+
+    /// <summary>The game's picture tinted by the material of its group each sub-tile's pattern follows; see CaptureGroundChoices.</summary>
+    public const string GroundScreenChoices = "ground-on-screen-choices.png";
+
     /// <summary>What the water is drawn from - see CaptureWater.</summary>
     public const string WaterFile = "water.txt";
 
@@ -110,6 +116,24 @@ public static class CaptureReport
 
     /// <summary>The light and water hunt run at the press - see LightHunt.</summary>
     public const string LightHuntFile = "light-hunt.txt";
+
+    /// <summary>The wobble points and the doodads by them watched for seconds from the press - see WobbleProbe.</summary>
+    public const string WobbleFile = "wobble.txt";
+
+    /// <summary>The install's files of the engine's wobble - see CaptureWobble.</summary>
+    public const string WobbleFilesFile = "wobble-files.txt";
+
+    /// <summary>What the install says the engine's shore field is made from - see CaptureWaterShore.</summary>
+    public const string WaterShoreFile = "water-shore.txt";
+
+    /// <summary>The program's, the tables' and the paths' strings naming a debug function - see CaptureDebugStrings.</summary>
+    public const string DebugStringsFile = "debug-strings.txt";
+
+    /// <summary>The engine's debug views' graphs, sources and program table - see CaptureRenderDebug.</summary>
+    public const string RenderDebugFile = "render-debug.txt";
+
+    /// <summary>The terrain searched for the engine's ocean markup at the press - see OceanMarkupHunt.</summary>
+    public const string OceanMarkupFile = "ocean-markup.txt";
 
     /// <summary>The survey of the entity maps for the rooms' doodads, and every sighting.</summary>
     public const string DoodadsFile = "doodads.txt";
@@ -128,6 +152,9 @@ public static class CaptureReport
 
     /// <summary>The model panes' lines and their rooms' doodad files - see CapturePanes.</summary>
     public const string PanesFile = "model-panes.txt";
+
+    /// <summary>The Monster Book's monster's files, parts, placing and animations - see CaptureMonsterFiles.</summary>
+    public const string MonsterFilesFile = "monster-files.txt";
 
     /// <summary>The Memory Dissector's places, route and last search.</summary>
     public const string DissectorFile = "dissector.txt";

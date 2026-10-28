@@ -100,4 +100,78 @@ public static class ScreenReflection
 
         return -1;
     }
+
+    /// <summary>
+    /// The ray marched over a picture's solid depth in perspective: where it first meets a surface, and at which step.
+    /// </summary>
+    /// <param name="x">The pixel's column.</param>
+    /// <param name="y">The pixel's row.</param>
+    /// <param name="start">The pixel's point in the view, the eye at the origin and z its depth.</param>
+    /// <param name="way">The ray's way in the view.</param>
+    /// <param name="focal">Pixels across per unit at a unit's depth.</param>
+    /// <param name="size">The picture's side, in pixels.</param>
+    /// <param name="depth">The solid depth from the eye, row by row; float.MaxValue where nothing is.</param>
+    /// <param name="hitX">Where it hit, its column.</param>
+    /// <param name="hitY">Where it hit, its row.</param>
+    /// <returns>The step it hit at, or below nought for none.</returns>
+    /// <remarks>
+    /// THE ENGINE'S OWN MARCH, NOW THAT THE PICTURE HAS ITS PERSPECTIVE (water.ffx, InitScreenRaymarchContext and
+    /// GetRaymarchScreenStep): the ray's start and a point along it are projected, and the march steps along the line between them
+    /// on the screen - a fiftieth of the screen a step, as before - with the projected depth growing in step, which in perspective
+    /// is exact for the depth's reciprocal and not for the depth. The engine compares its nonlinear depth buffer with the ray's,
+    /// and its thickness is fifty units of view depth projected at the ray's start; any depth growing as minus one over the view's
+    /// z orders and spaces the same, so that is what is compared here. On a parallel view the projected depth is the depth itself,
+    /// and the march is <see cref="March"/>.
+    /// </remarks>
+    public static int MarchSeen(
+        int x, int y, Vector3 start, Vector3 way, float focal, int size, ReadOnlySpan<float> depth, out int hitX, out int hitY)
+    {
+        hitX = -1;
+        hitY = -1;
+        if (!(start.Z > 0f) || !(focal > 0f))
+        {
+            return -1;
+        }
+
+        // ANY POINT ALONG THE RAY IN FRONT OF THE EYE draws the same line on the screen: the engine's is a unit along, taken nearer
+        // where a ray running towards the eye would pass it within the unit.
+        float reach = way.Z < 0f ? MathF.Min(1f, start.Z * 0.5f / -way.Z) : 1f;
+        Vector3 end = start + (way * reach);
+        Vector2 from = new Vector2(start.X, start.Y) * (focal / start.Z);
+        Vector2 to = new Vector2(end.X, end.Y) * (focal / end.Z);
+        Vector2 across = to - from;
+        float length = across.Length();
+        if (!(length > 1e-6f) || !float.IsFinite(length))
+        {
+            return -1;
+        }
+
+        float unit = StepShare * size / length;
+        float first = -1f / start.Z;
+        float deeper = (-1f / end.Z) - first;
+        float thickness = (1f / start.Z) - (1f / (start.Z + Thickness));
+        float jitter = Dither(x, y);
+        for (var step = 0; step < Steps; step++)
+        {
+            float along = (step + jitter) * unit;
+            float px = x + 0.5f + (across.X * along);
+            float py = y + 0.5f + (across.Y * along);
+            if (!(px >= 0f && py >= 0f && px < size && py < size))
+            {
+                break;
+            }
+
+            int cx = (int)px, cy = (int)py;
+            float ray = first + (deeper * along);
+            float solid = -1f / depth[(cy * size) + cx];
+            if (solid < ray && solid > ray - thickness)
+            {
+                hitX = cx;
+                hitY = cy;
+                return step;
+            }
+        }
+
+        return -1;
+    }
 }

@@ -26,9 +26,12 @@ public sealed partial class ShadeProgram
     /// <c>water_to_terrain_mult</c>, and that makes <c>water_to_terrain_ratio = saturate(1 - gap * 0.03 * lerp(1, 30, ground_water_ratio))</c>,
     /// the gap the distance along the view from the surface to the solid behind (DepthDistance's). The density the medium
     /// absorbs with is multiplied by <c>1 - water_to_terrain_ratio</c>, and a fragment whose ratio reaches one is discarded:
-    /// the water fades to nothing within 33 units of the floor. The ratio's other term is nought on water drawn this way:
+    /// the water fades to nothing within 33 units of the floor. The ratio's other term is nought on the river's path:
     /// GetFlowingSurface's planar state (GetFlowingWaterPlanarStateWorld) leaves both its ground_water_ratio and its own
-    /// water_to_terrain_ratio at nought, so the shore's thirtyfold is not taken.
+    /// water_to_terrain_ratio at nought, so the shore's thirtyfold is not taken. ON THE OCEAN'S PATH, which the water now
+    /// draws, GetTidalWaterPlanarState sets both - the ground water ratio where the shore's distance falls under -0.05, its own
+    /// ratio to one within 0.08 of the shoreline - each read off the shore field, whose scale here is CHOSEN, so neither is
+    /// taken yet and the line under the picture says so (SceneLight.ShadeWater).
     /// </remarks>
     public const float ShoreFade = 0.03f;
 
@@ -50,6 +53,8 @@ public sealed partial class ShadeProgram
     /// <c>r = exp(-travel * density)</c>; what it adds beyond this program is a Fresnel reflection weighted by the
     /// area's reflectiveness, the sun's highlight, the environment's cube and screen-space reflections, the
     /// refraction (index 1.33) bending the ray it measures the travel along, foam, and the waves' normals.
+    /// THIS PROGRAM IS THE LAMP'S PICTURE: under the game light the glossy twin hands its parts over (<see cref="WaterOut"/>) and
+    /// SceneLight.ShadeWater lights them as that formula does, the medium's colour light let through rather than an albedo (v0.1.296).
     ///
     /// THE COLOUR'S PATTERN IS CHOSEN: value noise on the surface, a cell every 120 units, its brightness
     /// from 0.85 to 1.15 of the colour, drifting at the area's flow - a moving surface that reads as water,
@@ -91,11 +96,19 @@ public sealed partial class ShadeProgram
         int timing = build.Emit(Op.Swizzle, Clock, extra: AllFrom(0));
         build.Into(timing, crossed, Only(1, 0));
         int foam = build.Emit(Op.Foam, Position, timing, WaterShore, WaterSwell);
-        int foamed = build.Emit(Op.Swizzle, foam, extra: AllFrom(3));
+        int swellFoamed = build.Emit(Op.Swizzle, foam, extra: AllFrom(3));
+
+        // THE FIELD WAVES' FOAM, the card's alone (Op.Field): over the swell's, as the swell's lies over the medium.
+        int field = build.Emit(Op.Field, Position, timing, WaterShore, WaterSwell, extra: FieldColour);
+        int fieldFoamed = build.Emit(Op.Swizzle, field, extra: AllFrom(3));
+        int foamed = build.Emit(
+            Op.OneMinus,
+            build.Emit(Op.Multiply, build.Emit(Op.OneMinus, swellFoamed), build.Emit(Op.OneMinus, fieldFoamed)));
 
         // THE COLOUR, the foam's over the medium's by how much it covers (InitWaterSurfaceData's albedo), its w the cover - the
         // foam hiding what lies behind by 1 - (1 - a)^3 (the pass's refracted light, lerped to the absorbed).
-        int colour = build.Emit(Op.Lerp, build.Emit(Op.Multiply, WaterColour, shimmer), foam, foamed);
+        int colour = build.Emit(
+            Op.Lerp, build.Emit(Op.Lerp, build.Emit(Op.Multiply, WaterColour, shimmer), foam, swellFoamed), field, fieldFoamed);
         int clear = build.Emit(Op.OneMinus, foamed);
         int hidden = build.Emit(Op.OneMinus, build.Emit(Op.Multiply, build.Emit(Op.Multiply, clear, clear), clear));
         build.Into(colour, build.Emit(Op.Lerp, cover, build.Constant(Vector4.One), hidden), Only(3, 0));
@@ -105,13 +118,52 @@ public sealed partial class ShadeProgram
         // THE WAVES, for the game light's glints and reflection: the same colour, and the surface the
         // engine lights - the ocean's ripples in the area's wind, its specular the area's reflectiveness,
         // its gloss the engine's (InitWaterSurfaceData), the foam's 0.04 and nought where it covers - see HasWaves.
-        int waves = build.Emit(Op.Waves, Position, WaterWind, timing, WaterShore, WaterSwell);
+        int waves = build.Emit(
+            Op.Field, Position, timing, WaterShore, WaterSwell, build.Emit(Op.Waves, Position, WaterWind, timing, WaterShore, WaterSwell), extra: FieldNormal);
         int specular = build.Emit(
             Op.Lerp, build.Emit(Op.Swizzle, WaterFlow, extra: AllFrom(1)), build.Constant(new Vector4(FoamSpecular)), foamed);
         int gloss = build.Emit(Op.Lerp, build.Constant(new Vector4(WaterGloss)), build.Constant(Vector4.Zero), foamed);
-        water.Glossy = Finish(build, colour, specular, gloss, [WaterGraph], hasAlpha: true, plainable: false, waves)
+
+        // THE PARTS THE WATER PASS LIGHTS APART (SceneLight.ShadeWater): the foam as InitWaterSurfaceData's albedo - its colour times
+        // its cover, the medium's black under it - with the cover in w; and what the light cannot work out itself - what gets through
+        // the medium, the shore's water_to_terrain_ratio, the colour's pattern and the waves' height.
+        int foamPart = build.Emit(
+            Op.Lerp, build.Emit(Op.Lerp, build.Constant(Vector4.Zero), foam, swellFoamed), field, fieldFoamed);
+        build.Into(foamPart, foamed, Only(3, 0));
+        int state = build.Emit(Op.Swizzle, through, extra: AllFrom(0));
+        build.Into(state, build.Emit(Op.OneMinus, shore), Only(1, 0));
+        build.Into(state, shimmer, Only(2, 0));
+        build.Into(state, waves, Only(3, 3));
+        water.Glossy = Finish(build, colour, specular, gloss, [WaterGraph], hasAlpha: true, plainable: false, waves, foamPart, state)
             ?? throw new InvalidOperationException("the water's waves do not fit their registers");
         return water;
+    }
+
+    /// <summary>
+    /// The water's colour handed over in parts, for the light to work out as the engine's water pass does (SceneLight.ShadeWater).
+    /// </summary>
+    /// <param name="FoamPart">The foam as albedo, linear, already times its cover - in xyz; the cover in w.</param>
+    /// <param name="State">What gets through the medium, <c>exp(-distance * density)</c>, in x; the shore's <c>water_to_terrain_ratio</c> in y;
+    /// the colour's moving pattern, a factor on the area's colour, in z; the waves' height in w - up being plus.</param>
+    public readonly record struct WaterOut(Vector4 FoamPart, Vector4 State)
+    {
+        /// <summary>The foam's albedo, linear, times its cover - nought where none lies.</summary>
+        public Vector3 Foam => new(FoamPart.X, FoamPart.Y, FoamPart.Z);
+
+        /// <summary>How much of the surface the foam covers.</summary>
+        public float Share => FoamPart.W;
+
+        /// <summary>How much of what lies behind gets through the medium.</summary>
+        public float Through => State.X;
+
+        /// <summary>The shore's <c>water_to_terrain_ratio</c>: one where the water has thinned to nothing over the floor.</summary>
+        public float Terrain => State.Y;
+
+        /// <summary>The colour's moving pattern - see <see cref="Water"/>.</summary>
+        public float Shimmer => State.Z;
+
+        /// <summary>The waves' height, up being plus - what the medium's scattering reads (GetTotalWaveSurfaceNumerical's <c>curvature</c>).</summary>
+        public float Height => State.W;
     }
 
     /// <summary>
@@ -187,6 +239,7 @@ public sealed partial class ShadeProgram
             ? swells
             : Swells with { Said = lookups.SwellSaid });
         UseBeach(lookups);
+        UseField(lookups);
     }
 
     /// <summary>
@@ -328,6 +381,15 @@ public sealed partial class ShadeProgram
             return Vector4.Zero;
         }
 
+        FoamTerms terms = FoamTermsAt(sheet, place, swell, clock, depth, shore);
+        return FoamColour(place, terms.Trail, terms.Front, 0.4f, 0.05f, 0.6f, terms.Shallow, terms.ShallowFoam);
+    }
+
+    /// <summary>The terms the swell's foam is made of at a place - what <see cref="Foam(WaterSheet, Vector2, Vector4, float, float, ShoreField?)"/> draws and the probe says.</summary>
+    private readonly record struct FoamTerms(Tide Tide, float Trail, float Front, float Shallow, float ShallowFoam);
+
+    private static FoamTerms FoamTermsAt(WaterSheet sheet, Vector2 place, Vector4 swell, float clock, float depth, ShoreField shore)
+    {
         Tide tide = TideAt(sheet, place, swell, clock, shore);
         float trail = Saturated(tide.Profile.Z) * Saturated(depth / 25f);
         float front = tide.Leading ? tide.Profile.W : 0f;
@@ -335,7 +397,32 @@ public sealed partial class ShadeProgram
         float shallowFoam = -(tide.ShoreDist - 0.18f) * 10f;
         shallow = Saturated(MathF.Max(shallow, shallowFoam));
         front = Saturated(shallowFoam < 1f ? front / (0.1f + (1f - Saturated(shallowFoam))) : 1f);
-        return FoamColour(place, trail, front, 0.4f, 0.05f, 0.6f, shallow, shallowFoam);
+        return new FoamTerms(tide, trail, front, shallow, shallowFoam);
+    }
+
+    /// <summary>
+    /// The swell's foam at a probed pixel of water, term by term - see <see cref="ProbeSwell"/>: worked out by the same functions that draw it.
+    /// </summary>
+    /// <param name="place">Where on the water, in world units.</param>
+    /// <param name="swell">The area's swell - WaterLook.SwellRegister.</param>
+    /// <param name="clock">The clock, in seconds.</param>
+    /// <param name="depth">How much water the view crosses to the solid behind.</param>
+    /// <param name="shore">The room's shore.</param>
+    public static ProbeSwell SwellProbe(Vector2 place, Vector4 swell, float clock, float depth, ShoreField shore)
+        => SwellProbe(Swells, place, swell, clock, depth, shore);
+
+    /// <summary>The same, over a given cross-section.</summary>
+    public static ProbeSwell SwellProbe(WaterSheet sheet, Vector2 place, Vector4 swell, float clock, float depth, ShoreField shore)
+    {
+        ArgumentNullException.ThrowIfNull(sheet);
+        ArgumentNullException.ThrowIfNull(shore);
+        FoamTerms terms = FoamTermsAt(sheet, place, swell, clock, depth, shore);
+        Vector4 foam = FoamColour(place, terms.Trail, terms.Front, 0.4f, 0.05f, 0.6f, terms.Shallow, terms.ShallowFoam);
+        shore.At(place, out _, out float ocean);
+        string cell = shore.CellAt(place, out int cellX, out int cellY);
+        return new ProbeSwell(
+            place, depth, terms.Tide.ShoreDist, ocean, terms.Tide.Phase, terms.Tide.Profile, terms.Tide.Leading, terms.Trail, terms.Front,
+            terms.Shallow, terms.ShallowFoam, foam.W, cellX, cellY, cell);
     }
 
     /// <summary>GetFoamColor3, its leading edge's textured layers left out (see <see cref="Foam(Vector2, Vector4, float, float, ShoreField?)"/>) and no offset.</summary>

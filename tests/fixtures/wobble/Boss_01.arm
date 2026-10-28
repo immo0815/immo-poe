@@ -1,0 +1,320 @@
+version 36
+10
+"Metadata/Terrain/Islands/Tiles/Island/island_ocean.gt"
+"Metadata/Terrain/Maps/Port/Tiles/Coast/Port_Coast_Edge.et"
+"Metadata/Terrain/Islands/Tiles/TropicalIsland/tropical_fill.gt"
+"Metadata/Terrain/Maps/Port/Tiles/OceanEdge/BuildingEdge_OceanEdge.et"
+"Metadata/Terrain/Islands/Tiles/TwilightIsland/island_town_unwalkable_fill.gt"
+"Metadata/Terrain/wildcard.et"
+"BossRoom"
+"Metadata/Terrain/Maps/Port/Tiles/OceanEdge/Port_Ocean_Edge.et"
+"Metadata/Terrain/Maps/Port/Tiles/PortBuildingWall.et"
+"Metadata/Terrain/Maps/Stronghold/Tiles/Stronghold_Ocean_Edge.et"
+7 1
+3 4
+"Boss"
+1 0
+k 19 25 0 10 0 4 57 57 75 75 57 57 75 75 1 1 5 5 0 0 0 0 0 0
+0 0 0
+0 0 0
+0 0 0
+0 0 0
+0 0 0
+10 0 0 0 0
+0 0 0
+0 0 0
+0 0 0
+0 0 0
+4 0 0 1 1
+0 0 0
+0 0 0
+0 0 0
+167 226 0 "mapboss"
+-1
+-1
+-1
+-1
+300 195 4.71239 "checkpoint"
+-1
+-1
+""
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 2 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 3 n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 k 15 21 0 6 0 6 45 45 37 63 45 45 13 63 1 1 5 5 0 0 0 0 7 0 n n n n n n n n n n n n n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 n n n n n n n n n n n n n n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 n n n n n n n n n n n n n n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 n n n n n n n n n n n n n n n k 3 3 0 2 0 2 9 9 4 9 9 9 4 9 1 1 3 3 0 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 1 1 1 1 0 0 0 0 0 1 n n n n n n n n n n n n n n n k 3 3 0 8 0 8 9 9 4 9 9 9 4 9 3 3 0 0 0 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 0 2 0 2 9 9 7 9 9 9 4 9 1 1 3 3 0 0 0 0 0 1 n n n n n n n n n n n n n n n k 3 3 0 9 0 9 9 9 4 9 9 9 4 9 0 0 5 5 0 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 0 4 0 4 9 9 4 9 9 9 4 9 3 3 5 5 0 0 0 0 0 1 n n n n n n n n n n n n n n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 5 5 5 5 0 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n
+n n n n n n n n n n n n n n n n n n n
+n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 5 5 5 5 0 0 0 0 0 1 k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 5 5 5 5 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 5 5 5 5 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 5 5 5 5 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 5 5 5 5 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 5 5 5 5 0 0 0 0 0 0 n n k 3 3 0 0 0 0 9 9 9 9 9 9 9 9 5 5 5 5 0 0 0 0 0 0 n
+n n n n n n n n n n n n n n n n n n n
+286 203 0 1.6057 0 0 0.71934 0.694658 1 0 1 3 1 "Metadata/Terrain/Doodads/Checkpoints/unique/EzomyteCheckpoint.ao" "Metadata/MiscellaneousObjects/Checkpoints/Checkpoint_Endgame_Boss" 0
+169 195 1 1846.39 2125 -0 0 0 0 1 0 0 1 0 1 "Metadata/Terrain/Maps/Port/Tiles/boss_boat.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+148 201 0 -0 0 0 0 1 0 0 0 1 "Metadata/Terrain/Doodads/Islands/Boatnaut/BoatWobbleCores/BoatnautWobbleCore_small.ao" "Metadata/Terrain/Gallows/Act4/4_6/Objects/BoatWobbleCore" 0
+72 188 1 787.053 2052.53 1.92374e-05 0 0 9.6187e-06 1 0 0 1 -320.312 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaController" 0
+219 178 1 2389.46 1941.38 -9.0896e-06 0 0 -4.5448e-06 1 0 0 1 -328.125 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+219 172 1 2389.46 1876.16 -9.0896e-06 0 0 -4.5448e-06 1 0 0 1 -328.125 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+219 184 1 2389.46 2006.49 -9.0896e-06 0 0 -4.5448e-06 1 0 0 1 -328.125 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+219 190 1 2389.46 2071.82 -9.0896e-06 0 0 -4.5448e-06 1 0 0 1 -328.125 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+219 196 1 2389.46 2137.03 -9.0896e-06 0 0 -4.5448e-06 1 0 0 1 -328.125 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+219 202 1 2389.46 2202.25 -9.0896e-06 0 0 -4.5448e-06 1 0 0 1 -328.125 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+219 208 1 2389.46 2267.47 -9.0896e-06 0 0 -4.5448e-06 1 0 0 1 -328.125 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+219 166 1 2389.46 1810.93 -9.0896e-06 0 0 -4.5448e-06 1 0 0 1 -328.125 1 "Metadata/Terrain/Doodads/Tools/marker4.ao" "Metadata/MiscellaneousObjects/BossArenaBlocker" 0
+129 183 0 1.02975 0 0 0.492424 0.870355 0 0 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/BossLeagueContentMarkerMain" 0
+146 110 0 1.0472 0 0 0.5 0.866025 0 0 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/BossLeagueContentMarker" 0
+192 207 0 -0.523599 0 0 -0.258819 0.965926 0 0 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/BossLeagueContentMarker" 0
+198 123 0 -2.43619 0 0 0.938443 -0.345435 0 0 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/BossLeagueContentMarker" 0
+141 130 0 2.09439 0 0 0.866025 0.5 0 0 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Condition_01.ao" "Metadata/MiscellaneousObjects/BossLeagueContentMarker" 0
+194 42 1 2110.8 459.882 -0.0611199 0 0 -0.0305552 0.999533 0 0 1 -465 1 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateLarge02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+193 42 1 2107.92 463.852 -0.12844 0 0 -0.0641756 0.997939 0 0 1 -530 1 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateLarge02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+200 31 1 2179.75 343.592 -1.62075 0 0 -0.724545 0.689227 1 0 1 -430 1 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateLarge02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+193 34 1 2102.72 377.076 1.50967 0 0 0.68517 0.728383 1 0 1 -470 1 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateLarge02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+193 34 1 2105.71 375.126 1.49851 0 0 0.681092 0.732198 0 0 1 -530 1 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateLarge02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+182 38 1 1987.33 414.503 -0.0611199 0 0 -0.0305552 0.999533 0 0 1 -595 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+177 41 1 1925.73 449.694 -1.52953 0 0 -0.692369 0.721544 0 0 1 -465 1 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateLarge02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+176 41 1 1922.74 447.471 -3.07014 0 0 0.999362 -0.0357165 0 0 1 -530 1 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateLarge02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+187 36 1 2039.45 392.479 -0.223348 0 0 -0.111442 0.993771 1 0 1 -595 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+185 33 1 2017.27 364.816 -1.46221 0 0 -0.667694 0.744436 1 0 1 -530 1 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateLarge02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+184 41 1 2010.58 447.466 0.0301085 0 0 0.0150537 0.999887 0 0 1 -530 1 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateLarge02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+185 33 1 2013.36 367.721 -1.52953 0 0 -0.692369 0.721544 1 0 1 -465 1 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateLarge02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+184 41 1 2008.71 451.743 0.0412559 0 0 0.0206265 0.999787 1 0 1 -465 1 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateLarge02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+177 33 1 1930.41 361.323 -3.10033 0 0 0.999787 -0.020631 0 0 1 -465 1 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateLarge02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+177 33 1 1928.53 364.405 -3.08915 0 0 0.999656 -0.026216 1 0 1 -530 1 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateLarge02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+128 34 1 1396.08 379.497 0.138979 0.0264095 -0.00040812 0.0694471 0.997236 0 0 1 -463.125 1 "Metadata/Terrain/Doodads/General/Weapons/Cannons/Cannons01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+143 76 1 1557.56 830.867 -0 0 0 0 1 0 0 1 -453.125 0.9 "Metadata/Terrain/Doodads/Woods/Courtyard/BarrelWet.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+175 63 1 1906.08 693.803 -2.71395 0.186142 0.721205 -0.658128 0.10992 1 0 1 -505 1.05 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+174 69 1 1897.26 755.078 -0.366349 -0.724239 -0.165852 -0.0877295 0.663532 0 0 1 -500 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+174 69 1 1899.79 752.107 -1.63729 0 0 -0.730222 0.68321 1 0 1 -545 0.85 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+194 42 1 2116.97 457.43 2.764 0 0 0.982231 0.187676 1 0 1 -460 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+176 39 1 1914.14 430.742 1.42392 0.621081 -0.402809 0.574794 -0.348734 0 0 1 -550 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+185 42 1 2019.05 461.325 -2.72253 0.093156 -0.734383 -0.145204 0.656445 0 0 1 -520 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+193 39 1 2099.09 428.451 -1.88363 0.608404 0.421712 -0.585243 -0.330899 1 0 1 -560 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+193 42 1 2101.13 461.948 1.25797 0.691641 -0.27878 0.633981 -0.204897 1 0 1 -490 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+187 41 1 2035.77 452.669 1.25797 0.691641 -0.27878 0.633981 -0.204897 1 0 1 -490 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+175 41 1 1910.97 453.312 -0.0763877 0.713829 -0.215717 0.613083 -0.260852 1 0 1 -490 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+179 47 1 1950.63 517.46 -3.0571 0 0 0.999108 -0.0422315 1 0 1 -455 1.35 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateMedium01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+176 33 1 1915.45 361.157 0.304783 0.620768 -0.405741 0.496657 -0.450946 0 0 1 -545 1.4 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+187 34 1 2038.64 369.704 1.42392 0.621081 -0.402809 0.574794 -0.348734 0 0 1 -555 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+195 34 1 2121.58 378.3 1.6253 -0.21647 0.703752 -0.0973984 0.669617 0 0 1 -510 1.3 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+186 37 1 2030.1 407.467 2.95985 0 0 0.995874 0.0907474 0 0 1 -595 1.15 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+200 31 1 2176.89 347.395 0.181744 0 0 0.0907472 0.995874 1 0 1 -500 0.6 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+127 35 1 1386.87 382.109 -2.47099 0.21784 0.78289 -0.522057 0.259009 0 0 1 -495 1.25 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+122 49 1 1328.89 535.442 0.189133 0.0264114 0.00025511 0.0944643 0.995178 0 0 1 -453.125 1 "Metadata/Terrain/Doodads/General/Weapons/Cannons/Cannons02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+121 47 1 1322.79 521.209 -2.47685 0.175104 0.746137 -0.570223 0.295742 0 0 1 -490 1.1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+132 43 1 1435.72 468.177 1.9215 0.0118177 -0.0284939 0.819116 0.572798 1 0 1 -456 1.15 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+182 64 1 1978.53 700.969 3.08375 0 0 0.999582 0.0289174 1 0 1 -415 1.35 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateMedium01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+195 18 0 -0 0 0 0 1 0 0 1 -275 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter18.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+134 18 1 1460.1 204.626 -0.547355 0 0 -0.270274 0.962783 0 0 1 -275 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter19.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+191 51 1 2081.04 557.14 0.0646759 0.0134879 -0.0341066 0.0318197 0.99882 1 0 1 -460 1.15 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+121 100 1 1326.02 1094.34 -2.43083 0 0 0.937514 -0.347948 1 0 1 -330.938 0.95 "Metadata/Terrain/Doodads/Islands/KedgeBay/ScatteredCrates/ScatteredCratesBarnacle04.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+147 94 1 1608.5 1031.59 -0.227796 0 0 -0.113652 0.993521 0 0 1 -335.938 0.65 "Metadata/Terrain/Doodads/Islands/KedgeBay/ScatteredCrates/ScatteredCratesBarnacle04.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+117 111 1 1276.34 1207.05 -2.32403 0.29022 0.707839 -0.583601 0.2723 0 0 1 -370 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+118 111 0 0.0849796 0.0263888 -0.00112193 0.0424622 0.998749 0 0 1 -333.125 1 "Metadata/Terrain/Doodads/General/Weapons/Cannons/Cannons01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+118 110 1 1290.57 1199.51 -2.70601 0.163848 0.924153 -0.293207 0.182002 0 0 1 -385 1.3 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+132 96 1 1440.25 1047.85 -1.10037 0 0 -0.522843 0.852429 0 0 1 -335 1.25 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+136 33 1 1481.65 363.44 -2.70947 0.00712772 -0.00582581 0.976701 -0.214408 1 0 1 -466 1.1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+177 20 0 -0 0 0 0 1 1 0 1 -280 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter17.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+188 11 0 -0 0 0 0 1 1 0 1 -280 0.85 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter16.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+150 20 1 1640.83 219.186 -0 0 0 0 1 1 0 1 -280 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter15.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+185 55 1 2014.3 601.799 1.55325 0.696041 -0.693434 0.101989 0.155801 1 0 1 -450 1.1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+177 46 1 1933.49 509.704 -2.27186 0.00142247 -0.0160837 0.90676 -0.421337 1 0 1 -460 1.15 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+168 40 1 1827.87 436.197 1.83158 -0.607476 0.791793 0.044291 0.0455484 1 0 1 -485 1.15 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+169 31 1 1844.53 339.488 3.13101 0 0 0.999986 0.00529084 1 0 1 -425 1.35 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateMedium01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+190 39 0 1.55979 0.0227867 -0.0212086 0.702886 0.710621 0 0 1 -463 1 "Metadata/Terrain/Doodads/General/NaturalGroundScatter/dirtpile01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+177 49 0 1.55979 0.014961 -0.0134681 0.703077 0.710829 0 0 1 -458 1 "Metadata/Terrain/Doodads/General/NaturalGroundScatter/dirtpile01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+147 36 0 0.0732991 0.00932139 0.00889209 0.0367212 0.999243 1 0 1 -464 1 "Metadata/Terrain/Doodads/General/NaturalGroundScatter/dirtpile05.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+124 89 1 1351.48 974.832 -0 0 0 0 1 1 0 1 -345 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter24.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+135 91 1 1471.76 996.536 1.60377 0 0 0.718669 0.695352 0 0 1 -345 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter21.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+136 97 1 1479.47 1056.14 -0.227796 0 0 -0.113652 0.993521 0 0 1 -336 0.85 "Metadata/Terrain/Doodads/Islands/KedgeBay/ScatteredCrates/ScatteredCratesBarnacle05.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+124 72 1 1354.48 787.131 -1.44821 0 -0 -0.662467 0.749091 1 0 1 -440 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter14.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+119 126 1 1301.5 1370.12 -1.55929 0 0 -0.703027 0.711163 1 0 1 -320 0.8 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter14.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+137 90 1 1499.32 986.027 -0 0.384841 0 0 0.922983 1 0 1 -362.812 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+148 92 1 1615.05 1009.16 -0.181499 0.312314 0.0167005 -0.0899027 0.945568 1 0 1 -347.812 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile04.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+160 87 1 1745 955.302 -0.181499 0.312314 0.0167005 -0.0899027 0.945568 1 0 1 -387.812 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile04.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+125 116 1 1359.3 1262.24 0.631243 0 0 0.310407 0.950604 1 0 1 -329 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile05.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+120 132 1 1304.71 1438.27 -3.01082 0 0 0.997863 -0.0653392 1 0 1 -322.812 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+158 106 1 1724.78 1162 -2.86281 -0.00535427 -0.0143848 0.990191 -0.138877 1 0 1 -335 1.25 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+150 101 1 1640.45 1107.41 0.631243 0 0 0.310407 0.950604 1 0 1 -327 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+145 110 1 1579.46 1201.7 -0.700685 0.010362 -0.00907759 -0.343262 0.939139 1 0 1 -330 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+129 102 0 0.0967974 0 0 0.0483798 0.998829 0 0 0 1 "Metadata/Terrain/Doodads/Tools/Blocker_Walk_Tri_1_1_01.ao" "Metadata/MiscellaneousObjects/DoodadInvisible" 0
+121 68 1 1315.31 739.543 1.27081 0.0221456 9.74319e-05 0.593548 0.804494 1 0 1 -440 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile05.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+125 79 1 1359.64 861.804 1.06832 0.0220419 -0.00214243 0.509156 0.860389 1 0 1 -437 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+136 71 1 1479.53 774.118 -0.864273 0 0 -0.418812 0.908073 0 0 1 -453.125 0.95 "Metadata/Terrain/Doodads/Woods/Courtyard/BarrelTwoWet.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+204 38 1 2223.56 419.672 2.45898 -0.211535 0.736638 -0.584059 -0.267382 1 0 1 -495 1.1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+204 40 1 2219.61 436.579 -0.207207 0.026408 -0.000493859 -0.103466 0.994282 1 0 1 -453.125 1 "Metadata/Terrain/Doodads/General/Weapons/Cannons/Cannons01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+206 38 1 2240.35 414.208 -0.192491 0.734917 0.0398007 -0.0985411 0.669778 1 0 1 -495 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+204 90 1 2222.38 983.904 0.631243 0.202355 -0.0660762 0.303293 0.928816 1 0 1 -362.812 1.35 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+188 272 1 2054.13 2958.43 -2.03067 0 0 -0.849656 0.527337 1 0 1 -460 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter23.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+147 277 1 1598.15 3013.83 -1.40203 0 0 -0.644992 0.764189 1 0 1 -455 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter22.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+159 276 1 1729.04 3005.99 -2.68259 0 0 0.973779 -0.227494 1 0 1 -455 1.15 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter21.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+179 281 1 1955.67 3059.81 -2.90601 0 0 0.993071 -0.117517 1 0 1 -445 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter19.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+174 247 1 1901.51 2694.63 0.52024 -0.175569 0.0855145 0.245159 0.94961 1 0 1 -377.81 1.25 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+151 275 1 1647.85 2992.77 -0.169363 0 0 -0.0845802 0.996417 1 0 1 -453 1.8 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+182 267 1 1986.46 2907.45 0 -0.116946 0 0 0.993138 1 0 1 -462.81 1.3 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile05.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+199 281 1 2164.88 3060.4 -1.40796 0 0 -0.647256 0.762273 1 0 1 -460 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter22.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+126 280 1 1377.31 3054.28 -1.40796 0 -0 -0.647256 0.762273 1 0 1 -460 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter21.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+124 263 1 1351.65 2864.5 -1.40796 0 0 -0.647256 0.762273 1 0 1 -345 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter16.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+209 262 1 2281.42 2857.36 1.55971 0 0 0.703177 0.711015 0 0 1 -345 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter14.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+123 263 1 1345.9 2863.69 0.365745 0 0 0.181855 0.983325 1 0 1 -337.81 1.5 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile05.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+212 252 1 2304.92 2748.62 -0 0 0 0 1 1 0 1 -332.81 1.6 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+153 242 1 1665.02 2632.01 -0.631248 -0.158595 -0.0517873 -0.306059 0.93728 0 0 1 -347.81 1.3 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile04.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+166 242 1 1805.64 2640.5 0 -0.0166612 0 0 0.999861 1 0 1 -342.81 1.55 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile04.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+208 247 1 2266.31 2685.3 1.43586 0 0 0.657828 0.753168 0 0 1 -336 0.85 "Metadata/Terrain/Doodads/Islands/KedgeBay/ScatteredCrates/ScatteredCratesBarnacle04.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+123 247 1 1345.38 2687.53 -0.227792 0 0 -0.11365 0.993521 0 0 1 -336 0.85 "Metadata/Terrain/Doodads/Islands/KedgeBay/ScatteredCrates/ScatteredCratesBarnacle06.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+165 272 1 1797.03 2963.62 -0.183014 -0.664744 -0.0735052 -0.0567723 0.741275 1 0 1 -607.81 0.95 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+165 274 1 1795.61 2985.63 -0 0 0 0 1 1 0 1 -532.81 0.95 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+167 282 1 1820.95 3067.97 1.70151 0 0 0.751778 0.659416 1 0 1 -425 1.1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter22.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+137 237 1 1499.69 2583.68 -0.964377 -0.00151682 -0.00954527 -0.463658 0.885962 0 0 1 -332 1.55 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+122 234 1 1333.8 2553.25 0.0453771 0 0 0.0226866 0.999743 1 0 1 -340 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter22.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+214 220 1 2328.15 2400.7 3.07481 -0.0090525 0.00338585 0.999397 0.0333509 1 0 1 -327 1.55 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+208 232 1 2266.69 2532.16 -0.0632375 0 0 -0.0316135 0.9995 1 0 1 -340 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter21.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+195 226 1 2125.3 2464.52 2.993 0.000321401 0.0236496 0.996959 0.0742578 1 0 1 -336 1.1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+194 244 1 2119.43 2659.74 -1.64351 0 0 -0.732341 0.680938 0 0 1 -350.938 0.65 "Metadata/Terrain/Doodads/Islands/KedgeBay/ScatteredCrates/ScatteredCratesBarnacle06.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+186 238 1 2031.71 2597.59 -0.651814 0 0 -0.320168 0.947361 0 0 1 -335.94 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/ScatteredCrates/ScatteredCratesBarnacle04.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+132 232 1 1435.25 2532.12 0.000625467 -0.0363321 -0.00292026 0.000419106 0.999335 1 0 1 -335 1.4 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+160 234 1 1745.04 2553.29 0.687339 0 0 0.336944 0.941525 1 0 1 -335 1.4 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+181 232 1 1969.12 2523.41 -3.08799 0.00347694 0.0182382 0.99947 -0.026739 1 0 1 -334 1.55 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+211 99 1 2300.22 1080.67 1.74258 0 0 0.765159 0.643841 0 0 1 -338.75 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonCages/CageBarnacles_04.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+204 106 1 2227.07 1153.13 -2.95812 0.00577569 -0.0085928 0.995737 -0.0916566 1 0 1 -337.812 1.35 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile05.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+187 95 1 2038.64 1038.05 -1.2713 0.160761 0.11067 -0.583305 0.788456 1 0 1 -338.75 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonCages/CageBarnacles_10.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+213 169 1 2316.66 1837.75 -3.11983 0 0 0.999941 -0.0108808 0 0 1 -325 0.7 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter13.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+213 120 0 -2.57333 0 0 0.959906 -0.280324 1 0 1 -333.125 1.15 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonSingleProps/StoolBarnacle_01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+34 97 1 375.878 1064.84 2.88927 0 0 0.992052 0.125829 0 0 1 465.625 1 "Metadata/Terrain/Doodads/Islands/PirateBay/Arena/ArenaNets03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+153 57 1 1663.7 622.931 0.0441746 0 0 0.0220855 0.999756 0 0 1 -448.12 1 "Metadata/Terrain/Doodads/Woods/Courtyard/BarrelWet1.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+141 58 1 1539.26 640.462 -2.18934 0 0 0.888777 -0.45834 1 0 1 -450 1.35 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateMedium01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+153 41 1 1664.96 455.315 3.02505 0.00121574 -0.0208392 0.998085 0.0582276 0 0 1 -458.125 1.1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter16.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+164 52 1 1784.77 575.071 -0 0 0 0 1 0 0 1 -453.125 0.9 "Metadata/Terrain/Doodads/Woods/Courtyard/BarrelWet.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+163 52 1 1774.48 569.057 -2.86245 0.0280704 -0.0127911 0.989768 -0.139311 1 0 1 -451 1.15 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+153 75 1 1668.78 822.562 -0.777846 -0.457547 -0.574443 0.287231 0.614951 0 0 1 -495 1.3 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+154 91 1 1674.71 996.482 -1.48419 0.254161 0.266774 -0.621003 0.691801 0 0 1 -360 1.05 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+149 97 1 1620.4 1058.75 -0 0 0 0 1 1 0 1 -335 1.25 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+119 155 1 1300.12 1692.91 -1.95282 0.0477732 -0.0415585 -0.826558 0.559278 0 0 1 -333.125 0.95 "Metadata/Terrain/Doodads/General/Weapons/Cannons/Cannons01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+122 152 1 1332.35 1655.14 0.240046 0.00190052 -0.0157663 0.119662 0.992688 0 0 1 -319 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+121 136 1 1319.13 1485.82 -0.653384 0.0115288 0.00390634 -0.320888 0.947039 1 0 1 -326 0.85 "Metadata/Terrain/Doodads/Islands/KedgeBay/ScatteredCrates/ScatteredCratesBarnacle05.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+119 147 1 1295.09 1605.16 -1.68093 0 0 -0.744952 0.667118 1 0 1 -315 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter13.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+119 129 0 -1.61574 0 0 -0.722818 0.691038 0 0 1 -303.125 0.45 "Metadata/Terrain/Doodads/Tools/Blocker_Walk_4_1_01.ao" "Metadata/MiscellaneousObjects/DoodadInvisible" 0
+200 92 1 2183.84 1001.55 -1.94479 0.00197287 -0.0120115 -0.826133 0.563344 0 0 1 -336 1.1 "Metadata/Terrain/Doodads/Islands/KedgeBay/ScatteredCrates/ScatteredCratesBarnacle06.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+114 151 1 1246.12 1649.62 -2.69979 -0.173385 0.705114 0.493804 -0.478444 0 0 1 -315 1.5 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+125 157 1 1361.15 1717.06 0.00101736 -0.012363 0.0593066 -0.000228526 0.998163 0 0 1 -315 1.25 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+119 171 1 1303.24 1861.36 -1.55819 0.0120765 -0.00152709 -0.702635 0.711446 1 0 1 -321 0.85 "Metadata/Terrain/Doodads/Islands/KedgeBay/ScatteredCrates/ScatteredCratesBarnacle03.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+205 57 1 2230.62 627.177 1.47436 0 0 0.672204 0.740366 1 0 1 -455 1 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter23.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+196 75 1 2135.38 819.55 0.217864 0.00612318 -0.0073869 0.108666 0.994032 0 0 1 -442 1.25 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+211 71 1 2300.5 772.463 0.203131 0 0 0.101391 0.994847 0 0 1 -442 1.15 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+212 74 1 2309.87 814.358 1.86736 -0.000197141 0.012171 0.803712 0.594894 1 0 1 -441 0.85 "Metadata/Terrain/Doodads/Islands/KedgeBay/ScatteredCrates/ScatteredCratesBarnacle04.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+190 24 1 2075.89 267.933 -2.04315 0.349742 0.597337 0.608704 -0.387748 1 0 1 -347 1.55 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+148 24 1 1617.47 265.519 2.04458 -0.359917 0.591262 0.615252 0.377271 0 0 1 -342 1.55 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+151 292 1 1642.74 3175.48 -0.168645 0 -0 -0.0842225 0.996447 0 0 1 -690.312 0.9 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsBarrels/SlumsBarrelGroup13.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+128 295 1 1394.78 3209.94 0.479235 0 0 0.237331 0.971429 0 0 1 -693.125 0.9 "Metadata/Terrain/Doodads/Woods/Courtyard/BarrelTwoWet.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+151 33 1 1648.41 361.22 -3.04288 0 0 0.998782 -0.0493338 0 0 1 -443.125 0.85 "Metadata/Terrain/Doodads/Islands/PirateBay/BrinerotProps/Crates01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+212 166 1 2310.98 1809.1 0.0846554 -0.00886786 -0.00534421 0.0423621 0.999049 1 0 1 -321 1.35 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+172 305 1 1870.89 3316.75 0 -0.707107 0 0 0.707107 1 0 1 -851 1.35 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+156 290 1 1704.16 3153.53 1.16209 0.00500463 0.0201388 0.548668 0.835783 1 0 1 -691 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+176 301 1 1917.12 3276.11 -1.61662 0 0 -0.723121 0.690721 0 0 1 -685.94 1.2 "Metadata/Terrain/Doodads/Islands/KedgeBay/ScatteredCrates/ScatteredCratesBarnacle06.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+186 301 1 2031.84 3273.99 0.479235 0 0 0.237331 0.971429 0 0 1 -693.125 0.9 "Metadata/Terrain/Doodads/Woods/Courtyard/BarrelWet.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+170 285 1 1849.22 3104.37 3.04288 0 0 0.998782 0.0493338 1 0 1 -683.125 0.85 "Metadata/Terrain/Doodads/Islands/PirateBay/BrinerotProps/Crates01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+131 57 1 1429.55 621.247 -1.74953 0.639012 0.766568 -0.0347067 0.0532146 1 0 1 -465 1.15 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+153 64 1 1665.16 700.996 0.0743095 0 0 0.0371462 0.99931 1 0 1 -430 1.35 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateMedium01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+118 94 1 1292.49 1031.14 -0.70068 0.010362 -0.00907761 -0.34326 0.939139 1 0 1 -332 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+114 252 1 1240.93 2739.72 0.00653915 0.0801163 -0.675589 -0.0738864 0.729179 1 0 1 -397 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+139 251 1 1513.57 2736.16 -1.54988 0 0 -0.699672 0.714464 1 0 1 -335 0.95 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter24.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+171 63 1 1859.48 692.046 1.5952 -0.506702 0.549946 -0.457967 -0.480706 0 0 1 -470 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+192 61 1 2094.75 667.36 0.593486 0 0 0.292407 0.956294 1 0 1 -446 1.1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+181 50 1 1972.88 549.523 3.1151 0 0 0.999912 0.0132478 1 0 1 -450 1.1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+127 115 1 1380.96 1259.15 0.999217 0 0 0.479082 0.87777 1 0 1 -330 1.1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+205 206 1 2238.33 2247.51 1.39283 0.0158276 -0.0166566 0.641255 0.766984 0 0 1 -330 1.1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+199 220 1 2165.98 2393.02 2.36496 -0.0171613 0.0152678 0.925383 0.378337 1 0 1 -332 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+189 282 1 2061.29 3072 0.921525 0.273185 -0.647034 -0.132653 0.699371 0 0 1 -704 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+205 87 1 2232.23 955.221 1.71892 0.680139 -0.367353 -0.627253 0.0949545 0 0 1 -390 1.25 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+187 101 1 2039.92 1106.46 -3.14159 0 0 1 -4.37114e-08 1 0 1 -335 1.3 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+185 88 1 2014.13 963.508 1.89938 0.222723 -0.307928 0.752681 0.53763 0 0 1 -388 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+202 126 1 2197.17 1370.54 0.496904 0.0136759 -0.00165629 0.245904 0.969196 1 0 1 -328 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+186 68 1 2023.74 747.502 0.203131 0 0 0.101391 0.994847 0 0 1 -442 1.15 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+131 43 1 1433.41 467.552 1.24016 0.00916754 -0.00654593 0.581065 0.813779 1 0 1 -452 1.15 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile05.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+120 214 1 1309.02 2332.94 2.77346 0.00723756 0.0117214 0.982997 0.183105 1 0 1 -328 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+131 170 1 1430.01 1858.26 2.03104 0.00897031 0.0197057 0.849441 0.527239 1 0 1 -319 1.3 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+116 216 1 1271.47 2353.53 0.0453771 0 0 0.0226866 0.999743 1 0 1 -340 0.75 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter13.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+114 114 1 1246.95 1246.85 2.03535 0.354522 0.608207 0.365452 0.608969 0 0 1 -384 1.1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+116 48 1 1269.4 525.017 -2.92519 0.0376666 0.672059 0.731075 -0.111565 0 0 1 -494 0.95 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+100 46 1 1088.91 510.487 -1.41112 0.172104 -0.160402 -0.635186 0.735656 0 0 1 93.4375 1 "Metadata/Terrain/Doodads/Islands/PirateBay/Gibbets/Hangman01_04.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+136 149 1 1487.02 1626.06 -1.63036 -0.00433209 0.0242747 -0.727429 0.68574 0 0 1 -323 1.3 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+211 87 1 2299.5 956.072 -1.46414 0.139395 0.110025 -0.659303 0.730605 0 0 1 -391 0.9 "Metadata/Terrain/Doodads/Islands/KedgeBay/ScatteredCrates/ScatteredCratesBarnacle07.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+206 99 1 2239.39 1084.11 -3.14159 0 0 1 -4.37114e-08 1 0 1 -335 1.3 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+173 96 1 1883.28 1052.61 -3.13906 -0.0198851 -0.0318625 0.999294 -0.000633843 0 0 1 -330 1.3 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+170 93 1 1851.85 1017.56 -0.701804 0.02391 0.00772614 -0.343659 0.938758 1 0 1 -340 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile05.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+149 39 1 1628.5 427.788 3.05575 0.0254396 -0.00659993 0.998742 0.0427025 1 0 1 -466 1.05 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+152 266 0 1.32435 0 0 0.614834 0.788657 0 0 1 -458.125 0.95 "Metadata/Terrain/Doodads/Islands/PirateBay/BrinerotProps/Crate03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+211 219 1 2297.46 2387.41 0.263923 0 0 0.131579 0.991306 1 0 0 1 "Metadata/Terrain/Doodads/Islands/PirateBay/BrinerotProps/fishBaskets08.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+209 203 1 2272.09 2216.95 -2.59247 0.0136918 -0.00921686 0.962391 -0.271165 1 0 1 -326 1.35 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+212 149 1 2308.87 1629.93 1.432 0 0 0.656374 0.754436 0 0 1 -326 0.85 "Metadata/Terrain/Doodads/Islands/KedgeBay/ScatteredCrates/ScatteredCratesBarnacle04.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+163 64 1 1772.74 697.234 0.593486 0 0 0.292407 0.956294 1 0 1 -450 1.1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+138 157 1 1502.76 1710.97 1.16601 0.0134613 0.00292693 0.550562 0.834681 1 0 1 -320 1.25 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile05.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+197 157 1 2151.76 1707.78 1.4445 0.0129248 0.00476679 0.661072 0.750196 1 0 1 -320 1.25 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile05.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+173 114 1 1888.2 1243.09 -0.701804 0.02391 0.00772614 -0.343659 0.938758 1 0 1 -330 1.2 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+127 180 1 1386.46 1965.3 -1.81835 0.0119275 0.00358189 -0.78898 0.614293 1 0 1 -317 1.35 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+212 135 1 2306.88 1475.63 1.91255 0 0 0.817049 0.576568 1 0 1 -326 0.75 "Metadata/Terrain/Doodads/Islands/KedgeBay/ScatteredCrates/ScatteredCratesBarnacle05.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+151 317 1 1642.89 3450.38 1.57547 0 0 0.708758 0.705452 1 0 1 -1027.81 1.4 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile05.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+163 333 1 1776.85 3627.13 0 -0.0489701 0 0 0.9988 1 0 1 -1042.81 1.4 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+154 304 1 1675.73 3313.81 0 -0.707107 0 0 0.707107 1 0 1 -891 1.35 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile04.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+180 311 1 1966.74 3385.09 -1.24573 0 0 -0.583365 0.81221 1 0 1 -1030 0.8 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter21.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+118 196 1 1286.9 2136.98 0.0453771 0 0 0.0226866 0.999743 1 0 1 -325 0.75 "Metadata/Terrain/Doodads/Islands/KedgeBay/KedgeScatter12.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+186 289 1 2022.67 3150.5 -0.705106 0 0 -0.345295 0.938494 0 0 0 0.85 "Metadata/Terrain/Doodads/Islands/PirateBay/BrinerotProps/fishBaskets09.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+182 263 1 1986.2 2860.63 3.20299e-09 -0.0218319 0.0156451 -0.000341684 0.999639 0 0 1 -453.125 1.3 "Metadata/Terrain/Doodads/Islands/PirateBay/BrinerotProps/fishBaskets04.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+177 252 1 1933.42 2744.92 0.674296 -0.296923 0.107816 0.312751 0.895768 1 0 1 -420 1.4 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+179 263 1 1950.37 2862.04 -0 0 0 0 1 1 0 1 -450 1.4 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+168 258 1 1836.91 2809.7 0.495563 -0.222773 0.0704285 0.235292 0.943424 1 0 1 -432.81 1.75 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile02.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+176 270 1 1918.39 2937.19 2.56239e-09 -0.0495287 0.0156296 -0.000775159 0.99865 0 0 1 -458.125 0.95 "Metadata/Terrain/Doodads/Islands/PirateBay/BrinerotProps/fishBaskets03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+50 318 1 546.581 3457.71 3.01636 0 0 0.99804 0.0625743 0 0 1 20.625 0.85 "Metadata/Terrain/Doodads/Islands/PirateBay/Arena/ArenaNets03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+147 296 1 1600.8 3219.81 2.6867 -0.161098 0.690775 -0.687009 -0.157788 1 0 1 -789 1.05 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+155 296 1 1691.08 3218.95 -2.6867 0.161098 0.690775 -0.687009 0.157788 0 0 1 -789 1.05 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+156 295 1 1697.62 3206.82 -2.85047 0.073843 0.790751 -0.590899 0.141768 0 0 1 -774 1.5 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+147 296 1 1603.96 3223.18 0.101556 -0.659725 0.0703437 0.00539789 0.748188 0 0 1 -779 1.5 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain01.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+114 113 1 1244.63 1234.56 0 0 -0.466486 0 0.884529 0 0 1 -430 1.5 "Metadata/Terrain/Doodads/Jungle/VaalProps/VaalWorkshop/Chisel02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+114 120 1 1245.16 1309.17 -0.328341 0.950347 0.12894 0.143811 -0.243994 0 0 1 -438 1.75 "Metadata/Terrain/Doodads/Jungle/VaalProps/VaalWorkshop/Chisel02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+203 102 0 1.41571 0 0 0.650206 0.759758 0 0 0 1 "Metadata/Terrain/Doodads/Tools/Blocker_Walk_Tri_1_1_01.ao" "Metadata/MiscellaneousObjects/DoodadInvisible" 0
+200 94 1 2179.01 1030.56 -1.58975 0.376969 0.361568 -0.615418 0.590274 0 0 1 -380 2.05 "Metadata/Terrain/Doodads/Jungle/VaalProps/VaalWorkshop/Chisel02.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+121 197 1 1318.15 2151.51 -2.25289 -0.0108749 -0.00606886 0.902852 -0.429772 1 0 1 -322 1.35 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile04.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+151 69 1 1646.29 751.669 -1.6085 0 0 -0.720309 0.693653 1 0 1 -405 0.95 "Metadata/Terrain/Doodads/Oriath/Slums/SlumsCrates/SlumsCrateGroup10.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+152 64 1 1652.24 696.299 -1.54161 -0.0807337 -0.101495 -0.689287 0.712786 0 0 1 -549 1.1 "Metadata/Terrain/Doodads/Islands/TwilightIsland/cargo19_01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+162 66 1 1763.33 722.475 0.20313 0.0136984 -0.00139609 0.101381 0.994752 0 0 1 -445 1.55 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile04.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+152 68 1 1659.8 746.21 0.121744 -0.431272 -0.088454 0.108742 0.891266 0 0 1 -579 0.85 "Metadata/Terrain/Doodads/Islands/TwilightIsland/cargo19_01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+168 60 1 1826.48 657.557 2.7776 0.129263 -0.0104959 0.97594 0.175275 0 0 1 -439 0.95 "Metadata/Terrain/Doodads/Islands/TwilightIsland/cargo21_01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+192 53 1 2097.22 579.474 0.203131 0 0 0.101391 0.994847 0 0 1 -449 1.55 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile01.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+161 40 1 1751.05 445.451 0.203131 0.0132282 -0.00134817 0.101382 0.994759 0 0 1 -454 1.55 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile05.ao" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+135 136 1 1472.46 1485.75 -1.74751 -0.00307165 0.0150385 -0.766582 0.641963 1 0 1 -328 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/PrisonTorture/chain03.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+133 115 1 1456.31 1257.66 -0.700685 0.010362 -0.00907759 -0.343262 0.939139 1 0 1 -330 1 "Metadata/Terrain/Doodads/Islands/PrisonIsland/BarnaclePiles/BarnaclePile04.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+179 230 0 -0 0 0 0 1 0 0 0 1 "Metadata/Terrain/Doodads/Jungle/CarverProps/Bog/BonePile05.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+157 266 1 1712.53 2896.48 1.3788 0 0 0.636076 0.771626 1 0 1 -478.125 0.6 "Metadata/Terrain/Doodads/Jungle/CarverProps/Bog/BonePile06.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+174 59 1 1898.03 646.942 0.0184638 0 0 0.00923176 0.999957 1 0 1 -453.125 0.8 "Metadata/Terrain/Doodads/Jungle/CarverProps/Bog/BonePile04.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+211 161 1 2298.72 1751.34 -3.12313 0 0 0.999957 -0.00923198 1 0 1 -326 0.85 "Metadata/Terrain/Doodads/Jungle/CarverProps/Bog/BonePile04.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+122 223 1 1326.64 2433.1 2.65938 0 0 0.971074 0.238779 1 0 1 -351 0.75 "Metadata/Terrain/Doodads/Jungle/CarverProps/Bog/BonePile05.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+119 231 1 1294.62 2512.24 -2.95174 0 0 0.995498 -0.0947846 1 0 1 -476 1.05 "Metadata/Terrain/Doodads/Jungle/CarverProps/Bog/BonePile06.ao" "Metadata/MiscellaneousObjects/Doodad" 0
+180 195 1 1958.01 2125.57 0.0449178 0 0 0.022457 0.999748 0 0 0 1 "Metadata/Terrain/Doodads/Tools/Marker_Pin_Construct_01.ao" "Metadata/MiscellaneousObjects/BossLeaguePrecursorBeacon" 0
+221 188 0 -1.57081 0 0 -0.70711 0.707104 0 0 0 1 "Metadata/Effects/Environment/act1/tutorial/twilight_strand/force_wall/force_wall.ao" "Metadata/MiscellaneousObjects/BossForceFieldDoorVisuals" 0
+-1
+-1
+-1
+0
+"caravan" 26 -102 261 454 "" "" 0
+"hide_teleports" 81 48 221 332 "Metadata/MiscellaneousObjects/SectorDisableInstantTeleports" "" 0
+"boss_sector" 59 51 221 302 "" "" 0
+"no_movement_skills" 219 199 223 337 "" "" 0
+"no_movement_skills" 219 53 224 179 "" "" 0
+"no_movement_skills" 93 53 219 58 "" "" 0
+"no_movement_skills" 93 331 219 336 "" "" 0
+-1
+0

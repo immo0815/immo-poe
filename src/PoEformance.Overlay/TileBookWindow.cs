@@ -167,8 +167,8 @@ public sealed class TileBookWindow : BookWindow<TileBook>
     /// <summary>Whether a room whose place is outlined is drawn as the area laid it - see LaidRoomModels.</summary>
     private bool _asLaid = true;
 
-    /// <summary>Whether a laid room's pieces are set at their tiles' own levels rather than fitted to the area's ground - see LaidRoomModels.</summary>
-    private bool _atLevel;
+    /// <summary>Whether a laid room's pieces are fitted to the area's ground rather than set at their tiles' own levels - see LaidRoomModels.</summary>
+    private bool _fitted;
 
     /// <summary>How high doodads with a height in their line are set - see DoodadHeight. Nought is the usual, at the line's height.</summary>
     private DoodadHeight _heights;
@@ -632,7 +632,7 @@ public sealed class TileBookWindow : BookWindow<TileBook>
         {
             // BUILT FROM ITS TILESET where the key names one, else the file alone - see BuiltRoomModels.
             return room.Built.Length > 0
-                ? BuiltRoomModels.Of(read, room.Path, room.Built, shaded: true, doodads: room.Doodads, tools: room.Tools, progress: progress, heights: room.Heights, mirrored: room.Mirrored)
+                ? BuiltRoomModels.Of(read, room.Path, room.Built, shaded: true, doodads: room.Doodads, tools: room.Tools, progress: progress, heights: room.Heights, mirrored: room.Mirrored, maskCells: room.MaskCells, groundHeights: room.GroundHeights)
                 : RoomModels.Of(read, room.Path, shaded: true, doodads: room.Doodads, tools: room.Tools, progress: progress, heights: room.Heights);
         }
 
@@ -641,9 +641,9 @@ public sealed class TileBookWindow : BookWindow<TileBook>
         TerrainGrid? grid = terrain?.Invoke();
         return grid is not null && Stamp(grid) == area
             ? LaidRoomModels.Of(
-                read, room.Path, grid, x, y, turn, shaded: true, doodads: room.Doodads, tools: room.Tools, atLevel: room.AtLevel,
+                read, room.Path, grid, x, y, turn, shaded: true, doodads: room.Doodads, tools: room.Tools, fitted: room.Fitted,
                 progress: progress, heights: room.Heights, entities: entities?.Invoke(),
-                camera: room.Hidden ? null : camera?.Invoke(), sight: !room.Hidden, cut: room.Cut)
+                camera: room.Hidden ? null : camera?.Invoke(), sight: !room.Hidden, cut: room.Cut, maskCells: room.MaskCells, groundHeights: room.GroundHeights)
             : MonsterModel.None with { Why = "the area this place was found in is gone - pick the room's place again" };
     }
 
@@ -933,12 +933,12 @@ public sealed class TileBookWindow : BookWindow<TileBook>
         if (_asLaid)
         {
             ImGui.SameLine();
-            ImGui.Checkbox("tile level##roomlevel", ref _atLevel);
+            ImGui.Checkbox("fitted##roomfitted", ref _fitted);
             if (ImGui.IsItemHovered())
             {
-                ImGui.SetTooltip("Each piece set at its tiles' own level - the height the area's ground is measured from - rather than"
-                    + " raised until its ground meets the area's on average.\n"
-                    + "Which of the two the game does is not settled: compare both with the game, and see the \"level:\" line under the picture.");
+                ImGui.SetTooltip("Each piece raised until its ground meets the area's on average, rather than set at its tiles' own level -"
+                    + " the height the area's ground is measured from, where the game draws it.\n"
+                    + "Kept to compare: fitted, Port's harbour stood 450 units too high. See the \"level:\" line under the picture.");
             }
 
             Hiding();
@@ -990,7 +990,7 @@ public sealed class TileBookWindow : BookWindow<TileBook>
     {
         string laid = LaidPlace();
         return new RoomKey(
-            chosen, _doodads, _tools, laid, AtLevel: laid.Length > 0 && _atLevel, Heights: _heights,
+            chosen, _doodads, _tools, laid, Fitted: laid.Length > 0 && _fitted, Heights: _heights,
             Hidden: laid.Length > 0 && !_sight, Cut: laid.Length > 0 ? _cut : 0).ToString();
     }
 

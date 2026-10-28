@@ -1966,7 +1966,68 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// says what it said before anything shipped: build your own from the area tab.
     /// </param>
     /// <summary>Hands a capture part that runs at the press (CaptureParts.RunsAtPress) its work.</summary>
-    public void OfferCaptureWork(string key, Func<string, IReadOnlyList<string>?> work) => _capture.OfferWork(key, work);
+    public void OfferCaptureWork(string key, Func<string, IReadOnlyList<string>?> work, CaptureWorkProgress? progress = null)
+        => _capture.OfferWork(key, work, progress);
+
+    /// <summary>The install's paths naming a wobble, for the capture's wobble files part - see CaptureWobble.</summary>
+    /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
+    public IReadOnlyList<string> WobblePaths
+    {
+        get => _capture.WobblePaths;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _capture.WobblePaths = value;
+        }
+    }
+
+    /// <summary>The install's files the capture's water shore part searches - see CaptureWaterShore.</summary>
+    /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
+    public IReadOnlyList<string> ShoreFiles
+    {
+        get => _capture.ShoreFiles;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _capture.ShoreFiles = value;
+        }
+    }
+
+    /// <summary>The install's engine graphs (the debug views among them), for the capture's render debug part - see CaptureRenderDebug.</summary>
+    /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
+    public IReadOnlyList<string> EngineGraphs
+    {
+        get => _capture.EngineGraphs;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _capture.EngineGraphs = value;
+        }
+    }
+
+    /// <summary>The install's paths naming a debug, test or console word, for the capture's debug strings part - see CaptureDebugStrings.</summary>
+    /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
+    public IReadOnlyList<string> DebugPaths
+    {
+        get => _capture.DebugPaths;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _capture.DebugPaths = value;
+        }
+    }
+
+    /// <summary>The install's data tables, for the capture's water shore part - see CaptureWaterShore.</summary>
+    /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
+    public IReadOnlyList<string> DataTables
+    {
+        get => _capture.DataTables;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _capture.DataTables = value;
+        }
+    }
 
     public void AttachPreload(
         PreloadWatch watch,

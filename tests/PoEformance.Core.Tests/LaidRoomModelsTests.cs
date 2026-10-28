@@ -111,8 +111,8 @@ public class LaidRoomModelsTests
     [Fact]
     public void APIECEFittedMeetsTheAreasGroundAndAtItsLevelStaysWhereTheFileHasIt()
     {
-        MonsterModel fitted = Laid(placement: 3, selector: 0, lies: 3, sunk: 40f);
-        MonsterModel level = Laid(placement: 3, selector: 0, lies: 3, sunk: 40f, atLevel: true);
+        MonsterModel fitted = Laid(placement: 3, selector: 0, lies: 3, sunk: 40f, fitted: true);
+        MonsterModel level = Laid(placement: 3, selector: 0, lies: 3, sunk: 40f);
 
         Assert.True(fitted.Ready, fitted.Why);
         Assert.True(level.Ready, level.Why);
@@ -130,8 +130,8 @@ public class LaidRoomModelsTests
     [Fact]
     public void ANDWhereTheFileCountsFromItsTilesLevelTheTwoAgree()
     {
-        MonsterModel fitted = Laid(placement: 3, selector: 0, lies: 3, level: -100f);
-        MonsterModel level = Laid(placement: 3, selector: 0, lies: 3, level: -100f, atLevel: true);
+        MonsterModel fitted = Laid(placement: 3, selector: 0, lies: 3, level: -100f, fitted: true);
+        MonsterModel level = Laid(placement: 3, selector: 0, lies: 3, level: -100f);
 
         Assert.Equal(Plane(250f, 250f) - 100f, Highest(fitted).Z, 8f);
         Assert.Equal(Plane(250f, 250f) - 100f, Highest(level).Z, 8f);
@@ -140,8 +140,8 @@ public class LaidRoomModelsTests
     }
 
     /// <summary>
-    /// The ground over a block of the area is laid where the room lays it, in world units: the room's highest ground point, moved by the
-    /// room's corner, is the block's - turned and fitted alike, the files lying the way the slope says.
+    /// The ground over a block of the area is laid where the room laid at its tiles' levels lays it, in world units: the room's highest
+    /// ground point, moved by the room's corner, is the block's - turned alike, the files lying the way the slope says.
     /// </summary>
     [Fact]
     public void THEGROUNDOverABlockLiesWhereTheLaidRoomHasItInTheWorld()
@@ -151,6 +151,7 @@ public class LaidRoomModelsTests
 
         List<LaidGround> grounds = LaidRoomModels.GroundsOver(files.GetValueOrDefault, grid, 0, 0, TilesX, TilesY, out string said);
         Assert.StartsWith("heights: drawn with the files mirrored, turned 180° (x, -y) before the game's own turn", said, StringComparison.Ordinal);
+        Assert.Contains("; each piece at its tiles' own level - fitted to the area's ground, ", said, StringComparison.Ordinal);
 
         LaidGround laid = Assert.Single(grounds);
         Assert.Equal(TilePath, laid.Path);
@@ -161,6 +162,22 @@ public class LaidRoomModelsTests
         Assert.Equal(roomTop.X + origin.X, MathF.Round(top.X));
         Assert.Equal(roomTop.Y + origin.Y, MathF.Round(top.Y));
         Assert.Equal(roomTop.Z, top.Z, 0.5f);
+    }
+
+    /// <summary>
+    /// The ground over a block stays at its tile's level where fitting it to the area's ground would move it - as Port's harbour, whose
+    /// sea floor drew the fit 450 units off the pier the game draws at its level - and the line says how far the fit would have put it.
+    /// </summary>
+    [Fact]
+    public void THEGROUNDOverABlockStaysAtItsTilesLevelWhereTheFitWouldMoveIt()
+    {
+        (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement: 3, selector: 0, lies: 3, sunk: 40f);
+
+        LaidGround laid = Assert.Single(LaidRoomModels.GroundsOver(files.GetValueOrDefault, grid, 0, 0, TilesX, TilesY, out string said));
+
+        float highest = laid.Ground.Positions.Max(one => Vector3.Transform(one, laid.Place).Z);
+        Assert.Equal(Plane(250f, 250f) + 40f, highest, 8f);
+        Assert.Contains("; each piece at its tiles' own level - fitted to the area's ground, 1 of 1 would sit over 8 units off it, the farthest slope at tile 1, 1 by -", said, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -377,7 +394,7 @@ public class LaidRoomModelsTests
     /// </summary>
     /// <param name="level">The tile's own level, which its sub-tile heights are written relative to.</param>
     /// <param name="sunk">How far below the area's ground the file's ground is written.</param>
-    /// <param name="atLevel">Whether the piece is set at its tile's level rather than fitted.</param>
+    /// <param name="fitted">Whether the piece is fitted to the area's ground rather than set at its tile's level, the usual.</param>
     private static MonsterModel Laid(
         int placement,
         byte selector,
@@ -385,7 +402,7 @@ public class LaidRoomModelsTests
         bool flat = false,
         float level = 0f,
         float sunk = 0f,
-        bool atLevel = false,
+        bool fitted = false,
         string? doodads = null,
         IReadOnlyList<WorldEntity>? entities = null,
         DoodadHeight doodadHeights = DoodadHeight.Ground,
@@ -402,7 +419,7 @@ public class LaidRoomModelsTests
             files[path] = Text(text);
         }
 
-        return LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, atLevel: atLevel, heights: doodadHeights, entities: entities);
+        return LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, fitted: fitted, heights: doodadHeights, entities: entities);
     }
 
     /// <summary>The install and the area <see cref="Laid"/> lays its room over.</summary>
@@ -557,6 +574,54 @@ public class LaidRoomModelsTests
             new TilePiece(0, 0, 1, 1, 2, 2, Whole: true), new TileDoodads(list.Doodads, Both: false), 2, 2, 1, 1, 40f, grid, DoodadHeight.File, into);
         Assert.NotEmpty(into);
         Assert.All(into, one => Assert.True(one.Place.GetDeterminant() > 0f, "turned alone"));
+    }
+
+    /// <summary>
+    /// A tile's doodad is turned by its line's whole quaternion, not its angle alone: Port's harbour ladder, laid as the game laid
+    /// the harbour (placement 0, at area tile 129, 21), stands where its entity stood and leans where the game drew it.
+    /// </summary>
+    /// <remarks>
+    /// MEASURED on Port's capture of 2026-10-27 22:54 (v0.1.319): the line is Port_Boss_01.tmd's own; its entity
+    /// (DigSite_ladder_01.ao, DoodadNoBlocking) stood at 33103.83, 9399.33; the camera is the capture's; the game's picture
+    /// shows the ladder's top, between its rails, at about pixel 1600, 104 of 3440 x 1440 - leaning on the barrels. The ladder's
+    /// model reaches from z -1.6 at its foot to -417.9 at its top, its rails round x 0, y 29.2.
+    /// </remarks>
+    [Fact]
+    public void ATILESDoodadLeansByItsQuaternionWhereTheGameDrewIt()
+    {
+        TileDoodadList list = TileDoodadList.Parse("""
+            version 8
+            266 101 1 2896.17 1100.67 5 -1.50117 -0.302463 -0.340666 -0.591037 0.665686 1 0.85 "Metadata/Terrain/Doodads/Islands/TwilightOrder/TwilightDigSite/Scaffolding/DigSite_ladder_01.ao" "" "" "Metadata/MiscellaneousObjects/DoodadNoBlocking" 0
+            """);
+        RoomDoodad ladder = Assert.Single(list.Doodads);
+        Quaternion read = ladder.Rotation!.Value;
+        Assert.Equal((-0.302463f, -0.340666f, -0.591037f, 0.665686f), (MathF.Round(read.X, 6), MathF.Round(read.Y, 6), MathF.Round(read.Z, 6), MathF.Round(read.W, 6)));
+        Assert.Equal(ladder.Turn, 2f * MathF.Atan2(-0.591037f, 0.665686f), 1);
+
+        const int across = 144, down = 42;
+        var grid = new TerrainGrid(new byte[((across * Cells) + 1) / 2 * down * Cells], ((across * Cells) + 1) / 2, down * Cells, across, down, heights: null);
+        var harbour = new TilePiece(0, 0, 129, 21, 143, 41, Whole: true);
+        var into = new List<(RoomDoodad One, Matrix4x4 Place)>();
+        LaidRoomModels.TileDoodadsOf(harbour, new TileDoodads([ladder, ladder with { Rotation = null }], Both: false), 15, 21, 0, 0, 0f, grid, DoodadHeight.File, into);
+        Assert.Equal(2, into.Count);
+        Matrix4x4 leaning = into[0].Place, upright = into[1].Place;
+        Assert.Equal(33103.83f, leaning.Translation.X, 0.05f);
+        Assert.Equal(9399.33f, leaning.Translation.Y, 0.05f);
+        Assert.Equal(5f, leaning.Translation.Z, 0.01f);
+
+        float[] camera = [1.105f, 1.983f, 0.486f, 0.467f, -1.105f, 1.983f, 0.486f, 0.467f, 0f, -2.462f, 0.783f, 0.751f, -25973.1f, -83224.94f, -18370.44f, -17435.62f];
+        Vector2 Screen(Vector3 model, Matrix4x4 place)
+        {
+            Vector3 world = Vector3.Transform(model, place);
+            (double x, double y, double w) = WorldToScreen.Clip(camera, world.X, world.Y, world.Z);
+            return new Vector2((float)(((x / w * 0.5) + 0.5) * 3440), (float)((0.5 - (y / w * 0.5)) * 1440));
+        }
+
+        var foot = new Vector3(0.05f, 29.2f, -1.6f);
+        var top = new Vector3(0.05f, 29.2f, -417.9f);
+        Assert.InRange(Vector2.Distance(Screen(foot, leaning), Screen(foot, upright)), 0f, 2f);
+        Assert.InRange(Vector2.Distance(Screen(top, leaning), new Vector2(1600f, 104f)), 0f, 20f);
+        Assert.True(Vector2.Distance(Screen(top, upright), new Vector2(1600f, 104f)) > 200f, "turned by its angle alone, the ladder stands up into the sky");
     }
 
     /// <summary>

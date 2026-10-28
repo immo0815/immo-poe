@@ -35,6 +35,11 @@ already cost real time on this project.
   allows, because it is the probe's own result and not a diagnosis kept out of the catalogue. Only the
   click's drawing is the processor's (v0.1.238): left on the processor while the probe stood on, a room
   with running water drew at five frames a second on every core, and a capture pressed then took ages.
+  And the pane draws a material's channels as the engine's own debug views do (v0.1.319, the light panel's
+  "shows" row, `PictureView`, names as the game's program lists them): albedo, specular, gloss, roughness, the
+  normal two ways - written unlit, unexposed and ungraded, through RGBToSRGB as debug.ffx writes them - and the
+  light alone over a quarter grey. Ask it whether a texture or a light is wrong before theorising about either.
+  The water's layer is left out of a channel view (CHOSEN: the engine draws water in a pass of its own).
 - **`adamthedash/poe_data_tools`** is to the game's FILE formats what GameHelper2 is to its
   memory: working parsers for `.ao`, `.sm`, `.smd`, `.fmt`, `.mat` and `.ast`. Clone it and
   read the parser, not a diagram of it — `crates/poe_data_tools-lib/src/file_parsers/`.
@@ -106,6 +111,15 @@ line's −115, and seepage's offices drew right once every doodad was set at its
 on the ground. A doodad whose line carries no value stands on the ground. `RoomDoodad.Height`
 holds the value, and the Tile Book's "doodad z" button keeps the two wrong readings for comparison.
 
+The same lines carry a whole TURN, read past for a year: after the angle come four numbers, a unit quaternion x y z w, and the
+angle is only its turn about the vertical, `2 atan2(z, w)` - on every flat line of every capture held against it (Port, Augury,
+Marrow, Oasis, Steaming Springs, Steppe, Sulphuric, the Grotto, Traitor's Passage), while one line in ten or so also LEANS. A room's
+`.arm` from version 18 and a tile's `.tmd` alike. Port's harbour ladder showed it (v0.1.321, said from the live client with the game's
+picture beside the Monster Book's: the ladder stood up into the sky, a sack lay level in the air, carts floated): its `.tmd` line leans
+54 degrees, and drawn through `Matrix4x4.CreateFromQuaternion` and then the tile's turn, its box lies along the ladder the game drew
+against the barrels (`ATILESDoodadLeansByItsQuaternionWhereTheGameDrewIt`); the tilt reversed lies on the floor. `RoomDoodad.Rotation`
+holds it and `Turning` draws with it, the angle alone where a line carries no quaternion of unit length.
+
 ## The two screen-space systems
 
 The game projects to the screen in **two independent ways**, and mixing them up looks
@@ -113,8 +127,10 @@ exactly like a bug in the other one:
 
 1. **The 3D world** — `WorldData.WorldToScreen(position, height)`, driven by the camera
    matrix at `WorldData + 0x1A0`. Clip components are dots with COLUMNS of the flat array.
-   Entity positions come from `Render.WorldPosition`; its `Z` is the entity's BASE, and
-   `Z - ModelBounds.Z` is where the game floats the health bar.
+   Entity positions come from `Render.WorldPosition`; its `Z` is the entity's base LESS
+   `ModelBounds.Z` - the middle of a box from the base up (MEASURED v0.1.328 on Malgor, the player,
+   checkpoints and ground items: z plus the bound is the terrain under them) - and
+   `Z - ModelBounds.Z`, the box's top, is where the game floats the health bar.
 2. **The in-game map** — no matrix at all. A fixed 38.7-degree isometric transform whose
    scale comes from the map UI element's own zoom and shift. See the block comment above
    `ImportantUiElements` in `schema/poe2.offsets.json` for the formula.
@@ -128,6 +144,103 @@ rig puts its `L_` bones at +x while facing −y. A renderer built from proper ro
 frame as its mirror image, which looks entirely right until it is held against the game and
 cannot be turned to match: a room drawn from the area's own tiles came out exactly that way.
 `MeshPicture.Camera` turns x over once for every picture the tool draws.
+
+## The model pane's camera
+
+Every model pane (Monster, Tile, Item and Effect Book) is looked at through one `CameraPose` (v0.1.324, asked for from the live
+client: navigating Port's stage was poor and zooming close impossible): a FOCUS it looks at and turns about, a turn and a tilt -
+`MeshPicture.Camera`'s own angles, so the parallel pose fitted to the box with no pan IS the old camera, pinned by
+`APARALLELPoseFittedToTheBoxIsTheOldCamera` - a distance, and perspective or parallel (the edge button; perspective by default).
+MEASURED off the game's camera matrix (Port's capture of v0.1.319): thirty degrees from the picture's top to its bottom
+(`CameraPose.FieldOfView`), and the game's view 48.67 degrees down along +x +y with +x -y to the right, 2,165 units off the player
+(`GameTurn`, `GameTilt`, `GameDistance`, the "game view" button). CHOSEN and said in the code: the near plane (a hundredth of the
+distance, 0.05 to 5), the closest the eye comes (2 units - a barrel fills the picture), the keys' pace (four fifths of the
+distance a second, shift four times), rooms, tiles and stages starting at the game's angle and a monster as the last one was. The
+gestures: left drag turns about the focus, right drag pans, the wheel stretches the camera about the surface under the pointer
+(`MeshPicture.Pick`, a ray through every triangle on every core), a double click looks at the point under it from where the eye
+stands (`LookingAt`), W/S A/D Q/E fly eye and focus together while the pointer is over the picture, shift + left drag the sun.
+A capture's `model-panes.txt` writes the pose and what it comes to (`CapturePanes.Camera`).
+
+PERSPECTIVE REACHES EVERY PLACE THE PARALLEL VIEW WAS ASSUMED, and each keeps the parallel arithmetic to the bit:
+- The processor (`MeshPicture.Drawing.Edged`) finds each pixel's weights as the point its ray meets - `r · (v1 × v2)` and its
+  kin over `r · n`, sums of the column and row like the parallel edge functions - so every coordinate is perspective-correct and
+  no triangle is cut: the near plane is a test per pixel, and `Reached` boxes the part past it. A texture's level stays one per
+  triangle (the finest through the near plane); the card's per block of pixels is the picture.
+- The card's depth is REVERSED (one nearest, `Greater`), so a float keeps its precision from the near plane to the horizon; in
+  perspective it is `near / z`, read back by `BehindAt`.
+- The game light, the water and the probes take the way from the pixel to the eye (`EyeWay`, the card's `SeeFrom`), and a shade
+  program's ViewDir, DepthDistance and MaskedContactFade the point's own ray (`ShadeProgram.Viewer`, a fixed register; the
+  engine's own definitions, `length(bottom - camera) - length(world_pos - camera)`, which a parallel view had reduced to depths).
+- The water's screen ray is the engine's march in perspective (`ScreenReflection.MarchSeen`: InitScreenRaymarchContext's
+  projected start and end, the depths' reciprocals in step, the thickness projected at the start - water.ffx, read in water.txt).
+- The floor's lines come from the real eye (`ModelFloor`), and the sun's mark stays in front of it.
+
+## Who skins a monster
+
+THE GRAPHICS CARD SKINS A PLAYING MONSTER ITSELF (v0.1.325, asked for from the live client, which first asked whether the processor
+was needed at all and decided to keep it for what checks the card): the pane hands it the bones' matrices once a pose (`CardSkin`,
+`ModelScene.Skinned`; on a stage conjugated by his place, `SkeletonPose.SkinAt`) and the vertex shader runs `SkeletonPose.Move`'s
+weighted mean (`ModelShaders`' `Skinned`, bones and weights a byte each from the mesh's own arrays at t126/t127, the matrices in
+`Bones`, b3). Before, every frame of an animation skinned tens of thousands of vertices on every core and sent them to the card.
+THE PROCESSOR KEEPS what reads the posed vertices, and poses them only when one asks (`MonsterPortrait.CpuPosed`): its own picture
+(the probe, the grey, a shader still compiling - and every card test's reference), the pick under the pointer, the export. The
+lowest point the "planted" notice reads is `SkeletonPose.Lowest`, the z alone to the bit, five times a second while playing (CHOSEN).
+THE SUN'S MAP OF A SKINNED POSE is laid over a hull, not the posed vertices nobody on the processor holds (DECIDED from the live
+client): each bone's box of the vertices it moves, carried by the bone (`PoseHull`) - looser, never tighter (MEASURED on a real rig:
+the map's side 1.24 times the pose's at the median, 1.54 at most; boxes turned to each bone's spread barely better). The processor
+lays its map over the same hull (`MeshPicture.Canvas.Hull`), so both still draw one shadow; on a stage the stage's frame holds him
+and nothing changes. `CardSkinTests` and `SkinnedGpuTests` hold it all against Move on `blackguard-v6.one.ast`.
+
+## Textures go to the card as the file's blocks
+
+A BLOCK-COMPRESSED TEXTURE WITH EVERY LEVEL IS KEPT AS THE FILE HOLDS IT (v0.1.326, asked for from the live client): `BlockTexture` reads
+the DDS's header and where each level lies, `Mipmaps.Kept` keeps it undecoded, and the card is handed those levels as BC1, BC2, BC3, BC4,
+BC5 or BC7 where it samples the format (`ModelGpu`'s `Blocked`; a card below feature level 11 reads no BC7 and is handed decoded bytes).
+MEASURED in Port's capture of v0.1.319: 800 million texels at the top level, 4.3 GB decoded with levels and 0.8 GB as blocks; decoding
+was 25 of the build's thread-seconds and the levels 8 more, now none. THE FILE'S OWN LEVELS, NOT BOX AVERAGES OF THE TOP (DECIDED from
+the live client): the card can only be handed what the file carries, and the processor's picture is the card's reference, so both read
+them - the top level decodes as before, the smaller ones are the game's own. A cube, an array, a volume or a file short of any level
+is decoded at load with levels built as before (CHOSEN: no picture coarser than it was). THE PROCESSOR DECODES BEHIND THE LOAD (DECIDED
+from the live client): `MonsterPortrait.UnpackBehind` decodes every texture of the model shown on every core but the frame's once it
+landed, stopped when the model goes; a processor picture asked for meanwhile - the probe, the grey, a shader still compiling, no card -
+waits with a line saying how far it is, rather than decoding on the frame's thread. A capture's build lines say how many textures were
+kept as blocks and how long the unpacking took. BlockArt now reads BC2 to BC5 itself: BC2 and BC4 to Pfim's byte, BC3's alpha and BC5
+as the card rounds them (Pfim truncates; a level apart at most). `BlockArtTests`, `BlockTextureTests` and `BlockGpuTests` hold it.
+
+## A staged boss against the game
+
+MALGOR ON PORT'S STAGE (said from the live client with two pictures, v0.1.326): he floats above the deck in every animation and above
+his wooden throne in `emerge_idle_01`; the spyglass he holds in his left hand in the game is not drawn at all; and his ship's wheel sits
+at the bottom of his body whatever he does. Nothing settled where any of it comes from - the captures held neither his own files nor
+his entity - so `monster-files.txt` (`CaptureMonsterFiles`, v0.1.327, the Windows group) writes the Monster Book's monster as the tool
+builds and stands him: the place the stage put him (`StagedModels.Staged`, `MonsterModel.Standing`: the rest's lowest point set on the
+middle of the floors found at his place and eight points 120 round it), each part with its socket and box (`PartFit`), his lowest point
+and root bone in every animation, every `.ao` and object type of him whole (`ModelDump.Of`, `.ot`/`.otc` chains) - and the game's own
+entity of him where one is near: its place, the terrain's height under it, its bounds, the animation it plays. No offline reader: the
+files it writes are the reading. Read it, from a capture standing where the game shows him with him on the Monster Book's stage,
+before the placing rule, a part's socket or a missing part is changed.
+WHAT THE GAME SHOWS OF THE TWO PARTS (said from the live client after a Port map, with pictures): the spyglass is in his hand
+THROUGHOUT, fired as a cannon in some skills; the wheel hangs ROUND HIS NECK throughout, on his throne before the fight too (first
+said "in his second phase", corrected from a picture). From v0.1.328 the part also writes each socketed part's bone in every animation -
+its place and least axis scale, a bone scaled to nothing hiding its part - and plays every part with a rig of its own by that rig
+(`MonsterModels.Piece`): its mesh's box and size per animation, whether he plays one of that name, and for a `"<root>"` piece his bone
+nearest its middle.
+ITS FIRST CAPTURE (v0.1.328, Port, the player at the arena's door, Malgor on his throne) SETTLED ALL THREE, and v0.1.329 mends them:
+- HE FLOATED BY HIS BIND POSE: the stage set the rest's lowest point on the floor, and his bind pose hangs 209.736 under his origin, so
+  in idle_01 his lowest point stood 128 over the deck and in emerge_idle_01 he sat 209.7 over his throne. The game stands his ORIGIN on
+  the ground - MEASURED: his entity's Render z -479.419 is the terrain under him, -335.938, less his bounds z 143.481, which is exactly
+  half the 286.962 his rest reaches over his origin (schema `CurrentWorldPosition`, `CharacterModelBounds`). So every staged monster's
+  origin is set on the floor (`StagedModels.Staged`, DECIDED from the live client for all monsters; a monster whose feet are its origin
+  stands as before).
+- THE SPYGLASS IS `PirateBossCannon.fmt` at `aux_cannon_jntBnd`, a version 8 fixed mesh the reader refused ("geometry outside a DOLm
+  block"). `FixedMesh.Older` reads it as poe_data_tools' v8_section does; the vertex's eight unnamed bytes are taken as the normal where
+  their first or second four lie along the file's own triangles, else the normals are the triangles' (`FixedMesh.NormalsFrom`).
+- THE WHEEL IS `PirateBossHelm.ao`: 41 animations of its own, 30 of them his names, each putting the wheel's root on his
+  `aux_helm_jntBnd`, 1.7 to 5.3 units off. So a `"<root>"` piece whose rig shares only the root and whose animations carry his names
+  RIDES his rig (`AnimationSkeleton.Carrying`, `Riders`, `MonsterModels.Riding`, `PartKind.Played`; DECIDED from the live client over
+  hanging it rigidly on the bone): its bones after his, its own animation of each name joined in step (`AnimationSkeleton.Played`,
+  `AnimationTracks.With`) - by the seconds of each one's rate, CHOSEN (attack_01 is 84 frames for him, 168 for the wheel); where it has
+  no animation of the name it stands at its bind. Every loader of a monster's animation reads `Played`.
 
 ## Verify against the game, not against yourself
 
@@ -431,7 +544,7 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   builds the program from the engine's graph itself (`BreakingOceanWaves.fxgraph`, a fixture under `tests/fixtures/beach-waves`): the
   three textures it binds to the fragment, the graph's mix (the foam covering `0.7 * a`, the film under it by its thickness, specular
   0.05, gloss `1 - roughness`). The wave shape and noise are fixed lookups (`WaterLookups.BeachProfilePath`, `BeachNoisePath`, slots
-  t13 and t14, a material's sheets from t15): `gerstner_positive_wave_profile.dds`, 256 square, two floats a texel, a fixture; and
+  t13 and t14, a material's sheets from t15 - t18 from v0.1.295, after the field waves' t15 to t17): `gerstner_positive_wave_profile.dds`, 256 square, two floats a texel, a fixture; and
   `flow_muddle_blur_01_R16G16.dds`, 512 square R16G16_UNORM, which `FloatArt` now reads as sixteen-bit fractions and the water
   textures part writes whole. THE SHEET IS CHOSEN (said from the live client, 2026-10-12, between laying it flat at the water and on
   the ground - "auf den Boden legen"): `ShoreField.Beach`, a vertex at every shore cell's middle whose ground lies from 300 under the
@@ -455,6 +568,204 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   tell from the film over a deep gap, the lifted sea or a shadow: the probe now writes the beach's own line (`ProbeBeach`: its lift,
   the shore's distance, the foam, the film and its path) and, for every fragment the game light shaded, how much sun reached it and
   what cast the shadow (`ProbeSun`, one ray towards the sun on a click). Probe a patch, then capture.
+  THE SHIP SWAYS, AND NOT BY ITS MODEL (v0.1.290, asked for from the live client). A real-time video measured Port's gangway 4 px up
+  and down every 2.05 s (the hull 0.62 of that, in step, so a tilt with a heave; the amplitude comes and goes), while v0.1.289's capture
+  wrote `boss_boat.ao` whole: a FixedMesh, no rig, no animation. Beside it the room lays `BoatnautWobbleCore_small.ao`, a two-triangle
+  plane of the entity type `.../4_6/Objects/BoatWobbleCore`, whose entity carries a component no reference names, `WobblePoint` - and
+  the room's doodads are of the types `Doodad` and `DoodadNoWobble`. Its one read held a turn of 0.0777 degrees about a line in the
+  ground's plane (schema `WobblePoint`). `wobble.txt` (`WobbleProbe`, run at the press for 20 s) watches every WobblePoint and every
+  component of the doodads by it, one hop beyond their pointers, with a DoodadNoWobble as the control; `wobble-files.txt`
+  (`CaptureWobble`) writes the object types whole and the paths, sources and program strings naming a wobble; `wobble-replay.txt`
+  (`WobbleSeries`) reads the watch back. Read them before the ship is moved: what sways it, by how much, about which point.
+  ITS FIRST WATCH ANSWERED (v0.1.290). The ship's own components never change; the WobblePoint holds a 4x4 matrix (row vectors,
+  +0x68 to +0xA4) that is a PURE TURN ABOUT ONE POINT - (4162, 12473, -328.2), z the core's TerrainHeight, the translation left over
+  under half a unit against 81 - tilting up to 0.37 degrees, swings 1.9 to 2.4 s apart whose sizes repeat after about 12.9 s: an authored
+  loop. The files say whose: the core's `.ot` writes `WobblePoint { sector = "caravan"; bone = "caravan_jntBnd" }` and an Animated
+  object whose `.ao` plays `idle_small_01` on `Boatnaut/BoatWobbleRig/rig.ast` (`randomise_start_position`); Port's boss room writes a
+  ZONE `"caravan" 26 -102 261 454` round the ship (`RoomZone`, poe_data_tools' `Zone`, read from v0.1.291; the room's other zones beside
+  it); the program names `no_wobble`, which `DoodadNoWobble.ot` sets. In memory the WobblePoint's +0x40 is the Sector component of an
+  entity of its own (`Metadata/MiscellaneousObjects/Sector`). SO THE SHIP SWAYS ON THE CARD from v0.1.291 (`WobbleRig`, `RoomSways`,
+  `RoomSway`, `MonsterModel.ShapeSways` and `Sways`, `ModelScene.Sways` and `Swayed`): the bone's world matrix
+  (the core's frame; its skin matrix until v0.1.293, below) conjugated into the picture's by the core line's own place, every doodad line in a
+  zone of the sector's name whose type sets no no_wobble turned by it in the vertex shader (`Part.Sway`, the shadow's casters cast again
+  each frame over the kept stage). READ FROM THE FILES, said under the picture: the zone rule (the census in wobble.txt names the
+  Sector's own list in the next capture) and that the bone's skin matrix is the WobblePoint's (wobble-files.txt plays the rig
+  beside the watch, `wobble-replay.txt` fits both halves' fixed points). CHOSEN: every core starts its loop at nought. NOT DONE:
+  the processor's picture stands still; the curve at the WobblePoint's bone block (+0x180) is unread. v0.1.291 SWAYED NOTHING (its Port
+  capture: "its keyframes did not unpack"): the rig was unpacked with `Oodle.Decompress`, the shipped managed decoder, which refuses this
+  rig's bundle while the install's own (`GameFiles.Unpack`) reads every monster's - so the install's decoder is handed over as it opens
+  (`WobbleRig.Unpacker`, v0.1.292), and a rig that still does not unpack says which decoder ran and what it refused. That capture's census
+  also showed a "sector" IS a room zone: the WobblePoint's Sector lists further Sector entities, one a zone of the boss room.
+  v0.1.292 SWAYED, BUT SANK THE SHIP 232 UNITS (its gangway below the quay, said from the live client with a picture). Its capture held
+  both halves at last: the tool's turn is the WobblePoint's to the float, but the SKIN matrix carries the rest's z -232.42 as +232, the
+  animation holding the bone at nought. The game's matrix is the bone's WORLD matrix (`SkeletonPose.World`) conjugated by the core's
+  place: less a turn about the core's own position (Render x and y, TerrainHeight z) its translation leaves under 0.003 in x and y and
+  the bone's heave, -0.864..0.664, in z - the world matrix's own, exactly. `WobbleRig.At` takes it from v0.1.293. The earlier fixed
+  point 200 units beside the core was the heave biasing a fit along the turn's axis, the same bias the tool's own matrix shows.
+  v0.1.293 put the gangway back on the quay and swayed "almost identically" to the game (said from the live client).
+  THE SWELL RUNS UNDER THE SHIP (said from the live client, v0.1.293, with an in-game picture): in the game the waves make their way
+  between the ship and the quay, a breaking crest in the channel; the tool's run in under one side of the hull and out of the other,
+  because the shore field is made from the ground and the spraying rocks alone and the ship is neither. What the engine makes ITS field
+  from is in no file read so far - but the program holds two script commands, `SetWaterBlocking` and `SetWaterFlow` (lambdas over
+  ScriptTokens, as an object script's commands are), beside `RiverMarkupField` and `MarkupFlowConstraints`. `water-shore.txt`
+  (`CaptureWaterShore`, v0.1.294) searches every `.ot` and `.otc` under Metadata/ for them on every core, lists each line naming them,
+  the area's loaded types reaching one through what they extend, the shader sources naming the field and the program's strings naming a
+  shore; `water-shore-replay.txt` reads the lines back. Read it before the ship is made shore.
+  THE BREAKERS ARE THE ENGINE'S FIELD WAVES (v0.1.295, four in-game videos of Port from the live client). MEASURED off the videos, the
+  brightness of every patch of water over time: white-crested fronts 4.9 s apart at the quay's corner, 5.1 s on the open sea, 4.9 s at
+  the pier's end - water.ffx's `field_waves` (`field_wave_length` 1,000, `field_wave_speed` 200: 5 s), not the beach waves (2.5 s) nor
+  the flood waves (25 s); in the channel by the ship the front spans the channel and runs along it, and at the pier's end the crest
+  lines bend round it. The engine sends them (and the swell) down the slope of a second field, `ocean_dist` (ShoreData's blue), kept
+  apart from the shore's distance (red) - and the program names what makes it: `OceanMarkupField`, built from a grid of ints or three
+  point lines, beside `ShoreDeep`, `ShoreShallow` and `IgnoreDeepWaterMarkup`; Port loads `island_ocean_deepwater.gt`, which none of
+  its tile corners holds, among water ground types of other areas. `water-shore.txt` now searches every object script, ground and
+  edge type, environment, master's list, tile and room - and the data tables - for those words on the bytes, ASCII and UTF-16, and
+  writes every ground type the area loaded whole: read it before the way in is changed. UNTIL THEN THE WAY IN IS CHOSEN
+  (`ShoreField.Oceans`): the shore's distance in the open sea (`ShoreField.Deep`, 1,000, or at the field's edge), and inside it the
+  open sea's less the shortest way through the water from there (sixteen ways a cell, within two percent of the straight line),
+  round whatever crosses the water's surface (its top above and its bottom under: the hull, a post, a rock - not a bridge or a
+  gangway); `model-panes.txt` counts the cells in the way and draws `shore-way.png`, a white line every 250 units where the game's
+  crests should run. The field waves are DRAWN ON THE CARD ALONE (DECIDED from the live client): CrashingWavesVertex and
+  CrashingWavesFragment ported line for line (`ShadeHlsl.FieldLibrary`, `Op.Field`), laid on the room's own water - lifted by the crest
+  and the area's height offset (the shape's mean lies under nought; Port's -15 lifts it back), turned by its slope and covered by its
+  foam as the swell's foam covers; their wave shape `gerstner_wave_profile.dds` (read red and blue, GetGerstnerProfile - the profile the
+  program names that neither the swell nor the beach takes), their noise and foam the beach's (CHOSEN, no graph names theirs); fixed
+  slots t15 to t17, a program's sheets from t18; the light panel's water row switches them ("crash", SceneLight.WaterCrash), and with
+  them on the water is drawn lifted whatever the lift. The processor draws none, and the line under the picture says so.
+  THE WATER IS LIT AS THE ENGINE'S WATER PASS LIGHTS IT (v0.1.296, asked for from the live client: with the field waves on, Port's
+  water came nearest the game under the FLAT ambient, while the cube is the engine's). The engine does not light water as an albedo
+  (water.ffx, lighting.ffx, whole in `water.txt`): GetWaterMediumColor sets the medium's diffuse colour to nought and hands the area's
+  colour over as its subsurface colour, `pow(colour / (0.3, 0.9, 0.5), 1 / (1 + max(-0.9, 250 * height * 5e-5 * water_subsurface_scattering)))
+  * (0.3, 0.9, 0.5)` - a crest lifted greener, a trough darkened (GetTotalWaveSurfaceNumerical's `curvature`, the ocean's height); the
+  foam is the albedo, the medium less it, translucency 3 and front scattering 1, so every light adds `saturate((N.L + 3) / 4)` of itself on
+  the medium (ComputeDiffuse), N the waves' normal for all of it; the cube's diffuse light falls on both less gi_env_occlusion, the GI
+  on the albedo alone; and BuildWaterRefraction mixes `specular * (1 - ratio^3) + (behind * T + absorbed * (1 - T)) * lerp(1 - reflectivity,
+  1, ratio)`, the foam hiding by `1 - (1 - a)^3`, `reflectivity = lerp(Fresnel(N.V), 1, specular) * (1 - ratio)` - its reflection thinned
+  by the shore's ratio alone, where this tool had thinned it with the medium's cover. `SceneLight.ShadeWater` ports it line for line, the
+  card's `WaterShaded` the same, handed its parts by the water's glossy twin (`ShadeProgram.WaterOut`: the foam as albedo, what gets
+  through, the ratio, the colour's pattern, the waves' height); `water.subsurface_scattering` is WaterLook's, Port's default one. As a layer
+  its cover is one less the share of what lies behind, its colour the rest over that cover. The probe's water line writes every part
+  (`WaterLight`). NOT DRAWN: the refraction's bend and caustics, the terrain water colour, and the tidal state's own water_to_terrain_ratio
+  and ground water ratio - both read off the shore field, whose scale is CHOSEN. Its first capture (v0.1.296, Cube Ambient, "by far
+  nearer the original", said from the live client) put the probed open water at about sRGB (42, 62, 58) before the grade, the game's
+  open water (50, 72, 70) at the median - and found a rectangle of false shadow beside the ship: the wobble core's plane
+  (`transparentobjectsc.mat`, Zero under ForceAlphaTest) was cut away when drawn but cast solid, the shadow map cutting through a
+  texture it has not. A cut-out shape whose program's alpha is one number under the cut now casts nothing on either drawing
+  (`ShadeProgram.FixedAlpha`, `CutAway`; MeshPicture's `Casts`, ModelGpu's `Casting`), as the engine's shadow pass clips it (v0.1.297).
+  With that gone, a straight "obstacle" still stood in the channel along Port's quay, the swell's foam and the breakers stopping at it
+  with and without the field waves (said from the live client, v0.1.297). It was the way in's: v0.1.295's rule put a cell in the waves'
+  way where ANY blocking shape stood above the water and ANY under it - the least and most z over all of them at the cell's middle - and
+  the same wobble plane over the quay's sunken foundation bricks (`MSHD_GraveBrickTile01c`, 240 under the water, the probe's) made a
+  bar 125 units wide along the quay, the plane's length, red in `shore-way.png`. From v0.1.298 one triangle has to cross the surface
+  itself, and the cells it stands in the way in are those its waterline runs through, walked one step along x or y at a time
+  (`ShoreField.Crossing`, `Walked`) - a sheer wall covers no cell's middle and blocks all the same, a hull's waterline closes round it.
+  The way-in line in `model-panes.txt` now names the shapes that crossed, the most triangles first (`ShoreField.CrossingShapes`).
+  The channel then stood WHITE THROUGHOUT, between crests too (said from the live client, v0.1.298), while the game draws it blue-green
+  between crests and the pier's sheltered side dark to its wall. That is the field waves' foam as written: GetFieldFoamProfile adds
+  `saturate(exp(-(shore_dist - 150) / 100)) * 0.7` - whole foam within 150 of a shore - to a breaking foam of 0.4 to 0.7 near one, and
+  the channel (some 300 to 450 units across, off v0.1.296's `shore.png`) lay wholly near the quay. So A WALL OUT OF DEEP WATER IS NO
+  SHORE from v0.1.299, CHOSEN from the live client: land counts towards the shore's distance where ground lies beside it under no more
+  than `ShoreField.BeachDeep` (300) of water, or where what stands in the sea stands; land meeting only deeper water is a wall
+  (`ShoreField.WallCells`, grey in `shore.png`). Port's ground under its water lies 55 deep at most or past 300 (its beach sheet, 21 to
+  176 against a level of 125). The way in still runs to every land, walls included. What the engine counts is its OceanMarkupField's,
+  made from an int grid `ClientTileMap::CalculateMapMarkup` fills - a method that takes and returns nothing, so it keeps what it works
+  out - and the terrain at AreaInstance + TerrainMetadata is a C++ object of its own, the likeliest ClientTileMap: `ocean-markup.txt`
+  (`OceanMarkupHunt`, run at the press) reads it and one hop beyond every pointer in it for lists whose length is a grid of the area's
+  shape, each written as a map with its values beside the walkable grid and the corners' ground types; `ocean-markup-replay.txt` reads
+  the maps back. Read it before the rule is changed. Still to come, asked for from the live client: the crests' crash against the
+  quay, the spray thrown up it and the foam running down its face. The spray is a particle effect water.ffx's CrashingSprayTrigger,
+  BreakingSprayTrigger and FloodSprayTrigger fire, named in no file read: from v0.1.300 `water-shore.txt` also searches every effect
+  graph, particle, effect package and trail (`CaptureWaterShore.EffectExtensions`) for the spray's words, writes those found whole,
+  and searches again for every file naming one of them by name - read it before the spray is drawn.
+  v0.1.299 LEFT THE CHANNEL WHITE (said from the live client, crash on and off): its capture (v0.1.300) still put the quay's edge
+  at a shore's distance of nought, 495 cells walls elsewhere. The rule had kept what stands in the sea shore whatever the water beside
+  it, and Port's quay is faced with spraying stone (`MSHD_GraveBrickTile01c`) standing out of the water, over ground that is the
+  quay's top (template z 0 to 62) or the floor 375 under (z 500), nothing between (v0.1.296's ground.txt). From v0.1.301 WHAT STANDS
+  IN THE SEA TAKES THE SAME TEST: rocks on a beach stay shore, a faced quay or pier over deep water is a wall
+  (`ShoreField.StandingWalls`). With crash off that capture's channel showed foam in rectangles with straight edges; the harbour's
+  planes (`WaterPlane3x3`, 69 apart from 34 to 379 in its `.tmd`) reach past its 15 sub-tiles and may lie over the fill tiles' own,
+  and water drawn unlifted blends once a shape - so `model-panes.txt` now counts the cells under two water shapes or more
+  (`ShoreField.OverlappedCells`, `MostLayers`). The ocean markup hunt runs in the area the player STANDS in: that capture's was the
+  Canal Hideout's (no sea, no markup grid), and found two unnamed grids beside the known ones - terrain +0x100 and +0x118, the walkable
+  and projectile grids' near twins, and +0x638, eight bytes a tile corner (schema `Grid100`, `Grid118`, `CornerWords638`).
+  THE SPRAY'S GRAPHS FOUND (v0.1.300's water-shore.txt): `Metadata/Effects/Graphs/GPUParticles/Update/Water/` holds
+  `CrashingWavesTriggerCondition.fxgraph` and its breaking and flood kin, and no particle, effect package or trail names them - a GPU
+  particle (.pet, JSON) names an `update_material` and a `render_material`, and the material names its graph; the program names
+  `splashywater` (Port's ocean material sets it), `NonsplashyOcean` and the environments' `water_splash_ao`. So from v0.1.302 the part
+  follows the chain hop by hop (`CaptureWaterShore.SprayHops`): the trigger graphs whole, the materials naming them, the particles and
+  trails naming those, the effect packages, objects and environments naming those - materials and animated objects walked for the
+  chain alone (`ChainExtensions`), a file name under six letters not looked for.
+  PORT ANSWERED (v0.1.302's capture, the player on the pier's end, crash on): the channel goes blue-green between crests (the
+  live client's two videos), 1153 cells walls, 658 of them standing stone; NO CELL UNDER TWO WATER SHAPES - the crash-off
+  rectangles are not layers blended twice, their cause open. THE SPRAY'S CHAIN WHOLE: CrashingWavesTriggerCondition.fxgraph,
+  its update materials under `Metadata/Effects/Spells/environment_effects/Act4_FOUR/crashing_waves/mat/`, the GPU particle
+  `crashing_waves/FX/foamCrash_01.pet` naming them, and the objects carrying it - `crashingwaves_01.ao` to `_03` and doodads
+  of other areas' island tiles (`oceancliffwaves_01.ao`, `*_crashingwaves_01.ao` under `Terrain/Islands/Tiles/Island/` and
+  the prison intro): the spray is LAID AS A DOODAD where a tile wants it, firing as a crest passes. Port's rooms, tiles and
+  loaded files name none of them (a cached file goes unlisted, so it is not settled), and the game's picture at the pier's
+  end shows the crests' churn on the water, no spray in the air. The OCEAN MARKUP HUNT found no int grid of the tiles' or
+  cells' shapes in Port's terrain or one hop beyond, but a byte grid of one value a three by three cells at terrain +0x6D8
+  (1127 x 483; the Canal Hideout's 460 x 460) it could not draw - drawn from v0.1.303 (`OceanMarkupHunt.CellSteps`), schema
+  `Grid6D8`; and `CornerWords638`'s nine kinds go with the corners' ground types for the most part. v0.1.305's capture drew it
+  NOT: the steps counted the walkable grid's width, its stride twice (3382), where Port's 147 tiles are 3381 cells - from
+  v0.1.306 over tiles x 23, the part cell kept as a shape of its own.
+  THE WAVES CROSS THE CHANNEL THE OTHER WAY (v0.1.305, a video of the game and the Monster Book side by side at the checkpoint by
+  the ship, crash on; the foam's brightness along lines through the channel, frame by frame): in the game the foam front reaches
+  the hull's side before the quay's (0.3 to 0.7 s across 220 px) and the gangway's end before the stern's (0.3 to 0.9 s over
+  730 px) - two recordings agree; in the Monster Book it runs along the channel from the stern in (-1.3 to -2.0 s), round the hull
+  as the way in (`ShoreField.Oceans`) routes it. So the game's waves come from the ship's side, as they would were the ship no
+  obstacle to them - which a markup made from the tile map (`ClientTileMap::CalculateMapMarkup`) would not know of. A reading,
+  not yet settled: Grid6D8 drawn is to say whether the engine's grid holds the ship.
+  IT CANNOT (v0.1.306's Port capture): Grid6D8 drawn is a COARSE WALKABLE GRID - 0 on 99% of the walkable cells, 255 on the sea and
+  the town's fill alike, 127 and 180 along the edges, its map the walkable grid's at 1127 x 483 shape for shape (schema `Grid6D8`) -
+  and the hunt found no other grid of the area's proportions in the terrain or one hop beyond. So THE WAY IN RUNS BY THE GROUND
+  ALONE from v0.1.307, CHOSEN from the live client on the video's evidence: the open sea measured from the ground and nothing but the
+  ground in the waves' way (`ShoreField.Way`); what stands in the water stays shore for the shore's distance. The way round it as well
+  is kept as the field's twin, the light panel's water row's "way round" (`SceneLight.WaterWayRound`), so the two can be held against
+  the game; `model-panes.txt` counts both and draws both, `shore-way.png` and `shore-way-round.png`.
+  MEASURED (v0.1.307, a side-by-side video at the checkpoint by the ship, crash on, way round off): the Monster Book's front now
+  reaches the channel's gangway end 0.6 s before its stern end (correlation 0.62) and the hull's side before the pier's, as the
+  game's does (the game's half there: the quay side 0.67 s after the hull's; the rest of its lines lay under the Monster Book's
+  window), both at 5.2 to 5.4 s a wave - "by far the best Port scene built yet, identical to the game's look and waves but for
+  the smallest details" (said from the live client). Its capture's way in by the ground: 5,575 cells shorter than their distance to
+  the ground, 3 unreached; round what stands: 8,683 and 399.
+  THE CRASH-OFF RECTANGLES are asked after again (from the live client, v0.1.308: crash stays on - it is what makes the breakers the
+  game's - but the processor draws no field waves, the probe's click among it, and the swell's foam under them is the same).
+  Not the shallows: their foam term (`-(shoreDist - 0.18) * 10`) is on along Port's two beaches alone (v0.1.307's shore.png: 3,252
+  water cells under 0.18 colour units, none in the channel). So from v0.1.309 the probe writes the swell's foam term by term at a
+  water pixel (`ProbeSwell`, `ShadeProgram.SwellProbe`, the drawing's own `FoamTermsAt`): the shore field's cell and what it is, the
+  shore's distance, the way in, the tide's phase, the cross-section read there, the depth the view crosses, the trail, the front,
+  the shallows and the cover. Probe a rectangle's inside and its edge with crash off, then capture.
+  On v0.1.309 the rectangles were no longer to be seen (said from the live client, with a picture) - though that build changed
+  nothing they could come from, only the probe. Their cause is NOT FOUND; if they come back, probe one and capture.
+  THE CRESTS RISE WHITE BY THE SHIP (asked from the live client with v0.1.321's video: "some waves seem to come up from under the
+  ship again"). Nothing in the waves changed after v0.1.307, and v0.1.307's own measuring video shows the same. The direction is the
+  game's (the front reaches the hull's side first and the quay about a second later), but the Monster Book's crest is white foam from
+  the hull on, where the game's stays a dark ridge with a few streaks over the first two thirds of the channel and whitens only near
+  the quay (the brightness along lines across the channel, frame by frame: crests 100 to 150 against 207 to 252 near the quay; the
+  Monster Book's 225 to 235 from the hull). The field waves' foam is the break phase's - `1 - shore * 0.0002` ramped about
+  `0.5 + 0.3 * noise` (GetBreakPhaseField) - and the shore's distance there is the CHOSEN field's: v0.1.319's `shore.png` puts the
+  channel at 1,000 to 1,600 units, measured straight through the pier to the rocks behind it (the quay a wall since v0.1.299/301),
+  which ramps to 0.66 to 0.8 - where `PolyStep(break, 0.53, 0.95)` already lets foam form whole (0.999 at 0.66). The engine's own
+  field is unread and its noise stood in for. So from v0.1.322 the probe writes the field waves term by term at a water pixel
+  (`ProbeField`, `ShadeProgram.FieldProbe` - the card's functions on the processor, which draws none): where the card's lifted water
+  meets the view (the nearest crossing, marched), the shore's distance and the way in, the noise and the break's centre, the break
+  phase, the wave's coordinate and the crest's lift, the foam's profile term by term (the break's share, spike, tail, constant, the
+  near-shore term) and what it covers at the level the card reads it. Probe a crest by the hull and one by the quay, crash on, then
+  capture - before the shore's distance or the break is given a rule.
+  ITS CAPTURES (v0.1.322, Port's built stage, crash on): the crest by the hull at a shore's distance of 1,372, the noise 0.274 (the
+  break's centre 0.582), the break phase 0.649, the break's share 0.999, the near-shore term nought, covering 0.98; the crest by the
+  quay at 1,076, 0.213 (0.564), 0.735, 1.000, nought, 0.93 - both breaking whole, the hull's the whiter, the quay no shore under the
+  wall rule. PolyStep(break, 0.53, 0.95) runs from 0.13 at 0.50 to 0.79 at 0.56, which at these noises is a shore's distance of
+  about 1,900 to 2,000; the game's look - dark by the hull, white by the quay - puts that threshold inside the channel, some 600 to
+  700 units farther out than this tool's field has it. So from v0.1.323 THE BREAK MAY TAKE THE GROUND'S SHORE ALONE, CHOSEN from the
+  live client as a switch to hold against the game (the light panel's water row, "break by ground", `SceneLight.WaterBreakByGround`,
+  off by default): `ShoreField.GroundTexels`, each cell's distance to the shore of the ground alone - what stands in the sea, the
+  rocks and the pier's stones, water to it, the walls no shore as before - the card's shore texture's third float
+  (`ShoreField.CardTexels`, `ShadeShoreAll`), taken by GetBreakPhaseField where the swell register's w is two; the near-shore term,
+  the swell, the beach and the spray keep the shore's distance with the rocks. A reading, not the engine's: its OceanMarkupField is
+  made from the tile map (ClientTileMap::CalculateMapMarkup), which knows no doodad. `model-panes.txt` counts the water cells the
+  ground's shore puts farther and draws `shore-ground.png`; the probe writes both distances and which the break took.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
@@ -596,7 +907,8 @@ the materials' coordinates out of the place (CreateProjectedCoords) and runs bot
 `lerp(first, second, green)` (GroundGenerateWeights_1a1b). Until then a triangle took the second ground where its vertices'
 green averaged a half, and Port's beach showed the ocean's black (`blackc.mat`) in patches with straight, toothed edges under
 the thin sea and beach film (v0.1.242's probe on one, said from the live client). The split by triangle stays only where the two
-cannot run as one program, and the line under the picture says why. NOT DRAWN, DECIDED from the live client: the engine's
+cannot run as one program, and the line under the picture says why. NOT DRAWN, DECIDED from the live client (drawn behind a
+switch from v0.1.311 - see THE ENGINE'S HEIGHT BLENDING below): the engine's
 height blending (GROUND_HEIGHT_BLENDING, which Port's PBRGroundBN.fxgraph turns on with EnableGroundHeightBlending: each weight
 times `1 / (1 + (max_height - height) / 0.01)`, a material's height its texture's, blackc.mat's nought) - with it the
 cobblestone would stand over the black almost everywhere but where the mask is wholly green. KEPT FOR WHEN IT IS NEEDED (asked
@@ -715,6 +1027,93 @@ ground's share bilinear from the sub-tile's four corners (`SubTileGrounds.Second
 and local contrast - per pair of grounds, across and within sub-tiles, against the same fields moved 85 to 120 pixels - and
 `ground-on-screen-corners.png` tinted by the corners' share. Neither field is the engine's transition; which one the picture
 follows is what to read before the mix is changed.
+THE SHAPES ACROSS THE ATLAS ARE MIXED BY THEIR CORNERS (v0.1.310), CHOSEN from the live client with the old mix kept behind a switch -
+built before the comparison settled anything, and said so. A black rectangle in squares lay on the sand by the ship's stern in Port's
+built harbour (v0.1.309's probe there: `blackc.mat + G_KGB_DrySand02.mat by newmask.dds's green`, the green 0.004 - the ocean's black -
+beside squares at 1.000). It is the checkerboard above: Port_Boss_01 has 18 ground shapes in 17 sub-tiles of two grounds whose block
+coordinates reach a cell of the atlas or more across (c4r2, c5r2, c6r2 to c6r6, c1r6 to c5r6, c13r10, c13r11, c14r11, c14r12, c15r12 -
+the shore strip, the slopes and the pier's edge). That capture's comparison settles nothing: on the screen the two candidates follow the
+picture no better than the same fields moved (IslandOcean + TropicalFill, 312,534 pixels in 17 sub-tiles: brightness mask r -0.002
+against -0.047 +/- 0.131 moved, corners +0.237 against +0.198 +/- 0.138), most of those sub-tiles lying under the water. So
+`GroundPainter` now mixes exactly those shapes - a shape of a two-ground sub-tile, in a definition with a ground grid, whose block
+coordinates span 64 texels or more of the mask along either axis, the capture's own rule (`GroundPainter.AtlasCell`, `Across`) - by the
+second ground's share of the sub-tile's four corners, bilinear (`CaptureGroundCompare.Share`), worked out per vertex on copies of the
+shape's vertices and carried in the coordinates' first channel (`ShadeProgram.GroundsByCorners`, worn as `GroundBlend.Cornered`); every
+other shape stays on the mask. The Monster Book's stage switch "ground by the mask's cells" (`RoomKey.MaskCells`, the key word
+`maskcells`, a laid or built room) keeps them on the mask as before, squares and all, for holding the two against the game. The line
+under the picture counts both, the probe says which weight a pixel took, and `model-panes.txt` writes the corner mix as such.
+Held against the game (said from the live client with two pictures of the stern, switch on and off): the squares are gone. Held
+against the game's picture of Port's quay by the crates and sandbags (v0.1.309's capture, the cobblestone and the dry sand, 685,179
+pixels in 18 sub-tiles): neither the mask nor the corners' share follows it better than the same fields moved (brightness mask r
+-0.139 against -0.090 +/- 0.036, corners -0.131 against -0.111 +/- 0.037) - the game draws cobblestones standing out of the sand,
+dense where the corners' share puts sand. So the corner mix stays the default as the better of the two, not as the game's.
+THE ENGINE'S HEIGHT BLENDING BEHIND A SWITCH (v0.1.311, asked for from the live client on that picture). GroundInterpolate (ground.ffx,
+whole in ground.txt) as written (`ShadeProgram.Grounds`, `Mixing`): where GROUND_HEIGHT_BLENDING is defined - the macro of the fragment
+EnableGroundHeightBlending, which PBRGroundBN.fxgraph carries and which is the whole ground shader's, so either ground turns it on
+(`ShadeProgram.BlendsGroundHeights`) - each weight is multiplied by `1 / (1 + (max_height - height) / 0.01)`, the weights divided by
+their sum, and the two surfaces added up by them. A ground's height is what its graphs write (the Height extension point, a channel
+the compile now follows), nought where none writes one (InitSurfaceData; blackc.mat's BasicColour). PBRGroundBN writes it as the
+SmoothStep node of its normal map's BLUE (`NormalAOGloss`, read at the graph's own coordinates, half the projected ones) with
+`Height_Center` and `Height_Steepness` - ConstantFloats Port's ground materials leave at 0 (ConstantFloat's default) and 1 - which
+comes to `1 - (1 - blue)^1999`: one wherever the blue rises past about 0.003, nought only where it is nought. So two of Port's
+grounds both near one weigh as before, and the height decides where one of them is nought - in the texture's darkest blue, or
+blackc's - the higher taking a hundredfold for each unit between. The height costs the normal map's read, so it is compiled into
+a twin of the program (`ShadeProgram.Heighted`, the real PBRGroundBN reading colour and normal where the plain one reads colour
+alone) that only a mix weighed by heights takes. The Monster Book's stage switch "ground by the grounds' heights"
+(`RoomKey.GroundHeights`, the key word `groundheights`, a laid or built room; off by default, as DECIDED before) turns it on; the
+probe writes both heights and the share they came to. THE CAPTURE HOLDS IT AGAINST THE PICTURE TOO (v0.1.312, asked for from the live
+client): ground-on-screen's comparison (`CaptureGroundCompare`) weighs the mask's green and the corners' share by the two grounds'
+heights as the engine does - two candidates more, "mask by heights" and "corners by heights" - each ground's own program run at every
+measured pixel with its reads at the level the picture would take (`ShadeProgram.GroundReader`, the renderer's own rule per triangle:
+a coarser level averages the blue's noughts away, so a height read at the top level is one the game never saw), on every core. Beside
+each pair it writes the heights - how often each ground's comes under a half, how far the weighing moved each share - and
+`ground-on-screen-heights.png` tints the picture by the mask weighed by the heights, the engine's own mix as its shaders write it.
+ITS FIRST CAPTURE (v0.1.312, Port's quay by the crates and sandbags) SETTLED IT FOR THE COBBLESTONE AND THE SAND: at the level the
+picture reads, both grounds' heights stand over a half on every one of 1,017,832 pixels, and the weighing moved neither share by
+anything (0.000) - the height blending changes nothing between them. It moves only against the ocean's black, which writes no height:
+IslandOcean + TropicalFill by 0.275 (mask) and 0.454 (corners), the group with no name + IslandOcean by 0.391 (corners) - the black
+giving way - and none of the four candidates follows the picture there better than the moved controls (the best, the mask's local
+contrast, +0.409 against +0.317 +/- 0.060). So the switch stays off by default, and what lays the cobblestones through the sand is not
+the mix: WHICH MATERIAL OF ITS GROUP THE GAME DRAWS is the next question. A group offers several with weights - Port's group with no
+name Cobblestone01 to 03 and CobblestoneDirt01 twice (30, 25, 40, 20, 20), TropicalFill DrySand01 to 03 (30, 45, 25) - while the
+painter takes the heaviest everywhere (`GroundPainter.Heaviest`). ground-on-screen measures it from v0.1.313 (`CaptureGroundChoices`):
+every material each sub-tile's groups offer is run at every pixel at the level the picture reads (`ShadeProgram.GroundReader`), and its
+brightness held against the picture's DETAIL - its brightness less its mean over nine by nine pixels, which the light, shadow and
+grade leave the pattern in - with the moved controls; a winner is clear three spreads over its moved ones and a twentieth over the
+next. Per group it writes how often each material won a sub-tile of that ground alone beside its weight, per piece its sub-tiles'
+winners (one winner throughout says the game chooses per tile), every sub-tile's every r, and `ground-on-screen-choices.png` tints each
+clear winner. No material lining up anywhere would question the coordinates themselves - the world times 0.004, the scale the
+environments write and the offset a pass uniform no file holds.
+ITS FIRST CAPTURE (v0.1.313, the same spot on Port's pier) MEASURED NOTHING, AND SAID WHY THE COMPARISONS OVER THE HARBOUR BEFORE IT
+MEASURED NOTHING EITHER. Every material came to r 0.00 +/- 0.01, its controls alike. Held offline against the capture's own files (the
+game's picture, the camera, the colour textures ground.txt writes at 256 texels): the game's cobblestones line up with the pier's
+materials at r 0.08 to 0.29 - z 13 to 39 over the same material shifted where nothing lines up, the water round it 2 to 6 - at the
+world times 0.004 halved by PBRGroundBN's own MultiplyConst2 (the colour repeats every 500 units), the tool's axes as they are (no turn,
+no mirror), and within 16 units: across the pier the best line-up moved from (2, -12) to (4, -2) units, one shift, (12, 6), on a plane
+16 units higher. MEASURED: the ground's texture coordinates are the world's times 0.004, as the environments write - the pass's scale
+settled; its offset (ground_scalemove_uv.zw) and the camera's are within 13 units, which one spot cannot tell apart. Four units off the
+line-up r is nought, and v0.1.313 read each material at the pixel's own place. Nor were its pixels the pier's: `LaidRoomModels.GroundsOver`
+lifted each piece by its FIT to the area's ground - the mean of the area's height less the file's - and Port_Boss_01's sea floor, 500 down
+in the file under the harbour's water where the area's grid says nought, drew the fit to -450. The capture drew the pier 450 units above
+the game's: its sub-tiles' pixel counts come out as at -450 and no other height, within 2%. EVERY COMPARISON OVER PORT'S HARBOUR THROUGH
+ground-on-screen - v0.1.262's tint edges, v0.1.264's and v0.1.310's candidates, v0.1.312's heights - WAS MEASURED ON THE WRONG PIXELS, and
+its conclusion for the harbour is void until measured again (The Excavation's, v0.1.256, rests on whether its pieces' fits met their
+levels, not checked). From v0.1.314 `GroundsOver` lays each piece at its tiles' own level, as the game lays a tile's doodads (Marrow,
+Sulphuric) and Port's pier (this capture), and its line says how far the fit would have put each; and from v0.1.316 a LAID ROOM does too,
+DECIDED from the live client on this evidence (`LaidRoomModels.Of`, the built stage at the level already) - the fit kept behind the Tile
+Book's "fitted" switch (`RoomKey.Fitted`, the key word `fitted`; an older key's `level` is the usual now and reads as it). And the choices LINE UP (`CaptureGroundChoices`): the detail summed in cells of 2 units, each
+material read once a cell and shifted up to 24 units each way for its best line-up, its controls the same material shifted 48 and 72
+units; a winner is clear at z 5 and 0.01 over the next material, both CHOSEN, and the shift each winner lined up at is written. Offline,
+on this capture's 256-texel textures: PORT'S FIVE COBBLESTONES ARE ONE LAYOUT, fewer stones in each, so a winner says which density the
+picture shows - CobblestoneDirt01 round the player (c12r11 0.110 against Cobblestone03's 0.082, c13r11 0.084 against 0.057),
+Cobblestone03 at c12r8 (0.194 against CobblestoneDirt01's 0.154), the dense ones within 0.01 of each other at the pier's far end. The game
+does not draw the heaviest everywhere; whether it chooses per sub-tile, per tile or by some field is what the next capture's lines say.
+ITS CAPTURE (v0.1.319, Port's pier again) LINED EVERY CLEAR WINNER UP AT NO SHIFT, (0, 0): the tool's place of a pixel is the game's to
+within a cell of 2 units, so ground_scalemove_uv.zw is nought - MEASURED; the 16 units the offline reading needed were its flat plane's.
+Of the 16 sub-tiles of the group with no name alone on the screen, 4 had a clear winner - Cobblestone03 three (c12r14, c12r17, c13r19),
+CobblestoneDirt01 one (c12r15, 0.162 against 0.126) - and the rest stood within 0.01 of the next material; the two that win are the
+group's two heaviest (40, and 20 + 20), Cobblestone01 and 02 (30, 25) never. Whether the game draws one of them a sub-tile by weight
+or mixes them is not yet told.
 THE MONSTER BOOK'S ARENA IS BUILT, AND LAID AS WRITTEN (`BuiltRoomModels`, said from the live client: "our harbour diorama is never
 the game's, always mirrored somehow"). The game lays the boss room each instance its own way - Port's build replays: turned 180 (the
 harbour at placement 0), turned 90 and mirrored (placement 4); v0.1.262's instance laid the harbour at placement 1, mirrored - while
@@ -825,7 +1224,11 @@ Measured on the committed captures (`lattice-replay.txt`, `joins-replay.txt`, `o
   in it on every cell (2875 of 2875) and a chasm five (395 of 395; 3413 of 3413 over the Grotto's abyss); no walkable
   cell is ever nought. And both grids are the same kind of value: nought where they stop a body or a projectile, then
   counting up from the noughts to a cap of five - the walkable grid's 1 to 5 are a distance from the nearest unwalkable
-  cell, not a flag. Whether a diagonal step counts as one is not settled.
+  cell, not a flag. Whether a diagonal step counts as one is not settled. THE ENGINE'S OWN SOURCE AGREES (v0.1.317's
+  `render-debug.txt`, the engine's debug views): utilitynodes.ffx's `SceneColliders` reads one texture (`walkability_sampler`)
+  holding both - its z the walkability's distance and its w the projectiles', each `(value - 0.5) * 4` bilinear and clamped to
+  `STATIC_COLLIDERS_MAX_DIST`, 400 units - and `debug_walkability.fxgraph` paints the first as a hue, distance / 400. How the
+  grids' 0 to 5 map onto those units is not read.
   `TerrainReader` reads it beside the walkable grid (`TerrainGrid.CanShootOver`, `IsClearShot`, `IsShotOnly`; the walkable
   grid's length or nothing, `ShotNote` says why), and two things read it (v0.1.218): the rule fact `MonsterCountInShot`,
   `MonsterCountInSight`'s line over the projectiles' grid - beside it, not instead of it, so every rule written keeps its

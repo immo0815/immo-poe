@@ -1679,13 +1679,10 @@ internal static class Program
         }
 
         PoEformance.Game.Files.SkeletonAnimation move = rig.Animations[chosen];
-        byte[]? frames = rig.Tracks(move, files.Unpack);
-        PoEformance.Game.Files.AnimationTracks tracks = frames is null
-            ? PoEformance.Game.Files.AnimationTracks.None
-            : PoEformance.Game.Files.AnimationTracks.Read(frames, move.Tracks, rig.Version);
+        PoEformance.Game.Files.AnimationTracks tracks = rig.Played(move, files.Unpack);
         if (!tracks.Ready)
         {
-            Console.WriteLine($"    {move.Name}: the keyframes did not read ({(frames is null ? "did not unpack" : tracks.Why)})");
+            Console.WriteLine($"    {move.Name}: the keyframes did not read ({tracks.Why})");
             return;
         }
 
@@ -2422,6 +2419,33 @@ internal static class Program
         PoEformance.Game.Files.WaterLookups waterLookups =
             PoEformance.Game.Files.WaterLookups.Read(installed is null ? null : installed.Read);
         PoEformance.Game.Files.ShadeProgram.Use(waterLookups);
+
+        // THE FIELD WAVES' FOAM - the beach graph's two sheets, 2048 and 1024 square - decoded off this thread: the card draws white
+        // foam until they are in (ShadeProgram.UseFieldFoam), and the startup does not wait on them.
+        if (installed is not null)
+        {
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    PoEformance.Game.Files.Mipmaps? Sheet(string path) =>
+                        PoEformance.Game.Files.GameArt.ReadRaw(installed.Read, path) is { Length: > 0 } raw
+                            ? PoEformance.Game.Files.Mipmaps.Of(PoEformance.Game.Files.GameArt.Decode(raw))
+                            : null;
+                    PoEformance.Game.Files.ShadeProgram.UseFieldFoam(
+                        Sheet(PoEformance.Game.Files.ShadeProgram.FieldFoamColourPath),
+                        Sheet(PoEformance.Game.Files.ShadeProgram.FieldFoamNormalPath),
+                        "the beach graph's foam did not read");
+                }
+                catch (Exception failed) when (failed is IOException or InvalidDataException or UnauthorizedAccessException)
+                {
+                    PoEformance.Game.Files.ShadeProgram.UseFieldFoam(null, null, failed.Message);
+                }
+            });
+        }
+
+        // THE INSTALL'S OWN OODLE for a wobble core's rig - a ship's sway (WobbleRig.Unpacker); the managed decoder does not read it.
+        PoEformance.Features.WobbleRig.Unpacker = installed is null ? null : installed.Unpack;
         Console.WriteLine($"water    {waterLookups.Summary}");
 
         // Each item's own picture. The item carries the PATH of its art, and that file is in
@@ -3457,6 +3481,23 @@ internal static class Program
                     // texture - only those, the rest rejected on the path's bytes.
                     new PoEformance.Game.Files.BundleIndex.WalkPlace(
                         string.Empty, [TextureExtension], PoEformance.Features.CaptureWaterTextures.Words),
+
+                    // AND EVERY OBJECT SCRIPT, GROUND TYPE AND MASTER'S LIST, and every data table, for the capture's water shore part:
+                    // which of them block the water or mark the ocean.
+                    new PoEformance.Game.Files.BundleIndex.WalkPlace(
+                        PoEformance.Features.CaptureWaterShore.Folder, PoEformance.Features.CaptureWaterShore.Extensions),
+                    new PoEformance.Game.Files.BundleIndex.WalkPlace(
+                        PoEformance.Features.CaptureWaterShore.TableFolder, [PoEformance.Features.CaptureWaterShore.TableExtension]),
+
+                    // AND EVERY PATH ANYWHERE NAMING A DEBUG, TEST OR CONSOLE WORD, for the capture's debug strings part.
+                    new PoEformance.Game.Files.BundleIndex.WalkPlace(string.Empty, [string.Empty], PoEformance.Features.CaptureDebugStrings.PathWords),
+
+                    // AND THE ENGINE'S OWN GRAPHS WHOLE, the debug views among them, for the capture's render debug part.
+                    new PoEformance.Game.Files.BundleIndex.WalkPlace(PoEformance.Features.CaptureRenderDebug.Folder, [string.Empty]),
+
+                    // AND EVERY PATH NAMING A WOBBLE, for the capture's wobble files part: what sways Port's ship.
+                    .. PoEformance.Features.CaptureWobble.Folders.Select(folder =>
+                        new PoEformance.Game.Files.BundleIndex.WalkPlace(folder, [string.Empty], PoEformance.Features.CaptureWobble.Words)),
                 ]);
                 List<string> tiles = [.. found[0].Where(one => !one.EndsWith(TilesetExtension, StringComparison.OrdinalIgnoreCase))];
                 List<string> sets = [.. found[0].Where(one => one.EndsWith(TilesetExtension, StringComparison.OrdinalIgnoreCase))];
@@ -3467,6 +3508,11 @@ internal static class Program
                 overlay.MaterialFiles = found[3];
                 overlay.EnvironmentFiles = found[4];
                 overlay.WaterTextureFiles = found[5];
+                overlay.ShoreFiles = [.. found[6], .. found[0]];
+                overlay.DataTables = found[7];
+                overlay.DebugPaths = found[8];
+                overlay.EngineGraphs = found[9];
+                overlay.WobblePaths = [.. found.Skip(10).SelectMany(one => one).Distinct(StringComparer.OrdinalIgnoreCase)];
                 overlay.TileFiles = tiles;
             });
         }
@@ -3555,6 +3601,36 @@ internal static class Program
                     ? ["could not write the rooms out"]
                     : null);
         }
+
+        // THE WOBBLE WATCH: what sways Port's ship, read from memory for seconds from the press - see WobbleProbe. One probe a
+        // press, made at the press, so its line and its stop in the capture's window are that press's.
+        PoEformance.Game.Diagnostics.WobbleProbe? wobble = null;
+        overlay.OfferCaptureWork(
+            PoEformance.Features.CaptureParts.Wobble,
+            _ =>
+            {
+                // PAST THE TAP, as the light hunt reads: twenty seconds of it would crowd the capture's recording out of its cap.
+                var probe = new PoEformance.Game.Diagnostics.WobbleProbe(
+                    reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader, schema);
+                wobble = probe;
+                return probe.Run(gameStatesStatic);
+            },
+            new PoEformance.Overlay.CaptureWorkProgress(
+                () => wobble?.Line ?? "starting",
+                () => wobble?.Fraction ?? 0f,
+                () => wobble?.Stop()));
+
+        // THE OCEAN MARKUP HUNT: the grid the engine's sea shore is made from, looked for in the terrain at the press - see
+        // OceanMarkupHunt. Past the tap: a few megabytes of reads would crowd the capture's recording.
+        overlay.OfferCaptureWork(
+            PoEformance.Features.CaptureParts.OceanMarkup,
+            _ =>
+            {
+                PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
+                PoEformance.Core.Diagnostics.GameChainAddresses chain =
+                    PoEformance.Core.Diagnostics.GameChain.Resolve(untapped, schema, gameStatesStatic);
+                return PoEformance.Game.Diagnostics.OceanMarkupHunt.Run(untapped, schema, chain.AreaInstance);
+            });
 
         // NEEDS NO INSTALL: it reads memory rather than the game's files. The one thing it needs is
         // the loaded-file table.

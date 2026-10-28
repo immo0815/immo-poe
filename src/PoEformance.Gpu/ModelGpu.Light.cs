@@ -37,8 +37,9 @@ public sealed partial class ModelGpu
     /// <param name="view">The camera's turn - the way into the picture is its third column.</param>
     /// <param name="placed">The vertices the picture is drawn from, the pose's where it moves.</param>
     /// <param name="pose">Which those are: nought the mesh's own, a pose's key, -1 a pose nothing is known of - a map is kept for the first two.</param>
-    /// <param name="from">The first vertex the pose moves - <see cref="ModelScene.PoseFrom"/> - or nought.</param>
-    private void Lit(SceneLight light, MeshBuffers buffers, Plan plan, Matrix4x4 view, Vector3[] placed, long pose, int from)
+    /// <param name="from">The first vertex the pose moves - <see cref="ModelScene.PoseFrom"/> or <see cref="CardSkin.From"/> - or nought.</param>
+    /// <param name="hull">Where a pose the card skins lies along the sun (<see cref="CardSkin.Hull"/>), or null where the pose is in <paramref name="placed"/>.</param>
+    private void Lit(SceneLight light, MeshBuffers buffers, Plan plan, Matrix4x4 view, Vector3[] placed, long pose, int from, ShadowBounds? hull)
     {
         ID3D11DeviceContext context = _context;
         ShadowTarget? map = null;
@@ -53,7 +54,7 @@ public sealed partial class ModelGpu
                 map = buffers.Shadow;
                 frame = was.Frame;
             }
-            else if (Framed(buffers, placed, light, from, out split) is { } framed)
+            else if (Framed(buffers, placed, light, from, hull, plan.Sways && _swayed is not null, out split) is { } framed)
             {
                 frame = framed;
                 if (buffers.Shadow is not { } kept || kept.Side != framed.Side)
@@ -98,7 +99,7 @@ public sealed partial class ModelGpu
             ShadowSize = map is null ? default : new Vector4(frame.PerUnit, 1f / frame.PerUnit, frame.Side, 0f),
             Ambient = new Int4(ambient, grade is null ? 0 : 1, ambient == 2 ? light.Cube!.Size : 0, light.PointCount),
             Cells = new Int4(cells.X, cells.Y, cells.Z, (cells.X * cells.Y * cells.Z) + 1),
-            Graded = grade is null ? default : new Int4(grade.Width, grade.Height, grade.Depth, 0),
+            Graded = new Int4(grade?.Width ?? 0, grade?.Height ?? 0, grade?.Depth ?? 0, (int)light.View),
         });
         context.VSSetConstantBuffer(2, _scene);
         context.PSSetConstantBuffer(2, _scene);
@@ -130,16 +131,28 @@ public sealed partial class ModelGpu
     /// <summary>
     /// The frame the sun's map is drawn in - from every vertex, or where a pose moves only a monster's, from the stage's bounds kept and his scanned - and the triangle the stage's casters end at where the monster stands inside the stage's frame, else -1.
     /// </summary>
-    private static ShadowFrame? Framed(MeshBuffers buffers, Vector3[] placed, SceneLight light, int from, out int split)
+    /// <param name="hull">Where a pose the card skins lies along the sun, standing for its vertices from <paramref name="from"/> on - which
+    /// <paramref name="placed"/> then holds unmoved - or null. The processor frames its map so too (MeshPicture.Canvas.Hull).</param>
+    /// <param name="swaying">Whether runs sway: their casters are then cast again every frame over the stage's kept - a room alone kept whole but for them.</param>
+    private static ShadowFrame? Framed(MeshBuffers buffers, Vector3[] placed, SceneLight light, int from, ShadowBounds? hull, bool swaying, out int split)
     {
         split = from > 0 && from < placed.Length ? buffers.Split(from) : -1;
+        if (split <= 0 && swaying && hull is null)
+        {
+            // NO MONSTER BEFORE THE SWAY: every vertex is the stage's, its bounds kept - a ship sways a few units inside them.
+            split = buffers.Triangles;
+            from = placed.Length;
+        }
+
         if (split <= 0)
         {
-            return ShadowMap.Framed(placed, light.SunDirection, light.ShadowSide);
+            // A SKINNED POSE WHOSE STAGE DOES NOT PART: the stage's bounds and the hull, every caster cast together.
+            return hull is not { } moving ? ShadowMap.Framed(placed, light.SunDirection, light.ShadowSide)
+                : ShadowMap.Framed(from > 0 ? buffers.StageBounds(from, light.SunDirection).With(moving) : moving, light.SunDirection, light.ShadowSide);
         }
 
         ShadowBounds stage = buffers.StageBounds(from, light.SunDirection);
-        ShadowBounds whole = stage.With(ShadowMap.Bounded(placed.AsSpan(from), light.SunDirection));
+        ShadowBounds whole = from < placed.Length ? stage.With(hull ?? ShadowMap.Bounded(placed.AsSpan(from), light.SunDirection)) : stage;
         if (whole != stage)
         {
             split = -1;
@@ -154,7 +167,7 @@ public sealed partial class ModelGpu
     /// <remarks>
     /// THE SAME MAP TO THE BIT as every caster drawn at once: each texel keeps the least depth drawn
     /// into it whatever the order, and the monster standing inside the stage's frame leaves the frame
-    /// the stage's alone (<see cref="Framed(MeshBuffers, Vector3[], SceneLight, int, out int)"/>). A
+    /// the stage's alone (<see cref="Framed(MeshBuffers, Vector3[], SceneLight, int, ShadowBounds?, bool, out int)"/>). A
     /// playing animation recast a room of two million triangles every frame for a monster's worth of moved ones.
     /// </remarks>
     private void Staged(ShadowTarget map, MeshBuffers buffers, Plan plan, ShadowFrame frame, int split)
@@ -199,7 +212,7 @@ public sealed partial class ModelGpu
             Mipmaps? worn = run.Blend == MaterialBlend.Cutout ? plan.Palette[run.Wears] : null;
             ID3D11ShaderResourceView? view = worn is null ? null : Skin(worn).View;
             context.PSSetShaderResource(0, view!);
-            Part(new Vector4(view is null ? 0f : 1f, view is null ? -1f : MeshPicture.CutoutAlpha, 0f, 0f));
+            Part(new Vector4(view is null ? 0f : 1f, view is null ? -1f : MeshPicture.CutoutAlpha, 0f, 0f), run.Sway);
             context.DrawIndexed(run.Count * 3, run.First * 3, 0);
         }
 
@@ -217,12 +230,14 @@ public sealed partial class ModelGpu
     /// MERGED BECAUSE THE ORDER DOES NOT MATTER - the map keeps the nearest depth whichever is drawn
     /// first - and a solid caster reads no texture, so a room's thousands of runs are a few draws.
     /// </remarks>
-    private static Run[] Casting(List<Run> runs, Mipmaps?[] palette)
+    private static Run[] Casting(List<Run> runs, Mipmaps?[] palette, List<ShadeProgram> programs)
     {
         var casts = new List<Run>();
         foreach (Run run in runs)
         {
-            if (run.Blend is MaterialBlend.Alpha or MaterialBlend.Additive)
+            // NOR A CUT-OUT SHAPE ITS PROGRAM CUTS AWAY AT EVERY PIXEL - MeshPicture's Casts, ShadeProgram.FixedAlpha.
+            if (run.Blend is MaterialBlend.Alpha or MaterialBlend.Additive
+                || (run.Blend == MaterialBlend.Cutout && run.Shade >= 0 && programs[run.Shade].CutAway(MeshPicture.CutoutAlpha)))
             {
                 continue;
             }
@@ -233,13 +248,14 @@ public sealed partial class ModelGpu
                 continue;
             }
 
-            if (casts.Count > 0 && casts[^1] is { Blend: MaterialBlend.Opaque } last && last.First + last.Count == run.First)
+            // NOT ACROSS A SWAY: a group's casters are drawn with its own matrix.
+            if (casts.Count > 0 && casts[^1] is { Blend: MaterialBlend.Opaque } last && last.First + last.Count == run.First && last.Sway == run.Sway)
             {
                 casts[^1] = last with { Count = last.Count + run.Count };
             }
             else
             {
-                casts.Add(new Run(run.First, run.Count, 0, MaterialBlend.Opaque));
+                casts.Add(new Run(run.First, run.Count, 0, MaterialBlend.Opaque, Sway: run.Sway));
             }
         }
 

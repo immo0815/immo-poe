@@ -230,9 +230,20 @@ public static class RoomModels
         /// <summary>Every doodad file and what became of its lines, in the order first named - see <see cref="DoodadFile"/>.</summary>
         public IReadOnlyList<DoodadFile> Files { get; init; } = [];
 
+        /// <summary>What the room's wobble cores came to - see RoomSways - or empty where it has none.</summary>
+        public string Swayed { get; init; } = string.Empty;
+
         /// <summary>The lines under the picture about what did not draw, and why.</summary>
         public IEnumerable<string> Said()
         {
+            if (Swayed.Length > 0)
+            {
+                // WHAT THE SWAY IS AND WHERE IT COMES FROM, said as the files give it - the rule a reading, the motion the game's.
+                yield return "sways (on the card; the processor's picture stands still): " + Swayed
+                    + " - the zone, the bone and the animation READ from the files; which doodads a sector sways is the files' reading"
+                    + " (the zone holds the line, its type sets no no_wobble), held against the game's own list by wobble.txt's census";
+            }
+
             if (Missing > 0)
             {
                 yield return string.Create(CultureInfo.InvariantCulture, $"{Missing} doodads did not draw; the first: {FirstMissing}");
@@ -294,9 +305,13 @@ public static class RoomModels
         long mostTriangles = (long)mostDoodads * TrianglesPerDoodad;
         string firstMissing = string.Empty;
 
+        // THE ROOM'S WOBBLE CORES, and which of its lines each sways - see RoomSways. Each core's own line says where it stands.
+        RoomSways? sways = RoomSways.Of(room, counted, WobbleRig.Unpacking);
+        var coreAt = new Matrix4x4?[sways?.Count ?? 0];
+
         // WHERE EACH GOES FIRST, and whether it could be seen there at all.
-        var laid = new List<(RoomDoodad One, Matrix4x4 Place, Tally File)>(room.Doodads.Count + (also?.Count ?? 0));
-        void Take(RoomDoodad one, Matrix4x4 place)
+        var laid = new List<(RoomDoodad One, Matrix4x4 Place, Tally File, int Sway)>(room.Doodads.Count + (also?.Count ?? 0));
+        void Take(RoomDoodad one, Matrix4x4 place, int sway)
         {
             // THE LIGHTS WHETHER OR NOT THE DOODAD DRAWS: a light can be all a doodad is -
             // grimtangle_ambientlight.ao has no mesh - and a doodad left out to keep the picture
@@ -310,7 +325,7 @@ public static class RoomModels
             }
 
             file.Lines++;
-            laid.Add((one, place, file));
+            laid.Add((one, place, file, sway));
             if (sieve is not null && !file.Wanted)
             {
                 var half = new Vector3(sieve.Margin * (one.Scale > 0f ? one.Scale : 1f));
@@ -325,15 +340,9 @@ public static class RoomModels
                 continue;
             }
 
-            if (!tools && IsTool(one))
-            {
-                hidden++;
-                continue;
-            }
-
             float scale = one.Scale > 0f ? one.Scale : 1f;
             Matrix4x4 place = Matrix4x4.CreateScale(scale)
-                * Matrix4x4.CreateRotationZ(one.Turn)
+                * one.Turning
                 * Matrix4x4.CreateTranslation(one.X * size, one.Y * size, 0f);
             if (beyond is not null)
             {
@@ -346,7 +355,19 @@ public static class RoomModels
                 place *= Matrix4x4.CreateTranslation(0f, 0f, height);
             }
 
-            Take(one, place);
+            // A CORE'S PLACE WHETHER OR NOT IT DRAWS - its model is a plane no one sees; its place is what the sway turns about.
+            if (sways?.CoreOf(one) is >= 0 and int core && sways.RigOf(core) is not null)
+            {
+                coreAt[core] = place;
+            }
+
+            if (!tools && IsTool(one))
+            {
+                hidden++;
+                continue;
+            }
+
+            Take(one, place, sways?.GroupOf(one) ?? -1);
         }
 
         // THE TILES' OWN DOODADS AFTER THE ROOM'S, placed already by whoever laid the tiles: where the doodads slider
@@ -364,7 +385,7 @@ public static class RoomModels
                 continue;
             }
 
-            Take(one, place);
+            Take(one, place, -1);
         }
 
         // EVERY FILE THAT WILL BE LAID, ON EVERY CORE, before any is laid: one model per file, through the shared cache (Paints), so
@@ -381,8 +402,21 @@ public static class RoomModels
             });
         }
 
+        // EACH CORE INTO THE PILE where its line stood, its lines counted - a line's group then names its place among the pile's cores.
+        var groupOf = new int[coreAt.Length];
+        int firstCore = pile.Cores.Count;
+        for (var core = 0; core < coreAt.Length; core++)
+        {
+            groupOf[core] = -1;
+            if (coreAt[core] is { } at && sways!.RigOf(core) is { } rig)
+            {
+                groupOf[core] = pile.Cores.Count;
+                pile.Cores.Add(new RoomSway(rig, at, laid.Count(one => one.Sway == core)));
+            }
+        }
+
         using ModelProgress.Step step = ModelProgress.Begin(paints.Progress, "laying the doodads", laid.Count);
-        foreach ((RoomDoodad one, Matrix4x4 place, Tally file) in laid)
+        foreach ((RoomDoodad one, Matrix4x4 place, Tally file, int sway) in laid)
         {
             step.Advance();
             if (sieve is not null && !file.Wanted)
@@ -423,7 +457,7 @@ public static class RoomModels
                 continue;
             }
 
-            pile.Add(model, place, one.Ao);
+            pile.Add(model, place, one.Ao, sway >= 0 ? groupOf[sway] : -1);
             triangles += model.Mesh.Triangles;
             placed++;
             file.Laid++;
@@ -434,6 +468,8 @@ public static class RoomModels
         {
             Unloaded = unloaded,
             Unseen = unseen,
+            Swayed = sways is null ? string.Empty
+                : string.Join("; ", new[] { RoomSways.Counted([.. pile.Cores.Skip(firstCore)]), sways.Said }.Where(one => one.Length > 0)),
             Files = [.. named.Select(one => one.Said())],
         };
     }
@@ -460,6 +496,9 @@ public static class RoomModels
                 Most = model.Mesh.Most,
                 Materials = model.ShapeMaterials,
                 Modes = model.Modes,
+                Rig = model.Rig_,
+                Animations = [.. model.Rig.Animations.Select(one => string.Create(
+                    System.Globalization.CultureInfo.InvariantCulture, $"{one.Name} ({one.Rate} fps, {one.Tracks} tracks, kind {one.Kind})"))],
             }
             : new DoodadFile(ao, Lines, Laid, Missing, Capped, Unseen, Model?.Why ?? string.Empty, first);
     }
@@ -514,14 +553,19 @@ public static class RoomModels
 
     /// <summary>
     /// A room's shore from its water and its ground, and - once its materials are compiled - what stands in the sea: every shape whose
-    /// program draws the sea's spray on it (ShadeProgram.Sprays). See ShoreField.Of.
+    /// program draws the sea's spray on it (ShadeProgram.Sprays). What may stand in the waves' way is every solid shape that is neither
+    /// water, the ground nor the beach's sheet - the ship's hull among them (CHOSEN, see ShoreField's remarks). See ShoreField.Of.
     /// </summary>
     internal static ShoreField? ShoreOf(SkinnedMesh mesh, IReadOnlyList<string> modes, IReadOnlyList<string> sources, IReadOnlyList<ShadeProgram?>? shades)
         => ShoreField.Of(
             mesh,
             shape => shape < modes.Count && modes[shape] == "water",
             shape => shape < sources.Count && sources[shape].StartsWith(GroundSource, StringComparison.Ordinal),
-            shades is null ? null : shape => shape < shades.Count && shades[shape] is { Sprays: true });
+            shades is null ? null : shape => shape < shades.Count && shades[shape] is { Sprays: true },
+            shape => shape < modes.Count && shape < sources.Count
+                && MaterialBlends.Of(modes[shape]) is MaterialBlend.Opaque or MaterialBlend.Cutout
+                && !sources[shape].StartsWith(GroundSource, StringComparison.Ordinal)
+                && sources[shape] != BeachSource);
 
     /// <summary>What the beach waves' sheet is named as the source of its shape - see <see cref="Piled"/>.</summary>
     internal const string BeachSource = "the beach waves' sheet over the shore's ground";
@@ -560,6 +604,10 @@ public static class RoomModels
             // left out, every room shape read "tex -" whether it was textured or not.
             ShapeTextures = pile.Textures,
             ShapeSources = pile.Sources,
+
+            // THE SWAY OF A SHIP AND ITS DECK - see RoomSways; every shape at -1 where nothing sways, so empty then.
+            ShapeSways = pile.Cores.Count > 0 ? pile.Sways : [],
+            Sways = pile.Cores,
 
             // THE SHORE FROM THE ROOM'S OWN WATER AND GROUND - the engine makes its own at run time; see ShoreField. What stands
             // in the sea joins it once the materials are compiled (MonsterModels.Shaded).
@@ -612,4 +660,10 @@ public sealed record DoodadFile(string Ao, int Lines, int Laid, int Missing, int
 
     /// <summary>Each shape's blend as its material spells it, where it loaded - see MonsterModel.Modes.</summary>
     public IReadOnlyList<string> Modes { get; init; } = [];
+
+    /// <summary>The skeleton its .ao names, where it names one - a doodad laid in a room stays in its rest pose (RoomModels).</summary>
+    public string Rig { get; init; } = string.Empty;
+
+    /// <summary>Its skeleton's animations, each with its rate, tracks and kind - what the game may play on it.</summary>
+    public IReadOnlyList<string> Animations { get; init; } = [];
 }

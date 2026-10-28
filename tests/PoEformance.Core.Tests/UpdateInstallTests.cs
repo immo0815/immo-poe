@@ -218,6 +218,24 @@ public sealed class UpdateInstallTests
     }
 
     [Fact]
+    public void TheStampIsCopiedLastAndOnlyOnceTheRestIsIn()
+    {
+        // A LOCKED EXECUTABLE ONCE FAILED while version.json went through, and the old build read the new stamp and called
+        // itself the newest (2026-10-26). The copy leaves the stamp out; it follows only once the copy has not failed.
+        string script = Script();
+        string[] lines = script.Split('\n', StringSplitOptions.TrimEntries);
+        int copy = Array.FindIndex(lines, line => line.StartsWith("robocopy", StringComparison.Ordinal));
+        int failed = Array.FindIndex(lines, line => line == "if errorlevel 8 goto failed");
+        int stamp = Array.FindIndex(lines, line => line.Contains("copy /y", StringComparison.Ordinal));
+
+        Assert.Contains("/XF version.json", lines[copy], StringComparison.Ordinal);
+        Assert.True(copy < failed && failed < stamp, "the stamp goes in after the copy has been checked");
+        Assert.Equal(
+            @"if exist ""C:\Tools\PoEformance\update\staging\version.json"" copy /y ""C:\Tools\PoEformance\update\staging\version.json"" ""C:\Tools\PoEformance\version.json"" >>""%LOG%"" || goto failed",
+            lines[stamp]);
+    }
+
+    [Fact]
     public void TheScriptCopiesAndNeverMirrors()
     {
         string script = Script();

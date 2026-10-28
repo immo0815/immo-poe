@@ -26,6 +26,12 @@ internal sealed class ModelPile
     /// <summary>What each shape came from - see MonsterModel.ShapeSources.</summary>
     public List<string> Sources { get; } = [];
 
+    /// <summary>Which of <see cref="Cores"/> sways each shape, or -1 - see MonsterModel.ShapeSways.</summary>
+    public List<int> Sways { get; } = [];
+
+    /// <summary>The wobble cores laid, each where it stands in the pile's frame - see MonsterModel.Sways.</summary>
+    public List<RoomSway> Cores { get; } = [];
+
     /// <summary>Triangles laid so far.</summary>
     public long Triangles { get; private set; }
 
@@ -33,11 +39,21 @@ internal sealed class ModelPile
     /// <param name="model">The model.</param>
     /// <param name="place">Where it goes.</param>
     /// <param name="source">What it came from, for every one of its shapes.</param>
-    public void Add(MonsterModel model, Matrix4x4 place, string source)
+    /// <param name="sway">Which of <see cref="Cores"/> sways all of it, or -1 for none but what the model carries itself - a stage's room its own cores.</param>
+    public void Add(MonsterModel model, Matrix4x4 place, string source, int sway = -1)
     {
         Joins.Add(new MeshJoin(model.Mesh, null, null, place));
+
+        // A MODEL'S OWN CORES COME WITH IT, placed as it is: a stage piles a room that brings its ship's sway.
+        int first = Cores.Count;
+        foreach (RoomSway core in model.Sways)
+        {
+            Cores.Add(core.Placed(place));
+        }
+
         for (var shape = 0; shape < model.Mesh.Shapes.Count; shape++)
         {
+            Sways.Add(sway >= 0 ? sway : shape < model.ShapeSways.Count && model.ShapeSways[shape] >= 0 ? first + model.ShapeSways[shape] : -1);
             Skins.Add(shape < model.Skins.Count ? model.Skins[shape] : model.Skin);
             Modes.Add(shape < model.Modes.Count ? model.Modes[shape] : string.Empty);
             Wearing.Add(shape < model.ShapeMaterials.Count ? model.ShapeMaterials[shape] : string.Empty);
@@ -56,6 +72,7 @@ internal sealed class ModelPile
     {
         for (var shape = 0; shape < mesh.Shapes.Count; shape++)
         {
+            Sways.Add(-1);
             Skins.Add(null);
             Modes.Add(mode);
             Wearing.Add(wearing);
@@ -75,6 +92,7 @@ internal sealed class ModelPile
         Joins.Add(new MeshJoin(mesh, null, null, place));
         for (var shape = 0; shape < mesh.Shapes.Count; shape++)
         {
+            Sways.Add(-1);
             Skins.Add(null);
             Modes.Add(string.Empty);
             Wearing.Add(string.Empty);

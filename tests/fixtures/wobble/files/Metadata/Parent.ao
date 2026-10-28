@@ -1,0 +1,23 @@
+version 3
+abstract
+extends "nothing"
+
+BaseAnimationEvents { }
+AnimationController { }
+AttachedAnimatedObject { }
+Hull { }
+
+
+client
+{
+	ClientAnimationController { }
+	AnimatedRender { }
+	SkinMesh { }
+	SoundEvents { }
+	BoneGroups { }
+	ParticleEffects { }
+	TrailsEffects { }
+	VolumetricEffects { }
+	Lights { }
+	EffectPack { }
+}

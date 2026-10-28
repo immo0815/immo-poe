@@ -99,12 +99,11 @@ public class FixedMeshTests
     /// A version below nine is refused by name rather than read out of the wrong bytes.
     /// </summary>
     /// <remarks>
-    /// IT PUTS THE VERTICES IN A LAYOUT OF ITS OWN - no DOLm block at all - so reading it as this
-    /// one would produce a prop-shaped answer from bytes that mean something else. Nothing in the
-    /// game seen so far is one, and a reader that guessed would say so only by drawing rubbish.
+    /// IT PUTS THE VERTICES IN A LAYOUT OF ITS OWN - no DOLm block at all - so a version 9 file
+    /// relabelled 8 is walked as the older layout, and its counts refuse it rather than draw rubbish.
     /// </remarks>
     [Fact]
-    public void AnOlderVersionSaysSoRatherThanGuessing()
+    public void AVERSIONNineFileRelabelledEightIsRefusedByItsOwnCounts()
     {
         byte[] bytes = Built();
         bytes[0] = 8;
@@ -112,7 +111,114 @@ public class FixedMeshTests
         FixedMesh prop = FixedMesh.Read(bytes);
 
         Assert.False(prop.Ready);
-        Assert.Contains("outside a DOLm block", prop.Why, StringComparison.Ordinal);
+        Assert.NotEqual(string.Empty, prop.Why);
+    }
+
+    /// <summary>
+    /// A version 8 file - Malgor's spyglass, <c>PirateBossCannon.fmt</c> - read in poe_data_tools' v8_section order: two shapes
+    /// by their first triangles, their materials out of the pool, the coordinates, and the normal out of the vertex's first four
+    /// bytes where those lie along the triangles.
+    /// </summary>
+    [Theory]
+    [InlineData(0u)]
+    [InlineData(1u)]
+    public void AVERSIONEightFileIsReadAsTheReferenceReadsIt(uint format)
+    {
+        FixedMesh prop = FixedMesh.Read(Eight(format, normalFirst: true));
+
+        Assert.True(prop.Ready, prop.Why);
+        Assert.Equal(8, prop.Mesh.Positions.Length);
+        Assert.Equal(12, prop.Mesh.Indices.Length);
+        Assert.Equal([("CapShape", "Art/Cap.mat"), ("TubeShape", "Art/Tube.mat")], prop.Named);
+        Assert.Equal(new MeshShape("CapShape", 6, 6), prop.Mesh.Shapes[0]);
+        Assert.Equal(new MeshShape("TubeShape", 0, 6), prop.Mesh.Shapes[1]);
+        Assert.Equal(new Vector3(30f, 10f, 0f), prop.Mesh.Positions[6]);
+        Assert.Equal(new Vector2(0.25f, 0.75f), prop.Mesh.Coordinates[6]);
+        Assert.Equal(-Vector3.UnitZ, prop.Mesh.Normals[6]);
+        Assert.Equal("the vertices' first four bytes", prop.NormalsFrom);
+        Assert.Equal(new Vector3(0f, 0f, -1f), prop.Mesh.Least);
+        Assert.Equal(new Vector3(30f, 10f, 0f), prop.Mesh.Most);
+    }
+
+    /// <summary>
+    /// The two candidates are held against the file's own triangles: where the first four bytes lie across the surface - a
+    /// tangent - and the second along it, the second is the normal.
+    /// </summary>
+    [Fact]
+    public void THENormalIsTheCandidateThatLiesAlongTheTriangles()
+    {
+        FixedMesh prop = FixedMesh.Read(Eight(0u, normalFirst: false));
+
+        Assert.True(prop.Ready, prop.Why);
+        Assert.Equal("the vertices' second four bytes", prop.NormalsFrom);
+        Assert.Equal(-Vector3.UnitZ, prop.Mesh.Normals[0]);
+    }
+
+    /// <summary>
+    /// A version 8 file: two flat quads in the z = 0 plane - a shape of two triangles each, the second shape listed first in the
+    /// file so the order of their starts is what counts - each vertex's eight bytes a normal facing minus z and a tangent along
+    /// x, in the order asked; one piece owning one record and one trailing record before the pool.
+    /// </summary>
+    private static byte[] Eight(uint format, bool normalFirst)
+    {
+        using var stream = new MemoryStream();
+        using var write = new BinaryWriter(stream);
+        write.Write((byte)8);
+        write.Write((uint)4);                       // triangles
+        write.Write((uint)8);                       // vertices
+        write.Write((ushort)2);                     // shapes
+        write.Write((byte)1);                       // one piece
+        write.Write((ushort)1);                     // its records, counted again
+        write.Write((byte)1);                       // one trailing record
+        write.Write(0f); write.Write(30f);
+        write.Write(0f); write.Write(10f);
+        write.Write(-1f); write.Write(0f);
+        write.Write(format);
+
+        // THE CAP LISTED FIRST, from triangle 2; the tube from triangle 0 - names and materials as offsets into the pool.
+        string[] words = ["TubeShape", "Art/Tube.mat", "CapShape", "Art/Cap.mat"];
+        var offsets = new int[words.Length];
+        for (int one = 1; one < words.Length; one++)
+        {
+            offsets[one] = offsets[one - 1] + words[one - 1].Length + 1;
+        }
+
+        write.Write((uint)offsets[2]); write.Write((uint)offsets[3]); write.Write((uint)2);
+        write.Write((uint)offsets[0]); write.Write((uint)offsets[1]); write.Write((uint)0);
+
+        write.Write((byte)7); write.Write((byte)1); write.Write((uint)0);    // the piece: ?, one record, a tag
+
+        foreach (int one in new[] { 0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7 })
+        {
+            write.Write((ushort)one);
+        }
+
+        for (var one = 0; one < 8; one++)
+        {
+            float x = (one < 4 ? 0f : 20f) + ((one % 4) is 1 or 2 ? 10f : 0f), y = (one % 4) >= 2 ? 10f : 0f;
+            write.Write(x); write.Write(y); write.Write(0f);
+            byte[] normal = [0, 0, unchecked((byte)(sbyte)-127), 0], tangent = [127, 0, 0, 0];
+            write.Write(normalFirst ? normal : tangent);
+            write.Write(normalFirst ? tangent : normal);
+            write.Write(BitConverter.HalfToUInt16Bits((Half)0.25f));
+            write.Write(BitConverter.HalfToUInt16Bits((Half)0.75f));
+            if (format == 1)
+            {
+                write.Write(0u);
+            }
+        }
+
+        write.Write(new byte[12]);                  // the piece's one record
+        write.Write(new byte[87]);                  // the trailing record, version 7 on
+        write.Write((uint)words.Sum(one => one.Length + 1));
+        foreach (string word in words)
+        {
+            write.Write(Encoding.Unicode.GetBytes(word));
+            write.Write((ushort)0);
+        }
+
+        write.Flush();
+        return stream.ToArray();
     }
 
     /// <summary>

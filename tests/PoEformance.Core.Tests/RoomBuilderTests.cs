@@ -296,6 +296,27 @@ public class RoomBuilderTests
         Assert.False(RoomKey.Read((read with { Mirrored = false }).ToString()).Mirrored);
     }
 
+    /// <summary>A room whose ground keeps its shapes across the mask's atlas on the mask's cells is a key of its own - the Monster Book's switch.</summary>
+    [Fact]
+    public void AROOMWhoseGroundStaysOnTheMasksCellsIsAKeyOfItsOwn()
+    {
+        var key = new RoomKey("Metadata/Terrain/Maps/Port/Rooms/Unique/boss_01.arm", Built: "Metadata/Terrain/Maps/Port/master.tsi", Mirrored: true, MaskCells: true);
+        string written = key.ToString();
+        Assert.EndsWith("+mirrored+maskcells", written, StringComparison.Ordinal);
+
+        RoomKey read = RoomKey.Read(written);
+        Assert.True(read.MaskCells);
+        Assert.True(read.Mirrored);
+        Assert.False(RoomKey.Read((read with { MaskCells = false }).ToString()).MaskCells);
+        Assert.Equal("x.arm", new RoomKey("x.arm").ToString());
+
+        // AND ONE WHOSE TWO GROUNDS ARE WEIGHED BY THEIR HEIGHTS.
+        string heighted = (read with { GroundHeights = true }).ToString();
+        Assert.EndsWith("+maskcells+groundheights", heighted, StringComparison.Ordinal);
+        Assert.True(RoomKey.Read(heighted).GroundHeights);
+        Assert.False(read.GroundHeights);
+    }
+
     /// <summary>
     /// A grid turned over in x: each piece at the columns its mirror image covers, laid the way a mirror sends it, each tile naming its
     /// place counted from its piece's least corner again.

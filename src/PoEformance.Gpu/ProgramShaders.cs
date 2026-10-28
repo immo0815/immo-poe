@@ -32,10 +32,16 @@ internal enum ProgramPass
 /// Every material's shaders: written from its program, compiled behind the frame, kept on disk, and made on the render thread once ready.
 /// </summary>
 /// <remarks>
-/// COMPILED BEHIND THE FRAME, one at a time on a worker of its own: the compiler takes a good part of a
-/// second over a large program, and a room asks for dozens - on the frame that is a stall the length of
-/// all of them. Until a material's shader is in, the picture is drawn on the processor, which says so
-/// on the card button; the pane redraws when one lands (see <see cref="Landed"/>).
+/// COMPILED BEHIND THE FRAME, on a worker for every core but one: the compiler takes a good part of a
+/// second over a large program, and a room asks for hundreds - v0.1.286's Necropolis stage had 1,603 still
+/// compiling when its first picture was drawn, one after another on the single worker there was then. Until a
+/// material's shader is in, the picture is drawn on the processor, which says so on the card button; the pane
+/// redraws when one lands (see <see cref="Landed"/>).
+///
+/// MANY AT ONCE, EACH WORKER WITH ITS OWN BLOBS. Microsoft's D3DCompile page says nothing of threads either way;
+/// ComputeSharp compiles with it in parallel, and wgpu found the ID3DBlob it hands back counts its references
+/// without atomics (gfx-rs/wgpu#10547) - so a blob is never shared: the worker that compiled it copies its bytes
+/// out and lets it go, and only the bytes cross to the render thread.
 ///
 /// MADE ON THE RENDER THREAD. The device would take a shader from any thread, but the bytecode is all
 /// the worker hands back, and turning it into a shader costs nothing next to compiling it.
@@ -62,7 +68,7 @@ internal sealed class ProgramShaders : IDisposable
     private readonly string? _cache;
     private readonly ConditionalWeakTable<ShadeProgram, Written> _written = new();
     private readonly Dictionary<string, Shader> _shaders = new(StringComparer.Ordinal);
-    private readonly Channel<Job> _jobs = Channel.CreateUnbounded<Job>(new UnboundedChannelOptions { SingleReader = true });
+    private readonly Channel<Job> _jobs = Channel.CreateUnbounded<Job>(new UnboundedChannelOptions { SingleReader = false });
     private readonly ConcurrentQueue<Done> _done = new();
     private readonly CancellationTokenSource _stop = new();
     private bool _disposed;
@@ -73,7 +79,10 @@ internal sealed class ProgramShaders : IDisposable
     {
         _device = device;
         _cache = cache;
-        _ = Task.Run(Work);
+        for (var worker = Math.Max(1, Environment.ProcessorCount - 1); worker > 0; worker--)
+        {
+            _ = Task.Run(Work);
+        }
     }
 
     /// <summary>How many shaders have landed, made or failed - a pane waiting on one redraws when this moves.</summary>
@@ -178,7 +187,7 @@ internal sealed class ProgramShaders : IDisposable
         return new Written(source, Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source))));
     }
 
-    /// <summary>The worker: each job from the disk where it was kept, else compiled and kept.</summary>
+    /// <summary>One worker: each job it takes from the disk where it was kept, else compiled and kept.</summary>
     private async Task Work()
     {
         try

@@ -88,6 +88,55 @@ public class ModelGpuTests
         Compared(expected.Rgba, Drawn(new ModelScene(box, Turn: 0.6f, Tilt: 0.4f, Positions: moved, Normals: box.Normals)));
     }
 
+    /// <summary>A swaying shape is drawn where its group's matrix puts it - the vertex shader's sway, held against the processor's moved vertices.</summary>
+    [GpuFact]
+    public void ASWAYEDShapeIsDrawnWhereItsMatrixPutsIt()
+    {
+        SkinnedMesh box = Box();
+        Matrix4x4 sway = Matrix4x4.CreateRotationX(0.15f) * Matrix4x4.CreateTranslation(0.3f, 0f, -0.2f);
+        Vector3[] moved = [.. box.Positions.Select(one => Vector3.Transform(one, sway))];
+        Vector3[] turned = [.. box.Normals.Select(one => Vector3.TransformNormal(one, sway))];
+        GamePicture expected = MeshPicture.Of(box, new MeshPicture.Canvas(Side), moved, turned, 0.6f, 0.4f);
+        Compared(expected.Rgba, Drawn(new ModelScene(
+            box, Turn: 0.6f, Tilt: 0.4f, Sways: [.. Enumerable.Repeat(0, box.Shapes.Count)], Swayed: [sway])));
+    }
+
+    /// <summary>
+    /// A swaying caster casts where it sways, cast again every frame over the still floor's kept shadow - the stage's corners holding the
+    /// shadow's frame, as a ship sways a few units inside its room's.
+    /// </summary>
+    [GpuFact]
+    public void ASWAYINGCasterCastsWhereItSwaysOverTheKeptFloor()
+    {
+        var light = new SceneLight([], SceneLight.PointShape.Zero, null)
+        {
+            SunColour = new Vector3(1.6f, 1.4f, 1.2f),
+            SunDirection = Vector3.Normalize(new Vector3(1.1f, -1f, 0.6f)),
+            SunShadows = true,
+        };
+        SkinnedMesh stage = Posable(out int first);
+        IReadOnlyList<Mipmaps?> skins = [Plain(new Vector4(0.7f, 0.6f, 0.4f, 1f)), Checker(64, 8, alpha: true)];
+        IReadOnlyList<MaterialBlend> blends = [MaterialBlend.Opaque, MaterialBlend.Cutout];
+        int[] sways = [-1, 0];
+        using ModelGpu? gpu = ModelGpu.Warp(out string why);
+        Assert.True(gpu is not null, why);
+        using ModelTarget target = gpu.Target(Side);
+        foreach (Vector3 shift in (Vector3[])[Vector3.Zero, new(0.5f, 0.2f, -0.4f), new(-0.3f, 0.1f, 0.2f)])
+        {
+            Matrix4x4 sway = Matrix4x4.CreateTranslation(shift);
+            Vector3[] moved = [.. stage.Positions.Select((one, at) => at >= first ? Vector3.Transform(one, sway) : one)];
+            var scene = new ModelScene(stage, Turn: 0.3f, Tilt: 0.2f, Skins: skins, Blends: blends, Light: light, Sways: sways, Swayed: [sway]);
+            GamePicture expected = MeshPicture.Of(
+                stage, new MeshPicture.Canvas(Side) { Light = light }, moved, stage.Normals, 0.3f, 0.2f, default, null, 1f, default, skins, blends);
+            Assert.True(gpu.Can(scene, out why), why);
+            Assert.True(gpu.Draw(target, scene, out why), why);
+            Compared(expected.Rgba, gpu.Read(target));
+        }
+
+        // CAST OVER THE KEPT FLOOR on every frame: a sway moves every frame.
+        Assert.Equal(3, gpu.ShadowsStaged);
+    }
+
     // ---- the game's light ----
 
     /// <summary>
@@ -112,6 +161,31 @@ public class ModelGpuTests
                 Blends: [MaterialBlend.Opaque, MaterialBlend.Cutout],
                 Light: light),
             draws: 2);
+    }
+
+    /// <summary>Every view the light panel offers - the lit picture, the engine's debug channels, the lighting alone - draws the processor's picture.</summary>
+    [GpuFact]
+    public void EVERYViewIsTheProcessorsPicture()
+    {
+        foreach (PictureView view in Enum.GetValues<PictureView>())
+        {
+            var light = new SceneLight([], SceneLight.PointShape.Zero, null)
+            {
+                SunColour = new Vector3(1.6f, 1.4f, 1.2f),
+                SunDirection = Vector3.Normalize(new Vector3(1.1f, -1f, 0.6f)),
+                Exposure = 1.5f,
+                View = view,
+            };
+            Same(
+                new ModelScene(
+                    Stage(),
+                    Turn: 0.3f,
+                    Tilt: 0.2f,
+                    Skins: [Plain(new Vector4(0.7f, 0.6f, 0.4f, 1f)), Checker(64, 8, alpha: true)],
+                    Blends: [MaterialBlend.Opaque, MaterialBlend.Cutout],
+                    Light: light),
+                draws: 2);
+        }
     }
 
     /// <summary>
@@ -209,6 +283,52 @@ public class ModelGpuTests
         Same(new ModelScene(Ball(), Turn: 0.6f, Tilt: 0.4f, Light: light));
     }
 
+    /// <summary>
+    /// In perspective (CameraPose, v0.1.324) the card's clip and reversed depth put every vertex, texel and depth where the processor's
+    /// rays do - a box, a textured quad at a slant, the sun's light and shadow from each pixel's own way to the eye, and point lights.
+    /// </summary>
+    [GpuFact]
+    public void INPERSPECTIVEEveryPictureIsTheProcessors()
+    {
+        Same(new ModelScene(Box(), Pose: CameraPose.Fitted(Box(), 0.6f, 0.4f, parallel: false)));
+        SkinnedMesh quad = Layers(1);
+        // MAGNIFIED EVERYWHERE, so the card's level per block of pixels and the processor's per triangle are both the finest - in
+        // perspective they part where a texture is shrunk, the card's following the depth across a triangle.
+        Same(new ModelScene(quad, Skin: Checker(32, 8), Pose: new CameraPose(Vector3.Zero, 0.3f, 1.1f, 2.4f)));
+        var light = new SceneLight([], SceneLight.PointShape.Zero, null)
+        {
+            SunColour = new Vector3(1.6f, 1.4f, 1.2f),
+            SunDirection = Vector3.Normalize(new Vector3(1.1f, -1f, 0.6f)),
+            Exposure = 1.5f,
+        };
+        Same(
+            new ModelScene(
+                Stage(),
+                Skins: [Plain(new Vector4(0.7f, 0.6f, 0.4f, 1f)), Checker(64, 8, alpha: true)],
+                Blends: [MaterialBlend.Opaque, MaterialBlend.Cutout],
+                Light: light,
+                Pose: CameraPose.Fitted(Stage(), 0.3f, 0.2f, parallel: false)),
+            draws: 2);
+        PointLight[] points =
+        [
+            new(new Vector3(2.5f, 1.5f, 0f), new Vector3(3f, 1f, 0.5f), 2f, 0.5f, "red"),
+            new(new Vector3(-2f, 2f, -1.5f), new Vector3(0.5f, 1f, 3f), 3f, 0.2f, "blue"),
+        ];
+        Same(new ModelScene(Ball(), Light: new SceneLight(points, SceneLight.PointShape.Penumbra, null) { FlatAmbient = 0.05f }, Pose: CameraPose.Fitted(Ball(), 0.6f, 0.4f, parallel: false)));
+    }
+
+    /// <summary>
+    /// A quad running under the eye crosses the near plane: the card's hardware cuts it where the processor's rays stop, and the rest of
+    /// it is drawn alike - looked at nearly along it from a third of a unit over its middle.
+    /// </summary>
+    [GpuFact]
+    public void AQUADThroughTheNearPlaneIsCutAsTheProcessorCutsIt()
+    {
+        var pose = new CameraPose(Vector3.Zero, 0f, 1.3f, 0.5f);
+        Assert.True(pose.Eye.Z > -1f && pose.Eye.Z < 0f, $"the eye at {pose.Eye} should stand within the quad's reach");
+        Same(new ModelScene(Layers(1), Skin: Checker(32, 8), Pose: pose));
+    }
+
     /// <summary>The diffuse cube turned by the environment, brightened by the sun, shared with GI - and the colour grade after the exposure.</summary>
     [GpuFact]
     public void THECUBEAndTheGradeAreReadAsTheProcessorReadsThem()
@@ -243,7 +363,7 @@ public class ModelGpuTests
     /// </remarks>
     private static void Same(ModelScene scene, int draws = 1)
     {
-        var canvas = new MeshPicture.Canvas(Side) { Light = scene.Light };
+        var canvas = new MeshPicture.Canvas(Side) { Light = scene.Light, Pose = scene.Pose };
         GamePicture expected = MeshPicture.Of(
             scene.Mesh, canvas, scene.Turn, scene.Tilt, scene.Ink, scene.Skin, scene.Zoom, scene.Pan, scene.Skins, scene.Blends);
         using ModelGpu? gpu = ModelGpu.Warp(out string why);

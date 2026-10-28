@@ -21,7 +21,8 @@ namespace PoEformance.Game.Files;
 /// below it is in front of all of it. See <see cref="Under"/>. What is lost is a weapon hanging
 /// below the feet, which is drawn over the floor it should sink into.
 ///
-/// IN PERSPECTIVE, UNDER A MODEL THAT IS NOT. The model is drawn orthographically, and its floor
+/// IN PERSPECTIVE, UNDER A MODEL THAT WAS NOT - and through the camera's own eye where the model is
+/// (CameraPose, v0.1.324). The model was drawn orthographically, and its floor
 /// was too at first - and seen from anywhere but well above, an orthographic floor is a set of
 /// parallel stripes pressed flat, which the live client showed against Blender's: "verliert das
 /// gesamte schöne Grid seine beeindruckende Wirkung". What makes Blender's floor read as a floor
@@ -186,7 +187,11 @@ public static class ModelFloor
     /// itself come from the same place - the camera the picture was drawn with - and cannot be a
     /// frame apart while the model is being dragged.
     /// </remarks>
-    public static bool Under(in MeshPicture.Camera camera) => camera.Tilt >= 0f;
+    /// <remarks>
+    /// IN PERSPECTIVE IT IS WHERE THE EYE STANDS, not how the camera leans: an eye flown under the floor and looking down still sees it
+    /// from below. Up is minus z, so the eye is above the floor where its z is nought or less.
+    /// </remarks>
+    public static bool Under(in MeshPicture.Camera camera) => camera.Perspective ? camera.Viewer.Z <= 0f : camera.Tilt >= 0f;
 
     /// <summary>How much of the floor the frame's own edge leaves, at a point of the picture.</summary>
     /// <remarks>
@@ -234,30 +239,71 @@ public static class ModelFloor
             return;
         }
 
-        float angle = Smooth(MathF.Abs(MathF.Sin(camera.Tilt)) / Grazing);
+        Vector3 origin = Vector3.Transform(Vector3.Zero, camera.View);
+        Vector3 alongX = Vector3.Transform(Vector3.UnitX, camera.View) - origin;
+        Vector3 alongY = Vector3.Transform(Vector3.UnitY, camera.View) - origin;
+
+        // On a parallel view the eye sits in front of the picture's centre, and the plane through the origin is drawn at the
+        // orthographic scale: whatever is at the origin's depth lands where the model puts it. In perspective the eye is the
+        // camera's own, the view's origin, and the floor is drawn as the model is.
+        float eye;
+        float near;
+        Sight view;
+        Vector3 judged = origin;
+        if (camera.Perspective)
+        {
+            eye = 0f;
+            near = camera.Near;
+            view = new Sight(camera.Centre, camera.Scale, 0f, near, side);
+
+            // THE LEVEL IS JUDGED WHERE THE FLOOR IS LOOKED AT: the origin where it stands in front of the eye, else the floor
+            // straight under the middle of the picture.
+            if (!(origin.Z > near * 2f))
+            {
+                Vector3 normal = Vector3.Cross(alongX, alongY);
+                float facing = normal.Z;
+                if (!(MathF.Abs(facing) > 1e-6f))
+                {
+                    return;
+                }
+
+                float t = Vector3.Dot(normal, origin) / facing;
+                if (!(t > near * 2f) || !float.IsFinite(t))
+                {
+                    return;
+                }
+
+                judged = new Vector3(0f, 0f, t);
+            }
+        }
+        else
+        {
+            eye = lens * camera.Reach;
+            near = Near * eye;
+            if (!(eye + origin.Z > near) || !float.IsFinite(eye))
+            {
+                return;
+            }
+
+            view = new Sight(camera.Centre, camera.Scale * (eye + origin.Z), eye, near, side);
+        }
+
+        // EDGE ON THE FLOOR IS A LINE: on a parallel view by the tilt; in perspective by how steeply the eye looks down at the point the
+        // floor is judged at - its height over the floor over its distance - since a level view from above the floor still sees it run
+        // to the horizon.
+        float steep = camera.Perspective
+            ? MathF.Abs(Vector3.Dot(Vector3.Normalize(Vector3.Cross(alongX, alongY)), origin)) / MathF.Max(judged.Length(), 1e-6f)
+            : MathF.Abs(MathF.Sin(camera.Tilt));
+        float angle = Smooth(steep / Grazing);
         if (!(angle > Invisible))
         {
             return;
         }
 
-        // The eye sits in front of the picture's centre, and the plane through the origin is drawn
-        // at the orthographic scale: whatever is at the origin's depth lands where the model puts it.
-        Vector3 origin = Vector3.Transform(Vector3.Zero, camera.View);
-        Vector3 alongX = Vector3.Transform(Vector3.UnitX, camera.View) - origin;
-        Vector3 alongY = Vector3.Transform(Vector3.UnitY, camera.View) - origin;
-        float eye = lens * camera.Reach;
-        float near = Near * eye;
-        if (!(eye + origin.Z > near) || !float.IsFinite(eye))
-        {
-            return;
-        }
-
-        var view = new Sight(camera.Centre, camera.Scale * (eye + origin.Z), eye, near, side);
-
-        // Where the lines land at the origin, per model unit, in pixels: the spacing between
+        // Where the lines land at the judged point, per model unit, in pixels: the spacing between
         // neighbouring lines of each family, which decides the level. The same numbers every
         // piece of every line is judged by afterwards, at its own place.
-        Vector2 o = view.Screen(origin, out float depth);
+        Vector2 o = view.Screen(judged, out float depth);
         Vector2 stepX = view.Step(alongX, o, depth, 1f);
         Vector2 stepY = view.Step(alongY, o, depth, 1f);
         float perX = Spacing(stepX, stepY) * side;
@@ -285,7 +331,7 @@ public static class ModelFloor
             // so past the depth at which even the better family is crowded there is nothing of
             // this level to draw. The frame's edge, mapped back onto the floor no further than
             // that, bounds the lines worth walking.
-            float reach = (eye + origin.Z) * MathF.Max(unit * perX, unit * perY) / Crowded;
+            float reach = (eye + judged.Z) * MathF.Max(unit * perX, unit * perY) / Crowded;
             if (!view.Bounds(floor, reach, out float leastX, out float mostX, out float leastY, out float mostY))
             {
                 continue;
@@ -552,7 +598,7 @@ public static class ModelFloor
             mostX = 0f;
             leastY = 0f;
             mostY = 0f;
-            float far = MathF.Min(reach, Eye * 1e6f);
+            float far = Eye > 0f ? MathF.Min(reach, Eye * 1e6f) : reach;
             if (!(far > Near))
             {
                 return false;

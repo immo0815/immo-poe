@@ -110,11 +110,17 @@ public sealed class SceneLightPanel : IMovableSun
     private bool _glints = true;
     private bool _reflection = true;
     private bool _mirroring = true;
+    private bool _crash = true;
+    private bool _wayRound;
+    private bool _breakByGround;
     private float _lift = 1f;
 
     /// <summary>How far the ocean ripples' wind is turned from the area's own way, in degrees - see <see cref="Water"/>.</summary>
     private float _windTurn;
     private int _ambient = (int)SceneAmbient.Cube;
+
+    /// <summary>What the picture shows, as PictureView's number - see <see cref="ViewRow"/>.</summary>
+    private int _view;
     private int _cubeReading;
     private int _pointShape;
     private float _playerRadius = UsualPlayerRadius;
@@ -248,6 +254,9 @@ public sealed class SceneLightPanel : IMovableSun
             WaterGlints = _glints,
             WaterReflection = _reflection,
             WaterScene = _mirroring,
+            WaterCrash = _crash,
+            WaterWayRound = _wayRound,
+            WaterBreakByGround = _breakByGround,
             WaterLift = _lift,
             CubeTurn = SceneLight.CubeTurnFrom(env.HorAngle ?? 0f, env.VertAngle ?? 0f, (SceneLight.CubeReading)_cubeReading),
             CubeBrightness = env.EnvBrightness ?? 1f,
@@ -255,6 +264,7 @@ public sealed class SceneLightPanel : IMovableSun
             GiEnvOcclusion = Math.Clamp(env.GiEnvOcclusion ?? 0f, 0f, 1f),
             Exposure = _exposure ? MathF.Max(1f, env.Exposure ?? 1f) : 1f,
             Grade = _grade ? _gradeTable : null,
+            View = (PictureView)Math.Clamp(_view, 0, SceneLight.ViewNames.Count - 1),
         };
         _builtModel = model;
         _builtVersion = _version;
@@ -264,6 +274,12 @@ public sealed class SceneLightPanel : IMovableSun
     }
 
     /// <summary>The panel: the switches, the environment picker, the readings and what they came to - under a fold the book draws.</summary>
+    /// <remarks>
+    /// IN GROUPS THAT FOLD, THEIR SWITCHES IN COLUMNS (asked for from the live client, 2026-10-27, when the picture's views came: "not just
+    /// another row of checkboxes - that tab is a hopeless jumble already"). Above the groups the two choices that change everything under
+    /// them - what the picture shows and which environment lights it - and then one fold per part of the light, each heading saying how many
+    /// of its switches are on, so a closed fold still says what it holds. Every row's name stands in one label column.
+    /// </remarks>
     public void Draw(MonsterModel? model)
     {
         if (ImGui.Checkbox("game light##scene-on", ref _on))
@@ -284,40 +300,206 @@ public sealed class SceneLightPanel : IMovableSun
         SceneLight.GroundOnScreen frame = Frame();
         Labels(path, frame);
 
-        // A LABEL COLUMN, so the rows read as what they are, and every row wraps at the pane's edge
-        // back to that column rather than running past it.
-        float column = ImGui.CalcTextSize("environment").X + (ImGui.GetStyle().ItemSpacing.X * 3f);
+        // A LABEL COLUMN, so the rows read as what they are, and every row wraps at the pane's edge back to that column rather than
+        // running past it - as wide as the widest name, the groups' own rows stepped in by the fold's indent.
+        float column = ImGui.GetCursorPosX() + ImGui.GetStyle().IndentSpacing
+            + MathF.Max(ImGui.CalcTextSize("environment").X, ImGui.CalcTextSize("player height").X) + (ImGui.GetStyle().ItemSpacing.X * 3f);
         float right = ImGui.GetCursorScreenPos().X + ImGui.GetContentRegionAvail().X;
 
-        float start = Label("lights", column);
-        var row = new Row(right, start);
-        Switch("room##scene-points", ref _points, "The point lights the room's doodads carry in their .ao Lights blocks, the default state of each.", row, "sun");
-        Switch("sun##scene-sun", ref _sun, "directional_light: its colour times its multiplier. Seepage's is nought.", row, "shadows");
-        Switch("shadows##scene-shadows", ref _shadows,
-            "The sun's shadows: the room drawn once more along the sun's light, and a pixel is shaded where something nearer the sun covers it.", row, "player");
-        Switch("player##scene-player", ref _playerLight,
-            "player_light: its colour times its intensity, a point light at the player's feet in a laid room, else over the middle of the picture.", row, "exposure");
-        Switch("exposure##scene-exposure", ref _exposure, "camera.exposure: the colour times max(1, exposure), the game's own tone mapping for PoE2.", row, "colour grade");
-        Switch("colour grade##scene-grade", ref _grade, "post_transform: the environment's 3D colour table, applied after the exposure the way the game's post process applies it"
-            + " - looked up by the colour with a gamma of 2.2 taken off, giving back linear light.", row, null);
+        Label("shows", column);
+        ViewRow();
 
-        start = Label("water", column);
-        row = new Row(right, start);
-        Switch("glints##scene-glints", ref _glints,
-            "The waves' glints: every light's GGX lobe on the water, with the waves' own normal - the engine's gloss of 0.99 and the area's reflectiveness"
-            + " (water.reflectiveness, 0.03 where the file sets none) as the specular colour. The waves are the engine's ocean ripples, three octaves"
-            + " rolling in the wind over a noise of this tool's own: the engine's ripple texture is not read.", row, "reflection");
-        Switch("reflection##scene-reflection", ref _reflection,
-            "The waves' reflection: the environment's specular cube (environment_mapping.specular_cube, its level of 128) along the view turned about"
-            + " the waves' normal, lit as the cube ambient is and weighed by the gloss's Fresnel. With the flat ambient it reflects the flat ambient.", row, "scene");
-        Switch("scene##scene-mirror", ref _mirroring,
-            "The waves' reflection takes in the picture itself where its ray meets it - the engine's screen-space reflection (CastScreenRay):"
-            + " twenty steps of a fiftieth of the picture, a surface hit where it lies in front of the ray by less than fifty units, its share fading"
-            + " into the cube's the farther the hit. The ship and the pier in the water. Only with reflection on.", row, null);
-        float liftWidth = ImGui.GetFontSize() * 7f;
-        OverlayLayout.Flow(ImGui.CalcTextSize("lift").X + ImGui.GetStyle().ItemSpacing.X + liftWidth, right, start);
-        Named("lift");
-        ImGui.SetNextItemWidth(liftWidth);
+        Label("environment", column);
+        Picker(path);
+
+        if (Fold(Count("lights", _points, _sun, _shadows, _playerLight, _exposure, _grade) + "###scene-fold-lights", open: true))
+        {
+            try
+            {
+                Lights();
+            }
+            finally
+            {
+                ImGui.Unindent();
+            }
+        }
+
+        if (Fold("sun, sky and ambient###scene-fold-sky", open: false))
+        {
+            try
+            {
+                float start = Label("sun", column);
+                SunRow(right, start, frame);
+
+                Label("sky", column);
+                SkyRow();
+
+                Label("ambient", column);
+                ImGui.SetNextItemWidth(ComboWidth("cube ambient"));
+                if (ImGui.Combo("##scene-ambient", ref _ambient, Ambients))
+                {
+                    _version++;
+                }
+
+                OverlayLayout.Hint("Where the light that comes from everywhere comes from.\n"
+                    + "cube: the environment's diffuse cube, by the turned normal, times env_brightness - the game's way.\n"
+                    + "flat: the picture's own, the same from every direction.\n"
+                    + "Where the .env gives gi_env_occlusion, that share of the cube is the game's GI instead, which is not drawn - the flat ambient stands in for it.");
+
+                // THE FLAT AMBIENT ONLY WHERE IT LIGHTS SOMETHING (asked for from the live client, 2026-10-27): under the flat ambient, and
+                // under the cube where it stands in - for the GI's share, or for a cube not read. Hidden, it keeps its value.
+                if (FlatLights(out string stands))
+                {
+                    Label("flat", column);
+                    ImGui.SetNextItemWidth(ImGui.GetFontSize() * 7f);
+                    if (ImGui.SliderFloat("##scene-flat", ref _flat, 0f, 0.5f, "%.3f"))
+                    {
+                        _version++;
+                    }
+
+                    OverlayLayout.Hint("The flat ambient's light, linear. The picture's usual is 0.04 - 0.22 on the screen's value." + stands);
+                }
+            }
+            finally
+            {
+                ImGui.Unindent();
+            }
+        }
+
+        if (Fold(Count("water", _glints, _reflection, _mirroring, _crash, _wayRound, _breakByGround) + "###scene-fold-water", open: false))
+        {
+            try
+            {
+                WaterRows(column);
+            }
+            finally
+            {
+                ImGui.Unindent();
+            }
+        }
+
+        if (Fold("lamps###scene-fold-lamps", open: false))
+        {
+            try
+            {
+                Lamps(column);
+            }
+            finally
+            {
+                ImGui.Unindent();
+            }
+        }
+
+        if (Fold("in the game###scene-fold-hunt", open: false))
+        {
+            try
+            {
+                float start = ImGui.GetCursorPosX();
+                HuntRow(right, start);
+            }
+            finally
+            {
+                ImGui.Unindent();
+            }
+        }
+
+        Said(model, frame);
+    }
+
+    /// <summary>A fold of the panel, stepped in where open - the caller unindents once it is drawn.</summary>
+    private static bool Fold(string label, bool open)
+    {
+        if (!OverlayLayout.Subsection(label, open))
+        {
+            return false;
+        }
+
+        ImGui.Indent();
+        return true;
+    }
+
+    /// <summary>A fold's heading with how many of its switches are on - "lights (5 of 6 on)".</summary>
+    private static string Count(string name, params ReadOnlySpan<bool> switches)
+    {
+        int on = 0;
+        foreach (bool one in switches)
+        {
+            on += one ? 1 : 0;
+        }
+
+        return string.Create(CultureInfo.InvariantCulture, $"{name} ({on} of {switches.Length} on)");
+    }
+
+    /// <summary>The lights' switches, in columns.</summary>
+    private void Lights()
+    {
+        if (!OverlayLayout.Switches("##scene-lights", LightLabels))
+        {
+            return;
+        }
+
+        try
+        {
+            Switch("room##scene-points", ref _points, "The point lights the room's doodads carry in their .ao Lights blocks, the default state of each.");
+            Switch("sun##scene-sun", ref _sun, "directional_light: its colour times its multiplier. Seepage's is nought.");
+            Switch("shadows##scene-shadows", ref _shadows,
+                "The sun's shadows: the room drawn once more along the sun's light, and a pixel is shaded where something nearer the sun covers it.");
+            Switch("player##scene-player", ref _playerLight,
+                "player_light: its colour times its intensity, a point light at the player's feet in a laid room, else over the middle of the picture.");
+            Switch("exposure##scene-exposure", ref _exposure, "camera.exposure: the colour times max(1, exposure), the game's own tone mapping for PoE2.");
+            Switch("colour grade##scene-grade", ref _grade, "post_transform: the environment's 3D colour table, applied after the exposure the way the game's post process applies it"
+                + " - looked up by the colour with a gamma of 2.2 taken off, giving back linear light.");
+        }
+        finally
+        {
+            OverlayLayout.EndSwitches();
+        }
+    }
+
+    /// <summary>The water's switches in columns, then its lift and wind on rows of their own.</summary>
+    private void WaterRows(float column)
+    {
+        if (OverlayLayout.Switches("##scene-water", WaterLabels))
+        {
+            try
+            {
+                Switch("glints##scene-glints", ref _glints,
+                    "The waves' glints: every light's GGX lobe on the water, with the waves' own normal - the engine's gloss of 0.99 and the area's reflectiveness"
+                    + " (water.reflectiveness, 0.03 where the file sets none) as the specular colour. The waves are the engine's ocean ripples, three octaves"
+                    + " rolling in the wind over a noise of this tool's own: the engine's ripple texture is not read.");
+                Switch("reflection##scene-reflection", ref _reflection,
+                    "The waves' reflection: the environment's specular cube (environment_mapping.specular_cube, its level of 128) along the view turned about"
+                    + " the waves' normal, lit as the cube ambient is and weighed by the gloss's Fresnel. With the flat ambient it reflects the flat ambient.");
+                Switch("scene##scene-mirror", ref _mirroring,
+                    "The waves' reflection takes in the picture itself where its ray meets it - the engine's screen-space reflection (CastScreenRay):"
+                    + " twenty steps of a fiftieth of the picture, a surface hit where it lies in front of the ray by less than fifty units, its share fading"
+                    + " into the cube's the farther the hit. The ship and the pier in the water. Only with reflection on.");
+                Switch("crash##scene-crash", ref _crash,
+                    "The engine's field waves (CrashingWavesVertex and CrashingWavesFragment, ported as written): white-crested breakers every five"
+                    + " seconds, a wave of 1,000 units rolling in at 200 a second down the waves' way in from the open sea, breaking as they near the"
+                    + " shore - the water lifted by their crest, its foam laid over it. Measured off the game's own videos of Port, 4.9 to 5.1 s apart."
+                    + " CHOSEN: on the room's own water, their wave shape gerstner_wave_profile.dds, their noise and foam the beach's. Drawn by the card alone.");
+                Switch("way round##scene-way-round", ref _wayRound,
+                    "The waves' way in (the distance out to sea they run down) round what stands in the water - the ship's hull, posts, rocks - as v0.1.295"
+                    + " to v0.1.306 drew it. Off, the default: by the ground alone, the waves running on under the hull - as the game's do by Port's ship,"
+                    + " its foam front reaching the hull's side before the quay's (a video of the game, measured frame by frame). Both CHOSEN: the engine's"
+                    + " own way in (OceanMarkupField) is read nowhere.");
+                Switch("break by ground##scene-break-ground", ref _breakByGround,
+                    "The field waves' break phase off the shore's distance to the ground alone - the rocks and the pier's stones that stand in the sea"
+                    + " no shore for it - rather than the shore's distance the swell takes, which counts them. The break phase (1 - shore x 0.0002,"
+                    + " ramped about a noise) decides how much foam a crest forms: by Port's ship the probe put a crest by the hull and one by the"
+                    + " quay both at full foam off a shore's distance of 1,000 to 1,400 measured to the rocks behind the pier, where the game's"
+                    + " crest stays dark by the hull. CHOSEN, to hold against the game: the engine's own shore field (OceanMarkupField, made from"
+                    + " the tile map) is read nowhere. Only with crash on; the card's alone.");
+            }
+            finally
+            {
+                OverlayLayout.EndSwitches();
+            }
+        }
+
+        Label("lift", column);
+        ImGui.SetNextItemWidth(ImGui.GetFontSize() * 7f);
         if (ImGui.SliderFloat("##scene-lift", ref _lift, 0f, 5f, "%.1fx"))
         {
             _version++;
@@ -327,10 +509,8 @@ public sealed class SceneLightPanel : IMovableSun
             + " NOT THE ENGINE'S: its ocean is a flat mesh and the waves raise it per pixel only, which the game's camera, always above, never shows"
             + " - the book's can look along the water. The water's mesh is split to edges of 48 units for it.");
 
-        float windWidth = ImGui.GetFontSize() * 7f;
-        OverlayLayout.Flow(ImGui.CalcTextSize("wind").X + ImGui.GetStyle().ItemSpacing.X + windWidth, right, start);
-        Named("wind");
-        ImGui.SetNextItemWidth(windWidth);
+        Label("wind", column);
+        ImGui.SetNextItemWidth(ImGui.GetFontSize() * 7f);
         if (ImGui.SliderFloat("##scene-wind", ref _windTurn, -180f, 180f, "%.0f°"))
         {
             _version++;
@@ -339,46 +519,47 @@ public sealed class SceneLightPanel : IMovableSun
         OverlayLayout.Hint("Which way the wind rolls the ocean's ripples: the area's own way (water.wind_direction_angle) turned by this."
             + " CHOSEN until measured: where the file sets none - Port sets none - the engine's default is not yet read, and the way the"
             + " former constants roll them, along x, stands for it. Hold it against the game's ripples.");
-
-        start = Label("ambient", column);
-        ImGui.SetNextItemWidth(ComboWidth("cube ambient"));
-        if (ImGui.Combo("##scene-ambient", ref _ambient, Ambients))
-        {
-            _version++;
-        }
-
-        float flatWidth = ImGui.GetFontSize() * 7f;
-        OverlayLayout.Flow(ImGui.CalcTextSize("flat").X + ImGui.GetStyle().ItemSpacing.X + flatWidth, right, start);
-        OverlayLayout.Hint("Where the light that comes from everywhere comes from.\n"
-            + "cube: the environment's diffuse cube, by the turned normal, times env_brightness - the game's way.\n"
-            + "flat: the picture's own, the same from every direction.\n"
-            + "Where the .env gives gi_env_occlusion, that share of the cube is the game's GI instead, which is not drawn - the flat ambient stands in for it.");
-        Named("flat");
-        ImGui.SetNextItemWidth(flatWidth);
-        if (ImGui.SliderFloat("##scene-flat", ref _flat, 0f, 0.5f, "%.3f"))
-        {
-            _version++;
-        }
-
-        OverlayLayout.Hint("The flat ambient's light, linear. The picture's usual is 0.04 - 0.22 on the screen's value.");
-
-        Label("environment", column);
-        Picker(path);
-
-        start = Label("sun", column);
-        SunRow(right, start, frame);
-
-        Label("sky", column);
-        SkyRow();
-
-        start = Label("lamps", column);
-        Lamps(right, start);
-
-        start = Label("in the game", column);
-        HuntRow(right, start);
-
-        Said(model, frame);
     }
+
+    /// <summary>What the picture shows: the lit picture, or a material channel as the engine's debug views show it - see PictureView.</summary>
+    private void ViewRow()
+    {
+        ImGui.SetNextItemWidth(ComboWidth("World Normal (True)"));
+        if (ImGui.Combo("##scene-view", ref _view, ViewItems))
+        {
+            _version++;
+        }
+
+        OverlayLayout.Hint(ViewHints[Math.Clamp(_view, 0, ViewHints.Length - 1)]
+            + "\n\nThe engine's own debug views, under the names its program lists them by, ported from their graphs (Metadata/EngineGraphs/debug_*.fxgraph):"
+            + " the game compiles them for its profiling builds alone, so a player never sees them. A channel is shown as the view writes it, neither"
+            + " exposed nor graded, the water's layer left out (CHOSEN - the engine's water is a pass of its own) so the floor under it shows.");
+    }
+
+    /// <summary>The views' combo items, in PictureView's order.</summary>
+    private static readonly string ViewItems = string.Join('\0', SceneLight.ViewNames) + "\0";
+
+    /// <summary>What each view shows - the program's own sentence for it where it has one.</summary>
+    private static readonly string[] ViewHints =
+    [
+        "Final Color: the picture lit by every switch below.",
+        "Albedo: the material's colour before any light (debug_albedo).",
+        "Specular: the material's specular colour (debug_specular).",
+        "Gloss: the material's gloss, white glossy and black matt (debug_gloss).",
+        "Roughness: one less the gloss (debug_roughness).",
+        "World Normal (Fit): \"Normals are fitted in the color space, so black = (-1, -1, -1) and white = (1, 1, 1)\" (debug_normal) - the normal the"
+            + " picture is lit with, in the room's frame, turned to face the eye.",
+        "World Normal (True): \"Normals are displayed as is (the color value equals the corresponding normal value, negative values are black)\""
+            + " (debug_normal2).",
+        "Lighting Only: \"Shows objects with only the lighting on them, without using the normal maps of the original material\""
+            + " (debug_lighting_only) - a grey of 0.25 in place of every albedo, lit by every switch below.",
+    ];
+
+    /// <summary>The lights' switches' visible labels, for their columns.</summary>
+    private static readonly string[] LightLabels = ["room", "sun", "shadows", "player", "exposure", "colour grade"];
+
+    /// <summary>The water's switches' visible labels, for their columns.</summary>
+    private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "crash", "way round", "break by ground"];
 
     /// <summary>A row's label in the label column, the row's controls after it - and where those start, for a row that wraps.</summary>
     private static float Label(string text, float column)
@@ -399,27 +580,17 @@ public sealed class SceneLightPanel : IMovableSun
     private static float ComboWidth(string widest)
         => ImGui.CalcTextSize(widest).X + ImGui.GetFrameHeight() + (ImGui.GetStyle().FramePadding.X * 2f) + ImGui.GetStyle().ItemInnerSpacing.X;
 
-    /// <summary>
-    /// A switch, then the place of the next one - a checkbox labelled <paramref name="next"/>, beside it or on the row's next line - then its hint.
-    /// </summary>
-    /// <remarks>In that order, so the hint's tooltip can never be what the next one's place is measured from.</remarks>
-    private void Switch(string label, ref bool value, string hint, Row row, string? next)
+    /// <summary>One switch in a grid <see cref="OverlayLayout.Switches"/> began, its hint under the pointer.</summary>
+    private void Switch(string label, ref bool value, string hint)
     {
+        ImGui.TableNextColumn();
         if (ImGui.Checkbox(label, ref value))
         {
             _version++;
         }
 
-        if (next is not null)
-        {
-            OverlayLayout.Flow(OverlayLayout.CheckboxWidth(next), row.Right, row.Start);
-        }
-
         OverlayLayout.Hint(hint);
     }
-
-    /// <summary>A row that wraps at its right edge back to where its controls start.</summary>
-    private readonly record struct Row(float Right, float Start);
 
     /// <summary>The environment: the area's own, or one picked from the install's by a filter - its file's name, the path on hover.</summary>
     private void Picker(string chosen)
@@ -553,30 +724,30 @@ public sealed class SceneLightPanel : IMovableSun
         OverlayLayout.Hint("Back to the environment's sun, by the reading picked.");
     }
 
-    /// <summary>The room lights' core and the player light's two numbers no file gives.</summary>
-    private void Lamps(float right, float start)
+    /// <summary>The room lights' core and the player light's two numbers no file gives, each on a row of its own.</summary>
+    private void Lamps(float column)
     {
-        Named("core");
-        ImGui.SetNextItemWidth(ComboWidth("soft (a = 0, the player light's)"));
+        Label("core", column);
+        ImGui.SetNextItemWidth(MathF.Max(ImGui.GetFontSize() * 6f, MathF.Min(ComboWidth("soft (a = 0, the player light's)"), ImGui.GetContentRegionAvail().X)));
         if (ImGui.Combo("##scene-core", ref _pointShape, PointShapes))
         {
             _version++;
         }
 
-        float sliderWidth = ImGui.GetFontSize() * 4.5f;
-        OverlayLayout.Flow(Slid("player radius", sliderWidth), right, start);
         OverlayLayout.Hint("How sharp a room light's core is - the shader's light_position_data.a, lerp(1/sqrt(0.02), 100, a), which no line in a Lights"
             + " block is named for. It changes the light near the lamp, hardly at all past its radius.");
-        Named("player radius");
+
+        float sliderWidth = ImGui.GetFontSize() * 7f;
+        Label("player radius", column);
         ImGui.SetNextItemWidth(sliderWidth);
         if (ImGui.SliderFloat("##scene-player-radius", ref _playerRadius, 50f, 2000f, "%.0f"))
         {
             _version++;
         }
 
-        OverlayLayout.Flow(Slid("height", sliderWidth), right, start);
         OverlayLayout.Hint("The player light's radius. No file read so far gives it - a candidate to match against a screenshot.");
-        Named("height");
+
+        Label("player height", column);
         ImGui.SetNextItemWidth(sliderWidth);
         if (ImGui.SliderFloat("##scene-player-height", ref _playerHeight, 0f, 500f, "%.0f"))
         {
@@ -762,6 +933,40 @@ public sealed class SceneLightPanel : IMovableSun
         _cubeRows = [.. rows];
         _cubeItems = string.Join('\0', labels) + "\0";
         _cubeWidest = labels.Max(one => ComboWidth(one));
+    }
+
+    /// <summary>
+    /// Whether the flat ambient lights anything as the picture is lit: under the flat ambient always, under the cube where
+    /// <see cref="SceneLight"/> lets it stand in - for a cube not read, or for the share gi_env_occlusion leaves to the game's GI.
+    /// </summary>
+    /// <param name="stands">What it stands in for under the cube, a sentence for the hint; empty under the flat ambient.</param>
+    private bool FlatLights(out string stands)
+    {
+        stands = string.Empty;
+        if (_ambient == (int)SceneAmbient.Flat)
+        {
+            return true;
+        }
+
+        if (_ambient != (int)SceneAmbient.Cube)
+        {
+            return false;
+        }
+
+        if (_cube is null)
+        {
+            stands = "\nHere it lights in place of the cube, which was not read - see details.";
+            return true;
+        }
+
+        if (_environment.GiEnvOcclusion is float share && share > 0f)
+        {
+            stands = string.Create(CultureInfo.InvariantCulture,
+                $"\nHere it stands in for the game's GI, which is not drawn: it lights times gi_env_occlusion {Math.Min(share, 1f):0.##}, the cube's share the GI takes.");
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>

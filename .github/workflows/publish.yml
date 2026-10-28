@@ -7,6 +7,15 @@ on:
 permissions:
   contents: write # needed to maintain the rolling "latest-dev" release
 
+# ONE PUBLISH AT A TIME, A WAITING ONE REPLACED BY A NEWER: of two merges a minute apart only the
+# newer build is worth publishing (asked for from the live client, 2026-10-28 - the runner is the
+# developer's own machine; see ci.yml). Not cancel-in-progress, unlike ci.yml: a publish stopped
+# between taking the old asset off the release and putting the new one on leaves the download
+# URL empty until the next run finishes.
+concurrency:
+  group: publish-win-x64
+  cancel-in-progress: false
+
 jobs:
   publish:
     # UBUNTU, for a Windows build. This started as a billing decision - private-repository

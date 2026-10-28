@@ -119,9 +119,19 @@ public static class UpdateScript
         // /E copies subdirectories including empty ones; /R and /W keep a locked file from
         // costing thirty seconds each. Robocopy's exit codes below 8 all mean success of some
         // shade (nothing copied, files copied, extras present), so 8 is the threshold.
+        //
+        // THE STAMP LAST, AND ONLY ONCE EVERYTHING ELSE IS IN. Robocopy copies file by file, so
+        // a locked executable failed while version.json beside it went through - and the old
+        // build, started again, read the new stamp, said "this is the newest build" and never
+        // offered the update again (2026-10-26: v0.1.286's executable under v0.1.287's commit).
+        // Kept out of the copy and put in after it, a failed update leaves the old stamp, and the
+        // tool offers the build it did not get.
         text.AppendLine(
-            $"robocopy \"{Folder(plan.Staging)}\" \"{Folder(plan.Install)}\" /E /R:2 /W:1 /NFL /NDL /NJH /NJS >>\"%LOG%\"");
+            $"robocopy \"{Folder(plan.Staging)}\" \"{Folder(plan.Install)}\" /E /R:2 /W:1 /XF {BuildStamp.FileName} /NFL /NDL /NJH /NJS >>\"%LOG%\"");
         text.AppendLine("if errorlevel 8 goto failed");
+        string stamp = $"{Folder(plan.Staging)}\\{BuildStamp.FileName}";
+        text.AppendLine(
+            $"if exist \"{stamp}\" copy /y \"{stamp}\" \"{Folder(plan.Install)}\\{BuildStamp.FileName}\" >>\"%LOG%\" || goto failed");
         text.AppendLine($"rd /s /q \"{Folder(plan.Staging)}\" >nul 2>&1");
         text.AppendLine($"del /q \"{Batch(archive)}\" >nul 2>&1");
         text.AppendLine($"echo [%DATE% %TIME%] updated to {Batch(version)} >>\"%LOG%\"");

@@ -72,6 +72,16 @@ public static class PictureProbe
             lines.Add(Watered(water));
         }
 
+        foreach (ProbeSwell swell in probe.Swells)
+        {
+            lines.Add(Swelled(swell));
+        }
+
+        foreach (ProbeField field in probe.Fields)
+        {
+            lines.Add(Fielded(field));
+        }
+
         foreach (ProbeGround ground in probe.Grounds)
         {
             lines.Add(Grounded(ground));
@@ -90,13 +100,20 @@ public static class PictureProbe
         return lines;
     }
 
-    /// <summary>Two grounds mixed at the pixel: the mask's green, each ground's colour and what the mix made of them - see <see cref="ProbeGround"/>.</summary>
+    /// <summary>Two grounds mixed at the pixel: the mask's green or the corners' share, each ground's colour and what the mix made of them - see <see cref="ProbeGround"/>.</summary>
     public static string Grounded(ProbeGround ground)
     {
-        Vector3 mixed = Vector3.Lerp(ground.First, ground.Second, ground.Green);
-        return Say($"  ground mix at depth {Number(ground.Depth)} · the mask's green {ground.Green:F3}, the second ground's share")
+        Vector3 mixed = Vector3.Lerp(ground.First, ground.Second, ground.Share);
+        string weight = ground.Cornered
+            ? "the sub-tile's corners' share, bilinear (CHOSEN for a shape across the mask's atlas)"
+            : "the mask's green";
+        string heights = ground.ByHeights
+            ? Say($" · weighed by their heights {ground.FirstHeight:F3} and {ground.SecondHeight:F3} as the engine's height blending weighs them, the second ground's share then {ground.Share:F3}")
+            : string.Empty;
+        return Say($"  ground mix at depth {Number(ground.Depth)} · {weight} {ground.Green:F3}, the second ground's share")
+            + heights
             + Say($" · the first ground {ground.First.X:F3}, {ground.First.Y:F3}, {ground.First.Z:F3}, the second {ground.Second.X:F3}, {ground.Second.Y:F3}, {ground.Second.Z:F3}")
-            + Say($" · mixed {mixed.X:F3}, {mixed.Y:F3}, {mixed.Z:F3} linear, before the light · the engine's height blending not drawn");
+            + Say($" · mixed {mixed.X:F3}, {mixed.Y:F3}, {mixed.Z:F3} linear, before the light{(ground.ByHeights ? string.Empty : " · the engine's height blending not drawn")}");
     }
 
     /// <summary>
@@ -111,6 +128,44 @@ public static class PictureProbe
             + Say($" · the shore {beach.Shore:F3} colour units ({Number(beach.Shore * ShoreField.Reach)}, {(beach.Shore >= 0f ? "out at sea" : "in on land")})")
             + Say($" · foam {Fraction(beach.Foam)}, the film {Fraction(beach.Thickness)} thick over {path}, letting through {Fraction(through)}")
             + Say($" · cover {Fraction(beach.Cover)} · colour {beach.Colour.X:F3}, {beach.Colour.Y:F3}, {beach.Colour.Z:F3} linear");
+    }
+
+    /// <summary>
+    /// The swell's foam at the pixel, term by term - the shore field's cell and distances, the tide, the cross-section read at it, and
+    /// what the foam came to - see <see cref="ProbeSwell"/>.
+    /// </summary>
+    public static string Swelled(ProbeSwell swell)
+    {
+        string depth = swell.Depth < float.MaxValue ? Number(swell.Depth) + " units of water to the solid behind" : "nothing solid behind";
+        return Say($"  swell's foam at ({Number(swell.Place.X)}, {Number(swell.Place.Y)}) · the shore field's cell {swell.CellX}, {swell.CellY}, {swell.Cell}")
+            + Say($" · the shore {swell.ShoreDist:F3} colour units ({Number(swell.ShoreDist * ShoreField.Reach)}), the way in {swell.OceanDist:F3} ({Number(swell.OceanDist * ShoreField.Reach)})")
+            + Say($" · the tide's phase {swell.Tide:F3}{(swell.Leading ? ", on the leading edge" : string.Empty)}, the cross-section {swell.Profile.X:F3}, {swell.Profile.Y:F3}, trail {swell.Profile.Z:F3}, front {swell.Profile.W:F3}")
+            + Say($" · {depth} · the trail taken {swell.Trail:F3}, the front {swell.Front:F3}, the shallows {swell.Shallow:F3} (their foam term {swell.ShallowFoam:F3})")
+            + Say($" · covering {Fraction(swell.Cover)}");
+    }
+
+    /// <summary>
+    /// The field waves at the pixel, term by term - where the card's lifted water meets the view, the shore's distances, the noise and the
+    /// break phase, the crest, and every term of the foam with what it came to - see <see cref="ProbeField"/>.
+    /// </summary>
+    public static string Fielded(ProbeField field)
+    {
+        string state = field.On ? "drawn on the card" : "off, the card drawing none - what they would be";
+        string met = float.IsNaN(field.Off)
+            ? Say($" · the view runs along the water, so at the processor's place ({Number(field.Drawn.X)}, {Number(field.Drawn.Y)}, {Number(field.Drawn.Z)})")
+            : Say($" · at ({Number(field.Place.X)}, {Number(field.Place.Y)}, {Number(field.Place.Z)}), where the card's lifted water meets the view (missed by {field.Off:F2}; the processor's water, unlifted by them, at ({Number(field.Drawn.X)}, {Number(field.Drawn.Y)}, {Number(field.Drawn.Z)}))");
+        string laid = field.Overlaid
+            ? Say($" · its two nodes overlapping, each layer dissolved apart (by {field.Layers.X:F3} and {field.Layers.Y:F3}) and laid one over the other")
+            : " · its two layers blended and dissolved by that profile";
+        FieldFoamProfile profile = field.Profile;
+        return Say($"  field waves, {state}{met}")
+            + Say($" · the shore {Number(field.ShoreDist)} units off the room's shore field (CHOSEN; rising {field.ShoreSlope.X:F2}, {field.ShoreSlope.Y:F2}), the way in {Number(field.OceanDist)} (the waves running {field.Way.X:F2}, {field.Way.Y:F2})")
+            + Say($" · the ground's shore alone {Number(field.GroundDist)}, what stands in the sea no shore - the break taken off {(field.ByGround ? "it (the light panel's \"break by ground\")" : "the shore's")}")
+            + Say($" · the noise {field.Noise:F3}, so the break's centre {field.Centre:F3} (over a half lowers the break) · 1 - {(field.ByGround ? "ground" : "shore")} x 0.0002 = {field.Raw:F3}, the break phase {field.BreakPhase:F3}")
+            + Say($" · the wave's coordinate {field.WaveCoord:F3}, the foam's place in its wave {field.Interp:F3} (nought its front) · the crest moves the water {Number(field.Lift)} along z (up is minus z; the height offset {Number(field.HeightOffset)} in it)")
+            + Say($" · the foam's profile there: the break lets {profile.BreakFoam:F3} form, spike {profile.Spike:F3} + tail {profile.Tail:F3} + constant {profile.Constant:F3}, the wave's own {profile.Wave:F3} once lerped by the break phase, the near-shore term {profile.NearShore:F3}, so {profile.Intensity:F3}, sharpness {profile.Sharpness:F3}")
+            + laid
+            + Say($" · covering {Fraction(field.Cover)}, colour {field.Colour.X:F3}, {field.Colour.Y:F3}, {field.Colour.Z:F3} linear, read at level {field.Level:F1}");
     }
 
     /// <summary>How much of the sun reached a fragment, and what cast the shadow where it did not - see <see cref="ProbeSun"/>.</summary>
@@ -147,7 +202,19 @@ public static class PictureProbe
             -1 => " · its reflection met nothing: the environment alone, the ray " + Way(water.Reflected),
             _ => Say($" · its reflection met the solid picture at step {water.Step}, pixel {water.HitX}, {water.HitY}, depth {Number(water.HitDepth)} ({Number(water.HitDepth - water.Depth)} past the water), colour {(int)water.HitColour.X}, {(int)water.HitColour.Y}, {(int)water.HitColour.Z}; the environment's share {Fraction(water.Environment)}, the light it added {water.Added.X:F3}, {water.Added.Y:F3}, {water.Added.Z:F3}; the ray ") + Way(water.Reflected),
         };
-        return line.Append(said).ToString();
+        line.Append(said);
+
+        // EVERY PART OF THE ENGINE'S WATER LIGHT, linear before the exposure and the grade - where the colour came from.
+        WaterLight lit = water.Light;
+        if (lit != default)
+        {
+            line.Append(Say($" · lit as the engine's water pass: the medium {lit.Subsurface.X:F4}, {lit.Subsurface.Y:F4}, {lit.Subsurface.Z:F4} (scattered by the waves' height, exponent {lit.Exponent:F3})"))
+                .Append(Say($", the foam {lit.Foam.X:F3}, {lit.Foam.Y:F3}, {lit.Foam.Z:F3}; the light they give off {lit.Absorbed.X:F4}, {lit.Absorbed.Y:F4}, {lit.Absorbed.Z:F4}, the ambient's {lit.Ambient.X:F4}, {lit.Ambient.Y:F4}, {lit.Ambient.Z:F4}"))
+                .Append(Say($"; the specular kept {lit.Specular.X:F4}, {lit.Specular.Y:F4}, {lit.Specular.Z:F4}; reflectivity {lit.Reflectivity:F4}, refracted {lit.Refracted:F4}"))
+                .Append(Say($"; through the medium {Fraction(lit.Through)}, the shore's ratio {Fraction(lit.Terrain)}, hidden by foam {Fraction(lit.Hidden)}, covering {Fraction(lit.Cover)}"));
+        }
+
+        return line.ToString();
     }
 
     /// <summary>

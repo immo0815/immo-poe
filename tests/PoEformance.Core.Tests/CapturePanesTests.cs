@@ -50,7 +50,31 @@ public sealed class CapturePanesTests
         Assert.Contains("##### " + Parent + "  (extended by " + Water + ")", text, StringComparison.Ordinal);
         Assert.Contains("  read as " + Parent + ".ao", text, StringComparison.Ordinal);
         Assert.Contains("  | \tWaterBody", text, StringComparison.Ordinal);
-        Assert.DoesNotContain("##### Metadata/Doodads/Rock.ao", text, StringComparison.Ordinal);
+        // A FILE THAT DREW is not written as one that did not - only among the largest (ADOODADWithARig...).
+        Assert.DoesNotContain("##### Metadata/Doodads/Rock.ao  (did not draw)", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ADOODADWithARigAndTheLargestAreWrittenWholeWithTheirAnimations()
+    {
+        // PORT'S SHIP rocks with the waves in the game and stands still here: what moves it is in its .ao, or the engine's.
+        DoodadFile ship = new("Metadata/Terrain/Maps/Port/Tiles/boss_boat.ao", 1, 1, 0, 0, 0, string.Empty, Vector3.Zero)
+        {
+            Triangles = 355726,
+            Rig = "Art/Models/Terrain/Port/boss_boat.ast",
+            Animations = ["idle (30 fps, 4 tracks, kind 110)"],
+        };
+        DoodadFile rock = new("Metadata/Doodads/Rock.ao", 3, 3, 0, 0, 0, string.Empty, Vector3.Zero) { Triangles = 900 };
+        DoodadFile pebble = new("Metadata/Doodads/Pebble.ao", 3, 3, 0, 0, 0, string.Empty, Vector3.Zero) { Triangles = 10 };
+        var model = new MonsterModel(Square(), null, "room.arm", string.Empty, string.Empty) { DoodadFiles = [pebble, ship, rock] };
+
+        string text = CapturePanes.Write(Install, [new CapturePane("monster", [], model)]).ReplaceLineEndings("\n");
+
+        Assert.Contains("=== the doodad files with a rig (1) and the 2 largest without one, whole, with their animations", text, StringComparison.Ordinal);
+        Assert.Contains("  Metadata/Terrain/Maps/Port/Tiles/boss_boat.ao  355726 triangles, 1 lines, 1 laid  rig Art/Models/Terrain/Port/boss_boat.ast\n    animation\tidle (30 fps, 4 tracks, kind 110)\n", text, StringComparison.Ordinal);
+        Assert.Contains("##### Metadata/Terrain/Maps/Port/Tiles/boss_boat.ao  (has a rig)", text, StringComparison.Ordinal);
+        Assert.Contains("##### Metadata/Doodads/Rock.ao  (among the largest)", text, StringComparison.Ordinal);
+        Assert.Contains("##### Metadata/Doodads/Pebble.ao  (among the largest)", text, StringComparison.Ordinal);
     }
 
     [Fact]

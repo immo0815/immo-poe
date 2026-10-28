@@ -64,9 +64,11 @@ public readonly record struct ProbeFragment(int Triangle, Seen Seen, float Depth
 /// <param name="Added">The light the reflection added, linear.</param>
 /// <param name="Sun">How much of the sun the shadow map lets through to it, nought in shadow - asked for when the waves seemed cut off
 /// along a straight line beside Port's ship (from the live client, v0.1.236): a shadow takes the sun's glints with it.</param>
+/// <param name="Light">Every part of its light where it was lit as the engine's water pass lights it (SceneLight.ShadeWater) - asked for
+/// when the water looked nearer the game under the flat ambient than under the cube (from the live client, v0.1.295); default where not.</param>
 public readonly record struct ProbeWater(
     float Depth, Vector3 Place, Vector3 Normal, Vector3 Waves, Vector3 Reflected, int Step, int HitX, int HitY, float HitDepth,
-    Vector3 HitColour, float Environment, Vector3 Added, float Sun);
+    Vector3 HitColour, float Environment, Vector3 Added, float Sun, WaterLight Light = default);
 
 /// <summary>
 /// How much of the sun reached a fragment the game light shaded at a probed pixel, and - where it was shaded - what cast the shadow.
@@ -96,10 +98,24 @@ public readonly record struct ProbeSun(int Triangle, float Depth, Vector3 Place,
 /// </remarks>
 /// <param name="Triangle">The ground's triangle.</param>
 /// <param name="Depth">Its depth along the view.</param>
-/// <param name="Green">The mask's green at the pixel - the second ground's share.</param>
+/// <param name="Green">The mask's green at the pixel, or the corners' share where <paramref name="Cornered"/> - the second ground's share.</param>
 /// <param name="First">The first ground's colour there, linear.</param>
 /// <param name="Second">The second ground's colour there, linear.</param>
-public readonly record struct ProbeGround(int Triangle, float Depth, float Green, Vector3 First, Vector3 Second);
+/// <param name="Cornered">Whether the two are mixed by the second ground's share of the sub-tile's corners rather than the mask - see ShadeProgram.GroundsByCorners.</param>
+public readonly record struct ProbeGround(int Triangle, float Depth, float Green, Vector3 First, Vector3 Second, bool Cornered = false)
+{
+    /// <summary>The second ground's share once weighed by the two grounds' heights - <see cref="Green"/> where they are not (see ShadeProgram.Grounds).</summary>
+    public float Share { get; init; } = Green;
+
+    /// <summary>Whether the two grounds were weighed by their heights, the engine's height blending.</summary>
+    public bool ByHeights { get; init; }
+
+    /// <summary>The first ground's height, as its graphs write it.</summary>
+    public float FirstHeight { get; init; }
+
+    /// <summary>The second ground's height.</summary>
+    public float SecondHeight { get; init; }
+}
 
 /// <summary>
 /// What the beach waves made of a probed pixel: where the sheet stood, its waves' lift there, the shore's distances and the graph's mix.
@@ -123,6 +139,88 @@ public readonly record struct ProbeBeach(
     int Triangle, float Depth, Vector3 Place, float Lift, float Shore, float Foam, float Thickness, float Path, float Cover, Vector3 Colour);
 
 /// <summary>
+/// What the swell's foam (ShadeProgram.Foam) was made of at a probed pixel of water: the shore field there, the tide's phase, the
+/// cross-section read at it, and every term between them and the cover.
+/// </summary>
+/// <remarks>
+/// WRITTEN WHEN PORT'S CHANNEL SHOWED FOAM IN RECTANGLES WITH STRAIGHT EDGES with the field waves off (said from the live client,
+/// v0.1.301; their cause asked after again at v0.1.308). The swell's foam is the one foam drawn there then, and every term of it - the
+/// shore's distance, the way in, the depth the view crosses, the shallows - may change along a straight line: a wall's edge, a sunken
+/// stone's, a water plane's. Worked out by the same function that draws it, at the pixel's own place, clock and depth.
+/// </remarks>
+/// <param name="Place">The water's place, x and y, as the program reads it.</param>
+/// <param name="Depth">How much water the view crosses to the solid behind (<c>gBufferDelta</c>); <see cref="float.MaxValue"/> where nothing is behind.</param>
+/// <param name="ShoreDist">The shore field's distance there, colour units.</param>
+/// <param name="OceanDist">The way in there, colour units.</param>
+/// <param name="Tide">The tide's phase there, nought to one.</param>
+/// <param name="Profile">The cross-section read at the phase: the swell's height, its slope, the trail's strength (z) and the front's phase (w).</param>
+/// <param name="Leading">Whether the place is on the swell's leading edge, where the front's phase counts.</param>
+/// <param name="Trail">The trail's strength the foam takes: the cross-section's green times the depth to 25 units.</param>
+/// <param name="Front">The front's phase the foam takes, the shallows worked in.</param>
+/// <param name="Shallow">The shallows' share.</param>
+/// <param name="ShallowFoam">The shallows' foam term, <c>-(shoreDist - 0.18) * 10</c>.</param>
+/// <param name="Cover">What the foam came to: how much it covers.</param>
+/// <param name="CellX">The shore field's cell, its column.</param>
+/// <param name="CellY">Its row.</param>
+/// <param name="Cell">What the cell is: water, land, a wall, or something crossing the water's surface there.</param>
+public readonly record struct ProbeSwell(
+    Vector2 Place, float Depth, float ShoreDist, float OceanDist, float Tide, Vector4 Profile, bool Leading, float Trail, float Front,
+    float Shallow, float ShallowFoam, float Cover, int CellX, int CellY, string Cell);
+
+/// <summary>GetFieldFoamProfile term by term at one wave coordinate - see <see cref="ProbeField"/>.</summary>
+/// <param name="BreakFoam">How much the break phase lets foam form: <c>PolyStep(break, 0.53, 0.95)</c>.</param>
+/// <param name="Spike">The spike's part, rising to the hump at 0.9 of the wave.</param>
+/// <param name="Tail">The tail's part.</param>
+/// <param name="Constant">The constant part.</param>
+/// <param name="Wave">The three summed, lerped towards <c>sum * 0.7 + 0.3</c> by the break phase: the wave's own foam.</param>
+/// <param name="NearShore">The near-shore term, <c>saturate(exp(-(shore - 150) / 100)) * 0.7</c>: whole foam within 150 units of a shore.</param>
+/// <param name="Intensity">The two added, saturated - what the foam's texture is dissolved by.</param>
+/// <param name="Sharpness">The dissolve's sharpness, <c>0.5 + 0.4 * intensity</c>.</param>
+public readonly record struct FieldFoamProfile(
+    float BreakFoam, float Spike, float Tail, float Constant, float Wave, float NearShore, float Intensity, float Sharpness);
+
+/// <summary>
+/// What the engine's field waves (ShadeProgram.Field, the card's alone) were made of at a probed pixel of water: where the card's lifted
+/// water meets the view there, the shore field's distances, the noise that moves the break, the break phase, the wave's coordinate,
+/// the crest's lift, and every term of the foam with what it came to.
+/// </summary>
+/// <remarks>
+/// WRITTEN WHEN PORT'S CRESTS CAME OUT WHITE FROM THE SHIP'S HULL ON (asked for from the live client, v0.1.322): in the game a crest in
+/// the channel stays a dark ridge with a few streaks until near the quay, and in the Monster Book it is white foam from the hull - which
+/// looks as though the waves came up from under the ship. The foam is the break phase's, off the shore's distance in a field this tool
+/// makes (CHOSEN), moved by a noise the engine binds and this tool stands in for, and the near-shore term; a picture cannot say which.
+/// The processor draws no field waves, so these are worked out apart, by the card's functions, at the card's place.
+/// </remarks>
+/// <param name="On">Whether the card draws them - the light panel's switch; worked out either way.</param>
+/// <param name="ByGround">Whether their break phase takes <paramref name="GroundDist"/> - the light panel's "break by ground".</param>
+/// <param name="Drawn">Where the processor's water stood at the pixel, unlifted by the field waves.</param>
+/// <param name="Place">Where the card's lifted water meets the view through the pixel - the nearest crossing, as the card draws it.</param>
+/// <param name="Off">How far along z the crossing found misses the lifted water; NaN where none was found (the view along the water).</param>
+/// <param name="ShoreDist">The shore's distance there, world units - the room's shore field's (CHOSEN).</param>
+/// <param name="ShoreSlope">Its rise along x and y.</param>
+/// <param name="GroundDist">The distance to the shore of the ground alone, world units - what stands in the sea no shore (ShoreField.GroundTexels).</param>
+/// <param name="OceanDist">The distance out to sea, world units - the way in (CHOSEN).</param>
+/// <param name="Way">The way the waves run there, per unit of their speed: minus the way in's slope.</param>
+/// <param name="Noise">The stationary noise's value (the noise texture's green), which moves the break's centre.</param>
+/// <param name="Centre">The break's centre, <c>0.5 + 0.3 * noise</c> - over a half, the break phase is lowered.</param>
+/// <param name="Raw">The break phase before the ramp, <c>1 - shore * 0.0002</c> - the ground's shore's where <paramref name="ByGround"/>.</param>
+/// <param name="BreakPhase">The break phase, FieldRampNorm of the raw value about the centre.</param>
+/// <param name="WaveCoord">The wave's coordinate: whole waves out to sea, less the clock's.</param>
+/// <param name="Lift">How far the card moves the water along z there - the crest's, the height offset in it; up is minus z.</param>
+/// <param name="HeightOffset">The area's height offset in the lift.</param>
+/// <param name="Interp">Where in its wave the place lies once the foam's front offset is taken off, nought to one - the profile's coordinate.</param>
+/// <param name="Profile">The foam's profile at <paramref name="Interp"/>, term by term.</param>
+/// <param name="Overlaid">Whether the two nodes overlapped there, the layers then dissolved apart and laid one over the other.</param>
+/// <param name="Layers">The intensities the two layers were dissolved by - the profile's twice where they were blended.</param>
+/// <param name="Cover">How much the foam covers - what the card lays over the water as its foam.</param>
+/// <param name="Colour">The foam's colour, linear.</param>
+/// <param name="Level">The level the foam's colour was read at, the card's gradients'.</param>
+public readonly record struct ProbeField(
+    bool On, bool ByGround, Vector3 Drawn, Vector3 Place, float Off, float ShoreDist, Vector2 ShoreSlope, float GroundDist, float OceanDist,
+    Vector2 Way, float Noise, float Centre, float Raw, float BreakPhase, float WaveCoord, float Lift, float HeightOffset, float Interp,
+    FieldFoamProfile Profile, bool Overlaid, Vector2 Layers, float Cover, Vector3 Colour, float Level);
+
+/// <summary>
 /// Every fragment one pixel of a drawing was made of, in the order the drawing met them.
 /// </summary>
 /// <remarks>
@@ -144,6 +242,8 @@ public sealed class PixelProbe
     private readonly List<ProbeSun> _suns = [];
     private readonly List<ProbeBeach> _beaches = [];
     private readonly List<ProbeGround> _grounds = [];
+    private readonly List<ProbeSwell> _swells = [];
+    private readonly List<ProbeField> _fields = [];
 
     /// <param name="x">The pixel's column, from the left.</param>
     /// <param name="y">The pixel's row, from the top.</param>
@@ -190,6 +290,16 @@ public sealed class PixelProbe
 
     internal void Add(ProbeGround ground) => _grounds.Add(ground);
 
+    /// <summary>Every water fragment's swell foam worked out at the pixel - see <see cref="ProbeSwell"/>.</summary>
+    public IReadOnlyList<ProbeSwell> Swells => _swells;
+
+    internal void Add(ProbeSwell swell) => _swells.Add(swell);
+
+    /// <summary>Every water fragment's field waves worked out at the pixel - see <see cref="ProbeField"/>.</summary>
+    public IReadOnlyList<ProbeField> Fields => _fields;
+
+    internal void Add(ProbeField field) => _fields.Add(field);
+
     /// <summary>Names what cast the shadow on one of <see cref="Suns"/>.</summary>
     internal void Cast(int sun, int caster, float away) => _suns[sun] = _suns[sun] with { Caster = caster, CasterAway = away };
 
@@ -200,6 +310,8 @@ public sealed class PixelProbe
         _suns.Clear();
         _beaches.Clear();
         _grounds.Clear();
+        _swells.Clear();
+        _fields.Clear();
         Final = float.MaxValue;
         Drawn = false;
     }
