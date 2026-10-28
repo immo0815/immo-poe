@@ -903,6 +903,16 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   at the channel's head (ground-grid-replay.txt's null slot, tile columns 131 to 133 of that instance); leaving every cell that touches
   one out of the land fits the pier at 18 degrees (69% within 30) but the channel at 38 (41%), the quay's ground going with it. The
   engine's OceanMarkupField stays unread.
+  ITS NUMBERS ARE SOUGHT IN MEMORY (v0.1.342, asked for from the live client over drawing the engine's ocean markup views from the
+  tool's own field). The engine's `debug_ocean_markup_deep` and `_land` (render-debug.txt, v0.1.318) and its water read the field through
+  ShorelineFieldData: GetShoreData samples `shoreline_coord_tex_sampler` at `(tilemap_pos - shoreline_coord_planar_aabb.xy) / (aabb.zw -
+  aabb.xy)`, steps by `scene_planar_size.x / shoreline_coord_tex_size.x`, and makes world distances `(1 - r) / dist_to_color` (the shore)
+  and `(1 - b) / dist_to_color` (the open sea) - pass uniforms the processor sets, while OceanMarkupField makes the texture on the card.
+  So `ocean-markup.txt` goes on, after the terrain's grids, to the whole of memory on every core (`ShoreFieldHunt`, ninety seconds at
+  most): the scene's planar size - the flood waves read `planar_pos / scene_planar_size.xy`, so it is the area's in world units, 250 a
+  tile - both ways round, and the walkable grid's size in cells, and beside every place found the texture sizes, boxes, int pairs and
+  small factors standing there, tallied over the windows, each window written whole; `ocean-markup-replay.txt` lists them again from the
+  file. The tool's `ShoreField.Reach` of 2,000 a colour unit is a dist_to_color of 0.0005 - read the hunt before it is changed.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
