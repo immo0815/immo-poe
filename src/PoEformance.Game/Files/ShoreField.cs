@@ -92,6 +92,9 @@ public sealed class ShoreField
 
     private readonly float[] _texels;
 
+    /// <summary>Each cell's distance to the shore of the ground alone, colour units - see <see cref="GroundTexels"/>.</summary>
+    private readonly float[] _ground;
+
     /// <summary>Each cell's ground where it lies in the beach's band, NaN elsewhere - see <see cref="Beach"/>.</summary>
     private readonly float[] _beach;
 
@@ -107,13 +110,14 @@ public sealed class ShoreField
     /// <summary>A field's twin: everything the same but the distance out to sea, whose way in runs round what stands in the water.</summary>
     private ShoreField(ShoreField from, float[] texels, int travelled, int unreached)
         : this(
-            from.Left, from.Top, from.CellSize, from.Width, from.Height, texels, from.Level, from.LandCells, from.WaterTriangles, from.GroundTriangles,
-            from.StandingTriangles, from.StandingCells, from._beach, from.BlockingTriangles, from.CrossingTriangles, from.BlockedCells, travelled,
-            unreached, from._blocked, from.CrossingShapes, from._walls, from.WallCells)
+            from.Left, from.Top, from.CellSize, from.Width, from.Height, texels, from._ground, from.Level, from.LandCells, from.WaterTriangles,
+            from.GroundTriangles, from.StandingTriangles, from.StandingCells, from._beach, from.BlockingTriangles, from.CrossingTriangles,
+            from.BlockedCells, travelled, unreached, from._blocked, from.CrossingShapes, from._walls, from.WallCells)
     {
         StandingWalls = from.StandingWalls;
         OverlappedCells = from.OverlappedCells;
         MostLayers = from.MostLayers;
+        GroundFarther = from.GroundFarther;
         RoundsWhatStands = true;
     }
 
@@ -127,10 +131,11 @@ public sealed class ShoreField
     public ShoreField Way(bool round) => round && _round is not null ? _round : this;
 
     private ShoreField(
-        float left, float top, float cell, int width, int height, float[] texels, float level, int land, int waterTriangles, int groundTriangles,
-        int standingTriangles, int standingCells, float[] beach, int blockingTriangles, int crossingTriangles, int blockedCells, int travelled,
-        int unreached, bool[] blocked, IReadOnlyDictionary<int, int> crossingShapes, bool[] walls, int wallCells)
+        float left, float top, float cell, int width, int height, float[] texels, float[] ground, float level, int land, int waterTriangles,
+        int groundTriangles, int standingTriangles, int standingCells, float[] beach, int blockingTriangles, int crossingTriangles, int blockedCells,
+        int travelled, int unreached, bool[] blocked, IReadOnlyDictionary<int, int> crossingShapes, bool[] walls, int wallCells)
     {
+        _ground = ground;
         _walls = walls;
         WallCells = wallCells;
         _blocked = blocked;
@@ -226,6 +231,50 @@ public sealed class ShoreField
 
     /// <summary>The texels, row by row, two floats each: the shore's distance and the distance out to sea, in colour units - what the card is handed.</summary>
     public ReadOnlySpan<float> Texels => _texels;
+
+    /// <summary>
+    /// Each cell's distance to the shore of the GROUND ALONE, colour units, row by row - what stands in the sea (the rocks, the pier's
+    /// stones) no land for it, the walls no shore as before: what the field waves' break phase takes where the light panel says
+    /// (SceneLight.WaterBreakByGround). The same as the shore's where nothing stands in the sea.
+    /// </summary>
+    /// <remarks>
+    /// CHOSEN FROM THE LIVE CLIENT (v0.1.323), a switch to hold against the game: Port's crests in the channel by the ship came out white
+    /// from the hull on, where the game's stay dark until near the quay, and the probe (v0.1.322) put both a crest by the hull and one
+    /// by the quay at a break phase of 0.65 to 0.74 - foam formed whole - off a shore's distance of 1,000 to 1,400 measured to the rocks
+    /// behind the pier. The engine's own field is its OceanMarkupField, made from the tile map (ClientTileMap::CalculateMapMarkup), which
+    /// knows no doodad; what stands in the sea counts as shore here by this tool's choice (v0.1.236) - for the swell, which keeps it.
+    /// </remarks>
+    public ReadOnlySpan<float> GroundTexels => _ground;
+
+    /// <summary>How many water cells lie farther from the ground's shore than from the shore - where what stands in the sea was the nearer.</summary>
+    public int GroundFarther { get; private init; }
+
+    /// <summary>The distance to the ground's shore at a place, colour units - a linear read as <see cref="At"/>'s.</summary>
+    public float GroundAt(Vector2 place)
+    {
+        float sx = Math.Clamp(((place.X - Left) / CellSize) - 0.5f, 0f, Width - 1), sy = Math.Clamp(((place.Y - Top) / CellSize) - 0.5f, 0f, Height - 1);
+        int x0 = (int)sx, y0 = (int)sy;
+        int x1 = Math.Min(x0 + 1, Width - 1), y1 = Math.Min(y0 + 1, Height - 1);
+        float fx = sx - x0, fy = sy - y0;
+        float[] ground = _ground;
+        float top = ground[(y0 * Width) + x0] + ((ground[(y0 * Width) + x1] - ground[(y0 * Width) + x0]) * fx);
+        float bottom = ground[(y1 * Width) + x0] + ((ground[(y1 * Width) + x1] - ground[(y1 * Width) + x0]) * fx);
+        return top + ((bottom - top) * fy);
+    }
+
+    /// <summary>What the card is handed, four floats a cell: the shore's distance, the distance out to sea, the ground's shore's distance, nought.</summary>
+    public float[] CardTexels()
+    {
+        var card = new float[Width * Height * 4];
+        for (var at = 0; at < Width * Height; at++)
+        {
+            card[at * 4] = _texels[at * 2];
+            card[(at * 4) + 1] = _texels[(at * 2) + 1];
+            card[(at * 4) + 2] = _ground[at];
+        }
+
+        return card;
+    }
 
     /// <summary>What the program reads of the box: its least x and y, world units a texel, and one - nought in w meaning no field.</summary>
     public Vector4 Register => new(Left, Top, CellSize, 1f);
@@ -421,19 +470,44 @@ public sealed class ShoreField
             }
         }
 
+        // THE GROUND'S SHORE ALONE (see GroundTexels): what stands in the sea is water to it, and the ground meeting only deep water a wall as
+        // before - the same test over the ground's own land.
+        float[] groundShores = shores;
+        var groundFarther = 0;
+        if (standingCells > 0)
+        {
+            var groundShoreLand = new bool[land.Length];
+            _ = Walled(grounded, groundShoreLand, groundTop, waterTop, level, width, height, out _);
+            float[] toGroundShore = Distances(groundShoreLand, width, height, true);
+            groundShores = new float[land.Length];
+            for (var at = 0; at < land.Length; at++)
+            {
+                groundShores[at] = grounded[at] ? nearGround[at] : toGroundShore[at] * cell;
+                groundFarther += !land[at] && groundShores[at] > shores[at] + (0.5f * cell) ? 1 : 0;
+            }
+        }
+
         // Two shortest-path walks over the whole grid, each on a core of its own.
         float[] byGround = [], round = [];
         int travelled = 0, unreached = 0, roundTravelled = 0, roundUnreached = 0;
         Parallel.Invoke(
             () => byGround = Oceans(nearGround, grounded, new bool[land.Length], width, height, cell, out travelled, out unreached),
             () => round = Oceans(nearLand, land, blocked, width, height, cell, out roundTravelled, out roundUnreached));
+        var groundTexels = new float[land.Length];
+        for (var at = 0; at < groundTexels.Length; at++)
+        {
+            groundTexels[at] = Math.Clamp(groundShores[at] / Reach, -1f, 1f);
+        }
+
         var field = new ShoreField(
-            least.X, least.Y, cell, width, height, Packed(shores, byGround), level, lands, waterTriangles, groundTriangles, standingTriangles,
-            standingCells, beach, blockingTriangles, crossingTriangles, blockedCells, travelled, unreached, blocked, crossingShapes, wall, walls)
+            least.X, least.Y, cell, width, height, Packed(shores, byGround), groundTexels, level, lands, waterTriangles, groundTriangles,
+            standingTriangles, standingCells, beach, blockingTriangles, crossingTriangles, blockedCells, travelled, unreached, blocked, crossingShapes,
+            wall, walls)
         {
             StandingWalls = standingWalls,
             OverlappedCells = overlapped,
             MostLayers = mostLayers,
+            GroundFarther = groundFarther,
         };
         field._round = new ShoreField(field, Packed(shores, round), roundTravelled, roundUnreached);
         return field;

@@ -654,6 +654,19 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   phase, the wave's coordinate and the crest's lift, the foam's profile term by term (the break's share, spike, tail, constant, the
   near-shore term) and what it covers at the level the card reads it. Probe a crest by the hull and one by the quay, crash on, then
   capture - before the shore's distance or the break is given a rule.
+  ITS CAPTURES (v0.1.322, Port's built stage, crash on): the crest by the hull at a shore's distance of 1,372, the noise 0.274 (the
+  break's centre 0.582), the break phase 0.649, the break's share 0.999, the near-shore term nought, covering 0.98; the crest by the
+  quay at 1,076, 0.213 (0.564), 0.735, 1.000, nought, 0.93 - both breaking whole, the hull's the whiter, the quay no shore under the
+  wall rule. PolyStep(break, 0.53, 0.95) runs from 0.13 at 0.50 to 0.79 at 0.56, which at these noises is a shore's distance of
+  about 1,900 to 2,000; the game's look - dark by the hull, white by the quay - puts that threshold inside the channel, some 600 to
+  700 units farther out than this tool's field has it. So from v0.1.323 THE BREAK MAY TAKE THE GROUND'S SHORE ALONE, CHOSEN from the
+  live client as a switch to hold against the game (the light panel's water row, "break by ground", `SceneLight.WaterBreakByGround`,
+  off by default): `ShoreField.GroundTexels`, each cell's distance to the shore of the ground alone - what stands in the sea, the
+  rocks and the pier's stones, water to it, the walls no shore as before - the card's shore texture's third float
+  (`ShoreField.CardTexels`, `ShadeShoreAll`), taken by GetBreakPhaseField where the swell register's w is two; the near-shore term,
+  the swell, the beach and the spray keep the shore's distance with the rocks. A reading, not the engine's: its OceanMarkupField is
+  made from the tile map (ClientTileMap::CalculateMapMarkup), which knows no doodad. `model-panes.txt` counts the water cells the
+  ground's shore puts farther and draws `shore-ground.png`; the probe writes both distances and which the break took.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

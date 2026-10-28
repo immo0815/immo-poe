@@ -329,18 +329,7 @@ public class WaterTests
     [Fact]
     public void WHATSTANDSInTheSeaIsAShoreOfItsOwn()
     {
-        SkinnedMesh bay = Bay();
-        Vector3[] rock = [new(-1100f, -100f, -150f), new(-900f, -100f, -150f), new(-900f, 100f, -150f), new(-1100f, 100f, -150f)];
-        Vector3[] places = [.. bay.Positions, .. rock];
-        int at = bay.Positions.Length;
-        int[] indices = [.. bay.Indices, at, at + 1, at + 2, at, at + 2, at + 3];
-        var normals = new Vector3[places.Length];
-        Array.Fill(normals, new Vector3(0f, 0f, -1f));
-        SkinnedMesh rocky = SkinnedMesh.Of(
-            places, normals, indices, new Vector3(-3000f, -3000f, -150f), new Vector3(3000f, 3000f, 300f),
-            [.. places.Select(one => new Vector2(one.X, one.Y))],
-            [.. bay.Shapes, new MeshShape("Rock", bay.Indices.Length, 6)]);
-
+        SkinnedMesh rocky = Rocky();
         ShoreField? standing = ShoreField.Of(rocky, shape => shape == 0, shape => shape is 1 or 2, shape => shape == 3);
         ShoreField? plain = ShoreField.Of(rocky, shape => shape == 0, shape => shape is 1 or 2);
         Assert.NotNull(standing);
@@ -357,6 +346,58 @@ public class WaterTests
         Assert.Equal(2, standing.StandingTriangles);
         Assert.True(standing.StandingCells > 40, $"{standing.StandingCells} cells by the rock");
         Assert.Equal(0, plain.StandingCells);
+    }
+
+    /// <summary>
+    /// The ground's shore alone (ShoreField.GroundTexels, what the field waves' break takes where switched): the rock in the open bay no
+    /// shore to it - beside it and on it a colour unit out, as with no rock at all - and the quay's edge nought as before; where nothing
+    /// stands in the sea it is the shore's own. The card is handed it as each texel's third float.
+    /// </summary>
+    [Fact]
+    public void THEGROUNDSShoreLeavesWhatStandsInTheSeaOut()
+    {
+        ShoreField standing = ShoreField.Of(Rocky(), shape => shape == 0, shape => shape is 1 or 2, shape => shape == 3)!;
+        standing.At(new Vector2(-1300f, 0f), out float byRock, out _);
+        Assert.InRange(byRock, 0.05f, 0.15f);
+        Assert.True(standing.GroundAt(new Vector2(-1300f, 0f)) > 1f - 0.01f);
+        Assert.True(standing.GroundAt(new Vector2(-1000f, 0f)) > 1f - 0.01f);
+        Assert.InRange(standing.GroundAt(new Vector2(0f, 0f)), 0.48f, 0.52f);
+        Assert.InRange(standing.GroundAt(new Vector2(990f, 0f)), -0.02f, 0.03f);
+        Assert.True(standing.GroundFarther > 40, $"{standing.GroundFarther} cells farther");
+
+        float[] card = standing.CardTexels();
+        Assert.Equal(standing.Width * standing.Height * 4, card.Length);
+        for (var at = 0; at < standing.Width * standing.Height; at += 97)
+        {
+            Assert.Equal(standing.Texels[at * 2], card[at * 4]);
+            Assert.Equal(standing.Texels[(at * 2) + 1], card[(at * 4) + 1]);
+            Assert.Equal(standing.GroundTexels[at], card[(at * 4) + 2]);
+            Assert.Equal(0f, card[(at * 4) + 3]);
+        }
+
+        // NOTHING STANDING IN THE SEA: the ground's shore is the shore's, cell for cell.
+        ShoreField plain = BayShore();
+        Assert.Equal(0, plain.GroundFarther);
+        for (var at = 0; at < plain.Width * plain.Height; at++)
+        {
+            Assert.Equal(plain.Texels[at * 2], plain.GroundTexels[at]);
+        }
+    }
+
+    /// <summary>The bay with a rock 200 across standing 150 out of the open water at x -1,000 - its fourth shape.</summary>
+    internal static SkinnedMesh Rocky()
+    {
+        SkinnedMesh bay = Bay();
+        Vector3[] rock = [new(-1100f, -100f, -150f), new(-900f, -100f, -150f), new(-900f, 100f, -150f), new(-1100f, 100f, -150f)];
+        Vector3[] places = [.. bay.Positions, .. rock];
+        int at = bay.Positions.Length;
+        int[] indices = [.. bay.Indices, at, at + 1, at + 2, at, at + 2, at + 3];
+        var normals = new Vector3[places.Length];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+        return SkinnedMesh.Of(
+            places, normals, indices, new Vector3(-3000f, -3000f, -150f), new Vector3(3000f, 3000f, 300f),
+            [.. places.Select(one => new Vector2(one.X, one.Y))],
+            [.. bay.Shapes, new MeshShape("Rock", bay.Indices.Length, 6)]);
     }
 
     /// <summary>The swell's crests roll in to the shore - the nearest crest to a place moves towards the quay as the clock runs.</summary>

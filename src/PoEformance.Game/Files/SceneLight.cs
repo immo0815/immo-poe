@@ -424,6 +424,13 @@ public sealed class SceneLight
     /// </summary>
     public bool WaterWayRound { get; init; }
 
+    /// <summary>
+    /// Whether the field waves' break phase takes the shore's distance of the ground alone - what stands in the sea, the rocks and the
+    /// pier's stones, no shore for it (ShoreField.GroundTexels) - rather than the shore's the swell takes. CHOSEN, a switch to hold against
+    /// the game; the card's alone, as the field waves are.
+    /// </summary>
+    public bool WaterBreakByGround { get; init; }
+
     /// <summary>env_map_rotation: what a normal is put through before the cube is read - the world's axes as the cube's unless the environment turns it, see <see cref="CubeTurnFrom"/>.</summary>
     public Matrix4x4 CubeTurn { get; init; } = CubeSwap;
 

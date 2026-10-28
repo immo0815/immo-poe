@@ -2637,7 +2637,7 @@ public static class MeshPicture
                     Matrix4x4 back = Matrix4x4.Transpose(_view);
                     Vector3 right = Vector3.TransformNormal(new Vector3(1f / _scale, 0f, 0f), back);
                     Vector3 down = Vector3.TransformNormal(new Vector3(0f, 1f / _scale, 0f), back);
-                    _probe.Add(ShadeProgram.FieldProbe(place, _toEye, right, down, _time, _water.FlowRegister.Z, shore, _scene!.WaterCrash));
+                    _probe.Add(ShadeProgram.FieldProbe(place, _toEye, right, down, _time, _water.FlowRegister.Z, shore, _scene!.WaterCrash, _scene.WaterBreakByGround));
                 }
             }
 

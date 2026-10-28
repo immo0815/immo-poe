@@ -160,7 +160,8 @@ public static class PictureProbe
         FieldFoamProfile profile = field.Profile;
         return Say($"  field waves, {state}{met}")
             + Say($" · the shore {Number(field.ShoreDist)} units off the room's shore field (CHOSEN; rising {field.ShoreSlope.X:F2}, {field.ShoreSlope.Y:F2}), the way in {Number(field.OceanDist)} (the waves running {field.Way.X:F2}, {field.Way.Y:F2})")
-            + Say($" · the noise {field.Noise:F3}, so the break's centre {field.Centre:F3} (over a half lowers the break) · 1 - shore x 0.0002 = {field.Raw:F3}, the break phase {field.BreakPhase:F3}")
+            + Say($" · the ground's shore alone {Number(field.GroundDist)}, what stands in the sea no shore - the break taken off {(field.ByGround ? "it (the light panel's \"break by ground\")" : "the shore's")}")
+            + Say($" · the noise {field.Noise:F3}, so the break's centre {field.Centre:F3} (over a half lowers the break) · 1 - {(field.ByGround ? "ground" : "shore")} x 0.0002 = {field.Raw:F3}, the break phase {field.BreakPhase:F3}")
             + Say($" · the wave's coordinate {field.WaveCoord:F3}, the foam's place in its wave {field.Interp:F3} (nought its front) · the crest moves the water {Number(field.Lift)} along z (up is minus z; the height offset {Number(field.HeightOffset)} in it)")
             + Say($" · the foam's profile there: the break lets {profile.BreakFoam:F3} form, spike {profile.Spike:F3} + tail {profile.Tail:F3} + constant {profile.Constant:F3}, the wave's own {profile.Wave:F3} once lerped by the break phase, the near-shore term {profile.NearShore:F3}, so {profile.Intensity:F3}, sharpness {profile.Sharpness:F3}")
             + laid

@@ -26,6 +26,11 @@ public class FieldWaveTests
         }
 
         Assert.Contains("field0.colour;", colour, StringComparison.Ordinal);
+
+        // THE BREAK BY THE GROUND (SceneLight.WaterBreakByGround): the swell register's w two, the shore texture's third float.
+        Assert.Contains("float3 breakDist = byGround ? groundDist : shoreDist;", ShadeHlsl.FieldLibrary, StringComparison.Ordinal);
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(ShadeHlsl.FieldLibrary, "swell\\.w > 1\\.5").Count);
+        Assert.Contains("groundDist = float3(centre.z,", ShadeHlsl.FieldLibrary, StringComparison.Ordinal);
         Assert.Contains("ShadeFieldTurned(", glossy, StringComparison.Ordinal);
 
         // THE FIXED LOOKUPS COME BEFORE A PROGRAM'S SHEETS.
@@ -190,6 +195,39 @@ public class FieldWaveTests
         Assert.True(float.IsNaN(along.Off));
         Assert.Contains("off, the card drawing none", Features.PictureProbe.Fielded(along), StringComparison.Ordinal);
         Assert.Contains("the view runs along the water", Features.PictureProbe.Fielded(along), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// With the light panel's "break by ground" the break phase takes the ground's shore alone: beside a rock in the open bay the shore's
+    /// distance is some 200 units and the ground's - the quay 2,300 off - a whole colour unit, so the break falls from near one to 0.6
+    /// before its ramp; without the switch it takes the shore's as before, and the line says which it took.
+    /// </summary>
+    [Fact]
+    public void THEBREAKTakesTheGroundsShoreWhereSwitched()
+    {
+        ShoreField shore = ShoreField.Of(WaterTests.Rocky(), shape => shape == 0, shape => shape is 1 or 2, shape => shape == 3)!;
+        var flat = new WaterSheet(2, 2, 4, new float[16], false, "flat");
+        var drawn = new Vector3(-1300f, 0f, 0f);
+        ProbeField Probe(bool byGround) => ShadeProgram.FieldProbe(
+            flat, BeachTests.Half(), Foam(128), Foam(255), drawn, -Vector3.UnitZ, Vector3.UnitX, Vector3.UnitY, 2f, 0f, shore, on: true, byGround);
+
+        ProbeField byShore = Probe(false), byGround = Probe(true);
+        Assert.InRange(byShore.ShoreDist, 100f, 300f);
+        Assert.Equal(1f - (byShore.ShoreDist * 0.0002f), byShore.Raw, 5);
+        Assert.True(byGround.ByGround);
+        Assert.Equal(byShore.ShoreDist, byGround.ShoreDist);
+        Assert.Equal(ShoreField.Reach, byGround.GroundDist, 1);
+        Assert.Equal(1f - (byGround.GroundDist * 0.0002f), byGround.Raw, 5);
+        Assert.Equal(RampNorm(byGround.Raw, byGround.Centre), byGround.BreakPhase, 4);
+        Assert.True(byGround.BreakPhase < byShore.BreakPhase - 0.2f, $"{byGround.BreakPhase} against {byShore.BreakPhase}");
+
+        // THE NEAR-SHORE TERM KEEPS THE SHORE'S DISTANCE: the rock still whitens the water by it.
+        Assert.Equal(byShore.Profile.NearShore > 0f, byGround.Profile.NearShore > 0f);
+
+        string line = Features.PictureProbe.Fielded(byGround);
+        Assert.Contains("the break taken off it (the light panel's \"break by ground\")", line, StringComparison.Ordinal);
+        Assert.Contains("1 - ground x 0.0002 = ", line, StringComparison.Ordinal);
+        Assert.Contains("the break taken off the shore's", Features.PictureProbe.Fielded(byShore), StringComparison.Ordinal);
     }
 
     /// <summary>math_utils' RampNorm, written apart from the C#.</summary>
