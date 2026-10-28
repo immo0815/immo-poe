@@ -81,18 +81,6 @@ public class SprayTests
     [Fact]
     public void PORTSRockCompilesItsSpray()
     {
-        static byte[] Fixture(string path)
-        {
-            DirectoryInfo? dir = new(AppContext.BaseDirectory);
-            while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "tests", "fixtures")))
-            {
-                dir = dir.Parent;
-            }
-
-            Assert.NotNull(dir);
-            return File.ReadAllBytes(Path.Combine(dir.FullName, "tests", "fixtures", "shaders", path.Replace("/", "__", StringComparison.Ordinal)));
-        }
-
         IReadOnlyList<ShaderInstance> instances = ShaderGraph.Instances(Fixture("Art/Models/Terrain/Islands/Tiles/Island/Textures/Rocks/ISL_RockLarge01c.mat"));
         ShadeCompile compiled = ShadeProgram.Compile([.. instances.Select(one => (one, ShaderGraph.Read(Fixture(one.Parent))))]);
 
@@ -208,6 +196,81 @@ public class SprayTests
         Assert.Equal("no shore field", none.Cell);
     }
 
+    /// <summary>
+    /// The probe's sweep up the face (SprayRise): each height's cover the node's own at that height over one crashing wave, a tenth of a
+    /// second apart - a vertical face moved straight up, from 25 under the shore field's water to 300 above it.
+    /// </summary>
+    [Fact]
+    public void THEPROBESSweepRunsTheNodeUpTheFaceOverOneWave()
+    {
+        ShoreField shore = BayShore();
+        var facing = new Vector3(-1f, 0f, 0f);
+        SprayRise[] rise = ShadeProgram.Rising(new Vector3(900f, 0f, 50f), facing, 0.2741f, 350f, 1.3f, shore, new Flat(), 0, 1, 2);
+
+        Assert.Equal([-25f, 0f, 50f, 100f, 150f, 200f, 300f], rise.Select(one => one.Above));
+        foreach (SprayRise one in rise)
+        {
+            var at = new Vector3(900f, 0f, shore.Level - one.Above);
+            float peak = -1f, peakAt = 0f;
+            var shown = 0;
+            for (var step = 0; step < 50; step++)
+            {
+                float cover = Spray(at, 1.3f + (step * 0.1f), shore).Colour.W;
+                (peak, peakAt) = cover > peak ? (cover, step * 0.1f) : (peak, peakAt);
+                shown += cover > 0.05f ? 1 : 0;
+            }
+
+            Assert.Equal(peak, one.Peak);
+            Assert.Equal(peakAt, one.PeakAt, 4);
+            Assert.Equal(shown * 0.1f, one.Shown, 4);
+        }
+    }
+
+    /// <summary>
+    /// The twin whose spray reads the stone's own occlusion (ShadeProgram.Occluded): a stone writes its occlusion, a moss after it sets
+    /// that to one and hands the rest on, and the spray takes <c>lerp(occlusion, 0.2741, 0.0377)</c> as its curvature - the program reads
+    /// the moss's one, its twin the stone's 0.3, each through the drawing that colours it. Without the moss there is no twin.
+    /// </summary>
+    [Fact]
+    public void THETWINSSprayReadsTheStonesOwnOcclusion()
+    {
+        (ShaderInstance, ShaderGraph) stone = Link("Metadata/Stone.fxgraph", Stone);
+        (ShaderInstance, ShaderGraph) spray = Link("Metadata/Materials/OceanSprayFoam.fxgraph", ReadsOcclusion);
+        ShadeCompile compiled = ShadeProgram.Compile([stone, Link("Metadata/Moss.fxgraph", Moss), spray]);
+        Assert.Empty(compiled.Skipped);
+        ShadeProgram program = Assert.IsType<ShadeProgram>(compiled.Program);
+        ShadeProgram twin = Assert.IsType<ShadeProgram>(program.Occluded);
+        Assert.Equal(program.Textures, twin.Textures);
+
+        ShadeProgram bound = program.With([.. program.Textures.Select(_ => Sheet())]);
+        Assert.NotNull(bound.Occluded);
+        Assert.Equal(1f + ((0.2741f - 1f) * 0.0377f), CurvatureDrawn(bound), 4);
+        Assert.Equal(0.3f + ((0.2741f - 0.3f) * 0.0377f), CurvatureDrawn(bound.Occluded), 4);
+
+        Assert.Null(Assert.IsType<ShadeProgram>(ShadeProgram.Compile([stone, spray]).Program).Occluded);
+    }
+
+    /// <summary>
+    /// Port's quay stone (MSHD_GraveBrickTile01c.mat, from v0.1.336's capture) has the twin - its moss blend sets the occlusion to one
+    /// before its spray reads it - with its own textures in the same order, so the bound copy carries it; Port's shore rock, which
+    /// carries no moss, has none.
+    /// </summary>
+    [Fact]
+    public void PORTSQuayHasATwinItsRockDoesNot()
+    {
+        ShadeProgram quay = Material("Art/Models/Terrain/Maps/Stronghold/Textures/Architecture/MSHD_GraveBrickTile01c.mat");
+        Assert.True(quay.Sprays);
+        ShadeProgram twin = Assert.IsType<ShadeProgram>(quay.Occluded);
+        Assert.Equal(quay.Textures, twin.Textures);
+        Assert.True(twin.Sprays);
+        if (quay.Glossy is { } glossy)
+        {
+            Assert.NotNull(glossy.Occluded);
+        }
+
+        Assert.Null(Material("Art/Models/Terrain/Islands/Tiles/Island/Textures/Rocks/ISL_RockLarge01c.mat").Occluded);
+    }
+
     /// <summary>No shore, no spray: the colour clear and the surface dry, as GetShoreData's absent shoreline would leave nothing to crash.</summary>
     [Fact]
     public void NOSHOREMeansNoSpray()
@@ -242,6 +305,119 @@ public class SprayTests
 
     private static ShadeProgram.Spray Spray(Vector3 place, float clock, ShoreField? shore)
         => ShadeProgram.Spraying(place, new Vector3(-1f, 0f, 0f), 0.2741f, 350f, clock, shore, new Flat(), 0, 1, 2);
+
+    /// <summary>A stone: its colour, and its occlusion 0.3 into the indirect light's w, the rest handed on.</summary>
+    private const string Stone = """
+        {"nodes":[
+          {"type":"ConstantPixel4","index":0,"parameters":[{"value":[0.4,0.4,0.4,1.0]}]},
+          {"type":"AlbedoColor","index":0,"stage":"Texturing_Init"},
+          {"type":"InputIndirectColor","index":0,"stage":"Texturing_Init"},
+          {"type":"ConstantFloat","index":0,"parameters":[{"value":0.3}]},
+          {"type":"IndirectColor","index":0,"stage":"Texturing_Init"}],
+         "links":[
+          {"src":{"type":"ConstantPixel4","index":0,"variable":"output"},"dst":{"type":"AlbedoColor","index":0,"stage":"Texturing_Init","variable":"input"}},
+          {"src":{"type":"InputIndirectColor","index":0,"stage":"Texturing_Init","variable":"output","swizzle":"xyz"},"dst":{"type":"IndirectColor","index":0,"stage":"Texturing_Init","variable":"input","swizzle":"xyz"}},
+          {"src":{"type":"ConstantFloat","index":0,"variable":"output"},"dst":{"type":"IndirectColor","index":0,"stage":"Texturing_Init","variable":"input","swizzle":"w"}}]}
+        """;
+
+    /// <summary>TRO_MossBlend's reset, cut down: the occlusion set to one at Texturing_Calc, the rest handed on as read.</summary>
+    private const string Moss = """
+        {"nodes":[
+          {"type":"InputIndirectColor","index":0,"stage":"Texturing_Calc"},
+          {"type":"One","index":0},
+          {"type":"IndirectColor","index":0,"stage":"Texturing_Calc"}],
+         "links":[
+          {"src":{"type":"InputIndirectColor","index":0,"stage":"Texturing_Calc","variable":"output","swizzle":"xyz"},"dst":{"type":"IndirectColor","index":0,"stage":"Texturing_Calc","variable":"input","swizzle":"xyz"}},
+          {"src":{"type":"One","index":0,"variable":"output"},"dst":{"type":"IndirectColor","index":0,"stage":"Texturing_Calc","variable":"input","swizzle":"w"}}]}
+        """;
+
+    /// <summary>OceanSprayFoam's curvature as Port's quay hands it: <c>lerp(IndirectColor.w, 0.2741, 0.0377)</c> read at Texturing_Final.</summary>
+    private const string ReadsOcclusion = """
+        {"nodes":[
+          {"type":"InputWorldPos","index":0,"stage":"UVSetup"},
+          {"type":"InputTbnBasis","index":0,"stage":"UVSetup"},
+          {"type":"InputTexture","index":0,"parameters":[{"path":"Art/SeaFoam_colour.dds","srgb":true}]},
+          {"type":"InputTexture","index":1,"parameters":[{"path":"Art/SeaFoam_normal.dds","srgb":false}]},
+          {"type":"InputTexture","index":2,"parameters":[{"path":"Art/gerstner_wave_profile.dds","srgb":false}]},
+          {"type":"InputTexture","index":3,"parameters":[{"path":"Art/flow_muddle_blur_01_R16G16.dds","srgb":false}]},
+          {"type":"ConstantFloat3","index":0,"parameters":[{"value":[0.0,0.0,1.0]}]},
+          {"type":"Transform","index":0},
+          {"type":"InputIndirectColor","index":0,"stage":"Texturing_Final"},
+          {"type":"ConstantFloat","index":3,"parameters":[{"value":0.2741}]},
+          {"type":"ConstantFloat","index":1,"parameters":[{"value":0.0377}]},
+          {"type":"Lerp","index":2},
+          {"type":"ConstantFloat","index":6,"parameters":[{"value":350.0}]},
+          {"type":"CrashingFoamSurface","index":0},
+          {"type":"AlbedoColor","index":0,"stage":"Texturing_Final"}],
+         "links":[
+          {"src":{"type":"ConstantFloat3","index":0,"variable":"output"},"dst":{"type":"Transform","index":0,"variable":"input"}},
+          {"src":{"type":"InputTbnBasis","index":0,"stage":"UVSetup","variable":"output"},"dst":{"type":"Transform","index":0,"variable":"inmatrix"}},
+          {"src":{"type":"InputTexture","index":0,"variable":"out_texture"},"dst":{"type":"CrashingFoamSurface","index":0,"variable":"foam_color_tex"}},
+          {"src":{"type":"InputTexture","index":1,"variable":"out_texture"},"dst":{"type":"CrashingFoamSurface","index":0,"variable":"foam_normal_tex"}},
+          {"src":{"type":"InputTexture","index":2,"variable":"out_texture"},"dst":{"type":"CrashingFoamSurface","index":0,"variable":"wave_shape_precomp_tex"}},
+          {"src":{"type":"InputTexture","index":3,"variable":"out_texture"},"dst":{"type":"CrashingFoamSurface","index":0,"variable":"wave_coord_noise_tex"}},
+          {"src":{"type":"InputWorldPos","index":0,"stage":"UVSetup","variable":"output"},"dst":{"type":"CrashingFoamSurface","index":0,"variable":"world_pos"}},
+          {"src":{"type":"Transform","index":0,"variable":"output"},"dst":{"type":"CrashingFoamSurface","index":0,"variable":"world_normal"}},
+          {"src":{"type":"InputIndirectColor","index":0,"stage":"Texturing_Final","variable":"output","swizzle":"w"},"dst":{"type":"Lerp","index":2,"variable":"a"}},
+          {"src":{"type":"ConstantFloat","index":3,"variable":"output"},"dst":{"type":"Lerp","index":2,"variable":"b"}},
+          {"src":{"type":"ConstantFloat","index":1,"variable":"output"},"dst":{"type":"Lerp","index":2,"variable":"alpha"}},
+          {"src":{"type":"Lerp","index":2,"variable":"output"},"dst":{"type":"CrashingFoamSurface","index":0,"variable":"curvature"}},
+          {"src":{"type":"ConstantFloat","index":6,"variable":"output"},"dst":{"type":"CrashingFoamSurface","index":0,"variable":"spray_height"}},
+          {"src":{"type":"CrashingFoamSurface","index":0,"variable":"foam_color","swizzle":"xyz"},"dst":{"type":"AlbedoColor","index":0,"stage":"Texturing_Final","variable":"input","swizzle":"xyz"}}]}
+        """;
+
+    /// <summary>The cells of a drawing a probe stands in the middle of.</summary>
+    private const int Size = 32;
+
+    private static (ShaderInstance, ShaderGraph) Link(string parent, string json)
+    {
+        ShaderGraph graph = ShaderGraph.Read(Encoding.UTF8.GetBytes(json));
+        Assert.True(graph.Ready);
+        return (new ShaderInstance(parent, new Dictionary<string, ShaderValue[]>()), graph);
+    }
+
+    /// <summary>The curvature the spray was handed in the middle of a floor drawn on the processor with a program - the probe's term.</summary>
+    private static float CurvatureDrawn(ShadeProgram program)
+    {
+        Vector3[] places = [new(-10f, -10f, 0f), new(10f, -10f, 0f), new(10f, 10f, 0f), new(-10f, 10f, 0f)];
+        var normals = new Vector3[4];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+        Vector2[] spots = [.. places.Select(one => new Vector2((one.X + 10f) / 20f, (one.Y + 10f) / 20f))];
+        SkinnedMesh floor = SkinnedMesh.Of(
+            places, normals, [0, 1, 2, 0, 2, 3], new Vector3(-10f, -10f, -1f), new Vector3(10f, 10f, 0f), spots, [new MeshShape("Floor", 0, 6)]);
+        var probe = new PixelProbe(Size / 2, Size / 2);
+        _ = MeshPicture.Of(floor, new MeshPicture.Canvas(Size) { Probe = probe }, tilt: MathF.PI / 2f, shades: [program]);
+        return Assert.Single(probe.Sprays).Curvature;
+    }
+
+    /// <summary>A material as the install holds it (tests/fixtures/shaders), compiled - its graphs from the same folder.</summary>
+    private static ShadeProgram Material(string path)
+    {
+        IReadOnlyList<ShaderInstance> instances = ShaderGraph.Instances(Fixture(path));
+        return Assert.IsType<ShadeProgram>(ShadeProgram.Compile([.. instances.Select(one => (one, ShaderGraph.Read(Fixture(one.Parent))))]).Program);
+    }
+
+    private static byte[] Fixture(string path)
+    {
+        DirectoryInfo? dir = new(AppContext.BaseDirectory);
+        while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "tests", "fixtures")))
+        {
+            dir = dir.Parent;
+        }
+
+        Assert.NotNull(dir);
+        return File.ReadAllBytes(Path.Combine(dir.FullName, "tests", "fixtures", "shaders", path.Replace("/", "__", StringComparison.Ordinal)));
+    }
+
+    /// <summary>A plain sheet of eight by eight texels.</summary>
+    private static Mipmaps Sheet()
+    {
+        var pixels = new byte[8 * 8 * 4];
+        Array.Fill(pixels, (byte)200);
+        Mipmaps? levels = Mipmaps.Of(new GamePicture(8, 8, pixels));
+        Assert.NotNull(levels);
+        return levels;
+    }
 
     private static ShoreField BayShore()
         => ShoreField.Of(WaterTests.Bay(), shape => shape == 0, shape => shape > 0) ?? throw new InvalidOperationException("no shore");

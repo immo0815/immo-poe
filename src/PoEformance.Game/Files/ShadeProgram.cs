@@ -442,6 +442,22 @@ public sealed partial class ShadeProgram
     /// <remarks>Carried by <see cref="With"/> onto the bound copy, its sheets being this program's own in the same order.</remarks>
     public ShadeProgram? Wetness { get; internal set; }
 
+    /// <summary>
+    /// The twin whose spray reads the stone's own occlusion: the material compiled again with the write that set the occlusion to one
+    /// left out (<see cref="ResetsOcclusion"/>) - or null where the material carries no spray or nothing resets the occlusion before it.
+    /// </summary>
+    /// <remarks>
+    /// CHOSEN, TO HOLD AGAINST THE GAME (asked for from the live client, v0.1.338, the light panel's "spray from occlusion"): Port's quay
+    /// stone (MSHD_GraveBrickTile01c.mat) hands CrashingFoamSurface <c>lerp(IndirectColor.w, 0.2741, 0.0377)</c> as its curvature, and
+    /// TRO_MossBlend.fxgraph, earlier in the same material, reads that occlusion for its dust at Texturing_Calc and sets it to one -
+    /// so, as compiled, the node's foam on the face reaches a hundredth (the probe 63 units above the water: 0.003), while the game
+    /// draws its water running down the face for a second or more after every crest. On the shore rocks, which carry no moss, the
+    /// curvature is the stone's own occlusion and the foam gathers in the cracks. Either the reset does not reach the spray in the engine
+    /// or the runoff is something else (the crashing waves' own surface climbing the wall): this twin is the first reading drawn. Its
+    /// textures are the material's own in the same order, so <see cref="With"/> carries it; one whose list differs is not carried.
+    /// </remarks>
+    public ShadeProgram? Occluded { get; private set; }
+
     internal enum Op : byte
     {
         Clear,
@@ -710,7 +726,96 @@ public sealed partial class ShadeProgram
     public static ShadeCompile Compile(IReadOnlyList<(ShaderInstance Instance, ShaderGraph Graph)> chain)
     {
         ArgumentNullException.ThrowIfNull(chain);
+        ShadeCompile compiled = Compile(chain, null);
 
+        // THE TWIN WHOSE SPRAY READS THE STONE'S OWN OCCLUSION, compiled only where a spray is carried and something sets the occlusion
+        // to one before the spray reads it - see Occluded. OceanSprayFoam sets it to one itself at PreLighting_Calc, after its read,
+        // which changes nothing the spray is handed: the shore rocks have no twin.
+        if (compiled.Program is { } program && SprayRead(chain) is { } read && ResetBefore(chain, read))
+        {
+            ShadeProgram? twin = Compile(chain, read).Program;
+            program.Occluded = twin;
+            if (program.Glossy is { } glossy)
+            {
+                glossy.Occluded = twin?.Glossy;
+            }
+        }
+
+        return compiled;
+    }
+
+    /// <summary>The node that draws the sea's spray on a surface - see <see cref="Sprays"/>.</summary>
+    private const string SprayNode = "CrashingFoamSurface";
+
+    /// <summary>
+    /// Where the first graph carrying a spray reads the occlusion - its earliest stage reading the indirect light, and the graph's place
+    /// in the chain - or null where no graph carries one or the one that does reads no occlusion.
+    /// </summary>
+    private static (int Stage, int Link)? SprayRead(IReadOnlyList<(ShaderInstance Instance, ShaderGraph Graph)> chain)
+    {
+        for (var link = 0; link < chain.Count; link++)
+        {
+            IReadOnlyList<ShaderNode> nodes = chain[link].Graph.Nodes;
+            if (!nodes.Any(node => node.Type == SprayNode))
+            {
+                continue;
+            }
+
+            int earliest = nodes.Where(node => node.Type == "InputIndirectColor").Select(node => IndexOf(node.Stage)).Where(at => at >= 0).DefaultIfEmpty(-1).Min();
+            return earliest >= 0 ? (earliest, link) : null;
+        }
+
+        return null;
+    }
+
+    /// <summary>Whether a write resetting the occlusion (<see cref="ResetsOcclusion(Lookup, ShaderNode)"/>) comes before the spray's read of it.</summary>
+    private static bool ResetBefore(IReadOnlyList<(ShaderInstance Instance, ShaderGraph Graph)> chain, (int Stage, int Link) read)
+    {
+        for (var link = 0; link < chain.Count; link++)
+        {
+            var lookup = new Lookup(chain[link].Graph);
+            foreach (ShaderNode node in chain[link].Graph.Nodes)
+            {
+                if (node.Type == "IndirectColor" && Before(IndexOf(node.Stage), link, read) && ResetsOcclusion(lookup, node))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether a write at a stage in a graph of the chain lands before a read - an earlier stage, or the same one in an earlier graph.</summary>
+    private static bool Before(int stage, int link, (int Stage, int Link) read)
+        => stage >= 0 && (stage < read.Stage || (stage == read.Stage && link < read.Link));
+
+    /// <summary>
+    /// Whether an IndirectColor write is the reset of the occlusion alone: its w from a <c>One</c> node, every other component handed
+    /// on from the graph's own read of it - TRO_MossBlend's at Texturing_Calc, once it has read the occlusion for its dust.
+    /// </summary>
+    private static bool ResetsOcclusion(Lookup lookup, ShaderNode writer)
+    {
+        var reset = false;
+        foreach (ShaderLink link in lookup.Into(writer))
+        {
+            if (link.Source.Type == "One" && link.Target.Swizzle == "w")
+            {
+                reset = true;
+            }
+            else if (link.Source.Type != "InputIndirectColor" || link.Source.Swizzle != link.Target.Swizzle
+                || link.Target.Swizzle.Length == 0 || link.Target.Swizzle.Contains('w', StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        return reset;
+    }
+
+    /// <summary>The compile itself - with <paramref name="keepBefore"/>, every reset of the occlusion before the spray's read of it left out (<see cref="Occluded"/>).</summary>
+    private static ShadeCompile Compile(IReadOnlyList<(ShaderInstance Instance, ShaderGraph Graph)> chain, (int Stage, int Link)? keepBefore)
+    {
         var build = new Builder();
         var skipped = new List<string>();
         var graphs = new List<string>();
@@ -775,7 +880,8 @@ public sealed partial class ShadeProgram
                 }
 
                 int at = IndexOf(node.Stage);
-                if (at < 0 || Written(node.Type) is not { } channel || !lookups[link].Fed(node))
+                if (at < 0 || Written(node.Type) is not { } channel || !lookups[link].Fed(node)
+                    || (keepBefore is { } read && node.Type == "IndirectColor" && Before(at, link, read) && ResetsOcclusion(lookups[link], node)))
                 {
                     continue;
                 }
@@ -1004,6 +1110,7 @@ public sealed partial class ShadeProgram
             HeightRegister = HeightRegister,
             BlendsGroundHeights = BlendsGroundHeights,
             Wetness = Wetness is { } wet && wet.Textures.SequenceEqual(Textures) ? wet.With(sheets) : null,
+            Occluded = Occluded is { } occluded && occluded.Textures.SequenceEqual(Textures) ? occluded.With(sheets) : null,
         };
     }
 

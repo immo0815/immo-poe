@@ -445,6 +445,13 @@ public sealed class SceneLight
     /// </summary>
     public bool WaterWetness { get; init; }
 
+    /// <summary>
+    /// Whether a material's spray reads the stone's own occlusion where a graph before it set the occlusion to one (ShadeProgram.Occluded:
+    /// Port's quay, whose moss blend does) - CHOSEN, a switch to hold against the game; both drawings follow it, the picture's programs
+    /// swapped for their twins.
+    /// </summary>
+    public bool SprayOccluded { get; init; }
+
     /// <summary>env_map_rotation: what a normal is put through before the cube is read - the world's axes as the cube's unless the environment turns it, see <see cref="CubeTurnFrom"/>.</summary>
     public Matrix4x4 CubeTurn { get; init; } = CubeSwap;
 

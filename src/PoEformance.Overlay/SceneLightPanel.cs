@@ -115,6 +115,7 @@ public sealed class SceneLightPanel : IMovableSun
     private bool _pastWalls;
     private bool _breakByGround;
     private bool _wetness = true;
+    private bool _sprayOccluded;
     private float _lift = 1f;
 
     /// <summary>How far the ocean ripples' wind is turned from the area's own way, in degrees - see <see cref="Water"/>.</summary>
@@ -261,6 +262,7 @@ public sealed class SceneLightPanel : IMovableSun
             WaterPastWalls = _pastWalls,
             WaterBreakByGround = _breakByGround,
             WaterWetness = _wetness,
+            SprayOccluded = _sprayOccluded,
             WaterLift = _lift,
             CubeTurn = SceneLight.CubeTurnFrom(env.HorAngle ?? 0f, env.VertAngle ?? 0f, (SceneLight.CubeReading)_cubeReading),
             CubeBrightness = env.EnvBrightness ?? 1f,
@@ -370,7 +372,7 @@ public sealed class SceneLightPanel : IMovableSun
             }
         }
 
-        if (Fold(Count("water", _glints, _reflection, _mirroring, _crash, _wayRound, _pastWalls, _breakByGround, _wetness) + "###scene-fold-water", open: false))
+        if (Fold(Count("water", _glints, _reflection, _mirroring, _crash, _wayRound, _pastWalls, _breakByGround, _wetness, _sprayOccluded) + "###scene-fold-water", open: false))
         {
             try
             {
@@ -502,11 +504,17 @@ public sealed class SceneLightPanel : IMovableSun
                     + " crest stays dark by the hull. CHOSEN, to hold against the game: the engine's own shore field (OceanMarkupField, made from"
                     + " the tile map) is read nowhere. Only with crash on; the card's alone.");
                 Switch("wetness##scene-wetness", ref _wetness,
-                    "The engine's wetness pass: the water casts its wetness where it covers a surface - a tenth wet a unit under it, two thirds"
-                    + " ten under, wet through 33 under (WaterComputeWetness) - and the beach waves theirs (BreakingOceanWavesWetness.fxgraph), and what reads it is drawn"
-                    + " darker where wet, to three tenths (specular_wetness_mult: Port's quay, rocks, crates and ship). So a crest that climbs the"
-                    + " quay's face leaves it dark. CHOSEN: it dries over a second once the water has gone, as the game's quay looks in a video;"
-                    + " the read waits a frame behind the cast, and a moved picture starts dry. The card's alone.");
+                    "The engine's wetness pass: the water casts its wetness from its still surface where it covers a surface - a tenth wet a"
+                    + " unit under it, two thirds ten under, wet through 33 under (WaterComputeWetness, as water_default_wetness.fxgraph casts"
+                    + " it: never from a lifted crest) - and the beach waves theirs (BreakingOceanWavesWetness.fxgraph), and what reads it is drawn"
+                    + " darker where wet, to three tenths (specular_wetness_mult: Port's quay, rocks, crates and ship). CHOSEN: it dries over a"
+                    + " second once the water has gone; the read waits a frame behind the cast, and a moved picture starts dry. The card's alone.");
+                Switch("spray from occlusion##scene-spray-occluded", ref _sprayOccluded,
+                    "The sea's spray on a stone (CrashingFoamSurface) takes the stone's occlusion as its curvature, so its foam gathers in the cracks"
+                    + " and runs down. Port's quay carries a moss blend that sets that occlusion to one before the spray reads it, which leaves"
+                    + " its foam at a hundredth - while the game draws water running down the quay for a second after every crest. On: the"
+                    + " spray reads the stone's own occlusion as if the moss had not reset it. CHOSEN, to hold against the game; off is the"
+                    + " files as compiled. Both drawings follow it.");
             }
             finally
             {
@@ -575,7 +583,7 @@ public sealed class SceneLightPanel : IMovableSun
     private static readonly string[] LightLabels = ["room", "sun", "shadows", "player", "exposure", "colour grade"];
 
     /// <summary>The water's switches' visible labels, for their columns.</summary>
-    private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "crash", "way round", "past walls", "break by ground", "wetness"];
+    private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "crash", "way round", "past walls", "break by ground", "wetness", "spray from occlusion"];
 
     /// <summary>A row's label in the label column, the row's controls after it - and where those start, for a row that wraps.</summary>
     private static float Label(string text, float column)

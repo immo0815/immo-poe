@@ -23,6 +23,12 @@ namespace PoEformance.Gpu;
 /// DRYING OVER <see cref="WetFade"/> SECONDS, CHOSEN: the engine keeps its target from frame to frame or not, which no shader says, and
 /// the live client's video of the quay (v0.1.331) shows its face wet for about a second after a crest fell back. So last frame's
 /// wetness, less the clock's step over that, is where this frame's casters start - the larger of the two kept (the blend's MAX).
+///
+/// THE WATER CASTS FROM ITS STILL SURFACE, as the engine's own caster is written (water_default_wetness.fxgraph, read in v0.1.336's
+/// capture: the mesh's place through TransformToWorld and nothing else, WaterComputeWetness's opacity as the alpha), not from the
+/// crest the field waves lift (DECIDED from the live client, v0.1.338). Cast from the lift, a crest left a band of the quay dark for
+/// about 0.7 s, while the game's face hardly darkens at all - its water runs down the face instead (CrashingFoamSurface, the
+/// quay's own material).
 /// </remarks>
 public sealed partial class ModelGpu
 {
@@ -81,7 +87,7 @@ public sealed partial class ModelGpu
     /// The casters' wetness into this frame's target - last frame's less what dried since, then the water's and the beach's - once the
     /// picture is drawn, its solid depth (with the beach's) in the depth buffer.
     /// </summary>
-    private void Wet(ID3D11DeviceContext context, ModelTarget target, Plan plan, in Matrix4x4 clip, float clock, bool lifting)
+    private void Wet(ID3D11DeviceContext context, ModelTarget target, Plan plan, in Matrix4x4 clip, float clock)
     {
         if (!WetMade(out string why))
         {
@@ -107,8 +113,8 @@ public sealed partial class ModelGpu
         context.Draw(3, 0);
         context.PSSetShaderResource(0, null!);
 
-        // THE CASTERS OVER IT, the larger kept, against the depth the picture left - the water measuring itself to the solid behind
-        // through its copy, the beach tested where it shows as the engine's CustomDepthTest discards it where it does not.
+        // THE CASTERS OVER IT, the larger kept, against the depth the picture left - the water, at its still surface, measuring itself to
+        // the solid behind through its copy, the beach tested where it shows as the engine's CustomDepthTest discards it where it does not.
         target.Kept(context);
         context.PSSetShaderResource(ModelShaders.BehindSlot, target.Behind);
         context.OMSetRenderTargets(target.WetWriting, target.Depth);
@@ -119,7 +125,7 @@ public sealed partial class ModelGpu
             Run run = plan.Runs[at];
             if (Sea(run, plan))
             {
-                context.VSSetShader(lifting ? _placedWaves : _placed);
+                context.VSSetShader(_placed);
                 context.PSSetShader(_wetWater);
                 context.OMSetDepthStencilState(_ignores);
                 Part(new Vector4(0f, -1f, 0f, 0f), run.Sway);

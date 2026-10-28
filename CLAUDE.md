@@ -799,8 +799,35 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   receiver dry, its picture as before. NOT DRAWN: the receiver's gloss and normal (NormalVarianceToRoughness and
   CombineTbnNormalsFromInput are not compiled, so both stay lost as they were) and its MultiplySpecularLight (CustomLighting, past the
   colour's stages); `specular_wetness_mult_wspace.fxgraph`, wet by height (`0.6 * (z - offset)`), leaves the colour as it is.
-  NOT READ: which graph casts the water's wetness (`water_default_wetness.fxgraph`, named by the program, past the debug part's 256) -
-  the water textures part writes it and its kin whole from v0.1.336; the water casts by WaterComputeWetness until it is read.
+  READ IN v0.1.336'S CAPTURE: `water_default_wetness.fxgraph` is WaterComputeWetness's opacity as the alpha (albedo one, lighting off)
+  over the mesh's own place (TransformToWorld, no lift) - so the sea casts from its STILL surface and wets nothing above the still
+  waterline; it names its blend mode BackgroundGBufferSurfaces where the river's (`water_flowing_wetness.fxgraph`) names Wetness,
+  unexplained. CrashingWavesFragment has no wetness output and no graph casts one for it.
+  THE QUAY HELD AGAINST THE GAME (v0.1.338; a side-by-side video at the quay, crash and wetness on, and two probes on its face from
+  the live client). Every face pixel the water reached, its brightness over the dry face from the moment the water left: in the game
+  bright foam stays and fades over about 1.5 s (3.8 times the dry face to 1 in the wide shot, 4.2 to 1 in the close one), the face
+  hardly darker after ("in the game nothing really gets darker - the water visibly runs down the wall for a second or so", said from
+  the live client); in the Monster Book no foam at all, the face at 0.64 to 0.70 of dry at once and dry again at 0.8 s, snapping back as
+  the receiver's `SmoothStep(wetness, 0.068, 0.92)` lets go under 0.07. That dark band was the cast from the lifted crest, which the
+  engine's graph does not do: from v0.1.338 THE SEA CASTS FROM ITS STILL SURFACE (ModelGpu's Wet, `_placed`), DECIDED from the live
+  client. THE RUNOFF IS CrashingFoamSurface's - its foam scrolls down a face at 100 a second as the spray dies away, a second or two a
+  crest - and as compiled it cannot show on the quay: the curvature is `lerp(IndirectColor.w, 0.2741, 0.0377)` (OceanSprayFoam's
+  OceanSpray_Intensity), the occlusion, which TRO_MossBlend sets to one at Texturing_Calc after reading it for its dust; the probes 63
+  and 69 units above the water put the foam's strength at 0.003 and 0.002, a hundredth at the band's best, three hundredths of cover
+  even where the foam texture's alpha is one (the cover passes where `SmoothStep(foam, 1 - Gain(alpha, 0.1), 0.5)` does). On the rocks,
+  which carry no moss, the curvature is the stone's own occlusion and the foam gathers in its cracks. So either the reset does not
+  reach the spray in the engine, or the runoff is something else - the crashing waves' own surface climbing the wall. The first is
+  DRAWN BEHIND A SWITCH, CHOSEN to hold against the game: the light panel's water row "spray from occlusion" (`SceneLight.SprayOccluded`,
+  `ShadeProgram.Occluded`: the material compiled again with every reset of the occlusion before the spray's read left out - a write of
+  IndirectColor whose w is a `One` and whose rest is handed on as read; OceanSprayFoam's own reset at PreLighting_Calc, after its read,
+  makes no twin), both drawings taking the twins (`MonsterPortrait.Occluded`). The probe's spray line now runs the node at its place
+  moved up the face, -25 to 300 above the water, a tenth of a second apart over one crashing wave (`SprayRise`, `ShadeProgram.Rising`):
+  the most it covers at each height, when, and for how long over a twentieth - a single probe almost never lands on a texel dense
+  enough to streak. THE BLACK LINES (said from the live client with a picture, v0.1.336: thin black straight and cornered lines in the
+  water, moving with the waves): not yet found. Port's harbour is 48 `WaterPlane3x3` (2,842 triangles each, 750 a side) laid edge to
+  edge 750 apart; a corner of one in the middle of the other's edge would crack open onto the black sea floor once lifted, so
+  `model-panes.txt` counts the water's seams as drawn (`WaterSeams`: border edges meeting corner to corner, T-junctions, the water's
+  own border) - read it before the water's mesh is changed.
   THE CAUSTICS' AND THE ROCKY SHORE'S TEXTURES. water.ffx's GetCausticsBias reads `distortion_sampler` (red and green as a vector,
   `(rg * 2 - 1) * 0.4`, at the place times 0.001 drifting with the clock) and `caustics_tex_sampler` (its green, `pow(g, 1 / 4.2) * 2 - 1`,
   at the place times 0.002), both wrapping, and GetClashingWaterPlanarState and the beach foam's leading edge read the same distortion -

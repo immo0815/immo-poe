@@ -195,7 +195,26 @@ public static class PictureProbe
             + Say($" · the band: above {spray.Above:F3} (0.8 + z / height), below {spray.Below:F3} ((150 - z) / 100), inland {spray.Inland:F3}, so {spray.Band:F3}")
             + Say($" · ramped about the strength {spray.Fade:F3}, by the curvature {spray.Foam:F3} - how strongly the foam shows")
             + Say($" · scrolling {Way(spray.Flow)} (plus z is down) · the foam's own alpha {spray.FoamAlpha:F3}, covering {Fraction(spray.Cover)}")
-            + Say($" · wetness {spray.Wetness:F3} · colour {spray.Colour.X:F3}, {spray.Colour.Y:F3}, {spray.Colour.Z:F3} linear");
+            + Say($" · wetness {spray.Wetness:F3} · colour {spray.Colour.X:F3}, {spray.Colour.Y:F3}, {spray.Colour.Z:F3} linear")
+            + Risen(spray.Rise);
+    }
+
+    /// <summary>The spray's sweep up the face over one crashing wave - see <see cref="SprayRise"/>.</summary>
+    private static string Risen(IReadOnlyList<SprayRise>? rise)
+    {
+        if (rise is not { Count: > 0 })
+        {
+            return string.Empty;
+        }
+
+        var line = new StringBuilder(" · over one crashing wave from this clock, a tenth of a second apart, moved up the face (its textures at their top level):", 96 + (rise.Count * 128));
+        foreach (SprayRise one in rise)
+        {
+            line.Append(Say($" {Number(one.Above)} above the water covers at most {one.Peak:F3} at +{one.PeakAt:F1} s (the spray's phase {one.PeakPhase:F3}), over a twentieth for {one.Shown:F1} s, the foam's strength at most {one.FoamMost:F3}, its alpha at most {one.AlphaMost:F3};"));
+        }
+
+        line.Length--;
+        return line.ToString();
     }
 
     /// <summary>How much of the sun reached a fragment, and what cast the shadow where it did not - see <see cref="ProbeSun"/>.</summary>
