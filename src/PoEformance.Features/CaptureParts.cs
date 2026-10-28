@@ -535,7 +535,11 @@ public static class CaptureParts
             + "the engine's OceanMarkupField is made from - and every object it points to, searched for lists whose length is a grid "
             + "of the area's shape (its tiles, their corners or its cells, at several resolutions). Each found is written as a map, "
             + "its values counted, beside the walkable grid and the corners' ground types at the same places - what the tool's own "
-            + "shore, chosen until then, is to be held against. A few megabytes of reads, past the recording."),
+            + "shore, chosen until then, is to be held against. A few megabytes of reads, past the recording. Then the numbers the "
+            + "engine draws its shore field by, sought in the whole of the game's memory on every core: beside every place the "
+            + "scene's size is kept (250 world units a tile, both ways round, and the walkable grid's cells), the texture sizes, "
+            + "boxes, int pairs and small factors standing there - its box, its texture's size and dist_to_color among them - each "
+            + "window written whole. It stops itself at ninety seconds; the capture's window shows how far it is and stops it on a click."),
         new(Memory, "Memory", "memory recording", CaptureReport.MemoryFile,
             "The overlay's own reads for three seconds, and inside them one pass reading once more from nothing whatever the "
             + "ticked parts above ask for - memory.txt beside it says what the pass read where. Replays with --replay, game closed."),

@@ -87,7 +87,10 @@ public partial class CaptureReplayTests
         Assert.StartsWith("debug strings replay: ", replay, StringComparison.Ordinal);
     }
 
-    /// <summary>The ocean markup hunt's grids read back from ocean-markup.txt - ocean-markup-replay.txt.</summary>
+    /// <summary>
+    /// The ocean markup hunt's grids read back from ocean-markup.txt - ocean-markup-replay.txt - and the shore field hunt's windows listed
+    /// again by today's rules beside them.
+    /// </summary>
     [Fact]
     public void THEOCEANMarkupHuntIsReadBackFromACapture()
     {
@@ -96,7 +99,9 @@ public partial class CaptureReplayTests
             return;
         }
 
-        string replay = PoEformance.Game.Diagnostics.OceanMarkupHunt.Report(PoEformance.Game.Diagnostics.OceanMarkupHunt.Read(File.ReadAllText(path)));
+        string text = File.ReadAllText(path);
+        string replay = PoEformance.Game.Diagnostics.OceanMarkupHunt.Report(PoEformance.Game.Diagnostics.OceanMarkupHunt.Read(text))
+            + Environment.NewLine + PoEformance.Game.Diagnostics.ShoreFieldHunt.Replay(text);
         File.WriteAllText(Path.Combine(folder, "ocean-markup-replay.txt"), replay);
         Assert.StartsWith("ocean markup replay: ", replay, StringComparison.Ordinal);
     }
