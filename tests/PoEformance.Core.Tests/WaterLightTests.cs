@@ -157,6 +157,33 @@ public class WaterLightTests
         Assert.Equal(1.33f, WaterLook.Of(EnvironmentSettings.Read("port.env", System.Text.Encoding.UTF8.GetBytes("""{ "water": { "flow_intensity": 1.5 } }"""))).RefractionIndex);
     }
 
+    /// <summary>
+    /// The ocean's defaults are the engine's as Port's parsed environment holds them - their slots named by Crimson Shores' file (v0.1.341's
+    /// light-hunt.txt) - and Crimson Shores' own water reads as its file writes it, its wind under the keys' water_ spelling.
+    /// </summary>
+    [Fact]
+    public void THEOCEANSDefaultsAreTheEnginesAndCrimsonShoresItsOwn()
+    {
+        WaterLook engine = WaterLook.EngineDefault;
+        Assert.Equal(1f, engine.CausticsMult);
+        Assert.Equal(1f, engine.FlowIntensity);
+        Assert.Equal(new Vector4(0f, 1.06f, 1f, 1f), engine.WindRegister);
+        Assert.Equal(new Vector4(37.5f, 0.04f, 0f, 0f), engine.SwellRegister);
+
+        WaterLook shores = WaterLook.Of(EnvironmentSettings.Read("crimsonshores.env", System.Text.Encoding.UTF8.GetBytes(
+            """
+            { "water": { "caustics_mult": 3.0, "directionness": 0.1, "flow_turbulence": 1.0, "flow_resolution": 1, "shoreline_resolution": 2,
+              "flow_wait_init": false, "open_water_color": [ 0.20103, 0.10006, 0.03691 ], "open_water_murkiness": 0.00839, "reflectiveness": 0.1,
+              "refraction_index": 1.0, "subsurface_scattering": 4.0, "swell_height": 0.0, "swell_intensity": 0.0, "shoreline_offset": 250.0,
+              "height_offset": 10.0, "water_wind_direction_angle": 0.0, "water_wind_intensity": 1.0, "water_wind_speed": 0.5 } }
+            """)));
+        Assert.Equal(3f, shores.CausticsMult);
+        Assert.Equal(1f, shores.RefractionIndex);
+        Assert.Equal(new Vector4(0f, 1f, 0.5f, 0.1f), shores.WindRegister);
+        Assert.Equal(new Vector4(0f, 0.04f, 0f, 0f), shores.SwellRegister);
+        Assert.Contains("caustics x3", shores.Line(), StringComparison.Ordinal);
+    }
+
     private static Vector3 Pow(Vector3 value, float power) => new(MathF.Pow(value.X, power), MathF.Pow(value.Y, power), MathF.Pow(value.Z, power));
 
     private static void AssertNear(Vector3 expected, Vector3 actual)

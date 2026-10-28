@@ -47,15 +47,16 @@ public class WaterTests
             """{ "water": { "open_water_color": [ 0.19043, 0.02095, 0.0017 ], "open_water_murkiness": 0.035 } }""")));
         Assert.Equal(new Vector3(0.19043f, 0.02095f, 0.0017f), vale.OpenColour);
         Assert.Equal(0.035f, vale.Murkiness);
-        Assert.Equal(WaterLook.NoFlow, vale.FlowIntensity);
+        Assert.Equal(WaterLook.DefaultFlowIntensity, vale.FlowIntensity);
 
         // LINEAR AS water.ffx MAKES IT, pow 2.2 and not the sRGB curve, the density in w.
         Assert.Equal(MathF.Pow(0.19043f, 2.2f), vale.ColourRegister.X, 5);
         Assert.Equal(0.035f, vale.ColourRegister.W);
         Assert.Equal(WaterLook.EngineDefault, WaterLook.Of(null));
 
-        // THE OCEAN'S WIND: Port sets none, so its ripples are the engine's former constants; Blank Sea's file sets all four.
-        Assert.Equal(new Vector4(0f, 0.1f * 4f * 4f / 1.5f, 1f, 1f), port.WindRegister);
+        // THE OCEAN'S WIND: Port sets none, so its ripples are the engine's defaults measured in its parsed environment; Blank Sea's
+        // file sets all four.
+        Assert.Equal(new Vector4(0f, 1.06f, 1f, 1f), port.WindRegister);
         WaterLook sea = WaterLook.Of(EnvironmentSettings.Read("sea.env", Encoding.UTF8.GetBytes(
             """{ "water": { "directionness": 0.748, "wind_direction_angle": -2.44346, "wind_intensity": 0.822, "wind_speed": 0.75099 } }""")));
         Assert.Equal(new Vector4(-2.44346f, 0.822f, 0.75099f, 0.748f), sea.WindRegister);

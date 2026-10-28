@@ -604,6 +604,10 @@ public sealed partial class ModelGpu : IDisposable
             refracts = false;
         }
 
+        // ITS CAUSTICS once their two textures are in (ShadeProgram.UseCaustics) - the area's strength, nought for none.
+        Mipmaps? caustics = ShadeProgram.Caustics, distortion = ShadeProgram.Distortion;
+        bool patterned = refracts && light is { WaterCaustics: true } && caustics is not null && distortion is not null;
+
         Written(_frame, new FrameConstants
         {
             Clip = clip,
@@ -625,7 +629,7 @@ public sealed partial class ModelGpu : IDisposable
             Wind = water.WindRegister,
             Shore = water.ShoreRegister,
             Swell = water.SwellRegister with { W = !crash ? 0f : light!.WaterBreakByGround ? 2f : 1f },
-            WaterLit = new Vector4(water.SubsurfaceScattering, water.RefractionIndex, refracts ? 1f : 0f, 0f),
+            WaterLit = new Vector4(water.SubsurfaceScattering, water.RefractionIndex, refracts ? 1f : 0f, patterned ? water.CausticsMult : 0f),
             Unclip = unclip,
         });
 
@@ -731,6 +735,9 @@ public sealed partial class ModelGpu : IDisposable
             {
                 context.PSSetShaderResource(ModelShaders.OpaqueSlot, target.Saw(context));
             }
+
+            context.PSSetShaderResource(ModelShaders.CausticsSlot, patterned ? Skin(caustics!).View : null!);
+            context.PSSetShaderResource(ModelShaders.DistortionSlot, patterned ? Skin(distortion!).View : null!);
 
             var owner = -1;
             var lifted = false;
@@ -1170,6 +1177,8 @@ public sealed partial class ModelGpu : IDisposable
         }
 
         _context.PSSetShaderResource(ShadeHlsl.WetnessSlot, null!);
+        _context.PSSetShaderResource(ModelShaders.CausticsSlot, null!);
+        _context.PSSetShaderResource(ModelShaders.DistortionSlot, null!);
         _sheetsBound = 0;
     }
 

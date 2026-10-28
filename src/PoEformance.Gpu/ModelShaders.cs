@@ -44,6 +44,15 @@ internal static class ModelShaders
     /// <summary>The slot the solid part of the picture is read from, for the water's reflection of it - ScreenReflection.</summary>
     public const int OpaqueSlot = 9;
 
+    /// <summary>
+    /// The slot the caustics' picture is read from - ShadeProgram.Caustics, by the water's refraction alone: high, clear of a program's
+    /// sheets as the skin's slots are, the next its distortion's.
+    /// </summary>
+    public const int CausticsSlot = 123;
+
+    /// <summary>The slot the caustics' distortion is read from - ShadeProgram.Distortion; see <see cref="CausticsSlot"/>.</summary>
+    public const int DistortionSlot = 124;
+
     /// <summary>The slot the ripple texture is read from, by the waves' pixel and vertex shaders - ShadeHlsl.RippleSlot.</summary>
     public const int RippleSlot = ShadeHlsl.RippleSlot;
 
@@ -104,7 +113,7 @@ internal static class ModelShaders
             float4 Wind;      // the ocean ripples' wind: its way's angle, their height, their speed, their directionness - ShadeProgram.WaterWind
             float4 Shore;     // the room's shore's box: its least x and y, world units a texel, one where there is a shore - ShadeProgram.WaterShore
             float4 Swell;     // the ocean's swell: its height, its period, its intensity - ShadeProgram.WaterSwell
-            float4 WaterLit;  // x: the medium's scattering, water_subsurface_scattering - SceneLight.ShadeWater; y: the area's refraction index; z: one where the water refracts - SceneLight.WaterRefraction
+            float4 WaterLit;  // x: the medium's scattering, water_subsurface_scattering - SceneLight.ShadeWater; y: the area's refraction index; z: one where the water refracts - SceneLight.WaterRefraction; w: the caustics' strength, nought for none - SceneLight.WaterCaustics
             float4 Viewer;    // xyz: the eye's place in model space; w: one in perspective - ShadeProgram.Viewer
             row_major float4x4 Unclip;  // Clip's inverse: a point on the picture and its depth back to model space - the engine's GetViewPoint
         };
@@ -171,6 +180,8 @@ internal static class ModelShaders
         Texture2D<float> Behind : register(t{{BehindSlot}});
         Buffer<float> Mirror : register(t{{MirrorSlot}});
         Texture2D<float4> Opaque : register(t{{OpaqueSlot}});
+        Texture2D<float4> CausticsSheet : register(t{{CausticsSlot}});
+        Texture2D<float4> DistortionSheet : register(t{{DistortionSlot}});
         SamplerState Wrap : register(s0);
 
         // THE TABLES, one after another in Tabled - ModelGpu.Tables lays them out.
@@ -1104,9 +1115,46 @@ internal static class ModelShaders
             return float3(red, green, unshifted.b);
         }
 
+        // SamplerLinearWrap at level nought, as the engine reads its caustics' two textures: the four nearest texels' centres mixed by hand,
+        // wrapping - ShadeProgram.Ripple's arithmetic.
+        float4 WrappedRead(Texture2D<float4> sheet, float2 spot)
+        {
+            uint width;
+            uint height;
+            sheet.GetDimensions(width, height);
+            float2 at = (spot * float2(width, height)) - 0.5;
+            float2 low = floor(at);
+            float2 share = at - low;
+            int2 size = int2(width, height);
+            int2 a = (((int2)low % size) + size) % size;
+            int2 b = (a + 1) % size;
+            float4 top = lerp(sheet.Load(int3(a.x, a.y, 0)), sheet.Load(int3(b.x, a.y, 0)), share.x);
+            float4 bottom = lerp(sheet.Load(int3(a.x, b.y, 0)), sheet.Load(int3(b.x, b.y, 0)), share.x);
+            return lerp(top, bottom, share.y);
+        }
+
+        // SceneLight.WaterCaustics: water.ffx's GetCausticsBias and GetCausticsIntensity over the light where the bent ray ended, the ground
+        // water ratio nought as it is everywhere here - the deep water's frequency and intensity - and the strength WaterLit.w, the area's
+        // caustics_mult less the shore's ratio. The light is the picture's sRGB, so it is multiplied as light and put back.
+        float3 Caustics(float3 seen, float3 origin, float3 end, float terrain)
+        {
+            float strength = WaterLit.w * (1.0 - terrain);
+            if (!(strength != 0.0))
+            {
+                return seen;
+            }
+
+            float2 drifting = (end.xy * 1e-3) + (float2(1.0, 0.3) * Clock.x * 0.05);
+            float2 distortion = ((WrappedRead(DistortionSheet, drifting).rg * 2.0) - 1.0) * 0.4;
+            float pattern = pow(saturate(WrappedRead(CausticsSheet, (end.xy * 2e-3) + distortion).g), 1.0 / 4.2);
+            float intensity = saturate((abs(end.z - origin.z) * 0.02) - 0.3) * 0.7;
+            float bias = ((pattern * 2.0) - 1.0) * intensity;
+            return Srgb(Linear(seen) * (1.0 + (bias * strength)));
+        }
+
         // SceneLight.WaterRefraction, the card's alone: GetRefractedOpaqueSurface - the view bent into the water by the area's index thinned
-        // to one by the shore's ratio, marched over the solid depth, the solid part read where it ended with the colours split - and
-        // GetRefractedWaterLight's share of it that gets through, over the bent ray's own length. Its caustics are not drawn.
+        // to one by the shore's ratio, marched over the solid depth, the solid part read where it ended with the colours split and patterned
+        // by the caustics - and GetRefractedWaterLight's share of it that gets through, over the bent ray's own length.
         float Refraction(float3 place, float3 normal, float terrain, out float3 seen)
         {
             uint width;
@@ -1121,7 +1169,7 @@ internal static class ModelShaders
                 return 0.0;
             }
 
-            seen = Dispersed(place, hit, bent, size);
+            seen = Caustics(Dispersed(place, hit, bent, size), place, hit, terrain);
             float3 travel = hit - place;
             return exp(-sqrt(dot(travel, travel)) * Water.w * (1.0 - terrain));
         }

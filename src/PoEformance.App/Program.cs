@@ -2439,10 +2439,17 @@ internal static class Program
                         Sheet(PoEformance.Game.Files.ShadeProgram.FieldFoamColourPath),
                         Sheet(PoEformance.Game.Files.ShadeProgram.FieldFoamNormalPath),
                         "the beach graph's foam did not read");
+
+                    // AND THE CAUSTICS' TWO PASS TEXTURES, as the files settled them (ShadeProgram.Caustics).
+                    PoEformance.Game.Files.ShadeProgram.UseCaustics(
+                        Sheet(PoEformance.Game.Files.ShadeProgram.CausticsPath),
+                        Sheet(PoEformance.Game.Files.ShadeProgram.DistortionPath),
+                        "their textures did not read");
                 }
                 catch (Exception failed) when (failed is IOException or InvalidDataException or UnauthorizedAccessException)
                 {
                     PoEformance.Game.Files.ShadeProgram.UseFieldFoam(null, null, failed.Message);
+                    PoEformance.Game.Files.ShadeProgram.UseCaustics(null, null, failed.Message);
                 }
             });
         }

@@ -111,6 +111,7 @@ public sealed class SceneLightPanel : IMovableSun
     private bool _reflection = true;
     private bool _mirroring = true;
     private bool _refraction = true;
+    private bool _caustics = true;
     private bool _crash = true;
     private bool _wayRound;
     private bool _pastWalls;
@@ -259,6 +260,7 @@ public sealed class SceneLightPanel : IMovableSun
             WaterReflection = _reflection,
             WaterScene = _mirroring,
             WaterRefraction = _refraction,
+            WaterCaustics = _caustics,
             WaterCrash = _crash,
             WaterWayRound = _wayRound,
             WaterPastWalls = _pastWalls,
@@ -374,7 +376,7 @@ public sealed class SceneLightPanel : IMovableSun
             }
         }
 
-        if (Fold(Count("water", _glints, _reflection, _mirroring, _refraction, _crash, _wayRound, _pastWalls, _breakByGround, _wetness, _sprayOccluded) + "###scene-fold-water", open: false))
+        if (Fold(Count("water", _glints, _reflection, _mirroring, _refraction, _caustics, _crash, _wayRound, _pastWalls, _breakByGround, _wetness, _sprayOccluded) + "###scene-fold-water", open: false))
         {
             try
             {
@@ -486,8 +488,13 @@ public sealed class SceneLightPanel : IMovableSun
                     "The water bends what lies under it, as the engine's water pass does (GetRefractedOpaqueSurface, ported as written): the view"
                     + " bent into the water by the area's refraction index (water.refraction_index, 1.33 where the file sets none), followed over"
                     + " the solid depth in three steps, the sea floor read where it ends with its red and green split a little towards where it"
-                    + " started (a dispersion of 0.2), and the water's murkiness taken over the bent ray's own length. Its caustics are not drawn:"
-                    + " their strength's default (water.caustics_mult) is not yet measured. Off, the floor is seen straight through. The card's alone.");
+                    + " started (a dispersion of 0.2), and the water's murkiness taken over the bent ray's own length. Off, the floor is seen straight"
+                    + " through. The card's alone.");
+                Switch("caustics##scene-caustics", ref _caustics,
+                    "The light the water bends patterned by the engine's caustics (GetCausticsBias, ported as written): water_caustics_2.dds read"
+                    + " where the bent ray meets the floor, moved by muddle_double.dds drifting with the clock, brightening and darkening it by up to"
+                    + " 70% where the ray fell deep, times the area's water.caustics_mult - Port's the engine's 1, measured in its parsed environment."
+                    + " Only with refraction on; the card's alone.");
                 Switch("crash##scene-crash", ref _crash,
                     "The engine's field waves (CrashingWavesVertex and CrashingWavesFragment, ported as written): white-crested breakers every five"
                     + " seconds, a wave of 1,000 units rolling in at 200 a second down the waves' way in from the open sea, breaking as they near the"
@@ -592,7 +599,7 @@ public sealed class SceneLightPanel : IMovableSun
     private static readonly string[] LightLabels = ["room", "sun", "shadows", "player", "exposure", "colour grade"];
 
     /// <summary>The water's switches' visible labels, for their columns.</summary>
-    private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "refraction", "crash", "way round", "past walls", "break by ground", "wetness", "spray from occlusion"];
+    private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "refraction", "caustics", "crash", "way round", "past walls", "break by ground", "wetness", "spray from occlusion"];
 
     /// <summary>A row's label in the label column, the row's controls after it - and where those start, for a row that wraps.</summary>
     private static float Label(string text, float column)
