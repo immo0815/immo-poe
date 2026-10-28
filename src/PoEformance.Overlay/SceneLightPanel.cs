@@ -488,10 +488,10 @@ public sealed class SceneLightPanel : IMovableSun
                     + " own way in (OceanMarkupField) is read nowhere.");
                 Switch("past walls##scene-past-walls", ref _pastWalls,
                     "The waves' way in past the walls: a quay's or a pier's own ground - land whose nearest coast is a wall out of deep water,"
-                    + " within 400 units of it - in no wave's way and not measured from, so the crests run on along its face. A side-by-side video"
-                    + " at Port's pier measured the game's crests running along the pier's sea face, where by the ground and round what stands"
-                    + " alike they run square onto it. CHOSEN, to hold against the game: the engine's own way in (OceanMarkupField) is read"
-                    + " nowhere. Wins over way round.");
+                    + " within 800 units of it - in no wave's way and not measured from, so the crests run on along its face. Measured at Port's"
+                    + " pier (a video read through a capture's camera): 27 degrees off the game's way at the median, where by the ground and round"
+                    + " what stands are 81 and 82 off, running square onto the pier. CHOSEN, to hold against the game: the engine's own way in"
+                    + " (OceanMarkupField) is read nowhere, and the channel by the ship is still to be measured. Wins over way round.");
                 Switch("break by ground##scene-break-ground", ref _breakByGround,
                     "The field waves' break phase off the shore's distance to the ground alone - the rocks and the pier's stones that stand in the sea"
                     + " no shore for it - rather than the shore's distance the swell takes, which counts them. The break phase (1 - shore x 0.0002,"

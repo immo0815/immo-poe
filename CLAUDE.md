@@ -799,12 +799,23 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   though the pier and the quay - walls out of deep water - were in no wave's way, as the ship was found to be (v0.1.305/307). So two things
   from v0.1.333, DECIDED from the live client: a third way in, PAST THE WALLS (`ShoreField.Way(round, pastWalls)`, `Steering`, `WallReach`,
   the light panel's "past walls", `SceneLight.WaterPastWalls`; CHOSEN to hold against the game): each land cell belongs to its nearest
-  coast, and ground whose nearest coast is a wall within 400 units neither stands in the way nor is measured from - the line under the
+  coast, and ground whose nearest coast is a wall within 800 units (400 in v0.1.333) neither stands in the way nor is measured from - the line under the
   picture names the way drawn; and the capture writes every shore field as NUMBERS (`shore-field.bin`, `CapturePanes.FieldBytes`, its
   format in `FieldFormat`; `ShoreField.Kinds`' bits, the shore's distance, all three ways in and the ground's shore, world units;
   `shore-field-replay.txt` reads them back) beside a third picture, `shore-way-past.png`. With the capture's own camera (`capture.txt`) and
   the boss room's placing (`rooms.txt`), a side-by-side video recorded while F9 is pressed, the player not moving, reads the game's crests
   into the room's frame and sets them beside each way in - which one, if any, the game's is, is measured there before a default changes.
+  ITS FIRST MEASUREMENT (v0.1.333's capture and a video at its spot, the player not moving; the stage laid as the area laid it, so its
+  frame is the world's less the room's corner, tile 127, 19 x 250 - the field's walls drawn through the capture's camera lie on the pier's
+  waterline in the game's picture). Every pixel's phase at the waves' period, 5.05 s, read onto the water's plane (the field's level, 125),
+  its slope set beside each way in's over 1,831 water cells west of the pier: the game's crests run ALONG the pier towards the land. Off
+  the game's way, the median and the share within 60 degrees - by the ground 81 and 20%, round what stands 82 and 19%, past the walls at
+  400 75 and 31% (the pier is some 900 across in the field, so its middle kept steering), past the walls at 800 or any reach beyond 27
+  and 90%, the straight distance to the nearest beach the same; left over, a turn of about 21 degrees the same way throughout, its cause
+  unread, and a wavelength of 814 units against the engine's 1,000. So `WallReach` is 800 from v0.1.334, and "past walls" stays a switch
+  (DECIDED from the live client) until the channel between the ship and the pier - where by the ground matched the game (v0.1.307) - is
+  measured the same way. The reading is scratch arithmetic over the capture's own files (`capture.txt`'s camera, `shore-field.bin`): no
+  part reads a video.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the
