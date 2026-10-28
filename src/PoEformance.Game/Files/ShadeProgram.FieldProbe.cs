@@ -20,7 +20,7 @@ public sealed partial class ShadeProgram
     /// The field waves at a probed pixel of water, term by term - see <see cref="ProbeField"/>: the card's functions, worked out on the processor.
     /// </summary>
     /// <param name="drawn">Where the processor's water stood at the pixel - lifted by everything but the field waves, which it does not draw.</param>
-    /// <param name="toEye">The way to the eye, in the model's space - the picture's view is parallel, so one way for every pixel.</param>
+    /// <param name="toEye">The way to the eye, in the model's space - on a parallel view one way for every pixel.</param>
     /// <param name="right">One pixel to the right, in the model's space.</param>
     /// <param name="down">One pixel down.</param>
     /// <param name="clock">The clock, in seconds.</param>
@@ -28,6 +28,7 @@ public sealed partial class ShadeProgram
     /// <param name="shore">The room's shore.</param>
     /// <param name="on">Whether the card draws them - the light panel's switch (SceneLight.WaterCrash).</param>
     /// <param name="byGround">Whether their break phase takes the ground's shore's distance (SceneLight.WaterBreakByGround).</param>
+    /// <param name="viewer">The eye's place in the model's space where the picture is in perspective - each of the three rays then runs from it - or null on a parallel view.</param>
     /// <remarks>
     /// AT THE PLACE THE CARD DRAWS, not the processor's: the card lifts the water by the crest (CrashingWavesVertex's move, the area's
     /// height offset in it) and draws the nearest crossing of the lifted sea alone, so the view through the probed pixel meets it
@@ -36,13 +37,14 @@ public sealed partial class ShadeProgram
     /// the card's gradients come to, ddx and ddy of the place being the crossings one pixel across and one down.
     /// </remarks>
     public static ProbeField FieldProbe(
-        Vector3 drawn, Vector3 toEye, Vector3 right, Vector3 down, float clock, float heightOffset, ShoreField shore, bool on, bool byGround = false)
-        => FieldProbe(FieldProfile, BeachNoise, FieldFoamColour, FieldFoamNormal, drawn, toEye, right, down, clock, heightOffset, shore, on, byGround);
+        Vector3 drawn, Vector3 toEye, Vector3 right, Vector3 down, float clock, float heightOffset, ShoreField shore, bool on, bool byGround = false,
+        Vector3? viewer = null)
+        => FieldProbe(FieldProfile, BeachNoise, FieldFoamColour, FieldFoamNormal, drawn, toEye, right, down, clock, heightOffset, shore, on, byGround, viewer);
 
     /// <summary>The same, over a given wave shape, noise and foam.</summary>
     public static ProbeField FieldProbe(
         WaterSheet profile, WaterSheet noise, Mipmaps foamColour, Mipmaps foamNormal, Vector3 drawn, Vector3 toEye, Vector3 right, Vector3 down,
-        float clock, float heightOffset, ShoreField shore, bool on, bool byGround = false)
+        float clock, float heightOffset, ShoreField shore, bool on, bool byGround = false, Vector3? viewer = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(noise);
@@ -50,9 +52,10 @@ public sealed partial class ShadeProgram
         ArgumentNullException.ThrowIfNull(foamNormal);
         ArgumentNullException.ThrowIfNull(shore);
         float reach = FieldReach(profile) + MathF.Abs(heightOffset) + 1f;
-        Vector3 place = FieldCrossing(profile, noise, drawn, toEye, drawn.Z, reach, clock, heightOffset, shore, byGround, out float off);
-        Vector3 across = FieldCrossing(profile, noise, drawn + right, toEye, drawn.Z, reach, clock, heightOffset, shore, byGround, out _);
-        Vector3 under = FieldCrossing(profile, noise, drawn + down, toEye, drawn.Z, reach, clock, heightOffset, shore, byGround, out _);
+        Vector3 Way(Vector3 from) => viewer is { } eye && Vector3.Distance(eye, from) > 1e-6f ? Vector3.Normalize(eye - from) : toEye;
+        Vector3 place = FieldCrossing(profile, noise, drawn, Way(drawn), drawn.Z, reach, clock, heightOffset, shore, byGround, out float off);
+        Vector3 across = FieldCrossing(profile, noise, drawn + right, Way(drawn + right), drawn.Z, reach, clock, heightOffset, shore, byGround, out _);
+        Vector3 under = FieldCrossing(profile, noise, drawn + down, Way(drawn + down), drawn.Z, reach, clock, heightOffset, shore, byGround, out _);
         var at = new Vector2(place.X, place.Y);
         Vector2 dpx = new Vector2(across.X, across.Y) - at, dpy = new Vector2(under.X, under.Y) - at;
 

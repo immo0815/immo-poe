@@ -269,6 +269,34 @@ public static partial class ShadeHlsl
         {
             return (at.x * eye.x) + (at.y * eye.y) + (at.z * eye.z) + eye.w;
         }
+
+        // ShadeProgram.Raying: the view's ray through a point, a unit of depth long - the eye's way on a parallel view.
+        float3 ShadeRaying(float4 eye, float4 viewer, float behind, float4 at)
+        {
+            if (!(viewer.w > 0.5) || !(behind < 3.40282347e38))
+            {
+                return eye.xyz;
+            }
+
+            float deep = ShadeDeep(eye, at);
+            return deep > 1e-6 ? (at.xyz - viewer.xyz) / deep : eye.xyz;
+        }
+
+        // ShadeProgram.Viewed: ViewDir - the eye's way on a parallel view, from the eye to the place in perspective.
+        float4 ShadeViewed(float4 eye, float4 viewer, float4 at)
+        {
+            if (viewer.w > 0.5)
+            {
+                float3 way = at.xyz - viewer.xyz;
+                float length = sqrt(dot(way, way));
+                if (length > 1e-6)
+                {
+                    return float4(way / length, 0.0);
+                }
+            }
+
+            return float4(eye.xyz, 0.0);
+        }
         """;
 
     /// <summary>The slot the ripple texture is read from - ShadeProgram.Ripples, bound by the drawing for the pixel and the vertex shaders alike.</summary>
@@ -314,7 +342,7 @@ public static partial class ShadeHlsl
     /// <param name="program">The program.</param>
     /// <param name="firstSheet">The texture slot its first sheet is read from; the rest follow.</param>
     /// <remarks>
-    /// <c>ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow, float4 wind, float4 shore, float4 swell)</c>:
+    /// <c>ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow, float4 wind, float4 shore, float4 swell, float4 viewer)</c>:
     /// the coordinates, the place and the interpolated normal in the model's space, the vertex
     /// colour, the solid depth behind (<see cref="Nothing"/> where none), the clock, the way into
     /// the picture, the area's dust colour and its water - ShadeProgram's fixed registers, in its order.
@@ -375,7 +403,7 @@ public static partial class ShadeHlsl
             hlsl.AppendLine(FieldLibrary);
         }
 
-        hlsl.AppendLine("ShadeOut ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow, float4 wind, float4 shore, float4 swell)");
+        hlsl.AppendLine("ShadeOut ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow, float4 wind, float4 shore, float4 swell, float4 viewer)");
         hlsl.AppendLine("{");
 
         // THE FIXED REGISTERS, as Colour and Preset set them.
@@ -413,6 +441,7 @@ public static partial class ShadeHlsl
         hlsl.AppendLine("    float4 r14 = wind;");
         hlsl.AppendLine("    float4 r15 = shore;");
         hlsl.AppendLine("    float4 r16 = swell;");
+        hlsl.AppendLine("    float4 r17 = viewer;");
         if (fields)
         {
             // THE FIELD WAVES' FOAM IS READ AT THE GRADIENTS OF ITS COORDINATES, taken here outside any branch - see Field.
@@ -1057,7 +1086,7 @@ public static partial class ShadeHlsl
     }
 
     /// <summary>The registers the mesh and the drawing set before the program's own - ShadeProgram's Fixed.</summary>
-    private const int FixedRegisters = ShadeProgram.WaterSwell + 1;
+    private const int FixedRegisters = ShadeProgram.Viewer + 1;
 
     /// <summary>One step as one statement - ShadeProgram.Run's case for its op.</summary>
     private static void Step(StringBuilder hlsl, ShadeProgram program, ShadeProgram.Step step, ref int parallax)
@@ -1150,8 +1179,9 @@ public static partial class ShadeHlsl
 
                 case ShadeProgram.Op.Depth:
                     // length(bottom - camera) - length(world_pos - camera): on a parallel view, the
-                    // difference of the two depths along it.
+                    // difference of the two depths along it - and in perspective along the point's own ray (ShadeProgram.Viewer).
                     hlsl.Append("    { float distance = r6.x - ShadeDeep(r7, ").Append(a).AppendLine(");");
+                    hlsl.Append("      if (r17.w > 0.5) { distance *= length(ShadeRaying(r7, r17, r6.x, ").Append(a).AppendLine(")); }");
                     if (step.Extra != 0)
                     {
                         hlsl.AppendLine("      if (distance < 0.0) { r10 = float4(1.0, 1.0, 1.0, 1.0); }");
@@ -1162,7 +1192,7 @@ public static partial class ShadeHlsl
 
                 case ShadeProgram.Op.ContactFade:
                     hlsl.Append("    { float4 albedo = ").Append(a).AppendLine(";");
-                    hlsl.Append("      float surface = r7.z * (r6.x - ShadeDeep(r7, ").Append(b).AppendLine("));");
+                    hlsl.Append("      float surface = ShadeRaying(r7, r17, r6.x, ").Append(b).Append(").z * (r6.x - ShadeDeep(r7, ").Append(b).AppendLine("));");
                     hlsl.AppendLine("      if (surface < 0.0) { r10 = float4(1.0, 1.0, 1.0, 1.0); }");
                     hlsl.Append("      float fade = ").Append(d).Append(".x * 10.0 * (1.0 - pow(saturate(1.0 - abs(").Append(c).AppendLine(".z)), 0.2));");
                     hlsl.AppendLine("      float ratio = fade > 0.0 ? saturate(surface / fade) : surface > 0.0 ? 1.0 : 0.0;");
@@ -1172,6 +1202,10 @@ public static partial class ShadeHlsl
 
                 case ShadeProgram.Op.Parallax:
                     Parallax(hlsl, program, step, parallax++);
+                    break;
+
+                case ShadeProgram.Op.ViewWay:
+                    hlsl.Append("    ").Append(to).Append(" = ShadeViewed(r7, r17, ").Append(a).AppendLine(");");
                     break;
 
                 // A STEP LEFT OUT WOULD BE A COLOUR GONE WRONG WITHOUT A WORD - an op added to the

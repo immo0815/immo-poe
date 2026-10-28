@@ -64,6 +64,28 @@ public class ContactFadeTests
     }
 
     /// <summary>
+    /// The same in perspective (CameraPose, v0.1.324): the fade measures along each pixel's own ray (ShadeProgram.Viewer), and comes
+    /// out the same on a layer looked at from straight above - the floor through the low half, the layer over the high one.
+    /// </summary>
+    [Fact]
+    public void MASKEDCONTACTFadeInPerspectiveMeasuresAlongEachPixelsRay()
+    {
+        ShadeProgram program = Layer((Instance(MaskedPath, ("params", [ShaderValue.Empty, ShaderValue.Empty, Numbers(1f)])), Fixture(MaskedPath)));
+        SkinnedMesh scene = Scene(low: 0.5f, high: 20f);
+        var pose = new CameraPose(new Vector3(0f, 0f, -5f), 0f, Down, 45f);
+        var canvas = new MeshPicture.Canvas(Size) { Pose = pose };
+        GamePicture picture = MeshPicture.Of(
+            scene, canvas, skins: [Sheet(220, 30, 30), null], blends: [MaterialBlend.Opaque, MaterialBlend.Alpha], shades: [null, program]);
+        MeshPicture.Camera camera = MeshPicture.Camera.Of(scene, pose);
+        Assert.True(camera.Perspective);
+
+        (byte Red, byte Blue) low = At(picture, camera.Place(new Vector3(-5f, 3f, -0.5f)));
+        (byte Red, byte Blue) high = At(picture, camera.Place(new Vector3(5f, -3f, -20f)));
+        Assert.True(low.Red > low.Blue * 2, $"the floor should show through the low half: {low}");
+        Assert.True(high.Blue > high.Red * 2, $"the layer should cover the floor where it lies high: {high}");
+    }
+
+    /// <summary>
     /// ParallaxUvSpaceContactFade, the game's own graph: the march goes down into the height texture, and where it ends under the floor the layer is discarded.
     /// </summary>
     /// <remarks>
@@ -182,8 +204,12 @@ public class ContactFadeTests
 
     /// <summary>The red and blue where a point of the scene lands.</summary>
     private static (byte Red, byte Blue) At(GamePicture picture, SkinnedMesh scene, Vector3 point)
+        => At(picture, MeshPicture.Camera.Of(scene, 0f, Down, 1f, Vector2.Zero).Place(point));
+
+    /// <summary>The red and blue at a place on the picture.</summary>
+    private static (byte Red, byte Blue) At(GamePicture picture, Vector3 placed)
     {
-        Vector3 placed = MeshPicture.Camera.Of(scene, 0f, Down, 1f, Vector2.Zero).Place(point);
+        Vector3 point = placed;
         int x = Math.Clamp((int)(placed.X * Size), 0, Size - 1);
         int y = Math.Clamp((int)(placed.Y * Size), 0, Size - 1);
         int at = ((y * Size) + x) * 4;

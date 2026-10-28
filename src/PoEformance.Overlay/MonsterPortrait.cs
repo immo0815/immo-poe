@@ -105,20 +105,32 @@ public sealed class MonsterPortrait
     /// three words in a row over a picture read as a caption rather than as controls. As art they
     /// are the orbit's size and hang in one column with it. The card's and the light's are skipped
     /// where they have nothing to switch - no card, no specular colour - and the clock's where
-    /// nothing plays; the rest close up.
+    /// nothing plays; the rest close up. THE CAMERA'S THREE come after (v0.1.324, asked for from the live client with the free camera):
+    /// the view fitted again, the game's own angle and distance about the focus, and perspective or parallel.
     /// </remarks>
     private const int CardSide = 0;
     private const int LightSide = 1;
     private const int OrbitSide = 2;
     private const int ProbeSide = 3;
     private const int ClockSide = 4;
-    private const int Sides = 5;
+    private const int ResetSide = 5;
+    private const int GameSide = 6;
+    private const int PerspectiveSide = 7;
+    private const int Sides = 8;
 
     /// <summary>The ids ImGui knows the edge buttons by.</summary>
-    private static readonly string[] SideIds = ["##monster-card", "##monster-light", "##monster-orbit", "##monster-probe", "##monster-clock"];
+    private static readonly string[] SideIds =
+    [
+        "##monster-card", "##monster-light", "##monster-orbit", "##monster-probe", "##monster-clock", "##monster-reset", "##monster-game",
+        "##monster-perspective",
+    ];
 
     /// <summary>The art on the edge buttons, by the end of each manifest resource name - the project file pins them.</summary>
-    private static readonly string[] SideArt = ["3dMV_cpugpu.png", "3dMV_light.png", "3dMV_orbit.png", "3dMV_probe.png", "3dMV_clock.png"];
+    private static readonly string[] SideArt =
+    [
+        "3dMV_cpugpu.png", "3dMV_light.png", "3dMV_orbit.png", "3dMV_probe.png", "3dMV_clock.png", "3dMV_reset.png", "3dMV_game.png",
+        "3dMV_perspective.png",
+    ];
 
     /// <summary>How many panes have been made, so each one's keys are its own.</summary>
     private static int s_panes;
@@ -378,14 +390,28 @@ public sealed class MonsterPortrait
     /// <summary>A tile in the shown model's own units - see <see cref="ModelFloor.TileOn"/>.</summary>
     private float _tile = ModelFloor.Tile;
 
-    private float _turn;
-    private float _tilt;
-    private float _zoom = 1f;
-    private Vector2 _pan;
-    private float _drawnTurn = float.NaN;
-    private float _drawnTilt = float.NaN;
-    private float _drawnZoom = float.NaN;
-    private Vector2 _drawnPan = new(float.NaN);
+    /// <summary>Where the picture is looked at from - see CameraPose - fitted to each model as it lands (see <see cref="Framed"/>).</summary>
+    private CameraPose _view;
+
+    /// <summary>
+    /// The pose the picture on screen was drawn from: the floor and the sun's mark are drawn from it, not from the one being moved
+    /// towards. Default - no pose at all - until the first picture, and again whenever the next must be drawn whatever moved.
+    /// </summary>
+    private CameraPose _drawnView;
+
+    /// <summary>The mesh the pose was fitted to, the stage it stood on and whether it was a monster on one - see <see cref="Framed"/>.</summary>
+    private SkinnedMesh? _viewFor;
+    private string _viewStage = string.Empty;
+    private bool _viewStaged;
+
+    /// <summary>Whether the picture is drawn without perspective - the edge button's switch, kept from model to model.</summary>
+    private bool _parallel;
+
+    /// <summary>Whether the pointer was over the picture last frame - the keys fly the camera only then (see <see cref="Flown"/>).</summary>
+    private bool _hovered;
+
+    /// <summary>Whether the keys flew the camera this frame - a moving picture, drawn at the capped rung (see <see cref="Wanted(float)"/>).</summary>
+    private bool _flying;
     private int _drawnSize;
     private float _drawnFrame = float.NaN;
     private int _drawnAnimation = -1;
@@ -645,7 +671,7 @@ public sealed class MonsterPortrait
         _release = release;
         _unpack = unpack;
         _sizes = new PictureLadder(most);
-        _sideKeys = [_prefix + "card", _prefix + "light", _prefix + "orbit", _prefix + "probe", _prefix + "clock"];
+        _sideKeys = [_prefix + "card", _prefix + "light", _prefix + "orbit", _prefix + "probe", _prefix + "clock", _prefix + "reset", _prefix + "game", _prefix + "perspective"];
     }
 
     /// <summary>
@@ -1234,7 +1260,7 @@ public sealed class MonsterPortrait
         Why = _model.Why;
         _loading = null;
         _shown = string.Empty;
-        _drawnTurn = float.NaN;
+        _drawnView = default;
         _built = _progress is { } progress ? [.. progress.Report()] : [];
         _pictureDue = _model.Ready;
         _cardDue = _model.Ready;
@@ -1296,6 +1322,7 @@ public sealed class MonsterPortrait
     private void Picture(float wide, float tall)
     {
         Turned();
+        Flown();
 
         // THE SIZE IS SETTLED BEFORE THE PICTURE IS TAKEN, because what it is drawn at follows
         // what it will be shown at - and that is the pane less what its row and its lines take,
@@ -1351,7 +1378,9 @@ public sealed class MonsterPortrait
         // match") is that the LATER item wins the pointer, a frame late - so the button drawn
         // after the picture takes the click that would otherwise have started a drag.
         ImGui.SetNextItemAllowOverlap();
-        ImGui.InvisibleButton(Grip, new Vector2(side, side));
+
+        // BOTH BUTTONS, so a right drag holds the picture as a left one does: it pans.
+        ImGui.InvisibleButton(Grip, new Vector2(side, side), ImGuiButtonFlags.MouseButtonLeft | ImGuiButtonFlags.MouseButtonRight);
         Vector2 below = ImGui.GetCursorScreenPos();
 
         // THE FLOOR GOES UNDER THE PICTURE OR OVER IT BY WHICH SIDE OF IT THE EYE IS ON - see
@@ -1361,7 +1390,7 @@ public sealed class MonsterPortrait
         ImDrawListPtr draw = ImGui.GetWindowDrawList();
         Vector2 corner = ImGui.GetItemRectMin();
         Paint(draw, corner, ImGui.GetItemRectMax());
-        MeshPicture.Camera camera = MeshPicture.Camera.Of(_model.Mesh, _drawnTurn, _drawnTilt, _drawnZoom, _drawnPan);
+        MeshPicture.Camera camera = MeshPicture.Camera.Of(_model.Mesh, _drawnView);
         bool under = ModelFloor.Under(camera);
         if (under)
         {
@@ -1378,8 +1407,10 @@ public sealed class MonsterPortrait
         // it - which it does constantly, because the picture is small and a full turn is 360 px.
         // NOT WHILE ORBITING, by request: the orbit is stopped by its button and by nothing else,
         // so a hand on the picture does nothing until it is.
+        // THE LEFT BUTTON TURNS ABOUT THE FOCUS, the right one pans across the picture (asked for from the live client, 2026-10-28):
+        // a turn after zooming in on something turns about that something, not about the room's middle - see CameraPose.
         bool held = ImGui.IsItemActive() && !_orbiting;
-        if (held && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
+        if (held && ImGui.IsMouseDragging(ImGuiMouseButton.Left) && _view.Valid)
         {
             Vector2 moved = ImGui.GetIO().MouseDelta;
             if (Sun is { } sun && (_sunHeld || ImGui.GetIO().KeyShift))
@@ -1389,9 +1420,12 @@ public sealed class MonsterPortrait
             }
             else
             {
-                _turn -= moved.X / Sweep * MathF.Tau;
-                _tilt = Math.Clamp(_tilt + (moved.Y / Sweep * MathF.Tau), -MathF.PI / 3f, MathF.PI / 3f);
+                _view = _view.Orbited(-moved.X / Sweep * MathF.Tau, moved.Y / Sweep * MathF.Tau);
             }
+        }
+        else if (held && ImGui.IsMouseDragging(ImGuiMouseButton.Right) && _view.Valid && side > 0f)
+        {
+            _view = _view.Panned(ImGui.GetIO().MouseDelta / side);
         }
 
         // LET GO, the sun stays where it was put and its shadows are drawn sharp again.
@@ -1409,7 +1443,8 @@ public sealed class MonsterPortrait
 
         // A CLICK, NOT A DRAG, PROBES THE PIXEL UNDER IT while probing - see PictureProbe. As a share
         // of the picture, because the next drawing may be at another rung than this one.
-        if (_probing && ImGui.IsItemDeactivated() && ImGui.GetMouseDragDelta(ImGuiMouseButton.Left) == Vector2.Zero && side > 0f)
+        if (_probing && ImGui.IsItemDeactivated() && ImGui.IsMouseReleased(ImGuiMouseButton.Left)
+            && ImGui.GetMouseDragDelta(ImGuiMouseButton.Left) == Vector2.Zero && side > 0f)
         {
             _probeAt = (ImGui.GetMousePos() - corner) / side;
             _probeAsked = true;
@@ -1418,15 +1453,16 @@ public sealed class MonsterPortrait
         // EVERYTHING THAT ASKS ABOUT "THE ITEM" ASKS BEFORE THE NEXT ITEM IS SUBMITTED, because
         // ImGui answers for the last item and that would then be the orbit button: the wheel's
         // owner is claimed on the picture, not on a button in its corner.
-        if (ImGui.IsItemHovered())
+        _hovered = ImGui.IsItemHovered();
+        if (_hovered)
         {
             Wheel(side);
-            if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
+
+            // A DOUBLE CLICK LOOKS AT THE POINT UNDER IT - the nearest surface its ray meets - and turns about it from then on.
+            if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left) && _view.Valid && side > 0f
+                && Picked((ImGui.GetMousePos() - corner) / side) is { } point)
             {
-                _turn = 0f;
-                _tilt = 0f;
-                _zoom = 1f;
-                _pan = Vector2.Zero;
+                _view = _view.LookingAt(point);
             }
         }
 
@@ -1587,6 +1623,7 @@ public sealed class MonsterPortrait
                 Built = [.. _built],
                 Probed = HasProbe ? _probedShapes : [],
                 Shades = ShadesOf(_model),
+                View = _drawnView.Valid ? _drawnView : null,
             }
             : null;
 
@@ -1634,12 +1671,11 @@ public sealed class MonsterPortrait
             return;
         }
 
-        _turn -= Math.Clamp(ImGui.GetIO().DeltaTime, 0f, 0.25f) / Orbit * MathF.Tau;
-        if (_turn < -MathF.PI)
+        // KEPT WITHIN ONE LAP by CameraPose.Orbited, so an orbit left running for an evening does not walk the angle out to where a
+        // float can no longer tell one frame from the next.
+        if (_view.Valid)
         {
-            // Kept within one turn, so an orbit left running for an evening does not walk the
-            // angle out to where a float can no longer tell one frame from the next.
-            _turn += MathF.Tau;
+            _view = _view.Orbited(-Math.Clamp(ImGui.GetIO().DeltaTime, 0f, 0.25f) / Orbit * MathF.Tau, 0f);
         }
     }
 
@@ -1814,10 +1850,11 @@ public sealed class MonsterPortrait
         height = Math.Clamp(height - (moved.Y / Sweep * MathF.PI), 0.02f, MathF.PI / 2f);
         if (moved.X != 0f && camera.Ready)
         {
-            (Vector3 centre, float reach) = Reach();
+            // BY THE WAY ITSELF ACROSS THE VIEW, not by a point put through the camera: in perspective such a point may stand behind
+            // the eye, while the view's x of the way moves as the mark does on either view.
             const float step = 0.01f;
-            float ahead = camera.Place(centre - (SceneLight.SunToward(round + step, height) * reach)).X;
-            float behind = camera.Place(centre - (SceneLight.SunToward(round - step, height) * reach)).X;
+            float ahead = Vector3.TransformNormal(-SceneLight.SunToward(round + step, height), camera.View).X;
+            float behind = Vector3.TransformNormal(-SceneLight.SunToward(round - step, height), camera.View).X;
             round += (ahead >= behind ? 1f : -1f) * moved.X / Sweep * MathF.Tau;
         }
 
@@ -1836,7 +1873,29 @@ public sealed class MonsterPortrait
 
         (Vector3 centre, float reach) = Reach();
         Vector3 middle = camera.Place(centre);
-        Vector3 at = camera.Place(centre - (travels * reach * 1.15f));
+        float beyond = reach * 1.15f;
+        if (camera.Perspective)
+        {
+            // IN PERSPECTIVE THE MIDDLE MAY BE BEHIND THE EYE - the mark then stands alone - and a sun on the eye's side is put no
+            // nearer than half way to it, where it still lands on the picture.
+            if (!camera.InFront(middle))
+            {
+                return;
+            }
+
+            float towards = -Vector3.TransformNormal(-travels, camera.View).Z;
+            if (towards > 0f)
+            {
+                beyond = MathF.Min(beyond, (middle.Z - camera.Near) * 0.5f / towards);
+            }
+        }
+
+        Vector3 at = camera.Place(centre - (travels * beyond));
+        if (!float.IsFinite(at.X) || !float.IsFinite(at.Y))
+        {
+            return;
+        }
+
         float inset = ImGui.GetFontSize();
         var from = corner + (new Vector2(middle.X, middle.Y) * side);
         var to = corner + new Vector2(Math.Clamp(at.X * side, inset, side - inset), Math.Clamp(at.Y * side, inset, side - inset));
@@ -2009,6 +2068,8 @@ public sealed class MonsterPortrait
             LightSide => FlatLight,
             OrbitSide => _orbiting,
             ClockSide => !_playing,
+            ResetSide or GameSide => false,
+            PerspectiveSide => _parallel,
             _ => _probing,
         };
 
@@ -2024,6 +2085,9 @@ public sealed class MonsterPortrait
             LightSide => FlatLight ? "flat light" : "game light",
             OrbitSide => _orbiting ? "stop" : "orbit",
             ClockSide => _playing ? "Pause" : "Play",
+            ResetSide => "reset view",
+            GameSide => "game view",
+            PerspectiveSide => _parallel ? "parallel" : "perspective",
             _ => _probing ? "probe: on" : "probe",
         };
 
@@ -2048,6 +2112,16 @@ public sealed class MonsterPortrait
                 break;
             case ClockSide:
                 _playing = !_playing;
+                break;
+            case ResetSide when _model.Ready:
+                _view = Started(_model.Mesh, reset: true);
+                break;
+            case GameSide when _view.Valid:
+                _view = _view.AsTheGame();
+                break;
+            case PerspectiveSide:
+                _parallel = !_parallel;
+                _view = _view with { Parallel = _parallel };
                 break;
             default:
                 break;
@@ -2086,9 +2160,117 @@ public sealed class MonsterPortrait
                     ? "Playing: the animation runs, or the picture runs with the game's clock. Press to pause."
                     : "Paused: the picture holds still at the pane's own size. Press to play.");
                 break;
+            case ResetSide:
+                ImGui.SetTooltip("Reset view: the whole model in the picture again - a room or a stage at the game's angle, a monster from the front.\n"
+                    + CameraHelp);
+                break;
+            case GameSide:
+                ImGui.SetTooltip("Game view: the game's own camera about the point looked at - 48.7 degrees down along +x +y, 2,165 units off,\n"
+                    + "30 degrees from the picture's top to its bottom (measured off the game's camera matrix).\n" + CameraHelp);
+                break;
+            case PerspectiveSide:
+                ImGui.SetTooltip((_parallel ? "Parallel: no perspective, as every picture was drawn before. " : "Perspective, as the game sees it. ")
+                    + "Press to switch.\n" + CameraHelp);
+                break;
             default:
                 break;
         }
+    }
+
+    /// <summary>How the camera is moved - the lines under each camera button's tip.</summary>
+    private const string CameraHelp =
+        "Left drag: turn about the point looked at. Right drag: pan. Wheel: towards the point under the pointer.\n"
+        + "Double click: look at the point under it, and turn about it from then on. Shift + left drag: the sun.\n"
+        + "W/S: along the view, A/D: sideways, Q/E: down and up, Shift: four times as fast - while the pointer is over the picture.";
+
+    /// <summary>
+    /// Fits the camera to the model shown, when it changed - kept where the same stage is shown under another monster.
+    /// </summary>
+    /// <remarks>
+    /// A STAGE KEPT ACROSS MONSTERS KEEPS ITS CAMERA: the room is the same room, and a view flown to the quay should not jump back to
+    /// the whole harbour because another boss was picked. Anything else starts from its own fit (see <see cref="Started"/>).
+    /// </remarks>
+    private void Framed()
+    {
+        SkinnedMesh mesh = _model.Mesh;
+        if (ReferenceEquals(mesh, _viewFor) || !mesh.Ready)
+        {
+            return;
+        }
+
+        bool kept = _view.Valid && _viewStaged && _model.Staged && string.Equals(_viewStage, _stagedOn, StringComparison.Ordinal);
+        _viewFor = mesh;
+        _viewStaged = _model.Staged;
+        _viewStage = _stagedOn;
+        if (!kept)
+        {
+            _view = Started(mesh, reset: false);
+        }
+    }
+
+    /// <summary>
+    /// Where a model starts: a room, a tile or a stage at the game's angle, a monster or an item turned as the last one was - or from
+    /// the front, on a reset - each at the distance that fills the picture with its box.
+    /// </summary>
+    /// <remarks>ASSUMED FROM THE LIVE CLIENT'S ANSWERS and not objected to (2026-10-28): rooms and stages at the game's angle, a monster as before.</remarks>
+    private CameraPose Started(SkinnedMesh mesh, bool reset)
+    {
+        bool scene = _model.Staged || _model.Kind is ModelKind.Room or ModelKind.Tile;
+        if (scene)
+        {
+            return CameraPose.Fitted(mesh, CameraPose.GameTurn, CameraPose.GameTilt, _parallel);
+        }
+
+        bool turned = !reset && _view.Valid;
+        return CameraPose.Fitted(mesh, turned ? _view.Turn : 0f, turned ? _view.Tilt : 0f, _parallel);
+    }
+
+    /// <summary>
+    /// Flies the camera by the keys held while the pointer is over the picture - before this frame's picture is taken, as the orbit turns it.
+    /// </summary>
+    /// <remarks>
+    /// ONLY OVER THE PICTURE AND NOT WHILE TEXT IS TYPED, so a W typed into a search box flies nothing. The pointer's place is last
+    /// frame's - the picture is drawn after this - which a hand on a key never notices.
+    /// </remarks>
+    private void Flown()
+    {
+        _flying = false;
+        if (!_hovered || !_view.Valid || ImGui.GetIO().WantTextInput)
+        {
+            return;
+        }
+
+        static float Held(ImGuiKey plus, ImGuiKey minus) => (ImGui.IsKeyDown(plus) ? 1f : 0f) - (ImGui.IsKeyDown(minus) ? 1f : 0f);
+        Vector3 by = _view.Flight(
+            Held(ImGuiKey.W, ImGuiKey.S), Held(ImGuiKey.D, ImGuiKey.A), Held(ImGuiKey.E, ImGuiKey.Q), ImGui.GetIO().DeltaTime, ImGui.GetIO().KeyShift);
+        if (by != Vector3.Zero)
+        {
+            _view = _view.Flown(by);
+            _flying = true;
+        }
+    }
+
+    /// <summary>The nearest surface under a point of the picture, in the model's space - where its ray first meets the mesh as drawn - or null where it meets nothing.</summary>
+    /// <param name="pointer">The point as a share of the picture's side from its top left corner.</param>
+    private Vector3? Picked(Vector2 pointer)
+    {
+        if (!_view.Valid || !_model.Ready || !float.IsFinite(pointer.X) || !float.IsFinite(pointer.Y))
+        {
+            return null;
+        }
+
+        (Vector3 from, Vector3 way) = _view.Ray(pointer);
+        Vector3[] positions = _drawnPosed && _posed.Length == _model.Mesh.Positions.Length ? _posed : _model.Mesh.Positions;
+        IReadOnlyList<MaterialBlend>? blends = Blends();
+        IReadOnlyList<ShadeProgram?>? shades = ShadesOf(_model);
+        bool Shown(int shape)
+        {
+            MaterialBlend blend = blends is not null && shape < blends.Count ? blends[shape] : MaterialBlend.Opaque;
+            return blend != MaterialBlend.ShadowOnly
+                && !(blend == MaterialBlend.Cutout && shades is not null && shape < shades.Count && shades[shape]?.CutAway(MeshPicture.CutoutAlpha) == true);
+        }
+
+        return MeshPicture.Pick(_model.Mesh, positions, from, way, out float away, shown: Shown) ? from + (way * away) : null;
     }
 
     /// <summary>An edge button's art, uploaded at the size it is drawn, or nothing where the resource is not there.</summary>
@@ -2920,15 +3102,18 @@ public sealed class MonsterPortrait
             return;
         }
 
-        float from = _zoom;
-        _zoom = Math.Clamp(
-            _zoom * MathF.Pow(Notch, notches), MeshPicture.Nearest, MeshPicture.Furthest);
+        if (!_view.Valid)
+        {
+            return;
+        }
 
-        // TOWARDS THE POINTER AND NOT THE MIDDLE, which was the one thing reported against the
-        // wheel. The pointer as a share of the picture from its top left corner; the picture is
-        // the last item, so its rectangle is the one ImGui hands back here.
+        // TOWARDS WHAT IS UNDER THE POINTER, the nearest surface its ray meets, or where it meets the focus's plane over nothing - the
+        // camera stretched about that point, which stays where it is on the picture (CameraPose.Zoomed). No cap but the eye's own:
+        // asked for from the live client, close enough for a barrel to fill the picture. The pointer as a share of the picture from
+        // its top left corner; the picture is the last item, so its rectangle is the one ImGui hands back here.
         Vector2 pointer = (ImGui.GetMousePos() - ImGui.GetItemRectMin()) / MathF.Max(side, 1f);
-        _pan = MeshPicture.Panned(_pan, pointer, from, _zoom);
+        Vector3 about = Picked(pointer) ?? _view.OnFocusPlane(pointer);
+        _view = _view.Zoomed(about, MathF.Pow(Notch, -notches), CameraPose.Farthest * MathF.Max(1f, CameraPose.Reach(_model.Mesh)));
     }
 
     /// <summary>Gives back the textures. Called when the window goes, and when the install changes.</summary>
@@ -2957,7 +3142,7 @@ public sealed class MonsterPortrait
         _orbiting = false;
         _shown = string.Empty;
         _model = MonsterModel.None;
-        _drawnTurn = float.NaN;
+        _drawnView = default;
         Rest();
     }
 
@@ -3016,8 +3201,6 @@ public sealed class MonsterPortrait
         _exported = string.Empty;
         Rest();
 
-        // A pan aimed at one monster's head is nowhere in particular on the next one.
-        _pan = Vector2.Zero;
 
         // The game draws this variety's mesh scaled by its own multiplier, and the floor's tiles
         // have to shrink in the mesh's units by the same amount to stay the game's tiles.
@@ -3067,6 +3250,7 @@ public sealed class MonsterPortrait
             return;
         }
 
+        Framed();
         Landed();
         Advance();
         bool ticking = Ticking;
@@ -3084,10 +3268,7 @@ public sealed class MonsterPortrait
         bool posed = _tracks is { Ready: true } && _pose is not null;
 
         bool moved = !string.Equals(_shown, _wanted, StringComparison.Ordinal)
-            || _drawnTurn != _turn
-            || _drawnTilt != _tilt
-            || _drawnZoom != _zoom
-            || _drawnPan != _pan
+            || _drawnView != _view
             || _drawnSize != size
             || _drawnPosed != posed
 
@@ -3263,7 +3444,7 @@ public sealed class MonsterPortrait
     /// </remarks>
     private int Wanted(float side)
     {
-        bool moving = _held || _orbiting || (_playing && _tracks is { Ready: true }) || Ticking;
+        bool moving = _held || _orbiting || _flying || (_playing && _tracks is { Ready: true }) || Ticking;
         return moving && !_onCard ? _sizes.Moving(side) : _sizes.For(side);
     }
 
@@ -3422,10 +3603,8 @@ public sealed class MonsterPortrait
         canvas.Water = _drawnWater;
         _drawnClock = _clock;
         MonsterModel model = _model;
-        float turn = _turn;
-        float tilt = _tilt;
-        float zoom = _zoom;
-        Vector2 pan = _pan;
+        CameraPose view = _view;
+        canvas.Pose = view;
         Vector3 ink = Ink;
         float grey = Grey ? GreyFactor : float.NaN;
         IReadOnlyList<MaterialBlend>? blends = Blends();
@@ -3437,7 +3616,7 @@ public sealed class MonsterPortrait
         // AGAIN, NOT WHOLE, where nothing but the time moved since the canvas was last drawn whole:
         // only the triangles that read the clock are drawn - see MeshPicture.Again. Grey is laid on
         // after, so it is not part of what has to match.
-        var key = new ClockKey(model, turn, tilt, zoom, pan, ink, size, blends, shades, light);
+        var key = new ClockKey(model, view, ink, size, blends, shades, light);
         bool again = key == _clockKey;
         _clockKey = key;
         _clockDrawing = Task.Run(() =>
@@ -3446,7 +3625,7 @@ public sealed class MonsterPortrait
             {
                 GamePicture drawn = again && MeshPicture.Again(canvas, out GamePicture redrawn)
                     ? redrawn
-                    : MeshPicture.Of(model.Mesh, canvas, turn, tilt, ink, model.Skin, zoom, pan, model.Skins, blends, shades);
+                    : MeshPicture.Of(model.Mesh, canvas, ink: ink, skin: model.Skin, skins: model.Skins, blends: blends, shades: shades);
                 if (!drawn.Ready)
                 {
                     return new ClockPicture(drawn, model, size, drawing, "the model drew nothing");
@@ -3469,7 +3648,7 @@ public sealed class MonsterPortrait
     /// <summary>Everything a picture on the clock's canvas was drawn with but the time - see <see cref="ClockBehind"/>.</summary>
     /// <remarks>The lists compare by reference: the model's are made once, and the blends once per model.</remarks>
     private sealed record ClockKey(
-        MonsterModel Model, float Turn, float Tilt, float Zoom, Vector2 Pan, Vector3 Ink, int Size,
+        MonsterModel Model, CameraPose View, Vector3 Ink, int Size,
         IReadOnlyList<MaterialBlend>? Blends, IReadOnlyList<ShadeProgram?>? Shades, SceneLight? Light);
 
     /// <summary>A picture the clock asked for, and what it was asked for with - see <see cref="ClockLanded"/>.</summary>
@@ -3507,10 +3686,7 @@ public sealed class MonsterPortrait
         // rung, for as long as the reason stands. Recorded first, a failure holds still until
         // something moves, and the check in Finished then tries again on its own.
         _shown = _wanted;
-        _drawnTurn = _turn;
-        _drawnTilt = _tilt;
-        _drawnZoom = _zoom;
-        _drawnPan = _pan;
+        _drawnView = _view;
         _drawnSize = size;
         _drawnPosed = posed;
         _drawnFrame = _frame;
@@ -3560,12 +3736,13 @@ public sealed class MonsterPortrait
             // them into the image straight away - so nothing here outlives the next redraw.
             MeshPicture.Canvas canvas = Probing(Clocked(Canvas(size)), size);
             canvas.Light = _drawnLight;
+            canvas.Pose = _view;
             GamePicture drawn = moving
                 ? MeshPicture.Of(
-                    _model.Mesh, canvas, _posed, _posedNormals, _turn, _tilt, Ink,
-                    _model.Skin, _zoom, _pan, _model.Skins, Blends(), ShadesOf(_model))
+                    _model.Mesh, canvas, _posed, _posedNormals, ink: Ink,
+                    skin: _model.Skin, skins: _model.Skins, blends: Blends(), shades: ShadesOf(_model))
                 : MeshPicture.Of(
-                    _model.Mesh, canvas, _turn, _tilt, Ink, _model.Skin, _zoom, _pan, _model.Skins, Blends(), ShadesOf(_model));
+                    _model.Mesh, canvas, ink: Ink, skin: _model.Skin, skins: _model.Skins, blends: Blends(), shades: ShadesOf(_model));
 
             Probed(canvas);
 
@@ -3634,10 +3811,10 @@ public sealed class MonsterPortrait
         }
 
         var scene = new ModelScene(
-            _model.Mesh, _turn, _tilt, Ink, _model.Skin, _zoom, _pan, _model.Skins, Blends(),
+            _model.Mesh, 0f, 0f, Ink, _model.Skin, 1f, default, _model.Skins, Blends(),
             moving ? _posed : null, moving ? _posedNormals : null, _drawnLight, ShadesOf(_model), _clock, _drawnDust, card.Sharp, _drawnWater,
             PoseFrom: moving && _model.Actor is not null ? _model.ActorFirst : 0, PoseKey: moving ? _poseKey : 0,
-            Sways: _model.ShapeSways.Count > 0 ? _model.ShapeSways : null, Swayed: Swayed());
+            Sways: _model.ShapeSways.Count > 0 ? _model.ShapeSways : null, Swayed: Swayed(), Pose: _view);
         if (!gpu.Can(scene, out string why))
         {
             // A MATERIAL'S SHADER STILL COMPILING is the usual no: the picture is the processor's until
@@ -4328,6 +4505,7 @@ public sealed class MonsterPortrait
     private GamePicture Taken(MeshPicture.Canvas canvas)
     {
         canvas.Light = Lit();
+        canvas.Pose = _view;
         if (_tracks is { Ready: true } && _pose is not null)
         {
             _pose.Take(_tracks, _frame);
@@ -4337,11 +4515,11 @@ public sealed class MonsterPortrait
             _posedFor = (_model, _tracks, _frame);
             _poseKey = Interlocked.Increment(ref _poseKeys);
             return MeshPicture.Of(
-                _model.Mesh, Clocked(canvas), _posed, _posedNormals, _turn, _tilt, Ink,
-                _model.Skin, _zoom, _pan, _model.Skins, Blends(), ShadesOf(_model));
+                _model.Mesh, Clocked(canvas), _posed, _posedNormals, ink: Ink,
+                skin: _model.Skin, skins: _model.Skins, blends: Blends(), shades: ShadesOf(_model));
         }
 
-        return MeshPicture.Of(_model.Mesh, Clocked(canvas), _turn, _tilt, Ink, _model.Skin, _zoom, _pan, _model.Skins, Blends(), ShadesOf(_model));
+        return MeshPicture.Of(_model.Mesh, Clocked(canvas), ink: Ink, skin: _model.Skin, skins: _model.Skins, blends: Blends(), shades: ShadesOf(_model));
     }
 
     /// <summary>The canvas with the clock the picture is at - the export takes the instant on screen.</summary>

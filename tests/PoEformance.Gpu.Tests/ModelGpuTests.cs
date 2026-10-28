@@ -283,6 +283,52 @@ public class ModelGpuTests
         Same(new ModelScene(Ball(), Turn: 0.6f, Tilt: 0.4f, Light: light));
     }
 
+    /// <summary>
+    /// In perspective (CameraPose, v0.1.324) the card's clip and reversed depth put every vertex, texel and depth where the processor's
+    /// rays do - a box, a textured quad at a slant, the sun's light and shadow from each pixel's own way to the eye, and point lights.
+    /// </summary>
+    [GpuFact]
+    public void INPERSPECTIVEEveryPictureIsTheProcessors()
+    {
+        Same(new ModelScene(Box(), Pose: CameraPose.Fitted(Box(), 0.6f, 0.4f, parallel: false)));
+        SkinnedMesh quad = Layers(1);
+        // MAGNIFIED EVERYWHERE, so the card's level per block of pixels and the processor's per triangle are both the finest - in
+        // perspective they part where a texture is shrunk, the card's following the depth across a triangle.
+        Same(new ModelScene(quad, Skin: Checker(32, 8), Pose: new CameraPose(Vector3.Zero, 0.3f, 1.1f, 2.4f)));
+        var light = new SceneLight([], SceneLight.PointShape.Zero, null)
+        {
+            SunColour = new Vector3(1.6f, 1.4f, 1.2f),
+            SunDirection = Vector3.Normalize(new Vector3(1.1f, -1f, 0.6f)),
+            Exposure = 1.5f,
+        };
+        Same(
+            new ModelScene(
+                Stage(),
+                Skins: [Plain(new Vector4(0.7f, 0.6f, 0.4f, 1f)), Checker(64, 8, alpha: true)],
+                Blends: [MaterialBlend.Opaque, MaterialBlend.Cutout],
+                Light: light,
+                Pose: CameraPose.Fitted(Stage(), 0.3f, 0.2f, parallel: false)),
+            draws: 2);
+        PointLight[] points =
+        [
+            new(new Vector3(2.5f, 1.5f, 0f), new Vector3(3f, 1f, 0.5f), 2f, 0.5f, "red"),
+            new(new Vector3(-2f, 2f, -1.5f), new Vector3(0.5f, 1f, 3f), 3f, 0.2f, "blue"),
+        ];
+        Same(new ModelScene(Ball(), Light: new SceneLight(points, SceneLight.PointShape.Penumbra, null) { FlatAmbient = 0.05f }, Pose: CameraPose.Fitted(Ball(), 0.6f, 0.4f, parallel: false)));
+    }
+
+    /// <summary>
+    /// A quad running under the eye crosses the near plane: the card's hardware cuts it where the processor's rays stop, and the rest of
+    /// it is drawn alike - looked at nearly along it from a third of a unit over its middle.
+    /// </summary>
+    [GpuFact]
+    public void AQUADThroughTheNearPlaneIsCutAsTheProcessorCutsIt()
+    {
+        var pose = new CameraPose(Vector3.Zero, 0f, 1.3f, 0.5f);
+        Assert.True(pose.Eye.Z > -1f && pose.Eye.Z < 0f, $"the eye at {pose.Eye} should stand within the quad's reach");
+        Same(new ModelScene(Layers(1), Skin: Checker(32, 8), Pose: pose));
+    }
+
     /// <summary>The diffuse cube turned by the environment, brightened by the sun, shared with GI - and the colour grade after the exposure.</summary>
     [GpuFact]
     public void THECUBEAndTheGradeAreReadAsTheProcessorReadsThem()
@@ -317,7 +363,7 @@ public class ModelGpuTests
     /// </remarks>
     private static void Same(ModelScene scene, int draws = 1)
     {
-        var canvas = new MeshPicture.Canvas(Side) { Light = scene.Light };
+        var canvas = new MeshPicture.Canvas(Side) { Light = scene.Light, Pose = scene.Pose };
         GamePicture expected = MeshPicture.Of(
             scene.Mesh, canvas, scene.Turn, scene.Tilt, scene.Ink, scene.Skin, scene.Zoom, scene.Pan, scene.Skins, scene.Blends);
         using ModelGpu? gpu = ModelGpu.Warp(out string why);

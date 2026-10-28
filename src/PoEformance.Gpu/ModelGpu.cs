@@ -34,6 +34,7 @@ namespace PoEformance.Gpu;
 /// <param name="PoseKey">Which pose the arrays hold: one key on two draws of the same arrays says nothing moved between them, and nought that nothing is known - the pose is then sent whole every draw.</param>
 /// <param name="Sways">Per shape, which of <paramref name="Swayed"/> turns it, or -1 for none - a ship and its deck (MonsterModel.ShapeSways); null for none.</param>
 /// <param name="Swayed">This frame's sway of each group, row vectors in the mesh's frame (RoomSway.At) - applied in the vertex shader, the mesh's own vertices left as they are.</param>
+/// <param name="Pose">Where the picture is looked at from, or null for <paramref name="Turn"/>, <paramref name="Tilt"/>, <paramref name="Zoom"/> and <paramref name="Pan"/> - MeshPicture.Canvas.Pose.</param>
 public readonly record struct ModelScene(
     SkinnedMesh Mesh,
     float Turn = 0f,
@@ -55,7 +56,8 @@ public readonly record struct ModelScene(
     int PoseFrom = 0,
     long PoseKey = 0,
     IReadOnlyList<int>? Sways = null,
-    Matrix4x4[]? Swayed = null);
+    Matrix4x4[]? Swayed = null,
+    CameraPose? Pose = null);
 
 /// <summary>
 /// Pictures of models drawn on the graphics card - MeshPicture's pictures, at the card's speed.
@@ -224,13 +226,16 @@ public sealed partial class ModelGpu : IDisposable
         _mixes = device.CreateBlendState(new BlendDescription(Blend.One, Blend.InverseSourceAlpha, Blend.One, Blend.InverseSourceAlpha));
         _adds = device.CreateBlendState(new BlendDescription(Blend.One, Blend.One, Blend.One, Blend.One));
         _least = device.CreateBlendState(Least());
-        _writes = device.CreateDepthStencilState(new DepthStencilDescription(true, DepthWriteMask.All, ComparisonFunction.Less));
+        // THE DEPTH IS REVERSED, one nearest and nought furthest, so its float keeps its precision at every depth - which perspective
+        // needs, a near plane of a twentieth of a unit before a harbour ten thousand across (CameraPose.Near). "Nearer wins, the first
+        // drawn on a tie" is then greater, not less.
+        _writes = device.CreateDepthStencilState(new DepthStencilDescription(true, DepthWriteMask.All, ComparisonFunction.Greater));
 
         // ONCE PER SHAPE PER PIXEL - MeshPicture.Canvas.Stamps: a pixel passes where the stencil does not
         // hold this shape's number yet, and takes it; a pixel the depth test turns away, or the shader
         // discards, takes nothing, as the processor stamps only what it blends.
         _stamped = device.CreateDepthStencilState(new DepthStencilDescription(
-            true, false, ComparisonFunction.Less, true, 0xFF, 0xFF,
+            true, false, ComparisonFunction.Greater, true, 0xFF, 0xFF,
             StencilOperation.Keep, StencilOperation.Keep, StencilOperation.Replace, ComparisonFunction.NotEqual,
             StencilOperation.Keep, StencilOperation.Keep, StencilOperation.Replace, ComparisonFunction.NotEqual));
         _ignores = device.CreateDepthStencilState(new DepthStencilDescription(false, DepthWriteMask.Zero, ComparisonFunction.Always));
@@ -239,7 +244,7 @@ public sealed partial class ModelGpu : IDisposable
         // where a fragment is that crossing, once a pixel.
         _unseen = device.CreateBlendState(Unseen());
         _surfaced = device.CreateDepthStencilState(new DepthStencilDescription(
-            true, false, ComparisonFunction.LessEqual, true, 0xFF, 0xFF,
+            true, false, ComparisonFunction.GreaterEqual, true, 0xFF, 0xFF,
             StencilOperation.Keep, StencilOperation.Keep, StencilOperation.Replace, ComparisonFunction.NotEqual,
             StencilOperation.Keep, StencilOperation.Keep, StencilOperation.Replace, ComparisonFunction.NotEqual));
         _raster = device.CreateRasterizerState(new RasterizerDescription(CullMode.None, FillMode.Solid));
@@ -438,10 +443,12 @@ public sealed partial class ModelGpu : IDisposable
         _draws++;
         ID3D11DeviceContext context = _context;
         context.ClearRenderTargetView(target.AccumulatedTarget, new Color4(0f, 0f, 0f, 0f));
-        context.ClearDepthStencilView(target.Depth, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1f, 0);
+        context.ClearDepthStencilView(target.Depth, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 0f, 0);
 
         SkinnedMesh mesh = scene.Mesh;
-        MeshPicture.Camera camera = MeshPicture.Camera.Of(mesh, scene.Turn, scene.Tilt, scene.Zoom, scene.Pan);
+        MeshPicture.Camera camera = scene.Pose is { } looked
+            ? MeshPicture.Camera.Of(mesh, looked)
+            : MeshPicture.Camera.Of(mesh, scene.Turn, scene.Tilt, scene.Zoom, scene.Pan);
         if (mesh is null || !camera.Ready)
         {
             Resolved(target);
@@ -508,16 +515,26 @@ public sealed partial class ModelGpu : IDisposable
         // MESHPICTURE'S CAMERA ON THE CARD'S CLIP SPACE: a point the processor puts at pixel
         // (x, y) - its view x and y times the scale, plus the centre, in shares of the side - lands
         // at clip ((2x/side) - 1, 1 - (2y/side)), so a vertex is at the same place to the bit. Depth
-        // is the view's z, nearer less, laid into nought to one over four times the box's diagonal so
-        // a pose reaching past its box is not clipped.
+        // is the view's z, nearer MORE (see _writes), laid into nought to one over four times the box's
+        // diagonal - and as far again as the focus stands off the box's middle - so a pose reaching past its
+        // box is not clipped. IN PERSPECTIVE the same over w, the view's z: x and y as the processor
+        // divides them, and the depth the near plane's over the view's z - one at the near plane, nought
+        // at no end, the hardware cutting what lies nearer.
         float scale = camera.Scale;
         Vector2 centre = camera.Centre;
-        float reach = 4f * MathF.Max((mesh.Most - mesh.Least).Length(), 1e-3f);
-        var onto = new Matrix4x4(
-            2f * scale, 0f, 0f, 0f,
-            0f, -2f * scale, 0f, 0f,
-            0f, 0f, 0.5f / reach, 0f,
-            (2f * centre.X) - 1f, 1f - (2f * centre.Y), 0.5f, 1f);
+        float reach = (4f * MathF.Max((mesh.Most - mesh.Least).Length(), 1e-3f))
+            + (camera.Perspective ? 0f : MathF.Abs(Vector3.Transform((mesh.Least + mesh.Most) * 0.5f, camera.View).Z));
+        Matrix4x4 onto = camera.Perspective
+            ? new Matrix4x4(
+                2f * scale, 0f, 0f, 0f,
+                0f, -2f * scale, 0f, 0f,
+                (2f * centre.X) - 1f, 1f - (2f * centre.Y), 0f, 1f,
+                0f, 0f, camera.Near, 0f)
+            : new Matrix4x4(
+                2f * scale, 0f, 0f, 0f,
+                0f, -2f * scale, 0f, 0f,
+                0f, 0f, -0.5f / reach, 0f,
+                (2f * centre.X) - 1f, 1f - (2f * centre.Y), 0.5f, 1f);
         Vector3 ink = scene.Ink == default ? MeshPicture.UsualInk : scene.Ink;
         Matrix4x4 view = camera.View;
         float ambientLight = SceneLight.UsualFlatAmbient;
@@ -534,7 +551,8 @@ public sealed partial class ModelGpu : IDisposable
 
             // A POINT'S DEPTH IS THE VIEW'S THIRD COLUMN - ShadeProgram.Eye, as MeshPicture hands it.
             Eye = new Vector4(view.M13, view.M23, view.M33, view.M43),
-            Depth = new Vector4(reach, 0f, 0f, 0f),
+            Depth = new Vector4(reach, camera.Near, camera.Perspective ? 1f : 0f, 0f),
+            Viewer = camera.Perspective ? new Vector4(camera.Viewer, 1f) : default,
             Dust = new Vector4(scene.Dust ?? EnvironmentSettings.AssumedDust, 0f),
             Water = (scene.Water ?? WaterLook.EngineDefault).ColourRegister,
             Flow = (scene.Water ?? WaterLook.EngineDefault).FlowRegister with { W = lift },
@@ -1187,6 +1205,7 @@ public sealed partial class ModelGpu : IDisposable
         public Vector4 Shore;
         public Vector4 Swell;
         public Vector4 WaterLit;
+        public Vector4 Viewer;
     }
 
     private sealed record Compiled(
