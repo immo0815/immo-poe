@@ -305,6 +305,11 @@ public sealed record OverlaySettings(
     // CaptureReport. Zero is "not set" here too and resolves to F9 in the overlay.
     [property: JsonPropertyName("captureKey")] int CaptureKey = 0,
 
+    // The key that puts the overlay back on the screen when it stays away - in front again, its
+    // graphics device and every texture made anew. Zero is "not set" here too and resolves to F10 in
+    // the overlay.
+    [property: JsonPropertyName("restoreKey")] int RestoreKey = 0,
+
     // Which parts of a capture are NOT written, by the catalogue's keys - see CaptureParts. The
     // off ones rather than the on ones, and null until somebody unticks one, for the hidden tabs'
     // reason: a part added in a later build is then written without anybody asking, and an

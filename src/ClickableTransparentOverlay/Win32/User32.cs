@@ -1161,5 +1161,32 @@
 
         [DllImport(LibraryName, ExactSpelling = true)]
         public static extern int GetSystemMetrics(int smIndex);
+
+        // PoEformance: what the overlay needs to put itself back in front and to say where it stands - see NOTICE.md.
+
+        /// <summary>HWND_TOPMOST, for <see cref="SetWindowPos"/>.</summary>
+        public static readonly IntPtr TopMost = new IntPtr(-1);
+
+        /// <summary>SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_SHOWWINDOW.</summary>
+        public const uint OnTopFlags = 0x0001 | 0x0002 | 0x0010 | 0x0040;
+
+        [return: MarshalAs(UnmanagedType.Bool)]
+        [DllImport(LibraryName, ExactSpelling = true)]
+        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint flags);
+
+        [return: MarshalAs(UnmanagedType.Bool)]
+        [DllImport(LibraryName, ExactSpelling = true)]
+        public static extern bool IsWindowVisible(IntPtr hWnd);
+
+        [return: MarshalAs(UnmanagedType.Bool)]
+        [DllImport(LibraryName, ExactSpelling = true)]
+        public static extern bool GetWindowRect(IntPtr hWnd, out WindowRect rect);
+    }
+
+    // PoEformance: GetWindowRect's answer - see NOTICE.md.
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WindowRect
+    {
+        public int Left, Top, Right, Bottom;
     }
 }

@@ -3235,6 +3235,42 @@ public sealed class MonsterPortrait
         UnpackBehind();
     }
 
+    /// <summary>
+    /// Lets go of every handle after the overlay's graphics device was made anew, the model kept - see EntityOverlay.DeviceRebuilt.
+    /// </summary>
+    /// <remarks>
+    /// THE HANDLES ARE ALREADY GONE: the renderer forgot every texture with the old device, so nothing
+    /// here is released through it - giving a key back that it no longer holds does nothing. The picture
+    /// is drawn again on the next frame (the drawn size no longer matches), the side buttons upload their
+    /// icons again as they are drawn, and the export's preview pair is handed over again from the cells
+    /// it was made of. The card's target belongs to the old device and goes with it.
+    /// </remarks>
+    public void DeviceLost()
+    {
+        _texture = IntPtr.Zero;
+        _key = string.Empty;
+        for (int which = 0; which < Sides; which++)
+        {
+            _side[which] = IntPtr.Zero;
+            _sidePixels[which] = 0;
+        }
+
+        _cardTarget?.Dispose();
+        _cardTarget = null;
+        _cardShown = IntPtr.Zero;
+        _onCard = false;
+        _drawnSize = 0;
+
+        if (_shotColourKey.Length > 0 && _shotColourCell.Length > 0 && _shotGreyCell.Length > 0)
+        {
+            Shown(_shotColourCell, _shotGreyCell);
+        }
+        else
+        {
+            DropShots();
+        }
+    }
+
     /// <summary>Drops the skeleton and whatever animation was loaded or playing on it.</summary>
     private void Rest()
     {

@@ -106,8 +106,11 @@ internal static class Program
             Console.WriteLine($"attach  pid {live.ProcessId}, module 0x{live.ModuleBase:X} ({live.ModuleSize / (1024 * 1024)} MB)");
             WarnAboutOtherInstances();
 
-            // The overlay sizes itself to this window, so a wrong viewport is impossible.
+            // The overlay sizes itself to this window, so a wrong viewport is impossible. Followed rather
+            // than held, so the keys and the overlay move with the game should it make its window anew -
+            // see GameWindowTracker.Game.
             gameWindow = game.MainWindowHandle;
+            PoEformance.Overlay.GameWindowTracker.Follow(gameWindow);
 
             if (options.RecordPath is not null)
             {
@@ -514,7 +517,7 @@ internal static class Program
             // this replaces never had an overlay, so the coupling was an accident of where
             // the code happened to sit, not a design.
             RunRulesWithoutOverlay(
-                reader, SchemaJson.Load(schemaPath), gameStatesAddress, gameWindow,
+                reader, SchemaJson.Load(schemaPath), gameStatesAddress,
                 autoFlask, ruleEngine, ruleHistory, buffWatch, groundWatch, overlayHandle,
                 configWindow);
         }
@@ -2201,7 +2204,7 @@ internal static class Program
     /// cosmetics.
     /// </remarks>
     private static PoEformance.Features.SnapshotFeed StartRulesFeed(
-        IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic, IntPtr gameWindow,
+        IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic,
         PoEformance.Features.AutoFlask autoFlask,
         PoEformance.Features.RuleEngine ruleEngine,
         PoEformance.Features.RuleHistory ruleHistory,
@@ -2217,7 +2220,7 @@ internal static class Program
 
                 PoEformance.Features.FlaskTick tick = autoFlask.Evaluate(
                     snapshot.PlayerVitals,
-                    InputSender.IsForeground(gameWindow),
+                    InputSender.IsForeground(PoEformance.Overlay.GameWindowTracker.Game),
                     Environment.TickCount64,
                     snapshot.PlayerBuffs,
                     snapshot.FlaskBelt,
@@ -2229,9 +2232,9 @@ internal static class Program
 
                 PoEformance.Features.PointerView? pointer = null;
                 PoEformance.Overlay.ClientRect client =
-                    PoEformance.Overlay.GameWindowTracker.TryGet(gameWindow);
+                    PoEformance.Overlay.GameWindowTracker.TryGet(PoEformance.Overlay.GameWindowTracker.Game);
                 if (client.IsValid
-                    && PoEformance.Overlay.GameWindowTracker.CursorInClient(gameWindow) is (float cx, float cy))
+                    && PoEformance.Overlay.GameWindowTracker.CursorInClient(PoEformance.Overlay.GameWindowTracker.Game) is (float cx, float cy))
                 {
                     pointer = new PoEformance.Features.PointerView(cx, cy, client.Width, client.Height);
                 }
@@ -2242,7 +2245,7 @@ internal static class Program
                 Perform(ruleEngine.Evaluate(
                     PoEformance.Features.RuleState.From(
                         snapshot,
-                        InputSender.IsForeground(gameWindow),
+                        InputSender.IsForeground(PoEformance.Overlay.GameWindowTracker.Game),
                         ruleHistory,
                         Environment.TickCount64,
                         pointer),
@@ -2262,7 +2265,7 @@ internal static class Program
     /// would end the session with a lie on screen.
     /// </remarks>
     private static void RunRulesWithoutOverlay(
-        IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic, IntPtr gameWindow,
+        IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic,
         PoEformance.Features.AutoFlask autoFlask,
         PoEformance.Features.RuleEngine ruleEngine,
         PoEformance.Features.RuleHistory ruleHistory,
@@ -2272,7 +2275,7 @@ internal static class Program
         Thread? configWindow)
     {
         using PoEformance.Features.SnapshotFeed feed = StartRulesFeed(
-            reader, schema, gameStatesStatic, gameWindow,
+            reader, schema, gameStatesStatic,
             autoFlask, ruleEngine, ruleHistory, buffWatch, groundWatch);
         handle.Feed = feed;
 
@@ -2321,7 +2324,7 @@ internal static class Program
         // not looked at the player yet". The stand-in runs the same decisions the full loop
         // will, and is replaced by it in the moment the full loop exists.
         PoEformance.Features.SnapshotFeed earlyRules = StartRulesFeed(
-            reader, schema, gameStatesStatic, gameWindow,
+            reader, schema, gameStatesStatic,
             autoFlask, ruleEngine, ruleHistory, buffWatch, groundWatch);
         handle.Feed = earlyRules;
         handle.Stage = "loading landmarks";
@@ -2963,7 +2966,7 @@ internal static class Program
                 // word "disabled", which is the answer to the question actually asked.
                 PoEformance.Features.FlaskTick tick = autoFlask.Evaluate(
                     snapshot.PlayerVitals,
-                    InputSender.IsForeground(gameWindow),
+                    InputSender.IsForeground(PoEformance.Overlay.GameWindowTracker.Game),
                     Environment.TickCount64,
                     snapshot.PlayerBuffs,
                     snapshot.FlaskBelt,
@@ -2983,7 +2986,7 @@ internal static class Program
                 PoEformance.Features.EvasionTick evasion = evasionPlanner.Evaluate(
                     snapshot,
                     animationNames,
-                    InputSender.IsForeground(gameWindow),
+                    InputSender.IsForeground(PoEformance.Overlay.GameWindowTracker.Game),
                     Environment.TickCount64);
 
                 if (evasion.Dodge)
@@ -3009,9 +3012,9 @@ internal static class Program
                 // belongs at the composition root, and it keeps every cursor rule testable.
                 PoEformance.Features.PointerView? pointer = null;
                 PoEformance.Overlay.ClientRect client =
-                    PoEformance.Overlay.GameWindowTracker.TryGet(gameWindow);
+                    PoEformance.Overlay.GameWindowTracker.TryGet(PoEformance.Overlay.GameWindowTracker.Game);
                 if (client.IsValid
-                    && PoEformance.Overlay.GameWindowTracker.CursorInClient(gameWindow) is (float cx, float cy))
+                    && PoEformance.Overlay.GameWindowTracker.CursorInClient(PoEformance.Overlay.GameWindowTracker.Game) is (float cx, float cy))
                 {
                     pointer = new PoEformance.Features.PointerView(cx, cy, client.Width, client.Height);
                 }
@@ -3025,7 +3028,7 @@ internal static class Program
                 PoEformance.Features.RuleTick rules = ruleEngine.Evaluate(
                     PoEformance.Features.RuleState.From(
                         snapshot,
-                        InputSender.IsForeground(gameWindow),
+                        InputSender.IsForeground(PoEformance.Overlay.GameWindowTracker.Game),
                         ruleHistory,
                         Environment.TickCount64,
                         pointer),
@@ -3037,7 +3040,7 @@ internal static class Program
                     aim =>
                     {
                         PoEformance.Overlay.ClientRect at =
-                            PoEformance.Overlay.GameWindowTracker.TryGet(gameWindow);
+                            PoEformance.Overlay.GameWindowTracker.TryGet(PoEformance.Overlay.GameWindowTracker.Game);
                         if (!at.IsValid)
                         {
                             return null;

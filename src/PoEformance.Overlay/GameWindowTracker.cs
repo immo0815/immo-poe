@@ -61,6 +61,143 @@ public static partial class GameWindowTracker
     [LibraryImport("user32.dll")]
     private static partial uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
 
+    private static readonly Lock Gate = new();
+    private static IntPtr _followed;
+    private static uint _process;
+    private static long _nextLook;
+    private static IntPtr _saidGone;
+
+    /// <summary>
+    /// Starts following the game's window: <see cref="Game"/> answers with it, and with the game's
+    /// next window should this one go. Zero follows nothing (a replay).
+    /// </summary>
+    public static void Follow(IntPtr window)
+    {
+        lock (Gate)
+        {
+            if (window == _followed)
+            {
+                return;
+            }
+
+            _followed = window;
+            _process = 0;
+            if (window != IntPtr.Zero)
+            {
+                GetWindowThreadProcessId(window, out _process);
+            }
+        }
+    }
+
+    /// <summary>The process the followed window belongs to, or zero.</summary>
+    public static uint GameProcess => Volatile.Read(ref _process);
+
+    /// <summary>
+    /// The game's window as it stands: the one followed while it is still a window, else the same
+    /// process's main window once it has one. Any thread.
+    /// </summary>
+    /// <remarks>
+    /// READ ONCE AT ATTACH, A HANDLE WAS FOR LIFE. Were the game ever to make its window anew, the
+    /// handle read at attach would name nothing, the drawing gate would never see the game in front
+    /// again, and the overlay would stay empty until the tool was restarted - which is how the
+    /// overlay staying away after an Alt+Tab looked (said from the live client, v0.1.336). Whether
+    /// the game does is not known; the log says so if it happens. GameHelper2 holds its
+    /// Process.MainWindowHandle the same way and checks only that it is not zero.
+    ///
+    /// CHEAP WHILE IT HOLDS: one IsWindow a call. The search for a new one - a Process for the id,
+    /// its MainWindowHandle - runs at most once a second, and only while the old one is gone.
+    /// </remarks>
+    public static IntPtr Game
+    {
+        get
+        {
+            IntPtr window = Volatile.Read(ref _followed);
+            return window == IntPtr.Zero || IsWindow(window) ? window : Refind(window);
+        }
+    }
+
+    private static IntPtr Refind(IntPtr gone)
+    {
+        lock (Gate)
+        {
+            long now = Environment.TickCount64;
+            if (_followed != gone || now < _nextLook)
+            {
+                return _followed;
+            }
+
+            _nextLook = now + 1000;
+            IntPtr found = IntPtr.Zero;
+            try
+            {
+                using var process = System.Diagnostics.Process.GetProcessById((int)_process);
+                found = process.MainWindowHandle;
+            }
+            catch (ArgumentException)
+            {
+                // The game has exited.
+            }
+            catch (InvalidOperationException)
+            {
+                // The same, seen from the other side of the process's lifetime.
+            }
+
+            if (found == IntPtr.Zero || found == gone)
+            {
+                if (_saidGone != gone)
+                {
+                    _saidGone = gone;
+                    OverlayLog.Write($"the game's window 0x{gone:X} is gone and process {_process} shows no other yet");
+                }
+
+                return gone;
+            }
+
+            OverlayLog.Write($"the game's window 0x{gone:X} is gone; following its process's new window 0x{found:X}");
+            Volatile.Write(ref _followed, found);
+            return found;
+        }
+    }
+
+    /// <summary>Who is in front: the game, a window of this tool, or something else.</summary>
+    public enum Front
+    {
+        /// <summary>Something else - another program, or nothing.</summary>
+        Elsewhere,
+
+        /// <summary>The followed window of the game.</summary>
+        Game,
+
+        /// <summary>The game's process, through a window other than the one followed.</summary>
+        GameElsewhere,
+
+        /// <summary>A window of this process - the overlay itself, the config window.</summary>
+        Own,
+    }
+
+    /// <summary>
+    /// Who is in front, from ONE look at the foreground window - what the drawing gate and the log both ask.
+    /// </summary>
+    public static (Front Who, IntPtr Window, uint Process) InFront(IntPtr game)
+    {
+        IntPtr foreground = GetForegroundWindow();
+        if (foreground == IntPtr.Zero)
+        {
+            return (Front.Elsewhere, foreground, 0);
+        }
+
+        if (foreground == game)
+        {
+            return (Front.Game, foreground, GameProcess);
+        }
+
+        GetWindowThreadProcessId(foreground, out uint processId);
+        Front who = processId == (uint)Environment.ProcessId ? Front.Own
+            : processId != 0 && processId == GameProcess ? Front.GameElsewhere
+            : Front.Elsewhere;
+        return (who, foreground, processId);
+    }
+
     /// <summary>True when the game is the window the user is actually looking at.</summary>
     /// <remarks>
     /// This is the KEYSTROKE test, and it is deliberately strict: synthesised input lands

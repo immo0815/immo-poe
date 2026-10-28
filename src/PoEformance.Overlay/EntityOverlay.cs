@@ -32,7 +32,8 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     // otherwise shadow the library's Overlay type.
 
     private readonly Func<UiScale, WorldSnapshot> _snapshotSource;
-    private readonly IntPtr _gameWindow;
+    // The game's window as GameWindowTracker follows it, taken again every frame - see TrackGameWindow.
+    private IntPtr _gameWindow;
     private readonly int _cull;
     private WorldSnapshot _snapshot = WorldSnapshot.Empty;
 
@@ -404,6 +405,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         GroundLabelTransparency = settings.GroundLabelTransparencyOrDefault;
         GroundLabelFade = settings.GroundLabelFade;
         ScreenshotKey = settings.ScreenshotKey;
+        RestoreKey = settings.RestoreKey;
         _capture.Key = settings.CaptureKey;
         _capture.Off = settings.CaptureOffOrEmpty;
         KeepOut = settings.MapKeepOutOrDefault;
@@ -524,6 +526,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             GroundLabelTransparency = GroundLabelTransparency == 0.8f ? null : GroundLabelTransparency,
             GroundLabelFade = GroundLabelFade,
             ScreenshotKey = ScreenshotKey,
+            RestoreKey = RestoreKey,
             CaptureKey = _capture.Key,
 
             // Null once every part is on again, so an untouched file gains no key - the hidden tabs' bargain.
@@ -2172,6 +2175,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             Keys = () =>
             {
                 DrawScreenshotControls();
+                DrawRestoreControls();
                 _capture.DrawControls();
             },
         };
@@ -2490,6 +2494,10 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         _gameWindow = gameWindow;
         _cull = cull;
 
+        // FOLLOWED RATHER THAN HELD: should the game make its window anew, the gate and the tracking
+        // move to the new one - see GameWindowTracker.Game.
+        GameWindowTracker.Follow(gameWindow);
+
         // The layer never touches the renderer directly - it is handed the two operations
         // it needs, which is what keeps its projection maths testable away from a GPU.
         _terrain = new TerrainLayer(Upload, key => RemoveImage(key));
@@ -2536,6 +2544,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         // panes and one part, and the books arrive in any order.
         _capture.Offer(CaptureParts.ModelProbe, ProbeReports);
         _capture.OfferPanes(PaneReports);
+        _capture.Offer(CaptureParts.OverlayLog, OverlayLog.Text);
         _capture.HuntLight = CaptureLightHunt;
 
         // The entry card takes its plates from the same cache the markers use, so a picture
@@ -2879,6 +2888,248 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         }
 
         OverlayLayout.Hint("Copies the focused window of the tool to the clipboard. With Ctrl: the whole overlay.");
+    }
+
+    /// <summary>F10 - what the restore key is until somebody chooses another.</summary>
+    private const int DefaultRestoreKey = 0x79;
+
+    /// <summary>The restore key as a virtual-key code; zero means "not chosen" and reads as F10.</summary>
+    public int RestoreKey { get; set; }
+
+    private int RestoreKeyOrDefault => RestoreKey == 0 ? DefaultRestoreKey : RestoreKey;
+
+    private bool _restoreWasDown;
+    private bool _restoreListening;
+    private long _restoredUntil;
+
+    /// <summary>
+    /// The restore key: everything that puts the overlay back on the screen, whatever kept it away.
+    /// </summary>
+    /// <remarks>
+    /// ASKED FOR FROM THE LIVE CLIENT (v0.1.336): after an Alt+Tab the overlay at times stayed away for
+    /// good with the game in front, and only ending the tool brought it back. What keeps it away is not
+    /// yet known - a lost graphics device, the window pushed out of the front, the game's window made
+    /// anew - so the key undoes every one of them at once: the window put on top, shown and laid over
+    /// the game again, its styles laid on again, and the device, the swap chain and every texture made
+    /// anew (Overlay.Restore). What stood before is written to the log, so the next time it happens the
+    /// log says which of them it was.
+    ///
+    /// BEFORE THE DRAWING GATE, so it works however the gate is wrong, and only while the game or the
+    /// tool is in front - the key is observed, never swallowed, and pressed in another program it is that
+    /// program's. Not while a text box of the tool wants the key.
+    /// </remarks>
+    private void PollRestore(GameWindowTracker.Front who, long now)
+    {
+        bool down = !_restoreListening && ScreenInput.IsDown(RestoreKeyOrDefault);
+        bool pressed = down && !_restoreWasDown;
+        _restoreWasDown = down;
+        if (!pressed
+            || who == GameWindowTracker.Front.Elsewhere
+            || (who == GameWindowTracker.Front.Own && ImGui.GetIO().WantTextInput))
+        {
+            return;
+        }
+
+        OverlayLog.Write(
+            $"the restore key, {who} in front: {WindowState()}; the game's window 0x{_gameWindow:X}, "
+            + $"its client {GameWindowTracker.TryGet(_gameWindow)}, the overlay laid at {_tracked}");
+
+        // Laid over the game again on the next frame, whatever it was laid at before.
+        _tracked = default;
+        Restore("asked for by the restore key");
+        _restoredUntil = now + 2500;
+    }
+
+    /// <summary>Says the restore key did something, for a moment - a key that silently does nothing reads as broken.</summary>
+    private void DrawRestoredToast(long now)
+    {
+        if (now < _restoredUntil)
+        {
+            ImGui.GetForegroundDrawList().AddText(
+                new Vector2(12, 32), 0xFFFFFFFFu, $"Overlay restored ({(ConsoleKey)RestoreKeyOrDefault})");
+        }
+    }
+
+    /// <summary>The row on Appearance → Keys that shows and rebinds the restore key.</summary>
+    private void DrawRestoreControls()
+    {
+        OverlayLayout.Group("restore the overlay");
+
+        if (_restoreListening)
+        {
+            ImGui.Button("press a key… (Esc cancels)##restorekey");
+            if (CaptureKey.PressedKey() is int key and > 0)
+            {
+                if (key != 0x1B)
+                {
+                    RestoreKey = key;
+                    SettingsChanged?.Invoke();
+                }
+
+                _restoreListening = false;
+            }
+        }
+        else if (ImGui.Button($"{(ConsoleKey)RestoreKeyOrDefault}##restorekey"))
+        {
+            _restoreListening = true;
+        }
+
+        OverlayLayout.Hint(
+            "Brings the overlay back when it stays away with the game in front: puts it on top again and makes its "
+            + $"graphics device anew. What stood before is written to {OverlayLog.FileName} beside the tool.");
+    }
+
+    private bool _frontKnown;
+    private bool _wasShown;
+    private long _frontSince;
+    private IntPtr _saidOtherWindow;
+
+    /// <summary>
+    /// Writes down the game leaving the front and coming back, and puts the overlay on top again as it comes back.
+    /// </summary>
+    /// <remarks>
+    /// ONE LINE A CHANGE, never one a frame. Coming back, the line holds the overlay window as it stands -
+    /// shown or not, on top or not, what Present last said - which is what tells the readings of an
+    /// overlay that stayed away apart, beside how long the game was away. Leaving, it names what came in
+    /// front by its process's name.
+    ///
+    /// ON TOP AGAIN AS THE GAME COMES BACK: whatever was in front may have taken the top of the
+    /// always-on-top windows, and putting this one back there costs one SetWindowPos a return.
+    /// </remarks>
+    private void Watched(GameWindowTracker.Front who, IntPtr front, uint process, long now)
+    {
+        bool shown = who != GameWindowTracker.Front.Elsewhere;
+        if (!_frontKnown)
+        {
+            _frontKnown = true;
+            _wasShown = shown;
+            _frontSince = now;
+            OverlayLog.Write(
+                $"overlay up, following the game's window 0x{_gameWindow:X} of process {GameWindowTracker.GameProcess}; {WindowState()}");
+            return;
+        }
+
+        if (who == GameWindowTracker.Front.GameElsewhere && front != _saidOtherWindow)
+        {
+            _saidOtherWindow = front;
+            OverlayLog.Write(
+                $"the game's process is in front through its window 0x{front:X}, not the one followed (0x{_gameWindow:X}); drawn all the same");
+        }
+
+        if (shown == _wasShown)
+        {
+            return;
+        }
+
+        string lasted = Lasted(now - _frontSince);
+        _wasShown = shown;
+        _frontSince = now;
+        if (!shown)
+        {
+            OverlayLog.Write($"the game left the front for {Named(front, process)} after {lasted}");
+            return;
+        }
+
+        KeepOnTop();
+        OverlayLog.Write(
+            $"the game is back in front after {lasted} away; {WindowState()}; "
+            + $"the game's client {GameWindowTracker.TryGet(_gameWindow)}, the overlay laid at {_tracked}");
+    }
+
+    /// <summary>A window by its process's name - only as the front changes, never per frame.</summary>
+    private static string Named(IntPtr window, uint process)
+    {
+        if (window == IntPtr.Zero)
+        {
+            return "no window";
+        }
+
+        try
+        {
+            using var named = System.Diagnostics.Process.GetProcessById((int)process);
+            return $"{named.ProcessName} (window 0x{window:X})";
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            return $"process {process} (window 0x{window:X})";
+        }
+    }
+
+    private static string Lasted(long ms)
+        => ms < 60_000
+            ? (ms / 1000.0).ToString("0.0 's'", System.Globalization.CultureInfo.InvariantCulture)
+            : $"{ms / 60_000} min {ms / 1000 % 60} s";
+
+    /// <summary>How long the frames may stand still before the watchdog writes it down.</summary>
+    private const int StallMs = 3000;
+
+    /// <summary>
+    /// The watchdog: writes down the render thread standing still, with what it was doing, and when it runs again.
+    /// </summary>
+    /// <remarks>
+    /// ON A THREAD OF ITS OWN, since a thread that stopped cannot say so. The overlay staying away for good
+    /// is also what a render thread that never comes back looks like - its last frame empty, drawn while
+    /// the game was away - and this is the one place that can tell that apart from a frame drawn into
+    /// nothing. A second a look: the frames counter and the stage are two reads.
+    /// </remarks>
+    private void WatchFrames()
+    {
+        long frames = FramesDone;
+        long since = Environment.TickCount64;
+        bool stalled = false;
+        while (true)
+        {
+            Thread.Sleep(1000);
+            long now = Environment.TickCount64;
+            long done = FramesDone;
+            if (done != frames)
+            {
+                if (stalled)
+                {
+                    OverlayLog.Write($"the overlay's frames run again after {Lasted(now - since)}");
+                    stalled = false;
+                }
+
+                frames = done;
+                since = now;
+            }
+            else if (!stalled && now - since >= StallMs)
+            {
+                stalled = true;
+                OverlayLog.Write($"the overlay has finished no frame for {Lasted(now - since)}, stopped at: {Stage}; {WindowState()}");
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    protected override void Report(string line) => OverlayLog.Write(line);
+
+    /// <summary>Every model pane made, so each can let go of its handles when the device is made anew.</summary>
+    private readonly List<MonsterPortrait> _portraits = [];
+
+    private MonsterPortrait Kept(MonsterPortrait portrait)
+    {
+        _portraits.Add(portrait);
+        return portrait;
+    }
+
+    /// <summary>
+    /// Every texture handle went with the old graphics device: each holder forgets its own and makes them again as it next draws.
+    /// </summary>
+    /// <remarks>
+    /// The panes first, since their card targets were made by the drawing the card is about to let go.
+    /// </remarks>
+    protected override void DeviceRebuilt()
+    {
+        foreach (MonsterPortrait portrait in _portraits)
+        {
+            portrait.DeviceLost();
+        }
+
+        _card.Reset();
+        _icons.Forget();
+        _terrain.DeviceLost();
+        _shots.DeviceLost();
     }
 
     /// <summary>
@@ -3640,11 +3891,11 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         // grows, so drawing it at the book's 1024 would rasterise a megapixel to show a
         // thumbnail; and sharing the book's instance would reload the model - six to sixteen
         // megabytes - on every switch between the two tabs. See MonsterPortrait.Circling.
-        window.Model = new MonsterPortrait(
+        window.Model = Kept(new MonsterPortrait(
             readFile, Upload, key => RemoveImage(key), PictureLadder.Smallest, unpack)
         {
             Written = _icons.SheetChanged,
-        };
+        });
 
         _tools.Add(
             90, "entities", "Entity Browser", () => window.DrawTab(_snapshot, _snapshot.Player),
@@ -3694,14 +3945,14 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             // without it the book simply shows no model, which is the ordinary case on a machine
             // that has the tool and not the game. The unpacker is the install's own Oodle, which
             // is what an animation's keyframes come out of the skeleton file through.
-            Model = new MonsterPortrait(readFile, Upload, key => RemoveImage(key), modelSize, unpack)
+            Model = Kept(new MonsterPortrait(readFile, Upload, key => RemoveImage(key), modelSize, unpack)
             {
                 Book = "monster",
                 SceneLit = lighting.For,
                 SceneDust = lighting.Dust,
                 SceneWater = lighting.Water,
                 Sun = lighting,
-            },
+            }),
 
             // READ WHEN ASKED, not captured: the tile book is attached after this one, and the choice
             // is whatever that book is open at when the stage is picked.
@@ -3760,11 +4011,11 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         var window = new ItemBookWindow(() => Items)
         {
             Changed = () => SettingsChanged?.Invoke(),
-            Model = new MonsterPortrait(readFile, Upload, key => RemoveImage(key), modelSize, unpack)
+            Model = Kept(new MonsterPortrait(readFile, Upload, key => RemoveImage(key), modelSize, unpack)
             {
                 Book = "item",
                 Shaded = true,
-            },
+            }),
         };
 
         window.Show(columns, rail, columnWidths, panes);
@@ -3801,13 +4052,13 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         var window = new EffectBookWindow(() => Effects)
         {
             Changed = () => SettingsChanged?.Invoke(),
-            Model = new MonsterPortrait(readFile, Upload, key => RemoveImage(key), modelSize, unpack)
+            Model = Kept(new MonsterPortrait(readFile, Upload, key => RemoveImage(key), modelSize, unpack)
             {
                 Book = "effect",
                 ShowShaders = true,
                 Translucent = true,
                 Shaded = true,
-            },
+            }),
         };
 
         window.Show(columns, rail, columnWidths, panes);
@@ -3900,7 +4151,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             Read = readFile,
             Ghost = ghost => _roomGhost = ghost,
             Here = PlayerTile,
-            Model = new MonsterPortrait(readFile, Upload, key => RemoveImage(key), modelSize)
+            Model = Kept(new MonsterPortrait(readFile, Upload, key => RemoveImage(key), modelSize)
             {
                 Book = "tile",
                 Load = (read, _, key, _, progress) => TileBookWindow.Load(read, key, () => _snapshot.Terrain as TerrainGrid, progress, () => _snapshot.Entities, Shot),
@@ -3920,7 +4171,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 SceneDust = lighting.Dust,
                 SceneWater = lighting.Water,
                 Sun = lighting,
-            },
+            }),
         };
 
         window.Show(columns, rail, columnWidths, panes);
@@ -4012,6 +4263,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     protected override Task PostInitialized()
     {
         VSync = true;
+        new Thread(WatchFrames) { IsBackground = true, Name = "overlay watchdog" }.Start();
 
         // The palette and the font both land on the first frame instead of here, so there is
         // ONE path that puts the interface on rather than one for start-up and another for a
@@ -4488,6 +4740,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         catch (Exception exception) when (_reported.Add(exception.Message))
         {
             Console.Error.WriteLine($"overlay frame failed: {exception}");
+            OverlayLog.Write($"a frame failed: {exception}");
         }
     }
 
@@ -4569,7 +4822,16 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         // so the next frame draws nothing, so there is nothing left to click: the window
         // disappears under the cursor and neither dragging nor a button ever registers.
         // Keystrokes are a different question and stay strict - see InputSender.
-        if (!GameWindowTracker.IsForeground(_gameWindow) && !GameWindowTracker.IsOwnProcessForeground())
+        //
+        // THE GAME'S PROCESS COUNTS through any of its windows, not only the one followed: a window of
+        // the game other than that one in front had the overlay stay empty with the game plainly in
+        // front - one of the readings of the overlay staying away after an Alt+Tab, written to the log
+        // when it happens (see Watched).
+        (GameWindowTracker.Front who, IntPtr front, uint frontProcess) = GameWindowTracker.InFront(_gameWindow);
+        long tick = Environment.TickCount64;
+        Watched(who, front, frontProcess, tick);
+        PollRestore(who, tick);
+        if (who == GameWindowTracker.Front.Elsewhere)
         {
             return;
         }
@@ -4582,6 +4844,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         }
 
         PollScreenshot(Environment.TickCount64);
+        DrawRestoredToast(tick);
 
         // The planner's Run key, behind the foreground gate above so a press meant for another
         // application never reaches it, and inert unless there is a chain to plan.
@@ -4947,6 +5210,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// </remarks>
     private void TrackGameWindow()
     {
+        _gameWindow = GameWindowTracker.Game;
         ClientRect rect = GameWindowTracker.TryGet(_gameWindow);
         if (!rect.IsValid || rect == _tracked)
         {
