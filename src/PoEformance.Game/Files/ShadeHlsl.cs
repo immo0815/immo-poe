@@ -751,8 +751,9 @@ public static partial class ShadeHlsl
                 return (mixed.x - 0.4) * 3.0;
             }
 
-            // ShoreField.At: the four nearest texels' centres of the room's shore, held at the box's edges.
-            void ShadeShoreAt(float2 place, float4 box, out float shore, out float ocean)
+            // ShoreField.At and GroundAt: the four nearest texels' centres of the room's shore, held at the box's edges - the shore's
+            // distance, the distance out to sea and the ground's shore's distance (ShoreField.CardTexels).
+            float3 ShadeShoreAll(float2 place, float4 box)
             {
                 uint width;
                 uint height;
@@ -765,13 +766,18 @@ public static partial class ShadeHlsl
                 int y1 = min(y0 + 1, (int)height - 1);
                 float fx = sx - x0;
                 float fy = sy - y0;
-                float2 a = ShadeShore.Load(int3(x0, y0, 0)).xy;
-                float2 b = ShadeShore.Load(int3(x1, y0, 0)).xy;
-                float2 c = ShadeShore.Load(int3(x0, y1, 0)).xy;
-                float2 d = ShadeShore.Load(int3(x1, y1, 0)).xy;
-                float2 top = a + ((b - a) * fx);
-                float2 bottom = c + ((d - c) * fx);
-                float2 mixed = top + ((bottom - top) * fy);
+                float3 a = ShadeShore.Load(int3(x0, y0, 0)).xyz;
+                float3 b = ShadeShore.Load(int3(x1, y0, 0)).xyz;
+                float3 c = ShadeShore.Load(int3(x0, y1, 0)).xyz;
+                float3 d = ShadeShore.Load(int3(x1, y1, 0)).xyz;
+                float3 top = a + ((b - a) * fx);
+                float3 bottom = c + ((d - c) * fx);
+                return top + ((bottom - top) * fy);
+            }
+
+            void ShadeShoreAt(float2 place, float4 box, out float shore, out float ocean)
+            {
+                float3 mixed = ShadeShoreAll(place, box);
                 shore = mixed.x;
                 ocean = mixed.y;
             }

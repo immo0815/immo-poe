@@ -178,37 +178,30 @@ public static partial class ShadeHlsl
         }
 
         // GetShoreFieldData: the shore's distance and the distance out to sea, world units, each with its rise along x and y -
-        // central differences a texel apart.
-        void ShadeFieldShore(float2 place, float4 box, out float3 shoreDist, out float3 oceanDist)
+        // central differences a texel apart; and the ground's shore's distance alike (ShoreField.GroundTexels).
+        void ShadeFieldShore(float2 place, float4 box, out float3 shoreDist, out float3 oceanDist, out float3 groundDist)
         {
             float eps = box.z;
-            float s0;
-            float o0;
-            float sxp;
-            float oxp;
-            float sxn;
-            float oxn;
-            float syp;
-            float oyp;
-            float syn;
-            float oyn;
-            ShadeShoreAt(place, box, s0, o0);
-            ShadeShoreAt(place + float2(eps, 0.0), box, sxp, oxp);
-            ShadeShoreAt(place - float2(eps, 0.0), box, sxn, oxn);
-            ShadeShoreAt(place + float2(0.0, eps), box, syp, oyp);
-            ShadeShoreAt(place - float2(0.0, eps), box, syn, oyn);
+            float3 centre = ShadeShoreAll(place, box);
+            float3 xp = ShadeShoreAll(place + float2(eps, 0.0), box);
+            float3 xn = ShadeShoreAll(place - float2(eps, 0.0), box);
+            float3 yp = ShadeShoreAll(place + float2(0.0, eps), box);
+            float3 yn = ShadeShoreAll(place - float2(0.0, eps), box);
             float inv = 0.5 / eps;
             float reach = {{Number(ShoreField.Reach)}};
-            shoreDist = float3(s0, (sxp - sxn) * inv, (syp - syn) * inv) * reach;
-            oceanDist = float3(1.0 - o0, -(oxp - oxn) * inv, -(oyp - oyn) * inv) * reach;
+            shoreDist = float3(centre.x, (xp.x - xn.x) * inv, (yp.x - yn.x) * inv) * reach;
+            oceanDist = float3(1.0 - centre.y, -(xp.y - xn.y) * inv, -(yp.y - yn.y) * inv) * reach;
+            groundDist = float3(centre.z, (xp.z - xn.z) * inv, (yp.z - yn.z) * inv) * reach;
         }
 
-        // GetFieldWaveGeom: the crest's height and slope, the wave's velocity, the shore's distance, the break phase and the coordinate.
-        ShadeFieldGeom ShadeFieldGeomAt(float2 place, float clock, float4 box)
+        // GetFieldWaveGeom: the crest's height and slope, the wave's velocity, the shore's distance, the break phase and the coordinate -
+        // the break phase off the ground's shore's distance where byGround (SceneLight.WaterBreakByGround, CHOSEN), the shore's otherwise.
+        ShadeFieldGeom ShadeFieldGeomAt(float2 place, float clock, float4 box, bool byGround)
         {
             float3 shoreDist;
             float3 oceanDist;
-            ShadeFieldShore(place, box, shoreDist, oceanDist);
+            float3 groundDist;
+            ShadeFieldShore(place, box, shoreDist, oceanDist, groundDist);
             float2 dir = -oceanDist.yz;
             float3 stationary = ShadeStationaryNoise(place * 1.2e-4);
             stationary.yz *= 1.2e-4;
@@ -219,7 +212,8 @@ public static partial class ShadeHlsl
             coord += float4(clock, 0.0, 0.0, 1.0) * (-ShadeFieldSpeed / ShadeFieldLength);
             coord += advected;
             coord += float4(stationary, 0.0);
-            float3 breakField = ShadeFieldRampNorm(ShadeFieldOneMinus(shoreDist * 0.0002), (stationary * 0.3) + float3(0.5, 0.0, 0.0));
+            float3 breakDist = byGround ? groundDist : shoreDist;
+            float3 breakField = ShadeFieldRampNorm(ShadeFieldOneMinus(breakDist * 0.0002), (stationary * 0.3) + float3(0.5, 0.0, 0.0));
             float3 shape = ShadeFieldShape(coord.x, breakField.x) * 0.3;
             ShadeFieldGeom geom;
             geom.normalOffset = float3(shape.x, (coord.yz * shape.y) + (breakField.yz * shape.z)) * ShadeFieldLength;
@@ -230,7 +224,8 @@ public static partial class ShadeHlsl
             return geom;
         }
 
-        // CrashingWavesVertex's move along z, the area's height offset added - nought where the field waves are off or there is no shore.
+        // CrashingWavesVertex's move along z, the area's height offset added - nought where the field waves are off or there is no shore;
+        // swell.w one where they are on, two where their break phase is the ground's (ModelGpu's Swell register).
         float ShadeFieldLift(float2 place, float clock, float heightOffset, float4 box, float4 swell)
         {
             [branch] if (!(box.w > 0.5) || !(swell.w > 0.5))
@@ -238,7 +233,7 @@ public static partial class ShadeHlsl
                 return 0.0;
             }
 
-            return -ShadeFieldGeomAt(place, clock, box).normalOffset.x + heightOffset;
+            return -ShadeFieldGeomAt(place, clock, box, swell.w > 1.5).normalOffset.x + heightOffset;
         }
 
         // GetWaveInterpNodes, eight nodes a wave, the curve two.
@@ -452,7 +447,7 @@ public static partial class ShadeHlsl
             [branch] if (box.w > 0.5 && swell.w > 0.5)
             {
                 float clock = timing.x;
-                ShadeFieldGeom geom = ShadeFieldGeomAt(place, clock, box);
+                ShadeFieldGeom geom = ShadeFieldGeomAt(place, clock, box, swell.w > 1.5);
                 ShadeFoamSurface foam = ShadeFieldFoam(place, geom.velocity, geom.waveCoord, geom.shoreDist, geom.breakPhase, clock, wrap, dpx, dpy);
                 said.colour = float4(foam.colour.xyz, saturate(foam.colour.w));
                 said.grad = geom.normalOffset.yz + (foam.normal.yz * 0.5);

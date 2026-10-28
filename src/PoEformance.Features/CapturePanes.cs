@@ -204,8 +204,19 @@ public static class CapturePanes
             .Append(CultureInfo.InvariantCulture,
                 $"the shore's distance {least:0.###} to {most:0.###} colour units, one being {ShoreField.Reach:0} - CHOSEN, the engine makes its own; picture {picture}, ")
             .AppendLine("row nought the least y, land brown by how far in, the walls grey, water blue by how far out, the shoreline white");
-        ShoreField round = shore.Way(true);
+        float groundLeast = float.MaxValue, groundMost = float.MinValue;
+        foreach (float one in shore.GroundTexels)
+        {
+            groundLeast = MathF.Min(groundLeast, one);
+            groundMost = MathF.Max(groundMost, one);
+        }
+
         string way = Path.ChangeExtension(picture, null);
+        body.Append(CultureInfo.InvariantCulture,
+                $"  ground's shore	the distance to the shore of the ground alone, what stands in the sea no shore - the field waves' break phase takes it where the light panel's \"break by ground\" says, CHOSEN: ")
+            .AppendLine(CultureInfo.InvariantCulture,
+                $"{shore.GroundFarther} water cells farther from it than from the shore, its distance {groundLeast:0.###} to {groundMost:0.###} colour units; picture {way}-ground.png, coloured as {picture}");
+        ShoreField round = shore.Way(true);
         body.Append(CultureInfo.InvariantCulture,
                 $"  way in	the distance out to sea the waves run down (ocean_dist): the open sea's, {ShoreField.Deep:0} or more from land or at the field's edge, and inside it the way a wave travels from there through the water - CHOSEN until the engine's OceanMarkupField is read; ")
             .Append(CultureInfo.InvariantCulture,
@@ -299,28 +310,37 @@ public static class CapturePanes
                 continue;
             }
 
-            ReadOnlySpan<float> texels = shore.Texels;
-            var rgba = new byte[shore.Width * shore.Height * 4];
-            for (var at = 0; at < shore.Width * shore.Height; at++)
-            {
-                float distance = texels[at * 2];
-                (byte r, byte g, byte b) = shore.IsWall(at) ? ((byte)150, (byte)150, (byte)150)
-                    : MathF.Abs(distance) < 0.01f ? ((byte)255, (byte)255, (byte)255)
-                    : distance < 0f ? ((byte)(90 + (120 * -distance)), (byte)(60 + (60 * -distance)), (byte)30)
-                    : ((byte)20, (byte)(60 + (100 * (1f - distance))), (byte)(110 + (145 * (1f - distance))));
-                rgba[at * 4] = r;
-                rgba[(at * 4) + 1] = g;
-                rgba[(at * 4) + 2] = b;
-                rgba[(at * 4) + 3] = 255;
-            }
-
             string name = panes.Count > 1 ? $"shore-{pane.Book}.png" : ShoreFile;
-            pictures.Add((name, new GamePicture(shore.Width, shore.Height, rgba)));
+            pictures.Add((name, Distances(shore, at => shore.Texels[at * 2])));
+            pictures.Add((Path.ChangeExtension(name, null) + "-ground.png", Distances(shore, at => shore.GroundTexels[at])));
             pictures.Add((Path.ChangeExtension(name, null) + "-way.png", Way(shore)));
             pictures.Add((Path.ChangeExtension(name, null) + "-way-round.png", Way(shore.Way(true))));
         }
 
         return pictures;
+    }
+
+    /// <summary>
+    /// A shore's distances as a picture, row nought the least y: land brown by how far in, the walls grey, water blue by how far out,
+    /// the shoreline white.
+    /// </summary>
+    private static GamePicture Distances(ShoreField shore, Func<int, float> distanceOf)
+    {
+        var rgba = new byte[shore.Width * shore.Height * 4];
+        for (var at = 0; at < shore.Width * shore.Height; at++)
+        {
+            float distance = distanceOf(at);
+            (byte r, byte g, byte b) = shore.IsWall(at) ? ((byte)150, (byte)150, (byte)150)
+                : MathF.Abs(distance) < 0.01f ? ((byte)255, (byte)255, (byte)255)
+                : distance < 0f ? ((byte)(90 + (120 * -distance)), (byte)(60 + (60 * -distance)), (byte)30)
+                : ((byte)20, (byte)(60 + (100 * (1f - distance))), (byte)(110 + (145 * (1f - distance))));
+            rgba[at * 4] = r;
+            rgba[(at * 4) + 1] = g;
+            rgba[(at * 4) + 2] = b;
+            rgba[(at * 4) + 3] = 255;
+        }
+
+        return new GamePicture(shore.Width, shore.Height, rgba);
     }
 
     /// <summary>The step the way-in picture draws its lines at, world units - a quarter of the engine's field wave.</summary>

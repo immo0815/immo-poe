@@ -10,7 +10,8 @@ public sealed partial class ShadeProgram
 {
     /// <summary>GetFieldWaveGeom's state at a place, with what it was made from - the card's ShadeFieldGeom.</summary>
     private readonly record struct FieldGeom(
-        Vector3 ShoreDist, Vector3 OceanDist, Vector3 Stationary, Vector3 Raw, Vector3 Break, float WaveCoord, Vector3 NormalOffset, Vector2 Velocity);
+        Vector3 ShoreDist, Vector3 OceanDist, Vector3 GroundDist, Vector3 Stationary, Vector3 Raw, Vector3 Break, float WaveCoord, Vector3 NormalOffset,
+        Vector2 Velocity);
 
     /// <summary>What the field waves' foam came to at a place, and how it was laid.</summary>
     private readonly record struct FieldFoamOut(Vector4 Colour, bool Overlaid, float Interp, Vector2 Layers, float Level);
@@ -26,6 +27,7 @@ public sealed partial class ShadeProgram
     /// <param name="heightOffset">The area's <c>water_height_offset</c> - WaterLook.FlowRegister's z.</param>
     /// <param name="shore">The room's shore.</param>
     /// <param name="on">Whether the card draws them - the light panel's switch (SceneLight.WaterCrash).</param>
+    /// <param name="byGround">Whether their break phase takes the ground's shore's distance (SceneLight.WaterBreakByGround).</param>
     /// <remarks>
     /// AT THE PLACE THE CARD DRAWS, not the processor's: the card lifts the water by the crest (CrashingWavesVertex's move, the area's
     /// height offset in it) and draws the nearest crossing of the lifted sea alone, so the view through the probed pixel meets it
@@ -34,13 +36,13 @@ public sealed partial class ShadeProgram
     /// the card's gradients come to, ddx and ddy of the place being the crossings one pixel across and one down.
     /// </remarks>
     public static ProbeField FieldProbe(
-        Vector3 drawn, Vector3 toEye, Vector3 right, Vector3 down, float clock, float heightOffset, ShoreField shore, bool on)
-        => FieldProbe(FieldProfile, BeachNoise, FieldFoamColour, FieldFoamNormal, drawn, toEye, right, down, clock, heightOffset, shore, on);
+        Vector3 drawn, Vector3 toEye, Vector3 right, Vector3 down, float clock, float heightOffset, ShoreField shore, bool on, bool byGround = false)
+        => FieldProbe(FieldProfile, BeachNoise, FieldFoamColour, FieldFoamNormal, drawn, toEye, right, down, clock, heightOffset, shore, on, byGround);
 
     /// <summary>The same, over a given wave shape, noise and foam.</summary>
     public static ProbeField FieldProbe(
         WaterSheet profile, WaterSheet noise, Mipmaps foamColour, Mipmaps foamNormal, Vector3 drawn, Vector3 toEye, Vector3 right, Vector3 down,
-        float clock, float heightOffset, ShoreField shore, bool on)
+        float clock, float heightOffset, ShoreField shore, bool on, bool byGround = false)
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(noise);
@@ -48,17 +50,17 @@ public sealed partial class ShadeProgram
         ArgumentNullException.ThrowIfNull(foamNormal);
         ArgumentNullException.ThrowIfNull(shore);
         float reach = FieldReach(profile) + MathF.Abs(heightOffset) + 1f;
-        Vector3 place = FieldCrossing(profile, noise, drawn, toEye, drawn.Z, reach, clock, heightOffset, shore, out float off);
-        Vector3 across = FieldCrossing(profile, noise, drawn + right, toEye, drawn.Z, reach, clock, heightOffset, shore, out _);
-        Vector3 under = FieldCrossing(profile, noise, drawn + down, toEye, drawn.Z, reach, clock, heightOffset, shore, out _);
+        Vector3 place = FieldCrossing(profile, noise, drawn, toEye, drawn.Z, reach, clock, heightOffset, shore, byGround, out float off);
+        Vector3 across = FieldCrossing(profile, noise, drawn + right, toEye, drawn.Z, reach, clock, heightOffset, shore, byGround, out _);
+        Vector3 under = FieldCrossing(profile, noise, drawn + down, toEye, drawn.Z, reach, clock, heightOffset, shore, byGround, out _);
         var at = new Vector2(place.X, place.Y);
         Vector2 dpx = new Vector2(across.X, across.Y) - at, dpy = new Vector2(under.X, under.Y) - at;
 
-        FieldGeom geom = FieldGeomAt(profile, noise, at, clock, shore);
+        FieldGeom geom = FieldGeomAt(profile, noise, at, clock, shore, byGround);
         FieldFoamOut foam = FieldFoam(noise, foamColour, foamNormal, at, geom.Velocity, geom.WaveCoord, geom.ShoreDist.X, geom.Break.X, clock, dpx, dpy);
         float centre = 0.5f + (geom.Stationary.X * 0.3f);
         return new ProbeField(
-            on, drawn, place, off, geom.ShoreDist.X, new Vector2(geom.ShoreDist.Y, geom.ShoreDist.Z), geom.OceanDist.X,
+            on, byGround, drawn, place, off, geom.ShoreDist.X, new Vector2(geom.ShoreDist.Y, geom.ShoreDist.Z), geom.GroundDist.X, geom.OceanDist.X,
             geom.Velocity / FieldWaveSpeed, geom.Stationary.X, centre, geom.Raw.X, geom.Break.X, geom.WaveCoord,
             -geom.NormalOffset.X + heightOffset, heightOffset, foam.Interp,
             FieldFoamProfileAt(foam.Interp, geom.ShoreDist.X, geom.Break.X), foam.Overlaid, foam.Layers, foam.Colour.W,
@@ -113,7 +115,7 @@ public sealed partial class ShadeProgram
     /// </remarks>
     private static Vector3 FieldCrossing(
         WaterSheet profile, WaterSheet noise, Vector3 origin, Vector3 toEye, float level, float reach, float clock, float heightOffset,
-        ShoreField shore, out float off)
+        ShoreField shore, bool byGround, out float off)
     {
         off = float.NaN;
         if (!(MathF.Abs(toEye.Z) > 0.05f))
@@ -125,7 +127,7 @@ public sealed partial class ShadeProgram
         Vector3 start = origin + (toEye * ((level - origin.Z) / toEye.Z));
         var flat = new Vector2(start.X, start.Y);
         var along = new Vector2(toEye.X, toEye.Y);
-        float Missed(float t) => (t * toEye.Z) - FieldLift(profile, noise, flat + (along * t), clock, heightOffset, shore);
+        float Missed(float t) => (t * toEye.Z) - FieldLift(profile, noise, flat + (along * t), clock, heightOffset, shore, byGround);
 
         float most = reach / MathF.Abs(toEye.Z);
         float step = MathF.Min(4f / MathF.Max(along.Length(), 1e-3f), most / 16f);
@@ -165,11 +167,11 @@ public sealed partial class ShadeProgram
     }
 
     /// <summary>CrashingWavesVertex's move along z at a place, the area's height offset added - ShadeHlsl's ShadeFieldLift.</summary>
-    private static float FieldLift(WaterSheet profile, WaterSheet noise, Vector2 place, float clock, float heightOffset, ShoreField shore)
-        => -FieldGeomAt(profile, noise, place, clock, shore).NormalOffset.X + heightOffset;
+    private static float FieldLift(WaterSheet profile, WaterSheet noise, Vector2 place, float clock, float heightOffset, ShoreField shore, bool byGround)
+        => -FieldGeomAt(profile, noise, place, clock, shore, byGround).NormalOffset.X + heightOffset;
 
-    /// <summary>GetFieldWaveGeom as written - ShadeHlsl's ShadeFieldGeomAt.</summary>
-    private static FieldGeom FieldGeomAt(WaterSheet profile, WaterSheet noise, Vector2 place, float clock, ShoreField shore)
+    /// <summary>GetFieldWaveGeom as written - ShadeHlsl's ShadeFieldGeomAt, the break phase off the ground's shore where <paramref name="byGround"/>.</summary>
+    private static FieldGeom FieldGeomAt(WaterSheet profile, WaterSheet noise, Vector2 place, float clock, ShoreField shore, bool byGround)
     {
         // GetShoreFieldData: the shore's distance and the distance out to sea, world units, each with its rise along x and y - central
         // differences a texel apart.
@@ -182,6 +184,9 @@ public sealed partial class ShadeProgram
         float inv = 0.5f / eps;
         Vector3 shoreDist = new Vector3(s0, (sxp - sxn) * inv, (syp - syn) * inv) * ShoreField.Reach;
         Vector3 oceanDist = new Vector3(1f - o0, -(oxp - oxn) * inv, -(oyp - oyn) * inv) * ShoreField.Reach;
+        float g0 = shore.GroundAt(place), gxp = shore.GroundAt(place + new Vector2(eps, 0f)), gxn = shore.GroundAt(place - new Vector2(eps, 0f));
+        float gyp = shore.GroundAt(place + new Vector2(0f, eps)), gyn = shore.GroundAt(place - new Vector2(0f, eps));
+        Vector3 groundDist = new Vector3(g0, (gxp - gxn) * inv, (gyp - gyn) * inv) * ShoreField.Reach;
 
         var dir = new Vector2(-oceanDist.Y, -oceanDist.Z);
         Vector3 stationary = StationaryNoise(place * 1.2e-4f, noise);
@@ -194,12 +199,12 @@ public sealed partial class ShadeProgram
         coord += new Vector4(stationary, 0f);
 
         // GetBreakPhaseField: one less a five-thousandth of the shore's distance, ramped about a centre the noise moves from a half up.
-        Vector3 raw = FieldOneMinus(shoreDist * 0.0002f);
+        Vector3 raw = FieldOneMinus((byGround ? groundDist : shoreDist) * 0.0002f);
         Vector3 breaking = FieldRampNorm(raw, (stationary * 0.3f) + new Vector3(0.5f, 0f, 0f));
         Vector3 shape = FieldShape(profile, coord.X, breaking.X) * 0.3f;
         Vector3 normalOffset = new Vector3(
             shape.X, (coord.Y * shape.Y) + (breaking.Y * shape.Z), (coord.Z * shape.Y) + (breaking.Z * shape.Z)) * FieldWaveLength;
-        return new FieldGeom(shoreDist, oceanDist, stationary, raw, breaking, coord.X, normalOffset, dir * FieldWaveSpeed);
+        return new FieldGeom(shoreDist, oceanDist, groundDist, stationary, raw, breaking, coord.X, normalOffset, dir * FieldWaveSpeed);
     }
 
     /// <summary>GetAdvectedNoise: the noise's green at the two time layers, the coordinates carried back along the velocity.</summary>

@@ -112,6 +112,7 @@ public sealed class SceneLightPanel : IMovableSun
     private bool _mirroring = true;
     private bool _crash = true;
     private bool _wayRound;
+    private bool _breakByGround;
     private float _lift = 1f;
 
     /// <summary>How far the ocean ripples' wind is turned from the area's own way, in degrees - see <see cref="Water"/>.</summary>
@@ -255,6 +256,7 @@ public sealed class SceneLightPanel : IMovableSun
             WaterScene = _mirroring,
             WaterCrash = _crash,
             WaterWayRound = _wayRound,
+            WaterBreakByGround = _breakByGround,
             WaterLift = _lift,
             CubeTurn = SceneLight.CubeTurnFrom(env.HorAngle ?? 0f, env.VertAngle ?? 0f, (SceneLight.CubeReading)_cubeReading),
             CubeBrightness = env.EnvBrightness ?? 1f,
@@ -364,7 +366,7 @@ public sealed class SceneLightPanel : IMovableSun
             }
         }
 
-        if (Fold(Count("water", _glints, _reflection, _mirroring, _crash, _wayRound) + "###scene-fold-water", open: false))
+        if (Fold(Count("water", _glints, _reflection, _mirroring, _crash, _wayRound, _breakByGround) + "###scene-fold-water", open: false))
         {
             try
             {
@@ -482,6 +484,13 @@ public sealed class SceneLightPanel : IMovableSun
                     + " to v0.1.306 drew it. Off, the default: by the ground alone, the waves running on under the hull - as the game's do by Port's ship,"
                     + " its foam front reaching the hull's side before the quay's (a video of the game, measured frame by frame). Both CHOSEN: the engine's"
                     + " own way in (OceanMarkupField) is read nowhere.");
+                Switch("break by ground##scene-break-ground", ref _breakByGround,
+                    "The field waves' break phase off the shore's distance to the ground alone - the rocks and the pier's stones that stand in the sea"
+                    + " no shore for it - rather than the shore's distance the swell takes, which counts them. The break phase (1 - shore x 0.0002,"
+                    + " ramped about a noise) decides how much foam a crest forms: by Port's ship the probe put a crest by the hull and one by the"
+                    + " quay both at full foam off a shore's distance of 1,000 to 1,400 measured to the rocks behind the pier, where the game's"
+                    + " crest stays dark by the hull. CHOSEN, to hold against the game: the engine's own shore field (OceanMarkupField, made from"
+                    + " the tile map) is read nowhere. Only with crash on; the card's alone.");
             }
             finally
             {
@@ -550,7 +559,7 @@ public sealed class SceneLightPanel : IMovableSun
     private static readonly string[] LightLabels = ["room", "sun", "shadows", "player", "exposure", "colour grade"];
 
     /// <summary>The water's switches' visible labels, for their columns.</summary>
-    private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "crash", "way round"];
+    private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "crash", "way round", "break by ground"];
 
     /// <summary>A row's label in the label column, the row's controls after it - and where those start, for a row that wraps.</summary>
     private static float Label(string text, float column)

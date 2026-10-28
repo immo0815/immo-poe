@@ -540,7 +540,7 @@ public sealed partial class ModelGpu : IDisposable
             Flow = (scene.Water ?? WaterLook.EngineDefault).FlowRegister with { W = lift },
             Wind = (scene.Water ?? WaterLook.EngineDefault).WindRegister,
             Shore = (scene.Water ?? WaterLook.EngineDefault).ShoreRegister,
-            Swell = (scene.Water ?? WaterLook.EngineDefault).SwellRegister with { W = crash ? 1f : 0f },
+            Swell = (scene.Water ?? WaterLook.EngineDefault).SwellRegister with { W = !crash ? 0f : light!.WaterBreakByGround ? 2f : 1f },
             WaterLit = new Vector4((scene.Water ?? WaterLook.EngineDefault).SubsurfaceScattering, 0f, 0f, 0f),
         });
 
@@ -1697,7 +1697,8 @@ public sealed partial class ModelGpu : IDisposable
 
         public ShoreTexture(ID3D11Device device, ShoreField shore)
         {
-            (_texture, View) = Floats(device, shore.Texels, shore.Width, shore.Height, Format.R32G32_Float, 2);
+            // FOUR FLOATS A TEXEL: the shore's distance, the way in, and the ground's shore's distance the field waves' break may take.
+            (_texture, View) = Floats(device, shore.CardTexels(), shore.Width, shore.Height, Format.R32G32B32A32_Float, 4);
         }
 
         public ID3D11ShaderResourceView View { get; }

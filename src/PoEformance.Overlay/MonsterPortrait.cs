@@ -550,6 +550,7 @@ public sealed class MonsterPortrait
 
     /// <summary>Whether the line was made with the field waves drawn - the card's, with the light's crash switch on.</summary>
     private bool _waterSaidCrash;
+    private bool _waterSaidGround;
     private bool _waterSaidLit;
     private Vector3[] _posed = [];
     private Vector3[] _posedNormals = [];
@@ -2197,13 +2198,15 @@ public sealed class MonsterPortrait
         {
             WaterLook water = Watered();
             bool crashing = _onCard && _drawnLight is { WaterCrash: true };
+            bool byGround = crashing && _drawnLight is { WaterBreakByGround: true };
 
             // THE ENGINE'S WATER PASS LIGHTS THE GLOSSY TWIN under the game light alone - SceneLight.ShadeWater.
             bool engineLit = _drawnLight is not null && !FlatLight;
-            if (_waterSaid.Length == 0 || water != _waterSaidFor || crashing != _waterSaidCrash || engineLit != _waterSaidLit)
+            if (_waterSaid.Length == 0 || water != _waterSaidFor || crashing != _waterSaidCrash || byGround != _waterSaidGround || engineLit != _waterSaidLit)
             {
                 _waterSaidFor = water;
                 _waterSaidCrash = crashing;
+                _waterSaidGround = byGround;
                 _waterSaidLit = engineLit;
                 _waterSaid = ImGuiText.Escape(water.Line() + " (its colour's pattern a moving noise; its waves the engine's ocean ripples, three octaves"
                     + " rolling in the wind - " + ShadeProgram.Ripples.Said + "; the wind's way, height, speed and"
@@ -2240,6 +2243,10 @@ public sealed class MonsterPortrait
                         ? "; the field waves the engine's (CrashingWavesVertex and CrashingWavesFragment as written): breakers every five seconds"
                           + " rolling in down the way in and breaking as they near the shore - over " + ShadeProgram.FieldSaid + "; laid on the room's"
                           + " own water, lifted by the crest and the area's offset, the foam over it as the swell's - CHOSEN; the card's alone"
+                          + (byGround
+                              ? "; their break phase off the shore's distance to the ground alone, the rocks and the pier's stones no shore for it"
+                                + " (the light panel's \"break by ground\", CHOSEN)"
+                              : string.Empty)
                         : string.Empty));
             }
 

@@ -192,16 +192,18 @@ public readonly record struct FieldFoamProfile(
 /// The processor draws no field waves, so these are worked out apart, by the card's functions, at the card's place.
 /// </remarks>
 /// <param name="On">Whether the card draws them - the light panel's switch; worked out either way.</param>
+/// <param name="ByGround">Whether their break phase takes <paramref name="GroundDist"/> - the light panel's "break by ground".</param>
 /// <param name="Drawn">Where the processor's water stood at the pixel, unlifted by the field waves.</param>
 /// <param name="Place">Where the card's lifted water meets the view through the pixel - the nearest crossing, as the card draws it.</param>
 /// <param name="Off">How far along z the crossing found misses the lifted water; NaN where none was found (the view along the water).</param>
 /// <param name="ShoreDist">The shore's distance there, world units - the room's shore field's (CHOSEN).</param>
 /// <param name="ShoreSlope">Its rise along x and y.</param>
+/// <param name="GroundDist">The distance to the shore of the ground alone, world units - what stands in the sea no shore (ShoreField.GroundTexels).</param>
 /// <param name="OceanDist">The distance out to sea, world units - the way in (CHOSEN).</param>
 /// <param name="Way">The way the waves run there, per unit of their speed: minus the way in's slope.</param>
 /// <param name="Noise">The stationary noise's value (the noise texture's green), which moves the break's centre.</param>
 /// <param name="Centre">The break's centre, <c>0.5 + 0.3 * noise</c> - over a half, the break phase is lowered.</param>
-/// <param name="Raw">The break phase before the ramp, <c>1 - shore * 0.0002</c>.</param>
+/// <param name="Raw">The break phase before the ramp, <c>1 - shore * 0.0002</c> - the ground's shore's where <paramref name="ByGround"/>.</param>
 /// <param name="BreakPhase">The break phase, FieldRampNorm of the raw value about the centre.</param>
 /// <param name="WaveCoord">The wave's coordinate: whole waves out to sea, less the clock's.</param>
 /// <param name="Lift">How far the card moves the water along z there - the crest's, the height offset in it; up is minus z.</param>
@@ -214,9 +216,9 @@ public readonly record struct FieldFoamProfile(
 /// <param name="Colour">The foam's colour, linear.</param>
 /// <param name="Level">The level the foam's colour was read at, the card's gradients'.</param>
 public readonly record struct ProbeField(
-    bool On, Vector3 Drawn, Vector3 Place, float Off, float ShoreDist, Vector2 ShoreSlope, float OceanDist, Vector2 Way, float Noise,
-    float Centre, float Raw, float BreakPhase, float WaveCoord, float Lift, float HeightOffset, float Interp, FieldFoamProfile Profile,
-    bool Overlaid, Vector2 Layers, float Cover, Vector3 Colour, float Level);
+    bool On, bool ByGround, Vector3 Drawn, Vector3 Place, float Off, float ShoreDist, Vector2 ShoreSlope, float GroundDist, float OceanDist,
+    Vector2 Way, float Noise, float Centre, float Raw, float BreakPhase, float WaveCoord, float Lift, float HeightOffset, float Interp,
+    FieldFoamProfile Profile, bool Overlaid, Vector2 Layers, float Cover, Vector3 Colour, float Level);
 
 /// <summary>
 /// Every fragment one pixel of a drawing was made of, in the order the drawing met them.
