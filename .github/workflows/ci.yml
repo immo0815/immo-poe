@@ -11,9 +11,9 @@ name: CI
 #
 # Measured on the import commit: test 7:20 on Linux, aot-publish 4:30 and gpu-test 2:30 on
 # Windows. So the run is cut where it was paying twice:
-# - push only on main, pull requests through pull_request. Both on every branch ran the whole
-#   workflow TWICE for each push to a branch with an open pull request - same commit, same
-#   answer, double the minutes.
+# - push only on main, pull requests through pull_request (until 2026-10-28 - see below). Both
+#   on every branch ran the whole workflow TWICE for each push to a branch with an open pull
+#   request - same commit, same answer, double the minutes.
 # - the two Windows jobs only after the merge (and by hand), not on every pull-request push.
 #   That is a trade, chosen deliberately: an AOT or GPU break now shows on main after the merge
 #   instead of on the pull request. Run this workflow by hand on a branch (workflow_dispatch)
@@ -29,13 +29,31 @@ name: CI
 # ubuntu-latest and windows-latest where unset. Self-hosted runners cost no minutes. Deleting
 # the variables (Settings, Secrets and variables, Actions, Variables) puts every job back on
 # GitHub's machines; publish.yml and bake-boss-icons.yml read the same LINUX_RUNNER.
+#
+# THE SELF-HOSTED RUNNERS ARE THE DEVELOPER'S OWN MACHINE, one a system, so every job queues
+# behind the last (asked for from the live client, 2026-10-28, when a merge took over a quarter
+# of an hour). Measured on #109's merge: test 3:20 (build 1:16, tests 1:54), aot-publish 2:14,
+# gpu-test 2:41 - and the test job WAITED 8:16 for the Linux runner, busy with the pull
+# request's own test run, a hand run of the whole workflow on the branch and publish.yml. So:
+# - NO PULL-REQUEST RUN: pull requests are merged as soon as they are opened, and the run on
+#   main tests the same code again a minute later. The trade, chosen from the live client: a
+#   failure shows on main after the merge, not before it. A hand run (workflow_dispatch) on a
+#   branch still asks before a merge where that is worth a run - the Windows jobs above.
+# - NOT FOR DOCUMENTATION ALONE: a push changing only Markdown runs nothing here (no test reads
+#   one); publish.yml still runs, so the build stamp follows the commit.
+# - A NEWER RUN CANCELS AN OLDER ONE on the same ref still running or waiting: of two merges a
+#   minute apart only the second is worth its quarter of an hour.
 on:
   push:
     branches: [main]
-  pull_request:
+    paths-ignore: ["**.md"]
   # Useful for re-running a suspected-flaky job without pushing an empty commit, and for
   # asking the Windows jobs about a branch before it is merged.
   workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -63,8 +81,6 @@ jobs:
   # reasons the AOT job below gives.
   gpu-test:
     needs: test
-    # Not on pull requests - see the minutes note at the top.
-    if: github.event_name != 'pull_request'
     runs-on: ${{ vars.WINDOWS_RUNNER && fromJSON(vars.WINDOWS_RUNNER) || 'windows-latest' }}
     steps:
       - uses: actions/checkout@v4
@@ -97,8 +113,6 @@ jobs:
   # collide, and it is the right shape regardless.
   aot-publish:
     needs: test
-    # Not on pull requests - see the minutes note at the top.
-    if: github.event_name != 'pull_request'
     runs-on: ${{ vars.WINDOWS_RUNNER && fromJSON(vars.WINDOWS_RUNNER) || 'windows-latest' }}
     steps:
       - uses: actions/checkout@v4
