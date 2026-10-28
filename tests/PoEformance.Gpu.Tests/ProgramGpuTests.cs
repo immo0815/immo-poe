@@ -354,13 +354,18 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
     /// A material cut out on the alpha its graphs leave - over a shore, half a second in, since a rock's alpha is the sea's spray on it
     /// (CrashingFoamSurface) and without a shore nothing of it stands: 49% of the picture drawn on the processor at this moment.
     /// </summary>
+    /// <remarks>
+    /// NOT A MATERIAL WITH A TWIN (ShadeProgram.Occluded): Port's quay stone, as compiled, hands its spray a curvature of 0.973, so its
+    /// foam covers nowhere enough to stand and both drawings cut it whole - nothing to compare. Its twin, whose spray reads the stone's
+    /// own occlusion, stands on 49.8% of the picture and is held in its place (Programs yields it).
+    /// </remarks>
     [GpuFact]
     public void ACUTOUTMaterialIsCutWhereTheProcessorCutsIt()
         => Every(
             program => new ModelScene(
                 Hill(layered: false), Turn: 0.4f, Tilt: 0.5f, Blends: [MaterialBlend.Cutout], Shades: [program], Time: 0.5f,
                 Water: WaterLook.EngineDefault with { Shore = BayShore() }),
-            program => program.HasAlpha);
+            program => program.HasAlpha && program.Occluded is null);
 
     /// <summary>A material's compiled shaders are kept in the folder handed in, and a new card reads them back rather than compiling again.</summary>
     [GpuFact]
@@ -613,7 +618,10 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
             [.. spots], shapes, colours: [.. colours]);
     }
 
-    /// <summary>Every material in tests/fixtures/shaders whose graphs are all there, compiled - its plain and its glossy program.</summary>
+    /// <summary>
+    /// Every material in tests/fixtures/shaders whose graphs are all there, compiled - its plain and its glossy program, and the twins
+    /// whose spray reads the stone's own occlusion where it has them (ShadeProgram.Occluded).
+    /// </summary>
     private static IEnumerable<(string Name, ShadeProgram Program)> Programs()
     {
         string root = Folder();
@@ -634,6 +642,16 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
                 if (program.Glossy is { } glossy)
                 {
                     yield return (name + " (glossy)", glossy);
+                }
+
+                if (program.Occluded is { } occluded)
+                {
+                    yield return (name + " (occluded)", occluded);
+                }
+
+                if (program.Glossy?.Occluded is { } glossyOccluded)
+                {
+                    yield return (name + " (glossy, occluded)", glossyOccluded);
                 }
             }
         }
