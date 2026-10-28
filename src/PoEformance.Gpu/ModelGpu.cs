@@ -35,6 +35,7 @@ namespace PoEformance.Gpu;
 /// <param name="Sways">Per shape, which of <paramref name="Swayed"/> turns it, or -1 for none - a ship and its deck (MonsterModel.ShapeSways); null for none.</param>
 /// <param name="Swayed">This frame's sway of each group, row vectors in the mesh's frame (RoomSway.At) - applied in the vertex shader, the mesh's own vertices left as they are.</param>
 /// <param name="Pose">Where the picture is looked at from, or null for <paramref name="Turn"/>, <paramref name="Tilt"/>, <paramref name="Zoom"/> and <paramref name="Pan"/> - MeshPicture.Canvas.Pose.</param>
+/// <param name="Skinned">A pose the card skins itself, in the vertex shader, or null - instead of <paramref name="Positions"/> and <paramref name="Normals"/>, which it outranks.</param>
 public readonly record struct ModelScene(
     SkinnedMesh Mesh,
     float Turn = 0f,
@@ -57,7 +58,26 @@ public readonly record struct ModelScene(
     long PoseKey = 0,
     IReadOnlyList<int>? Sways = null,
     Matrix4x4[]? Swayed = null,
-    CameraPose? Pose = null);
+    CameraPose? Pose = null,
+    CardSkin? Skinned = null);
+
+/// <summary>
+/// A pose the graphics card skins itself - each bone's matrix this frame, and the mesh whose bones and weights move the picture's vertices by them.
+/// </summary>
+/// <param name="Weighted">The mesh whose bones and weights move the picture's vertices from <paramref name="From"/> on, its vertex n the picture's
+/// vertex From + n - a monster's own, standing alone (the picture's mesh itself) or on a stage (MonsterModel.Actor's).</param>
+/// <param name="From">The picture's first vertex the pose moves - nought alone, MonsterModel.ActorFirst on a stage.</param>
+/// <param name="Matrices">Each bone's matrix this frame, row vectors, in the picture's frame: SkeletonPose.Skin alone, and on a stage the same
+/// conjugated by his place on it - the inverse of the place, the skin, then the place - since the stage's mesh holds his vertices placed.</param>
+/// <param name="Bones">How many of <paramref name="Matrices"/> are the rig's: a bone at or past it moves nothing, as SkeletonPose.Move skips it.</param>
+/// <param name="Key">Which pose the matrices hold, above nought: one key on two draws of the same array says nothing moved between them.</param>
+/// <param name="Hull">Where the posed vertices lie along the sun - PoseHull.Bounds - for its shadow map's frame, or null where no light casts one.</param>
+/// <remarks>
+/// THE PROCESSOR'S ARITHMETIC IN THE VERTEX SHADER (ModelShaders' Skinned): SkeletonPose.Move's weighted mean, weight by weight in the
+/// same order, a weight of nought and a bone past the rig skipped, the normal made unit length again. On a stage the arithmetic is the
+/// conjugated matrix's rather than "skin, then place": the same point, within the floats' rounding.
+/// </remarks>
+public sealed record CardSkin(SkinnedMesh Weighted, int From, Matrix4x4[] Matrices, int Bones, long Key, ShadowBounds? Hull);
 
 /// <summary>
 /// Pictures of models drawn on the graphics card - MeshPicture's pictures, at the card's speed.
@@ -180,6 +200,18 @@ public sealed partial class ModelGpu : IDisposable
     /// <summary>This frame's sway of each group - ModelScene.Swayed - or null; a run's group indexes it.</summary>
     private Matrix4x4[]? _swayed;
 
+    /// <summary>The bones' constants - ModelShaders' Bones: whether and from where the card skins, and each bone's matrix.</summary>
+    private readonly ID3D11Buffer _bones;
+
+    /// <summary>Each skinned mesh's bones and weights on the card, by the mesh - see <see cref="WeightBuffers"/>.</summary>
+    private readonly Dictionary<SkinnedMesh, WeightBuffers> _weights = new(ReferenceEqualityComparer.Instance);
+
+    /// <summary>What <see cref="_bones"/> holds: a skin's matrices by their array and key, or null for "the card skins nothing".</summary>
+    private (Matrix4x4[] Matrices, long Key, int From, int Bones, int Count)? _bonesHeld;
+
+    /// <summary>Whether <see cref="_bones"/> has been written at all - an unwritten one says nothing, not "skin nothing".</summary>
+    private bool _bonesWritten;
+
     private long _draws;
     private bool _disposed;
 
@@ -213,6 +245,7 @@ public sealed partial class ModelGpu : IDisposable
         _frame = device.CreateBuffer(Marshal.SizeOf<FrameConstants>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
         _part = device.CreateBuffer(Marshal.SizeOf<PartConstants>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
         _scene = device.CreateBuffer(Marshal.SizeOf<SceneConstants>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
+        _bones = device.CreateBuffer(BonesBytes, BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
         _wrap = device.CreateSamplerState(new SamplerDescription(
             Filter.MinMagMipLinear, TextureAddressMode.Wrap, TextureAddressMode.Wrap, TextureAddressMode.Wrap,
             0f, 1, ComparisonFunction.Never, 0f, float.MaxValue));
@@ -458,13 +491,18 @@ public sealed partial class ModelGpu : IDisposable
 
         MeshBuffers buffers = Buffers(mesh);
         Vector3[] positions = mesh.Positions;
-        bool posed = scene.Positions is { } moved && moved.Length == mesh.Positions.Length
+        CardSkin? skin = Skinnable(scene.Skinned, mesh);
+        bool posed = skin is null && scene.Positions is { } moved && moved.Length == mesh.Positions.Length
             && scene.Normals is { } turned && turned.Length == mesh.Normals.Length;
 
         // WHICH VERTICES THE PICTURE IS OF, for the shadow kept from them: nought the mesh's own, a pose
         // by its key, and -1 a pose nothing is known of - never kept.
         long pose = 0;
-        if (posed)
+        if (skin is not null)
+        {
+            pose = skin.Key > 0 ? skin.Key : -1;
+        }
+        else if (posed)
         {
             buffers.Pose(_device, context, scene.Positions!, scene.Normals!, scene.PoseFrom, scene.PoseKey);
             pose = scene.PoseKey > 0 ? scene.PoseKey : -1;
@@ -576,6 +614,9 @@ public sealed partial class ModelGpu : IDisposable
 
         // THE PART TO THE VERTEX SHADER TOO: a swaying run's matrix is applied to its vertices there.
         context.VSSetConstantBuffer(1, _part);
+
+        // AND THE BONES, for the picture and the sun's map alike - see Skinned.
+        Skinned(skin);
         context.PSSetSampler(0, scene.Sharp ? _sharp : _wrap);
         context.PSSetShaderResource(1, _tables.View);
 
@@ -604,7 +645,7 @@ public sealed partial class ModelGpu : IDisposable
         // THE SUN'S SHADOW MAP BEFORE THE PICTURE, into its own target - see Lit.
         if (light is not null)
         {
-            Lit(light, buffers, plan, view, placed, _swayed is null ? pose : -1, posed ? scene.PoseFrom : 0);
+            Lit(light, buffers, plan, view, placed, _swayed is null ? pose : -1, skin?.From ?? (posed ? scene.PoseFrom : 0), skin?.Hull);
         }
 
         context.OMSetRenderTargets(target.AccumulatedTarget, target.Depth);
@@ -886,8 +927,15 @@ public sealed partial class ModelGpu : IDisposable
             one.Dispose();
         }
 
+        foreach (WeightBuffers one in _weights.Values)
+        {
+            one.Dispose();
+        }
+
         _meshes.Clear();
         _skins.Clear();
+        _weights.Clear();
+        _bones.Dispose();
         _programs.Dispose();
         DisposeLight();
         _raster.Dispose();
@@ -984,6 +1032,84 @@ public sealed partial class ModelGpu : IDisposable
             Written(_part, value);
             _partHeld = value;
         }
+    }
+
+    /// <summary>The most bones the card skins by: a vertex names its bones in bytes, so no vertex reaches past them.</summary>
+    private const int MostBones = ModelShaders.MostBones;
+
+    /// <summary>The bones' constants' size: a row of four ints, then a matrix a bone - ModelShaders' Bones.</summary>
+    private const int BonesBytes = 16 + (MostBones * 64);
+
+    /// <summary>
+    /// A skin the card can draw for this mesh, or null: its weighted mesh ready, its vertices within the picture's, and some bone or weight to move them by.
+    /// </summary>
+    private static CardSkin? Skinnable(CardSkin? skin, SkinnedMesh mesh) =>
+        skin is { Weighted: { Ready: true } weighted } && skin.From >= 0 && skin.Matrices is not null
+        && skin.From + weighted.Positions.Length <= mesh.Positions.Length
+        && weighted.Bones.Length > 0 && weighted.Weights.Length > 0
+            ? skin
+            : null;
+
+    /// <summary>
+    /// The bones the vertex shaders skin by, bound: this frame's matrices written where the pose moved, the weighted mesh's bones and weights uploaded the first time it is drawn - or, with no skin, the word that the card skins nothing.
+    /// </summary>
+    /// <remarks>
+    /// ONE MAP A MOVED POSE, of the bones the rig has and no more: a boss's rig is a hundred-odd bones, seven kilobytes - where a
+    /// pose the processor moved sent every vertex and normal of him, megabytes, every frame it played.
+    /// </remarks>
+    private unsafe void Skinned(CardSkin? skin)
+    {
+        ID3D11DeviceContext context = _context;
+        context.VSSetConstantBuffer(3, _bones);
+        if (skin is null)
+        {
+            if (!_bonesWritten || _bonesHeld is not null)
+            {
+                MappedSubresource cleared = context.Map(_bones, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.None);
+                new Span<int>((void*)cleared.DataPointer, 4).Clear();
+                context.Unmap(_bones, 0);
+                _bonesHeld = null;
+                _bonesWritten = true;
+            }
+
+            context.VSSetShaderResource(ModelShaders.SkinBonesSlot, null!);
+            context.VSSetShaderResource(ModelShaders.SkinWeightsSlot, null!);
+            return;
+        }
+
+        int bones = Math.Min(Math.Min(skin.Bones, skin.Matrices.Length), MostBones);
+        int count = skin.Weighted.Positions.Length;
+        (Matrix4x4[], long, int, int, int) held = (skin.Matrices, skin.Key, skin.From, bones, count);
+        if (!_bonesWritten || skin.Key <= 0 || _bonesHeld is not { } was || was != held)
+        {
+            MappedSubresource mapped = context.Map(_bones, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.None);
+            var header = (int*)mapped.DataPointer;
+            header[0] = 1;
+            header[1] = skin.From;
+            header[2] = bones;
+            header[3] = count;
+            skin.Matrices.AsSpan(0, Math.Max(0, bones)).CopyTo(new Span<Matrix4x4>((byte*)mapped.DataPointer + 16, Math.Max(0, bones)));
+            context.Unmap(_bones, 0);
+            _bonesHeld = held;
+            _bonesWritten = true;
+        }
+
+        WeightBuffers weights = Weighted(skin.Weighted);
+        context.VSSetShaderResource(ModelShaders.SkinBonesSlot, weights.Bones.View);
+        context.VSSetShaderResource(ModelShaders.SkinWeightsSlot, weights.Weights.View);
+    }
+
+    /// <summary>A skinned mesh's bones and weights, uploaded on first use.</summary>
+    private WeightBuffers Weighted(SkinnedMesh mesh)
+    {
+        if (!_weights.TryGetValue(mesh, out WeightBuffers? weights))
+        {
+            weights = new WeightBuffers(_device, mesh);
+            _weights[mesh] = weights;
+        }
+
+        weights.Used = _draws;
+        return weights;
     }
 
     /// <summary>
@@ -1086,6 +1212,12 @@ public sealed partial class ModelGpu : IDisposable
             // NOR KEPT BY THE ANSWERS about it - a stage is millions of vertices.
             _canFor = null;
             _runShadersFor = null;
+        }
+
+        foreach (KeyValuePair<SkinnedMesh, WeightBuffers> one in _weights.Where(one => _draws - one.Value.Used > Kept).ToArray())
+        {
+            one.Value.Dispose();
+            _weights.Remove(one.Key);
         }
 
         foreach (KeyValuePair<ShoreField, ShoreTexture> one in _shores.Where(one => _draws - one.Value.Used > Kept).ToArray())
@@ -1706,6 +1838,48 @@ public sealed partial class ModelGpu : IDisposable
         finally
         {
             pinned.Free();
+        }
+    }
+
+    /// <summary>
+    /// A skinned mesh's bones and weights on the card - four bytes of each a vertex, read whole as an R8G8B8A8_UINT element by the vertex shader.
+    /// </summary>
+    /// <remarks>
+    /// THE MESH'S OWN ARRAYS, NOT COPIED, where they are four bytes a vertex as the file carried them; a shorter one is padded with
+    /// noughts, which move nothing - as SkeletonPose.Move stops at the end of its weights.
+    /// </remarks>
+    private sealed class WeightBuffers : IDisposable
+    {
+        public WeightBuffers(ID3D11Device device, SkinnedMesh mesh)
+        {
+            int count = mesh.Positions.Length;
+            Bones = CardBuffer.Of<byte>(device, Four(mesh.Bones, count), Format.R8G8B8A8_UInt, count);
+            Weights = CardBuffer.Of<byte>(device, Four(mesh.Weights, count), Format.R8G8B8A8_UInt, count);
+        }
+
+        public CardBuffer Bones { get; }
+
+        public CardBuffer Weights { get; }
+
+        public long Used { get; set; }
+
+        public void Dispose()
+        {
+            Weights.Dispose();
+            Bones.Dispose();
+        }
+
+        /// <summary>Four bytes a vertex: the array itself where it is that long, else a copy padded or cut to it.</summary>
+        private static byte[] Four(byte[] bytes, int count)
+        {
+            if (bytes.Length == count * 4)
+            {
+                return bytes;
+            }
+
+            var four = new byte[count * 4];
+            bytes.AsSpan(0, Math.Min(bytes.Length, four.Length)).CopyTo(four);
+            return four;
         }
     }
 

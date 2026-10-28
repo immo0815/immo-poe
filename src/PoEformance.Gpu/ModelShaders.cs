@@ -72,6 +72,18 @@ internal static class ModelShaders
     public const int FirstSheet = ShadeHlsl.FieldFoamNormalSlot + 1;
 
     /// <summary>
+    /// The vertex shader's slot for a skinned mesh's bones, four bytes a vertex - and the next its weights: the last two of the 128 a
+    /// shader has, clear of a program's sheets, which run on from <see cref="FirstSheet"/> as many as it reads.
+    /// </summary>
+    public const int SkinBonesSlot = 126;
+
+    /// <summary>The vertex shader's slot for a skinned mesh's weights - see <see cref="SkinBonesSlot"/>.</summary>
+    public const int SkinWeightsSlot = 127;
+
+    /// <summary>The most bones the card skins by: a vertex names its bones in bytes.</summary>
+    public const int MostBones = 256;
+
+    /// <summary>
     /// What every shader here shares: the constants, the resources, the vertex shader, and the light - the picture's lamp and the game's.
     /// </summary>
     public static readonly string Common = $$"""
@@ -125,6 +137,18 @@ internal static class ModelShaders
             int4 Graded;        // xyz: the grade's texels each way; w: the picture's view - SceneLight.View
         };
 
+        // THE BONES THE CARD SKINS BY - ModelGpu.Skinned: x one where it skins; y the first vertex it moves; z the rig's bones, a bone at
+        // or past them moving nothing; w how many vertices from y on the weighted mesh has. Then each bone's matrix, row vectors.
+        cbuffer Bones : register(b3)
+        {
+            int4 Skinning;
+            row_major float4x4 Bone[{{MostBones}}];
+        };
+
+        // EACH VERTEX'S FOUR BONES AND FOUR WEIGHTS, a byte each - the weighted mesh's own arrays, from Skinning.y on.
+        Buffer<uint4> SkinBones : register(t{{SkinBonesSlot}});
+        Buffer<uint4> SkinWeights : register(t{{SkinWeightsSlot}});
+
         // THE WAY TO THE EYE FROM THE PIXEL BEING LIT, model space - MeshPicture.Drawing.EyeWay: the scene's one way on a parallel view, the
         // pixel's own in perspective. Set by every entry point that lights the scene's way, before it lights.
         static float3 EyeWay = float3(0.0, 0.0, 1.0);
@@ -163,7 +187,49 @@ internal static class ModelShaders
             float3 normal : NORMAL;
             float2 spot : TEXCOORD0;
             float4 tint : COLOR0;
+            uint vertex : SV_VertexID;
         };
+
+        // SkeletonPose.Move, vertex for vertex: each weight's bone moving the vertex on its own and the results mixed in the weights'
+        // proportion - a weight of nought and a bone past the rig skipped - the normal turned alike and made unit length again, and a
+        // vertex nothing weighs left where it is. The vertex's number is the index's own, every draw's base vertex being nought.
+        void Skinned(uint vertex, inout float3 position, inout float3 normal)
+        {
+            uint own = vertex - (uint)Skinning.y;
+            if (Skinning.x == 0 || vertex < (uint)Skinning.y || own >= (uint)Skinning.w)
+            {
+                return;
+            }
+
+            uint4 bones = SkinBones.Load(own);
+            uint4 weights = SkinWeights.Load(own);
+            float3 moved = float3(0.0, 0.0, 0.0);
+            float3 turned = float3(0.0, 0.0, 0.0);
+            float weight = 0.0;
+            [unroll]
+            for (int part = 0; part < 4; part++)
+            {
+                uint bone = bones[part];
+                if (weights[part] == 0 || bone >= (uint)Skinning.z)
+                {
+                    continue;
+                }
+
+                float share = weights[part] / 255.0;
+                moved += mul(float4(position, 1.0), Bone[bone]).xyz * share;
+                turned += mul(float4(normal, 0.0), Bone[bone]).xyz * share;
+                weight += share;
+            }
+
+            if (weight <= 0.0)
+            {
+                return;
+            }
+
+            position = moved / weight;
+            float length = sqrt(dot(turned, turned));
+            normal = length > 1e-6 ? turned / length : normal;
+        }
 
         struct Pixel
         {
@@ -179,7 +245,8 @@ internal static class ModelShaders
         // perspective, where MeshPicture.Drawing's Edges hands out the weights of the point each pixel's ray meets.
         Pixel Placed(Corner corner)
         {
-            // SWAYED FIRST, so everything after - the light, the place a program reads - sees the vertex where it stands now.
+            // SKINNED AND SWAYED FIRST, so everything after - the light, the place a program reads - sees the vertex where it stands now.
+            Skinned(corner.vertex, corner.position, corner.normal);
             float3 swayedPlace = mul(float4(corner.position, 1.0), Sway).xyz;
             float3 swayedTurn = mul(float4(corner.normal, 0.0), Sway).xyz;
             Pixel pixel;
@@ -761,6 +828,8 @@ internal static class ModelShaders
 
         Cast Casting(Corner corner)
         {
+            // THE NORMAL SKINNED FOR NOTHING is left out by the compiler: the map reads the place alone.
+            Skinned(corner.vertex, corner.position, corner.normal);
             corner.position = mul(float4(corner.position, 1.0), Sway).xyz;
             Cast cast;
             float x = (dot(corner.position, ShadowU.xyz) - ShadowU.w) * ShadowSize.x;

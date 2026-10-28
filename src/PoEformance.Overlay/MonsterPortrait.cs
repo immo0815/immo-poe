@@ -599,6 +599,42 @@ public sealed class MonsterPortrait
     private Vector3[] _actorPosed = [];
     private Vector3[] _actorNormals = [];
 
+    /// <summary>
+    /// Which pose <see cref="_posed"/> holds, by its key - the processor's arrays are posed only when something reads them (see <see cref="CpuPosed"/>); -1 none.
+    /// </summary>
+    /// <remarks>
+    /// THE CARD SKINS THE PICTURE ITSELF (CardSkin, v0.1.325): every frame of a playing animation skinned the monster on the
+    /// processor - tens of thousands of vertices on every core - and sent them to the card, which then drew them. Now the
+    /// processor poses the vertices only for what reads them: its own picture (the probe, the grey, a shader still compiling),
+    /// the pick under the pointer, and the export.
+    /// </remarks>
+    private long _cpuPosedKey = -1;
+
+    /// <summary>The monster's bones' boxes of the vertices they move, for the sun's map of a pose the card skins - made the first time a shadow asks.</summary>
+    private PoseHull? _hull;
+    private bool _hullMade;
+
+    /// <summary>The hull's bounds along the sun, and the pose and sun they were worked out for.</summary>
+    private (long Key, Vector3 Direction, ShadowBounds Bounds)? _hullFor;
+
+    /// <summary>
+    /// The bones' matrices the card skins by - SkeletonPose.Skin alone, conjugated by his place on a stage - and the pose they hold.
+    /// </summary>
+    private Matrix4x4[] _cardBones = [];
+    private long _cardBonesKey = -1;
+    private CardSkin? _cardSkin;
+
+    /// <summary>The lowest point of the pose last worked out (<see cref="Lowest()"/>), the pose it was for and when.</summary>
+    private float _lowest;
+    private long _lowestKey = -1;
+    private double _lowestAt = double.NegativeInfinity;
+
+    /// <summary>
+    /// How often, in seconds, a playing animation's lowest point is worked out again - CHOSEN: five times a second, the notice it feeds
+    /// (Planted) being about a monster standing well under the floor, not a frame's worth of a foot.
+    /// </summary>
+    private const double LowestEvery = 0.2;
+
     /// <summary>The lines that change when a model or its keyframes land, built then and not per frame.</summary>
     private string _cost = string.Empty;
     private string _paint = string.Empty;
@@ -2260,7 +2296,15 @@ public sealed class MonsterPortrait
         }
 
         (Vector3 from, Vector3 way) = _view.Ray(pointer);
-        Vector3[] positions = _drawnPosed && _posed.Length == _model.Mesh.Positions.Length ? _posed : _model.Mesh.Positions;
+
+        // THE POSE AS DRAWN, brought onto the processor for the pick alone where the card skinned it - see CpuPosed.
+        bool posed = _drawnPosed && _pose is not null && _posed.Length == _model.Mesh.Positions.Length;
+        if (posed)
+        {
+            CpuPosed();
+        }
+
+        Vector3[] positions = posed ? _posed : _model.Mesh.Positions;
         IReadOnlyList<MaterialBlend>? blends = Blends();
         IReadOnlyList<ShadeProgram?>? shades = ShadesOf(_model);
         bool Shown(int shape)
@@ -3323,6 +3367,13 @@ public sealed class MonsterPortrait
 
         _pose = SkeletonPose.Of(_model.Rig);
         _posedFor = null;
+        _cpuPosedKey = -1;
+        _cardBonesKey = -1;
+        _cardSkin = null;
+        _hull = null;
+        _hullMade = false;
+        _hullFor = null;
+        _lowestKey = -1;
         if (_pose is null)
         {
             _stillWhy = "the skeleton's bone tree does not hold together";
@@ -3708,16 +3759,17 @@ public sealed class MonsterPortrait
             bool moving = posed && _pose is not null && _tracks is not null;
             if (moving)
             {
+                // THE SKELETON ALONE IS POSED HERE: the card skins the vertices itself, and the processor's arrays are posed
+                // where the processor draws (CpuPosed).
                 if (_posedFor is not { } was || !ReferenceEquals(was.Model, _model) || !ReferenceEquals(was.Tracks, _tracks) || was.Frame != _frame)
                 {
                     _pose!.Take(_tracks!, _frame);
-                    Posed();
                     _posedFor = (_model, _tracks!, _frame);
                     _poseKey = Interlocked.Increment(ref _poseKeys);
                 }
 
                 // ON A STAGE THE LOWEST POINT IS NOT ASKED FOR (Planted), and finding it is a scan of the whole stage.
-                lowest = _model.Staged ? 0f : Lowest(_posed);
+                lowest = _model.Staged ? 0f : Lowest();
             }
             else
             {
@@ -3737,6 +3789,14 @@ public sealed class MonsterPortrait
             MeshPicture.Canvas canvas = Probing(Clocked(Canvas(size)), size);
             canvas.Light = _drawnLight;
             canvas.Pose = _view;
+
+            // THE CARD'S SHADOW FRAME, the hull's, so the processor's picture stays the card's reference.
+            canvas.Hull = moving ? HullOn(_drawnLight) : null;
+            if (moving)
+            {
+                CpuPosed();
+            }
+
             GamePicture drawn = moving
                 ? MeshPicture.Of(
                     _model.Mesh, canvas, _posed, _posedNormals, ink: Ink,
@@ -3812,9 +3872,9 @@ public sealed class MonsterPortrait
 
         var scene = new ModelScene(
             _model.Mesh, 0f, 0f, Ink, _model.Skin, 1f, default, _model.Skins, Blends(),
-            moving ? _posed : null, moving ? _posedNormals : null, _drawnLight, ShadesOf(_model), _clock, _drawnDust, card.Sharp, _drawnWater,
-            PoseFrom: moving && _model.Actor is not null ? _model.ActorFirst : 0, PoseKey: moving ? _poseKey : 0,
-            Sways: _model.ShapeSways.Count > 0 ? _model.ShapeSways : null, Swayed: Swayed(), Pose: _view);
+            null, null, _drawnLight, ShadesOf(_model), _clock, _drawnDust, card.Sharp, _drawnWater,
+            Sways: _model.ShapeSways.Count > 0 ? _model.ShapeSways : null, Swayed: Swayed(), Pose: _view,
+            Skinned: moving ? CardSkinned() : null);
         if (!gpu.Can(scene, out string why))
         {
             // A MATERIAL'S SHADER STILL COMPILING is the usual no: the picture is the processor's until
@@ -3968,6 +4028,106 @@ public sealed class MonsterPortrait
         }
 
         Parallel.For(0, pieces, piece => Placed((int)((long)count * piece / pieces), (int)((long)count * (piece + 1) / pieces)));
+    }
+
+    /// <summary>The processor's arrays brought to the pose the skeleton holds, where they hold another - for whatever reads the posed vertices on the processor.</summary>
+    private void CpuPosed()
+    {
+        if (_pose is null || _cpuPosedKey == _poseKey)
+        {
+            return;
+        }
+
+        Posed();
+        _cpuPosedKey = _poseKey;
+    }
+
+    /// <summary>
+    /// The pose for the card to skin: the bones' matrices in the picture's frame, the weighted mesh and where its vertices start, and the hull for the sun's map.
+    /// </summary>
+    /// <remarks>
+    /// ON A STAGE THE BONES ARE CONJUGATED by his place (SkeletonPose.SkinAt), since the stage's mesh holds his vertices where the join
+    /// put them, and the card skins those. Worked out once a pose, a hundred-odd matrices.
+    /// </remarks>
+    private CardSkin? CardSkinned()
+    {
+        if (_pose is not { } pose)
+        {
+            return null;
+        }
+
+        IReadOnlyList<Matrix4x4> skin = pose.Skin;
+        if (_cardBonesKey != _poseKey)
+        {
+            if (_cardBones.Length != skin.Count)
+            {
+                _cardBones = new Matrix4x4[skin.Count];
+            }
+
+            pose.SkinAt(_model.Actor is null ? Matrix4x4.Identity : _model.ActorPlace, _cardBones);
+            _cardBonesKey = _poseKey;
+        }
+
+        ShadowBounds? hull = HullOn(_drawnLight)?.Bounds;
+        if (_cardSkin is not { } had || had.Key != _poseKey || had.Hull != hull || !ReferenceEquals(had.Matrices, _cardBones))
+        {
+            _cardSkin = new CardSkin(
+                _model.Actor?.Mesh ?? _model.Mesh, _model.Actor is null ? 0 : _model.ActorFirst, _cardBones, skin.Count, _poseKey, hull);
+        }
+
+        return _cardSkin;
+    }
+
+    /// <summary>
+    /// Where the pose lies along the sun - its first vertex and PoseHull's bounds - for the sun's map of either picture; null where the light casts no shadow.
+    /// </summary>
+    /// <remarks>Worked out once a pose and a sun: the bones' boxes' corners, a few hundred points.</remarks>
+    private (int From, ShadowBounds Bounds)? HullOn(SceneLight? light)
+    {
+        if (_pose is not { } pose || light is not { SunShadows: true } || light.SunColour == Vector3.Zero)
+        {
+            return null;
+        }
+
+        if (!_hullMade)
+        {
+            _hull = PoseHull.Of(pose, _model.Actor?.Mesh ?? _model.Mesh);
+            _hullMade = true;
+        }
+
+        if (_hull is not { } hull)
+        {
+            return null;
+        }
+
+        if (_hullFor is not { } had || had.Key != _poseKey || had.Direction != light.SunDirection)
+        {
+            had = (_poseKey, light.SunDirection, hull.Bounds(pose, light.SunDirection, _model.Actor is null ? Matrix4x4.Identity : _model.ActorPlace));
+            _hullFor = had;
+        }
+
+        return (_model.Actor is null ? 0 : _model.ActorFirst, had.Bounds);
+    }
+
+    /// <summary>
+    /// The lowest point of the pose the skeleton holds, for the notice about a monster planted under the floor: worked out again at most
+    /// <see cref="LowestEvery"/> while playing, at once when paused or scrubbed.
+    /// </summary>
+    /// <remarks>
+    /// FROM THE PROCESSOR'S ARRAYS where they hold the pose already, else SkeletonPose.Lowest - the z alone of what Move would put
+    /// where, with nothing written; the card holds the posed vertices and nothing reads them back.
+    /// </remarks>
+    private float Lowest()
+    {
+        double now = ImGui.GetTime();
+        if (_lowestKey != _poseKey && (_lowestKey < 0 || !_playing || now - _lowestAt >= LowestEvery))
+        {
+            _lowest = _cpuPosedKey == _poseKey ? Lowest(_posed) : _pose!.Lowest(_model.Mesh);
+            _lowestKey = _poseKey;
+            _lowestAt = now;
+        }
+
+        return _lowest;
     }
 
     /// <summary>The largest z among the points, which is the lowest: the model's up is -z.</summary>
@@ -4506,14 +4666,16 @@ public sealed class MonsterPortrait
     {
         canvas.Light = Lit();
         canvas.Pose = _view;
+        canvas.Hull = null;
         if (_tracks is { Ready: true } && _pose is not null)
         {
             _pose.Take(_tracks, _frame);
-            Posed();
 
-            // THE ARRAYS NOW HOLD THIS POSE, whatever the frame's said - see _posedFor.
+            // THE SKELETON NOW HOLDS THIS POSE, whatever the frame's said - see _posedFor - and the arrays are brought to it.
             _posedFor = (_model, _tracks, _frame);
             _poseKey = Interlocked.Increment(ref _poseKeys);
+            CpuPosed();
+            canvas.Hull = HullOn(canvas.Light);
             return MeshPicture.Of(
                 _model.Mesh, Clocked(canvas), _posed, _posedNormals, ink: Ink,
                 skin: _model.Skin, skins: _model.Skins, blends: Blends(), shades: ShadesOf(_model));

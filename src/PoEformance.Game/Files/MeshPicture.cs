@@ -449,6 +449,17 @@ public static class MeshPicture
         /// <remarks>ON THE CANVAS LIKE THE LIGHT: set it, then draw. Null is the usual, and every caller but the model pane leaves it so.</remarks>
         public CameraPose? Pose { get; set; }
 
+        /// <summary>
+        /// The bounds along the sun of the vertices from <c>From</c> on, where a pose moves them - PoseHull's - for the sun's map to be laid
+        /// over in place of those vertices' own; null where the map is laid over the vertices drawn.
+        /// </summary>
+        /// <remarks>
+        /// SET WHERE THE GRAPHICS CARD SKINS THE SAME POSE: it lays its map over the hull, not knowing the posed vertices, and the
+        /// processor's picture is the card's reference - so it lays its map the same way. The vertices before <c>From</c>, a stage's,
+        /// are bounded by where the mesh puts them, as the card's are.
+        /// </remarks>
+        public (int From, ShadowBounds Bounds)? Hull { get; set; }
+
         /// <summary>The last sun's shadow map and what it was drawn for, kept while neither changes - see <see cref="ShadowMap"/>.</summary>
         internal ShadowMap? Shadow { get; set; }
 
@@ -1560,12 +1571,23 @@ public static class MeshPicture
         Vector2[] coordinates = mesh.Coordinates;
         bool coordinated = mesh.Coordinated;
         bool[] cutAway = CutAway(programs);
+
+        // A POSE'S HULL, as the card lays its map over it (see Canvas.Hull): the stage's own vertices before it bounded where the
+        // mesh puts them - the card's StageBounds.
+        ShadowBounds? bounds = null;
+        if (!still && canvas.Hull is { } hull)
+        {
+            int from = Math.Clamp(hull.From, 0, mesh.Positions.Length);
+            bounds = from > 0 ? ShadowMap.Bounded(mesh.Positions.AsSpan(0, from), direction).With(hull.Bounds) : hull.Bounds;
+        }
+
         ShadowMap? map = ShadowMap.Build(
             places, mesh.Indices, triangles, direction,
             one => Casts(blends, shadeOf, cutAway, one),
             one => blends[one] == MaterialBlend.Cutout && coordinated && palette[wears[one]] is { } skin ? (skin, coordinates) : null,
             canvas.Threads,
-            side);
+            side,
+            bounds);
         canvas.Shadow = map;
         canvas.ShadowFor = still ? (mesh, direction, side) : null;
         return map;

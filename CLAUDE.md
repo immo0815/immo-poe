@@ -173,6 +173,22 @@ PERSPECTIVE REACHES EVERY PLACE THE PARALLEL VIEW WAS ASSUMED, and each keeps th
   projected start and end, the depths' reciprocals in step, the thickness projected at the start - water.ffx, read in water.txt).
 - The floor's lines come from the real eye (`ModelFloor`), and the sun's mark stays in front of it.
 
+## Who skins a monster
+
+THE GRAPHICS CARD SKINS A PLAYING MONSTER ITSELF (v0.1.325, asked for from the live client, which first asked whether the processor
+was needed at all and decided to keep it for what checks the card): the pane hands it the bones' matrices once a pose (`CardSkin`,
+`ModelScene.Skinned`; on a stage conjugated by his place, `SkeletonPose.SkinAt`) and the vertex shader runs `SkeletonPose.Move`'s
+weighted mean (`ModelShaders`' `Skinned`, bones and weights a byte each from the mesh's own arrays at t126/t127, the matrices in
+`Bones`, b3). Before, every frame of an animation skinned tens of thousands of vertices on every core and sent them to the card.
+THE PROCESSOR KEEPS what reads the posed vertices, and poses them only when one asks (`MonsterPortrait.CpuPosed`): its own picture
+(the probe, the grey, a shader still compiling - and every card test's reference), the pick under the pointer, the export. The
+lowest point the "planted" notice reads is `SkeletonPose.Lowest`, the z alone to the bit, five times a second while playing (CHOSEN).
+THE SUN'S MAP OF A SKINNED POSE is laid over a hull, not the posed vertices nobody on the processor holds (DECIDED from the live
+client): each bone's box of the vertices it moves, carried by the bone (`PoseHull`) - looser, never tighter (MEASURED on a real rig:
+the map's side 1.24 times the pose's at the median, 1.54 at most; boxes turned to each bone's spread barely better). The processor
+lays its map over the same hull (`MeshPicture.Canvas.Hull`), so both still draw one shadow; on a stage the stage's frame holds him
+and nothing changes. `CardSkinTests` and `SkinnedGpuTests` hold it all against Move on `blackguard-v6.one.ast`.
+
 ## Verify against the game, not against yourself
 
 A check that a wrong value passes is worse than no check. Prefer tests the game itself can

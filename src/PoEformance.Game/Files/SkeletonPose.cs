@@ -97,6 +97,9 @@ public sealed class SkeletonPose
     /// <summary>What to put a bind-pose vertex through, per bone, as of the last pose taken.</summary>
     public IReadOnlyList<Matrix4x4> Skin => _skin;
 
+    /// <summary>What takes a bind-pose vertex into each bone's own space - the first half of <see cref="Skin"/>, whose second is <see cref="World"/>.</summary>
+    public IReadOnlyList<Matrix4x4> InverseBind => _inverseBind;
+
     /// <summary>
     /// Builds a pose for a skeleton, or null where its tree does not hold together.
     /// </summary>
@@ -270,6 +273,99 @@ public sealed class SkeletonPose
 
     /// <summary>The fewest vertices a core is handed a share of - below twice this a pose is moved on the calling thread.</summary>
     private const int ParallelVertices = 4096;
+
+    /// <summary>
+    /// The lowest point of the mesh in the last pose - the greatest z, up being minus z - worked out as <see cref="Move(SkinnedMesh?, Vector3[], Vector3[])"/>
+    /// places each vertex, the z alone.
+    /// </summary>
+    /// <remarks>
+    /// FOR THE PANE'S LINE ABOUT A MONSTER PLANTED ABOVE ITS LOWEST POINT, where the graphics card skins the picture and nothing else
+    /// on the processor holds the posed vertices: a third of the arithmetic of a move and none of its writes. The same z to the bit as
+    /// Move's, each weight's share added in the same order.
+    /// </remarks>
+    public float Lowest(SkinnedMesh? mesh)
+    {
+        if (mesh is not { Ready: true })
+        {
+            return float.NegativeInfinity;
+        }
+
+        int count = mesh.Positions.Length;
+        int pieces = Math.Min(Environment.ProcessorCount, count / ParallelVertices);
+        if (pieces < 2)
+        {
+            return Lowest(mesh, 0, count);
+        }
+
+        var lows = new float[pieces];
+        Parallel.For(0, pieces, piece => lows[piece] = Lowest(mesh, (int)((long)count * piece / pieces), (int)((long)count * (piece + 1) / pieces)));
+        float lowest = float.NegativeInfinity;
+        foreach (float one in lows)
+        {
+            lowest = MathF.Max(lowest, one);
+        }
+
+        return lowest;
+    }
+
+    /// <summary>
+    /// The last pose's skin matrices for vertices that were put somewhere after skinning - each the place's inverse, the skin, then the
+    /// place - into a span, as many as both hold.
+    /// </summary>
+    /// <param name="place">Where the skinned mesh is put: a stage's monster's place on it; the identity copies the skin matrices as they are.</param>
+    /// <param name="into">Where the matrices go, row vectors.</param>
+    /// <remarks>
+    /// FOR THE GRAPHICS CARD, which skins a stage's joined mesh - the monster's vertices already placed - rather than his own (ModelGpu's
+    /// CardSkin): a placed vertex taken back by the inverse, skinned, and placed again is where Move and then the place put it, within
+    /// the floats' rounding; and its normal turns the same way, the place's own factor on it being one number a vertex, which making it
+    /// unit length again cancels.
+    /// </remarks>
+    public void SkinAt(Matrix4x4 place, Span<Matrix4x4> into)
+    {
+        int count = Math.Min(into.Length, _skin.Length);
+        if (place.IsIdentity)
+        {
+            _skin.AsSpan(0, count).CopyTo(into);
+            return;
+        }
+
+        Matrix4x4 unplace = Matrix4x4.Invert(place, out Matrix4x4 inverse) ? inverse : Matrix4x4.Identity;
+        for (var one = 0; one < count; one++)
+        {
+            into[one] = unplace * _skin[one] * place;
+        }
+    }
+
+    /// <summary><see cref="Lowest(SkinnedMesh?)"/> over the vertices from one to another.</summary>
+    private float Lowest(SkinnedMesh mesh, int from, int to)
+    {
+        int bones = _skin.Length;
+        float lowest = float.NegativeInfinity;
+        for (int one = from; one < to; one++)
+        {
+            Vector3 at = mesh.Positions[one];
+            float z = 0f;
+            var weight = 0f;
+            int slot = one * 4;
+            for (var part = 0; part < 4 && slot + part < mesh.Weights.Length; part++)
+            {
+                byte heavy = mesh.Weights[slot + part];
+                int bone = mesh.Bones[slot + part];
+                if (heavy == 0 || bone >= bones)
+                {
+                    continue;
+                }
+
+                float share = heavy / 255f;
+                z += Vector3.Transform(at, _skin[bone]).Z * share;
+                weight += share;
+            }
+
+            lowest = MathF.Max(lowest, weight <= 0f ? at.Z : z / weight);
+        }
+
+        return lowest;
+    }
 
     /// <summary>The vertices from one to another moved - <see cref="Move(SkinnedMesh?, Span{Vector3}, Span{Vector3})"/>'s loop.</summary>
     private void Moved(SkinnedMesh mesh, Span<Vector3> positions, Span<Vector3> normals, int from, int to)
