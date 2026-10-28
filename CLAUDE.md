@@ -1327,6 +1327,27 @@ Measured on the committed captures (`lattice-replay.txt`, `joins-replay.txt`, `o
   lies within it of the floor as drawn - a chamfer distance over the lift's blocks, three a block across and four corner to
   corner. At 1000 the Grotto's sheet is a band round its paths, 286 thousand pixels of 1.9 million.
 
+## When the overlay stays away
+
+AFTER AN ALT+TAB THE OVERLAY AT TIMES STAYED EMPTY FOR GOOD with the game in front (said from the live
+client, v0.1.336: borderless fullscreen, a Monster or Tile Book open or not, a browser or another 3D program
+in front meanwhile), and only ending the tool brought it back. The cause is NOT KNOWN; four readings fit it
+and v0.1.337 guards against each and writes down which one it was:
+- A LOST GRAPHICS DEVICE. Present's answer was dropped (upstream's loop), so a removed device drew into
+  nothing forever. Now it is read (`Overlay.Presented`), and a removed, reset or hung device is made anew
+  with its swap chain, ImGui's device objects and font atlas, ImGui's context kept (`RebuildDevice`); every
+  texture holder forgets its handles (`EntityOverlay.DeviceRebuilt`: the panes, the card, the icons, the
+  terrain and projectile sheets).
+- THE WINDOW PUSHED OUT OF THE FRONT. It is put back on top as the game comes back (`KeepOnTop`).
+- THE GAME'S WINDOW MADE ANEW. The handle read at attach was held for life; it is followed now
+  (`GameWindowTracker.Follow`, `Game`), and the game's process in front through any of its windows draws.
+- A RENDER THREAD THAT NEVER CAME BACK. A watchdog thread writes a frame standing still for 3 s and the stage it stood at.
+The restore key (F10 unless rebound, Appearance → Keys) does all of it at once. Everything goes to
+`overlay.log` beside the tool - the session before kept as `overlay.previous.log`, since the session that
+went wrong is the one that was killed - and a capture writes both (`overlay-log.txt`). Read it before
+changing any of this: the line as the game came back says whether the window was shown, on top, and what
+Present said.
+
 ## Raise the version on every push
 
 `ToolVersion.Number` goes up by one patch with **every** push — one edit, one file, no

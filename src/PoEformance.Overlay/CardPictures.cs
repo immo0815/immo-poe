@@ -102,6 +102,22 @@ public sealed class CardPictures : IDisposable
         _gpu = null;
     }
 
+    /// <summary>
+    /// Lets the drawing go after the overlay's graphics device was made anew, and asks again on the new one the next time a pane draws.
+    /// </summary>
+    /// <remarks>
+    /// A FAILURE IS FORGOTTEN TOO: a pane whose drawing failed because the old device was lost goes back to
+    /// the processor through <see cref="Fail"/>, and the new device is the reason to try the card again. The
+    /// panes' own targets were made on the old device and are dropped by each pane - see MonsterPortrait.DeviceLost.
+    /// </remarks>
+    public void Reset()
+    {
+        _gpu?.Dispose();
+        _gpu = null;
+        _asked = false;
+        Why = string.Empty;
+    }
+
     /// <summary>Hands ImGui a target's picture - see <see cref="ModelTarget.Shown"/>.</summary>
     public IntPtr Show(ModelTarget target)
     {

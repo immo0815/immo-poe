@@ -198,6 +198,48 @@
             vertexShaderBlob?.Release();
         }
 
+        // PoEformance: moves the renderer onto a new device after the old one was lost, keeping ImGui's
+        // own context - its windows, its state, its font atlas - as it is. See NOTICE.md.
+        //
+        // Every texture the renderer made (the font, the images) is released; a view the caller only
+        // lent it (borrowed) is dropped from the list but left for its owner to release. The font atlas
+        // is rebuilt from the files it was added from: ClearTexData let go of its pixels, never of its
+        // fonts, and GetTexDataAsRGBA32 builds it again.
+        internal void Rebind(ID3D11Device device, ID3D11DeviceContext deviceContext, Func<IntPtr, bool> borrowed)
+        {
+            foreach (var key in textureResources.Keys.ToArray())
+            {
+                var texture = this.DeRegisterTexture(key);
+                if (!borrowed(key))
+                {
+                    texture?.Release();
+                }
+            }
+
+            fontSampler?.Release();
+            indexBuffer?.Release();
+            vertexBuffer?.Release();
+            blendState?.Release();
+            depthStencilState?.Release();
+            rasterizerState?.Release();
+            pixelShader?.Release();
+            pixelShaderBlob?.Release();
+            constantBuffer?.Release();
+            inputLayout?.Release();
+            vertexShader?.Release();
+            vertexShaderBlob?.Release();
+            indexBuffer = null;
+            vertexBuffer = null;
+            this.deviceContext?.Release();
+            this.device?.Release();
+
+            this.device = device;
+            this.deviceContext = deviceContext;
+            device.AddRef();
+            deviceContext.AddRef();
+            this.CreateDeviceObjects();
+        }
+
         public void Resize(int width, int height)
         {
             ImGui.GetIO().DisplaySize = new Vector2(width, height);

@@ -248,6 +248,17 @@ public sealed class ShotLayer : IDisposable
             : sizes;
     }
 
+    /// <summary>
+    /// Forgets the textures after the overlay's graphics device was made anew - their handles went with the old one - so the
+    /// next frame builds them again. A failure on the old device is given another try on the new one.
+    /// </summary>
+    public void DeviceLost()
+    {
+        _levels = [];
+        _built = null;
+        _failure = null;
+    }
+
     public void Dispose()
     {
         ReleaseTextures();

@@ -75,6 +75,15 @@
             SetOverlayClickable(handle, true);
         }
 
+        // PoEformance: lays the glass and the styles on again as InitTransparency and SetOverlayClickable
+        // left them, whatever happened to the window since - see NOTICE.md.
+        internal static void ReapplyTransparency(IntPtr handle)
+        {
+            var margins = new Dwmapi.Margins(-1);
+            _ = Dwmapi.DwmExtendFrameIntoClientArea(handle, ref margins);
+            User32.SetWindowLong(handle, (int)WindowLongParam.GWL_EXSTYLE, (uint)(IsClickable ? Clickable : NotClickable));
+        }
+
         /// <summary>
         /// Enables (clickable) / Disables (not clickable) the Window keyboard/mouse inputs.
         /// NOTE: This function depends on InitTransparency being called when the Window was created.

@@ -204,6 +204,14 @@ internal sealed class TerrainFloor : IDisposable
             : _plan is null ? "no floor"
             : $"floor {_plan.Width}x{_plan.Height}";
 
+    /// <summary>Forgets the texture after the overlay's graphics device was made anew, so the next frame uploads it again - see TerrainLayer.DeviceLost.</summary>
+    public void DeviceLost()
+    {
+        _texture = IntPtr.Zero;
+        _version = Unbuilt;
+        _failure = null;
+    }
+
     public void Dispose()
     {
         Release();

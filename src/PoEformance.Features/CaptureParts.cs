@@ -161,6 +161,9 @@ public static class CaptureParts
     /// <summary>The atlas check's report.</summary>
     public const string AtlasLog = "atlas-log";
 
+    /// <summary>The overlay's own log, this session's and the one before: its window, its graphics device and the game's window.</summary>
+    public const string OverlayLog = "overlay-log";
+
     /// <summary>The light hunt run at the press: the sun, the sky's turn, the dust and the water as the game's memory holds them.</summary>
     public const string LightHunt = "light-hunt";
 
@@ -503,6 +506,11 @@ public static class CaptureParts
             + "round each place. Nothing where it is untouched."),
         new(AtlasLog, "Windows", "atlas", CaptureReport.AtlasLogFile,
             "The Atlas page's \"Check the Read\" report whole, as its Debug Log tab has it. Nothing where it has not run."),
+        new(OverlayLog, "Windows", "overlay log", CaptureReport.OverlayLogFile,
+            "The overlay's own log, this session's and the one before - kept beside the tool, so a session ended because the "
+            + "overlay stayed away is still there after the restart: the game leaving the front and coming back with the overlay "
+            + "window as it stood, what Present answered, the graphics device lost and made anew, frames that stood still, the "
+            + "restore key. No offline reader: the lines are the reading."),
 
         new(RunecraftPanel, "Windows", "runecraft panel", CaptureReport.RunecraftPanelFile,
             "What the Runecraft page read off the game's runecraft panel: its status, what the game calls the elements found, where the "
