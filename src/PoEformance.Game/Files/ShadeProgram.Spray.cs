@@ -30,6 +30,27 @@ public sealed partial class ShadeProgram
     [ThreadStatic]
     private static Spray s_spray;
 
+    /// <summary>The probe a drawing hands the spray for the probed pixel's fragment, or null - see <see cref="ProbeSprays"/>.</summary>
+    [ThreadStatic]
+    private static PixelProbe? s_sprayProbe;
+
+    [ThreadStatic]
+    private static int s_sprayTriangle;
+
+    [ThreadStatic]
+    private static float s_sprayDepth;
+
+    /// <summary>
+    /// Has the spray step of the program run next on this thread write its terms to a probe (ProbeSpray) - once, the first step of the three
+    /// outputs; null takes it back. A drawing sets it round the probed pixel's fragment alone, so every other pixel pays one compare.
+    /// </summary>
+    internal static void ProbeSprays(PixelProbe? probe, int triangle, float depth)
+    {
+        s_sprayProbe = probe;
+        s_sprayTriangle = triangle;
+        s_sprayDepth = depth;
+    }
+
     /// <summary>
     /// One output of the spray step: A the place, B the normal, C the curvature, the spray's height and the clock in x, y and z, D the
     /// shore's register; Extra the three sheets a byte each and in its top byte which output - the colour, the normal and ao, or the
@@ -40,13 +61,20 @@ public sealed partial class ShadeProgram
         ShoreField? shore = r[step.D].W > 0.5f ? s_shore : null;
         int sheets = step.Extra & 0xFFFFFF;
         var key = new SprayKey(this, r[step.A], r[step.B], r[step.C], sheets, shore);
-        if (!key.Equals(s_sprayKey))
+        PixelProbe? probe = s_sprayProbe;
+        if (!key.Equals(s_sprayKey) || probe is not null)
         {
             Vector4 place = r[step.A], normal = r[step.B], packed = r[step.C];
+            ProbeSpray terms = default;
             s_spray = Spraying(
                 new Vector3(place.X, place.Y, place.Z), new Vector3(normal.X, normal.Y, normal.Z), packed.X, packed.Y, packed.Z, shore,
-                new TopLevels(this), sheets & 0xFF, (sheets >> 8) & 0xFF, (sheets >> 16) & 0xFF);
+                new TopLevels(this), sheets & 0xFF, (sheets >> 8) & 0xFF, (sheets >> 16) & 0xFF, probe is not null, ref terms);
             s_sprayKey = key;
+            if (probe is not null)
+            {
+                probe.Add(terms with { Triangle = s_sprayTriangle, Depth = s_sprayDepth });
+                s_sprayProbe = null;
+            }
         }
 
         Spray spray = s_spray;
@@ -103,12 +131,32 @@ public sealed partial class ShadeProgram
         TRead read, int colourSheet, int normalSheet, int noiseSheet)
         where TRead : struct, ISprayTextures
     {
+        ProbeSpray unused = default;
+        return Spraying(place, normal, curvature, sprayHeight, clock, shore, read, colourSheet, normalSheet, noiseSheet, false, ref unused);
+    }
+
+    /// <summary>
+    /// <see cref="Spraying{TRead}(Vector3, Vector3, float, float, float, ShoreField, TRead, int, int, int)"/>, its terms written to
+    /// <paramref name="terms"/> where <paramref name="probed"/> - the probe's line (ProbeSpray), worked out by the arithmetic that draws.
+    /// </summary>
+    public static Spray Spraying<TRead>(
+        Vector3 place, Vector3 normal, float curvature, float sprayHeight, float clock, ShoreField? shore,
+        TRead read, int colourSheet, int normalSheet, int noiseSheet, bool probed, ref ProbeSpray terms)
+        where TRead : struct, ISprayTextures
+    {
         // THE NORMAL AT ITS OWN LENGTH ONE, as the program's own normal is (dot > 1e-12): the graph hands the TBN basis's, whose
         // length the mesh does not say. The weights and the velocity's projection do not change with it; Grad3ToNormal does.
         float length = normal.LengthSquared();
         normal = length > 1e-12f ? normal / MathF.Sqrt(length) : normal;
         if (shore is null)
         {
+            if (probed)
+            {
+                terms = new ProbeSpray(
+                    -1, 0f, place, normal, curvature, sprayHeight, clock, false, float.NaN, -1, -1, "no shore field", 0f, 0f, Vector2.Zero, 0f, 0f,
+                    0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, Vector3.Zero, 0f, 0f, 0f, Vector3.Zero);
+            }
+
             return new Spray(Vector4.Zero, normal, 1f, 0f, 0f);
         }
 
@@ -151,8 +199,20 @@ public sealed partial class ShadeProgram
         Vector3 along = flow - (normal * (Vector3.Dot(normal, flow) / Vector3.Dot(normal, normal)));
         (Vector4 colour, Vector3 foamNormal, float rough, float ao) = TriplanarFoam(
             place * 0.002f, normal, along * 0.002f, clock, 0.8f, read, colourSheet, normalSheet);
+        float foamAlpha = colour.W;
         colour.W = MathSmoothStep(foamIntensity, 1f - Gain(colour.W, 0.1f), 0.5f);
-        return new Spray(colour, foamNormal, ao, 1f - rough, RampNorm(heightFade, curvature));
+        float wetness = RampNorm(heightFade, curvature);
+        if (probed)
+        {
+            float above = Saturated(0.8f + (place.Z / sprayHeight)), below = Saturated((150f - place.Z) / 100f);
+            string cell = shore.CellAt(at, out int cellX, out int cellY);
+            terms = new ProbeSpray(
+                -1, 0f, place, normal, curvature, sprayHeight, clock, true, shore.Level, cellX, cellY, cell, shoreDist, oceanDist, oceanSlope,
+                stationary, advected, waveCoord, sprayPhase, sprayIntensity, above, below, Saturated((shoreDist + 200f) * 0.01f), heightFade,
+                fadePhase, foamIntensity, along, foamAlpha, colour.W, wetness, new Vector3(colour.X, colour.Y, colour.Z));
+        }
+
+        return new Spray(colour, foamNormal, ao, 1f - rough, wetness);
     }
 
     /// <summary>GetShoreData's distances at a place, in world units: the shore's <c>(1 - r) / dist_to_color</c> and out to sea's <c>(1 - b) / dist_to_color</c>.</summary>

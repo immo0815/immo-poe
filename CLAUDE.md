@@ -241,6 +241,10 @@ ITS FIRST CAPTURE (v0.1.328, Port, the player at the arena's door, Malgor on his
   hanging it rigidly on the bone): its bones after his, its own animation of each name joined in step (`AnimationSkeleton.Played`,
   `AnimationTracks.With`) - by the seconds of each one's rate, CHOSEN (attack_01 is 84 frames for him, 168 for the wheel); where it has
   no animation of the name it stands at its bind. Every loader of a monster's animation reads `Played`.
+V0.1.330 DREW ALL THREE AS THE GAME DOES (said from the live client with pictures and two videos): his origin on the deck and on his
+throne, the spyglass in his left hand, the wheel round his neck in every animation, `emerge_idle_01` included. In `wheel_spin_01` his
+own hand turns the wheel round his neck in step with it - the first evidence from the game that joining a rider's animation by each
+one's rate (CHOSEN above) holds.
 
 ## Verify against the game, not against yourself
 
@@ -766,6 +770,28 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   the swell, the beach and the spray keep the shore's distance with the rocks. A reading, not the engine's: its OceanMarkupField is
   made from the tile map (ClientTileMap::CalculateMapMarkup), which knows no doodad. `model-panes.txt` counts the water cells the
   ground's shore puts farther and draws `shore-ground.png`; the probe writes both distances and which the break took.
+  WHAT IS LEFT OF PORT'S WATER, DECIDED from the live client (2026-10-28) with the Monster Book otherwise "done" for Port: the water
+  running down the quay's face after a wave first, then the refraction and its caustics, then the wet sand, then the rocky shore - each
+  on the card alone, as the field waves are, the processor's picture saying under it what it leaves out; the flood waves left out, never
+  seen in Port. THE QUAY'S RUNOFF (a video from the live client, v0.1.331): a crest climbs the quay's stone face, and as it falls back thin
+  bright streaks run down the dark stone for about a second while the face looks wet - CrashingFoamSurface's own look, its foam
+  scrolling down a face at rest and its wetness. The quay's facing stone sprays (v0.1.301), so the node runs there already and something
+  in it leaves the face dry: from v0.1.332 the probe writes it term by term on any fragment whose program sprays (`ProbeSpray`,
+  `ShadeProgram.ProbeSprays`, the drawing's own run): what the graph handed it, the shore field's cell and water level, the shore's and
+  the way in's distances, the noises and the crashing wave's coordinate, the spray's phase and strength, the band's three factors (its
+  height absolute z, not over the water's level), the fades, the scroll, the cover and the wetness; a fragment's line says whether its
+  program carries the spray at all. Probe the quay's face just after a crest, crash on, then capture - before any rule is changed.
+  THE CAUSTICS' AND THE ROCKY SHORE'S TEXTURES. water.ffx's GetCausticsBias reads `distortion_sampler` (red and green as a vector,
+  `(rg * 2 - 1) * 0.4`, at the place times 0.001 drifting with the clock) and `caustics_tex_sampler` (its green, `pow(g, 1 / 4.2) * 2 - 1`,
+  at the place times 0.002), both wrapping, and GetClashingWaterPlanarState and the beach foam's leading edge read the same distortion -
+  pass textures the engine binds, which is what stopped all three before. The game's program names
+  `Art/particles/environment_effects/waterfalls/twilight_strand/water_caustics_2.dds` (and the source's own comment over the caustics
+  says "for water_caustics_2.dds") and `Art/particles/distortion/muddle_double.dds`. Which files they are is to be SETTLED BY THE FILES, as
+  the swell's profile was: from v0.1.332 the water textures part measures every candidate (`WaterPassTextures`: those two, the install's
+  other caustics, flow and noise textures, the program's names of the same words) as the shader reads it - each channel's spread, the seam
+  across its wrap against a step inside, red and green's likeness, the distortion's mean vector, the caustics' bias - and writes each whole
+  (`water-pass-N-name.dds`); `water-pass-replay.txt` measures them again offline. The refraction's own march (GetRaytracedLightAdaptiveStepping)
+  and its dispersion (ComputeDispersedColor, 0.2) are in water.txt whole and need neither.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

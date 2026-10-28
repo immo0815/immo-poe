@@ -82,6 +82,11 @@ public static class PictureProbe
             lines.Add(Fielded(field));
         }
 
+        foreach (ProbeSpray spray in probe.Sprays)
+        {
+            lines.Add(Sprayed(spray, model));
+        }
+
         foreach (ProbeGround ground in probe.Grounds)
         {
             lines.Add(Grounded(ground));
@@ -166,6 +171,31 @@ public static class PictureProbe
             + Say($" · the foam's profile there: the break lets {profile.BreakFoam:F3} form, spike {profile.Spike:F3} + tail {profile.Tail:F3} + constant {profile.Constant:F3}, the wave's own {profile.Wave:F3} once lerped by the break phase, the near-shore term {profile.NearShore:F3}, so {profile.Intensity:F3}, sharpness {profile.Sharpness:F3}")
             + laid
             + Say($" · covering {Fraction(field.Cover)}, colour {field.Colour.X:F3}, {field.Colour.Y:F3}, {field.Colour.Z:F3} linear, read at level {field.Level:F1}");
+    }
+
+    /// <summary>
+    /// The sea's spray on a surface at the pixel, term by term - what the node was handed, the shore field there, the crashing wave's
+    /// coordinate and phase, the band of height, and the foam and wetness it came to - see <see cref="ProbeSpray"/>.
+    /// </summary>
+    public static string Sprayed(ProbeSpray spray, MonsterModel model)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+        string head = Say($"  spray on shape {ShapeOf(model.Mesh, spray.Triangle)} at depth {Number(spray.Depth)} · the node handed ({Number(spray.Place.X)}, {Number(spray.Place.Y)}, {Number(spray.Place.Z)}) (up is minus z), facing {Way(spray.Normal)}")
+            + Say($" · curvature {spray.Curvature:F3}, spray height {Number(spray.SprayHeight)}, clock {spray.Clock:F2} s");
+        if (!spray.Shore)
+        {
+            return head + " · no shore field drawn under it, so no spray at all";
+        }
+
+        return head
+            + Say($" · the shore field's cell {spray.CellX}, {spray.CellY}, {spray.Cell}, its water level {Number(spray.Level)}")
+            + Say($" · the shore {Number(spray.ShoreDist)} units (CHOSEN field; positive at sea), the way in {Number(spray.OceanDist)} (rising {spray.OceanSlope.X:F3}, {spray.OceanSlope.Y:F3})")
+            + Say($" · the noise standing {spray.Stationary:F3} and carried {spray.Advected:F3}, the crashing wave's coordinate {spray.WaveCoord:F3}")
+            + Say($" · the spray's phase {spray.Phase:F3}, its strength {spray.Intensity:F3}")
+            + Say($" · the band: above {spray.Above:F3} (0.8 + z / height), below {spray.Below:F3} ((150 - z) / 100), inland {spray.Inland:F3}, so {spray.Band:F3}")
+            + Say($" · ramped about the strength {spray.Fade:F3}, by the curvature {spray.Foam:F3} - how strongly the foam shows")
+            + Say($" · scrolling {Way(spray.Flow)} (plus z is down) · the foam's own alpha {spray.FoamAlpha:F3}, covering {Fraction(spray.Cover)}")
+            + Say($" · wetness {spray.Wetness:F3} · colour {spray.Colour.X:F3}, {spray.Colour.Y:F3}, {spray.Colour.Z:F3} linear");
     }
 
     /// <summary>How much of the sun reached a fragment, and what cast the shadow where it did not - see <see cref="ProbeSun"/>.</summary>
@@ -320,8 +350,8 @@ public static class PictureProbe
             : "no material";
         string mode = shape < model.Modes.Count && model.Modes[shape].Length > 0 ? model.Modes[shape] : "-";
         string blend = shape < model.Blends.Count ? model.Blends[shape].ToString().ToLowerInvariant() : "opaque";
-        string drawn = shades is not null && shape < shades.Count && shades[shape] is not null
-            ? "program"
+        string drawn = shades is not null && shape < shades.Count && shades[shape] is { } shade
+            ? shade.Sprays ? "program, the sea's spray in it" : "program"
             : shape < model.Skins.Count && model.Skins[shape] is not null ? "texture" : "plain";
         string from = shape < model.ShapeSources.Count && model.ShapeSources[shape].Length > 0
             ? " · from " + model.ShapeSources[shape]

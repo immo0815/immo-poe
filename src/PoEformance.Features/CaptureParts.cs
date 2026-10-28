@@ -419,7 +419,10 @@ public static class CaptureParts
             + "ripple texture, the swell's profiles and gradient - read as floats, each written whole beside it, with what the water "
             + "takes of them and why. What stands between the tool's stand-in waves and the game's. And the engine's beach waves - the "
             + "foam that floods the rocks: the graphs the program names for them (BreakingOceanWaves and its kin) whole, every graph "
-            + "they name, and the textures they name with their headers."),
+            + "they name, and the textures they name with their headers. And the two pass textures the water's caustics and rocky shore "
+            + "read and no file names (caustics_tex_sampler, distortion_sampler): every candidate - water_caustics_2.dds and "
+            + "muddle_double.dds, which the program names, and the install's other caustics and flow textures - measured as water.ffx "
+            + "reads it and written whole beside it."),
 
         new(WobbleFiles, "Area files", "wobble files", CaptureReport.WobbleFilesFile,
             "What the install says of the engine's wobble - what sways Port's ship, whose model has no rig and no animation: the object "

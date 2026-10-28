@@ -2671,6 +2671,11 @@ public static class MeshPicture
                         Spot spot_ = new(first, second, third);
                         if (program is not null)
                         {
+                            if (here && program.Sprays)
+                            {
+                                ShadeProgram.ProbeSprays(_probe, one, away);
+                            }
+
                             // THE SOLID DEPTH IS STILL WHAT THE BUFFER HOLDS: the translucent pass
                             // writes none - see Band - so a layer measures against the ground under it.
                             Vector3 mixed = program.Colour(
@@ -2686,6 +2691,10 @@ public static class MeshPicture
                                 out ShadeProgram.WaterOut mixedWater,
                                 tinted ? (first * v0) + (second * v1) + (third * v2) : default,
                                 held);
+                            if (here)
+                            {
+                                ShadeProgram.ProbeSprays(null, 0, 0f);
+                            }
 
                             // THE WATER'S COVER IS ITS LIGHT'S (SceneLight.ShadeWater): what lies behind seen through the medium and the surface.
                             bool watered = scened && program.LightsWater && !float.IsNegativeInfinity(cover);
@@ -2779,6 +2788,12 @@ public static class MeshPicture
                             continue;
                         }
 
+                        // THE PROBED PIXEL'S SPRAY WRITES ITS TERMS (ProbeSpray) - the same run that colours it.
+                        if (here && program.Sprays)
+                        {
+                            ShadeProgram.ProbeSprays(_probe, one, away);
+                        }
+
                         colour = program.Colour(
                             registers,
                             (first * s0) + (second * s1) + (third * s2),
@@ -2791,6 +2806,10 @@ public static class MeshPicture
                             out waves,
                             out water,
                             tinted ? (first * v0) + (second * v1) + (third * v2) : default);
+                        if (here)
+                        {
+                            ShadeProgram.ProbeSprays(null, 0, 0f);
+                        }
                         if ((cut && program.HasAlpha && alpha < CutoutAlpha) || float.IsNegativeInfinity(alpha))
                         {
                             if (here)
