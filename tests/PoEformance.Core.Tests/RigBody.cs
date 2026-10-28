@@ -17,8 +17,8 @@ internal static class RigBody
     /// <summary>Art/Models/MONSTERS/blackguardminorinquisitor/rig.ast's header, bones and one animation - see SkeletonPoseFromTheGameTests.</summary>
     private const string Fixture = "blackguard-v6.one.ast";
 
-    /// <summary>The fixture's rig posed at rest, its one animation's keys, and a body of its bones.</summary>
-    public static (SkeletonPose Pose, AnimationTracks Tracks, SkinnedMesh Body) Ready(float thick = 6f)
+    /// <summary>The fixture's rig, read.</summary>
+    public static AnimationSkeleton Rig()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "tests", "fixtures")))
@@ -29,6 +29,13 @@ internal static class RigBody
         Assert.NotNull(dir);
         AnimationSkeleton rig = AnimationSkeleton.Read(File.ReadAllBytes(Path.Combine(dir.FullName, "tests", "fixtures", Fixture)));
         Assert.True(rig.Ready, rig.Why);
+        return rig;
+    }
+
+    /// <summary>The fixture's rig posed at rest, its one animation's keys, and a body of its bones.</summary>
+    public static (SkeletonPose Pose, AnimationTracks Tracks, SkinnedMesh Body) Ready(float thick = 6f)
+    {
+        AnimationSkeleton rig = Rig();
         SkeletonPose? pose = SkeletonPose.Of(rig);
         Assert.NotNull(pose);
         SkeletonAnimation only = rig.Animations[0];

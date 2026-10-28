@@ -152,6 +152,9 @@ public static class CaptureParts
     /// <summary>The model panes' lines under their pictures, and every doodad file of a room shown with what became of it.</summary>
     public const string ModelPanes = "model-panes";
 
+    /// <summary>The Monster Book's monster: where the stage stands him, his parts as hung, his lowest point in every animation, his files whole, and the game's entity of him.</summary>
+    public const string MonsterFiles = "monster-files";
+
     /// <summary>The Memory Dissector's places, route and last search.</summary>
     public const string Dissector = "dissector";
 
@@ -485,6 +488,11 @@ public static class CaptureParts
             + "its first line puts it and its materials; each file that did not draw written whole with what it extends; the materials "
             + "under the probe, those drawn plain and those naming a shore's node or with nodes left out, whole, each program texture's "
             + "header beside them. Nothing where no pane shows a model."),
+        new(MonsterFiles, "Windows", "monster's files", CaptureReport.MonsterFilesFile,
+            "The Monster Book's monster as the tool builds and stands it: where the stage put him and the floor it found at nine points round "
+            + "his place, the rest's lowest point, each part with its socket and box, his lowest point and root bone in every animation, and "
+            + "every .ao and object type file of him whole - beside the game's own entity of him where one is near (its place, the terrain's "
+            + "height under it, its bounds, the animation it plays). Stand where the game shows him with him on the Monster Book's stage."),
         new(Dissector, "Windows", "dissector", CaptureReport.DissectorFile,
             "The places the Memory Dissector has open, the route walked to them, and what its last search found with the bytes "
             + "round each place. Nothing where it is untouched."),

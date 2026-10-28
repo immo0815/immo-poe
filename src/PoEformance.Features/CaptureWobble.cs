@@ -202,7 +202,7 @@ public static class CaptureWobble
     }
 
     /// <summary>A file whole, then each file it extends of the same kind. Returns how many were read.</summary>
-    private static int Chain(Func<string, byte[]?> read, string path, string kind, HashSet<string> written, StringBuilder body, int depth)
+    internal static int Chain(Func<string, byte[]?> read, string path, string kind, HashSet<string> written, StringBuilder body, int depth)
     {
         if (depth > 12 || !written.Add(path) || read(path) is not { Length: > 0 } bytes)
         {

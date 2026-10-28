@@ -205,6 +205,19 @@ waits with a line saying how far it is, rather than decoding on the frame's thre
 kept as blocks and how long the unpacking took. BlockArt now reads BC2 to BC5 itself: BC2 and BC4 to Pfim's byte, BC3's alpha and BC5
 as the card rounds them (Pfim truncates; a level apart at most). `BlockArtTests`, `BlockTextureTests` and `BlockGpuTests` hold it.
 
+## A staged boss against the game
+
+MALGOR ON PORT'S STAGE (said from the live client with two pictures, v0.1.326): he floats above the deck in every animation and above
+his wooden throne in `emerge_idle_01`; the spyglass he holds in his left hand in the game is not drawn at all; and his ship's wheel sits
+at the bottom of his body whatever he does. Nothing settled where any of it comes from - the captures held neither his own files nor
+his entity - so `monster-files.txt` (`CaptureMonsterFiles`, v0.1.327, the Windows group) writes the Monster Book's monster as the tool
+builds and stands him: the place the stage put him (`StagedModels.Staged`, `MonsterModel.Standing`: the rest's lowest point set on the
+middle of the floors found at his place and eight points 120 round it), each part with its socket and box (`PartFit`), his lowest point
+and root bone in every animation, every `.ao` and object type of him whole (`ModelDump.Of`, `.ot`/`.otc` chains) - and the game's own
+entity of him where one is near: its place, the terrain's height under it, its bounds, the animation it plays. No offline reader: the
+files it writes are the reading. Read it, from a capture standing where the game shows him with him on the Monster Book's stage,
+before the placing rule, a part's socket or a missing part is changed.
+
 ## Verify against the game, not against yourself
 
 A check that a wrong value passes is worse than no check. Prefer tests the game itself can

@@ -1682,6 +1682,9 @@ public sealed class MonsterPortrait
                 Probed = HasProbe ? _probedShapes : [],
                 Shades = ShadesOf(_model),
                 View = _drawnView.Valid ? _drawnView : null,
+                Variety = _variety,
+                Path = _wanted,
+                Unpack = _unpack,
             }
             : null;
 

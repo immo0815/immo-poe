@@ -199,6 +199,9 @@ public sealed record MonsterModel(
     /// <summary>What reading those lights came to, for the line under a lit picture - see RoomLights.Gathered.</summary>
     public string LightsSaid { get; init; } = string.Empty;
 
+    /// <summary>Where a stage stood its monster and the floor it found there - see <see cref="StageStanding"/>; null for anything but a staged monster.</summary>
+    public StageStanding? Standing { get; init; }
+
     /// <summary>A room's doodad files and what became of each one's lines - see <see cref="DoodadFile"/>. Empty for anything but a room.</summary>
     public IReadOnlyList<DoodadFile> DoodadFiles { get; init; } = [];
 
