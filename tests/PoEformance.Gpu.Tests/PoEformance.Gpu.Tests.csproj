@@ -20,6 +20,10 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The body made of a real rig's bones the processor's skinning tests pose - the card skins the same one. -->
+    <Compile Include="..\PoEformance.Core.Tests\RigBody.cs" Link="RigBody.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\src\PoEformance.Game\PoEformance.Game.csproj" />
     <ProjectReference Include="..\..\src\PoEformance.Gpu\PoEformance.Gpu.csproj" />
   </ItemGroup>

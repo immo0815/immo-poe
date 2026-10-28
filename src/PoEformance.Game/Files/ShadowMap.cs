@@ -75,11 +75,12 @@ public sealed class ShadowMap
     /// <param name="cutout">For a cut-out triangle, its texture and coordinates; null for a solid one.</param>
     /// <param name="threads">How many threads may draw it.</param>
     /// <param name="side">How many texels across - <see cref="Usual"/> or <see cref="Coarse"/>.</param>
+    /// <param name="bounds">The bounds the map is laid over, where they are not the places' own - a pose's hull (PoseHull) - or null.</param>
     internal static ShadowMap? Build(
         Vector3[] places, int[] indices, int triangles, Vector3 direction, Func<int, bool> casts, Func<int, (Mipmaps Skin, Vector2[] Coordinates)?> cutout, int threads,
-        int side = Usual)
+        int side = Usual, ShadowBounds? bounds = null)
     {
-        if (triangles == 0 || Framed(places, direction, side) is not { } frame)
+        if (triangles == 0 || (bounds is { } laid ? Framed(laid, direction, side) : Framed(places, direction, side)) is not { } frame)
         {
             return null;
         }

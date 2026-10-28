@@ -143,6 +143,68 @@ frame as its mirror image, which looks entirely right until it is held against t
 cannot be turned to match: a room drawn from the area's own tiles came out exactly that way.
 `MeshPicture.Camera` turns x over once for every picture the tool draws.
 
+## The model pane's camera
+
+Every model pane (Monster, Tile, Item and Effect Book) is looked at through one `CameraPose` (v0.1.324, asked for from the live
+client: navigating Port's stage was poor and zooming close impossible): a FOCUS it looks at and turns about, a turn and a tilt -
+`MeshPicture.Camera`'s own angles, so the parallel pose fitted to the box with no pan IS the old camera, pinned by
+`APARALLELPoseFittedToTheBoxIsTheOldCamera` - a distance, and perspective or parallel (the edge button; perspective by default).
+MEASURED off the game's camera matrix (Port's capture of v0.1.319): thirty degrees from the picture's top to its bottom
+(`CameraPose.FieldOfView`), and the game's view 48.67 degrees down along +x +y with +x -y to the right, 2,165 units off the player
+(`GameTurn`, `GameTilt`, `GameDistance`, the "game view" button). CHOSEN and said in the code: the near plane (a hundredth of the
+distance, 0.05 to 5), the closest the eye comes (2 units - a barrel fills the picture), the keys' pace (four fifths of the
+distance a second, shift four times), rooms, tiles and stages starting at the game's angle and a monster as the last one was. The
+gestures: left drag turns about the focus, right drag pans, the wheel stretches the camera about the surface under the pointer
+(`MeshPicture.Pick`, a ray through every triangle on every core), a double click looks at the point under it from where the eye
+stands (`LookingAt`), W/S A/D Q/E fly eye and focus together while the pointer is over the picture, shift + left drag the sun.
+A capture's `model-panes.txt` writes the pose and what it comes to (`CapturePanes.Camera`).
+
+PERSPECTIVE REACHES EVERY PLACE THE PARALLEL VIEW WAS ASSUMED, and each keeps the parallel arithmetic to the bit:
+- The processor (`MeshPicture.Drawing.Edged`) finds each pixel's weights as the point its ray meets - `r · (v1 × v2)` and its
+  kin over `r · n`, sums of the column and row like the parallel edge functions - so every coordinate is perspective-correct and
+  no triangle is cut: the near plane is a test per pixel, and `Reached` boxes the part past it. A texture's level stays one per
+  triangle (the finest through the near plane); the card's per block of pixels is the picture.
+- The card's depth is REVERSED (one nearest, `Greater`), so a float keeps its precision from the near plane to the horizon; in
+  perspective it is `near / z`, read back by `BehindAt`.
+- The game light, the water and the probes take the way from the pixel to the eye (`EyeWay`, the card's `SeeFrom`), and a shade
+  program's ViewDir, DepthDistance and MaskedContactFade the point's own ray (`ShadeProgram.Viewer`, a fixed register; the
+  engine's own definitions, `length(bottom - camera) - length(world_pos - camera)`, which a parallel view had reduced to depths).
+- The water's screen ray is the engine's march in perspective (`ScreenReflection.MarchSeen`: InitScreenRaymarchContext's
+  projected start and end, the depths' reciprocals in step, the thickness projected at the start - water.ffx, read in water.txt).
+- The floor's lines come from the real eye (`ModelFloor`), and the sun's mark stays in front of it.
+
+## Who skins a monster
+
+THE GRAPHICS CARD SKINS A PLAYING MONSTER ITSELF (v0.1.325, asked for from the live client, which first asked whether the processor
+was needed at all and decided to keep it for what checks the card): the pane hands it the bones' matrices once a pose (`CardSkin`,
+`ModelScene.Skinned`; on a stage conjugated by his place, `SkeletonPose.SkinAt`) and the vertex shader runs `SkeletonPose.Move`'s
+weighted mean (`ModelShaders`' `Skinned`, bones and weights a byte each from the mesh's own arrays at t126/t127, the matrices in
+`Bones`, b3). Before, every frame of an animation skinned tens of thousands of vertices on every core and sent them to the card.
+THE PROCESSOR KEEPS what reads the posed vertices, and poses them only when one asks (`MonsterPortrait.CpuPosed`): its own picture
+(the probe, the grey, a shader still compiling - and every card test's reference), the pick under the pointer, the export. The
+lowest point the "planted" notice reads is `SkeletonPose.Lowest`, the z alone to the bit, five times a second while playing (CHOSEN).
+THE SUN'S MAP OF A SKINNED POSE is laid over a hull, not the posed vertices nobody on the processor holds (DECIDED from the live
+client): each bone's box of the vertices it moves, carried by the bone (`PoseHull`) - looser, never tighter (MEASURED on a real rig:
+the map's side 1.24 times the pose's at the median, 1.54 at most; boxes turned to each bone's spread barely better). The processor
+lays its map over the same hull (`MeshPicture.Canvas.Hull`), so both still draw one shadow; on a stage the stage's frame holds him
+and nothing changes. `CardSkinTests` and `SkinnedGpuTests` hold it all against Move on `blackguard-v6.one.ast`.
+
+## Textures go to the card as the file's blocks
+
+A BLOCK-COMPRESSED TEXTURE WITH EVERY LEVEL IS KEPT AS THE FILE HOLDS IT (v0.1.326, asked for from the live client): `BlockTexture` reads
+the DDS's header and where each level lies, `Mipmaps.Kept` keeps it undecoded, and the card is handed those levels as BC1, BC2, BC3, BC4,
+BC5 or BC7 where it samples the format (`ModelGpu`'s `Blocked`; a card below feature level 11 reads no BC7 and is handed decoded bytes).
+MEASURED in Port's capture of v0.1.319: 800 million texels at the top level, 4.3 GB decoded with levels and 0.8 GB as blocks; decoding
+was 25 of the build's thread-seconds and the levels 8 more, now none. THE FILE'S OWN LEVELS, NOT BOX AVERAGES OF THE TOP (DECIDED from
+the live client): the card can only be handed what the file carries, and the processor's picture is the card's reference, so both read
+them - the top level decodes as before, the smaller ones are the game's own. A cube, an array, a volume or a file short of any level
+is decoded at load with levels built as before (CHOSEN: no picture coarser than it was). THE PROCESSOR DECODES BEHIND THE LOAD (DECIDED
+from the live client): `MonsterPortrait.UnpackBehind` decodes every texture of the model shown on every core but the frame's once it
+landed, stopped when the model goes; a processor picture asked for meanwhile - the probe, the grey, a shader still compiling, no card -
+waits with a line saying how far it is, rather than decoding on the frame's thread. A capture's build lines say how many textures were
+kept as blocks and how long the unpacking took. BlockArt now reads BC2 to BC5 itself: BC2 and BC4 to Pfim's byte, BC3's alpha and BC5
+as the card rounds them (Pfim truncates; a level apart at most). `BlockArtTests`, `BlockTextureTests` and `BlockGpuTests` hold it.
+
 ## Verify against the game, not against yourself
 
 A check that a wrong value passes is worse than no check. Prefer tests the game itself can

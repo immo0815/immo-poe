@@ -72,6 +72,18 @@ internal static class ModelShaders
     public const int FirstSheet = ShadeHlsl.FieldFoamNormalSlot + 1;
 
     /// <summary>
+    /// The vertex shader's slot for a skinned mesh's bones, four bytes a vertex - and the next its weights: the last two of the 128 a
+    /// shader has, clear of a program's sheets, which run on from <see cref="FirstSheet"/> as many as it reads.
+    /// </summary>
+    public const int SkinBonesSlot = 126;
+
+    /// <summary>The vertex shader's slot for a skinned mesh's weights - see <see cref="SkinBonesSlot"/>.</summary>
+    public const int SkinWeightsSlot = 127;
+
+    /// <summary>The most bones the card skins by: a vertex names its bones in bytes.</summary>
+    public const int MostBones = 256;
+
+    /// <summary>
     /// What every shader here shares: the constants, the resources, the vertex shader, and the light - the picture's lamp and the game's.
     /// </summary>
     public static readonly string Common = $$"""
@@ -85,7 +97,7 @@ internal static class ModelShaders
             float4 Halfway;   // xyz: between the eye and the lamp, in view space
             float4 Clock;     // x: the clock - ShadeProgram.Clock
             float4 Eye;       // the way into the picture in model space and the origin's depth - ShadeProgram.Eye
-            float4 Depth;     // x: the reach the depth buffer was laid over
+            float4 Depth;     // x: the reach the depth buffer was laid over, on a parallel view; y: the near plane's depth; z: one in perspective
             float4 Dust;      // xyz: the area's dust colour - ShadeProgram.Dust
             float4 Water;     // xyz: the area's open water, linear; w: its density - ShadeProgram.WaterColour
             float4 Flow;      // x: the area's water flow; y: its reflectiveness; z: its height offset - ShadeProgram.WaterFlow; w: the lift, SceneLight.WaterLift
@@ -93,6 +105,7 @@ internal static class ModelShaders
             float4 Shore;     // the room's shore's box: its least x and y, world units a texel, one where there is a shore - ShadeProgram.WaterShore
             float4 Swell;     // the ocean's swell: its height, its period, its intensity - ShadeProgram.WaterSwell
             float4 WaterLit;  // x: the medium's scattering, water_subsurface_scattering - SceneLight.ShadeWater
+            float4 Viewer;    // xyz: the eye's place in model space; w: one in perspective - ShadeProgram.Viewer
         };
 
         cbuffer Part : register(b1)
@@ -124,6 +137,29 @@ internal static class ModelShaders
             int4 Graded;        // xyz: the grade's texels each way; w: the picture's view - SceneLight.View
         };
 
+        // THE BONES THE CARD SKINS BY - ModelGpu.Skinned: x one where it skins; y the first vertex it moves; z the rig's bones, a bone at
+        // or past them moving nothing; w how many vertices from y on the weighted mesh has. Then each bone's matrix, row vectors.
+        cbuffer Bones : register(b3)
+        {
+            int4 Skinning;
+            row_major float4x4 Bone[{{MostBones}}];
+        };
+
+        // EACH VERTEX'S FOUR BONES AND FOUR WEIGHTS, a byte each - the weighted mesh's own arrays, from Skinning.y on.
+        Buffer<uint4> SkinBones : register(t{{SkinBonesSlot}});
+        Buffer<uint4> SkinWeights : register(t{{SkinWeightsSlot}});
+
+        // THE WAY TO THE EYE FROM THE PIXEL BEING LIT, model space - MeshPicture.Drawing.EyeWay: the scene's one way on a parallel view, the
+        // pixel's own in perspective. Set by every entry point that lights the scene's way, before it lights.
+        static float3 EyeWay = float3(0.0, 0.0, 1.0);
+
+        void SeeFrom(float3 place)
+        {
+            float3 way = Viewer.xyz - place;
+            float length = sqrt(dot(way, way));
+            EyeWay = Viewer.w > 0.5 && length > 1e-6 ? way / length : ToEye.xyz;
+        }
+
         Texture2D Skin : register(t0);
         Buffer<float> Tabled : register(t1);
         Buffer<float4> Points : register(t2);
@@ -151,7 +187,49 @@ internal static class ModelShaders
             float3 normal : NORMAL;
             float2 spot : TEXCOORD0;
             float4 tint : COLOR0;
+            uint vertex : SV_VertexID;
         };
+
+        // SkeletonPose.Move, vertex for vertex: each weight's bone moving the vertex on its own and the results mixed in the weights'
+        // proportion - a weight of nought and a bone past the rig skipped - the normal turned alike and made unit length again, and a
+        // vertex nothing weighs left where it is. The vertex's number is the index's own, every draw's base vertex being nought.
+        void Skinned(uint vertex, inout float3 position, inout float3 normal)
+        {
+            uint own = vertex - (uint)Skinning.y;
+            if (Skinning.x == 0 || vertex < (uint)Skinning.y || own >= (uint)Skinning.w)
+            {
+                return;
+            }
+
+            uint4 bones = SkinBones.Load(own);
+            uint4 weights = SkinWeights.Load(own);
+            float3 moved = float3(0.0, 0.0, 0.0);
+            float3 turned = float3(0.0, 0.0, 0.0);
+            float weight = 0.0;
+            [unroll]
+            for (int part = 0; part < 4; part++)
+            {
+                uint bone = bones[part];
+                if (weights[part] == 0 || bone >= (uint)Skinning.z)
+                {
+                    continue;
+                }
+
+                float share = weights[part] / 255.0;
+                moved += mul(float4(position, 1.0), Bone[bone]).xyz * share;
+                turned += mul(float4(normal, 0.0), Bone[bone]).xyz * share;
+                weight += share;
+            }
+
+            if (weight <= 0.0)
+            {
+                return;
+            }
+
+            position = moved / weight;
+            float length = sqrt(dot(turned, turned));
+            normal = length > 1e-6 ? turned / length : normal;
+        }
 
         struct Pixel
         {
@@ -163,11 +241,12 @@ internal static class ModelShaders
             float4 tint : COLOR0;
         };
 
-        // AFFINE IS EXACT: the picture is orthographic, so w is one and the card's interpolation is
-        // MeshPicture's barycentric one.
+        // THE CARD'S INTERPOLATION IS MeshPicture's: affine on a parallel view, where w is one, and perspective-correct in
+        // perspective, where MeshPicture.Drawing's Edges hands out the weights of the point each pixel's ray meets.
         Pixel Placed(Corner corner)
         {
-            // SWAYED FIRST, so everything after - the light, the place a program reads - sees the vertex where it stands now.
+            // SKINNED AND SWAYED FIRST, so everything after - the light, the place a program reads - sees the vertex where it stands now.
+            Skinned(corner.vertex, corner.position, corner.normal);
             float3 swayedPlace = mul(float4(corner.position, 1.0), Sway).xyz;
             float3 swayedTurn = mul(float4(corner.normal, 0.0), Sway).xyz;
             Pixel pixel;
@@ -497,9 +576,9 @@ internal static class ModelShaders
             diffuse += light * min(lit, 1.0);
             if (glossy)
             {
-                float3 halfway = normalize(ToEye.xyz + towards);
+                float3 halfway = normalize(EyeWay + towards);
                 float lobe = GlossLobe(normal, facing, towards, halfway, gloss);
-                float fresnel = GlossFresnel(saturate(dot(ToEye.xyz, halfway)));
+                float fresnel = GlossFresnel(saturate(dot(EyeWay, halfway)));
                 shine += light * lobe * (fresnel + (specular * (1.0 - fresnel)));
             }
         }
@@ -512,9 +591,9 @@ internal static class ModelShaders
                 return;
             }
 
-            float3 halfway = normalize(ToEye.xyz + towards);
+            float3 halfway = normalize(EyeWay + towards);
             float lobe = GlossLobe(waves, facing, towards, halfway, gloss);
-            float fresnel = GlossFresnel(saturate(dot(ToEye.xyz, halfway)));
+            float fresnel = GlossFresnel(saturate(dot(EyeWay, halfway)));
             shine += light * lobe * (fresnel + (specular * (1.0 - fresnel)));
         }
 
@@ -567,10 +646,10 @@ internal static class ModelShaders
             float3 diffuse = float3(0.0, 0.0, 0.0);
             float3 shine = float3(0.0, 0.0, 0.0);
             float3 total = float3(0.0, 0.0, 0.0);
-            float facing = max(dot(normal, ToEye.xyz), 1e-4);
+            float facing = max(dot(normal, EyeWay), 1e-4);
             bool waved = any(waves != 0.0);
             bool glints = waved && glossy && Finish.y > 0.5;
-            float wavesFacing = waved ? max(dot(waves, ToEye.xyz), 1e-4) : facing;
+            float wavesFacing = waved ? max(dot(waves, EyeWay), 1e-4) : facing;
             bool lobes = glossy && !waved;
             if (SunColour.w > 0.5 && sun > 0.0)
             {
@@ -658,7 +737,7 @@ internal static class ModelShaders
                 float bias;
                 float scale;
                 GlossEnvironment(wavesFacing, gloss, bias, scale);
-                float3 reflected = (2.0 * dot(waves, ToEye.xyz) * waves) - ToEye.xyz;
+                float3 reflected = (2.0 * dot(waves, EyeWay) * waves) - EyeWay;
                 float3 seen = Reflected(reflected, total) * environment;
                 shine += (seen * bias) + (seen * scale * specular);
             }
@@ -670,8 +749,8 @@ internal static class ModelShaders
         // MeshPicture.Drawing.Scened's normal: the model's own, two-sided, turned to the eye.
         float3 Toward(float3 turn)
         {
-            float3 normal = dot(turn, turn) > 1e-12 ? normalize(turn) : ToEye.xyz;
-            return dot(normal, ToEye.xyz) < 0.0 ? -normal : normal;
+            float3 normal = dot(turn, turn) > 1e-12 ? normalize(turn) : EyeWay;
+            return dot(normal, EyeWay) < 0.0 ? -normal : normal;
         }
         """;
 
@@ -720,6 +799,7 @@ internal static class ModelShaders
         // MeshPicture.Drawing.Scened without a program: two-sided, the normal in model space, the colour as light and back.
         float4 Scened(Pixel pixel) : SV_Target
         {
+            SeeFrom(pixel.place);
             float3 colour = Ink.rgb;
             if (Flags.x > 0.5)
             {
@@ -748,6 +828,8 @@ internal static class ModelShaders
 
         Cast Casting(Corner corner)
         {
+            // THE NORMAL SKINNED FOR NOTHING is left out by the compiler: the map reads the place alone.
+            Skinned(corner.vertex, corner.position, corner.normal);
             corner.position = mul(float4(corner.position, 1.0), Sway).xyz;
             Cast cast;
             float x = (dot(corner.position, ShadowU.xyz) - ShadowU.w) * ShadowSize.x;
@@ -808,16 +890,18 @@ internal static class ModelShaders
     /// solid pass left, since a translucent shape writes none.
     /// </remarks>
     public static readonly string Programmed = $$"""
+        // THE DEPTH IS REVERSED (ModelGpu's _writes): nought where nothing is, the near plane's over the view's z in perspective, a
+        // half less the view's z over twice the reach on a parallel view.
         float BehindAt(float4 position)
         {
             float held = Behind.Load(int3(position.xy, 0));
-            return held >= 1.0 ? 3.40282347e38 : (held - 0.5) * 2.0 * Depth.x;
+            return held <= 0.0 ? 3.40282347e38 : Depth.z > 0.5 ? Depth.y / held : (0.5 - held) * 2.0 * Depth.x;
         }
 
         ShadeOut Ran(Pixel pixel, bool translucent)
         {
             float behind = translucent && ShadeUsesDepth ? BehindAt(pixel.position) : 3.40282347e38;
-            return ShadeRun(Wrap, pixel.spot, pixel.place, pixel.turn, pixel.tint, behind, Clock.x, Eye, Dust.xyz, Water, Flow, Wind, Shore, Swell);
+            return ShadeRun(Wrap, pixel.spot, pixel.place, pixel.turn, pixel.tint, behind, Clock.x, Eye, Dust.xyz, Water, Flow, Wind, Shore, Swell, Viewer);
         }
 
         // MeshPicture.Drawing.Lit with a program.
@@ -840,8 +924,9 @@ internal static class ModelShaders
 
         static const int ShadeBayer[16] = { {{string.Join(", ", ScreenReflection.Bayer)}} };
 
-        // ScreenReflection.March: the ray over the solid depth - the step it hit at, or below nought.
-        int Marched(int x, int y, float away, float2 across, float deeper, int size, out int2 hit)
+        // ScreenReflection.March, and MarchSeen in perspective: the ray over the solid depth - the step it hit at, or below nought. In
+        // perspective the depths compared are minus one over the view's z, the engine's nonlinear depth's order and spacing.
+        int Marched(int x, int y, float away, float2 across, float deeper, int size, float thickness, bool perspective, out int2 hit)
         {
             hit = int2(-1, -1);
             float span = sqrt(dot(across, across));
@@ -866,7 +951,12 @@ internal static class ModelShaders
                 int cy = (int)py;
                 float ray = away + (deeper * along);
                 float solid = BehindAt(float4(cx, cy, 0.0, 1.0));
-                if (solid < ray && solid > ray - {{ShadeHlsl.Number(ScreenReflection.Thickness)}})
+                if (perspective)
+                {
+                    solid = -1.0 / solid;
+                }
+
+                if (solid < ray && solid > ray - thickness)
                 {
                     hit = int2(cx, cy);
                     return step;
@@ -880,17 +970,36 @@ internal static class ModelShaders
         float3 Mirrored(float3 waves, float3 normal, float4 position, float3 place, float3 specular, float gloss, out float environment)
         {
             environment = 1.0;
-            float3 reflected = (2.0 * dot(waves, ToEye.xyz) * waves) - ToEye.xyz;
+            float3 reflected = (2.0 * dot(waves, EyeWay) * waves) - EyeWay;
             reflected += normal * max(0.0, -dot(reflected, normal));
-            float4 onScreen = mul(float4(reflected, 0.0), Clip);
             uint width;
             uint height;
             Behind.GetDimensions(width, height);
             int size = (int)width;
             int2 hit;
-            int step = Marched(
-                (int)position.x, (int)position.y, ShadeDeep(Eye, float4(place, 0.0)),
-                float2(onScreen.x, -onScreen.y) * (size * 0.5), dot(reflected, Eye.xyz), size, hit);
+            int step;
+            float start = ShadeDeep(Eye, float4(place, 0.0));
+            if (Depth.z > 0.5)
+            {
+                // IN PERSPECTIVE THE ENGINE'S OWN MARCH (ScreenReflection.MarchSeen): the start and a point along the ray projected, a unit
+                // along or nearer where the ray runs at the eye, the depths' reciprocals in step between them.
+                float towards = dot(reflected, Eye.xyz);
+                float along = towards < 0.0 ? min(1.0, start * 0.5 / -towards) : 1.0;
+                float4 from = mul(float4(place, 1.0), Clip);
+                float4 to = mul(float4(place + (reflected * along), 1.0), Clip);
+                float2 across = ((to.xy / to.w) - (from.xy / from.w)) * float2(0.5, -0.5) * size;
+                float first = -1.0 / from.w;
+                step = Marched(
+                    (int)position.x, (int)position.y, first, across, (-1.0 / to.w) - first, size,
+                    (1.0 / from.w) - (1.0 / (from.w + {{ShadeHlsl.Number(ScreenReflection.Thickness)}})), true, hit);
+            }
+            else
+            {
+                float4 onScreen = mul(float4(reflected, 0.0), Clip);
+                step = Marched(
+                    (int)position.x, (int)position.y, start,
+                    float2(onScreen.x, -onScreen.y) * (size * 0.5), dot(reflected, Eye.xyz), size, {{ShadeHlsl.Number(ScreenReflection.Thickness)}}, false, hit);
+            }
             if (step < 0)
             {
                 return float3(0.0, 0.0, 0.0);
@@ -901,7 +1010,7 @@ internal static class ModelShaders
             float3 seen = Linear(Opaque.Load(int3(hit, 0)).rgb);
             float bias;
             float scale;
-            GlossEnvironment(max(dot(waves, ToEye.xyz), 1e-4), gloss, bias, scale);
+            GlossEnvironment(max(dot(waves, EyeWay), 1e-4), gloss, bias, scale);
             return ((seen * bias) + (seen * scale * specular)) * (1.0 - environment);
         }
 
@@ -934,8 +1043,8 @@ internal static class ModelShaders
                 return float4(0.0, 0.0, 0.0, 0.0);
             }
 
-            float3 normal = dot(said.waves, said.waves) > 1e-12 ? normalize(said.waves) : ToEye.xyz;
-            if (dot(normal, ToEye.xyz) < 0.0)
+            float3 normal = dot(said.waves, said.waves) > 1e-12 ? normalize(said.waves) : EyeWay;
+            if (dot(normal, EyeWay) < 0.0)
             {
                 normal = -normal;
             }
@@ -947,7 +1056,7 @@ internal static class ModelShaders
             float3 albedo = max(said.waterFoam.xyz, 0.0);
             float3 specular = said.specular;
             float gloss = said.gloss;
-            float facing = max(dot(normal, ToEye.xyz), 1e-4);
+            float facing = max(dot(normal, EyeWay), 1e-4);
             bool glints = Finish.y > 0.5;
             float3 diffuse = float3(0.0, 0.0, 0.0);
             float3 through = float3(0.0, 0.0, 0.0);
@@ -1029,7 +1138,7 @@ internal static class ModelShaders
                 float bias;
                 float scale;
                 GlossEnvironment(facing, gloss, bias, scale);
-                float3 reflected = (2.0 * dot(normal, ToEye.xyz) * normal) - ToEye.xyz;
+                float3 reflected = (2.0 * dot(normal, EyeWay) * normal) - EyeWay;
                 float3 seen = WaterSky(reflected, total) * environment;
                 shine += (seen * bias) + (seen * scale * specular);
             }
@@ -1040,7 +1149,7 @@ internal static class ModelShaders
                 shine *= {{ShadeHlsl.Number(SceneLight.WaterSpecularCap)}} / brightest;
             }
 
-            float fresnel = GlossFresnel(saturate(dot(normal, ToEye.xyz)));
+            float fresnel = GlossFresnel(saturate(dot(normal, EyeWay)));
             float reflectivity = (fresnel + (specular.x * (1.0 - fresnel))) * (1.0 - terrain);
             float refracted = (1.0 - reflectivity) + (reflectivity * terrain);
             float kept = 1.0 - (terrain * terrain * terrain);
@@ -1109,6 +1218,7 @@ internal static class ModelShaders
 
         float4 Solidly(Pixel pixel, bool scened)
         {
+            SeeFrom(pixel.place);
             bool cut = Flags.y >= 0.0;
             float edge = Flags.x > 0.5 ? Skin.Sample(Wrap, pixel.spot).a : 1.0;
             if (cut && !ShadeHasAlpha && edge < Flags.y)
@@ -1136,6 +1246,7 @@ internal static class ModelShaders
 
         float4 Mixing(Pixel pixel, bool scened)
         {
+            SeeFrom(pixel.place);
             float skinned = Flags.x > 0.5 ? Skin.Sample(Wrap, pixel.spot).a : 0.5;
             ShadeOut said = Ran(pixel, true);
 

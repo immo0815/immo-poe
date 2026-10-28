@@ -37,8 +37,9 @@ public sealed partial class ModelGpu
     /// <param name="view">The camera's turn - the way into the picture is its third column.</param>
     /// <param name="placed">The vertices the picture is drawn from, the pose's where it moves.</param>
     /// <param name="pose">Which those are: nought the mesh's own, a pose's key, -1 a pose nothing is known of - a map is kept for the first two.</param>
-    /// <param name="from">The first vertex the pose moves - <see cref="ModelScene.PoseFrom"/> - or nought.</param>
-    private void Lit(SceneLight light, MeshBuffers buffers, Plan plan, Matrix4x4 view, Vector3[] placed, long pose, int from)
+    /// <param name="from">The first vertex the pose moves - <see cref="ModelScene.PoseFrom"/> or <see cref="CardSkin.From"/> - or nought.</param>
+    /// <param name="hull">Where a pose the card skins lies along the sun (<see cref="CardSkin.Hull"/>), or null where the pose is in <paramref name="placed"/>.</param>
+    private void Lit(SceneLight light, MeshBuffers buffers, Plan plan, Matrix4x4 view, Vector3[] placed, long pose, int from, ShadowBounds? hull)
     {
         ID3D11DeviceContext context = _context;
         ShadowTarget? map = null;
@@ -53,7 +54,7 @@ public sealed partial class ModelGpu
                 map = buffers.Shadow;
                 frame = was.Frame;
             }
-            else if (Framed(buffers, placed, light, from, plan.Sways && _swayed is not null, out split) is { } framed)
+            else if (Framed(buffers, placed, light, from, hull, plan.Sways && _swayed is not null, out split) is { } framed)
             {
                 frame = framed;
                 if (buffers.Shadow is not { } kept || kept.Side != framed.Side)
@@ -130,11 +131,13 @@ public sealed partial class ModelGpu
     /// <summary>
     /// The frame the sun's map is drawn in - from every vertex, or where a pose moves only a monster's, from the stage's bounds kept and his scanned - and the triangle the stage's casters end at where the monster stands inside the stage's frame, else -1.
     /// </summary>
+    /// <param name="hull">Where a pose the card skins lies along the sun, standing for its vertices from <paramref name="from"/> on - which
+    /// <paramref name="placed"/> then holds unmoved - or null. The processor frames its map so too (MeshPicture.Canvas.Hull).</param>
     /// <param name="swaying">Whether runs sway: their casters are then cast again every frame over the stage's kept - a room alone kept whole but for them.</param>
-    private static ShadowFrame? Framed(MeshBuffers buffers, Vector3[] placed, SceneLight light, int from, bool swaying, out int split)
+    private static ShadowFrame? Framed(MeshBuffers buffers, Vector3[] placed, SceneLight light, int from, ShadowBounds? hull, bool swaying, out int split)
     {
         split = from > 0 && from < placed.Length ? buffers.Split(from) : -1;
-        if (split <= 0 && swaying)
+        if (split <= 0 && swaying && hull is null)
         {
             // NO MONSTER BEFORE THE SWAY: every vertex is the stage's, its bounds kept - a ship sways a few units inside them.
             split = buffers.Triangles;
@@ -143,11 +146,13 @@ public sealed partial class ModelGpu
 
         if (split <= 0)
         {
-            return ShadowMap.Framed(placed, light.SunDirection, light.ShadowSide);
+            // A SKINNED POSE WHOSE STAGE DOES NOT PART: the stage's bounds and the hull, every caster cast together.
+            return hull is not { } moving ? ShadowMap.Framed(placed, light.SunDirection, light.ShadowSide)
+                : ShadowMap.Framed(from > 0 ? buffers.StageBounds(from, light.SunDirection).With(moving) : moving, light.SunDirection, light.ShadowSide);
         }
 
         ShadowBounds stage = buffers.StageBounds(from, light.SunDirection);
-        ShadowBounds whole = from < placed.Length ? stage.With(ShadowMap.Bounded(placed.AsSpan(from), light.SunDirection)) : stage;
+        ShadowBounds whole = from < placed.Length ? stage.With(hull ?? ShadowMap.Bounded(placed.AsSpan(from), light.SunDirection)) : stage;
         if (whole != stage)
         {
             split = -1;
@@ -162,7 +167,7 @@ public sealed partial class ModelGpu
     /// <remarks>
     /// THE SAME MAP TO THE BIT as every caster drawn at once: each texel keeps the least depth drawn
     /// into it whatever the order, and the monster standing inside the stage's frame leaves the frame
-    /// the stage's alone (<see cref="Framed(MeshBuffers, Vector3[], SceneLight, int, out int)"/>). A
+    /// the stage's alone (<see cref="Framed(MeshBuffers, Vector3[], SceneLight, int, ShadowBounds?, bool, out int)"/>). A
     /// playing animation recast a room of two million triangles every frame for a monster's worth of moved ones.
     /// </remarks>
     private void Staged(ShadowTarget map, MeshBuffers buffers, Plan plan, ShadowFrame frame, int split)

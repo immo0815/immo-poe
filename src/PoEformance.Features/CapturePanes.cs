@@ -21,6 +21,9 @@ public sealed record CapturePane(string Book, IReadOnlyList<string> Lines, Monst
 
     /// <summary>Where the time of building the model and drawing its first picture went - see ModelProgress.Report.</summary>
     public IReadOnlyList<string> Built { get; init; } = [];
+
+    /// <summary>Where the picture on screen was looked at from - see CameraPose - or null where nothing was drawn.</summary>
+    public CameraPose? View { get; init; }
 }
 
 /// <summary>
@@ -40,6 +43,19 @@ public sealed record CapturePane(string Book, IReadOnlyList<string> Lines, Monst
 /// </remarks>
 public static class CapturePanes
 {
+    /// <summary>
+    /// The camera's line: the pose as the pane holds it, and what it comes to - the eye, the way it looks, the near plane - so a probe's
+    /// depths and a picture's framing can be read back from the capture.
+    /// </summary>
+    public static string Camera(in CameraPose view)
+    {
+        static string At(Vector3 point) => string.Create(CultureInfo.InvariantCulture, $"({point.X:0.###}, {point.Y:0.###}, {point.Z:0.###})");
+        const float Degrees = 180f / MathF.PI;
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"{(view.Parallel ? "parallel" : $"perspective, {CameraPose.FieldOfView * Degrees:0.#} degrees top to bottom")}, focus {At(view.Focus)}, turn {view.Turn * Degrees:0.##} degrees, tilt {view.Tilt * Degrees:0.##} degrees, distance {view.Distance:0.###} - the eye at {At(view.Eye)} looking along {At(view.Forward)}, right {At(view.Right)}{(view.Parallel ? string.Empty : string.Create(CultureInfo.InvariantCulture, $", near plane {view.Near:0.###}"))}");
+    }
+
     /// <summary>Most files written whole - the doodad files that did not draw, the first named first.</summary>
     private const int MostWhole = 32;
 
@@ -66,6 +82,11 @@ public static class CapturePanes
             if (model.Stage.Length > 0)
             {
                 body.Append("  stage\t").AppendLine(model.Stage);
+            }
+
+            if (pane.View is { Valid: true } view)
+            {
+                body.Append("  camera\t").AppendLine(Camera(view));
             }
 
             foreach (string line in pane.Lines)

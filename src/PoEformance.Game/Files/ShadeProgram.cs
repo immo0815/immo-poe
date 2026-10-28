@@ -163,8 +163,9 @@ public sealed partial class ShadeProgram
     /// The way into the picture in the model's space, in xyz, and the depth of the model's origin, in w - set per drawing.
     /// </summary>
     /// <remarks>
-    /// THE PICTURE'S CAMERA IS ORTHOGRAPHIC, so every view ray runs the same way and a point's depth
-    /// is one dot product: <c>dot(p, Eye.xyz) + Eye.w</c>, the view matrix's third column. That is
+    /// A POINT'S DEPTH IS ONE DOT PRODUCT, on a parallel view and in perspective alike (the view's origin is then
+    /// the eye): <c>dot(p, Eye.xyz) + Eye.w</c>, the view matrix's third column. On a parallel view every view
+    /// ray runs the same way, and that is
     /// also the engine's <c>world_view_dir</c> - <c>-normalize(camera - world_pos)</c> points from the
     /// eye into the scene - and its depth along the ray, which DepthDistance takes the difference of.
     /// </remarks>
@@ -212,8 +213,20 @@ public sealed partial class ShadeProgram
     /// <summary>The swell the ocean reads - set per drawing. See WaterLook.SwellRegister and <see cref="Ocean"/>.</summary>
     internal const int WaterSwell = 16;
 
+    /// <summary>
+    /// Where the eye stands in the model's space, in xyz, and one in w where the picture is drawn in perspective - set per drawing, nought on a parallel view.
+    /// </summary>
+    /// <remarks>
+    /// WHAT <see cref="Eye"/> CANNOT SAY IN PERSPECTIVE: the view rays fan out from the eye, so the way from it to a point, and how far
+    /// along that way a depth difference reaches, are the point's own. A point's depth along the view is still <see cref="Eye"/>'s one
+    /// dot product - the view's origin is then the eye - and the ray of the engine's world_view_dir, <c>(p - eye) / depth(p)</c>, is the
+    /// one way per point the depth's steps take: ViewDir its direction, DepthDistance its length times the difference of the depths, and
+    /// MaskedContactFade its z times that difference. On a parallel view the ray is Eye.xyz for every point, as before.
+    /// </remarks>
+    internal const int Viewer = 17;
+
     /// <summary>How many registers are the mesh's own, before any a program allocates.</summary>
-    private const int Fixed = 17;
+    private const int Fixed = 18;
 
     /// <summary>
     /// The shore of the drawing the thread is running a program for - set by <see cref="Preset"/>, read by the waves' step.
@@ -489,6 +502,9 @@ public sealed partial class ShadeProgram
         /// processor draws none - its colour nought and its normal E's - see <see cref="Water"/>.
         /// </summary>
         Field,
+
+        /// <summary>ViewDir: the way from the eye into the picture at A's place - Eye.xyz on a parallel view, from the eye to the place in perspective (see <see cref="Viewer"/>).</summary>
+        ViewWay,
     }
 
     /// <summary>The stages a colour is assembled across, in the order they are run.</summary>
@@ -966,7 +982,8 @@ public sealed partial class ShadeProgram
     /// <param name="time">The clock - see <see cref="Clock"/>.</param>
     /// <param name="eye">The way into the picture and the origin's depth - see <see cref="Eye"/>.</param>
     /// <param name="dust">The area's dust colour - see <see cref="Dust"/>.</param>
-    internal void Preset(Span<Vector4> registers, float time, Vector4 eye, Vector3 dust, WaterLook? water = null)
+    /// <param name="viewer">Where the eye stands and one, in perspective; nought on a parallel view - see <see cref="Viewer"/>.</param>
+    internal void Preset(Span<Vector4> registers, float time, Vector4 eye, Vector3 dust, WaterLook? water = null, Vector4 viewer = default)
     {
         registers[Clock] = new Vector4(time);
         registers[Dust] = new Vector4(dust, 0f);
@@ -979,6 +996,7 @@ public sealed partial class ShadeProgram
         s_shore = look.Shore;
         registers[Behind] = new Vector4(float.MaxValue);
         registers[Eye] = eye;
+        registers[Viewer] = viewer;
         registers[Tangent] = Vector4.Zero;
         registers[Binormal] = Vector4.Zero;
         registers[Dropped] = Vector4.Zero;
@@ -1435,8 +1453,14 @@ public sealed partial class ShadeProgram
                 case Op.Depth:
                 {
                     // DepthDistance: length(bottom - camera) - length(world_pos - camera), which on a
-                    // parallel view is the difference of the two depths along it.
+                    // parallel view is the difference of the two depths along it - and in perspective
+                    // that difference along the point's own ray, see Viewer.
                     float distance = r[Behind].X - Deep(r, r[step.A]);
+                    if (r[Viewer].W > 0.5f)
+                    {
+                        distance *= Raying(r, r[step.A]).Length();
+                    }
+
                     if (step.Extra != 0 && distance < 0f)
                     {
                         r[Dropped] = Vector4.One;
@@ -1448,6 +1472,10 @@ public sealed partial class ShadeProgram
 
                 case Op.ContactFade:
                     r[step.To] = Faded(r, step);
+                    break;
+
+                case Op.ViewWay:
+                    r[step.To] = Viewed(r, r[step.A]);
                     break;
 
                 case Op.Parallax:
@@ -1501,6 +1529,46 @@ public sealed partial class ShadeProgram
         return (point.X * eye.X) + (point.Y * eye.Y) + (point.Z * eye.Z) + eye.W;
     }
 
+    /// <summary>ViewDir at a place: Eye's way on a parallel view, the way from the eye to the place in perspective - see <see cref="Viewer"/>.</summary>
+    private static Vector4 Viewed(Span<Vector4> r, Vector4 place)
+    {
+        Vector4 viewer = r[Viewer];
+        Vector4 eye = r[Eye];
+        if (viewer.W > 0.5f)
+        {
+            var way = new Vector3(place.X - viewer.X, place.Y - viewer.Y, place.Z - viewer.Z);
+            float length = way.Length();
+            if (length > 1e-6f)
+            {
+                return new Vector4(way / length, 0f);
+            }
+        }
+
+        return new Vector4(eye.X, eye.Y, eye.Z, 0f);
+    }
+
+    /// <summary>
+    /// The view's ray through a point, a unit of depth long - Eye.xyz on a parallel view, <c>(p - eye) / depth(p)</c> in perspective; see <see cref="Viewer"/>.
+    /// </summary>
+    /// <remarks>
+    /// THE PARALLEL VIEW'S RAY UNTOUCHED, so every picture drawn before perspective is drawn to the bit. Where nothing solid lies behind
+    /// (Behind the largest float) the difference it scales is already past any fade, and a point at the eye has no ray: both keep Eye's.
+    /// </remarks>
+    private static Vector3 Raying(Span<Vector4> r, Vector4 point)
+    {
+        Vector4 viewer = r[Viewer];
+        Vector4 eye = r[Eye];
+        if (!(viewer.W > 0.5f) || !(r[Behind].X < float.MaxValue))
+        {
+            return new Vector3(eye.X, eye.Y, eye.Z);
+        }
+
+        float deep = Deep(r, point);
+        return deep > 1e-6f
+            ? new Vector3(point.X - viewer.X, point.Y - viewer.Y, point.Z - viewer.Z) / deep
+            : new Vector3(eye.X, eye.Y, eye.Z);
+    }
+
     /// <summary>
     /// MaskedContactFade, as <c>shaders/renderer/nodes</c> writes it: the alpha times how far the solid surface lies below, over the fade distance - and discarded where it lies above.
     /// </summary>
@@ -1515,7 +1583,7 @@ public sealed partial class ShadeProgram
     private static Vector4 Faded(Span<Vector4> r, Step step)
     {
         Vector4 albedo = r[step.A];
-        float surface = r[Eye].Z * (r[Behind].X - Deep(r, r[step.B]));
+        float surface = Raying(r, r[step.B]).Z * (r[Behind].X - Deep(r, r[step.B]));
         if (surface < 0f)
         {
             r[Dropped] = Vector4.One;
@@ -3127,9 +3195,9 @@ public sealed partial class ShadeProgram
                         ? build.Emit(Op.Depth, deep, extra: node.Type == "DepthDistance" ? 1 : 0)
                         : null;
 
-                // -normalize(camera - world_pos): one way everywhere on a parallel view - see Eye.
+                // -normalize(camera - world_pos): one way everywhere on a parallel view, the place's own in perspective - see Viewer.
                 case "ViewDir":
-                    return build.Emit(Op.Multiply, Eye, build.Constant(new Vector4(1f, 1f, 1f, 0f)));
+                    return build.Emit(Op.ViewWay, Position);
 
                 case "MaskedContactFade":
                     return Port(node, "in_albedo") is { } faded && Port(node, "world_pos") is { } contact && Port(node, "world_normal") is { } facing
