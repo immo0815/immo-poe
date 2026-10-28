@@ -22,11 +22,21 @@ namespace PoEformance.Features;
 internal static partial class CaptureWaves
 {
     /// <summary>The graphs the program was found naming (v0.1.236's water-textures.txt, Port), taken whether or not this program names them again.</summary>
+    /// <remarks>
+    /// AND THE WATER'S OWN, from v0.1.336: the graphs the engine draws a water and casts its wetness with (water_default.fxgraph,
+    /// water_default_wetness.fxgraph and their flowing kin) - named by the program (v0.1.335's water-textures.txt), but by no word the
+    /// filter below takes, and past the debug part's 256 written; the wetness pass casts the water's by WaterComputeWetness, the only
+    /// fragment working a water's wetness out, until the graph says how.
+    /// </remarks>
     public static IReadOnlyList<string> Known { get; } =
     [
         "Metadata/Effects/Graphs/Environment/BreakingOceanWaves.fxgraph",
         "Metadata/Effects/Graphs/Environment/BreakingOceanWavesWetness.fxgraph",
         "Metadata/EngineGraphs/debug_flood_wave_markup.fxgraph",
+        "Metadata/EngineGraphs/water_default.fxgraph",
+        "Metadata/EngineGraphs/water_default_wetness.fxgraph",
+        "Metadata/EngineGraphs/water_flowing.fxgraph",
+        "Metadata/EngineGraphs/water_flowing_wetness.fxgraph",
     ];
 
     /// <summary>The words a graph the program names is taken by, besides those above.</summary>

@@ -114,6 +114,7 @@ public sealed class SceneLightPanel : IMovableSun
     private bool _wayRound;
     private bool _pastWalls;
     private bool _breakByGround;
+    private bool _wetness = true;
     private float _lift = 1f;
 
     /// <summary>How far the ocean ripples' wind is turned from the area's own way, in degrees - see <see cref="Water"/>.</summary>
@@ -259,6 +260,7 @@ public sealed class SceneLightPanel : IMovableSun
             WaterWayRound = _wayRound,
             WaterPastWalls = _pastWalls,
             WaterBreakByGround = _breakByGround,
+            WaterWetness = _wetness,
             WaterLift = _lift,
             CubeTurn = SceneLight.CubeTurnFrom(env.HorAngle ?? 0f, env.VertAngle ?? 0f, (SceneLight.CubeReading)_cubeReading),
             CubeBrightness = env.EnvBrightness ?? 1f,
@@ -368,7 +370,7 @@ public sealed class SceneLightPanel : IMovableSun
             }
         }
 
-        if (Fold(Count("water", _glints, _reflection, _mirroring, _crash, _wayRound, _pastWalls, _breakByGround) + "###scene-fold-water", open: false))
+        if (Fold(Count("water", _glints, _reflection, _mirroring, _crash, _wayRound, _pastWalls, _breakByGround, _wetness) + "###scene-fold-water", open: false))
         {
             try
             {
@@ -499,6 +501,12 @@ public sealed class SceneLightPanel : IMovableSun
                     + " quay both at full foam off a shore's distance of 1,000 to 1,400 measured to the rocks behind the pier, where the game's"
                     + " crest stays dark by the hull. CHOSEN, to hold against the game: the engine's own shore field (OceanMarkupField, made from"
                     + " the tile map) is read nowhere. Only with crash on; the card's alone.");
+                Switch("wetness##scene-wetness", ref _wetness,
+                    "The engine's wetness pass: the water casts its wetness where it covers a surface - a tenth wet a unit under it, two thirds"
+                    + " ten under, wet through 33 under (WaterComputeWetness) - and the beach waves theirs (BreakingOceanWavesWetness.fxgraph), and what reads it is drawn"
+                    + " darker where wet, to three tenths (specular_wetness_mult: Port's quay, rocks, crates and ship). So a crest that climbs the"
+                    + " quay's face leaves it dark. CHOSEN: it dries over a second once the water has gone, as the game's quay looks in a video;"
+                    + " the read waits a frame behind the cast, and a moved picture starts dry. The card's alone.");
             }
             finally
             {
@@ -567,7 +575,7 @@ public sealed class SceneLightPanel : IMovableSun
     private static readonly string[] LightLabels = ["room", "sun", "shadows", "player", "exposure", "colour grade"];
 
     /// <summary>The water's switches' visible labels, for their columns.</summary>
-    private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "crash", "way round", "past walls", "break by ground"];
+    private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "crash", "way round", "past walls", "break by ground", "wetness"];
 
     /// <summary>A row's label in the label column, the row's controls after it - and where those start, for a row that wraps.</summary>
     private static float Label(string text, float column)

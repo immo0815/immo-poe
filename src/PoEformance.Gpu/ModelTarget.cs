@@ -1,6 +1,7 @@
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
+using Vortice.Mathematics;
 
 namespace PoEformance.Gpu;
 
@@ -27,6 +28,8 @@ public sealed class ModelTarget : IDisposable
     private readonly ID3D11Texture2D _shown;
     private readonly ID3D11Device _device;
     private ID3D11Texture2D? _opaque;
+    private (ID3D11Texture2D Texture, ID3D11RenderTargetView Target, ID3D11ShaderResourceView View)[]? _wet;
+    private int _wetHeld;
     private bool _disposed;
 
     internal ModelTarget(ID3D11Device device, int size)
@@ -101,6 +104,41 @@ public sealed class ModelTarget : IDisposable
         return Opaque!;
     }
 
+    /// <summary>The wetness the casters left last frame, for the receivers to read - see <see cref="Wetted"/>; null until the first.</summary>
+    internal ID3D11ShaderResourceView? WetHeld => _wet?[_wetHeld].View;
+
+    /// <summary>This frame's wetness, written by the wetness pass - see <see cref="Wetted"/>.</summary>
+    internal ID3D11RenderTargetView WetWriting => _wet![1 - _wetHeld].Target;
+
+    /// <summary>
+    /// The wetness pass's pair, made the first time it is asked for and cleared to dry: one read while the other is written, turned
+    /// round by <see cref="WetSwapped"/> each frame (ModelGpu's Wet).
+    /// </summary>
+    /// <remarks>
+    /// SIXTEEN BITS OF FLOAT, one channel - the engine's <c>wetness_tex</c> is read in its w alone - so the drying's small steps a
+    /// frame are kept, where a byte would stop a step short of dry. Made only for a picture that draws the pass.
+    /// </remarks>
+    internal void Wetted(ID3D11DeviceContext context)
+    {
+        if (_wet is not null)
+        {
+            return;
+        }
+
+        _wet = new (ID3D11Texture2D, ID3D11RenderTargetView, ID3D11ShaderResourceView)[2];
+        for (var one = 0; one < 2; one++)
+        {
+            ID3D11Texture2D texture = _device.CreateTexture2D(new Texture2DDescription(
+                Format.R16_Float, Size, Size, 1, 1, BindFlags.RenderTarget | BindFlags.ShaderResource));
+            ID3D11RenderTargetView target = _device.CreateRenderTargetView(texture);
+            context.ClearRenderTargetView(target, new Color4(0f, 0f, 0f, 0f));
+            _wet[one] = (texture, target, _device.CreateShaderResourceView(texture));
+        }
+    }
+
+    /// <summary>What was written this frame is what is read the next.</summary>
+    internal void WetSwapped() => _wetHeld = 1 - _wetHeld;
+
     /// <inheritdoc/>
     public void Dispose()
     {
@@ -110,6 +148,13 @@ public sealed class ModelTarget : IDisposable
         }
 
         _disposed = true;
+        foreach ((ID3D11Texture2D texture, ID3D11RenderTargetView target, ID3D11ShaderResourceView view) in _wet ?? [])
+        {
+            view.Dispose();
+            target.Dispose();
+            texture.Dispose();
+        }
+
         Opaque?.Dispose();
         _opaque?.Dispose();
         Shown.Dispose();

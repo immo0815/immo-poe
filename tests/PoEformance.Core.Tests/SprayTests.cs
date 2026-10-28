@@ -76,7 +76,7 @@ public class SprayTests
     /// <summary>
     /// Port's own rock, ISL_RockLarge01c.mat over PBRDielectricBN, the two wetness graphs and OceanSprayFoam as the install holds them
     /// (tests/fixtures/shaders, from the capture of 2026-10-12): its spray compiles beside its stone, the foam's colour sRGB and the
-    /// noise not, and nothing is left out but the screen's wetness, which the engine reads off a pass of its own.
+    /// noise not, and nothing is left out - the screen's wetness it reads is the card's wetness pass's, dry on the processor.
     /// </summary>
     [Fact]
     public void PORTSRockCompilesItsSpray()
@@ -96,8 +96,9 @@ public class SprayTests
         IReadOnlyList<ShaderInstance> instances = ShaderGraph.Instances(Fixture("Art/Models/Terrain/Islands/Tiles/Island/Textures/Rocks/ISL_RockLarge01c.mat"));
         ShadeCompile compiled = ShadeProgram.Compile([.. instances.Select(one => (one, ShaderGraph.Read(Fixture(one.Parent))))]);
 
-        Assert.Equal(["ReadPixelWetness in specular_wetness_mult"], compiled.Skipped);
+        Assert.Empty(compiled.Skipped);
         ShadeProgram program = Assert.IsType<ShadeProgram>(compiled.Program);
+        Assert.True(program.ReadsWetness);
         Assert.Equal(
             [
                 ("Art/Textures/Environment/Global/BreakingWaves/SeaFoam_colour_Uncompressed.dds", true),
@@ -108,6 +109,7 @@ public class SprayTests
         string hlsl = ShadeHlsl.Of(program, 13);
         Assert.Single(hlsl.Split("= ShadeSpray(").Skip(1));
         Assert.Contains("ShadeSheet2, true, ShadeSheet3, false, ShadeSheet4, false);", hlsl, StringComparison.Ordinal);
+        Assert.Contains("ShadeWetness.Load(int3(int2(ShadePixel), 0))", hlsl, StringComparison.Ordinal);
     }
 
     /// <summary>

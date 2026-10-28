@@ -781,6 +781,26 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   the way in's distances, the noises and the crashing wave's coordinate, the spray's phase and strength, the band's three factors (its
   height absolute z, not over the water's level), the fades, the scroll, the cover and the wetness; a fragment's line says whether its
   program carries the spray at all. Probe the quay's face just after a crest, crash on, then capture - before any rule is changed.
+  THE QUAY'S RUNOFF IS THE ENGINE'S WETNESS PASS, NOT ITS SPRAY (v0.1.335's capture, the probe over the quay's face; v0.1.336). The
+  quay's stone (`MSHD_GraveBrickTile01c.mat`) hands CrashingFoamSurface its curvature as `lerp(IndirectColor.w, 0.2741, 0.0377)` - its
+  ambient occlusion - and `TRO_MossBlend.fxgraph`, earlier in the same material, sets that w to one at Texturing_Calc after reading it for
+  its dust: the curvature comes to 0.973, the probe's to the bit, and RampNorm against it leaves the node's foam and wetness at a few
+  hundredths even at the water's line. As the files are written the spray cannot wet the quay in the game either. What does is the
+  engine's wetness pass (common.ffx's `wetness_tex`, the debug views "Wetness (Caster)" and "Wetness (Receiver)"): a material whose blend
+  mode is `Wetness` writes its alpha into the target - the water by WaterComputeWetness, `1 - saturate(1 - gap * 0.03)^3` of how deep it
+  covers what lies behind; the beach waves by `BreakingOceanWavesWetness.fxgraph`, BreakingWavesFragment's wetness, the film's subsurface
+  past a tenth and at least 0.8 within 1.4 waves of the waterline - and a receiver's `specular_wetness_mult.fxgraph` reads it at its pixel
+  (ReadPixelWetness), darkening its albedo to three tenths, glossing it to 0.95 and flattening its normal. 20 of the stage's 35 written
+  materials read it - the quay, the rocks, the crates, the ship - and the sand none (PBRGroundBN alone), so the beach's wetness wets what
+  stands in its film, not the sand. DRAWN ON THE CARD from v0.1.336 (`ModelGpu.Wet`, `ShadeProgram.ReadsWetness` and `Wetness`, the light
+  panel's water row "wetness", on by default): cast after the picture into a pair of sixteen-bit targets (`ModelTarget.Wetted`) and read
+  the next frame, so the solid part is walked once; drying over `ModelGpu.WetFade`, a second, CHOSEN from the live client's video of the
+  quay (the engine keeping its target from frame to frame or not is in no shader); a moved picture starts dry. The processor reads every
+  receiver dry, its picture as before. NOT DRAWN: the receiver's gloss and normal (NormalVarianceToRoughness and
+  CombineTbnNormalsFromInput are not compiled, so both stay lost as they were) and its MultiplySpecularLight (CustomLighting, past the
+  colour's stages); `specular_wetness_mult_wspace.fxgraph`, wet by height (`0.6 * (z - offset)`), leaves the colour as it is.
+  NOT READ: which graph casts the water's wetness (`water_default_wetness.fxgraph`, named by the program, past the debug part's 256) -
+  the water textures part writes it and its kin whole from v0.1.336; the water casts by WaterComputeWetness until it is read.
   THE CAUSTICS' AND THE ROCKY SHORE'S TEXTURES. water.ffx's GetCausticsBias reads `distortion_sampler` (red and green as a vector,
   `(rg * 2 - 1) * 0.4`, at the place times 0.001 drifting with the clock) and `caustics_tex_sampler` (its green, `pow(g, 1 / 4.2) * 2 - 1`,
   at the place times 0.002), both wrapping, and GetClashingWaterPlanarState and the beach foam's leading edge read the same distortion -

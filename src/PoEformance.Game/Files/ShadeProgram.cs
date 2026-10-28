@@ -322,7 +322,7 @@ public sealed partial class ShadeProgram
             "ModelOrigin", "GroundScroll", "Transform", "LookUpTexture",
             "Noise31", "PerlinNoise31", "Vibrance", "Rotate", "RotateUV", "RadiusToPolarNorm", "DustColor",
             "DepthDistance", "GetDepthDistance", "MaskedContactFade", "ViewDir", "FixModelTBN", "ParallaxUvSpace",
-            "CrashingFoamSurface",
+            "CrashingFoamSurface", "ReadPixelWetness",
         ],
         StringComparer.Ordinal);
 
@@ -385,6 +385,7 @@ public sealed partial class ShadeProgram
         UsesTime = result == Clock || specular == Clock || gloss == Clock || steps.Any(one => one.Reads(Clock));
         Sprays = steps.Any(one => one.Op == Op.Spray);
         Beaches = steps.Any(one => one.Op == Op.Beach);
+        ReadsWetness = steps.Any(one => one.Op == Op.Wet);
 
         // A CONSTANT RESULT: a constant register no step writes into.
         int fixedAt = Array.IndexOf(constantAt, result);
@@ -417,6 +418,29 @@ public sealed partial class ShadeProgram
     /// for all the light - not the water's waves (<see cref="HasWaves"/>).
     /// </summary>
     public bool Beaches { get; }
+
+    /// <summary>
+    /// Whether the material reads the wetness the engine's casters leave on the screen (ReadPixelWetness - specular_wetness_mult.fxgraph,
+    /// on Port's quay, rocks, crates and ship): darker where wet. The card's wetness pass hands it over; the processor reads it dry.
+    /// </summary>
+    /// <remarks>
+    /// THE ENGINE'S WETNESS PASS (common.ffx's <c>wetness_tex</c>, the debug views "Wetness (Caster)" and "Wetness (Receiver)"): a material
+    /// whose blend mode is <c>Wetness</c> writes its alpha into the target - the water's own by how deep it covers what lies behind
+    /// (WaterComputeWetness, BuildWaterWetness), the beach waves' by BreakingOceanWavesWetness.fxgraph - and a receiver's graph reads it
+    /// back at its pixel. Port's quay stays dry otherwise: its CrashingFoamSurface reads the moss blend's indirect light, which
+    /// TRO_MossBlend.fxgraph sets to one, so its curvature comes to 0.973 and the node's foam and wetness to a few hundredths at most
+    /// (v0.1.335's capture, the probe's spray line). OF THE RECEIVER'S GRAPH ONLY THE COLOUR IS DRAWN, as before: its gloss passes
+    /// through NormalVarianceToRoughness and its normal through CombineTbnNormalsFromInput, neither of which is compiled, so both stay
+    /// lost as they were; and its MultiplySpecularLight runs at CustomLighting, a stage past the colour's.
+    /// </remarks>
+    public bool ReadsWetness { get; }
+
+    /// <summary>
+    /// The program whose colour's alpha is the wetness the material casts - the beach waves' (BreakingOceanWavesWetness.fxgraph:
+    /// BreakingWavesFragment's wetness into the colour's w under the blend mode Wetness) - or null for a material that casts none.
+    /// </summary>
+    /// <remarks>Carried by <see cref="With"/> onto the bound copy, its sheets being this program's own in the same order.</remarks>
+    public ShadeProgram? Wetness { get; internal set; }
 
     internal enum Op : byte
     {
@@ -505,6 +529,12 @@ public sealed partial class ShadeProgram
 
         /// <summary>ViewDir: the way from the eye into the picture at A's place - Eye.xyz on a parallel view, from the eye to the place in perspective (see <see cref="Viewer"/>).</summary>
         ViewWay,
+
+        /// <summary>
+        /// ReadPixelWetness: the wetness the engine's casters left at the pixel, in w - THE CARD'S ALONE (DECIDED from the live client),
+        /// its wetness pass's target read where the pixel stands; nought on the processor, which casts none. See <see cref="ReadsWetness"/>.
+        /// </summary>
+        Wet,
     }
 
     /// <summary>The stages a colour is assembled across, in the order they are run.</summary>
@@ -962,7 +992,8 @@ public sealed partial class ShadeProgram
             bound[one] = sheets[one];
         }
 
-        // NOT THE GLOSSY ONE: it reads a texture this does not, and is bound on its own - see Glossy.
+        // NOT THE GLOSSY ONE: it reads a texture this does not, and is bound on its own - see Glossy. THE WETNESS'S IS: it reads
+        // these very sheets in this very order (the beach's - see Wetness).
         return new ShadeProgram(
             _steps, _constantAt, _constants, Registers, _result, _specular, _gloss,
             [.. Textures], _sampleTexture, Plain, Graphs, bound, HasAlpha, _waves, _waterFoam, _waterState)
@@ -972,6 +1003,7 @@ public sealed partial class ShadeProgram
             Weighed = Weighed,
             HeightRegister = HeightRegister,
             BlendsGroundHeights = BlendsGroundHeights,
+            Wetness = Wetness is { } wet && wet.Textures.SequenceEqual(Textures) ? wet.With(sheets) : null,
         };
     }
 
@@ -1476,6 +1508,11 @@ public sealed partial class ShadeProgram
 
                 case Op.ViewWay:
                     r[step.To] = Viewed(r, r[step.A]);
+                    break;
+
+                // THE WETNESS IS THE CARD'S PASS'S: the processor casts none, so every receiver is read dry here.
+                case Op.Wet:
+                    r[step.To] = Vector4.Zero;
                     break;
 
                 case Op.Parallax:
@@ -3198,6 +3235,10 @@ public sealed partial class ShadeProgram
                 // -normalize(camera - world_pos): one way everywhere on a parallel view, the place's own in perspective - see Viewer.
                 case "ViewDir":
                     return build.Emit(Op.ViewWay, Position);
+
+                // wetness_sample = wetness_tex at the pixel - the card's wetness pass's, nought on the processor. See ReadsWetness.
+                case "ReadPixelWetness":
+                    return build.Emit(Op.Wet, -1);
 
                 case "MaskedContactFade":
                     return Port(node, "in_albedo") is { } faded && Port(node, "world_pos") is { } contact && Port(node, "world_normal") is { } facing

@@ -25,7 +25,8 @@ namespace PoEformance.Game.Files;
 /// WHAT THE INCLUDING SHADER PROVIDES: <c>float LinearOf(float)</c> and <c>float SrgbOf(float)</c>,
 /// ShadeProgram.Linear and Srgb by the same tables; and a pixel shader to call <c>ShadeRun</c> from,
 /// since a texture read takes its level from the screen's derivatives - the game's own way, and the
-/// processor's on every triangle whose coordinates are straight. Everything else is in what this
+/// processor's on every triangle whose coordinates are straight - setting <c>ShadePixel</c> to its own
+/// pixel first, where ReadPixelWetness reads the card's wetness pass. Everything else is in what this
 /// writes: the sheets as <c>ShadeSheet0</c> on, from the slot asked for, read through the sampler
 /// handed in, and what the drawing needs to know of the program as constants - <c>ShadeHasAlpha</c>,
 /// <c>ShadeHasSpecular</c>, <c>ShadeHasGloss</c>, <c>ShadeUsesDepth</c>.
@@ -315,6 +316,12 @@ public static partial class ShadeHlsl
     public const int BeachNoiseSlot = 14;
 
     /// <summary>
+    /// The slot the card's wetness pass is read from by a program that reads it (ShadeProgram.ReadsWetness) - clear of every sheet a
+    /// program reads, which run on from the fixed lookups as many as it has, and of the vertex shader's skin, two slots above.
+    /// </summary>
+    public const int WetnessSlot = 125;
+
+    /// <summary>
     /// ShadeProgram.Ocean, WindRipples and Ripple, line for line, for a program with a <c>Waves</c> step.
     /// </summary>
     public static readonly string WavesLibrary = Waves();
@@ -364,6 +371,11 @@ public static partial class ShadeHlsl
         hlsl.Append("static const bool ShadeHasWaves = ").Append(Truth(program.HasWaves)).AppendLine(";");
         hlsl.Append("static const bool ShadeBeach = ").Append(Truth(program.Beaches)).AppendLine(";");
         hlsl.Append("static const bool ShadeWater = ").Append(Truth(program.LightsWater)).AppendLine(";");
+
+        // THE PIXEL THE PROGRAM RUNS FOR, set by the including shader before ShadeRun - what ReadPixelWetness reads the card's
+        // wetness pass at (ShadeProgram.ReadsWetness); off the picture until set, where a read gives nought.
+        hlsl.AppendLine("static float2 ShadePixel = float2(-1.0, -1.0);");
+        hlsl.Append(CultureInfo.InvariantCulture, $"Texture2D<float> ShadeWetness : register(t{WetnessSlot});").AppendLine();
         hlsl.AppendLine(Library);
         bool sprays = false;
         bool fields = false;
@@ -1208,6 +1220,10 @@ public static partial class ShadeHlsl
                     hlsl.Append("    ").Append(to).Append(" = ShadeViewed(r7, r17, ").Append(a).AppendLine(");");
                     break;
 
+                case ShadeProgram.Op.Wet:
+                    hlsl.Append("    ").Append(to).AppendLine(" = float4(0.0, 0.0, 0.0, ShadeWetness.Load(int3(int2(ShadePixel), 0)));");
+                    break;
+
                 // A STEP LEFT OUT WOULD BE A COLOUR GONE WRONG WITHOUT A WORD - an op added to the
                 // program and not here fails the first time it is written instead.
                 default:
@@ -1274,7 +1290,12 @@ public static partial class ShadeHlsl
             hlsl.AppendLine(");");
         }
 
-        string field = (step.Extra >> 24) == ShadeProgram.BeachColour ? "colour" : "normalGloss";
+        string field = (step.Extra >> 24) switch
+        {
+            ShadeProgram.BeachColour => "colour",
+            ShadeProgram.BeachNormal => "normalGloss",
+            _ => "wetness.xxxx",
+        };
         hlsl.Append("    ").Append(R(step.To)).Append(" = ").Append(name).Append('.').Append(field).AppendLine(";");
     }
 
@@ -1287,6 +1308,7 @@ public static partial class ShadeHlsl
         {
             float4 colour;
             float4 normalGloss;
+            float wetness;
         };
 
         struct ShadeWavePhase
@@ -1758,11 +1780,16 @@ public static partial class ShadeHlsl
             float cover = foam + film;
             float3 albedo = cover > 0.0 ? ((surface.colour.xyz * foam) + (water * film)) / cover : float3(0.0, 0.0, 0.0);
 
+            // THE WETNESS IT CASTS (ShadeProgram.BeachWetted): the foam's subsurface past a tenth, at least the shore's own band.
+            float band = 0.8 * saturate((shoreCoord.x + 1.4 + ((ShadeNoiseAt(place * 1e-3).x - 0.5) * 0.5)) * 3.1);
+            float wetness = max(ShadeMathSmoothStep(surface.subsurface, 0.1, 0.5), band);
+
             // NO SHORE, NOTHING DRAWN - chosen after the sum, so every read stays in the program's own flow.
             ShadeBeachOut said;
             bool shored = box.w > 0.5;
             said.colour = shored ? float4(albedo, cover) : float4(0.0, 0.0, 0.0, 0.0);
             said.normalGloss = shored ? float4(normal, saturate(1.0 - surface.rough)) : float4(0.0, 0.0, -1.0, 0.0);
+            said.wetness = shored ? wetness : 0.0;
             return said;
         }
         """;

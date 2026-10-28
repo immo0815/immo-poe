@@ -351,7 +351,8 @@ public static class PictureProbe
         string mode = shape < model.Modes.Count && model.Modes[shape].Length > 0 ? model.Modes[shape] : "-";
         string blend = shape < model.Blends.Count ? model.Blends[shape].ToString().ToLowerInvariant() : "opaque";
         string drawn = shades is not null && shape < shades.Count && shades[shape] is { } shade
-            ? shade.Sprays ? "program, the sea's spray in it" : "program"
+            ? "program" + (shade.Sprays ? ", the sea's spray in it" : string.Empty)
+                + (shade.ReadsWetness ? ", reading the card's wetness (dry here: the processor casts none)" : string.Empty)
             : shape < model.Skins.Count && model.Skins[shape] is not null ? "texture" : "plain";
         string from = shape < model.ShapeSources.Count && model.ShapeSources[shape].Length > 0
             ? " · from " + model.ShapeSources[shape]

@@ -26,8 +26,10 @@ public class CaptureWavesTests
         string line = CaptureWaves.Write(Read, [], [breaking, "  Metadata/Effects/Graphs/Environment/FloodWaves.fxgraph  "], said);
         string text = said.ToString();
 
-        // THE THREE KNOWN, THE ONE THE PROGRAM ADDS AND THE ONE A GRAPH NAMES - each once, the two in the install whole.
-        Assert.Equal("beach waves: 2 of 5 graphs read, 1 textures named", line);
+        // THE SEVEN KNOWN - the beach's three and the water's own four - THE ONE THE PROGRAM ADDS AND THE ONE A GRAPH NAMES: each
+        // once, the two in the install whole.
+        Assert.Equal("beach waves: 2 of 9 graphs read, 1 textures named", line);
+        Assert.Equal(1, Count(text, "##### Metadata/EngineGraphs/water_default_wetness.fxgraph  (named by the game's program)"));
         Assert.Equal(1, Count(text, "##### " + breaking + "  (named by the game's program)"));
         Assert.Equal(1, Count(text, "##### " + foam + "  (named by " + breaking + ")"));
         Assert.Contains("##### Metadata/Effects/Graphs/Environment/FloodWaves.fxgraph  (named by the game's program)\n(not in the install)", text.Replace("\r", string.Empty, StringComparison.Ordinal), StringComparison.Ordinal);
@@ -36,7 +38,7 @@ public class CaptureWavesTests
 
         // AND THE REPLAY READS THEM BACK by their headings.
         string replay = CaptureReplayTests.WavesReplay(text.Replace("\r", string.Empty, StringComparison.Ordinal).Split('\n'));
-        Assert.StartsWith("beach waves: 5 graphs written whole", replay, StringComparison.Ordinal);
+        Assert.StartsWith("beach waves: 9 graphs written whole", replay, StringComparison.Ordinal);
     }
 
     private static int Count(string text, string part)

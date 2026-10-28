@@ -438,6 +438,13 @@ public sealed class SceneLight
     /// </summary>
     public bool WaterBreakByGround { get; init; }
 
+    /// <summary>
+    /// Whether the engine's wetness pass is drawn: the water and the beach waves cast their wetness onto the screen and what reads it -
+    /// Port's quay, rocks, crates and ship (ShadeProgram.ReadsWetness) - is darkened where wet, drying over a second after the water
+    /// left (CHOSEN). The card's alone, as the field waves are.
+    /// </summary>
+    public bool WaterWetness { get; init; }
+
     /// <summary>env_map_rotation: what a normal is put through before the cube is read - the world's axes as the cube's unless the environment turns it, see <see cref="CubeTurnFrom"/>.</summary>
     public Matrix4x4 CubeTurn { get; init; } = CubeSwap;
 

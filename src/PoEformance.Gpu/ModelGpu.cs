@@ -591,10 +591,11 @@ public sealed partial class ModelGpu : IDisposable
                 (2f * centre.X) - 1f, 1f - (2f * centre.Y), 0.5f, 1f);
         Vector3 ink = scene.Ink == default ? MeshPicture.UsualInk : scene.Ink;
         Matrix4x4 view = camera.View;
+        Matrix4x4 clip = view * onto;
         float ambientLight = SceneLight.UsualFlatAmbient;
         Written(_frame, new FrameConstants
         {
-            Clip = view * onto,
+            Clip = clip,
             View = view,
             Lamp = new Vector4(MeshPicture.Lamp, 0f),
             Ink = new Vector4(ink, 0.5f),
@@ -667,6 +668,15 @@ public sealed partial class ModelGpu : IDisposable
         context.OMSetRenderTargets(target.AccumulatedTarget, target.Depth);
         context.RSSetViewport(new Viewport(0f, 0f, target.Size, target.Size, 0f, 1f));
         context.VSSetShader(_placed);
+
+        // THE WETNESS THE LAST FRAME CAST, for what reads it - see ModelGpu.Wet; none where the pass is off, and the read is dry.
+        bool wets = Wets(plan, light);
+        if (!wets)
+        {
+            _wetLast = null;
+        }
+
+        context.PSSetShaderResource(ShadeHlsl.WetnessSlot, wets ? WetRead(target, plan, clip, scene.Time)! : null!);
 
         // THE SOLID AND CUT-OUT SHAPES FIRST, in the mesh's order, writing depth - then the translucent
         // ones in the mesh's order, testing it and writing none, as MeshPicture.Drawing.Band does.
@@ -769,6 +779,13 @@ public sealed partial class ModelGpu : IDisposable
 
                 Drawn(run, plan);
             }
+        }
+
+        // THE CASTERS ONCE THE PICTURE IS DRAWN, for the next frame's receivers - see ModelGpu.Wet.
+        if (wets)
+        {
+            context.PSSetShaderResource(ShadeHlsl.WetnessSlot, null!);
+            Wet(context, target, plan, clip, scene.Time, lifting);
         }
 
         Unbound();
@@ -954,6 +971,7 @@ public sealed partial class ModelGpu : IDisposable
         _bones.Dispose();
         _programs.Dispose();
         DisposeLight();
+        DisposeWet();
         _raster.Dispose();
         _surfaced.Dispose();
         _ignores.Dispose();
@@ -1139,6 +1157,7 @@ public sealed partial class ModelGpu : IDisposable
             _context.PSSetShaderResource(slot, null!);
         }
 
+        _context.PSSetShaderResource(ShadeHlsl.WetnessSlot, null!);
         _sheetsBound = 0;
     }
 
