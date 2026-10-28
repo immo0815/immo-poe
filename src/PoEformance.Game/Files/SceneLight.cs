@@ -447,8 +447,9 @@ public sealed class SceneLight
 
     /// <summary>
     /// Whether a material's spray reads the stone's own occlusion where a graph before it set the occlusion to one (ShadeProgram.Occluded:
-    /// Port's quay, whose moss blend does) - CHOSEN, a switch to hold against the game; both drawings follow it, the picture's programs
-    /// swapped for their twins.
+    /// Port's quay, whose moss blend does) - CHOSEN, a switch held against the game and on in the light panel by default from v0.1.340,
+    /// DECIDED from the live client once its video matched the game's runoff; both drawings follow it, the picture's programs swapped
+    /// for their twins.
     /// </summary>
     public bool SprayOccluded { get; init; }
 

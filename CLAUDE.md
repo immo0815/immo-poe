@@ -828,6 +828,14 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   edge 750 apart; a corner of one in the middle of the other's edge would crack open onto the black sea floor once lifted, so
   `model-panes.txt` counts the water's seams as drawn (`WaterSeams`: border edges meeting corner to corner, T-junctions, the water's
   own border) - read it before the water's mesh is changed.
+  THE RUNOFF HELD AGAINST THE GAME (v0.1.339, a side-by-side video at the quay from the live client, "spray from occlusion" on): the
+  Monster Book's face, every pixel the water reached, after the water left - foam at 2.9 times the dry stone fading to 1.07 over about
+  2 s, no dark band; the game's 3.8 to 4.2 times fading to 1 over about 1.5 s (v0.1.338's measurement). So "spray from occlusion" IS ON
+  BY DEFAULT from v0.1.340, DECIDED from the live client - still a reading of the engine's (whether the moss's reset reaches the spray
+  in the game is not read), the switch keeping the files as compiled. And THE BLACK LINES WERE GONE on v0.1.339 (said from the live
+  client with a picture) - after crash, wetness and shadows had each been switched off on v0.1.336 without taking them away. Their
+  cause is NOT FOUND; if they come back, probe one at once (the probe names every fragment under the pixel) and capture
+  (`model-panes.txt`'s water seams).
   THE CAUSTICS' AND THE ROCKY SHORE'S TEXTURES. water.ffx's GetCausticsBias reads `distortion_sampler` (red and green as a vector,
   `(rg * 2 - 1) * 0.4`, at the place times 0.001 drifting with the clock) and `caustics_tex_sampler` (its green, `pow(g, 1 / 4.2) * 2 - 1`,
   at the place times 0.002), both wrapping, and GetClashingWaterPlanarState and the beach foam's leading edge read the same distortion -

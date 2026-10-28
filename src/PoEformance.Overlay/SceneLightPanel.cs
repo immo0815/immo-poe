@@ -115,7 +115,7 @@ public sealed class SceneLightPanel : IMovableSun
     private bool _pastWalls;
     private bool _breakByGround;
     private bool _wetness = true;
-    private bool _sprayOccluded;
+    private bool _sprayOccluded = true;
     private float _lift = 1f;
 
     /// <summary>How far the ocean ripples' wind is turned from the area's own way, in degrees - see <see cref="Water"/>.</summary>
@@ -513,8 +513,9 @@ public sealed class SceneLightPanel : IMovableSun
                     "The sea's spray on a stone (CrashingFoamSurface) takes the stone's occlusion as its curvature, so its foam gathers in the cracks"
                     + " and runs down. Port's quay carries a moss blend that sets that occlusion to one before the spray reads it, which leaves"
                     + " its foam at a hundredth - while the game draws water running down the quay for a second after every crest. On: the"
-                    + " spray reads the stone's own occlusion as if the moss had not reset it. CHOSEN, to hold against the game; off is the"
-                    + " files as compiled. Both drawings follow it.");
+                    + " spray reads the stone's own occlusion as if the moss had not reset it - on by default since its video held against the"
+                    + " game's (v0.1.339: the face's foam 2.9 times the dry stone fading over about 2 s, the game's 3.8 times over 1.5 s). Off is"
+                    + " the files as compiled. Both drawings follow it.");
             }
             finally
             {
