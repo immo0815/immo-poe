@@ -402,7 +402,7 @@ internal sealed class CaptureKey
         }
 
         // THE PANES AS THEY STAND, their models immutable - the files they name are read with the rest, off this thread.
-        if (On(CaptureParts.ModelPanes) && _panes is { } panes)
+        if ((On(CaptureParts.ModelPanes) || On(CaptureParts.MonsterFiles)) && _panes is { } panes)
         {
             run.Panes = panes();
         }
@@ -1115,6 +1115,25 @@ internal sealed class CaptureKey
                         image.SaveAsPng(At(file));
                     }
 
+                    return text[..text.IndexOf('\n')];
+                });
+            }
+        }
+
+        if (On(CaptureParts.MonsterFiles))
+        {
+            CapturePane? monster = run.Panes?.FirstOrDefault(one => one.Book == "monster" && one.Path.Length > 0);
+            if (monster is null)
+            {
+                Not(CaptureReport.MonsterFilesFile, "the Monster Book showed no monster when the key went down");
+            }
+            else
+            {
+                Vector2? feet = run.Snapshot.Player is { } you ? new Vector2(you.WorldX, you.WorldY) : null;
+                Part(CaptureReport.MonsterFilesFile, () =>
+                {
+                    string text = CaptureMonsterFiles.Write(read, monster, run.Snapshot.Entities, feet);
+                    File.WriteAllText(At(CaptureReport.MonsterFilesFile), text);
                     return text[..text.IndexOf('\n')];
                 });
             }

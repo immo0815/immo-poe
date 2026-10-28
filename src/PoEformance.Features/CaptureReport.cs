@@ -153,6 +153,9 @@ public static class CaptureReport
     /// <summary>The model panes' lines and their rooms' doodad files - see CapturePanes.</summary>
     public const string PanesFile = "model-panes.txt";
 
+    /// <summary>The Monster Book's monster's files, parts, placing and animations - see CaptureMonsterFiles.</summary>
+    public const string MonsterFilesFile = "monster-files.txt";
+
     /// <summary>The Memory Dissector's places, route and last search.</summary>
     public const string DissectorFile = "dissector.txt";
 

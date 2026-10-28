@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Numerics;
 using System.Text;
+using PoEformance.Game.Entities;
 using PoEformance.Game.Files;
 
 namespace PoEformance.Features;
@@ -24,6 +25,15 @@ public sealed record CapturePane(string Book, IReadOnlyList<string> Lines, Monst
 
     /// <summary>Where the picture on screen was looked at from - see CameraPose - or null where nothing was drawn.</summary>
     public CameraPose? View { get; init; }
+
+    /// <summary>The monster's row, for the .ao files it names - null where the pane shows no monster (CaptureMonsterFiles).</summary>
+    public MonsterVariety? Variety { get; init; }
+
+    /// <summary>The monster's metadata path as the book asked for it - empty where it shows none.</summary>
+    public string Path { get; init; } = string.Empty;
+
+    /// <summary>How the install unpacks a bundle of keyframes, or null where nothing can - the pane's own (MonsterPortrait).</summary>
+    public Func<ReadOnlyMemory<byte>, int, byte[]?>? Unpack { get; init; }
 }
 
 /// <summary>
