@@ -397,6 +397,23 @@ public sealed class SceneLight
     public bool WaterScene { get; init; }
 
     /// <summary>
+    /// Whether the water bends what lies behind it - the engine's refraction, the card's alone (ModelShaders' Refraction), on in the light panel by
+    /// default (DECIDED from the live client); off, what lies behind is seen straight through as before.
+    /// </summary>
+    /// <remarks>
+    /// AS WRITTEN (water.ffx's GetRefractedOpaqueSurface, GetRefractedDir, GetRaytracedLightAdaptiveStepping, ComputeDispersedColor and
+    /// GetRefractedWaterLight): the view bent into the water by the area's refraction index (<see cref="WaterLook.RefractionIndex"/>) thinned to
+    /// one by the shore's <c>water_to_terrain_ratio</c>; marched <see cref="RefractionSteps"/> times over the solid depth, each step taking the
+    /// solid surface where a point along the bent ray lands on the picture and going on as far along the ray as it lies; the picture's solid
+    /// part read where the march ended, green and red shifted towards where it started (<see cref="WaterDispersion"/>); and what gets through
+    /// worked out over the bent ray's own length, <c>exp(-travel * density * (1 - ratio))</c>, rather than over the straight view's depth. The
+    /// colour behind is mixed in as the layer mixed it, in the picture's own numbers. NOT DRAWN: its caustics - GetCausticsBias times
+    /// <c>water.caustics_mult</c>, whose default the parsed environment holds and no capture has named yet (DECIDED from the live client: wait
+    /// for the measurement). The processor's picture draws the water as before, and the line under it says so.
+    /// </remarks>
+    public bool WaterRefraction { get; init; }
+
+    /// <summary>
     /// How far the water's surface is lifted by its waves, as a share of the height the engine's octaves give it - nought for a flat surface.
     /// </summary>
     /// <remarks>
@@ -447,8 +464,9 @@ public sealed class SceneLight
 
     /// <summary>
     /// Whether a material's spray reads the stone's own occlusion where a graph before it set the occlusion to one (ShadeProgram.Occluded:
-    /// Port's quay, whose moss blend does) - CHOSEN, a switch to hold against the game; both drawings follow it, the picture's programs
-    /// swapped for their twins.
+    /// Port's quay, whose moss blend does) - CHOSEN, a switch held against the game and on in the light panel by default from v0.1.340,
+    /// DECIDED from the live client once its video matched the game's runoff; both drawings follow it, the picture's programs swapped
+    /// for their twins.
     /// </summary>
     public bool SprayOccluded { get; init; }
 
@@ -766,6 +784,21 @@ public sealed class SceneLight
     public const float WaterSpecularCap = 10f;
 
     /// <summary>
+    /// How far the refraction splits the colours - GetRefractedOpaqueSurface's <c>water_dispersion</c>, a constant there: ComputeDispersedColor reads
+    /// green one shift and red two from where the bent ray ends towards where it started, a shift this share of the way.
+    /// </summary>
+    public const float WaterDispersion = 0.2f;
+
+    /// <summary>The most one dispersion shift reaches, a share of the picture - ComputeDispersedColor's <c>min(l, 0.003)</c>.</summary>
+    public const float WaterDispersionMost = 0.003f;
+
+    /// <summary>
+    /// How many steps the refraction's ray is marched - GetRaytracedLightAdaptiveStepping's <c>3 + DETAIL_LEVEL / 2</c>, DETAIL_LEVEL being nought
+    /// (ocean_data's <c>#define</c>).
+    /// </summary>
+    public const int RefractionSteps = 3;
+
+    /// <summary>
     /// One pixel of open water lit as the engine's water pass lights it - BuildWaterRefraction - as a layer: its colour, linear, exposed
     /// and graded, and how much it covers what lies behind; a cover of nought or less drops the pixel.
     /// </summary>
@@ -803,7 +836,7 @@ public sealed class SceneLight
     /// </list>
     /// So the pixel is <c>specular + absorbed * k + behind * d</c>; as a layer over what lies behind its cover is <c>1 - d</c> and its
     /// colour the rest over the cover - exposed and graded there, as every layer is before it is mixed.
-    /// NOT DRAWN: the refraction's bend and its caustics, the terrain water colour (the medium's colour over ground under water), the
+    /// NOT DRAWN HERE: the refraction's bend (the card's alone, <see cref="WaterRefraction"/>) and its caustics, the terrain water colour (the medium's colour over ground under water), the
     /// tidal state's own water_to_terrain_ratio and the ground water ratio's thirtyfold - both of them read off the shore field, whose
     /// scale is CHOSEN.
     /// </remarks>

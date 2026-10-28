@@ -66,7 +66,8 @@ public sealed partial class ShadeProgram
     /// glints and reflection, its specular the area's reflectiveness and its gloss the engine's 0.99. Under the
     /// picture's lamp the twin draws as this program does. THE FOAM (<see cref="Foam(Vector2, Vector4, float, float, ShoreField?)"/>)
     /// laid over both as InitWaterSurfaceData lays it: its colour over the medium's, hiding what lies behind by <c>1 - (1 - a)^3</c>,
-    /// the specular lerped to 0.04 and the gloss to nought. Not drawn: the refraction's bend.
+    /// the specular lerped to 0.04 and the gloss to nought. The refraction's bend is the card's (SceneLight.WaterRefraction), which takes what
+    /// gets through over the bent ray in place of this program's.
     /// </remarks>
     public static ShadeProgram Water()
     {

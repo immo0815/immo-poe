@@ -110,12 +110,13 @@ public sealed class SceneLightPanel : IMovableSun
     private bool _glints = true;
     private bool _reflection = true;
     private bool _mirroring = true;
+    private bool _refraction = true;
     private bool _crash = true;
     private bool _wayRound;
     private bool _pastWalls;
     private bool _breakByGround;
     private bool _wetness = true;
-    private bool _sprayOccluded;
+    private bool _sprayOccluded = true;
     private float _lift = 1f;
 
     /// <summary>How far the ocean ripples' wind is turned from the area's own way, in degrees - see <see cref="Water"/>.</summary>
@@ -257,6 +258,7 @@ public sealed class SceneLightPanel : IMovableSun
             WaterGlints = _glints,
             WaterReflection = _reflection,
             WaterScene = _mirroring,
+            WaterRefraction = _refraction,
             WaterCrash = _crash,
             WaterWayRound = _wayRound,
             WaterPastWalls = _pastWalls,
@@ -372,7 +374,7 @@ public sealed class SceneLightPanel : IMovableSun
             }
         }
 
-        if (Fold(Count("water", _glints, _reflection, _mirroring, _crash, _wayRound, _pastWalls, _breakByGround, _wetness, _sprayOccluded) + "###scene-fold-water", open: false))
+        if (Fold(Count("water", _glints, _reflection, _mirroring, _refraction, _crash, _wayRound, _pastWalls, _breakByGround, _wetness, _sprayOccluded) + "###scene-fold-water", open: false))
         {
             try
             {
@@ -480,6 +482,12 @@ public sealed class SceneLightPanel : IMovableSun
                     "The waves' reflection takes in the picture itself where its ray meets it - the engine's screen-space reflection (CastScreenRay):"
                     + " twenty steps of a fiftieth of the picture, a surface hit where it lies in front of the ray by less than fifty units, its share fading"
                     + " into the cube's the farther the hit. The ship and the pier in the water. Only with reflection on.");
+                Switch("refraction##scene-refraction", ref _refraction,
+                    "The water bends what lies under it, as the engine's water pass does (GetRefractedOpaqueSurface, ported as written): the view"
+                    + " bent into the water by the area's refraction index (water.refraction_index, 1.33 where the file sets none), followed over"
+                    + " the solid depth in three steps, the sea floor read where it ends with its red and green split a little towards where it"
+                    + " started (a dispersion of 0.2), and the water's murkiness taken over the bent ray's own length. Its caustics are not drawn:"
+                    + " their strength's default (water.caustics_mult) is not yet measured. Off, the floor is seen straight through. The card's alone.");
                 Switch("crash##scene-crash", ref _crash,
                     "The engine's field waves (CrashingWavesVertex and CrashingWavesFragment, ported as written): white-crested breakers every five"
                     + " seconds, a wave of 1,000 units rolling in at 200 a second down the waves' way in from the open sea, breaking as they near the"
@@ -513,8 +521,9 @@ public sealed class SceneLightPanel : IMovableSun
                     "The sea's spray on a stone (CrashingFoamSurface) takes the stone's occlusion as its curvature, so its foam gathers in the cracks"
                     + " and runs down. Port's quay carries a moss blend that sets that occlusion to one before the spray reads it, which leaves"
                     + " its foam at a hundredth - while the game draws water running down the quay for a second after every crest. On: the"
-                    + " spray reads the stone's own occlusion as if the moss had not reset it. CHOSEN, to hold against the game; off is the"
-                    + " files as compiled. Both drawings follow it.");
+                    + " spray reads the stone's own occlusion as if the moss had not reset it - on by default since its video held against the"
+                    + " game's (v0.1.339: the face's foam 2.9 times the dry stone fading over about 2 s, the game's 3.8 times over 1.5 s). Off is"
+                    + " the files as compiled. Both drawings follow it.");
             }
             finally
             {
@@ -583,7 +592,7 @@ public sealed class SceneLightPanel : IMovableSun
     private static readonly string[] LightLabels = ["room", "sun", "shadows", "player", "exposure", "colour grade"];
 
     /// <summary>The water's switches' visible labels, for their columns.</summary>
-    private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "crash", "way round", "past walls", "break by ground", "wetness", "spray from occlusion"];
+    private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "refraction", "crash", "way round", "past walls", "break by ground", "wetness", "spray from occlusion"];
 
     /// <summary>A row's label in the label column, the row's controls after it - and where those start, for a row that wraps.</summary>
     private static float Label(string text, float column)

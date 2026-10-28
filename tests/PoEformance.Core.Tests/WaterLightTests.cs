@@ -145,6 +145,18 @@ public class WaterLightTests
         Assert.Equal(1f, WaterLook.EngineDefault.SubsurfaceScattering);
     }
 
+    /// <summary>The refraction index: The Red Vale's file sets 1.30095 (gallows/1_5.env); where none is set the engine's 1.33, measured in Port's parsed environment.</summary>
+    [Fact]
+    public void ANAREASRefractionIndexIsItsFilesOrTheEngines()
+    {
+        WaterLook vale = WaterLook.Of(EnvironmentSettings.Read("vale.env", System.Text.Encoding.UTF8.GetBytes("""{ "water": { "refraction_index": 1.30095 } }""")));
+        Assert.Equal(1.30095f, vale.RefractionIndex);
+        Assert.Contains("refraction index", vale.Said, StringComparison.Ordinal);
+        Assert.Contains("refraction index 1.301", vale.Line(), StringComparison.Ordinal);
+        Assert.Equal(1.33f, WaterLook.EngineDefault.RefractionIndex);
+        Assert.Equal(1.33f, WaterLook.Of(EnvironmentSettings.Read("port.env", System.Text.Encoding.UTF8.GetBytes("""{ "water": { "flow_intensity": 1.5 } }"""))).RefractionIndex);
+    }
+
     private static Vector3 Pow(Vector3 value, float power) => new(MathF.Pow(value.X, power), MathF.Pow(value.Y, power), MathF.Pow(value.Z, power));
 
     private static void AssertNear(Vector3 expected, Vector3 actual)

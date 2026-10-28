@@ -828,6 +828,14 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   edge 750 apart; a corner of one in the middle of the other's edge would crack open onto the black sea floor once lifted, so
   `model-panes.txt` counts the water's seams as drawn (`WaterSeams`: border edges meeting corner to corner, T-junctions, the water's
   own border) - read it before the water's mesh is changed.
+  THE RUNOFF HELD AGAINST THE GAME (v0.1.339, a side-by-side video at the quay from the live client, "spray from occlusion" on): the
+  Monster Book's face, every pixel the water reached, after the water left - foam at 2.9 times the dry stone fading to 1.07 over about
+  2 s, no dark band; the game's 3.8 to 4.2 times fading to 1 over about 1.5 s (v0.1.338's measurement). So "spray from occlusion" IS ON
+  BY DEFAULT from v0.1.340, DECIDED from the live client - still a reading of the engine's (whether the moss's reset reaches the spray
+  in the game is not read), the switch keeping the files as compiled. And THE BLACK LINES WERE GONE on v0.1.339 (said from the live
+  client with a picture) - after crash, wetness and shadows had each been switched off on v0.1.336 without taking them away. Their
+  cause is NOT FOUND; if they come back, probe one at once (the probe names every fragment under the pixel) and capture
+  (`model-panes.txt`'s water seams).
   THE CAUSTICS' AND THE ROCKY SHORE'S TEXTURES. water.ffx's GetCausticsBias reads `distortion_sampler` (red and green as a vector,
   `(rg * 2 - 1) * 0.4`, at the place times 0.001 drifting with the clock) and `caustics_tex_sampler` (its green, `pow(g, 1 / 4.2) * 2 - 1`,
   at the place times 0.002), both wrapping, and GetClashingWaterPlanarState and the beach foam's leading edge read the same distortion -
@@ -839,6 +847,24 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   across its wrap against a step inside, red and green's likeness, the distortion's mean vector, the caustics' bias - and writes each whole
   (`water-pass-N-name.dds`); `water-pass-replay.txt` measures them again offline. The refraction's own march (GetRaytracedLightAdaptiveStepping)
   and its dispersion (ComputeDispersedColor, 0.2) are in water.txt whole and need neither.
+  THE REFRACTION IS DRAWN ON THE CARD (v0.1.341, DECIDED from the live client: a switch, on by default; its caustics wait for their
+  measurement). `ModelShaders`' Refraction ports GetRefractedOpaqueSurface but its caustics line for line: GetRefractedDir from the air
+  by the area's index (`WaterLook.RefractionIndex`, `water.refraction_index`: Port's default 1.33 MEASURED in the parsed environment,
+  The Red Vale's file 1.30095) thinned to one by the shore's ratio; GetRaytracedLightAdaptiveStepping's three steps over the solid depth
+  (`SceneLight.RefractionSteps`), a point on the picture put back into model space through Clip's inverse (`Unclip`, the engine's
+  GetViewPoint); ComputeDispersedColor at 0.2, a shift at most 0.003 of the picture (`SceneLight.WaterDispersion`), over the solid
+  part's copy (`ModelTarget.Saw`); and GetRefractedWaterLight's share that gets through over the bent ray's own length, not the straight
+  view's depth. The water then covers whole, the bent colour mixed in by the share the layer let through, in the picture's own numbers
+  as the blend mixed it - so at an index of one it draws what it drew before (`THEREFRACTIONAtAnIndexOfOneDrawsWhatTheStraightViewDrew`),
+  and over a floor of two halves under still water each pixel shows the half the engine's march reaches, held against the march worked
+  out over the floor's plane (`THEREFRACTIONBendsTheViewIntoStillWaterAsTheEnginesMarch`). The light panel's water row, "refraction"
+  (`SceneLight.WaterRefraction`); the processor draws the water as before, and the line under its picture says so. A translucent shape
+  earlier in the mesh's order and in front of the water is now covered by it where the blend let it show partly. NOT DRAWN: the
+  caustics - GetCausticsBias times the pass's `water.caustics_mult`, which Port.env leaves unset, so its default is to be read off the
+  parsed environment (light-hunt.txt) in an area whose file sets it. 39 environments do (water.txt): hideouts (Yaochi 1.605, Blank Sea 4),
+  maps (Cenotes and Crimson Shores 3, Lake and Azmerian Ranges 4, Woodland 1.5, Rustbowl 1.401) and the Act 4 interlude's
+  (`gallows/act4_intermission/p3_1.env` and `p3_town.env` 1.5, `p3_2.env` 4). legacy.ffx's water materials declare their own
+  `water_uv_caustics_mult "Caustics" "0" "2" "1"` - a lead, as the medium colour's default was, not the pass's value.
   THE GAME'S CRESTS RUN ALONG THE PIER (a side-by-side video from the live client, v0.1.332, the game left and the Monster Book right at
   Port's pier, crash on): every pixel's phase at the waves' own period - 5.5 s in the game, 5.3 in the book, both the field waves - put the
   game's crests running along the pier's sea face, some 17 degrees off it and away, and the book's square onto it at about 49 degrees, in
