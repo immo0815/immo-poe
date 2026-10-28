@@ -580,6 +580,9 @@ public sealed class MonsterPortrait
 
     /// <summary>Whether the line was made with the card's wetness pass drawn - the light's wetness switch on.</summary>
     private bool _waterSaidWet;
+
+    /// <summary>Whether the line was made with the card's refraction drawn - the light's refraction switch on.</summary>
+    private bool _waterSaidRefract;
     private bool _waterSaidLit;
     private Vector3[] _posed = [];
     private Vector3[] _posedNormals = [];
@@ -2501,16 +2504,18 @@ public sealed class MonsterPortrait
             bool crashing = _onCard && _drawnLight is { WaterCrash: true };
             bool byGround = crashing && _drawnLight is { WaterBreakByGround: true };
             bool wetting = _onCard && _drawnLight is { WaterWetness: true };
+            bool refracting = _onCard && _drawnLight is { WaterRefraction: true };
 
             // THE ENGINE'S WATER PASS LIGHTS THE GLOSSY TWIN under the game light alone - SceneLight.ShadeWater.
             bool engineLit = _drawnLight is not null && !FlatLight;
             if (_waterSaid.Length == 0 || water != _waterSaidFor || crashing != _waterSaidCrash || byGround != _waterSaidGround || engineLit != _waterSaidLit
-                || wetting != _waterSaidWet)
+                || wetting != _waterSaidWet || refracting != _waterSaidRefract)
             {
                 _waterSaidFor = water;
                 _waterSaidCrash = crashing;
                 _waterSaidGround = byGround;
                 _waterSaidWet = wetting;
+                _waterSaidRefract = refracting;
                 _waterSaidLit = engineLit;
                 _waterSaid = ImGuiText.Escape(water.Line() + " (its colour's pattern a moving noise; its waves the engine's ocean ripples, three octaves"
                     + " rolling in the wind - " + ShadeProgram.Ripples.Said + "; the wind's way, height, speed and"
@@ -2530,8 +2535,14 @@ public sealed class MonsterPortrait
                         ? "; lit as the engine's water pass lights it (BuildWaterRefraction as written: its colour light let through, not an"
                           + " albedo - every light wrapped round it, the cube on it, lifted greener on a crest and darkened in a trough by the"
                           + " waves' height and the area's scattering - what lies behind seen through the medium and one less the surface's"
-                          + " reflectivity, the reflection thinned by nothing but the shore's ratio; the refraction's bend, its caustics, the"
-                          + " terrain water colour and the tidal state's own ratio to the shore not drawn)"
+                          + " reflectivity, the reflection thinned by nothing but the shore's ratio; "
+                          + (refracting
+                              ? "what lies behind bent into the water as the engine bends it (GetRefractedOpaqueSurface as written: the area's"
+                                + " refraction index " + water.RefractionIndex.ToString("0.###", CultureInfo.InvariantCulture) + " thinned to one at"
+                                + " the shore, three steps over the solid depth, red and green split towards where the ray started, the murkiness"
+                                + " over the bent ray's length; the card's alone); not drawn: its caustics"
+                              : "not drawn: the refraction's bend (the light panel's refraction, the card's alone), its caustics")
+                          + " (water.caustics_mult's default not yet measured), the terrain water colour and the tidal state's own ratio to the shore)"
                         : string.Empty)
                     + (water.HeightOffset != 0f ? "; its height offset not applied - it moves the beach and flood waves alone)" : ")")
                     + (_wearsBeach

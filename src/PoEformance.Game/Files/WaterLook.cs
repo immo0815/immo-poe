@@ -24,6 +24,8 @@ namespace PoEformance.Game.Files;
 /// <param name="SwellIntensity">water.swell_intensity: how soon the swell takes its shore's shape - <c>water_swell_intensity</c>.</param>
 /// <param name="SubsurfaceScattering">water.subsurface_scattering: how far a crest's colour is lifted towards the medium's green and a trough's
 /// darkened - <c>water_subsurface_scattering</c>, GetWaterMediumColor's (SceneLight.ShadeWater).</param>
+/// <param name="RefractionIndex">water.refraction_index: how far the view bends as it enters the water - <c>water_refraction_index</c>,
+/// GetRefractedOpaqueSurface's (SceneLight.WaterRefraction).</param>
 /// <remarks>
 /// AN AREA'S FILE OR THE ENGINE'S OWN DEFAULT, per value. Most areas set no water colour - Port sets
 /// only its flow and a height offset - and what the engine draws them with is written in no file: it
@@ -54,7 +56,8 @@ public readonly record struct WaterLook(
     float SwellHeight = WaterLook.DefaultSwellHeight,
     float SwellPeriod = WaterLook.DefaultSwellPeriod,
     float SwellIntensity = WaterLook.DefaultSwellIntensity,
-    float SubsurfaceScattering = WaterLook.DefaultSubsurfaceScattering)
+    float SubsurfaceScattering = WaterLook.DefaultSubsurfaceScattering,
+    float RefractionIndex = WaterLook.DefaultRefractionIndex)
 {
     /// <summary>The engine's open water colour where a file sets none - ParsedEnvironment.WaterOpenColor, measured in Port, Clearfell and The Red Vale.</summary>
     public static readonly Vector3 DefaultOpenColour = new(0.1f, 0.19f, 0.22f);
@@ -111,6 +114,12 @@ public readonly record struct WaterLook(
     public const float DefaultSubsurfaceScattering = 1f;
 
     /// <summary>
+    /// The refraction index where a file sets none - ParsedEnvironment.WaterRefractionIndex: Port's default 1.33 with a flag of nought, the slot
+    /// named by The Red Vale's file, which sets 1.30095 (light-hunt.txt, v0.1.212).
+    /// </summary>
+    public const float DefaultRefractionIndex = 1.33f;
+
+    /// <summary>
     /// The room's shore, for the ocean's swell - see ShoreField; null where the room has none, or nothing made one. Not the area's: it is the drawing's.
     /// </summary>
     public ShoreField? Shore { get; init; }
@@ -158,7 +167,7 @@ public readonly record struct WaterLook(
         float murkiness = DefaultMurkiness, flow = NoFlow, height = DefaultHeightOffset, reflectiveness = DefaultReflectiveness;
         float windAngle = DefaultWindAngle, windIntensity = DefaultWindIntensity, windSpeed = DefaultWindSpeed, directionness = DefaultDirectionness;
         float swellHeight = DefaultSwellHeight, swellPeriod = DefaultSwellPeriod, swellIntensity = DefaultSwellIntensity;
-        float scattering = DefaultSubsurfaceScattering;
+        float scattering = DefaultSubsurfaceScattering, index = DefaultRefractionIndex;
         var set = new List<string>(12);
         foreach (EnvironmentValue value in env.Water)
         {
@@ -216,17 +225,21 @@ public readonly record struct WaterLook(
                     scattering = value.Values[0];
                     set.Add("scattering");
                     break;
+                case "refraction_index" when value.Values.Count >= 1:
+                    index = value.Values[0];
+                    set.Add("refraction index");
+                    break;
             }
         }
 
         return new WaterLook(
             colour, murkiness, flow, height,
             set.Count == 0 ? "every value the engine's default" : $"{string.Join(", ", set)} from the file, the rest the engine's default",
-            reflectiveness, windAngle, windIntensity, windSpeed, directionness, swellHeight, swellPeriod, swellIntensity, scattering);
+            reflectiveness, windAngle, windIntensity, windSpeed, directionness, swellHeight, swellPeriod, swellIntensity, scattering, index);
     }
 
     /// <summary>The numbers and where they came from, for the line under a picture.</summary>
     public string Line() => string.Create(
         CultureInfo.InvariantCulture,
-        $"water ({OpenColour.X:0.###} {OpenColour.Y:0.###} {OpenColour.Z:0.###}) murkiness {Murkiness:0.####} flow {FlowIntensity:0.##} reflectiveness {Reflectiveness:0.###} wind {WindAngle * 180f / MathF.PI:0}° x{WindIntensity:0.###} speed {WindSpeed:0.##} directionness {Directionness:0.##} swell {SwellHeight:0.#} period {SwellPeriod:0.###} intensity {SwellIntensity:0.##} scattering {SubsurfaceScattering:0.##} - {Said}");
+        $"water ({OpenColour.X:0.###} {OpenColour.Y:0.###} {OpenColour.Z:0.###}) murkiness {Murkiness:0.####} flow {FlowIntensity:0.##} reflectiveness {Reflectiveness:0.###} wind {WindAngle * 180f / MathF.PI:0}° x{WindIntensity:0.###} speed {WindSpeed:0.##} directionness {Directionness:0.##} swell {SwellHeight:0.#} period {SwellPeriod:0.###} intensity {SwellIntensity:0.##} scattering {SubsurfaceScattering:0.##} refraction index {RefractionIndex:0.###} - {Said}");
 }

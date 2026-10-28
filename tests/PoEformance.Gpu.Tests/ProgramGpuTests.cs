@@ -227,6 +227,307 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
     }
 
     /// <summary>
+    /// The refraction at an index of one bends nothing, so the card draws what it drew without it: the solid part put back into model space
+    /// through Clip's inverse, the march, the dispersion's reads and what gets through over the ray's length all come out the straight
+    /// view's - flat on a parallel view, lifted as one surface in perspective, the screen's reflection reading the same copy beside it.
+    /// </summary>
+    [GpuFact]
+    public void THEREFRACTIONAtAnIndexOfOneDrawsWhatTheStraightViewDrew()
+    {
+        ModelGpu? gpu = card.Gpu;
+        Assert.True(gpu is not null, card.Why);
+        using ModelTarget target = gpu.Target(Side);
+        SkinnedMesh hill = Hill(layered: true);
+        SceneLight Lit(float lift, bool refracts) => new([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1.4f, 1.3f, 1.1f),
+            SunDirection = Vector3.Normalize(new Vector3(0.4f, -1f, 0.3f)),
+            FlatAmbient = 0.3f,
+            Exposure = 1.2f,
+            WaterGlints = true,
+            WaterReflection = true,
+            WaterScene = true,
+            WaterLift = lift,
+            WaterRefraction = refracts,
+        };
+
+        foreach ((float lift, CameraPose? pose) in new[] { (0f, (CameraPose?)null), (2f, CameraPose.Fitted(hill, 0.25f, 0.55f, parallel: false)) })
+        {
+            var scene = new ModelScene(
+                hill,
+                Turn: 0.25f,
+                Tilt: 0.55f,
+                Skins: [Ramp("floor"), null],
+                Blends: [MaterialBlend.Opaque, MaterialBlend.Alpha],
+                Shades: [null, ShadeProgram.Water().Glossy!],
+                Light: Lit(lift, refracts: false),
+                Time: 2f,
+                Water: WaterLook.EngineDefault with { FlowIntensity = 1.5f, RefractionIndex = 1f },
+                Pose: pose);
+            byte[] straight = Drawn(gpu, target, scene);
+            byte[] bent = Drawn(gpu, target, scene with { Light = Lit(lift, refracts: true) });
+            Assert.Null(ModelGpuTests.Mismatch(straight, bent));
+        }
+    }
+
+    /// <summary>
+    /// The refraction bends the view into still, clear water as the engine's march does (GetRefractedDir and GetRaytracedLightAdaptiveStepping,
+    /// worked out here over the floor's own plane): a floor of a dark and a bright half under a pool, each pixel showing the half the march
+    /// reaches - where the straight view, which the same reckoning holds the picture without refraction to, shows the other - parallel and
+    /// in perspective. Blue alone is read, the colour the dispersion leaves where the ray ends.
+    /// </summary>
+    [GpuFact]
+    public void THEREFRACTIONBendsTheViewIntoStillWaterAsTheEnginesMarch()
+    {
+        ModelGpu? gpu = card.Gpu;
+        Assert.True(gpu is not null, card.Why);
+        using ModelTarget target = gpu.Target(Side);
+        SkinnedMesh pool = Pool();
+        SceneLight Lit(bool refracts) => new([], SceneLight.PointShape.Penumbra, null) { FlatAmbient = 0.6f, WaterRefraction = refracts };
+
+        // STILL AND CLEAR: no wind, so the surface's normal is straight up, and no murkiness, so the pixel is what lies behind less the reflectivity.
+        WaterLook still = WaterLook.EngineDefault with { Murkiness = 0f, WindIntensity = 0f };
+        foreach (bool parallel in new[] { true, false })
+        {
+            // ZOOMED IN TWICE: the bend moves the floor seen some 90 units along the view, foreshortened on the picture by the tilt - at the
+            // fitted size seven pixels, inside the margins held clear either side of the edge; twice as near, about 1,400 pixels cross it.
+            CameraPose pose = CameraPose.Fitted(pool, 0.4f, 0.6f, parallel, zoom: 2f);
+            var scene = new ModelScene(
+                pool,
+                Skins: [Flat(40), Flat(220), null],
+                Blends: [MaterialBlend.Opaque, MaterialBlend.Opaque, MaterialBlend.Alpha],
+                Shades: [null, null, ShadeProgram.Water().Glossy!],
+                Light: Lit(refracts: false),
+                Time: 1f,
+                Water: still,
+                Pose: pose);
+            byte[] straight = Drawn(gpu, target, scene);
+            byte[] bent = Drawn(gpu, target, scene with { Light = Lit(refracts: true) });
+            Assert.Null(Refracted(MeshPicture.Camera.Of(pool, pose), straight, bent));
+        }
+    }
+
+    /// <summary>How deep <see cref="Pool"/>'s water stands over its floor, up being minus z.</summary>
+    private const float PoolDeep = 150f;
+
+    /// <summary>How far either way <see cref="Pool"/>'s water reaches; its floor reaches half as far again.</summary>
+    private const float PoolReach = 400f;
+
+    /// <summary>
+    /// A floor at nought, its half towards minus y a shape of its own and the half towards plus y another, under a square of water
+    /// <see cref="PoolDeep"/> above it, a third - halves split across the way <see cref="THEREFRACTIONBendsTheViewIntoStillWaterAsTheEnginesMarch"/>'s
+    /// view looks, so the bend moves the floor seen across their edge.
+    /// </summary>
+    private static SkinnedMesh Pool()
+    {
+        const float floor = PoolReach * 1.5f;
+        Vector3[] places =
+        [
+            new(-floor, -floor, 0f), new(floor, -floor, 0f), new(floor, 0f, 0f), new(-floor, 0f, 0f),
+            new(-floor, 0f, 0f), new(floor, 0f, 0f), new(floor, floor, 0f), new(-floor, floor, 0f),
+            new(-PoolReach, -PoolReach, -PoolDeep), new(PoolReach, -PoolReach, -PoolDeep), new(PoolReach, PoolReach, -PoolDeep), new(-PoolReach, PoolReach, -PoolDeep),
+        ];
+        var normals = new Vector3[places.Length];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+        return SkinnedMesh.Of(
+            places, normals, [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11],
+            new Vector3(-floor, -floor, -PoolDeep), new Vector3(floor, floor, 0f),
+            [.. places.Select(one => new Vector2((one.X / (2f * floor)) + 0.5f, (one.Y / (2f * floor)) + 0.5f))],
+            [new MeshShape("dark half", 0, 6), new MeshShape("bright half", 6, 6), new MeshShape("water", 12, 6)]);
+    }
+
+    /// <summary>A sheet of one grey.</summary>
+    private static Mipmaps Flat(byte level)
+    {
+        var rgba = new byte[4 * 4 * 4];
+        for (var at = 0; at < rgba.Length; at += 4)
+        {
+            rgba[at] = level;
+            rgba[at + 1] = level;
+            rgba[at + 2] = level;
+            rgba[at + 3] = 255;
+        }
+
+        return Mipmaps.Of(new GamePicture(4, 4, rgba))!;
+    }
+
+    /// <summary>
+    /// Whether every pool pixel shows the floor's half the straight view reaches without refraction and the engine's march reaches with it -
+    /// or what does not. A pixel within three of the halves' edge, or whose march leaves the floor or the picture's margin, is not held.
+    /// </summary>
+    private static string? Refracted(MeshPicture.Camera camera, byte[] straight, byte[] bent)
+    {
+        Assert.True(Matrix4x4.Invert(camera.View, out Matrix4x4 back));
+        var straightSides = new int[Side * Side];
+        var bentSides = new int[Side * Side];
+        float dark = 0f, bright = 0f;
+        int darks = 0, brights = 0;
+        for (var y = 0; y < Side; y++)
+        {
+            for (var x = 0; x < Side; x++)
+            {
+                var screen = new Vector2((x + 0.5f) / Side, (y + 0.5f) / Side);
+                int at = (y * Side) + x;
+                if (!OnPlane(camera, back, screen, -PoolDeep, out Vector3 surface)
+                    || MathF.Abs(surface.X) > PoolReach - 20f || MathF.Abs(surface.Y) > PoolReach - 20f)
+                {
+                    continue;
+                }
+
+                straightSides[at] = HalfAt(camera, back, screen);
+                Vector3 ray = camera.Perspective
+                    ? Vector3.Normalize(surface - camera.Viewer)
+                    : Vector3.Normalize(Vector3.TransformNormal(Vector3.UnitZ, back));
+                Vector3 normal = ray.Z > 0f ? new Vector3(0f, 0f, -1f) : new Vector3(0f, 0f, 1f);
+                if (March(camera, back, surface, RefractedWay(ray, normal, WaterLook.DefaultRefractionIndex)) is { } hit)
+                {
+                    Vector3 placed = camera.Place(hit);
+                    var texel = new Vector2((MathF.Floor(placed.X * Side) + 0.5f) / Side, (MathF.Floor(placed.Y * Side) + 0.5f) / Side);
+                    bentSides[at] = HalfAt(camera, back, texel);
+                }
+
+                if (straightSides[at] < 0)
+                {
+                    dark += straight[(at * 4) + 2];
+                    darks++;
+                }
+                else if (straightSides[at] > 0)
+                {
+                    bright += straight[(at * 4) + 2];
+                    brights++;
+                }
+            }
+        }
+
+        if (darks < 500 || brights < 500)
+        {
+            return $"too little of the pool on either half: {darks} dark, {brights} bright";
+        }
+
+        float between = ((dark / darks) + (bright / brights)) * 0.5f;
+        int moved = 0, heldStraight = 0, wrongStraight = 0, heldBent = 0, wrongBent = 0;
+        for (var at = 0; at < Side * Side; at++)
+        {
+            if (straightSides[at] != 0)
+            {
+                heldStraight++;
+                wrongStraight += (straight[(at * 4) + 2] > between ? 1 : -1) != straightSides[at] ? 1 : 0;
+            }
+
+            if (bentSides[at] != 0)
+            {
+                heldBent++;
+                wrongBent += (bent[(at * 4) + 2] > between ? 1 : -1) != bentSides[at] ? 1 : 0;
+                moved += straightSides[at] != 0 && straightSides[at] != bentSides[at] ? 1 : 0;
+            }
+        }
+
+        return moved < 300 ? $"the march moves too few pixels across the halves' edge to tell: {moved}"
+            : wrongStraight * 100 > heldStraight ? $"{wrongStraight} of {heldStraight} pixels show the other half than the straight view's"
+            : wrongBent * 100 > heldBent ? $"{wrongBent} of {heldBent} pixels show the other half than the march's ({moved} moved across)"
+            : null;
+    }
+
+    /// <summary>
+    /// GetRaytracedLightAdaptiveStepping over the pool's floor: the point the bent ray's march ends at, or null where a step leaves the floor
+    /// or comes within three pixels of the picture's edge, where the card holds its reads at the edge.
+    /// </summary>
+    private static Vector3? March(MeshPicture.Camera camera, Matrix4x4 back, Vector3 origin, Vector3 ray)
+    {
+        const float margin = 3f / Side;
+        Vector3 current = origin, next = origin, hit = origin;
+        for (var step = 0; step < SceneLight.RefractionSteps; step++)
+        {
+            Vector3 placed = camera.Place(next);
+            if (!(placed.X > margin && placed.X < 1f - margin && placed.Y > margin && placed.Y < 1f - margin)
+                || !OnPlane(camera, back, new Vector2(placed.X, placed.Y), 0f, out Vector3 solid)
+                || MathF.Abs(solid.X) > PoolReach * 1.5f || MathF.Abs(solid.Y) > PoolReach * 1.5f)
+            {
+                return null;
+            }
+
+            if (Vector3.Dot(solid - origin, ray) < 0f)
+            {
+                next = (current + next) * 0.5f;
+            }
+            else
+            {
+                hit = solid;
+                current = next;
+                next = origin + ((solid - origin).Length() * ray);
+            }
+        }
+
+        return hit;
+    }
+
+    /// <summary>GetRefractedDir from the air into the water, as the card's RefractedWay.</summary>
+    private static Vector3 RefractedWay(Vector3 ray, Vector3 normal, float index)
+    {
+        float r = 1f / MathF.Max(1f, index);
+        float c = -Vector3.Dot(ray, normal);
+        float under = 1f - (r * r * (1f - (c * c)));
+        return under > 0f ? (r * ray) + (((r * c) - MathF.Sqrt(under)) * normal) : ray;
+    }
+
+    /// <summary>
+    /// Which half of the pool's floor the view's ray through a point on the picture meets - minus one the dark, one the bright - or nought
+    /// where it lies within three pixels of the halves' edge, or meets no floor.
+    /// </summary>
+    private static int HalfAt(MeshPicture.Camera camera, Matrix4x4 back, Vector2 screen)
+    {
+        const float margin = 3f / Side;
+        var half = 0;
+        foreach (Vector2 off in new[] { Vector2.Zero, new Vector2(margin, 0f), new Vector2(-margin, 0f), new Vector2(0f, margin), new Vector2(0f, -margin) })
+        {
+            if (!OnPlane(camera, back, screen + off, 0f, out Vector3 floor) || MathF.Abs(floor.X) > PoolReach * 1.5f || MathF.Abs(floor.Y) > PoolReach * 1.5f)
+            {
+                return 0;
+            }
+
+            int side = floor.Y < 0f ? -1 : 1;
+            if (half != 0 && side != half)
+            {
+                return 0;
+            }
+
+            half = side;
+        }
+
+        return half;
+    }
+
+    /// <summary>Where the view's ray through a point on the picture meets the plane at a height - MeshPicture.Camera.Place undone along the ray.</summary>
+    private static bool OnPlane(MeshPicture.Camera camera, Matrix4x4 back, Vector2 screen, float z, out Vector3 point)
+    {
+        // A POINT OF THE VIEW AT DEPTH d IS (vx, vy, d) ON A PARALLEL VIEW AND (vx d, vy d, d) IN PERSPECTIVE: the start and the way along d.
+        float vx = (screen.X - camera.Centre.X) / camera.Scale, vy = (screen.Y - camera.Centre.Y) / camera.Scale;
+        Vector3 start = Vector3.Transform(camera.Perspective ? Vector3.Zero : new Vector3(vx, vy, 0f), back);
+        Vector3 way = Vector3.TransformNormal(camera.Perspective ? new Vector3(vx, vy, 1f) : Vector3.UnitZ, back);
+        point = default;
+        if (MathF.Abs(way.Z) < 1e-9f)
+        {
+            return false;
+        }
+
+        float depth = (z - start.Z) / way.Z;
+        if (camera.Perspective && depth <= camera.Near)
+        {
+            return false;
+        }
+
+        point = start + (depth * way);
+        return true;
+    }
+
+    /// <summary>A picture drawn once its shaders are in.</summary>
+    private static byte[] Drawn(ModelGpu gpu, ModelTarget target, in ModelScene scene)
+    {
+        Assert.True(Ready(gpu, scene, out string why) && gpu.Draw(target, scene, out why), why);
+        return gpu.Read(target);
+    }
+
+    /// <summary>
     /// The engine's beach waves over a beach rising out of the sea - their sheet over the ground, drawn over the solid part writing its
     /// depth, the foam and the film as the graph mixes them - drawn alike by both, under the picture's lamp and the game's light.
     /// </summary>

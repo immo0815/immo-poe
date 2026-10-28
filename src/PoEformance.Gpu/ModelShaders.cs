@@ -104,8 +104,9 @@ internal static class ModelShaders
             float4 Wind;      // the ocean ripples' wind: its way's angle, their height, their speed, their directionness - ShadeProgram.WaterWind
             float4 Shore;     // the room's shore's box: its least x and y, world units a texel, one where there is a shore - ShadeProgram.WaterShore
             float4 Swell;     // the ocean's swell: its height, its period, its intensity - ShadeProgram.WaterSwell
-            float4 WaterLit;  // x: the medium's scattering, water_subsurface_scattering - SceneLight.ShadeWater
+            float4 WaterLit;  // x: the medium's scattering, water_subsurface_scattering - SceneLight.ShadeWater; y: the area's refraction index; z: one where the water refracts - SceneLight.WaterRefraction
             float4 Viewer;    // xyz: the eye's place in model space; w: one in perspective - ShadeProgram.Viewer
+            row_major float4x4 Unclip;  // Clip's inverse: a point on the picture and its depth back to model space - the engine's GetViewPoint
         };
 
         cbuffer Part : register(b1)
@@ -1015,6 +1016,123 @@ internal static class ModelShaders
             return ((seen * bias) + (seen * scale * specular)) * (1.0 - environment);
         }
 
+        // water.ffx's GetScreenPointFromView: where a point lands on the picture, nought to one across and down.
+        float2 ScreenOf(float3 place)
+        {
+            float4 clip = mul(float4(place, 1.0), Clip);
+            float2 seen = clip.xy / clip.w;
+            return float2((seen.x * 0.5) + 0.5, 0.5 - (seen.y * 0.5));
+        }
+
+        // The texel a point on the picture falls in, held at the picture's edges - the engine's point-clamped reads.
+        int3 TexelOf(float2 screen, int size)
+        {
+            return int3(clamp((int2)floor(screen * size), 0, size - 1), 0);
+        }
+
+        // water.ffx's GetViewPoint over the solid depth (ReadNearestNonlinearDepth): the solid surface at a point on the picture, model
+        // space - Clip undone at the point and the depth held under it. False where nothing solid lies there.
+        bool SolidAt(float2 screen, int size, out float3 solid)
+        {
+            float held = Behind.Load(TexelOf(screen, size));
+            float4 back = mul(float4((screen.x * 2.0) - 1.0, 1.0 - (screen.y * 2.0), held, 1.0), Unclip);
+            solid = back.w != 0.0 ? back.xyz / back.w : float3(0.0, 0.0, 0.0);
+            return held > 0.0;
+        }
+
+        // water.ffx's GetRefractedDir from the air (n1 one) into the water: the ray bent at the surface, or kept where it would reflect whole.
+        float3 RefractedWay(float3 ray, float3 normal, float index)
+        {
+            float r = 1.0 / max(1.0, index);
+            float c = -dot(ray, normal);
+            float under = 1.0 - (r * r * (1.0 - (c * c)));
+            return under > 0.0 ? (r * ray) + (((r * c) - sqrt(under)) * normal) : ray;
+        }
+
+        // water.ffx's GetRaytracedLightAdaptiveStepping: a point along the bent ray put on the picture and the solid surface there taken where it
+        // lies ahead along the ray, the next point as far along the ray as that surface; where it lies behind, the step halved back. The solid
+        // point last taken - the start where none was - or false where a step met nothing solid, which no light comes back from.
+        bool RefractedHit(float3 origin, float3 ray, int size, out float3 hit)
+        {
+            float3 current = origin;
+            float3 next = origin;
+            hit = origin;
+            [unroll] for (int step = 0; step < {{SceneLight.RefractionSteps}}; step++)
+            {
+                float3 solid;
+                if (!SolidAt(ScreenOf(next), size, solid))
+                {
+                    return false;
+                }
+
+                if (dot(solid - origin, ray) < 0.0)
+                {
+                    next = (current + next) * 0.5;
+                }
+                else
+                {
+                    hit = solid;
+                    current = next;
+                    float3 gone = solid - origin;
+                    next = origin + (sqrt(dot(gone, gone)) * ray);
+                }
+            }
+
+            return true;
+        }
+
+        // One of ComputeDispersedColor's shifted reads: the picture's solid part there, or the unshifted colour where the surface there lies
+        // behind where the ray started - nothing solid lying ahead, as the engine's far depth does.
+        float3 DispersedRead(float2 screen, float3 start, float3 ray, int size, float3 unshifted)
+        {
+            float3 solid;
+            bool found = SolidAt(screen, size, solid);
+            return !found || dot(solid - start, ray) > 0.0 ? Opaque.Load(TexelOf(screen, size)).rgb : unshifted;
+        }
+
+        // water.ffx's ComputeDispersedColor at GetRefractedOpaqueSurface's dispersion: blue read where the bent ray ended, green one shift and
+        // red two towards where it started, a shift that share of the way and no more than a set share of the picture.
+        float3 Dispersed(float3 start, float3 end, float3 ray, int size)
+        {
+            float2 ends = ScreenOf(end);
+            float2 shift = (ScreenOf(start) - ends) * {{ShadeHlsl.Number(SceneLight.WaterDispersion)}};
+            float span = sqrt(dot(shift, shift));
+            shift *= min(span, {{ShadeHlsl.Number(SceneLight.WaterDispersionMost)}}) / (span + 1e-7);
+            float3 unshifted = Opaque.Load(TexelOf(ends, size)).rgb;
+            float red = DispersedRead(ends + (shift * 2.0), start, ray, size, unshifted).r;
+            float green = DispersedRead(ends + shift, start, ray, size, unshifted).g;
+            return float3(red, green, unshifted.b);
+        }
+
+        // SceneLight.WaterRefraction, the card's alone: GetRefractedOpaqueSurface - the view bent into the water by the area's index thinned
+        // to one by the shore's ratio, marched over the solid depth, the solid part read where it ended with the colours split - and
+        // GetRefractedWaterLight's share of it that gets through, over the bent ray's own length. Its caustics are not drawn.
+        float Refraction(float3 place, float3 normal, float terrain, out float3 seen)
+        {
+            uint width;
+            uint height;
+            Behind.GetDimensions(width, height);
+            int size = (int)width;
+            float3 bent = RefractedWay(-EyeWay, normal, lerp(WaterLit.y, 1.0, terrain));
+            float3 hit;
+            if (!RefractedHit(place, bent, size, hit))
+            {
+                seen = float3(0.0, 0.0, 0.0);
+                return 0.0;
+            }
+
+            seen = Dispersed(place, hit, bent, size);
+            float3 travel = hit - place;
+            return exp(-sqrt(dot(travel, travel)) * Water.w * (1.0 - terrain));
+        }
+
+        // SceneLight.ShadeWater's normal: the waves', turned to face the eye.
+        float3 WaterNormal(ShadeOut said)
+        {
+            float3 normal = dot(said.waves, said.waves) > 1e-12 ? normalize(said.waves) : EyeWay;
+            return dot(normal, EyeWay) < 0.0 ? -normal : normal;
+        }
+
         // SceneLight.WaterLit: one light on the water - its share on the foam and on the medium, ComputeDiffuse's wrap.
         void WaterLight(float3 light, float3 towards, float3 normal, inout float3 diffuse, inout float3 through)
         {
@@ -1035,8 +1153,9 @@ internal static class ModelShaders
         }
 
         // SceneLight.ShadeWater: one pixel of open water lit as the engine's water pass lights it - the layer's colour, linear,
-        // exposed and graded, and its cover in w; a cover of nought drops the pixel.
-        float4 WaterShaded(ShadeOut said, float3 place, float sun, float environment, float3 mirrored)
+        // exposed and graded, and its cover in w; a cover of nought drops the pixel. What gets through the medium is handed in: the
+        // program's, over the straight view, or the refraction's, over the bent ray.
+        float4 WaterShaded(ShadeOut said, float3 place, float sun, float environment, float3 mirrored, float passing)
         {
             float terrain = saturate(said.waterState.y);
             if (terrain > 0.999999)
@@ -1044,12 +1163,7 @@ internal static class ModelShaders
                 return float4(0.0, 0.0, 0.0, 0.0);
             }
 
-            float3 normal = dot(said.waves, said.waves) > 1e-12 ? normalize(said.waves) : EyeWay;
-            if (dot(normal, EyeWay) < 0.0)
-            {
-                normal = -normal;
-            }
-
+            float3 normal = WaterNormal(said);
             float share = saturate(said.waterFoam.w);
             float exponent = 1.0 / (1.0 + max(-0.9, 250.0 * said.waterState.w * 5e-5 * WaterLit.x));
             float3 scatter = float3({{ShadeHlsl.Number(SceneLight.WaterScatterColour.X)}}, {{ShadeHlsl.Number(SceneLight.WaterScatterColour.Y)}}, {{ShadeHlsl.Number(SceneLight.WaterScatterColour.Z)}});
@@ -1157,7 +1271,6 @@ internal static class ModelShaders
             float3 absorbed = (diffuse * albedo) + ambient + (through * subsurface);
             float clear = 1.0 - share;
             float hidden = 1.0 - (clear * clear * clear);
-            float passing = saturate(said.waterState.x);
             float mixed = ((1.0 - hidden) * refracted * (1.0 - passing)) + hidden;
             float cover = 1.0 - ((1.0 - hidden) * refracted * passing);
             if (!(cover > 1e-6))
@@ -1170,8 +1283,10 @@ internal static class ModelShaders
             return float4(graded + (mirrored * (kept / cover)), cover);
         }
 
-        // MeshPicture.Drawing.WaterScened: the water's layer under the game's light, sRGB, its cover in w.
-        float4 WaterSceneLit(ShadeOut said, float3 place, float3 turn, float4 position)
+        // MeshPicture.Drawing.WaterScened: the water's layer under the game's light, sRGB, its cover in w. A mixed layer that refracts
+        // (WaterLit.z, the solid part copied for it) covers whole, what lies behind bent into its colour - mixed in by the share the layer
+        // would have let through, in the picture's own numbers, as the blend mixes it.
+        float4 WaterSceneLit(ShadeOut said, float3 place, float3 turn, float4 position, bool mixed)
         {
             float3 normal = Toward(turn);
             float sun = SunTravels.w > 0.5 ? SunReaches(place, normal) : 1.0;
@@ -1182,14 +1297,23 @@ internal static class ModelShaders
                 mirrored = Mirrored(said.waves, normal, position, place, said.specular, said.gloss, environment);
             }
 
-            float4 lit = WaterShaded(said, place, sun, environment, mirrored);
-            return float4(Srgb(lit.rgb), lit.w);
+            bool refracts = mixed && WaterLit.z > 0.5;
+            float passing = saturate(said.waterState.x);
+            float3 seen = float3(0.0, 0.0, 0.0);
+            if (refracts)
+            {
+                passing = Refraction(place, WaterNormal(said), saturate(said.waterState.y), seen);
+            }
+
+            float4 lit = WaterShaded(said, place, sun, environment, mirrored, passing);
+            float3 shown = Srgb(lit.rgb);
+            return refracts && lit.w > 0.0 ? float4((shown * lit.w) + (seen * (1.0 - lit.w)), 1.0) : float4(shown, lit.w);
         }
 
         // MeshPicture.Drawing.WaterScened in a channel view: the water's layer left out.
         float4 WaterSceneLitOrNot(ShadeOut said, float3 place, float3 turn, float4 position)
         {
-            return Channelled() ? float4(0.0, 0.0, 0.0, 0.0) : WaterSceneLit(said, place, turn, position);
+            return Channelled() ? float4(0.0, 0.0, 0.0, 0.0) : WaterSceneLit(said, place, turn, position, true);
         }
 
         // MeshPicture.Drawing.Scened with a program.
@@ -1236,7 +1360,7 @@ internal static class ModelShaders
             // THE WATER LIT AS THE ENGINE'S WATER PASS LIGHTS IT, whole where it is drawn solid; in a channel view its program's channels.
             if (ShadeWater && scened && !Channelled())
             {
-                return float4(WaterSceneLit(said, pixel.place, pixel.turn, pixel.position).rgb, 1.0);
+                return float4(WaterSceneLit(said, pixel.place, pixel.turn, pixel.position, false).rgb, 1.0);
             }
 
             float3 shown = scened

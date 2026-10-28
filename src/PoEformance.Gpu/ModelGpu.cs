@@ -593,6 +593,17 @@ public sealed partial class ModelGpu : IDisposable
         Matrix4x4 view = camera.View;
         Matrix4x4 clip = view * onto;
         float ambientLight = SceneLight.UsualFlatAmbient;
+        WaterLook water = scene.Water ?? WaterLook.EngineDefault;
+
+        // THE WATER'S REFRACTION reads the solid part's colour, copied as the screen's ray reads it - see Saw below - and puts points on
+        // the picture back into model space through Clip's inverse (ModelShaders' SolidAt).
+        bool refracts = light is { WaterRefraction: true } && plan.Translucent && Array.Exists(plan.Programs, one => one.HasWaves);
+        if (!Matrix4x4.Invert(clip, out Matrix4x4 unclip))
+        {
+            unclip = Matrix4x4.Identity;
+            refracts = false;
+        }
+
         Written(_frame, new FrameConstants
         {
             Clip = clip,
@@ -609,12 +620,13 @@ public sealed partial class ModelGpu : IDisposable
             Depth = new Vector4(reach, camera.Near, camera.Perspective ? 1f : 0f, 0f),
             Viewer = camera.Perspective ? new Vector4(camera.Viewer, 1f) : default,
             Dust = new Vector4(scene.Dust ?? EnvironmentSettings.AssumedDust, 0f),
-            Water = (scene.Water ?? WaterLook.EngineDefault).ColourRegister,
-            Flow = (scene.Water ?? WaterLook.EngineDefault).FlowRegister with { W = lift },
-            Wind = (scene.Water ?? WaterLook.EngineDefault).WindRegister,
-            Shore = (scene.Water ?? WaterLook.EngineDefault).ShoreRegister,
-            Swell = (scene.Water ?? WaterLook.EngineDefault).SwellRegister with { W = !crash ? 0f : light!.WaterBreakByGround ? 2f : 1f },
-            WaterLit = new Vector4((scene.Water ?? WaterLook.EngineDefault).SubsurfaceScattering, 0f, 0f, 0f),
+            Water = water.ColourRegister,
+            Flow = water.FlowRegister with { W = lift },
+            Wind = water.WindRegister,
+            Shore = water.ShoreRegister,
+            Swell = water.SwellRegister with { W = !crash ? 0f : light!.WaterBreakByGround ? 2f : 1f },
+            WaterLit = new Vector4(water.SubsurfaceScattering, water.RefractionIndex, refracts ? 1f : 0f, 0f),
+            Unclip = unclip,
         });
 
         context.RSSetState(_raster);
@@ -714,8 +726,8 @@ public sealed partial class ModelGpu : IDisposable
                 context.PSSetShaderResource(ModelShaders.BehindSlot, target.Behind);
             }
 
-            // AND ITS COLOUR, where the water reflects the picture itself - see ScreenReflection.
-            if (light is { WaterReflection: true, WaterScene: true } && Array.Exists(plan.Programs, one => one.HasWaves))
+            // AND ITS COLOUR, where the water reflects the picture itself - see ScreenReflection - or bends it (SceneLight.WaterRefraction).
+            if (refracts || (light is { WaterReflection: true, WaterScene: true } && Array.Exists(plan.Programs, one => one.HasWaves)))
             {
                 context.PSSetShaderResource(ModelShaders.OpaqueSlot, target.Saw(context));
             }
@@ -1418,6 +1430,7 @@ public sealed partial class ModelGpu : IDisposable
         public Vector4 Swell;
         public Vector4 WaterLit;
         public Vector4 Viewer;
+        public Matrix4x4 Unclip;
     }
 
     private sealed record Compiled(
