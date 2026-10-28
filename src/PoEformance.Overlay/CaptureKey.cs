@@ -1115,6 +1115,12 @@ internal sealed class CaptureKey
                         image.SaveAsPng(At(file));
                     }
 
+                    // AND AS NUMBERS, every cell's kind and every way in - a video of the game is read into the room's frame against them.
+                    foreach ((string file, byte[] bytes) in CapturePanes.ShoreFields(panes))
+                    {
+                        File.WriteAllBytes(At(file), bytes);
+                    }
+
                     return text[..text.IndexOf('\n')];
                 });
             }

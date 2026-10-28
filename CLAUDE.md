@@ -792,6 +792,19 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   across its wrap against a step inside, red and green's likeness, the distortion's mean vector, the caustics' bias - and writes each whole
   (`water-pass-N-name.dds`); `water-pass-replay.txt` measures them again offline. The refraction's own march (GetRaytracedLightAdaptiveStepping)
   and its dispersion (ComputeDispersedColor, 0.2) are in water.txt whole and need neither.
+  THE GAME'S CRESTS RUN ALONG THE PIER (a side-by-side video from the live client, v0.1.332, the game left and the Monster Book right at
+  Port's pier, crash on): every pixel's phase at the waves' own period - 5.5 s in the game, 5.3 in the book, both the field waves - put the
+  game's crests running along the pier's sea face, some 17 degrees off it and away, and the book's square onto it at about 49 degrees, in
+  rings round a point off the quay ("way round" was on; by the ground the lines wrap every face alike, v0.1.329's `shore-way.png`). As
+  though the pier and the quay - walls out of deep water - were in no wave's way, as the ship was found to be (v0.1.305/307). So two things
+  from v0.1.333, DECIDED from the live client: a third way in, PAST THE WALLS (`ShoreField.Way(round, pastWalls)`, `Steering`, `WallReach`,
+  the light panel's "past walls", `SceneLight.WaterPastWalls`; CHOSEN to hold against the game): each land cell belongs to its nearest
+  coast, and ground whose nearest coast is a wall within 400 units neither stands in the way nor is measured from - the line under the
+  picture names the way drawn; and the capture writes every shore field as NUMBERS (`shore-field.bin`, `CapturePanes.FieldBytes`, its
+  format in `FieldFormat`; `ShoreField.Kinds`' bits, the shore's distance, all three ways in and the ground's shore, world units;
+  `shore-field-replay.txt` reads them back) beside a third picture, `shore-way-past.png`. With the capture's own camera (`capture.txt`) and
+  the boss room's placing (`rooms.txt`), a side-by-side video recorded while F9 is pressed, the player not moving, reads the game's crests
+  into the room's frame and sets them beside each way in - which one, if any, the game's is, is measured there before a default changes.
 
 Its zip holds the pictures, every
 room file of the area's room set and every doodad entity with its model and position, so the

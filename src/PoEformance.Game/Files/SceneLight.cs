@@ -425,6 +425,13 @@ public sealed class SceneLight
     public bool WaterWayRound { get; init; }
 
     /// <summary>
+    /// Whether the waves' way in runs past the walls - a quay's or a pier's own ground in no wave's way, as Port's pier stands in the game's
+    /// (ShoreField.Way, a video measured from the live client, v0.1.332). CHOSEN, a switch to hold against the game; it wins over
+    /// <see cref="WaterWayRound"/>.
+    /// </summary>
+    public bool WaterPastWalls { get; init; }
+
+    /// <summary>
     /// Whether the field waves' break phase takes the shore's distance of the ground alone - what stands in the sea, the rocks and the
     /// pier's stones, no shore for it (ShoreField.GroundTexels) - rather than the shore's the swell takes. CHOSEN, a switch to hold against
     /// the game; the card's alone, as the field waves are.

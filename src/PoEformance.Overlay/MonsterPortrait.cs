@@ -908,9 +908,17 @@ public sealed class MonsterPortrait
 
     /// <summary>The area's water, over the room's own shore where the model is a room that has one, its way in the light's - see ShoreField.Way.</summary>
     private WaterLook Watered()
-        => (SceneWater?.Invoke() ?? WaterLook.EngineDefault) with { Shore = _model.Shore?.Way(Lit() is { WaterWayRound: true }) };
+        => (SceneWater?.Invoke() ?? WaterLook.EngineDefault) with { Shore = Lit() is { } lit ? _model.Shore?.Way(lit.WaterWayRound, lit.WaterPastWalls) : _model.Shore };
 
     private WaterLook _drawnWater = WaterLook.EngineDefault;
+
+    /// <summary>Which way in the waves run down, as the line under the picture says it - the light panel's two switches (ShoreField.Way).</summary>
+    private static string WayIn(ShoreField? shore) => shore switch
+    {
+        { PassesWalls: true } => "past the walls, a quay's or a pier's own ground in no wave's way (the light panel's \"past walls\")",
+        { RoundsWhatStands: true } => "round whatever crosses the water - the ship's hull among it (the light panel's \"way round\")",
+        _ => "round the ground alone, the waves running on under what stands in the water",
+    };
 
     /// <summary>
     /// Which tilesets place which tile, for a tile's dump to find the areas that use it - see ModelDump.OfTile.
@@ -2465,7 +2473,7 @@ public sealed class MonsterPortrait
                     + " panel's wind; the swell rolling in to the shore the engine's formula over a shore made here from the room's ground and what"
                     + " stands in the sea (the shapes whose material sprays: the rocks and the pier's stones), a wall - spraying stone too - rising out of water deeper"
                     + " than " + ShoreField.BeachDeep.ToString("0", CultureInfo.InvariantCulture) + " no shore, CHOSEN until the engine's is read,"
-                    + " down a way in from the open sea round whatever crosses the water - the ship's hull among it - CHOSEN until the engine's"
+                    + " down a way in from the open sea " + WayIn(water.Shore) + " - CHOSEN until the engine's"
                     + " OceanMarkupField is read - " + ShadeProgram.Swells.Said + "; its foam the engine's trail foam (GetFoamColor3) from the"
                     + " cross-section's green and alpha, none where the stand-in stands, its leading edge's textured layers and the orbit's"
                     + " offsets not drawn; what stands in it sprayed and wetted as its own material says (CrashingFoamSurface: a crashing wave"
