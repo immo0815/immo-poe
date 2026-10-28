@@ -1679,13 +1679,10 @@ internal static class Program
         }
 
         PoEformance.Game.Files.SkeletonAnimation move = rig.Animations[chosen];
-        byte[]? frames = rig.Tracks(move, files.Unpack);
-        PoEformance.Game.Files.AnimationTracks tracks = frames is null
-            ? PoEformance.Game.Files.AnimationTracks.None
-            : PoEformance.Game.Files.AnimationTracks.Read(frames, move.Tracks, rig.Version);
+        PoEformance.Game.Files.AnimationTracks tracks = rig.Played(move, files.Unpack);
         if (!tracks.Ready)
         {
-            Console.WriteLine($"    {move.Name}: the keyframes did not read ({(frames is null ? "did not unpack" : tracks.Why)})");
+            Console.WriteLine($"    {move.Name}: the keyframes did not read ({tracks.Why})");
             return;
         }
 

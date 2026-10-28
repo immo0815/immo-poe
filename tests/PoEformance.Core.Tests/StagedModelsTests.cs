@@ -154,6 +154,28 @@ public class StagedModelsTests
     }
 
     /// <summary>
+    /// A monster whose rest pose hangs below his origin stands his ORIGIN on the floor, as the game stands Malgor: his entity's z is
+    /// the terrain less half his height over his origin, while his bind pose hangs 209.7 under his feet (v0.1.328's capture).
+    /// </summary>
+    [Fact]
+    public void AMONSTERWhoseRestHangsBelowHisOriginStandsHisOriginOnTheFloor()
+    {
+        var tile = new MonsterModel(Square(100f, 10f), null, "stage.tgm", string.Empty, string.Empty) { Kind = ModelKind.Tile };
+        SkinnedMesh hanging = SkinnedMesh.Joined(
+        [
+            new MeshJoin(Box(5f, 20f)),
+            new MeshJoin(Box(2f, 15f), Place: Matrix4x4.CreateTranslation(0f, 0f, 15f)),
+        ]);
+        Assert.Equal(15f, hanging.Most.Z);
+        var actor = new MonsterModel(hanging, null, "monster.smd", string.Empty, string.Empty);
+
+        MonsterModel staged = StagedModels.Staged(actor, tile, modelSize: 0, "Arena.tdt");
+
+        Assert.Equal(new Vector3(50f, 50f, 10f), Vector3.Transform(Vector3.Zero, staged.ActorPlace));
+        Assert.Equal(10f, staged.Standing!.Floor);
+    }
+
+    /// <summary>
     /// A room that names every shape's piece - a tile, its ground, a doodad - keeps those names on the stage, where the probe reads
     /// them; a shape it leaves unnamed is the stage's.
     /// </summary>

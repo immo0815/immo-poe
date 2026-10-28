@@ -19,7 +19,7 @@ public sealed record RoomSpot(Vector2 At, float Turn, string Tag, int Others);
 /// <param name="At">The point the monster stands at, in the stage's frame.</param>
 /// <param name="Turn">His turn about the vertical, in radians.</param>
 /// <param name="Scale">His size against his file's.</param>
-/// <param name="Floor">The floor he was set on - his feet, the rest's lowest point, landing there - in the stage's z.</param>
+/// <param name="Floor">The floor he was set on - his origin landing there, as the game stands him - in the stage's z.</param>
 /// <param name="Found">Whether any floor was found, or the tile's lowest point stood in for it.</param>
 /// <param name="Floors">Each place the floor was asked at, off <paramref name="At"/>, with the floor there - infinity where none faced up.</param>
 public sealed record StageStanding(Vector2 At, float Turn, float Scale, float Floor, bool Found, IReadOnlyList<(Vector2 Off, float Height)> Floors);
@@ -227,11 +227,15 @@ public static class StagedModels
             floor = tile.Mesh.Most.Z;
         }
 
-        // SCALED ABOUT ITS OWN ORIGIN, TURNED, AND THEN MOVED, as row vectors multiply: the monster's feet - its
-        // greatest z, the files' up being minus z - land on the floor.
+        // SCALED ABOUT ITS OWN ORIGIN, TURNED, AND THEN MOVED, as row vectors multiply: the monster's ORIGIN lands on the floor,
+        // as the game stands him. MEASURED on Malgor (Port's capture of v0.1.328): his entity's Render z is the terrain under him
+        // less its CharacterModelBounds z, -335.938 - 143.481 = -479.419, and that bound is half his rest height over his origin
+        // (286.962) - the game's box runs from his origin up, his origin on the ground, as the player's and every object's does
+        // in the same capture. Before v0.1.329 the rest's lowest point was set there instead (DECIDED from the live client for
+        // every monster), and Malgor's bind pose hangs 209.7 under his feet: he floated by that much in every animation.
         Matrix4x4 place = Matrix4x4.CreateScale(scale)
             * Matrix4x4.CreateRotationZ(turn)
-            * Matrix4x4.CreateTranslation(middle.X, middle.Y, floor - (actor.Mesh.Most.Z * scale));
+            * Matrix4x4.CreateTranslation(middle.X, middle.Y, floor);
 
         var pile = new ModelPile();
         pile.Add(tile, Matrix4x4.Identity, stage);

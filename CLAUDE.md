@@ -127,8 +127,10 @@ exactly like a bug in the other one:
 
 1. **The 3D world** — `WorldData.WorldToScreen(position, height)`, driven by the camera
    matrix at `WorldData + 0x1A0`. Clip components are dots with COLUMNS of the flat array.
-   Entity positions come from `Render.WorldPosition`; its `Z` is the entity's BASE, and
-   `Z - ModelBounds.Z` is where the game floats the health bar.
+   Entity positions come from `Render.WorldPosition`; its `Z` is the entity's base LESS
+   `ModelBounds.Z` - the middle of a box from the base up (MEASURED v0.1.328 on Malgor, the player,
+   checkpoints and ground items: z plus the bound is the terrain under them) - and
+   `Z - ModelBounds.Z`, the box's top, is where the game floats the health bar.
 2. **The in-game map** — no matrix at all. A fixed 38.7-degree isometric transform whose
    scale comes from the map UI element's own zoom and shift. See the block comment above
    `ImportantUiElements` in `schema/poe2.offsets.json` for the formula.
@@ -217,13 +219,28 @@ and root bone in every animation, every `.ao` and object type of him whole (`Mod
 entity of him where one is near: its place, the terrain's height under it, its bounds, the animation it plays. No offline reader: the
 files it writes are the reading. Read it, from a capture standing where the game shows him with him on the Monster Book's stage,
 before the placing rule, a part's socket or a missing part is changed.
-WHAT THE GAME SHOWS OF THE TWO PARTS (said from the live client after a Port map, v0.1.327): the spyglass is in his hand THROUGHOUT,
-fired as a cannon in some skills - the cannon this project's notes call his `aux_cannon_jntBnd` prop (`ModelDump`, `MonsterModels.Propped`)
-is likely it, not yet shown; the wheel hangs ROUND HIS NECK in his second phase. The wheel is the `"<root>"` piece of ten bones sharing
-only the root that `MonsterModels.Retargeted` leaves at his origin, its own rig's animations never played. So from v0.1.328 the part also
-writes each socketed part's bone in every animation - its place and least axis scale, a bone scaled to nothing hiding its part - and
-plays every part with a rig of its own by that rig (`MonsterModels.Piece`): its mesh's box and size per animation, whether he plays one of
-that name, and for a `"<root>"` piece his bone nearest its middle. A capture in each phase says where the wheel's animations carry it.
+WHAT THE GAME SHOWS OF THE TWO PARTS (said from the live client after a Port map, with pictures): the spyglass is in his hand
+THROUGHOUT, fired as a cannon in some skills; the wheel hangs ROUND HIS NECK throughout, on his throne before the fight too (first
+said "in his second phase", corrected from a picture). From v0.1.328 the part also writes each socketed part's bone in every animation -
+its place and least axis scale, a bone scaled to nothing hiding its part - and plays every part with a rig of its own by that rig
+(`MonsterModels.Piece`): its mesh's box and size per animation, whether he plays one of that name, and for a `"<root>"` piece his bone
+nearest its middle.
+ITS FIRST CAPTURE (v0.1.328, Port, the player at the arena's door, Malgor on his throne) SETTLED ALL THREE, and v0.1.329 mends them:
+- HE FLOATED BY HIS BIND POSE: the stage set the rest's lowest point on the floor, and his bind pose hangs 209.736 under his origin, so
+  in idle_01 his lowest point stood 128 over the deck and in emerge_idle_01 he sat 209.7 over his throne. The game stands his ORIGIN on
+  the ground - MEASURED: his entity's Render z -479.419 is the terrain under him, -335.938, less his bounds z 143.481, which is exactly
+  half the 286.962 his rest reaches over his origin (schema `CurrentWorldPosition`, `CharacterModelBounds`). So every staged monster's
+  origin is set on the floor (`StagedModels.Staged`, DECIDED from the live client for all monsters; a monster whose feet are its origin
+  stands as before).
+- THE SPYGLASS IS `PirateBossCannon.fmt` at `aux_cannon_jntBnd`, a version 8 fixed mesh the reader refused ("geometry outside a DOLm
+  block"). `FixedMesh.Older` reads it as poe_data_tools' v8_section does; the vertex's eight unnamed bytes are taken as the normal where
+  their first or second four lie along the file's own triangles, else the normals are the triangles' (`FixedMesh.NormalsFrom`).
+- THE WHEEL IS `PirateBossHelm.ao`: 41 animations of its own, 30 of them his names, each putting the wheel's root on his
+  `aux_helm_jntBnd`, 1.7 to 5.3 units off. So a `"<root>"` piece whose rig shares only the root and whose animations carry his names
+  RIDES his rig (`AnimationSkeleton.Carrying`, `Riders`, `MonsterModels.Riding`, `PartKind.Played`; DECIDED from the live client over
+  hanging it rigidly on the bone): its bones after his, its own animation of each name joined in step (`AnimationSkeleton.Played`,
+  `AnimationTracks.With`) - by the seconds of each one's rate, CHOSEN (attack_01 is 84 frames for him, 168 for the wheel); where it has
+  no animation of the name it stands at its bind. Every loader of a monster's animation reads `Played`.
 
 ## Verify against the game, not against yourself
 

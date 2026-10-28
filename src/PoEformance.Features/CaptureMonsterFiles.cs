@@ -65,7 +65,7 @@ public static class CaptureMonsterFiles
     /// <summary>Where the stage stood him: his place, the rest's box and lowest point, and the floor asked at nine points.</summary>
     private static void Staging(StringBuilder body, MonsterModel model, MonsterModel actor)
     {
-        body.AppendLine().AppendLine("=== where the stage stands him (StagedModels.Staged): his feet - the rest's lowest point, up being minus z - set on the floor round the place");
+        body.AppendLine().AppendLine("=== where the stage stands him (StagedModels.Staged): his origin set on the floor round the place, as the game stands him (up being minus z)");
         Vector3 least = actor.Mesh.Least, most = actor.Mesh.Most;
         body.Append("  rest\this own box at rest, his own frame: ").Append(At(least)).Append(" .. ").Append(At(most))
             .Append(Invariant($" - his lowest point at rest {most.Z:0.###} under his origin, his highest {-least.Z:0.###} over it")).AppendLine();
@@ -150,11 +150,11 @@ public static class CaptureMonsterFiles
         float? floor = model.Standing?.Floor;
         foreach (SkeletonAnimation move in rig.Animations)
         {
-            byte[]? frames = rig.Tracks(move, unpacking);
-            AnimationTracks? tracks = frames is null ? null : AnimationTracks.Read(frames, move.Tracks, rig.Version);
-            if (tracks is not { Ready: true })
+            // HIS AND EVERY RIDER'S of the same name, as the pane plays them - see AnimationSkeleton.Played.
+            AnimationTracks tracks = rig.Played(move, unpacking);
+            if (!tracks.Ready)
             {
-                body.Append("  ").Append(move.Name).Append("\t(").Append(frames is null ? "its keyframes did not unpack" : tracks?.Why ?? "its keyframes did not read").AppendLine(")");
+                body.Append("  ").Append(move.Name).Append("\t(").Append(tracks.Why.Length > 0 ? tracks.Why : "its keyframes did not read").AppendLine(")");
                 continue;
             }
 
@@ -340,6 +340,9 @@ public static class CaptureMonsterFiles
         }
 
         bool inHisFrame = part.Depth == 1 && part.Place == PartPlace.Root;
+
+        // HIS OWN BONES ALONE, not the riders' after them: a piece riding his rig is nearest its own bones by construction.
+        int own = his.Bones.Count - his.Riders.Sum(rider => rider.Rig.Bones.Count);
         var rows = new string[count];
         Parallel.For(
             0,
@@ -388,7 +391,7 @@ public static class CaptureMonsterFiles
                     Vector3 middle = (first.Least + first.Most) * 0.5f;
                     int best = -1;
                     float distance = float.MaxValue;
-                    for (var bone = 0; bone < his_.Bones.Length; bone++)
+                    for (var bone = 0; bone < Math.Min(own, his_.Bones.Length); bone++)
                     {
                         float apart = Vector3.Distance(his_.Bones[bone], middle);
                         if (apart < distance)
