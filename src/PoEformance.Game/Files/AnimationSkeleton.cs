@@ -357,6 +357,125 @@ public sealed class AnimationSkeleton
         : this()
         => _tracks = tracks;
 
+    /// <summary>A copy of another's keyframe store, for <see cref="Carrying"/>.</summary>
+    private AnimationSkeleton(AnimationSkeleton host)
+        : this()
+    {
+        _tracks = host._tracks;
+        _inline = host._inline;
+        _inlineBytes = host._inlineBytes;
+    }
+
+    /// <summary>
+    /// The rigs this one carries, each with the number its first bone has here - see <see cref="Carrying"/>. Empty for a rig as its
+    /// file has it.
+    /// </summary>
+    public IReadOnlyList<(AnimationSkeleton Rig, int First)> Riders { get; private init; } = [];
+
+    /// <summary>
+    /// This rig with others' bones after its own, each played in step by its own animation of the same name - see <see cref="Played"/>.
+    /// </summary>
+    /// <remarks>
+    /// MALGOR'S SHIP'S WHEEL (v0.1.329, asked for from the live client): a piece socketed "&lt;root&gt;" with ten bones of its own
+    /// sharing only the root, and 41 animations of which 30 carry his animations' names. Played by its own rig, each puts the
+    /// wheel's root on his <c>aux_helm_jntBnd</c>, round his neck, 1.7 to 5.3 units off (Port's capture of v0.1.328) - the piece's
+    /// animations are authored in his frame and in step with his. So its bones join his, a root of their own, and everything that
+    /// poses, skins or hulls a rig takes them as it takes his. A rider's own lights are not carried: its tracks are read for its
+    /// bones alone. Null where the bones would pass <see cref="MostBones"/>, the card's palette and the format's own limit.
+    /// </remarks>
+    public AnimationSkeleton? Carrying(IReadOnlyList<AnimationSkeleton> riders)
+    {
+        ArgumentNullException.ThrowIfNull(riders);
+        if (riders.Count == 0)
+        {
+            return this;
+        }
+
+        if (Bones.Count + riders.Sum(one => one.Bones.Count) > MostBones)
+        {
+            return null;
+        }
+
+        var bones = new List<SkeletonBone>(Bones);
+        var carried = new List<(AnimationSkeleton, int)>(Riders);
+        foreach (AnimationSkeleton rider in riders)
+        {
+            int first = bones.Count;
+            foreach (SkeletonBone bone in rider.Bones)
+            {
+                bones.Add(bone with
+                {
+                    Sibling = bone.Sibling >= 0 ? bone.Sibling + first : -1,
+                    Child = bone.Child >= 0 ? bone.Child + first : -1,
+                });
+            }
+
+            carried.Add((rider, first));
+        }
+
+        return new AnimationSkeleton(this)
+        {
+            Version = Version,
+            Lights = Lights,
+            LightBytes = LightBytes,
+            Bones = bones,
+            Animations = Animations,
+            TracksAt = TracksAt,
+            Why = Why,
+            Riders = carried,
+        };
+    }
+
+    /// <summary>
+    /// One animation's keyframes read and ready to sample - this rig's own, and each rider's animation of the same name joined in
+    /// step, by the seconds of each one's own rate. <see cref="AnimationTracks.None"/>, with why, where this rig's own do not read.
+    /// </summary>
+    /// <remarks>
+    /// IN STEP BY THE SECONDS, CHOSEN: nothing read says how the game times a piece's animation against its carrier's, and the files
+    /// say each one's rate. Malgor's wheel and he agree on the frame count of 29 of their 30 shared names; attack_01 is 84 frames
+    /// for him and 168 for the wheel. A rider with no animation of the name stands at its bind.
+    /// </remarks>
+    public AnimationTracks Played(SkeletonAnimation one, Func<ReadOnlyMemory<byte>, int, byte[]?> decompress)
+    {
+        ArgumentNullException.ThrowIfNull(decompress);
+        byte[]? frames = Tracks(one, decompress);
+        if (frames is null)
+        {
+            return AnimationTracks.Unread("its keyframes did not unpack");
+        }
+
+        AnimationTracks own = AnimationTracks.Read(frames, one.Tracks, Version);
+        if (!own.Ready || Riders.Count == 0)
+        {
+            return own;
+        }
+
+        int host = Bones.Count - Riders.Sum(rider => rider.Rig.Bones.Count);
+        AnimationTracks joined = own.Mine(host);
+        foreach ((AnimationSkeleton rider, int first) in Riders)
+        {
+            foreach (SkeletonAnimation move in rider.Animations)
+            {
+                if (!string.Equals(move.Name, one.Name, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                byte[]? theirs = rider.Tracks(move, decompress);
+                AnimationTracks played = theirs is null ? AnimationTracks.None : AnimationTracks.Read(theirs, move.Tracks, rider.Version);
+                if (played.Ready)
+                {
+                    float rate = move.Rate > 0 && one.Rate > 0 ? one.Rate / (float)move.Rate : 1f;
+                    joined = joined.With(played, rider.Bones.Count, first, rate);
+                }
+
+                break;
+            }
+        }
+
+        return joined;
+    }
+
     /// <summary>The pre-8 shape: the frames are in the file, so the file is what is kept.</summary>
     private AnimationSkeleton(byte[] file, int bytes)
         : this()

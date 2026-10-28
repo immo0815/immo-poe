@@ -762,9 +762,19 @@ public static class MonsterModels
         int sections = parts.Count;
 
         var told = new List<PartFit>();
+        var riding = new Riding(rig);
         if (wearing)
         {
-            parts.AddRange(Dressing(counted, found.Files, rig, paints, skin, told));
+            parts.AddRange(Dressing(counted, found.Files, rig, paints, skin, told, riding));
+        }
+
+        // THE PIECES THAT PLAY THEIR OWN ANIMATIONS RIDE HIS RIG, their bones after his - see AnimationSkeleton.Carrying.
+        if (riding.Rigs.Count > 0 && rig.Carrying(riding.Rigs) is { } carrying)
+        {
+            rig = carrying;
+            move += string.Create(
+                System.Globalization.CultureInfo.InvariantCulture,
+                $" · {riding.Rigs.Count} part{(riding.Rigs.Count == 1 ? string.Empty : "s")} on {(riding.Rigs.Count == 1 ? "a rig" : "rigs")} of {(riding.Rigs.Count == 1 ? "its" : "their")} own playing {(riding.Rigs.Count == 1 ? "its" : "their")} animation of the same name in step (by the seconds of each one's rate - CHOSEN)");
         }
 
         // THE MONSTER WITHOUT WHAT HE IS WEARING, taken BEFORE the join and kept - see
@@ -1046,7 +1056,8 @@ public static class MonsterModels
         AnimationSkeleton parent,
         Paints paints,
         Mipmaps? fallback,
-        List<PartFit> told)
+        List<PartFit> told,
+        Riding riding)
     {
         var parts = new List<Part>();
         if (SkeletonPose.Of(parent) is not { } rest)
@@ -1110,7 +1121,7 @@ public static class MonsterModels
             // THE PIECE IS READ BEFORE ITS CHILDREN ARE QUEUED, because what it turns into IS the
             // rig they are authored against - see Fit. The order parts come out in is the order
             // they are dequeued, which this does not change.
-            (Part? part, Fit inner_, PartFit fit) = Worn(read, ao, one_, paints, fallback, body);
+            (Part? part, Fit inner_, PartFit fit) = Worn(read, ao, one_, paints, fallback, body, riding);
             told.Add(fit);
             if (part is { } worn)
             {
@@ -1643,7 +1654,8 @@ public static class MonsterModels
         Hangs_ hung,
         Paints paints,
         Mipmaps? fallback,
-        Fit body)
+        Fit body,
+        Riding riding)
     {
         (_, Matrix4x4 place, int bone, Matrix4x4 put, int socket, _, _, bool rooted, Fit fit) = hung;
 
@@ -1698,9 +1710,58 @@ public static class MonsterModels
             return (worn, map.Under, Told(hung, where, PartKind.Skin, counted, worn));
         }
 
+        // A "<root>" PIECE ON A RIG OF ITS OWN WHOSE ANIMATIONS CARRY HIS NAMES RIDES HIS RIG: its vertices keep its own bones,
+        // numbered after his, and its own animation of each name plays in step with his - see AnimationSkeleton.Carrying. Malgor's
+        // ship's wheel, which every other answer here left at his origin while the game hangs it round his neck.
+        if (rooted && hung.Depth == 1
+            && Entryed(chain, RigBlock, RigEntry) is { Length: > 0 } own
+            && riding.Take(Read(read, own, AnimationSkeleton.Read), mesh) is >= 0 and int first)
+        {
+            var moved = new byte[mesh.Bones.Length];
+            for (var one = 0; one < moved.Length; one++)
+            {
+                moved[one] = (byte)Math.Min(first + mesh.Bones[one], byte.MaxValue);
+            }
+
+            var ridden = new Part(mesh, moved, mesh.Weights, null, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
+            return (ridden, body, Told(hung, where, PartKind.Played, counted, ridden));
+        }
+
         (byte[] bones, byte[] weights) = Bound(mesh.Positions.Length, bone);
         var rigid = new Part(mesh, bones, weights, place, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
         return (rigid, body, Told(hung, where, PartKind.Rigid, counted, rigid));
+    }
+
+    /// <summary>
+    /// The rigs of the pieces that play their own animations, gathered as the monster is dressed, each numbered after his bones and
+    /// those gathered before it - see AnimationSkeleton.Carrying.
+    /// </summary>
+    private sealed class Riding(AnimationSkeleton parent)
+    {
+        private readonly HashSet<string> _names = new(parent.Animations.Select(one => one.Name), StringComparer.Ordinal);
+        private int _next = parent.Bones.Count;
+
+        /// <summary>The rigs taken, in the order their bones follow his.</summary>
+        public List<AnimationSkeleton> Rigs { get; } = [];
+
+        /// <summary>
+        /// The number a piece's own rig's first bone takes after his, or -1 where it does not ride: its rig does not hold together,
+        /// its mesh is not weighted to it, the palette would pass the format's limit, or none of its animations carries one of his names.
+        /// </summary>
+        public int Take(AnimationSkeleton own, SkinnedMesh mesh)
+        {
+            if (!own.Ready || SkeletonPose.Of(own) is null || mesh.Bones.Length != mesh.Positions.Length * 4
+                || SkeletonPose.Highest(mesh) >= own.Bones.Count || _next + own.Bones.Count > AnimationSkeleton.MostBones
+                || !own.Animations.Any(one => _names.Contains(one.Name)))
+            {
+                return -1;
+            }
+
+            int first = _next;
+            _next += own.Bones.Count;
+            Rigs.Add(own);
+            return first;
+        }
     }
 
     /// <summary>One line of the walk's account of itself - see <see cref="PartFit"/>.</summary>
@@ -1782,8 +1843,8 @@ public static class MonsterModels
     /// flat clumps. The attachment line was carrying the answer the whole time.
     ///
     /// WHAT IS STILL ASKED OF THE RIG is only the other half: a "&lt;root&gt;" piece that shares
-    /// nothing but the root has no bones to be moved onto and stays where it is. Malgor's ship's
-    /// wheel is that piece, and it is the one thing here still not settled.
+    /// nothing but the root has no bones to be moved onto. Malgor's ship's wheel is that piece, and
+    /// from v0.1.329 it rides his rig and plays its own animations in step - see Riding.
     /// </remarks>
     private readonly record struct Retarget(byte[] Bones, Matrix4x4[] Into, Fit Under);
 
@@ -1912,8 +1973,8 @@ public static class MonsterModels
             }
         }
 
-        // A "<root>" PIECE WITH NOTHING SHARED HAS NOWHERE TO GO, so it is left where it is -
-        // Malgor's ship's wheel, and the one case here still unsettled. A SOCKETED piece always
+        // A "<root>" PIECE WITH NOTHING SHARED HAS NOWHERE TO GO here - Malgor's ship's wheel, which
+        // rides his rig instead where its own animations carry his names (Worn, Riding). A SOCKETED piece always
         // has somewhere: its socket, which is where it used to go wholesale, so the map can only
         // improve on that and is always worth returning.
         // A BONE THAT MATCHED NOTHING AND IS NOT A ROOT OF ITS OWN RIG - see PartFit.Strays.

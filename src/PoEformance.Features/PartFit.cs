@@ -39,6 +39,12 @@ public enum PartKind
 
     /// <summary>A mesh or manifest that did not read.</summary>
     Unread,
+
+    /// <summary>
+    /// A "&lt;root&gt;" skin on a rig of its own whose animations carry its carrier's names: its bones join his and its own animation
+    /// plays in step - Malgor's ship's wheel. See AnimationSkeleton.Carrying.
+    /// </summary>
+    Played,
 }
 
 /// <summary>

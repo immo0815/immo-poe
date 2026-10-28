@@ -3140,11 +3140,8 @@ public sealed class MonsterPortrait
         SkeletonAnimation move = moves[which];
         Func<ReadOnlyMemory<byte>, int, byte[]?> unpack = _unpack ?? ((_, _) => null);
         _loadingAnimation = which;
-        _loadingTracks = Task.Run(() =>
-        {
-            byte[]? frames = rig.Tracks(move, unpack);
-            return frames is null ? null : AnimationTracks.Read(frames, move.Tracks, rig.Version);
-        });
+        // HIS AND EVERY RIDER'S of the same name, in step - see AnimationSkeleton.Played.
+        _loadingTracks = Task.Run(() => (AnimationTracks?)rig.Played(move, unpack));
     }
 
     /// <summary>

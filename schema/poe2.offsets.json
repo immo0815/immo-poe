@@ -1015,9 +1015,12 @@
         },
         "CurrentWorldPosition": {
           "offset": "0x138", "type": "f32",
-          "comment": "x; y at +0x13C, z at +0x140."
+          "comment": "x; y at +0x13C, z at +0x140. THE Z IS NOT THE BASE BUT THE BASE LESS CharacterModelBounds' z - the middle of a box from the base up, up being minus z - MEASURED 2026-10-28 (Port's capture of v0.1.328, entities.txt and monster-files.txt): Malgor's z -479.419 is his terrain height -335.938 less his bounds z 143.481 exactly, a checkpoint's -125 its terrain 0 less 125, every ground item's its terrain 0 less its bounds, the player's within 0.36. So z less the bounds' z is the box's top - where the health bar floats - and z plus it the ground the entity stands on."
         },
-        "CharacterModelBounds": { "offset": "0x144", "type": "f32" },
+        "CharacterModelBounds": {
+          "offset": "0x144", "type": "f32",
+          "comment": "x; y at +0x148, z at +0x14C. THE Z IS HALF THE MODEL'S HEIGHT OVER ITS ORIGIN - MEASURED 2026-10-28 on Malgor (Port's capture of v0.1.328): 143.481, exactly half the 286.962 his rest pose reaches over his origin, while the pose hangs 209.736 under it. The game's box runs from the origin up, the origin on the ground - which is how the Monster Book's stage stands every monster from v0.1.329 (StagedModels.Staged)."
+        },
 
         "RotationCurrent": {
           "offset": "0x188", "type": "f32",

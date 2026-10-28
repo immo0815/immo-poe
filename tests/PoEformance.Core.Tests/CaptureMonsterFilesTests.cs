@@ -42,8 +42,8 @@ public sealed class CaptureMonsterFilesTests
         Assert.Contains("  floor\tasked at the place and round it: (0, 0) 40; (120, 0) 40;", text, StringComparison.Ordinal);
         Assert.Equal(9, staged.Standing.Floors.Count);
 
-        // HIS ORIGIN OVER THE FLOOR by the rest's lowest point - the rule held against the game's entity below.
-        Assert.Contains($" - {body.Most.Z:0.###} over the floor he was set on (40)", text, StringComparison.Ordinal);
+        // HIS ORIGIN ON THE FLOOR, as the game stands him - the rule held against the game's entity below.
+        Assert.Contains(" - 0 over the floor he was set on (40)", text, StringComparison.Ordinal);
 
         // THE ANIMATION'S LOWEST POINT AT FRAME NOUGHT IS THE POSE'S, and where it lands against the floor.
         pose.Take(tracks, 0f);
