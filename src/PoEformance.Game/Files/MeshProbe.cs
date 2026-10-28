@@ -221,6 +221,54 @@ public readonly record struct ProbeField(
     FieldFoamProfile Profile, bool Overlaid, Vector2 Layers, float Cover, Vector3 Colour, float Level);
 
 /// <summary>
+/// What the sea's spray on a surface standing in it (ShadeProgram.Spraying, effects.ffx's CrashingFoamSurface) was made of at a probed
+/// pixel: what it was handed, the shore field there, the crashing wave's coordinate, the band of height, and the foam it came to.
+/// </summary>
+/// <remarks>
+/// WRITTEN WHEN PORT'S QUAY SHOWED NO WATER RUNNING DOWN ITS FACE after a wave, as the game draws it (said from the live client,
+/// v0.1.331), while the same node on the shore rocks "looks fantastic" (v0.1.234). The quay's facing stone sprays (v0.1.301), so the
+/// node runs there - and every term of it may leave the face dry: the band of height is absolute z, the wave's coordinate the way in's
+/// distance, the inland fade the shore's distance, the fade the spray's phase. Worked out by the same function that draws it, at the
+/// fragment's own place and clock.
+/// </remarks>
+/// <param name="Triangle">The fragment's triangle.</param>
+/// <param name="Depth">Its depth along the view.</param>
+/// <param name="Place">The place the graph handed the node - lifted as the graph lifts it; up is minus z.</param>
+/// <param name="Normal">The surface's normal, at its own length one.</param>
+/// <param name="Curvature">The graph's curvature: how sharply the fades ramp.</param>
+/// <param name="SprayHeight">How far above the water the graph lets the spray reach.</param>
+/// <param name="Clock">The clock, in seconds.</param>
+/// <param name="Shore">Whether a shore field was drawn under it - no spray without one, every other term then nought.</param>
+/// <param name="Level">The shore field's water level, its water's middle z - beside <paramref name="Place"/>'s z, which the band reads as it is.</param>
+/// <param name="CellX">The shore field's cell, its column.</param>
+/// <param name="CellY">Its row.</param>
+/// <param name="Cell">What the cell is: water, land, a wall, or water something crosses the surface of.</param>
+/// <param name="ShoreDist">The shore's distance, world units - positive at sea, negative on land.</param>
+/// <param name="OceanDist">The distance out to sea, world units - the way in.</param>
+/// <param name="OceanSlope">Its rise along x and y.</param>
+/// <param name="Stationary">The standing noise, the noise texture's green.</param>
+/// <param name="Advected">The noise carried along the waves.</param>
+/// <param name="WaveCoord">The crashing wave's coordinate: whole waves out to sea, less the clock's, the two noises added.</param>
+/// <param name="Phase">The spray's phase, <c>saturate(frac(coord - 0.15))</c>.</param>
+/// <param name="Intensity">The spray's strength, <c>phase^2 * (1 - phase^5)</c>.</param>
+/// <param name="Above">The band's top, <c>saturate(0.8 + z / sprayHeight)</c>.</param>
+/// <param name="Below">The band's bottom, <c>saturate((150 - z) / 100)</c>.</param>
+/// <param name="Inland">The inland fade, <c>saturate((shore + 200) * 0.01)</c>.</param>
+/// <param name="Band">The three multiplied: the height fade.</param>
+/// <param name="Fade">The height fade ramped about the spray's strength.</param>
+/// <param name="Foam">The fade ramped by the curvature: how strongly the foam shows.</param>
+/// <param name="Flow">The way the foam scrolls across the face, units a second - down at rest, towards the shore as the spray peaks.</param>
+/// <param name="FoamAlpha">The foam texture's own alpha, its height, where it was read.</param>
+/// <param name="Cover">What the foam came to: how much it covers - the node's colour's alpha.</param>
+/// <param name="Wetness">How wet it leaves the surface, the band ramped by the curvature.</param>
+/// <param name="Colour">The foam's colour, linear.</param>
+public readonly record struct ProbeSpray(
+    int Triangle, float Depth, Vector3 Place, Vector3 Normal, float Curvature, float SprayHeight, float Clock, bool Shore, float Level,
+    int CellX, int CellY, string Cell, float ShoreDist, float OceanDist, Vector2 OceanSlope, float Stationary, float Advected, float WaveCoord,
+    float Phase, float Intensity, float Above, float Below, float Inland, float Band, float Fade, float Foam, Vector3 Flow, float FoamAlpha,
+    float Cover, float Wetness, Vector3 Colour);
+
+/// <summary>
 /// Every fragment one pixel of a drawing was made of, in the order the drawing met them.
 /// </summary>
 /// <remarks>
@@ -244,6 +292,7 @@ public sealed class PixelProbe
     private readonly List<ProbeGround> _grounds = [];
     private readonly List<ProbeSwell> _swells = [];
     private readonly List<ProbeField> _fields = [];
+    private readonly List<ProbeSpray> _sprays = [];
 
     /// <param name="x">The pixel's column, from the left.</param>
     /// <param name="y">The pixel's row, from the top.</param>
@@ -300,6 +349,11 @@ public sealed class PixelProbe
 
     internal void Add(ProbeField field) => _fields.Add(field);
 
+    /// <summary>Every fragment's spray worked out at the pixel, where its program carries the sea's spray - see <see cref="ProbeSpray"/>.</summary>
+    public IReadOnlyList<ProbeSpray> Sprays => _sprays;
+
+    internal void Add(ProbeSpray spray) => _sprays.Add(spray);
+
     /// <summary>Names what cast the shadow on one of <see cref="Suns"/>.</summary>
     internal void Cast(int sun, int caster, float away) => _suns[sun] = _suns[sun] with { Caster = caster, CasterAway = away };
 
@@ -312,6 +366,7 @@ public sealed class PixelProbe
         _grounds.Clear();
         _swells.Clear();
         _fields.Clear();
+        _sprays.Clear();
         Final = float.MaxValue;
         Drawn = false;
     }

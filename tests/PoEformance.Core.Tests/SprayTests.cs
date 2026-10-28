@@ -172,6 +172,40 @@ public class SprayTests
         Assert.InRange(lag, 0.5f, 1.5f);
     }
 
+    /// <summary>
+    /// The probe's terms (ProbeSpray) are the drawing's own: the same spray comes out with them asked for as without, its cover and wetness
+    /// are the spray's, its band the product of its three parts, and the place, the clock and the shore field's cell are what it was handed.
+    /// </summary>
+    [Fact]
+    public void THEPROBESSprayTermsAreTheDrawingsOwn()
+    {
+        ShoreField shore = BayShore();
+        var place = new Vector3(900f, 0f, 50f);
+        ShadeProgram.Spray drawn = Spray(place, 1.3f, shore);
+        ProbeSpray terms = default;
+        ShadeProgram.Spray probed = ShadeProgram.Spraying(
+            place, new Vector3(-2f, 0f, 0f), 0.2741f, 350f, 1.3f, shore, new Flat(), 0, 1, 2, true, ref terms);
+
+        Assert.Equal(drawn, probed);
+        Assert.True(terms.Shore);
+        Assert.Equal(place, terms.Place);
+        Assert.Equal(new Vector3(-1f, 0f, 0f), terms.Normal);
+        Assert.Equal(1.3f, terms.Clock);
+        Assert.Equal(drawn.Colour.W, terms.Cover);
+        Assert.Equal(drawn.Wetness, terms.Wetness);
+        Assert.Equal(terms.Above * terms.Below * terms.Inland, terms.Band, 5);
+        Assert.Equal(0.8f + (50f / 350f), terms.Above, 5);
+        Assert.Equal(1f, terms.Below);
+        Assert.Equal(shore.CellAt(new Vector2(900f, 0f), out int x, out int y), terms.Cell);
+        Assert.Equal((x, y), (terms.CellX, terms.CellY));
+        Assert.True(terms.Cover > 0f, $"cover {terms.Cover}");
+
+        ProbeSpray none = default;
+        _ = ShadeProgram.Spraying(place, new Vector3(-1f, 0f, 0f), 0.2741f, 350f, 1.3f, null, new Flat(), 0, 1, 2, true, ref none);
+        Assert.False(none.Shore);
+        Assert.Equal("no shore field", none.Cell);
+    }
+
     /// <summary>No shore, no spray: the colour clear and the surface dry, as GetShoreData's absent shoreline would leave nothing to crash.</summary>
     [Fact]
     public void NOSHOREMeansNoSpray()

@@ -18,10 +18,11 @@ public sealed record WaterTexture(int Number, string Path, GamePicture Picture)
 /// <summary>An engine lookup the water textures' part read, written whole beside the part as <see cref="File"/>.</summary>
 /// <param name="Path">Its path in the install.</param>
 /// <param name="Bytes">The DDS as the install holds it, unpacked.</param>
-public sealed record WaterLookupFile(string Path, byte[] Bytes)
+/// <param name="Name">What it is written as where not a lookup's own name - a pass texture's candidate (WaterPassTextures.FileOf).</param>
+public sealed record WaterLookupFile(string Path, byte[] Bytes, string? Name = null)
 {
-    /// <summary>What it is written as: <c>water-lookup-name.dds</c>.</summary>
-    public string File => "water-lookup-" + System.IO.Path.GetFileName(Path).ToLowerInvariant();
+    /// <summary>What it is written as: <c>water-lookup-name.dds</c>, or its <see cref="Name"/>.</summary>
+    public string File => Name ?? "water-lookup-" + System.IO.Path.GetFileName(Path).ToLowerInvariant();
 }
 
 /// <summary>
@@ -93,9 +94,10 @@ public static class CaptureWaterTextures
         pictures = decoded;
         string strings = Programs(programs, body, out List<string> named);
         string looked = Lookups(read, textures, named, body, out List<WaterLookupFile> files);
+        string passes = WaterPassTextures.Write(read, named, body, files);
         lookups = files;
         string waves = CaptureWaves.Write(read, textures, named, body);
-        return listed + "; " + strings + "; " + looked + "; " + waves + Environment.NewLine + body;
+        return listed + "; " + strings + "; " + looked + "; " + passes + "; " + waves + Environment.NewLine + body;
     }
 
     /// <summary>
