@@ -189,6 +189,22 @@ the map's side 1.24 times the pose's at the median, 1.54 at most; boxes turned t
 lays its map over the same hull (`MeshPicture.Canvas.Hull`), so both still draw one shadow; on a stage the stage's frame holds him
 and nothing changes. `CardSkinTests` and `SkinnedGpuTests` hold it all against Move on `blackguard-v6.one.ast`.
 
+## Textures go to the card as the file's blocks
+
+A BLOCK-COMPRESSED TEXTURE WITH EVERY LEVEL IS KEPT AS THE FILE HOLDS IT (v0.1.326, asked for from the live client): `BlockTexture` reads
+the DDS's header and where each level lies, `Mipmaps.Kept` keeps it undecoded, and the card is handed those levels as BC1, BC2, BC3, BC4,
+BC5 or BC7 where it samples the format (`ModelGpu`'s `Blocked`; a card below feature level 11 reads no BC7 and is handed decoded bytes).
+MEASURED in Port's capture of v0.1.319: 800 million texels at the top level, 4.3 GB decoded with levels and 0.8 GB as blocks; decoding
+was 25 of the build's thread-seconds and the levels 8 more, now none. THE FILE'S OWN LEVELS, NOT BOX AVERAGES OF THE TOP (DECIDED from
+the live client): the card can only be handed what the file carries, and the processor's picture is the card's reference, so both read
+them - the top level decodes as before, the smaller ones are the game's own. A cube, an array, a volume or a file short of any level
+is decoded at load with levels built as before (CHOSEN: no picture coarser than it was). THE PROCESSOR DECODES BEHIND THE LOAD (DECIDED
+from the live client): `MonsterPortrait.UnpackBehind` decodes every texture of the model shown on every core but the frame's once it
+landed, stopped when the model goes; a processor picture asked for meanwhile - the probe, the grey, a shader still compiling, no card -
+waits with a line saying how far it is, rather than decoding on the frame's thread. A capture's build lines say how many textures were
+kept as blocks and how long the unpacking took. BlockArt now reads BC2 to BC5 itself: BC2 and BC4 to Pfim's byte, BC3's alpha and BC5
+as the card rounds them (Pfim truncates; a level apart at most). `BlockArtTests`, `BlockTextureTests` and `BlockGpuTests` hold it.
+
 ## Verify against the game, not against yourself
 
 A check that a wrong value passes is worse than no check. Prefer tests the game itself can

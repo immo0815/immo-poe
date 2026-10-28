@@ -211,7 +211,7 @@ public static class GameArt
             return wide;
         }
 
-        // BC1 AND BC7 BY THE BLOCK DECODER, to Pfim's own pixels - see BlockArt for why.
+        // THE BLOCK FORMATS BY THE BLOCK DECODER, to Pfim's own pixels or the card's - see BlockArt for why and where.
         return BlockArt.Decode(dds) ?? DecodeWithPfim(dds);
     }
 

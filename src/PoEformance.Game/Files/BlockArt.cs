@@ -6,15 +6,21 @@ using System.Runtime.InteropServices;
 namespace PoEformance.Game.Files;
 
 /// <summary>
-/// The block-compressed textures most of the game's art is - BC1 and BC7 - decoded here rather than by Pfim, to the same pixels.
+/// The block-compressed textures the game's art is - BC1, BC2, BC3, BC4, BC5 and BC7 - decoded here rather than by Pfim, any level of them.
 /// </summary>
 /// <remarks>
 /// MEASURED BEFORE IT WAS WRITTEN (v0.1.286's capture, a Necropolis stage): decoding was 110 of a stage's 128 thread-seconds, and
 /// BC7 98 of them - 181 textures at 222 ns a pixel, where BC1 took 30. Pfim's BC7 is DirectXTex's decoder as written, allocating
 /// its endpoints, weights and colours anew for every 4 by 4 block, and it decodes every mip level of the file while GameArt keeps
 /// the top one. This is the same arithmetic - the same tables, the same rounding, Pfim's own float steps for BC1's in-between
-/// colours - with nothing allocated per block and the top level alone, its rows of blocks on every core where a picture is large.
+/// colours - with nothing allocated per block, the level asked for alone, its rows of blocks on every core where a picture is large.
 /// GameArtTests hold it against Pfim pixel for pixel over blocks of every BC7 mode, both BC1 modes and sizes that cut blocks short.
+///
+/// BC2 TO BC5 FROM v0.1.326, when the card was handed the file's own blocks (BlockTexture) and the processor's pixels became the
+/// reference for the card's own decoding: BC2's and BC3's colours are BC1's four-colour arithmetic, BC2's alpha its nibble times 17,
+/// and the one-channel ramps of BC3's alpha, BC4 and BC5 are worked out as the card works them out - the exact fraction, rounded to
+/// the nearest byte. Pfim rounds BC4 so and TRUNCATES BC3's alpha and BC5 (Bc5Dds.ExtractGradient), so those two come out up to a
+/// level apart from what it gave (CHOSEN: the card's). BC4 reads as a card reads one, (r, 0, 0, 1); BC5 as (r, g, 0, 1).
 ///
 /// WHAT IT DOES NOT READ IT LEAVES TO PFIM: any other format, and a file too short for its top level, answer null here.
 /// </remarks>
@@ -23,88 +29,38 @@ public static class BlockArt
     /// <summary>Most blocks a picture may have before its rows are decoded on every core - a 512-pixel square.</summary>
     private const int ParallelBlocks = 128 * 128;
 
-    private enum Kind
-    {
-        Bc1,
-        Bc7,
-    }
+    /// <summary>
+    /// The top level of a block-compressed DDS as red, green, blue, alpha bytes - or null for any other format, or one too short to hold it.
+    /// </summary>
+    public static GamePicture? Decode(byte[]? dds) => BlockTexture.Of(dds) is { } texture ? texture.Decode(0) : null;
 
     /// <summary>
-    /// The top level of a BC1 or BC7 DDS as red, green, blue, alpha bytes - or null for any other, or one too short to hold it.
+    /// One level of blocks as red, green, blue, alpha bytes: <paramref name="width"/> by <paramref name="height"/> texels from
+    /// <paramref name="offset"/> on, the blocks past its right and bottom edges cut short.
     /// </summary>
-    public static GamePicture? Decode(byte[]? dds)
+    internal static GamePicture Level(byte[] bytes, int offset, BlockFormat format, int width, int height)
     {
-        if (dds is null || !Header(dds, out int width, out int height, out Kind kind, out int offset))
-        {
-            return null;
-        }
-
         int blocksWide = (width + 3) / 4;
         int blocksHigh = (height + 3) / 4;
-        int bytesPerBlock = kind == Kind.Bc1 ? 8 : 16;
-        if (dds.Length < offset + ((long)blocksWide * blocksHigh * bytesPerBlock))
-        {
-            return null;
-        }
-
+        int bytesPerBlock = BlockTexture.BytesPerBlockOf(format);
         var rgba = new byte[width * height * 4];
         if ((long)blocksWide * blocksHigh >= ParallelBlocks)
         {
-            Parallel.For(0, blocksHigh, row => Row(dds, offset, kind, bytesPerBlock, width, height, blocksWide, row, rgba));
+            Parallel.For(0, blocksHigh, row => Row(bytes, offset, format, bytesPerBlock, width, height, blocksWide, row, rgba));
         }
         else
         {
             for (var row = 0; row < blocksHigh; row++)
             {
-                Row(dds, offset, kind, bytesPerBlock, width, height, blocksWide, row, rgba);
+                Row(bytes, offset, format, bytesPerBlock, width, height, blocksWide, row, rgba);
             }
         }
 
         return new GamePicture(width, height, rgba);
     }
 
-    /// <summary>The header's size and format, where it is one of the two read here; and where the top level starts.</summary>
-    private static bool Header(byte[] dds, out int width, out int height, out Kind kind, out int offset)
-    {
-        const int header = 128;
-        (width, height, kind, offset) = (0, 0, Kind.Bc1, header);
-        if (dds.Length < header || !dds.AsSpan(0, 4).SequenceEqual("DDS "u8) || (BitConverter.ToUInt32(dds, 80) & 0x4) == 0)
-        {
-            return false;
-        }
-
-        ReadOnlySpan<byte> code = dds.AsSpan(84, 4);
-        if (code.SequenceEqual("DXT1"u8))
-        {
-            kind = Kind.Bc1;
-        }
-        else if (code.SequenceEqual("DX10"u8) && dds.Length >= header + 20)
-        {
-            offset = header + 20;
-            switch (BitConverter.ToUInt32(dds, header))
-            {
-                case 70 or 71 or 72:
-                    kind = Kind.Bc1;
-                    break;
-                case 97 or 98 or 99:
-                    kind = Kind.Bc7;
-                    break;
-                default:
-                    return false;
-            }
-        }
-        else
-        {
-            return false;
-        }
-
-        height = BitConverter.ToInt32(dds, 12);
-        width = BitConverter.ToInt32(dds, 16);
-        return width is > 0 and <= GameArt.WidestPicture && height is > 0 and <= GameArt.WidestPicture;
-    }
-
     /// <summary>One row of blocks into the picture, the blocks past its right and bottom edges cut short.</summary>
-    private static void Row(byte[] dds, int offset, Kind kind, int bytesPerBlock, int width, int height, int blocksWide, int row, byte[] rgba)
+    private static void Row(byte[] dds, int offset, BlockFormat format, int bytesPerBlock, int width, int height, int blocksWide, int row, byte[] rgba)
     {
         Span<uint> pixels = stackalloc uint[16];
         Span<uint> picture = MemoryMarshal.Cast<byte, uint>(rgba.AsSpan());
@@ -113,13 +69,26 @@ public static class BlockArt
         for (var column = 0; column < blocksWide; column++)
         {
             ReadOnlySpan<byte> block = dds.AsSpan(offset + (((row * blocksWide) + column) * bytesPerBlock), bytesPerBlock);
-            if (kind == Kind.Bc1)
+            switch (format)
             {
-                Bc1(block, pixels);
-            }
-            else
-            {
-                Bc7(block, pixels);
+                case BlockFormat.Bc1:
+                    Bc1(block, pixels, threeColours: true);
+                    break;
+                case BlockFormat.Bc2:
+                    Bc2(block, pixels);
+                    break;
+                case BlockFormat.Bc3:
+                    Bc3(block, pixels);
+                    break;
+                case BlockFormat.Bc4:
+                    Bc4(block, pixels);
+                    break;
+                case BlockFormat.Bc5:
+                    Bc5(block, pixels);
+                    break;
+                default:
+                    Bc7(block, pixels);
+                    break;
             }
 
             int left = column * 4;
@@ -136,10 +105,11 @@ public static class BlockArt
 
     /// <summary>
     /// One BC1 block: two 5:6:5 colours and the two between them, or the one between and transparent black - as Pfim works them out,
-    /// in floats, each channel scaled to 255 and rounded half up after the blend, so the pixels are its pixels.
+    /// in floats, each channel scaled to 255 and rounded half up after the blend, so the pixels are its pixels. BC2's and BC3's colour
+    /// blocks are the same arithmetic with four colours whichever way round the two lie (<paramref name="threeColours"/> false).
     /// </summary>
     [SkipLocalsInit]
-    private static void Bc1(ReadOnlySpan<byte> block, Span<uint> pixels)
+    private static void Bc1(ReadOnlySpan<byte> block, Span<uint> pixels, bool threeColours)
     {
         const float F5 = 255f / 31f;
         const float F6 = 255f / 63f;
@@ -151,7 +121,7 @@ public static class BlockArt
         Span<uint> colours = stackalloc uint[4];
         colours[0] = Rgba((byte)(r0 + 0.5f), (byte)(g0 + 0.5f), (byte)(b0 + 0.5f), 255);
         colours[1] = Rgba((byte)(r1 + 0.5f), (byte)(g1 + 0.5f), (byte)(b1 + 0.5f), 255);
-        if (c0 > c1)
+        if (c0 > c1 || !threeColours)
         {
             colours[2] = Blend(1f / 3);
             colours[3] = Blend(2f / 3);
@@ -177,6 +147,92 @@ public static class BlockArt
             (byte)(b0 + (blend * (b1 - b0)) + 0.5f),
             255);
     }
+
+    /// <summary>One BC2 block: sixteen alphas of four bits, each times 17, over BC1's four-colour block.</summary>
+    [SkipLocalsInit]
+    private static void Bc2(ReadOnlySpan<byte> block, Span<uint> pixels)
+    {
+        Bc1(block[8..], pixels, threeColours: false);
+        ulong alphas = BinaryPrimitives.ReadUInt64LittleEndian(block);
+        for (var pixel = 0; pixel < 16; pixel++)
+        {
+            uint alpha = (uint)((alphas >> (pixel * 4)) & 0xF) * 17;
+            pixels[pixel] = (pixels[pixel] & 0x00FFFFFFu) | (alpha << 24);
+        }
+    }
+
+    /// <summary>One BC3 block: BC4's ramp as the alpha, over BC1's four-colour block.</summary>
+    [SkipLocalsInit]
+    private static void Bc3(ReadOnlySpan<byte> block, Span<uint> pixels)
+    {
+        Bc1(block[8..], pixels, threeColours: false);
+        Span<byte> ramp = stackalloc byte[8];
+        Ramp(block[0], block[1], ramp);
+        ulong codes = Codes(block);
+        for (var pixel = 0; pixel < 16; pixel++)
+        {
+            pixels[pixel] = (pixels[pixel] & 0x00FFFFFFu) | ((uint)ramp[(int)((codes >> (pixel * 3)) & 7)] << 24);
+        }
+    }
+
+    /// <summary>One BC4 block as a card reads it: its channel red, green and blue nought, alpha whole.</summary>
+    [SkipLocalsInit]
+    private static void Bc4(ReadOnlySpan<byte> block, Span<uint> pixels)
+    {
+        Span<byte> ramp = stackalloc byte[8];
+        Ramp(block[0], block[1], ramp);
+        ulong codes = Codes(block);
+        for (var pixel = 0; pixel < 16; pixel++)
+        {
+            pixels[pixel] = ramp[(int)((codes >> (pixel * 3)) & 7)] | 0xFF000000u;
+        }
+    }
+
+    /// <summary>One BC5 block as a card reads it: two BC4 ramps, red then green, blue nought, alpha whole.</summary>
+    [SkipLocalsInit]
+    private static void Bc5(ReadOnlySpan<byte> block, Span<uint> pixels)
+    {
+        Span<byte> reds = stackalloc byte[8];
+        Span<byte> greens = stackalloc byte[8];
+        Ramp(block[0], block[1], reds);
+        Ramp(block[8], block[9], greens);
+        ulong red = Codes(block), green = Codes(block[8..]);
+        for (var pixel = 0; pixel < 16; pixel++)
+        {
+            int shift = pixel * 3;
+            pixels[pixel] = reds[(int)((red >> shift) & 7)] | ((uint)greens[(int)((green >> shift) & 7)] << 8) | 0xFF000000u;
+        }
+    }
+
+    /// <summary>
+    /// A one-channel block's eight values: its two ends, then six between them where the first is greater, else four between, nought
+    /// and whole - each the exact fraction rounded to the nearest byte (it is never a half), as BC4's are by Pfim and by the card.
+    /// </summary>
+    private static void Ramp(byte first, byte second, Span<byte> ramp)
+    {
+        ramp[0] = first;
+        ramp[1] = second;
+        if (first > second)
+        {
+            for (var step = 1; step < 7; step++)
+            {
+                ramp[1 + step] = (byte)(((((7 - step) * first) + (step * second)) * 2 + 7) / 14);
+            }
+
+            return;
+        }
+
+        for (var step = 1; step < 5; step++)
+        {
+            ramp[1 + step] = (byte)(((((5 - step) * first) + (step * second)) * 2 + 5) / 10);
+        }
+
+        ramp[6] = 0;
+        ramp[7] = 255;
+    }
+
+    /// <summary>A one-channel block's sixteen three-bit codes, the first texel's lowest, after its two ends.</summary>
+    private static ulong Codes(ReadOnlySpan<byte> block) => BinaryPrimitives.ReadUInt64LittleEndian(block) >> 16;
 
     /// <summary>One BC7 mode's layout - DirectXTex's ms_aInfo, as Pfim carries it.</summary>
     private readonly record struct Mode(

@@ -212,6 +212,9 @@ public sealed partial class ModelGpu : IDisposable
     /// <summary>Whether <see cref="_bones"/> has been written at all - an unwritten one says nothing, not "skin nothing".</summary>
     private bool _bonesWritten;
 
+    /// <summary>Which block formats this card samples, by BlockFormat - see <see cref="Blocked"/>.</summary>
+    private readonly bool[] _readsBlocks;
+
     private long _draws;
     private bool _disposed;
 
@@ -246,6 +249,7 @@ public sealed partial class ModelGpu : IDisposable
         _part = device.CreateBuffer(Marshal.SizeOf<PartConstants>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
         _scene = device.CreateBuffer(Marshal.SizeOf<SceneConstants>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
         _bones = device.CreateBuffer(BonesBytes, BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
+        _readsBlocks = ReadsBlocks(device);
         _wrap = device.CreateSamplerState(new SamplerDescription(
             Filter.MinMagMipLinear, TextureAddressMode.Wrap, TextureAddressMode.Wrap, TextureAddressMode.Wrap,
             0f, 1, ComparisonFunction.Never, 0f, float.MaxValue));
@@ -398,9 +402,15 @@ public sealed partial class ModelGpu : IDisposable
 
         foreach (Mipmaps? one in Worn(scene))
         {
-            if (one is not null && (one.Top.Width > _largest || one.Top.Height > _largest))
+            if (one is not null && (one.Width > _largest || one.Height > _largest))
             {
-                why = $"a texture is {one.Top.Width} x {one.Top.Height}, past the {_largest} this card takes";
+                why = $"a texture is {one.Width} x {one.Height}, past the {_largest} this card takes";
+                return false;
+            }
+
+            if (one is not null && Waiting(one))
+            {
+                why = "a texture this card cannot read as blocks is still being unpacked";
                 return false;
             }
         }
@@ -432,9 +442,15 @@ public sealed partial class ModelGpu : IDisposable
             ShadeProgram program = plan.Programs[run.Shade];
             foreach (Mipmaps? sheet in program.Sheets)
             {
-                if (sheet is not null && (sheet.Top.Width > _largest || sheet.Top.Height > _largest))
+                if (sheet is not null && (sheet.Width > _largest || sheet.Height > _largest))
                 {
-                    why = $"a material's texture is {sheet.Top.Width} x {sheet.Top.Height}, past the {_largest} this card takes";
+                    why = $"a material's texture is {sheet.Width} x {sheet.Height}, past the {_largest} this card takes";
+                    return false;
+                }
+
+                if (sheet is not null && Waiting(sheet))
+                {
+                    why = "a material's texture this card cannot read as blocks is still being unpacked";
                     return false;
                 }
             }
@@ -1183,13 +1199,58 @@ public sealed partial class ModelGpu : IDisposable
         return buffers;
     }
 
+    /// <summary>
+    /// Whether a texture goes to the card as the file's blocks: a format the card samples, and a top level a whole number of blocks
+    /// each way, which Direct3D asks of a block-compressed texture.
+    /// </summary>
+    private bool Blocked(Mipmaps skin) =>
+        skin.Blocks is { } blocks && _readsBlocks[(int)blocks.Format] && blocks.Width % 4 == 0 && blocks.Height % 4 == 0;
+
+    /// <summary>Whether a texture would have to be decoded for the card and is not yet - see Can.</summary>
+    /// <remarks>
+    /// NOT DECODED ON THE DRAWING THREAD: a card below feature level 11 reads no BC7, and a stage's BC7s are seconds of decoding; the
+    /// picture waits for the unpacking behind the load instead (MonsterPortrait), as the processor's does.
+    /// </remarks>
+    private bool Waiting(Mipmaps skin) => !skin.Unpacked && !Blocked(skin);
+
+    /// <summary>The card's format for a block format - unsigned and normalised, as every texture here is read: no sRGB conversion.</summary>
+    private static Format CardFormat(BlockFormat format) => format switch
+    {
+        BlockFormat.Bc1 => Format.BC1_UNorm,
+        BlockFormat.Bc2 => Format.BC2_UNorm,
+        BlockFormat.Bc3 => Format.BC3_UNorm,
+        BlockFormat.Bc4 => Format.BC4_UNorm,
+        BlockFormat.Bc5 => Format.BC5_UNorm,
+        _ => Format.BC7_UNorm,
+    };
+
+    /// <summary>Which block formats this card samples as 2D textures with levels, by BlockFormat - asked of the device once.</summary>
+    private static bool[] ReadsBlocks(ID3D11Device device)
+    {
+        BlockFormat[] formats = Enum.GetValues<BlockFormat>();
+        var reads = new bool[formats.Length];
+        foreach (BlockFormat one in formats)
+        {
+            FormatSupport support = device.CheckFormatSupport(CardFormat(one));
+            const FormatSupport Wanted = FormatSupport.Texture2D | FormatSupport.ShaderSample | FormatSupport.Mip;
+            reads[(int)one] = (support & Wanted) == Wanted;
+        }
+
+        return reads;
+    }
+
+    /// <summary>How many textures went to the card as the file's blocks - see <see cref="Blocked"/>; for the tests.</summary>
+    internal long BlockUploads { get; private set; }
+
     /// <summary>A texture with all its levels, uploaded on first use.</summary>
     private SkinTexture Skin(Mipmaps skin)
     {
         if (!_skins.TryGetValue(skin, out SkinTexture? texture))
         {
-            texture = new SkinTexture(_device, skin);
+            bool blocked = Blocked(skin);
+            texture = new SkinTexture(_device, skin, blocked);
             _skins[skin] = texture;
+            BlockUploads += blocked ? 1 : 0;
         }
 
         texture.Used = _draws;
@@ -1905,12 +1966,53 @@ public sealed partial class ModelGpu : IDisposable
         }
     }
 
-    /// <summary>A texture on the card with every level Mipmaps made - the same levels the processor reads.</summary>
+    /// <summary>
+    /// A texture on the card with every level the processor reads: the file's own blocks as they are where the card reads their
+    /// format (<see cref="Blocked"/>), else the decoded levels as bytes.
+    /// </summary>
+    /// <remarks>
+    /// THE FILE'S BLOCKS, NOT A DECODED COPY (v0.1.326, asked for from the live client): a BC7 a byte a texel and a BC1 half of one,
+    /// where four bytes went before - Port's stage 0.8 gigabytes of the card's memory for 4.3, and no decoding on the processor for
+    /// it. The card decodes them as it reads them, BC7 to the bit as BlockArt does (the format's decoding is exact), BC1's and the
+    /// one-channel ramps' in-between values as exact fractions where BlockArt rounds them to a byte - half a level apart at most.
+    /// Every level is a row pitch of its blocks, each row four texels high.
+    /// </remarks>
     private sealed class SkinTexture : IDisposable
     {
         private readonly ID3D11Texture2D _texture;
 
-        public SkinTexture(ID3D11Device device, Mipmaps skin)
+        public SkinTexture(ID3D11Device device, Mipmaps skin, bool blocked)
+        {
+            _texture = blocked && skin.Blocks is { } blocks ? Blocks(device, blocks) : Bytes(device, skin);
+            View = device.CreateShaderResourceView(_texture);
+        }
+
+        /// <summary>The file's levels as blocks, straight out of its bytes.</summary>
+        private static ID3D11Texture2D Blocks(ID3D11Device device, BlockTexture blocks)
+        {
+            GCHandle pinned = GCHandle.Alloc(blocks.Bytes, GCHandleType.Pinned);
+            try
+            {
+                IntPtr start = pinned.AddrOfPinnedObject();
+                var data = new SubresourceData[blocks.Levels];
+                for (var level = 0; level < blocks.Levels; level++)
+                {
+                    data[level] = new SubresourceData(start + blocks.OffsetAt(level), blocks.PitchAt(level), 0);
+                }
+
+                return device.CreateTexture2D(
+                    new Texture2DDescription(
+                        CardFormat(blocks.Format), blocks.Width, blocks.Height, 1, blocks.Levels, BindFlags.ShaderResource, ResourceUsage.Immutable),
+                    data);
+            }
+            finally
+            {
+                pinned.Free();
+            }
+        }
+
+        /// <summary>The decoded levels as four bytes a texel - decoding them here where they are not yet.</summary>
+        private static ID3D11Texture2D Bytes(ID3D11Device device, Mipmaps skin)
         {
             int levels = skin.Count;
             var pinned = new GCHandle[levels];
@@ -1924,9 +2026,9 @@ public sealed partial class ModelGpu : IDisposable
                     data[level] = new SubresourceData(pinned[level].AddrOfPinnedObject(), one.Width * 4, 0);
                 }
 
-                _texture = device.CreateTexture2D(
+                return device.CreateTexture2D(
                     new Texture2DDescription(
-                        Format.R8G8B8A8_UNorm, skin.Top.Width, skin.Top.Height, 1, levels, BindFlags.ShaderResource, ResourceUsage.Immutable),
+                        Format.R8G8B8A8_UNorm, skin.Width, skin.Height, 1, levels, BindFlags.ShaderResource, ResourceUsage.Immutable),
                     data);
             }
             finally
@@ -1939,8 +2041,6 @@ public sealed partial class ModelGpu : IDisposable
                     }
                 }
             }
-
-            View = device.CreateShaderResourceView(_texture);
         }
 
         public long Used { get; set; }

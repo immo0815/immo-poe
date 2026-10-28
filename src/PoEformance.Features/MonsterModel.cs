@@ -2673,9 +2673,22 @@ public static class MonsterModels
             return GameArt.ReadRaw(read, texture);
         }
 
-        /// <summary>A texture's bytes decoded, with its levels - timed, see ModelProgress.Time, and counted by its format (ModelProgress.Decoded).</summary>
+        /// <summary>
+        /// A texture with its levels: the file's own, kept as its blocks, where it carries every one (Mipmaps.Kept(BlockTexture)) - else
+        /// decoded and halved, timed (ModelProgress.Time); counted by its format either way (ModelProgress.Kept, Decoded).
+        /// </summary>
+        /// <remarks>
+        /// NOTHING DECODED HERE FOR A BLOCK FILE (v0.1.326): decoding was most of a stage's build (Port, v0.1.319: 25 of the build's
+        /// thread-seconds, mipmaps 8 more), and the card reads the blocks as they are. The processor decodes them behind the load.
+        /// </remarks>
         public Mipmaps? Levels(byte[] bytes)
         {
+            if (Mipmaps.Kept(BlockTexture.Of(bytes)) is { } kept)
+            {
+                Progress?.Kept(ModelDump.Format(bytes), (long)kept.Width * kept.Height, kept.Count);
+                return kept;
+            }
+
             long started = Stopwatch.GetTimestamp();
             GamePicture? top;
             using (ModelProgress.Time(Progress, BuildWork.Decoding))

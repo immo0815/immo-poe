@@ -635,6 +635,27 @@ public sealed class MonsterPortrait
     /// </summary>
     private const double LowestEvery = 0.2;
 
+    /// <summary>
+    /// The model's textures being decoded behind its load for the processor's picture, and what stops it - see <see cref="UnpackBehind"/>.
+    /// </summary>
+    private Task? _unpacking;
+    private CancellationTokenSource? _unpackStop;
+
+    /// <summary>The textures <see cref="_unpacking"/> decodes, the model's every one.</summary>
+    private Mipmaps[] _unpackOf = [];
+
+    /// <summary>When the unpacking began, as Stopwatch counts - for the capture's line about it.</summary>
+    private long _unpackBegan;
+
+    /// <summary>Whether the processor's picture is waiting for the unpacking - it is drawn the frame the unpacking ends.</summary>
+    private bool _unpackWaiting;
+
+    /// <summary>Whether the capture's line about the unpacking has been written for the model shown.</summary>
+    private bool _unpackSaid;
+
+    /// <summary>Whether the model's textures are all decoded for the processor - or there are none to decode.</summary>
+    private bool UnpackDone => _unpacking is null || _unpacking.IsCompleted;
+
     /// <summary>The lines that change when a model or its keyframes land, built then and not per frame.</summary>
     private string _cost = string.Empty;
     private string _paint = string.Empty;
@@ -1301,6 +1322,7 @@ public sealed class MonsterPortrait
         _pictureDue = _model.Ready;
         _cardDue = _model.Ready;
         Rigged();
+        UnpackBehind();
         Said();
     }
 
@@ -3188,6 +3210,9 @@ public sealed class MonsterPortrait
         _model = MonsterModel.None;
         _drawnView = default;
         Rest();
+
+        // THE UNPACKING STOPPED with the model it was for.
+        UnpackBehind();
     }
 
     /// <summary>Drops the skeleton and whatever animation was loaded or playing on it.</summary>
@@ -3231,6 +3256,9 @@ public sealed class MonsterPortrait
         _stagedOn = Stage;
         _model = MonsterModel.None;
         Why = string.Empty;
+
+        // THE LAST MODEL'S UNPACKING STOPPED, so the load has the cores.
+        UnpackBehind();
 
         // Kept rather than asked for again at export time: the row is right here now, and the
         // export happens from a window that no longer has the table. See Fill.
@@ -3297,6 +3325,7 @@ public sealed class MonsterPortrait
         Framed();
         Landed();
         Advance();
+        UnpackSaid();
         bool ticking = Ticking;
         if (ticking)
         {
@@ -3328,6 +3357,7 @@ public sealed class MonsterPortrait
             || (posed && (_drawnFrame != _frame || _drawnAnimation != _chosen))
             || _drawnSharp != (Card?.Sharp ?? false)
             || (_cardWaiting && Card is { } card && card.Gpu is { } gpu && gpu.Landed != _cardLanded)
+            || (_unpackWaiting && UnpackDone)
             || _probeAsked;
 
         if (moved)
@@ -3638,7 +3668,8 @@ public sealed class MonsterPortrait
     /// </remarks>
     private void ClockBehind(int size)
     {
-        if (_clockDrawing is not null)
+        // NOT WHILE THE TEXTURES ARE UNPACKING: the task would decode them itself beside the unpacking, on the same cores.
+        if (_clockDrawing is not null || !UnpackDone)
         {
             return;
         }
@@ -3750,6 +3781,7 @@ public sealed class MonsterPortrait
         _drawnDust = Dusted();
         _drawnWater = Watered();
         _drawnSharp = Card?.Sharp ?? false;
+        _unpackWaiting = false;
         _drawing++;
         long began = Stopwatch.GetTimestamp();
 
@@ -3781,6 +3813,18 @@ public sealed class MonsterPortrait
             {
                 _rate.Redrawn(ImGui.GetTime());
                 Planted(lowest);
+                return;
+            }
+
+            // THE PROCESSOR'S PICTURE WAITS FOR ITS TEXTURES rather than decoding them on this thread - seconds of a stage's BC7s; the
+            // frame the unpacking behind the load ends draws it (see the redraw test).
+            if (!UnpackDone)
+            {
+                _unpackWaiting = true;
+                Drop();
+                Why = string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"unpacking textures for the processor's picture - {Array.FindAll(_unpackOf, one => one.Unpacked).Length} of {_unpackOf.Length}");
                 return;
             }
 
@@ -4028,6 +4072,121 @@ public sealed class MonsterPortrait
         }
 
         Parallel.For(0, pieces, piece => Placed((int)((long)count * piece / pieces), (int)((long)count * (piece + 1) / pieces)));
+    }
+
+    /// <summary>
+    /// Starts decoding every texture of the model just shown for the processor, behind its load - the one before stopped between textures.
+    /// </summary>
+    /// <remarks>
+    /// AFTER THE LOAD, NOT IN IT (DECIDED from the live client, v0.1.326): the card draws a stage from the file's blocks at once, and
+    /// the processor - the probe, the grey, a shader still compiling, no card - decodes them here on every core but the one the frame
+    /// is drawn on. A processor's picture asked for meanwhile waits for it (Render); one already decoded costs nothing.
+    /// </remarks>
+    private void UnpackBehind()
+    {
+        _unpackStop?.Cancel();
+        _unpackStop = null;
+        _unpacking = null;
+        _unpackSaid = false;
+        _unpackOf = TexturesOf(_model);
+        if (Array.TrueForAll(_unpackOf, one => one.Unpacked))
+        {
+            return;
+        }
+
+        var stop = new CancellationTokenSource();
+        Mipmaps[] textures = _unpackOf;
+        int threads = Math.Max(1, Environment.ProcessorCount - 1);
+        _unpackStop = stop;
+        _unpackBegan = Stopwatch.GetTimestamp();
+        _unpacking = Task.Run(() => Mipmaps.Unpack(textures, threads, stop.Token), CancellationToken.None);
+    }
+
+    /// <summary>Every texture a model's pictures read - its own, its shapes', and each program's sheets with its twins' - once each.</summary>
+    private static Mipmaps[] TexturesOf(MonsterModel model)
+    {
+        var textures = new HashSet<Mipmaps>(ReferenceEqualityComparer.Instance);
+        var programs = new HashSet<ShadeProgram>(ReferenceEqualityComparer.Instance);
+        void Program(ShadeProgram? program)
+        {
+            if (program is null || !programs.Add(program))
+            {
+                return;
+            }
+
+            foreach (Mipmaps? sheet in program.Sheets)
+            {
+                if (sheet is not null)
+                {
+                    textures.Add(sheet);
+                }
+            }
+
+            Program(program.Glossy);
+            Program(program.Heighted);
+        }
+
+        if (model.Skin is { } skin)
+        {
+            textures.Add(skin);
+        }
+
+        foreach (Mipmaps? one in model.Skins)
+        {
+            if (one is not null)
+            {
+                textures.Add(one);
+            }
+        }
+
+        foreach (ShadeProgram? one in model.Shades)
+        {
+            Program(one);
+        }
+
+        foreach (ShadeProgram? one in model.GlossShades)
+        {
+            Program(one);
+        }
+
+        return [.. textures];
+    }
+
+    /// <summary>The capture's line about the unpacking, once it has ended for the model shown - how long it took and what by format.</summary>
+    private void UnpackSaid()
+    {
+        if (_unpackSaid || _unpacking is not { IsCompleted: true })
+        {
+            return;
+        }
+
+        _unpackSaid = true;
+        int done = 0, of = 0;
+        var formats = new SortedDictionary<string, (int Count, long Ticks)>(StringComparer.Ordinal);
+        foreach (Mipmaps one in _unpackOf)
+        {
+            if (one.Blocks is not { } blocks)
+            {
+                continue;
+            }
+
+            of++;
+            if (!one.Unpacked)
+            {
+                continue;
+            }
+
+            done++;
+            (int count, long ticks) = formats.GetValueOrDefault(blocks.Format.ToString());
+            formats[blocks.Format.ToString()] = (count + 1, ticks + one.UnpackTicks);
+        }
+
+        double seconds = (double)(Stopwatch.GetTimestamp() - _unpackBegan) / Stopwatch.Frequency;
+        string each = string.Join(", ", formats.Select(one => string.Create(
+            CultureInfo.InvariantCulture, $"{one.Key} {one.Value.Count} in {(double)one.Value.Ticks / Stopwatch.Frequency:0.000} s")));
+        _built.Add(string.Create(
+            CultureInfo.InvariantCulture,
+            $"textures unpacked for the processor behind the build: {done} of {of} kept as blocks, {seconds:0.000} s wall on {Math.Max(1, Environment.ProcessorCount - 1)} threads - {each} (summed over threads; a texture an earlier model unpacked counts its time again)"));
     }
 
     /// <summary>The processor's arrays brought to the pose the skeleton holds, where they hold another - for whatever reads the posed vertices on the processor.</summary>
@@ -4523,6 +4682,13 @@ public sealed class MonsterPortrait
         if (!_model.Ready)
         {
             _exported = "there is no model to write";
+            return;
+        }
+
+        // DRAWN ON THE PROCESSOR, ON THIS THREAD: its textures are decoded first, behind the load, rather than here.
+        if (!UnpackDone)
+        {
+            _exported = "the textures are still unpacking for the processor - try again in a moment";
             return;
         }
 

@@ -215,8 +215,18 @@ public sealed class ModelProgress
         foreach ((string format, FormatTime time) in formats)
         {
             double pixels = time.Pixels / 1e6;
-            lines.Add(string.Create(CultureInfo.InvariantCulture,
-                $"textures {format}: {time.Count} decoded, {pixels:0.0} million pixels at the top level, decoding {InSeconds(time.Decoding):0.000} s and mipmaps {InSeconds(time.Mipmapping):0.000} s summed over threads - {(time.Pixels > 0 ? InSeconds(time.Decoding) * 1e9 / time.Pixels : 0):0.0} ns a pixel decoding"));
+            if (time.Count > 0)
+            {
+                lines.Add(string.Create(CultureInfo.InvariantCulture,
+                    $"textures {format}: {time.Count} decoded, {pixels:0.0} million pixels at the top level, decoding {InSeconds(time.Decoding):0.000} s and mipmaps {InSeconds(time.Mipmapping):0.000} s summed over threads - {(time.Pixels > 0 ? InSeconds(time.Decoding) * 1e9 / time.Pixels : 0):0.0} ns a pixel decoding"));
+            }
+
+            // THE ONES THE BUILD DID NOT DECODE AT ALL: kept as the file's blocks, with every level it carries (BlockTexture).
+            if (time.Kept > 0)
+            {
+                lines.Add(string.Create(CultureInfo.InvariantCulture,
+                    $"textures {format}: {time.Kept} kept as the file's blocks, {time.KeptPixels / 1e6:0.0} million pixels at the top level, {time.KeptLevels} levels in all - decoded for the processor behind the build or when it first reads one"));
+            }
         }
 
         lines.AddRange(notes);
@@ -230,12 +240,23 @@ public sealed class ModelProgress
         lock (_gate)
         {
             FormatTime had = _formats.GetValueOrDefault(format);
-            _formats[format] = new FormatTime(had.Count + 1, had.Pixels + pixels, had.Decoding + decoding, had.Mipmapping + mipmapping);
+            _formats[format] = had with { Count = had.Count + 1, Pixels = had.Pixels + pixels, Decoding = had.Decoding + decoding, Mipmapping = had.Mipmapping + mipmapping };
         }
     }
 
-    /// <summary>The textures of one format decoded so far - see <see cref="Decoded"/>.</summary>
-    private readonly record struct FormatTime(int Count, long Pixels, long Decoding, long Mipmapping);
+    /// <summary>One texture kept as the file's blocks, nothing decoded: its format in a word, its top level's pixels and how many levels the file carries.</summary>
+    public void Kept(string format, long pixels, int levels)
+    {
+        ArgumentNullException.ThrowIfNull(format);
+        lock (_gate)
+        {
+            FormatTime had = _formats.GetValueOrDefault(format);
+            _formats[format] = had with { Kept = had.Kept + 1, KeptPixels = had.KeptPixels + pixels, KeptLevels = had.KeptLevels + levels };
+        }
+    }
+
+    /// <summary>The textures of one format decoded so far - see <see cref="Decoded"/> - and those kept as blocks (<see cref="Kept"/>).</summary>
+    private readonly record struct FormatTime(int Count, long Pixels, long Decoding, long Mipmapping, int Kept = 0, long KeptPixels = 0, int KeptLevels = 0);
 
     /// <summary>How long has gone on one kind of work so far, in seconds, summed over threads.</summary>
     public double SecondsOn(BuildWork work) => InSeconds(Interlocked.Read(ref _spent[(int)work]));

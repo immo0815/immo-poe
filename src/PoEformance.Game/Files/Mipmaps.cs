@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace PoEformance.Game.Files;
 
 /// <summary>
@@ -18,25 +20,68 @@ namespace PoEformance.Game.Files;
 /// load's own task, and shared by every frame drawn from it: a 2048 square top costs a third again
 /// of itself in smaller copies, and one pass over the texels.
 ///
-/// THE GAME'S OWN FILES CARRY THESE LEVELS TOO, and this builds its own regardless. The decoder
-/// hands back the top level as plain pixels, and averaging what is already decoded is one loop
-/// that needs nothing from the block format - which is what keeps it the same for every texture
-/// the install has.
+/// THE GAME'S OWN FILES CARRY THESE LEVELS TOO, and from v0.1.326 a block-compressed file with every
+/// level is read by them (<see cref="Kept(BlockTexture?)"/>): kept as its blocks, which the graphics card
+/// reads as they are, and decoded for the processor only when it asks - behind the load, or at its
+/// first read. Every other texture is decoded at its top level and halved here as before.
 /// </remarks>
 public sealed class Mipmaps
 {
-    private readonly GamePicture[] _levels;
+    private readonly BlockTexture? _blocks;
+    private readonly object? _gate;
+    private GamePicture[]? _levels;
+    private long _unpacking;
 
-    private Mipmaps(GamePicture[] levels) => _levels = levels;
+    private Mipmaps(GamePicture[] levels)
+    {
+        _levels = levels;
+        Count = levels.Length;
+        Width = levels[0].Width;
+        Height = levels[0].Height;
+    }
+
+    private Mipmaps(BlockTexture blocks)
+    {
+        _blocks = blocks;
+        _gate = new object();
+        Count = blocks.Levels;
+        Width = blocks.Width;
+        Height = blocks.Height;
+    }
 
     /// <summary>How many levels there are, the top included.</summary>
-    public int Count => _levels.Length;
+    public int Count { get; }
+
+    /// <summary>The top level's width, in texels - known without decoding anything.</summary>
+    public int Width { get; }
+
+    /// <summary>The top level's height, in texels - known without decoding anything.</summary>
+    public int Height { get; }
+
+    /// <summary>The file's own blocks every level is decoded from, or null where the levels were built from a decoded picture.</summary>
+    /// <remarks>What the graphics card is handed as it is (ModelGpu's SkinTexture), where it reads the format.</remarks>
+    public BlockTexture? Blocks => _blocks;
+
+    /// <summary>Whether the levels are decoded - always, where they were built from a picture.</summary>
+    public bool Unpacked => Volatile.Read(ref _levels) is not null;
+
+    /// <summary>How long decoding the file's levels took, in Stopwatch ticks summed over threads - nought until it has been done.</summary>
+    public long UnpackTicks => Interlocked.Read(ref _unpacking);
 
     /// <summary>The texture as decoded, full size.</summary>
-    public GamePicture Top => _levels[0];
+    /// <remarks>Decoded here, on the asking thread, where its blocks have not been yet - see <see cref="Unpack"/>.</remarks>
+    public GamePicture Top => Levels()[0];
 
     /// <summary>One level, the top being nought. A level past the last is the last.</summary>
-    public GamePicture this[int level] => _levels[Math.Clamp(level, 0, _levels.Length - 1)];
+    /// <remarks>Decoded here, on the asking thread, where its blocks have not been yet - see <see cref="Unpack"/>.</remarks>
+    public GamePicture this[int level]
+    {
+        get
+        {
+            GamePicture[] levels = _levels ?? Levels();
+            return levels[Math.Clamp(level, 0, levels.Length - 1)];
+        }
+    }
 
     /// <summary>Builds the levels for a picture, or null where there is no picture.</summary>
     public static Mipmaps? Of(GamePicture? top)
@@ -55,6 +100,78 @@ public sealed class Mipmaps
         }
 
         return new Mipmaps([.. levels]);
+    }
+
+    /// <summary>
+    /// The file's own levels, kept as its blocks and decoded the first time the processor asks for one - or null where the file does
+    /// not carry a plain texture with every level (BlockTexture.Complete).
+    /// </summary>
+    /// <remarks>
+    /// THE GAME'S LEVELS, NOT ONES BUILT HERE (DECIDED from the live client, v0.1.326): the card can only be handed the levels the file
+    /// carries, and the processor's picture is the card's reference, so both read them. The top level is the one decoded before; the
+    /// smaller ones are the game's own halvings in place of the box averages <see cref="Of(GamePicture?)"/> builds.
+    /// </remarks>
+    public static Mipmaps? Kept(BlockTexture? blocks) => blocks is { Complete: true } whole ? new Mipmaps(whole) : null;
+
+    /// <summary>Decodes every level of the file's blocks now, where they are not yet - on the calling thread, a large level's rows on every core.</summary>
+    /// <remarks>
+    /// ONCE, WHOEVER ASKS FIRST: a background unpack and a picture that cannot wait for it decode the same texture one after the other,
+    /// the second finding it done.
+    /// </remarks>
+    public void Unpack() => Levels();
+
+    /// <summary>
+    /// Decodes many textures' blocks behind whatever asked, a texture to a worker - stopped between textures where asked to. Those
+    /// decoded already cost nothing.
+    /// </summary>
+    /// <param name="textures">The textures, any of them null or decoded.</param>
+    /// <param name="threads">How many workers may decode at once.</param>
+    /// <param name="stop">Stops it between textures.</param>
+    public static void Unpack(IReadOnlyList<Mipmaps> textures, int threads, CancellationToken stop)
+    {
+        ArgumentNullException.ThrowIfNull(textures);
+        try
+        {
+            Parallel.ForEach(
+                textures,
+                new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, threads), CancellationToken = stop },
+                one => one.Unpack());
+        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
+        {
+            // STOPPED BY WHOEVER ASKED - what was decoded stays decoded, the rest is decoded when it is first read.
+        }
+    }
+
+    /// <summary>The levels, decoded from the blocks the first time they are asked for.</summary>
+    private GamePicture[] Levels()
+    {
+        GamePicture[]? levels = Volatile.Read(ref _levels);
+        if (levels is not null)
+        {
+            return levels;
+        }
+
+        lock (_gate!)
+        {
+            levels = _levels;
+            if (levels is not null)
+            {
+                return levels;
+            }
+
+            long started = Stopwatch.GetTimestamp();
+            BlockTexture blocks = _blocks!;
+            levels = new GamePicture[blocks.Levels];
+            for (var level = 0; level < levels.Length; level++)
+            {
+                levels[level] = blocks.Decode(level);
+            }
+
+            Interlocked.Add(ref _unpacking, Stopwatch.GetTimestamp() - started);
+            Volatile.Write(ref _levels, levels);
+            return levels;
+        }
     }
 
     /// <summary>The box average of every two-by-two of texels; a side already down to one stays one.</summary>
