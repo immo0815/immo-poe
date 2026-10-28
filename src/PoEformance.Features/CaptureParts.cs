@@ -490,7 +490,8 @@ public static class CaptureParts
             + "header beside them. Nothing where no pane shows a model."),
         new(MonsterFiles, "Windows", "monster's files", CaptureReport.MonsterFilesFile,
             "The Monster Book's monster as the tool builds and stands it: where the stage put him and the floor it found at nine points round "
-            + "his place, the rest's lowest point, each part with its socket and box, his lowest point and root bone in every animation, and "
+            + "his place, the rest's lowest point, each part with its socket and box, his lowest point and root bone in every animation, each "
+            + "socketed part's bone in every animation, every part with a rig of its own played by that rig, and "
             + "every .ao and object type file of him whole - beside the game's own entity of him where one is near (its place, the terrain's "
             + "height under it, its bounds, the animation it plays). Stand where the game shows him with him on the Monster Book's stage."),
         new(Dissector, "Windows", "dissector", CaptureReport.DissectorFile,

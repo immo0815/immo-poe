@@ -20,6 +20,14 @@ internal static class RigBody
     /// <summary>The fixture's rig, read.</summary>
     public static AnimationSkeleton Rig()
     {
+        AnimationSkeleton rig = AnimationSkeleton.Read(Bytes());
+        Assert.True(rig.Ready, rig.Why);
+        return rig;
+    }
+
+    /// <summary>The fixture's rig as the install would hand it over.</summary>
+    public static byte[] Bytes()
+    {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "tests", "fixtures")))
         {
@@ -27,9 +35,7 @@ internal static class RigBody
         }
 
         Assert.NotNull(dir);
-        AnimationSkeleton rig = AnimationSkeleton.Read(File.ReadAllBytes(Path.Combine(dir.FullName, "tests", "fixtures", Fixture)));
-        Assert.True(rig.Ready, rig.Why);
-        return rig;
+        return File.ReadAllBytes(Path.Combine(dir.FullName, "tests", "fixtures", Fixture));
     }
 
     /// <summary>The fixture's rig posed at rest, its one animation's keys, and a body of its bones.</summary>

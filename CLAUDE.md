@@ -217,6 +217,13 @@ and root bone in every animation, every `.ao` and object type of him whole (`Mod
 entity of him where one is near: its place, the terrain's height under it, its bounds, the animation it plays. No offline reader: the
 files it writes are the reading. Read it, from a capture standing where the game shows him with him on the Monster Book's stage,
 before the placing rule, a part's socket or a missing part is changed.
+WHAT THE GAME SHOWS OF THE TWO PARTS (said from the live client after a Port map, v0.1.327): the spyglass is in his hand THROUGHOUT,
+fired as a cannon in some skills - the cannon this project's notes call his `aux_cannon_jntBnd` prop (`ModelDump`, `MonsterModels.Propped`)
+is likely it, not yet shown; the wheel hangs ROUND HIS NECK in his second phase. The wheel is the `"<root>"` piece of ten bones sharing
+only the root that `MonsterModels.Retargeted` leaves at his origin, its own rig's animations never played. So from v0.1.328 the part also
+writes each socketed part's bone in every animation - its place and least axis scale, a bone scaled to nothing hiding its part - and
+plays every part with a rig of its own by that rig (`MonsterModels.Piece`): its mesh's box and size per animation, whether he plays one of
+that name, and for a `"<root>"` piece his bone nearest its middle. A capture in each phase says where the wheel's animations carry it.
 
 ## Verify against the game, not against yourself
 

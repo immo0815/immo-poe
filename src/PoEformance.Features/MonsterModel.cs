@@ -2050,6 +2050,53 @@ public static class MonsterModels
     /// The body's walk has followed extends from the start; the pieces' did not, which is the
     /// kind of gap that only shows on the one monster built that way.
     /// </remarks>
+    /// <summary>
+    /// A piece's OWN rig and mesh, as the chain of its .ao names them - for the capture's monster-files part, which plays a piece by its
+    /// own rig to see where its animations put it. Nothing here draws.
+    /// </summary>
+    /// <remarks>
+    /// MALGOR'S SHIP'S WHEEL ASKED IT (v0.1.328): a "&lt;root&gt;" piece sharing no bone but the root, left at his origin - while in the
+    /// game it hangs round his neck in his second phase (said from the live client). Its rig of ten bones carries animations of its own,
+    /// which nothing here has ever played. The mesh is the piece's skin, or its fixed mesh where it is a prop.
+    /// </remarks>
+    internal static (AnimationSkeleton Rig, string RigPath, SkinnedMesh Mesh) Piece(Func<string, byte[]?> read, string path)
+    {
+        AnimatedObject ao = Object(read, path);
+        if (!ao.Ready)
+        {
+            return (AnimationSkeleton.None, string.Empty, SkinnedMesh.None);
+        }
+
+        List<AnimatedObject> chain = Whole(read, ao);
+        string rig = Entryed(chain, RigBlock, RigEntry);
+        string skin = Skin(chain);
+        SkinnedMesh mesh = SkinnedMesh.None;
+        if (skin.Length > 0)
+        {
+            MeshManifest manifest = Read(read, skin, MeshManifest.Read);
+            mesh = manifest.Ready ? Read(read, manifest.Geometry, SkinnedMesh.Read) : SkinnedMesh.None;
+        }
+        else if (Entryed(chain, PropBlock, PropEntry) is { Length: > 0 } prop)
+        {
+            mesh = Read(read, prop, FixedMesh.Read).Mesh;
+        }
+
+        return (rig.Length > 0 ? Read(read, rig, AnimationSkeleton.Read) : AnimationSkeleton.None, rig, mesh);
+    }
+
+    /// <summary>The bone a socket names in the monster's own rig, the mounts it spells out in full included - see <see cref="Mounts"/>.</summary>
+    internal static int SocketOf(AnimationSkeleton rig, string socket)
+    {
+        ArgumentNullException.ThrowIfNull(rig);
+        var where = new Dictionary<string, int>(rig.Bones.Count, StringComparer.OrdinalIgnoreCase);
+        for (var one = 0; one < rig.Bones.Count; one++)
+        {
+            where.TryAdd(rig.Bones[one].Name, one);
+        }
+
+        return socket.Length > 0 && Mounts(where, socket, out int at) ? at : -1;
+    }
+
     private static List<AnimatedObject> Whole(Func<string, byte[]?> read, AnimatedObject ao)
     {
         var chain = new List<AnimatedObject> { ao };

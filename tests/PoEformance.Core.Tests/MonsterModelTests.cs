@@ -1761,7 +1761,7 @@ public class MonsterModelTests
         Assert.Equal(2, said.Mesh.Triangles);
     }
 
-    private static byte[] Sm(string geometry, string material) => Encoding.UTF8.GetBytes(
+    internal static byte[] Sm(string geometry, string material) => Encoding.UTF8.GetBytes(
         $"version 6\nSkinnedMeshData \"{geometry}\"\nMaterials 1\n\t\"{material}\" 1\n"
         + "BoundingBox -1 -1 -1 1 1 1\n");
 
@@ -1779,7 +1779,7 @@ public class MonsterModelTests
     /// coordinates really takes - the slots exist and hold nothing. The layout is unchanged, so
     /// this differs from a coordinated mesh in the one way that matters and in no other.
     /// </param>
-    private static byte[] Smd(bool coordinated = true)
+    internal static byte[] Smd(bool coordinated = true)
     {
         var file = new List<byte>();
         void U8(int v) => file.Add((byte)v);
