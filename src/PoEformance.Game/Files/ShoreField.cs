@@ -75,7 +75,17 @@ namespace PoEformance.Game.Files;
 /// off it and away, where this tool's run square onto it: by the ground and round what stands alike, the way in is measured from every
 /// land and so wraps its lines round each face (<c>shore-way.png</c>). As though the pier and the quay - walls out of deep water, no shore
 /// since v0.1.299 - were in no wave's way. So the third way: each land cell belongs to its nearest coast, and ground whose nearest
-/// coast is a wall, within <see cref="WallReach"/> of it, neither stands in the waves' way nor is measured from (<see cref="Steers"/>).
+/// coast is a wall, within <see cref="WallReach"/> of it, neither stands in the waves' way nor is measured from (<see cref="Steering"/>).
+///
+/// MEASURED AGAINST THE GAME (v0.1.333's capture and a video taken at its spot, the player not moving: every pixel's phase at the waves'
+/// period, 5.05 s, read through the capture's camera onto the water's plane and into the stage's frame - the walls' waterline from the
+/// field's numbers lying on the pier's in the game's picture - and its slope set beside each way in's over some 1,800 water cells west of
+/// the pier). The game's crests run along the pier towards the land. Off the game's way, the median and the share within 60 degrees: by
+/// the ground 81 degrees and 20%, round what stands 82 and 19%, past the walls at 400 75 and 31% - the pier, some 900 across, kept its
+/// middle - and past the walls at 800 or any reach beyond 27 and 90%, as is the straight distance to the nearest beach; what is left is a
+/// turn of about 21 degrees the same way throughout, its cause unread. The wavelength came to 814 units against the engine's 1,000. Not
+/// yet the default (DECIDED from the live client): by the ground matched the game in the channel between the ship and the pier
+/// (v0.1.307), and the channel is measured the same way before the default changes.
 /// </remarks>
 public sealed class ShoreField
 {
@@ -98,10 +108,11 @@ public sealed class ShoreField
     public const float Deep = 1000f;
 
     /// <summary>
-    /// How far into the land a wall's own ground reaches for the way past the walls, world units - CHOSEN: past half of Port's pier (some
-    /// 375 across), short of carrying the waves through a town behind a quay. See the remarks.
+    /// How far into the land a wall's own ground reaches for the way past the walls, world units - CHOSEN from v0.1.334 past half of Port's
+    /// pier, some 900 across in its shore field (v0.1.333's 400 left its middle steering), short of carrying the waves through a town
+    /// behind a quay. Held against the game: 800 and every reach past it measured alike there (see the remarks).
     /// </summary>
-    public const float WallReach = 400f;
+    public const float WallReach = 800f;
 
     /// <summary>A cell's kind, its bits: land - what the shore's distance counts (<see cref="Kinds"/>).</summary>
     public const byte LandBit = 1;
