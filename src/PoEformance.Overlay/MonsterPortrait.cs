@@ -583,6 +583,10 @@ public sealed class MonsterPortrait
 
     /// <summary>Whether the line was made with the card's refraction drawn - the light's refraction switch on.</summary>
     private bool _waterSaidRefract;
+
+    /// <summary>Whether the line was made with the caustics on, and over which of their states (ShadeProgram.CausticsSaid, by reference).</summary>
+    private bool _waterSaidCausticsOn;
+    private string? _waterSaidCausticsBy;
     private bool _waterSaidLit;
     private Vector3[] _posed = [];
     private Vector3[] _posedNormals = [];
@@ -2505,17 +2509,29 @@ public sealed class MonsterPortrait
             bool byGround = crashing && _drawnLight is { WaterBreakByGround: true };
             bool wetting = _onCard && _drawnLight is { WaterWetness: true };
             bool refracting = _onCard && _drawnLight is { WaterRefraction: true };
+            bool causticsOn = refracting && _drawnLight is { WaterCaustics: true };
+            string causticsBy = ShadeProgram.CausticsSaid;
 
             // THE ENGINE'S WATER PASS LIGHTS THE GLOSSY TWIN under the game light alone - SceneLight.ShadeWater.
             bool engineLit = _drawnLight is not null && !FlatLight;
             if (_waterSaid.Length == 0 || water != _waterSaidFor || crashing != _waterSaidCrash || byGround != _waterSaidGround || engineLit != _waterSaidLit
-                || wetting != _waterSaidWet || refracting != _waterSaidRefract)
+                || wetting != _waterSaidWet || refracting != _waterSaidRefract || causticsOn != _waterSaidCausticsOn
+                || !ReferenceEquals(causticsBy, _waterSaidCausticsBy))
             {
                 _waterSaidFor = water;
                 _waterSaidCrash = crashing;
                 _waterSaidGround = byGround;
                 _waterSaidWet = wetting;
                 _waterSaidRefract = refracting;
+                _waterSaidCausticsOn = causticsOn;
+                _waterSaidCausticsBy = causticsBy;
+                string caustics = !causticsOn
+                    ? "not drawn (the light panel's caustics, with refraction, the card's alone)"
+                    : ShadeProgram.Caustics is null || ShadeProgram.Distortion is null
+                        ? causticsBy
+                        : causticsBy + " (GetCausticsBias as written, times " + water.CausticsMult.ToString("0.###", CultureInfo.InvariantCulture)
+                          + " - the area's caustics_mult or the engine's measured 1; the ground water ratio nought, the light multiplied after its"
+                          + " grade, the pattern's phase the picture's frame's; the card's alone)";
                 _waterSaidLit = engineLit;
                 _waterSaid = ImGuiText.Escape(water.Line() + " (its colour's pattern a moving noise; its waves the engine's ocean ripples, three octaves"
                     + " rolling in the wind - " + ShadeProgram.Ripples.Said + "; the wind's way, height, speed and"
@@ -2540,9 +2556,9 @@ public sealed class MonsterPortrait
                               ? "what lies behind bent into the water as the engine bends it (GetRefractedOpaqueSurface as written: the area's"
                                 + " refraction index " + water.RefractionIndex.ToString("0.###", CultureInfo.InvariantCulture) + " thinned to one at"
                                 + " the shore, three steps over the solid depth, red and green split towards where the ray started, the murkiness"
-                                + " over the bent ray's length; the card's alone); not drawn: its caustics"
-                              : "not drawn: the refraction's bend (the light panel's refraction, the card's alone), its caustics")
-                          + " (water.caustics_mult's default not yet measured), the terrain water colour and the tidal state's own ratio to the shore)"
+                                + " over the bent ray's length; the card's alone); its caustics " + caustics + "; not drawn:"
+                              : "not drawn: the refraction's bend and its caustics (the light panel's refraction and caustics, the card's alone),")
+                          + " the terrain water colour and the tidal state's own ratio to the shore)"
                         : string.Empty)
                     + (water.HeightOffset != 0f ? "; its height offset not applied - it moves the beach and flood waves alone)" : ")")
                     + (_wearsBeach

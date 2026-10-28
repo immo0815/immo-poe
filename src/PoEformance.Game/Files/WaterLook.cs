@@ -26,6 +26,8 @@ namespace PoEformance.Game.Files;
 /// darkened - <c>water_subsurface_scattering</c>, GetWaterMediumColor's (SceneLight.ShadeWater).</param>
 /// <param name="RefractionIndex">water.refraction_index: how far the view bends as it enters the water - <c>water_refraction_index</c>,
 /// GetRefractedOpaqueSurface's (SceneLight.WaterRefraction).</param>
+/// <param name="CausticsMult">water.caustics_mult: how strongly the light seen through the water is patterned by the caustics -
+/// <c>water_caustics_mult</c>, GetRefractedOpaqueSurface's (SceneLight.WaterCaustics).</param>
 /// <remarks>
 /// AN AREA'S FILE OR THE ENGINE'S OWN DEFAULT, per value. Most areas set no water colour - Port sets
 /// only its flow and a height offset - and what the engine draws them with is written in no file: it
@@ -57,7 +59,8 @@ public readonly record struct WaterLook(
     float SwellPeriod = WaterLook.DefaultSwellPeriod,
     float SwellIntensity = WaterLook.DefaultSwellIntensity,
     float SubsurfaceScattering = WaterLook.DefaultSubsurfaceScattering,
-    float RefractionIndex = WaterLook.DefaultRefractionIndex)
+    float RefractionIndex = WaterLook.DefaultRefractionIndex,
+    float CausticsMult = WaterLook.DefaultCausticsMult)
 {
     /// <summary>The engine's open water colour where a file sets none - ParsedEnvironment.WaterOpenColor, measured in Port, Clearfell and The Red Vale.</summary>
     public static readonly Vector3 DefaultOpenColour = new(0.1f, 0.19f, 0.22f);
@@ -71,41 +74,50 @@ public readonly record struct WaterLook(
     /// <summary>The engine's reflectiveness where a file sets none - ParsedEnvironment.WaterReflectiveness, measured in Port, Clearfell and The Red Vale.</summary>
     public const float DefaultReflectiveness = 0.03f;
 
-    /// <summary>The wind's way where a file sets none: along x - CHOSEN, see <see cref="DefaultWindIntensity"/>.</summary>
+    /// <summary>The wind's way where a file sets none: along x - ParsedEnvironment.WaterWindDirectionAngle, see <see cref="DefaultWindIntensity"/>.</summary>
     public const float DefaultWindAngle = 0f;
 
     /// <summary>
-    /// The ripples' height where a file sets none - CHOSEN: the engine's former constant, <c>0.1 * 4 * 4 / 1.5</c>.
+    /// The ripples' height where a file sets none - ParsedEnvironment.WaterWindIntensity, MEASURED (v0.1.343): Port's 1.06 with a flag of nought.
     /// </summary>
     /// <remarks>
-    /// NOT YET MEASURED. Port's file sets none of the ocean's keys. The ocean ripples' uniforms
-    /// (GetWindRippleSurfaceField3: <c>water_wind_intensity</c>, <c>water_wind_speed</c>,
-    /// <c>water_directionness</c>, <c>water_wind_direction</c>) replaced constants the old full-screen tracer
-    /// still writes (screenspacetracer.hlsl's GetOceanWaterHeight3: an amplitude of 0.1 * 4 * 4 / 1.5, a
-    /// scroll of 1.25, a stretch of 0.225, a turn of 0.2 between octaves and no wind matrix) - the very
-    /// numbers the formula gives at a directionness of one, a speed of one and a wind along x. And the
-    /// parsed environment's water floats that no file read so far names hold 1.06 and 1 side by side
-    /// (light-hunt.txt, v0.1.208). So the former constants stand until a capture in an area whose file
-    /// sets these keys (the Blank Sea and Yaochi hideouts set all four) names their slots.
+    /// THE OCEAN'S DEFAULTS NAMED BY CRIMSON SHORES (v0.1.341's light-hunt.txt), whose file sets the wind's way, height and speed, the
+    /// directionness, the swell's height and intensity and the caustics: each found at its slot of the parsed environment with a flag of
+    /// one, where Port's copies hold the engine's defaults with a nought - the wind's way 0 (+0x250), its height 1.06 (+0x258), its speed 1
+    /// (+0x260), the directionness 1 (+0x208), the swell's height 37.5 (+0x270) and intensity 0 (+0x278), its period 0.04 at +0x280 (no file
+    /// read sets it; the swell's four keys lie in their names' order, +0x268 to +0x280). Until then these stood CHOSEN as the old
+    /// full-screen tracer's constants (screenspacetracer.hlsl: 0.1 * 4 * 4 / 1.5, a speed and directionness of one, no wind matrix, a swell
+    /// of 37.5 and 0.04) - all of them the engine's but the wind's height, 1.0667 against 1.06, and the swell's intensity, 1 against 0.
     /// </remarks>
-    public const float DefaultWindIntensity = 0.1f * 4f * 4f / 1.5f;
+    public const float DefaultWindIntensity = 1.06f;
 
-    /// <summary>The ripples' speed where a file sets none - CHOSEN, the former constants' own; see <see cref="DefaultWindIntensity"/>.</summary>
+    /// <summary>The ripples' speed where a file sets none - ParsedEnvironment.WaterWindSpeed, MEASURED; see <see cref="DefaultWindIntensity"/>.</summary>
     public const float DefaultWindSpeed = 1f;
 
-    /// <summary>How much the ripples line up with the wind where a file sets none - CHOSEN, the former constants' own; see <see cref="DefaultWindIntensity"/>.</summary>
+    /// <summary>How much the ripples line up with the wind where a file sets none - ParsedEnvironment.WaterDirectionness, MEASURED; see <see cref="DefaultWindIntensity"/>.</summary>
     public const float DefaultDirectionness = 1f;
 
-    /// <summary>The swell's height where a file sets none - CHOSEN: the old tracer's constant, <c>0.5e2 * 0.75</c>, which the parsed environment's unnamed floats also hold.</summary>
-    public const float DefaultSwellHeight = 0.5e2f * 0.75f;
+    /// <summary>The swell's height where a file sets none - ParsedEnvironment.WaterSwellHeight, MEASURED; see <see cref="DefaultWindIntensity"/>.</summary>
+    public const float DefaultSwellHeight = 37.5f;
 
-    /// <summary>The swell's period where a file sets none - CHOSEN: one over the old tracer's 25 periods, which the parsed environment's unnamed floats also hold.</summary>
+    /// <summary>
+    /// The swell's period where a file sets none - the 0.04 at ParsedEnvironment +0x280, named by its place after the swell's height and
+    /// intensity, no file read setting it; see <see cref="DefaultWindIntensity"/>.
+    /// </summary>
     public const float DefaultSwellPeriod = 1f / 25f;
 
     /// <summary>
-    /// How soon the swell takes its shore's shape where a file sets none - CHOSEN: one, the old tracer having no such number; most files that set it set one.
+    /// How soon the swell takes its shore's shape where a file sets none - ParsedEnvironment.WaterSwellIntensity, MEASURED: nought (CHOSEN as
+    /// one until v0.1.343); see <see cref="DefaultWindIntensity"/>.
     /// </summary>
-    public const float DefaultSwellIntensity = 1f;
+    public const float DefaultSwellIntensity = 0f;
+
+    /// <summary>
+    /// How strongly the caustics pattern the light seen through the water where a file sets none - ParsedEnvironment.WaterCausticsMult,
+    /// MEASURED (v0.1.343): Port's 1 with a flag of nought, the slot named by Crimson Shores' file, which sets 3. legacy.ffx's water materials
+    /// declare their own <c>water_uv_caustics_mult</c> with a default of one too.
+    /// </summary>
+    public const float DefaultCausticsMult = 1f;
 
     /// <summary>
     /// The medium's scattering where a file sets none - ParsedEnvironment.WaterSubsurfaceScattering: Port's default one with a flag of
@@ -124,17 +136,18 @@ public readonly record struct WaterLook(
     /// </summary>
     public ShoreField? Shore { get; init; }
 
-    /// <summary>
-    /// The flow where a file sets none: none.
-    /// </summary>
-    /// <remarks>
-    /// NOT MEASURED - every area read so far sets its own (Port 1.5, Clearfell 1.5, The Red Vale 0.15),
-    /// so the engine's default never stood in a capture. Still water says that; a number made up would not.
-    /// </remarks>
+    /// <summary>No flow: still water.</summary>
     public const float NoFlow = 0f;
 
+    /// <summary>
+    /// The flow where a file sets none - ParsedEnvironment.WaterFlowIntensity, MEASURED (v0.1.343): Crimson Shores' file sets none and its
+    /// copies hold 1 with a flag of nought. Until then still water stood for it, every area read before setting its own (Port 1.5, Clearfell
+    /// 1.5, The Red Vale 0.15).
+    /// </summary>
+    public const float DefaultFlowIntensity = 1f;
+
     /// <summary>The engine's water, every value its default.</summary>
-    public static WaterLook EngineDefault { get; } = new(DefaultOpenColour, DefaultMurkiness, NoFlow, DefaultHeightOffset, "every value the engine's default");
+    public static WaterLook EngineDefault { get; } = new(DefaultOpenColour, DefaultMurkiness, DefaultFlowIntensity, DefaultHeightOffset, "every value the engine's default");
 
     /// <summary>The colour the program reads: linear, as water.ffx makes it (<c>pow(saturate(rgb), 2.2)</c>), the density in w.</summary>
     public Vector4 ColourRegister => new(
@@ -164,10 +177,10 @@ public readonly record struct WaterLook(
         }
 
         Vector3 colour = DefaultOpenColour;
-        float murkiness = DefaultMurkiness, flow = NoFlow, height = DefaultHeightOffset, reflectiveness = DefaultReflectiveness;
+        float murkiness = DefaultMurkiness, flow = DefaultFlowIntensity, height = DefaultHeightOffset, reflectiveness = DefaultReflectiveness;
         float windAngle = DefaultWindAngle, windIntensity = DefaultWindIntensity, windSpeed = DefaultWindSpeed, directionness = DefaultDirectionness;
         float swellHeight = DefaultSwellHeight, swellPeriod = DefaultSwellPeriod, swellIntensity = DefaultSwellIntensity;
-        float scattering = DefaultSubsurfaceScattering, index = DefaultRefractionIndex;
+        float scattering = DefaultSubsurfaceScattering, index = DefaultRefractionIndex, caustics = DefaultCausticsMult;
         var set = new List<string>(12);
         foreach (EnvironmentValue value in env.Water)
         {
@@ -193,15 +206,18 @@ public readonly record struct WaterLook(
                     reflectiveness = value.Values[0];
                     set.Add("reflectiveness");
                     break;
-                case "wind_direction_angle" when value.Values.Count >= 1:
+                // TWO SPELLINGS, NO FILE SETTING BOTH (v0.1.341's water.txt: 22 files, the maps, write water_wind_*, and 30, the
+                // hideouts, wind_*): the first's slots are MEASURED as the ripples' (ParsedEnvironment.WaterWindIntensity, Port's default
+                // the old tracer's constant), the second taken for the same by its name alone.
+                case "water_wind_direction_angle" or "wind_direction_angle" when value.Values.Count >= 1:
                     windAngle = value.Values[0];
                     set.Add("wind's way");
                     break;
-                case "wind_intensity" when value.Values.Count >= 1:
+                case "water_wind_intensity" or "wind_intensity" when value.Values.Count >= 1:
                     windIntensity = value.Values[0];
                     set.Add("wind's strength");
                     break;
-                case "wind_speed" when value.Values.Count >= 1:
+                case "water_wind_speed" or "wind_speed" when value.Values.Count >= 1:
                     windSpeed = value.Values[0];
                     set.Add("wind's speed");
                     break;
@@ -229,17 +245,21 @@ public readonly record struct WaterLook(
                     index = value.Values[0];
                     set.Add("refraction index");
                     break;
+                case "caustics_mult" when value.Values.Count >= 1:
+                    caustics = value.Values[0];
+                    set.Add("caustics");
+                    break;
             }
         }
 
         return new WaterLook(
             colour, murkiness, flow, height,
             set.Count == 0 ? "every value the engine's default" : $"{string.Join(", ", set)} from the file, the rest the engine's default",
-            reflectiveness, windAngle, windIntensity, windSpeed, directionness, swellHeight, swellPeriod, swellIntensity, scattering, index);
+            reflectiveness, windAngle, windIntensity, windSpeed, directionness, swellHeight, swellPeriod, swellIntensity, scattering, index, caustics);
     }
 
     /// <summary>The numbers and where they came from, for the line under a picture.</summary>
     public string Line() => string.Create(
         CultureInfo.InvariantCulture,
-        $"water ({OpenColour.X:0.###} {OpenColour.Y:0.###} {OpenColour.Z:0.###}) murkiness {Murkiness:0.####} flow {FlowIntensity:0.##} reflectiveness {Reflectiveness:0.###} wind {WindAngle * 180f / MathF.PI:0}° x{WindIntensity:0.###} speed {WindSpeed:0.##} directionness {Directionness:0.##} swell {SwellHeight:0.#} period {SwellPeriod:0.###} intensity {SwellIntensity:0.##} scattering {SubsurfaceScattering:0.##} refraction index {RefractionIndex:0.###} - {Said}");
+        $"water ({OpenColour.X:0.###} {OpenColour.Y:0.###} {OpenColour.Z:0.###}) murkiness {Murkiness:0.####} flow {FlowIntensity:0.##} reflectiveness {Reflectiveness:0.###} wind {WindAngle * 180f / MathF.PI:0}° x{WindIntensity:0.###} speed {WindSpeed:0.##} directionness {Directionness:0.##} swell {SwellHeight:0.#} period {SwellPeriod:0.###} intensity {SwellIntensity:0.##} scattering {SubsurfaceScattering:0.##} refraction index {RefractionIndex:0.###} caustics x{CausticsMult:0.###} - {Said}");
 }

@@ -307,6 +307,87 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
         }
     }
 
+    /// <summary>
+    /// The caustics pattern the light the water bends as GetCausticsBias does: over a floor of one grey under still, clear water 150 deep -
+    /// where GetCausticsIntensity comes to its most, 0.7 - a caustics picture all white brightens the light seen through by 1.7 and one all
+    /// black darkens it to 0.3, multiplied as light through the card's own tables; the floor beside the pool is the light before.
+    /// </summary>
+    [GpuFact]
+    public void THECAUSTICSPatternTheBentLightAsTheEnginesBias()
+    {
+        ModelGpu? gpu = card.Gpu;
+        Assert.True(gpu is not null, card.Why);
+        using ModelTarget target = gpu.Target(Side);
+        SkinnedMesh pool = Pool();
+        CameraPose pose = CameraPose.Fitted(pool, 0.4f, 0.6f, parallel: true);
+        MeshPicture.Camera camera = MeshPicture.Camera.Of(pool, pose);
+        Assert.True(Matrix4x4.Invert(camera.View, out Matrix4x4 back));
+        SceneLight Lit(bool caustics) => new([], SceneLight.PointShape.Penumbra, null) { FlatAmbient = 0.6f, WaterRefraction = true, WaterCaustics = caustics };
+        var scene = new ModelScene(
+            pool,
+            Skins: [Flat(90), Flat(90), null],
+            Blends: [MaterialBlend.Opaque, MaterialBlend.Opaque, MaterialBlend.Alpha],
+            Shades: [null, null, ShadeProgram.Water().Glossy!],
+            Light: Lit(caustics: false),
+            Time: 1f,
+            Water: WaterLook.EngineDefault with { Murkiness = 0f, WindIntensity = 0f, CausticsMult = 1f },
+            Pose: pose);
+        byte[] plain = Drawn(gpu, target, scene);
+
+        // THE FLOOR BESIDE THE POOL, the light the water bends before the caustics.
+        var floor = new List<float>();
+        var pooled = new List<int>();
+        for (var y = 0; y < Side; y++)
+        {
+            for (var x = 0; x < Side; x++)
+            {
+                var screen = new Vector2((x + 0.5f) / Side, (y + 0.5f) / Side);
+                if (!OnPlane(camera, back, screen, -PoolDeep, out Vector3 surface) || !OnPlane(camera, back, screen, 0f, out Vector3 under))
+                {
+                    continue;
+                }
+
+                int at = (y * Side) + x;
+                if (MathF.Abs(surface.X) <= PoolReach - 20f && MathF.Abs(surface.Y) <= PoolReach - 20f)
+                {
+                    pooled.Add(at);
+                }
+                else if ((MathF.Abs(surface.X) > PoolReach + 20f || MathF.Abs(surface.Y) > PoolReach + 20f)
+                    && MathF.Abs(under.X) < (PoolReach * 1.5f) - 20f && MathF.Abs(under.Y) < (PoolReach * 1.5f) - 20f)
+                {
+                    floor.Add(plain[(at * 4) + 2] / 255f);
+                }
+            }
+        }
+
+        Assert.True(floor.Count > 200 && pooled.Count > 2000, $"{floor.Count} floor pixels, {pooled.Count} pool pixels");
+        floor.Sort();
+        float seen = floor[floor.Count / 2];
+        foreach ((byte level, float factor) in new[] { ((byte)255, 1.7f), ((byte)0, 0.3f) })
+        {
+            ShadeProgram.UseCaustics(Flat(level), Flat(128), "a test's");
+            byte[] patterned = Drawn(gpu, target, scene with { Light = Lit(caustics: true) });
+            var ratios = new List<float>();
+            foreach (int at in pooled)
+            {
+                int before = plain[(at * 4) + 2];
+                if (before > 10)
+                {
+                    ratios.Add(patterned[(at * 4) + 2] / (float)before);
+                }
+            }
+
+            ratios.Sort();
+            float expected = Tabled(ShadeProgram.SrgbTable, Tabled(ShadeProgram.LinearTable, seen) * factor) / seen;
+            float median = ratios[ratios.Count / 2];
+            Assert.True(MathF.Abs(median - expected) < 0.03f, $"caustics {level}: the light seen through times {median} at the median, {expected} expected");
+        }
+    }
+
+    /// <summary>ShadeProgram's Linear and Srgb: a table's nearest entry.</summary>
+    private static float Tabled(ReadOnlySpan<float> table, float value)
+        => table[(int)((Math.Clamp(value, 0f, 1f) * (ShadeProgram.TableSteps - 1)) + 0.5f)];
+
     /// <summary>How deep <see cref="Pool"/>'s water stands over its floor, up being minus z.</summary>
     private const float PoolDeep = 150f;
 

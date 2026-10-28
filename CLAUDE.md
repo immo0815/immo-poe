@@ -865,6 +865,32 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   maps (Cenotes and Crimson Shores 3, Lake and Azmerian Ranges 4, Woodland 1.5, Rustbowl 1.401) and the Act 4 interlude's
   (`gallows/act4_intermission/p3_1.env` and `p3_town.env` 1.5, `p3_2.env` 4). legacy.ffx's water materials declare their own
   `water_uv_caustics_mult "Caustics" "0" "2" "1"` - a lead, as the medium colour's default was, not the pass's value.
+  CRIMSON SHORES MEASURED THEM, AND THE OCEAN'S DEFAULTS WITH THEM (v0.1.341's capture there, light-hunt.txt; v0.1.343). Its file sets
+  caustics_mult 3 and nearly every ocean key, each found in both copies of its parsed environment with a flag of one, where Port's hold the
+  engine's defaults with a nought (schema `ParsedEnvironment`): caustics_mult +0x200, PORT'S 1 - MEASURED; directionness +0x208, 1; the
+  wind's way, height and speed +0x250 to +0x260, 0, 1.06 and 1; the swell's angle, height, intensity and period +0x268 to +0x280, 0, 37.5,
+  0 and 0.04 (the two noughts at +0x250 and +0x278 told apart by the keys' order, the wind's three and the swell's four each in their
+  names' order - either way Port's swell intensity is nought); shoreline_offset +0x288, 0; flow_intensity's default 1 (Crimson Shores
+  sets none). So THE OCEAN'S DEFAULTS ARE THE ENGINE'S from v0.1.343, DECIDED from the live client (`WaterLook`): the wind's height 1.06
+  (CHOSEN 1.0667 before), the swell's intensity 0 (CHOSEN 1 - the swell takes its shore's shape late, its trail foam within 300 units of
+  the shore where it stood 150 to 1,000 out, `THEFOAMRollsInBandsOnTheEnginesProfile`), the flow 1 where a file sets none (still water
+  before); the rest were the engine's already. The wind's keys come in two spellings no file mixes - `water_wind_*` in 22 files, the maps
+  (Crimson Shores: its slots MEASURED), `wind_*` in 30, the hideouts - and both are read as the ripples' wind (`WaterLook.Of`).
+  THE CAUSTICS ARE DRAWN ON THE CARD (v0.1.343, DECIDED from the live client: a switch of their own, "caustics", on by default, with the
+  refraction): `ModelShaders`' Caustics ports GetCausticsBias and GetCausticsIntensity line for line over the light where the bent ray
+  ended - the distortion read at the end's place times 0.001 drifting with the clock, `(rg * 2 - 1) * 0.4`, moving the caustics' picture
+  read at times 0.002, `pow(g, 1 / 4.2) * 2 - 1`, times `saturate(depth * 0.02 - 0.3) * 0.7` and the area's caustics_mult less the shore's
+  ratio, the light times one more than that; both read as SamplerLinearWrap reads at level nought (`WrappedRead`, four loads), at fixed
+  slots t123 and t124 clear of a program's sheets. THE TEXTURES SETTLED BY THE FILES (`ShadeProgram.Caustics`, the water textures part
+  measured again in that capture): `water_caustics_2.dds` under the twilight strand's waterfall particles, which the program names and the
+  source's comment calls - one greyscale picture, bright lines over a darker floor, tiling (the install's `General/Water/water_caustics_2_bc1.dds`
+  holds the same picture) - and `muddle_double.dds`, which the program names too, the only distortion candidate both centred on nought and
+  tiling; read off the drawing thread as the install opens (`ShadeProgram.UseCaustics`), undrawn until both are in. READINGS, said under the
+  picture: the ground water ratio nought, as everywhere it is not taken (the deep water's frequency and intensity throughout); the
+  multiplication made on the solid part's light after its exposure and grade, through the tables, where the engine's is before; the
+  pattern's phase following the picture's frame, a room's or a stage's, not the area's world. `THECAUSTICSPatternTheBentLightAsTheEnginesBias`
+  holds a white and a black caustics picture over still water 150 deep, where the intensity comes to its most: the light seen through
+  times 1.7 and 0.3.
   THE GAME'S CRESTS RUN ALONG THE PIER (a side-by-side video from the live client, v0.1.332, the game left and the Monster Book right at
   Port's pier, crash on): every pixel's phase at the waves' own period - 5.5 s in the game, 5.3 in the book, both the field waves - put the
   game's crests running along the pier's sea face, some 17 degrees off it and away, and the book's square onto it at about 49 degrees, in

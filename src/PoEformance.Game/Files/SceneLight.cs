@@ -407,11 +407,26 @@ public sealed class SceneLight
     /// solid surface where a point along the bent ray lands on the picture and going on as far along the ray as it lies; the picture's solid
     /// part read where the march ended, green and red shifted towards where it started (<see cref="WaterDispersion"/>); and what gets through
     /// worked out over the bent ray's own length, <c>exp(-travel * density * (1 - ratio))</c>, rather than over the straight view's depth. The
-    /// colour behind is mixed in as the layer mixed it, in the picture's own numbers. NOT DRAWN: its caustics - GetCausticsBias times
-    /// <c>water.caustics_mult</c>, whose default the parsed environment holds and no capture has named yet (DECIDED from the live client: wait
-    /// for the measurement). The processor's picture draws the water as before, and the line under it says so.
+    /// colour behind is mixed in as the layer mixed it, in the picture's own numbers; its caustics by <see cref="WaterCaustics"/>. The
+    /// processor's picture draws the water as before, and the line under it says so.
     /// </remarks>
     public bool WaterRefraction { get; init; }
+
+    /// <summary>
+    /// Whether the light the water bends is patterned by the engine's caustics - the card's alone, with <see cref="WaterRefraction"/>; on in the
+    /// light panel by default (DECIDED from the live client once their strength was measured).
+    /// </summary>
+    /// <remarks>
+    /// AS WRITTEN (water.ffx's GetCausticsBias and GetCausticsIntensity, in GetRefractedOpaqueSurface): the light where the bent ray ended
+    /// times <c>1 + bias * caustics_mult * (1 - ratio)</c>, the bias the caustics' picture (ShadeProgram.Caustics) read at the end's place
+    /// times 0.002, moved by the distortion read at times 0.001 drifting with the clock, as <c>pow(g, 1 / 4.2) * 2 - 1</c>, times
+    /// <c>saturate(depth * 0.02 - 0.3) * 0.7</c> over the depth the ray fell. The area's <see cref="WaterLook.CausticsMult"/> - Port's the
+    /// engine's 1, MEASURED. READINGS, said under the picture: the ground water ratio stands at nought, as everywhere else it is not taken,
+    /// so the deep water's intensity and frequency are drawn throughout; the multiplication is made on the solid part's light as the picture
+    /// holds it, after its exposure and grade, where the engine's is before; and the pattern's phase follows the picture's frame, a room's or
+    /// a stage's, not the area's world.
+    /// </remarks>
+    public bool WaterCaustics { get; init; }
 
     /// <summary>
     /// How far the water's surface is lifted by its waves, as a share of the height the engine's octaves give it - nought for a flat surface.
@@ -836,7 +851,7 @@ public sealed class SceneLight
     /// </list>
     /// So the pixel is <c>specular + absorbed * k + behind * d</c>; as a layer over what lies behind its cover is <c>1 - d</c> and its
     /// colour the rest over the cover - exposed and graded there, as every layer is before it is mixed.
-    /// NOT DRAWN HERE: the refraction's bend (the card's alone, <see cref="WaterRefraction"/>) and its caustics, the terrain water colour (the medium's colour over ground under water), the
+    /// NOT DRAWN HERE: the refraction's bend and its caustics (the card's alone, <see cref="WaterRefraction"/> and <see cref="WaterCaustics"/>), the terrain water colour (the medium's colour over ground under water), the
     /// tidal state's own water_to_terrain_ratio and the ground water ratio's thirtyfold - both of them read off the shore field, whose
     /// scale is CHOSEN.
     /// </remarks>

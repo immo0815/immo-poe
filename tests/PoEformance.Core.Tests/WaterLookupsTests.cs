@@ -107,14 +107,16 @@ public sealed class WaterLookupsTests
 
     /// <summary>
     /// THE FOAM ON THE ENGINE'S PROFILE rolls in in bands: none far out where the swell stands whole, its trail behind the break within a
-    /// colour unit of the shore, none in the last tenth where the shallows clear it - and thinner over water under 25 units deep.
+    /// colour unit of the shore, none in the last tenth where the shallows clear it - and thinner over water under 25 units deep. At a
+    /// swell intensity of one, the value most files that set it set; at the engine's own default, nought (measured in Port's parsed
+    /// environment, v0.1.341's capture), the swell takes its shore's shape late and its trail stands within 300 units of the shore alone.
     /// </summary>
     [Fact]
     public void THEFOAMRollsInBandsOnTheEnginesProfile()
     {
         WaterSheet sheet = WaterLookups.Read(Engine).Swells!;
         ShoreField shore = ShoreField.Of(WaterTests.Bay(), shape => shape == 0, shape => shape > 0)!;
-        Vector4 swell = WaterLook.EngineDefault.SwellRegister;
+        Vector4 swell = WaterLook.EngineDefault.SwellRegister with { Z = 1f };
         (float Cover, float Most) Over(float out_, float depth)
         {
             float sum = 0f, most = 0f;
@@ -141,6 +143,12 @@ public sealed class WaterLookupsTests
 
         // THE STAND-IN CARRIES NO FOAM: nothing covered, whatever its colour.
         Assert.Equal(0f, ShadeProgram.Foam(ShadeProgram.Swells, new Vector2(500f, 0f), swell, 3f, 100f, shore).W);
+
+        // AT THE ENGINE'S DEFAULT the trail stands near the shore and nowhere past 300 units out.
+        swell = WaterLook.EngineDefault.SwellRegister;
+        Assert.Equal(0f, swell.Z);
+        Assert.InRange(Over(150f, 100f).Cover, 0.2f, 0.5f);
+        Assert.Equal(0f, Over(500f, 100f).Cover, 3);
     }
 
     /// <summary>
@@ -152,7 +160,9 @@ public sealed class WaterLookupsTests
     {
         WaterSheet sheet = WaterLookups.Read(Engine).Swells!;
         ShoreField shore = ShoreField.Of(WaterTests.Bay(), shape => shape == 0, shape => shape > 0)!;
-        Vector4 swell = WaterLook.EngineDefault.SwellRegister;
+
+        // AN INTENSITY OF ONE, so the trail reaches the probes' places: the probe is held against the drawing, not the default.
+        Vector4 swell = WaterLook.EngineDefault.SwellRegister with { Z = 1f };
         var covered = 0;
         for (float clock = 0f; clock < 10f; clock += 0.5f)
         {
