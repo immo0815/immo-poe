@@ -69,6 +69,13 @@ namespace PoEformance.Game.Files;
 /// one hop beyond it (v0.1.306's ocean-markup.txt: the one grid there of the area's proportions, terrain +0x6D8, is a coarse walkable
 /// grid). So the distance out to sea is measured from the ground and runs round the ground alone; what stands in the water stays shore
 /// for the shore's distance as before. The way round it as well is this field's twin (<see cref="Way"/>), the light panel's switch.
+///
+/// THE WAY PAST THE WALLS (v0.1.333, CHOSEN from the live client as a switch to hold against the game). A side-by-side video at Port's
+/// pier, every pixel's phase over the 5.5 s the waves take, put the game's crests running ALONG the pier's sea face, some 17 degrees
+/// off it and away, where this tool's run square onto it: by the ground and round what stands alike, the way in is measured from every
+/// land and so wraps its lines round each face (<c>shore-way.png</c>). As though the pier and the quay - walls out of deep water, no shore
+/// since v0.1.299 - were in no wave's way. So the third way: each land cell belongs to its nearest coast, and ground whose nearest
+/// coast is a wall, within <see cref="WallReach"/> of it, neither stands in the waves' way nor is measured from (<see cref="Steers"/>).
 /// </remarks>
 public sealed class ShoreField
 {
@@ -90,6 +97,33 @@ public sealed class ShoreField
     /// <summary>How far from land the water is the open sea the waves come in from, in world units - CHOSEN, one wave of the engine's field waves (<c>field_wave_length</c>).</summary>
     public const float Deep = 1000f;
 
+    /// <summary>
+    /// How far into the land a wall's own ground reaches for the way past the walls, world units - CHOSEN: past half of Port's pier (some
+    /// 375 across), short of carrying the waves through a town behind a quay. See the remarks.
+    /// </summary>
+    public const float WallReach = 400f;
+
+    /// <summary>A cell's kind, its bits: land - what the shore's distance counts (<see cref="Kinds"/>).</summary>
+    public const byte LandBit = 1;
+
+    /// <summary>The room's ground rises above the water there.</summary>
+    public const byte GroundBit = 2;
+
+    /// <summary>Something standing in the sea rises above the water there - a rock, the pier's stones.</summary>
+    public const byte StandingBit = 4;
+
+    /// <summary>A wall: land meeting only water deeper than <see cref="BeachDeep"/> - no shore.</summary>
+    public const byte WallBit = 8;
+
+    /// <summary>Shore: land meeting water over shallow ground.</summary>
+    public const byte ShoreBit = 16;
+
+    /// <summary>Water something crosses the surface of - in the waves' way round what stands.</summary>
+    public const byte BlockedBit = 32;
+
+    /// <summary>Ground the way past the walls counts - its nearest coast no wall, or the wall farther than <see cref="WallReach"/>.</summary>
+    public const byte SteersBit = 64;
+
     private readonly float[] _texels;
 
     /// <summary>Each cell's distance to the shore of the ground alone, colour units - see <see cref="GroundTexels"/>.</summary>
@@ -107,8 +141,14 @@ public sealed class ShoreField
     /// <summary>The same field with its way in round what stands in the water - see <see cref="Way"/>; null on that field itself.</summary>
     private ShoreField? _round;
 
-    /// <summary>A field's twin: everything the same but the distance out to sea, whose way in runs round what stands in the water.</summary>
-    private ShoreField(ShoreField from, float[] texels, int travelled, int unreached)
+    /// <summary>The same field with its way in past the walls - see <see cref="Way"/>; null on that field itself.</summary>
+    private ShoreField? _past;
+
+    /// <summary>Each cell's kind, row by row - see <see cref="Kinds"/>.</summary>
+    private byte[] _kinds = [];
+
+    /// <summary>A field's twin: everything the same but the distance out to sea, whose way in runs round what stands in the water, or past the walls.</summary>
+    private ShoreField(ShoreField from, float[] texels, int travelled, int unreached, bool round)
         : this(
             from.Left, from.Top, from.CellSize, from.Width, from.Height, texels, from._ground, from.Level, from.LandCells, from.WaterTriangles,
             from.GroundTriangles, from.StandingTriangles, from.StandingCells, from._beach, from.BlockingTriangles, from.CrossingTriangles,
@@ -118,17 +158,30 @@ public sealed class ShoreField
         OverlappedCells = from.OverlappedCells;
         MostLayers = from.MostLayers;
         GroundFarther = from.GroundFarther;
-        RoundsWhatStands = true;
+        _kinds = from._kinds;
+        RoundsWhatStands = round;
+        PassesWalls = !round;
     }
 
     /// <summary>Whether this field's way in runs round what stands in the water - the hull, posts, rocks - rather than by the ground alone.</summary>
     public bool RoundsWhatStands { get; }
 
+    /// <summary>Whether this field's way in runs past the walls - ground whose nearest coast is a wall in no wave's way (see the remarks).</summary>
+    public bool PassesWalls { get; }
+
     /// <summary>
     /// Of the field <see cref="Of"/> made, whose way in runs by the ground alone: itself, or with <paramref name="round"/> its twin whose
-    /// way runs round what stands in the water as well - the light panel's switch, so the two can be held against the game.
+    /// way runs round what stands in the water as well, or with <paramref name="pastWalls"/> - which wins - its twin whose way runs past
+    /// the walls: the light panel's switches, so the three can be held against the game.
     /// </summary>
-    public ShoreField Way(bool round) => round && _round is not null ? _round : this;
+    public ShoreField Way(bool round, bool pastWalls = false) =>
+        pastWalls && _past is not null ? _past : round && _round is not null ? _round : this;
+
+    /// <summary>Each cell's kind, row by row, its bits <see cref="LandBit"/> to <see cref="SteersBit"/> - what the capture writes of the field.</summary>
+    public ReadOnlySpan<byte> Kinds => _kinds;
+
+    /// <summary>How many ground cells the way past the walls leaves out of the waves' way - a wall's own ground (see the remarks).</summary>
+    public int WallGround { get; private init; }
 
     private ShoreField(
         float left, float top, float cell, int width, int height, float[] texels, float[] ground, float level, int land, int waterTriangles,
@@ -487,12 +540,32 @@ public sealed class ShoreField
             }
         }
 
-        // Two shortest-path walks over the whole grid, each on a core of its own.
-        float[] byGround = [], round = [];
-        int travelled = 0, unreached = 0, roundTravelled = 0, roundUnreached = 0;
+        // THE WAY PAST THE WALLS (see the remarks): measured from, and round, the ground that steers alone.
+        bool[] steers = Steering(grounded, wall, shoreLand, walls, width, height, cell, out int wallGround);
+        float[] nearSteering = nearGround;
+        if (wallGround > 0)
+        {
+            float[] toSteering = Distances(steers, width, height, true), fromSteering = Distances(steers, width, height, false);
+            nearSteering = new float[land.Length];
+            for (var at = 0; at < land.Length; at++)
+            {
+                nearSteering[at] = (steers[at] ? -fromSteering[at] : toSteering[at]) * cell;
+            }
+        }
+
+        // Three shortest-path walks over the whole grid, each on a core of its own.
+        float[] byGround = [], round = [], past = [];
+        int travelled = 0, unreached = 0, roundTravelled = 0, roundUnreached = 0, pastTravelled = 0, pastUnreached = 0;
         Parallel.Invoke(
             () => byGround = Oceans(nearGround, grounded, new bool[land.Length], width, height, cell, out travelled, out unreached),
-            () => round = Oceans(nearLand, land, blocked, width, height, cell, out roundTravelled, out roundUnreached));
+            () => round = Oceans(nearLand, land, blocked, width, height, cell, out roundTravelled, out roundUnreached),
+            () => past = wallGround > 0
+                ? Oceans(nearSteering, steers, new bool[land.Length], width, height, cell, out pastTravelled, out pastUnreached)
+                : []);
+        if (wallGround == 0)
+        {
+            (past, pastTravelled, pastUnreached) = (byGround, travelled, unreached);
+        }
         var groundTexels = new float[land.Length];
         for (var at = 0; at < groundTexels.Length; at++)
         {
@@ -509,8 +582,48 @@ public sealed class ShoreField
             MostLayers = mostLayers,
             GroundFarther = groundFarther,
         };
-        field._round = new ShoreField(field, Packed(shores, round), roundTravelled, roundUnreached);
+        field._kinds = Kinded(land, grounded, stands, wall, shoreLand, blocked, steers);
+        field._round = new ShoreField(field, Packed(shores, round), roundTravelled, roundUnreached, round: true);
+        field._past = new ShoreField(field, Packed(shores, past), pastTravelled, pastUnreached, round: false) { WallGround = wallGround };
         return field;
+    }
+
+    /// <summary>Each cell's kind as bits - see <see cref="Kinds"/>.</summary>
+    private static byte[] Kinded(bool[] land, bool[] grounded, bool[] stands, bool[] wall, bool[] shoreLand, bool[] blocked, bool[] steers)
+    {
+        var kinds = new byte[land.Length];
+        for (var at = 0; at < kinds.Length; at++)
+        {
+            kinds[at] = (byte)((land[at] ? LandBit : 0) | (grounded[at] ? GroundBit : 0) | (stands[at] ? StandingBit : 0)
+                | (wall[at] ? WallBit : 0) | (shoreLand[at] ? ShoreBit : 0) | (blocked[at] ? BlockedBit : 0) | (steers[at] ? SteersBit : 0));
+        }
+
+        return kinds;
+    }
+
+    /// <summary>
+    /// The ground the way past the walls counts: ground whose nearest coast is shore, or whose nearest wall lies farther than
+    /// <see cref="WallReach"/> - see the remarks. All the ground where the room has no wall, or no shore to belong to.
+    /// </summary>
+    private static bool[] Steering(bool[] grounded, bool[] wall, bool[] shoreLand, int walls, int width, int height, float cell, out int wallGround)
+    {
+        wallGround = 0;
+        if (walls == 0 || Array.IndexOf(shoreLand, true) < 0)
+        {
+            return grounded;
+        }
+
+        float[] toWall = Distances(wall, width, height, true), toShore = Distances(shoreLand, width, height, true);
+        var steers = new bool[grounded.Length];
+        float reach = WallReach / cell;
+        for (var at = 0; at < steers.Length; at++)
+        {
+            bool walled = toWall[at] < toShore[at] && toWall[at] <= reach;
+            steers[at] = grounded[at] && !walled;
+            wallGround += grounded[at] && walled ? 1 : 0;
+        }
+
+        return steers;
     }
 
     /// <summary>The texels of a field: the shore's distance and the distance out to sea, each in colour units, two floats a cell.</summary>

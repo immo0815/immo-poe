@@ -112,6 +112,7 @@ public sealed class SceneLightPanel : IMovableSun
     private bool _mirroring = true;
     private bool _crash = true;
     private bool _wayRound;
+    private bool _pastWalls;
     private bool _breakByGround;
     private float _lift = 1f;
 
@@ -256,6 +257,7 @@ public sealed class SceneLightPanel : IMovableSun
             WaterScene = _mirroring,
             WaterCrash = _crash,
             WaterWayRound = _wayRound,
+            WaterPastWalls = _pastWalls,
             WaterBreakByGround = _breakByGround,
             WaterLift = _lift,
             CubeTurn = SceneLight.CubeTurnFrom(env.HorAngle ?? 0f, env.VertAngle ?? 0f, (SceneLight.CubeReading)_cubeReading),
@@ -366,7 +368,7 @@ public sealed class SceneLightPanel : IMovableSun
             }
         }
 
-        if (Fold(Count("water", _glints, _reflection, _mirroring, _crash, _wayRound, _breakByGround) + "###scene-fold-water", open: false))
+        if (Fold(Count("water", _glints, _reflection, _mirroring, _crash, _wayRound, _pastWalls, _breakByGround) + "###scene-fold-water", open: false))
         {
             try
             {
@@ -484,6 +486,12 @@ public sealed class SceneLightPanel : IMovableSun
                     + " to v0.1.306 drew it. Off, the default: by the ground alone, the waves running on under the hull - as the game's do by Port's ship,"
                     + " its foam front reaching the hull's side before the quay's (a video of the game, measured frame by frame). Both CHOSEN: the engine's"
                     + " own way in (OceanMarkupField) is read nowhere.");
+                Switch("past walls##scene-past-walls", ref _pastWalls,
+                    "The waves' way in past the walls: a quay's or a pier's own ground - land whose nearest coast is a wall out of deep water,"
+                    + " within 400 units of it - in no wave's way and not measured from, so the crests run on along its face. A side-by-side video"
+                    + " at Port's pier measured the game's crests running along the pier's sea face, where by the ground and round what stands"
+                    + " alike they run square onto it. CHOSEN, to hold against the game: the engine's own way in (OceanMarkupField) is read"
+                    + " nowhere. Wins over way round.");
                 Switch("break by ground##scene-break-ground", ref _breakByGround,
                     "The field waves' break phase off the shore's distance to the ground alone - the rocks and the pier's stones that stand in the sea"
                     + " no shore for it - rather than the shore's distance the swell takes, which counts them. The break phase (1 - shore x 0.0002,"
@@ -559,7 +567,7 @@ public sealed class SceneLightPanel : IMovableSun
     private static readonly string[] LightLabels = ["room", "sun", "shadows", "player", "exposure", "colour grade"];
 
     /// <summary>The water's switches' visible labels, for their columns.</summary>
-    private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "crash", "way round", "break by ground"];
+    private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "crash", "way round", "past walls", "break by ground"];
 
     /// <summary>A row's label in the label column, the row's controls after it - and where those start, for a row that wraps.</summary>
     private static float Label(string text, float column)

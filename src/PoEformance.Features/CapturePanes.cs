@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Globalization;
 using System.Numerics;
 using System.Text;
@@ -51,6 +52,23 @@ public sealed record CapturePane(string Book, IReadOnlyList<string> Lines, Monst
 /// where nobody looks can be told from one never laid; and a file that did not draw is written whole, with every file it
 /// extends, so what it is made of is read rather than guessed.
 /// </remarks>
+/// <summary>A shore field's numbers as the capture writes them (CapturePanes.FieldFormat), read back - every distance in world units, rows from the least y.</summary>
+/// <param name="Width">Cells across.</param>
+/// <param name="Height">Cells down.</param>
+/// <param name="Left">The least x.</param>
+/// <param name="Top">The least y.</param>
+/// <param name="Cell">World units a cell.</param>
+/// <param name="Level">The water's level.</param>
+/// <param name="Kinds">Each cell's kind, ShoreField's bits.</param>
+/// <param name="Shore">The shore's distance.</param>
+/// <param name="ByGround">The way in by the ground.</param>
+/// <param name="Round">The way in round what stands in the water.</param>
+/// <param name="PastWalls">The way in past the walls.</param>
+/// <param name="GroundShore">The ground's shore's distance.</param>
+public sealed record ShoreNumbers(
+    int Width, int Height, float Left, float Top, float Cell, float Level, byte[] Kinds, float[] Shore, float[] ByGround, float[] Round,
+    float[] PastWalls, float[] GroundShore);
+
 public static class CapturePanes
 {
     /// <summary>
@@ -255,6 +273,9 @@ public static class CapturePanes
             .Append(CultureInfo.InvariantCulture,
                 $"ROUND WHAT STANDS IN THE WATER as well, the light panel's \"way round\": {shore.StandingCells} cells of what stands in the sea and {round.BlockedCells} water cells in the way (of {round.BlockingTriangles} solid triangles asked, {round.CrossingTriangles} crossing the water's surface: the cells their waterlines run through), {round.Travelled} cells' way in shorter than their shore's distance, {round.Unreached} reached by no way, picture {way}-way-round.png; ")
             .Append(Crossers(shore, model))
+            .Append(CultureInfo.InvariantCulture,
+                $"PAST THE WALLS, the light panel's \"past walls\" (v0.1.333, CHOSEN to hold against the game): {shore.Way(false, true).WallGround} cells of a wall's own ground - its nearest coast a wall within {ShoreField.WallReach:0} - in no wave's way, {shore.Way(false, true).Travelled} cells' way in shorter than their distance to the ground that steers, {shore.Way(false, true).Unreached} reached by no way, picture {way}-way-past.png; ")
+            .Append(CultureInfo.InvariantCulture, $"every cell's kind and distances as numbers: {way}-field.bin ({FieldFormat}); ")
             .AppendLine($"each picture water by its way in, a white line every {WayStep:0} units - where the game's crests should run - land brown, the cells something crosses red, bright where they stand in the way");
         Beach(body, model);
     }
@@ -346,9 +367,108 @@ public static class CapturePanes
             pictures.Add((Path.ChangeExtension(name, null) + "-ground.png", Distances(shore, at => shore.GroundTexels[at])));
             pictures.Add((Path.ChangeExtension(name, null) + "-way.png", Way(shore)));
             pictures.Add((Path.ChangeExtension(name, null) + "-way-round.png", Way(shore.Way(true))));
+            pictures.Add((Path.ChangeExtension(name, null) + "-way-past.png", Way(shore.Way(false, true))));
         }
 
         return pictures;
+    }
+
+    /// <summary>What a field's numbers hold, as its line says it - see <see cref="ShoreFields"/>.</summary>
+    public const string FieldFormat =
+        "little-endian: 'SHF1', width and height as int32, the least x and y, the cell and the water level as float32, then a byte a cell of its kind"
+        + " (bits: 1 land, 2 ground, 4 standing in the sea, 8 wall, 16 shore, 32 in the way round, 64 ground the way past the walls counts) and"
+        + " five float32 arrays a cell each, world units: the shore's distance, the way in by the ground, round what stands, past the walls, and"
+        + " the ground's shore's distance; rows from the least y";
+
+    /// <summary>
+    /// Each pane's shore as numbers, for the capture to write beside the part - every cell's kind and every distance the pictures draw, so
+    /// a video of the game held against the capture's camera can be read into the room's frame and set beside each way in (v0.1.333).
+    /// </summary>
+    public static IReadOnlyList<(string File, byte[] Bytes)> ShoreFields(IReadOnlyList<CapturePane> panes)
+    {
+        ArgumentNullException.ThrowIfNull(panes);
+        var fields = new List<(string, byte[])>();
+        foreach (CapturePane pane in panes)
+        {
+            if (pane.Model.Shore is { } shore)
+            {
+                string name = panes.Count > 1 ? $"shore-{pane.Book}.png" : ShoreFile;
+                fields.Add((Path.ChangeExtension(name, null) + "-field.bin", FieldBytes(shore)));
+            }
+        }
+
+        return fields;
+    }
+
+    /// <summary>A field's numbers read back - see <see cref="FieldFormat"/>; null where the bytes are not one.</summary>
+    public static ShoreNumbers? ReadField(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.Length < 28 || !bytes[..4].SequenceEqual("SHF1"u8))
+        {
+            return null;
+        }
+
+        int width = BinaryPrimitives.ReadInt32LittleEndian(bytes[4..]), height = BinaryPrimitives.ReadInt32LittleEndian(bytes[8..]);
+        long cells = (long)width * height;
+        if (width <= 0 || height <= 0 || bytes.Length != 28 + cells + (cells * 5 * 4))
+        {
+            return null;
+        }
+
+        var arrays = new float[5][];
+        int at = 28 + (int)cells;
+        for (var one = 0; one < arrays.Length; one++)
+        {
+            arrays[one] = new float[cells];
+            for (var cell = 0; cell < cells; cell++, at += 4)
+            {
+                arrays[one][cell] = BinaryPrimitives.ReadSingleLittleEndian(bytes[at..]);
+            }
+        }
+
+        return new ShoreNumbers(
+            width, height, BinaryPrimitives.ReadSingleLittleEndian(bytes[12..]), BinaryPrimitives.ReadSingleLittleEndian(bytes[16..]),
+            BinaryPrimitives.ReadSingleLittleEndian(bytes[20..]), BinaryPrimitives.ReadSingleLittleEndian(bytes[24..]), bytes.Slice(28, (int)cells).ToArray(),
+            arrays[0], arrays[1], arrays[2], arrays[3], arrays[4]);
+    }
+
+    /// <summary>A field's numbers - see <see cref="FieldFormat"/>.</summary>
+    public static byte[] FieldBytes(ShoreField shore)
+    {
+        ArgumentNullException.ThrowIfNull(shore);
+        int cells = shore.Width * shore.Height;
+        var bytes = new byte[4 + 8 + 16 + cells + (cells * 5 * 4)];
+        "SHF1"u8.CopyTo(bytes);
+        var span = bytes.AsSpan();
+        BinaryPrimitives.WriteInt32LittleEndian(span[4..], shore.Width);
+        BinaryPrimitives.WriteInt32LittleEndian(span[8..], shore.Height);
+        BinaryPrimitives.WriteSingleLittleEndian(span[12..], shore.Left);
+        BinaryPrimitives.WriteSingleLittleEndian(span[16..], shore.Top);
+        BinaryPrimitives.WriteSingleLittleEndian(span[20..], shore.CellSize);
+        BinaryPrimitives.WriteSingleLittleEndian(span[24..], shore.Level);
+        shore.Kinds.CopyTo(span[28..]);
+        int at = 28 + cells;
+        ReadOnlySpan<float> shores = shore.Texels, groundShore = shore.GroundTexels;
+        for (var cell = 0; cell < cells; cell++, at += 4)
+        {
+            BinaryPrimitives.WriteSingleLittleEndian(span[at..], shores[cell * 2] * ShoreField.Reach);
+        }
+
+        foreach (ShoreField way in (ShoreField[])[shore, shore.Way(true), shore.Way(false, true)])
+        {
+            ReadOnlySpan<float> texels = way.Texels;
+            for (var cell = 0; cell < cells; cell++, at += 4)
+            {
+                BinaryPrimitives.WriteSingleLittleEndian(span[at..], (1f - texels[(cell * 2) + 1]) * ShoreField.Reach);
+            }
+        }
+
+        for (var cell = 0; cell < cells; cell++, at += 4)
+        {
+            BinaryPrimitives.WriteSingleLittleEndian(span[at..], groundShore[cell] * ShoreField.Reach);
+        }
+
+        return bytes;
     }
 
     /// <summary>

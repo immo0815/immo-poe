@@ -101,6 +101,58 @@ public class ShoreWayTests
         Assert.True(shore.Travelled > 0, "no cell took its way in");
     }
 
+    /// <summary>
+    /// A PIER INTO DEEP WATER (Port's, measured off a side-by-side video, v0.1.332): by the ground the way in wraps round its sea face, the
+    /// waves running square onto it; past the walls (v0.1.333) the pier's own ground is in no wave's way, and they run on along it towards
+    /// the coast it stands out from - while its root, nearer the beach than its walls, still counts.
+    /// </summary>
+    [Fact]
+    public void PASTTHEWALLSThePiersOwnGroundTurnsNoWave()
+    {
+        // DEEP WATER (500 under) to x 700, a shallow shelf (100 under) to the land at x 1000, and a pier 400 wide out to x -1000.
+        ShoreField byGround = ShoreField.Of(
+            Quads(
+                ("Water", [(-3000f, -3000f, 3000f, 3000f, 0f)]),
+                ("Deep floor", [(-3000f, -3000f, 700f, 3000f, 500f)]),
+                ("Shelf", [(700f, -3000f, 1000f, 3000f, 100f)]),
+                ("Land", [(1000f, -3000f, 3000f, 3000f, -100f)]),
+                ("Pier", [(-1000f, -200f, 700f, 200f, -100f)])),
+            shape => shape == 0,
+            shape => shape >= 1,
+            null,
+            shape => false)!;
+        ShoreField past = byGround.Way(false, true);
+        Assert.True(past.PassesWalls);
+        Assert.False(byGround.PassesWalls);
+        Assert.Same(past, byGround.Way(true, true));
+        Assert.True(past.WallGround > 100, $"{past.WallGround} cells of a wall's own ground");
+
+        // BY THE GROUND, 300 off the pier's face: the waves run down the slope onto it, down y.
+        byGround.Fields(new Vector2(-500f, 500f), out _, out _, out Vector2 onto);
+        Assert.True(onto.Y > 0f && MathF.Abs(onto.X) < 0.3f * onto.Y, $"by the ground {onto}");
+        Assert.InRange(Ocean(byGround, -500f, 500f), 250f, 350f);
+
+        // PAST THE WALLS, the same place: down the slope along the pier towards the coast, up x.
+        past.Fields(new Vector2(-500f, 500f), out _, out _, out Vector2 along);
+        Assert.True(along.X < 0f && MathF.Abs(along.Y) < 0.5f * -along.X, $"past the walls {along}");
+
+        // THE KINDS: the pier's middle a wall's own ground, its root by the shelf and the land's ground counted.
+        int Cell(float x, float y) => (((int)((y - byGround.Top) / byGround.CellSize)) * byGround.Width) + (int)((x - byGround.Left) / byGround.CellSize);
+        Assert.Equal(ShoreField.LandBit | ShoreField.GroundBit, byGround.Kinds[Cell(-500f, 0f)]);
+        Assert.Equal(ShoreField.LandBit | ShoreField.GroundBit | ShoreField.SteersBit, byGround.Kinds[Cell(650f, 0f)] & ~ShoreField.ShoreBit);
+        Assert.Equal(ShoreField.LandBit | ShoreField.GroundBit | ShoreField.SteersBit, byGround.Kinds[Cell(2000f, 0f)]);
+        Assert.NotEqual(0, byGround.Kinds[Cell(-500f, 190f)] & ShoreField.WallBit);
+
+        // AND THE CAPTURE'S NUMBERS OF IT read back as they were made: the kinds and every way in, in world units.
+        Features.ShoreNumbers numbers = Features.CapturePanes.ReadField(Features.CapturePanes.FieldBytes(byGround))!;
+        Assert.Equal((byGround.Width, byGround.Height, byGround.Left, byGround.CellSize), (numbers.Width, numbers.Height, numbers.Left, numbers.Cell));
+        Assert.Equal(byGround.Kinds.ToArray(), numbers.Kinds);
+        int middle = Cell(-500f, 500f);
+        Assert.Equal((1f - byGround.Texels[(middle * 2) + 1]) * ShoreField.Reach, numbers.ByGround[middle]);
+        Assert.Equal((1f - past.Texels[(middle * 2) + 1]) * ShoreField.Reach, numbers.PastWalls[middle]);
+        Assert.Null(Features.CapturePanes.ReadField("SHF2"u8));
+    }
+
     /// <summary>The bay of WaterTests: water at nought over -3000..3000, a sea floor 300 under it to x 1000, the quay above it past - and whatever more is asked.</summary>
     private static SkinnedMesh Bay(params (string Name, Vector3[][] Quads)[] more) => Cornered(
     [
