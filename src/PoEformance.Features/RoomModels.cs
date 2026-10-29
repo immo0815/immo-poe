@@ -233,6 +233,9 @@ public static class RoomModels
         /// <summary>What the room's wobble cores came to - see RoomSways - or empty where it has none.</summary>
         public string Swayed { get; init; } = string.Empty;
 
+        /// <summary>How many of the tiles' doodad files wear a material the tileset swapped in - see MonsterModels.Swapped.</summary>
+        public int SwappedFiles { get; init; }
+
         /// <summary>The lines under the picture about what did not draw, and why.</summary>
         public IEnumerable<string> Said()
         {
@@ -293,7 +296,8 @@ public static class RoomModels
         DoodadHeight heights = DoodadHeight.File,
         RoomLights.Gathered? lights = null,
         DoodadSieve? sieve = null,
-        IReadOnlyList<(RoomDoodad One, Matrix4x4 Place)>? also = null)
+        IReadOnlyList<(RoomDoodad One, Matrix4x4 Place)>? also = null,
+        IReadOnlyDictionary<string, string>? swaps = null)
     {
         // ONE TALLY PER FILE, which also holds its model once loaded: a room places the same tree dozens of times.
         var files = new Dictionary<string, Tally>(StringComparer.OrdinalIgnoreCase);
@@ -311,16 +315,19 @@ public static class RoomModels
 
         // WHERE EACH GOES FIRST, and whether it could be seen there at all.
         var laid = new List<(RoomDoodad One, Matrix4x4 Place, Tally File, int Sway)>(room.Doodads.Count + (also?.Count ?? 0));
-        void Take(RoomDoodad one, Matrix4x4 place, int sway)
+        void Take(RoomDoodad one, Matrix4x4 place, int sway, bool swapped = false)
         {
             // THE LIGHTS WHETHER OR NOT THE DOODAD DRAWS: a light can be all a doodad is -
             // grimtangle_ambientlight.ao has no mesh - and a doodad left out to keep the picture
             // turnable, or because the camera cannot see it, still lights the room in the game.
             lights?.Add(one.Ao, place);
-            if (!files.TryGetValue(one.Ao, out Tally? file))
+
+            // A TILE'S DOODAD WEARING THE TILESET'S SWAPS is a model of its own, kept apart from the room's line of the same file.
+            string key = swapped ? one.Ao + SwappedKey : one.Ao;
+            if (!files.TryGetValue(key, out Tally? file))
             {
-                file = new Tally(one.Ao, place.Translation);
-                files[one.Ao] = file;
+                file = new Tally(one.Ao, place.Translation) { Swaps = swapped ? swaps : null };
+                files[key] = file;
                 named.Add(file);
             }
 
@@ -385,7 +392,7 @@ public static class RoomModels
                 continue;
             }
 
-            Take(one, place, -1);
+            Take(one, place, -1, swaps is { Count: > 0 });
         }
 
         // EVERY FILE THAT WILL BE LAID, ON EVERY CORE, before any is laid: one model per file, through the shared cache (Paints), so
@@ -397,7 +404,7 @@ public static class RoomModels
         {
             Parallel.ForEach(loading, file =>
             {
-                file.Model = MonsterModels.OfFiles(counted, [file.Ao], wearing: true, paints);
+                file.Model = file.Load(counted, paints);
                 reading.Advance();
             });
         }
@@ -426,7 +433,7 @@ public static class RoomModels
                 continue;
             }
 
-            MonsterModel model = file.Model ??= MonsterModels.OfFiles(counted, [one.Ao], wearing: true, paints);
+            MonsterModel model = file.Model ??= file.Load(counted, paints);
             if (!model.Ready)
             {
                 missing++;
@@ -471,14 +478,28 @@ public static class RoomModels
             Swayed = sways is null ? string.Empty
                 : string.Join("; ", new[] { RoomSways.Counted([.. pile.Cores.Skip(firstCore)]), sways.Said }.Where(one => one.Length > 0)),
             Files = [.. named.Select(one => one.Said())],
+            SwappedFiles = named.Count(one => one.Model is { Ready: true } model && one.Swaps is not null && model.ShapeMaterials.Any(worn => one.Swaps.Values.Contains(worn))),
         };
     }
+
+    /// <summary>What a tile's doodad wearing the tileset's swaps is kept under beside its file - see Lay.</summary>
+    private const string SwappedKey = "\u0001swapped";
 
     /// <summary>One doodad file's lines as they are laid, and its model once loaded - see <see cref="DoodadFile"/>.</summary>
     private sealed class Tally(string ao, Vector3 first)
     {
         /// <summary>The file, as its first line names it.</summary>
         public string Ao => ao;
+
+        /// <summary>The tileset's material swaps its model wears - a tile's own doodad's - or null for its own materials.</summary>
+        public IReadOnlyDictionary<string, string>? Swaps { get; init; }
+
+        /// <summary>The file's model, with the tileset's swaps where it has any.</summary>
+        public MonsterModel Load(Func<string, byte[]?> counted, MonsterModels.Paints paints)
+        {
+            MonsterModel model = MonsterModels.OfFiles(counted, [ao], wearing: true, paints);
+            return Swaps is null ? model : MonsterModels.Swapped(counted, model, Swaps, paints);
+        }
 
         public MonsterModel? Model;
         public bool Wanted;

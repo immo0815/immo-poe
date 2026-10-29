@@ -139,88 +139,92 @@ public sealed class TerrainTiles
     /// <param name="height">Tiles down.</param>
     /// <param name="size">A tile file's size in tiles as its file has it, by id - one by one where not known.</param>
     /// <remarks>
-    /// A PIECE IS FOUND BY ITS SUB-TILES, NOT BY COUNTING THEM: each tile of a piece names its own
-    /// place in the file's template, so a piece is the run of side-by-side tiles of one file, laid one
-    /// way, that never names the same place twice - whatever frame the game counts those places in,
-    /// which nothing here needs to know. It may reach past the block, a piece being laid whole. One
-    /// that does not come out the file's size, that way round, is said not whole.
+    /// A PIECE IS FOUND BY THE CORNER ITS TILES NAME: each tile of a piece names its place in the laid footprint,
+    /// counted from the piece's least corner whichever way it was laid - MEASURED on every turned piece of Port
+    /// (v0.1.248's ground-grid replay) and of Crimson Shores' boss room (v0.1.343's capture, placements 0 to 7) -
+    /// so the tile at (x, y) naming (sx, sy) belongs to the piece whose corner is (x - sx, y - sy), and the piece
+    /// is every tile of that file, laid that way, naming that corner. It may reach past the block, a piece being
+    /// laid whole. One that does not come out the file's size, that way round, is said not whole.
+    ///
+    /// NOT A FLOOD FILL ANY MORE. Before v0.1.344 a piece was the run of side-by-side tiles of one file, laid one way,
+    /// that never named the same place twice - which joins two pieces of one file laid the same way side by side
+    /// wherever their names do not clash across the seam. Crimson Shores lays two <c>deep_fill_01</c> so at its boss
+    /// room's edge: the fill took the left piece's last column (names 2, 0..2) beside its own first two, was drawn a
+    /// tile off its place, and its own last column was left out as not whole - a 250 by 750 hole in the sea floor.
     /// </remarks>
     public List<TilePiece> Pieces(int x, int y, int width, int height, Func<int, (int Width, int Height)> size)
     {
         ArgumentNullException.ThrowIfNull(size);
         var pieces = new List<TilePiece>();
-        var taken = new HashSet<int>();
-        var group = new List<int>();
-        var named = new HashSet<int>();
-        var next = new Queue<int>();
-        for (int row = Math.Max(0, y); row < Math.Min(Height, y + height); row++)
+        int left = Math.Max(0, x), top = Math.Max(0, y);
+        int right = Math.Min(Width, x + width), bottom = Math.Min(Height, y + height);
+        if (right <= left || bottom <= top)
         {
-            for (int column = Math.Max(0, x); column < Math.Min(Width, x + width); column++)
+            return pieces;
+        }
+
+        // TAKEN FOR THE BLOCK ALONE: a piece's tiles past it are never asked after, so they need no mark.
+        int blockWidth = right - left;
+        var taken = new bool[blockWidth * (bottom - top)];
+        for (int row = top; row < bottom; row++)
+        {
+            for (int column = left; column < right; column++)
             {
                 int at = (row * Width) + column;
                 int id = _ids[at];
-                if (id < 0 || !taken.Add(at))
+                if (id < 0 || taken[((row - top) * blockWidth) + column - left])
                 {
                     continue;
                 }
 
+                taken[((row - top) * blockWidth) + column - left] = true;
                 int placement = _placements[at];
                 (int wide, int tall) = size(id);
-                int cells = Math.Max(1, wide) * Math.Max(1, tall);
-                if (cells == 1)
+                if (Math.Max(1, wide) * Math.Max(1, tall) == 1)
                 {
                     pieces.Add(new TilePiece(id, placement, column, row, column, row, Whole: true));
                     continue;
                 }
 
-                group.Clear();
-                named.Clear();
-                next.Clear();
-                group.Add(at);
-                named.Add(Named(at));
-                next.Enqueue(at);
-                while (next.Count > 0 && group.Count < cells)
+                // LAID A QUARTER ROUND, a piece's columns run down the area: placements 4 to 7 swap the axes.
+                (int across, int down) = placement >= 4 ? (tall, wide) : (wide, tall);
+                int cornerX = column - _subX[at], cornerY = row - _subY[at];
+                if (_subX[at] >= across || _subY[at] >= down)
                 {
-                    int from = next.Dequeue();
-                    int fx = from % Width;
-                    int fy = from / Width;
-                    foreach ((int bx, int by) in (ReadOnlySpan<(int, int)>)[(fx - 1, fy), (fx + 1, fy), (fx, fy - 1), (fx, fy + 1)])
+                    // A NAME PAST THE FILE'S OWN SIZE is a tile no piece of it can hold: alone, and not whole.
+                    pieces.Add(new TilePiece(id, placement, column, row, column, row, Whole: false));
+                    continue;
+                }
+
+                int minX = column, maxX = column, minY = row, maxY = row, found = 0;
+                for (int cy = cornerY; cy < cornerY + down; cy++)
+                {
+                    for (int cx = cornerX; cx < cornerX + across; cx++)
                     {
-                        if ((uint)bx >= (uint)Width || (uint)by >= (uint)Height || group.Count >= cells)
+                        if ((uint)cx >= (uint)Width || (uint)cy >= (uint)Height)
                         {
                             continue;
                         }
 
-                        int beside = (by * Width) + bx;
-                        if (_ids[beside] == id && _placements[beside] == placement && !taken.Contains(beside) && named.Add(Named(beside)))
+                        int one = (cy * Width) + cx;
+                        if (_ids[one] != id || _placements[one] != placement || _subX[one] != cx - cornerX || _subY[one] != cy - cornerY)
                         {
-                            taken.Add(beside);
-                            group.Add(beside);
-                            next.Enqueue(beside);
+                            continue;
+                        }
+
+                        found++;
+                        (minX, maxX, minY, maxY) = (Math.Min(minX, cx), Math.Max(maxX, cx), Math.Min(minY, cy), Math.Max(maxY, cy));
+                        if (cx >= left && cx < right && cy >= top && cy < bottom)
+                        {
+                            taken[((cy - top) * blockWidth) + cx - left] = true;
                         }
                     }
                 }
 
-                int minX = column, maxX = column, minY = row, maxY = row;
-                foreach (int one in group)
-                {
-                    minX = Math.Min(minX, one % Width);
-                    maxX = Math.Max(maxX, one % Width);
-                    minY = Math.Min(minY, one / Width);
-                    maxY = Math.Max(maxY, one / Width);
-                }
-
-                // LAID A QUARTER ROUND, a piece's columns run down the area: placements 4 to 7 swap the axes.
-                bool swapped = placement >= 4;
-                (int across, int down) = swapped ? (tall, wide) : (wide, tall);
-                bool whole = group.Count == cells && maxX - minX + 1 == across && maxY - minY + 1 == down;
-                pieces.Add(new TilePiece(id, placement, minX, minY, maxX, maxY, whole));
+                pieces.Add(new TilePiece(id, placement, minX, minY, maxX, maxY, Whole: found == across * down));
             }
         }
 
         return pieces;
     }
-
-    /// <summary>A tile's place in its file's template as one number.</summary>
-    private int Named(int at) => (_subY[at] << 8) | _subX[at];
 }

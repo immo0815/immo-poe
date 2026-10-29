@@ -319,7 +319,7 @@ public sealed partial class ShadeProgram
             "RGBToTbn", "NormalTexToTbn", "NormalTexToTbnInput", "ScaleUVMaya", "HardLightBlend", "Sine", "RotateUVOld",
             "FromVertexNormal", "FromVertexWorldPos", "FromVertexLocalPosition", "InputVertexPosition", "InputVertexNormal", "InputVertexColor",
             "FromVertexColor", "Time",
-            "ModelOrigin", "GroundScroll", "Transform", "LookUpTexture",
+            "ModelOrigin", "ModelTransformDecompose", "LocalPlayerPosition", "GroundScroll", "Transform", "LookUpTexture",
             "Noise31", "PerlinNoise31", "Vibrance", "Rotate", "RotateUV", "RadiusToPolarNorm", "DustColor",
             "DepthDistance", "GetDepthDistance", "MaskedContactFade", "ViewDir", "FixModelTBN", "ParallaxUvSpace",
             "CrashingFoamSurface", "ReadPixelWetness",
@@ -1850,6 +1850,12 @@ public sealed partial class ShadeProgram
     /// <summary>The specular colour of every dielectric material the game has - see <see cref="Faint"/>.</summary>
     internal const float Dielectric = 0.04f;
 
+    /// <summary>
+    /// Where the local player stands on a stage, each axis - farther than any room reaches (an area is some 30,000 units across),
+    /// near enough that its square stays a float: there is no player there. CHOSEN, see the LocalPlayerPosition node.
+    /// </summary>
+    internal const float NoPlayer = 1e6f;
+
     private static ShadeProgram? Finish(
         Builder build, int result, int specular, int gloss, List<string> graphs, bool hasAlpha, bool plainable, int waves = -1,
         int waterFoam = -1, int waterState = -1, int height = -1)
@@ -2945,6 +2951,11 @@ public sealed partial class ShadeProgram
                 return Sprayed(node, end.Variable);
             }
 
+            if (node.Type == "ModelTransformDecompose" && end.Variable != "scale")
+            {
+                return Fail($"ModelTransformDecompose's {end.Variable} - only its scale is known, one for a model drawn where it stands");
+            }
+
             if (!_open.Add(node))
             {
                 return Fail($"{node.Type} feeding itself");
@@ -3589,6 +3600,16 @@ public sealed partial class ShadeProgram
                 // drawn where it stands. One register, the outputs parts of it - see Implied.
                 case "ModelOrigin":
                     return build.Constant(new Vector4(0f, 0f, 0f, 1f));
+
+                // ITS SCALE ALONE, one as ModelOrigin's for a model drawn where it stands; its other outputs are refused in Output.
+                case "ModelTransformDecompose":
+                    return build.Constant(Vector4.One);
+
+                // NO PLAYER ON A STAGE, so the local player stands farther off than any picture reaches - CHOSEN (v0.1.344, from the
+                // live client). The force walls round a boss's arena (twilight_strand's force_wall, Radial_PlayerMask.fxgraph) show
+                // only within 500 units of the player times their scale; Crimson Shores' ten stood whole round its stage as dark red domes.
+                case "LocalPlayerPosition":
+                    return build.Constant(new Vector4(NoPlayer, NoPlayer, NoPlayer, 1f));
 
                 case "Noise31":
                     return Single(node) is { } noised ? build.Emit(Op.Noise, noised, extra: 0) : null;

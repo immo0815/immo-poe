@@ -64,6 +64,30 @@ public class ContactFadeTests
     }
 
     /// <summary>
+    /// The force walls' player mask (Radial_PlayerMask.fxgraph, the game's own graph): with no player on a stage the layer shows nowhere
+    /// - the floor everywhere it lay - as the game shows a boss arena's force wall nowhere far from the player.
+    /// </summary>
+    /// <remarks>
+    /// Crimson Shores' ten walls stood whole round the Monster Book's stage as dark red domes (v0.1.343's capture), the graph's
+    /// LocalPlayerPosition and ModelTransformDecompose compiled as nothing at all. The player now stands at ShadeProgram.NoPlayer.
+    /// </remarks>
+    [Fact]
+    public void THEFORCEWALLSPlayerMaskHidesTheLayerWithNoPlayerOnTheStage()
+    {
+        const string RadialPath = "Metadata/Effects/Environment/act1/tutorial/twilight_strand/force_wall/graphs/Radial_PlayerMask.fxgraph";
+        ShadeProgram program = Layer((Instance(RadialPath), Fixture(RadialPath)));
+        Assert.True(program.HasAlpha);
+        SkinnedMesh scene = Scene(low: 0.5f, high: 20f);
+
+        GamePicture picture = Drawn(scene, program);
+
+        (byte Red, byte Blue) low = At(picture, scene, new Vector3(-5f, 0f, -0.5f));
+        (byte Red, byte Blue) high = At(picture, scene, new Vector3(5f, 0f, -20f));
+        Assert.True(low.Red > low.Blue * 2, $"the floor should show where the wall stood: {low}");
+        Assert.True(high.Red > high.Blue * 2, $"the floor should show where the wall stood: {high}");
+    }
+
+    /// <summary>
     /// The same in perspective (CameraPose, v0.1.324): the fade measures along each pixel's own ray (ShadeProgram.Viewer), and comes
     /// out the same on a layer looked at from straight above - the floor through the low half, the layer over the high one.
     /// </summary>

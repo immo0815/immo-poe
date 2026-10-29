@@ -247,6 +247,44 @@ public sealed class GroundPainterTests
         Assert.Equal("of three or four grounds (the engine's atlas, placed by transforms no file holds)", Assert.Single(subTiles).Why);
     }
 
+    /// <summary>
+    /// Three grounds Crimson Shores' boss room left white (v0.1.343's capture): a ground the MaterialsList does not name takes the group
+    /// with no name (CHOSEN), a tile carrying no grid whose own corners are unnamed takes it too (DECIDED), and two grounds whose
+    /// groups offer the same materials at the same weights are drawn as one, mask or none - each said under the picture.
+    /// </summary>
+    [Fact]
+    public void ANUNLISTEDGroundAnUnnamedOwnCornerAndGroupsAlikeAreDrawn()
+    {
+        const string Deep = "Metadata/Terrain/Maps/Test/deep.gt", Stone = "Metadata/Terrain/Maps/Test/stone.gt";
+        byte[]? Read(string path) => path switch
+        {
+            "Metadata/Terrain/Maps/Test/materials.mtd" => CaptureGroundTests.Text(
+                "version 5\n1 0 \"Art/cobble.mat\"\n\"Rock\" 1 0 \"Art/rock.mat\"\n\"Stone\" 1 0 \"Art/rock.mat\"\n\"Sand\" 2 0\n\"Art/sand1.mat\"\n\"Art/sand2.mat\"\n30 70 16\n"),
+            "deep.tdt" => CaptureGroundTests.Tdt(Template, [Deep, Deep, Deep, Deep]),
+            "bare.tdt" => CaptureGroundTests.Tdt(Template, ["", "", "", ""]),
+            "alike.tdt" => CaptureGroundTests.Tdt(Template, [Rock, Rock, Stone, Stone]),
+            Deep => CaptureGroundTests.Text("StromatoliteDeep\n1 1 0 0\n"),
+            Stone => CaptureGroundTests.Text("Stone\n1 1 0 0\n"),
+            _ => Mixable(path),
+        };
+
+        GroundPainter painter = Painter(Read);
+
+        Assert.Equal(["Art/cobble.mat"], painter.Paint("deep.tdt", Ground(), Matrix4x4.Identity, "ground of deep.tdt")!.ShapeMaterials);
+        Assert.Equal(["Art/cobble.mat"], painter.Paint("bare.tdt", Ground(), Matrix4x4.Identity, "ground of bare.tdt")!.ShapeMaterials);
+        Assert.Equal(["Art/rock.mat"], painter.Paint("alike.tdt", Ground(), Matrix4x4.Identity, "ground of alike.tdt")!.ShapeMaterials);
+        string said = painter.Said();
+        Assert.Contains("; 1 of a tile carrying no grid with an own corner unnamed, taken as that group too - DECIDED from the live client", said, StringComparison.Ordinal);
+        Assert.Contains("; 1 naming a ground the MaterialsList does not list (StromatoliteDeep), taken as the group with no name - CHOSEN", said, StringComparison.Ordinal);
+        Assert.Contains("3 sub-tiles of one ground (1 of them of two grounds whose groups offer the same materials at the same weights", said, StringComparison.Ordinal);
+        Assert.Contains("plain: none", said, StringComparison.Ordinal);
+
+        // THE CAPTURE'S VIEW names the unlisted ground, for the measurement of what the game draws there.
+        (IReadOnlyList<SubTileGrounds> subTiles, _, _) = Painter(Read).SubTilesOf("deep.tdt", [new GroundPiece(1, 1, 2)], 2);
+        Assert.Equal(["StromatoliteDeep"], Assert.Single(subTiles).Unlisted);
+        Assert.Equal([""], subTiles[0].Grounds);
+    }
+
     [Fact]
     public void NOMASTERIsSaidRatherThanPainted()
     {

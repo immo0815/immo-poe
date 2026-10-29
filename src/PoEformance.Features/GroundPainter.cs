@@ -79,10 +79,17 @@ internal sealed class GroundPainter
     private int _mixed;
     private int _gridded;
     private int _unnamed;
+    private int _bare;
+    private int _unlisted;
+    private int _alikeSubTiles;
+    private readonly List<string> _unlistedNames = [];
     private int _reduced;
 
     /// <summary>The MaterialsList's group with no name, by its place in the list, or -1 - see SetOf.</summary>
     private readonly int _unnamedGroup;
+
+    /// <summary>Each group's first group alike, by place in the list - itself where none before it is; see SetOf.</summary>
+    private readonly int[] _alike;
     private int _cornered;
 
     /// <summary>Whether the shapes across the mask's atlas stay on its cells - the switch, see the remarks.</summary>
@@ -106,6 +113,21 @@ internal sealed class GroundPainter
         for (var at = 0; at < list.Groups.Count && _unnamedGroup < 0; at++)
         {
             _unnamedGroup = list.Groups[at].Name.Length == 0 ? at : -1;
+        }
+
+        // EACH GROUP'S FIRST ALIKE, itself where none before it is - see SetOf.
+        _alike = new int[list.Groups.Count];
+        for (var at = 0; at < _alike.Length; at++)
+        {
+            _alike[at] = at;
+            for (var before = 0; before < at; before++)
+            {
+                if (Alike(list.Groups[before], list.Groups[at]))
+                {
+                    _alike[at] = _alike[before];
+                    break;
+                }
+            }
         }
     }
 
@@ -192,6 +214,17 @@ internal sealed class GroundPainter
         _two += plan.Split;
         _gridded += plan.Gridded ? 1 : 0;
         _unnamed += plan.Unnamed;
+        _bare += plan.Bare;
+        _unlisted += plan.Unlisted;
+        _alikeSubTiles += plan.Alike;
+        foreach (string name in plan.UnlistedNames)
+        {
+            if (!_unlistedNames.Contains(name, StringComparer.OrdinalIgnoreCase))
+            {
+                _unlistedNames.Add(name);
+            }
+        }
+
         _reduced += plan.Reduced;
         _cornered += plan.Gridded ? 0 : 1;
         _byCorners += plan.ByCorners;
@@ -250,6 +283,12 @@ internal sealed class GroundPainter
                 + string.Join(", ", _split.OrderByDescending(one => one.Value).Select(one => string.Create(CultureInfo.InvariantCulture, $"{one.Value} {one.Key}")));
         string reduced = _reduced == 0 ? string.Empty
             : string.Create(CultureInfo.InvariantCulture, $", {_reduced} of three or four grounds drawn as the two most of their corners name, ties to the list's first - CHOSEN, a stand-in for the engine's own mask placed by transforms no file holds");
+        string bare = _bare == 0 ? string.Empty
+            : string.Create(CultureInfo.InvariantCulture, $"; {_bare} of a tile carrying no grid with an own corner unnamed, taken as that group too - DECIDED from the live client");
+        string unlisted = _unlisted == 0 ? string.Empty
+            : string.Create(CultureInfo.InvariantCulture, $"; {_unlisted} naming a ground the MaterialsList does not list ({string.Join(", ", _unlistedNames)}), taken as the group with no name - CHOSEN until a capture measures it (ground-on-screen's choices)");
+        string alike = _alikeSubTiles == 0 ? string.Empty
+            : string.Create(CultureInfo.InvariantCulture, $" ({_alikeSubTiles} of them of two grounds whose groups offer the same materials at the same weights - a material mixed with itself)");
         string heights = _heights
             ? "weighed by the grounds' heights as the engine's GROUND_HEIGHT_BLENDING weighs them (GroundInterpolate), where a ground's graphs turn it on - by the switch"
             : "the engine's height blending left out by the switch";
@@ -258,7 +297,7 @@ internal sealed class GroundPainter
             : _byCorners == 0 && _keptOnCells == 0 ? string.Empty
             : string.Create(CultureInfo.InvariantCulture, $", of them {_byCorners} with shapes across the mask's atlas ({_cornerShapes} shapes) mixed instead by the second ground's share of their sub-tile's corners, bilinear - CHOSEN, a stand-in: the game draws no squares there and what it reads is not measured{(_keptOnCells > 0 ? $"; {_keptOnCells} more left on the mask, their corners' mix not running" : string.Empty)}");
         return string.Create(CultureInfo.InvariantCulture,
-            $"ground: painted from {From}, each sub-tile from its own corners in its definition's ground grid ({_gridded} pieces; {_cornered} from the tile's four corners, their definition carrying no grid; {_unnamed} sub-tiles with a corner the grid leaves unnamed, taken as the MaterialsList's group with no name - the game holds its null slot there, and that it draws this group is DECIDED) - {_one} sub-tiles of one ground, {_mixed} of two mixed per pixel by the template mask's green at the block's own coordinates as the engine mixes them (GroundGenerateWeights_1a1b; the MaterialsList's first ground at green nought, as Port's three families agree - one area; {heights}){corners}{reduced}{split}, plain: {plain}; the materials' coordinates the world times {GroundScale} (the environments' ground_scale, likely and not measured), a group's heaviest choice where the game draws by weight");
+            $"ground: painted from {From}, each sub-tile from its own corners in its definition's ground grid ({_gridded} pieces; {_cornered} from the tile's four corners, their definition carrying no grid; {_unnamed} sub-tiles with a corner the grid leaves unnamed, taken as the MaterialsList's group with no name - the game holds its null slot there, and that it draws this group is DECIDED{bare}{unlisted}) - {_one} sub-tiles of one ground{alike}, {_mixed} of two mixed per pixel by the template mask's green at the block's own coordinates as the engine mixes them (GroundGenerateWeights_1a1b; the MaterialsList's first ground at green nought, as Port's three families agree - one area; {heights}){corners}{reduced}{split}, plain: {plain}; the materials' coordinates the world times {GroundScale} (the environments' ground_scale, likely and not measured), a group's heaviest choice where the game draws by weight");
     }
 
     /// <summary>How a tile's ground is painted, worked out once whatever number of pieces lay it - and what it comes to, sub-tile by sub-tile.</summary>
@@ -281,6 +320,18 @@ internal sealed class GroundPainter
 
         /// <summary>Sub-tiles of three or four grounds drawn as the two most of their corners name - see SetOf.</summary>
         public int Reduced { get; init; }
+
+        /// <summary>Sub-tiles of a tile with no grid, an own corner of which is unnamed - the group with no name; see SetOf.</summary>
+        public int Bare { get; init; }
+
+        /// <summary>Sub-tiles naming a ground the MaterialsList does not - the group with no name; see SetOf.</summary>
+        public int Unlisted { get; init; }
+
+        /// <summary>The grounds those name, by name.</summary>
+        public IReadOnlyList<string> UnlistedNames { get; init; } = [];
+
+        /// <summary>Sub-tiles of two grounds whose groups are alike, drawn as one - see SetOf.</summary>
+        public int Alike { get; init; }
 
         /// <summary>Sub-tiles left plain, by why.</summary>
         public IReadOnlyDictionary<string, int> Plain { get; init; } = new Dictionary<string, int>();
@@ -356,12 +407,26 @@ internal sealed class GroundPainter
         var runs = new Dictionary<string, Run>(StringComparer.Ordinal);
         var order = new List<Run>();
         var at = 0;
-        int unnamedCorners = 0, reducedSubTiles = 0, subTile = -1;
+        int unnamedCorners = 0, bareCorners = 0, unlistedSubTiles = 0, alikeSubTiles = 0, reducedSubTiles = 0, subTile = -1;
+        var unlistedNames = new List<string>();
         foreach ((int count, IReadOnlyList<string> corners) in subTiles)
         {
             subTile++;
-            (string key, List<(int Order, GroundGroup Group)> grounds, string setWhy, bool reduced) = SetOf(corners, gridded, twoOfMore: true);
-            unnamedCorners += gridded && corners.Any(corner => corner.Length == 0) ? 1 : 0;
+            GroundSet set = SetOf(corners, twoOfMore: true, alike: true);
+            (string key, List<(int Order, GroundGroup Group)> grounds, string setWhy, bool reduced) = (set.Key, set.Grounds, set.Why, set.Reduced);
+            bool unnamed = corners.Any(corner => corner.Length == 0);
+            unnamedCorners += gridded && unnamed ? 1 : 0;
+            bareCorners += !gridded && unnamed ? 1 : 0;
+            unlistedSubTiles += set.Unlisted.Count > 0 ? 1 : 0;
+            alikeSubTiles += set.Merged ? 1 : 0;
+            foreach (string name in set.Unlisted)
+            {
+                if (!unlistedNames.Contains(name, StringComparer.OrdinalIgnoreCase))
+                {
+                    unlistedNames.Add(name);
+                }
+            }
+
             reducedSubTiles += reduced ? 1 : 0;
             if (!runs.TryGetValue(key, out Run? run))
             {
@@ -559,6 +624,10 @@ internal sealed class GroundPainter
             Split = splitGrounds,
             Gridded = gridded,
             Unnamed = unnamedCorners,
+            Bare = bareCorners,
+            Unlisted = unlistedSubTiles,
+            UnlistedNames = unlistedNames,
+            Alike = alikeSubTiles,
             Reduced = reducedSubTiles,
             Plain = plain,
             Splits = splits,
@@ -636,7 +705,8 @@ internal sealed class GroundPainter
         var seconds = new float[4];
         for (var corner = 0; corner < seconds.Length && corner < corners.Count; corner++)
         {
-            seconds[corner] = OrderOf(corners[corner], unnamedIsDefault: true) == second ? 1f : 0f;
+            int order = OrderOf(corners[corner], out _);
+            seconds[corner] = order >= 0 && _alike[order] == second ? 1f : 0f;
         }
 
         return seconds;
@@ -676,11 +746,21 @@ internal sealed class GroundPainter
     /// remarks) - with a key the sub-tiles naming the same set share; or why it stays plain.
     /// </summary>
     /// <remarks>
-    /// A CORNER THE GRID LEAVES UNNAMED takes the MaterialsList's group with no name, where <paramref name="unnamedIsDefault"/> - a
-    /// grid's corners. MEASURED (v0.1.248's capture, ground-grid-replay.txt): where Port's harbour grid names no ground, along the
-    /// pier, the game holds the null slot of its ground-type list at the same corners, and draws the pier cobblestone; the list's one
-    /// group without a name is all cobblestone. DECIDED, not measured: that the game draws that group for its null slot. A tile's own
-    /// four corners, standing in where there is no grid, keep the old reading - an unnamed one names nothing.
+    /// A CORNER THE GRID LEAVES UNNAMED takes the MaterialsList's group with no name. MEASURED (v0.1.248's capture,
+    /// ground-grid-replay.txt): where Port's harbour grid names no ground, along the pier, the game holds the null slot of its
+    /// ground-type list at the same corners, and draws the pier cobblestone; the list's one group without a name is all cobblestone.
+    /// DECIDED, not measured: that the game draws that group for its null slot. A TILE'S OWN FOUR CORNERS, standing in where there is
+    /// no grid, take it too from v0.1.344 (DECIDED from the live client, 2026-10-29): before, an unnamed one named nothing, and 18 of
+    /// Crimson Shores' boss room's sub-tiles - its arena's stromatolite tiles, which carry no grid - stayed white.
+    ///
+    /// A GROUND THE LIST DOES NOT NAME takes the group with no name as well - CHOSEN from the live client (2026-10-29) until a capture
+    /// measures it (CaptureGroundChoices runs every material of the list there). Crimson Shores lays StromatoliteDeep and
+    /// StromatoliteShallow, the sea floor along its shore, and its materials.mtd names neither: 106 of the boss room's sub-tiles stayed
+    /// white, and the shallow water over them looked white too.
+    ///
+    /// GROUPS ALIKE ARE ONE GROUND, where <paramref name="alike"/>: two groups offering the same materials at the same weights are drawn
+    /// as the first of them, the mix of a material with itself being that material whatever the mask (Crimson Shores' list offers the
+    /// same three sands for seven of its eight groups, and its arena's tiles carry no mask to mix them by).
     ///
     /// THREE OR FOUR GROUNDS, where <paramref name="twoOfMore"/>, are drawn as the two most of the corners name - ties to the one the
     /// MaterialsList lists first - mixed as two are. CHOSEN from the live client (2026-10-13), a stand-in: the engine mixes them with
@@ -688,14 +768,26 @@ internal sealed class GroundPainter
     /// transforms no file holds, and left plain they drew as white squares along Port's quay - c14r12 under the tarpaulin crate
     /// (unnamed, IslandOcean, unnamed, TropicalFill) among them, where the game draws the quay's top as its neighbours'.
     /// </remarks>
-    private (string Key, List<(int Order, GroundGroup Group)> Grounds, string Why, bool Reduced) SetOf(
-        IReadOnlyList<string> corners, bool unnamedIsDefault, bool twoOfMore = false)
+    private GroundSet SetOf(IReadOnlyList<string> corners, bool twoOfMore = false, bool alike = false)
     {
         var grounds = new List<(int Order, GroundGroup Group)>(4);
         Span<int> named = stackalloc int[4];
+        List<string>? unlisted = null;
+        Span<int> raw = stackalloc int[4];
+        var raws = 0;
         foreach (string corner in corners)
         {
-            int order = OrderOf(corner, unnamedIsDefault);
+            int order = OrderOf(corner, out bool listed);
+            if (!listed)
+            {
+                unlisted ??= [];
+                string name = NameOf(corner);
+                if (!unlisted.Contains(name, StringComparer.OrdinalIgnoreCase))
+                {
+                    unlisted.Add(name);
+                }
+            }
+
             if (order < 0)
             {
                 if (corner.Length == 0)
@@ -705,6 +797,13 @@ internal sealed class GroundPainter
 
                 return Plained("with a ground the MaterialsList does not list");
             }
+
+            if (raws < raw.Length && raw[..raws].IndexOf(order) < 0)
+            {
+                raw[raws++] = order;
+            }
+
+            order = alike ? _alike[order] : order;
 
             int at = grounds.FindIndex(one => one.Order == order);
             if (at < 0)
@@ -735,22 +834,31 @@ internal sealed class GroundPainter
         }
 
         grounds.Sort((one, other) => one.Order.CompareTo(other.Order));
+        IReadOnlyList<string> unnamed = unlisted ?? (IReadOnlyList<string>)[];
         return grounds.Count switch
         {
             0 => Plained("whose corners name no ground"),
             > 2 => Plained("of three or four grounds (the engine's atlas, placed by transforms no file holds)"),
-            _ => (string.Join(",", grounds.Select(one => one.Order.ToString(CultureInfo.InvariantCulture))), grounds, string.Empty, reduced),
+            _ => new GroundSet(string.Join(",", grounds.Select(one => one.Order.ToString(CultureInfo.InvariantCulture))), grounds, string.Empty, reduced)
+            {
+                Unlisted = unnamed,
+                Merged = grounds.Count == 1 && raws > 1,
+            },
         };
 
-        static (string, List<(int, GroundGroup)>, string, bool) Plained(string why) => ("plain: " + why, [], why, false);
+        GroundSet Plained(string why) => new("plain: " + why, [], why, false) { Unlisted = unlisted ?? (IReadOnlyList<string>)[] };
     }
 
-    /// <summary>A corner's group in the MaterialsList, by its place there, or -1 - an unnamed corner the group with no name where <paramref name="unnamedIsDefault"/> (see <see cref="SetOf"/>).</summary>
-    private int OrderOf(string corner, bool unnamedIsDefault)
+    /// <summary>
+    /// A corner's group in the MaterialsList, by its place there, or -1 - an unnamed corner, or one naming a ground the list does not
+    /// name (<paramref name="listed"/> false), the group with no name (see <see cref="SetOf"/>).
+    /// </summary>
+    private int OrderOf(string corner, out bool listed)
     {
+        listed = true;
         if (corner.Length == 0)
         {
-            return unnamedIsDefault ? _unnamedGroup : -1;
+            return _unnamedGroup;
         }
 
         string name = NameOf(corner);
@@ -762,8 +870,34 @@ internal sealed class GroundPainter
             }
         }
 
-        return -1;
+        listed = false;
+        return _unnamedGroup;
     }
+
+    /// <summary>A sub-tile's grounds as SetOf works them out - see there.</summary>
+    /// <param name="Key">What the sub-tiles naming the same set share.</param>
+    /// <param name="Grounds">The groups, by their place in the list, in its order.</param>
+    /// <param name="Why">Why the sub-tile stays plain, or empty.</param>
+    /// <param name="Reduced">Whether three or four grounds were taken as their two most named.</param>
+    private sealed record GroundSet(string Key, List<(int Order, GroundGroup Group)> Grounds, string Why, bool Reduced)
+    {
+        /// <summary>The grounds its corners name that the list does not, by name - taken as the group with no name.</summary>
+        public IReadOnlyList<string> Unlisted { get; init; } = [];
+
+        /// <summary>Whether two grounds came to one, their groups alike.</summary>
+        public bool Merged { get; init; }
+    }
+
+    /// <summary>Whether two groups offer the same materials at the same weights - and nothing else apart - so that either draws as the other.</summary>
+    private static bool Alike(GroundGroup one, GroundGroup other)
+        => one.Choices.Count == other.Choices.Count
+            && one.Choices.Zip(other.Choices).All(pair => string.Equals(Clean(pair.First.Material), Clean(pair.Second.Material), StringComparison.OrdinalIgnoreCase))
+            && one.Weights.SequenceEqual(other.Weights)
+            && one.Trailing == other.Trailing
+            && one.ExtraNumber == other.ExtraNumber
+            && one.ExtraFlag == other.ExtraFlag
+            && one.Extras.Count == other.Extras.Count
+            && one.Extras.Zip(other.Extras).All(pair => string.Equals(Clean(pair.First.Material), Clean(pair.Second.Material), StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// Each sub-tile's corners and the grounds they come to, as <see cref="Paint"/> works them out - for the capture's picture of the
@@ -786,10 +920,13 @@ internal sealed class GroundPainter
         for (var at = 0; at < pieces.Count; at++)
         {
             IReadOnlyList<string> corners = gridded ? definition.CornersOf(pieces[at].X, pieces[at].Y) : definition.Grounds;
-            (_, List<(int Order, GroundGroup Group)> grounds, string setWhy, _) = SetOf(corners, gridded);
-            bool[] seconds = grounds.Count == 2 && corners.Count == 4 ? [.. corners.Select(corner => OrderOf(corner, gridded) == grounds[1].Order)] : [];
-            subTiles[at] = new SubTileGrounds(corners, [.. grounds.Select(one => one.Group.Name)], setWhy)
+            GroundSet set = SetOf(corners);
+            List<(int Order, GroundGroup Group)> grounds = set.Grounds;
+            bool[] seconds = grounds.Count == 2 && corners.Count == 4 ? [.. corners.Select(corner => OrderOf(corner, out _) == grounds[1].Order)] : [];
+            subTiles[at] = new SubTileGrounds(corners, [.. grounds.Select(one => one.Group.Name)], set.Why)
             {
+                Unlisted = set.Unlisted,
+                Everything = set.Unlisted.Count > 0 ? Everything : [],
                 Gridded = gridded,
                 Seconds = seconds,
                 Materials = [.. grounds.Select(one => Heaviest(one.Group))],
@@ -807,6 +944,12 @@ internal sealed class GroundPainter
         string name = NameOf(groundType);
         return name.Length > 0 && _list.Groups.Any(group => string.Equals(group.Name, name, StringComparison.OrdinalIgnoreCase));
     }
+
+    /// <summary>Every material the MaterialsList offers, each once in the list's order - what a ground it does not name may be drawn with.</summary>
+    private IReadOnlyList<(string Material, int Weight)> Everything => _everything ??=
+        [.. _list.Groups.SelectMany(group => group.Choices).Select(choice => choice.Material).Distinct(StringComparer.OrdinalIgnoreCase).Select(material => (material, 0))];
+
+    private IReadOnlyList<(string Material, int Weight)>? _everything;
 
     /// <summary>A group's choices with their weights, in file order - nought for a lone choice, whose weight the file omits.</summary>
     private static IReadOnlyList<(string Material, int Weight)> ChoicesOf(GroundGroup group)
@@ -884,6 +1027,12 @@ internal sealed record SubTileGrounds(IReadOnlyList<string> Corners, IReadOnlyLi
 
     /// <summary>Every material each of <see cref="Grounds"/>' groups offers, with its weight - what the game draws one from (CaptureGroundChoices).</summary>
     public IReadOnlyList<IReadOnlyList<(string Material, int Weight)>> Choices { get; init; } = [];
+
+    /// <summary>The grounds its corners name that the MaterialsList does not, by name - painted as the group with no name, CHOSEN; see GroundPainter.SetOf.</summary>
+    public IReadOnlyList<string> Unlisted { get; init; } = [];
+
+    /// <summary>Where <see cref="Unlisted"/> names any, every material the list offers, weighed nought - what CaptureGroundChoices holds there; else empty.</summary>
+    public IReadOnlyList<(string Material, int Weight)> Everything { get; init; } = [];
 }
 
 /// <summary>
