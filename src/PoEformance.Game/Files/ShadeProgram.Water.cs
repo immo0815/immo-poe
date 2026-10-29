@@ -19,6 +19,25 @@ public sealed partial class ShadeProgram
     public const string OceanShader = "Ocean";
 
     /// <summary>
+    /// The second shader type the engine's ocean is drawn with: Port's own sea - see <see cref="IsOcean"/>.
+    /// </summary>
+    /// <remarks>
+    /// PORT'S HARBOUR WEARS IT IN THE GAME: the master's TileMaterialOverrides (<c>material_overrides.tmo</c>) swaps
+    /// <c>nvidian_Ocean.mat</c> for <c>BirdIsland/Textures/Water01c_water1.mat</c> - <c>"shadertype":"water1"</c>, its one graph
+    /// <c>CrashingOceanWaves.fxgraph</c>, whose node is CrashingWavesFragment, the field waves the card draws on the ocean - and from
+    /// v0.1.344 the swaps reach a tile's own doodads, the harbour's 48 water planes among them. Compiled through its graphs it drew
+    /// white, the sea a pale floor (said from the live client with a picture, v0.1.348), and 291 rooms of the stage sweep the same.
+    /// Drawn as the ocean, as the planes were drawn before the swap reached them - a picture held against the game's and found its
+    /// look and waves (v0.1.307).
+    /// </remarks>
+    public const string CrashingOceanShader = "water1";
+
+    /// <summary>Whether a material's shader type is one the engine draws as its ocean - <see cref="OceanShader"/> or <see cref="CrashingOceanShader"/>.</summary>
+    public static bool IsOcean(string? shaderType)
+        => string.Equals(shaderType, OceanShader, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(shaderType, CrashingOceanShader, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
     /// How fast the water thins out towards the floor behind it, a unit of water at a time: the engine's water pass's own number.
     /// </summary>
     /// <remarks>

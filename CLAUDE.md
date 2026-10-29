@@ -256,7 +256,11 @@ read from the capture, v0.1.344 mends them:
 - THE MASTER'S TileMaterialOverrides (`material_overrides.tmo`) reached a lone tile only: a laid or built room now puts them on its tiles
   (`TileModels.Apart`) and on the tiles' own `.tmd` doodads (`MonsterModels.Swapped`), the room's own doodads as they are (DECIDED from
   the live client: the file names `CorruptionGradientc.mat`, the tendrils of a tile's `.tmd`). Crimson Shores' swaps its rocky edges and
-  stromatolites to the dark Vastiri ones and the tendrils to the mask nothing draws.
+  stromatolites to the dark Vastiri ones and the tendrils to the mask nothing draws. PORT'S SEA WENT WITH IT (said from the live client
+  with a picture, v0.1.348: no water, a pale floor): Port's own list swaps `nvidian_Ocean.mat` for `Water01c_water1.mat` -
+  `"shadertype":"water1"`, its one graph `CrashingOceanWaves.fxgraph` - which compiled through its graph drew white on the harbour's
+  48 planes. So from v0.1.349 `water1` is the ocean as `Ocean` is (`ShadeProgram.IsOcean`, `CrashingOceanShader`): the material the game
+  draws there, drawn as the planes were before the swap reached them, a look held against the game's (v0.1.307).
 - THE DOMES ARE THE ARENA'S TEN FORCE WALLS (`BossForceFieldDoorVisuals`, twilight_strand's force_wall, colour 0.155, 0.012, 0.012), whose
   materials end in `Radial_PlayerMask.fxgraph`: shown within 500 units times their scale of the local player. The compile knew neither
   LocalPlayerPosition nor ModelTransformDecompose; now the player stands at `ShadeProgram.NoPlayer` (CHOSEN from the live client: no player

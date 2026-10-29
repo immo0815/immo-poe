@@ -31,6 +31,30 @@ public class WaterTests
         Assert.Equal(string.Empty, MaterialFile.Parse("""{"version":4,"graphinstances":[{"parent":"a.fxgraph"}]}""").ShaderType);
     }
 
+    /// <summary>
+    /// The material Port's TileMaterialOverrides puts on its harbour's water planes in place of nvidian_Ocean.mat is the engine's ocean
+    /// too, and drawn as the area's water - where compiled through its graph it drew white (v0.1.344 to v0.1.348).
+    /// </summary>
+    [Fact]
+    public void PORTSSwappedSeaIsTheOceanToo()
+    {
+        // Water01c_water1.mat as the stage sweep's capture (v0.1.348) carried it.
+        const string swapped =
+            """{"version":4,"defaultgraph":{"version":3,"shader_group":["Material"],"overriden_blend_mode":"Opaque"},"graphinstances":[{"parent":"Metadata/Effects/Graphs/Environment/CrashingOceanWaves.fxgraph"}],"shadertype":"water1"}""";
+        MaterialFile paint = MaterialFile.Parse(swapped);
+        Assert.Equal(ShadeProgram.CrashingOceanShader, paint.ShaderType);
+        Assert.True(MonsterModels.Paints.IsWater(paint));
+
+        const string path = "Art/Models/Terrain/Islands/Tiles/BirdIsland/Textures/Water01c_water1.mat";
+        var paints = new MonsterModels.Paints();
+        byte[]? Read(string file) => file == path ? Encoding.UTF8.GetBytes(swapped) : null;
+        ShadeCompile compiled = paints.Compiled(Read, path).Compiled;
+        Assert.NotNull(compiled.Program);
+        Assert.Equal([ShadeProgram.WaterGraph], compiled.Program.Graphs);
+        Assert.Equal(("water", "water"), paints.Modes(Read, path));
+        Assert.False(ShadeProgram.IsOcean("FlowingWater"));
+    }
+
     /// <summary>Port's file sets its flow and height offset and no colour, so its water is the engine's colour; The Red Vale's sets its own.</summary>
     [Fact]
     public void ANAREASWaterIsItsFilesValuesOverTheEnginesDefaults()
