@@ -127,12 +127,18 @@ public static class TileModels
     /// which is how the room sets each piece on the area's own ground. The props come back as
     /// MonsterModel.None where the tile is ground and nothing else - a floor tile - with its ground
     /// still given. One paint cache for every tile of a room, as a room's doodads share one.
+    ///
+    /// THE TILESET'S SWAPS AS A LONE TILE TAKES THEM (<paramref name="swaps"/>, see <see cref="Of"/>): before v0.1.344 a room's
+    /// pieces wore the tile's own materials, and Crimson Shores' boss room drew its stromatolites and rocky edges in the pink of
+    /// the materials its master's TileMaterialOverrides swap for the dark Vastiri ones.
     /// </remarks>
+    /// <param name="swaps">The materials the area's master swaps on the tiles it places, or null for the tile's own - see TilesetIndex.Overrides.</param>
+    /// <param name="tileset">The master the swaps are from, for the line under the picture.</param>
     internal static (MonsterModel Props, SkinnedMesh Ground, int Width, int Height, TileDoodads Doodads, IReadOnlyList<GroundPiece> Pieces) Apart(
-        Func<string, byte[]?> read, string path, bool walls, MonsterModels.Paints paints)
+        Func<string, byte[]?> read, string path, bool walls, MonsterModels.Paints paints, IReadOnlyDictionary<string, string>? swaps = null, string tileset = "")
     {
         (MonsterModel model, SkinnedMesh ground, int wide, int tall, IReadOnlyList<string> templates, IReadOnlyList<GroundPiece> pieces) =
-            Built(read, path, true, walls, false, null, string.Empty, default, paints, apart: true);
+            Built(read, path, true, walls, false, swaps, tileset, default, paints, apart: true);
         return (model, ground, wide, tall, DoodadsOf(read, path, templates), pieces);
     }
 

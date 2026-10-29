@@ -171,12 +171,19 @@ public static class LaidRoomModels
         var made = new Dictionary<int, Made>();
 
         // THE GROUND'S PAINTER, from the area's MaterialsList - the master given, or the one beside the room's Rooms/.
-        (GroundPainter? painter, string unpainted) = GroundPainter.For(Counted, master.Length > 0 ? master : GroundPainter.MasterBeside(read, path), paints, maskCells, groundHeights);
+        string masterFile = master.Length > 0 ? master : GroundPainter.MasterBeside(read, path);
+        (GroundPainter? painter, string unpainted) = GroundPainter.For(Counted, masterFile, paints, maskCells, groundHeights);
+
+        // AND ITS TILEMATERIALOVERRIDES, on the tiles and the tiles' own doodads - not the room's (DECIDED from the live client,
+        // 2026-10-29; see MonsterModels.Swapped). Crimson Shores' boss room drew pink stromatolites and the tendrils its master hides.
+        IReadOnlyDictionary<string, string> swaps = masterFile.Length > 0 ? TilesetIndex.Overrides(Counted, masterFile) : new Dictionary<string, string>();
+        IReadOnlyDictionary<string, string>? tileSwaps = swaps.Count > 0 ? swaps : null;
+        string tileset = masterFile.Length > 0 ? TilesetIndex.Short(masterFile) : string.Empty;
         var grounds = new List<MonsterModel>();
         Made Make(int id)
         {
             (MonsterModel props, SkinnedMesh ground, int across, int down, TileDoodads lines, IReadOnlyList<GroundPiece> subTiles) =
-                TileModels.Apart(Counted, tiles.Paths[id], walls: true, paints);
+                TileModels.Apart(Counted, tiles.Paths[id], walls: true, paints, tileSwaps, tileset);
             return Made.Of(props, ground, across, down, lines) with { Pieces = subTiles, Corners = CornersOf(read, tiles.Paths[id], subTiles) };
         }
 
@@ -324,7 +331,7 @@ public static class LaidRoomModels
                 _ => ground,
             };
             return beyondFlat * Matrix4x4.CreateTranslation(0f, 0f, z);
-        }, heights, lights, hiding.Sieve, tileDoodads);
+        }, heights, lights, hiding.Sieve, tileDoodads, tileSwaps);
 
         SkinnedMesh joined = RoomModels.Watered(hiding.Keep(SkinnedMesh.Joined(pile.Joins), pile), pile.Modes);
         if (!joined.Ready)
@@ -364,6 +371,13 @@ public static class LaidRoomModels
                 $"tile doodads: {tileDoodads.Count} from the doodad lists of {withLines.Count} tile files, {facingAway} wall tops facing away from the camera left out as the game leaves them")
                 + (mirroredLists > 0 ? string.Create(CultureInfo.InvariantCulture, $"; the doodads of {mirroredLists} pieces laid mirrored are mirrored with them, as the game draws a mirrored room's own - DECIDED, not measured on a tile's doodad") : string.Empty)
                 + (bothLists > 0 ? string.Create(CultureInfo.InvariantCulture, $"; {bothLists} files carry a list beside the .tdt and one beside the template - the .tdt's taken, which no capture has measured yet") : string.Empty));
+        }
+
+        if (tileSwaps is not null)
+        {
+            int swappedTiles = used.Count(id => made.TryGetValue(id, out Made? one) && one.Props.Swapped > 0);
+            said.Add(string.Create(CultureInfo.InvariantCulture,
+                $"materials: the master's TileMaterialOverrides ({swaps.Count} swaps) put on {swappedTiles} of the {used.Count} tile files and {laid.SwappedFiles} of the tiles' doodad files, the room's own doodads as they are - DECIDED from the live client"));
         }
 
         said.Add(painter?.Said() ?? "ground: plain - " + unpainted);

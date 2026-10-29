@@ -210,12 +210,19 @@ internal static class CaptureGroundChoices
             int id = -1;
             if (index < piece.SubTiles.Count && piece.SubTiles[index] is { Choices.Count: > 0 } grounds)
             {
+                // A GROUND THE LIST DOES NOT NAME is held against EVERY material of the list (v0.1.344): the painter draws it as the group
+                // with no name, CHOSEN, and which the game draws is the measurement - Crimson Shores' sea floor, StromatoliteDeep and
+                // StromatoliteShallow, against its sands and its salt.
+                string unlisted = grounds.Unlisted.Count > 0 ? string.Join(" + ", grounds.Unlisted) + ", which the list does not name" : string.Empty;
+                IReadOnlyList<IReadOnlyList<(string Material, int Weight)>> offers = unlisted.Length > 0 ? [grounds.Everything] : grounds.Choices;
+
                 // ONE CANDIDATE A MATERIAL, a material a group offers twice weighed twice.
                 var candidates = new List<Candidate>();
-                for (var g = 0; g < grounds.Choices.Count; g++)
+                for (var g = 0; g < offers.Count; g++)
                 {
-                    string group = g < grounds.Grounds.Count && grounds.Grounds[g].Length > 0 ? grounds.Grounds[g] : "(the group with no name)";
-                    foreach ((string material, int weight) in grounds.Choices[g])
+                    string group = unlisted.Length > 0 ? unlisted
+                        : g < grounds.Grounds.Count && grounds.Grounds[g].Length > 0 ? grounds.Grounds[g] : "(the group with no name)";
+                    foreach ((string material, int weight) in offers[g])
                     {
                         int known = candidates.FindIndex(one => string.Equals(one.Material, material, StringComparison.OrdinalIgnoreCase) && one.Group == group);
                         if (known >= 0)
@@ -234,7 +241,7 @@ internal static class CaptureGroundChoices
                     string.Create(CultureInfo.InvariantCulture, $"{file} c{sub.X}r{sub.Y}"),
                     pieceAt,
                     pieceName,
-                    [.. grounds.Grounds.Select(name => name.Length > 0 ? name : "(the group with no name)")],
+                    unlisted.Length > 0 && grounds.Grounds.Count == 1 ? [unlisted] : [.. grounds.Grounds.Select(name => name.Length > 0 ? name : unlisted.Length > 0 ? unlisted : "(the group with no name)")],
                     [.. candidates],
                     new HashSet<string>(grounds.Materials, StringComparer.OrdinalIgnoreCase)));
             }
@@ -578,7 +585,7 @@ internal static class CaptureGroundChoices
         int clear = Enumerable.Range(0, subTiles.Count).Count(id => winners[id] >= 0);
         var said = new StringBuilder();
         said.Append(string.Create(CultureInfo.InvariantCulture,
-            $"material choices: {measured} pixels in {sized} sub-tiles of at least {Least} pixels - every material each sub-tile's grounds' groups offer, read over the sub-tile's ground at the level the picture reads (its coordinates the world times {GroundPainter.GroundScale}) and held against the game's picture's detail (its brightness less its mean over nine by nine pixels), summed in cells of {Cell} units; each material shifted up to {Window * Cell} units each way for its best line-up (the stones line up within a few units or not at all), z how many spreads that stands over the same material shifted {Away[0].X * Cell} and {Away[32].X * Cell} units, where nothing lines up. A winner is clear at z {Clear} and {Lead} over the next material's best; {clear} of {sized} sub-tiles have one - {Enumerable.Range(0, subTiles.Count).Count(id => winners[id] >= 0 && subTiles[id].Grounds.Count == 1)} of the {oneGround} of one ground, the clean test\n"));
+            $"material choices: {measured} pixels in {sized} sub-tiles of at least {Least} pixels - every material each sub-tile's grounds' groups offer - every material of the list where it names a ground the list does not - read over the sub-tile's ground at the level the picture reads (its coordinates the world times {GroundPainter.GroundScale}) and held against the game's picture's detail (its brightness less its mean over nine by nine pixels), summed in cells of {Cell} units; each material shifted up to {Window * Cell} units each way for its best line-up (the stones line up within a few units or not at all), z how many spreads that stands over the same material shifted {Away[0].X * Cell} and {Away[32].X * Cell} units, where nothing lines up. A winner is clear at z {Clear} and {Lead} over the next material's best; {clear} of {sized} sub-tiles have one - {Enumerable.Range(0, subTiles.Count).Count(id => winners[id] >= 0 && subTiles[id].Grounds.Count == 1)} of the {oneGround} of one ground, the clean test\n"));
         foreach ((string material, ShadeProgram? program) in programs.Where(one => one.Value is null))
         {
             said.Append("  not read: ").Append(material).Append(" - its graphs did not compile or a texture did not read\n");

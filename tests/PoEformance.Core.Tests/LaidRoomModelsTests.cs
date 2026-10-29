@@ -204,11 +204,13 @@ public class LaidRoomModelsTests
     }
 
     /// <summary>
-    /// The pieces over a block: a file several tiles across counted once, by its sub-tiles, whatever frame they are counted in - and one that is not whole said so.
+    /// The pieces over a block: a file several tiles across counted once, by the corner its sub-tiles name - and one that is not whole said so.
     /// </summary>
     /// <remarks>
     /// Two pieces of one two by one file side by side, laid as authored; one laid a quarter round,
-    /// standing one by two; a one by one; and a two by one file with only one of its tiles laid.
+    /// standing one by two, its tiles naming their places down the area as the game names them (counted
+    /// in the laid footprint, MEASURED - see TerrainTiles.Pieces); a one by one; and a two by one file
+    /// with only one of its tiles laid.
     /// </remarks>
     [Fact]
     public void APIECESeveralTilesAcrossIsCountedOnceByItsSubTiles()
@@ -239,7 +241,7 @@ public class LaidRoomModelsTests
 
         // Rows 1-2: a two-by-one laid a quarter round, standing one across by two down.
         Lay(0, 1, 0, 0, 0, 6);
-        Lay(0, 2, 0, 1, 0, 6);
+        Lay(0, 2, 0, 0, 1, 6);
         var tiles = new TerrainTiles(["a.tdt", "b.tdt", "c.tdt"], ids, subX, subY, placements, across, down);
 
         List<TilePiece> pieces = tiles.Pieces(0, 0, across, down, id => id == 1 ? (1, 1) : (2, 1));
@@ -253,6 +255,38 @@ public class LaidRoomModelsTests
 
         // A block that holds only part of a piece still finds all of it.
         Assert.Equal([new TilePiece(0, 3, 2, 0, 3, 0, Whole: true)], tiles.Pieces(3, 0, 1, 1, _ => (2, 1)));
+    }
+
+    /// <summary>
+    /// Two pieces of one file laid the same way side by side stay two whole pieces from a block that starts inside the second.
+    /// </summary>
+    /// <remarks>
+    /// Crimson Shores' boss room (v0.1.343's capture): two <c>deep_fill_01</c>, three by three, laid the same way at tiles 9 and 12
+    /// of a row, the room's block starting at 12. The flood fill before v0.1.344 joined the first piece's last column (names 2,
+    /// 0..2) to the second's first two - no name clashes across the seam - drew it a tile off its place and left its own last
+    /// column out as not whole: a hole in the sea floor.
+    /// </remarks>
+    [Fact]
+    public void TWOPIECESOfOneFileSideBySideStayTwoFromABlockInsideTheSecond()
+    {
+        const int across = 6;
+        const int down = 3;
+        var ids = new int[across * down];
+        var subX = new byte[ids.Length];
+        var subY = new byte[ids.Length];
+        var placements = new sbyte[ids.Length];
+        Array.Fill(placements, (sbyte)1);
+        for (var at = 0; at < ids.Length; at++)
+        {
+            (subX[at], subY[at]) = ((byte)(at % across % 3), (byte)(at / across));
+        }
+
+        var tiles = new TerrainTiles(["deep_fill_01.tdt"], ids, subX, subY, placements, across, down);
+
+        Assert.Equal([new TilePiece(0, 1, 3, 0, 5, 2, Whole: true)], tiles.Pieces(3, 0, 3, 3, _ => (3, 3)));
+        Assert.Equal(
+            [new TilePiece(0, 1, 0, 0, 2, 2, Whole: true), new TilePiece(0, 1, 3, 0, 5, 2, Whole: true)],
+            tiles.Pieces(2, 0, 4, 3, _ => (3, 3)));
     }
 
     /// <summary>

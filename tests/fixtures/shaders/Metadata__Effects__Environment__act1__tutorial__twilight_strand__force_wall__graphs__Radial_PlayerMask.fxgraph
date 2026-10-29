@@ -1,0 +1,387 @@
+{
+    "version": 3,
+    "shader_group": [
+        "Material"
+    ],
+    "use_start_time": true,
+    "nodes": [
+        {
+            "type": "InputWorldPos",
+            "index": 0,
+            "stage": "PreLighting",
+            "ui_position": [
+                93.69091796875,
+                140.09518432617188
+            ]
+        },
+        {
+            "type": "WorldPos",
+            "index": 0,
+            "stage": "PreLighting",
+            "ui_position": [
+                1773.0670166015626,
+                142.7294921875
+            ]
+        },
+        {
+            "type": "InputAlbedoColor",
+            "index": 0,
+            "stage": "PreLighting",
+            "ui_position": [
+                93.69091796875,
+                140.09518432617188
+            ]
+        },
+        {
+            "type": "ConstantFloat2",
+            "index": 4,
+            "parameters": [
+                {
+                    "value": [
+                        0.5,
+                        0.5
+                    ]
+                }
+            ],
+            "custom_parameter": "02.Mask_Feathering",
+            "ui_position": [
+                669.2936401367188,
+                647.9688110351563
+            ]
+        },
+        {
+            "type": "LocalPlayerPosition",
+            "index": 0,
+            "ui_position": [
+                -230.0,
+                323.0
+            ]
+        },
+        {
+            "type": "Subtract3",
+            "index": 0,
+            "ui_position": [
+                452.0235595703125,
+                491.2504577636719
+            ]
+        },
+        {
+            "type": "Length3",
+            "index": 0,
+            "ui_position": [
+                642.8804931640625,
+                491.4285583496094
+            ]
+        },
+        {
+            "type": "ModelTransformDecompose",
+            "index": 0,
+            "ui_position": [
+                26.059463500976564,
+                897.0000610351563
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 1,
+            "parameters": [
+                {
+                    "value": 500.0
+                }
+            ],
+            "custom_parameter": "02.Mask_Radius",
+            "ui_position": [
+                336.1114196777344,
+                1071.4920654296876
+            ]
+        },
+        {
+            "type": "Multiply",
+            "index": 3,
+            "ui_position": [
+                708.0592651367188,
+                1050.2860107421876
+            ]
+        },
+        {
+            "type": "Divide",
+            "index": 0,
+            "ui_position": [
+                914.8807373046875,
+                495.99993896484377
+            ]
+        },
+        {
+            "type": "SmoothStep",
+            "index": 3,
+            "ui_position": [
+                1125.9603271484376,
+                478.9677429199219
+            ]
+        },
+        {
+            "type": "OneMinus",
+            "index": 0,
+            "ui_position": [
+                1368.7745361328126,
+                479.92620849609377
+            ]
+        },
+        {
+            "type": "FitRange",
+            "index": 0,
+            "parameters": [
+                {},
+                {
+                    "value": 1.0
+                },
+                {},
+                {
+                    "value": 1.0
+                }
+            ],
+            "custom_parameter": "FitRange",
+            "ui_position": [
+                1236.142822265625,
+                219.80142211914063
+            ]
+        },
+        {
+            "type": "Multiply",
+            "index": 4,
+            "ui_position": [
+                1579.4451904296876,
+                187.77769470214845
+            ]
+        },
+        {
+            "type": "AlbedoColor",
+            "index": 0,
+            "stage": "PreLighting",
+            "ui_position": [
+                1773.0670166015626,
+                142.7294921875
+            ]
+        }
+    ],
+    "links": [
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "PreLighting",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "WorldPos",
+                "index": 0,
+                "stage": "PreLighting",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "PreLighting",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Subtract3",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "LocalPlayerPosition",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Subtract3",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Subtract3",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Length3",
+                "index": 0,
+                "variable": "vec"
+            }
+        },
+        {
+            "src": {
+                "type": "ModelTransformDecompose",
+                "index": 0,
+                "variable": "scale",
+                "swizzle": "x"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 3,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 3,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Length3",
+                "index": 0,
+                "variable": "len"
+            },
+            "dst": {
+                "type": "Divide",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Divide",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 4,
+                "variable": "output",
+                "swizzle": "x"
+            },
+            "dst": {
+                "type": "SmoothStep",
+                "index": 3,
+                "variable": "center"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 4,
+                "variable": "output",
+                "swizzle": "y"
+            },
+            "dst": {
+                "type": "SmoothStep",
+                "index": 3,
+                "variable": "steepness"
+            }
+        },
+        {
+            "src": {
+                "type": "Divide",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SmoothStep",
+                "index": 3,
+                "variable": "in_value"
+            }
+        },
+        {
+            "src": {
+                "type": "SmoothStep",
+                "index": 3,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "OneMinus",
+                "index": 0,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "OneMinus",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "FitRange",
+                "index": 0,
+                "variable": "value"
+            }
+        },
+        {
+            "src": {
+                "type": "InputAlbedoColor",
+                "index": 0,
+                "stage": "PreLighting",
+                "variable": "output",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 4,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "FitRange",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 4,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "AlbedoColor",
+                "index": 0,
+                "stage": "PreLighting",
+                "variable": "input",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "InputAlbedoColor",
+                "index": 0,
+                "stage": "PreLighting",
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "AlbedoColor",
+                "index": 0,
+                "stage": "PreLighting",
+                "variable": "input",
+                "swizzle": "xyz"
+            }
+        }
+    ]
+}

@@ -245,6 +245,28 @@ V0.1.330 DREW ALL THREE AS THE GAME DOES (said from the live client with picture
 throne, the spyglass in his left hand, the wheel round his neck in every animation, `emerge_idle_01` included. In `wheel_spin_01` his
 own hand turns the wheel round his neck in step with it - the first evidence from the game that joining a rider's animation by each
 one's rate (CHOSEN above) holds.
+VOLKHAR ON CRIMSON SHORES' STAGE (fishery_boss, said from the live client with two pictures and a capture, v0.1.343): the arena floor
+white with red bands, the rocks pink, dark red domes along its back, the water pale, and a dark rectangle in the sea. Five causes, each
+read from the capture, v0.1.344 mends them:
+- THE HOLE WAS A PIECE THE SEARCH BROKE (`TerrainTiles.Pieces`): two `deep_fill_01` laid the same way side by side, the room's block
+  starting at the second; the flood fill took the first's last column (names 2, 0..2) for the second's, drew it a tile off and left its
+  own last column out as not whole. A piece is now the tiles naming one least corner (place less name - MEASURED: v0.1.248's Port, every
+  placement of this room). Over eleven captures the old search split pieces in up to 412 of 624 blocks (Titan Grotto; Port 221 of 403),
+  the new in none - every laid room whose block starts inside a piece had holes or shifted tiles.
+- THE MASTER'S TileMaterialOverrides (`material_overrides.tmo`) reached a lone tile only: a laid or built room now puts them on its tiles
+  (`TileModels.Apart`) and on the tiles' own `.tmd` doodads (`MonsterModels.Swapped`), the room's own doodads as they are (DECIDED from
+  the live client: the file names `CorruptionGradientc.mat`, the tendrils of a tile's `.tmd`). Crimson Shores' swaps its rocky edges and
+  stromatolites to the dark Vastiri ones and the tendrils to the mask nothing draws.
+- THE DOMES ARE THE ARENA'S TEN FORCE WALLS (`BossForceFieldDoorVisuals`, twilight_strand's force_wall, colour 0.155, 0.012, 0.012), whose
+  materials end in `Radial_PlayerMask.fxgraph`: shown within 500 units times their scale of the local player. The compile knew neither
+  LocalPlayerPosition nor ModelTransformDecompose; now the player stands at `ShadeProgram.NoPlayer` (CHOSEN from the live client: no player
+  on a stage) and the transform's scale is one, so the walls show nowhere, as in the game far from the player.
+- THE WHITE GROUND: StromatoliteDeep and StromatoliteShallow, the sea floor along the shore, are in no group of the area's `materials.mtd`
+  (106 sub-tiles), and the arena's stromatolite tiles carry no ground grid and name no ground at their own corners (18). Both now take
+  the group with no name (`GroundPainter.SetOf`): the unlisted grounds CHOSEN until measured, the own corners DECIDED from the live
+  client. And two groups offering the same materials at the same weights draw as one - seven of the list's eight are the same three sands.
+  `ground-on-screen.txt`'s choices hold a sub-tile of an unlisted ground against EVERY material of the list (`SubTileGrounds.Everything`):
+  a capture with the shore's sea floor on the game's picture says what the game draws there.
 
 ## Verify against the game, not against yourself
 

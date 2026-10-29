@@ -2598,6 +2598,63 @@ public static class MonsterModels
         };
     }
 
+    /// <summary>
+    /// A loaded model with a tileset's material swaps put on its shapes - each swapped shape wearing the material the area draws, its
+    /// blend and colour map that material's - or the model itself where none of its materials is swapped.
+    /// </summary>
+    /// <remarks>
+    /// FOR A TILE'S OWN DOODADS (its <c>.tmd</c>), laid in a room: the master's TileMaterialOverrides swap what the tiles it places
+    /// wear, and Crimson Shores' names the material of a tile doodad - <c>CorruptionGradientc.mat</c>, the tendrils of its stromatolite
+    /// tiles, to the mask nothing draws - so the swap reaches the tile's doodads as well as its mesh (DECIDED from the live client,
+    /// 2026-10-29). As a tile's mesh takes it (TileModels' Runs): the swap is the whole material, any selector after it dropped.
+    /// The room compiles its shapes from what they wear once they are joined (Shaded), so the swapped material is the one compiled.
+    /// </remarks>
+    internal static MonsterModel Swapped(Func<string, byte[]?> read, MonsterModel model, IReadOnlyDictionary<string, string> swaps, Paints paints)
+    {
+        if (!model.Ready || swaps.Count == 0)
+        {
+            return model;
+        }
+
+        int count = model.Mesh.Shapes.Count;
+        string[]? wearing = null;
+        for (var shape = 0; shape < count && shape < model.ShapeMaterials.Count; shape++)
+        {
+            string material = model.ShapeMaterials[shape];
+            if (material.Length > 0 && swaps.TryGetValue(MaterialFile.Bare(material).Replace('\\', '/').Trim(), out string? swap))
+            {
+                wearing ??= [.. model.ShapeMaterials];
+                wearing[shape] = swap;
+            }
+        }
+
+        if (wearing is null)
+        {
+            return model;
+        }
+
+        var skins = new Mipmaps?[count];
+        var modes = new string[count];
+        var textures = new string[count];
+        for (var shape = 0; shape < count; shape++)
+        {
+            skins[shape] = shape < model.Skins.Count ? model.Skins[shape] : model.Skin;
+            modes[shape] = shape < model.Modes.Count ? model.Modes[shape] : string.Empty;
+            textures[shape] = shape < model.ShapeTextures.Count ? model.ShapeTextures[shape] : string.Empty;
+            if (shape >= wearing.Length || ReferenceEquals(wearing[shape], model.ShapeMaterials[shape]))
+            {
+                continue;
+            }
+
+            modes[shape] = paints.Modes(read, wearing[shape]).Last;
+            (Mipmaps? worn, _, string texture, _) = Colour(read, model.Mesh, wearing[shape], paints);
+            skins[shape] = worn;
+            textures[shape] = worn is not null ? texture : string.Empty;
+        }
+
+        return model with { ShapeMaterials = wearing, Skins = skins, Modes = modes, ShapeTextures = textures };
+    }
+
     /// <summary>What the shapes ended up wearing, and how sure the walk is about it.</summary>
     /// <param name="Skins">One texture per shape, in the mesh's order.</param>
     /// <param name="Materials">The distinct materials they came out of.</param>

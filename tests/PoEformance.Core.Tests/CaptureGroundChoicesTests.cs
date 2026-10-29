@@ -20,7 +20,55 @@ public sealed class CaptureGroundChoicesTests
     [Fact]
     public void THEMATERIALWhosePatternThePictureShowsWinsLinedUp()
     {
-        const int width = 100, height = 100;
+        var grounds = new SubTileGrounds(["Metadata/Test/sand.gt", "Metadata/Test/sand.gt", "Metadata/Test/sand.gt", "Metadata/Test/sand.gt"], ["Sand"], string.Empty)
+        {
+            Gridded = true,
+            Materials = ["Art/noise-b.mat"],
+            Choices = [[("Art/noise-a.mat", 30), ("Art/noise-b.mat", 70)]],
+        };
+
+        string said = Measured(grounds, out GamePicture? picture);
+
+        Assert.StartsWith("material choices: 10000 pixels in 1 sub-tiles of at least 200 pixels", said, StringComparison.Ordinal);
+        Assert.Contains("1 of 1 sub-tiles have one - 1 of the 1 of one ground, the clean test", said, StringComparison.Ordinal);
+        Assert.Contains("the clear winners lined up shifted by (+6, -4) units at the median", said, StringComparison.Ordinal);
+        Assert.Contains(" noise-a weight 30 (30%), red: won 1 (10000 px);", said, StringComparison.Ordinal);
+        Assert.Contains(" noise-b weight 70 (70%), the painter's, green: won 0 (0 px);", said, StringComparison.Ordinal);
+        Assert.Contains("    t at tile 0, 0 · 1 sub-tiles: noise-a x1", said, StringComparison.Ordinal);
+        Assert.Contains(" *noise-a r +", said, StringComparison.Ordinal);
+        Assert.Contains(" at (+6, -4); noise-b r ", said, StringComparison.Ordinal);
+        GamePicture tinted = Assert.IsType<GamePicture>(picture);
+        Assert.True(tinted.Rgba[((50 * Wide) + 50) * 4] > tinted.Rgba[(((50 * Wide) + 50) * 4) + 2]);
+    }
+
+    /// <summary>
+    /// A sub-tile naming a ground the MaterialsList does not is held against every material of the list, under that ground's name -
+    /// the painter's being the group with no name's (CHOSEN) - so the capture says which the game drew there.
+    /// </summary>
+    [Fact]
+    public void ANUNLISTEDGroundIsHeldAgainstEveryMaterialOfTheList()
+    {
+        const string Deep = "Metadata/Test/stromatolite_deep.gt";
+        var grounds = new SubTileGrounds([Deep, Deep, Deep, Deep], [""], string.Empty)
+        {
+            Gridded = true,
+            Materials = ["Art/noise-b.mat"],
+            Choices = [[("Art/noise-b.mat", 70)]],
+            Unlisted = ["StromatoliteDeep"],
+            Everything = [("Art/noise-b.mat", 0), ("Art/noise-a.mat", 0)],
+        };
+
+        string said = Measured(grounds, out _);
+
+        Assert.Contains("  StromatoliteDeep, which the list does not name · 1 sub-tiles of it alone on the screen: noise-b weight 0, the painter's, red: won 0 (0 px); noise-a weight 0, green: won 1 (10000 px);", said, StringComparison.Ordinal);
+        Assert.Contains("    t c1r1 · 10000 px · StromatoliteDeep, which the list does not name · *noise-a r +", said, StringComparison.Ordinal);
+    }
+
+    private const int Wide = 100, Tall = 100;
+
+    /// <summary>The choices measured over one sub-tile a picture wide, the picture the first noise as its own program draws it, each place shifted by (6, -4).</summary>
+    private static string Measured(SubTileGrounds grounds, out GamePicture? picture)
+    {
         var mesh = SkinnedMesh.Of(
             [new Vector3(0f, 0f, 0f), new Vector3(250f, 0f, 0f), new Vector3(0f, 250f, 0f), new Vector3(250f, 250f, 0f)],
             [Vector3.UnitZ, Vector3.UnitZ, Vector3.UnitZ, Vector3.UnitZ],
@@ -28,12 +76,6 @@ public sealed class CaptureGroundChoicesTests
             Vector3.Zero,
             new Vector3(250f, 250f, 0f));
         var laid = new LaidGround("Metadata/Test/t.tdt", new TilePiece(0, 3, 0, 0, 0, 0, Whole: true), mesh, [new GroundPiece(1, 1, 2)], Matrix4x4.Identity);
-        var grounds = new SubTileGrounds(["Metadata/Test/sand.gt", "Metadata/Test/sand.gt", "Metadata/Test/sand.gt", "Metadata/Test/sand.gt"], ["Sand"], string.Empty)
-        {
-            Gridded = true,
-            Materials = ["Art/noise-b.mat"],
-            Choices = [[("Art/noise-a.mat", 30), ("Art/noise-b.mat", 70)]],
-        };
 
         // THE CAMERA: the sub-tile's 250 units across the picture's hundred pixels, x right and y down.
         var matrix = new float[16];
@@ -53,31 +95,20 @@ public sealed class CaptureGroundChoicesTests
 
         // THE PICTURE: the first noise as its own program draws it, each pixel's place shifted by (6, -4).
         var reader = new ShadeProgram.GroundReader(noiseA);
-        reader.Triangle(Vector3.Zero, new Vector3(250f, 0f, 0f), new Vector3(0f, 250f, 0f), Vector2.Zero, new Vector2(width, 0f), new Vector2(0f, height), GroundPainter.GroundScale);
-        var bgr = new byte[width * height * 3];
-        for (var y = 0; y < height; y++)
+        reader.Triangle(Vector3.Zero, new Vector3(250f, 0f, 0f), new Vector3(0f, 250f, 0f), Vector2.Zero, new Vector2(Wide, 0f), new Vector2(0f, Tall), GroundPainter.GroundScale);
+        var bgr = new byte[Wide * Tall * 3];
+        for (var y = 0; y < Tall; y++)
         {
-            for (var x = 0; x < width; x++)
+            for (var x = 0; x < Wide; x++)
             {
                 var place = new Vector3(((x + 0.5f) * 2.5f) + 6f, ((y + 0.5f) * 2.5f) - 4f, 0f);
                 var value = (byte)Math.Clamp((int)(reader.BrightnessAt(place, GroundPainter.GroundScale) * 255f), 0, 255);
-                int at = ((y * width) + x) * 3;
+                int at = ((y * Wide) + x) * 3;
                 bgr[at] = bgr[at + 1] = bgr[at + 2] = value;
             }
         }
 
-        string said = CaptureGroundChoices.Measure([new CaptureGroundChoices.Piece(laid, [grounds])], matrix, width, height, bgr, Programs, out GamePicture? picture);
-
-        Assert.StartsWith("material choices: 10000 pixels in 1 sub-tiles of at least 200 pixels", said, StringComparison.Ordinal);
-        Assert.Contains("1 of 1 sub-tiles have one - 1 of the 1 of one ground, the clean test", said, StringComparison.Ordinal);
-        Assert.Contains("the clear winners lined up shifted by (+6, -4) units at the median", said, StringComparison.Ordinal);
-        Assert.Contains(" noise-a weight 30 (30%), red: won 1 (10000 px);", said, StringComparison.Ordinal);
-        Assert.Contains(" noise-b weight 70 (70%), the painter's, green: won 0 (0 px);", said, StringComparison.Ordinal);
-        Assert.Contains("    t at tile 0, 0 · 1 sub-tiles: noise-a x1", said, StringComparison.Ordinal);
-        Assert.Contains(" *noise-a r +", said, StringComparison.Ordinal);
-        Assert.Contains(" at (+6, -4); noise-b r ", said, StringComparison.Ordinal);
-        GamePicture tinted = Assert.IsType<GamePicture>(picture);
-        Assert.True(tinted.Rgba[((50 * width) + 50) * 4] > tinted.Rgba[(((50 * width) + 50) * 4) + 2]);
+        return CaptureGroundChoices.Measure([new CaptureGroundChoices.Piece(laid, [grounds])], matrix, Wide, Tall, bgr, Programs, out picture);
     }
 
     /// <summary>The detail is the brightness less its mean over nine by nine pixels: nought on an even picture, the stripes left on a striped one.</summary>
