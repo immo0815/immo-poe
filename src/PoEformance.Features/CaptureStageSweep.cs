@@ -505,13 +505,19 @@ public static class CaptureStageSweep
             bool texture = (shape < model.Skins.Count ? model.Skins[shape] : model.Skin) is not null;
             bool ground = source.StartsWith(RoomModels.GroundSource, StringComparison.Ordinal);
             bool file = material.EndsWith(".mat", StringComparison.OrdinalIgnoreCase) || MaterialFile.Bare(material).EndsWith(".mat", StringComparison.OrdinalIgnoreCase);
-            if (mode == "water")
+            if (MonsterModels.Paints.IsWaterMode(mode))
             {
-                count(program ? "water: drawn as the area's water" : "water: a water shape drawn white", triangles, subject);
+                count(
+                    !program ? "water: a water shape drawn white"
+                    : mode == MonsterModels.Paints.RiverMode ? "water: drawn as the area's water on the river's surface at no flow"
+                    : mode == MonsterModels.Paints.StillMode ? "water: drawn as the area's water, standing"
+                    : "water: drawn as the area's water",
+                    triangles,
+                    subject);
             }
 
             if (file && paints.Paint(read, MaterialFile.Bare(material)).ShaderType is { Length: > 0 } type
-                && !ShadeProgram.IsOcean(type))
+                && ShadeProgram.KindOf(type) == WaterKind.None)
             {
                 count("water: a material of the shader type " + type + " drawn as an ordinary material", triangles, subject);
             }

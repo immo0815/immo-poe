@@ -51,8 +51,8 @@ public sealed partial class ModelGpu
     /// <summary>Why the card's wetness pass is not drawn, or empty - for the line under the picture.</summary>
     public string WetWhy => _wetWhy;
 
-    /// <summary>Whether a run casts wetness: the water's, and the beach's where its program has a wetness to cast.</summary>
-    private static bool Casts(Run run, Plan plan) => Sea(run, plan) || (Beach(run, plan) && plan.Programs[run.Shade].Wetness is not null);
+    /// <summary>Whether a run casts wetness: the water's of any kind, and the beach's where its program has a wetness to cast.</summary>
+    private static bool Casts(Run run, Plan plan) => Water(run, plan) || (Beach(run, plan) && plan.Programs[run.Shade].Wetness is not null);
 
     /// <summary>Whether the plan held both something reading the wetness and something casting it - asked once a plan, a room having thousands of runs.</summary>
     private (Plan Plan, bool Both)? _wetPlan;
@@ -123,7 +123,7 @@ public sealed partial class ModelGpu
         for (var at = 0; at < plan.Runs.Length; at++)
         {
             Run run = plan.Runs[at];
-            if (Sea(run, plan))
+            if (Water(run, plan))
             {
                 context.VSSetShader(_placed);
                 context.PSSetShader(_wetWater);

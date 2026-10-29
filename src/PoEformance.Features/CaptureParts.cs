@@ -562,7 +562,9 @@ public static class CaptureParts
             + "engine draws its shore field by, sought in the whole of the game's memory on every core: beside every place the "
             + "scene's size is kept (250 world units a tile, both ways round, and the walkable grid's cells), the texture sizes, "
             + "boxes, int pairs and small factors standing there - its box, its texture's size and dist_to_color among them - each "
-            + "window written whole. It stops itself at ninety seconds; the capture's window shows how far it is and stops it on a click."),
+            + "window written whole - and, for a river's flow map (made at run time, drawn at no flow until it is read), every box "
+            + "inside the scene with whole corners and the grids at the environments' flow resolutions: press it in an area with a "
+            + "river. It stops itself at ninety seconds; the capture's window shows how far it is and stops it on a click."),
         new(Memory, "Memory", "memory recording", CaptureReport.MemoryFile,
             "The overlay's own reads for three seconds, and inside them one pass reading once more from nothing whatever the "
             + "ticked parts above ask for - memory.txt beside it says what the pass read where. Replays with --replay, game closed."),

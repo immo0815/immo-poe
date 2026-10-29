@@ -52,8 +52,11 @@ public static class OceanMarkupHunt
     /// <summary>How each map writes a category, by how many cells hold it - the commonest first.</summary>
     private const string Ranks = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-    /// <summary>The tile multiples a grid may be laid at: whole tiles, the shoreline's resolutions, sub-tiles and cells.</summary>
-    private static readonly int[] Multiples = [1, 2, 3, 4, 6, 8, 12, 16, 23, 46];
+    /// <summary>
+    /// The tile multiples a grid may be laid at: whole tiles, the shoreline's resolutions, sub-tiles and cells - and the environments'
+    /// water.flow_resolution, 1 to 8 (water.txt; Port 7), for the grid a river's flow map is made from (v0.1.351, RiverMarkupField's bools).
+    /// </summary>
+    private static readonly int[] Multiples = [1, 2, 3, 4, 6, 7, 8, 12, 16, 23, 46];
 
     /// <summary>The cell steps a grid may be laid at - a grid of one value a k by k cells.</summary>
     private static readonly int[] CellSteps = [2, 3, 4, 6, 8];

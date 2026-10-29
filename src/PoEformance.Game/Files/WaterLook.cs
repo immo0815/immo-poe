@@ -28,6 +28,8 @@ namespace PoEformance.Game.Files;
 /// GetRefractedOpaqueSurface's (SceneLight.WaterRefraction).</param>
 /// <param name="CausticsMult">water.caustics_mult: how strongly the light seen through the water is patterned by the caustics -
 /// <c>water_caustics_mult</c>, GetRefractedOpaqueSurface's (SceneLight.WaterCaustics).</param>
+/// <param name="FlowFoam">water.flow_foam: how much the river's foam grows with its flow - <c>water_flow_foam</c>, GetFlowingWaterPlanarStateWorld's
+/// (ShadeProgram.RiverFoam).</param>
 /// <remarks>
 /// AN AREA'S FILE OR THE ENGINE'S OWN DEFAULT, per value. Most areas set no water colour - Port sets
 /// only its flow and a height offset - and what the engine draws them with is written in no file: it
@@ -60,7 +62,8 @@ public readonly record struct WaterLook(
     float SwellIntensity = WaterLook.DefaultSwellIntensity,
     float SubsurfaceScattering = WaterLook.DefaultSubsurfaceScattering,
     float RefractionIndex = WaterLook.DefaultRefractionIndex,
-    float CausticsMult = WaterLook.DefaultCausticsMult)
+    float CausticsMult = WaterLook.DefaultCausticsMult,
+    float FlowFoam = WaterLook.DefaultFlowFoam)
 {
     /// <summary>The engine's open water colour where a file sets none - ParsedEnvironment.WaterOpenColor, measured in Port, Clearfell and The Red Vale.</summary>
     public static readonly Vector3 DefaultOpenColour = new(0.1f, 0.19f, 0.22f);
@@ -120,6 +123,12 @@ public readonly record struct WaterLook(
     public const float DefaultCausticsMult = 1f;
 
     /// <summary>
+    /// How much the river's foam grows with its flow where a file sets none - ParsedEnvironment.WaterFlowFoam, MEASURED: Port's 1 with a
+    /// flag of nought, the slot named by Clearfell's and The Red Vale's files (0.5 and 0.3).
+    /// </summary>
+    public const float DefaultFlowFoam = 1f;
+
+    /// <summary>
     /// The medium's scattering where a file sets none - ParsedEnvironment.WaterSubsurfaceScattering: Port's default one with a flag of
     /// nought, the slot named by The Red Vale's file (light-hunt.txt, v0.1.212).
     /// </summary>
@@ -156,8 +165,8 @@ public readonly record struct WaterLook(
         MathF.Pow(Math.Clamp(OpenColour.Z, 0f, 1f), 2.2f),
         MathF.Max(0f, Murkiness));
 
-    /// <summary>The flow the program reads, in x, the reflectiveness in y and the height offset in z.</summary>
-    public Vector4 FlowRegister => new(FlowIntensity, MathF.Max(0f, Reflectiveness), HeightOffset, 0f);
+    /// <summary>The flow the program reads, in x, the reflectiveness in y, the height offset in z and the river's flow_foam in w.</summary>
+    public Vector4 FlowRegister => new(FlowIntensity, MathF.Max(0f, Reflectiveness), HeightOffset, FlowFoam);
 
     /// <summary>The wind the ocean's ripples read: its way's angle in x, their height in y, their speed in z and how much they line up in w - see ShadeProgram.WindRipples.</summary>
     public Vector4 WindRegister => new(WindAngle, WindIntensity, WindSpeed, Directionness);
@@ -180,7 +189,7 @@ public readonly record struct WaterLook(
         float murkiness = DefaultMurkiness, flow = DefaultFlowIntensity, height = DefaultHeightOffset, reflectiveness = DefaultReflectiveness;
         float windAngle = DefaultWindAngle, windIntensity = DefaultWindIntensity, windSpeed = DefaultWindSpeed, directionness = DefaultDirectionness;
         float swellHeight = DefaultSwellHeight, swellPeriod = DefaultSwellPeriod, swellIntensity = DefaultSwellIntensity;
-        float scattering = DefaultSubsurfaceScattering, index = DefaultRefractionIndex, caustics = DefaultCausticsMult;
+        float scattering = DefaultSubsurfaceScattering, index = DefaultRefractionIndex, caustics = DefaultCausticsMult, flowFoam = DefaultFlowFoam;
         var set = new List<string>(12);
         foreach (EnvironmentValue value in env.Water)
         {
@@ -249,17 +258,21 @@ public readonly record struct WaterLook(
                     caustics = value.Values[0];
                     set.Add("caustics");
                     break;
+                case "flow_foam" when value.Values.Count >= 1:
+                    flowFoam = value.Values[0];
+                    set.Add("flow foam");
+                    break;
             }
         }
 
         return new WaterLook(
             colour, murkiness, flow, height,
             set.Count == 0 ? "every value the engine's default" : $"{string.Join(", ", set)} from the file, the rest the engine's default",
-            reflectiveness, windAngle, windIntensity, windSpeed, directionness, swellHeight, swellPeriod, swellIntensity, scattering, index, caustics);
+            reflectiveness, windAngle, windIntensity, windSpeed, directionness, swellHeight, swellPeriod, swellIntensity, scattering, index, caustics, flowFoam);
     }
 
     /// <summary>The numbers and where they came from, for the line under a picture.</summary>
     public string Line() => string.Create(
         CultureInfo.InvariantCulture,
-        $"water ({OpenColour.X:0.###} {OpenColour.Y:0.###} {OpenColour.Z:0.###}) murkiness {Murkiness:0.####} flow {FlowIntensity:0.##} reflectiveness {Reflectiveness:0.###} wind {WindAngle * 180f / MathF.PI:0}° x{WindIntensity:0.###} speed {WindSpeed:0.##} directionness {Directionness:0.##} swell {SwellHeight:0.#} period {SwellPeriod:0.###} intensity {SwellIntensity:0.##} scattering {SubsurfaceScattering:0.##} refraction index {RefractionIndex:0.###} caustics x{CausticsMult:0.###} - {Said}");
+        $"water ({OpenColour.X:0.###} {OpenColour.Y:0.###} {OpenColour.Z:0.###}) murkiness {Murkiness:0.####} flow {FlowIntensity:0.##} reflectiveness {Reflectiveness:0.###} wind {WindAngle * 180f / MathF.PI:0}° x{WindIntensity:0.###} speed {WindSpeed:0.##} directionness {Directionness:0.##} swell {SwellHeight:0.#} period {SwellPeriod:0.###} intensity {SwellIntensity:0.##} scattering {SubsurfaceScattering:0.##} refraction index {RefractionIndex:0.###} caustics x{CausticsMult:0.###} flow foam {FlowFoam:0.###} - {Said}");
 }

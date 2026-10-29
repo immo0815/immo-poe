@@ -818,7 +818,7 @@ public static class MeshPicture
         // then nothing below changes by so much as a branch per pixel.
         ShadeProgram[] programs = Programmed(mesh, shades, canvas.Shades, triangles);
         float lift = canvas.Light?.WaterLift ?? 0f;
-        bool lifting = lift > 0f && Array.Exists(programs, one => one.HasWaves);
+        bool lifting = lift > 0f && Array.Exists(programs, one => one.Lifts);
         if (lifting)
         {
             places = Lifted(canvas, mesh, places, programs, triangles, lift);
@@ -998,7 +998,7 @@ public static class MeshPicture
             ? Array.ConvertAll(programs, one => one.UsesTime)
             : [];
         // THE LIFTED WATER APART, to be drawn as one surface - see Drawing's Surface.
-        bool[] surface = lifting && translucent ? Array.ConvertAll(programs, one => one.HasWaves) : [];
+        bool[] surface = lifting && translucent ? Array.ConvertAll(programs, one => one.Lifts) : [];
         // THE BEACH APART, drawn over the solid part writing depth - see Drawing's Laid.
         bool[] laid = beaching ? Array.ConvertAll(programs, one => one.Beaches) : [];
         int clocked = Binned(canvas, triangles, ticking, surface, laid, out int sea, out int beach);
@@ -1054,7 +1054,7 @@ public static class MeshPicture
     }
 
     /// <summary>
-    /// The places with the water's vertices lifted by its waves - every vertex of a triangle whose program has them (ShadeProgram.HasWaves) - in the canvas's own buffer.
+    /// The places with the sea's vertices lifted by its waves - every vertex of a triangle whose program is the ocean's (ShadeProgram.Lifts) - in the canvas's own buffer.
     /// </summary>
     /// <remarks>
     /// THE CARD'S PlacedWaves, vertex for vertex: <see cref="ShadeProgram.Ocean"/> at the vertex's x and y,
@@ -1068,7 +1068,7 @@ public static class MeshPicture
         var water = new bool[places.Length];
         for (var one = 0; one < triangles; one++)
         {
-            if (shadeOf[one] >= 0 && programs[shadeOf[one]].HasWaves)
+            if (shadeOf[one] >= 0 && programs[shadeOf[one]].Lifts)
             {
                 water[indices[one * 3]] = true;
                 water[indices[(one * 3) + 1]] = true;
@@ -3055,8 +3055,9 @@ public static class MeshPicture
             {
                 _probe!.Add(ray with { Environment = environment, Added = mirrored, Light = terms });
 
-                // THE SWELL'S FOAM TERM BY TERM, where a shore is drawn under it - the foam the picture shows with the field waves off.
-                if (_water.Shore is { } shore)
+                // THE SWELL'S FOAM TERM BY TERM, where a shore is drawn under the ocean - the foam the picture shows with the field waves
+                // off; a river or standing water carries neither (ShadeProgram.Lifts).
+                if (_water.Shore is { } shore && program is { Lifts: true })
                 {
                     _probe.Add(ShadeProgram.SwellProbe(
                         new Vector2(place.X, place.Y), _water.SwellRegister, _time, held < float.MaxValue ? held - away : float.MaxValue, shore));

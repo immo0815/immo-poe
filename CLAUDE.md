@@ -314,6 +314,40 @@ v0.1.348:
   textures past a mask's size left out and listed. `stage-sweep-replay.txt` reads those files again with today's readers
   (`CaptureStageSweep.Recheck`: each object built, each material compiled, each tile read), so a mend is held against the very files
   offline before the next sweep.
+THE SECOND SWEEP (v0.1.348, Crimson Shores) took the rooms with a white surface from 3,043 to 2,491. Its fourth white cause, 291 rooms,
+was Port's own sea: `Water01c_water1.mat`, `"shadertype":"water1"`, drawn as the ocean from v0.1.349 (above). Mended in v0.1.350, each
+CHOSEN from the live client:
+- A DOODAD SET DRAWS ONE MEMBER A LINE (`RoomModels.Member`): a `_set.ao` is `extends "Metadata/AOSetParent"` and an `AOSet` whose every
+  `ao = "<weight> <path>"` is a member (`WallSand_Cc_set.ao`: three walls at 100 each). The game stands one member at each line; which is
+  its seed's, in no file, so the tool takes one by its weight through a hash of where the line stands - the same room draws the same
+  choice every time; a member that is a set again is chosen from in turn. 145,687 lines in 4,242 rooms drew nothing before.
+  `random_rotation`, `random_flip` and `random_scale_min` in the same `AOSet` are not read.
+- TWO GROUNDS WHOSE TEMPLATE NAMES NO MASK ARE MIXED BY THEIR SUB-TILE'S CORNERS (`GroundPainter`, `Plan.Maskless`): the stand-in the shapes
+  across the mask's atlas take already (v0.1.310), the second ground's share of the four corners, bilinear. The engine mixes them by its
+  own mask through per-tile transforms no file holds (GroundGenerateWeights_2a). A tile with no ground grid has no sub-tile corners and
+  stays plain, said why. 5,329 rooms left them plain before.
+STILL OPEN from that sweep, ranked: rivers and the other water shader types drawn as ordinary materials (`FlowingWater` 1,120 rooms,
+`NonsplashyWater` 254, `NonsplashyFlowingWater` 188, `Swamp_Water` 5) - DECIDED from the live client: the engine's river surface first
+(GetFlowingWaterPlanarStateWorld, its flow map made at run time); `LowerPrisonWaterc.mat` (318 rooms, "nothing to colour it with": an
+empty default graph and no shader type); `BlackInsideWall` named in no MaterialsList (CHOSEN, the group with no name).
+THE RIVER AND STANDING WATER ARE THE ENGINE'S WATER (v0.1.351, `ShadeProgram.KindOf`, `WaterKind`, `ShadeProgram.Water(kind)`; DECIDED
+from the live client). The pass has two surfaces (internalonly.ffx): the ocean's and WaterComputeFlowingSurface, GetFlowingSurface over
+GetFlowingWaterPlanarStateWorld (water.ffx, whole in `water.txt`). `FlowingWater` and `NonsplashyFlowingWater` take the second;
+`NonsplashyWater` and `Swamp_Water` the ocean's surface over no shore - the wind's ripples twice over, no swell, beach or field waves (a
+reading: the program holds `NonsplashyOcean`, and nothing splashes on a pond). Each is the same medium, lit as the ocean is
+(SceneLight.ShadeWater), under a blend word of its own (`MonsterModels.Paints.RiverMode`, `StillMode`) - mixed, but the room's shore, the
+lift and the field waves are the ocean's alone (`OceanMode`; `ShadeProgram.Lifts`, the card's `Sea`); every kind casts its wetness.
+THE RIVER IS DRAWN AT NO FLOW: GetFlowSample reads `flowmap_tex_sampler` over `river_flowmap_planar_aabb`, made at run time by
+`RiverMarkupField(IDevice*, const PointLine*, const MarkupFlowConstraints*, ...)` or its twin over a grid of bools, inputs no file of the
+118,851 water-shore.txt searched names - so the sample is nought throughout, DECIDED from the live client. Then, as written: GetFlowSurfaceField's
+eight octaves on the ripple texture (`ShadeProgram.River`), each pair fading in and out in place, every 3 s and 1.3 times quicker each pair
+(the scroll along the flow nought); its foam GetFlowingFoamColor's one node at 0.2 a second (`RiverFoam`, the strength
+`saturate(0.015 * flow_foam + 0.25)` - `water.flow_foam`, default 1 MEASURED, the flow register's w, the card's lift moved to its depth
+constant's w), reading the engine's distortion texture (`muddle_double.dds`, the caustics', bound for a river too) four times a layer;
+`RiverTests` hold both against water.ffx's statements with HLSL's float2x2s. NOT DRAWN: the flow itself, the bubbles and turbulence it
+makes, the refraction's own ground-water ratio. THE FLOW MAP IS SOUGHT: `ocean-markup.txt` now lists every box inside the scene with
+whole corners beside the scene-sized ones ("inner", `ShoreFieldHunt.Inner`) and lays grids at the flow resolutions' multiple 7 too -
+press it in an area with a river (The Riverbank's `arena_crossing_fastflow`, act 1) before the flow is given a rule.
 
 ## Verify against the game, not against yourself
 

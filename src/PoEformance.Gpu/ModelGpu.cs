@@ -621,11 +621,11 @@ public sealed partial class ModelGpu : IDisposable
 
             // A POINT'S DEPTH IS THE VIEW'S THIRD COLUMN - ShadeProgram.Eye, as MeshPicture hands it.
             Eye = new Vector4(view.M13, view.M23, view.M33, view.M43),
-            Depth = new Vector4(reach, camera.Near, camera.Perspective ? 1f : 0f, 0f),
+            Depth = new Vector4(reach, camera.Near, camera.Perspective ? 1f : 0f, lift),
             Viewer = camera.Perspective ? new Vector4(camera.Viewer, 1f) : default,
             Dust = new Vector4(scene.Dust ?? EnvironmentSettings.AssumedDust, 0f),
             Water = water.ColourRegister,
-            Flow = water.FlowRegister with { W = lift },
+            Flow = water.FlowRegister,
             Wind = water.WindRegister,
             Shore = water.ShoreRegister,
             Swell = water.SwellRegister with { W = !crash ? 0f : light!.WaterBreakByGround ? 2f : 1f },
@@ -668,7 +668,7 @@ public sealed partial class ModelGpu : IDisposable
         context.VSSetShaderResource(ModelShaders.FieldProfileSlot, _fieldProfiled);
 
         // THE FIELD WAVES' FOAM, uploaded the first time the waves are drawn with them on - two sheets with their levels.
-        bool fielded = crash && Array.Exists(plan.Programs, one => one.HasWaves);
+        bool fielded = crash && Array.Exists(plan.Programs, one => one.Lifts);
         context.PSSetShaderResource(ModelShaders.FieldFoamColourSlot, fielded ? Skin(ShadeProgram.FieldFoamColour).View : null!);
         context.PSSetShaderResource(ModelShaders.FieldFoamNormalSlot, fielded ? Skin(ShadeProgram.FieldFoamNormal).View : null!);
         ID3D11ShaderResourceView? shoreView = scene.Water?.Shore is { } shore ? Shored(shore).View : null;
@@ -737,7 +737,9 @@ public sealed partial class ModelGpu : IDisposable
             }
 
             context.PSSetShaderResource(ModelShaders.CausticsSlot, patterned ? Skin(caustics!).View : null!);
-            context.PSSetShaderResource(ModelShaders.DistortionSlot, patterned ? Skin(distortion!).View : null!);
+            // THE DISTORTION ALSO FOR A RIVER'S FOAM (ShadeProgram.RiverFoam), which reads nought where nothing is bound, as the processor's does.
+            bool rivers = distortion is not null && Array.Exists(plan.Programs, one => one.Rivers);
+            context.PSSetShaderResource(ModelShaders.DistortionSlot, patterned || rivers ? Skin(distortion!).View : null!);
 
             var owner = -1;
             var lifted = false;
@@ -789,7 +791,7 @@ public sealed partial class ModelGpu : IDisposable
                 }
 
                 // THE WATER LIFTED BY ITS WAVES - MeshPicture.Lifted - where the game light asks for it.
-                bool waves = lifting && run.Shade >= 0 && plan.Programs[run.Shade].HasWaves;
+                bool waves = lifting && run.Shade >= 0 && plan.Programs[run.Shade].Lifts;
                 if (waves != lifted)
                 {
                     context.VSSetShader(waves ? _placedWaves : _placed);
@@ -871,8 +873,11 @@ public sealed partial class ModelGpu : IDisposable
         context.VSSetShader(_placed);
     }
 
-    /// <summary>Whether a run is the lifted water's - drawn as one surface where the light lifts it (MeshPicture.Drawing's Surface).</summary>
-    private static bool Sea(Run run, Plan plan) => run.Blend == MaterialBlend.Alpha && run.Shade >= 0 && plan.Programs[run.Shade].HasWaves;
+    /// <summary>Whether a run is the lifted water's - the ocean's, drawn as one surface where the light lifts it (MeshPicture.Drawing's Surface).</summary>
+    private static bool Sea(Run run, Plan plan) => run.Blend == MaterialBlend.Alpha && run.Shade >= 0 && plan.Programs[run.Shade].Lifts;
+
+    /// <summary>Whether a run is the engine's water of any kind - the ocean, a river or standing water - each casting its wetness (ModelGpu.Wet).</summary>
+    private static bool Water(Run run, Plan plan) => run.Blend == MaterialBlend.Alpha && run.Shade >= 0 && plan.Programs[run.Shade].HasWaves;
 
     /// <summary>
     /// The lifted water's runs from <paramref name="from"/> on, as one surface: only its nearest crossing of each pixel drawn - MeshPicture.Drawing's Surface, on the card.

@@ -229,7 +229,7 @@ public static class CapturePanes
         var water = new bool[model.Mesh.Shapes.Count];
         for (var shape = 0; shape < water.Length && shape < model.Modes.Count; shape++)
         {
-            water[shape] = model.Modes[shape] == "water";
+            water[shape] = model.Modes[shape] == MonsterModels.Paints.OceanMode;
         }
 
         WaterSeams seams = WaterSeams.Of(model.Mesh, water);
