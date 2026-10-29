@@ -145,6 +145,15 @@ public readonly record struct WaterLook(
     /// </summary>
     public ShoreField? Shore { get; init; }
 
+    /// <summary>
+    /// The area's river flow map, where the drawing is the area's own as the area laid it - see RiverFlow; null elsewhere, where the river is
+    /// drawn at no flow. Not the area's: it is the drawing's, the picture's origin in the area with it.
+    /// </summary>
+    public RiverFlow? Flow { get; init; }
+
+    /// <summary>The flow map's box in the picture's frame the card reads, its size nought where there is no map - RiverFlow.Register.</summary>
+    public Vector4 FlowBoxRegister => Flow?.Register ?? Vector4.Zero;
+
     /// <summary>No flow: still water.</summary>
     public const float NoFlow = 0f;
 
@@ -274,5 +283,5 @@ public readonly record struct WaterLook(
     /// <summary>The numbers and where they came from, for the line under a picture.</summary>
     public string Line() => string.Create(
         CultureInfo.InvariantCulture,
-        $"water ({OpenColour.X:0.###} {OpenColour.Y:0.###} {OpenColour.Z:0.###}) murkiness {Murkiness:0.####} flow {FlowIntensity:0.##} reflectiveness {Reflectiveness:0.###} wind {WindAngle * 180f / MathF.PI:0}° x{WindIntensity:0.###} speed {WindSpeed:0.##} directionness {Directionness:0.##} swell {SwellHeight:0.#} period {SwellPeriod:0.###} intensity {SwellIntensity:0.##} scattering {SubsurfaceScattering:0.##} refraction index {RefractionIndex:0.###} caustics x{CausticsMult:0.###} flow foam {FlowFoam:0.###} - {Said}");
+        $"water ({OpenColour.X:0.###} {OpenColour.Y:0.###} {OpenColour.Z:0.###}) murkiness {Murkiness:0.####} flow {FlowIntensity:0.##} reflectiveness {Reflectiveness:0.###} wind {WindAngle * 180f / MathF.PI:0}° x{WindIntensity:0.###} speed {WindSpeed:0.##} directionness {Directionness:0.##} swell {SwellHeight:0.#} period {SwellPeriod:0.###} intensity {SwellIntensity:0.##} scattering {SubsurfaceScattering:0.##} refraction index {RefractionIndex:0.###} caustics x{CausticsMult:0.###} flow foam {FlowFoam:0.###} - {Said}{(Flow is { } flow ? $"; a river flows over the area's flow map, {flow.Map.Width} x {flow.Map.Height} texels read live, the picture's origin at ({flow.Origin.X:0} {flow.Origin.Y:0}) in the area" : string.Empty)}");
 }

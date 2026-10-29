@@ -155,6 +155,7 @@ public sealed partial class ModelGpu : IDisposable
     private ID3D11ShaderResourceView _swelled;
     private WaterSheet _swellsOf;
     private readonly Dictionary<ShoreField, ShoreTexture> _shores = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<RiverFlowMap, FlowTexture> _flows = new(ReferenceEqualityComparer.Instance);
     private readonly ID3D11PixelShader _solid;
     private readonly ID3D11PixelShader _mixed;
     private readonly ID3D11PixelShader _added;
@@ -630,6 +631,7 @@ public sealed partial class ModelGpu : IDisposable
             Shore = water.ShoreRegister,
             Swell = water.SwellRegister with { W = !crash ? 0f : light!.WaterBreakByGround ? 2f : 1f },
             WaterLit = new Vector4(water.SubsurfaceScattering, water.RefractionIndex, refracts ? 1f : 0f, patterned ? water.CausticsMult : 0f),
+            RiverBox = water.FlowBoxRegister,
             Unclip = unclip,
         });
 
@@ -674,6 +676,9 @@ public sealed partial class ModelGpu : IDisposable
         ID3D11ShaderResourceView? shoreView = scene.Water?.Shore is { } shore ? Shored(shore).View : null;
         context.PSSetShaderResource(ModelShaders.ShoreSlot, shoreView!);
         context.VSSetShaderResource(ModelShaders.ShoreSlot, shoreView!);
+
+        // THE AREA'S RIVER FLOW MAP where the drawing carries one (WaterLook.Flow) - a river reads it over the frame's RiverBox.
+        context.PSSetShaderResource(ModelShaders.RiverFlowSlot, scene.Water?.Flow is { } flow ? Flowed(flow.Map).View : null!);
 
         // THE SUN'S SHADOW MAP BEFORE THE PICTURE, into its own target - see Lit.
         if (light is not null)
@@ -1030,6 +1035,12 @@ public sealed partial class ModelGpu : IDisposable
         }
 
         _shores.Clear();
+        foreach (FlowTexture one in _flows.Values)
+        {
+            one.Dispose();
+        }
+
+        _flows.Clear();
         _placedWaves.Dispose();
         _placedBeach.Dispose();
         _beachProfiled.Dispose();
@@ -1184,6 +1195,7 @@ public sealed partial class ModelGpu : IDisposable
         _context.PSSetShaderResource(ShadeHlsl.WetnessSlot, null!);
         _context.PSSetShaderResource(ModelShaders.CausticsSlot, null!);
         _context.PSSetShaderResource(ModelShaders.DistortionSlot, null!);
+        _context.PSSetShaderResource(ModelShaders.RiverFlowSlot, null!);
         _sheetsBound = 0;
     }
 
@@ -1225,6 +1237,19 @@ public sealed partial class ModelGpu : IDisposable
         {
             texture = new ShoreTexture(_device, shore);
             _shores[shore] = texture;
+        }
+
+        texture.Used = _draws;
+        return texture;
+    }
+
+    /// <summary>An area's river flow map on the card, uploaded on first use.</summary>
+    private FlowTexture Flowed(RiverFlowMap map)
+    {
+        if (!_flows.TryGetValue(map, out FlowTexture? texture))
+        {
+            texture = new FlowTexture(_device, map);
+            _flows[map] = texture;
         }
 
         texture.Used = _draws;
@@ -1330,6 +1355,12 @@ public sealed partial class ModelGpu : IDisposable
         {
             one.Value.Dispose();
             _shores.Remove(one.Key);
+        }
+
+        foreach (KeyValuePair<RiverFlowMap, FlowTexture> one in _flows.Where(one => _draws - one.Value.Used > Kept).ToArray())
+        {
+            one.Value.Dispose();
+            _flows.Remove(one.Key);
         }
 
         foreach (KeyValuePair<Mipmaps, SkinTexture> one in _skins.Where(one => _draws - one.Value.Used > Kept).ToArray())
@@ -1444,6 +1475,7 @@ public sealed partial class ModelGpu : IDisposable
         public Vector4 Swell;
         public Vector4 WaterLit;
         public Vector4 Viewer;
+        public Vector4 RiverBox;
         public Matrix4x4 Unclip;
     }
 
@@ -1999,6 +2031,27 @@ public sealed partial class ModelGpu : IDisposable
         {
             // FOUR FLOATS A TEXEL: the shore's distance, the way in, and the ground's shore's distance the field waves' break may take.
             (_texture, View) = Floats(device, shore.CardTexels(), shore.Width, shore.Height, Format.R32G32B32A32_Float, 4);
+        }
+
+        public ID3D11ShaderResourceView View { get; }
+
+        public long Used { get; set; }
+
+        public void Dispose()
+        {
+            View.Dispose();
+            _texture.Dispose();
+        }
+    }
+
+    /// <summary>An area's river flow map on the card, four floats a texel as the program holds it, uploaded the first time it is drawn.</summary>
+    private sealed class FlowTexture : IDisposable
+    {
+        private readonly ID3D11Texture2D _texture;
+
+        public FlowTexture(ID3D11Device device, RiverFlowMap map)
+        {
+            (_texture, View) = Floats(device, map.Texels, map.Width, map.Height, Format.R32G32B32A32_Float, 4);
         }
 
         public ID3D11ShaderResourceView View { get; }

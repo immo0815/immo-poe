@@ -156,11 +156,14 @@ public sealed partial class ShadeProgram
 
             case WaterKind.River:
             {
-                // GetFlowingWaterPlanarStateWorld's foam at no flow - see RiverFoam.
+                // GetFlowingWaterPlanarStateWorld's foam and bubbles - see RiverFoam and RiverFoaming; none of the bubbles at no flow.
                 int foam = build.Emit(Op.River, Position, timing, WaterFlow, extra: RiverFoamOut);
+                int bubbles = build.Emit(Op.River, Position, timing, WaterFlow, extra: RiverBubbleOut);
                 foamed = build.Emit(Op.Swizzle, foam, extra: AllFrom(3));
-                colour = build.Emit(Op.Lerp, medium, foam, foamed);
-                foamPart = build.Emit(Op.Lerp, build.Constant(Vector4.Zero), foam, foamed);
+
+                // THE BUBBLES WHITEN THE MEDIUM'S DIFFUSE COLOUR (BuildWaterRefraction), black until then - the foam over it by its cover.
+                colour = build.Emit(Op.Lerp, build.Emit(Op.Lerp, medium, build.Constant(Vector4.One), bubbles), foam, foamed);
+                foamPart = build.Emit(Op.Lerp, bubbles, foam, foamed);
                 graph = RiverGraph;
                 break;
             }

@@ -400,6 +400,25 @@ a container in the program's own data whose slots move, a reading. The area inst
 through offsets past the end of the vectors they start from - neighbours in the heap, no way to read by. So v0.1.356 writes the program's
 words round the slots as one run (0x200 either side) and every piece of code reading within that run, by the place it reads, with the
 shortest pattern round each - the anchor a live read needs. Press it in The Red Vale on the river.
+V0.1.356'S TWO CAPTURES NAMED THE SLOTS, AND THE RIVER FLOWS (v0.1.357; one launch, The Red Vale and the same area reset to a new layout;
+schema `RiverFlowCache`, `RiverFlowCacheNode`). The program keeps a cache of markup objects in its own data: four nodes of 0x30 - each
+the object's std::shared_ptr, the nodes towards the head and the tail, and a key growing with every instance (4, 10, 12, 14, 16) - the most and least
+recent nodes' places in the two words before the CURRENT ENTRY, a std::shared_ptr always holding the current instance's object,
+module+0x46FD480 in all three instances. A new instance takes the least recent node, so the node holding the object moves and the
+current entry does not; no code reads it by its address, and it moved with a build. So it is FOUND BY ITS SHAPE once a launch
+(`RiverFlowLive`, DECIDED from the live client): in the program's writable data, make_shared's pair whose two words before it are places
+within 0x400 before it, the first holding the same object, the object a vector of two to eight field pointers - its second the river's
+map, read whenever the object changes and believed only where it flows within its banks; a word every quarter second (CHOSEN), the search
+and the read behind the frame. THE RIVER FLOWS where a Monster Book or Tile Book stage is laid as the area laid it, while the area is the
+one it was laid in (`MonsterModel.AreaStamp`; a staged monster keeps his laid room's place, `StagedModels.Staged`): `WaterLook.Flow`, the
+map's box three tenths of a texel below the area's origin (MEASURED in four instances), so the map's size is all it needs. On the card and
+the processor alike (DECIDED from the live client), GetFlowingWaterPlanarStateWorld as written (`ShadeProgram.RiverFlowAt`, `RiverFoaming`;
+the card's `ShadeRiverFlowAt` and `ShadeRiverFoaming` over `RiverFlowSheet`, t122, and the frame's `RiverBox`): the flow twice the area's
+flow_intensity, held to 100; GetFlowSurfaceField's octaves scrolled along it; the foam's strength from its curl, its speed, the shallows
+and the 25-step march back up the flow; GetFlowingFoamColor's two nodes; the bubbles laid as white over the medium (BuildWaterRefraction).
+Where a drawing carries no map everything is as at no flow, to the bit (`RiverTests`). NOT DRAWN: GetFlowingSurface's march of the view onto
+the moved surface. `river-flow.txt` opens with the live read's own account (`RiverFlowLive.Report`): what the pictures were drawn with, the
+search run again, the cache node by node, the map's box and flow - press it on the river, the stage laid where you stand, if it does not move.
 
 ## Verify against the game, not against yourself
 

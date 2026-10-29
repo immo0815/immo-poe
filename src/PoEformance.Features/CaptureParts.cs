@@ -569,9 +569,11 @@ public static class CaptureParts
             + "inside the scene with whole corners and the grids at the environments' flow resolutions: press it in an area with a "
             + "river. It stops itself at ninety seconds; the capture's window shows how far it is and stops it on a click."),
         new(RiverFlow, "Memory", "river flow map hunt", CaptureReport.RiverFlowFile,
-            "Where the engine keeps its river's flow map - press it in an area with a river (The Red Vale, The Riverbank). The map is "
-            + "made at run time (RiverMarkupField) over a box the water pass's numbers hold, 54.35 units a texel - The Red Vale's 276 x 294 "
-            + "- and the river is drawn at no flow until it is read. The hunt finds that block again by the scene's size, takes each of its "
+            "Where the engine keeps its river's flow map - press it in an area with a river (The Red Vale, The Riverbank). First the live "
+            + "read the model panes draw their rivers with: the program's markup cache found again by its shape, written node by node, and "
+            + "the map its current entry holds, with its box and flow - beside what the pictures were drawn with. The map is "
+            + "made at run time (RiverMarkupField) over a box the water pass's numbers hold, 54.35 units a texel - The Red Vale's 276 x 294. "
+            + "The hunt finds that block again by the scene's size, takes each of its "
             + "boxes as a grid, and looks through the whole of the game's memory on every core for lists whose length is that grid's - its "
             + "texels, their corners or the cells under them, one to sixteen bytes a texel - and for the grid's size as two ints beside a "
             + "pointer. Each list found is read every way its texels could be (bytes, halves, floats, one to four channels), its numbers and "

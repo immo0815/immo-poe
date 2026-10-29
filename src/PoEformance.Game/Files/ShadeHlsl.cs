@@ -1167,9 +1167,12 @@ public static partial class ShadeHlsl
             ShadeProgram.Op.SampleLod => Read(program, step.Extra, $"ShadeSheet{Invariant(step.Extra)}.SampleLevel(wrap, {a}.xy, max({b}.x, 0.0))"),
             ShadeProgram.Op.Waves => $"ShadeWaves({a}.xy, {b}, {c}.xy, {d}, {e})",
             ShadeProgram.Op.Foam => $"ShadeFoam({a}.xy, {b}.xy, {c}, {d})",
-            ShadeProgram.Op.River => step.Extra == ShadeProgram.RiverFoamOut
-                ? $"ShadeRiverFoam({a}.xy, {b}.x, {c}.w)"
-                : $"ShadeRiver({a}.xy, {b}.x)",
+            ShadeProgram.Op.River => step.Extra switch
+            {
+                ShadeProgram.RiverFoamOut => $"ShadeRiverFoamAt({a}.xy, {b}.x, {b}.y, {c}.x, {c}.w)",
+                ShadeProgram.RiverBubbleOut => $"ShadeRiverBubbles({a}.xy, {b}.y, {c}.x, {c}.w).xxxx",
+                _ => $"ShadeRiver({a}.xy, {b}.x, ShadeRiverFlowAt({a}.xy, {c}.x))",
+            },
             _ => null,
         };
 

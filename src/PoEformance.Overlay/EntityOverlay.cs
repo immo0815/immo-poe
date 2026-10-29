@@ -1825,6 +1825,19 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// </summary>
     public Func<IReadOnlyList<string>>? LoadedFiles { get; set; }
 
+    /// <summary>
+    /// The current area instance's river flow map, read live (RiverFlowLive), or null - where a model pane's river finds its flow. Null where
+    /// nothing reads the game's memory.
+    /// </summary>
+    public Func<RiverFlowMap?>? RiverFlow { get; set; }
+
+    /// <summary>
+    /// The river's flow map for a model laid in the area instance <paramref name="stamp"/> names - none once the area on screen is another
+    /// (RoomKey.Stamp), so a picture kept from an area since left takes no other area's river.
+    /// </summary>
+    private RiverFlowMap? RiverFlowIn(int stamp)
+        => _snapshot.Terrain is TerrainGrid grid && RoomKey.Stamp(grid) == stamp ? RiverFlow?.Invoke() : null;
+
     private IReadOnlyList<string>? _loadedOf;
     private IReadOnlyList<TerrainRoom>? _tilesHereOf;
     private IReadOnlyDictionary<string, int> _tilesHere = new Dictionary<string, int>();
@@ -3952,6 +3965,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 SceneLit = lighting.For,
                 SceneDust = lighting.Dust,
                 SceneWater = lighting.Water,
+                SceneFlow = RiverFlowIn,
                 Sun = lighting,
             }),
 
@@ -4171,6 +4185,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 SceneLit = lighting.For,
                 SceneDust = lighting.Dust,
                 SceneWater = lighting.Water,
+                SceneFlow = RiverFlowIn,
                 Sun = lighting,
             }),
         };

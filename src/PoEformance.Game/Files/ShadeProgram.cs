@@ -555,9 +555,10 @@ public sealed partial class ShadeProgram
         Field,
 
         /// <summary>
-        /// The engine's river at no flow at A's x and y at B's clock (x), with C's flow_foam (w) - Extra <see cref="RiverNormal"/> its
-        /// surface's normal in xyz and height in w (<see cref="River"/>), <see cref="RiverFoamOut"/> its foam's colour and how much it
-        /// covers (<see cref="RiverFoam"/>).
+        /// The engine's river at A's x and y at B's clock (x) over water B's y deep along the view, with C's flow_intensity (x) and
+        /// flow_foam (w), over the drawing's flow map where it carries one (WaterLook.Flow) - Extra <see cref="RiverNormal"/> its surface's
+        /// normal in xyz and height in w (<see cref="River"/>), <see cref="RiverFoamOut"/> its foam's colour and how much it covers
+        /// (<see cref="RiverFoam"/>), <see cref="RiverBubbleOut"/> its bubbles in all four (<see cref="RiverFoaming"/>).
         /// </summary>
         River,
 
@@ -1172,6 +1173,7 @@ public sealed partial class ShadeProgram
         registers[WaterShore] = look.ShoreRegister;
         registers[WaterSwell] = look.SwellRegister;
         s_shore = look.Shore;
+        s_flow = look.Flow;
         registers[Behind] = new Vector4(float.MaxValue);
         registers[Eye] = eye;
         registers[Viewer] = viewer;
@@ -1589,12 +1591,29 @@ public sealed partial class ShadeProgram
 
                 // THE RIVER'S FOAM READS ITS TEXTURE AT LEVEL NOUGHT, so the corners' pass that picks levels has nothing to pick.
                 case Op.River when step.Extra == RiverFoamOut:
-                    r[step.To] = corner >= 0 ? Vector4.Zero : RiverFoam(new Vector2(r[step.A].X, r[step.A].Y), r[step.B].X, r[step.C].W);
+                {
+                    if (corner >= 0 || Distortion is not { } distortion)
+                    {
+                        r[step.To] = Vector4.Zero;
+                        break;
+                    }
+
+                    var place = new Vector2(r[step.A].X, r[step.A].Y);
+                    (float strength, _) = RiverFoaming(s_flow, place, r[step.B].Y, r[step.C].X, r[step.C].W);
+                    r[step.To] = RiverFoam(distortion.Top, place, r[step.B].X, RiverFlowAt(s_flow, place, r[step.C].X), strength);
+                    break;
+                }
+
+                case Op.River when step.Extra == RiverBubbleOut:
+                    r[step.To] = corner >= 0 || s_flow is null
+                        ? Vector4.Zero
+                        : new Vector4(RiverFoaming(s_flow, new Vector2(r[step.A].X, r[step.A].Y), r[step.B].Y, r[step.C].X, r[step.C].W).Bubbles);
                     break;
 
                 case Op.River:
                 {
-                    float height = River(new Vector2(r[step.A].X, r[step.A].Y), r[step.B].X, out Vector2 slope);
+                    var place = new Vector2(r[step.A].X, r[step.A].Y);
+                    float height = River(place, r[step.B].X, RiverFlowAt(s_flow, place, r[step.C].X), out Vector2 slope);
                     r[step.To] = new Vector4(Vector3.Normalize(new Vector3(-slope.X, -slope.Y, -1f)), height);
                     break;
                 }

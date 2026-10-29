@@ -137,6 +137,96 @@ public class RiverTests
         Assert.Equal(0f, ShadeProgram.RiverFoam(hidden, new Vector2(812f, -77f), 3.3f, 1f).W);
     }
 
+    /// <summary>
+    /// GetFlowSurfaceField at a flow as water.ffx writes it: each octave scrolled back along the flow turned a little, taller and dropping
+    /// less the faster the flow.
+    /// </summary>
+    [Fact]
+    public void THERIVERSSurfaceFlowsAsGetFlowSurfaceFieldAtAFlow()
+    {
+        foreach (Vector2 flow in (Vector2[])[new(40f, -12f), new(100f, 0f), new(-35.5f, 70.25f), new(0.5f, 0.25f)])
+        {
+            foreach (Vector2 place in (Vector2[])[new(0f, 0f), new(137.5f, -912.25f), new(4210f, 3377f)])
+            {
+                foreach (float clock in (float[])[0f, 0.7f, 2.9f, 41.3f])
+                {
+                    float height = ShadeProgram.River(place, clock, flow, out Vector2 slope);
+                    float expected = FlowSurface(place, flow, clock, out Vector2 gradient);
+                    Near(expected, height);
+                    Near(gradient.X, slope.X);
+                    Near(gradient.Y, slope.Y);
+                }
+            }
+        }
+
+        // AT NO FLOW it is the still river's, to the bit.
+        Assert.Equal(ShadeProgram.River(new Vector2(12f, 34f), 5.5f, out Vector2 still), ShadeProgram.River(new Vector2(12f, 34f), 5.5f, Vector2.Zero, out Vector2 flowing));
+        Assert.Equal(still, flowing);
+    }
+
+    /// <summary>
+    /// GetFlowingFoamColor at a flow and a strength as written: two nodes of frequency mixed, each node's layers scrolled along the flow
+    /// and hashed with its seed - and at no flow the still river's one node, to the bit.
+    /// </summary>
+    [Fact]
+    public void THERIVERSFoamAtAFlowIsGetFlowingFoamColorsTwoNodes()
+    {
+        GamePicture sheet = Distortion(alpha: true);
+        var covered = 0;
+        foreach (Vector2 flow in (Vector2[])[new(3.7f, -1.1f), new(42f, 17f), new(-80f, 55f)])
+        {
+            foreach (float strength in (float[])[0.25f, 0.6f, 1f])
+            {
+                for (var at = 0; at < 40; at++)
+                {
+                    var place = new Vector2((at * 71.3f) - 400f, (at * 53.9f) + 120f);
+                    Vector4 foam = ShadeProgram.RiverFoam(sheet, place, at * 0.37f, flow, strength);
+                    Near(FlowingFoam(sheet, place, at * 0.37f, flow, strength), foam.W);
+                    Assert.InRange(foam.W, 0f, 1f);
+                    covered += foam.W > 0f ? 1 : 0;
+                }
+            }
+        }
+
+        Assert.True(covered > 0, "no foam anywhere over the test's distortion");
+        float stillStrength = Math.Clamp((0.015f * 1f) + 0.25f, 0f, 1f);
+        Assert.Equal(ShadeProgram.RiverFoam(sheet, new Vector2(812f, -77f), 3.3f, 1f), ShadeProgram.RiverFoam(sheet, new Vector2(812f, -77f), 3.3f, Vector2.Zero, stillStrength));
+    }
+
+    /// <summary>
+    /// GetFlowingWaterPlanarStateWorld's foam strength and bubbles over a flow map as written - the curl, the speed, the speed over
+    /// shallow water and the march up the flow - and with no map the still river's strength and no bubbles.
+    /// </summary>
+    [Fact]
+    public void THEFOAMSStrengthAndBubblesAreGetFlowingWaterPlanarStateWorlds()
+    {
+        RiverFlowMap map = Swirl();
+        var flow = new RiverFlow(map, new Vector2(300f, -200f));
+        var bubbled = 0;
+        for (var at = 0; at < 60; at++)
+        {
+            var place = new Vector2((at * 37.1f) + 50f, (at * 23.3f) + 90f);
+            foreach (float depth in (float[])[2f, 40f])
+            {
+                foreach (float intensity in (float[])[1f, 0.15f])
+                {
+                    (float foam, float bubbles) = ShadeProgram.RiverFoaming(flow, place, depth, intensity, 1.3f);
+                    (float expectedFoam, float expectedBubbles) = FlowingState(flow, place, depth, intensity, 1.3f, out Vector2 expectedFlow);
+                    Near(expectedFoam, foam);
+                    Near(expectedBubbles, bubbles);
+                    Vector2 flowAt = ShadeProgram.RiverFlowAt(flow, place, intensity);
+                    Near(expectedFlow.X, flowAt.X);
+                    Near(expectedFlow.Y, flowAt.Y);
+                    bubbled += bubbles > 0f ? 1 : 0;
+                }
+            }
+        }
+
+        Assert.True(bubbled > 0, "no bubbles anywhere over the swirl");
+        Assert.Equal((Math.Clamp((0.015f * 1.3f) + 0.25f, 0f, 1f), 0f), ShadeProgram.RiverFoaming(null, new Vector2(10f, 20f), 5f, 1f, 1.3f));
+        Assert.Equal(Vector2.Zero, ShadeProgram.RiverFlowAt(null, new Vector2(10f, 20f), 1f));
+    }
+
     /// <summary>The area's flow_foam, the engine's 1 where its file sets none - carried to the programs in the flow register's w.</summary>
     [Fact]
     public void ANAREASFlowFoamIsReadAndHandedOn()
@@ -154,9 +244,11 @@ public class RiverTests
     public void THECARDDrawsTheRiverAndStandingWaterThroughTheirOwnFunctions()
     {
         string river = ShadeHlsl.Of(ShadeProgram.Water(WaterKind.River).Glossy!, 18);
-        Assert.Contains("float4 ShadeRiver(float2 place, float clock)", river, StringComparison.Ordinal);
+        Assert.Contains("float4 ShadeRiver(float2 place, float clock, float2 flow)", river, StringComparison.Ordinal);
         Assert.Contains(" = ShadeRiver(r1.xy, ", river, StringComparison.Ordinal);
-        Assert.Contains(" = ShadeRiverFoam(r1.xy, ", river, StringComparison.Ordinal);
+        Assert.Contains(" = ShadeRiverFoamAt(r1.xy, ", river, StringComparison.Ordinal);
+        Assert.Contains(" = ShadeRiverBubbles(r1.xy, ", river, StringComparison.Ordinal);
+        Assert.Contains("RiverFlowSheet.Load(", river, StringComparison.Ordinal);
         Assert.Contains("DistortionSheet.GetDimensions", river, StringComparison.Ordinal);
         Assert.DoesNotContain("ShadeFoam(r1", river, StringComparison.Ordinal);
         Assert.DoesNotContain("ShadeFieldAt(", river, StringComparison.Ordinal);
@@ -205,10 +297,12 @@ public class RiverTests
     }
 
     /// <summary>water.ffx's GetFlowSurfaceField(planar_pos, flow_intensity, time) with flow_intensity nought, statement for statement.</summary>
-    private static float FlowSurface(Vector2 planar, float time, out Vector2 gradient)
+    private static float FlowSurface(Vector2 planar, float time, out Vector2 gradient) => FlowSurface(planar, Vector2.Zero, time, out gradient);
+
+    /// <summary>water.ffx's GetFlowSurfaceField(planar_pos, flow_intensity, time), statement for statement.</summary>
+    private static float FlowSurface(Vector2 planar, Vector2 flowIntensity, float time, out Vector2 gradient)
     {
         const int octavesCount = 4;
-        Vector2 flowIntensity = Vector2.Zero;
         M2 deltaRotation = M2.Rotation(0.5f);
         float octaveAmp = 0.3f * (flowIntensity.Length() + 3f) * 1f;
         float octaveSpeed = 1f;
@@ -248,7 +342,32 @@ public class RiverTests
         float foamIntensity = Math.Clamp((((1f - ((0f - 100f) * 0.02f)) * ((0f * 0.1f) + 0.05f) * MathF.Exp(0f) * 0.1f) * flowFoam) + 0.25f, 0f, 1f);
 
         // GetLinearInterpNodes(0): the first node whole, at 0.2 a second, its seed nought.
-        const float phaseMult = 0.2f;
+        return FlowingFoamNode(sheet, planar, Vector2.Zero, time, foamIntensity, 0.2f, 0f);
+    }
+
+    /// <summary>GetFlowingFoamColor(planar_pos, flow_intensity, time, foam_intensity) as written, its share alone.</summary>
+    private static float FlowingFoam(GamePicture sheet, Vector2 planar, float time, Vector2 flowIntensity, float foamIntensity)
+    {
+        float freq = 0.02f * flowIntensity.Length();
+        const float freqSecondary = 10.01f;
+        float global = freq * freqSecondary;
+        Vector2 phases = new(Frac(0.5f + (global * 0.5f)), Frac(0f + (global * 0.5f)));
+        Vector2 seeds = new((MathF.Floor(0.5f + (global * 0.5f)) * 2f) + 0f, (MathF.Floor(0f + (global * 0.5f)) * 2f) + 1f);
+        Vector2 weights = new(MathF.Min(phases.X, 1f - phases.X) * 2f, MathF.Min(phases.Y, 1f - phases.Y) * 2f);
+        float result = 0f;
+        for (var node = 0; node < 2; node++)
+        {
+            float seed = node == 0 ? seeds.X : seeds.Y;
+            float weight = node == 0 ? weights.X : weights.Y;
+            result += FlowingFoamNode(sheet, planar, flowIntensity, time, foamIntensity, 0.2f + (seed / freqSecondary), seed) * weight;
+        }
+
+        return result;
+    }
+
+    /// <summary>GetFlowingFoamColorFixedFreq(planar_pos, flow_intensity, time, foam_intensity, phase_freq, layer_seed) as written, its share alone.</summary>
+    private static float FlowingFoamNode(GamePicture sheet, Vector2 planar, Vector2 flowIntensity, float time, float foamIntensity, float phaseMult, float layerSeed)
+    {
         const int harmonicsCount = 2;
         M2 turbulenceMat = M2.Rotation(0.5f), distortionMat = M2.Rotation(2f), maskMat = M2.Rotation(-1f);
         float foamA = 0f, maskA = 0f, sumWeight = 0f;
@@ -260,8 +379,8 @@ public class RiverTests
             float freqMult = harmonicIndex == 0f ? 1f : 1.8f;
             float phase = Frac((time * phaseMult) + (sublayerIndex * 0.5f) + (0.5f * harmonicIndex / harmonicsCount) + phaseScramble);
             float opacity = MathF.Min(phase, 1f - phase) * 2f;
-            Vector2 scrolledPos = planar;
-            Vector3 hash = Hash33(new Vector3(layerIndex, 0f, 0f));
+            Vector2 scrolledPos = planar - (flowIntensity * 1.5f * (phase - 0.5f) / phaseMult);
+            Vector3 hash = Hash33(new Vector3(layerIndex, layerSeed, 0f));
             Vector2 basePos = (scrolledPos * 0.01f * freqMult) + new Vector2(hash.X, hash.Y);
             float turbulenceRatio = 1f * phase;
             Vector4 turbulence = Read(sheet, M2.Mul(turbulenceMat, basePos / 7f));
@@ -282,6 +401,82 @@ public class RiverTests
         foamA = Math.Clamp((foamA - maskThreshold) / (1.3f - maskThreshold) * 1.3f, 0f, 1f);
         float threshold = Lerp(1f, 0.3f, foamIntensity);
         return Math.Clamp((foamA - threshold) / (1.4f - threshold) * 1.4f, 0f, 1f);
+    }
+
+    /// <summary>
+    /// GetFlowingWaterPlanarStateWorld's foam_intensity and bubbleRatio over GetFlowSample, statement for statement - the flow it takes
+    /// too, its flow_intensity.
+    /// </summary>
+    private static (float Foam, float Bubbles) FlowingState(RiverFlow flow, Vector2 planar, float gBufferDelta, float waterFlowIntensity, float waterFlowFoam, out Vector2 flowIntensity)
+    {
+        Vector4 Sample(Vector2 at) => FlowSample(flow, at);
+        Vector4 flowSample = Sample(planar);
+        float speedMult = 2f * waterFlowIntensity;
+        flowIntensity = new Vector2(flowSample.X, flowSample.Y) * speedMult;
+        float flowLength = flowIntensity.Length();
+        flowIntensity *= MathF.Min(flowLength, 100f) / (flowLength + 1e-3f);
+        const float eps = 100.1f;
+        Vector4 xGradient = (Sample(planar + new Vector2(eps, 0f)) - Sample(planar + new Vector2(-eps, 0f))) / eps;
+        Vector4 yGradient = (Sample(planar + new Vector2(0f, eps)) - Sample(planar + new Vector2(0f, -eps))) / eps;
+        float foamCurl = xGradient.Y - yGradient.X;
+        float foamIntensity = 0f;
+        foamIntensity += Math.Clamp(MathF.Abs(foamCurl) * speedMult * 0.5f, 0f, 1f);
+        foamIntensity += flowIntensity.Length() * 0.005f;
+        foamIntensity += flowIntensity.Length() * Math.Clamp(1f / (gBufferDelta + 5f) * 25f, 0f, 1f) * 0.01f;
+        float bubbleRatio = Math.Clamp(MathF.Max(0f, foamIntensity * foamIntensity) * 0.1f, 0f, 1f);
+        const float distOffset = -100f;
+        Vector2 currPos = planar;
+        const float step = 0.5f;
+        const int count = 25;
+        for (var i = 0; i < count; i++)
+        {
+            Vector4 sample = Sample(currPos);
+            Vector2 flowSpeed = new Vector2(sample.X, sample.Y) * speedMult;
+            Vector2 delta = -flowSpeed * step;
+            float localIntensity = (1f - ((sample.W + distOffset) * 0.02f)) * ((flowSpeed.Length() * 0.1f) + 0.05f) * MathF.Exp(-(float)i / count * 2f) * 0.1f;
+            foamIntensity = MathF.Max(foamIntensity, localIntensity);
+            currPos += delta;
+        }
+
+        foamIntensity *= waterFlowFoam;
+        foamIntensity += 0.25f;
+        return (Math.Clamp(foamIntensity, 0f, 1f), bubbleRatio);
+    }
+
+    /// <summary>GetFlowSample: the map read at (pos - aabb.xy) / (aabb.zw - aabb.xy) through SamplerLinearWrap at level nought.</summary>
+    private static Vector4 FlowSample(RiverFlow flow, Vector2 pos)
+    {
+        RiverFlowMap map = flow.Map;
+        Vector2 least = new Vector2(-0.3f * (1250f / 23f)) - flow.Origin;
+        Vector2 size = new(map.Width * (1250f / 23f), map.Height * (1250f / 23f));
+        Vector2 uv = (pos - least) / size;
+        float sx = (uv.X * map.Width) - 0.5f, sy = (uv.Y * map.Height) - 0.5f;
+        int x0 = (int)MathF.Floor(sx), y0 = (int)MathF.Floor(sy);
+        float fx = sx - x0, fy = sy - y0;
+        Vector4 At(int x, int y) => map.Texel4(((x % map.Width) + map.Width) % map.Width, ((y % map.Height) + map.Height) % map.Height);
+        return Vector4.Lerp(Vector4.Lerp(At(x0, y0), At(x0 + 1, y0), fx), Vector4.Lerp(At(x0, y0 + 1), At(x0 + 1, y0 + 1), fx), fy);
+    }
+
+    /// <summary>A test flow map: a swirl round the middle, inside banks a radius off it, flowing faster outwards.</summary>
+    private static RiverFlowMap Swirl()
+    {
+        const int width = 20, height = 16;
+        var texels = new float[width * height * 4];
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                int at = ((y * width) + x) * 4;
+                float dx = x - 10f, dy = y - 8f;
+                float bank = (6f - MathF.Sqrt((dx * dx) + (dy * dy))) * (1250f / 23f);
+                texels[at] = bank >= 0f ? -dy * 12f : 0f;
+                texels[at + 1] = bank >= 0f ? dx * 12f : 0f;
+                texels[at + 2] = x == 10 && y == 8 ? 1.5f : 0f;
+                texels[at + 3] = bank;
+            }
+        }
+
+        return new RiverFlowMap(width, height, texels, "a test swirl");
     }
 
     /// <summary>SamplerLinearWrap at level nought, the texels a fraction of 255.</summary>

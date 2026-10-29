@@ -11,7 +11,7 @@ public enum WaterKind
     /// <summary>The engine's ocean - GetOceanWaterPlanarState, its swell over the room's shore and the wind's ripples (ShadeProgram.Ocean).</summary>
     Ocean,
 
-    /// <summary>The engine's river - GetFlowingWaterPlanarStateWorld at no flow (ShadeProgram.River).</summary>
+    /// <summary>The engine's river - GetFlowingWaterPlanarStateWorld over the area's flow map where the drawing has it, else at no flow (ShadeProgram.River).</summary>
     River,
 
     /// <summary>Standing water - the ocean's surface with no shore, the wind's ripples alone (ShadeProgram.Water's remarks).</summary>
@@ -33,10 +33,19 @@ public enum WaterKind
 /// <c>river_flowmap_planar_aabb</c>, pass uniforms the processor sets, and the program makes the texture with
 /// <c>RiverMarkupField(IDevice*, const PointLine*, const MarkupFlowConstraints*, vector2_int, vector4, float, bool, float)</c> or its twin
 /// over a grid of bools - inputs no file of the 118,851 water-shore.txt searched names (v0.1.302's capture: SetWaterFlow, SetWaterSource and
-/// SetWaterBlocking are script commands no object script calls). So THE RIVER IS DRAWN AT NO FLOW, DECIDED from the live client: the flow
-/// sample nought throughout, its velocity and its distance alike, and the markup hunt in ocean-markup.txt looks for the map's box and grid
-/// (ShoreFieldHunt, OceanMarkupHunt). At no flow the surface does not slide: its eight octaves fade in and out in place, each pair half
-/// a period apart, every 3 seconds the first and 1.3 times quicker each pair after - a shimmer, not a current.
+/// SetWaterBlocking are script commands no object script calls). So THE RIVER WAS DRAWN AT NO FLOW (v0.1.351), DECIDED from the live client:
+/// the flow sample nought throughout, its velocity and its distance alike. At no flow the surface does not slide: its eight octaves fade in
+/// and out in place, each pair half a period apart, every 3 seconds the first and 1.3 times quicker each pair after - a shimmer, not a current.
+///
+/// THE FLOW IS READ LIVE where the drawing carries the area's map (v0.1.357, DECIDED from the live client: on the card and the processor
+/// alike; RiverFlowLive, WaterLook.Flow, <see cref="RiverFlowAt"/>, <see cref="RiverFoaming"/>): GetFlowingWaterPlanarStateWorld as
+/// written - the sample's velocity times twice the area's flow_intensity, its length held to 100; the foam's strength from the flow's curl
+/// over 100.1 units, its speed, its speed over shallow water and a march of 25 half-second steps back up the flow, each step's
+/// <c>(1 - (distance - 100) * 0.02) * (speed * 0.1 + 0.05) * exp(-2 step / 25) * 0.1</c>, the most of them; the bubbles
+/// <c>saturate(foam^2 * 0.1)</c> of the strength before the march, which BuildWaterRefraction lays as white over the medium's diffuse
+/// colour (<see cref="RiverBubbleOut"/>); GetFlowSurfaceField's octaves scrolled along the flow and GetFlowingFoamColor's two nodes of
+/// frequency. Where the drawing carries no map every one of these comes out as at no flow, to the bit. NOT DRAWN: GetFlowingSurface's
+/// march of the view onto the moved surface (<c>1 + DETAIL_LEVEL</c> steps), the place taken where the view meets the mesh.
 /// </remarks>
 public sealed partial class ShadeProgram
 {
@@ -53,7 +62,7 @@ public sealed partial class ShadeProgram
     public const string SwampShader = "Swamp_Water";
 
     /// <summary>What the river program is named in a picture's lines.</summary>
-    public const string RiverGraph = "the engine's water pass, its river surface at no flow (the flow map, made at run time, unread)";
+    public const string RiverGraph = "the engine's water pass, its river surface - over the area's flow map read live where the drawing is laid as the area laid it, at no flow elsewhere";
 
     /// <summary>What the still water program is named in a picture's lines.</summary>
     public const string StillGraph = "the engine's water pass, the ocean's surface with no shore - the wind's ripples alone";
@@ -63,6 +72,16 @@ public sealed partial class ShadeProgram
 
     /// <summary>The river step's output: the foam's colour and how much it covers.</summary>
     internal const int RiverFoamOut = 1;
+
+    /// <summary>
+    /// The river step's output: the bubbles in all four - GetFlowingWaterPlanarStateWorld's <c>bubbleRatio</c>, which BuildWaterRefraction
+    /// lerps the medium's diffuse colour to white by.
+    /// </summary>
+    internal const int RiverBubbleOut = 2;
+
+    /// <summary>The river's flow of the drawing the thread is running a program for - set by <see cref="Preset"/>; see <see cref="s_shore"/>.</summary>
+    [ThreadStatic]
+    private static RiverFlow? s_flow;
 
     /// <summary>
     /// The foam's strength at no flow before the area's flow_foam: GetFlowingWaterPlanarStateWorld's march - its first step's
@@ -119,13 +138,21 @@ public sealed partial class ShadeProgram
     /// <c>phase * (1 - phase) * 4</c>, the pair half a period apart and the pairs a third of one, the speed 1.3 times more each pair. The
     /// scroll along the flow, <c>-flow * phase * speed * period</c> turned by -0.3 to 0.3 radians, is nought at no flow.
     /// </remarks>
-    public static float River(Vector2 place, float clock, out Vector2 slope)
+    public static float River(Vector2 place, float clock, out Vector2 slope) => River(place, clock, Vector2.Zero, out slope);
+
+    /// <summary>
+    /// GetFlowSurfaceField as written at a flow (<see cref="RiverFlowAt"/>): each octave's place scrolled back along the flow turned by
+    /// <c>lerp(-0.3, 0.3, ratio)</c>, as far as its phase has run; its height <c>0.3 * (|flow| + 3)</c>, every second one's less by
+    /// <c>lerp(0.2, 0.9, |flow| / 300)</c>. At no flow it is <see cref="River(Vector2, float, out Vector2)"/> to the bit.
+    /// </summary>
+    public static float River(Vector2 place, float clock, Vector2 flow, out Vector2 slope)
     {
         const int octaves = 4;
         float turnCos = MathF.Cos(0.5f), turnSin = MathF.Sin(0.5f);
-        float amplitude = 0.3f * 3f;
+        float length = flow.Length();
+        float amplitude = 0.3f * (length + 3f);
         float speed = 1f;
-        const float drop = 0.2f;
+        float drop = Lerp(0.2f, 0.9f, Saturated(length / 300f));
         float m00 = 0.01f, m01 = 0f, m10 = 0f, m11 = 0.01f;
         float height = 0f;
         slope = Vector2.Zero;
@@ -136,9 +163,16 @@ public sealed partial class ShadeProgram
             float phase = Fractional((clock / period) + ratio + ((octave % 2) * 0.5f));
             float opacity = phase * (1f - phase) * 4f;
 
+            // mul(-flow, flowOffsetMatrix) * phase * speed * period: the place scrolled back along the flow, turned a little each pair.
+            float angle = Lerp(-0.3f, 0.3f, ratio);
+            float c = MathF.Cos(angle), s = MathF.Sin(angle);
+            float scale = phase * speed * period;
+            float px = place.X + ((((-flow.X) * c) + ((-flow.Y) * -s)) * scale);
+            float py = place.Y + ((((-flow.X) * s) + ((-flow.Y) * c)) * scale);
+
             // mul(place, octaveMatrix), and the slope through its transpose.
-            float qx = (place.X * m00) + (place.Y * m10);
-            float qy = (place.X * m01) + (place.Y * m11);
+            float qx = (px * m00) + (py * m10);
+            float qy = (px * m01) + (py * m11);
             float value = Ripple(qx, qy, out float gx, out float gy);
             float weight = amplitude * opacity;
             height += value * weight;
@@ -157,6 +191,69 @@ public sealed partial class ShadeProgram
         }
 
         return height;
+    }
+
+    /// <summary>
+    /// GetFlowSample at a place of the picture over the drawing's map, nought where it carries none - see <see cref="RiverFlow"/>.
+    /// </summary>
+    internal static Vector4 FlowSample(RiverFlow? flow, Vector2 place) => flow is null ? Vector4.Zero : flow.Sample(place);
+
+    /// <summary>
+    /// The flow the river's surface and foam take at a place: GetFlowingWaterPlanarStateWorld's <c>flow_intensity</c> - the sample's velocity
+    /// times twice the area's flow_intensity, its length held to 100.
+    /// </summary>
+    public static Vector2 RiverFlowAt(RiverFlow? flow, Vector2 place, float flowIntensity)
+    {
+        if (flow is null)
+        {
+            return Vector2.Zero;
+        }
+
+        Vector4 sample = flow.Sample(place);
+        float speedMult = 2f * flowIntensity;
+        Vector2 intensity = new Vector2(sample.X, sample.Y) * speedMult;
+        float length = intensity.Length();
+        return intensity * (MathF.Min(length, 100f) / (length + 1e-3f));
+    }
+
+    /// <summary>
+    /// The river's foam strength and its bubbles at a place over water <paramref name="depth"/> deep along the view - GetFlowingWaterPlanarStateWorld
+    /// as written (see the remarks above); at no map the still river's <c>saturate(0.015 * flow_foam + 0.25)</c> and none.
+    /// </summary>
+    public static (float Foam, float Bubbles) RiverFoaming(RiverFlow? flow, Vector2 place, float depth, float flowIntensity, float flowFoam)
+    {
+        if (flow is null)
+        {
+            return (Saturated((RiverStillFoam * flowFoam) + RiverFoamFloor), 0f);
+        }
+
+        float speedMult = 2f * flowIntensity;
+        Vector2 intensity = RiverFlowAt(flow, place, flowIntensity);
+        const float eps = 100.1f;
+        Vector4 xGradient = (flow.Sample(place + new Vector2(eps, 0f)) - flow.Sample(place + new Vector2(-eps, 0f))) / eps;
+        Vector4 yGradient = (flow.Sample(place + new Vector2(0f, eps)) - flow.Sample(place + new Vector2(0f, -eps))) / eps;
+        float curl = xGradient.Y - yGradient.X;
+        float speed = intensity.Length();
+        float foam = Saturated(MathF.Abs(curl) * speedMult * 0.5f);
+        foam += speed * 0.005f;
+        foam += speed * Saturated(1f / (depth + 5f) * 25f) * 0.01f;
+        float bubbles = Saturated(MathF.Max(0f, foam * foam) * 0.1f);
+
+        // THE MARCH UP THE FLOW: 25 half-second steps back along it, the most foam any of them makes.
+        Vector2 at = place;
+        const int count = 25;
+        for (var step = 0; step < count; step++)
+        {
+            Vector4 sample = flow.Sample(at);
+            Vector2 flowSpeed = new Vector2(sample.X, sample.Y) * speedMult;
+            float local = (1f - ((sample.W + -100f) * 0.02f)) * ((flowSpeed.Length() * 0.1f) + 0.05f) * MathF.Exp(-(float)step / count * 2f) * 0.1f;
+            foam = MathF.Max(foam, local);
+            at += -flowSpeed * 0.5f;
+        }
+
+        foam *= flowFoam;
+        foam += 0.25f;
+        return (Saturated(foam), bubbles);
     }
 
     /// <summary>
@@ -181,9 +278,41 @@ public sealed partial class ShadeProgram
 
     /// <summary>The same over a distortion texture handed in - see <see cref="RiverFoam(Vector2, float, float)"/>.</summary>
     public static Vector4 RiverFoam(GamePicture sheet, Vector2 place, float clock, float flowFoam)
+        => RiverFoam(sheet, place, clock, Vector2.Zero, Saturated((RiverStillFoam * flowFoam) + RiverFoamFloor));
+
+    /// <summary>
+    /// GetFlowingFoamColor as written at a flow (<see cref="RiverFlowAt"/>) and a foam strength (<see cref="RiverFoaming"/>): two nodes of
+    /// frequency (GetLinearInterpNodes of <c>0.02 * |flow| * 10.01</c>), each GetFlowingFoamColorFixedFreq at <c>0.2 + seed / 10.01</c> a
+    /// second, its layers' places scrolled along the flow by <c>1.5 * (phase - 0.5) / frequency</c> and hashed with the node's seed - a node
+    /// of no weight not worked out. At no flow the one node of <see cref="RiverFoam(GamePicture, Vector2, float, float)"/>, to the bit.
+    /// </summary>
+    public static Vector4 RiverFoam(GamePicture sheet, Vector2 place, float clock, Vector2 flow, float strength)
     {
-        float strength = Saturated((RiverStillFoam * flowFoam) + RiverFoamFloor);
-        const float phaseFrequency = 0.2f;
+        const float secondary = 10.01f;
+        float global = 0.02f * flow.Length() * secondary;
+
+        // GetLinearInterpNodes: the phases (0.5, 0) + global / 2, the seeds their floors twice plus (0, 1), the weights min(p, 1 - p) * 2.
+        float phaseA = (0.5f + (global * 0.5f)) - MathF.Floor(0.5f + (global * 0.5f));
+        float phaseB = (global * 0.5f) - MathF.Floor(global * 0.5f);
+        float seedA = MathF.Floor(0.5f + (global * 0.5f)) * 2f, seedB = (MathF.Floor(global * 0.5f) * 2f) + 1f;
+        float weightA = MathF.Min(phaseA, 1f - phaseA) * 2f, weightB = MathF.Min(phaseB, 1f - phaseB) * 2f;
+        Vector4 result = Vector4.Zero;
+        if (weightA > 0f)
+        {
+            result += RiverFoamNode(sheet, place, clock, flow, strength, 0.2f + (seedA / secondary), seedA) * weightA;
+        }
+
+        if (weightB > 0f)
+        {
+            result += RiverFoamNode(sheet, place, clock, flow, strength, 0.2f + (seedB / secondary), seedB) * weightB;
+        }
+
+        return result;
+    }
+
+    /// <summary>GetFlowingFoamColorFixedFreq: one node's four layers - see <see cref="RiverFoam(GamePicture, Vector2, float, Vector2, float)"/>.</summary>
+    private static Vector4 RiverFoamNode(GamePicture sheet, Vector2 place, float clock, Vector2 flow, float strength, float phaseFrequency, float seed)
+    {
         float foam = 0f, mask = 0f, weights = 0f;
         for (var layer = 0; layer < 4; layer++)
         {
@@ -194,9 +323,10 @@ public sealed partial class ShadeProgram
             // pow(1.8, harmonic) of the first two harmonics, written out so the card comes to the same bits.
             float frequency = harmonic == 0 ? 1f : 1.8f;
 
-            // The scroll along the flow, (phase - 0.5) * 1.5 * flow / frequency, is nought at no flow.
-            Vector3 hash = Hash33(new Vector3(layer, 0f, 0f));
-            Vector2 at = (place * (0.01f * frequency)) + new Vector2(hash.X, hash.Y);
+            // THE SCROLL ALONG THE FLOW, flow * 1.5 * (phase - 0.5) / frequency - nought at no flow.
+            Vector2 scrolled = place - (flow * 1.5f * (phase - 0.5f) / phaseFrequency);
+            Vector3 hash = Hash33(new Vector3(layer, seed, 0f));
+            Vector2 at = (scrolled * (0.01f * frequency)) + new Vector2(hash.X, hash.Y);
             Vector4 turbulence = DistortionRead(sheet, Turned(0.5f, at / 7f));
             at += new Vector2(turbulence.X - 0.5f, turbulence.Y - 0.5f) * 2f * phase / phaseFrequency * 0.2f * (10f * Saturated(strength - 0.2f));
             Vector4 moved = DistortionRead(sheet, Turned(2f, at / 10f));
