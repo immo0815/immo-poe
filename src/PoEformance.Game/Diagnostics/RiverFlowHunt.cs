@@ -30,10 +30,15 @@ namespace PoEformance.Game.Diagnostics;
 /// numbers and how alike neighbouring texels are, the likeliest drawn as a map; its bytes are written beside the report
 /// (<c>river-flow-N.bin</c>) so the replay reads them again (<see cref="Replay"/>).
 ///
-/// A DIAGNOSTIC: nothing is concluded here. It reads past the tap and stops itself at <see cref="BlockSeconds"/> plus
-/// <see cref="SweepSeconds"/>; the capture's window says how far it is and stops it on a click, keeping what it found.
+/// FOUND (v0.1.352's The Red Vale capture): list 1, four floats a texel, is flowmap_tex_sampler's contents (the schema's RiverFlowField) -
+/// so a list laid out as it is named a flow field (<see cref="FlowMap"/>; the guiding fog's is laid out the same) and its way home sought
+/// (<see cref="Home"/>), what a live read needs.
+///
+/// A DIAGNOSTIC: nothing is concluded here. It reads past the tap and stops itself at <see cref="BlockSeconds"/>, then
+/// <see cref="SweepSeconds"/>, then <see cref="LevelSeconds"/> a level of the way home; the capture's window says how far it is and stops
+/// it on a click, keeping what it found.
 /// </remarks>
-public static class RiverFlowHunt
+public static partial class RiverFlowHunt
 {
     /// <summary>How long the block is looked for before the sweep starts with what was found.</summary>
     public const int BlockSeconds = 20;
@@ -115,6 +120,7 @@ public static class RiverFlowHunt
         private long _budget;
         private int _phase;
         private int _stop;
+        private int _level;
 
         /// <summary>The block's float hunt's progress, and its stop.</summary>
         public FloatHuntProgress Block { get; } = new();
@@ -140,8 +146,10 @@ public static class RiverFlowHunt
                 {
                     0 => "reading the terrain",
                     1 => string.Create(CultureInfo.InvariantCulture, $"finding the water pass's block: {Block.Places} places in {Block.Bytes / Gb:0.00} GB, {seconds:0} s"),
-                    2 => string.Create(CultureInfo.InvariantCulture, $"the river's grid in the whole of memory: {Volatile.Read(ref _swept) / Gb:0.00} GB looked through, {seconds:0} s (it stops itself at {BlockSeconds + SweepSeconds} s)"),
-                    _ => "reading the lists found",
+                    2 => string.Create(CultureInfo.InvariantCulture, $"the river's grid in the whole of memory: {Volatile.Read(ref _swept) / Gb:0.00} GB looked through, {seconds:0} s (it stops itself at {SweepSeconds} s)"),
+                    3 => "reading the lists found",
+                    _ => string.Create(CultureInfo.InvariantCulture,
+                        $"the flow fields' way home, level {Volatile.Read(ref _level)} of {MostLevels}: {Volatile.Read(ref _swept) / Gb:0.00} GB looked through, {seconds:0} s (a level stops itself at {LevelSeconds} s)"),
                 };
             }
         }
@@ -153,25 +161,34 @@ public static class RiverFlowHunt
             {
                 long began = Volatile.Read(ref _began);
                 double seconds = began == 0 ? 0 : Stopwatch.GetElapsedTime(began).TotalSeconds;
+                double share = Math.Clamp(Math.Max(
+                    seconds / (Volatile.Read(ref _phase) == 2 ? SweepSeconds : LevelSeconds),
+                    Volatile.Read(ref _budget) > 0 ? (double)Volatile.Read(ref _swept) / Volatile.Read(ref _budget) : 0), 0, 1);
                 return Volatile.Read(ref _phase) switch
                 {
                     0 => 0f,
-                    1 => (float)Math.Clamp(seconds / BlockSeconds * 0.2, 0, 0.2),
-                    2 => 0.2f + (0.75f * (float)Math.Clamp(Math.Max(
-                        (seconds - BlockSeconds) / SweepSeconds, Volatile.Read(ref _budget) > 0 ? (double)Volatile.Read(ref _swept) / Volatile.Read(ref _budget) : 0), 0, 1)),
-                    _ => 0.97f,
+                    1 => (float)Math.Clamp(seconds / BlockSeconds * 0.15, 0, 0.15),
+                    2 => 0.15f + (0.4f * (float)share),
+                    3 => 0.55f,
+                    _ => 0.6f + (0.4f * (float)((Math.Max(0, Volatile.Read(ref _level) - 1) + share) / MostLevels)),
                 };
             }
         }
 
+        /// <summary>A phase begun: its clock and its bytes start again.</summary>
         internal void Phase(int phase)
         {
-            if (Volatile.Read(ref _began) == 0)
-            {
-                Volatile.Write(ref _began, Stopwatch.GetTimestamp());
-            }
-
+            Volatile.Write(ref _began, Stopwatch.GetTimestamp());
+            Volatile.Write(ref _swept, 0);
             Volatile.Write(ref _phase, phase);
+        }
+
+        /// <summary>A level of the way home begun.</summary>
+        internal void Level(int level, long budget)
+        {
+            Volatile.Write(ref _level, level);
+            Budgeted(budget);
+            Phase(4);
         }
 
         internal void Budgeted(long budget) => Volatile.Write(ref _budget, budget);
@@ -249,9 +266,8 @@ public static class RiverFlowHunt
         running.Phase(2);
         long budget = 2 * HeapScan.ByteBudget;
         running.Budgeted(budget);
-        (List<Hit> hits, long swept, int walked, TimeSpan took, bool cut) = Sweep(reader, regions, areaInstance, shapes, running, budget);
-        lines.Add(string.Create(CultureInfo.InvariantCulture,
-            $"  looked through {swept / (1024.0 * 1024 * 1024):0.00} GB in {walked} regions in {took.TotalSeconds:0.0} s, nearest the area instance first{(cut ? " - STOPPED (by the budget, the time or a click), so what is not found may lie past it" : string.Empty)}"));
+        (List<Hit> hits, Walked walked) = Sweep(reader, regions, areaInstance, shapes, running, budget);
+        lines.Add("  " + walked.Said("the area instance"));
         lines.Add("  the lengths looked for: " + string.Join("; ", shapes.Select(shape => Said(shape, grids))));
         List<Hit> lists = [.. hits.Where(hit => hit.Kind == "list")];
         List<Hit> sizes = [.. hits.Where(hit => hit.Kind == "size")];
@@ -264,6 +280,7 @@ public static class RiverFlowHunt
         // EACH LIST READ AND SET OUT, its bytes written beside the report.
         running.Phase(3);
         var number = 0;
+        var flowMaps = new List<(ulong Holder, string Name)>();
         foreach (Hit list in lists.GroupBy(hit => hit.Data).Select(same => same.First()).Take(MostRead))
         {
             number++;
@@ -286,8 +303,19 @@ public static class RiverFlowHunt
             lines.Add(string.Create(CultureInfo.InvariantCulture,
                 $"=== list {number}: a vector of {list.Shape.Bytes} bytes at 0x{list.Data:X}, its begin and end at 0x{list.At:X} - the {grids[list.Shape.Grid].Slot} grid's {list.Shape.Laid} {list.Shape.Width} x {list.Shape.Height}, {list.Shape.Element} bytes a texel - written to {file} ({length} bytes)"));
             lines.AddRange(SetOut(bytes, list.Shape.Width, list.Shape.Height, list.Shape.Element));
+            if (list.Shape.Laid == "texels" && FlowMap(bytes, list.Shape.Width, list.Shape.Height, list.Shape.Element) is { } flow)
+            {
+                lines.AddRange(flow.Lines);
+                if (flow.Is)
+                {
+                    flowMaps.Add((list.At, string.Create(CultureInfo.InvariantCulture, $"list {number}'s holder")));
+                }
+            }
         }
 
+        // THEIR WAY HOME: who points at each flow field's holder, up to a static or the area instance - what a live read needs.
+        lines.Add(string.Empty);
+        lines.AddRange(Home(reader, regions, areaInstance, flowMaps, running));
         return lines;
     }
 
@@ -441,10 +469,9 @@ public static class RiverFlowHunt
     }
 
     /// <summary>The whole of memory looked through for the shapes, on every core, nearest the anchor first.</summary>
-    private static (List<Hit> Hits, long Swept, int Walked, TimeSpan Took, bool Cut) Sweep(
+    private static (List<Hit> Hits, Walked Walked) Sweep(
         IMemoryReader reader, IMemoryRegions regions, ulong anchor, IReadOnlyList<Shape> shapes, Running running, long budget)
     {
-        var clock = Stopwatch.StartNew();
         var lengths = new Dictionary<long, Shape>();
         var sizes = new Dictionary<(int, int), Shape>();
         foreach (Shape shape in shapes)
@@ -455,8 +482,71 @@ public static class RiverFlowHunt
         }
 
         long least = lengths.Keys.Min(), most = lengths.Keys.Max();
-        MemoryRegion[] ordered = [.. regions.Regions()
-            .Where(region => region.Size <= HeapScan.LargestRegion)
+        (List<Hit> hits, Walked walked) = Walk<Hit>(
+            reader, regions, anchor, running, budget, SweepSeconds, (chunk, address, found) => Scan(chunk, address, lengths, least, most, sizes, found));
+
+        // THE NEAREST FIRST and the same place once, each kind to its cap.
+        List<Hit> kept = [.. hits.DistinctBy(hit => (hit.Kind, hit.At))
+            .OrderBy(hit => hit.At > anchor ? hit.At - anchor : anchor - hit.At)
+            .GroupBy(hit => hit.Kind)
+            .SelectMany(kind => kind.Take(MostHits))];
+        return (kept, walked);
+    }
+
+    /// <summary>What a walk through memory looked through: its bytes, regions, time, whether it stopped short, and what it left out.</summary>
+    /// <param name="Swept">Bytes read.</param>
+    /// <param name="Regions">Regions begun.</param>
+    /// <param name="Took">How long.</param>
+    /// <param name="Cut">Whether it stopped before the end (the budget, the time or a click).</param>
+    /// <param name="Unwritable">Bytes of regions left out as not writable.</param>
+    /// <param name="Driver">Bytes of regions left out as write-combined or uncached.</param>
+    private readonly record struct Walked(long Swept, int Regions, TimeSpan Took, bool Cut, long Unwritable, long Driver)
+    {
+        public string Said(string from) => string.Create(CultureInfo.InvariantCulture,
+            $"looked through {Swept / (1024.0 * 1024 * 1024):0.00} GB in {Regions} regions in {Took.TotalSeconds:0.0} s, nearest {from} first, leaving out {Unwritable / (1024.0 * 1024 * 1024):0.00} GB not writable and {Driver / (1024.0 * 1024 * 1024):0.00} GB write-combined or uncached{(Cut ? " - STOPPED (by the budget, the time or a click), so what is not found may lie past it" : string.Empty)}");
+    }
+
+    /// <summary>How a chunk of memory is searched: its bytes, where they stand, and the list to add to.</summary>
+    private delegate void ChunkScan<T>(ReadOnlySpan<byte> chunk, ulong address, List<T> found);
+
+    /// <summary>
+    /// Every writable region of the game's memory read in chunks on every core, nearest the anchor first, each chunk handed to
+    /// <paramref name="scan"/> with eight bytes past it so a pair across its end is seen; stopped by the budget, the time or a click.
+    /// </summary>
+    /// <remarks>
+    /// WRITABLE MEMORY ALONE, AND NOT THE DRIVER'S: a list's begin and end, a grid's size and a pointer to an object are written by the
+    /// game, so they stand in memory it may write; and write-combined or uncached memory is the driver's upload heaps, where light-hunt.txt
+    /// (v0.1.208) found most of a sweep's time going at a hundredth of a gigabyte a second. A region nobody asked the protection of (a
+    /// recording, a test) is read.
+    /// </remarks>
+    private static (List<T> Found, Walked Walked) Walk<T>(
+        IMemoryReader reader, IMemoryRegions regions, ulong anchor, Running running, long budget, int seconds, ChunkScan<T> scan)
+    {
+        var clock = Stopwatch.StartNew();
+        long unwritable = 0, driver = 0;
+        var searched = new List<MemoryRegion>();
+        foreach (MemoryRegion region in regions.Regions())
+        {
+            if (region.Size > HeapScan.LargestRegion)
+            {
+                continue;
+            }
+
+            if (region.Protect != 0 && (region.Protect & 0x600) != 0)
+            {
+                driver += (long)region.Size;
+            }
+            else if (region.Protect != 0 && (region.Protect & 0xFF) is not (0x04 or 0x08 or 0x40 or 0x80))
+            {
+                unwritable += (long)region.Size;
+            }
+            else
+            {
+                searched.Add(region);
+            }
+        }
+
+        MemoryRegion[] ordered = [.. searched
             .OrderBy(region => anchor >= region.Address && anchor < region.Address + region.Size ? 0 : anchor > region.Address ? anchor - region.Address : region.Address - anchor)];
         var chunks = new List<(int Region, ulong Offset)>();
         for (var at = 0; at < ordered.Length; at++)
@@ -470,17 +560,17 @@ public static class RiverFlowHunt
         var next = -1;
         long swept = 0;
         var walked = 0;
-        var hits = new List<Hit>();
+        var all = new List<T>();
         var cut = false;
         void Work()
         {
             byte[] buffer = ArrayPool<byte>.Shared.Rent(HeapScan.ChunkBytes + 16);
-            var found = new List<Hit>();
+            var found = new List<T>();
             try
             {
                 while (true)
                 {
-                    if (running.Stopping || Volatile.Read(ref swept) >= budget || clock.Elapsed.TotalSeconds >= SweepSeconds)
+                    if (running.Stopping || Volatile.Read(ref swept) >= budget || clock.Elapsed.TotalSeconds >= seconds)
                     {
                         Volatile.Write(ref cut, Volatile.Read(ref next) + 1 < chunks.Count);
                         break;
@@ -515,12 +605,12 @@ public static class RiverFlowHunt
 
                     Interlocked.Add(ref swept, want);
                     running.Swept(want);
-                    Scan(buffer.AsSpan(0, want + extra), region.Address + offset, lengths, least, most, sizes, found);
+                    scan(buffer.AsSpan(0, want + extra), region.Address + offset, found);
                     if (found.Count > 0)
                     {
-                        lock (hits)
+                        lock (all)
                         {
-                            hits.AddRange(found);
+                            all.AddRange(found);
                         }
 
                         found.Clear();
@@ -546,12 +636,7 @@ public static class RiverFlowHunt
             thread.Join();
         }
 
-        // THE NEAREST FIRST and the same place once, each kind to its cap.
-        List<Hit> kept = [.. hits.DistinctBy(hit => (hit.Kind, hit.At))
-            .OrderBy(hit => hit.At > anchor ? hit.At - anchor : anchor - hit.At)
-            .GroupBy(hit => hit.Kind)
-            .SelectMany(kind => kind.Take(MostHits))];
-        return (kept, swept, walked, clock.Elapsed, cut);
+        return (all, new Walked(swept, walked, clock.Elapsed, cut, unwritable, driver));
     }
 
     /// <summary>The 32 bytes either side of a pair of ints, as pointers - what a grid's size may stand beside.</summary>
@@ -793,7 +878,9 @@ public static class RiverFlowHunt
             int width = int.Parse(match.Groups[4].Value, CultureInfo.InvariantCulture);
             int height = int.Parse(match.Groups[5].Value, CultureInfo.InvariantCulture);
             int element = int.Parse(match.Groups[6].Value, CultureInfo.InvariantCulture);
-            foreach (string line in SetOut(File.ReadAllBytes(file), width, height, element))
+            byte[] bytes = File.ReadAllBytes(file);
+            IEnumerable<string> flow = match.Groups[3].Value == "texels" && FlowMap(bytes, width, height, element) is { } reading ? reading.Lines : [];
+            foreach (string line in SetOut(bytes, width, height, element).Concat(flow))
             {
                 said.AppendLine(line);
             }

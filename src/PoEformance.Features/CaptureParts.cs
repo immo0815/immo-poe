@@ -576,7 +576,11 @@ public static class CaptureParts
             + "texels, their corners or the cells under them, one to sixteen bytes a texel - and for the grid's size as two ints beside a "
             + "pointer. Each list found is read every way its texels could be (bytes, halves, floats, one to four channels), its numbers and "
             + "how alike neighbouring texels are said, the likeliest drawn as a map of the way the flow points, and its bytes written "
-            + "beside the report. It stops itself at about ninety seconds; the capture's window shows how far it is and stops it on a click."),
+            + "beside the report. The Red Vale's was found so: four floats a texel, the flow, its sources and the distance to the bank. "
+            + "So a list laid out so is named, and then its way home is sought - the whole of writable memory searched again, level by "
+            + "level, for whatever points at it and at those, up to a static of the game's program or the area instance, each object on "
+            + "the way named by its class where it has one: the chain a live read of the map needs. It stops itself after about four "
+            + "minutes; the capture's window shows how far it is and stops it on a click."),
         new(Memory, "Memory", "memory recording", CaptureReport.MemoryFile,
             "The overlay's own reads for three seconds, and inside them one pass reading once more from nothing whatever the "
             + "ticked parts above ask for - memory.txt beside it says what the pass read where. Replays with --replay, game closed."),
