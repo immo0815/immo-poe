@@ -314,6 +314,22 @@ v0.1.348:
   textures past a mask's size left out and listed. `stage-sweep-replay.txt` reads those files again with today's readers
   (`CaptureStageSweep.Recheck`: each object built, each material compiled, each tile read), so a mend is held against the very files
   offline before the next sweep.
+THE SECOND SWEEP (v0.1.348, Crimson Shores) took the rooms with a white surface from 3,043 to 2,491. Its fourth white cause, 291 rooms,
+was Port's own sea: `Water01c_water1.mat`, `"shadertype":"water1"`, drawn as the ocean from v0.1.349 (above). Mended in v0.1.350, each
+CHOSEN from the live client:
+- A DOODAD SET DRAWS ONE MEMBER A LINE (`RoomModels.Member`): a `_set.ao` is `extends "Metadata/AOSetParent"` and an `AOSet` whose every
+  `ao = "<weight> <path>"` is a member (`WallSand_Cc_set.ao`: three walls at 100 each). The game stands one member at each line; which is
+  its seed's, in no file, so the tool takes one by its weight through a hash of where the line stands - the same room draws the same
+  choice every time; a member that is a set again is chosen from in turn. 145,687 lines in 4,242 rooms drew nothing before.
+  `random_rotation`, `random_flip` and `random_scale_min` in the same `AOSet` are not read.
+- TWO GROUNDS WHOSE TEMPLATE NAMES NO MASK ARE MIXED BY THEIR SUB-TILE'S CORNERS (`GroundPainter`, `Plan.Maskless`): the stand-in the shapes
+  across the mask's atlas take already (v0.1.310), the second ground's share of the four corners, bilinear. The engine mixes them by its
+  own mask through per-tile transforms no file holds (GroundGenerateWeights_2a). A tile with no ground grid has no sub-tile corners and
+  stays plain, said why. 5,329 rooms left them plain before.
+STILL OPEN from that sweep, ranked: rivers and the other water shader types drawn as ordinary materials (`FlowingWater` 1,120 rooms,
+`NonsplashyWater` 254, `NonsplashyFlowingWater` 188, `Swamp_Water` 5) - DECIDED from the live client: the engine's river surface first
+(GetFlowingWaterPlanarStateWorld, its flow map made at run time); `LowerPrisonWaterc.mat` (318 rooms, "nothing to colour it with": an
+empty default graph and no shader type); `BlackInsideWall` named in no MaterialsList (CHOSEN, the group with no name).
 
 ## Verify against the game, not against yourself
 

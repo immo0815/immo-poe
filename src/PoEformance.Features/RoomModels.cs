@@ -315,8 +315,12 @@ public static class RoomModels
 
         // WHERE EACH GOES FIRST, and whether it could be seen there at all.
         var laid = new List<(RoomDoodad One, Matrix4x4 Place, Tally File, int Sway)>(room.Doodads.Count + (also?.Count ?? 0));
+        // A SET'S LINE IS ONE OF ITS MEMBERS - see Member - each set read once a room.
+        var sets = new Dictionary<string, IReadOnlyList<(int Weight, string Ao)>>(StringComparer.OrdinalIgnoreCase);
         void Take(RoomDoodad one, Matrix4x4 place, int sway, bool swapped = false)
         {
+            one = Member(one, place.Translation, counted, sets);
+
             // THE LIGHTS WHETHER OR NOT THE DOODAD DRAWS: a light can be all a doodad is -
             // grimtangle_ambientlight.ao has no mesh - and a doodad left out to keep the picture
             // turnable, or because the camera cannot see it, still lights the room in the game.
@@ -522,6 +526,120 @@ public static class RoomModels
                     System.Globalization.CultureInfo.InvariantCulture, $"{one.Name} ({one.Rate} fps, {one.Tracks} tracks, kind {one.Kind})"))],
             }
             : new DoodadFile(ao, Lines, Laid, Missing, Capped, Unseen, Model?.Why ?? string.Empty, first);
+    }
+
+    /// <summary>
+    /// The line as the member of its set it draws - itself where its file is no set: a weighted choice by the line's place.
+    /// </summary>
+    /// <remarks>
+    /// A SET IS A LIST OF OBJECTS TO CHOOSE FROM (`WallSand_Cc_set.ao`: <c>extends "Metadata/AOSetParent"</c>, then an <c>AOSet</c>
+    /// whose every <c>ao = "100 Metadata/.../WallSand_Cc_01.ao"</c> is a weight and a member), and the game stands one member at each
+    /// line - so matching the doodads by model missed every such line (see the room placing). Which member is its seed's, in no file:
+    /// CHOSEN from the live client (v0.1.350), a member by its weight, chosen by a hash of where the line stands - the same room draws
+    /// the same choice every time. The stage sweep found 4,242 rooms drawing no member, 145,687 lines (v0.1.348). A member that is a
+    /// set again is chosen from in turn, a few deep. A file is asked whether it is a set only where its name ends in "set" - the
+    /// sets' own spelling (`_set.ao`, `BRDgrassSet.ao`) - so no other file is read twice.
+    /// </remarks>
+    internal static RoomDoodad Member(
+        RoomDoodad one, Vector3 at, Func<string, byte[]?> read, Dictionary<string, IReadOnlyList<(int Weight, string Ao)>> sets)
+    {
+        for (var deep = 0; deep < 4; deep++)
+        {
+            IReadOnlyList<(int Weight, string Ao)> members = MembersOf(one.Ao, read, sets);
+            if (members.Count == 0)
+            {
+                return one;
+            }
+
+            long total = members.Sum(member => (long)Math.Max(member.Weight, 0));
+            if (total <= 0)
+            {
+                return one;
+            }
+
+            long pick = (long)(Placed(at, one.Ao) % (ulong)total);
+            foreach ((int weight, string ao) in members)
+            {
+                pick -= Math.Max(weight, 0);
+                if (pick < 0)
+                {
+                    one = one with { Ao = ao };
+                    break;
+                }
+            }
+        }
+
+        return one;
+    }
+
+    /// <summary>A set's members with their weights, read once - none where the file is no set.</summary>
+    private static IReadOnlyList<(int Weight, string Ao)> MembersOf(
+        string ao, Func<string, byte[]?> read, Dictionary<string, IReadOnlyList<(int Weight, string Ao)>> sets)
+    {
+        if (!Path.GetFileNameWithoutExtension(ao).EndsWith("set", StringComparison.OrdinalIgnoreCase))
+        {
+            return [];
+        }
+
+        if (!sets.TryGetValue(ao, out IReadOnlyList<(int Weight, string Ao)>? members))
+        {
+            members = Members(AnimatedObject.Read(read(ao.Replace('\\', '/').Trim())));
+            sets[ao] = members;
+        }
+
+        return members;
+    }
+
+    /// <summary>An <c>AOSet</c>'s members, each with its weight - a value written without one weighs one.</summary>
+    internal static IReadOnlyList<(int Weight, string Ao)> Members(AnimatedObject file)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        var members = new List<(int Weight, string Ao)>();
+        foreach (AoStruct set in file.Named("AOSet"))
+        {
+            foreach (AoEntry entry in set.Entries.Where(entry => string.Equals(entry.Key, "ao", StringComparison.OrdinalIgnoreCase)))
+            {
+                string value = entry.Value.Trim();
+                int space = value.IndexOf(' ', StringComparison.Ordinal);
+                if (space > 0 && int.TryParse(value[..space], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int weight))
+                {
+                    members.Add((weight, value[(space + 1)..].Trim()));
+                }
+                else if (value.Length > 0)
+                {
+                    members.Add((1, value));
+                }
+            }
+        }
+
+        return members;
+    }
+
+    /// <summary>A hash of where a line stands and what it names - FNV-1a over the place's bits, the same every build.</summary>
+    private static ulong Placed(Vector3 at, string ao)
+    {
+        ulong hash = 14695981039346656037UL;
+        void Mix(uint value)
+        {
+            for (var shift = 0; shift < 32; shift += 8)
+            {
+                hash = (hash ^ ((value >> shift) & 0xFF)) * 1099511628211UL;
+            }
+        }
+
+        Mix(BitConverter.SingleToUInt32Bits(MathF.Round(at.X, 2)));
+        Mix(BitConverter.SingleToUInt32Bits(MathF.Round(at.Y, 2)));
+        Mix(BitConverter.SingleToUInt32Bits(MathF.Round(at.Z, 2)));
+        foreach (char letter in ao)
+        {
+            Mix(char.ToLowerInvariant(letter));
+        }
+
+        // A LAST AVALANCHE, so neighbouring places do not take neighbouring members.
+        hash ^= hash >> 33;
+        hash *= 0xff51afd7ed558ccdUL;
+        hash ^= hash >> 33;
+        return hash;
     }
 
     /// <summary>A box through a transform, by its eight corners - a turned box's corners are not the old corners turned.</summary>

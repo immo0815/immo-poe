@@ -170,6 +170,51 @@ public sealed class GroundPainterTests
     }
 
     /// <summary>
+    /// Two grounds whose template names no mask - left plain before, 5,329 rooms of the stage sweep - are mixed by the second ground's
+    /// share of their sub-tile's corners where the definition carries a ground grid, and stay plain, said why, where it carries none.
+    /// </summary>
+    [Fact]
+    public void TWOGroundsWhoseTemplateNamesNoMaskAreMixedByTheirSubTilesCorners()
+    {
+        const string Bare = "Art/Models/Terrain/Test/Bare.tgt", Gridded = "bare.tdt", Cornered = "cornered.tdt";
+        const string GridSand = "Metadata/Terrain/Test/sand.gt", GridRock = "Metadata/Terrain/Test/rock.gt";
+        byte[]? Read(string path) => path switch
+        {
+            Bare => CaptureGroundTests.Text("version 3\nSize 1 1\nTileMeshRoot \"Art/Models/Terrain/Test/Ground\"\n"),
+            Gridded => TileFilesTests.Tdt(template: Bare, grounds: true, grid: [5, 5, 6, 5, 5, 6]),
+            Cornered => CaptureGroundTests.Tdt(Bare, [Sand, Sand, Rock, Rock]),
+            GridSand => CaptureGroundTests.Text("Sand\n1 1 0 0\n"),
+            GridRock => CaptureGroundTests.Text("Rock\n1 1 0 0\n"),
+            _ => Mixable(path),
+        };
+
+        GroundPainter painter = Painter(Read);
+        SkinnedMesh ground = TwoSubTiles();
+        MonsterModel? painted = painter.Paint(
+            Gridded, ground, [new GroundPiece(1, 1, 2), new GroundPiece(2, 1, 2)], Matrix4x4.CreateTranslation(500f, 250f, 0f), "ground of bare.tdt");
+
+        // The left sub-tile all sand; the right one sand on its left side and rock on its right - Rock listed first, so the share is sand's.
+        Assert.NotNull(painted);
+        Assert.Equal(["Art/sand2.mat", GroundBlend.Cornered("Art/rock.mat", "Art/sand2.mat")], painted!.ShapeMaterials);
+        Assert.Equal(18, painted.Mesh.Positions.Length);
+        Assert.Equal([12, 13, 14, 15, 16, 17], painted.Mesh.Indices[6..12]);
+        for (var copy = 0; copy < 6; copy++)
+        {
+            Vector3 place = painted.Mesh.Positions[12 + copy];
+            Assert.Equal(ground.Positions[6 + copy], place);
+            Assert.Equal(1f - ((place.X - 250f) / 250f), painted.Mesh.Coordinates[12 + copy].X, 5);
+        }
+
+        Assert.Contains(", 1 of two grounds whose template names no mask mixed by the second ground's share of their sub-tile's corners", painter.Said(), StringComparison.Ordinal);
+        Assert.Contains("plain: none", painter.Said(), StringComparison.Ordinal);
+
+        // NO GRID, NO SUB-TILE CORNERS: plain - nothing painted - and said why.
+        GroundPainter alone = Painter(Read);
+        Assert.Null(alone.Paint(Cornered, Ground(), Matrix4x4.Identity, "ground of cornered.tdt"));
+        Assert.Contains("1 of two grounds whose template names no mask, its tile carrying no ground grid to mix them by", alone.Said(), StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// A corner the grid leaves unnamed takes the MaterialsList's group with no name - the game holds its null slot there: a sub-tile
     /// of sand and unnamed corners mixes the two, the unnamed group listed first, and one with no corner named wears the group alone.
     /// </summary>

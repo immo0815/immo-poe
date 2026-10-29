@@ -107,6 +107,9 @@ internal sealed class GroundPainter
     /// <summary>Whether two grounds are weighed by their heights where their graphs turn that on - the switch, see the remarks.</summary>
     private readonly bool _heights;
     private int _byCorners;
+
+    /// <summary>Sub-tiles of two grounds whose template names no mask, mixed by their corners - see <see cref="Plan.Maskless"/>.</summary>
+    private int _maskless;
     private int _cornerShapes;
     private int _keptOnCells;
 
@@ -237,6 +240,7 @@ internal sealed class GroundPainter
         _reduced += plan.Reduced;
         _cornered += plan.Gridded ? 0 : 1;
         _byCorners += plan.ByCorners;
+        _maskless += plan.Maskless;
         _cornerShapes += plan.CornerShapes;
         _keptOnCells += plan.KeptOnCells;
         foreach ((string why, int count) in plan.Plain)
@@ -322,8 +326,10 @@ internal sealed class GroundPainter
             ? string.Create(CultureInfo.InvariantCulture, $", {_keptOnCells} of them with shapes across the mask's atlas kept on its cells by the switch, squares and all")
             : _byCorners == 0 && _keptOnCells == 0 ? string.Empty
             : string.Create(CultureInfo.InvariantCulture, $", of them {_byCorners} with shapes across the mask's atlas ({_cornerShapes} shapes) mixed instead by the second ground's share of their sub-tile's corners, bilinear - CHOSEN, a stand-in: the game draws no squares there and what it reads is not measured{(_keptOnCells > 0 ? $"; {_keptOnCells} more left on the mask, their corners' mix not running" : string.Empty)}");
+        string maskless = _maskless == 0 ? string.Empty
+            : string.Create(CultureInfo.InvariantCulture, $", {_maskless} of two grounds whose template names no mask mixed by the second ground's share of their sub-tile's corners, bilinear - CHOSEN from the live client, the same stand-in: the engine mixes them by its own mask, placed by transforms no file holds");
         return string.Create(CultureInfo.InvariantCulture,
-            $"ground: painted from {From}, each sub-tile from its own corners in its definition's ground grid ({_gridded} pieces; {_cornered} from the tile's four corners, their definition carrying no grid; {_unnamed} sub-tiles with a corner the grid leaves unnamed, taken as the MaterialsList's group with no name - the game holds its null slot there, and that it draws this group is DECIDED{bare}{unlisted}) - {_one} sub-tiles of one ground{alike}, {_mixed} of two mixed per pixel by the template mask's green at the block's own coordinates as the engine mixes them (GroundGenerateWeights_1a1b; the MaterialsList's first ground at green nought, as Port's three families agree - one area; {heights}){corners}{reduced}{split}, plain: {plain}; the materials' coordinates the world times {GroundScale} (the environments' ground_scale, likely and not measured), a group's heaviest choice where the game draws by weight");
+            $"ground: painted from {From}, each sub-tile from its own corners in its definition's ground grid ({_gridded} pieces; {_cornered} from the tile's four corners, their definition carrying no grid; {_unnamed} sub-tiles with a corner the grid leaves unnamed, taken as the MaterialsList's group with no name - the game holds its null slot there, and that it draws this group is DECIDED{bare}{unlisted}) - {_one} sub-tiles of one ground{alike}, {_mixed} of two mixed per pixel by the template mask's green at the block's own coordinates as the engine mixes them (GroundGenerateWeights_1a1b; the MaterialsList's first ground at green nought, as Port's three families agree - one area; {heights}){corners}{maskless}{reduced}{split}, plain: {plain}; the materials' coordinates the world times {GroundScale} (the environments' ground_scale, likely and not measured), a group's heaviest choice where the game draws by weight");
     }
 
     /// <summary>How a tile's ground is painted, worked out once whatever number of pieces lay it - and what it comes to, sub-tile by sub-tile.</summary>
@@ -337,6 +343,14 @@ internal sealed class GroundPainter
 
         /// <summary>Sub-tiles of two grounds split by triangle, the two being unable to run as one program.</summary>
         public int Split { get; init; }
+
+        /// <summary>
+        /// Sub-tiles of two grounds whose template names no mask, mixed by the second ground's share of their corners - CHOSEN from the
+        /// live client (v0.1.350): the stage sweep left them plain in 5,329 rooms (v0.1.348). The engine mixes them by its own mask,
+        /// read through per-tile transforms no file holds (GroundGenerateWeights_2a); the corners' share is the stand-in the shapes
+        /// across the mask's atlas take already (v0.1.310). A tile with no ground grid has no sub-tile corners to mix by, and stays plain.
+        /// </summary>
+        public int Maskless { get; init; }
 
         /// <summary>Whether the sub-tiles took their own corners from the definition's ground grid.</summary>
         public bool Gridded { get; init; }
@@ -481,21 +495,22 @@ internal sealed class GroundPainter
         var own = new bool[ground.Positions.Length];
         var plain = new Dictionary<string, int>(StringComparer.Ordinal);
         var splits = new Dictionary<string, int>(StringComparer.Ordinal);
-        int oneGround = 0, mixedGrounds = 0, splitGrounds = 0, byCorners = 0, cornerShapes = 0, keptOnCells = 0;
+        int oneGround = 0, mixedGrounds = 0, splitGrounds = 0, byCorners = 0, cornerShapes = 0, keptOnCells = 0, maskless = 0;
         var extra = new List<int>();
         var shares = new List<float>();
         var copies = new Dictionary<int, int>();
         int[]? shapeOf = null;
 
-        void Shape(IEnumerable<int> triangleList, string? material, bool copied = false)
+        void Shape(IEnumerable<int> triangleList, string? material, bool copied = false, Dictionary<int, int>? copyMap = null)
         {
             int from = indices.Count;
+            Dictionary<int, int> copiedAs = copyMap ?? copies;
             foreach (int triangle in triangleList)
             {
                 for (var corner = 0; corner < 3; corner++)
                 {
                     int vertex = ground.Indices[(triangle * 3) + corner];
-                    indices.Add(copied ? copies[vertex] : vertex);
+                    indices.Add(copied ? copiedAs[vertex] : vertex);
                 }
             }
 
@@ -532,7 +547,29 @@ internal sealed class GroundPainter
             string second = Heaviest(run.Grounds[1].Group);
             if (mask.Length == 0 || MaskOf(mask) is not { } picture)
             {
-                Plain(run, "of two grounds whose template names no mask that reads");
+                // NO MASK: MIXED BY THE SUB-TILES' CORNERS where the grid names them - see Plan.Maskless.
+                if (mask.Length == 0 && gridded && _paints.GroundsByCorners(_read, first, second, GroundScale, _heights, out _) is { } byTheCorners)
+                {
+                    // ITS OWN COPIES: a vertex this run shares with a run of another pair of grounds is that run's at another share.
+                    var all = new List<int>(run.Triangles.Count);
+                    var runCopies = new Dictionary<int, int>();
+                    foreach ((int piece, int first0, int count) in run.Pieces)
+                    {
+                        int from = all.Count;
+                        for (int triangle = first0; triangle < first0 + count; triangle++)
+                        {
+                            all.Add(triangle);
+                        }
+
+                        Copied(ground, all, from, all.Count, pieces[piece], Seconds(subTiles[piece].Corners, run.Grounds[1].Order), extra, shares, runCopies);
+                    }
+
+                    maskless += run.SubTiles;
+                    Shape(all, byTheCorners, copied: true, copyMap: runCopies);
+                    continue;
+                }
+
+                Plain(run, mask.Length == 0 ? "of two grounds whose template names no mask, its tile carrying no ground grid to mix them by" : "of two grounds whose template's mask does not read");
                 continue;
             }
 
@@ -664,6 +701,7 @@ internal sealed class GroundPainter
             Extra = [.. extra],
             Shares = [.. shares],
             ByCorners = byCorners,
+            Maskless = maskless,
             CornerShapes = cornerShapes,
             KeptOnCells = keptOnCells,
         };
