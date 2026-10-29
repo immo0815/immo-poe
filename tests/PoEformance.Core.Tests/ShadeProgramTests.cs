@@ -2035,6 +2035,29 @@ public class ShadeProgramTests
             [.. instances.Select(one => (one, ShaderGraph.Read(File.ReadAllBytes(Fixture(one.Parent)))))]);
     }
 
+    /// <summary>
+    /// A colour whose alpha does not compile keeps its xyz and draws as before - and the compile says the alpha was lost, as it did
+    /// not when Crimson Shores' force walls stood whole round the stage (their alpha the player's distance, v0.1.343).
+    /// </summary>
+    [Fact]
+    public void ACOLOURSLostAlphaIsSaidAndTheColourStillDraws()
+    {
+        ShadeCompile compiled = ShadeProgram.Compile([(Instance("Metadata/Wall.fxgraph"), Graph(
+            """
+            {"nodes":[
+              {"type":"ConstantPixel3","index":0,"parameters":[{"value":[0.5,0.25,0.125]}]},
+              {"type":"NoSuchNode","index":0},
+              {"type":"AlbedoColor","index":0,"stage":"Texturing_Init"}],
+             "links":[
+              {"src":{"type":"ConstantPixel3","index":0,"variable":"output"},"dst":{"type":"AlbedoColor","index":0,"stage":"Texturing_Init","variable":"input","swizzle":"xyz"}},
+              {"src":{"type":"NoSuchNode","index":0,"variable":"output"},"dst":{"type":"AlbedoColor","index":0,"stage":"Texturing_Init","variable":"input","swizzle":"w"}}]}
+            """))]);
+
+        Assert.NotNull(compiled.Program);
+        Assert.Empty(compiled.Skipped);
+        Assert.Equal(["the colour's alpha: NoSuchNode in Wall"], compiled.Lost);
+    }
+
     private static ShaderGraph Graph(string json)
     {
         ShaderGraph graph = ShaderGraph.Read(Encoding.UTF8.GetBytes(json));

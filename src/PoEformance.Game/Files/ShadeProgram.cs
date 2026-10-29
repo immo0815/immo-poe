@@ -12,7 +12,18 @@ public readonly record struct ShadeTexture(string Path, bool Srgb);
 /// </summary>
 /// <param name="Program">The program, or null where no graph's colour could be evaluated.</param>
 /// <param name="Skipped">Why each skipped graph was skipped, as "node in graph".</param>
-public sealed record ShadeCompile(ShadeProgram? Program, IReadOnlyList<string> Skipped);
+public sealed record ShadeCompile(ShadeProgram? Program, IReadOnlyList<string> Skipped)
+{
+    /// <summary>
+    /// What was left out on the other channels - the colour's alpha, the normal, the gloss and the rest - as "channel: node in graph".
+    /// </summary>
+    /// <remarks>
+    /// SAID SINCE v0.1.346, DRAWN AS BEFORE: a colour whose w did not compile kept its xyz and lost the w without a word, and Crimson
+    /// Shores' force walls stood whole round the stage because their alpha - the player's distance (Radial_PlayerMask.fxgraph) - was
+    /// the w dropped. The graph survey walks the colour's xyz and the coordinates alone, so it never counted it either.
+    /// </remarks>
+    public IReadOnlyList<string> Lost { get; init; } = [];
+}
 
 /// <summary>
 /// A material's colour as its shader graphs compute it, compiled into steps over a few registers
@@ -744,6 +755,15 @@ public sealed partial class ShadeProgram
         return compiled;
     }
 
+    /// <summary>A line added once, however many writes of a chain say it - see ShadeCompile.Lost.</summary>
+    private static void Said(List<string> lines, string line)
+    {
+        if (!lines.Contains(line, StringComparer.Ordinal))
+        {
+            lines.Add(line);
+        }
+    }
+
     /// <summary>The node that draws the sea's spray on a surface - see <see cref="Sprays"/>.</summary>
     private const string SprayNode = "CrashingFoamSurface";
 
@@ -818,6 +838,7 @@ public sealed partial class ShadeProgram
     {
         var build = new Builder();
         var skipped = new List<string>();
+        var lostWhy = new List<string>();
         var graphs = new List<string>();
 
         // WHAT EACH NAMED VALUE HOLDS NOW, by register, and which of its components nobody has set.
@@ -942,6 +963,11 @@ public sealed partial class ShadeProgram
                         // THE COLOUR'S W APART FROM ITS XYZ - see the class's remarks.
                         if (unit.Colour(writer.Node) is { } colour && build.Fits)
                         {
+                            if (unit.AlphaWhy.Length > 0)
+                            {
+                                Said(lostWhy, $"the colour's alpha: {unit.AlphaWhy} in {what}");
+                            }
+
                             wrote.Add((channel, colour.Register, colour.Unset, colour.Alpha));
                             continue;
                         }
@@ -963,9 +989,13 @@ public sealed partial class ShadeProgram
                     {
                         skipped.Add(why);
                     }
-                    else if (writer.Channel >= FirstFollowed)
+                    else
                     {
-                        wrote.Add((channel, int.MinValue, 0, true));
+                        Said(lostWhy, $"{channel}: {why}");
+                        if (writer.Channel >= FirstFollowed)
+                        {
+                            wrote.Add((channel, int.MinValue, 0, true));
+                        }
                     }
                 }
 
@@ -1005,7 +1035,7 @@ public sealed partial class ShadeProgram
 
         if (!state.TryGetValue("Albedo", out Held albedo))
         {
-            return new ShadeCompile(null, skipped);
+            return new ShadeCompile(null, skipped) { Lost = lostWhy };
         }
 
         // THE SPECULAR COLOUR AND THE GLOSS, where the graphs wrote them whole: what a metal's colour
@@ -1058,7 +1088,7 @@ public sealed partial class ShadeProgram
             }
         }
 
-        return new ShadeCompile(program, skipped);
+        return new ShadeCompile(program, skipped) { Lost = lostWhy };
     }
 
     /// <summary>The steps, in order - what <see cref="ShadeHlsl"/> writes out.</summary>
@@ -2683,8 +2713,11 @@ public sealed partial class ShadeProgram
         /// <summary>Why the expression could not be compiled - the node type it stopped at.</summary>
         public string Why { get; private set; } = string.Empty;
 
+        /// <summary>Why the last colour written lost its w, its xyz kept - or empty; see ShadeCompile.Lost.</summary>
+        public string AlphaWhy { get; private set; } = string.Empty;
+
         /// <summary>Begins one write.</summary>
-        public void Start() => Why = string.Empty;
+        public void Start() => (Why, AlphaWhy) = (string.Empty, string.Empty);
 
         /// <summary>Moves the unit to the stage whose values are now <paramref name="now"/>.</summary>
         public void At(IReadOnlyDictionary<string, Held> now) => seen = now;
@@ -2778,6 +2811,7 @@ public sealed partial class ShadeProgram
                 {
                     build.Back(mark);
                     Forget(mark.Next);
+                    AlphaWhy = Why;
                     Why = string.Empty;
                     unset = 0b1000;
                 }
