@@ -44,6 +44,12 @@ public enum CaptureReads
 /// <param name="Reads">What the memory pass reads for it, where the recording is on.</param>
 public sealed record CapturePart(string Key, string Group, string Label, string File, string Hint, CaptureReads Reads = CaptureReads.None)
 {
+    /// <summary>
+    /// Whether the part is written only once somebody ticks it - for a part that runs for hours, which every press of the key would
+    /// otherwise wait for (the stage sweep). The rest are on by default; see <see cref="CaptureParts"/>' remarks.
+    /// </summary>
+    public bool OffByDefault { get; init; }
+
     /// <summary>The box's hover: the file it writes, then the hint - made once, since a page draws it every frame.</summary>
     public string Hover { get; } = File.Length > 0 ? File + ": " + Hint : Hint;
 
@@ -66,7 +72,9 @@ public sealed record CapturePart(string Key, string Group, string Label, string 
 /// ALL ON BY DEFAULT, and the settings keep the keys that are OFF (OverlaySettings.CaptureOff): a
 /// part added in a later build is then written without anybody ticking it, and a settings file that
 /// never touched the boxes gains no key. What a part costs when nothing is there to write is one
-/// line in capture.txt saying so.
+/// line in capture.txt saying so. BUT ONE THAT RUNS FOR HOURS is off until ticked (CapturePart.OffByDefault,
+/// DECIDED from the live client for the stage sweep, 2026-10-29), and the settings keep those switched ON
+/// apart (OverlaySettings.CaptureOn) - so it too stays as it was left, and a later one starts off.
 ///
 /// THE RECORDING FOLLOWS THE TICKS - see <see cref="CaptureReads"/>. A part that reads memory says
 /// what it needs, <see cref="Reads"/> takes the union over the ticked ones, and the pass inside
@@ -184,6 +192,9 @@ public static class CaptureParts
 
     /// <summary>The terrain and what it points to searched at the press for the grid the engine's ocean markup is made from.</summary>
     public const string OceanMarkup = "ocean-markup";
+
+    /// <summary>Every room of every room set in the install built as a Monster Book stage, and what fails counted by cause - off until ticked.</summary>
+    public const string StageSweep = "stage-sweep";
 
     /// <summary>The memory recording itself.</summary>
     public const string Memory = "memory";
@@ -458,6 +469,18 @@ public static class CaptureParts
             + "yet; the textures they name with their headers; the debug pass's shader sources whole, and those naming an unknown "
             + "node; and every string of the game's program round its table of the views, at its address."),
 
+        new(StageSweep, "Area files", "stage sweep (hours)", CaptureReport.StageSweepFile,
+            "Every room of every room set in the install, each under every master naming its set, built as the Monster Book builds a "
+            + "stage from its tileset - and what fails counted over all of them, ranked by how many rooms it reaches: surfaces drawn "
+            + "white and why, ground left plain, pieces not whole, slots no tile answered, doodads not drawn, effect objects drawn, "
+            + "water drawn white or as an ordinary material, and what the compile left out of a colour or lost of the alpha and the "
+            + "other channels; then every room a row. So one mend of a building block is found once for every scene. Runs for hours "
+            + "on every core - OFF UNTIL TICKED, and a capture with it ticked waits for it (its stop in the capture's window keeps "
+            + "what it built).")
+        {
+            OffByDefault = true,
+        },
+
         new(CountField, "Area files", "count field sweep", CaptureReport.CountFieldFile,
             "The loaded-file table walked for its count field instead of assuming one: what the area-change counter reads, how many "
             + "slots were walked, records read and paths readable - their difference says which part of the walk is wrong - and the "
@@ -591,10 +614,36 @@ public static class CaptureParts
         return reads;
     }
 
-    /// <summary>The keys that are off, with any the catalogue no longer knows dropped - what the settings keep.</summary>
+    /// <summary>The keys that are off, with any the catalogue no longer knows dropped - and those off by default left out: what the settings keep as off.</summary>
     public static IReadOnlyList<string> Kept(IReadOnlySet<string> off)
     {
         ArgumentNullException.ThrowIfNull(off);
-        return [.. All.Where(part => off.Contains(part.Key)).Select(part => part.Key)];
+        return [.. All.Where(part => !part.OffByDefault && off.Contains(part.Key)).Select(part => part.Key)];
+    }
+
+    /// <summary>The parts off by default that are on - what the settings keep as on (OverlaySettings.CaptureOn).</summary>
+    public static IReadOnlyList<string> KeptOn(IReadOnlySet<string> off)
+    {
+        ArgumentNullException.ThrowIfNull(off);
+        return [.. All.Where(part => part.OffByDefault && !off.Contains(part.Key)).Select(part => part.Key)];
+    }
+
+    /// <summary>The keys that are off, from the settings' two lists: those switched off, and every part off by default not switched on.</summary>
+    /// <param name="off">The parts switched off (OverlaySettings.CaptureOff).</param>
+    /// <param name="on">The parts off by default switched on (OverlaySettings.CaptureOn).</param>
+    public static IReadOnlySet<string> OffOf(IReadOnlyList<string> off, IReadOnlyList<string> on)
+    {
+        ArgumentNullException.ThrowIfNull(off);
+        ArgumentNullException.ThrowIfNull(on);
+        var keys = new HashSet<string>(off, StringComparer.Ordinal);
+        foreach (CapturePart part in All)
+        {
+            if (part.OffByDefault && !on.Contains(part.Key, StringComparer.Ordinal))
+            {
+                keys.Add(part.Key);
+            }
+        }
+
+        return keys;
     }
 }

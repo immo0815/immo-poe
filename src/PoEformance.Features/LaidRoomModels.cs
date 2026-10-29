@@ -127,6 +127,31 @@ public static class LaidRoomModels
         string master = "",
         bool maskCells = false,
         bool groundHeights = false)
+        => Laid(read, path, grid, x, y, turn, shaded, doodads, tools, fitted, progress, heights, entities, camera, sight, cut, master, maskCells, groundHeights, null);
+
+    /// <summary>The walk behind <see cref="Of"/>, with a paint cache that may outlive it.</summary>
+    /// <param name="shared">A paint cache outliving the build - the stage sweep's, one for every room - or null for one of its own.</param>
+    internal static MonsterModel Laid(
+        Func<string, byte[]?>? read,
+        string? path,
+        TerrainGrid? grid,
+        int x,
+        int y,
+        int turn,
+        bool shaded,
+        int doodads,
+        bool tools,
+        bool fitted,
+        ModelProgress? progress,
+        DoodadHeight heights,
+        IReadOnlyList<WorldEntity>? entities,
+        CameraShot? camera,
+        bool sight,
+        int cut,
+        string master,
+        bool maskCells,
+        bool groundHeights,
+        MonsterModels.Paints? shared)
     {
         if (read is null)
         {
@@ -167,7 +192,7 @@ public static class LaidRoomModels
 
         // EACH TILE FILE ONCE, however many pieces of it the room holds - and counted for the bar as
         // each is read, which is while the pieces are found: that is where the files are opened.
-        var paints = new MonsterModels.Paints { Progress = progress };
+        MonsterModels.Paints paints = shared ?? new MonsterModels.Paints { Progress = progress };
         var made = new Dictionary<int, Made>();
 
         // THE GROUND'S PAINTER, from the area's MaterialsList - the master given, or the one beside the room's Rooms/.
@@ -389,8 +414,27 @@ public static class LaidRoomModels
             said.Add(held);
         }
 
+        (int groundPainted, IReadOnlyDictionary<string, int> plainGround, int unlisted, IReadOnlyList<string> unlistedNames) =
+            painter?.Counted() ?? (0, new Dictionary<string, int>(), 0, []);
         MonsterModel model = RoomModels.Piled(joined, pile, path, made.Values.Select(one => one.Props).Concat(grounds).Concat(laid.Models)) with
         {
+            Account = new RoomAccount
+            {
+                Pieces = laidPieces,
+                Broken = broken,
+                Bare = bare,
+                Capped = capped,
+                Unturned = unturned,
+                TileFiles = used.Count,
+                Swaps = swaps.Count,
+                SwappedTiles = used.Count(id => made.TryGetValue(id, out Made? one) && one.Props.Swapped > 0),
+                SwappedDoodadFiles = laid.SwappedFiles,
+                Unpainted = painter is null ? unpainted : string.Empty,
+                GroundPainted = groundPainted,
+                GroundPlain = plainGround,
+                GroundUnlisted = unlisted,
+                UnlistedGrounds = unlistedNames,
+            },
             Parts = laidPieces + laid.Placed,
             Bytes = bytes,
             Files = files,

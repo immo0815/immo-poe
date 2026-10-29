@@ -63,6 +63,23 @@ public static class BuiltRoomModels
         bool mirrored = false,
         bool maskCells = false,
         bool groundHeights = false)
+        => Built(read, path, tileset, shaded, doodads, tools, progress, heights, mirrored, maskCells, groundHeights, null);
+
+    /// <summary>The build behind <see cref="Of"/>, with a paint cache that may outlive it.</summary>
+    /// <param name="shared">A paint cache outliving the build - the stage sweep's, one for every room - or null for one of its own.</param>
+    internal static MonsterModel Built(
+        Func<string, byte[]?>? read,
+        string? path,
+        string? tileset,
+        bool shaded,
+        int doodads,
+        bool tools,
+        ModelProgress? progress,
+        DoodadHeight heights,
+        bool mirrored,
+        bool maskCells,
+        bool groundHeights,
+        MonsterModels.Paints? shared)
     {
         if (read is null)
         {
@@ -168,13 +185,21 @@ public static class BuiltRoomModels
             turn = MirroredTurn;
         }
 
-        MonsterModel model = LaidRoomModels.Of(
-            read, path, grid, x, build.Y, turn, shaded, doodads, tools, progress: progress, heights: heights, master: master, maskCells: maskCells, groundHeights: groundHeights);
+        MonsterModel model = LaidRoomModels.Laid(
+            read, path, grid, x, build.Y, turn, shaded, doodads, tools, fitted: false, progress, heights, entities: null, camera: null, sight: false, cut: 0, master,
+            maskCells, groundHeights, shared);
+        RoomAccount account = (model.Account ?? new RoomAccount()) with
+        {
+            Slots = build.Slots.Count,
+            Unfilled = build.Unfilled,
+            Unmet = build.Unmet,
+            PoolUnread = unread,
+        };
         string said = build.Said + $" ({pool.Count} tiles in the pool{(unread > 0 ? $", {unread} did not read" : string.Empty)}{fillsSaid})"
             + (mirrored ? "; turned over in x by the switch, as the game lays the room in some instances" : string.Empty);
         return model.Ready
-            ? model with { Move = said + "; " + model.Move }
-            : model with { Why = said + "; " + model.Why };
+            ? model with { Move = said + "; " + model.Move, Account = account }
+            : model with { Why = said + "; " + model.Why, Account = account };
     }
 
     /// <summary>

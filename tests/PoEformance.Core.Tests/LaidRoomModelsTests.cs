@@ -162,6 +162,14 @@ public class LaidRoomModelsTests
         Assert.Equal(roomTop.X + origin.X, MathF.Round(top.X));
         Assert.Equal(roomTop.Y + origin.Y, MathF.Round(top.Y));
         Assert.Equal(roomTop.Z, top.Z, 0.5f);
+
+        // THE ROOM'S ACCOUNT - the line's numbers kept as numbers, for the stage sweep: one whole piece of one file, no master to paint by.
+        Assert.NotNull(room.Account);
+        RoomAccount account = room.Account;
+        Assert.Equal((1, 1, 0, 0, 0), (account.Pieces, account.TileFiles, account.Broken, account.Bare, account.Capped));
+        Assert.Contains(account.Unpainted, room.Move, StringComparison.Ordinal);
+        Assert.NotEmpty(account.Unpainted);
+        Assert.Equal(0, account.GroundPainted);
     }
 
     /// <summary>

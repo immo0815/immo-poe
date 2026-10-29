@@ -333,6 +333,9 @@ public sealed record MonsterModel(
     /// <summary>How many of a tile's own materials its tileset swapped for others. See TileModels.Of.</summary>
     public int Swapped { get; init; }
 
+    /// <summary>What laying or building a room came to, counted - null for anything not a laid or built room. See RoomAccount.</summary>
+    public RoomAccount? Account { get; init; }
+
     /// <summary>The tileset a tile was drawn as, or empty for the tile's own materials.</summary>
     public string Tileset { get; init; } = string.Empty;
 
@@ -2809,8 +2812,21 @@ public static class MonsterModels
         /// <summary>Material file by its path, with the selector taken off.</summary>
         private readonly OnceCache<MaterialFile> _files = new();
 
-        /// <summary>The material files in the order they were first read - see <see cref="Shaders"/>.</summary>
-        private readonly List<MaterialFile> _read = [];
+        /// <summary>
+        /// Every parent graph the read materials name, distinct, in the order first named - kept as they are read, see <see cref="Shaders"/>.
+        /// </summary>
+        /// <remarks>
+        /// KEPT AS THEY COME rather than gathered from every material on each ask: every model built asks, and a cache shared by every
+        /// room of the stage sweep holds tens of thousands of materials, which gathered on each ask would cost the sweep more than the
+        /// builds. The list handed out is made again only when a new graph has come.
+        /// </remarks>
+        private readonly List<string> _parents = [];
+
+        /// <summary>The graphs in <see cref="_parents"/>, for the test whether one is new.</summary>
+        private readonly HashSet<string> _parentSet = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>The list last handed out, or null once a new graph has come.</summary>
+        private IReadOnlyList<string>? _shaders;
 
         /// <summary>Blend modes by material file, the first graph's and the last's, worked out once. See <see cref="Modes"/>.</summary>
         private readonly OnceCache<(string First, string Last)> _modes = new();
@@ -2888,7 +2904,32 @@ public static class MonsterModels
         /// frame that first draws it.
         /// </remarks>
         public (Mipmaps? Levels, bool Read) Texture(Func<string, byte[]?> read, string texture)
-            => _sheets.Get(texture, path => Raw(read, path) is { Length: > 0 } bytes ? (Levels(bytes), true) : (null, false));
+            => _sheets.Get(texture, path => Raw(read, path) is { Length: > 0 } bytes ? (Lean ? Readable(bytes) : Levels(bytes), true) : (null, false));
+
+        /// <summary>
+        /// Whether a texture is only asked whether it reads, never drawn - one pixel stands for every texture that does (the stage sweep's).
+        /// </summary>
+        /// <remarks>
+        /// A SWEEP OVER EVERY ROOM HOLDS NO PICTURE: it asks what a room's shapes are drawn with, and a texture that does not read leaves
+        /// its material undrawn, so each is still read and its blocks' header or its decode checked - then dropped, where every room of
+        /// every set would otherwise keep its sheets in the one cache the sweep shares.
+        /// </remarks>
+        public bool Lean { get; init; }
+
+        /// <summary>One pixel, standing for a texture that reads - see <see cref="Lean"/>.</summary>
+        private static readonly Mipmaps? Stand = Mipmaps.Of(new GamePicture(1, 1, [128, 128, 128, 255]));
+
+        /// <summary>The stand-in where the texture's blocks or its decode read, else null.</summary>
+        private Mipmaps? Readable(byte[] bytes)
+        {
+            if (BlockTexture.Of(bytes) is { Complete: true })
+            {
+                return Stand;
+            }
+
+            using ModelProgress.Timed timed = ModelProgress.Time(Progress, BuildWork.Decoding);
+            return GameArt.Decode(bytes) is { Ready: true } ? Stand : null;
+        }
 
         /// <summary>A material file parsed - timed, see ModelProgress.Time.</summary>
         private MaterialFile Material(Func<string, byte[]?> read, string file)
@@ -2900,9 +2941,16 @@ public static class MonsterModels
                 paint = MaterialFile.Read(bytes);
             }
 
-            lock (_read)
+            lock (_parents)
             {
-                _read.Add(paint);
+                foreach (string parent in paint.Parents)
+                {
+                    if (parent.Length > 0 && _parentSet.Add(parent))
+                    {
+                        _parents.Add(parent);
+                        _shaders = null;
+                    }
+                }
             }
 
             return paint;
@@ -3002,25 +3050,10 @@ public static class MonsterModels
         {
             get
             {
-                MaterialFile[] files;
-                lock (_read)
+                lock (_parents)
                 {
-                    files = [.. _read];
+                    return _shaders ??= [.. _parents];
                 }
-
-                var said = new List<string>();
-                foreach (MaterialFile file in files)
-                {
-                    foreach (string parent in file.Parents)
-                    {
-                        if (parent.Length > 0 && !said.Contains(parent, StringComparer.OrdinalIgnoreCase))
-                        {
-                            said.Add(parent);
-                        }
-                    }
-                }
-
-                return said;
             }
         }
 

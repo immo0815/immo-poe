@@ -407,7 +407,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         ScreenshotKey = settings.ScreenshotKey;
         RestoreKey = settings.RestoreKey;
         _capture.Key = settings.CaptureKey;
-        _capture.Off = settings.CaptureOffOrEmpty;
+        _capture.Switch(settings.CaptureOffOrEmpty, settings.CaptureOnOrEmpty);
         KeepOut = settings.MapKeepOutOrDefault;
         _projectiles.Enabled = settings.ShowProjectiles;
         _projectiles.ShowTrails = settings.ProjectileTrails;
@@ -531,6 +531,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
 
             // Null once every part is on again, so an untouched file gains no key - the hidden tabs' bargain.
             CaptureOff = _capture.Off is { Count: > 0 } captureOff ? captureOff : null,
+            CaptureOn = _capture.SwitchedOn is { Count: > 0 } captureOn ? captureOn : null,
             MapKeepOut = KeepOut,
 
             // FROM THE WINDOW WHERE THERE IS ONE, and from the file where there is not: a build
