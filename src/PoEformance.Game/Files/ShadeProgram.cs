@@ -212,7 +212,7 @@ public sealed partial class ShadeProgram
     /// </remarks>
     internal const int WaterColour = 12;
 
-    /// <summary>The area's water flow in x and its height offset in z - set per drawing. See WaterLook.FlowRegister.</summary>
+    /// <summary>The area's water flow in x, its reflectiveness in y, its height offset in z and its flow_foam in w - set per drawing. See WaterLook.FlowRegister.</summary>
     internal const int WaterFlow = 13;
 
     /// <summary>The wind the ocean's ripples read - set per drawing. See WaterLook.WindRegister and <see cref="WindRipples"/>.</summary>
@@ -553,6 +553,13 @@ public sealed partial class ShadeProgram
         /// processor draws none - its colour nought and its normal E's - see <see cref="Water"/>.
         /// </summary>
         Field,
+
+        /// <summary>
+        /// The engine's river at no flow at A's x and y at B's clock (x), with C's flow_foam (w) - Extra <see cref="RiverNormal"/> its
+        /// surface's normal in xyz and height in w (<see cref="River"/>), <see cref="RiverFoamOut"/> its foam's colour and how much it
+        /// covers (<see cref="RiverFoam"/>).
+        /// </summary>
+        River,
 
         /// <summary>ViewDir: the way from the eye into the picture at A's place - Eye.xyz on a parallel view, from the eye to the place in perspective (see <see cref="Viewer"/>).</summary>
         ViewWay,
@@ -1139,6 +1146,8 @@ public sealed partial class ShadeProgram
             Weighed = Weighed,
             HeightRegister = HeightRegister,
             BlendsGroundHeights = BlendsGroundHeights,
+            Lifts = Lifts,
+            Rivers = Rivers,
             Wetness = Wetness is { } wet && wet.Textures.SequenceEqual(Textures) ? wet.With(sheets) : null,
             Occluded = Occluded is { } occluded && occluded.Textures.SequenceEqual(Textures) ? occluded.With(sheets) : null,
         };
@@ -1577,6 +1586,18 @@ public sealed partial class ShadeProgram
                 case Op.Foam:
                     r[step.To] = Foam(new Vector2(r[step.A].X, r[step.A].Y), r[step.D], r[step.B].X, r[step.B].Y, r[step.C].W > 0.5f ? s_shore : null);
                     break;
+
+                // THE RIVER'S FOAM READS ITS TEXTURE AT LEVEL NOUGHT, so the corners' pass that picks levels has nothing to pick.
+                case Op.River when step.Extra == RiverFoamOut:
+                    r[step.To] = corner >= 0 ? Vector4.Zero : RiverFoam(new Vector2(r[step.A].X, r[step.A].Y), r[step.B].X, r[step.C].W);
+                    break;
+
+                case Op.River:
+                {
+                    float height = River(new Vector2(r[step.A].X, r[step.A].Y), r[step.B].X, out Vector2 slope);
+                    r[step.To] = new Vector4(Vector3.Normalize(new Vector3(-slope.X, -slope.Y, -1f)), height);
+                    break;
+                }
 
                 case Op.Vibrance:
                     r[step.To] = Vibrant(r[step.A].X, r[step.B]);

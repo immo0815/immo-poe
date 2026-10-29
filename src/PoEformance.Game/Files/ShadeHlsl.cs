@@ -379,24 +379,32 @@ public static partial class ShadeHlsl
         hlsl.AppendLine(Library);
         bool sprays = false;
         bool fields = false;
+        bool rivers = false;
         foreach (ShadeProgram.Step step in program.Steps)
         {
             sprays |= step.Op == ShadeProgram.Op.Spray;
             fields |= step.Op == ShadeProgram.Op.Field;
+            rivers |= step.Op == ShadeProgram.Op.River;
         }
 
         foreach (ShadeProgram.Step step in program.Steps)
         {
-            if (step.Op is ShadeProgram.Op.Waves or ShadeProgram.Op.Foam or ShadeProgram.Op.Spray or ShadeProgram.Op.Beach or ShadeProgram.Op.Field)
+            if (step.Op is ShadeProgram.Op.Waves or ShadeProgram.Op.Foam or ShadeProgram.Op.Spray or ShadeProgram.Op.Beach or ShadeProgram.Op.Field
+                or ShadeProgram.Op.River)
             {
                 hlsl.AppendLine(WavesLibrary);
                 break;
             }
         }
 
-        if (sprays || program.Beaches || fields)
+        if (sprays || program.Beaches || fields || rivers)
         {
             hlsl.AppendLine(FoamLibrary);
+        }
+
+        if (rivers)
+        {
+            hlsl.AppendLine(RiverLibrary);
         }
 
         if (sprays)
@@ -1159,6 +1167,9 @@ public static partial class ShadeHlsl
             ShadeProgram.Op.SampleLod => Read(program, step.Extra, $"ShadeSheet{Invariant(step.Extra)}.SampleLevel(wrap, {a}.xy, max({b}.x, 0.0))"),
             ShadeProgram.Op.Waves => $"ShadeWaves({a}.xy, {b}, {c}.xy, {d}, {e})",
             ShadeProgram.Op.Foam => $"ShadeFoam({a}.xy, {b}.xy, {c}, {d})",
+            ShadeProgram.Op.River => step.Extra == ShadeProgram.RiverFoamOut
+                ? $"ShadeRiverFoam({a}.xy, {b}.x, {c}.w)"
+                : $"ShadeRiver({a}.xy, {b}.x)",
             _ => null,
         };
 

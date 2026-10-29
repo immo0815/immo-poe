@@ -680,7 +680,7 @@ public static class RoomModels
         var any = false;
         for (var shape = 0; shape < fine.Length && shape < modes.Count; shape++)
         {
-            fine[shape] = modes[shape] == "water";
+            fine[shape] = modes[shape] == MonsterModels.Paints.OceanMode;
             any |= fine[shape];
         }
 
@@ -698,7 +698,7 @@ public static class RoomModels
     internal static ShoreField? ShoreOf(SkinnedMesh mesh, IReadOnlyList<string> modes, IReadOnlyList<string> sources, IReadOnlyList<ShadeProgram?>? shades)
         => ShoreField.Of(
             mesh,
-            shape => shape < modes.Count && modes[shape] == "water",
+            shape => shape < modes.Count && modes[shape] == MonsterModels.Paints.OceanMode,
             shape => shape < sources.Count && sources[shape].StartsWith(GroundSource, StringComparison.Ordinal),
             shades is null ? null : shape => shape < shades.Count && shades[shape] is { Sprays: true },
             shape => shape < modes.Count && shape < sources.Count

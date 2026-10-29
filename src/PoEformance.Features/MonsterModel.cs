@@ -2981,8 +2981,29 @@ public static class MonsterModels
             _modes.Forget(file);
         }
 
-        /// <summary>Whether the engine draws a material in its own water pass as its ocean - see ShadeProgram.IsOcean.</summary>
-        public static bool IsWater(MaterialFile paint) => ShadeProgram.IsOcean(paint.ShaderType);
+        /// <summary>Whether the engine draws a material in its own water pass - the ocean, a river or standing water; see ShadeProgram.KindOf.</summary>
+        public static bool IsWater(MaterialFile paint) => ShadeProgram.KindOf(paint.ShaderType) != WaterKind.None;
+
+        /// <summary>The blend word of the engine's ocean - the one the room's shore, the lift and the field waves are made from.</summary>
+        public const string OceanMode = "water";
+
+        /// <summary>The blend word of the engine's river - mixed as the ocean is (MaterialBlends), but no shore of the sea's.</summary>
+        public const string RiverMode = "river water";
+
+        /// <summary>The blend word of standing water - mixed as the ocean is, but no shore of the sea's.</summary>
+        public const string StillMode = "still water";
+
+        /// <summary>The blend word a water's kind is drawn under, or empty for none.</summary>
+        public static string ModeOf(WaterKind kind) => kind switch
+        {
+            WaterKind.Ocean => OceanMode,
+            WaterKind.River => RiverMode,
+            WaterKind.Still => StillMode,
+            _ => string.Empty,
+        };
+
+        /// <summary>Whether a blend word is one of the engine's water - see <see cref="ModeOf"/>.</summary>
+        public static bool IsWaterMode(string? mode) => mode is OceanMode or RiverMode or StillMode;
 
         /// <summary>
         /// The blend mode a material asks for, as it spells it, or empty: where the first graph to name one wins, and where the last does.
@@ -3015,10 +3036,11 @@ public static class MonsterModels
             }
 
             MaterialFile paint = Paint(read, file);
-            if (IsWater(paint))
+            if (ModeOf(ShadeProgram.KindOf(paint.ShaderType)) is { Length: > 0 } water)
             {
-                // THE ENGINE'S WATER PASS, said as the word MaterialBlends takes for it - see ShadeProgram.Water.
-                return ("water", "water");
+                // THE ENGINE'S WATER PASS, said as the word MaterialBlends takes for it - see ShadeProgram.Water: the ocean's alone makes the
+                // room's shore, its lift and its field waves (RoomModels.ShoreOf, Watered), a river's and standing water's mixed the same.
+                return (water, water);
             }
 
             string first = paint.Blend;
@@ -3075,13 +3097,18 @@ public static class MonsterModels
                 return (ShadeProgram.BeachOf(Graph(read, file)), []);
             }
 
-            // AN OCEAN IS THE ENGINE'S WATER PASS, not its graphs: they write no colour the picture can draw
-            // (nvidian_Ocean's reads an albedo nothing wrote), and the area's water is what it is drawn with.
-            if (Paint(read, file) is { } water && IsWater(water))
+            // AN OCEAN, A RIVER OR STANDING WATER IS THE ENGINE'S WATER PASS, not its graphs: they write no colour the picture can draw
+            // (nvidian_Ocean's reads an albedo nothing wrote, nvidian_NonsplashyFlowingWater.mat names none), and the area's water is
+            // what it is drawn with, through the surface of its kind.
+            if (Paint(read, file) is { } water && ShadeProgram.KindOf(water.ShaderType) is var kind and not WaterKind.None)
             {
-                return (
-                    new ShadeCompile(ShadeProgram.Water(), [$"the material's graphs, its shadertype being {water.ShaderType}: drawn as the area's water"]),
-                    []);
+                string drawn = kind switch
+                {
+                    WaterKind.Ocean => "drawn as the area's water",
+                    WaterKind.River => "drawn as the area's water on the engine's river surface at no flow",
+                    _ => "drawn as the area's water, standing - the ocean's ripples over no shore",
+                };
+                return (new ShadeCompile(ShadeProgram.Water(kind), [$"the material's graphs, its shadertype being {water.ShaderType}: {drawn}"]), []);
             }
 
             var chain = new List<(ShaderInstance, ShaderGraph)>();

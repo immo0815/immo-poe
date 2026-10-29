@@ -106,10 +106,10 @@ internal static class ModelShaders
             float4 Halfway;   // xyz: between the eye and the lamp, in view space
             float4 Clock;     // x: the clock - ShadeProgram.Clock
             float4 Eye;       // the way into the picture in model space and the origin's depth - ShadeProgram.Eye
-            float4 Depth;     // x: the reach the depth buffer was laid over, on a parallel view; y: the near plane's depth; z: one in perspective
+            float4 Depth;     // x: the reach the depth buffer was laid over, on a parallel view; y: the near plane's depth; z: one in perspective; w: the lift, SceneLight.WaterLift
             float4 Dust;      // xyz: the area's dust colour - ShadeProgram.Dust
             float4 Water;     // xyz: the area's open water, linear; w: its density - ShadeProgram.WaterColour
-            float4 Flow;      // x: the area's water flow; y: its reflectiveness; z: its height offset - ShadeProgram.WaterFlow; w: the lift, SceneLight.WaterLift
+            float4 Flow;      // x: the area's water flow; y: its reflectiveness; z: its height offset; w: its flow_foam - ShadeProgram.WaterFlow
             float4 Wind;      // the ocean ripples' wind: its way's angle, their height, their speed, their directionness - ShadeProgram.WaterWind
             float4 Shore;     // the room's shore's box: its least x and y, world units a texel, one where there is a shore - ShadeProgram.WaterShore
             float4 Swell;     // the ocean's swell: its height, its period, its intensity - ShadeProgram.WaterSwell
@@ -864,7 +864,7 @@ internal static class ModelShaders
         """;
 
     /// <summary>
-    /// The water's vertex shader: MeshPicture.Lifted, vertex for vertex - the area's wind in Wind, the lift in Flow.w.
+    /// The water's vertex shader: MeshPicture.Lifted, vertex for vertex - the area's wind in Wind, the lift in Depth.w.
     /// </summary>
     public const string Lifting = """
         // MeshPicture.Lifted: the water's vertices lifted by its waves - ShadeProgram.Ocean at the
@@ -874,7 +874,7 @@ internal static class ModelShaders
         Pixel PlacedWaves(Corner corner)
         {
             float2 at = corner.position.xy;
-            corner.position.z -= ShadeWaves(at, Wind, float2(Clock.x, 1.0e9), Shore, Swell).w * Flow.w;
+            corner.position.z -= ShadeWaves(at, Wind, float2(Clock.x, 1.0e9), Shore, Swell).w * Depth.w;
             corner.position.z += ShadeFieldLift(at, Clock.x, Flow.z, Shore, Swell);
             return Placed(corner);
         }

@@ -88,8 +88,19 @@ public sealed partial class ShadeProgram
     /// the specular lerped to 0.04 and the gloss to nought. The refraction's bend is the card's (SceneLight.WaterRefraction), which takes what
     /// gets through over the bent ray in place of this program's.
     /// </remarks>
-    public static ShadeProgram Water()
+    public static ShadeProgram Water() => Water(WaterKind.Ocean);
+
+    /// <summary>
+    /// The engine's water of a kind: the ocean as <see cref="Water()"/> draws it, the river (<see cref="River"/>, <see cref="RiverFoam"/>) or
+    /// standing water - the ocean's ripples over no shore - each the same medium, lit the same way (see ShadeProgram.River.cs's remarks).
+    /// </summary>
+    public static ShadeProgram Water(WaterKind kind)
     {
+        if (kind == WaterKind.None)
+        {
+            throw new ArgumentOutOfRangeException(nameof(kind), kind, "no water to draw");
+        }
+
         var build = new Builder();
 
         // HOW MUCH WATER THE VIEW CROSSES: the solid surface behind less the water's own depth, never less than nought.
@@ -115,47 +126,93 @@ public sealed partial class ShadeProgram
         // THE FOAM, over water as deep as the view crosses (gBufferDelta): the clock and that depth in one register.
         int timing = build.Emit(Op.Swizzle, Clock, extra: AllFrom(0));
         build.Into(timing, crossed, Only(1, 0));
-        int foam = build.Emit(Op.Foam, Position, timing, WaterShore, WaterSwell);
-        int swellFoamed = build.Emit(Op.Swizzle, foam, extra: AllFrom(3));
+        int medium = build.Emit(Op.Multiply, WaterColour, shimmer);
+        int foamed, colour, foamPart;
+        string graph;
+        switch (kind)
+        {
+            case WaterKind.Ocean:
+            {
+                int foam = build.Emit(Op.Foam, Position, timing, WaterShore, WaterSwell);
+                int swellFoamed = build.Emit(Op.Swizzle, foam, extra: AllFrom(3));
 
-        // THE FIELD WAVES' FOAM, the card's alone (Op.Field): over the swell's, as the swell's lies over the medium.
-        int field = build.Emit(Op.Field, Position, timing, WaterShore, WaterSwell, extra: FieldColour);
-        int fieldFoamed = build.Emit(Op.Swizzle, field, extra: AllFrom(3));
-        int foamed = build.Emit(
-            Op.OneMinus,
-            build.Emit(Op.Multiply, build.Emit(Op.OneMinus, swellFoamed), build.Emit(Op.OneMinus, fieldFoamed)));
+                // THE FIELD WAVES' FOAM, the card's alone (Op.Field): over the swell's, as the swell's lies over the medium.
+                int field = build.Emit(Op.Field, Position, timing, WaterShore, WaterSwell, extra: FieldColour);
+                int fieldFoamed = build.Emit(Op.Swizzle, field, extra: AllFrom(3));
+                foamed = build.Emit(
+                    Op.OneMinus,
+                    build.Emit(Op.Multiply, build.Emit(Op.OneMinus, swellFoamed), build.Emit(Op.OneMinus, fieldFoamed)));
 
-        // THE COLOUR, the foam's over the medium's by how much it covers (InitWaterSurfaceData's albedo), its w the cover - the
-        // foam hiding what lies behind by 1 - (1 - a)^3 (the pass's refracted light, lerped to the absorbed).
-        int colour = build.Emit(
-            Op.Lerp, build.Emit(Op.Lerp, build.Emit(Op.Multiply, WaterColour, shimmer), foam, swellFoamed), field, fieldFoamed);
+                // THE COLOUR, the foam's over the medium's by how much it covers (InitWaterSurfaceData's albedo).
+                colour = build.Emit(Op.Lerp, build.Emit(Op.Lerp, medium, foam, swellFoamed), field, fieldFoamed);
+
+                // THE FOAM AS InitWaterSurfaceData's ALBEDO for the light (SceneLight.ShadeWater): its colour times its cover, the
+                // medium's black under it - made beside the colour, read by the glossy twin alone.
+                foamPart = build.Emit(
+                    Op.Lerp, build.Emit(Op.Lerp, build.Constant(Vector4.Zero), foam, swellFoamed), field, fieldFoamed);
+                graph = WaterGraph;
+                break;
+            }
+
+            case WaterKind.River:
+            {
+                // GetFlowingWaterPlanarStateWorld's foam at no flow - see RiverFoam.
+                int foam = build.Emit(Op.River, Position, timing, WaterFlow, extra: RiverFoamOut);
+                foamed = build.Emit(Op.Swizzle, foam, extra: AllFrom(3));
+                colour = build.Emit(Op.Lerp, medium, foam, foamed);
+                foamPart = build.Emit(Op.Lerp, build.Constant(Vector4.Zero), foam, foamed);
+                graph = RiverGraph;
+                break;
+            }
+
+            default:
+            {
+                // STANDING WATER CARRIES NO FOAM: the swell's needs a shore and the field waves' are the sea's.
+                foamed = build.Constant(Vector4.Zero);
+                colour = build.Emit(Op.Multiply, medium, build.Constant(Vector4.One));
+                foamPart = build.Emit(Op.Multiply, medium, build.Constant(Vector4.Zero));
+                graph = StillGraph;
+                break;
+            }
+        }
+
+        // THE COLOUR'S w THE COVER - the foam hiding what lies behind by 1 - (1 - a)^3 (the pass's refracted light, lerped to the absorbed).
         int clear = build.Emit(Op.OneMinus, foamed);
         int hidden = build.Emit(Op.OneMinus, build.Emit(Op.Multiply, build.Emit(Op.Multiply, clear, clear), clear));
         build.Into(colour, build.Emit(Op.Lerp, cover, build.Constant(Vector4.One), hidden), Only(3, 0));
-        ShadeProgram water = Finish(build, colour, -1, -1, [WaterGraph], hasAlpha: true, plainable: false)
+        ShadeProgram water = Finish(build, colour, -1, -1, [graph], hasAlpha: true, plainable: false)
             ?? throw new InvalidOperationException("the water program does not fit its registers");
 
-        // THE WAVES, for the game light's glints and reflection: the same colour, and the surface the
-        // engine lights - the ocean's ripples in the area's wind, its specular the area's reflectiveness,
-        // its gloss the engine's (InitWaterSurfaceData), the foam's 0.04 and nought where it covers - see HasWaves.
-        int waves = build.Emit(
-            Op.Field, Position, timing, WaterShore, WaterSwell, build.Emit(Op.Waves, Position, WaterWind, timing, WaterShore, WaterSwell), extra: FieldNormal);
+        // THE WAVES, for the game light's glints and reflection: the same colour, and the surface the engine lights - the ocean's
+        // ripples in the area's wind over its swell and its field waves, the river's own surface, or standing water's ripples over no
+        // shore (a register of noughts where the shore stands) - its specular the area's reflectiveness, its gloss the engine's
+        // (InitWaterSurfaceData), the foam's 0.04 and nought where it covers - see HasWaves.
+        int waves = kind switch
+        {
+            WaterKind.Ocean => build.Emit(
+                Op.Field, Position, timing, WaterShore, WaterSwell, build.Emit(Op.Waves, Position, WaterWind, timing, WaterShore, WaterSwell), extra: FieldNormal),
+            WaterKind.River => build.Emit(Op.River, Position, timing, WaterFlow, extra: RiverNormal),
+            _ => build.Emit(Op.Waves, Position, WaterWind, timing, build.Constant(Vector4.Zero), WaterSwell),
+        };
         int specular = build.Emit(
             Op.Lerp, build.Emit(Op.Swizzle, WaterFlow, extra: AllFrom(1)), build.Constant(new Vector4(FoamSpecular)), foamed);
         int gloss = build.Emit(Op.Lerp, build.Constant(new Vector4(WaterGloss)), build.Constant(Vector4.Zero), foamed);
 
-        // THE PARTS THE WATER PASS LIGHTS APART (SceneLight.ShadeWater): the foam as InitWaterSurfaceData's albedo - its colour times
-        // its cover, the medium's black under it - with the cover in w; and what the light cannot work out itself - what gets through
-        // the medium, the shore's water_to_terrain_ratio, the colour's pattern and the waves' height.
-        int foamPart = build.Emit(
-            Op.Lerp, build.Emit(Op.Lerp, build.Constant(Vector4.Zero), foam, swellFoamed), field, fieldFoamed);
+        // THE PARTS THE WATER PASS LIGHTS APART (SceneLight.ShadeWater): the foam as InitWaterSurfaceData's albedo with its cover in
+        // w; and what the light cannot work out itself - what gets through the medium, the shore's water_to_terrain_ratio, the colour's
+        // pattern and the waves' height.
         build.Into(foamPart, foamed, Only(3, 0));
         int state = build.Emit(Op.Swizzle, through, extra: AllFrom(0));
         build.Into(state, build.Emit(Op.OneMinus, shore), Only(1, 0));
         build.Into(state, shimmer, Only(2, 0));
         build.Into(state, waves, Only(3, 3));
-        water.Glossy = Finish(build, colour, specular, gloss, [WaterGraph], hasAlpha: true, plainable: false, waves, foamPart, state)
+        ShadeProgram glossy = Finish(build, colour, specular, gloss, [graph], hasAlpha: true, plainable: false, waves, foamPart, state)
             ?? throw new InvalidOperationException("the water's waves do not fit their registers");
+
+        // ONLY THE OCEAN IS LIFTED by its waves, and only the river's foam reads the distortion texture - see Lifts and Rivers.
+        water.Lifts = glossy.Lifts = kind == WaterKind.Ocean;
+        water.Rivers = glossy.Rivers = kind == WaterKind.River;
+        water.Glossy = glossy;
         return water;
     }
 
@@ -694,7 +751,7 @@ public sealed partial class ShadeProgram
     /// octave's coordinates: <c>uv = q / 128 * 4</c>. The slope is the texels' slope mixed, as the engine's is -
     /// not the slope of the mixed height.
     /// </remarks>
-    internal static float Ripple(float qx, float qy, out float gx, out float gy)
+    public static float Ripple(float qx, float qy, out float gx, out float gy)
     {
         float sx = (qx * 4f) - 0.5f, sy = (qy * 4f) - 0.5f;
         float fx0 = MathF.Floor(sx), fy0 = MathF.Floor(sy);

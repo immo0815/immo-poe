@@ -193,6 +193,45 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
     }
 
     /// <summary>
+    /// A river at no flow and standing water, on the card as on the processor - the river's eight octaves and its foam over the distortion
+    /// texture (ShadeProgram.River, RiverFoam), standing water the ocean's ripples over no shore though the drawing holds one - and neither
+    /// lifted, whatever the lift (ShadeProgram.Lifts).
+    /// </summary>
+    [GpuFact]
+    public void THERIVERAndStandingWaterAreDrawnByTheCardAsByTheProcessor()
+    {
+        ModelGpu? gpu = card.Gpu;
+        Assert.True(gpu is not null, card.Why);
+        using ModelTarget target = gpu.Target(Side);
+        var light = new SceneLight([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1.4f, 1.3f, 1.1f),
+            SunDirection = Vector3.Normalize(new Vector3(0.4f, -1f, 0.3f)),
+            FlatAmbient = 0.3f,
+            Exposure = 1.2f,
+            WaterGlints = true,
+            WaterReflection = true,
+            WaterLift = 3f,
+            WaterScene = true,
+        };
+        ShadeProgram.UseCaustics(Flat(128), Wave("the river's distortion"), "a test's");
+        foreach (WaterKind kind in (WaterKind[])[WaterKind.River, WaterKind.Still])
+        {
+            var scene = new ModelScene(
+                Hill(layered: true),
+                Turn: 0.25f,
+                Tilt: 0.55f,
+                Skins: [Ramp("floor"), null],
+                Blends: [MaterialBlend.Opaque, MaterialBlend.Alpha],
+                Shades: [null, ShadeProgram.Water(kind).Glossy!],
+                Light: light,
+                Time: 2f,
+                Water: WaterLook.EngineDefault with { Shore = BayShore(), FlowFoam = 0.4f });
+            Assert.Null(Mismatch(gpu, target, scene));
+        }
+    }
+
+    /// <summary>
     /// The lifted sea drawn as one surface, on the card as on the processor (MeshPicture.Drawing's Surface): two sheets of one water shape
     /// over a floor, the lower first in the mesh, seen at a slant - each pixel the nearer sheet's - and a mixed sheet under both drawn
     /// after them, which tests against the solid floor alone once the card has put its depth back.

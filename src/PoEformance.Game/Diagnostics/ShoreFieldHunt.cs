@@ -32,6 +32,12 @@ namespace PoEformance.Game.Diagnostics;
 /// way and lists what stands there: a texture's size (two whole numbers and their inverses), boxes of about the scene's size, pairs
 /// of ints in the scene's proportions, and small positive floats - a dist_to_color among them, if the processor keeps one there.
 ///
+/// THE RIVER'S FLOW MAP TOO (v0.1.351): water.ffx's GetFlowSample reads <c>flowmap_tex_sampler</c> at <c>(tilemap_pos -
+/// river_flowmap_planar_aabb.xy) / (aabb.zw - aabb.xy)</c>, a texture <c>RiverMarkupField</c> makes at run time from point lines or a grid
+/// of bools and its <c>MarkupFlowConstraints</c> - inputs no file names, so the tool draws its rivers at no flow (ShadeProgram.River). A
+/// river's box need not be the scene's, so beside the boxes of about the scene's size the hunt lists every box lying inside the scene, a
+/// tile or more each way, its corners whole numbers ("inner"), the river's candidates - in an area with a river.
+///
 /// A DIAGNOSTIC: nothing is concluded here. Every window is written whole as bytes, so the replay (<see cref="Replay"/>) lists the
 /// same things from the file alone, and a better rule for what stands beside a place is held against the capture without the game.
 /// It reads past the tap, and stops itself at <see cref="StopSeconds"/> - the capture waits two minutes for a part run at the press.
@@ -242,6 +248,8 @@ public static class ShoreFieldHunt
             "  OceanMarkupField) through pass uniforms the processor sets - shoreline_coord_planar_aabb (a box), shoreline_coord_tex_size, dist_to_color",
             "  (colours to world distances) and scene_planar_size, the area's size in world units. Beside every place the scene's size or the",
             "  walkable grid's is kept, what stands there is listed; the tool's own field (ShoreField) CHOSE a dist_to_color of 0.0005.",
+            "  a river's flow map (flowmap_tex_sampler, made at run time by RiverMarkupField) is read over river_flowmap_planar_aabb, which need",
+            "  not be the scene's box: every box inside the scene with whole corners is listed too ('inner') - read them in an area with a river.",
             string.Create(CultureInfo.InvariantCulture,
                 $"looked through {result.BytesScanned / (1024.0 * 1024 * 1024):0.00} GB in {result.RegionsWalked} regions in {result.Took.TotalSeconds:0.0} s on {result.Workers} threads, nearest the area instance first{(result.Truncated ? " - stopped at the budget, so what is not found may lie past it" : result.Stopped ? $" - STOPPED (at {StopSeconds} s or by a click), so what is not found may lie past it" : string.Empty)}"),
         };
@@ -343,6 +351,12 @@ public static class ShoreFieldHunt
                 sights.Add(new Sight(offset, "box", $"({Say(a)}, {Say(b)}) to ({Say(c)}, {Say(d)})", string.Create(CultureInfo.InvariantCulture,
                     $"{Offset(offset)}  a box ({Say(a)}, {Say(b)}) to ({Say(c)}, {Say(d)}), {Say(c - a)} x {Say(d - b)}")));
             }
+            else if (four && Inner(a, b, c, d, width, height))
+            {
+                // A BOX INSIDE THE SCENE - river_flowmap_planar_aabb's candidates, a river's own box.
+                sights.Add(new Sight(offset, "inner", $"({Say(a)}, {Say(b)}) to ({Say(c)}, {Say(d)})", string.Create(CultureInfo.InvariantCulture,
+                    $"{Offset(offset)}  a box inside the scene ({Say(a)}, {Say(b)}) to ({Say(c)}, {Say(d)}), {Say(c - a)} x {Say(d - b)} - {(c - a) / ModelFloor.Tile:0.#} x {(d - b) / ModelFloor.Tile:0.#} tiles")));
+            }
 
             // INTS IN THE SCENE'S PROPORTIONS: a texture's size as the processor keeps it, or the markup grid's (OceanMarkupField's vector2_int).
             int ia = BinaryPrimitives.ReadInt32LittleEndian(window[at..]), ib = BinaryPrimitives.ReadInt32LittleEndian(window[(at + 4)..]);
@@ -371,6 +385,7 @@ public static class ShoreFieldHunt
         [
             ("texture", "texture sizes (two whole numbers and their inverses)"),
             ("box", "boxes of about the scene's size"),
+            ("inner", "boxes inside the scene, whole corners (a river's flow map's?)"),
             ("ints", "ints in the scene's proportions"),
             ("whole", "whole floats in the scene's proportions"),
             ("small", "small positive floats (a dist_to_color among them?)"),
@@ -479,7 +494,7 @@ public static class ShoreFieldHunt
         foreach ((Window window, List<Sight> sights) in seen)
         {
             said.Append(CultureInfo.InvariantCulture, $"  window {window.Number}: {window.Needle} at 0x{window.At:X}, {sights.Count} things").AppendLine();
-            foreach (Sight sight in sights.Where(one => one.Kind is "texture" or "box" or "ints"))
+            foreach (Sight sight in sights.Where(one => one.Kind is "texture" or "box" or "inner" or "ints"))
             {
                 said.Append("    ").AppendLine(sight.Said);
             }
@@ -507,6 +522,22 @@ public static class ShoreFieldHunt
         return sized && MathF.Abs(a) <= far && MathF.Abs(b) <= far;
 
         static bool Within(float value, float of) => value >= 0.25f * of && value <= 2f * of;
+    }
+
+    /// <summary>
+    /// Whether four floats are a box inside the scene, a tile or more each way, its corners whole numbers and within a tile of the scene
+    /// - a river's flow map's box (river_flowmap_planar_aabb), which need not be the scene's.
+    /// </summary>
+    private static bool Inner(float a, float b, float c, float d, float width, float height)
+    {
+        if (!float.IsFinite(a) || !float.IsFinite(b) || !float.IsFinite(c) || !float.IsFinite(d) || c - a < ModelFloor.Tile || d - b < ModelFloor.Tile)
+        {
+            return false;
+        }
+
+        float margin = ModelFloor.Tile;
+        bool inside = a >= -margin && b >= -margin && c <= width + margin && d <= height + margin;
+        return inside && a == MathF.Round(a) && b == MathF.Round(b) && c == MathF.Round(c) && d == MathF.Round(d);
     }
 
     private static string Proportions(float a, float b, double aspect, float width) => Same(a / b, aspect)
