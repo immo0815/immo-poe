@@ -579,8 +579,10 @@ public static class CaptureParts
             + "beside the report. The Red Vale's was found so: four floats a texel, the flow, its sources and the distance to the bank. "
             + "So a list laid out so is named, and then its way home is sought - the whole of writable memory searched again, level by "
             + "level, for whatever points at it and at those, up to a static of the game's program or the area instance, each object on "
-            + "the way named by its class where it has one: the chain a live read of the map needs. It stops itself after about four "
-            + "minutes; the capture's window shows how far it is and stops it on a click."),
+            + "the way named by its class where it has one: the chain a live read of the map needs - every place a chain reads written "
+            + "whole, word by word, and the game program's code that reads each static found, with the shortest pattern round it found "
+            + "once, what finds the static again after a restart or a patch. It stops itself after about four minutes; the capture's "
+            + "window shows how far it is and stops it on a click."),
         new(Memory, "Memory", "memory recording", CaptureReport.MemoryFile,
             "The overlay's own reads for three seconds, and inside them one pass reading once more from nothing whatever the "
             + "ticked parts above ask for - memory.txt beside it says what the pass read where. Replays with --replay, game closed."),

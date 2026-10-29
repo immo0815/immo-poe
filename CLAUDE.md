@@ -377,6 +377,16 @@ too) and seeks each one's WAY HOME (`RiverFlowHunt.Home`, v0.1.353): writable me
 named by the nearest vtable before it through MSVC's run-time type information (`ClassOf`), and every chain written as the reads that
 follow it. CHOSEN: the reach, the levels, 30 s a level, 32 places a level. Both sweeps now leave out memory the game cannot write and the
 driver's write-combined and uncached heaps, and say how much. Press it on The Red Vale's river again before the live read is built.
+ITS FIRST WAY HOME (v0.1.353's capture, the same game session as v0.1.352's - the same addresses; schema `RiverFlowRoot`, `RiverFlowFields`):
+the sweeps took 9 s for 7.9 GB, leaving out 11 GB the game cannot write or the driver's, and four levels of 5 to 7 s found four chains,
+all to two statics of the program - `module+0x46FD388 -> +0x0 -> +0x8` = the river's holder, the same through module+0x46FD450, and through
+the address sixteen bytes before the object at +0x390 and +0x458 (a std::shared_ptr's pointer and its control block as make_shared lays
+them, a reading). The object's first word points at a run whose +0x08 is the river's holder and +0x10 the guiding fog's. No vtable named
+a class anywhere on the way. A static's address is one launch's and the run's order one area's, so before the live read is built,
+v0.1.354 writes every place a chain reads whole, word by word, and finds the program's code reading each static: every [rip + disp32]
+landing on it, the bytes round it and the shortest pattern round it found once in the image - what the schema's statics are found by.
+Press it once more AFTER RESTARTING THE GAME, on The Red Vale's river or another's (The Riverbank, act 1): the pattern and whether the
+chain holds come from that one capture.
 
 ## Verify against the game, not against yourself
 
