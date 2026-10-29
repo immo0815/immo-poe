@@ -392,6 +392,14 @@ at +0x08 and the guiding fog's at +0x10, and the object pointing at it from its 
 all went to stringstream buffers pointing at one another, as near their targets as the statics and nearer in memory, which ranked the
 statics out. From v0.1.355 every place in a static or the area instance is kept whatever the rest, and one target keeps at most eight
 (`RiverFlowHunt.MostPerTarget`) - `ASTATICIsKeptHoweverManyNearerPlacesPointAtTheSameHolder`. Press v0.1.355 after a restart.
+v0.1.355 FOUND THE WAY AGAIN, IN OTHER SLOTS (a second instance of The Red Vale in the second launch, 262 x 331 texels): `module+0x46FD358
+-> +0x0 -> +0x8` and the same through module+0x46FD480 - where the first launch had +0x46FD388 and +0x46FD450. The object is std::make_shared's
+(its control block sixteen bytes before it, two owners), its +0x00 a std::vector of three field pointers, the first null; no code reads the
+slots themselves, and beside +0x46FD480 stand a begin and an end pointing into the image (module+0x46FD358 to +0x46FD388) after 8, 6 and 0.8 -
+a container in the program's own data whose slots move, a reading. The area instance reached the holders too (+0x770 and +0xF8), but
+through offsets past the end of the vectors they start from - neighbours in the heap, no way to read by. So v0.1.356 writes the program's
+words round the slots as one run (0x200 either side) and every piece of code reading within that run, by the place it reads, with the
+shortest pattern round each - the anchor a live read needs. Press it in The Red Vale on the river.
 
 ## Verify against the game, not against yourself
 

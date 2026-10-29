@@ -49,8 +49,14 @@ public static partial class RiverFlowHunt
     /// <summary>How much of an object on a way home is written, past the place pointed at - CHOSEN.</summary>
     public const int PlaceBytes = 0x100;
 
-    /// <summary>The most places of the program's code written for one static.</summary>
-    public const int MostReferences = 16;
+    /// <summary>How far round a static found the program's words are written and its code's references gathered - CHOSEN.</summary>
+    public const int StaticWindow = 0x200;
+
+    /// <summary>The places of the program's code written for each place it reads round a static.</summary>
+    public const int SitesShown = 3;
+
+    /// <summary>The most places of the program's code gathered round the statics.</summary>
+    public const int MostSites = 4096;
 
     /// <summary>How much of the area instance counts as it - CHOSEN, past the schema's last field (0x8D0).</summary>
     public const int AreaSpan = 0x1000;
@@ -234,7 +240,7 @@ public static partial class RiverFlowHunt
         if (roots.Count > 0)
         {
             lines.Add(string.Empty);
-            lines.AddRange(Places(reader, links, roots, holders, classes));
+            lines.AddRange(Places(reader, areaInstance, links, roots, holders, classes));
             ulong[] statics = [.. roots.Select(root => links[root].Slot)
                 .Where(slot => reader.ModuleSize > 0 && slot >= reader.ModuleBase && slot < reader.ModuleBase + reader.ModuleSize)
                 .Distinct()
@@ -250,12 +256,19 @@ public static partial class RiverFlowHunt
     }
 
     /// <summary>
-    /// Every place a chain reads, whole: each static from 0x40 before it to 0x40 after, each object from 0x20 before the place pointed at
-    /// to <see cref="PlaceBytes"/> after, a word a line - its value, and what it is: a place of the chains, a word of the program (and the
-    /// class its vtable names), another pointer, or two ints and two floats.
+    /// Every place a chain reads, whole: the program's statics as one run from <see cref="StaticWindow"/> before the first to as far past the
+    /// last, a place in the area instance from 0x40 before it to 0x40 after, each object from 0x20 before the place pointed at to
+    /// <see cref="PlaceBytes"/> after, a word a line - its value, and what it is: a place of the chains, a word of the program (and the class
+    /// its vtable names), another pointer, or two ints and two floats.
     /// </summary>
+    /// <remarks>
+    /// THE STATICS AS ONE RUN (v0.1.356): v0.1.355's capture found the ways home at module+0x46FD358 and +0x46FD480, where the first launch's
+    /// had them at +0x46FD388 and +0x46FD450 - the same program, other slots - and the words round them a begin and an end pointing into the
+    /// program's own image. What the run between is decides how the right slot is found, so it is written whole.
+    /// </remarks>
     private static List<string> Places(
-        IMemoryReader reader, List<Link> links, List<int> roots, IReadOnlyList<(ulong Holder, string Name)> holders, Dictionary<ulong, string?> classes)
+        IMemoryReader reader, ulong areaInstance, List<Link> links, List<int> roots, IReadOnlyList<(ulong Holder, string Name)> holders,
+        Dictionary<ulong, string?> classes)
     {
         // THE NAMES a word may be: the holders, and every place a chain reads.
         var names = new Dictionary<ulong, string>();
@@ -266,9 +279,11 @@ public static partial class RiverFlowHunt
 
         var objects = new SortedSet<ulong>();
         var statics = new SortedSet<ulong>();
+        var inArea = new SortedSet<ulong>();
         foreach (int root in roots)
         {
-            statics.Add(links[root].Slot);
+            ulong slot = links[root].Slot;
+            (reader.ModuleSize > 0 && slot >= reader.ModuleBase && slot < reader.ModuleBase + reader.ModuleSize ? statics : inArea).Add(slot);
             for (int at = root; at >= 0; at = links[at].Below)
             {
                 objects.Add(links[at].Value);
@@ -279,11 +294,33 @@ public static partial class RiverFlowHunt
         var lines = new List<string>
         {
             string.Create(CultureInfo.InvariantCulture,
-                $"=== the places the ways home read, whole: every static from 0x40 before it to 0x40 after, every object from 0x20 before the place pointed at to 0x{PlaceBytes:X} after, a word a line"),
+                $"=== the places the ways home read, whole: the program's statics as one run from 0x{StaticWindow:X} before the first to 0x{StaticWindow:X} past the last, a place in the area instance from 0x40 before it to 0x40 after, every object from 0x20 before the place pointed at to 0x{PlaceBytes:X} after, a word a line"),
         };
-        foreach (ulong root in statics)
+        if (statics.Count > 0)
         {
-            lines.Add(string.Create(CultureInfo.InvariantCulture, $"  the static module+0x{root - reader.ModuleBase:X} (0x{root:X})"));
+            ulong from = Math.Max(reader.ModuleBase, statics.Min - StaticWindow), to = Math.Min(reader.ModuleBase + reader.ModuleSize, statics.Max + StaticWindow + 8);
+            lines.Add(string.Create(CultureInfo.InvariantCulture,
+                $"  the program's statics round the ways home, module+0x{from - reader.ModuleBase:X} to module+0x{to - reader.ModuleBase:X}"));
+            var bytes = new byte[(int)(to - from)];
+            if (!reader.TryRead(from, bytes))
+            {
+                lines.Add("    did not read");
+            }
+            else
+            {
+                for (var offset = 0; offset + 8 <= bytes.Length; offset += 8)
+                {
+                    ulong word = BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(offset));
+                    ulong at = from + (ulong)offset;
+                    lines.Add(string.Create(CultureInfo.InvariantCulture,
+                        $"    module+0x{at - reader.ModuleBase:X} 0x{word:X16}  {Said(reader, word, names, classes)}{(statics.Contains(at) ? " - a way home" : string.Empty)}"));
+                }
+            }
+        }
+
+        foreach (ulong root in inArea)
+        {
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"  {RootOf(reader, areaInstance, root)} (0x{root:X})"));
             lines.AddRange(Words(reader, root, 0x40, 0x48, names, classes));
         }
 
@@ -355,16 +392,22 @@ public static partial class RiverFlowHunt
     }
 
     /// <summary>
-    /// The program's code that reads each static: every place in the image whose four bytes, read as a displacement from the end of
-    /// themselves, land on it behind a ModRM byte addressing [rip + disp32] (mod 00, r/m 101) - how a static is reached in x64 - each
-    /// written with the bytes round it and the shortest run round it that is found once in the image, the displacement left open (^):
-    /// what the schema's statics need to find it again after a restart or a patch.
+    /// The program's code that reads round each static: every place in the image whose four bytes, read as a displacement from the end of
+    /// themselves, land within <see cref="StaticWindow"/> of a static found, behind a ModRM byte addressing [rip + disp32] (mod 00, r/m 101) -
+    /// how a static is reached in x64 - by the place it lands on, its first <see cref="SitesShown"/> with the bytes round them and the shortest
+    /// run round each that is found once in the image, the displacement left open (^): what the schema's statics need to find it again
+    /// after a restart or a patch.
     /// </summary>
+    /// <remarks>
+    /// ROUND THEM, NOT AT THEM (v0.1.356): v0.1.355's capture found no code reading its four statics themselves, and their slots moved
+    /// between launches - so they are members of something the code reaches by its start, which this is to name.
+    /// </remarks>
     private static List<string> References(IMemoryReader reader, IReadOnlyList<ulong> statics)
     {
         var lines = new List<string>
         {
-            "=== the code reading each static: [rip + disp32] references in the program's image, the bytes round each, and the shortest pattern round it found once in the image (the static resolves at its ^ as the schema's statics do, the instruction ending after the displacement)",
+            string.Create(CultureInfo.InvariantCulture,
+                $"=== the code reading round each static: [rip + disp32] references in the program's image landing within 0x{StaticWindow:X} of a static found, by the place they land on, the bytes round the first {SitesShown} and the shortest pattern round each found once in the image (it resolves at its ^ as the schema's statics do, the instruction ending after the displacement)"),
         };
         var image = new byte[reader.ModuleSize];
         for (var at = 0; at < image.Length; at += 4 * 1024 * 1024)
@@ -372,21 +415,31 @@ public static partial class RiverFlowHunt
             reader.TryRead(reader.ModuleBase + (ulong)at, image.AsSpan(at, Math.Min(4 * 1024 * 1024, image.Length - at)));
         }
 
-        foreach (ulong target in statics)
+        long least = (long)(statics.Min() - reader.ModuleBase) - StaticWindow, most = (long)(statics.Max() - reader.ModuleBase) + StaticWindow;
+        long[] near = [.. statics.Select(one => (long)(one - reader.ModuleBase))];
+        var found = new List<(int Site, long Target)>();
+        for (var at = 1; at + 4 <= image.Length && found.Count < MostSites; at++)
         {
-            var found = new List<int>();
-            long relative = (long)(target - reader.ModuleBase);
-            for (var at = 1; at + 4 <= image.Length && found.Count < MostReferences; at++)
+            if ((image[at - 1] & 0xC7) != 0x05)
             {
-                if ((image[at - 1] & 0xC7) == 0x05 && at + 4L + BinaryPrimitives.ReadInt32LittleEndian(image.AsSpan(at)) == relative)
-                {
-                    found.Add(at);
-                }
+                continue;
             }
 
+            long target = at + 4L + BinaryPrimitives.ReadInt32LittleEndian(image.AsSpan(at));
+            if (target >= least && target <= most && Array.Exists(near, one => Math.Abs(target - one) <= StaticWindow))
+            {
+                found.Add((at, target));
+            }
+        }
+
+        lines.Add(string.Create(CultureInfo.InvariantCulture,
+            $"  {found.Count}{(found.Count >= MostSites ? " or more" : string.Empty)} places read within 0x{StaticWindow:X} of module+{string.Join(", module+", near.Select(one => $"0x{one:X}"))}"));
+        foreach (IGrouping<long, (int Site, long Target)> place in found.GroupBy(one => one.Target).OrderBy(one => one.Key))
+        {
+            long nearest = near.MinBy(one => Math.Abs(place.Key - one));
             lines.Add(string.Create(CultureInfo.InvariantCulture,
-                $"  module+0x{relative:X}: {found.Count}{(found.Count >= MostReferences ? " or more" : string.Empty)} places read it"));
-            foreach (int at in found)
+                $"  module+0x{place.Key:X} (the static module+0x{nearest:X} {(place.Key >= nearest ? "+" : "-")}0x{Math.Abs(place.Key - nearest):X}): {place.Count()} places read it"));
+            foreach ((int at, _) in place.Take(SitesShown))
             {
                 int from = Math.Max(0, at - 16), to = Math.Min(image.Length, at + 16);
                 lines.Add(string.Create(CultureInfo.InvariantCulture,
