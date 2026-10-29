@@ -70,8 +70,14 @@ jobs:
           DOTNET_INSTALL_DIR: ${{ runner.environment == 'self-hosted' && format('{0}/dotnet', runner.tool_cache) || '' }}
       # EnableWindowsTargeting in Directory.Build.props lets the net10.0-windows
       # projects compile here too, so the whole solution is checked on every push.
-      - run: dotnet build --nologo
-      - run: dotnet test --nologo --no-build
+      # IN RELEASE, which is what ships (aot-publish below is -c Release) and what the replay tests
+      # need: they walk a recording frame by frame through ReplayMemoryReader, and measured on the
+      # sweep capture the same walk is 51 s unoptimised against 17.7 s optimised - four fifths of the
+      # unoptimised time inside TryRead. Nothing in the repository reads the configuration (no
+      # #if DEBUG, no Debug.Assert), so the tests ask the same questions of the same code. Measured
+      # on four cores at 0.1.345: the whole suite 2:07 in Debug, 1:13 in Release, 4607 tests either way.
+      - run: dotnet build -c Release --nologo
+      - run: dotnet test -c Release --nologo --no-build
 
   # THE GRAPHICS CARD'S PICTURES held against the processor's (src/PoEformance.Gpu against
   # MeshPicture), on WARP - Windows' own Direct3D 11 run on the processor, which every Windows
