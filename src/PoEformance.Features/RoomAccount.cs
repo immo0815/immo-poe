@@ -46,11 +46,26 @@ public sealed record RoomAccount
     /// <summary>Ground sub-tiles left plain, by why - GroundPainter's own reasons.</summary>
     public IReadOnlyDictionary<string, int> GroundPlain { get; init; } = new Dictionary<string, int>();
 
+    /// <summary>The tiles each reason in <see cref="GroundPlain"/> was met on, with their templates and masks, a few a reason.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> GroundPlainSubjects { get; init; } = new Dictionary<string, IReadOnlyList<string>>();
+
+    /// <summary>Tile files of the pieces not whole, a few.</summary>
+    public IReadOnlyList<string> BrokenFiles { get; init; } = [];
+
+    /// <summary>Tile files of the pieces with nothing to draw, a few.</summary>
+    public IReadOnlyList<string> BareFiles { get; init; } = [];
+
+    /// <summary>Tiles of the tileset's lists whose definition did not read, a few.</summary>
+    public IReadOnlyList<string> UnreadTiles { get; init; } = [];
+
     /// <summary>Ground sub-tiles naming a ground the MaterialsList does not, painted as the group with no name.</summary>
     public int GroundUnlisted { get; init; }
 
     /// <summary>The grounds those name, by name.</summary>
     public IReadOnlyList<string> UnlistedGrounds { get; init; } = [];
+
+    /// <summary>The ground type file (<c>.gt</c>) of each of <see cref="UnlistedGrounds"/>, by its name.</summary>
+    public IReadOnlyDictionary<string, string> UnlistedGroundFiles { get; init; } = new Dictionary<string, string>();
 
     /// <summary>Slots a build from the tileset asked to fill - nought for a room as the area laid it.</summary>
     public int Slots { get; init; }

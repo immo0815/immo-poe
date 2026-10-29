@@ -1886,6 +1886,20 @@ public sealed partial class ShadeProgram
     /// </summary>
     internal const float NoPlayer = 1e6f;
 
+    /// <summary>
+    /// The program the builder's steps come to: the steps nothing reads left out, and the rest given registers.
+    /// </summary>
+    /// <remarks>
+    /// A REGISTER IS HANDED ON ONCE NOTHING READS ITS VALUE ANY MORE (v0.1.348). Every value had a register of its own for the
+    /// whole program before, so a graph of some two hundred values did not fit the processor's scratch (<see cref="MostRegisters"/>)
+    /// and was drawn white or with its colour's graphs left out - the stage sweep's 555 and 582 rooms of 16,787 (v0.1.346, "more
+    /// than 192 registers in the colour"), while the values alive at any one step are far fewer. Now each register lives from its
+    /// first write to its last read or write; the fixed registers, the constants (set once a drawing, see <see cref="Preset"/>) and
+    /// what the program hands out (the colour, the specular, the gloss, the waves, the water's parts, the height) keep theirs to the
+    /// end. A step's own result never takes the register of a value it reads, and a register read before anything wrote it - a
+    /// swizzle setting part of it first, a component nothing set - starts at nought where it is first touched (a Clear), as the
+    /// card's own registers start (ShadeHlsl) and every register did when none was ever handed on.
+    /// </remarks>
     private static ShadeProgram? Finish(
         Builder build, int result, int specular, int gloss, List<string> graphs, bool hasAlpha, bool plainable, int waves = -1,
         int waterFoam = -1, int waterState = -1, int height = -1)
@@ -1943,6 +1957,86 @@ public sealed partial class ShadeProgram
             }
         }
 
+        // EACH REGISTER'S LIFE, from its first write to its last read or write - see the remarks. The fixed ones and the
+        // constants are mapped already and stay where they are.
+        var firstWrite = new int[build.Next];
+        Array.Fill(firstWrite, int.MaxValue);
+        var lastUse = new int[build.Next];
+        Array.Fill(lastUse, -1);
+        var clearAt = new int[build.Next];
+        Array.Fill(clearAt, -1);
+        void Use(int register, int at)
+        {
+            if (register >= 0 && map[register] < 0)
+            {
+                lastUse[register] = Math.Max(lastUse[register], at);
+                if (firstWrite[register] > at && clearAt[register] < 0)
+                {
+                    clearAt[register] = at;
+                }
+            }
+        }
+
+        for (var at = 0; at < steps.Count; at++)
+        {
+            if (!keep[at])
+            {
+                continue;
+            }
+
+            Step step = steps[at];
+            Use(step.A, at);
+            if (step.Op is not (Op.Sample or Op.Parallax))
+            {
+                Use(step.B, at);
+            }
+
+            Use(step.C, at);
+            Use(step.D, at);
+            Use(step.E, at);
+            if (step.Op == Op.Swizzle && ((step.Extra >> 8) & 0b1111) != 0b1111)
+            {
+                Use(step.To, at);
+            }
+
+            if (map[step.To] < 0)
+            {
+                firstWrite[step.To] = Math.Min(firstWrite[step.To], at);
+                lastUse[step.To] = Math.Max(lastUse[step.To], at);
+            }
+        }
+
+        foreach (int handed in (ReadOnlySpan<int>)[result, specular, gloss, waves, waterFoam, waterState, height])
+        {
+            if (handed >= 0 && map[handed] < 0 && lastUse[handed] >= 0)
+            {
+                lastUse[handed] = int.MaxValue;
+            }
+        }
+
+        var dying = new List<int>?[steps.Count];
+        var clearing = new List<int>?[steps.Count];
+        for (var register = 0; register < build.Next; register++)
+        {
+            if (map[register] >= 0 || lastUse[register] < 0)
+            {
+                continue;
+            }
+
+            if (lastUse[register] != int.MaxValue)
+            {
+                (dying[lastUse[register]] ??= []).Add(register);
+            }
+
+            if (clearAt[register] >= 0)
+            {
+                (clearing[clearAt[register]] ??= []).Add(register);
+            }
+        }
+
+        var free = new Stack<int>();
+        int Handed() => free.Count > 0 ? free.Pop() : next++;
+
         var textureMap = new int[build.Textures.Count];
         Array.Fill(textureMap, -1);
         var textures = new List<ShadeTexture>();
@@ -1955,10 +2049,16 @@ public sealed partial class ShadeProgram
                 continue;
             }
 
+            foreach (int register in clearing[at] ?? [])
+            {
+                map[register] = Handed();
+                kept.Add(new Step(Op.Clear, map[register], -1, -1, -1, -1, -1, 0));
+            }
+
             Step step = steps[at];
             if (map[step.To] < 0)
             {
-                map[step.To] = next++;
+                map[step.To] = Handed();
             }
 
             int b = step.B;
@@ -2008,6 +2108,12 @@ public sealed partial class ShadeProgram
 
             kept.Add(new Step(
                 step.Op, map[step.To], Mapped(map, step.A), b, Mapped(map, step.C), Mapped(map, step.D), Mapped(map, step.E), extra, step.Splat));
+
+            // HANDED ON ONLY NOW, after this step's own result has its register - see the remarks.
+            foreach (int register in dying[at] ?? [])
+            {
+                free.Push(map[register]);
+            }
         }
 
         if (next > MostRegisters)

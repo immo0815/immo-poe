@@ -59,7 +59,7 @@ public static class CaptureStageSweep
 
     /// <summary>A path in a reason, kept to its kind - so one reason over many files ranks as one.</summary>
     private static readonly Regex Paths = new(
-        @"[A-Za-z0-9_\-./\\]+\.(arm|tdt|tgt|tgm|ao|aoc|sm|smd|fmt|mat|dds|fxgraph|ot|otc|tst|tsi|gt|et|rs|toy|gft|mtd|tmo|ast|amd|ecf|png)(:\d+)?\b",
+        @"[A-Za-z0-9_\-./\\]+\.(arm|tdt|tgt|tgm|tmd|ao|aoc|sm|smd|fmt|mat|dds|fxgraph|ot|otc|tst|tsi|gt|et|rs|toy|gft|mtd|tmo|ast|amd|ecf|png)(:\d+)?\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     /// <summary>A number standing alone in a reason - a count, which differs room by room.</summary>
@@ -119,7 +119,8 @@ public static class CaptureStageSweep
     /// <param name="read">How to get a file out of the install, by path.</param>
     /// <param name="masters">Every master (<c>.tsi</c>) in the install, as its walk found them.</param>
     /// <param name="search">How far it is, and its stop - for the capture's window.</param>
-    public static string Write(Func<string, byte[]?> read, IReadOnlyList<string>? masters, Search? search = null)
+    /// <param name="folder">Where the part's file is written: the subjects' own files go beside it under <see cref="SampleFolder"/> - none where null.</param>
+    public static string Write(Func<string, byte[]?> read, IReadOnlyList<string>? masters, Search? search = null, string? folder = null)
     {
         ArgumentNullException.ThrowIfNull(read);
         search ??= new Search();
@@ -140,6 +141,7 @@ public static class CaptureStageSweep
         search.Begin(jobs.Count);
         var paints = new MonsterModels.Paints { Lean = true };
         var rows = new Row?[jobs.Count];
+        var subjects = new Subjects();
         Parallel.For(0, jobs.Count, new ParallelOptions { MaxDegreeOfParallelism = AtOnce }, (at, loop) =>
         {
             if (search.Stopped)
@@ -150,7 +152,9 @@ public static class CaptureStageSweep
 
             (string master, string room) = jobs[at];
             search.Started(room);
-            rows[at] = Built(cached, paints, master, room);
+            var own = new Dictionary<string, Dictionary<string, long>>(StringComparer.Ordinal);
+            rows[at] = Built(cached, paints, master, room, own);
+            subjects.Add(own);
             search.Did(rows[at]!.Built);
         });
 
@@ -159,13 +163,21 @@ public static class CaptureStageSweep
         var said = new StringBuilder();
         said.Append(string.Create(CultureInfo.InvariantCulture,
             $"stage sweep: {done.Length} of {jobs.Count} rooms built under {done.Select(one => one.Master).Distinct(StringComparer.OrdinalIgnoreCase).Count()} masters in {seconds / 60.0:0.#} min, {done.Count(one => !one.Built)} did not build{(search.Stopped ? ", STOPPED before the end" : string.Empty)} - {(masters ?? []).Count} masters in the install, {unset} naming no room; the files read kept {kept.Hits:N0} times of {kept.Asks:N0}\n"));
-        said.Append(Ranked(done));
+        said.Append(Ranked(done, subjects));
+        if (folder is not null)
+        {
+            said.Append(Samples(cached, done, subjects, Path.Combine(folder, SampleFolder)));
+        }
+
         said.Append(Rows(done));
         return said.ToString();
     }
 
     /// <summary>The causes ranked group by group, each by how many rooms it reaches - from the rows alone, so the offline reader ranks again what the sweep ranked.</summary>
-    public static string Ranked(IReadOnlyList<Row> rows)
+    public static string Ranked(IReadOnlyList<Row> rows) => Ranked(rows, null);
+
+    /// <summary>The causes ranked, each followed by the files it was met on most - see <see cref="Subjects"/>.</summary>
+    internal static string Ranked(IReadOnlyList<Row> rows, Subjects? subjects)
     {
         ArgumentNullException.ThrowIfNull(rows);
         var causes = new Dictionary<string, (int Rooms, HashSet<string> Masters, long Weight, List<string> Examples)>(StringComparer.Ordinal);
@@ -201,6 +213,10 @@ public static class CaptureStageSweep
             foreach ((string cause, var tally) in group)
             {
                 said.Append(string.Create(CultureInfo.InvariantCulture, $"  {tally.Rooms}\t{tally.Masters.Count}\t{tally.Weight}\t{cause}\t{string.Join(", ", tally.Examples)}\n"));
+                foreach ((string subject, long weight, int rooms) in subjects?.Top(cause, SubjectsShown) ?? [])
+                {
+                    said.Append(string.Create(CultureInfo.InvariantCulture, $"  \t\t\t  of {subject} - {rooms} rooms, weight {weight}\n"));
+                }
             }
         }
 
@@ -288,16 +304,95 @@ public static class CaptureStageSweep
         return string.Create(CultureInfo.InvariantCulture, $"stage sweep replay: {rows.Count} rows read back\n") + Ranked(rows);
     }
 
+    /// <summary>
+    /// The subjects' files a capture carries (<see cref="SampleFolder"/> beside the part's file) read again with today's readers: each
+    /// object built, each material compiled, each tile's definition read - what a mend made offline comes to before the next sweep.
+    /// </summary>
+    /// <param name="folder">The folder the part's file is in.</param>
+    public static string Recheck(string folder)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        string root = Path.Combine(folder, SampleFolder);
+        if (!Directory.Exists(root))
+        {
+            return $"stage sweep files read again: none - no {SampleFolder}/ beside the part\n";
+        }
+
+        var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+        {
+            files[Path.GetRelativePath(root, file).Replace('\\', '/')] = file;
+        }
+
+        byte[]? Read(string path) => files.TryGetValue(Safe(path).Replace('\\', '/'), out string? file) ? File.ReadAllBytes(file) : null;
+        var paints = new MonsterModels.Paints { Lean = true };
+        var said = new StringBuilder();
+        int objects = 0, objectsBuilt = 0, materials = 0, materialsDrawn = 0, tiles = 0, tilesRead = 0;
+        foreach (string path in files.Keys.Order(StringComparer.OrdinalIgnoreCase))
+        {
+            string extension = Path.GetExtension(path).ToLowerInvariant();
+            string line;
+            if (extension == ".ao")
+            {
+                objects++;
+                MonsterModel model = MonsterModels.OfFiles(Read, [path], wearing: true, paints);
+                objectsBuilt += model.Ready ? 1 : 0;
+                line = model.Ready
+                    ? string.Create(CultureInfo.InvariantCulture, $"built, {model.Mesh.Triangles} triangles")
+                    : "not built: " + model.Why;
+            }
+            else if (extension == ".mat")
+            {
+                materials++;
+                MonsterModels.Shade shade = paints.Shade(Read, path);
+                ShadeCompile compiled = paints.Compiled(Read, path).Compiled;
+                materialsDrawn += compiled.Program is not null ? 1 : 0;
+                line = (compiled.Program is not null ? "drawn" : "not drawn")
+                    + (shade.Skipped is { Count: > 0 } skipped ? "; left out: " + string.Join("; ", skipped) : string.Empty)
+                    + (compiled.Lost.Count > 0 ? "; lost: " + string.Join("; ", compiled.Lost) : string.Empty);
+            }
+            else if (extension == ".tdt")
+            {
+                tiles++;
+                (TileDefinition definition, string why) = TileModels.Defined(Read, path);
+                tilesRead += definition.Ready ? 1 : 0;
+                line = definition.Ready ? "read" : "not read: " + why;
+            }
+            else
+            {
+                continue;
+            }
+
+            said.Append("  ").Append(path).Append('\t').Append(line).Append('\n');
+        }
+
+        return string.Create(CultureInfo.InvariantCulture,
+            $"stage sweep files read again: {objectsBuilt} of {objects} objects built, {materialsDrawn} of {materials} materials drawn, {tilesRead} of {tiles} tiles read - {files.Count} files beside the part\n") + said;
+    }
+
     /// <summary>One room built under one master and what it came to - never throws.</summary>
-    internal static Row Built(Func<string, byte[]?> read, MonsterModels.Paints paints, string master, string room)
+    /// <param name="subjects">Where each cause's files are counted, by cause - the material, mesh, object or tile it was met on; none where null.</param>
+    internal static Row Built(
+        Func<string, byte[]?> read, MonsterModels.Paints paints, string master, string room, Dictionary<string, Dictionary<string, long>>? subjects = null)
     {
         long started = Stopwatch.GetTimestamp();
         var causes = new Dictionary<string, long>(StringComparer.Ordinal);
-        void Count(string cause, long weight)
+        void Count(string cause, long weight, string? subject = null)
         {
+            if (weight < 0 || (weight == 0 && subject is null))
+            {
+                return;
+            }
+
             if (weight > 0)
             {
                 causes[cause] = causes.GetValueOrDefault(cause) + weight;
+            }
+
+            if (subjects is not null && subject is { Length: > 0 })
+            {
+                Dictionary<string, long> of = subjects.TryGetValue(cause, out Dictionary<string, long>? known) ? known : subjects[cause] = new(StringComparer.OrdinalIgnoreCase);
+                of[subject] = of.GetValueOrDefault(subject) + weight;
             }
         }
 
@@ -310,13 +405,13 @@ public static class CaptureStageSweep
         }
         catch (Exception failed) when (failed is not OutOfMemoryException)
         {
-            Count("room: did not build - it threw " + failed.GetType().Name + ": " + Normal(failed.Message), 1);
+            Count("room: did not build - it threw " + failed.GetType().Name + ": " + Normal(failed.Message), 1, room);
             return new Row(master, room, false, Stopwatch.GetElapsedTime(started).TotalSeconds, 0, causes);
         }
 
         if (!model.Ready)
         {
-            Count("room: did not build - " + Normal(Last(model.Why)), 1);
+            Count("room: did not build - " + Normal(Last(model.Why)), 1, room);
         }
 
         if (model.Account is { } account)
@@ -334,12 +429,14 @@ public static class CaptureStageSweep
                 if (file.Missing > 0)
                 {
                     bool set = file.Ao.EndsWith("_set.ao", StringComparison.OrdinalIgnoreCase);
-                    Count("geometry: doodad not drawn - " + Normal(file.Why) + (set ? " (a set, _set.ao)" : string.Empty), file.Missing);
+                    string named = Paths.Match(file.Why ?? string.Empty) is { Success: true } match ? match.Value : string.Empty;
+                    string subject = named.Length > 0 && !string.Equals(named, file.Ao, StringComparison.OrdinalIgnoreCase) ? file.Ao + " -> " + named : file.Ao;
+                    Count("geometry: doodad not drawn - " + Normal(file.Why ?? string.Empty) + (set ? " (a set, _set.ao)" : string.Empty), file.Missing, subject);
                 }
 
                 if (file.Laid > 0 && file.Ao.Replace('\\', '/').StartsWith("Metadata/Effects/", StringComparison.OrdinalIgnoreCase))
                 {
-                    Count("visible: an effect object drawn - " + Path.GetFileName(file.Ao), file.Laid);
+                    Count("visible: an effect object drawn - " + Path.GetFileName(file.Ao), file.Laid, file.Ao);
                 }
             }
         }
@@ -347,33 +444,49 @@ public static class CaptureStageSweep
         return new Row(master, room, model.Ready, Stopwatch.GetElapsedTime(started).TotalSeconds, triangles, causes);
     }
 
-    /// <summary>The room's own counts, each a cause.</summary>
-    private static void Accounted(RoomAccount account, Action<string, long> count)
+    /// <summary>The room's own counts, each a cause - with the files it names, a few a cause.</summary>
+    private static void Accounted(RoomAccount account, Action<string, long, string?> count)
     {
-        count("geometry: pieces not whole, left out", account.Broken);
-        count("geometry: pieces whose file has nothing to draw", account.Bare);
-        count("geometry: pieces laid no way the game's tables said", account.Unturned);
-        count("geometry: slots no tile of the pool answered", account.Unfilled);
-        count("geometry: slots laid with a named side or corner unmet", account.Unmet);
-        count("geometry: tiles of the lists whose definition did not read", account.PoolUnread);
+        void Each(string cause, long weight, IReadOnlyList<string> files)
+        {
+            if (files.Count == 0)
+            {
+                count(cause, weight, null);
+                return;
+            }
+
+            // THE CAUSE'S WEIGHT ONCE, its files beside it as subjects at no weight of their own - see Subjects.
+            count(cause, weight, files[0]);
+            foreach (string file in files.Skip(1))
+            {
+                count(cause, 0, file);
+            }
+        }
+
+        Each("geometry: pieces not whole, left out", account.Broken, account.BrokenFiles);
+        Each("geometry: pieces whose file has nothing to draw", account.Bare, account.BareFiles);
+        count("geometry: pieces laid no way the game's tables said", account.Unturned, null);
+        count("geometry: slots no tile of the pool answered", account.Unfilled, null);
+        count("geometry: slots laid with a named side or corner unmet", account.Unmet, null);
+        Each("geometry: tiles of the lists whose definition did not read", account.PoolUnread, account.UnreadTiles);
         if (account.Unpainted.Length > 0)
         {
-            count("ground: unpainted - " + Normal(account.Unpainted), 1);
+            count("ground: unpainted - " + Normal(account.Unpainted), 1, null);
         }
 
         foreach ((string why, int subTiles) in account.GroundPlain)
         {
-            count("ground: left plain - " + why, subTiles);
+            Each("ground: left plain - " + why, subTiles, account.GroundPlainSubjects.GetValueOrDefault(why) ?? []);
         }
 
         foreach (string name in account.UnlistedGrounds)
         {
-            count("ground: not in the MaterialsList, painted as the group with no name (CHOSEN) - " + name, account.GroundUnlisted);
+            count("ground: not in the MaterialsList, painted as the group with no name (CHOSEN) - " + name, account.GroundUnlisted, account.UnlistedGroundFiles.GetValueOrDefault(name));
         }
     }
 
     /// <summary>Every shape: what it is drawn with, and why not where nothing colours it - weighed by its triangles.</summary>
-    private static void Shapes(Func<string, byte[]?> read, MonsterModels.Paints paints, MonsterModel model, Action<string, long> count)
+    private static void Shapes(Func<string, byte[]?> read, MonsterModels.Paints paints, MonsterModel model, Action<string, long, string?> count)
     {
         IReadOnlyList<MeshShape> shapes = model.Mesh.Shapes;
         for (var shape = 0; shape < shapes.Count; shape++)
@@ -386,6 +499,7 @@ public static class CaptureStageSweep
 
             string material = shape < model.ShapeMaterials.Count ? model.ShapeMaterials[shape] : string.Empty;
             string source = shape < model.ShapeSources.Count ? model.ShapeSources[shape] : string.Empty;
+            string subject = material.Length > 0 ? MaterialFile.Bare(material) : source;
             string mode = shape < model.Modes.Count ? model.Modes[shape] : string.Empty;
             bool program = shape < model.Shades.Count && model.Shades[shape] is not null;
             bool texture = (shape < model.Skins.Count ? model.Skins[shape] : model.Skin) is not null;
@@ -393,13 +507,13 @@ public static class CaptureStageSweep
             bool file = material.EndsWith(".mat", StringComparison.OrdinalIgnoreCase) || MaterialFile.Bare(material).EndsWith(".mat", StringComparison.OrdinalIgnoreCase);
             if (mode == "water")
             {
-                count(program ? "water: drawn as the area's water" : "water: a water shape drawn white", triangles);
+                count(program ? "water: drawn as the area's water" : "water: a water shape drawn white", triangles, subject);
             }
 
             if (file && paints.Paint(read, MaterialFile.Bare(material)).ShaderType is { Length: > 0 } type
                 && !string.Equals(type, ShadeProgram.OceanShader, StringComparison.OrdinalIgnoreCase))
             {
-                count("water: a material of the shader type " + type + " drawn as an ordinary material", triangles);
+                count("water: a material of the shader type " + type + " drawn as an ordinary material", triangles, subject);
             }
 
             // WHAT THE COMPILE LOST of a material it drew - the colour's parts, and the other channels.
@@ -408,7 +522,7 @@ public static class CaptureStageSweep
             {
                 foreach (string lost in paints.Compiled(read, material).Compiled.Lost)
                 {
-                    count("lost: " + lost, triangles);
+                    count("lost: " + lost, triangles, subject);
                 }
             }
 
@@ -416,7 +530,7 @@ public static class CaptureStageSweep
             {
                 foreach (string why in shade.Skipped ?? [])
                 {
-                    count("partly: " + Normal(why), triangles);
+                    count("partly: " + Normal(why), triangles, subject);
                 }
 
                 continue;
@@ -427,7 +541,7 @@ public static class CaptureStageSweep
                 // A GROUND LEFT PLAIN is counted by its sub-tiles from the room's own account; anything else wearing nothing is said here.
                 if (!ground)
                 {
-                    count("white: a shape wearing no material", triangles);
+                    count("white: a shape wearing no material", triangles, subject);
                 }
 
                 continue;
@@ -435,21 +549,216 @@ public static class CaptureStageSweep
 
             if (MaterialFile.SelectorOf(material) >= 0)
             {
-                count("white: a material read through a selector (name.mat:n), not compiled", triangles);
+                count("white: a material read through a selector (name.mat:n), not compiled", triangles, subject);
                 continue;
             }
 
             if (shade.Skipped is not { Count: > 0 } skipped)
             {
-                count("white: nothing to colour it with", triangles);
+                count("white: nothing to colour it with", triangles, subject);
                 continue;
             }
 
             foreach (string why in skipped)
             {
-                count("white: " + Normal(why), triangles);
+                count("white: " + Normal(why), triangles, subject);
             }
         }
+    }
+
+    /// <summary>The folder beside the part's file the subjects' own files are written to.</summary>
+    public const string SampleFolder = "stage-sweep";
+
+    /// <summary>Subjects named under a cause in the ranking.</summary>
+    private const int SubjectsShown = 5;
+
+    /// <summary>Causes of each group whose subjects' files are written - CHOSEN: the first ten by the rooms they reach.</summary>
+    private const int SampledCauses = 10;
+
+    /// <summary>Subjects of each such cause whose files are written - CHOSEN.</summary>
+    private const int SampledSubjects = 3;
+
+    /// <summary>What the files written come to at most - CHOSEN: a capture's three pieces' worth, packed.</summary>
+    private const long SampleBytes = 80L << 20;
+
+    /// <summary>The largest one file written - CHOSEN; a texture larger than <see cref="SampleTexture"/> is left out, and both are listed.</summary>
+    private const long SampleFile = 8L << 20;
+
+    /// <summary>The largest texture written - CHOSEN: a ground mask (256 by 512, two bytes a texel) or a lookup, not a material's colour.</summary>
+    private const long SampleTexture = 320L << 10;
+
+    /// <summary>How many files one file may bring along that it names.</summary>
+    private const int NamedPerFile = 48;
+
+    /// <summary>
+    /// Each cause's subjects over every room - the file it was met on, its weight there summed and the rooms it was met in.
+    /// </summary>
+    /// <remarks>
+    /// PRINT BOTH HALVES: a cause says what failed, its subjects on what - the material, the mesh, the object or the tile - so a
+    /// mend can be made against the very file, which the sweep then writes beside it (<see cref="Samples"/>). A subject met at no
+    /// weight of its own (a room's second file for one count) is still counted in its rooms.
+    /// </remarks>
+    internal sealed class Subjects
+    {
+        private readonly Dictionary<string, Dictionary<string, (long Weight, int Rooms)>> _of = new(StringComparer.Ordinal);
+        private readonly Lock _lock = new();
+
+        /// <summary>One room's subjects, added in.</summary>
+        public void Add(Dictionary<string, Dictionary<string, long>> room)
+        {
+            lock (_lock)
+            {
+                foreach ((string cause, Dictionary<string, long> subjects) in room)
+                {
+                    Dictionary<string, (long Weight, int Rooms)> of = _of.TryGetValue(cause, out var known) ? known : _of[cause] = new(StringComparer.OrdinalIgnoreCase);
+                    foreach ((string subject, long weight) in subjects)
+                    {
+                        (long had, int rooms) = of.GetValueOrDefault(subject);
+                        of[subject] = (had + weight, rooms + 1);
+                    }
+                }
+            }
+        }
+
+        /// <summary>A cause's subjects met in the most rooms, the heaviest first among those.</summary>
+        public IEnumerable<(string Subject, long Weight, int Rooms)> Top(string cause, int count)
+        {
+            lock (_lock)
+            {
+                return _of.TryGetValue(cause, out var of)
+                    ? [.. of.OrderByDescending(one => one.Value.Rooms).ThenByDescending(one => one.Value.Weight).Take(count).Select(one => (one.Key, one.Value.Weight, one.Value.Rooms))]
+                    : [];
+            }
+        }
+    }
+
+    /// <summary>
+    /// The files of each group's first causes' first subjects, and the files they name, written under <paramref name="into"/> at their
+    /// install paths - and what was written, said.
+    /// </summary>
+    /// <remarks>
+    /// WHAT A MEND IS MADE AGAINST: the sweep runs where the install is, the mend is made where it is not - so the files a cause was met
+    /// on travel in the capture (asked for from the live client: the next capture answers which file, then the file itself). A subject
+    /// names its files by path; each is written with what it names in its own bytes, read as UTF-16 and as bytes (an object's meshes
+    /// and what it extends, a material's graphs, a template's mask), and those again once. Kept to a budget, textures past a mask's
+    /// size left out.
+    /// </remarks>
+    internal static string Samples(Func<string, byte[]?> read, IReadOnlyList<Row> rows, Subjects subjects, string into)
+    {
+        var rooms = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (Row row in rows)
+        {
+            foreach (string cause in row.Causes.Keys)
+            {
+                rooms[cause] = rooms.GetValueOrDefault(cause) + 1;
+            }
+        }
+
+        var written = new Dictionary<string, (long Bytes, string For)>(StringComparer.OrdinalIgnoreCase);
+        var missing = new List<string>();
+        long total = 0;
+        bool full = false;
+        void Write(string path, string cause, int depth)
+        {
+            if (full || written.ContainsKey(path) || missing.Contains(path, StringComparer.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            byte[]? bytes = read(path);
+            bool texture = path.EndsWith(".dds", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".png", StringComparison.OrdinalIgnoreCase);
+            if (bytes is null || bytes.Length == 0)
+            {
+                missing.Add(path);
+                return;
+            }
+
+            if (bytes.LongLength > (texture ? SampleTexture : SampleFile))
+            {
+                written[path] = (-bytes.LongLength, cause);
+                return;
+            }
+
+            if (total + bytes.LongLength > SampleBytes)
+            {
+                full = true;
+                return;
+            }
+
+            string target = Path.Combine(into, Safe(path));
+            Directory.CreateDirectory(Path.GetDirectoryName(target) ?? into);
+            File.WriteAllBytes(target, bytes);
+            written[path] = (bytes.LongLength, cause);
+            total += bytes.LongLength;
+            if (depth < 2 && !texture)
+            {
+                foreach (string named in Named(bytes, path).Take(NamedPerFile))
+                {
+                    Write(named, cause, depth + 1);
+                }
+            }
+        }
+
+        foreach ((string word, _) in Groups)
+        {
+            IEnumerable<string> causes = rooms.Keys.Where(cause => cause.StartsWith(word, StringComparison.Ordinal))
+                .OrderByDescending(cause => rooms[cause]).Take(SampledCauses);
+            foreach (string cause in causes)
+            {
+                foreach ((string subject, _, _) in subjects.Top(cause, SampledSubjects))
+                {
+                    foreach (Match match in Paths.Matches(subject))
+                    {
+                        Write(match.Value.Replace('\\', '/'), cause, 0);
+                    }
+                }
+            }
+        }
+
+        var said = new StringBuilder();
+        said.Append(string.Create(CultureInfo.InvariantCulture,
+            $"\n=== the subjects' files, under {SampleFolder}/ at their install paths - {written.Count(one => one.Value.Bytes >= 0)} written, {total / 1048576.0:0.#} MB{(full ? ", STOPPED at the budget" : string.Empty)}; {written.Count(one => one.Value.Bytes < 0)} too large, {missing.Count} not in the install\n"));
+        foreach ((string path, (long bytes, string cause)) in written.OrderBy(one => one.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            said.Append(string.Create(CultureInfo.InvariantCulture, $"  {(bytes >= 0 ? bytes.ToString(CultureInfo.InvariantCulture) : "too large, " + (-bytes).ToString(CultureInfo.InvariantCulture))}\t{path}\tfor {cause}\n"));
+        }
+
+        foreach (string path in missing.Order(StringComparer.OrdinalIgnoreCase))
+        {
+            said.Append("  not in the install\t").Append(path).Append('\n');
+        }
+
+        return said.ToString();
+    }
+
+    /// <summary>The install paths a file names in its bytes - read as UTF-16 and as single bytes, its own path and duplicates left out.</summary>
+    internal static IEnumerable<string> Named(byte[] bytes, string self)
+    {
+        ArgumentNullException.ThrowIfNull(bytes);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { self };
+        foreach (string text in (string[])[System.Text.Encoding.Unicode.GetString(bytes), System.Text.Encoding.Latin1.GetString(bytes)])
+        {
+            foreach (Match match in Paths.Matches(text))
+            {
+                string path = match.Value.Replace('\\', '/').TrimStart('/');
+                int selector = path.LastIndexOf(':');
+                path = selector > 0 ? path[..selector] : path;
+                if (path.Contains('/', StringComparison.Ordinal) && seen.Add(path))
+                {
+                    yield return path;
+                }
+            }
+        }
+    }
+
+    /// <summary>An install path as a path under the folder: its parts kept, nothing that climbs out or a file system refuses.</summary>
+    internal static string Safe(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        IEnumerable<string> parts = path.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries)
+            .Where(part => part is not ("." or ".."))
+            .Select(part => string.Concat(part.Select(letter => Path.GetInvalidFileNameChars().Contains(letter) || letter == ':' ? '_' : letter)));
+        return Path.Combine([.. parts]);
     }
 
     /// <summary>A compile's reason's node - the text before " in " - or empty where it has none.</summary>

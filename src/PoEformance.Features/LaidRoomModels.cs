@@ -251,6 +251,16 @@ public static class LaidRoomModels
         var pile = new ModelPile();
         long mostTriangles = (long)(doodads > 0 ? doodads : RoomModels.UsualDoodads) * RoomModels.TrianglesPerDoodad;
         int laidPieces = 0, broken = 0, bare = 0, capped = 0, unturned = 0;
+        var brokenFiles = new List<string>();
+        var bareFiles = new List<string>();
+        void Noted(List<string> files, int id)
+        {
+            if (files.Count < 4 && !files.Contains(tiles.Paths[id], StringComparer.OrdinalIgnoreCase))
+            {
+                files.Add(tiles.Paths[id]);
+            }
+        }
+
         int several = 0, fromTop = 0, fromBottom = 0;
         int fitsFitted = 0, fitsAtLevel = 0;
         var above = new List<float>(pieces.Count);
@@ -264,12 +274,14 @@ public static class LaidRoomModels
             if (!piece.Whole)
             {
                 broken++;
+                Noted(brokenFiles, piece.Id);
                 continue;
             }
 
             if (!one.Props.Ready && !one.Ground.Ready)
             {
                 bare++;
+                Noted(bareFiles, piece.Id);
                 continue;
             }
 
@@ -432,6 +444,10 @@ public static class LaidRoomModels
                 Unpainted = painter is null ? unpainted : string.Empty,
                 GroundPainted = groundPainted,
                 GroundPlain = plainGround,
+                GroundPlainSubjects = painter?.PlainSubjects() ?? new Dictionary<string, IReadOnlyList<string>>(),
+                UnlistedGroundFiles = painter?.UnlistedFiles() ?? new Dictionary<string, string>(),
+                BrokenFiles = brokenFiles,
+                BareFiles = bareFiles,
                 GroundUnlisted = unlisted,
                 UnlistedGrounds = unlistedNames,
             },

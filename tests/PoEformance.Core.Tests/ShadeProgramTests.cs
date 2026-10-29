@@ -153,6 +153,53 @@ public class ShadeProgramTests
         Assert.Equal(["FromVertexLocalUV in Tint"], compiled.Skipped);
     }
 
+    /// <summary>
+    /// A chain of three hundred values, each read once by the next, fits: a register nobody reads any more is handed on, where every
+    /// value had its own before and the chain came out "more than 192 registers in the colour" (the stage sweep's 555 white rooms).
+    /// </summary>
+    [Fact]
+    public void ALONGChainHandsItsRegistersOnAndKeepsItsColour()
+    {
+        const int Links = 300;
+        var nodes = new System.Text.StringBuilder(
+            """
+              {"type":"InputTexture","index":0,"parameters":[{"format":"DXT1","srgb":true,"path":"Art/rock.dds"}],"custom_parameter":"AlbedoTransparency_TEX"},
+              {"type":"InputUV","index":0,"stage":"Texturing_Init"},
+              {"type":"SampleInputTexture","index":0,"parameters":[{"value":"SamplerDynamicWrap"}]},
+              {"type":"ConstantPixel3","index":0,"parameters":[{"value":[0.001,0.001,0.001]}]}
+            """);
+        var links = new System.Text.StringBuilder(
+            """
+              {"src":{"type":"InputTexture","index":0,"variable":"out_texture"},"dst":{"type":"SampleInputTexture","index":0,"variable":"in_texture"}},
+              {"src":{"type":"InputUV","index":0,"stage":"Texturing_Init","variable":"output"},"dst":{"type":"SampleInputTexture","index":0,"variable":"uv"}}
+            """);
+        for (var link = 0; link < Links; link++)
+        {
+            string from = link == 0
+                ? """{"type":"SampleInputTexture","index":0,"variable":"color","swizzle":"xyz"}"""
+                : $$$"""{"type":"Add3","index":{{{link - 1}}},"variable":"output"}""";
+            nodes.Append($$$""",{"type":"Add3","index":{{{link}}}}""");
+            links.Append($$$""",{"src":{{{from}}},"dst":{"type":"Add3","index":{{{link}}},"variable":"a"}}""");
+            links.Append($$$""",{"src":{"type":"ConstantPixel3","index":0,"variable":"output"},"dst":{"type":"Add3","index":{{{link}}},"variable":"b"}}""");
+        }
+
+        links.Append($$$""",{"src":{"type":"Add3","index":{{{Links - 1}}},"variable":"output"},"dst":{"type":"AlbedoColor","index":0,"stage":"Texturing_Init","variable":"input","swizzle":"xyz"}}""");
+        string graph = $$$"""{"nodes":[{{{nodes}}},{{{Albedo}}}],"links":[{{{links}}}]}""";
+        ShadeCompile compiled = ShadeProgram.Compile([(Instance(), Graph(graph))]);
+        ShadeProgram program = Bound(Checked(compiled), new() { ["Art/rock.dds"] = Sheet(40, 80, 120) });
+        Assert.InRange(program.Registers, 1, 32);
+
+        static float Linear(byte value)
+        {
+            float encoded = value / 255f;
+            return encoded <= 0.04045f ? encoded / 12.92f : MathF.Pow((encoded + 0.055f) / 1.055f, 2.4f);
+        }
+
+        AssertClose(
+            MeshPicture.Of(Quad(), 64, skins: [Sheet(Srgb(Linear(40) + 0.3f), Srgb(Linear(80) + 0.3f), Srgb(Linear(120) + 0.3f))]),
+            MeshPicture.Of(Quad(), 64, shades: [program]));
+    }
+
     /// <summary>A constant colour, worked in linear light, comes out as the sRGB texture of that colour would.</summary>
     [Fact]
     public void ACONSTANTColourIsDrawnAsThePlainTextureOfItsSrgbValue()

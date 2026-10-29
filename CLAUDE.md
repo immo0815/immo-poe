@@ -288,11 +288,28 @@ white surfaces, the geometry whole, nothing drawn the game shows only at times, 
 - ONE PAINT CACHE FOR EVERY ROOM, lean (`MonsterModels.Paints.Lean`: a texture only asked whether it reads, drawn as one texel): a
   material compiled once in the whole sweep; the graphs a cache has read kept as they come, not gathered on each ask (`Paints.Shaders`);
   the files read kept to a gigabyte, the oldest dropped first, and a quarter of the cores' rooms built at once - both CHOSEN.
-- IT RUNS FOR HOURS, so it is the FIRST PART OFF UNTIL TICKED (`CapturePart.OffByDefault`, DECIDED from the live client): the settings
-  keep such parts switched ON apart (`captureOn`, `CaptureParts.OffOf`, `KeptOn`), so a later one starts off too and an untouched
-  settings file gains no key. Its step in the capture's window says how many rooms are built and which, and its stop keeps what it built.
+- IT WAS FEARED TO RUN FOR HOURS, so it is the FIRST PART OFF UNTIL TICKED (`CapturePart.OffByDefault`, DECIDED from the live client):
+  the settings keep such parts switched ON apart (`captureOn`, `CaptureParts.OffOf`, `KeptOn`), so a later one starts off too and an
+  untouched settings file gains no key. Its step in the capture's window says how many rooms are built and which, and its stop keeps
+  what it built. MEASURED (the first sweep, v0.1.346, Crimson Shores): 16,787 rooms under 526 masters in 6.9 minutes.
 NEXT, DECIDED from the live client: once a sweep is in, its causes are mended from the top - the most rooms first - asking only where
 the files do not settle a rule.
+THE FIRST SWEEP'S TOP CAUSES (v0.1.346; rooms reached): slots laid with a side unmet 10,483 (the build's own fallback); ground left plain
+because the template names no mask that reads 5,329; doodad sets (`_set.ao`) not drawn 4,242, other objects with no mesh 3,104; grounds
+no MaterialsList names 2,661 for `BlackInsideWall` alone; `.smd` "no level of detail to read" 1,007; rivers (`FlowingWater`) drawn as an
+ordinary material 1,120; "nothing to colour it with" 648; "more than 192 registers in the colour" 555 white and 582 partly. Mended in
+v0.1.348:
+- THE REGISTERS: the compile handed every value a register of its own for the whole program; now a register nobody reads any more
+  is handed on (`ShadeProgram.Finish`'s remarks), so a long graph fits - `ALONGChainHandsItsRegistersOnAndKeepsItsColour`.
+- EVERY CAUSE NAMES ITS FILES (asked for from the live client: the mends need the files, and only the capture carries them; the
+  patch CDN keeps no old version and the patch server that names the current one does not answer through this environment's proxy).
+  Under each cause the ranking writes its subjects - the material, the object and the mesh it failed on, the tile with its template
+  and mask, the ground type file, the room - met in the most rooms first (`CaptureStageSweep.Subjects`). The first ten causes of each
+  group write their first three subjects' files beside the part (`stage-sweep/` at their install paths, `Samples`) with what those name
+  in their own bytes, twice over (`Named`: an object's meshes and what it extends, a material's graphs, a template's mask), to 80 MB,
+  textures past a mask's size left out and listed. `stage-sweep-replay.txt` reads those files again with today's readers
+  (`CaptureStageSweep.Recheck`: each object built, each material compiled, each tile read), so a mend is held against the very files
+  offline before the next sweep.
 
 ## Verify against the game, not against yourself
 
