@@ -146,6 +146,15 @@ public class RiverFlowHuntTests
             Assert.Contains("  1 ways home found", text, StringComparison.Ordinal);
             Assert.Contains("    module+0x5000 -> +0x20 -> +0x10 = list 1's holder", text, StringComparison.Ordinal);
 
+            // THE PLACES READ WHOLE, and the code reading the static with the shortest pattern found once.
+            Assert.Contains("  the static module+0x5000 (0x1400005000)", text, StringComparison.Ordinal);
+            Assert.Contains("     +0x0 0x0000000000500000  the chain's object at 0x500000", text, StringComparison.Ordinal);
+            Assert.Contains("    +0x20 0x0000000000300000  the chain's object at 0x300000", text, StringComparison.Ordinal);
+            Assert.Contains("     +0x0 0x0000001400002000  module+0x2000, a vtable of Renderer::RiverMarkupField", text, StringComparison.Ordinal);
+            Assert.Contains("  module+0x5000: 1 places read it", text, StringComparison.Ordinal);
+            Assert.Contains("    module+0x1003 (its displacement): 00 00 00 00 00 00 00 00 00 00 00 C3 CC 48 8B 05 [F9 3F 00 00] 48 85 C0 00", text, StringComparison.Ordinal);
+            Assert.Contains("      found once: 48 8B 05 ^ ?? ?? ?? ??", text, StringComparison.Ordinal);
+
             // ALONG +x IN THE MIDDLE: the map's middle row is sector 0 throughout (its arrow along x), its edges still.
             string[] mapRows = [.. text.Split('\n').SkipWhile(line => !line.StartsWith("  drawn as", StringComparison.Ordinal)).Skip(1).TakeWhile(line => line.StartsWith("    ", StringComparison.Ordinal))];
             Assert.NotEmpty(mapRows);
@@ -242,6 +251,11 @@ public class RiverFlowHuntTests
         BinaryPrimitives.WriteUInt32LittleEndian(module.AsSpan(0x3014), 0x3000);
         System.Text.Encoding.ASCII.GetBytes(".?AVRiverMarkupField@Renderer@@").CopyTo(module.AsSpan(0x4010));
         BinaryPrimitives.WriteUInt64LittleEndian(module.AsSpan(at), points);
+
+        // THE CODE READING THE STATIC: ret, int3, then mov rax, [rip + disp32] ending at +0x1007, then test rax, rax.
+        byte[] code = [0xC3, 0xCC, 0x48, 0x8B, 0x05, 0, 0, 0, 0, 0x48, 0x85, 0xC0];
+        BinaryPrimitives.WriteInt32LittleEndian(code.AsSpan(5), at - 0x1007);
+        code.CopyTo(module.AsSpan(0xFFE));
         return module;
     }
 

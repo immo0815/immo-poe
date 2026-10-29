@@ -43,6 +43,12 @@ public static partial class RiverFlowHunt
     /// <summary>The most pointers one level collects before it keeps no more - a window in a crowded place cannot fill the memory.</summary>
     public const int MostPointers = 1 << 20;
 
+    /// <summary>How much of an object on a way home is written, past the place pointed at - CHOSEN.</summary>
+    public const int PlaceBytes = 0x100;
+
+    /// <summary>The most places of the program's code written for one static.</summary>
+    public const int MostReferences = 16;
+
     /// <summary>How much of the area instance counts as it - CHOSEN, past the schema's last field (0x8D0).</summary>
     public const int AreaSpan = 0x1000;
 
@@ -215,7 +221,239 @@ public static partial class RiverFlowHunt
                 $"  the last level's places, where a further level would look: {string.Join(", ", targets.Take(MostLinks).Select(target => $"0x{target.At:X}"))}"));
         }
 
+        if (roots.Count > 0)
+        {
+            lines.Add(string.Empty);
+            lines.AddRange(Places(reader, links, roots, holders, classes));
+            ulong[] statics = [.. roots.Select(root => links[root].Slot)
+                .Where(slot => reader.ModuleSize > 0 && slot >= reader.ModuleBase && slot < reader.ModuleBase + reader.ModuleSize)
+                .Distinct()
+                .Order()];
+            if (statics.Length > 0)
+            {
+                lines.Add(string.Empty);
+                lines.AddRange(References(reader, statics));
+            }
+        }
+
         return lines;
+    }
+
+    /// <summary>
+    /// Every place a chain reads, whole: each static from 0x40 before it to 0x40 after, each object from 0x20 before the place pointed at
+    /// to <see cref="PlaceBytes"/> after, a word a line - its value, and what it is: a place of the chains, a word of the program (and the
+    /// class its vtable names), another pointer, or two ints and two floats.
+    /// </summary>
+    private static List<string> Places(
+        IMemoryReader reader, List<Link> links, List<int> roots, IReadOnlyList<(ulong Holder, string Name)> holders, Dictionary<ulong, string?> classes)
+    {
+        // THE NAMES a word may be: the holders, and every place a chain reads.
+        var names = new Dictionary<ulong, string>();
+        foreach ((ulong holder, string name) in holders)
+        {
+            names.TryAdd(holder, name);
+        }
+
+        var objects = new SortedSet<ulong>();
+        var statics = new SortedSet<ulong>();
+        foreach (int root in roots)
+        {
+            statics.Add(links[root].Slot);
+            for (int at = root; at >= 0; at = links[at].Below)
+            {
+                objects.Add(links[at].Value);
+                names.TryAdd(links[at].Value, string.Create(CultureInfo.InvariantCulture, $"the chain's object at 0x{links[at].Value:X}"));
+            }
+        }
+
+        var lines = new List<string>
+        {
+            string.Create(CultureInfo.InvariantCulture,
+                $"=== the places the ways home read, whole: every static from 0x40 before it to 0x40 after, every object from 0x20 before the place pointed at to 0x{PlaceBytes:X} after, a word a line"),
+        };
+        foreach (ulong root in statics)
+        {
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"  the static module+0x{root - reader.ModuleBase:X} (0x{root:X})"));
+            lines.AddRange(Words(reader, root, 0x40, 0x48, names, classes));
+        }
+
+        foreach (ulong one in objects)
+        {
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"  {names[one]}"));
+            lines.AddRange(Words(reader, one, 0x20, PlaceBytes, names, classes));
+        }
+
+        return lines;
+    }
+
+    /// <summary>The words from <paramref name="before"/> bytes before a place to <paramref name="after"/> after it, each said.</summary>
+    private static IEnumerable<string> Words(IMemoryReader reader, ulong at, int before, int after, Dictionary<ulong, string> names, Dictionary<ulong, string?> classes)
+    {
+        // WHAT LIES BEFORE MAY NOT READ (a place at the start of its region): then from the place itself.
+        var bytes = new byte[before + after];
+        if (at < (ulong)before || !reader.TryRead(at - (ulong)before, bytes))
+        {
+            before = 0;
+            bytes = new byte[after];
+            if (!reader.TryRead(at, bytes))
+            {
+                yield return "    did not read";
+                yield break;
+            }
+        }
+
+        for (var offset = 0; offset + 8 <= bytes.Length; offset += 8)
+        {
+            ulong word = BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(offset));
+            int relative = offset - before;
+            string place = relative < 0
+                ? string.Create(CultureInfo.InvariantCulture, $"-0x{-relative:X}")
+                : string.Create(CultureInfo.InvariantCulture, $"+0x{relative:X}");
+            yield return string.Create(CultureInfo.InvariantCulture, $"    {place,6} 0x{word:X16}  {Said(reader, word, names, classes)}");
+        }
+    }
+
+    /// <summary>What a word is, for a place's listing.</summary>
+    private static string Said(IMemoryReader reader, ulong word, Dictionary<ulong, string> names, Dictionary<ulong, string?> classes)
+    {
+        if (names.TryGetValue(word, out string? name))
+        {
+            return name;
+        }
+
+        foreach ((ulong place, string known) in names)
+        {
+            if (word < place && place - word <= Reach)
+            {
+                return string.Create(CultureInfo.InvariantCulture, $"0x{place - word:X} before {known}");
+            }
+        }
+
+        if (reader.ModuleSize > 0 && word >= reader.ModuleBase && word < reader.ModuleBase + reader.ModuleSize)
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"module+0x{word - reader.ModuleBase:X}{(ClassOf(reader, word, classes) is { } type ? ", a vtable of " + type : string.Empty)}");
+        }
+
+        if (MemoryReaderExtensions.IsPlausiblePointer(word) && (word & 7) == 0)
+        {
+            return "a pointer";
+        }
+
+        int low = (int)(uint)word, high = (int)(uint)(word >> 32);
+        float a = BitConverter.Int32BitsToSingle(low), b = BitConverter.Int32BitsToSingle(high);
+        return string.Create(CultureInfo.InvariantCulture, $"ints {low} {high}, floats {a:G6} {b:G6}");
+    }
+
+    /// <summary>
+    /// The program's code that reads each static: every place in the image whose four bytes, read as a displacement from the end of
+    /// themselves, land on it behind a ModRM byte addressing [rip + disp32] (mod 00, r/m 101) - how a static is reached in x64 - each
+    /// written with the bytes round it and the shortest run round it that is found once in the image, the displacement left open (^):
+    /// what the schema's statics need to find it again after a restart or a patch.
+    /// </summary>
+    private static List<string> References(IMemoryReader reader, IReadOnlyList<ulong> statics)
+    {
+        var lines = new List<string>
+        {
+            "=== the code reading each static: [rip + disp32] references in the program's image, the bytes round each, and the shortest pattern round it found once in the image (the static resolves at its ^ as the schema's statics do, the instruction ending after the displacement)",
+        };
+        var image = new byte[reader.ModuleSize];
+        for (var at = 0; at < image.Length; at += 4 * 1024 * 1024)
+        {
+            reader.TryRead(reader.ModuleBase + (ulong)at, image.AsSpan(at, Math.Min(4 * 1024 * 1024, image.Length - at)));
+        }
+
+        foreach (ulong target in statics)
+        {
+            var found = new List<int>();
+            long relative = (long)(target - reader.ModuleBase);
+            for (var at = 1; at + 4 <= image.Length && found.Count < MostReferences; at++)
+            {
+                if ((image[at - 1] & 0xC7) == 0x05 && at + 4L + BinaryPrimitives.ReadInt32LittleEndian(image.AsSpan(at)) == relative)
+                {
+                    found.Add(at);
+                }
+            }
+
+            lines.Add(string.Create(CultureInfo.InvariantCulture,
+                $"  module+0x{relative:X}: {found.Count}{(found.Count >= MostReferences ? " or more" : string.Empty)} places read it"));
+            foreach (int at in found)
+            {
+                int from = Math.Max(0, at - 16), to = Math.Min(image.Length, at + 16);
+                lines.Add(string.Create(CultureInfo.InvariantCulture,
+                    $"    module+0x{at:X} (its displacement): {Hex(image, from, at)} [{Hex(image, at, at + 4)}] {Hex(image, at + 4, to)}"));
+                lines.Add("      " + (Unique(image, at) is { } pattern ? "found once: " + pattern : "no run of up to 16 bytes either side is found once"));
+            }
+        }
+
+        return lines;
+    }
+
+    /// <summary>
+    /// The shortest pattern round a displacement found once in the image, or null: every site sharing the two bytes before it gathered once,
+    /// each one's run of like bytes before and after measured, and a pattern of so many bytes before and after is found once where no other
+    /// site's runs reach both.
+    /// </summary>
+    private static string? Unique(byte[] image, int at)
+    {
+        const int Most = 16;
+        if (at < 2)
+        {
+            return null;
+        }
+
+        // EVERY SITE whose two bytes before the displacement are this one's, and how far each agrees with it either way.
+        var reaches = new List<(int Before, int After)>();
+        ReadOnlySpan<byte> all = image;
+        ReadOnlySpan<byte> pair = all.Slice(at - 2, 2);
+        for (int from = 0, found; (found = all[from..].IndexOf(pair)) >= 0; from += found + 1)
+        {
+            int site = from + found + 2;
+            if (site == at || site + 4 > image.Length)
+            {
+                continue;
+            }
+
+            int before = 2, after = 0;
+            while (before < Most && at - before - 1 >= 0 && site - before - 1 >= 0 && image[at - before - 1] == image[site - before - 1])
+            {
+                before++;
+            }
+
+            while (after < Most && at + 4 + after < image.Length && site + 4 + after < image.Length && image[at + 4 + after] == image[site + 4 + after])
+            {
+                after++;
+            }
+
+            reaches.Add((before, after));
+        }
+
+        foreach (int total in (ReadOnlySpan<int>)[3, 5, 7, 9, 11, 13, 15, 17, 20, 24, 28, 32])
+        {
+            for (int before = Math.Min(total, Most); before >= Math.Max(2, total - Most); before--)
+            {
+                int after = total - before;
+                if (at - before < 0 || at + 4 + after > image.Length || reaches.Exists(one => one.Before >= before && one.After >= after))
+                {
+                    continue;
+                }
+
+                return string.Join(' ', new[] { Hex(image, at - before, at), "^ ?? ?? ?? ??", Hex(image, at + 4, at + 4 + after) }.Where(part => part.Length > 0));
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Bytes as hex, spaced.</summary>
+    private static string Hex(byte[] bytes, int from, int to)
+    {
+        var text = new StringBuilder(Math.Max(0, to - from) * 3);
+        for (int at = from; at < to; at++)
+        {
+            text.Append(at > from ? " " : string.Empty).Append(bytes[at].ToString("X2", CultureInfo.InvariantCulture));
+        }
+
+        return text.ToString();
     }
 
     /// <summary>A chain from its root down to its holder, as the reads that follow it.</summary>
