@@ -387,6 +387,11 @@ v0.1.354 writes every place a chain reads whole, word by word, and finds the pro
 landing on it, the bytes round it and the shortest pattern round it found once in the image - what the schema's statics are found by.
 Press it once more AFTER RESTARTING THE GAME, on The Red Vale's river or another's (The Riverbank, act 1): the pattern and whether the
 chain holds come from that one capture.
+THE RESTART HELD THE LOWER HOPS (v0.1.353 pressed again after a restart, The Red Vale; every address new): the run holding the river's holder
+at +0x08 and the guiding fog's at +0x10, and the object pointing at it from its +0x00 - but no way home, because the third level's 32 places
+all went to stringstream buffers pointing at one another, as near their targets as the statics and nearer in memory, which ranked the
+statics out. From v0.1.355 every place in a static or the area instance is kept whatever the rest, and one target keeps at most eight
+(`RiverFlowHunt.MostPerTarget`) - `ASTATICIsKeptHoweverManyNearerPlacesPointAtTheSameHolder`. Press v0.1.355 after a restart.
 
 ## Verify against the game, not against yourself
 
