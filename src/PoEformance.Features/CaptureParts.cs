@@ -569,7 +569,8 @@ public static class CaptureParts
             + "inside the scene with whole corners and the grids at the environments' flow resolutions: press it in an area with a "
             + "river. It stops itself at ninety seconds; the capture's window shows how far it is and stops it on a click."),
         new(RiverFlow, "Memory", "river flow map hunt", CaptureReport.RiverFlowFile,
-            "Where the engine keeps its river's flow map - press it in an area with a river (The Red Vale, The Riverbank). First the live "
+            "Where the engine keeps its river's flow map - press it in an area with a river (The Red Vale, or a map such as Riverhold or "
+            + "Riverside). First the live "
             + "read the model panes draw their rivers with: the program's markup cache found again by its shape, written node by node, and "
             + "the map its current entry holds, with its box and flow - beside what the pictures were drawn with. The map is "
             + "made at run time (RiverMarkupField) over a box the water pass's numbers hold, 54.35 units a texel - The Red Vale's 276 x 294. "
