@@ -53,6 +53,12 @@ internal static class ModelShaders
     /// <summary>The slot the caustics' distortion is read from - ShadeProgram.Distortion; see <see cref="CausticsSlot"/>.</summary>
     public const int DistortionSlot = 124;
 
+    /// <summary>
+    /// The slot the area's river flow map is read from, by a river's program (ShadeHlsl.RiverLibrary over WaterLook.Flow) - high, clear of a
+    /// program's sheets, below the caustics'.
+    /// </summary>
+    public const int RiverFlowSlot = 122;
+
     /// <summary>The slot the ripple texture is read from, by the waves' pixel and vertex shaders - ShadeHlsl.RippleSlot.</summary>
     public const int RippleSlot = ShadeHlsl.RippleSlot;
 
@@ -115,6 +121,7 @@ internal static class ModelShaders
             float4 Swell;     // the ocean's swell: its height, its period, its intensity - ShadeProgram.WaterSwell
             float4 WaterLit;  // x: the medium's scattering, water_subsurface_scattering - SceneLight.ShadeWater; y: the area's refraction index; z: one where the water refracts - SceneLight.WaterRefraction; w: the caustics' strength, nought for none - SceneLight.WaterCaustics
             float4 Viewer;    // xyz: the eye's place in model space; w: one in perspective - ShadeProgram.Viewer
+            float4 RiverBox;  // the river flow map's box in the picture's frame: its least x and y, its size; size nought for no map - WaterLook.FlowBoxRegister
             row_major float4x4 Unclip;  // Clip's inverse: a point on the picture and its depth back to model space - the engine's GetViewPoint
         };
 
@@ -182,6 +189,7 @@ internal static class ModelShaders
         Texture2D<float4> Opaque : register(t{{OpaqueSlot}});
         Texture2D<float4> CausticsSheet : register(t{{CausticsSlot}});
         Texture2D<float4> DistortionSheet : register(t{{DistortionSlot}});
+        Texture2D<float4> RiverFlowSheet : register(t{{RiverFlowSlot}});
         SamplerState Wrap : register(s0);
 
         // THE TABLES, one after another in Tabled - ModelGpu.Tables lays them out.

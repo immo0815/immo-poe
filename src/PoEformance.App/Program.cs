@@ -3653,8 +3653,18 @@ internal static class Program
                 () => shoreHunt?.Fraction ?? 0f,
                 () => shoreHunt?.Progress.Stop()));
 
+        // THE RIVER'S FLOW MAP, READ LIVE for the model panes' rivers - see RiverFlowLive. Past the tap: its search reads the program's
+        // writable data once a launch and a map's megabytes once an instance, neither of which belongs in a recording.
+        var riverLive = new PoEformance.Game.World.RiverFlowLive();
+        overlay.RiverFlow = () =>
+        {
+            PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
+            return riverLive.Current(untapped, untapped as PoEformance.Core.Memory.IMemoryRegions);
+        };
+
         // THE RIVER FLOW MAP HUNT: the grid the engine's river flow map is made from, or the map, in the whole of memory on every core -
-        // see RiverFlowHunt. Its lists' bytes are written beside the part's own file. Past the tap, as the shore field's hunt reads.
+        // see RiverFlowHunt. Its lists' bytes are written beside the part's own file. Past the tap, as the shore field's hunt reads. The
+        // live read's own account comes first (RiverFlowLive.Report): the search again, the cache node by node, the map it reads.
         PoEformance.Game.Diagnostics.RiverFlowHunt.Running? riverHunt = null;
         overlay.OfferCaptureWork(
             PoEformance.Features.CaptureParts.RiverFlow,
@@ -3665,8 +3675,9 @@ internal static class Program
                 PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
                 PoEformance.Core.Diagnostics.GameChainAddresses chain =
                     PoEformance.Core.Diagnostics.GameChain.Resolve(untapped, schema, gameStatesStatic);
-                return PoEformance.Game.Diagnostics.RiverFlowHunt.Run(
-                    untapped, untapped as PoEformance.Core.Memory.IMemoryRegions, schema, chain.AreaInstance, running, Path.GetDirectoryName(path));
+                var regions = untapped as PoEformance.Core.Memory.IMemoryRegions;
+                return [.. PoEformance.Game.World.RiverFlowLive.Report(untapped, regions, riverLive.Said), string.Empty,
+                    .. PoEformance.Game.Diagnostics.RiverFlowHunt.Run(untapped, regions, schema, chain.AreaInstance, running, Path.GetDirectoryName(path))];
             },
             new PoEformance.Overlay.CaptureWorkProgress(
                 () => riverHunt?.Line ?? "starting",

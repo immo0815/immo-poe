@@ -652,7 +652,7 @@
     },
 
     "RiverFlowRoot": {
-      "comment": "THE OBJECT TWO SLOTS OF THE PROGRAM'S IMAGE HOLD, THROUGH WHICH THE FLOW FIELDS ARE REACHED - measured in three captures of The Red Vale over two launches (RiverFlowHunt.Home's way home): `slot -> +0x0 -> +0x8` = the river's RiverFlowField. MADE BY std::make_shared, MEASURED (v0.1.355's capture): sixteen bytes before it its control block, a vtable (module+0x31923A8 in that build) and the counts 2 and 1 - two owners, the two slots, each a std::shared_ptr's pointer and the control block after it. THE SLOTS MOVE: the first launch held it at module+0x46FD388 and +0x46FD450 (v0.1.353), the second at module+0x46FD358 and +0x46FD480 (v0.1.355, a second instance of the area) - one build, so they are no fixed members, and no code reads them themselves (v0.1.355's code search). Beside the second launch's +0x46FD480 stand a begin and an end pointing into the image itself, module+0x46FD358 and +0x46FD388, and before them 8, 6 and 0.8 - a container's numbers, a READING; v0.1.356's river-flow.txt writes the run whole and the code reading round it. Nothing reads this until a way to the slot holds.",
+      "comment": "THE OBJECT TWO SLOTS OF THE PROGRAM'S IMAGE HOLD, THROUGH WHICH THE FLOW FIELDS ARE REACHED - measured in three captures of The Red Vale over two launches (RiverFlowHunt.Home's way home): `slot -> +0x0 -> +0x8` = the river's RiverFlowField. MADE BY std::make_shared, MEASURED (v0.1.355's capture): sixteen bytes before it its control block, a vtable (module+0x31923A8 in that build) and the counts 2 and 1 - two owners, the two slots, each a std::shared_ptr's pointer and the control block after it. THE SLOTS MOVE: the first launch held it at module+0x46FD388 and +0x46FD450 (v0.1.353), the second at module+0x46FD358 and +0x46FD480 (v0.1.355, a second instance of the area) - one build, so they are no fixed members, and no code reads them themselves (v0.1.355's code search). Beside the second launch's +0x46FD480 stand a begin and an end pointing into the image itself, module+0x46FD358 and +0x46FD388, and before them 8, 6 and 0.8 - a container's numbers, a READING; v0.1.356's river-flow.txt wrote the run whole: a cache of markup objects (RiverFlowCache), its current entry the second launch's +0x46FD480 - which RiverFlowLive finds by its shape and reads (v0.1.357).",
       "fields": {
         "Fields": { "offset": "0x00", "type": "ptr", "comment": "-> RiverFlowFields: a std::vector of RiverFlowField pointers, its end at +0x08 and its capacity at +0x10 - three entries in The Red Vale (v0.1.355: 0x3D21E383520 to 0x3D21E383538, the end and the capacity alike)." },
         "FieldsEnd": { "offset": "0x08", "type": "ptr" },
@@ -666,6 +666,27 @@
         "First": { "offset": "0x00", "type": "ptr", "comment": "UNREAD - no flow field was found pointed at from here." },
         "River": { "offset": "0x08", "type": "ptr", "comment": "-> RiverFlowField, the river's (list 1)." },
         "GuidingFog": { "offset": "0x10", "type": "ptr", "comment": "-> RiverFlowField, the guiding fog's (list 2)." }
+      }
+    },
+
+    "RiverFlowCache": {
+      "comment": "THE PROGRAM'S CACHE OF MARKUP OBJECTS, IN ITS OWN WRITABLE DATA - what RiverFlowRoot's two slots are, MEASURED (v0.1.356's two captures of The Red Vale in one launch, the second after the area was reset to a new layout, and v0.1.355's of the same launch): offsets from the most recently used node's place, sixteen bytes before the CURRENT ENTRY - a std::shared_ptr to the current instance's RiverFlowRoot, module+0x46FD480 in all three instances of that build. Before them, at most 0x128 bytes, four nodes of 0x30 (module+0x46FD358, +0x388, +0x3B8, +0x3E8), each RiverFlowCacheNode. Each instance made takes the least recent node (its key the next number: 4, 10, 12, 14, 16 over the launch), so the node holding the current object moves - which is why a way home found it in other slots each time - while the current entry stays. The first launch's slots, module+0x46FD388 and +0x46FD450 (v0.1.353), are the same kind: a node and, likely, that build's current entry, read before the cache's shape was known. NO CODE READS IT BY ITS OWN ADDRESS (v0.1.356's code search round the run), and its place moved with a build, so RiverFlowLive FINDS IT BY ITS SHAPE once a launch (DECIDED from the live client): in the program's writable data, a pair (object, object - 0x10) - make_shared's - whose two words before it are places at most 0x400 before it, the first holding the same object, and the object's first words a vector of two to eight pointers. Then RiverFlowRoot.Fields' second entry is the river's RiverFlowField, read whenever the current object changes.",
+      "fields": {
+        "Head": { "offset": "0x00", "type": "ptr", "comment": "-> RiverFlowCacheNode, the most recently used - it holds the current object too." },
+        "Tail": { "offset": "0x08", "type": "ptr", "comment": "-> RiverFlowCacheNode, the least recently used - the next to be taken." },
+        "Object": { "offset": "0x10", "type": "ptr", "comment": "-> RiverFlowRoot of the current instance - the CURRENT ENTRY: a std::shared_ptr's pointer, its control block at +0x18 (the object less 0x10, make_shared's; a vtable and the counts 2 and 1 - this entry and the head node)." },
+        "Control": { "offset": "0x18", "type": "ptr" }
+      }
+    },
+
+    "RiverFlowCacheNode": {
+      "comment": "ONE NODE OF RiverFlowCache, 0x30 bytes in the program's own data - MEASURED in v0.1.356's two captures (four nodes, a doubly linked list from the head to the tail - in the second capture the keys 16, 4, 14, 12 in that order, so the order is of use, not of making). A READING: a least-recently-used cache keyed by instance, its nodes a fixed array.",
+      "fields": {
+        "Object": { "offset": "0x00", "type": "ptr", "comment": "-> RiverFlowRoot, a std::shared_ptr's pointer; its control block at +0x08." },
+        "Control": { "offset": "0x08", "type": "ptr" },
+        "Previous": { "offset": "0x10", "type": "ptr", "comment": "-> the node towards the head; null in the head (MEASURED: module+0x46FD358's, the head, 0; +0x3E8's +0x358)." },
+        "Next": { "offset": "0x18", "type": "ptr", "comment": "-> the node towards the tail; null in the tail (module+0x46FD358 -> +0x3E8 -> +0x3B8 -> +0x388, the tail, 0)." },
+        "Key": { "offset": "0x20", "type": "u64", "comment": "A number growing with every instance made in the launch - 4, 10, 12, 14, 16 measured. +0x28 nought in every node." }
       }
     },
 

@@ -256,15 +256,16 @@ public static partial class RiverFlowHunt
     }
 
     /// <summary>
-    /// Every place a chain reads, whole: the program's statics as one run from <see cref="StaticWindow"/> before the first to as far past the
-    /// last, a place in the area instance from 0x40 before it to 0x40 after, each object from 0x20 before the place pointed at to
+    /// Every place a chain reads, whole: the program's statics in runs from <see cref="StaticWindow"/> before each to as far past it, joined
+    /// where they overlap, a place in the area instance from 0x40 before it to 0x40 after, each object from 0x20 before the place pointed at to
     /// <see cref="PlaceBytes"/> after, a word a line - its value, and what it is: a place of the chains, a word of the program (and the class
     /// its vtable names), another pointer, or two ints and two floats.
     /// </summary>
     /// <remarks>
     /// THE STATICS AS ONE RUN (v0.1.356): v0.1.355's capture found the ways home at module+0x46FD358 and +0x46FD480, where the first launch's
     /// had them at +0x46FD388 and +0x46FD450 - the same program, other slots - and the words round them a begin and an end pointing into the
-    /// program's own image. What the run between is decides how the right slot is found, so it is written whole.
+    /// program's own image. What the run between is decides how the right slot is found, so it is written whole. IN RUNS from v0.1.357:
+    /// v0.1.356's second capture reached statics far apart, and one run from the first to the last came to over a megabyte.
     /// </remarks>
     private static List<string> Places(
         IMemoryReader reader, ulong areaInstance, List<Link> links, List<int> roots, IReadOnlyList<(ulong Holder, string Name)> holders,
@@ -294,27 +295,41 @@ public static partial class RiverFlowHunt
         var lines = new List<string>
         {
             string.Create(CultureInfo.InvariantCulture,
-                $"=== the places the ways home read, whole: the program's statics as one run from 0x{StaticWindow:X} before the first to 0x{StaticWindow:X} past the last, a place in the area instance from 0x40 before it to 0x40 after, every object from 0x20 before the place pointed at to 0x{PlaceBytes:X} after, a word a line"),
+                $"=== the places the ways home read, whole: the program's statics in runs from 0x{StaticWindow:X} before each to 0x{StaticWindow:X} past it, joined where they overlap, a place in the area instance from 0x40 before it to 0x40 after, every object from 0x20 before the place pointed at to 0x{PlaceBytes:X} after, a word a line"),
         };
-        if (statics.Count > 0)
+        // RUNS, NOT ONE: statics far apart (v0.1.356's second capture) made one run of over a megabyte of words nobody reads.
+        ulong image = reader.ModuleBase, imageEnd = reader.ModuleBase + reader.ModuleSize;
+        var runs = new List<(ulong From, ulong To)>();
+        foreach (ulong one in statics)
         {
-            ulong from = Math.Max(reader.ModuleBase, statics.Min - StaticWindow), to = Math.Min(reader.ModuleBase + reader.ModuleSize, statics.Max + StaticWindow + 8);
+            ulong from = Math.Max(image, one - StaticWindow), to = Math.Min(imageEnd, one + StaticWindow + 8);
+            if (runs.Count > 0 && from <= runs[^1].To)
+            {
+                runs[^1] = (runs[^1].From, Math.Max(runs[^1].To, to));
+            }
+            else
+            {
+                runs.Add((from, to));
+            }
+        }
+
+        foreach ((ulong from, ulong to) in runs)
+        {
             lines.Add(string.Create(CultureInfo.InvariantCulture,
-                $"  the program's statics round the ways home, module+0x{from - reader.ModuleBase:X} to module+0x{to - reader.ModuleBase:X}"));
+                $"  the program's statics round the ways home, module+0x{from - image:X} to module+0x{to - image:X}"));
             var bytes = new byte[(int)(to - from)];
             if (!reader.TryRead(from, bytes))
             {
                 lines.Add("    did not read");
+                continue;
             }
-            else
+
+            for (var offset = 0; offset + 8 <= bytes.Length; offset += 8)
             {
-                for (var offset = 0; offset + 8 <= bytes.Length; offset += 8)
-                {
-                    ulong word = BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(offset));
-                    ulong at = from + (ulong)offset;
-                    lines.Add(string.Create(CultureInfo.InvariantCulture,
-                        $"    module+0x{at - reader.ModuleBase:X} 0x{word:X16}  {Said(reader, word, names, classes)}{(statics.Contains(at) ? " - a way home" : string.Empty)}"));
-                }
+                ulong word = BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(offset));
+                ulong at = from + (ulong)offset;
+                lines.Add(string.Create(CultureInfo.InvariantCulture,
+                    $"    module+0x{at - image:X} 0x{word:X16}  {Said(reader, word, names, classes)}{(statics.Contains(at) ? " - a way home" : string.Empty)}"));
             }
         }
 

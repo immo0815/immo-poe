@@ -232,6 +232,60 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
     }
 
     /// <summary>
+    /// A river over the area's flow map (WaterLook.Flow), on the card as on the processor: the map read as SamplerLinearWrap reads it over
+    /// its box in the picture's frame, the surface scrolled along the flow, the foam's two nodes, its strength's march up the flow and the
+    /// bubbles laid over the medium (ShadeProgram.RiverFlowAt, RiverFoaming, River, RiverFoam).
+    /// </summary>
+    [GpuFact]
+    public void ARIVEROverItsFlowMapIsDrawnByTheCardAsByTheProcessor()
+    {
+        ModelGpu? gpu = card.Gpu;
+        Assert.True(gpu is not null, card.Why);
+        using ModelTarget target = gpu.Target(Side);
+        var light = new SceneLight([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1.4f, 1.3f, 1.1f),
+            SunDirection = Vector3.Normalize(new Vector3(0.4f, -1f, 0.3f)),
+            FlatAmbient = 0.3f,
+            Exposure = 1.2f,
+            WaterGlints = true,
+            WaterReflection = true,
+            WaterScene = true,
+        };
+        ShadeProgram.UseCaustics(Flat(128), Wave("the river's distortion"), "a test's");
+
+        // A SWIRL ROUND THE PICTURE'S MIDDLE inside banks, its box laid from -217 to 217 across the hill.
+        const int width = 8, height = 6;
+        var texels = new float[width * height * 4];
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                int at = ((y * width) + x) * 4;
+                float dx = x - 3.5f, dy = y - 2.5f;
+                float bank = (3f - MathF.Sqrt((dx * dx) + (dy * dy))) * RiverFlowMap.Texel;
+                texels[at] = bank >= 0f ? -dy * 25f : 0f;
+                texels[at + 1] = bank >= 0f ? dx * 25f : 0f;
+                texels[at + 3] = bank;
+            }
+        }
+
+        var map = new RiverFlowMap(width, height, texels, "a test's swirl");
+        var flow = new RiverFlow(map, new Vector2(RiverFlowMap.Least + (width * RiverFlowMap.Texel / 2f), RiverFlowMap.Least + (height * RiverFlowMap.Texel / 2f)));
+        var scene = new ModelScene(
+            Hill(layered: true),
+            Turn: 0.25f,
+            Tilt: 0.55f,
+            Skins: [Ramp("floor"), null],
+            Blends: [MaterialBlend.Opaque, MaterialBlend.Alpha],
+            Shades: [null, ShadeProgram.Water(WaterKind.River).Glossy!],
+            Light: light,
+            Time: 2f,
+            Water: WaterLook.EngineDefault with { FlowFoam = 1.2f, Flow = flow });
+        Assert.Null(Mismatch(gpu, target, scene));
+    }
+
+    /// <summary>
     /// The lifted sea drawn as one surface, on the card as on the processor (MeshPicture.Drawing's Surface): two sheets of one water shape
     /// over a floor, the lower first in the mesh, seen at a slant - each pixel the nearer sheet's - and a mixed sheet under both drawn
     /// after them, which tests against the solid floor alone once the card has put its depth back.

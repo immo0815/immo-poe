@@ -307,6 +307,11 @@ public static class StagedModels
             // THE TILE'S SHORE, made with what stands in its sea once its materials were compiled - the monster set on the stage is
             // no shore, and the tile lies where it was (the pile's identity).
             Shore = tile.Shore,
+
+            // THE STAGE'S PLACE IN THE AREA, where it is laid as the area laid it: the picture's frame is the tile's, so the player's
+            // light, the sun's line and the river's flow map (v0.1.357) find their places in it as in the room alone.
+            AreaOrigin = tile.AreaOrigin,
+            AreaStamp = tile.AreaStamp,
         };
     }
 

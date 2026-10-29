@@ -459,6 +459,7 @@ public static class LaidRoomModels
             LightsSaid = lights.Said(),
             DoodadFiles = laid.Files,
             AreaOrigin = origin,
+            AreaStamp = RoomKey.Stamp(grid),
             BossSpot = BossSpotOf(room, laying),
         };
 

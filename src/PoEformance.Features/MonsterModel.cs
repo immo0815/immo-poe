@@ -216,6 +216,12 @@ public sealed record MonsterModel(
     public Vector2? AreaOrigin { get; init; }
 
     /// <summary>
+    /// Which of the area's instances the model was laid in - RoomKey.Stamp of the terrain it was laid over - where <see cref="AreaOrigin"/>
+    /// is set; else null. What the area holds now (its river's flow map) belongs to the picture only while the area is still this one.
+    /// </summary>
+    public int? AreaStamp { get; init; }
+
+    /// <summary>
     /// Where a laid or built room names its boss's place, in the picture's own frame - or null where the room names none. See <see cref="RoomSpot"/>.
     /// </summary>
     public RoomSpot? BossSpot { get; init; }
@@ -3105,7 +3111,7 @@ public static class MonsterModels
                 string drawn = kind switch
                 {
                     WaterKind.Ocean => "drawn as the area's water",
-                    WaterKind.River => "drawn as the area's water on the engine's river surface at no flow",
+                    WaterKind.River => "drawn as the area's water on the engine's river surface - over the area's flow map read live where the room is laid as the area laid it, at no flow elsewhere",
                     _ => "drawn as the area's water, standing - the ocean's ripples over no shore",
                 };
                 return (new ShadeCompile(ShadeProgram.Water(kind), [$"the material's graphs, its shadertype being {water.ShaderType}: {drawn}"]), []);
