@@ -511,7 +511,7 @@ public static class CaptureStageSweep
             }
 
             if (file && paints.Paint(read, MaterialFile.Bare(material)).ShaderType is { Length: > 0 } type
-                && !string.Equals(type, ShadeProgram.OceanShader, StringComparison.OrdinalIgnoreCase))
+                && !ShadeProgram.IsOcean(type))
             {
                 count("water: a material of the shader type " + type + " drawn as an ordinary material", triangles, subject);
             }

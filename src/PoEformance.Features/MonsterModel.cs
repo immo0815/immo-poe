@@ -2981,9 +2981,8 @@ public static class MonsterModels
             _modes.Forget(file);
         }
 
-        /// <summary>Whether the engine draws a material in its own water pass - see ShadeProgram.OceanShader.</summary>
-        public static bool IsWater(MaterialFile paint)
-            => string.Equals(paint.ShaderType, ShadeProgram.OceanShader, StringComparison.OrdinalIgnoreCase);
+        /// <summary>Whether the engine draws a material in its own water pass as its ocean - see ShadeProgram.IsOcean.</summary>
+        public static bool IsWater(MaterialFile paint) => ShadeProgram.IsOcean(paint.ShaderType);
 
         /// <summary>
         /// The blend mode a material asks for, as it spells it, or empty: where the first graph to name one wins, and where the last does.
@@ -3078,10 +3077,10 @@ public static class MonsterModels
 
             // AN OCEAN IS THE ENGINE'S WATER PASS, not its graphs: they write no colour the picture can draw
             // (nvidian_Ocean's reads an albedo nothing wrote), and the area's water is what it is drawn with.
-            if (IsWater(Paint(read, file)))
+            if (Paint(read, file) is { } water && IsWater(water))
             {
                 return (
-                    new ShadeCompile(ShadeProgram.Water(), [$"the material's graphs, its shadertype being {ShadeProgram.OceanShader}: drawn as the area's water"]),
+                    new ShadeCompile(ShadeProgram.Water(), [$"the material's graphs, its shadertype being {water.ShaderType}: drawn as the area's water"]),
                     []);
             }
 
