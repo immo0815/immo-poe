@@ -3653,6 +3653,26 @@ internal static class Program
                 () => shoreHunt?.Fraction ?? 0f,
                 () => shoreHunt?.Progress.Stop()));
 
+        // THE RIVER FLOW MAP HUNT: the grid the engine's river flow map is made from, or the map, in the whole of memory on every core -
+        // see RiverFlowHunt. Its lists' bytes are written beside the part's own file. Past the tap, as the shore field's hunt reads.
+        PoEformance.Game.Diagnostics.RiverFlowHunt.Running? riverHunt = null;
+        overlay.OfferCaptureWork(
+            PoEformance.Features.CaptureParts.RiverFlow,
+            path =>
+            {
+                var running = new PoEformance.Game.Diagnostics.RiverFlowHunt.Running();
+                riverHunt = running;
+                PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
+                PoEformance.Core.Diagnostics.GameChainAddresses chain =
+                    PoEformance.Core.Diagnostics.GameChain.Resolve(untapped, schema, gameStatesStatic);
+                return PoEformance.Game.Diagnostics.RiverFlowHunt.Run(
+                    untapped, untapped as PoEformance.Core.Memory.IMemoryRegions, schema, chain.AreaInstance, running, Path.GetDirectoryName(path));
+            },
+            new PoEformance.Overlay.CaptureWorkProgress(
+                () => riverHunt?.Line ?? "starting",
+                () => riverHunt?.Fraction ?? 0f,
+                () => riverHunt?.Stop()));
+
         // NEEDS NO INSTALL: it reads memory rather than the game's files. The one thing it needs is
         // the loaded-file table.
         overlay.OfferCaptureWork(PoEformance.Features.CaptureParts.RoomPlacements, _ =>

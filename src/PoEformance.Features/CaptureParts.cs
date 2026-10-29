@@ -193,6 +193,9 @@ public static class CaptureParts
     /// <summary>The terrain and what it points to searched at the press for the grid the engine's ocean markup is made from.</summary>
     public const string OceanMarkup = "ocean-markup";
 
+    /// <summary>The whole of memory searched at the press for the grid the engine's river flow map is made from, or the map itself.</summary>
+    public const string RiverFlow = "river-flow";
+
     /// <summary>Every room of every room set in the install built as a Monster Book stage, and what fails counted by cause - off until ticked.</summary>
     public const string StageSweep = "stage-sweep";
 
@@ -225,7 +228,7 @@ public static class CaptureParts
     /// lines under the buttons that nobody playing reads. They read the file table and the bundles, which takes seconds, so they
     /// cannot be asked for on the frame the key goes down as a window's text is.
     /// </remarks>
-    public static bool RunsAtPress(string key) => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup;
+    public static bool RunsAtPress(string key) => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow;
 
     /// <summary>
     /// A heading as the Keys page writes it. The headings themselves stay as they are: they are what <see cref="FolderOfGroup"/> keys
@@ -565,6 +568,15 @@ public static class CaptureParts
             + "window written whole - and, for a river's flow map (made at run time, drawn at no flow until it is read), every box "
             + "inside the scene with whole corners and the grids at the environments' flow resolutions: press it in an area with a "
             + "river. It stops itself at ninety seconds; the capture's window shows how far it is and stops it on a click."),
+        new(RiverFlow, "Memory", "river flow map hunt", CaptureReport.RiverFlowFile,
+            "Where the engine keeps its river's flow map - press it in an area with a river (The Red Vale, The Riverbank). The map is "
+            + "made at run time (RiverMarkupField) over a box the water pass's numbers hold, 54.35 units a texel - The Red Vale's 276 x 294 "
+            + "- and the river is drawn at no flow until it is read. The hunt finds that block again by the scene's size, takes each of its "
+            + "boxes as a grid, and looks through the whole of the game's memory on every core for lists whose length is that grid's - its "
+            + "texels, their corners or the cells under them, one to sixteen bytes a texel - and for the grid's size as two ints beside a "
+            + "pointer. Each list found is read every way its texels could be (bytes, halves, floats, one to four channels), its numbers and "
+            + "how alike neighbouring texels are said, the likeliest drawn as a map of the way the flow points, and its bytes written "
+            + "beside the report. It stops itself at about ninety seconds; the capture's window shows how far it is and stops it on a click."),
         new(Memory, "Memory", "memory recording", CaptureReport.MemoryFile,
             "The overlay's own reads for three seconds, and inside them one pass reading once more from nothing whatever the "
             + "ticked parts above ask for - memory.txt beside it says what the pass read where. Replays with --replay, game closed."),

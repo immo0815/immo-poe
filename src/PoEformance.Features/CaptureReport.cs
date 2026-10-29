@@ -135,6 +135,9 @@ public static class CaptureReport
     /// <summary>The terrain searched for the engine's ocean markup at the press - see OceanMarkupHunt.</summary>
     public const string OceanMarkupFile = "ocean-markup.txt";
 
+    /// <summary>The whole of memory searched for the river's flow map's grid at the press - see RiverFlowHunt; its lists' bytes beside it.</summary>
+    public const string RiverFlowFile = "river-flow.txt";
+
     /// <summary>Every room of every room set built as a stage, what fails counted by cause - see CaptureStageSweep.</summary>
     public const string StageSweepFile = "stage-sweep.txt";
 
