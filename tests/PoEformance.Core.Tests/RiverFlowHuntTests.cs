@@ -17,6 +17,8 @@ public class RiverFlowHuntTests
     private const ulong Pass = 0x20_0000;
     private const ulong Holder = 0x30_0000;
     private const ulong Data = 0x40_0000;
+    private const ulong Owner = 0x50_0000;
+    private const ulong ModuleBase = 0x14_0000_0000;
     private const int Width = 276, Height = 294;
 
     private static OffsetSchema LoadSchema()
@@ -77,9 +79,10 @@ public class RiverFlowHuntTests
     }
 
     /// <summary>
-    /// The whole hunt over a made-up memory: the block, a vector holding the river's grid as four floats a texel - a flow running along +x,
-    /// faster in the river's middle - read as four floats, its neighbours alike, drawn pointing along +x, written beside the report and read
-    /// back from there.
+    /// The whole hunt over a made-up memory: the block, a vector holding the river's grid as four floats a texel - a flow running along +x
+    /// in the river's middle half, faster in its middle, w the distance to its banks - read as four floats, its neighbours alike, drawn
+    /// pointing along +x, read as a flow field laid out as the river's, written beside the report and read back from there; and its way home found from a
+    /// static of the program through an object whose vtable names its class.
     /// </summary>
     [Fact]
     public void ARIVERSFlowMapInMemoryIsFoundSetOutDrawnAndReadBack()
@@ -98,10 +101,11 @@ public class RiverFlowHuntTests
             for (var x = 0; x < Width; x++)
             {
                 int at = ((y * Width) + x) * 16;
-                float speed = 40f * MathF.Sin(MathF.PI * y / Height);
+                float bank = ((Height / 4f) - MathF.Abs(y - (Height / 2f))) * 54f;
+                float speed = bank >= 0f ? 40f * MathF.Sin(MathF.PI * y / Height) : 0f;
                 BinaryPrimitives.WriteSingleLittleEndian(map.AsSpan(at), speed);
                 BinaryPrimitives.WriteSingleLittleEndian(map.AsSpan(at + 4), 0.1f * speed * MathF.Cos(x * 0.05f));
-                BinaryPrimitives.WriteSingleLittleEndian(map.AsSpan(at + 12), MathF.Abs(y - (Height / 2f)) * 54f);
+                BinaryPrimitives.WriteSingleLittleEndian(map.AsSpan(at + 12), bank);
             }
         }
 
@@ -109,10 +113,20 @@ public class RiverFlowHuntTests
         BinaryPrimitives.WriteUInt64LittleEndian(holder.AsSpan(0x10), Data);
         BinaryPrimitives.WriteUInt64LittleEndian(holder.AsSpan(0x18), Data + (ulong)map.Length);
         byte[] block = RedValeBlock(0x1000);
-        var memory = new FakeMemoryReader().Place(Area, area).Place(Pass, block).Place(Holder, holder).Place(Data, map);
+
+        // ITS WAY HOME: a static at module+0x5000 -> an owner whose vtable names it, holding the holder at +0x20, the vector at +0x10.
+        byte[] module = Module(0x5000, Owner);
+        var owners = new byte[0x2000];
+        BinaryPrimitives.WriteUInt64LittleEndian(owners.AsSpan(0x1000), ModuleBase + 0x2000);
+        BinaryPrimitives.WriteInt32LittleEndian(owners.AsSpan(0x1018), Width);
+        BinaryPrimitives.WriteInt32LittleEndian(owners.AsSpan(0x101C), Height);
+        BinaryPrimitives.WriteUInt64LittleEndian(owners.AsSpan(0x1020), Holder);
+        var memory = new FakeMemoryReader { ModuleBase = ModuleBase, ModuleSize = (uint)module.Length }
+            .Place(Area, area).Place(Pass, block).Place(Holder, holder).Place(Data, map).Place(ModuleBase, module).Place(Owner - 0x1000, owners);
         var space = new Space(
             new MemoryRegion(Area, (ulong)area.Length), new MemoryRegion(Pass, (ulong)block.Length),
-            new MemoryRegion(Holder, (ulong)holder.Length), new MemoryRegion(Data, (ulong)map.Length));
+            new MemoryRegion(Holder, (ulong)holder.Length), new MemoryRegion(Data, (ulong)map.Length),
+            new MemoryRegion(ModuleBase, (ulong)module.Length), new MemoryRegion(Owner - 0x1000, (ulong)owners.Length));
         string folder = Path.Combine(Path.GetTempPath(), "river-flow-" + Guid.NewGuid().ToString("N"));
         try
         {
@@ -124,6 +138,13 @@ public class RiverFlowHuntTests
             Assert.Contains("  as float x4: neighbours alike", text, StringComparison.Ordinal);
             Assert.Contains("  drawn as float x4: the way channels 0 and 1 point", text, StringComparison.Ordinal);
             Assert.True(File.Exists(Path.Combine(folder, "river-flow-1.bin")));
+            Assert.Contains("  a flow field laid out as the river's flow map (GetFlowSample:", text, StringComparison.Ordinal);
+
+            // THE WAY HOME: the owner points at the holder 0x10 before its vector, the static at the owner 0x20 before that pointer.
+            Assert.Contains("    0x500020 holds 0x300000, 0x10 before 0x300010, after a Renderer::RiverMarkupField's vtable at 0x500000 (+0x20)", text, StringComparison.Ordinal);
+            Assert.Contains("    0x1400005000 holds 0x500000, 0x20 before 0x500020 - module+0x5000, pointing at a Renderer::RiverMarkupField", text, StringComparison.Ordinal);
+            Assert.Contains("  1 ways home found", text, StringComparison.Ordinal);
+            Assert.Contains("    module+0x5000 -> +0x20 -> +0x10 = list 1's holder", text, StringComparison.Ordinal);
 
             // ALONG +x IN THE MIDDLE: the map's middle row is sector 0 throughout (its arrow along x), its edges still.
             string[] mapRows = [.. text.Split('\n').SkipWhile(line => !line.StartsWith("  drawn as", StringComparison.Ordinal)).Skip(1).TakeWhile(line => line.StartsWith("    ", StringComparison.Ordinal))];
@@ -136,6 +157,7 @@ public class RiverFlowHuntTests
             string replay = RiverFlowHunt.Replay(text, folder);
             Assert.StartsWith("=== list 1: a vector of 1298304 bytes", replay, StringComparison.Ordinal);
             Assert.Contains("  as float x4: neighbours alike", replay, StringComparison.Ordinal);
+            Assert.Contains("  a flow field laid out as the river's flow map (GetFlowSample:", replay, StringComparison.Ordinal);
             Assert.StartsWith("river flow hunt replay: the report holds no list read", RiverFlowHunt.Replay("nothing", folder), StringComparison.Ordinal);
         }
         finally
@@ -145,6 +167,54 @@ public class RiverFlowHuntTests
                 Directory.Delete(folder, recursive: true);
             }
         }
+    }
+
+    /// <summary>
+    /// The Red Vale's flow map's shape (v0.1.352's capture): the flow only where w, the distance to the bank, is not below nought - the bank
+    /// itself minus nought - is a flow field laid out as the river's; a field whose w is never below nought has no bank and is not.
+    /// </summary>
+    [Fact]
+    public void AFLOWOnlyInsideItsBanksIsLaidOutAsTheRiversFlowMap()
+    {
+        var river = new byte[4 * 3 * 16];
+        float[] banks = [-108.7f, -0f, 54.35f, 108.7f];
+        for (var y = 0; y < 3; y++)
+        {
+            for (var x = 0; x < 4; x++)
+            {
+                int at = ((y * 4) + x) * 16;
+                BinaryPrimitives.WriteSingleLittleEndian(river.AsSpan(at), x == 0 ? 0f : 30f + (10f * x));
+                BinaryPrimitives.WriteSingleLittleEndian(river.AsSpan(at + 8), x == 3 && y == 0 ? 1.45f : 0f);
+                BinaryPrimitives.WriteSingleLittleEndian(river.AsSpan(at + 12), banks[x]);
+            }
+        }
+
+        RiverFlowHunt.FlowReading reading = RiverFlowHunt.FlowMap(river, 4, 3, 16)!;
+        Assert.True(reading.Is);
+        Assert.Contains("flow at 9 of 12 texels, 9 of them where w >= 0; w >= 0 at 9 (75.0 % of the grid), 0 of them still; w -108.7 to 108.7; sources at 1 texels, sinks at 0", reading.Lines[0], StringComparison.Ordinal);
+        Assert.Contains("median 50.0", reading.Lines[1], StringComparison.Ordinal);
+
+        // NO BANK: w a distance from somewhere, never below nought.
+        for (var texel = 0; texel < 12; texel++)
+        {
+            BinaryPrimitives.WriteSingleLittleEndian(river.AsSpan((texel * 16) + 12), texel * 54.35f);
+        }
+
+        Assert.False(RiverFlowHunt.FlowMap(river, 4, 3, 16)!.Is);
+        Assert.Null(RiverFlowHunt.FlowMap(river, 4, 3, 8));
+    }
+
+    /// <summary>A class's name from MSVC's run-time type information, a namespace's parts the other way round; a template's as it stands.</summary>
+    [Fact]
+    public void AVTABLENamesItsClassByTheProgramsTypeInformation()
+    {
+        var memory = new FakeMemoryReader { ModuleBase = ModuleBase, ModuleSize = 0x6000 }.Place(ModuleBase, Module(0x5000, Owner));
+        var classes = new Dictionary<ulong, string?>();
+        Assert.Equal("Renderer::RiverMarkupField", RiverFlowHunt.ClassOf(memory, ModuleBase + 0x2000, classes));
+        Assert.Null(RiverFlowHunt.ClassOf(memory, ModuleBase + 0x2008, classes));
+        Assert.Null(RiverFlowHunt.ClassOf(memory, Owner, classes));
+        Assert.Equal("RiverMarkupField", RiverFlowHunt.Demangled(".?AVRiverMarkupField@@"));
+        Assert.Equal(".?AV?$vector@M@std@@", RiverFlowHunt.Demangled(".?AV?$vector@M@std@@"));
     }
 
     /// <summary>A session that cannot list memory says so; an area without the block's boxes says there is no flow map to seek.</summary>
@@ -157,6 +227,22 @@ public class RiverFlowHuntTests
         IReadOnlyList<RiverFlowHunt.Grid> none = RiverFlowHunt.Grids([], 18000f, 18750f, out List<string> lines);
         Assert.Empty(none);
         Assert.Contains("0 of the 0 places read are the block", lines[0], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A program's image of 0x6000 bytes: a vtable at +0x2000 whose locator (+0x3000, signature 1, its own place at +0x14) names
+    /// Renderer::RiverMarkupField by its type descriptor at +0x4000, and a static at <paramref name="at"/> holding <paramref name="points"/>.
+    /// </summary>
+    private static byte[] Module(int at, ulong points)
+    {
+        var module = new byte[0x6000];
+        BinaryPrimitives.WriteUInt64LittleEndian(module.AsSpan(0x1FF8), ModuleBase + 0x3000);
+        BinaryPrimitives.WriteUInt32LittleEndian(module.AsSpan(0x3000), 1);
+        BinaryPrimitives.WriteUInt32LittleEndian(module.AsSpan(0x300C), 0x4000);
+        BinaryPrimitives.WriteUInt32LittleEndian(module.AsSpan(0x3014), 0x3000);
+        System.Text.Encoding.ASCII.GetBytes(".?AVRiverMarkupField@Renderer@@").CopyTo(module.AsSpan(0x4010));
+        BinaryPrimitives.WriteUInt64LittleEndian(module.AsSpan(at), points);
+        return module;
     }
 
     /// <summary>The Red Vale's block (v0.1.351's capture) with its scene's size at <paramref name="place"/>.</summary>

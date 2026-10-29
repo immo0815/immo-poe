@@ -362,6 +362,21 @@ and for the grid's size as two ints with the pointers beside them; every list fo
 (bytes, halves, floats, one to four channels: range, noughts, how alike neighbours are), the likeliest drawn as a map of the way it points,
 and its bytes written beside the report (`river-flow-N.bin`) - `river-flow-replay.txt` sets them out again offline. Press it in The Red Vale
 on the river before the flow is given a rule.
+THE FLOW MAP IS FOUND (v0.1.352's capture, The Red Vale, the player on the river; schema `RiverFlowField`, `RiverFlowOwner`). Its list 1 is
+flowmap_tex_sampler's contents, every channel as water.ffx reads it: four floats a texel, rows along x from the box's least y; x and y the
+flow in world units a second (the engine's times 2 x water_flow_intensity, capped at 100 - median 50, at most 357), z the sources and sinks
+(18 texels: the river's head and its end), w the distance to the bank, positive in the water - an exact Euclidean distance over whole texels,
+the bank itself minus nought - and the flow exactly where w >= 0. One river, nearly free of divergence, slower by its banks. It hangs in a
+holder (a std::vector at +0x00, the grid's size at +0x40) that an object holds beside the grid's size again, and the guiding fog's field -
+list 2, laid out the same over 98% of the grid at 3 a second - hangs in a twin whose owner points at the river's. The map is made at run time;
+no file read so far names its inputs (the object scripts name only `SetWaterBlocking`). SO IT IS TO BE READ LIVE (DECIDED from the live
+client), where the Monster Book's stage is the area's own as the area laid it; every other stage keeps no flow. For that `river-flow.txt`
+now names every list laid out as a flow field (`RiverFlowHunt.FlowMap`, its share of the grid telling the river's from the fog's; the replay
+too) and seeks each one's WAY HOME (`RiverFlowHunt.Home`, v0.1.353): writable memory searched again level by level for pointers at most
+0x800 before the holder, then before those places, up to four levels, ending at a static of the program or the area instance; each place
+named by the nearest vtable before it through MSVC's run-time type information (`ClassOf`), and every chain written as the reads that
+follow it. CHOSEN: the reach, the levels, 30 s a level, 32 places a level. Both sweeps now leave out memory the game cannot write and the
+driver's write-combined and uncached heaps, and say how much. Press it on The Red Vale's river again before the live read is built.
 
 ## Verify against the game, not against yourself
 
