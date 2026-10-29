@@ -348,6 +348,20 @@ constant's w), reading the engine's distortion texture (`muddle_double.dds`, the
 makes, the refraction's own ground-water ratio. THE FLOW MAP IS SOUGHT: `ocean-markup.txt` now lists every box inside the scene with
 whole corners beside the scene-sized ones ("inner", `ShoreFieldHunt.Inner`) and lays grids at the flow resolutions' multiple 7 too -
 press it in an area with a river (The Riverbank's `arena_crossing_fastflow`, act 1) before the flow is given a rule.
+THE RED VALE ANSWERED WHERE, NOT WHAT (v0.1.351's capture, the player on `RedvaleRiver` tiles; schema `WaterPassBlock`). Beside the scene's
+size the processor keeps a block of the water pass's numbers, 25 copies, the same layout as Crimson Shores' - and four boxes in a row where
+common.ffx declares fog_flowmap, guiding_fog, river_flowmap and shoreline_coord_planar_aabb. The Red Vale's river slot holds (-16.30, -16.30)
+to (14983.69, 15961.96), 276 x 294 texels; Crimson Shores', which has no river, the empty (0, 0) to (1, 1), its fog slot a box of the whole
+scene instead. Every texture there is 54.3478 units a texel, 1250 / 23 - five cells - MEASURED in both; the shoreline box is the scene a quarter
+tile wider all round in both; and 0.0004 stands where common.ffx's order puts dist_to_color (a READING, against the tool's CHOSEN 0.0005).
+The map's texels are not beside it, and no shader of the install builds a markup field, so the processor likely makes them. SO THE NEXT
+PART LOOKS FOR THEM (v0.1.352, asked for from the live client: "keep measuring"): `river-flow.txt` (`RiverFlowHunt`, run at the press, the
+Memory group) finds the block again by its shoreline box, makes each of its boxes a grid, and sweeps the whole of memory on every core for
+8-byte pairs whose difference is such a grid's length (texels, corners or cells, 1 to 16 bytes a texel - a std::vector's begin and end)
+and for the grid's size as two ints with the pointers beside them; every list found is read, set out every way its texels may be read
+(bytes, halves, floats, one to four channels: range, noughts, how alike neighbours are), the likeliest drawn as a map of the way it points,
+and its bytes written beside the report (`river-flow-N.bin`) - `river-flow-replay.txt` sets them out again offline. Press it in The Red Vale
+on the river before the flow is given a rule.
 
 ## Verify against the game, not against yourself
 

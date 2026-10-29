@@ -200,6 +200,29 @@ public static class ShoreFieldHunt
             return lines;
         }
 
+        if (AreaOf(reader, schema, areaInstance, out string why) is not { } area)
+        {
+            lines.Add("shore field hunt: " + why);
+            return lines;
+        }
+
+        IReadOnlyList<FloatNeedle> needles = Needles(area);
+        running.Begin();
+        FloatHuntResult result;
+        using (new Timer(_ => running.Progress.Stop(), null, TimeSpan.FromSeconds(StopSeconds), Timeout.InfiniteTimeSpan))
+        {
+            result = FloatHunt.Run(reader, regions, needles, areaInstance, running.Progress, budget: 2 * HeapScan.ByteBudget);
+        }
+
+        lines.AddRange(Report(area, needles, result));
+        return lines;
+    }
+
+    /// <summary>The area the terrain holds - its tiles and the walkable grid's width as kept - or null, saying why.</summary>
+    public static Area? AreaOf(IMemoryReader reader, OffsetSchema schema, ulong areaInstance, out string why)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(schema);
         long tilesX, tilesY;
         int bytesPerRow;
         try
@@ -212,27 +235,18 @@ public static class ShoreFieldHunt
         }
         catch (KeyNotFoundException missing)
         {
-            lines.Add("shore field hunt: the schema lacks " + missing.Message);
-            return lines;
+            why = "the schema lacks " + missing.Message;
+            return null;
         }
 
         if (tilesX is < 1 or > 4096 || tilesY is < 1 or > 4096)
         {
-            lines.Add($"shore field hunt: the terrain's tile counts read {tilesX} by {tilesY}");
-            return lines;
+            why = $"the terrain's tile counts read {tilesX} by {tilesY}";
+            return null;
         }
 
-        var area = new Area((int)tilesX, (int)tilesY, bytesPerRow is > 0 and < 65536 ? bytesPerRow * 2 : 0);
-        IReadOnlyList<FloatNeedle> needles = Needles(area);
-        running.Begin();
-        FloatHuntResult result;
-        using (new Timer(_ => running.Progress.Stop(), null, TimeSpan.FromSeconds(StopSeconds), Timeout.InfiniteTimeSpan))
-        {
-            result = FloatHunt.Run(reader, regions, needles, areaInstance, running.Progress, budget: 2 * HeapScan.ByteBudget);
-        }
-
-        lines.AddRange(Report(area, needles, result));
-        return lines;
+        why = string.Empty;
+        return new Area((int)tilesX, (int)tilesY, bytesPerRow is > 0 and < 65536 ? bytesPerRow * 2 : 0);
     }
 
     /// <summary>A finished hunt said: what was looked for, where it was found, the tallies over every window, and each window whole.</summary>

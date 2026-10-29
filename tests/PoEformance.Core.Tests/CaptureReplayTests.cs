@@ -120,6 +120,20 @@ public partial class CaptureReplayTests
         Assert.StartsWith("ocean markup replay: ", replay, StringComparison.Ordinal);
     }
 
+    /// <summary>The river flow hunt's lists read back from their files beside river-flow.txt and set out again - river-flow-replay.txt.</summary>
+    [Fact]
+    public void THERIVERFlowHuntIsReadBackFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder || CaptureParts.Find(folder, CaptureReport.RiverFlowFile) is not { } path || !File.Exists(path))
+        {
+            return;
+        }
+
+        string replay = PoEformance.Game.Diagnostics.RiverFlowHunt.Replay(File.ReadAllText(path), Path.GetDirectoryName(path)!);
+        File.WriteAllText(Path.Combine(folder, "river-flow-replay.txt"), replay);
+        Assert.False(string.IsNullOrEmpty(replay));
+    }
+
     /// <summary>Places every room of the capture by its doodads and writes the result beside the capture's files.</summary>
     [Fact]
     public void THEPLACINGRunsAgainFromACapture()
