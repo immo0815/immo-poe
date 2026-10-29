@@ -37,8 +37,11 @@ public static partial class RiverFlowHunt
     /// <summary>How long one level's sweep looks before it stops itself - CHOSEN.</summary>
     public const int LevelSeconds = 30;
 
-    /// <summary>The most places kept at one level, those pointing nearest their target's place first - CHOSEN.</summary>
+    /// <summary>The most places kept at one level besides the roots, those pointing nearest their target's place first - CHOSEN.</summary>
     public const int MostLinks = 32;
+
+    /// <summary>The most places kept at one level for one target, so a place many point at cannot take the level - CHOSEN.</summary>
+    public const int MostPerTarget = 8;
 
     /// <summary>The most pointers one level collects before it keeps no more - a window in a crowded place cannot fill the memory.</summary>
     public const int MostPointers = 1 << 20;
@@ -174,19 +177,26 @@ public static partial class RiverFlowHunt
             running.Level(level, budget);
             (List<(ulong Slot, ulong Value, int Target)> found, Walked walked) = Pointers(reader, regions, targets, running, budget);
 
-            // THE NEAREST FIRST: a pointer at its object's start lies nearest the place its object holds; a place twice or inside the
-            // object it points into is no way home.
-            var kept = found
+            // A place twice, or inside the object it points into, is no way home.
+            List<(ulong Slot, ulong Value, int Target)> fresh = [.. found
                 .Where(hit => !seen.Contains(hit.Slot) && !(hit.Slot >= hit.Value && hit.Slot <= targets[hit.Target].At))
                 .GroupBy(hit => hit.Slot)
-                .Select(same => same.MinBy(hit => targets[hit.Target].At - hit.Value))
+                .Select(same => same.MinBy(hit => targets[hit.Target].At - hit.Value))];
+
+            // EVERY ROOT IS KEPT, and the rest the nearest first - a pointer at its object's start lies nearest the place its object holds -
+            // at most MostPerTarget a place. MEASURED (v0.1.353 after a restart, The Red Vale): the third level's 32 places all went to
+            // stringstreams' buffers pointing at one another, each as near as the statics, which stood farther off and were left out.
+            List<(ulong Slot, ulong Value, int Target)> rooted = [.. fresh.Where(hit => RootOf(reader, areaInstance, hit.Slot).Length > 0)];
+            List<(ulong Slot, ulong Value, int Target)> kept = [.. rooted.Concat(fresh
+                .Where(hit => RootOf(reader, areaInstance, hit.Slot).Length == 0)
+                .GroupBy(hit => hit.Target)
+                .SelectMany(place => place.OrderBy(hit => targets[hit.Target].At - hit.Value).ThenBy(hit => Apart(hit.Slot, targets[hit.Target].At)).Take(MostPerTarget))
                 .OrderBy(hit => targets[hit.Target].At - hit.Value)
-                .ThenBy(hit => hit.Slot > targets[hit.Target].At ? hit.Slot - targets[hit.Target].At : targets[hit.Target].At - hit.Slot)
-                .Take(MostLinks)
-                .ToList();
+                .ThenBy(hit => Apart(hit.Slot, targets[hit.Target].At))
+                .Take(MostLinks))];
             seen.UnionWith(kept.Select(hit => hit.Slot));
             lines.Add(string.Create(CultureInfo.InvariantCulture,
-                $"  level {level}: {found.Count} pointers found{(found.Count >= MostPointers ? " (no more kept)" : string.Empty)}, {kept.Count} kept - {walked.Said("the first place")}"));
+                $"  level {level}: {found.Count} pointers found{(found.Count >= MostPointers ? " (no more kept)" : string.Empty)}, {rooted.Count} of them at a root, {kept.Count - rooted.Count} more kept - {walked.Said("the first place")}"));
             var next = new List<(ulong At, int Below, int Holder)>();
             foreach ((ulong slot, ulong value, int target) in kept)
             {
@@ -455,6 +465,9 @@ public static partial class RiverFlowHunt
 
         return text.ToString();
     }
+
+    /// <summary>How far apart two places are.</summary>
+    private static ulong Apart(ulong one, ulong other) => one > other ? one - other : other - one;
 
     /// <summary>A chain from its root down to its holder, as the reads that follow it.</summary>
     private static string Chain(IMemoryReader reader, ulong areaInstance, List<Link> links, int root, IReadOnlyList<(ulong Holder, string Name)> holders)

@@ -213,6 +213,30 @@ public class RiverFlowHuntTests
         Assert.Null(RiverFlowHunt.FlowMap(river, 4, 3, 8));
     }
 
+    /// <summary>
+    /// A static pointing at the holder is kept however many nearer places point at it too - v0.1.353 after a restart lost its statics
+    /// behind 32 stringstream buffers as near as they were - and one place many point at keeps at most eight of them.
+    /// </summary>
+    [Fact]
+    public void ASTATICIsKeptHoweverManyNearerPlacesPointAtTheSameHolder()
+    {
+        const ulong Crowd = 0x31_0000;
+        var crowd = new byte[40 * 8];
+        for (var one = 0; one < 40; one++)
+        {
+            BinaryPrimitives.WriteUInt64LittleEndian(crowd.AsSpan(one * 8), Holder + 0x10);
+        }
+
+        byte[] module = Module(0x5000, Holder);
+        var memory = new FakeMemoryReader { ModuleBase = ModuleBase, ModuleSize = (uint)module.Length }
+            .Place(Holder, new byte[0x40]).Place(Crowd, crowd).Place(ModuleBase, module);
+        var space = new Space(new MemoryRegion(Holder, 0x40), new MemoryRegion(Crowd, (ulong)crowd.Length), new MemoryRegion(ModuleBase, (ulong)module.Length));
+        string text = string.Join('\n', RiverFlowHunt.Home(memory, space, 0, [(Holder + 0x10, "the river's holder")], new RiverFlowHunt.Running()));
+
+        Assert.Contains("  level 1: 41 pointers found, 1 of them at a root, 8 more kept", text, StringComparison.Ordinal);
+        Assert.Contains("    module+0x5000 -> +0x10 = the river's holder", text, StringComparison.Ordinal);
+    }
+
     /// <summary>A class's name from MSVC's run-time type information, a namespace's parts the other way round; a template's as it stands.</summary>
     [Fact]
     public void AVTABLENamesItsClassByTheProgramsTypeInformation()

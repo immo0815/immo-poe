@@ -659,7 +659,7 @@
     },
 
     "RiverFlowFields": {
-      "comment": "A RUN OF POINTERS TO THE FLOW FIELDS, reached from RiverFlowRoot.Fields (v0.1.353's The Red Vale capture): the river's holder at +0x08, the guiding fog's at +0x10. Whether it is a list of every markup field in the area, and so whether the river's always stands second, is not measured - an area with a sea or no river says.",
+      "comment": "A RUN OF POINTERS TO THE FLOW FIELDS, reached from RiverFlowRoot.Fields (v0.1.353's The Red Vale capture): the river's holder at +0x08, the guiding fog's at +0x10. THE SAME AFTER A RESTART (v0.1.353 again, The Red Vale at 22:44, every address new): the run at 0x47969CFAE60 holds the river's holder at +0x08 and the guiding fog's at +0x10, and an object at 0x4796897E8D0 points at it from its +0x00 - the way's lower two hops hold; its statics were left out of that level's 32 places (RiverFlowHunt.Home keeps every root from v0.1.355). Whether it is a list of every markup field in the area, and so whether the river's always stands second, is not measured - an area with a sea or no river says.",
       "fields": {
         "First": { "offset": "0x00", "type": "ptr", "comment": "UNREAD - no flow field was found pointed at from here." },
         "River": { "offset": "0x08", "type": "ptr", "comment": "-> RiverFlowField, the river's (list 1)." },
