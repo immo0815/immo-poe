@@ -273,6 +273,10 @@ internal sealed class GroundPainter
         return MonsterModels.Worn(_read, painted, plan.Named, paintTheRest: false, source, "a tile's ground is static", _paints);
     }
 
+    /// <summary>What was painted and what stayed plain, counted - for the room's account (RoomAccount).</summary>
+    internal (int Painted, IReadOnlyDictionary<string, int> Plain, int Unlisted, IReadOnlyList<string> UnlistedNames) Counted()
+        => (_one + _mixed + _two, new Dictionary<string, int>(_plain, StringComparer.Ordinal), _unlisted, [.. _unlistedNames]);
+
     /// <summary>What was painted and what stayed plain, and on what it rests - for the line under the picture.</summary>
     public string Said()
     {

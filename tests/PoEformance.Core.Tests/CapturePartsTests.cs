@@ -82,6 +82,44 @@ public class CapturePartsTests
     }
 
     /// <summary>
+    /// A part that runs for hours starts off: an untouched settings file leaves it off, ticking it is kept apart as on (captureOn), and
+    /// neither list carries what the other keeps - so the parts on by default still keep only their unticked keys.
+    /// </summary>
+    [Fact]
+    public void APARTOffByDefaultStaysOffUntilTicked()
+    {
+        Assert.True(CaptureParts.All.Single(part => part.Key == CaptureParts.StageSweep).OffByDefault);
+        Assert.Equal([CaptureParts.StageSweep], CaptureParts.All.Where(part => part.OffByDefault).Select(part => part.Key));
+
+        // UNTOUCHED: the sweep off, nothing else.
+        IReadOnlySet<string> untouched = CaptureParts.OffOf([], []);
+        Assert.Equal([CaptureParts.StageSweep], untouched);
+        Assert.Empty(CaptureParts.Kept(untouched));
+        Assert.Empty(CaptureParts.KeptOn(untouched));
+
+        // TICKED, with another part unticked: each list keeps its own.
+        IReadOnlySet<string> ticked = CaptureParts.OffOf([CaptureParts.RawSweep], [CaptureParts.StageSweep, "gone-part"]);
+        Assert.Equal([CaptureParts.RawSweep], ticked);
+        Assert.Equal([CaptureParts.RawSweep], CaptureParts.Kept(ticked));
+        Assert.Equal([CaptureParts.StageSweep], CaptureParts.KeptOn(ticked));
+
+        string path = Path.Combine(Path.GetTempPath(), $"capture-on-{Guid.NewGuid():N}.json");
+        try
+        {
+            Assert.True(OverlaySettingsStore.Save(OverlaySettings.Default with { CaptureOn = [CaptureParts.StageSweep] }, path));
+            Assert.Equal([CaptureParts.StageSweep], OverlaySettingsStore.Load(path).CaptureOnOrEmpty);
+            Assert.Contains("captureOn", File.ReadAllText(path), StringComparison.Ordinal);
+
+            File.WriteAllText(path, """{"minLootRarity":2}""");
+            Assert.Empty(OverlaySettingsStore.Load(path).CaptureOnOrEmpty);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>
     /// Every part's file goes to its heading's folder - the rooms' two headings to one, the memory pass's index beside the
     /// recording - and capture.txt stays at the top.
     /// </summary>

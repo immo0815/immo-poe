@@ -316,6 +316,9 @@ public sealed record OverlaySettings(
     // untouched file gains no key.
     [property: JsonPropertyName("captureOff")] IReadOnlyList<string>? CaptureOff = null,
 
+    // Which parts that are off by default ARE written - see CapturePart.OffByDefault. Null until somebody ticks one.
+    [property: JsonPropertyName("captureOn")] IReadOnlyList<string>? CaptureOn = null,
+
     // How much of the large map is hidden under a ground item label, 0 to 1. Null until somebody
     // moves it, so an untouched file gains no key. 0.8 is the default - see GroundLabelTransparencyOrDefault.
     [property: JsonPropertyName("groundLabelTransparency")] float? GroundLabelTransparency = null,
@@ -350,6 +353,9 @@ public sealed record OverlaySettings(
 
     /// <summary>The capture parts switched off, empty until somebody unticks one.</summary>
     public IReadOnlyList<string> CaptureOffOrEmpty => CaptureOff ?? [];
+
+    /// <summary>The capture parts off by default switched on, empty until somebody ticks one.</summary>
+    public IReadOnlyList<string> CaptureOnOrEmpty => CaptureOn ?? [];
 
     /// <summary>The entity kinds the browser leaves out, empty until somebody hides one.</summary>
     public IReadOnlyList<string> HiddenEntitiesOrEmpty => HiddenEntities ?? [];

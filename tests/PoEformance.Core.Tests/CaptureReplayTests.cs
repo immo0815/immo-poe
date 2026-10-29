@@ -73,6 +73,20 @@ public partial class CaptureReplayTests
         Assert.StartsWith("water shore replay: ", replay, StringComparison.Ordinal);
     }
 
+    /// <summary>The stage sweep's rows read back from stage-sweep.txt and its causes ranked again - stage-sweep-replay.txt.</summary>
+    [Fact]
+    public void THESTAGESweepIsRankedAgainFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder || CaptureParts.Find(folder, CaptureReport.StageSweepFile) is not { } path || !File.Exists(path))
+        {
+            return;
+        }
+
+        string replay = CaptureStageSweep.Report(File.ReadAllText(path));
+        File.WriteAllText(Path.Combine(folder, "stage-sweep-replay.txt"), replay);
+        Assert.StartsWith("stage sweep replay: ", replay, StringComparison.Ordinal);
+    }
+
     /// <summary>The program's, tables' and paths' debug strings read back from debug-strings.txt and sorted by shape - debug-strings-replay.txt.</summary>
     [Fact]
     public void THEDEBUGStringsAreReadBackFromACapture()

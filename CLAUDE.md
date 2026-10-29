@@ -268,6 +268,32 @@ read from the capture, v0.1.344 mends them:
   `ground-on-screen.txt`'s choices hold a sub-tile of an unlisted ground against EVERY material of the list (`SubTileGrounds.Everything`):
   a capture with the shore's sea floor on the game's picture says what the game draws there.
 
+## Every room at once
+
+THE STAGE SWEEP (v0.1.346, asked for from the live client after Crimson Shores: "not every scene perfect, but the basic building
+blocks should not need mending by hand each time"). Each of that stage's five causes was a gap in a building block every scene shares,
+found because one scene showed it. `stage-sweep.txt` (`CaptureStageSweep`) builds EVERY ROOM OF EVERY ROOM SET in the install, each
+under every master naming its set (a room under another master wears other grounds and swaps), as the Monster Book builds a stage from
+its tileset (`BuiltRoomModels.Built`, every doodad laid), and counts what fails over all of them, each cause ranked by the rooms it
+reaches - so one mend is found once for every scene. DECIDED from the live client: every room of every set; the building blocks are no
+white surfaces, the geometry whole, nothing drawn the game shows only at times, the water there and lit; it may run overnight.
+- A CAUSE is text under its group's word - `room`, `white`, `ground`, `geometry`, `visible`, `water`, `partly` (a colour drawn with part
+  of its graphs left out), `lost` (what the compile lost besides the colour) - its paths kept to their kind and its counts to a hash
+  (`CaptureStageSweep.Normal`), weighed in triangles, sub-tiles or doodad lines; the compile's reasons are ranked again by node alone.
+  Every room is a row after `=== every room`, and `stage-sweep-replay.txt` ranks the rows again offline (`CaptureStageSweep.Report`).
+- A BUILD'S NUMBERS ARE KEPT AS NUMBERS (`RoomAccount`, `MonsterModel.Account`): pieces laid, not whole, bare, capped and unturned, the
+  swaps, the ground painted and left plain by why, the grounds no MaterialsList names, the slots unfilled and unmet - the line under the
+  picture says them as sentences, which a sum over thousands of rooms cannot read back. And the compile now says what it lost of a
+  material it still drew (`ShadeCompile.Lost`: the colour's alpha, a normal or gloss that did not compile), which nothing said before.
+- ONE PAINT CACHE FOR EVERY ROOM, lean (`MonsterModels.Paints.Lean`: a texture only asked whether it reads, drawn as one texel): a
+  material compiled once in the whole sweep; the graphs a cache has read kept as they come, not gathered on each ask (`Paints.Shaders`);
+  the files read kept to a gigabyte, the oldest dropped first, and a quarter of the cores' rooms built at once - both CHOSEN.
+- IT RUNS FOR HOURS, so it is the FIRST PART OFF UNTIL TICKED (`CapturePart.OffByDefault`, DECIDED from the live client): the settings
+  keep such parts switched ON apart (`captureOn`, `CaptureParts.OffOf`, `KeptOn`), so a later one starts off too and an untouched
+  settings file gains no key. Its step in the capture's window says how many rooms are built and which, and its stop keeps what it built.
+NEXT, DECIDED from the live client: once a sweep is in, its causes are mended from the top - the most rooms first - asking only where
+the files do not settle a rule.
+
 ## Verify against the game, not against yourself
 
 A check that a wrong value passes is worse than no check. Prefer tests the game itself can
@@ -331,7 +357,8 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   Add the part to `CaptureParts.All` (key, group, label, file, hint - and what it must read of
   memory, `CaptureReads`), its writer in `CaptureReport`, its hook in `CaptureKey.Write`, on by
   default - the settings keep only the keys that are off, so an older settings file gains the new
-  part unasked. Nothing goes on a window as a copy button or a new pane; the catalogue is the one
+  part unasked (a part that runs for hours is the one exception, off until ticked - see "Every room at
+  once" below). Nothing goes on a window as a copy button or a new pane; the catalogue is the one
   place. Do this on your own initiative whenever a diagnosis needs data: the person at the game
   then presses one key, and the measurement is in the zip.
 - **A part that runs long says so in the capture's ONE window** (`CaptureProgress`, asked for from the live

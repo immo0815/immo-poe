@@ -83,8 +83,8 @@ internal sealed class CaptureKey
     private readonly Func<IReadOnlyList<string>> _masters;
     private readonly Func<string> _version;
 
-    /// <summary>The parts switched off, by key - what the settings keep. See CaptureParts.</summary>
-    private readonly HashSet<string> _off = new(StringComparer.Ordinal);
+    /// <summary>The parts switched off, by key - what the settings keep. See CaptureParts. Those off by default are off until the settings say otherwise.</summary>
+    private readonly HashSet<string> _off = new(CaptureParts.OffOf([], []), StringComparer.Ordinal);
 
     /// <summary>The windows' diagnoses, by part key - each asked for its text as the key goes down. See <see cref="Offer"/>.</summary>
     private readonly Dictionary<string, Func<string?>> _offers = new(StringComparer.Ordinal);
@@ -146,15 +146,16 @@ internal sealed class CaptureKey
     public int KeyOrDefault => Key == 0 ? DefaultKey : Key;
 
     /// <summary>The parts switched off, by the catalogue's keys - as the settings keep them. Keys the catalogue no longer has are dropped.</summary>
-    public IReadOnlyList<string> Off
+    public IReadOnlyList<string> Off => CaptureParts.Kept(_off);
+
+    /// <summary>The parts off by default switched on - as the settings keep them (CapturePart.OffByDefault).</summary>
+    public IReadOnlyList<string> SwitchedOn => CaptureParts.KeptOn(_off);
+
+    /// <summary>The settings' two lists taken in: the parts switched off, and those off by default switched on.</summary>
+    public void Switch(IReadOnlyList<string> off, IReadOnlyList<string> on)
     {
-        get => CaptureParts.Kept(_off);
-        set
-        {
-            ArgumentNullException.ThrowIfNull(value);
-            _off.Clear();
-            _off.UnionWith(value);
-        }
+        _off.Clear();
+        _off.UnionWith(CaptureParts.OffOf(off, on));
     }
 
     /// <summary>How to read a file out of the install, or null where there is none - for the rooms' files.</summary>
@@ -362,11 +363,13 @@ internal sealed class CaptureKey
         var hunt = new FloatHuntProgress();
         var shore = new CaptureWaterShore.Search();
         var debugs = new CaptureWaterShore.Search();
-        var run = new Run(folder, local, snapshot, client, now, new HashSet<string>(_off, StringComparer.Ordinal), Progress(folder, snapshot, hunt, shore, debugs, now))
+        var sweep = new CaptureStageSweep.Search();
+        var run = new Run(folder, local, snapshot, client, now, new HashSet<string>(_off, StringComparer.Ordinal), Progress(folder, snapshot, hunt, shore, debugs, sweep, now))
         {
             Hunt = hunt,
             Shore = shore,
             Debugs = debugs,
+            Sweep = sweep,
             Overlay = On(CaptureParts.OverlayPicture) ? ScreenCapture.Grab(client.X, client.Y, client.Width, client.Height) : null,
             Loaded = _loaded(),
             Masters = _masters(),
@@ -454,7 +457,7 @@ internal sealed class CaptureKey
     /// THE LONG ONES SAY WHAT THEY ARE DOING: the rooms how many are read, the memory hunt how much of its budget it has looked
     /// through and how fast, with a stop that keeps what it found; the recording that it closes itself.
     /// </remarks>
-    private CaptureProgress Progress(string folder, WorldSnapshot snapshot, FloatHuntProgress hunt, CaptureWaterShore.Search shore, CaptureWaterShore.Search debugs, long now)
+    private CaptureProgress Progress(string folder, WorldSnapshot snapshot, FloatHuntProgress hunt, CaptureWaterShore.Search shore, CaptureWaterShore.Search debugs, CaptureStageSweep.Search sweep, long now)
     {
         var progress = new CaptureProgress(folder, snapshot.Area.Name.Length > 0 ? snapshot.Area.Name : snapshot.Area.Id, now);
         if (WantsRooms(_off))
@@ -492,6 +495,12 @@ internal sealed class CaptureKey
                     Live = () => debugs.Of > 0 ? $"{debugs.Done:N0} of {debugs.Of:N0} files searched (the program, then the data tables), {debugs.Found:N0} hold a word" : "waiting for its turn",
                     Fraction = () => debugs.Of > 0 ? (float)((double)debugs.Done / debugs.Of) : 0f,
                     Stop = debugs.Stop,
+                },
+                CaptureParts.StageSweep => new CaptureStep(part.File, part.Label)
+                {
+                    Live = () => sweep.Of > 0 ? $"{sweep.Done:N0} of {sweep.Of:N0} rooms built, {sweep.Failed:N0} did not - {sweep.Now}" : "waiting for its turn",
+                    Fraction = () => sweep.Of > 0 ? (float)((double)sweep.Done / sweep.Of) : 0f,
+                    Stop = sweep.Stop,
                 },
                 _ when CaptureParts.RunsAtPress(part.Key) && _workProgress.TryGetValue(part.Key, out CaptureWorkProgress? work) => new CaptureStep(part.File, part.Label)
                 {
@@ -977,6 +986,23 @@ internal sealed class CaptureKey
                         : [.. GameInstall.Names.Select(name => Path.Combine(install, name + ".exe")).Where(File.Exists)];
                     string text = CaptureWaterShore.Write(read, shoreFiles, dataTables, run.Loaded, shaders, programs, run.Shore);
                     File.WriteAllText(At(CaptureReport.WaterShoreFile), text);
+                    return text[..text.IndexOf('\n')].TrimEnd('\r');
+                });
+            }
+        }
+
+        if (On(CaptureParts.StageSweep))
+        {
+            if (read is null)
+            {
+                Not(CaptureReport.StageSweepFile, "no install to build the rooms from");
+            }
+            else
+            {
+                Part(CaptureReport.StageSweepFile, () =>
+                {
+                    string text = CaptureStageSweep.Write(read, run.Masters, run.Sweep);
+                    File.WriteAllText(At(CaptureReport.StageSweepFile), text);
                     return text[..text.IndexOf('\n')].TrimEnd('\r');
                 });
             }
@@ -1493,6 +1519,9 @@ internal sealed class CaptureKey
 
         /// <summary>The debug strings part's search, and its stop - the window's and the writer's.</summary>
         public CaptureWaterShore.Search? Debugs { get; init; }
+
+        /// <summary>The stage sweep's progress, and its stop - the window's and the writer's.</summary>
+        public CaptureStageSweep.Search? Sweep { get; init; }
 
         public DateTime Local { get; } = local;
 
