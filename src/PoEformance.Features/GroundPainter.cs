@@ -73,6 +73,15 @@ internal sealed class GroundPainter
     private readonly Dictionary<string, GamePicture?> _masks = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Plan> _plans = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _plain = new(StringComparer.Ordinal);
+
+    /// <summary>The tiles each reason for a plain ground was met on, each with its template and mask, a few a reason - for the stage sweep.</summary>
+    private readonly Dictionary<string, List<string>> _plainSubjects = new(StringComparer.Ordinal);
+
+    /// <summary>The ground type file (<c>.gt</c>) of each ground the MaterialsList does not name, by its name - for the stage sweep.</summary>
+    private readonly Dictionary<string, string> _unlistedFiles = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>How many tiles a reason for a plain ground keeps for the stage sweep.</summary>
+    private const int SubjectsKept = 4;
     private readonly Dictionary<string, int> _split = new(StringComparer.Ordinal);
     private int _one;
     private int _two;
@@ -233,6 +242,12 @@ internal sealed class GroundPainter
         foreach ((string why, int count) in plan.Plain)
         {
             _plain[why] = _plain.GetValueOrDefault(why) + count;
+            List<string> subjects = _plainSubjects.TryGetValue(why, out List<string>? known) ? known : _plainSubjects[why] = [];
+            string subject = plan.Subject.Length > 0 ? plan.Subject : tile;
+            if (subjects.Count < SubjectsKept && !subjects.Contains(subject, StringComparer.OrdinalIgnoreCase))
+            {
+                subjects.Add(subject);
+            }
         }
 
         foreach ((string why, int count) in plan.Splits)
@@ -276,6 +291,13 @@ internal sealed class GroundPainter
     /// <summary>What was painted and what stayed plain, counted - for the room's account (RoomAccount).</summary>
     internal (int Painted, IReadOnlyDictionary<string, int> Plain, int Unlisted, IReadOnlyList<string> UnlistedNames) Counted()
         => (_one + _mixed + _two, new Dictionary<string, int>(_plain, StringComparer.Ordinal), _unlisted, [.. _unlistedNames]);
+
+    /// <summary>The ground type file of each ground the MaterialsList does not name, by its name - see <see cref="Counted"/>.</summary>
+    internal IReadOnlyDictionary<string, string> UnlistedFiles() => new Dictionary<string, string>(_unlistedFiles, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The tiles each reason for a plain ground was met on, with their templates and masks - see <see cref="Counted"/>.</summary>
+    internal IReadOnlyDictionary<string, IReadOnlyList<string>> PlainSubjects()
+        => _plainSubjects.ToDictionary(one => one.Key, one => (IReadOnlyList<string>)[.. one.Value], StringComparer.Ordinal);
 
     /// <summary>What was painted and what stayed plain, and on what it rests - for the line under the picture.</summary>
     public string Said()
@@ -339,6 +361,9 @@ internal sealed class GroundPainter
 
         /// <summary>Sub-tiles left plain, by why.</summary>
         public IReadOnlyDictionary<string, int> Plain { get; init; } = new Dictionary<string, int>();
+
+        /// <summary>The tile, its template and the mask the template names - what the stage sweep names a plain ground by; empty where the definition did not read.</summary>
+        public string Subject { get; init; } = string.Empty;
 
         /// <summary>Sub-tiles split by triangle, by why the two could not be mixed.</summary>
         public IReadOnlyDictionary<string, int> Splits { get; init; } = new Dictionary<string, int>();
@@ -634,6 +659,7 @@ internal sealed class GroundPainter
             Alike = alikeSubTiles,
             Reduced = reducedSubTiles,
             Plain = plain,
+            Subject = $"{tile} template {(definition.Templates.Count > 0 ? Clean(definition.Templates[0]) : "none")} mask {(mask.Length > 0 ? Clean(mask) : "none")}",
             Splits = splits,
             Extra = [.. extra],
             Shares = [.. shares],
@@ -789,6 +815,11 @@ internal sealed class GroundPainter
                 if (!unlisted.Contains(name, StringComparer.OrdinalIgnoreCase))
                 {
                     unlisted.Add(name);
+                }
+
+                if (corner.Length > 0)
+                {
+                    _unlistedFiles.TryAdd(name, corner);
                 }
             }
 

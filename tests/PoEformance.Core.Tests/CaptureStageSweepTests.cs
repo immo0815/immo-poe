@@ -74,6 +74,80 @@ public class CaptureStageSweepTests
         Assert.Equal("a shape of *.mat", CaptureStageSweep.Normal("a shape of Art/Textures/Thing.mat:2"));
     }
 
+    /// <summary>
+    /// A cause names the files it was met on, the ones met in the most rooms first; and the first causes' files are written beside the
+    /// part at their install paths with what they name - an object's meshes, a material's graphs - kept to the install's own files.
+    /// </summary>
+    [Fact]
+    public void ACAUSENamesItsFilesAndTheirBytesTravelInTheCapture()
+    {
+        var subjects = new CaptureStageSweep.Subjects();
+        subjects.Add(new() { ["white: Mystery in A.fxgraph"] = new(StringComparer.OrdinalIgnoreCase) { ["Art/a.mat"] = 30 } });
+        subjects.Add(new() { ["white: Mystery in A.fxgraph"] = new(StringComparer.OrdinalIgnoreCase) { ["Art/a.mat"] = 10, ["Art/b.mat"] = 99 } });
+        subjects.Add(new()
+        {
+            ["geometry: doodad not drawn - no SkinMesh or FixedMesh anywhere in the .ao files or what they extend (a set, _set.ao)"] =
+                new(StringComparer.OrdinalIgnoreCase) { ["Metadata/Rock_set.ao"] = 4 },
+        });
+
+        string ranked = CaptureStageSweep.Ranked(Sample, subjects);
+        Assert.Contains("white: Mystery in A.fxgraph\tone (A)\n  \t\t\t  of Art/a.mat - 2 rooms, weight 40\n  \t\t\t  of Art/b.mat - 1 rooms, weight 99\n", ranked, StringComparison.Ordinal);
+
+        var files = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Art/a.mat"] = System.Text.Encoding.UTF8.GetBytes("""{"graphinstances":[{"parent":"Metadata/Graphs/Mystery.fxgraph"}]}"""),
+            ["Metadata/Graphs/Mystery.fxgraph"] = [1, 2, 3],
+            ["Metadata/Rock_set.ao"] = [.. System.Text.Encoding.Unicode.GetPreamble(), .. System.Text.Encoding.Unicode.GetBytes("version 2\nAnimatedSet { \"Metadata/Rock_01.ao\" }\n")],
+            ["Metadata/Rock_01.ao"] = System.Text.Encoding.Unicode.GetBytes("FixedMesh { \"Art/Rock_01.fmt\" }"),
+            ["Art/Rock_01.fmt"] = [9, 9],
+        };
+        CaptureStageSweep.Row[] rows =
+        [
+            new("m.tsi", "r.arm", true, 0, 10, new Dictionary<string, long>
+            {
+                ["white: Mystery in A.fxgraph"] = 40,
+                ["geometry: doodad not drawn - no SkinMesh or FixedMesh anywhere in the .ao files or what they extend (a set, _set.ao)"] = 4,
+            }),
+        ];
+
+        string folder = Path.Combine(Path.GetTempPath(), $"stage-sweep-{Guid.NewGuid():N}");
+        string into = Path.Combine(folder, CaptureStageSweep.SampleFolder);
+        try
+        {
+            string said = CaptureStageSweep.Samples(files.GetValueOrDefault, rows, subjects, into);
+            Assert.StartsWith("\n=== the subjects' files, under stage-sweep/ at their install paths - 5 written", said, StringComparison.Ordinal);
+            Assert.Contains("not in the install\tArt/b.mat", said, StringComparison.Ordinal);
+            Assert.Equal([1, 2, 3], File.ReadAllBytes(Path.Combine(into, "Metadata", "Graphs", "Mystery.fxgraph")));
+            Assert.Equal([9, 9], File.ReadAllBytes(Path.Combine(into, "Art", "Rock_01.fmt")));
+
+            // READ AGAIN OFFLINE: the objects and the material from the files the capture carries.
+            string again = CaptureStageSweep.Recheck(folder);
+            Assert.StartsWith("stage sweep files read again: 0 of 2 objects built, ", again, StringComparison.Ordinal);
+            Assert.Contains("  Metadata/Rock_01.ao\tnot built: ", again, StringComparison.Ordinal);
+            Assert.Contains("  Art/a.mat\t", again, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>A file names the install paths in its bytes, as UTF-16 and as single bytes; an install path stays under the folder it is written to.</summary>
+    [Fact]
+    public void AFILENamesItsPathsAndAPathStaysUnderItsFolder()
+    {
+        byte[] wide = System.Text.Encoding.Unicode.GetBytes("TileMeshRoot \"Art/Models/Terrain/Slope\" GroundMask \"Art/Textures/mask.dds\"");
+        Assert.Equal(["Art/Textures/mask.dds"], CaptureStageSweep.Named(wide, "Art/x.tgt"));
+        byte[] narrow = [.. System.Text.Encoding.ASCII.GetBytes("xx Art/Models/a.smd\0Art/Models/b.mat:2\0"), 0xFF];
+        Assert.Equal(["Art/Models/a.smd", "Art/Models/b.mat"], CaptureStageSweep.Named(narrow, "Art/Models/self.sm"));
+
+        Assert.Equal(Path.Combine("Art", "x.ao"), CaptureStageSweep.Safe("Art/../x.ao"));
+        Assert.Equal(Path.Combine("Art", "a_b.mat"), CaptureStageSweep.Safe("/Art/a:b.mat"));
+    }
+
     /// <summary>A room whose files are not there is a row that says it did not build, and a sweep with no room set says how many masters named none.</summary>
     [Fact]
     public void AROOMThatDoesNotBuildIsCountedNotThrown()

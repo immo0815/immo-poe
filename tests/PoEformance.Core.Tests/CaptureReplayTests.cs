@@ -82,7 +82,7 @@ public partial class CaptureReplayTests
             return;
         }
 
-        string replay = CaptureStageSweep.Report(File.ReadAllText(path));
+        string replay = CaptureStageSweep.Report(File.ReadAllText(path)) + Environment.NewLine + CaptureStageSweep.Recheck(Path.GetDirectoryName(path)!);
         File.WriteAllText(Path.Combine(folder, "stage-sweep-replay.txt"), replay);
         Assert.StartsWith("stage sweep replay: ", replay, StringComparison.Ordinal);
     }

@@ -1001,7 +1001,7 @@ internal sealed class CaptureKey
             {
                 Part(CaptureReport.StageSweepFile, () =>
                 {
-                    string text = CaptureStageSweep.Write(read, run.Masters, run.Sweep);
+                    string text = CaptureStageSweep.Write(read, run.Masters, run.Sweep, folder);
                     File.WriteAllText(At(CaptureReport.StageSweepFile), text);
                     return text[..text.IndexOf('\n')].TrimEnd('\r');
                 });

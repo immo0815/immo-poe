@@ -125,6 +125,7 @@ public static class BuiltRoomModels
         var pool = new List<RoomBuildTile>();
         var at = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var unread = 0;
+        var unreadTiles = new List<string>();
         foreach (TileListEntry entry in entries)
         {
             string tile = Slashed(entry.Tile);
@@ -142,6 +143,11 @@ public static class BuiltRoomModels
             if (TileIdentity.Of(TileModels.Defined(read, tile).Definition) is not { } identity)
             {
                 unread++;
+                if (unreadTiles.Count < 4)
+                {
+                    unreadTiles.Add(tile);
+                }
+
                 continue;
             }
 
@@ -194,6 +200,7 @@ public static class BuiltRoomModels
             Unfilled = build.Unfilled,
             Unmet = build.Unmet,
             PoolUnread = unread,
+            UnreadTiles = unreadTiles,
         };
         string said = build.Said + $" ({pool.Count} tiles in the pool{(unread > 0 ? $", {unread} did not read" : string.Empty)}{fillsSaid})"
             + (mirrored ? "; turned over in x by the switch, as the game lays the room in some instances" : string.Empty);
