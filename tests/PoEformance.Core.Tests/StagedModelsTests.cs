@@ -248,6 +248,31 @@ public class StagedModelsTests
         Assert.Equal(string.Empty, StagedModels.Staged(actor, plain, modelSize: 0, "Arena.tdt").StageMove);
     }
 
+    /// <summary>
+    /// A stage keeps the master its room was made under and that master's swaps, for the capture to hold against what each does to its
+    /// material (CapturePanes) - the monster set on it wears none of them; a stage made under none carries none.
+    /// </summary>
+    [Fact]
+    public void ASTAGEKeepsTheMastersSwapsItsRoomWasMadeUnder()
+    {
+        var swaps = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Art/stone.mat"] = "Art/dry.mat" };
+        var room = new MonsterModel(Square(400f, 10f, "deck"), null, "room.arm", string.Empty, string.Empty)
+        {
+            Kind = ModelKind.Room,
+            MasterSwaps = swaps,
+            MasterFile = "Metadata/Terrain/Maps/Port/master.tsi",
+        };
+        var actor = new MonsterModel(Box(5f, 20f), null, "monster.smd", string.Empty, string.Empty);
+
+        MonsterModel staged = StagedModels.Staged(actor, room, modelSize: 0, "Metadata/Terrain/Rooms/boss_01.arm");
+
+        Assert.Same(swaps, staged.MasterSwaps);
+        Assert.Equal("Metadata/Terrain/Maps/Port/master.tsi", staged.MasterFile);
+
+        MonsterModel bare = StagedModels.Staged(actor, room with { MasterSwaps = new Dictionary<string, string>(), MasterFile = string.Empty }, modelSize: 0, "Arena.tdt");
+        Assert.Equal((string.Empty, 0), (bare.MasterFile, bare.MasterSwaps.Count));
+    }
+
     [Fact]
     public void WithNothingFacingUpUnderTheMiddleTheMonsterStandsAtTheTilesLowestPoint()
     {

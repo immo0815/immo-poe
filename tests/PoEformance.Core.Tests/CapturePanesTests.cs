@@ -120,6 +120,86 @@ public sealed class CapturePanesTests
         Assert.Contains("##### Metadata/Materials/Ground/PBRGroundBN.fxgraph  (a graph these materials are instances of)", text, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A stage made under a master whose swaps it wears says so with no probe click: the pair, the shapes and triangles wearing the swap's
+    /// material, the two materials as compiled and what the swap loses - Port's quay stone (MSHD_GraveBrickTile01c.mat, from v0.1.336's
+    /// capture) swapped for a desert rock carrying no spray loses the spray, its twin and the wetness it read - and both materials whole
+    /// with their graphs.
+    /// </summary>
+    /// <remarks>
+    /// AS PORT'S QUAY WENT DARK: from v0.1.344 a laid or built room puts its master's TileMaterialOverrides on its tiles, Port's swaps the
+    /// quay's stone for another, and the spray from occlusion built for it was gone - which no capture said for thirty versions.
+    /// </remarks>
+    [Fact]
+    public void THEMASTERSSwapsAStageWearsAreHeldAgainstWhatEachDoesToItsMaterial()
+    {
+        const string Quay = "Art/Models/Terrain/Maps/Stronghold/Textures/Architecture/MSHD_GraveBrickTile01c.mat";
+        const string Rock = "Art/Textures/Environment/desert/DesertCliffs/DESERT_Rock01c.mat";
+        const string Master = "Metadata/Terrain/Maps/Port/master.tsi";
+        Vector3[] positions = [new(0f, 0f, 0f), new(1f, 0f, 0f), new(0f, 1f, 0f), new(1f, 1f, 0f), new(2f, 1f, 0f), new(1f, 2f, 0f), new(3f, 3f, 0f), new(4f, 3f, 0f), new(3f, 4f, 0f)];
+        SkinnedMesh mesh = SkinnedMesh.Of(
+            positions, [.. positions.Select(_ => -Vector3.UnitZ)], [0, 1, 2, 3, 4, 5, 6, 7, 8], Vector3.Zero, new Vector3(4f, 4f, 0f), null,
+            [new MeshShape("0", 0, 6), new MeshShape("1", 6, 3)]);
+        var model = new MonsterModel(mesh, null, "Metadata/Monsters/Malgor/Malgor.smd", string.Empty, string.Empty)
+        {
+            Stage = "Metadata/Terrain/Maps/Port/Rooms/Unique/Boss_01.arm",
+            ShapeMaterials = [Rock, "Art/Textures/Test/gone.mat"],
+            MasterSwaps = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                [Quay] = Rock,
+                ["Art/Textures/Test/unworn.mat"] = "Art/Textures/Test/other.mat",
+            },
+            MasterFile = Master,
+        };
+
+        string text = CapturePanes.Write(CaptureGroundTests.Fixture, [new CapturePane("monster", [], model)]).ReplaceLineEndings("\n");
+
+        Assert.EndsWith(", 1 pairs of the masters' material swaps worn, 1 of them changing what their material can do", text[..text.IndexOf('\n', StringComparison.Ordinal)], StringComparison.Ordinal);
+        Assert.Contains("=== the master's material swaps each stage wears (1 of 1 rooms and stages shown made under a master that swaps materials)\n", text, StringComparison.Ordinal);
+        Assert.Contains("  the monster book's pane\tmade under " + Master + ", whose TileMaterialOverrides swap 2 materials: 1 of them worn here, 1 not\n", text, StringComparison.Ordinal);
+
+        // THE PAIR AND WHAT WEARS IT - two triangles of one shape - then the two compiles side by side: the quay's stone sprays, the
+        // rock does not, and the swap takes the spray and its twin with it.
+        Assert.Contains("    1 shapes, 2 triangles\twearing the swap's material " + Rock + " - the master swaps " + Quay + " for it\n", text, StringComparison.Ordinal);
+        string compiled = text.Split('\n').Single(line => line.StartsWith("      compiled\t", StringComparison.Ordinal));
+        Assert.StartsWith("      compiled\tMSHD_GraveBrickTile01c.mat: drawn from its program, sprays, spray from occlusion, reads wetness", compiled, StringComparison.Ordinal);
+        Assert.Contains(" · DESERT_Rock01c.mat: drawn from its program", compiled, StringComparison.Ordinal);
+        Assert.Contains(" · LOST: sprays, spray from occlusion, reads wetness", compiled, StringComparison.Ordinal);
+
+        // BOTH WHOLE, the swap's material saying what wears it, and their graphs once each - the spray's among them.
+        Assert.Contains("=== the two materials of each swap that changes what its material can do, whole (1 of 1 pairs - at most 12, CHOSEN", text, StringComparison.Ordinal);
+        Assert.Contains("##### " + Quay + "  (the master " + Master + " swaps it for DESERT_Rock01c.mat · LOST: sprays, spray from occlusion, reads wetness", text, StringComparison.Ordinal);
+        Assert.Contains("##### " + Rock + "  (the swap's material in place of MSHD_GraveBrickTile01c.mat, worn by 1 shapes, 2 triangles in the monster book's pane)\n  | ", text, StringComparison.Ordinal);
+        Assert.Contains("##### Metadata/Materials/OceanSprayFoam.fxgraph  (a graph these swapped materials are instances of)", text, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A room or stage made under no master says so, and one made under a master that swaps nothing it wears says that - each a line, no
+    /// pair; a monster standing on nothing is no stage and the section is not written.
+    /// </summary>
+    [Fact]
+    public void ASTAGEUnderNoMasterOrWearingNoSwapSaysSo()
+    {
+        var swapless = new MonsterModel(Square(), null, "room.arm", string.Empty, string.Empty)
+        {
+            Kind = ModelKind.Room,
+            ShapeMaterials = ["Art/Textures/Test/own.mat"],
+            MasterSwaps = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Art/Textures/Test/a.mat"] = "Art/Textures/Test/b.mat" },
+            MasterFile = "Metadata/Terrain/Test/master.tsi",
+        };
+        var bare = new MonsterModel(Square(), null, "room.arm", string.Empty, string.Empty) { Kind = ModelKind.Room };
+
+        string text = CapturePanes.Write(null, [new CapturePane("tile", [], swapless), new CapturePane("monster", [], bare)]).ReplaceLineEndings("\n");
+
+        Assert.Contains("(1 of 2 rooms and stages shown made under a master that swaps materials)", text, StringComparison.Ordinal);
+        Assert.Contains("  the tile book's pane\tmade under Metadata/Terrain/Test/master.tsi, whose TileMaterialOverrides swap 1 materials: 0 of them worn here, 1 not\n", text, StringComparison.Ordinal);
+        Assert.Contains("  the monster book's pane\tmade under no master - every material its own\n", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("wearing the swap's material", text, StringComparison.Ordinal);
+
+        var monster = new MonsterModel(Square(), null, "monster.smd", string.Empty, string.Empty);
+        Assert.DoesNotContain("=== the master's material swaps", CapturePanes.Write(null, [new CapturePane("monster", [], monster)]), StringComparison.Ordinal);
+    }
+
     private static byte[]? Install(string path) => path switch
     {
         Water => Encoding.UTF8.GetBytes("version 3\nextends \"" + Parent + "\"\nclient\n{\n\tWaterPlane\n\t{\n\t\tsize = 3\n\t}\n}\n"),

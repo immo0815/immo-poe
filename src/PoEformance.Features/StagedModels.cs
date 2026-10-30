@@ -112,15 +112,19 @@ public static class StagedModels
             }
 
             TileKey key = TileKey.Read(stage);
-            return TileModels.Of(
+            IReadOnlyDictionary<string, string>? swaps = key.Tileset.Length > 0 ? TilesetIndex.Overrides(read, key.Tileset) : null;
+            MonsterModel lone = TileModels.Of(
                 read,
                 key.Path,
                 ground: key.Ground,
                 walls: key.Walls,
                 shaded: true,
-                swaps: key.Tileset.Length > 0 ? TilesetIndex.Overrides(read, key.Tileset) : null,
+                swaps: swaps,
                 tileset: key.Tileset.Length > 0 ? TilesetIndex.Short(key.Tileset) : string.Empty,
                 progress: progress);
+
+            // A TILE DRAWN AS ITS TILESET WEARS THE MASTER'S SWAPS as a laid room does, and carries them for the capture as one does.
+            return swaps is null ? lone : lone with { MasterSwaps = swaps, MasterFile = key.Tileset };
         }
 
         MonsterModel tile;
@@ -327,6 +331,11 @@ public static class StagedModels
             // A ROOM'S OWN ACCOUNT, kept beside the monster's: what of its pieces, ground and doodads drew is said nowhere else.
             StageMove = tile.Kind == ModelKind.Room ? tile.Move : string.Empty,
             DoodadFiles = tile.DoodadFiles,
+
+            // AND THE MASTER'S SWAPS THE STAGE WEARS, which the capture holds against what each does to its material - the monster
+            // set on it wears none of them.
+            MasterSwaps = tile.MasterSwaps,
+            MasterFile = tile.MasterFile,
 
             // THE TILE'S SHORE, made with what stands in its sea once its materials were compiled - the monster set on the stage is
             // no shore, and the tile lies where it was (the pile's identity).

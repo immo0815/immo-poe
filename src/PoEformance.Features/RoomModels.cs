@@ -242,7 +242,15 @@ public static class RoomModels
         /// <summary>What the room's wobble cores came to - see RoomSways - or empty where it has none.</summary>
         public string Swayed { get; init; } = string.Empty;
 
-        /// <summary>How many of the doodad files laid - the room's own lines, other rooms', the tiles' and the ground scatter's - wear a material the tileset swapped in - see MonsterModels.Swapped.</summary>
+        /// <summary>
+        /// How many of the doodad files laid - the room's own lines, other rooms', the tiles' and the ground scatter's - a swap of the
+        /// tileset's changed (MonsterModels.Swapped).
+        /// </summary>
+        /// <remarks>
+        /// CHANGED, NOT WORN: from v0.1.373 every file of a laying under a master carries the swaps, a room's own lines too, so a file that
+        /// wears a swap's material of its own - a vase painted with the very material the master swaps the pots' stone for - was counted as
+        /// swapped as well, and the line under the picture said two files where the swap had reached one.
+        /// </remarks>
         public int SwappedFiles { get; init; }
 
         /// <summary>The lines under the picture about what did not draw, and why.</summary>
@@ -525,7 +533,7 @@ public static class RoomModels
             Swayed = sways is null ? string.Empty
                 : string.Join("; ", new[] { RoomSways.Counted([.. pile.Cores.Skip(firstCore)]), sways.Said }.Where(one => one.Length > 0)),
             Files = [.. named.Select(one => one.Said())],
-            SwappedFiles = named.Count(one => one.Model is { Ready: true } model && one.Swaps is not null && model.ShapeMaterials.Any(worn => one.Swaps.Values.Contains(worn))),
+            SwappedFiles = named.Count(one => one.Changed && one.Model is { Ready: true }),
         };
     }
 
@@ -538,12 +546,29 @@ public static class RoomModels
         /// <summary>The tileset's material swaps its model wears - every line's, where the room is laid under a master that swaps any - or null for its own materials.</summary>
         public IReadOnlyDictionary<string, string>? Swaps { get; init; }
 
-        /// <summary>The file's model, with the tileset's swaps where it has any.</summary>
+        /// <summary>The file's model, with the tileset's swaps where it has any - and whether they changed it, <see cref="Changed"/>.</summary>
+        /// <remarks>
+        /// ONCE A FILE, ON ONE THREAD - the parallel load before the lay, or the lay itself for a file that one left unread - so
+        /// <see cref="Changed"/> wants no lock: the count reads it after the parallel load has joined.
+        /// </remarks>
         public MonsterModel Load(Func<string, byte[]?> counted, MonsterModels.Paints paints)
         {
-            MonsterModel model = MonsterModels.OfFiles(counted, [ao], wearing: true, paints);
-            return Swaps is null ? model : MonsterModels.Swapped(counted, model, Swaps, paints);
+            MonsterModel loaded = MonsterModels.OfFiles(counted, [ao], wearing: true, paints);
+            if (Swaps is null)
+            {
+                return loaded;
+            }
+
+            MonsterModel swapped = MonsterModels.Swapped(counted, loaded, Swaps, paints);
+            Changed = !ReferenceEquals(swapped, loaded);
+            return swapped;
         }
+
+        /// <summary>
+        /// Whether a swap changed what the file's model wears: MonsterModels.Swapped hands the model itself back where none of its
+        /// materials is one a swap takes, so a file wearing a swap's own material of its own is no file a swap reached.
+        /// </summary>
+        public bool Changed;
 
         public MonsterModel? Model;
         public bool Wanted;

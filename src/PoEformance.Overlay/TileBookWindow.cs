@@ -634,16 +634,20 @@ public sealed class TileBookWindow : BookWindow<TileBook>
         if (!TileBook.IsRoom(mark >= 0 ? key[..mark] : key))
         {
             TileKey tile = TileKey.Read(key);
-            return TileModels.Of(
+            IReadOnlyDictionary<string, string>? swaps = tile.Tileset.Length > 0 ? TilesetIndex.Overrides(read, tile.Tileset) : null;
+            MonsterModel lone = TileModels.Of(
                 read,
                 tile.Path,
                 ground: tile.Ground,
                 walls: tile.Walls,
                 shaded: true,
-                swaps: tile.Tileset.Length > 0 ? TilesetIndex.Overrides(read, tile.Tileset) : null,
+                swaps: swaps,
                 tileset: tile.Tileset.Length > 0 ? TilesetIndex.Short(tile.Tileset) : string.Empty,
                 laid: TileOrientation.OfPlacement(tile.Laid),
                 progress: progress);
+
+            // THE MASTER'S SWAPS IT WEARS, carried as a laid room carries them - for the capture to say what each does to its material.
+            return swaps is null ? lone : lone with { MasterSwaps = swaps, MasterFile = tile.Tileset };
         }
 
         RoomKey room = RoomKey.Read(key);
