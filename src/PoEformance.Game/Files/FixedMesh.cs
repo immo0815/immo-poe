@@ -3,6 +3,9 @@ using System.Numerics;
 
 namespace PoEformance.Game.Files;
 
+/// <summary>One piece of a fixed mesh - poe_data_tools' <c>Subcomponent</c>: an unnamed byte, its 12-byte records, raw, and a tag.</summary>
+public sealed record FixedMeshPiece(byte Unk1, IReadOnlyList<byte[]> Records, string Tag);
+
 /// <summary>
 /// A prop's geometry, out of the game's own <c>.fmt</c> files.
 /// </summary>
@@ -154,12 +157,13 @@ public sealed class FixedMesh
             points[one] = ((int)Read32(file, ref at), (int)Read32(file, ref at));
         }
 
-        // The pieces, and then the records each of them owns. Stepped over, not read.
+        // The pieces, and then the records each of them owns - every header first, then every piece's records.
         if (at + (pieces * 6L) > file.Length)
         {
             return Failed("the file says it has more pieces than it holds");
         }
 
+        int headers = at;
         long past = at;
         for (var one = 0; one < pieces; one++)
         {
@@ -172,6 +176,7 @@ public sealed class FixedMesh
             return Failed("the file ends before its string pool");
         }
 
+        int owned = headers + (pieces * 6);
         at = (int)past;
         int chars = (int)Read32(file, ref at);
         if (chars < 0 || at + (chars * 2L) > file.Length)
@@ -208,13 +213,69 @@ public sealed class FixedMesh
             }
         }
 
+        (FixedMeshPiece[] kept, byte[][] trailing) = Extras(file, headers, pieces, owned, records, version, pool);
         return new FixedMesh
         {
             Mesh = SkinnedMesh.Of(
                 block.Positions, block.Normals, block.Indices, least, most,
                 block.Coordinates, named, block.Facts, block.Colours),
             Named = materials,
+            Pieces = kept,
+            Records = trailing,
+            Unread = file.Length - (at + (chars * 2)),
         };
+    }
+
+    /// <summary>
+    /// The file's pieces - poe_data_tools' <c>subcomponents</c>: a byte, its 12-byte records and a tag out of the pool - in
+    /// the file's order. Empty where it has none.
+    /// </summary>
+    /// <remarks>
+    /// STEPPED OVER UNTIL v0.1.360, AND STILL UNNAMED: no reader of the format says what a piece or its records are. They
+    /// are kept so a dump can set them beside the shapes; nothing draws by them.
+    /// </remarks>
+    public IReadOnlyList<FixedMeshPiece> Pieces { get; private init; } = [];
+
+    /// <summary>The trailing records before the pool, raw - poe_data_tools' <c>d3s</c>, <see cref="Trailing"/> bytes each by version, unnamed.</summary>
+    public IReadOnlyList<byte[]> Records { get; private init; } = [];
+
+    /// <summary>
+    /// How many bytes lie past the string pool - nought where the walk ended exactly at the file's end, which is where the
+    /// reference demands it ends (its last step is a whole parse).
+    /// </summary>
+    public int Unread { get; private init; }
+
+    /// <summary>
+    /// The pieces and the trailing records, from where the pieces' headers lie (<paramref name="headers"/>, six bytes each)
+    /// and where the first piece's records lie (<paramref name="owned"/>; every piece's follow in turn, then the trailing ones).
+    /// The caller has bounded all of it against the file before the pool was read.
+    /// </summary>
+    private static (FixedMeshPiece[] Pieces, byte[][] Records) Extras(
+        ReadOnlySpan<byte> file, int headers, int pieces, int owned, int records, int version, ReadOnlySpan<byte> pool)
+    {
+        var kept = new FixedMeshPiece[pieces];
+        int at = owned;
+        for (var one = 0; one < pieces; one++)
+        {
+            int header = headers + (one * 6);
+            int count = file[header + 1];
+            var own = new byte[count][];
+            for (var record = 0; record < count; record++, at += 12)
+            {
+                own[record] = file.Slice(at, 12).ToArray();
+            }
+
+            kept[one] = new FixedMeshPiece(file[header], own, Word(pool, (int)BinaryPrimitives.ReadUInt32LittleEndian(file[(header + 2)..])));
+        }
+
+        int width = Trailing(version);
+        var trailing = new byte[records][];
+        for (var one = 0; one < records; one++, at += width)
+        {
+            trailing[one] = file.Slice(at, width).ToArray();
+        }
+
+        return (kept, trailing);
     }
 
     /// <summary>
@@ -318,6 +379,7 @@ public sealed class FixedMesh
         }
 
         // THE PIECES' HEADERS, and how many 12-byte records each owns - those come after the vertices.
+        int headers = at;
         long owned = 0;
         for (var one = 0; one < pieces; one++)
         {
@@ -355,6 +417,7 @@ public sealed class FixedMesh
             return Failed("the file ends before its string pool");
         }
 
+        int ownedAt = at;
         at = (int)past;
         int chars = (int)Read32(file, ref at);
         if (chars < 0 || at + (chars * 2L) > file.Length)
@@ -385,11 +448,15 @@ public sealed class FixedMesh
 
         (Vector3[] normals, string source) = Facing(positions, indices, first, second);
         var facts = new MeshFacts(version, 0, 1, format, stride, shapes, shapes, (int)triangles, (int)vertices, 0, 0, "normals from " + source);
+        (FixedMeshPiece[] kept, byte[][] trailing) = Extras(file, headers, pieces, ownedAt, records, version, pool);
         return new FixedMesh
         {
             Mesh = SkinnedMesh.Of(positions, normals, indices, least, most, coordinates, named, facts),
             Named = materials,
             NormalsFrom = source,
+            Pieces = kept,
+            Records = trailing,
+            Unread = file.Length - (at + (chars * 2)),
         };
     }
 

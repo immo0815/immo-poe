@@ -475,6 +475,70 @@ public class SkinnedMeshTests
     /// Whether the vertex format's seventh bit is set, which costs four bytes on every vertex AND
     /// thirty-six per shape after the last level of detail.
     /// </param>
+    /// <summary>The whole read keeps every level of detail - each the same mesh here - the names and the tail, and ends where the file does.</summary>
+    [Fact]
+    public void THEWholeReadKeepsEveryLevelTheNamesAndTheTail()
+    {
+        SkinnedMeshWhole whole = SkinnedMesh.ReadWhole(Built(details: 3, sixth: true));
+
+        Assert.Equal(string.Empty, whole.Why);
+        Assert.Equal(3, whole.Levels.Levels.Count);
+        Assert.All(whole.Levels.Levels, level => Assert.Equal([0, 1, 2, 1, 2, 3], level.Indices));
+        Assert.All(whole.Levels.Levels, level => Assert.Equal(4, level.Positions.Length));
+        Assert.Equal(new Vector3(1f, 2f, 3f), whole.Levels.Levels[2].Positions[1]);
+        Assert.Equal([36, 36], whole.Levels.Bit6Records.Select(one => one.Length));
+        Assert.NotNull(whole.Levels.Corner4Word);
+        Assert.Equal(["HipsShape", "SkullShape"], whole.Names);
+        Assert.Equal((4u, 0), (whole.Tail.Version, whole.Unread));
+    }
+
+    /// <summary>
+    /// A tail of version 3 in a file of version 3: its ellipsoid and sphere carry names, its empty t3s only a count, and every
+    /// list reads in the reference's order.
+    /// </summary>
+    [Fact]
+    public void ATAILOfVersionThreeReadsInTheReferencesOrder()
+    {
+        byte[] plain = Built();
+        var file = new List<byte>(plain.AsSpan(0, plain.Length - 32).ToArray());
+        void U32(uint v) { Span<byte> b = stackalloc byte[4]; BinaryPrimitives.WriteUInt32LittleEndian(b, v); file.AddRange(b); }
+        void F32(float v) { Span<byte> b = stackalloc byte[4]; BinaryPrimitives.WriteSingleLittleEndian(b, v); file.AddRange(b); }
+        void Name(string name) { U32((uint)(name.Length * 2)); file.AddRange(Encoding.Unicode.GetBytes(name)); }
+
+        U32(3);
+        foreach (uint count in new uint[] { 1, 1, 1, 2, 1, 2, 1 })
+        {
+            U32(count);
+        }
+
+        for (var one = 0; one < 15; one++)
+        {
+            F32(one);
+        }
+
+        U32(9);
+        Name("hips");
+        F32(1); F32(2); F32(3); F32(4); U32(8); Name("head");
+        U32(0); U32(5);
+        F32(7); F32(8); F32(9); U32(1); U32(2); U32(3); U32(4); F32(0.5f); F32(0.25f); F32(0.125f); F32(0.0625f);
+        U32(11); U32(12);
+        U32(13);
+
+        SkinTail tail = SkinnedMesh.ReadWhole([.. file]).Tail;
+        Assert.Equal(string.Empty, tail.Why);
+        Assert.Equal((3u, 2u), (tail.Version, tail.T3s));
+        SkinEllipsoid ellipsoid = Assert.Single(tail.Ellipsoids);
+        Assert.Equal((14f, 9u, "hips"), (ellipsoid.Floats[14], ellipsoid.Unk1, ellipsoid.Name));
+        Assert.Equal(new SkinSphere(new Vector3(1, 2, 3), 4, 8, "head"), Assert.Single(tail.Spheres));
+        Assert.Equal(new SkinSphereLink(0, 5), Assert.Single(tail.Links));
+        SkinVertex vertex = Assert.Single(tail.Vertices);
+        Assert.Equal(new Vector3(7, 8, 9), vertex.Position);
+        Assert.Equal([1u, 2, 3, 4], vertex.Unk1);
+        Assert.Equal([0.5f, 0.25f, 0.125f, 0.0625f], vertex.Unk2);
+        Assert.Equal([11u, 12], tail.Refs1);
+        Assert.Equal([13u], tail.Refs2);
+    }
+
     private static byte[] Built(int corner = 4, int details = 1, bool sixth = false, bool coloured = false, bool secondUv = false)
     {
         const int Vertices = 4;

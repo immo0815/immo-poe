@@ -319,13 +319,42 @@ public class TileFilesTests
         Assert.Equal([new TileRun(1, 3), new TileRun(0, 2)], read.RunsOf(1, 1));
     }
 
+    /// <summary>An older template is read whole - its one mesh, mask and numbered materials - but not drawn, and says so by its version.</summary>
     [Fact]
-    public void ANDAnOlderTemplateIsRefusedByName()
+    public void ANDAnOlderTemplateIsReadWholeButNotDrawn()
     {
-        TileTemplate read = TileTemplate.Parse("version 1\nTileMesh \"Art/Old.tgm\"\nNormalMaterials 0\n");
+        TileTemplate read = TileTemplate.Parse(
+            "version 1\nTileMesh \"Art\\Old.tgm\"\nGroundMask \"Art/mask.dds\"\nNormalMaterials 2\n\t\"a.mat\" 3\n\t\"b.mat\" 0\n");
 
         Assert.False(read.Ready);
         Assert.Contains("version 1", read.Why, StringComparison.Ordinal);
+        Assert.Equal(("Art/Old.tgm", "Art/mask.dds", string.Empty), (read.SingleMesh, read.GroundMask, read.Unread));
+        Assert.Equal(["a.mat", "b.mat"], read.Materials);
+        Assert.Equal([3, 0], read.MaterialNumbers);
+    }
+
+    /// <summary>What a version 3 template carried and the reader stepped over: its scene, its material slots and a triple's first number.</summary>
+    [Fact]
+    public void ANDATemplatesSceneSlotsAndLeadsAreKept()
+    {
+        TileTemplate read = TileTemplate.Parse("""
+            version 3
+            SourceScene "Scenes/Harbour.mb"
+            Size 1 1
+            TileMeshRoot "Art/One"
+            NormalMaterials 2
+            	"a.mat"
+            	"b.mat"
+            MaterialSlots 1
+            	"slot.mat"
+            SubTileMaterialIndices
+            	2 7 1 3 9 0 2
+            """);
+
+        Assert.Equal(("Scenes/Harbour.mb", string.Empty), (read.SourceScene, read.Unread));
+        Assert.Equal(["slot.mat"], read.Slots);
+        Assert.Equal([7, 9], Assert.Single(read.Leads));
+        Assert.Equal("left over", TileTemplate.Parse("version 3\nSize 1 1\nTileMeshRoot \"Art/One\"\nNormalMaterials 0\nleft over\n").Unread);
     }
 
     [Theory]
@@ -392,13 +421,87 @@ public class TileFilesTests
         Assert.True(read.Props.Ready);
     }
 
+    /// <summary>A file of the DOLm layout marked version 8 does not fit the older layout, and says so by its version.</summary>
     [Fact]
-    public void ANDAnOlderMeshIsRefusedByName()
+    public void ANDANewerLayoutMarkedVersionEightDoesNotReadAsTheOlder()
     {
         TileMesh read = TileMesh.Read(Tgm(props: 1, ground: 1, version: 8));
 
         Assert.False(read.Ready);
         Assert.Contains("version 8", read.Why, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A version 8 tile mesh in poe_data_tools' v8_section layout: both geometry records first, the format, the tail count
+    /// and version 8's extra word, then per mesh its shapes, its VERTICES and only then its indices, then the tail at 87
+    /// bytes - read to the file's end, the ground's coordinates from format 3's first pair.
+    /// </summary>
+    [Fact]
+    public void ANOLDERTileMeshReadsInItsOwnLayout()
+    {
+        byte[] file = Tgm8(format: 3, tails: 1, triangleExtents: false);
+        TileMesh read = TileMesh.Read(file);
+
+        Assert.True(read.Ready, read.Why);
+        Assert.True(read.Exact);
+        Assert.Equal((8, 3, (uint?)77), (read.Version, read.HeaderFormat, read.HeaderExtra));
+        Assert.Equal(3, read.Props.Indices.Length);
+        Assert.Equal(new Vector3(1, 0, 0), read.Props.Positions[1]);
+        Assert.Equal(new Vector2(0.5f, 0.25f), read.Props.Coordinates[2]);
+        Assert.Equal(new Vector3(0, 0, 5), read.Ground.Positions[0]);
+        Assert.Equal(new Vector2(0.75f, 1f), read.Ground.Coordinates[1]);
+        Assert.Equal([7], read.GroundOrdinals);
+        Assert.Equal(87, Assert.Single(read.OlderTail).Length);
+        Assert.Empty(read.TailData);
+
+        // SHAPE EXTENTS IN TRIANGLES cover the indices a third as far, and are read so; extents covering neither refuse the file.
+        Assert.Equal(3, TileMesh.Read(Tgm8(format: 3, tails: 0, triangleExtents: true)).Props.Shapes[0].Count);
+        Assert.False(TileMesh.Read([.. file, 0]).Ready);
+    }
+
+    private static byte[] Tgm8(int format, int tails, bool triangleExtents)
+    {
+        using var stream = new MemoryStream();
+        using var write = new BinaryWriter(stream);
+        write.Write((byte)8);
+        write.Write(new byte[24]);
+        for (var mesh = 0; mesh < 2; mesh++)
+        {
+            write.Write((ushort)1);
+            write.Write(3u);
+            write.Write(1u);
+        }
+
+        write.Write((byte)format);
+        write.Write((byte)tails);
+        write.Write(77u);
+        for (var mesh = 0; mesh < 2; mesh++)
+        {
+            write.Write((ushort)(mesh == 0 ? 3 : 7));
+            write.Write(new byte[24]);
+            write.Write(0u);
+            write.Write(triangleExtents ? 1u : 3u);
+            for (var point = 0; point < 3; point++)
+            {
+                write.Write(point == 1 ? 1f : 0f);
+                write.Write(0f);
+                write.Write(mesh == 1 ? 5f : 0f);
+                write.Write(new byte[] { 0, 0, 127, 0, 127, 0, 0, 0 });
+                write.Write(BitConverter.HalfToUInt16Bits((Half)(mesh == 0 ? 0.5f : 0.75f)));
+                write.Write(BitConverter.HalfToUInt16Bits((Half)(mesh == 0 ? 0.25f : 1f)));
+                if (mesh == 1 && format == 3)
+                {
+                    write.Write(new byte[4]);
+                }
+            }
+
+            write.Write((ushort)0);
+            write.Write((ushort)1);
+            write.Write((ushort)2);
+        }
+
+        write.Write(new byte[87 * tails]);
+        return stream.ToArray();
     }
 
     private static Dictionary<string, byte[]> Install()
