@@ -25,6 +25,20 @@ namespace PoEformance.Features;
 /// (the game's picture taken back through the pane's own grade and exposure - the engine's grade being the same table, CHOSEN); the game's own
 /// sun and shade, split per material on its brightness over the pane's albedo, says whether the game's shadows lie where the pane's do; and
 /// the ratio by the distance to the player and by depth tests the player's lamp (CHOSEN 500 / 100) and a haze.
+///
+/// THREE SECTIONS MORE, each a need The Red Vale's capture of v0.1.372 MEASURED (v0.1.373):
+/// <list type="bullet">
+/// <item>ROOF SECTIONS APART. A tree trunk beside the player came out 11 times brighter in the game than in the pane (3,638 pixels): the
+/// game hides the shapes whose .mat says <c>"roofsection": true</c> round the player - the engine keeps big objects from standing between
+/// the camera and the player, said from the live client - and shows what stands behind them. Such a material is named "roof: " here as a
+/// ground's is named "ground: ", its pixels kept out of every statistic and set out on their own by the distance to the player.</item>
+/// <item>THE GROUND BLOCK BY BLOCK. Pixel by pixel the comparison is ruled by small things that cannot match - the ground's scatter is
+/// strewn by the tool's own CHOSEN pattern - so the ground away from the player is also held in blocks, each one's light its pixels' median,
+/// set out by how much of the block the pane's sun reaches. Worked offline on that capture: the pane's lit blocks about 13 times as bright
+/// over their albedo as its shaded ones, the game's about 2.2 times - a sign the game darkens its sun over most of the ground the pane lights.</item>
+/// <item>THE PLAYER'S LAMP. Within 400 units of the player the game in the pane's shade was 2.4 to 2.9 times the pane's: the lamp's share
+/// of the pane's light and the gain the game asks of it, by the distance, so the lamp can be set from a measurement.</item>
+/// </list>
 /// </remarks>
 public static class CaptureLightCompare
 {
@@ -37,6 +51,9 @@ public static class CaptureLightCompare
     /// <summary>The pane's sun and shade over the game's picture.</summary>
     public const string SunPicture = "light-against-game-sun.png";
 
+    /// <summary>The ground's blocks, each by the game over the pane - see <see cref="GroundBlocks"/>.</summary>
+    public const string BlocksPicture = "light-against-game-blocks.png";
+
     /// <summary>Every compared pixel's numbers, for the replay - see <see cref="BinaryFormat"/>.</summary>
     public const string Numbers = "light-against-game.bin";
 
@@ -48,9 +65,15 @@ public static class CaptureLightCompare
         "little-endian: \"PLAG\", int version 2, int gathered width, int gathered height, int step, int factor, float exposure, int left-out counts (9: no surface, water, "
         + "translucent over it, beach or lifted water over it, masked, past the far plane, a shape's edge, no game picture, the game's picture at its ceiling; "
         + "version 1 had the first 8), int materials, each a ushort "
-        + "length and UTF-8, int samples, each: int gathered index, int shape (-1 none), int material, then halves: game rgb, game unexposed rgb, pane rgb, "
+        + "length and UTF-8 (a ground's name begins \"ground: \", a roof section's \"roof: \"), int samples, each: int gathered index, int shape (-1 none), int material, then halves: game rgb, game unexposed rgb, pane rgb, "
         + "albedo rgb, sun, facing, sun diffuse rgb, cube rgb, gi stand-in and flat rgb, room lights rgb, player lamp rgb, specular rgb, pane unexposed rgb; "
         + "then floats: depth, distance to the player across";
+
+    /// <summary>The word a ground's material is named under.</summary>
+    internal const string GroundWord = "ground: ";
+
+    /// <summary>The word a roof section's material is named under - one whose .mat says <c>"roofsection"</c> (<see cref="MaterialFile.RoofSection"/>).</summary>
+    internal const string RoofWord = "roof: ";
 
     /// <summary>The least samples a material needs to be reported on its own.</summary>
     private const int FewestPerMaterial = 400;
@@ -58,18 +81,45 @@ public static class CaptureLightCompare
     /// <summary>How many reasons a gathered pixel is left out for - see <see cref="BinaryFormat"/>.</summary>
     private const int Reasons = 9;
 
-    /// <summary>How far across from the player the left-out ceiling is counted as under the player's lamp, units.</summary>
+    /// <summary>
+    /// How far across from the player a pixel is taken as under the player's lamp, units - the light panel's radius, CHOSEN: the left-out
+    /// ceiling is counted within it, and the ground's blocks are taken beyond it.
+    /// </summary>
     private const float NearPlayer = 500f;
+
+    /// <summary>A ground block's side, gathered pixels.</summary>
+    private const int BlockSide = 16;
+
+    /// <summary>The least ground samples a block needs to be counted.</summary>
+    private const int FewestPerBlock = 40;
+
+    /// <summary>The width of the roof sections' bins by the distance to the player, units.</summary>
+    private const float RoofBin = 250f;
+
+    /// <summary>The width of the lamp's bins by the distance to the player, units.</summary>
+    private const float LampBin = 100f;
+
+    /// <summary>How many of the lamp's bins - out to 1,200 units.</summary>
+    private const int LampBins = 12;
+
+    /// <summary>The share of a pixel's light its lamp must give for the pixel to say how strong the game's lamp is.</summary>
+    private const double LampShareFloor = 0.05;
+
+    /// <summary>The rows the ground's blocks are set out in, by the share of each block the pane's sun reaches.</summary>
+    private static readonly (string Label, double From, double To)[] ShareRows =
+        [("0-0.1", 0d, 0.1), ("0.1-0.3", 0.1, 0.3), ("0.3-0.5", 0.3, 0.5), ("0.5-0.7", 0.5, 0.7), ("0.7-1", 0.7, double.PositiveInfinity)];
 
     /// <summary>
     /// The part's report and what goes beside it: the pictures and the numbers.
     /// </summary>
+    /// <param name="read">The install's files - each material's .mat, read once, says whether it is a roof section - or null, every shape compared.</param>
     /// <param name="scene">The stage drawn through the game's camera.</param>
     /// <param name="pictures">The pictures to write beside the report, by file name.</param>
     /// <param name="numbers">The samples' numbers, <see cref="Numbers"/>.</param>
     /// <param name="search">Where it says how far it is, or null - the drawing's own, so the capture's window goes on from it.</param>
     public static string Write(
-        CaptureAtGame scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers, CaptureAtGame.Search? search = null)
+        Func<string, byte[]?>? read, CaptureAtGame scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers,
+        CaptureAtGame.Search? search = null)
     {
         ArgumentNullException.ThrowIfNull(scene);
         search?.Begin(1);
@@ -77,20 +127,35 @@ public static class CaptureLightCompare
         SceneLight light = scene.Pane.Light!;
         MonsterModel model = scene.Pane.Model;
         PixelGather gather = scene.Gather;
+        var roofs = new RoofSections(read);
         var materials = new List<string>();
         var materialOf = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var shapeMaterial = new int[model.Mesh.Shapes.Count];
-        for (var shape = 0; shape < shapeMaterial.Length; shape++)
+        Array.Fill(shapeMaterial, -1);
+
+        // EACH SHAPE'S MATERIAL NAMED WHEN A COMPARED PIXEL FIRST WEARS IT: naming it reads its .mat for the roof section's word, and a
+        // stage wears hundreds of materials the game's camera never shows.
+        int MaterialOf(int shape)
         {
-            string name = MaterialName(model, shape);
-            if (!materialOf.TryGetValue(name, out int at))
+            if (shape < 0 || shape >= shapeMaterial.Length)
             {
-                at = materials.Count;
-                materials.Add(name);
-                materialOf[name] = at;
+                return -1;
             }
 
-            shapeMaterial[shape] = at;
+            if (shapeMaterial[shape] < 0)
+            {
+                string name = MaterialName(model, shape, roofs);
+                if (!materialOf.TryGetValue(name, out int at))
+                {
+                    at = materials.Count;
+                    materials.Add(name);
+                    materialOf[name] = at;
+                }
+
+                shapeMaterial[shape] = at;
+            }
+
+            return shapeMaterial[shape];
         }
 
         Vector2 player = scene.PlayerAcross - scene.Origin;
@@ -171,7 +236,7 @@ public static class CaptureLightCompare
                 continue;
             }
             samples.Add(new Sample(
-                at, shape, shape >= 0 ? shapeMaterial[shape] : -1, game, Ungraded(game, light), terms.Graded, terms.Albedo, terms.Sun, terms.SunFacing,
+                at, shape, MaterialOf(shape), game, Ungraded(game, light), terms.Graded, terms.Albedo, terms.Sun, terms.SunFacing,
                 terms.SunDiffuse, terms.Cube, terms.GiStandIn + terms.Flat, terms.RoomDiffuse, terms.PlayerDiffuse,
                 terms.Lobes + terms.EnvironmentSpecular + terms.WavesReflection, terms.Unexposed, gather.Depth[at],
                 float.IsNaN(player.X) ? float.NaN : Vector2.Distance(new Vector2(place.X, place.Y), player)));
@@ -179,7 +244,7 @@ public static class CaptureLightCompare
 
         var header = new Header(gather.Width, (scene.DrawnHeight + gather.Step - 1) / gather.Step, gather.Step, scene.Factor, light.Exposure, left, materials);
         numbers = Bytes(header, samples);
-        pictures = Pictures(scene, samples);
+        pictures = Pictures(scene, header, samples);
 
         var text = new StringBuilder();
         text.Append(Report(header, samples, "light against the game"));
@@ -188,6 +253,7 @@ public static class CaptureLightCompare
         text.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
             $"the game's picture at its ceiling (a channel at {CaptureAtGame.Ceiling} or more in the block): {left[8]:N0} pixels left out - {ceiling[(int)Lighting.Lit]:N0} in the pane's sun, {ceiling[(int)Lighting.Between]:N0} between, {ceiling[(int)Lighting.Shade]:N0} in its shade; {ceilingNear:N0} within {NearPlayer:0} units across of the player"));
+        text.AppendLine(roofs.Said());
         foreach (string line in scene.Said)
         {
             text.AppendLine(line);
@@ -199,8 +265,11 @@ public static class CaptureLightCompare
         text.AppendLine().AppendLine("=== the numbers beside it");
         text.AppendLine(Numbers + ": " + BinaryFormat);
         text.AppendLine(PanePicture + ": the pane's picture through the game's camera, at the drawn size");
-        text.AppendLine(RatioPicture + ": each compared pixel's log2 of the game's luminance over the pane's - blue the game darker, red brighter, white equal, -2 to 2; grey left out");
+        text.AppendLine(RatioPicture + ": each compared pixel's log2 of the game's luminance over the pane's - blue the game darker, red brighter, white equal, -2 to 2; magenta a roof section, left out of the statistics; grey left out");
         text.AppendLine(SunPicture + ": the game's picture with the pane's sun over it - yellow lit, blue in shade, green between; dark left out");
+        text.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{BlocksPicture}: each block of the ground the report counts ({BlockSide} x {BlockSide} gathered pixels, {FewestPerBlock} ground pixels or more beyond {NearPlayer:0} units across of the player) filled by the log2 of its pixels' median game over pane, coloured as the ratio picture is; the game's grey elsewhere"));
         return text.ToString();
     }
 
@@ -247,13 +316,66 @@ public static class CaptureLightCompare
     /// <summary>What the numbers carry besides the samples.</summary>
     internal sealed record Header(int Width, int Height, int Step, int Factor, float Exposure, int[] Left, IReadOnlyList<string> Materials);
 
-    /// <summary>The material a shape wears, as the report groups it - a ground's under its own word.</summary>
-    private static string MaterialName(MonsterModel model, int shape)
+    /// <summary>The material a shape wears, as the report groups it - a roof section's and a ground's each under its own word.</summary>
+    /// <remarks>
+    /// THE ROOF SECTION'S WORD FIRST: its pixels are kept out of everything, so a ground wearing one (none seen) is no measure of the ground's
+    /// light either. And IN THE NAME, not a field of its own, so the numbers keep their layout and a file written before carries no roof.
+    /// </remarks>
+    private static string MaterialName(MonsterModel model, int shape, RoofSections roofs)
     {
         string material = shape < model.ShapeMaterials.Count ? MaterialFile.Bare(model.ShapeMaterials[shape]) : string.Empty;
         string source = shape < model.ShapeSources.Count ? model.ShapeSources[shape] : string.Empty;
         string name = material.Length > 0 ? Path.GetFileNameWithoutExtension(material) : "(no material)";
-        return source.StartsWith(RoomModels.GroundSource, StringComparison.Ordinal) ? "ground: " + name : name;
+        return roofs.Of(material) ? RoofWord + name
+            : source.StartsWith(RoomModels.GroundSource, StringComparison.Ordinal) ? GroundWord + name
+            : name;
+    }
+
+    /// <summary>Which materials say they are roof sections - each .mat read once - and how many were asked, said so, and did not read.</summary>
+    private sealed class RoofSections(Func<string, byte[]?>? read)
+    {
+        private readonly Dictionary<string, bool> _said = new(StringComparer.OrdinalIgnoreCase);
+        private int _roofs;
+        private int _unread;
+
+        /// <summary>Whether a material, by its file, says it is a roof section - false where nothing can be read.</summary>
+        public bool Of(string material)
+        {
+            if (read is null || material.Length == 0)
+            {
+                return false;
+            }
+
+            if (_said.TryGetValue(material, out bool roof))
+            {
+                return roof;
+            }
+
+            // A FILE THAT DOES NOT READ costs its own answer, not the part: counted, and taken as no roof.
+            byte[]? bytes;
+            try
+            {
+                bytes = read(material);
+            }
+            catch (Exception failed) when (failed is IOException or InvalidDataException)
+            {
+                bytes = null;
+            }
+
+            _unread += bytes is { Length: > 0 } ? 0 : 1;
+            roof = MaterialFile.Read(bytes).RoofSection;
+            _roofs += roof ? 1 : 0;
+            _said[material] = roof;
+            return roof;
+        }
+
+        /// <summary>The line saying what was read.</summary>
+        public string Said()
+            => read is null
+                ? "roof sections: not looked for - no install to read the materials' .mat from, so every shape is compared"
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"roof sections: {_roofs} of the {_said.Count} materials the compared pixels wear say \"roofsection\" in their .mat{(_unread > 0 ? $" ({_unread} not in the install or not read)" : string.Empty)} - named \"{RoofWord}...\", their pixels left out of every statistic and set out on their own");
     }
 
     /// <summary>Whether a gathered pixel lies on a shape's edge or a step in depth - its colour there a mix of two surfaces in the game's picture.</summary>
@@ -302,8 +424,19 @@ public static class CaptureLightCompare
     }
 
     /// <summary>The report, from the samples alone - the part's and the replay's.</summary>
-    internal static string Report(Header header, IReadOnlyList<Sample> samples, string head)
+    internal static string Report(Header header, IReadOnlyList<Sample> every, string head)
     {
+        // ROOF SECTIONS APART: the game hides them round the player and shows what stands behind, so their pixels measure no light of the
+        // game's - kept out of every statistic and set out on their own. Told by their names alone, so a replay keeps them out as the part
+        // did, and numbers written before the word read as they were.
+        bool[] roof = Kinds(header, RoofWord);
+        var roofs = new List<Sample>();
+        var samples = new List<Sample>(every.Count);
+        foreach (Sample one in every)
+        {
+            (Of(roof, one) ? roofs : samples).Add(one);
+        }
+
         var text = new StringBuilder();
         Lighting[] classes = [Lighting.Lit, Lighting.Between, Lighting.Shade];
         int total = samples.Count;
@@ -322,7 +455,7 @@ public static class CaptureLightCompare
             .AppendLine();
         text.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"left out: {header.Left[0]:N0} no surface, {header.Left[1]:N0} water, {header.Left[2]:N0} translucent over it, {header.Left[3]:N0} beach or lifted water over it, {header.Left[4]:N0} the game's interface or something moving, {header.Left[5]:N0} past the game's far plane, {header.Left[6]:N0} a shape's edge, {header.Left[7]:N0} no game picture, {header.Left[8]:N0} the game's picture at its ceiling"));
+            $"left out: {header.Left[0]:N0} no surface, {header.Left[1]:N0} water, {header.Left[2]:N0} translucent over it, {header.Left[3]:N0} beach or lifted water over it, {header.Left[4]:N0} the game's interface or something moving, {header.Left[5]:N0} past the game's far plane, {header.Left[6]:N0} a shape's edge, {header.Left[7]:N0} no game picture, {header.Left[8]:N0} the game's picture at its ceiling, {roofs.Count:N0} roof sections the game hides round the player"));
         text.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
             $"gathered every {header.Step} drawn pixels each way, a drawn pixel {header.Factor} of the game's each way: {header.Width} x {header.Height}; exposure {header.Exposure:0.###}"));
@@ -385,7 +518,336 @@ public static class CaptureLightCompare
             text.AppendLine(line);
         }
 
+        text.AppendLine().AppendLine("=== roof sections - the game hides some round the player (said from the live client), the game over the pane by the distance across to the player");
+        foreach (string line in RoofLines(header, roofs))
+        {
+            text.AppendLine(line);
+        }
+
+        List<GroundBlock> blocks = GroundBlocks(header, samples, out int taken, out int sparse);
+        text.AppendLine().AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"=== the ground block by block - beyond {NearPlayer:0} units across of the player (all of it where no player was read), in blocks of {BlockSide} x {BlockSide} gathered pixels with {FewestPerBlock} ground pixels or more"));
+        foreach (string line in BlockRows(blocks, taken, sparse))
+        {
+            text.AppendLine(line);
+        }
+
+        text.AppendLine().AppendLine("=== the player's lamp - in the pane's shade, by the distance across to the player: the lamp's share of the pane's light, and the gain the game asks of it");
+        foreach (string line in LampLines(samples))
+        {
+            text.AppendLine(line);
+        }
+
+        text.AppendLine().AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"=== the ground's blocks one by one - column and row of {BlockSide} gathered pixels from the top left, as {BlocksPicture} draws them"));
+        if (blocks.Count > 0)
+        {
+            text.AppendLine("  column  row  pixels  sun share  game light  pane light  game over pane");
+            foreach (GroundBlock block in blocks)
+            {
+                text.AppendLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"  {block.Column,6} {block.Row,4} {block.Count,7:N0} {block.SunShare,10:0.###} {block.GameLight,11:0.####} {block.PaneLight,11:0.####} {block.GameOverPane,15:0.###}"));
+            }
+        }
+        else
+        {
+            text.AppendLine("  none");
+        }
+
         return text.ToString();
+    }
+
+    /// <summary>Which of the header's materials are named under a word.</summary>
+    private static bool[] Kinds(Header header, string word) => [.. header.Materials.Select(name => name.StartsWith(word, StringComparison.Ordinal))];
+
+    /// <summary>Whether a sample wears a material of a kind <see cref="Kinds"/> told.</summary>
+    private static bool Of(bool[] kind, Sample one) => one.Material >= 0 && one.Material < kind.Length && kind[one.Material];
+
+    /// <summary>The median of each pixel's game luminance over the pane's, where the pane's is not nought.</summary>
+    private static double MedianRatio(IEnumerable<Sample> samples)
+    {
+        var ratios = new List<double>();
+        foreach (Sample one in samples)
+        {
+            double pane = CaptureAtGame.Luminance(one.Pane);
+            if (pane > 1e-5)
+            {
+                ratios.Add(CaptureAtGame.Luminance(one.Game) / pane);
+            }
+        }
+
+        return Median(ratios);
+    }
+
+    /// <summary>The roof sections' lines: each material's pixels and the game over the pane, by the distance across to the player.</summary>
+    private static List<string> RoofLines(Header header, List<Sample> roofs)
+    {
+        if (roofs.Count == 0)
+        {
+            return ["  none: no material a compared pixel wears says \"roofsection\" - or none was read (the part's own line under \"what was drawn\" says which)"];
+        }
+
+        int kinds = roofs.Select(one => one.Material).Distinct().Count();
+        var lines = new List<string>
+        {
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"  {roofs.Count:N0} pixels of {kinds} {(kinds == 1 ? "material" : "materials")}, left out of every statistic above and below; a ratio is the median of each pixel's game luminance over the pane's"),
+        };
+        foreach (IGrouping<int, Sample> group in roofs.GroupBy(one => one.Material).OrderByDescending(group => group.Count()))
+        {
+            List<Sample> those = [.. group];
+            string name = group.Key < header.Materials.Count ? header.Materials[group.Key] : "?";
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"  {name}: {those.Count:N0} pixels, ratio {MedianRatio(those):0.###}"));
+            List<IGrouping<int, Sample>> bins = [.. those.Where(one => float.IsFinite(one.PlayerDistance)).GroupBy(one => (int)(one.PlayerDistance / RoofBin)).OrderBy(bin => bin.Key)];
+            if (bins.Count == 0)
+            {
+                lines.Add("    no player was read - no distance to set them out by");
+            }
+
+            foreach (IGrouping<int, Sample> bin in bins)
+            {
+                List<Sample> inBin = [.. bin];
+                lines.Add(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"    {bin.Key * RoofBin,6:0}-{(bin.Key + 1) * RoofBin,-6:0} units: {inBin.Count,7:N0} pixels, ratio {MedianRatio(inBin):0.###}"));
+            }
+        }
+
+        return lines;
+    }
+
+    /// <summary>One block of the ground the report counts.</summary>
+    /// <param name="Column">Its column, from the left, in blocks.</param>
+    /// <param name="Row">Its row, from the top, in blocks.</param>
+    /// <param name="Count">Its ground pixels.</param>
+    /// <param name="SunShare">The share of them in the pane's sun (<see cref="Lighting.Lit"/>).</param>
+    /// <param name="GameLight">The median of each one's game luminance over its albedo's.</param>
+    /// <param name="PaneLight">The median of each one's pane luminance over its albedo's.</param>
+    /// <param name="GameOverPane">The median of each one's game luminance over the pane's.</param>
+    internal readonly record struct GroundBlock(int Column, int Row, int Count, double SunShare, double GameLight, double PaneLight, double GameOverPane);
+
+    /// <summary>
+    /// The ground's samples beyond the player's lamp in blocks of <see cref="BlockSide"/> gathered pixels, those with
+    /// <see cref="FewestPerBlock"/> or more - in rows from the top, each from the left.
+    /// </summary>
+    /// <remarks>
+    /// A BLOCK'S LIGHT IS ITS PIXELS' MEDIAN, so a stone, a fern or a weapon the tool strews by its own pattern where the game strews by
+    /// another moves nothing, while the light over the ground - the sun and its shadows, which are what is in question - stays. Beyond the
+    /// player's lamp, whose radius in the pane is CHOSEN and whose strength in the game the lamp's own section measures, so the two
+    /// questions do not mix; a pixel with no player read is beyond it.
+    /// </remarks>
+    /// <param name="header">The numbers' header - its width and its materials' names.</param>
+    /// <param name="samples">The compared pixels.</param>
+    /// <param name="taken">The ground pixels beyond the lamp.</param>
+    /// <param name="sparse">Those of them in blocks too sparse to count.</param>
+    internal static List<GroundBlock> GroundBlocks(Header header, IReadOnlyList<Sample> samples, out int taken, out int sparse)
+    {
+        bool[] ground = Kinds(header, GroundWord);
+        int width = Math.Max(1, header.Width);
+        int columns = (width + BlockSide - 1) / BlockSide;
+        var members = new Dictionary<int, List<int>>();
+        taken = 0;
+        for (var at = 0; at < samples.Count; at++)
+        {
+            Sample one = samples[at];
+            if (!Of(ground, one) || one.Index < 0 || one.PlayerDistance <= NearPlayer)
+            {
+                continue;
+            }
+
+            taken++;
+            int key = (one.Index / width / BlockSide * columns) + (one.Index % width / BlockSide);
+            if (!members.TryGetValue(key, out List<int>? those))
+            {
+                those = [];
+                members[key] = those;
+            }
+
+            those.Add(at);
+        }
+
+        var blocks = new List<GroundBlock>();
+        sparse = 0;
+        var game = new List<double>();
+        var pane = new List<double>();
+        var ratio = new List<double>();
+        foreach ((int key, List<int> those) in members.OrderBy(pair => pair.Key))
+        {
+            if (those.Count < FewestPerBlock)
+            {
+                sparse += those.Count;
+                continue;
+            }
+
+            game.Clear();
+            pane.Clear();
+            ratio.Clear();
+            var lit = 0;
+            foreach (int at in those)
+            {
+                Sample one = samples[at];
+                lit += one.Class == Lighting.Lit ? 1 : 0;
+                double albedo = Math.Max(CaptureAtGame.Luminance(one.Albedo), 1e-4);
+                double g = CaptureAtGame.Luminance(one.Game), p = CaptureAtGame.Luminance(one.Pane);
+                game.Add(g / albedo);
+                pane.Add(p / albedo);
+                if (p > 1e-5)
+                {
+                    ratio.Add(g / p);
+                }
+            }
+
+            blocks.Add(new GroundBlock(key % columns, key / columns, those.Count, (double)lit / those.Count, Median(game), Median(pane), Median(ratio)));
+        }
+
+        return blocks;
+    }
+
+    /// <summary>The ground's blocks set out by the share of each the pane's sun reaches, and the two pictures' contrast between lit and shaded.</summary>
+    private static List<string> BlockRows(List<GroundBlock> blocks, int taken, int sparse)
+    {
+        var lines = new List<string>
+        {
+            "  pixel by pixel the comparison is ruled by small things that cannot match - the ground's scatter is strewn by the tool's own CHOSEN pattern - so the ground is held here in blocks, each one's light its pixels' median: the luminance over the albedo's",
+            string.Create(CultureInfo.InvariantCulture, $"  {blocks.Count:N0} blocks of {taken - sparse:N0} ground pixels; {sparse:N0} more in blocks of fewer than {FewestPerBlock}"),
+        };
+        if (blocks.Count == 0)
+        {
+            return lines;
+        }
+
+        lines.Add("  sun share  blocks  game light  its quartiles         pane light  game over pane");
+        foreach ((string label, double from, double to) in ShareRows)
+        {
+            List<GroundBlock> row = [.. blocks.Where(block => block.SunShare >= from && block.SunShare < to)];
+            if (row.Count == 0)
+            {
+                lines.Add(string.Create(CultureInfo.InvariantCulture, $"  {label,-9} {0,7}"));
+                continue;
+            }
+
+            List<double> game = [.. row.Select(block => block.GameLight)];
+            game.Sort();
+            int n = game.Count;
+            lines.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  {label,-9} {n,7:N0} {game[n / 2],11:0.####} {game[n / 4],9:0.####}..{game[n * 3 / 4],-9:0.####} {Median([.. row.Select(block => block.PaneLight)]),10:0.####} {Median([.. row.Select(block => block.GameOverPane)]),15:0.###}"));
+        }
+
+        // THE CONTRAST, lit blocks over shaded ones in each picture: the pane's sun against its own shade beside the game's over the same
+        // blocks - a game keeping less of it darkens its sun where the pane lights the ground (or lightens its shade).
+        List<GroundBlock> lit = [.. blocks.Where(block => block.SunShare >= 0.7)];
+        List<GroundBlock> shaded = [.. blocks.Where(block => block.SunShare < 0.1)];
+        if (lit.Count == 0 || shaded.Count == 0)
+        {
+            lines.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  contrast: not measured - {lit.Count} blocks lit (a sun share of 0.7 or more), {shaded.Count} shaded (under 0.1)"));
+            return lines;
+        }
+
+        double pane = Median([.. lit.Select(block => block.PaneLight)]) / Median([.. shaded.Select(block => block.PaneLight)]);
+        double gameContrast = Median([.. lit.Select(block => block.GameLight)]) / Median([.. shaded.Select(block => block.GameLight)]);
+        lines.Add(string.Create(
+            CultureInfo.InvariantCulture,
+            $"  contrast: the pane's light in its lit blocks (a sun share of 0.7 or more, {lit.Count:N0}) over its shaded ones' (under 0.1, {shaded.Count:N0}) {pane:0.##} to 1, the game's over the same blocks {gameContrast:0.##} to 1 - the game keeps {gameContrast / pane:0.###} of the pane's"));
+        return lines;
+    }
+
+    /// <summary>
+    /// The player's lamp in the pane's shade by the distance to the player: its share of the pane's light, and the gain on it that makes the
+    /// game's - (the game's light before its grade and exposure, less the pane's without the lamp) over the pane's lamp, each pixel's luminance.
+    /// </summary>
+    /// <remarks>
+    /// IN THE SHADE ALONE, where the sun adds nothing to either picture; and the gain only where the lamp gives over
+    /// <see cref="LampShareFloor"/> of the light, below which the rest's difference would be divided by next to nothing. One says the game's
+    /// lamp is the pane's, two that it is twice as strong there; it is a measurement for the lamp, which is not changed here.
+    /// </remarks>
+    private static List<string> LampLines(List<Sample> samples)
+    {
+        var shares = new List<double>[LampBins];
+        var gains = new List<double>[LampBins];
+        var counts = new int[LampBins];
+        for (var bin = 0; bin < LampBins; bin++)
+        {
+            shares[bin] = [];
+            gains[bin] = [];
+        }
+
+        var placed = false;
+        foreach (Sample one in samples)
+        {
+            if (one.Class != Lighting.Shade || !float.IsFinite(one.PlayerDistance))
+            {
+                continue;
+            }
+
+            placed = true;
+            int bin = (int)(one.PlayerDistance / LampBin);
+            if (bin < 0 || bin >= LampBins)
+            {
+                continue;
+            }
+
+            counts[bin]++;
+            double light = CaptureAtGame.Luminance(one.Unexposed), lamp = CaptureAtGame.Luminance(one.Player);
+            if (!(light > 1e-6))
+            {
+                continue;
+            }
+
+            double share = lamp / light;
+            shares[bin].Add(share);
+            if (share > LampShareFloor)
+            {
+                gains[bin].Add((CaptureAtGame.Luminance(one.GameUnexposed) - (light - lamp)) / lamp);
+            }
+        }
+
+        var lines = new List<string>
+        {
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"  each pixel's luminance: the lamp's share of the pane's light before the exposure, the median over the bin; the gain, the game's light taken back through the pane's grade and exposure less the pane's without its lamp, over the pane's lamp - the median and quartiles over the pixels the lamp gives more than {LampShareFloor:0.##} of their light; one says the game's lamp is the pane's"),
+        };
+        if (!placed)
+        {
+            lines.Add("  not measured - no player was read, so there is no distance to set the pixels out by");
+            return lines;
+        }
+
+        var all = new List<double>();
+        for (var bin = 0; bin < LampBins; bin++)
+        {
+            if (counts[bin] == 0)
+            {
+                continue;
+            }
+
+            List<double> gain = gains[bin];
+            all.AddRange(gain);
+            gain.Sort();
+            string asked = gain.Count == 0
+                ? string.Create(CultureInfo.InvariantCulture, $"none with a share over {LampShareFloor:0.##}")
+                : string.Create(CultureInfo.InvariantCulture, $"the gain asked {gain[gain.Count / 2]:0.###} ({gain[gain.Count / 4]:0.###}..{gain[gain.Count * 3 / 4]:0.###}) of {gain.Count:N0}");
+            lines.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  {bin * LampBin,5:0}-{(bin + 1) * LampBin,-5:0} units: {counts[bin],7:N0} pixels in shade, the lamp's share {Median(shares[bin]):0.###}; {asked}"));
+        }
+
+        all.Sort();
+        lines.Add(all.Count == 0
+            ? string.Create(
+                CultureInfo.InvariantCulture,
+                $"  all: no pixel in the pane's shade within {LampBins * LampBin:N0} units takes over {LampShareFloor:0.##} of its light from the lamp - none is drawn, or it reaches no shade")
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"  all within {LampBins * LampBin:N0} units: the gain asked {all[all.Count / 2]:0.###} ({all[all.Count / 4]:0.###}..{all[all.Count * 3 / 4]:0.###}) of {all.Count:N0}"));
+        return lines;
     }
 
     /// <summary>Medians, chromaticities and saturations of a set of samples.</summary>
@@ -757,8 +1219,15 @@ public static class CaptureLightCompare
 
     private static string Shorten(string text, int most) => text.Length <= most ? text : "..." + text[^(most - 3)..];
 
+    /// <summary>A ratio's colour in the pictures: its log2 from -2 to 2, blue the game darker, white equal, red brighter.</summary>
+    private static (byte R, byte G, byte B) Heat(double ratio)
+    {
+        float t = Math.Clamp((float)(Math.Log2(ratio) / 2d), -1f, 1f);
+        return ((byte)(t >= 0f ? 255 : (int)(255 * (1f + t))), (byte)(255 * (1f - MathF.Abs(t))), (byte)(t <= 0f ? 255 : (int)(255 * (1f - t))));
+    }
+
     /// <summary>The pictures beside the report.</summary>
-    private static List<(string File, GamePicture Picture)> Pictures(CaptureAtGame scene, IReadOnlyList<Sample> samples)
+    private static List<(string File, GamePicture Picture)> Pictures(CaptureAtGame scene, Header header, IReadOnlyList<Sample> samples)
     {
         int w = scene.Gather.Width, h = Math.Min(scene.Gather.Width, (scene.DrawnHeight + scene.Gather.Step - 1) / scene.Gather.Step);
         var ratio = new byte[w * h * 4];
@@ -779,6 +1248,29 @@ public static class CaptureLightCompare
             sun[(at * 4) + 3] = 255;
         }
 
+        // THE BLOCKS OVER THE GAME'S GREY, the ground the report counts filled block by block.
+        byte[] tiles = (byte[])ratio.Clone();
+        foreach (GroundBlock block in GroundBlocks(header, samples, out _, out _))
+        {
+            if (!(block.GameOverPane > 0d))
+            {
+                continue;
+            }
+
+            (byte red, byte green, byte blue) = Heat(block.GameOverPane);
+            for (int y = block.Row * BlockSide, bottom = Math.Min(h, y + BlockSide); y < bottom; y++)
+            {
+                for (int x = block.Column * BlockSide, right = Math.Min(w, x + BlockSide); x < right; x++)
+                {
+                    int to = ((y * w) + x) * 4;
+                    tiles[to] = red;
+                    tiles[to + 1] = green;
+                    tiles[to + 2] = blue;
+                }
+            }
+        }
+
+        bool[] roof = Kinds(header, RoofWord);
         foreach (Sample one in samples)
         {
             if (one.Index >= w * h)
@@ -787,13 +1279,17 @@ public static class CaptureLightCompare
             }
 
             double g = CaptureAtGame.Luminance(one.Game), p = CaptureAtGame.Luminance(one.Pane);
-            if (g > 1e-5 && p > 1e-5)
+            if (Of(roof, one))
             {
-                float t = Math.Clamp((float)(Math.Log2(g / p) / 2d), -1f, 1f);
                 int at = one.Index * 4;
-                ratio[at] = (byte)(t >= 0f ? 255 : (int)(255 * (1f + t)));
-                ratio[at + 1] = (byte)(255 * (1f - MathF.Abs(t)));
-                ratio[at + 2] = (byte)(t <= 0f ? 255 : (int)(255 * (1f - t)));
+                ratio[at] = 255;
+                ratio[at + 1] = 0;
+                ratio[at + 2] = 255;
+            }
+            else if (g > 1e-5 && p > 1e-5)
+            {
+                int at = one.Index * 4;
+                (ratio[at], ratio[at + 1], ratio[at + 2]) = Heat(g / p);
             }
 
             Vector3 tint = one.Class switch
@@ -814,6 +1310,7 @@ public static class CaptureLightCompare
             (PanePicture, new GamePicture(scene.DrawnWidth, scene.DrawnHeight, scene.Picture)),
             (RatioPicture, new GamePicture(w, h, ratio)),
             (SunPicture, new GamePicture(w, h, sun)),
+            (BlocksPicture, new GamePicture(w, h, tiles)),
         ];
     }
 
