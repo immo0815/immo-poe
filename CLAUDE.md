@@ -562,7 +562,12 @@ light (built as "game light" would build it, ticked or not - SceneLightPanel.Mea
   said to line up (no shift measured, nought taken as agreement); a light with no sun counted every face towards its way as in the sun
   (`LightTerms.Sun` and `SunFacing` are nought now where there is no sun); t counted the lost pixels of groups no brighter lit than
   shaded among the judged, pulling it to nought; the verdict grouped by shape, a laid block's ground being dozens of shapes of one
-  material; and a cut card's kept shadow was credited to whatever cast once cut.
+  material; and a cut card's kept shadow was credited to whatever cast once cut. v0.1.371: THE GAME'S PICTURE AT ITS CEILING is left out of
+  both comparisons (`CaptureAtGame.Clipped`, a channel at 254 or more in the block, CHOSEN) - the game's picture clips where its light passes
+  one while the pane's is unclamped, and MEASURED on the captures' game pictures Port's sunlit cobblestones reach 255 on 0.7 to 4.3% of the
+  picture, Crimson Shores' arena floor on 2.5 to 3.4%: taken as exact they read as a pane too bright and too saturated. The numbers are
+  version 2 (a ninth reason left out; version 1 still replays). A drawing's or a part's failure inside a parallel loop (AggregateException)
+  no longer ends the whole capture; the light panel's lines take the frame at the press and the lamp's height as set.
 
 ## Verify against the game, not against yourself
 

@@ -402,8 +402,9 @@ public static class CaptureShadowCasters
             rgba[to + 1] = CaptureAtGame.Encoded(game.Y * 0.5f);
             rgba[to + 2] = CaptureAtGame.Encoded(game.Z * 0.5f);
             int triangle = gather.Triangle[at];
+            // THE GAME'S PICTURE AT ITS CEILING is a bound, not its light - left out as the light's comparison leaves it out.
             if (triangle < 0 || triangle >= shapeOf.Length || shapeOf[triangle] < 0 || !ground[shapeOf[triangle]] || gather.Water[at]
-                || scene.Layer[drawnAt] >= 0 || scene.Masked[drawnAt])
+                || scene.Layer[drawnAt] >= 0 || scene.Masked[drawnAt] || scene.Clipped[drawnAt])
             {
                 continue;
             }

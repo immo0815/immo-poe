@@ -110,6 +110,18 @@ public sealed class CaptureAtGame
     /// <summary>The game's picture averaged over each drawn pixel's block, linear red green blue; empty where there was no picture.</summary>
     public float[] Game { get; private set; } = [];
 
+    /// <summary>
+    /// The drawn pixels whose block of the game's picture reaches its ceiling in a channel somewhere - its light there a bound, not a measure;
+    /// empty where there was no picture.
+    /// </summary>
+    public bool[] Clipped { get; private set; } = [];
+
+    /// <summary>
+    /// A byte of the game's picture at or past which its light is taken as clipped - CHOSEN a level under the top, for the dithering a
+    /// picture's last bit may carry.
+    /// </summary>
+    internal const byte Ceiling = 254;
+
     /// <summary>The drawn pixels left out of every comparison: the game's interface, the player, monsters and effects.</summary>
     public bool[] Masked { get; private set; } = [];
 
@@ -241,7 +253,7 @@ public sealed class CaptureAtGame
         scene.Gather = gather;
         scene.ShapeOf = ShapesOf(mesh);
         search?.Step("averaging the game's picture");
-        scene.Game = bgr is { } bytes && bytes.Length >= width * height * 3 ? Averaged(bytes, width, height, factor, drawnWidth, drawnHeight) : [];
+        (scene.Game, scene.Clipped) = bgr is { } bytes && bytes.Length >= width * height * 3 ? Averaged(bytes, width, height, factor, drawnWidth, drawnHeight) : ([], []);
         (scene.Masked, string masked) = Masks(shot, camera, width, height, factor, drawnWidth, drawnHeight);
 
         Vector3 player = shot.Player is { } one ? new Vector3(one.WorldX, one.WorldY, one.WorldZ) : new Vector3(float.NaN);
@@ -294,27 +306,37 @@ public sealed class CaptureAtGame
 
     /// <summary>
     /// The game's picture averaged over each drawn pixel's block, in linear light - its bytes decoded by the piecewise sRGB curve (CHOSEN: the
-    /// engine's ApplyOETF is unread; the tool encodes its own pictures so).
+    /// engine's ApplyOETF is unread; the tool encodes its own pictures so) - and whether the block reaches the picture's ceiling anywhere.
     /// </summary>
-    private static float[] Averaged(byte[] bgr, int width, int height, int factor, int drawnWidth, int drawnHeight)
+    /// <remarks>
+    /// THE CEILING IS KEPT APART because the game's picture clips where its light passes one (the engine's tonemap a multiply, its grade
+    /// keeping the range) while the pane's light is unclamped. MEASURED on the captures' game pictures: Port's sunlit cobblestones round the
+    /// player reach 255, nearly all in red, on 0.7 to 4.3% of the picture, Crimson Shores' arena floor on 2.5 to 3.4% - and taken as exact
+    /// they read as a pane too bright and too saturated, the very question the comparison is to settle.
+    /// </remarks>
+    private static (float[] Game, bool[] Clipped) Averaged(byte[] bgr, int width, int height, int factor, int drawnWidth, int drawnHeight)
     {
         float[] linear = Linear;
         var game = new float[drawnWidth * drawnHeight * 3];
+        var clipped = new bool[drawnWidth * drawnHeight];
         Parallel.For(0, drawnHeight, y =>
         {
             for (var x = 0; x < drawnWidth; x++)
             {
                 float r = 0f, g = 0f, b = 0f;
                 var count = 0;
+                var top = false;
                 for (int dy = 0; dy < factor && (y * factor) + dy < height; dy++)
                 {
                     int row = ((y * factor) + dy) * width;
                     for (int dx = 0; dx < factor && (x * factor) + dx < width; dx++)
                     {
                         int at = (row + (x * factor) + dx) * 3;
-                        b += linear[bgr[at]];
-                        g += linear[bgr[at + 1]];
-                        r += linear[bgr[at + 2]];
+                        byte blue = bgr[at], green = bgr[at + 1], red = bgr[at + 2];
+                        b += linear[blue];
+                        g += linear[green];
+                        r += linear[red];
+                        top |= blue >= Ceiling || green >= Ceiling || red >= Ceiling;
                         count++;
                     }
                 }
@@ -323,10 +345,11 @@ public sealed class CaptureAtGame
                 game[to] = r / count;
                 game[to + 1] = g / count;
                 game[to + 2] = b / count;
+                clipped[(y * drawnWidth) + x] = top;
             }
         });
 
-        return game;
+        return (game, clipped);
     }
 
     /// <summary>

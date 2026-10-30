@@ -45,14 +45,21 @@ public static class CaptureLightCompare
 
     /// <summary>How the numbers are laid out, written into the report.</summary>
     public const string BinaryFormat =
-        "little-endian: \"PLAG\", int version 1, int gathered width, int gathered height, int step, int factor, float exposure, int left-out counts (8: no surface, water, "
-        + "translucent over it, beach or lifted water over it, masked, past the far plane, a shape's edge, no game picture), int materials, each a ushort "
+        "little-endian: \"PLAG\", int version 2, int gathered width, int gathered height, int step, int factor, float exposure, int left-out counts (9: no surface, water, "
+        + "translucent over it, beach or lifted water over it, masked, past the far plane, a shape's edge, no game picture, the game's picture at its ceiling; "
+        + "version 1 had the first 8), int materials, each a ushort "
         + "length and UTF-8, int samples, each: int gathered index, int shape (-1 none), int material, then halves: game rgb, game unexposed rgb, pane rgb, "
         + "albedo rgb, sun, facing, sun diffuse rgb, cube rgb, gi stand-in and flat rgb, room lights rgb, player lamp rgb, specular rgb, pane unexposed rgb; "
         + "then floats: depth, distance to the player across";
 
     /// <summary>The least samples a material needs to be reported on its own.</summary>
     private const int FewestPerMaterial = 400;
+
+    /// <summary>How many reasons a gathered pixel is left out for - see <see cref="BinaryFormat"/>.</summary>
+    private const int Reasons = 9;
+
+    /// <summary>How far across from the player the left-out ceiling is counted as under the player's lamp, units.</summary>
+    private const float NearPlayer = 500f;
 
     /// <summary>
     /// The part's report and what goes beside it: the pictures and the numbers.
@@ -83,7 +90,9 @@ public static class CaptureLightCompare
         }
 
         Vector2 player = scene.PlayerAcross - scene.Origin;
-        var left = new int[8];
+        var left = new int[Reasons];
+        var ceiling = new int[3];
+        var ceilingNear = 0;
         var samples = new List<Sample>(gather.Triangle.Length / 2);
         int width = gather.Width;
         for (var at = 0; at < gather.Triangle.Length; at++)
@@ -147,6 +156,16 @@ public static class CaptureLightCompare
 
             SceneLight.LightTerms terms = gather.Terms[at];
             Vector3 place = gather.Place[at];
+
+            // THE GAME'S PICTURE AT ITS CEILING says only that its light is at least this much - left out, and said by the pane's sun and
+            // by the player's lamp, where it gathers.
+            if (scene.Clipped[drawn])
+            {
+                left[8]++;
+                ceiling[(int)ClassOf(terms.Sun, terms.SunFacing)]++;
+                ceilingNear += !float.IsNaN(player.X) && Vector2.Distance(new Vector2(place.X, place.Y), player) < NearPlayer ? 1 : 0;
+                continue;
+            }
             samples.Add(new Sample(
                 at, shape, shape >= 0 ? shapeMaterial[shape] : -1, game, Ungraded(game, light), terms.Graded, terms.Albedo, terms.Sun, terms.SunFacing,
                 terms.SunDiffuse, terms.Cube, terms.GiStandIn + terms.Flat, terms.RoomDiffuse, terms.PlayerDiffuse,
@@ -162,6 +181,9 @@ public static class CaptureLightCompare
         text.Append(Report(header, samples, "light against the game"));
         text.AppendLine().AppendLine("=== what was drawn");
         text.AppendLine(scene.LinedUp());
+        text.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"the game's picture at its ceiling (a channel at {CaptureAtGame.Ceiling} or more in the block): {left[8]:N0} pixels left out - {ceiling[(int)Lighting.Lit]:N0} in the pane's sun, {ceiling[(int)Lighting.Between]:N0} between, {ceiling[(int)Lighting.Shade]:N0} in its shade; {ceilingNear:N0} within {NearPlayer:0} units across of the player"));
         foreach (string line in scene.Said)
         {
             text.AppendLine(line);
@@ -198,8 +220,12 @@ public static class CaptureLightCompare
         Vector3 Cube, Vector3 GiFlat, Vector3 Room, Vector3 Player, Vector3 Specular, Vector3 Unexposed, float Depth, float PlayerDistance)
     {
         /// <summary>The pane's sun at the pixel: lit, between, or in shade.</summary>
-        public Lighting Class => Sun >= 0.9f && Facing > 0.1f ? Lighting.Lit : Sun <= 0.1f || Facing <= 0.02f ? Lighting.Shade : Lighting.Between;
+        public Lighting Class => ClassOf(Sun, Facing);
     }
+
+    /// <summary>The pane's sun at a pixel from how much of it reached and how squarely: lit, between, or in shade.</summary>
+    internal static Lighting ClassOf(float sun, float facing)
+        => sun >= 0.9f && facing > 0.1f ? Lighting.Lit : sun <= 0.1f || facing <= 0.02f ? Lighting.Shade : Lighting.Between;
 
     /// <summary>How the pane's sun reaches a pixel.</summary>
     internal enum Lighting
@@ -292,7 +318,7 @@ public static class CaptureLightCompare
             .AppendLine();
         text.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"left out: {header.Left[0]:N0} no surface, {header.Left[1]:N0} water, {header.Left[2]:N0} translucent over it, {header.Left[3]:N0} beach or lifted water over it, {header.Left[4]:N0} the game's interface or something moving, {header.Left[5]:N0} past the game's far plane, {header.Left[6]:N0} a shape's edge, {header.Left[7]:N0} no game picture"));
+            $"left out: {header.Left[0]:N0} no surface, {header.Left[1]:N0} water, {header.Left[2]:N0} translucent over it, {header.Left[3]:N0} beach or lifted water over it, {header.Left[4]:N0} the game's interface or something moving, {header.Left[5]:N0} past the game's far plane, {header.Left[6]:N0} a shape's edge, {header.Left[7]:N0} no game picture, {header.Left[8]:N0} the game's picture at its ceiling"));
         text.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
             $"gathered every {header.Step} drawn pixels each way, a drawn pixel {header.Factor} of the game's each way: {header.Width} x {header.Height}; exposure {header.Exposure:0.###}"));
@@ -343,7 +369,7 @@ public static class CaptureLightCompare
             text.AppendLine(MaterialRow(name, those));
         }
 
-        text.AppendLine().AppendLine("=== the game over the pane by the distance across to the player (the player's lamp: CHOSEN 500 units, 100 up)");
+        text.AppendLine().AppendLine("=== the game over the pane by the distance across to the player (the player's lamp, CHOSEN - its radius and height in the light panel's switches line)");
         foreach (string line in Binned(samples.Where(one => float.IsFinite(one.PlayerDistance)), one => one.PlayerDistance, 100f, 12, "units"))
         {
             text.AppendLine(line);
@@ -793,7 +819,7 @@ public static class CaptureLightCompare
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8);
         writer.Write("PLAG"u8);
-        writer.Write(1);
+        writer.Write(2);
         writer.Write(header.Width);
         writer.Write(header.Height);
         writer.Write(header.Step);
@@ -850,15 +876,17 @@ public static class CaptureLightCompare
     internal static (Header Header, List<Sample> Samples) Read(byte[] bytes)
     {
         using var reader = new BinaryReader(new MemoryStream(bytes), Encoding.UTF8);
-        if (!reader.ReadBytes(4).AsSpan().SequenceEqual("PLAG"u8) || reader.ReadInt32() != 1)
+        int version = reader.ReadBytes(4).AsSpan().SequenceEqual("PLAG"u8) ? reader.ReadInt32() : -1;
+        if (version is not (1 or 2))
         {
-            throw new InvalidDataException("not the light-against-the-game numbers of version 1");
+            throw new InvalidDataException("not the light-against-the-game numbers of version 1 or 2");
         }
 
+        // VERSION 1 KEPT NO CEILING: its pixels at the game's ceiling are among the samples, and its ninth reason reads nought.
         int width = reader.ReadInt32(), height = reader.ReadInt32(), step = reader.ReadInt32(), factor = reader.ReadInt32();
         float exposure = reader.ReadSingle();
-        var left = new int[8];
-        for (var at = 0; at < left.Length; at++)
+        var left = new int[Reasons];
+        for (var at = 0; at < (version == 1 ? 8 : Reasons); at++)
         {
             left[at] = reader.ReadInt32();
         }

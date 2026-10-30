@@ -654,9 +654,11 @@ internal sealed class CaptureKey
                     : line.StartsWith("FAILED", StringComparison.Ordinal) ? CaptureStepState.Failed
                     : CaptureStepState.Done);
             }
-            catch (Exception failed) when (failed is IOException or UnauthorizedAccessException or InvalidOperationException or ArgumentException or NotSupportedException)
+            // A PARALLEL LOOP'S FAILURE ARRIVES WRAPPED (Parallel.For's AggregateException), whatever it was - let through, it would end the
+            // whole writing, every part after it and the zip with it.
+            catch (Exception failed) when (failed is IOException or UnauthorizedAccessException or InvalidOperationException or ArgumentException or NotSupportedException or AggregateException)
             {
-                Said(file, "FAILED: " + failed.Message, CaptureStepState.Failed);
+                Said(file, "FAILED: " + failed.GetBaseException().Message, CaptureStepState.Failed);
             }
             finally
             {
@@ -1223,9 +1225,12 @@ internal sealed class CaptureKey
                 {
                     scene = CaptureAtGame.Draw(chosen, shot, run.Game, client.Width, client.Height, run.AtGame, out notDrawn);
                 }
-                catch (Exception failed) when (failed is InvalidOperationException or ArgumentException or IndexOutOfRangeException or OutOfMemoryException)
+
+                // THE DRAWING TAKES WHAT THE PANE'S OWN RENDER TAKES: every input is out of the game's files, and a band's failure arrives
+                // wrapped by its parallel loop - the buffers' size, too, is no reason to lose the rest of the capture.
+                catch (Exception failed) when (failed is not StackOverflowException)
                 {
-                    notDrawn = "drawing it failed: " + failed.Message;
+                    notDrawn = "drawing it failed: " + failed.GetBaseException().Message;
                 }
             }
 

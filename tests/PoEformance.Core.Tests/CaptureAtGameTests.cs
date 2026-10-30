@@ -154,13 +154,49 @@ public class CaptureAtGameTests
         Assert.Matches(@"t over the 0 judged -; [1-9][\d,]* more in groups no brighter lit than shaded, not judged", even);
     }
 
+    /// <summary>
+    /// A game picture that is the pane's own under a sun bright enough to clip it compares as the same picture: the blocks at its ceiling are
+    /// left out rather than read as a game darker and greyer than the pane - and a version 1 file, which kept no ceiling, still replays.
+    /// </summary>
+    [Fact]
+    public void THEGAMESPictureAtItsCeilingIsLeftOutNotTakenAsItsLight()
+    {
+        CapturePane pane = Stage(MaterialBlend.Opaque, sun: 9f);
+        WorldSnapshot shot = Shot();
+        CaptureAtGame own = CaptureAtGame.Draw(pane, shot, null, Width, Height, null, out _)!;
+        CaptureAtGame scene = CaptureAtGame.Draw(pane, shot, Game(own, 1f), Width, Height, null, out _)!;
+        Assert.Contains(scene.Clipped, one => one);
+
+        string report = CaptureLightCompare.Write(scene, out _, out byte[] numbers);
+        string head = report[..report.IndexOf('\n')];
+        // WITHIN THE BYTES' ROUNDING of the dark shade left over - taken as exact, the clipped sun would put the median near 0.4.
+        Assert.True(Regex.IsMatch(head, @"median (0\.9[5-9]\d*|1(\.0[0-5]\d*)?);"), report);
+        Assert.Matches(@"[1-9][\d,]* the game's picture at its ceiling", report);
+        Assert.True(Regex.IsMatch(report, @"all\s+s (0\.9[5-9]\d*|1(\.0[0-5]\d*)?)\s"), report);
+
+        // VERSION 1: the same numbers less the ninth reason - read with nought there.
+        byte[] first = [.. numbers[..4], .. BitConverter.GetBytes(1), .. numbers[8..60], .. numbers[64..]];
+        string folder = Directory.CreateTempSubdirectory("light-against-game-v1").FullName;
+        try
+        {
+            File.WriteAllBytes(Path.Combine(folder, CaptureLightCompare.Numbers), first);
+            string replay = CaptureLightCompare.Replay(folder);
+            Assert.Contains(", 0 the game's picture at its ceiling", replay, StringComparison.Ordinal);
+            Assert.Equal(head[head.IndexOf(':', StringComparison.Ordinal)..], replay[..replay.IndexOf('\n')][replay.IndexOf(':', StringComparison.Ordinal)..]);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
     private static int Count(string number) => int.Parse(number, NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
 
     /// <summary>
     /// A floor laid in the area under a slab of the blend asked and a solid rock beside it, lit by a sun from the side - with no sun, the
     /// floor in two shapes of one material, or a block under the slab, where asked.
     /// </summary>
-    private static CapturePane Stage(MaterialBlend slab, bool sunless = false, bool splitFloor = false, bool blockUnder = false)
+    private static CapturePane Stage(MaterialBlend slab, bool sunless = false, bool splitFloor = false, bool blockUnder = false, float sun = 2f)
     {
         var places = new List<Vector3>
         {
@@ -231,7 +267,7 @@ public class CaptureAtGameTests
         {
             Ambient = SceneAmbient.Flat,
             FlatAmbient = 0.05f,
-            SunColour = sunless ? Vector3.Zero : new Vector3(2f),
+            SunColour = sunless ? Vector3.Zero : new Vector3(sun),
             SunDirection = Vector3.Normalize(new Vector3(0.2f, 0.1f, 1f)),
             SunShadows = true,
         };

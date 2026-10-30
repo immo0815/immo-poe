@@ -268,10 +268,12 @@ public sealed class SceneLightPanel : IMovableSun
         {
             string.Create(
                 CultureInfo.InvariantCulture,
-                $"switches: game light {(_on ? "on" : "off - the light below is the one it would draw")}, sun {_sun}, shadows {_shadows}, free sun {_freeSun}, room lights {_points} ({(SceneLight.PointShape)_pointShape}), player light {_playerLight} (radius {_playerRadius:0}, {UsualPlayerHeight:0} up), ambient {(SceneAmbient)_ambient} (flat {_flat:0.#####}), cube reading {_cubeReading + 1}, exposure {_exposure}, grade {_grade}, view {SceneLight.ViewNames[Math.Clamp(_view, 0, SceneLight.ViewNames.Count - 1)]}"),
+                $"switches: game light {(_on ? "on" : "off - the light below is the one it would draw")}, sun {_sun}, shadows {_shadows}, free sun {_freeSun}, room lights {_points} ({(SceneLight.PointShape)_pointShape}), player light {_playerLight} (radius {_playerRadius:0}, {_playerHeight:0} up), ambient {(SceneAmbient)_ambient} (flat {_flat:0.#####}), cube reading {_cubeReading + 1}, exposure {_exposure}, grade {_grade}, view {SceneLight.ViewNames[Math.Clamp(_view, 0, SceneLight.ViewNames.Count - 1)]}"),
             "environment: " + (Chosen().Length > 0 ? Chosen() : "none"),
         };
-        said.AddRange(Lines(model, _labelsFrame));
+        // THE FRAME AT THE PRESS, not the one the panel last labelled by: that is only set while the panel draws with "game light" ticked, and
+        // left at nought it says the sun stands straight overhead.
+        said.AddRange(Lines(model, Frame()));
         return (light, said);
     }
 
