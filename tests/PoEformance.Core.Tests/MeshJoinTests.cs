@@ -136,6 +136,40 @@ public class MeshJoinTests
         }
     }
 
+    /// <summary>
+    /// A piece moved before it is joined has exactly the box it was moved to, and nothing of its file's.
+    /// </summary>
+    /// <remarks>
+    /// THE FIRST PIECE'S FILE BOX WAS IN EVERY UNION before v0.1.374, and nothing above caught it: each
+    /// test joins a body that stays where it is first. A room's pieces all carry a place, the first as
+    /// much as any - here a tile's square laid a tile along y and at the Titan Grotto's level, -875.
+    /// Joined alone it must come out where it went; beside a second, as the two moved boxes.
+    /// </remarks>
+    [Fact]
+    public void AMOVEDPieceHasExactlyTheBoxItWasMovedToAndNoneOfItsFiles()
+    {
+        // A tile's square, 250 a side, in its file's frame at the origin.
+        SkinnedMesh tile = SkinnedMesh.Of(
+            [new Vector3(0f, 0f, 0f), new Vector3(250f, 0f, 0f), new Vector3(250f, 250f, 0f), new Vector3(0f, 250f, 0f)],
+            [Vector3.UnitZ, Vector3.UnitZ, Vector3.UnitZ, Vector3.UnitZ],
+            [0, 1, 2, 0, 2, 3],
+            Vector3.Zero,
+            new Vector3(250f, 250f, 0f));
+        Matrix4x4 laid = Matrix4x4.CreateTranslation(0f, 250f, -875f);
+
+        SkinnedMesh alone = SkinnedMesh.Joined([new MeshJoin(tile, Place: laid)]);
+
+        Assert.Equal(new Vector3(0f, 250f, -875f), alone.Least);
+        Assert.Equal(new Vector3(250f, 500f, -875f), alone.Most);
+
+        // A second laid beside it adds its own moved box, and still nothing of the file's.
+        SkinnedMesh both = SkinnedMesh.Joined(
+            [new MeshJoin(tile, Place: laid), new MeshJoin(tile, Place: laid * Matrix4x4.CreateTranslation(250f, 0f, 0f))]);
+
+        Assert.Equal(new Vector3(0f, 250f, -875f), both.Least);
+        Assert.Equal(new Vector3(500f, 500f, -875f), both.Most);
+    }
+
     /// <summary>A translation must not tip the normals, which are directions and not places.</summary>
     [Fact]
     public void MovingAPieceLeavesItsNormalsAlone()

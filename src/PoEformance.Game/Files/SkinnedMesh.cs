@@ -368,8 +368,8 @@ public sealed class SkinnedMesh
     /// array in keeps this function about geometry and puts the naming question where the rig is
     /// known; see MonsterModels.
     ///
-    /// THE BOX IS THE UNION, which is what puts the camera round the whole dressed monster
-    /// rather than round the body with its skirt out of frame.
+    /// THE BOX IS THE UNION of the parts' boxes as placed, and nothing else, which is what puts the
+    /// camera round the whole dressed monster rather than round the body with its skirt out of frame.
     ///
     /// A part with no bones of its own gets zeroes, and zero weights with them, so it holds still
     /// under a pose instead of collapsing onto whatever bone 0 happens to be.
@@ -422,8 +422,13 @@ public sealed class SkinnedMesh
         byte[] colours = anyColoured ? new byte[points * 4] : [];
         bool[] coloured = anyColoured && !allColoured ? new bool[points] : [];
 
-        Vector3 least = usable[0].Mesh!.Least;
-        Vector3 most = usable[0].Mesh!.Most;
+        // THE BOX STARTS EMPTY, not as the first part's own: that is the box of its FILE, and a part
+        // with a place is drawn where the place puts it. Every piece and doodad a room piles carries one
+        // (ModelPile), and every sub-tile of a tile laid turned, so before v0.1.374 each of those pictures
+        // framed its first part where its file has it as well as where it was laid - near the origin, at
+        // the file's own height: a 3x3 block whose one tile lay at y 250..500 came out y 0..500, its
+        // middle a tile off.
+        Vector3 least = new(float.MaxValue), most = new(float.MinValue);
 
         var at = 0;
         var wrote = 0;
