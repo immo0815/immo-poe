@@ -199,6 +199,9 @@ public static class CaptureParts
     /// <summary>The whole of memory searched at the press for the grid the engine's river flow map is made from, or the map itself.</summary>
     public const string RiverFlow = "river-flow";
 
+    /// <summary>The engine's shader stages measured at the press: its stage table in the program's image, and every link of the install's graphs across stages.</summary>
+    public const string ShaderStages = "shader-stages";
+
     /// <summary>Every room of every room set in the install built as a Monster Book stage, and what fails counted by cause - off until ticked.</summary>
     public const string StageSweep = "stage-sweep";
 
@@ -231,7 +234,7 @@ public static class CaptureParts
     /// lines under the buttons that nobody playing reads. They read the file table and the bundles, which takes seconds, so they
     /// cannot be asked for on the frame the key goes down as a window's text is.
     /// </remarks>
-    public static bool RunsAtPress(string key) => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow;
+    public static bool RunsAtPress(string key) => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow or ShaderStages;
 
     /// <summary>
     /// A heading as the Keys page writes it. The headings themselves stay as they are: they are what <see cref="FolderOfGroup"/> keys
@@ -594,6 +597,13 @@ public static class CaptureParts
             + "whole, word by word, and the game program's code that reads each static found, with the shortest pattern round it found "
             + "once, what finds the static again after a restart or a patch. It stops itself after about four minutes; the capture's "
             + "window shows how far it is and stops it on a click."),
+        new(ShaderStages, "Memory", "shader stages", CaptureReport.ShaderStagesFile,
+            "The order the engine runs a material's shader stages in, read off its own table in the running program - an array of "
+            + "std::string in its image, of which only the pixel side's ten were ever seen - written whole, beside this build's compile "
+            + "order. And every link of the install's graphs from a node of one stage to a node of another, by stage pair held against "
+            + "the table's order, those from the vertex shader to the pixel shader by the ends' types (InputVertexUV read at VertexInit "
+            + "by a pixel stage's texture, which keeps the zone transitions' light white), and every write of the coordinates with what "
+            + "feeds it: what compiling the vertex stages waits on. Seconds, past the recording; press it anywhere."),
         new(Memory, "Memory", "memory recording", CaptureReport.MemoryFile,
             "The overlay's own reads for three seconds, and inside them one pass reading once more from nothing whatever the "
             + "ticked parts above ask for - memory.txt beside it says what the pass read where. Replays with --replay, game closed."),

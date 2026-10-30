@@ -3684,6 +3684,25 @@ internal static class Program
                 () => riverHunt?.Fraction ?? 0f,
                 () => riverHunt?.Stop()));
 
+        // THE ENGINE'S SHADER STAGES: its stage table read off the program's image, and the install's graphs' links across stages - see
+        // ShaderStageHunt. Past the tap: the image's megabytes and the heap's names belong in no recording. The graphs are every one the
+        // startup walk found, read at the press.
+        PoEformance.Game.Diagnostics.ShaderStageHunt.Running? stageHunt = null;
+        overlay.OfferCaptureWork(
+            PoEformance.Features.CaptureParts.ShaderStages,
+            _ =>
+            {
+                var running = new PoEformance.Game.Diagnostics.ShaderStageHunt.Running();
+                stageHunt = running;
+                PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
+                Func<string, byte[]?>? read = installed is null ? null : path => PoEformance.Game.Files.GameArt.ReadRaw(installed, path);
+                return PoEformance.Game.Diagnostics.ShaderStageHunt.Run(untapped, read, [.. overlay.EngineGraphs, .. overlay.ShoreFiles], running);
+            },
+            new PoEformance.Overlay.CaptureWorkProgress(
+                () => stageHunt?.Line ?? "starting",
+                () => stageHunt?.Fraction ?? 0f,
+                () => stageHunt?.Stop()));
+
         // NEEDS NO INSTALL: it reads memory rather than the game's files. The one thing it needs is
         // the loaded-file table.
         overlay.OfferCaptureWork(PoEformance.Features.CaptureParts.RoomPlacements, _ =>
