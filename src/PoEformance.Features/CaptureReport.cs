@@ -135,6 +135,9 @@ public static class CaptureReport
     /// <summary>The engine's debug views' graphs, sources and program table - see CaptureRenderDebug.</summary>
     public const string RenderDebugFile = "render-debug.txt";
 
+    /// <summary>The clouds, the screen-space fog and shadow, the roof sections and the player's light as the install holds them - see CaptureLightExtras.</summary>
+    public const string LightExtrasFile = "light-extras.txt";
+
     /// <summary>The terrain searched for the engine's ocean markup at the press - see OceanMarkupHunt.</summary>
     public const string OceanMarkupFile = "ocean-markup.txt";
 
