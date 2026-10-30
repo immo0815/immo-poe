@@ -947,6 +947,12 @@ internal sealed class GroundPainter
         return _unnamedGroup;
     }
 
+    /// <summary>A corner's group by its place in the MaterialsList, as the painter takes it (see <see cref="OrderOf"/>) - for the ground's scatter.</summary>
+    internal int GroupOrder(string corner) => OrderOf(corner, out _);
+
+    /// <summary>The MaterialsList's group at a place in it - see <see cref="GroupOrder"/>.</summary>
+    internal GroundGroup GroupAt(int order) => _list.Groups[order];
+
     /// <summary>A sub-tile's grounds as SetOf works them out - see there.</summary>
     /// <param name="Key">What the sub-tiles naming the same set share.</param>
     /// <param name="Grounds">The groups, by their place in the list, in its order.</param>

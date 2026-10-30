@@ -242,6 +242,30 @@ public class LaidRoomModelsTests
         Assert.Equal(place.Translation + new Vector3(TileModels.Side, TileModels.Side, 0f), Assert.Single(further).Place.Translation);
     }
 
+    /// <summary>
+    /// A laid room strews its ground's layers as it paints it: the master's MaterialsList names a layer after the unnamed ground's material,
+    /// its mesh is laid its number a tile on the piece's ground, and the line under the picture counts it.
+    /// </summary>
+    [Fact]
+    public void ALAIDRoomStrewsItsGroundsLayersOnTheGround()
+    {
+        (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement: 3, selector: 0, lies: 3, flat: true);
+        const string master = "Metadata/Terrain/Test/master.tsi", stone = "Art/Models/Test/stone.fmt";
+        files[master] = Text("version 3\nMaterialsList\t\"materials.mtd\"\n");
+        files["Metadata/Terrain/Test/materials.mtd"] = Text("version 5\n1 0 \"Art/soil.mat\" \"Metadata/Doodads/Clutter.dlp\"\n");
+        files["Metadata/Doodads/Clutter.dlp"] = Text("version 3\n- RandomScale 1 1\n- AllowOnBlocking\n\"" + stone + "\" 3\n");
+        files[stone] = Packed.Fmt("Art/stone.mat");
+
+        MonsterModel room = LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, master: master);
+
+        Assert.True(room.Ready, room.Why);
+        Assert.Contains("ground scatter: 3 strewn over 1 sub-tiles - 3 of Clutter", room.Move, StringComparison.Ordinal);
+        Assert.Contains("the walkable grid not known here", room.Move, StringComparison.Ordinal);
+        DoodadFile laid = Assert.Single(room.DoodadFiles, one => one.Ao == stone);
+        Assert.Equal((3, 3), (laid.Lines, laid.Laid));
+        Assert.Equal(3, room.ShapeSources.Count(one => one == stone));
+    }
+
     [Fact]
     public void WITHNoSlopeNothingIsSettledAndTheLineSaysSo()
     {

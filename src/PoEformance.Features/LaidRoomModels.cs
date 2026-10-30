@@ -230,6 +230,14 @@ public static class LaidRoomModels
         string masterFile = master.Length > 0 ? master : asBlock is null ? GroundPainter.MasterBeside(read, path) : string.Empty;
         (GroundPainter? painter, string unpainted) = GroundPainter.For(Counted, masterFile, paints, maskCells, groundHeights);
 
+        // AND THE GROUND'S OWN SCATTER, strewn as each piece's ground is painted - see GroundScatter. The room's frame lies at the block's
+        // least tile of the area, and where the area's walkable grid is known a layer kept off blocking ground is kept off it.
+        GroundScatter? scatter = painter is null ? null : GroundScatter.For(Counted, masterFile, painter);
+        var areaCorner = new Vector2(x, y) * TileModels.Side;
+        Func<Vector2, bool>? blocked = scatter is not null && Walkable(grid, x, y, wide, tall)
+            ? at => !grid.IsWalkable((x * TerrainGrid.CellsPerTile) + (int)MathF.Floor(at.X / RoomModels.CellSize), (y * TerrainGrid.CellsPerTile) + (int)MathF.Floor(at.Y / RoomModels.CellSize))
+            : null;
+
         // AND ITS TILEMATERIALOVERRIDES, on the tiles and the tiles' own doodads - not the room's (DECIDED from the live client,
         // 2026-10-29; see MonsterModels.Swapped). Crimson Shores' boss room drew pink stromatolites and the tendrils its master hides.
         IReadOnlyDictionary<string, string> swaps = masterFile.Length > 0 ? TilesetIndex.Overrides(Counted, masterFile) : new Dictionary<string, string>();
@@ -371,6 +379,8 @@ public static class LaidRoomModels
                 {
                     pile.AddPlain(one.Ground, place, RoomModels.GroundSource + called);
                 }
+
+                scatter?.Strew(tiles.Paths[piece.Id], one.Ground, one.Pieces, one.Width, one.Height, place, areaCorner, blocked);
             }
 
             used.Add(piece.Id);
@@ -379,7 +389,7 @@ public static class LaidRoomModels
         }
 
         // WHAT CAN BE SEEN, worked out before a doodad is read - see Hiding.
-        var origin = new Vector2(x, y) * TileModels.Side;
+        Vector2 origin = areaCorner;
         Hiding hiding = Hiding.Of(pile, grid, origin, new Vector2(wide, tall) * TileModels.Side, camera, sight, cut, progress);
 
         // THE DOODADS, where the corners were found and on the area's ground under them.
@@ -404,7 +414,7 @@ public static class LaidRoomModels
                 _ => ground,
             };
             return beyondFlat * Matrix4x4.CreateTranslation(0f, 0f, z);
-        }, heights, lights, hiding.Sieve, tileDoodads, tileSwaps, others);
+        }, heights, lights, hiding.Sieve, tileDoodads, tileSwaps, others, scatter?.Lines);
 
         SkinnedMesh joined = RoomModels.Watered(hiding.Keep(SkinnedMesh.Joined(pile.Joins), pile), pile.Modes);
         if (!joined.Ready)
@@ -461,6 +471,11 @@ public static class LaidRoomModels
         }
 
         said.Add(painter?.Said() ?? "ground: plain - " + unpainted);
+        if (scatter is not null)
+        {
+            said.Add(scatter.Said());
+        }
+
         said.AddRange(laid.Said());
         said.AddRange(hiding.Said());
         string held = HeightsSaid(room, laying, x, y, grid, entities);
@@ -507,6 +522,29 @@ public static class LaidRoomModels
         };
 
         return shaded ? MonsterModels.Shaded(Counted, model, paints) : model;
+    }
+
+    /// <summary>
+    /// Whether the grid knows where anybody walks over a block of tiles - any of its cells walkable. A grid built from the tileset
+    /// (BuiltRoomModels) carries no walkable cell at all, and an area always has some where a room lies.
+    /// </summary>
+    internal static bool Walkable(TerrainGrid grid, int x, int y, int wide, int tall)
+    {
+        ArgumentNullException.ThrowIfNull(grid);
+        int fromX = Math.Max(0, x * TerrainGrid.CellsPerTile), toX = (x + wide) * TerrainGrid.CellsPerTile;
+        int fromY = Math.Max(0, y * TerrainGrid.CellsPerTile), toY = (y + tall) * TerrainGrid.CellsPerTile;
+        for (int cellY = fromY; cellY < toY; cellY++)
+        {
+            for (int cellX = fromX; cellX < toX; cellX++)
+            {
+                if (grid.IsWalkable(cellX, cellY))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
