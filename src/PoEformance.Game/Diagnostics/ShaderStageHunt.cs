@@ -542,8 +542,8 @@ public static class ShaderStageHunt
     }
 
     /// <summary>
-    /// The runs of strings evenly apart that hold stages: each stride from the least, a run kept only where it is not inside one kept
-    /// already (a 0x40 run of every other entry of a 0x20 one); most stages first, then the longest.
+    /// The runs of strings evenly apart that hold stages: each stride from the least, a run kept only where half its entries are not in
+    /// one kept already (a 0x40 run of every other entry of a 0x20 one); most stages first, then the longest.
     /// </summary>
     internal static List<StringRun> Runs(IReadOnlyList<Entry> entries, IReadOnlySet<string> names)
     {
@@ -571,7 +571,9 @@ public static class ShaderStageHunt
                 }
 
                 int stages = members.Count(member => names.Contains(member.Text));
-                if (members.Count < FewestEntries || stages < FewestStages || members.TrueForAll(member => taken.Contains(member.Rva)))
+                // A RUN MOSTLY INSIDE ONE KEPT ALREADY is that one's every other entry and a stray beyond it (v0.1.365's capture: a 0x40 run
+                // of the table's and the "GGX" after it) - kept only where half its entries are new.
+                if (members.Count < FewestEntries || stages < FewestStages || members.Count(member => !taken.Contains(member.Rva)) * 2 < members.Count)
                 {
                     continue;
                 }
@@ -845,18 +847,34 @@ public static class ShaderStageHunt
     {
         ArgumentNullException.ThrowIfNull(text);
         var order = new List<string>();
+        var first = new List<string>();
         var pairs = new List<(string From, string To, string Graphs)>();
+        var taken = false;
         foreach (string raw in text.Split('\n'))
         {
-            string[] parts = raw.TrimEnd('\r').Split('\t');
+            string line = raw.TrimEnd('\r');
+            string[] parts = line.Split('\t');
             if (parts.Length >= 3 && parts[0] == "  table")
             {
                 order.Add(parts[2]);
+            }
+            else if (parts.Length >= 5 && parts[0] == "  entry" && parts[1] == "1")
+            {
+                first.Add(parts[4]);
             }
             else if (parts.Length >= 4 && parts[0] == "  pair")
             {
                 pairs.Add((parts[1], parts[2], parts[3]));
             }
+
+            taken |= line.StartsWith("=== the table taken", StringComparison.Ordinal);
+        }
+
+        // A v0.1.365 REPORT WROTE NO TABLE OF ITS OWN: where its head says it took one, that was run 1 whole (it held 81 entries, under the
+        // 512 a run writes), so run 1's entries are the table.
+        if (!taken && text.StartsWith("shader stages: the table at module+", StringComparison.Ordinal))
+        {
+            order = first;
         }
 
         if (order.Count == 0 && pairs.Count == 0)

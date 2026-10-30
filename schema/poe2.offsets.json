@@ -104,8 +104,17 @@
   // scroll) and VertexOutput_Final (the ground's projection), and InputVertexUV reads them at its own stage
   // - the zone transitions' light reads its mask at VertexInit. The capture's shader-stages part
   // (ShaderStageHunt) reads the whole table at the press: every eight-byte place of the image as an MSVC
-  // std::string, the heap's names read, runs 0x20 to 0x60 apart holding stage names written whole. Its
-  // first capture names the table's place in the image (module+0x...) and the vertex side's order.
+  // std::string, the heap's names read, runs 0x20 to 0x60 apart holding stage names written whole.
+  // ITS FIRST CAPTURE READ IT WHOLE (2026-10-30, The Red Vale, v0.1.365): module+0x459C760 in that launch's
+  // client (module 0x7FF7F5860000, 0x4CA0000 bytes), 81 entries 0x20 apart - VertexInit, Animation,
+  // LocalTransform(_Calc, _Final), WorldTransform_Init, WorldTransform(_Calc, _Final),
+  // ProjectionTransform_Init, ProjectionTransform(_Calc, _Final), VertexOutput(_Calc, _Final, _Pass),
+  // VertexToPixel, PixelInit, UVSetup .. PreLighting_Final as above, AlphaClip, Lighting(_Calc, _Final),
+  // CustomLighting(_Calc, _Final), LightingEnd(_Calc, _Final), PostLighting(_Calc, _Final),
+  // FogStage(_Calc, _Final), PixelOutput(_Calc, _Final), ComputeInit, the particles' 22, the volumetrics'
+  // 7 and the trails' 4. Names up to 15 letters inline (capacity 0x0F), longer ones on the heap (0x1F).
+  // It holds every one of the 69 stages the install's 11,972 graphs use; 193 of the 197 stage pairs
+  // they link run in its order. A build moves the place; the part finds it again by its shape.
 
   "version": 1,
   "gameVersion": "0.5.5 (2026-09-04 content patch: GameState, AreaInstance, UiElementBase, MapUiElement and ImportantUiElements re-based 2026-09-11, agreeing with GameHelper2 main a99b8ba; the game chain and AreaInstance confirmed live the same day by session-2026-09-live.rec, the UiElement flags and StringId by session-2026-09-panels.rec and session-2026-09-maphunt.rec, the maps by the latter through MapViewports, RightPanelPtr by session-2026-09-browser.rec, ItemPtr by session-2026-09-itempick.rec; TextPtr moved to 0x360 on session-2026-09-text.rec's evidence and awaits the browser showing text there; earlier: AreaInstance +0x08 wave 2026-08; base port: AHK tool v0.45.13.298, 2026-07)",

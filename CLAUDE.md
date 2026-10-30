@@ -498,7 +498,20 @@ one and its heap names, and writes the runs of them 0x20 to 0x60 apart holding s
 as the table where it holds three - written whole on its own, the order every later section reads - and the compile's order held against it;
 then every link of the install's graphs across stages by stage pair (forwards or backwards in the table), those from a vertex stage to a
 pixel stage by their ends' types, and every write of the coordinates with what feeds it. `shader-stages-replay.txt` holds the report's pairs
-and this build's compile order against the table it took again (v0.1.366, from a review: it read run 1 even where the report took none). Press it once anywhere before the vertex stages are compiled.
+and this build's compile order against the table it took again (v0.1.366, from a review: it read run 1 even where the report took none;
+a v0.1.365 report, which wrote no table of its own, by run 1 where its head says it took one).
+THE TABLE WAS READ WHOLE (v0.1.365's capture, The Red Vale; the schema, at the stage table's note): module+0x459C760, 81 entries - the vertex
+side VertexInit, Animation, LocalTransform, LocalTransform_Calc, LocalTransform_Final, WorldTransform_Init, WorldTransform, WorldTransform_Calc,
+WorldTransform_Final, ProjectionTransform_Init to _Final, VertexOutput, _Calc, _Final, _Pass, then VertexToPixel, PixelInit, the pixel side's
+ten as the compile had them, AlphaClip, the lighting's, the fog's and PixelOutput's, and the particles', volumetrics' and trails' own. Every
+one of the 69 stages the install's 11,972 graphs use is in it; 193 of the 197 stage pairs they link run with it. So FROM v0.1.367 THE
+COMPILE RUNS THE VERTEX SIDE FOR THE COORDINATES (`ShadeProgram.Stages`, MEASURED): `VertexUV` is a channel starting as the mesh's own
+(the engine's fixed.fxgraph writes it from VertexLocalUV at VertexInit), `InputVertexUV` reads it at its own stage, the pixel's `UV` is
+its last at PixelInit (fixed.fxgraph's FromVertexUV), and `FromVertexUV` reads that last - worked out per pixel, the engine's value
+wherever the arithmetic is affine in the coordinates (a scroll, a tiling), CHOSEN for the rest. `ConstantVertex`..4 and `FresnelFactor`
+(effects.ffx) are compiled beside them. The zone transitions' light now reads its mask, fades by its Fresnel rim and its soft edge and
+scrolls three times across (offline, light_raysc.mat of both Red Vale captures); what it still leaves out is IndirectLightMult at
+FogStage_Calc - a stage after the lighting, which the compile does not place.
 
 ## Verify against the game, not against yourself
 

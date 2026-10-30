@@ -20,7 +20,7 @@ public sealed class ShaderStageHuntTests
     /// </summary>
     private static readonly string[] Table =
     [
-        "VertexInit", "LocalTransform", "Animation", "WorldTransform_Init", "WorldTransform", "VertexOutput_Final",
+        "VertexInit", "Animation", "LocalTransform", "WorldTransform_Init", "WorldTransform", "VertexOutput_Final",
         "VertexToPixel", "PixelInit", "UVSetup", "Texturing_Init", "Texturing", "PreLighting",
     ];
 
@@ -47,7 +47,8 @@ public sealed class ShaderStageHuntTests
         Assert.Contains("  compile\tVertexInit\ttable 0", text, StringComparison.Ordinal);
         Assert.Contains("  compile\tUVSetup_Calc\tnot in the table", text, StringComparison.Ordinal);
         Assert.Contains("the compile's stages run in the table's order", text, StringComparison.Ordinal);
-        Assert.Contains("the table's entries the compile does not run: LocalTransform, Animation, WorldTransform_Init, WorldTransform, VertexOutput_Final, VertexToPixel, PixelInit", text, StringComparison.Ordinal);
+        Assert.Contains("  compile\tLocalTransform_Calc\tnot in the table", text, StringComparison.Ordinal);
+        Assert.Contains("the table's entries the compile does not run: none", text, StringComparison.Ordinal);
 
         // THE LINKS: forwards, and face_camera's against the names' order - which the table puts backwards.
         Assert.Contains("  pair\tVertexInit\tTexturing\tgraphs 1\tforwards\te.g. Metadata/Effects/Graphs/General/AddMask.fxgraph", text, StringComparison.Ordinal);
@@ -78,6 +79,10 @@ public sealed class ShaderStageHuntTests
         Assert.Contains("  backwards\tWorldTransform\tWorldTransform_Init\tgraphs 1", replay, StringComparison.Ordinal);
         Assert.Contains("stage pairs: 1 forwards, 1 backwards, 0 with a stage the table does not hold", replay, StringComparison.Ordinal);
         Assert.Contains("the compile's stages run in the table's order", replay, StringComparison.Ordinal);
+
+        // A v0.1.365 REPORT, which wrote no table lines of its own: run 1's entries where its head says it took the table.
+        string older = string.Join("\n", text.Split('\n').Where(line => !line.StartsWith("  table\t", StringComparison.Ordinal) && !line.StartsWith("=== the table taken", StringComparison.Ordinal)));
+        Assert.StartsWith("shader stages replay: a table of 12 entries, 2 stage pairs", ShaderStageHunt.Replay(older), StringComparison.Ordinal);
         Assert.StartsWith("shader stages replay: the report holds no table and no stage pair", ShaderStageHunt.Replay("nothing"), StringComparison.Ordinal);
     }
 
@@ -114,6 +119,7 @@ public sealed class ShaderStageHuntTests
 
         string replay = ShaderStageHunt.Replay(text);
         Assert.StartsWith("shader stages replay: no table taken, 2 stage pairs", replay, StringComparison.Ordinal);
+        Assert.StartsWith("shader stages replay: no table taken", ShaderStageHunt.Replay(text.Replace("=== the table taken", "=== removed", StringComparison.Ordinal)), StringComparison.Ordinal);
         Assert.Contains("no table to hold it against", replay, StringComparison.Ordinal);
         Assert.Contains("stage pairs: 0 forwards, 0 backwards, 2 with a stage the table does not hold", replay, StringComparison.Ordinal);
 
