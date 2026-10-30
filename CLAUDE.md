@@ -534,8 +534,30 @@ STILL OPEN, from the same pictures: the shade measured 2.6 times the game's in T
 measure again on v0.1.368); a neutral or blue share the pane lacks in both maps; the ambient's occlusion (indirect_color.a) and the GI, neither drawn;
 and the tree crowns' square shadows - a lead, not a cause: the woods' templates carry canopy cards whose materials are shadow-only
 (JungleCanopyc and canopytestc on ForceAlphaTestWithShadowOnly.fxgraph, black_shadowonlyc on OpaqueShadowOnly), and a mode naming "shadowonly"
-casts whole triangles here, its texture unread. Probe a square shadow (the probe names the triangle that cast it, and the capture writes its
-material whole) and capture before any rule is changed.
+casts whole triangles here, its texture unread. The shadow-casters part below measures it in one press (v0.1.369) - read it before any rule
+is changed.
+
+TWO CAPTURE PARTS MEASURE BOTH (v0.1.369, asked for from the live client: "build the capture option now, it comes anyway - then we need not
+trade crumbs of information"). Both need a book on a stage laid as this area instance laid it ("the area round you") and the light panel's
+light (built as "game light" would build it, ticked or not - SceneLightPanel.Measured); keep "game picture" ticked and stand still.
+- `light-against-game.txt` (`CaptureLightCompare`, over `CaptureAtGame`): the stage drawn on the processor THROUGH THE GAME'S OWN CAMERA
+  (`GameCamera` takes the matrix at WorldData + 0x1A0 apart - eye, right, down, forward, focal lengths, principal point, near and far, held
+  to WorldToScreen by `GameCameraTests`; `MeshPicture.Camera.Through`, `Canvas.Lens`, `Canvas.Rows`) at 1/ceil(width / 2048) of the screen,
+  the game's picture averaged over each drawn pixel's block in linear light, its interface and everything that moves masked. Every second
+  drawn pixel each way carries what it was made of (`PixelGather`, written where the drawing lights it: triangle, place, normal and
+  `SceneLight.LightTerms` - the light term by term, the same colour to the bit, `Shaded` over a struct the compiler specialises). Reported:
+  how the two pictures' edges line up (no shift is the camera's and the placing's agreement); the game over the pane by the pane's sun and
+  shade, by material (with the game's OWN sun and shade, Otsu on its light over the pane's albedo), as game = s pane + n, term by term
+  (non-negative least squares of the game taken back through the pane's grade and exposure - CHOSEN: the engine's grade the same table),
+  by the distance to the player (the CHOSEN lamp) and by depth. `light-against-game.bin` keeps every compared pixel; the replay works the
+  report out again (`CaptureLightCompare.Replay`).
+- `shadow-casters.txt` (`CaptureShadowCasters`): the sun's map that keeps its casters (`ShadowOwners`, `ShadowMap.Owned`,
+  `MeshPicture.Casters`) as drawn and with shadow-only shapes cut by their texture's alpha (`CastRule.ShadowOnlyCut`), the ground alone
+  beside them; every caster of the ground's shadow by blend, the word its graphs spell, material and clear share of its texture; each piece
+  of shadow's fill of its tightest box (square-like from 0.8, CHOSEN); the blend graphs (ForceAlphaTestWithShadowOnly and its kin) and
+  the casting materials whole; and, through the game's camera, the game's light where a cut would take the pane's shadow away beside its
+  light in the open and in a shadow both readings cast - t nought the game casts as the picture does, one it casts nothing there.
+  `shadow-casters.bin` keeps the ground's map by kind; the replay counts its pieces again.
 
 ## Verify against the game, not against yourself
 

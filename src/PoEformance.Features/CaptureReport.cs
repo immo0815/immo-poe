@@ -168,6 +168,12 @@ public static class CaptureReport
     /// <summary>The Monster Book's monster's files, parts, placing and animations - see CaptureMonsterFiles.</summary>
     public const string MonsterFilesFile = "monster-files.txt";
 
+    /// <summary>The stage held against the game's picture, light term by term - see CaptureLightCompare.</summary>
+    public const string LightCompareFile = "light-against-game.txt";
+
+    /// <summary>What casts the stage's shadows - see CaptureShadowCasters.</summary>
+    public const string ShadowCastersFile = "shadow-casters.txt";
+
     /// <summary>The Memory Dissector's places, route and last search.</summary>
     public const string DissectorFile = "dissector.txt";
 

@@ -1745,18 +1745,53 @@ public sealed class MonsterPortrait
     /// </summary>
     /// <remarks>The lines as the info fold has them, the escape ImGui needs for a percent sign taken off again.</remarks>
     public CapturePane? PaneReport()
-        => _model.Ready
-            ? new CapturePane(Book, [.. _status.Select(line => line.Replace("%%", "%", StringComparison.Ordinal))], _model)
+    {
+        if (!_model.Ready)
+        {
+            return null;
+        }
+
+        // THE LIGHT A CAPTURE HOLDS THE STAGE AGAINST THE GAME UNDER - the panel's, built whether or not the pane draws under it now - and the
+        // pose the pane stands at, copied: the parts that draw it again through the game's camera draw what the pane shows (CaptureAtGame).
+        (SceneLight? light, IReadOnlyList<string> said) = SceneMeasured?.Invoke(_model) ?? (null, []);
+        Vector3[]? positions = null, normals = null;
+        if (_tracks is { Ready: true } && _pose is not null)
+        {
+            CpuPosed();
+            if (_posed.Length == _model.Mesh.Positions.Length)
             {
-                Built = [.. _built],
-                Probed = HasProbe ? _probedShapes : [],
-                Shades = ShadesOf(_model),
-                View = _drawnView.Valid ? _drawnView : null,
-                Variety = _variety,
-                Path = _wanted,
-                Unpack = _unpack,
+                positions = [.. _posed];
+                normals = [.. _posedNormals];
             }
-            : null;
+        }
+
+        return new CapturePane(Book, [.. _status.Select(line => line.Replace("%%", "%", StringComparison.Ordinal))], _model)
+        {
+            Built = [.. _built],
+            Probed = HasProbe ? _probedShapes : [],
+            Shades = ShadesOf(_model),
+            View = _drawnView.Valid ? _drawnView : null,
+            Variety = _variety,
+            Path = _wanted,
+            Unpack = _unpack,
+            Light = light,
+            LightOn = Lit() is not null,
+            LightSaid = said,
+            Dust = Dusted(),
+            Water = Watered(),
+            Clock = _clock,
+            Ink = Ink,
+            Blends = Blends(),
+            Positions = positions,
+            Normals = normals,
+        };
+    }
+
+    /// <summary>
+    /// The light a capture holds the pane's stage against the game under, and what the light panel says of it - see SceneLightPanel.Measured; null
+    /// where the book has no panel.
+    /// </summary>
+    public Func<MonsterModel, (SceneLight? Light, IReadOnlyList<string> Said)>? SceneMeasured { get; set; }
 
     /// <summary>The shapes under the last probe click, nearest first - see <see cref="PaneReport"/>.</summary>
     private IReadOnlyList<int> _probedShapes = [];

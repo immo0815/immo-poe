@@ -4025,6 +4025,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             {
                 Book = "monster",
                 SceneLit = lighting.For,
+                SceneMeasured = lighting.Measured,
                 SceneDust = lighting.Dust,
                 SceneWater = lighting.Water,
                 SceneFlow = RiverFlowIn,
@@ -4250,6 +4251,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 Environments = () => EnvironmentFiles,
                 Loaded = () => LoadedFiles?.Invoke() ?? [],
                 SceneLit = lighting.For,
+                SceneMeasured = lighting.Measured,
                 SceneDust = lighting.Dust,
                 SceneWater = lighting.Water,
                 SceneFlow = RiverFlowIn,

@@ -222,6 +222,29 @@ public static class MeshPicture
             return new Camera(view, scale, new Vector2(0.5f) + pan, tilt, reach);
         }
 
+        /// <summary>
+        /// The game's own camera (<see cref="World.GameCamera"/>) over a model whose space is the world less <paramref name="origin"/> across -
+        /// a stage laid as the area laid it - drawn on a canvas <paramref name="side"/> across that shows the game's screen from
+        /// <paramref name="offset"/> on, shrunk by <paramref name="shrink"/>: a canvas pixel u is the game's pixel <c>u / shrink + offset</c>,
+        /// the middles of both on each other.
+        /// </summary>
+        /// <remarks>
+        /// ONE FOCAL LENGTH, as every camera here has: the mean of the game's two, which its matrices hold equal to a thousandth (the
+        /// difference said beside it, GameCamera.FocalX and FocalY). Its frame is the game's as the matrix has it - left-handed, as
+        /// <see cref="CameraPose.Turning"/> builds the pane's - so nothing is turned over.
+        /// </remarks>
+        public static Camera Through(World.GameCamera game, Vector2 origin, int side, Vector2 offset = default, float shrink = 1f)
+        {
+            ArgumentNullException.ThrowIfNull(game);
+            float focal = (float)Math.Sqrt(game.FocalX * game.FocalY);
+            return new Camera(game.View(origin), shrink * focal / side, shrink * (game.Principal - offset) / side, MathF.Asin(Math.Clamp(game.Forward.Z, -1f, 1f)), 1f)
+            {
+                Perspective = true,
+                Viewer = game.EyeIn(origin),
+                Near = MathF.Max(game.Near, 1f),
+            };
+        }
+
         /// <summary>Where a point of the model lands: x and y as shares of the side, z as the depth, nearer being less.</summary>
         /// <remarks>In perspective a point at or behind the eye has no place on the picture: x and y are then not numbers, and z says why.</remarks>
         public Vector3 Place(Vector3 point)
@@ -448,6 +471,32 @@ public static class MeshPicture
         /// </summary>
         /// <remarks>ON THE CANVAS LIKE THE LIGHT: set it, then draw. Null is the usual, and every caller but the model pane leaves it so.</remarks>
         public CameraPose? Pose { get; set; }
+
+        /// <summary>
+        /// The camera the next drawing is looked at through, over <see cref="Pose"/> and the turn it is handed - the game's own
+        /// (<see cref="Camera.Through"/>) for a capture held against its picture; null for the usual.
+        /// </summary>
+        public Camera? Lens { get; set; }
+
+        /// <summary>
+        /// How many rows from the top the next drawing fills - the canvas is square, and a wide screen shrunk onto it takes its top rows
+        /// alone; every row, the usual.
+        /// </summary>
+        public int Rows { get; set; } = int.MaxValue;
+
+        /// <summary>
+        /// Where the next whole drawing writes what every solid pixel was made of - its triangle, place, albedo and light term by term -
+        /// or null, the usual, and then the drawing asks nothing of it per pixel. See <see cref="PixelGather"/>.
+        /// </summary>
+        public PixelGather? Gather { get; set; }
+
+        /// <summary>The last drawing's depth per pixel, nearest being least - <see cref="float.MaxValue"/> where nothing was drawn.</summary>
+        public ReadOnlySpan<float> Depths => Depth;
+
+        /// <summary>
+        /// Which translucent shape the last drawing blended into each pixel last, or -1 - where it had anything translucent; empty where it had not.
+        /// </summary>
+        public ReadOnlySpan<int> Layers => Stamps;
 
         /// <summary>
         /// The bounds along the sun of the vertices from <c>From</c> on, where a pose moves them - PoseHull's - for the sun's map to be laid
@@ -764,7 +813,7 @@ public static class MeshPicture
         Array.Clear(pixels);
         canvas.Last = null;
 
-        Camera camera = canvas.Pose is { } pose ? Camera.Of(mesh, pose) : Camera.Of(mesh, turn, tilt, zoom, pan);
+        Camera camera = canvas.Lens is { Ready: true } lens ? lens : canvas.Pose is { } pose ? Camera.Of(mesh, pose) : Camera.Of(mesh, turn, tilt, zoom, pan);
         if (mesh is null || !camera.Ready)
         {
             return new GamePicture(size, size, pixels);
@@ -895,6 +944,7 @@ public static class MeshPicture
         int[] lefts = canvas.Lefts;
         int[] rights = canvas.Rights;
         bool[] cuts = canvas.Cut;
+        int lastRow = Math.Min(size, Math.Max(1, canvas.Rows)) - 1;
         Sliced(canvas, triangles, (from, upto) =>
         {
             Span<Vector4> scratch = shaded ? stackalloc Vector4[ShadeProgram.MostRegisters] : default;
@@ -942,6 +992,23 @@ public static class MeshPicture
 
                     tops[one] = Math.Max(0, (int)MathF.Floor(Min3(a.Y, b.Y, c.Y)));
                     feet[one] = Math.Min(size - 1, (int)MathF.Ceiling(Max3(a.Y, b.Y, c.Y)));
+                }
+
+                // ONLY THE ROWS ASKED FOR (Canvas.Rows): a wide screen shrunk onto the square canvas fills its top rows alone.
+                if (feet[one] > lastRow)
+                {
+                    feet[one] = lastRow;
+                    if (tops[one] > lastRow)
+                    {
+                        tops[one] = int.MaxValue;
+                        feet[one] = int.MinValue;
+                        if (perspective)
+                        {
+                            cuts[one] = false;
+                        }
+
+                        continue;
+                    }
                 }
 
                 // A TRIANGLE THROUGH THE NEAR PLANE HAS NO CORNERS ON THE PICTURE to measure its texels against, and what is
@@ -1035,7 +1102,8 @@ public static class MeshPicture
         probe?.Clear();
         LayerTally? tally = canvas.Tally;
         tally?.Reset(mesh.Shapes.Count);
-        InBands(canvas, new Drawing(canvas, drawn, probe), again: false, tally);
+        canvas.Gather?.Clear();
+        InBands(canvas, new Drawing(canvas, drawn, probe, canvas.Gather), again: false, tally);
         if (probe is not null)
         {
             probe.Final = depth[(probe.Y * size) + probe.X];
@@ -1593,6 +1661,64 @@ public static class MeshPicture
         return map;
     }
 
+    /// <summary>Which rule a map of casters (<see cref="Casters"/>) is drawn by.</summary>
+    public enum CastRule
+    {
+        /// <summary>As the picture casts: solid and shadow-only shapes whole, cut-out ones through their texture's alpha.</summary>
+        AsDrawn,
+
+        /// <summary>As drawn, but a shadow-only shape with a texture cut through its alpha too - a reading of AlphaTestWithShadowOnly to hold against the game.</summary>
+        ShadowOnlyCut,
+    }
+
+    /// <summary>
+    /// The sun's map of a mesh as a drawing with these shapes casts it - <see cref="Shadowed"/>'s rules over the same palette - keeping which
+    /// triangle cast each texel; null where there is no map to draw.
+    /// </summary>
+    /// <param name="mesh">The mesh.</param>
+    /// <param name="positions">Its vertices as drawn.</param>
+    /// <param name="direction">The way the light travels.</param>
+    /// <param name="side">How many texels across.</param>
+    /// <param name="skin">The one skin, as a drawing is handed it.</param>
+    /// <param name="skins">The skins per shape.</param>
+    /// <param name="blends">How each shape blends.</param>
+    /// <param name="shades">Each shape's program.</param>
+    /// <param name="rule">Which shapes are cut by their texture's alpha.</param>
+    /// <param name="only">Which triangles may cast at all, besides the rule - null for every one.</param>
+    /// <param name="threads">How many threads may draw it; under one, every processor.</param>
+    public static ShadowOwners? Casters(
+        SkinnedMesh mesh, Vector3[] positions, Vector3 direction, int side, Mipmaps? skin, IReadOnlyList<Mipmaps?>? skins,
+        IReadOnlyList<MaterialBlend>? blends, IReadOnlyList<ShadeProgram?>? shades, CastRule rule = CastRule.AsDrawn, Func<int, bool>? only = null,
+        int threads = 0)
+    {
+        ArgumentNullException.ThrowIfNull(mesh);
+        ArgumentNullException.ThrowIfNull(positions);
+        int triangles = mesh.Indices.Length / 3;
+        if (triangles == 0 || positions.Length != mesh.Positions.Length || ShadowMap.Framed(positions, direction, side) is not { } frame)
+        {
+            return null;
+        }
+
+        Mipmaps? usable = skin is not null && mesh.Coordinated ? skin : null;
+        Mipmaps?[] palette = Palette(mesh, usable, skins);
+        var wears = new int[triangles];
+        Worn(mesh, palette, skins, usable, wears, triangles);
+        var blended = new MaterialBlend[triangles];
+        Blended(mesh, blends, blended, new int[triangles], triangles);
+        var shadeOf = new int[triangles];
+        ShadeProgram[] programs = Programmed(mesh, shades, shadeOf, triangles);
+        bool[] cutAway = CutAway(programs);
+        Vector2[] coordinates = mesh.Coordinates;
+        bool coordinated = mesh.Coordinated;
+        bool cutsShadowOnly = rule == CastRule.ShadowOnlyCut;
+        return ShadowMap.Owned(
+            positions, mesh.Indices, triangles, frame,
+            one => (only is null || only(one)) && Casts(blended, shadeOf, cutAway, one),
+            one => (blended[one] == MaterialBlend.Cutout || (cutsShadowOnly && blended[one] == MaterialBlend.ShadowOnly))
+                && coordinated && palette[wears[one]] is { } worn ? (worn, coordinates) : null,
+            threads > 0 ? threads : Environment.ProcessorCount);
+    }
+
     /// <summary>Each program's <see cref="ShadeProgram.CutAway"/> at the picture's cut.</summary>
     private static bool[] CutAway(ShadeProgram[] programs) => Array.ConvertAll(programs, one => one.CutAway(CutoutAlpha));
 
@@ -2102,6 +2228,9 @@ public static class MeshPicture
         private readonly PixelProbe? _probe;
         private readonly int _probeAt;
 
+        /// <summary>Where every gathered pixel's makings are written, or null - see <see cref="PixelGather"/>.</summary>
+        private readonly PixelGather? _gather;
+
         /// <summary>The game's light, or null for the picture's own - see <see cref="Scened"/>.</summary>
         private readonly SceneLight? _scene;
         private readonly ShadowMap? _shadow;
@@ -2118,8 +2247,9 @@ public static class MeshPicture
         private readonly int[] _lefts;
         private readonly int[] _rights;
 
-        public Drawing(Canvas canvas, Drawn drawn, PixelProbe? probe)
+        public Drawing(Canvas canvas, Drawn drawn, PixelProbe? probe, PixelGather? gather = null)
         {
+            _gather = gather is not null && gather.Side == canvas.Size && drawn.Scene is not null ? gather : null;
             _perspective = drawn.Perspective;
             _viewer = drawn.Viewer;
             _near = drawn.Near;
@@ -2874,13 +3004,22 @@ public static class MeshPicture
                     }
 
                     // THE WATER WHOLE where it is drawn solid - its cover left out; in a channel view its program's channels, as any surface's.
-                    Vector3 shown = scened && program is { LightsWater: true } && !_scene!.Channelled
+                    // THE GATHERED PIXEL WRITES WHAT IT WAS MADE OF (PixelGather) - one test a pixel where nobody gathers.
+                    int gatherAt = _gather is null ? -1 : _gather.IndexOf(x, y);
+                    bool wet = scened && program is { LightsWater: true } && !_scene!.Channelled;
+                    Vector3 shown = wet
                         ? WaterScened(
-                            program, water, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves,
+                            program!, water, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves,
                             x, y, away, held, here ? one : -1, out _)
                         : scened
-                        ? Scened(program, colour, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves, away: away, fragment: here ? one : -1)
+                        ? Scened(program, colour, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves, away: away, fragment: here ? one : -1, gatherAt: gatherAt, triangle: one)
                         : Lit(program, colour, specular, gloss, (first * f0) + (second * f1) + (third * f2));
+                    if (wet && gatherAt >= 0)
+                    {
+                        Vector3 place = (first * p0) + (second * p1) + (third * p2);
+                        var drawnWater = new SceneLight.LightTerms { Graded = new Vector3(ShadeProgram.Linear(shown.X), ShadeProgram.Linear(shown.Y), ShadeProgram.Linear(shown.Z)) };
+                        _gather!.Write(gatherAt, one, away, place, (first * n0) + (second * n1) + (third * n2), drawnWater, water: true);
+                    }
                     _pixels[at * 4] = Byte(shown.X);
                     _pixels[(at * 4) + 1] = Byte(shown.Y);
                     _pixels[(at * 4) + 2] = Byte(shown.Z);
@@ -2953,7 +3092,7 @@ public static class MeshPicture
         /// </remarks>
         private Vector3 Scened(
             ShadeProgram? program, Vector3 colour, Vector3 specular, float gloss, Vector3 place, Vector3 turn, Vector3 waves = default,
-            int x = 0, int y = 0, float away = 0f, int fragment = -1)
+            int x = 0, int y = 0, float away = 0f, int fragment = -1, int gatherAt = -1, int triangle = -1)
         {
             // THE BEACH'S OWN SURFACE FOR ALL ITS LIGHT, the normal its program hands over (ShadeProgram.Beaches) - not the water's waves.
             if (program is { Beaches: true })
@@ -3000,7 +3139,18 @@ public static class MeshPicture
             }
 
             // THE PICTURE'S OWN LIGHT IS ADDED AS IT WAS DRAWN, exposed and graded already.
-            Vector3 lit = _scene!.Shade(albedo, place, normal, toEye, sun, glossy, specular, gloss, waves, environment) + mirrored;
+            Vector3 lit;
+            if (gatherAt >= 0)
+            {
+                // THE SAME COLOUR TO THE BIT, its terms beside it - see SceneLight.Shade's split.
+                lit = _scene!.Shade(albedo, place, normal, toEye, sun, glossy, specular, gloss, waves, environment, out SceneLight.LightTerms terms) + mirrored;
+                _gather!.Write(gatherAt, triangle, away, place, normal, terms);
+            }
+            else
+            {
+                lit = _scene!.Shade(albedo, place, normal, toEye, sun, glossy, specular, gloss, waves, environment) + mirrored;
+            }
+
             return new Vector3(ShadeProgram.Srgb(lit.X), ShadeProgram.Srgb(lit.Y), ShadeProgram.Srgb(lit.Z));
         }
 
