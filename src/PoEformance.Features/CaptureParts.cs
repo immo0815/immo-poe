@@ -133,6 +133,9 @@ public static class CaptureParts
     /// <summary>The laid tiles' sub-tiles of two grounds over the game's picture, with their ground shapes that run across the mask's atlas.</summary>
     public const string GroundScreen = "ground-screen";
 
+    /// <summary>What the area's ground strews over itself: every doodad layer and doodad list its masters name - see CaptureGroundScatter.</summary>
+    public const string GroundScatter = "ground-scatter";
+
     /// <summary>What the water is drawn from: every environment's water keys, and the shader sources of the water pass.</summary>
     public const string Water = "water";
 
@@ -422,6 +425,11 @@ public static class CaptureParts
             + "shifted up to 24 units for its best line-up, against the same material shifted where nothing lines up "
             + "(ground-on-screen-choices.png tinted by the winners). Best with \"game only\" ticked: over the "
             + "overlay's picture the overlay's own drawing is in the way."),
+        new(GroundScatter, "Area files", "ground scatter", CaptureReport.GroundScatterFile,
+            "What the area's ground strews over itself - the grass, ferns, fallen leaves and strewn weapons the client lays where no file "
+            + "says: every doodad layer (.dlp) the masters' MaterialsLists name after a material, read and whole, each mesh with its size, "
+            + "every doodad list (.ddt) the masters name, read and whole, and how much of the area each ground type covers. The layers' and "
+            + "lists' own files beside it (ground-scatter/), read again offline - what the tool's own scatter is built from."),
         new(Water, "Area files", "water", CaptureReport.WaterFile,
             "What the water is drawn from, as the files say: every key the install's environments write in their water "
             + "sections, how many files carry it and what values, every environment's water section file by file - to pick an "

@@ -436,6 +436,19 @@ from the live client, the settings' `aroundSize`), the picture's origin the bloc
 on it. The Tile Book's "around you" button shows it in place of a row until another is chosen; the Monster Book lists it as a stage.
 The ground is painted by the master beside the area's rooms that names the most of the block's ground types (`AreaBlock.MastersOf`,
 `CaptureGroundScreen.MasterOf`), the line under the picture saying which.
+EVERY DOODAD FOUND IS TO BE DRAWN (said from the live client with v0.1.359's capture: "the goal is every book as near the game as it can
+be"): the river moved the game's way at about its speed, the water was too red against the game's brown, and the block lacked the forest
+floor - ferns, grass, leaves, strewn weapons - laying ONE tile doodad over 25 x 25 tiles. So from v0.1.360 the block also lays the own
+doodads of every room the tool placed in the area that reaches it (`AreaBlock.Rooms`, `RoomsIn`, `LaidRoomModels.OthersOf`, as a laid room
+lays its own), and the forest floor's files are read: a MaterialsList names after a material its DOODAD LAYERS (`.dlp`, `GroundChoice.Layers`
+- The Red Vale's `Grass_redvale.dlp`, `FallenLeafPiles.dlp`, `JungleFoliageA_Redvale.dlp`, `RVL_SwordScatter01.dlp`), and a master its
+DOODAD LIST (`.ddt`, the `Doodads` key: rusted weapons over Default, clutter over Stream). The client strews both itself, where no file says,
+so the tool will strew them ITSELF too (DECIDED from the live client: a scene built away from its area could read nothing from memory either)
+- but what a layer's number after each mesh and its pairs between nought and one mean, and the list's numbers, no reference names
+(`DoodadLayer`, `GroundDoodadList`: poe_data_tools' `dlp` and `ddt` grammars). `ground-scatter.txt` (`CaptureGroundScatter`, Area files)
+writes every layer and list the area's masters name, read and whole, each layer's meshes with their size, and how much of the area each
+ground type covers, the files themselves beside it (`ground-scatter/`); `ground-scatter-replay.txt` reads them again offline. Read it
+before the scatter is given a rule. Then the water's colour: the game's river is brown, the tool's red.
 
 ## Verify against the game, not against yourself
 
