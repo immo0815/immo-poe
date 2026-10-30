@@ -137,6 +137,18 @@ public sealed class TileBookWindow : BookWindow<TileBook>
     /// <summary>The current area's terrain, for finding where a room it loaded was laid. Null leaves the search out.</summary>
     public Func<TerrainGrid?>? Terrain { get; init; }
 
+    /// <summary>The area round the player, shared with the Monster Book - see AroundYou. Null leaves the button out.</summary>
+    public AroundYou? AroundBlock { get; init; }
+
+    /// <summary>The block shown in place of a row, or empty - taken by the "around you" button, let go once another row is chosen.</summary>
+    private string _blockKey = string.Empty;
+
+    /// <summary>The row chosen when the block was taken - a different one chosen since lets the block go.</summary>
+    private string _blockFrom = string.Empty;
+
+    /// <summary>Why the last "around you" took no block, or empty.</summary>
+    private string _blockWhy = string.Empty;
+
     /// <summary>How to read a file out of the install - the room's own, for the search.</summary>
     public Func<string, byte[]?>? Read { get; init; }
 
@@ -334,6 +346,7 @@ public sealed class TileBookWindow : BookWindow<TileBook>
         }
 
         RoomsOnMapBox();
+        AroundBox();
 
         if (Clocks is { Reading: true } clocking)
         {
@@ -610,6 +623,12 @@ public sealed class TileBookWindow : BookWindow<TileBook>
     {
         ArgumentNullException.ThrowIfNull(key);
 
+        // THE AREA ROUND THE PLAYER, laid from its tiles alone - see AreaBlock.
+        if (AreaBlock.TryRead(key, out AreaBlock block))
+        {
+            return block.Build(read, terrain, progress);
+        }
+
         // THE PATH BEFORE THE MARK says which it is: a room's key carries words after it too.
         int mark = key.IndexOf(TileKey.Mark, StringComparison.Ordinal);
         if (!TileBook.IsRoom(mark >= 0 ? key[..mark] : key))
@@ -666,6 +685,19 @@ public sealed class TileBookWindow : BookWindow<TileBook>
     protected override void Pane()
     {
         string chosen = Chosen;
+
+        // THE AREA ROUND YOU IN PLACE OF A ROW, until another row is chosen - see AroundBox.
+        if (_blockKey.Length > 0)
+        {
+            if (string.Equals(chosen, _blockFrom, StringComparison.Ordinal))
+            {
+                BlockPane();
+                return;
+            }
+
+            _blockKey = string.Empty;
+        }
+
         int row = Page.Row(chosen);
         if (row < 0)
         {
@@ -715,6 +747,12 @@ public sealed class TileBookWindow : BookWindow<TileBook>
             Whereabouts(chosen);
         }
 
+        SharedFolds();
+    }
+
+    /// <summary>The light, the export and the files, and the picture's window - every subject's alike, a row's or the block's.</summary>
+    private void SharedFolds()
+    {
         if (Lighting is { } lighting && Section(LightFold, "Light"))
         {
             lighting.Draw(Model?.Showing);
@@ -734,6 +772,92 @@ public sealed class TileBookWindow : BookWindow<TileBook>
 
             model.DrawWindow();
         }
+    }
+
+    /// <summary>
+    /// The "around you" button and the block's side - the area round the player as it laid it, shown in place of a row (see BlockPane).
+    /// </summary>
+    /// <remarks>
+    /// ON A LINE OF ITS OWN under the boxes: a stage for any area, rooms or none - see AreaBlock. Let go at a new side while the block is
+    /// shown, the slider takes it again round wherever the player stands.
+    /// </remarks>
+    private void AroundBox()
+    {
+        if (AroundBlock is not { } around)
+        {
+            return;
+        }
+
+        if (ImGui.Button("around you##tilearound"))
+        {
+            Take(around);
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip(AroundYou.Tip);
+        }
+
+        ImGui.SameLine();
+        if (around.Slider("##tilearoundsize", 180f) && _blockKey.Length > 0)
+        {
+            Take(around);
+        }
+
+        if (_blockWhy.Length > 0)
+        {
+            ImGui.SameLine();
+            ImGui.TextDisabled(ImGuiText.Escape(_blockWhy));
+        }
+    }
+
+    /// <summary>Takes the block round the player now, to be shown in place of the row chosen - or says why there is none.</summary>
+    private void Take(AroundYou around)
+    {
+        (string key, string why) = around.Here();
+        _blockKey = key;
+        _blockWhy = key.Length == 0 ? "around you: " + why : string.Empty;
+        _blockFrom = Chosen;
+    }
+
+    /// <summary>The block's own pane: what it is, the picture, and the folds every subject has.</summary>
+    private void BlockPane()
+    {
+        OverlayFonts.PushHeading();
+        try
+        {
+            ImGui.TextUnformatted(AreaBlock.Path);
+        }
+        finally
+        {
+            OverlayFonts.PopHeading();
+        }
+
+        if (AreaBlock.TryRead(_blockKey, out AreaBlock block))
+        {
+            ImGui.SameLine();
+            ImGui.TextDisabled(string.Create(CultureInfo.InvariantCulture,
+                $"{block.Size} x {block.Size} tiles from tile {block.X}, {block.Y} - the area's tiles as it laid them; choose a row to leave it"));
+        }
+
+        if (!string.Equals(_blockKey, _subjectKey, StringComparison.Ordinal))
+        {
+            _subjectKey = _blockKey;
+            _subject = new MonsterVariety(Name: AreaBlock.Path);
+        }
+
+        if (Model is { } shown)
+        {
+            shown.Show(_subject, _subjectKey, AreaBlock.Path);
+            shown.DrawOpener();
+        }
+        else
+        {
+            ImGui.TextDisabled("No model viewer attached.");
+        }
+
+        ImGui.Spacing();
+        SharedFolds();
     }
 
     /// <summary>The name large, what it is beside it, where it is from and whether this area uses it, and its path - which a click copies.</summary>

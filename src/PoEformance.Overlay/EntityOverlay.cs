@@ -576,6 +576,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             RoomsOnMap = _tileBook?.RoomsOnMap ?? basis.RoomsOnMap,
             RoomSight = _tileBook?.Sight ?? basis.RoomSight,
             RoomCut = _tileBook?.Cut ?? basis.RoomCut,
+            AroundSize = _aroundYou is { } around ? (around.Size == AreaBlock.UsualSize ? 0 : around.Size) : basis.AroundSize,
             EffectColumns = _effectBook?.Columns is { Count: > 0 } effectColumns
                 ? effectColumns
                 : basis.EffectColumns,
@@ -1837,6 +1838,49 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// </summary>
     private RiverFlowMap? RiverFlowIn(int stamp)
         => _snapshot.Terrain is TerrainGrid grid && RoomKey.Stamp(grid) == stamp ? RiverFlow?.Invoke() : null;
+
+    /// <summary>The area round the player as a stage, one for the Tile Book and the Monster Book - see AroundYou.</summary>
+    private AroundYou? _aroundYou;
+
+    /// <summary>The masters beside the area's rooms, worked out once per area - see AreaBlock.MastersOf.</summary>
+    private (int Stamp, IReadOnlyList<string> Masters) _aroundMasters = (0, []);
+
+    private AroundYou AroundChoice => _aroundYou ??= new AroundYou { Key = AroundKey, Changed = () => SettingsChanged?.Invoke() };
+
+    /// <summary>The side of the area round you in tiles, as the settings keep it - nought or less for the usual. See AroundYou.</summary>
+    public int AroundSize
+    {
+        get => AroundChoice.Size;
+        set => AroundChoice.Size = value;
+    }
+
+    /// <summary>How the area round you reads files - the install's, handed in when a book is attached.</summary>
+    private Func<string, byte[]?>? _aroundRead;
+
+    /// <summary>
+    /// The key of the block of a side round the player's tile now, with the area's rooms' masters - or empty with why not. Asked every frame
+    /// while the Monster Book's combo is open, so the masters are read once per area.
+    /// </summary>
+    private (string Key, string Why) AroundKey(int size)
+    {
+        if (_snapshot.Terrain is not TerrainGrid { Tiles: not null } grid)
+        {
+            return (string.Empty, "the area's tiles are not read");
+        }
+
+        if (PlayerTile() is not { } here)
+        {
+            return (string.Empty, "the player is not known");
+        }
+
+        int stamp = RoomKey.Stamp(grid);
+        if (_aroundMasters.Stamp != stamp && _aroundRead is { } read)
+        {
+            _aroundMasters = (stamp, AreaBlock.MastersOf(read, AreaRoomFiles()));
+        }
+
+        return (AreaBlock.Around(here.X, here.Y, size, grid, _aroundMasters.Stamp == stamp ? _aroundMasters.Masters : []).ToString(), string.Empty);
+    }
 
     private IReadOnlyList<string>? _loadedOf;
     private IReadOnlyList<TerrainRoom>? _tilesHereOf;
@@ -3949,6 +3993,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         // THE GAME'S LIGHT FOR A MONSTER ON A STAGE - the same panel the tile book has, of its own: a
         // stage and the monster on it are one mesh, so one light, its sun and its shadows fall on both.
         SceneLightPanel lighting = Lighting(readFile);
+        _aroundRead ??= readFile;
         var window = new MonsterBookWindow(() => Monsters, () => StatSentences?.Invoke() ?? _noSentences)
         {
             Changed = () => SettingsChanged?.Invoke(),
@@ -3968,6 +4013,9 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 SceneFlow = RiverFlowIn,
                 Sun = lighting,
             }),
+
+            // THE AREA ROUND YOU, any area's - see AroundYou.
+            Around = AroundChoice,
 
             // READ WHEN ASKED, not captured: the tile book is attached after this one, and the choice
             // is whatever that book is open at when the stage is picked.
@@ -4147,6 +4195,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
 
         _capture.Read = readFile;
         SceneLightPanel lighting = Lighting(readFile);
+        _aroundRead ??= readFile;
         var window = new TileBookWindow(() => TileFiles, TilesHere)
         {
             Lighting = lighting,
@@ -4166,6 +4215,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             Read = readFile,
             Ghost = ghost => _roomGhost = ghost,
             Here = PlayerTile,
+            AroundBlock = AroundChoice,
             Model = Kept(new MonsterPortrait(readFile, Upload, key => RemoveImage(key), modelSize)
             {
                 Book = "tile",

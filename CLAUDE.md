@@ -426,6 +426,16 @@ Act 1's 1_5 (The Red Vale, 43 - measured), 1_2 (33), 1_14 (33), 1_13 (30), 1_1 (
 3_14 (29) and 3_2_2 (22); the interlude's p1_4 (89); the maps Riverhold (78), Rockpools (48), Rupture (42), Hidden Grotto (42), Bluff (31),
 Cenotes (29), Vaal City (26), Deforestation (26), Riverside (24), Woodland (24) and Wetlands (23). A room's material is not a flow map:
 the area's own `river-flow.txt` says whether the engine made one and where it stands.
+NO STAGE WAS TO BE HAD ON THE RED VALE'S RIVER (said from the live client with three pictures, v0.1.357): its river rooms (`curve5` and
+its kin) are one big slot each and name no doodad, so neither the doodads nor the corner search places them - the Tile Book placed 7 of
+the area's 187 rooms, none of them the river - and the Monster Book offers laid rooms named for an arena alone. Every tile the area laid
+is known with its place and turn, so from v0.1.359 both books offer THE AREA ROUND YOU (`AreaBlock`, `LaidRoomModels.Block`, `AroundYou`;
+DECIDED from the live client): the block of tiles round the player's tile laid as a laid room lays its pieces - their ground and their
+own `.tmd` doodads, no room's lines, zones or boss places - its side a slider shared by both books, 3 to 25 tiles, 9 the usual (CHOSEN
+from the live client, the settings' `aroundSize`), the picture's origin the block's corner in the area, so the river's flow map is drawn
+on it. The Tile Book's "around you" button shows it in place of a row until another is chosen; the Monster Book lists it as a stage.
+The ground is painted by the master beside the area's rooms that names the most of the block's ground types (`AreaBlock.MastersOf`,
+`CaptureGroundScreen.MasterOf`), the line under the picture saying which.
 
 ## Verify against the game, not against yourself
 

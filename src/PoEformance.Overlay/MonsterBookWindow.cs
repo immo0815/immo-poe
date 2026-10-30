@@ -616,6 +616,9 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
     /// </remarks>
     public SceneLightPanel? Lighting { get; init; }
 
+    /// <summary>The area round the player as a stage, shared with the Tile Book - see AroundYou. Null leaves it out.</summary>
+    public AroundYou? Around { get; init; }
+
     /// <summary>A tile typed in by path, to stand the monster on. See <see cref="Stage"/>.</summary>
     private string _stagePath = string.Empty;
 
@@ -656,8 +659,10 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
         {
             string current = model.Stage;
             string currentPath = StagedModels.PathOf(current);
+            bool aroundShown = AreaBlock.TryRead(current, out AreaBlock shownBlock);
             string shown = current.Length == 0
                 ? "none"
+                : aroundShown ? shownBlock.Said
                 : Tail(currentPath) + (!TileBook.IsRoom(currentPath) ? string.Empty : RoomKey.Read(current).Built.Length > 0 ? " (built, " + RoomKey.Read(current).BuiltIn + ")" : " (laid in play)");
             ImGui.SetNextItemWidth(MathF.Max(120f, ImGui.GetContentRegionAvail().X * 0.6f));
             if (ImGui.BeginCombo("stands on##monster-stage", ImGuiText.Escape(shown)))
@@ -691,7 +696,28 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
                     Offer(model, "the Tile Book's: " + Tail(pick), Key(pick), pick);
                 }
 
+                // AND THE AREA ROUND YOU, in any area: its tiles as laid, no room needed - see AroundYou.
+                if (Around is { } offered)
+                {
+                    (string key, string why) = offered.Here();
+                    if (key.Length > 0)
+                    {
+                        Offer(model, "around you: " + offered.Size.ToString(CultureInfo.InvariantCulture) + " x " + offered.Size.ToString(CultureInfo.InvariantCulture) + " tiles", key, AroundYou.Tip);
+                    }
+                    else
+                    {
+                        ImGui.TextDisabled(ImGuiText.Escape("around you: " + why));
+                    }
+                }
+
                 ImGui.EndCombo();
+            }
+
+            // THE BLOCK'S SIDE, under the combo, while the area round you is the stage - let go, it is laid again round you.
+            if (aroundShown && Around is { } around && around.Slider("##monster-around", MathF.Max(120f, ImGui.GetContentRegionAvail().X * 0.6f))
+                && around.Here() is { Key.Length: > 0 } again)
+            {
+                model.Stage = again.Key;
             }
 
             OverlayLayout.Hint("The monster drawn standing in the middle of a terrain tile, at the size the game draws it,"
@@ -699,7 +725,8 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
                 + " seen in the areas the game lists it as the boss of, and the arena-named tiles the install keeps for those areas;"
                 + " while you stand in one of those areas, its arena rooms as the game laid them, floor and all;"
                 + " from anywhere, those areas' arena rooms built from their tilesets - every tile valid, the arena settled, the ring chosen by weight;"
-                + " the Tile Book's tile is whatever that book is open at."
+                + " the Tile Book's tile is whatever that book is open at;"
+                + " and in any area the area round you, its tiles as the game laid them round the tile you stand on - its size the slider under the combo once chosen."
                 + " The picture frames the whole tile - the wheel zooms in on the monster.");
 
             // THE ROOM'S OWN SWITCHES IN COLUMNS, under the combo that chose the room - see RoomSwitches.

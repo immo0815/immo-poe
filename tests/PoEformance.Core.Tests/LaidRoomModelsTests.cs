@@ -188,6 +188,37 @@ public class LaidRoomModelsTests
         Assert.Contains("; each piece at its tiles' own level - fitted to the area's ground, 1 of 1 would sit over 8 units off it, the farthest slope at tile 1, 1 by -", said, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The area round the player, laid from its tiles with no room: the one tile where the laid room lays it in the world, its corner the
+    /// picture's origin, every piece counted - and the line saying it is the area's tiles alone, with no master to paint by.
+    /// </summary>
+    [Fact]
+    public void THEAREARoundYouLaysItsTilesWhereALaidRoomLaysThemWithNoRoom()
+    {
+        (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement: 6, selector: 1, lies: 2);
+        MonsterModel room = LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0);
+        AreaBlock block = AreaBlock.Around(1, 1, 3, grid, []);
+        Assert.Equal((0, 0, 3), (block.X, block.Y, block.Size));
+
+        MonsterModel around = block.Build(files.GetValueOrDefault, () => grid);
+        Assert.True(around.Ready, around.Why);
+        Assert.Equal(Vector2.Zero, around.AreaOrigin);
+        Assert.Equal(RoomKey.Stamp(grid), around.AreaStamp);
+        Assert.StartsWith("ground: no master beside the area's rooms - plain; the area round the player as it laid it, 3 x 3 tiles from tile 0, 0 - its tiles and their own doodads, no room's: 1 pieces of 1 tile files", around.Move, StringComparison.Ordinal);
+        Assert.Equal(1, around.Account!.Pieces);
+        Assert.Null(around.BossSpot);
+
+        Vector3 roomTop = Highest(room) + new Vector3(room.AreaOrigin!.Value, 0f);
+        Vector3 blockTop = Highest(around);
+        Assert.Equal(roomTop.X, blockTop.X, 0.01f);
+        Assert.Equal(roomTop.Y, blockTop.Y, 0.01f);
+        Assert.Equal(roomTop.Z, blockTop.Z, 0.01f);
+
+        // ANOTHER READING OF THE AREA'S GRID is another area to the key: nothing is laid over it.
+        (_, TerrainGrid other) = Area(placement: 6, selector: 1, lies: 2);
+        Assert.Contains("the area this block was taken in is gone", block.Build(files.GetValueOrDefault, () => other).Why, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void WITHNoSlopeNothingIsSettledAndTheLineSaysSo()
     {

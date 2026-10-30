@@ -215,6 +215,10 @@ public sealed record OverlaySettings(
     // usual, cuts nothing. See LaidRoomModels.Hiding.
     [property: JsonPropertyName("roomCut")] int RoomCut = 0,
 
+    // How many tiles a side the Tile Book's and the Monster Book's "around you" block is laid over. Zero, "not set", is the usual
+    // (AreaBlock.UsualSize); kept between sessions like the rooms' own sliders. See AroundYou.
+    [property: JsonPropertyName("aroundSize")] int AroundSize = 0,
+
     // And the effect book's, kept apart for the same reason. See EffectBookWindow.
     [property: JsonPropertyName("effectColumns")] IReadOnlyList<string>? EffectColumns = null,
     [property: JsonPropertyName("effectColumnWidths")] IReadOnlyDictionary<string, int>? EffectColumnWidths = null,

@@ -95,6 +95,12 @@ public static class StagedModels
         string path = PathOf(stage);
         MonsterModel Built()
         {
+            // THE AREA ROUND THE PLAYER, laid from its tiles alone - see AreaBlock.
+            if (AreaBlock.TryRead(stage, out AreaBlock block))
+            {
+                return block.Build(read, terrain, progress);
+            }
+
             if (TileBook.IsRoom(path))
             {
                 return LaidRoom(read, stage, terrain, progress);
@@ -257,7 +263,7 @@ public static class StagedModels
 
         string said = string.Create(
             CultureInfo.InvariantCulture,
-            $"stage: {Tail(stage)}{(TileBook.IsRoom(stage) ? " as the area laid it" : string.Empty)} · the monster stands {where} at {scale:0.##} of its file's size, {(found ? $"on the floor there ({floor:0} on the tile's z)" : "at the tile's lowest point - nothing faces up there")}");
+            $"stage: {Tail(stage)}{(TileBook.IsRoom(stage) || string.Equals(stage, AreaBlock.Path, StringComparison.Ordinal) ? " as the area laid it" : string.Empty)} · the monster stands {where} at {scale:0.##} of its file's size, {(found ? $"on the floor there ({floor:0} on the tile's z)" : "at the tile's lowest point - nothing faces up there")}");
 
         return RoomModels.Piled(joined, pile, actor.Mesh_, [tile, actor], tile.Shore) with
         {

@@ -3791,6 +3791,7 @@ internal static class Program
             tileSections: settings.TileSections,
             roomSight: settings.RoomSight,
             roomCut: settings.RoomCut);
+        overlay.AroundSize = settings.AroundSize;
         overlay.AttachPointsOfInterest(route);
 
         // Before the editor, which is handed this exact instance - and before the layers read
