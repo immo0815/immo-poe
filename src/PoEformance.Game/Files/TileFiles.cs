@@ -404,7 +404,7 @@ public readonly record struct TileRun(int Material, int Shapes);
 /// the bottom: the first line of the material indices is the TOP row, so line
 /// <c>x + (height - y) * width</c> belongs to <c>c{x+1}r{y}</c>.
 ///
-/// VERSIONS BELOW 3 name a single mesh in another shape of file and are refused by name.
+/// VERSIONS BELOW 3 name a single mesh in another shape of file, read whole but not drawn - see Older.
 /// </remarks>
 public sealed class TileTemplate
 {
@@ -477,10 +477,10 @@ public sealed class TileTemplate
 
         if (version < 3)
         {
-            return new TileTemplate { Version = version, Why = $"version {version} names its mesh another way, which this does not read" };
+            return Older(lines, at, version);
         }
 
-        Keyword(lines, ref at, "SourceScene", out _);
+        string scene = Keyword(lines, ref at, "SourceScene", out rest) ? Quoted(rest) ?? string.Empty : string.Empty;
 
         if (!Keyword(lines, ref at, "Size", out rest) || Numbers(rest) is not [int width, int height]
             || width is < 1 or > 64 || height is < 1 or > 64)
@@ -505,13 +505,18 @@ public sealed class TileTemplate
             }
         }
 
+        var slotted = new List<string>();
         if (Keyword(lines, ref at, "MaterialSlots", out rest)
             && int.TryParse(rest.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int slots))
         {
-            at = Math.Min(lines.Length, at + slots);
+            for (var one = 0; one < slots && at < lines.Length; one++)
+            {
+                slotted.Add(Quoted(lines[at++]) ?? string.Empty);
+            }
         }
 
         var runs = new List<IReadOnlyList<TileRun>>(width * height);
+        var leads = new List<IReadOnlyList<int>>(width * height);
         if (materials.Count > 0 && Keyword(lines, ref at, "SubTileMaterialIndices", out rest))
         {
             // THE FIRST SUB-TILE MAY SHARE THE KEYWORD'S LINE, since the grammar only asks for
@@ -519,7 +524,7 @@ public sealed class TileTemplate
             string first = rest.Trim();
             if (first.Length > 0)
             {
-                runs.Add(Run(first, materials.Count));
+                runs.Add(Run(first, materials.Count, leads));
             }
 
             while (runs.Count < width * height && at < lines.Length)
@@ -527,7 +532,7 @@ public sealed class TileTemplate
                 string line = lines[at++].Trim();
                 if (line.Length > 0)
                 {
-                    runs.Add(Run(line, materials.Count));
+                    runs.Add(Run(line, materials.Count, leads));
                 }
             }
         }
@@ -541,7 +546,90 @@ public sealed class TileTemplate
             GroundMask = mask.Replace('\\', '/'),
             Materials = materials,
             Runs = runs,
+            SourceScene = scene.Replace('\\', '/'),
+            Slots = slotted,
+            Leads = leads,
+            Unread = Leftover(lines, at),
         };
+    }
+
+    /// <summary>The <c>SourceScene</c> the template names, or empty - read, not used.</summary>
+    public string SourceScene { get; private init; } = string.Empty;
+
+    /// <summary>The <c>MaterialSlots</c> the template names, in order - read, not used: every one of Port's 66 templates says <c>MaterialSlots 0</c>.</summary>
+    public IReadOnlyList<string> Slots { get; private init; } = [];
+
+    /// <summary>
+    /// Per sub-tile line, in <see cref="Runs"/>' order, the FIRST number of each run written as a triple - poe_data_tools'
+    /// <c>uint1</c>, which annalithic's reading (the last two the material and the shapes) leaves unnamed; empty for a line
+    /// of pairs.
+    /// </summary>
+    public IReadOnlyList<IReadOnlyList<int>> Leads { get; private init; } = [];
+
+    /// <summary>A version 1 template's one mesh (<c>TileMesh "..."</c>), or empty.</summary>
+    public string SingleMesh { get; private init; } = string.Empty;
+
+    /// <summary>A version 1 template's number after each material (its <c>NormalMaterials</c> lines are <c>"a.mat" n</c>), in <see cref="Materials"/>' order; else empty.</summary>
+    public IReadOnlyList<int> MaterialNumbers { get; private init; } = [];
+
+    /// <summary>The first line the reading left behind, or empty where every non-blank line was taken - the reference asks for the file's end.</summary>
+    public string Unread { get; private init; } = string.Empty;
+
+    /// <summary>
+    /// A version 1 or 2 template - poe_data_tools' <c>v1_section</c>: <c>TileMesh "..."</c>, an optional
+    /// <c>GroundMask "..."</c>, then <c>NormalMaterials N</c> and N lines of a quoted material and a number.
+    /// </summary>
+    /// <remarks>
+    /// READ WHOLE AND NOT DRAWN (from v0.1.360): it names ONE mesh where a version 3 template names a sub-tile mesh per
+    /// sub-tile by its size, and which sub-tiles that one mesh covers - and what the number after each material is - no
+    /// reference says. So it stays not <see cref="Ready"/>, its <see cref="Why"/> saying so, every field kept.
+    /// </remarks>
+    private static TileTemplate Older(string[] lines, int at, int version)
+    {
+        if (!Keyword(lines, ref at, "TileMesh", out string rest) || Quoted(rest) is not { Length: > 0 } mesh)
+        {
+            return new TileTemplate { Version = version, Why = $"version {version} has no TileMesh line" };
+        }
+
+        string mask = Keyword(lines, ref at, "GroundMask", out rest) ? Quoted(rest) ?? string.Empty : string.Empty;
+        var materials = new List<string>();
+        var numbers = new List<int>();
+        if (Keyword(lines, ref at, "NormalMaterials", out rest)
+            && int.TryParse(rest.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int count))
+        {
+            for (var one = 0; one < count && at < lines.Length; one++)
+            {
+                string line = lines[at++];
+                int close = line.LastIndexOf('"');
+                materials.Add(Quoted(line) ?? string.Empty);
+                numbers.Add(close >= 0 && int.TryParse(line[(close + 1)..].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) ? number : -1);
+            }
+        }
+
+        return new TileTemplate
+        {
+            Version = version,
+            SingleMesh = mesh.Replace('\\', '/'),
+            GroundMask = mask.Replace('\\', '/'),
+            Materials = materials,
+            MaterialNumbers = numbers,
+            Unread = Leftover(lines, at),
+            Why = $"version {version} names one mesh, {mesh}, whose sub-tiles no reference gives - read, not drawn",
+        };
+    }
+
+    private static string Leftover(string[] lines, int at)
+    {
+        for (; at < lines.Length; at++)
+        {
+            string line = lines[at].Trim();
+            if (line.Length > 0)
+            {
+                return line.Length > 80 ? line[..80] + "..." : line;
+            }
+        }
+
+        return string.Empty;
     }
 
     /// <summary>
@@ -552,29 +640,31 @@ public sealed class TileTemplate
     /// the only one that says what the numbers mean; poe_data_tools reads both shapes without naming
     /// them. A material index past the list is dropped, and a line that is neither shape is no runs.
     /// </remarks>
-    private static IReadOnlyList<TileRun> Run(string line, int materials)
+    private static IReadOnlyList<TileRun> Run(string line, int materials, List<IReadOnlyList<int>> leads)
     {
         int[] numbers = Numbers(line);
-        if (numbers.Length == 0)
-        {
-            return [];
-        }
-
-        int count = numbers[0];
-        int width = numbers.Length - 1 == count * 3 ? 3 : numbers.Length - 1 == count * 2 ? 2 : 0;
+        int count = numbers.Length > 0 ? numbers[0] : 0;
+        int width = numbers.Length == 0 ? 0 : numbers.Length - 1 == count * 3 ? 3 : numbers.Length - 1 == count * 2 ? 2 : 0;
         if (width == 0 || count <= 0)
         {
+            leads.Add([]);
             return [];
         }
 
         var runs = new List<TileRun>(count);
+        int[] lead = width == 3 ? new int[count] : [];
         for (var one = 0; one < count; one++)
         {
             int material = numbers[1 + (one * width) + (width - 2)];
             int shapes = numbers[1 + (one * width) + (width - 1)];
             runs.Add(new TileRun(material < materials ? material : -1, Math.Max(0, shapes)));
+            if (width == 3)
+            {
+                lead[one] = numbers[1 + (one * width)];
+            }
         }
 
+        leads.Add(lead);
         return runs;
     }
 
@@ -652,7 +742,7 @@ public sealed class TileTemplate
 /// whether it did, and a mismatch is reported rather than hidden. The props are kept either way,
 /// because their block was read and verified by the DOLm reader before anything after it was.
 ///
-/// VERSIONS BELOW 9 put the vertices outside a DOLm block and are refused by name.
+/// VERSIONS BELOW 9 put the vertices outside a DOLm block, in a layout of their own - see Older.
 /// </remarks>
 public sealed class TileMesh
 {
@@ -708,11 +798,7 @@ public sealed class TileMesh
         int version = file[0];
         if (version < 9)
         {
-            return new TileMesh
-            {
-                Version = version,
-                Why = $"version {version} puts its geometry outside a DOLm block, which this does not read",
-            };
+            return Older(file, version);
         }
 
         int at = 1 + BoxBytes;
@@ -768,6 +854,235 @@ public sealed class TileMesh
             TailData = tailBytes,
         };
     }
+
+    /// <summary>
+    /// A file below version 9, whose two meshes sit in a layout of their own rather than in DOLm blocks - poe_data_tools'
+    /// <c>v8_section</c> (<c>file_parsers/tgm/parser.rs</c>), read in its order:
+    /// <code>
+    ///     two geometry records       u16 shapes, u32 vertices, u32 triangles - the props', then the ground's
+    ///     u8 vertex format, u8 tail count, and at version 8 alone a u32
+    ///     per mesh, props then ground
+    ///         per shape              u16 ordinal, six floats of box, u32 first index, u32 index count
+    ///         the vertices           props: position, normal, tangent, coordinates (24 bytes)
+    ///                                ground: position, normal, tangent, and from version 4 two pairs of coordinates
+    ///                                where the format is 3 or one more pair (unnamed, tail_float) where it is 2
+    ///         the indices            AFTER the vertices, U16 under 65,536 vertices and U32 from there
+    ///     tail count records         70 bytes below version 3, 74 at 3, 78 at 4, 83 at 5 and 6, 87 from 7
+    /// </code>
+    /// </summary>
+    /// <remarks>
+    /// REFUSED UNTIL v0.1.360, and drawn only where the walk proves itself twice: it must end EXACTLY at the file's end - the
+    /// reference demands that - and each mesh's shape extents must cover its index buffer with no gap, counted in indices as a
+    /// DOLm block counts them, or else in triangles (their sum three times short), which the reference's names do not settle.
+    /// A walk that fails either is reported in <see cref="Why"/> and nothing of it is drawn. The ground's unnamed pair of
+    /// halves (format 2) is kept apart (<see cref="GroundExtra"/>), not taken for coordinates.
+    /// </remarks>
+    private static TileMesh Older(ReadOnlySpan<byte> file, int version)
+    {
+        int at = 1 + BoxBytes;
+        if (at + 20 + 2 + (version == 8 ? 4 : 0) > file.Length)
+        {
+            return new TileMesh { Version = version, Why = "the file ends inside its own header" };
+        }
+
+        var geometry = new (int Shapes, uint Vertices, uint Triangles)[2];
+        for (var one = 0; one < 2; one++)
+        {
+            geometry[one] = (BinaryPrimitives.ReadUInt16LittleEndian(file[at..]), BinaryPrimitives.ReadUInt32LittleEndian(file[(at + 2)..]), BinaryPrimitives.ReadUInt32LittleEndian(file[(at + 6)..]));
+            at += 10;
+        }
+
+        int format = file[at++];
+        int tails = file[at++];
+        uint? extra = null;
+        if (version == 8)
+        {
+            extra = BinaryPrimitives.ReadUInt32LittleEndian(file[at..]);
+            at += 4;
+        }
+
+        int groundStride = 20 + (version >= 4 && format == 3 ? 8 : 0) + (version >= 4 && format == 2 ? 4 : 0);
+        int tailWidth = version switch { < 3 => 70, 3 => 74, 4 => 78, < 7 => 83, _ => 87 };
+        long needed = at + ((long)tails * tailWidth);
+        for (var one = 0; one < 2; one++)
+        {
+            (int shapes, uint vertices, uint triangles) = geometry[one];
+            needed += (shapes * (2L + BoxBytes + 8)) + ((long)vertices * (one == 0 ? 24 : groundStride)) + ((long)triangles * 3 * (vertices < 0x10000 ? 2 : 4));
+        }
+
+        if (needed != file.Length)
+        {
+            return new TileMesh
+            {
+                Version = version,
+                Why = needed > file.Length
+                    ? "the version 8 layout says the file is bigger than it is"
+                    : $"the version 8 layout ends {file.Length - needed} bytes before the file does",
+            };
+        }
+
+        // SAFE TO NARROW: the sum above is the file's own length.
+        SkinnedMesh props = SkinnedMesh.None;
+        SkinnedMesh ground = SkinnedMesh.None;
+        int[] ordinals = [];
+        byte[] groundExtra = [];
+        for (var one = 0; one < 2; one++)
+        {
+            (int shapes, uint counted, uint faces) = geometry[one];
+            int vertices = (int)counted;
+            var extents = new (int From, int Count)[shapes];
+            var order = new int[shapes];
+            for (var shape = 0; shape < shapes; shape++)
+            {
+                order[shape] = BinaryPrimitives.ReadUInt16LittleEndian(file[at..]);
+                extents[shape] = ((int)BinaryPrimitives.ReadUInt32LittleEndian(file[(at + 2 + BoxBytes)..]), (int)BinaryPrimitives.ReadUInt32LittleEndian(file[(at + 6 + BoxBytes)..]));
+                at += 2 + BoxBytes + 8;
+            }
+
+            int stride = one == 0 ? 24 : groundStride;
+            var positions = new Vector3[vertices];
+            var normals = new Vector3[vertices];
+            var coordinates = new Vector2[vertices];
+            bool coordinated = one == 0 || (version >= 4 && format == 3);
+            byte[] kept = one == 1 && version >= 4 && format == 2 ? new byte[vertices * 4] : [];
+            for (var point = 0; point < vertices; point++, at += stride)
+            {
+                positions[point] = new Vector3(BinaryPrimitives.ReadSingleLittleEndian(file[at..]), BinaryPrimitives.ReadSingleLittleEndian(file[(at + 4)..]), BinaryPrimitives.ReadSingleLittleEndian(file[(at + 8)..]));
+                var normal = new Vector3((sbyte)file[at + 12] / 127f, (sbyte)file[at + 13] / 127f, (sbyte)file[at + 14] / 127f);
+                normals[point] = normal.LengthSquared() > 0.0001f ? Vector3.Normalize(normal) : Vector3.UnitZ;
+                if (coordinated)
+                {
+                    coordinates[point] = new Vector2(
+                        (float)BitConverter.UInt16BitsToHalf(BinaryPrimitives.ReadUInt16LittleEndian(file[(at + 20)..])),
+                        (float)BitConverter.UInt16BitsToHalf(BinaryPrimitives.ReadUInt16LittleEndian(file[(at + 22)..])));
+                }
+
+                if (kept.Length > 0)
+                {
+                    file.Slice(at + 20, 4).CopyTo(kept.AsSpan(point * 4));
+                }
+            }
+
+            int width = vertices < 0x10000 ? 2 : 4;
+            var indices = new int[(int)faces * 3];
+            for (var index = 0; index < indices.Length; index++, at += width)
+            {
+                indices[index] = width == 2 ? BinaryPrimitives.ReadUInt16LittleEndian(file[at..]) : (int)BinaryPrimitives.ReadUInt32LittleEndian(file[at..]);
+                if (indices[index] >= vertices)
+                {
+                    return new TileMesh { Version = version, Why = $"the version 8 {(one == 0 ? "props'" : "ground's")} index {indices[index]} reaches past its {vertices} vertices" };
+                }
+            }
+
+            if (Covered(extents, indices.Length) is not { } scale)
+            {
+                return new TileMesh { Version = version, Why = $"the version 8 {(one == 0 ? "props'" : "ground's")} shapes do not cover its {indices.Length} indices, in indices or in triangles" };
+            }
+
+            var facts = new MeshFacts(version, 0, 1, (uint)format, stride, shapes, shapes, (int)faces, vertices, 0, 0);
+            SkinnedMesh mesh = Mesh(positions, normals, coordinates, indices, extents, scale, facts);
+            if (one == 0)
+            {
+                props = mesh;
+            }
+            else
+            {
+                ground = mesh;
+                ordinals = order;
+                groundExtra = kept;
+            }
+        }
+
+        var tailRecords = new byte[tails][];
+        for (var one = 0; one < tails; one++, at += tailWidth)
+        {
+            tailRecords[one] = file.Slice(at, tailWidth).ToArray();
+        }
+
+        return new TileMesh
+        {
+            Version = version,
+            Props = props,
+            Ground = ground,
+            Exact = true,
+            HeaderShapes = geometry[0].Shapes,
+            HeaderFormat = format,
+            HeaderExtra = extra,
+            GroundOrdinals = ordinals,
+            GroundExtra = groundExtra,
+            OlderTail = tailRecords,
+        };
+    }
+
+    /// <summary>
+    /// What one count of a version-8 shape's extent is in indices: 1 where the counts sum to the index buffer, 3 where they
+    /// sum to a third of it (triangles), null where neither - and every extent must start where the one before it ended.
+    /// </summary>
+    private static int? Covered((int From, int Count)[] extents, int indices)
+    {
+        foreach (int scale in (ReadOnlySpan<int>)[1, 3])
+        {
+            long next = 0;
+            var tiled = true;
+            foreach ((int from, int count) in extents)
+            {
+                if ((long)from * scale != next || count < 0)
+                {
+                    tiled = false;
+                    break;
+                }
+
+                next += (long)count * scale;
+            }
+
+            if (tiled && next == indices)
+            {
+                return scale;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>A version-8 mesh as the drawing takes one: its shapes numbered, its box from its vertices; nothing where it has no triangles.</summary>
+    private static SkinnedMesh Mesh(Vector3[] positions, Vector3[] normals, Vector2[] coordinates, int[] indices, (int From, int Count)[] extents, int scale, MeshFacts facts)
+    {
+        if (positions.Length == 0 || indices.Length == 0)
+        {
+            return SkinnedMesh.None;
+        }
+
+        var shapes = new MeshShape[extents.Length];
+        for (var one = 0; one < shapes.Length; one++)
+        {
+            shapes[one] = new MeshShape(one.ToString(CultureInfo.InvariantCulture), extents[one].From * scale, extents[one].Count * scale);
+        }
+
+        Vector3 least = positions[0];
+        Vector3 most = least;
+        foreach (Vector3 point in positions)
+        {
+            least = Vector3.Min(least, point);
+            most = Vector3.Max(most, point);
+        }
+
+        return SkinnedMesh.Of(positions, normals, indices, least, most, coordinates, shapes, facts);
+    }
+
+    /// <summary>A version-8 file's vertex format byte; nought from version 9, whose blocks carry their own.</summary>
+    public int HeaderFormat { get; private init; }
+
+    /// <summary>The u32 a version-8 file alone writes after its counts - the reference's <c>extra_header</c>, unnamed; null otherwise.</summary>
+    public uint? HeaderExtra { get; private init; }
+
+    /// <summary>A version-8 ground's unnamed pair of halves per vertex (format 2, the reference's <c>tail_float</c>), four bytes each, raw; else empty.</summary>
+    public byte[] GroundExtra { get; private init; } = [];
+
+    /// <summary>
+    /// A file below version 9's tail records, raw, at that version's width - kept apart from <see cref="TailData"/>, whose
+    /// 87-byte layout <see cref="Tail"/> decodes and which the older widths do not share.
+    /// </summary>
+    public IReadOnlyList<byte[]> OlderTail { get; private init; } = [];
 
     /// <summary>The header's shape count - poe_data_tools' <c>num_shapes</c>.</summary>
     public int HeaderShapes { get; private init; }

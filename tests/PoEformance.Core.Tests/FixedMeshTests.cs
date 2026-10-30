@@ -95,6 +95,21 @@ public class FixedMeshTests
         Assert.Equal(["BarrelShape", "WheelShape"], prop.Mesh.Shapes.Select(one => one.Name));
     }
 
+    /// <summary>The pieces, their records and the trailing records are kept as the reference reads them, and the walk ends at the file's end.</summary>
+    [Fact]
+    public void THEPiecesAndRecordsAreKeptAndTheWalkEndsAtTheEnd()
+    {
+        FixedMesh prop = FixedMesh.Read(Built(records: 2, pieces: [2, 0]));
+
+        Assert.True(prop.Ready);
+        Assert.Equal([2, 0], prop.Pieces.Select(one => one.Records.Count));
+        Assert.All(prop.Pieces, one => Assert.Equal("BarrelShape", one.Tag));
+        Assert.All(prop.Pieces[0].Records, one => Assert.Equal(12, one.Length));
+        Assert.Equal([87, 87], prop.Records.Select(one => one.Length));
+        Assert.Equal(0, prop.Unread);
+        Assert.Equal(3, FixedMesh.Read([.. Built(), 1, 2, 3]).Unread);
+    }
+
     /// <summary>
     /// A version below nine is refused by name rather than read out of the wrong bytes.
     /// </summary>

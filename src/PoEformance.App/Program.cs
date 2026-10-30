@@ -3368,6 +3368,9 @@ internal static class Program
         // ways, so merging them would only hide which one is in force - and MonsterTables.Say
         // prints how far the install and the export agree, which is the check. On failure nothing
         // is assigned at all and the export simply stays.
+        //
+        // The parser survey's paths are filled by the startup walk below and read at a capture's press.
+        var surveyPaths = new PoEformance.Features.ParserSurvey.Kept();
         if (installed is not null)
         {
             PoEformance.Game.Entities.MonsterVarieties exported = overlay.Monsters;
@@ -3505,6 +3508,9 @@ internal static class Program
                     // AND THE ENGINE'S OWN GRAPHS WHOLE, the debug views among them, for the capture's render debug part.
                     new PoEformance.Game.Files.BundleIndex.WalkPlace(PoEformance.Features.CaptureRenderDebug.Folder, [string.Empty]),
 
+                    // AND EVERY FILE OF THE FORMATS READ AFTER poe_data_tools, for the capture's parser survey - kept packed.
+                    new PoEformance.Game.Files.BundleIndex.WalkPlace(string.Empty, PoEformance.Features.ParserSurvey.Extensions),
+
                     // AND EVERY PATH NAMING A WOBBLE, for the capture's wobble files part: what sways Port's ship.
                     .. PoEformance.Features.CaptureWobble.Folders.Select(folder =>
                         new PoEformance.Game.Files.BundleIndex.WalkPlace(folder, [string.Empty], PoEformance.Features.CaptureWobble.Words)),
@@ -3522,7 +3528,8 @@ internal static class Program
                 overlay.DataTables = found[7];
                 overlay.DebugPaths = found[8];
                 overlay.EngineGraphs = found[9];
-                overlay.WobblePaths = [.. found.Skip(10).SelectMany(one => one).Distinct(StringComparer.OrdinalIgnoreCase)];
+                surveyPaths.Set(found[10]);
+                overlay.WobblePaths = [.. found.Skip(11).SelectMany(one => one).Distinct(StringComparer.OrdinalIgnoreCase)];
                 overlay.TileFiles = tiles;
             });
         }
@@ -3610,6 +3617,23 @@ internal static class Program
                 path => PoEformance.Game.Diagnostics.RoomFiles.Dump(preload.Area, preload.All, read, path) is null
                     ? ["could not write the rooms out"]
                     : null);
+
+            // THE PARSER SURVEY: every file of the formats read after poe_data_tools, judged by its reader on every core - see
+            // ParserSurvey. Its paths come from the startup walk (the index drops its path text after it), packed. One survey a
+            // press, so its line and its stop in the capture's window are that press's.
+            PoEformance.Features.ParserSurvey.Running? surveying = null;
+            overlay.OfferCaptureWork(
+                PoEformance.Features.CaptureParts.ParserSurvey,
+                path =>
+                {
+                    var running = new PoEformance.Features.ParserSurvey.Running();
+                    surveying = running;
+                    return PoEformance.Features.ParserSurvey.Run(surveyPaths, read, Path.GetDirectoryName(path), running);
+                },
+                new PoEformance.Overlay.CaptureWorkProgress(
+                    () => surveying?.Line ?? "starting",
+                    () => surveying?.Fraction ?? 0f,
+                    () => surveying?.Stop()));
         }
 
         // THE WOBBLE WATCH: what sways Port's ship, read from memory for seconds from the press - see WobbleProbe. One probe a

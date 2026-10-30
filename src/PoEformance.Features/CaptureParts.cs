@@ -199,6 +199,9 @@ public static class CaptureParts
     /// <summary>Every room of every room set in the install built as a Monster Book stage, and what fails counted by cause - off until ticked.</summary>
     public const string StageSweep = "stage-sweep";
 
+    /// <summary>Every file of the formats read after poe_data_tools read from the install and counted as read whole or stopped - see ParserSurvey.</summary>
+    public const string ParserSurvey = "parser-survey";
+
     /// <summary>The memory recording itself.</summary>
     public const string Memory = "memory";
 
@@ -228,7 +231,7 @@ public static class CaptureParts
     /// lines under the buttons that nobody playing reads. They read the file table and the bundles, which takes seconds, so they
     /// cannot be asked for on the frame the key goes down as a window's text is.
     /// </remarks>
-    public static bool RunsAtPress(string key) => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow;
+    public static bool RunsAtPress(string key) => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow or ParserSurvey;
 
     /// <summary>
     /// A heading as the Keys page writes it. The headings themselves stay as they are: they are what <see cref="FolderOfGroup"/> keys
@@ -471,6 +474,15 @@ public static class CaptureParts
             + "every graph they name; what the compile makes of each, node type by node type, and the node types it does not know "
             + "yet; the textures they name with their headers; the debug pass's shader sources whole, and those naming an unknown "
             + "node; and every string of the game's program round its table of the views, at its address."),
+
+        new(ParserSurvey, "Area files", "parser survey", CaptureReport.ParserSurveyFile,
+            "Every file of the formats read after poe_data_tools' parsers, from the whole install: the master's tables (.cht, .clt, "
+            + ".dct, .ddt), ground and edge types (.gt, .et, .gcf), animation data (.amd), effect packages, particles and trails "
+            + "(.epk, .pet, .trl), the passive graph (.psg), and the mesh readers' whole reads (.smd with every level and its tail, "
+            + ".fmt with its pieces, .tgm, .tgt) - each judged by its reader as read whole or stopped, counted per format and "
+            + "version with the stops' reasons, and the first stopped files of each format written beside it (parser-survey/), "
+            + "which the replay reads again. On every core, the formats dealt round in turn; it stops itself 100 s from the press "
+            + "and says how far it got."),
 
         new(StageSweep, "Area files", "stage sweep (hours)", CaptureReport.StageSweepFile,
             "Every room of every room set in the install, each under every master naming its set, built as the Monster Book builds a "

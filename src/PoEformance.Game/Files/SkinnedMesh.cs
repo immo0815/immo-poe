@@ -144,7 +144,7 @@ public readonly record struct MeshJoin(
 /// whose <c>c0h</c> is not four, and that was found only because a monster's shape names came back
 /// nearly right rather than obviously wrong.
 /// </remarks>
-public sealed class SkinnedMesh
+public sealed partial class SkinnedMesh
 {
     /// <summary>Nothing read - a missing file, or one that is not a mesh.</summary>
     public static SkinnedMesh None { get; } = new();
