@@ -19,7 +19,11 @@ public sealed class GroundScatterTests
     private const string Sword = "Art/Models/Test/sword.fmt";
     private const string Grass = "Art/Models/Test/grass.fmt";
     private const string Moss = "Art/Models/Test/moss.fmt";
-    private const string Rust = "Metadata/Terrain/Doodads/Test/rust.ao";
+    private const string Clay = "Metadata/Terrain/Test/clay.gt";
+    private const string Edge = "Art/Models/Test/edge.fmt";
+    private const string RustSet = "Metadata/Terrain/Doodads/Test/rust_set.ao";
+    private const string RustA = "Metadata/Terrain/Doodads/Test/rust_a.ao";
+    private const string RustB = "Metadata/Terrain/Doodads/Test/rust_b.ao";
     private const string Shell = "Metadata/Terrain/Doodads/Test/shell.ao";
     private const float Ground = -7f;
 
@@ -126,11 +130,66 @@ public sealed class GroundScatterTests
         scatter.Strew("rock.tdt", Flat(), [], 1, 1, Matrix4x4.CreateTranslation(250f, 0f, 0f), Vector2.Zero, blocked: null);
 
         (RoomDoodad One, Matrix4x4 Place) shell = Assert.Single(scatter.Lines, line => line.One.Ao == Shell);
-        (RoomDoodad One, Matrix4x4 Place) rust = Assert.Single(scatter.Lines, line => line.One.Ao == Rust);
+        (RoomDoodad One, Matrix4x4 Place) rust = Assert.Single(scatter.Lines, line => line.One.Ao is RustA or RustB);
         Assert.InRange(shell.Place.Translation.X, 0f, 250f);
         Assert.InRange(rust.Place.Translation.X, 250f, 500f);
         Assert.Equal(GroundScatter.Stub, rust.One.Stub);
+
+        // THE LIST'S FIRST NUMBER IS NO SIZE: "0.2 5" here, and the doodads keep their files' own.
+        Assert.Equal(1f, rust.One.Scale);
         Assert.Contains("2 from doodads.ddt", scatter.Said(), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A point on the pattern's edge - a coordinate of one - is laid in the cell holding it, where the next square's nought lies, and in
+    /// no other.
+    /// </summary>
+    [Fact]
+    public void APOINTOnThePatternsEdgeIsLaidOnceWhereTheNextSquareBegins()
+    {
+        GroundScatter scatter = Scatter();
+        scatter.Strew("clay.tdt", Flat(), [], 1, 1, Matrix4x4.CreateTranslation(250f, 0f, 0f), Vector2.Zero, blocked: null);
+        scatter.Strew("clay.tdt", Flat(), [], 1, 1, Matrix4x4.CreateTranslation(500f, 0f, 0f), Vector2.Zero, blocked: null);
+
+        Assert.Equal(new Vector3(500f, 125f, Ground), Assert.Single(scatter.Lines, line => line.One.Ao == Edge).Place.Translation);
+    }
+
+    /// <summary>
+    /// A sub-tile two templates lay ground on is one cell: strewn once, each place stood on the top of both grounds.
+    /// </summary>
+    [Fact]
+    public void ASUBTileTwoTemplatesLayGroundOnIsStrewnOnceOnTheTopOfBoth()
+    {
+        GroundScatter scatter = Scatter();
+        scatter.Strew("stacked.tdt", Stacked(), [new GroundPiece(1, 1, 2), new GroundPiece(1, 1, 2)], 1, 1, Matrix4x4.Identity, Vector2.Zero, blocked: null);
+
+        (RoomDoodad One, Matrix4x4 Place)[] moss = [.. scatter.Lines.Where(line => line.One.Ao == Moss)];
+        Assert.Equal(4, moss.Length);
+        Assert.All(moss, line => Assert.Equal(-20f, line.Place.Translation.Z, 3));
+        Assert.Contains("over 1 sub-tiles", scatter.Said(), StringComparison.Ordinal);
+    }
+
+    /// <summary>A list doodad that is a set draws the same member at the same spot of the area however the room's frame lies over it.</summary>
+    [Fact]
+    public void ASETFromTheListDrawsTheSameMemberAtTheSameSpotHoweverTheRoomLies()
+    {
+        GroundScatter atOrigin = Scatter(), shifted = Scatter();
+        for (var tile = 0; tile < 40; tile++)
+        {
+            atOrigin.Strew("rock.tdt", Flat(), [], 1, 1, Matrix4x4.CreateTranslation((tile + 1) * 250f, 0f, 0f), Vector2.Zero, blocked: null);
+            shifted.Strew("rock.tdt", Flat(), [], 1, 1, Matrix4x4.CreateTranslation(tile * 250f, 0f, 0f), new Vector2(250f, 0f), blocked: null);
+        }
+
+        (RoomDoodad One, Matrix4x4 Place)[] one = [.. atOrigin.Lines.Where(line => line.One.Stub == GroundScatter.Stub && line.One.Ao.Contains("rust", StringComparison.Ordinal))];
+        (RoomDoodad One, Matrix4x4 Place)[] other = [.. shifted.Lines.Where(line => line.One.Stub == GroundScatter.Stub && line.One.Ao.Contains("rust", StringComparison.Ordinal))];
+        Assert.Equal(40, one.Length);
+        Assert.DoesNotContain(one, line => line.One.Ao == RustSet);
+        Assert.Contains(one, line => line.One.Ao == RustA);
+        Assert.Contains(one, line => line.One.Ao == RustB);
+        Assert.Equal(one.Select(line => line.One.Ao), other.Select(line => line.One.Ao));
+        Assert.All(one.Zip(other), pair => Assert.True(
+            Vector3.Distance(pair.First.Place.Translation, pair.Second.Place.Translation + new Vector3(250f, 0f, 0f)) < 0.01f,
+            $"{pair.First.Place.Translation} against {pair.Second.Place.Translation}"));
     }
 
     private static GroundScatter Scatter()
@@ -147,6 +206,19 @@ public sealed class GroundScatterTests
         return SkinnedMesh.Of(
             positions, [.. positions.Select(_ => -Vector3.UnitZ)], [0, 1, 2, 1, 3, 2], new Vector3(0f, 0f, Ground), new Vector3(250f, 250f, Ground),
             [.. positions.Select(_ => Vector2.Zero)], [new MeshShape("0", 0, 6)]);
+    }
+
+    /// <summary>One sub-tile laid twice, as two templates lay it: a square at <see cref="Ground"/> and one at -20 over it, up being minus.</summary>
+    private static SkinnedMesh Stacked()
+    {
+        Vector3[] positions =
+        [
+            new(0f, 0f, Ground), new(250f, 0f, Ground), new(0f, 250f, Ground), new(250f, 250f, Ground),
+            new(0f, 0f, -20f), new(250f, 0f, -20f), new(0f, 250f, -20f), new(250f, 250f, -20f),
+        ];
+        return SkinnedMesh.Of(
+            positions, [.. positions.Select(_ => -Vector3.UnitZ)], [0, 1, 2, 1, 3, 2, 4, 5, 6, 5, 7, 6], new Vector3(0f, 0f, -20f), new Vector3(250f, 250f, Ground),
+            [.. positions.Select(_ => Vector2.Zero)], [new MeshShape("0", 0, 6), new MeshShape("1", 6, 6)]);
     }
 
     /// <summary>Two sub-tiles side by side, each a square of two triangles, flat at <see cref="Ground"/>.</summary>
@@ -170,14 +242,20 @@ public sealed class GroundScatterTests
         "Metadata/Terrain/Maps/Test/materials.mtd" => CaptureGroundTests.Text(
             "version 5\n1 0 \"Art/swords.mat\" \"Metadata/Doodads/Swords.dlp\"\n"
             + "\"Sand\" 2 0\n\"Art/sand.mat\" \"Metadata/Doodads/Grass.dlp\"\n\"Art/bare.mat\"\n1 3 16\n"
-            + "\"Rock\" 1 0 \"Art/rock.mat\" \"Metadata/Doodads/Moss.dlp\"\n"),
+            + "\"Rock\" 1 0 \"Art/rock.mat\" \"Metadata/Doodads/Moss.dlp\"\n"
+            + "\"Clay\" 1 0 \"Art/clay.mat\" \"Metadata/Doodads/Edge.dlp\"\n"),
+        "Metadata/Doodads/Edge.dlp" => CaptureGroundTests.Text("version 3\n- RandomScale 1 1\n- MaxRotation 0\n\"" + Edge + "\" 1 (1,0.25)\n"),
         "Metadata/Doodads/Swords.dlp" => CaptureGroundTests.Text(
             "version 3\n- RandomScale 1 1\n- AllowOnBlocking\n- MaxRotation 0\n\"" + Sword + "\" 0.75 (0.25,0.25) (0.75,0.75) (0.25,0.75)\n"),
         "Metadata/Doodads/Grass.dlp" => CaptureGroundTests.Text("version 3\n- RandomScale 1 1\n- MaxRotation 360\n\"" + Grass + "\" 4\n"),
         "Metadata/Doodads/Moss.dlp" => CaptureGroundTests.Text(
             "version 3\n- RandomScale 1 1\n- MaxRotation 360\n- MinEdgeScale 0.5\n\"" + Moss + "\" 4\n"),
         "Metadata/Terrain/Maps/Test/doodads.ddt" => CaptureGroundTests.Text(
-            "version 3\n1\nDefault\n5 \"" + Rust + "\"\n\n\"Sand\"\n1 \"" + Shell + "\"\n"),
+            "version 3\n0.2 5\nDefault\n5 \"" + RustSet + "\"\n\n\"Sand\"\n1 \"" + Shell + "\"\n"),
+        RustSet => CaptureGroundTests.Text("version 3\nextends \"Metadata/AOSetParent\"\n\nAOSet\n{\n\tao = \"1 " + RustA + "\"\n\tao = \"1 " + RustB + "\"\n}\n"),
+        "clay.tdt" => CaptureGroundTests.Tdt(Template, [Clay, Clay, Clay, Clay]),
+        "stacked.tdt" => TileFilesTests.Tdt(template: Template, width: 1, height: 1, grounds: true, grid: [6, 6, 6, 6]),
+        Clay => CaptureGroundTests.Text("Clay\n1 1 0 0\n"),
         "unnamed.tdt" => CaptureGroundTests.Tdt(Template, ["", "", "", ""]),
         "sand.tdt" => CaptureGroundTests.Tdt(Template, [Sand, Sand, Sand, Sand]),
         "rock.tdt" => CaptureGroundTests.Tdt(Template, [Rock, Rock, Rock, Rock]),

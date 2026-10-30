@@ -231,10 +231,11 @@ public static class LaidRoomModels
         (GroundPainter? painter, string unpainted) = GroundPainter.For(Counted, masterFile, paints, maskCells, groundHeights);
 
         // AND THE GROUND'S OWN SCATTER, strewn as each piece's ground is painted - see GroundScatter. The room's frame lies at the block's
-        // least tile of the area, and where the area's walkable grid is known a layer kept off blocking ground is kept off it.
+        // least tile of the area, and where the area's walkable grid is known a layer kept off blocking ground is kept off it - known for
+        // the whole grid, not the block: a room laid over sea or abyss in a read area holds no walkable cell and still knows it holds none.
         GroundScatter? scatter = painter is null ? null : GroundScatter.For(Counted, masterFile, painter);
         var areaCorner = new Vector2(x, y) * TileModels.Side;
-        Func<Vector2, bool>? blocked = scatter is not null && Walkable(grid, x, y, wide, tall)
+        Func<Vector2, bool>? blocked = scatter is not null && grid.AnyWalkable
             ? at => !grid.IsWalkable((x * TerrainGrid.CellsPerTile) + (int)MathF.Floor(at.X / RoomModels.CellSize), (y * TerrainGrid.CellsPerTile) + (int)MathF.Floor(at.Y / RoomModels.CellSize))
             : null;
 
@@ -522,29 +523,6 @@ public static class LaidRoomModels
         };
 
         return shaded ? MonsterModels.Shaded(Counted, model, paints) : model;
-    }
-
-    /// <summary>
-    /// Whether the grid knows where anybody walks over a block of tiles - any of its cells walkable. A grid built from the tileset
-    /// (BuiltRoomModels) carries no walkable cell at all, and an area always has some where a room lies.
-    /// </summary>
-    internal static bool Walkable(TerrainGrid grid, int x, int y, int wide, int tall)
-    {
-        ArgumentNullException.ThrowIfNull(grid);
-        int fromX = Math.Max(0, x * TerrainGrid.CellsPerTile), toX = (x + wide) * TerrainGrid.CellsPerTile;
-        int fromY = Math.Max(0, y * TerrainGrid.CellsPerTile), toY = (y + tall) * TerrainGrid.CellsPerTile;
-        for (int cellY = fromY; cellY < toY; cellY++)
-        {
-            for (int cellX = fromX; cellX < toX; cellX++)
-            {
-                if (grid.IsWalkable(cellX, cellY))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     /// <summary>

@@ -266,6 +266,29 @@ public class LaidRoomModelsTests
         Assert.Equal(3, room.ShapeSources.Count(one => one == stone));
     }
 
+    /// <summary>
+    /// A room laid where nobody walks, in an area whose walkable grid was read, keeps a layer that is not AllowOnBlocking off it: the grid
+    /// knows where anybody walks though the room's own tiles hold no walkable cell - its one walkable cell is the area's first, elsewhere.
+    /// </summary>
+    [Fact]
+    public void ALAIDRoomWhereNobodyWalksKeepsItsLayersOffTheGroundInAReadArea()
+    {
+        (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement: 3, selector: 0, lies: 3, flat: true, walkableAtOrigin: true);
+        const string master = "Metadata/Terrain/Test/master.tsi", stone = "Art/Models/Test/stone.fmt";
+        files[master] = Text("version 3\nMaterialsList\t\"materials.mtd\"\n");
+        files["Metadata/Terrain/Test/materials.mtd"] = Text("version 5\n1 0 \"Art/soil.mat\" \"Metadata/Doodads/Clutter.dlp\"\n");
+        files["Metadata/Doodads/Clutter.dlp"] = Text("version 3\n- RandomScale 1 1\n\"" + stone + "\" 3\n");
+        files[stone] = Packed.Fmt("Art/stone.mat");
+
+        Assert.True(grid.AnyWalkable);
+        MonsterModel room = LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, master: master);
+
+        Assert.True(room.Ready, room.Why);
+        Assert.Contains("ground scatter: 0 strewn over 0 sub-tiles; 3 kept off ground nobody walks", room.Move, StringComparison.Ordinal);
+        Assert.DoesNotContain("walkable grid not known", room.Move, StringComparison.Ordinal);
+        Assert.DoesNotContain(room.DoodadFiles, one => one.Ao == stone);
+    }
+
     [Fact]
     public void WITHNoSlopeNothingIsSettledAndTheLineSaysSo()
     {
@@ -543,7 +566,8 @@ public class LaidRoomModelsTests
     }
 
     /// <summary>The install and the area <see cref="Laid"/> lays its room over.</summary>
-    private static (Dictionary<string, byte[]> Files, TerrainGrid Grid) Area(int placement, byte selector, int lies, bool flat = false, float level = 0f, float sunk = 0f)
+    private static (Dictionary<string, byte[]> Files, TerrainGrid Grid) Area(
+        int placement, byte selector, int lies, bool flat = false, float level = 0f, float sunk = 0f, bool walkableAtOrigin = false)
     {
         var ids = new int[TilesX * TilesY];
         Array.Fill(ids, -1);
@@ -584,7 +608,9 @@ public class LaidRoomModelsTests
             levels, TilesX, TilesY, rotation, which, [array], TileOrientationTests.GameSelectors, TileOrientationTests.GameHelper);
 
         int stride = ((TilesX * Cells) + 1) / 2;
-        var grid = new TerrainGrid(new byte[stride * TilesY * Cells], stride, TilesY * Cells, TilesX, TilesY, heights, tiles: tiles);
+        var cells = new byte[stride * TilesY * Cells];
+        cells[0] = walkableAtOrigin ? (byte)1 : (byte)0;
+        var grid = new TerrainGrid(cells, stride, TilesY * Cells, TilesX, TilesY, heights, tiles: tiles);
         return (Files(sunk), grid);
     }
 
