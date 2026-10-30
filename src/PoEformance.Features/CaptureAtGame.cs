@@ -20,8 +20,8 @@ namespace PoEformance.Features;
 ///
 /// ON THE PROCESSOR, at a whole fraction of the game's size: the canvas is square and at most 2048 a side, so a 3440 x 1440 screen is drawn at
 /// half (1720 x 720), each drawn pixel the middle of a two by two block of the game's - and the game's picture is averaged over that block in
-/// linear light. The processor draws no field waves, refraction, caustics or wetness - water is told apart and left out of the light's
-/// comparison.
+/// linear light. The longer side sets the fraction, a screen taller than wide by its height. The processor draws no field waves, refraction,
+/// caustics or wetness - water is told apart and left out of the light's comparison.
 /// </remarks>
 public sealed class CaptureAtGame
 {
@@ -189,9 +189,11 @@ public sealed class CaptureAtGame
             return null;
         }
 
-        int factor = Math.Max(1, (int)Math.Ceiling(width / (double)MeshPicture.Widest));
+        // THE LONGER SIDE SETS THE FRACTION: a screen taller than wide (1440 x 2560) drawn whole by its width alone would want more rows
+        // than the canvas holds.
+        int factor = Math.Max(1, (int)Math.Ceiling(Math.Max(width, height) / (double)MeshPicture.Widest));
         int drawnWidth = (width + factor - 1) / factor, drawnHeight = (height + factor - 1) / factor;
-        int side = Math.Min(MeshPicture.Widest, Math.Max(drawnWidth, drawnHeight));
+        int side = Math.Max(drawnWidth, drawnHeight);
         var scene = new CaptureAtGame(pane, camera, origin, factor, drawnWidth, drawnHeight, side);
         search?.Begin(2);
 
@@ -466,8 +468,18 @@ public sealed class CaptureAtGame
             }
         }
 
+        // NO VERDICT WITHOUT A MEASUREMENT: a stage hardly showing through the game's camera (laid elsewhere in the instance, or under the
+        // interface) leaves no shift with pixels enough, and nought would read as agreement.
+        if (!double.IsFinite(best.R))
+        {
+            int shown = drawn.Count(one => one);
+            return string.Create(
+                CultureInfo.InvariantCulture,
+                $"lined up: not measured - {shown:N0} drawn pixels outside the left-out ones, too few or too even to line up (the stage hardly shows through the game's camera)");
+        }
+
         line.Append(CultureInfo.InvariantCulture, $"lined up: the edges' correlation at no shift {atNought:0.###}, best {best.R:0.###} at ({best.X}, {best.Y}) drawn pixels ({best.X * Factor}, {best.Y * Factor} of the game's)");
-        line.Append(best.X == 0 && best.Y == 0 ? " - the game's camera and the stage's placing agree" : Math.Abs(best.X) <= 1 && Math.Abs(best.Y) <= 1 ? " - within a drawn pixel" : " - OFF: the statistics below are of pixels a shift apart");
+        line.Append(best.X == 0 && best.Y == 0 ? " - the game's camera and the stage's placing agree" : Math.Abs(best.X) <= 1 && Math.Abs(best.Y) <= 1 ? " - within a drawn pixel" : " - OFF: the statistics above are of pixels a shift apart");
         return line.ToString();
     }
 

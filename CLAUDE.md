@@ -542,7 +542,7 @@ trade crumbs of information"). Both need a book on a stage laid as this area ins
 light (built as "game light" would build it, ticked or not - SceneLightPanel.Measured); keep "game picture" ticked and stand still.
 - `light-against-game.txt` (`CaptureLightCompare`, over `CaptureAtGame`): the stage drawn on the processor THROUGH THE GAME'S OWN CAMERA
   (`GameCamera` takes the matrix at WorldData + 0x1A0 apart - eye, right, down, forward, focal lengths, principal point, near and far, held
-  to WorldToScreen by `GameCameraTests`; `MeshPicture.Camera.Through`, `Canvas.Lens`, `Canvas.Rows`) at 1/ceil(width / 2048) of the screen,
+  to WorldToScreen by `GameCameraTests`; `MeshPicture.Camera.Through`, `Canvas.Lens`, `Canvas.Rows`) at 1/ceil(longer side / 2048) of the screen,
   the game's picture averaged over each drawn pixel's block in linear light, its interface and everything that moves masked. Every second
   drawn pixel each way carries what it was made of (`PixelGather`, written where the drawing lights it: triangle, place, normal and
   `SceneLight.LightTerms` - the light term by term, the same colour to the bit, `Shaded` over a struct the compiler specialises). Reported:
@@ -558,6 +558,11 @@ light (built as "game light" would build it, ticked or not - SceneLightPanel.Mea
   the casting materials whole; and, through the game's camera, the game's light where a cut would take the pane's shadow away beside its
   light in the open and in a shadow both readings cast - t nought the game casts as the picture does, one it casts nothing there.
   `shadow-casters.bin` keeps the ground's map by kind; the replay counts its pieces again.
+- MENDED FROM A REVIEW (v0.1.370): a screen taller than wide drawn at its width's fraction overran the canvas; a stage out of view was
+  said to line up (no shift measured, nought taken as agreement); a light with no sun counted every face towards its way as in the sun
+  (`LightTerms.Sun` and `SunFacing` are nought now where there is no sun); t counted the lost pixels of groups no brighter lit than
+  shaded among the judged, pulling it to nought; the verdict grouped by shape, a laid block's ground being dozens of shapes of one
+  material; and a cut card's kept shadow was credited to whatever cast once cut.
 
 ## Verify against the game, not against yourself
 

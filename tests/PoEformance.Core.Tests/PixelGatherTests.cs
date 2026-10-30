@@ -54,6 +54,29 @@ public class PixelGatherTests
     }
 
     /// <summary>
+    /// A light with no sun says no sun reached anything, whatever share the drawing hands it - the drawing hands a full one where it built no
+    /// shadow map - and its colour is still the light's to the bit.
+    /// </summary>
+    [Fact]
+    public void ALIGHTWithNoSunSaysNoSunReachedAnything()
+    {
+        var light = new SceneLight([], SceneLight.PointShape.Zero, null)
+        {
+            Ambient = SceneAmbient.Flat,
+            FlatAmbient = 0.05f,
+            SunColour = Vector3.Zero,
+            SunDirection = Vector3.Normalize(new Vector3(0.2f, 0.1f, 1f)),
+        };
+        Vector3 albedo = new(0.5f, 0.4f, 0.3f), normal = -Vector3.UnitZ, toEye = Vector3.Normalize(new Vector3(0.1f, 0.2f, -1f));
+        Vector3 plain = light.Shade(albedo, Vector3.Zero, normal, toEye, 1f, false, default, 0f, default);
+        Vector3 split = light.Shade(albedo, Vector3.Zero, normal, toEye, 1f, false, default, 0f, default, 1f, out SceneLight.LightTerms terms);
+        Assert.Equal(plain, split);
+        Assert.Equal(0f, terms.Sun);
+        Assert.Equal(0f, terms.SunFacing);
+        Assert.Equal(Vector3.Zero, terms.SunDiffuse);
+    }
+
+    /// <summary>
     /// A gathered drawing is the same picture to the byte, and each gathered pixel names the triangle drawn there and its light - the sun's
     /// share gone where the slab's shadow falls.
     /// </summary>

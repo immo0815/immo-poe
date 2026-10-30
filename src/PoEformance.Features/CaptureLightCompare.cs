@@ -281,8 +281,14 @@ public static class CaptureLightCompare
         Measure all = Measure.Of(samples);
         Measure inSun = Measure.Of(samples.Where(one => one.Class == Lighting.Lit));
         Measure inShade = Measure.Of(samples.Where(one => one.Class == Lighting.Shade));
+
+        // NO SUN AT ALL is said as such: every pixel then counts as shade, which a ratio "in the pane's sun" of nothing would hide.
+        bool sunless = lit == 0 && total > 0 && samples.All(one => one.Sun == 0f);
+        string byTheSun = sunless
+            ? string.Create(CultureInfo.InvariantCulture, $"the pane's sun reaches none of them, in its shade {inShade.Ratio:0.###} ({shade:N0})")
+            : string.Create(CultureInfo.InvariantCulture, $"in the pane's sun {inSun.Ratio:0.###} ({lit:N0}), in its shade {inShade.Ratio:0.###} ({shade:N0})");
         text.Append(CultureInfo.InvariantCulture,
-            $"{head}: {total:N0} pixels compared - the game's luminance over the pane's, median {all.Ratio:0.###}; in the pane's sun {inSun.Ratio:0.###} ({lit:N0}), in its shade {inShade.Ratio:0.###} ({shade:N0}); chroma kept {all.Chroma:0.###}")
+            $"{head}: {total:N0} pixels compared - the game's luminance over the pane's, median {all.Ratio:0.###}; {byTheSun}; chroma kept {all.Chroma:0.###}")
             .AppendLine();
         text.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
@@ -300,9 +306,11 @@ public static class CaptureLightCompare
         }
 
         text.AppendLine(all.Row("all"));
-        text.AppendLine(string.Create(
-            CultureInfo.InvariantCulture,
-            $"  the sun's share: the pane lights {(double)lit / Math.Max(1, total):0.###} of the compared pixels, in shade {(double)shade / Math.Max(1, total):0.###}"));
+        text.AppendLine(sunless
+            ? "  the sun's share: the pane's sun reaches none of the compared pixels - the light has no sun, or every one of them lies in its shadow"
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"  the sun's share: the pane lights {(double)lit / Math.Max(1, total):0.###} of the compared pixels, in shade {(double)shade / Math.Max(1, total):0.###}"));
 
         text.AppendLine().AppendLine("=== the game as a multiple of the pane plus a grey: game = s pane + n, over the three channels (least squares), and each channel's gain");
         foreach (Lighting one in classes)

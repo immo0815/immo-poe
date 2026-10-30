@@ -140,11 +140,13 @@ public static class CaptureShadowCasters
                         continue;
                     }
 
+                    // KEPT IS COUNTED AGAINST THE CASTER AS DRAWN, whoever casts there once cut (a trunk under a clear stretch of a canopy
+                    // card): so a group's texels less its kept are the shadow a cut takes from it, its share of the lost.
                     int shape = shapeOf[caster];
                     shadowed[shape]++;
                     if (casterCut >= 0)
                     {
-                        kept[shapeOf[casterCut]]++;
+                        kept[shape]++;
                     }
 
                     MaterialBlend blend = shape < blends.Count ? blends[shape] : MaterialBlend.Opaque;
@@ -358,12 +360,33 @@ public static class CaptureShadowCasters
     /// The game's brightness where a cut would take the pane's shadow away, beside its brightness where both readings leave the ground lit and
     /// where both shadow it - per receiving material, the game's over the pane's albedo so the ground's own colour drops out.
     /// </summary>
+    /// <remarks>
+    /// PER MATERIAL, NOT PER SHAPE: a laid block paints each piece's ground as shapes of its own, so one ground material is dozens of shapes,
+    /// and a canopy's shadow spread over several pieces would fall short of the least counts on each.
+    /// </remarks>
     private static string Verdict(CaptureAtGame scene, ShadowOwners drawn, ShadowOwners cut, int[] shapeOf, bool[] ground, out GamePicture overlay)
     {
         PixelGather gather = scene.Gather;
         int w = gather.Width, h = (scene.DrawnHeight + gather.Step - 1) / gather.Step;
         var rgba = new byte[w * h * 4];
-        var groups = new Dictionary<int, (List<double> Lit, List<double> Shade, List<double> Lost)>();
+        MonsterModel model = scene.Pane.Model;
+        var names = new List<string>();
+        var nameAt = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var materialOf = new int[model.Mesh.Shapes.Count];
+        for (var one = 0; one < materialOf.Length; one++)
+        {
+            string name = one < model.ShapeMaterials.Count ? MaterialFile.Bare(model.ShapeMaterials[one]) : "(no material)";
+            if (!nameAt.TryGetValue(name, out int index))
+            {
+                index = names.Count;
+                names.Add(name);
+                nameAt[name] = index;
+            }
+
+            materialOf[one] = index;
+        }
+
+        var groups = new Dictionary<int, (List<double> Lit, List<double> Shade, List<double> Lost, HashSet<int> Shapes)>();
         for (var at = 0; at < w * h; at++)
         {
             int drawnAt = scene.DrawnAt(at);
@@ -390,8 +413,14 @@ public static class CaptureShadowCasters
             double albedo = Math.Max(CaptureAtGame.Luminance(gather.Terms[at].Albedo), 1e-4);
             double light = CaptureAtGame.Luminance(game) / albedo;
             int shape = shapeOf[triangle];
-            (List<double> Lit, List<double> Shade, List<double> Lost) group = groups.TryGetValue(shape, out var had) ? had : ([], [], []);
-            groups[shape] = group;
+            int material = shape < materialOf.Length ? materialOf[shape] : -1;
+            if (!groups.TryGetValue(material, out (List<double> Lit, List<double> Shade, List<double> Lost, HashSet<int> Shapes) group))
+            {
+                group = ([], [], [], []);
+                groups[material] = group;
+            }
+
+            group.Shapes.Add(shape);
             if (asDrawn >= 0.9f && asCut >= 0.9f)
             {
                 group.Lit.Add(light);
@@ -412,10 +441,10 @@ public static class CaptureShadowCasters
         overlay = new GamePicture(w, h, rgba);
         var text = new StringBuilder();
         text.AppendLine("  where t is (lost - shade) / (lit - shade) of the game's light over the pane's albedo, medians: nought the game shadows as the picture casts, one it casts nothing there");
-        int lit = 0, shade = 0, lostCount = 0;
+        int lit = 0, shade = 0, lostCount = 0, judged = 0, flat = 0;
         double weighted = 0;
         var rows = new List<string>();
-        foreach ((int shape, (List<double> Lit, List<double> Shade, List<double> Lost) group) in groups.OrderByDescending(one => one.Value.Lost.Count))
+        foreach ((int material, (List<double> Lit, List<double> Shade, List<double> Lost, HashSet<int> Shapes) group) in groups.OrderByDescending(one => one.Value.Lost.Count))
         {
             lit += group.Lit.Count;
             shade += group.Shade.Count;
@@ -427,21 +456,28 @@ public static class CaptureShadowCasters
 
             double l = Median(group.Lit), s = Median(group.Shade), x = Median(group.Lost);
             double t = l > s ? (x - s) / (l - s) : double.NaN;
+
+            // A GROUP NO BRIGHTER LIT THAN SHADED SAYS NOTHING OF t, and counted among the judged it would pull t towards nought - the
+            // very answer "the game shadows as the picture casts".
             if (double.IsFinite(t))
             {
                 weighted += t * group.Lost.Count;
+                judged += group.Lost.Count;
+            }
+            else
+            {
+                flat += group.Lost.Count;
             }
 
-            string material = shape < scene.Pane.Model.ShapeMaterials.Count ? Path.GetFileNameWithoutExtension(MaterialFile.Bare(scene.Pane.Model.ShapeMaterials[shape])) : "?";
+            string name = material >= 0 && material < names.Count ? Path.GetFileNameWithoutExtension(names[material]) : "?";
             rows.Add(string.Create(
                 CultureInfo.InvariantCulture,
-                $"  {Shorten(material, 40),-40} lit {group.Lit.Count,7:N0} at {l,7:0.###}  shade {group.Shade.Count,7:N0} at {s,7:0.###}  lost {group.Lost.Count,7:N0} at {x,7:0.###}  t {t:0.###}"));
+                $"  {Shorten(name, 40),-40} lit {group.Lit.Count,7:N0} at {l,7:0.###}  shade {group.Shade.Count,7:N0} at {s,7:0.###}  lost {group.Lost.Count,7:N0} at {x,7:0.###}  t {t:0.###}  ({group.Shapes.Count} shapes)"));
         }
 
-        int judged = groups.Values.Where(one => one.Lost.Count >= 30 && one.Lit.Count >= 30 && one.Shade.Count >= 30).Sum(one => one.Lost.Count);
         text.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"  ground pixels: {lit:N0} lit in both readings, {shade:N0} shadowed in both, {lostCount:N0} shadowed only as drawn; t over the {judged:N0} judged {(judged > 0 ? (weighted / judged).ToString("0.###", CultureInfo.InvariantCulture) : "-")}"));
+            $"  ground pixels: {lit:N0} lit in both readings, {shade:N0} shadowed in both, {lostCount:N0} shadowed only as drawn; t over the {judged:N0} judged {(judged > 0 ? (weighted / judged).ToString("0.###", CultureInfo.InvariantCulture) : "-")}{(flat > 0 ? string.Create(CultureInfo.InvariantCulture, $"; {flat:N0} more in groups no brighter lit than shaded, not judged") : string.Empty)}"));
         foreach (string row in rows.Take(20))
         {
             text.AppendLine(row);

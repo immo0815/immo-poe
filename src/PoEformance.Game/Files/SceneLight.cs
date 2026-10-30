@@ -362,8 +362,8 @@ public sealed class SceneLight
     /// worked it out - each diffuse term already times the albedo, linear, before the exposure.
     /// </summary>
     /// <param name="Albedo">The surface's colour, linear, as lit.</param>
-    /// <param name="Sun">How much of the sun reached it, nought to one.</param>
-    /// <param name="SunFacing">How squarely it faces the sun, its normal's dot with the way to it - nought where it faces away.</param>
+    /// <param name="Sun">How much of the sun reached it, nought to one - nought where the light has no sun.</param>
+    /// <param name="SunFacing">How squarely it faces the sun, its normal's dot with the way to it - nought where it faces away or there is no sun.</param>
     /// <param name="SunDiffuse">The sun's diffuse light.</param>
     /// <param name="RoomDiffuse">The room's point lights' diffuse light, the player's left out.</param>
     /// <param name="PlayerDiffuse">The player's lamp's diffuse light.</param>
@@ -728,7 +728,11 @@ public sealed class SceneLight
     {
         var split = new Split(PlayerIndex);
         Vector3 shown = Shaded(albedo, place, normal, toEye, sunShadow, glossy, specular, gloss, waves, environment, ref split);
-        terms = split.Terms(shown, sunShadow, MathF.Max(0f, Vector3.Dot(normal, -SunDirection)), Exposure);
+
+        // NO SUN REACHES ANYTHING WHERE THERE IS NONE: the drawing hands a full share where it built no shadow map, and the direction is the
+        // environment's whether or not its sun shines - read as lit, every face towards it would count as in a sun the picture never drew.
+        bool sunless = SunColour == Vector3.Zero;
+        terms = split.Terms(shown, sunless ? 0f : sunShadow, sunless ? 0f : MathF.Max(0f, Vector3.Dot(normal, -SunDirection)), Exposure);
         return shown;
     }
 
