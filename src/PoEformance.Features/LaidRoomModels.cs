@@ -152,9 +152,10 @@ public static class LaidRoomModels
         int doodads = RoomModels.EveryDoodad,
         ModelProgress? progress = null,
         CameraShot? camera = null,
-        bool sight = false)
+        bool sight = false,
+        IReadOnlyList<(string Room, int X, int Y, int Turn)>? rooms = null)
         => Laid(read, AreaBlock.Path, grid, x, y, 0, shaded, doodads, tools: false, fitted: false, progress, DoodadHeight.File, entities: null, camera, sight,
-            cut: 0, master ?? string.Empty, maskCells: false, groundHeights: false, shared: null, asBlock: RoomLayout.Block(size, size));
+            cut: 0, master ?? string.Empty, maskCells: false, groundHeights: false, shared: null, asBlock: RoomLayout.Block(size, size), rooms: rooms);
 
     /// <summary>The walk behind <see cref="Of"/>, with a paint cache that may outlive it.</summary>
     /// <param name="shared">A paint cache outliving the build - the stage sweep's, one for every room - or null for one of its own.</param>
@@ -179,7 +180,8 @@ public static class LaidRoomModels
         bool maskCells,
         bool groundHeights,
         MonsterModels.Paints? shared,
-        RoomLayout? asBlock = null)
+        RoomLayout? asBlock = null,
+        IReadOnlyList<(string Room, int X, int Y, int Turn)>? rooms = null)
     {
         if (read is null)
         {
@@ -384,6 +386,11 @@ public static class LaidRoomModels
         Matrix3x2 laying = RoomFinder.Laying(room.Width, room.Height, turn);
         Matrix4x4 beyondFlat = Through(laying);
         var lights = new RoomLights.Gathered(Counted);
+
+        // THE ROOMS THE AREA PLACED WHERE THEY STAND, their own lines - a block's, which has none of its own (see Block).
+        (List<(RoomDoodad One, Matrix4x4 Place)> others, string othersSaid) = rooms is { Count: > 0 }
+            ? OthersOf(Counted, rooms, x, y, grid, heights)
+            : ([], string.Empty);
         RoomModels.Doodads laid = RoomModels.Lay(room, Counted, paints, pile, doodads, tools, one =>
         {
             Vector2 at = Vector2.Transform(new Vector2(one.X, one.Y) / RoomModels.CellsPerTile, laying);
@@ -397,7 +404,7 @@ public static class LaidRoomModels
                 _ => ground,
             };
             return beyondFlat * Matrix4x4.CreateTranslation(0f, 0f, z);
-        }, heights, lights, hiding.Sieve, tileDoodads, tileSwaps);
+        }, heights, lights, hiding.Sieve, tileDoodads, tileSwaps, others);
 
         SkinnedMesh joined = RoomModels.Watered(hiding.Keep(SkinnedMesh.Joined(pile.Joins), pile), pile.Modes);
         if (!joined.Ready)
@@ -439,6 +446,11 @@ public static class LaidRoomModels
                 $"tile doodads: {tileDoodads.Count} from the doodad lists of {withLines.Count} tile files, {facingAway} wall tops facing away from the camera left out as the game leaves them")
                 + (mirroredLists > 0 ? string.Create(CultureInfo.InvariantCulture, $"; the doodads of {mirroredLists} pieces laid mirrored are mirrored with them, as the game draws a mirrored room's own - DECIDED, not measured on a tile's doodad") : string.Empty)
                 + (bothLists > 0 ? string.Create(CultureInfo.InvariantCulture, $"; {bothLists} files carry a list beside the .tdt and one beside the template - the .tdt's taken, which no capture has measured yet") : string.Empty));
+        }
+
+        if (othersSaid.Length > 0)
+        {
+            said.Add(othersSaid);
         }
 
         if (tileSwaps is not null)
@@ -495,6 +507,54 @@ public static class LaidRoomModels
         };
 
         return shaded ? MonsterModels.Shaded(Counted, model, paints) : model;
+    }
+
+    /// <summary>
+    /// The doodad lines of rooms the area placed, each where its room stands, in the frame of a block whose least tile is (<paramref name="x"/>,
+    /// <paramref name="y"/>) - as a laid room lays its own (<see cref="Of"/>): turned and mirrored with its room, on the area's ground under it.
+    /// </summary>
+    internal static (List<(RoomDoodad One, Matrix4x4 Place)> Lines, string Said) OthersOf(
+        Func<string, byte[]?> read, IReadOnlyList<(string Room, int X, int Y, int Turn)> rooms, int x, int y, TerrainGrid grid, DoodadHeight heights)
+    {
+        var lines = new List<(RoomDoodad One, Matrix4x4 Place)>();
+        int read_ = 0, none = 0;
+        float size = RoomModels.CellSize;
+        foreach ((string path, int rx, int ry, int turn) in rooms)
+        {
+            RoomLayout room = RoomLayout.Read(read(path));
+            if (!room.Ready || room.Doodads.Count == 0)
+            {
+                none++;
+                continue;
+            }
+
+            read_++;
+            Matrix3x2 laying = RoomFinder.Laying(room.Width, room.Height, turn);
+            Matrix4x4 beyondFlat = Through(laying) * Matrix4x4.CreateTranslation((rx - x) * TileModels.Side, (ry - y) * TileModels.Side, 0f);
+            foreach (RoomDoodad one in room.Doodads)
+            {
+                if (one.Ao.Length == 0)
+                {
+                    continue;
+                }
+
+                Vector2 at = Vector2.Transform(new Vector2(one.X, one.Y) / RoomModels.CellsPerTile, laying);
+                float ground = grid.HeightAt((int)((rx + at.X) * RoomModels.CellsPerTile), (int)((ry + at.Y) * RoomModels.CellsPerTile));
+                float z = heights switch
+                {
+                    DoodadHeight.File when one.Height is { } height => height,
+                    DoodadHeight.Added when one.Height is { } height => ground + height,
+                    _ => ground,
+                };
+                float scale = one.Scale > 0f ? one.Scale : 1f;
+                Matrix4x4 place = Matrix4x4.CreateScale(scale) * one.Turning * Matrix4x4.CreateTranslation(one.X * size, one.Y * size, 0f)
+                    * beyondFlat * Matrix4x4.CreateTranslation(0f, 0f, z);
+                lines.Add((one, place));
+            }
+        }
+
+        return (lines, string.Create(CultureInfo.InvariantCulture,
+            $"rooms placed in the area: {lines.Count} doodad lines of {read_} of the {rooms.Count} room places reaching the block, where the tool placed each (by its doodads or its tiles){(none > 0 ? string.Create(CultureInfo.InvariantCulture, $", {none} with no line or not read") : string.Empty)}"));
     }
 
     /// <summary>

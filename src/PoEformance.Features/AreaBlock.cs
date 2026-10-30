@@ -28,7 +28,8 @@ namespace PoEformance.Features;
 /// <param name="Size">Its side in tiles.</param>
 /// <param name="Area">The grid it was taken from - RoomKey.Stamp.</param>
 /// <param name="Masters">The masters (<c>.tsi</c>) of the area's rooms, one of which paints its ground and swaps its tiles - none for plain ground.</param>
-public readonly record struct AreaBlock(int X, int Y, int Size, int Area, IReadOnlyList<string> Masters)
+/// <param name="Rooms">The rooms the area placed that reach the block, each where it stands - their own doodads are laid too (v0.1.360) - or none.</param>
+public readonly record struct AreaBlock(int X, int Y, int Size, int Area, IReadOnlyList<string> Masters, IReadOnlyList<(string Room, int X, int Y, int Turn)>? Rooms = null)
 {
     /// <summary>The name the key starts with, and what the block's model is called.</summary>
     public const string Path = "around you";
@@ -50,6 +51,29 @@ public readonly record struct AreaBlock(int X, int Y, int Size, int Area, IReadO
 
     /// <summary>What separates two masters' paths - in no path.</summary>
     public const char MasterMark = ';';
+
+    /// <summary>What starts the word naming the rooms; each <c>path@x,y,turn</c>, separated by <see cref="MasterMark"/>.</summary>
+    public const string RoomsWord = "rooms=";
+
+    /// <summary>
+    /// THE ROOMS THE AREA PLACED, ALL OF WHAT IS FOUND (v0.1.360, asked for from the live client: "draw every doodad we find"): the places
+    /// the tool's own placing found for the area's rooms, by their doodads or their tiles, kept where a room's footprint reaches the block.
+    /// </summary>
+    public static IReadOnlyList<(string Room, int X, int Y, int Turn)> RoomsIn(
+        int x, int y, int size, IEnumerable<(string Room, int X, int Y, int Turn, int Width, int Height)> standing)
+    {
+        ArgumentNullException.ThrowIfNull(standing);
+        var rooms = new List<(string Room, int X, int Y, int Turn)>();
+        foreach ((string room, int rx, int ry, int turn, int wide, int tall) in standing)
+        {
+            if (rx < x + size && rx + Math.Max(1, wide) > x && ry < y + size && ry + Math.Max(1, tall) > y)
+            {
+                rooms.Add((room.Replace('\\', '/'), rx, ry, turn));
+            }
+        }
+
+        return rooms;
+    }
 
     /// <summary>The block of <paramref name="size"/> tiles a side round a tile, kept inside the area's grid.</summary>
     /// <param name="tileX">The tile across the block is centred on - the player's.</param>
@@ -102,7 +126,10 @@ public readonly record struct AreaBlock(int X, int Y, int Size, int Area, IReadO
     /// <summary>The key as a string.</summary>
     public override string ToString()
         => string.Create(CultureInfo.InvariantCulture, $"{Path}{TileKey.Mark}{AtWord}{X},{Y},{Size},{Area}")
-            + (Masters is { Count: > 0 } ? TileKey.WordMark + MastersWord + string.Join(MasterMark, Masters) : string.Empty);
+            + (Masters is { Count: > 0 } ? TileKey.WordMark + MastersWord + string.Join(MasterMark, Masters) : string.Empty)
+            + (Rooms is { Count: > 0 } rooms
+                ? TileKey.WordMark + RoomsWord + string.Join(MasterMark, rooms.Select(one => string.Create(CultureInfo.InvariantCulture, $"{one.Room}@{one.X},{one.Y},{one.Turn}")))
+                : string.Empty);
 
     /// <summary>A key read back - false where it is no block's or its place does not read.</summary>
     public static bool TryRead(string? key, out AreaBlock block)
@@ -116,10 +143,11 @@ public readonly record struct AreaBlock(int X, int Y, int Size, int Area, IReadO
         int x = -1, y = -1, size = 0, area = 0;
         bool placed = false;
         IReadOnlyList<string> masters = [];
+        var rooms = new List<(string Room, int X, int Y, int Turn)>();
         ReadOnlySpan<char> words = key.AsSpan(Path.Length + 1);
-        foreach (Range one in words.Split(TileKey.WordMark))
+        foreach (Range range in words.Split(TileKey.WordMark))
         {
-            ReadOnlySpan<char> word = words[one];
+            ReadOnlySpan<char> word = words[range];
             if (word.StartsWith(AtWord, StringComparison.Ordinal))
             {
                 string[] parts = word[AtWord.Length..].ToString().Split(',');
@@ -134,6 +162,21 @@ public readonly record struct AreaBlock(int X, int Y, int Size, int Area, IReadO
             {
                 masters = word[MastersWord.Length..].ToString().Split(MasterMark, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             }
+            else if (word.StartsWith(RoomsWord, StringComparison.Ordinal))
+            {
+                foreach (string one in word[RoomsWord.Length..].ToString().Split(MasterMark, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    int mark = one.LastIndexOf('@');
+                    string[] place = mark < 0 ? [] : one[(mark + 1)..].Split(',');
+                    if (place.Length == 3
+                        && int.TryParse(place[0], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int rx)
+                        && int.TryParse(place[1], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int ry)
+                        && int.TryParse(place[2], NumberStyles.None, CultureInfo.InvariantCulture, out int turn) && turn is >= 0 and < 8)
+                    {
+                        rooms.Add((one[..mark], rx, ry, turn));
+                    }
+                }
+            }
         }
 
         if (!placed)
@@ -141,7 +184,7 @@ public readonly record struct AreaBlock(int X, int Y, int Size, int Area, IReadO
             return false;
         }
 
-        block = new AreaBlock(x, y, size, area, masters);
+        block = new AreaBlock(x, y, size, area, masters, rooms.Count > 0 ? rooms : null);
         return true;
     }
 
@@ -161,7 +204,7 @@ public readonly record struct AreaBlock(int X, int Y, int Size, int Area, IReadO
         }
 
         (string master, string weighed) = MasterFor(read, tiles);
-        MonsterModel model = LaidRoomModels.Block(read, grid, X, Y, Size, master, progress: progress);
+        MonsterModel model = LaidRoomModels.Block(read, grid, X, Y, Size, master, progress: progress, rooms: Rooms);
         return model.Ready ? model with { Move = weighed + "; " + model.Move } : model;
     }
 

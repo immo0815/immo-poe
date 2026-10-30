@@ -219,6 +219,29 @@ public class LaidRoomModelsTests
         Assert.Contains("the area this block was taken in is gone", block.Build(files.GetValueOrDefault, () => other).Why, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A room the area placed lays its own doodad lines into a block reaching it where the room laid alone puts them: at the block's own
+    /// corner the line's place, a tile further out a tile further in - its height the line's own.
+    /// </summary>
+    [Fact]
+    public void APLACEDRoomsOwnDoodadsLieInTheBlockWhereTheRoomLaidAlonePutsThem()
+    {
+        (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement: 3, selector: 0, lies: 3, flat: true);
+        files[RoomPath] = Text(WithDoodads("""
+            11 11 0 0 0 0 0 1 0 0 1 -115 1 "Metadata/Test/Pot.ao" "Metadata/Test/Pot" 0
+            """));
+        float cell = TileModels.Side / RoomModels.CellsPerTile;
+
+        (List<(RoomDoodad One, Matrix4x4 Place)> atCorner, string said) = LaidRoomModels.OthersOf(files.GetValueOrDefault, [(RoomPath, 1, 1, 0)], 1, 1, grid, DoodadHeight.File);
+        (RoomDoodad pot, Matrix4x4 place) = Assert.Single(atCorner);
+        Assert.EndsWith("Pot.ao", pot.Ao, StringComparison.Ordinal);
+        Assert.Equal(new Vector3(11f * cell, 11f * cell, -115f), place.Translation);
+        Assert.StartsWith("rooms placed in the area: 1 doodad lines of 1 of the 1 room places reaching the block", said, StringComparison.Ordinal);
+
+        (List<(RoomDoodad One, Matrix4x4 Place)> further, _) = LaidRoomModels.OthersOf(files.GetValueOrDefault, [(RoomPath, 1, 1, 0)], 0, 0, grid, DoodadHeight.File);
+        Assert.Equal(place.Translation + new Vector3(TileModels.Side, TileModels.Side, 0f), Assert.Single(further).Place.Translation);
+    }
+
     [Fact]
     public void WITHNoSlopeNothingIsSettledAndTheLineSaysSo()
     {

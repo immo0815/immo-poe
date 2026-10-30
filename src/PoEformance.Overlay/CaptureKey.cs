@@ -860,6 +860,23 @@ internal sealed class CaptureKey
             }
         }
 
+        if (On(CaptureParts.GroundScatter))
+        {
+            if (read is null)
+            {
+                Not(CaptureReport.GroundScatterFile, "no install to read the ground's layers from");
+            }
+            else
+            {
+                Part(CaptureReport.GroundScatterFile, () =>
+                {
+                    string text = CaptureGroundScatter.Write(read, run.Loaded, run.Masters, run.Snapshot.Terrain as TerrainGrid, folder);
+                    File.WriteAllText(At(CaptureReport.GroundScatterFile), text);
+                    return text[..text.IndexOf('\n')];
+                });
+            }
+        }
+
         if (On(CaptureParts.GroundScreen))
         {
             if (read is null)

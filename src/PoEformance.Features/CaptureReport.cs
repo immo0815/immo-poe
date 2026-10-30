@@ -93,6 +93,9 @@ public static class CaptureReport
     /// <summary>The laid tiles' sub-tiles of two grounds over the game's picture - see CaptureGroundScreen.</summary>
     public const string GroundScreenFile = "ground-on-screen.txt";
 
+    /// <summary>What the area's ground strews over itself - see CaptureGroundScatter.</summary>
+    public const string GroundScatterFile = "ground-scatter.txt";
+
     /// <summary>The picture beside it.</summary>
     public const string GroundScreenShot = "ground-on-screen.png";
 

@@ -28,6 +28,24 @@ public class AreaBlockTests
         Assert.Empty(bare.Masters);
     }
 
+    /// <summary>The rooms the area placed ride in the key, those reaching the block alone, each read back where it stands.</summary>
+    [Fact]
+    public void THEPLACEDRoomsReachingTheBlockRideInItsKey()
+    {
+        IReadOnlyList<(string Room, int X, int Y, int Turn)> rooms = AreaBlock.RoomsIn(10, 10, 5, [
+            ("Metadata/Terrain/A/Rooms/inside.arm", 11, 11, 3, 2, 2),
+            ("Metadata\\Terrain\\A\\Rooms\\edge.arm", 7, 12, 6, 4, 1),
+            ("Metadata/Terrain/A/Rooms/outside.arm", 15, 10, 0, 3, 3),
+            ("Metadata/Terrain/A/Rooms/above.arm", 10, 4, 0, 5, 6),
+        ]);
+        Assert.Equal([("Metadata/Terrain/A/Rooms/inside.arm", 11, 11, 3), ("Metadata/Terrain/A/Rooms/edge.arm", 7, 12, 6)], rooms);
+
+        var block = new AreaBlock(10, 10, 5, 9, [], rooms);
+        Assert.True(AreaBlock.TryRead(block.ToString(), out AreaBlock read));
+        Assert.Equal(rooms, read.Rooms);
+        Assert.EndsWith("+rooms=Metadata/Terrain/A/Rooms/inside.arm@11,11,3;Metadata/Terrain/A/Rooms/edge.arm@7,12,6", block.ToString(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void THEBLOCKIsCentredOnTheTileYouStandOnAndKeptInsideTheArea()
     {

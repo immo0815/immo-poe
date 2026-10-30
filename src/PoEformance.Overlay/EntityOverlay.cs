@@ -1879,7 +1879,24 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             _aroundMasters = (stamp, AreaBlock.MastersOf(read, AreaRoomFiles()));
         }
 
-        return (AreaBlock.Around(here.X, here.Y, size, grid, _aroundMasters.Stamp == stamp ? _aroundMasters.Masters : []).ToString(), string.Empty);
+        AreaBlock block = AreaBlock.Around(here.X, here.Y, size, grid, _aroundMasters.Stamp == stamp ? _aroundMasters.Masters : []);
+
+        // AND EVERY ROOM THE AREA PLACED THAT REACHES IT, its own doodads laid too - asking starts the placing, as the map's does; a room
+        // placed after the block was taken is in the next block taken.
+        if (_areaRooms is { } areaRooms)
+        {
+            areaRooms.Arranged(grid, AreaRoomFiles(), _tileBook?.RoomsOverlap ?? RoomOverlap.Rims);
+            if (areaRooms.Standing is { Count: > 0 } standing)
+            {
+                block = block with
+                {
+                    Rooms = AreaBlock.RoomsIn(block.X, block.Y, block.Size,
+                        standing.Select(one => (one.Room, one.Where.X, one.Where.Y, one.Where.Turn, one.Where.Width, one.Where.Height))),
+                };
+            }
+        }
+
+        return (block.ToString(), string.Empty);
     }
 
     private IReadOnlyList<string>? _loadedOf;

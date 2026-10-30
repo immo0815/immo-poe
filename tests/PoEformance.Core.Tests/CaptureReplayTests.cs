@@ -134,6 +134,20 @@ public partial class CaptureReplayTests
         Assert.False(string.IsNullOrEmpty(replay));
     }
 
+    /// <summary>The ground's doodad layers and lists read back from their files beside ground-scatter.txt - ground-scatter-replay.txt.</summary>
+    [Fact]
+    public void THEGROUNDScatterIsReadBackFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder || CaptureParts.Find(folder, CaptureReport.GroundScatterFile) is not { } path || !File.Exists(path))
+        {
+            return;
+        }
+
+        string replay = CaptureGroundScatter.Replay(Path.GetDirectoryName(path)!);
+        File.WriteAllText(Path.Combine(folder, "ground-scatter-replay.txt"), replay);
+        Assert.StartsWith("ground scatter replay: ", replay, StringComparison.Ordinal);
+    }
+
     /// <summary>Places every room of the capture by its doodads and writes the result beside the capture's files.</summary>
     [Fact]
     public void THEPLACINGRunsAgainFromACapture()

@@ -297,7 +297,8 @@ public static class RoomModels
         RoomLights.Gathered? lights = null,
         DoodadSieve? sieve = null,
         IReadOnlyList<(RoomDoodad One, Matrix4x4 Place)>? also = null,
-        IReadOnlyDictionary<string, string>? swaps = null)
+        IReadOnlyDictionary<string, string>? swaps = null,
+        IReadOnlyList<(RoomDoodad One, Matrix4x4 Place)>? others = null)
     {
         // ONE TALLY PER FILE, which also holds its model once loaded: a room places the same tree dozens of times.
         var files = new Dictionary<string, Tally>(StringComparer.OrdinalIgnoreCase);
@@ -379,6 +380,24 @@ public static class RoomModels
             }
 
             Take(one, place, sways?.GroupOf(one) ?? -1);
+        }
+
+        // OTHER ROOMS' OWN DOODADS, placed already where those rooms stand - the area round the player's (LaidRoomModels.Block): a room's
+        // own lines, so no tile's swaps.
+        foreach ((RoomDoodad one, Matrix4x4 place) in others ?? [])
+        {
+            if (one.Ao.Length == 0)
+            {
+                continue;
+            }
+
+            if (!tools && IsTool(one))
+            {
+                hidden++;
+                continue;
+            }
+
+            Take(one, place, -1);
         }
 
         // THE TILES' OWN DOODADS AFTER THE ROOM'S, placed already by whoever laid the tiles: where the doodads slider
