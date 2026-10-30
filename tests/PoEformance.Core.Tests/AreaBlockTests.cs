@@ -72,6 +72,48 @@ public class AreaBlockTests
         Assert.Null(unread.Stood);
     }
 
+    /// <summary>
+    /// The height of the ground the player stood on rides in the place's word and reads back; a word of x and y alone, as v0.1.373 and v0.1.374
+    /// wrote it, still reads, its height unknown; a word whose third number does not read is no place; and the build's key drops the height
+    /// with the place, so a block taken again at another height lays no tile again.
+    /// </summary>
+    [Fact]
+    public void THEHEIGHTOfTheGroundHeStoodOnRidesWithThePlaceAndAnOlderKeyStillReads()
+    {
+        var offered = new AreaBlock(4, 17, 25, 77, ["Metadata/Terrain/Gallows/Act1/1_5/master.tsi"]);
+        AreaBlock stood = offered with { Stood = new Vector2(4081.842f, 7314.178f), StoodHeight = -246.538f };
+        string taken = stood.ToString();
+        Assert.EndsWith("+masters=Metadata/Terrain/Gallows/Act1/1_5/master.tsi+stood=4081.84,7314.18,-246.54", taken, StringComparison.Ordinal);
+        Assert.True(AreaBlock.TryRead(taken, out AreaBlock read));
+        Assert.Equal(new Vector2(4081.84f, 7314.18f), read.Stood);
+        Assert.Equal(-246.54f, read.StoodHeight);
+        Assert.Equal(taken, read.ToString());
+
+        // AN OLDER KEY'S TWO NUMBERS: the place, its height unknown - and written back as it was.
+        string older = offered.ToString() + "+stood=300,420";
+        Assert.True(AreaBlock.TryRead(older, out AreaBlock old));
+        Assert.Equal(new Vector2(300f, 420f), old.Stood);
+        Assert.Null(old.StoodHeight);
+        Assert.Equal(older, old.ToString());
+
+        // A WORD THAT DOES NOT READ IS NO PLACE, a third number too - not a place without its height.
+        foreach (string word in new[] { "300,420,a", "300,420,", "300,420,NaN", "300,420,5,6", "300" })
+        {
+            Assert.True(AreaBlock.TryRead(offered.ToString() + "+stood=" + word, out AreaBlock bad));
+            Assert.Null(bad.Stood);
+            Assert.Null(bad.StoodHeight);
+        }
+
+        // THE BUILD'S KEY DROPS THE HEIGHT WITH THE PLACE: two heights at one place, and none, are one block.
+        Assert.Equal(offered.ToString(), AreaBlock.Unstood(taken));
+        Assert.Equal(offered.ToString(), AreaBlock.Unstood((stood with { StoodHeight = 12f }).ToString()));
+        Assert.Equal(offered.ToString(), AreaBlock.Unstood(older));
+
+        // A HEIGHT THAT IS NO NUMBER, or one with no place, is not written: the place's word stays as an older key's, or there is none.
+        Assert.EndsWith("+stood=4081.84,7314.18", (stood with { StoodHeight = float.NaN }).ToString(), StringComparison.Ordinal);
+        Assert.Equal(offered.ToString(), (offered with { StoodHeight = 5f }).ToString());
+    }
+
     [Fact]
     public void THEBLOCKIsCentredOnTheTileYouStandOnAndKeptInsideTheArea()
     {

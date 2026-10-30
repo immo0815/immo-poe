@@ -42,6 +42,29 @@ public class StagedModelsTests
         return SkinnedMesh.Of(at, up, indices, new Vector3(-half, -half, -tall), new Vector3(half, half, 0f), shapes: [new MeshShape("body", 0, 12)]);
     }
 
+    /// <summary>A rectangle from (x0, y0) to (x1, y1) at a height, facing up, as one part of a stage's join.</summary>
+    private static MeshJoin Slab(float x0, float y0, float x1, float y1, float z, string name)
+        => new(Square(1f, z, name), Place: Matrix4x4.CreateScale(x1 - x0, y1 - y0, 1f) * Matrix4x4.CreateTranslation(x0, y0, 0f));
+
+    /// <summary>The area round you as a stage, out of its parts in order, each shape's blend word in <paramref name="modes"/> - none for solid.</summary>
+    private static MonsterModel Around(IReadOnlyList<string> modes, params MeshJoin[] parts)
+        => new(SkinnedMesh.Joined(parts), null, AreaBlock.Path, string.Empty, string.Empty) { Kind = ModelKind.Room, Modes = modes };
+
+    /// <summary>
+    /// Whether a floor found is the one at a height, to a hundredth: a height is worked out across a triangle by its three weights, and a
+    /// flat one comes out a bit or two off where they do not sum to one exactly.
+    /// </summary>
+    private static bool Near(float found, float height) => MathF.Abs(found - height) < 0.01f;
+
+    /// <summary>Where the monster's origin landed on the stage, to a thousandth.</summary>
+    private static void Landed(Vector3 expected, MonsterModel staged)
+    {
+        Vector3 at = staged.ActorPlace.Translation;
+        Assert.Equal(expected.X, at.X, 3);
+        Assert.Equal(expected.Y, at.Y, 3);
+        Assert.Equal(expected.Z, at.Z, 3);
+    }
+
     [Fact]
     public void TheFloorIsTheHighestSurfaceFacingUpUnderThePoint()
     {
@@ -174,7 +197,10 @@ public class StagedModelsTests
 
         MonsterModel staged = StagedModels.Staged(actor, block, modelSize: 0, AreaBlock.Path, stood: new Vector2(60f, 300f));
 
-        Assert.Contains("the monster stands where the player stood when the block was taken at 1 of its file's size, on the floor there (10 on the tile's z)", staged.StageSaid, StringComparison.Ordinal);
+        Assert.Contains(
+            "the monster stands where the player stood when the block was taken (on the floor at that place - the key names no height of his) at 1 of its file's size, on the floor there (10 on the tile's z)",
+            staged.StageSaid,
+            StringComparison.Ordinal);
         Assert.Equal(new Vector3(60f, 300f, 10f), Vector3.Transform(Vector3.Zero, staged.ActorPlace));
         StageStanding standing = Assert.IsType<StageStanding>(staged.Standing);
         Assert.Equal((new Vector2(60f, 300f), 0f, 10f), (standing.At, standing.Turn, standing.Floor));
@@ -185,6 +211,121 @@ public class StagedModelsTests
         MonsterModel middle = StagedModels.Staged(actor, block, modelSize: 0, AreaBlock.Path);
         Assert.Contains("the monster stands at its middle", middle.StageSaid, StringComparison.Ordinal);
         Assert.Equal(new Vector3(200f, 200f, -20f), Vector3.Transform(Vector3.Zero, middle.ActorPlace));
+    }
+
+    /// <summary>
+    /// On a footbridge over a river, narrower than the ring the floor is asked on round the place, the monster stands on the deck - with the
+    /// player's height, the floor nearest it, and without, as an older key has it, the floor at the place itself - not on the river's bed.
+    /// </summary>
+    /// <remarks>
+    /// THE RED VALE'S FOOTBRIDGES, A REVIEW'S FINDING: the deck 100 wide along y at z 10, the river's water at 60 over its whole width - mixed,
+    /// so no floor - and its bed at 100 (up is minus z). Six of the ring's eight points miss the deck and find the bed, so the nine floors'
+    /// middle, a boss's rule, stood him on the bed 90 units under the player's feet.
+    /// </remarks>
+    [Fact]
+    public void THEMONSTERStandsOnTheFootbridgeThePlayerStoodOnNotOnTheRiversBed()
+    {
+        MonsterModel bridge = Around(
+            [string.Empty, MonsterModels.Paints.RiverMode, string.Empty],
+            Slab(0f, 0f, 400f, 400f, 100f, "bed"),
+            Slab(0f, 0f, 400f, 400f, 60f, "river"),
+            Slab(150f, 0f, 250f, 400f, 10f, "deck"));
+        Assert.Equal([MaterialBlend.Opaque, MaterialBlend.Alpha, MaterialBlend.Opaque], bridge.Blends);
+        var actor = new MonsterModel(Box(5f, 20f), null, "monster.smd", string.Empty, string.Empty);
+
+        MonsterModel staged = StagedModels.Staged(actor, bridge, modelSize: 0, AreaBlock.Path, stood: new Vector2(200f, 200f), height: 10f);
+
+        StageStanding standing = Assert.IsType<StageStanding>(staged.Standing);
+        Assert.Equal(6, standing.Floors.Count(one => Near(one.Height, 100f)));
+        Landed(new Vector3(200f, 200f, 10f), staged);
+        Assert.Equal("the one nearest the player's own height (10) taken", standing.Taken);
+        Assert.Contains(
+            "the monster stands where the player stood when the block was taken (on the floor nearest his own height there, 10) at 1 of its file's size, on the floor there (10 on the tile's z)",
+            staged.StageSaid,
+            StringComparison.Ordinal);
+
+        // AN OLDER KEY NAMES NO HEIGHT: the floor at the place itself, which is the deck too.
+        MonsterModel older = StagedModels.Staged(actor, bridge, modelSize: 0, AreaBlock.Path, stood: new Vector2(200f, 200f));
+        Landed(new Vector3(200f, 200f, 10f), older);
+        Assert.Equal("the one at the place itself taken - the key names no height of the player's", older.Standing!.Taken);
+    }
+
+    /// <summary>In a passage between two walls narrower than the ring, the monster stands on the passage's floor, not on the walls' tops.</summary>
+    [Fact]
+    public void THEMONSTERStandsOnThePassagesFloorNotOnTheWallsTops()
+    {
+        // THE FLOOR AT z 10 AND THE WALLS' TOPS 200 OVER IT, on either side of a passage 100 wide: six of the ring's points on the walls.
+        MonsterModel passage = Around(
+            [],
+            Slab(0f, 0f, 400f, 400f, 10f, "floor"),
+            Slab(0f, 0f, 150f, 400f, -190f, "wall"),
+            Slab(250f, 0f, 400f, 400f, -190f, "wall"));
+        var actor = new MonsterModel(Box(5f, 20f), null, "monster.smd", string.Empty, string.Empty);
+
+        MonsterModel staged = StagedModels.Staged(actor, passage, modelSize: 0, AreaBlock.Path, stood: new Vector2(200f, 200f), height: 10f);
+        Assert.Equal(6, staged.Standing!.Floors.Count(one => Near(one.Height, -190f)));
+        Landed(new Vector3(200f, 200f, 10f), staged);
+
+        MonsterModel older = StagedModels.Staged(actor, passage, modelSize: 0, AreaBlock.Path, stood: new Vector2(200f, 200f));
+        Landed(new Vector3(200f, 200f, 10f), older);
+    }
+
+    /// <summary>
+    /// Under a roof over the player, his height at the ground, the monster stands on the ground - which the floor at his place, the roof's
+    /// top, is not. Without the height, as an older key has it, he stands on the roof: why the height rides in the key.
+    /// </summary>
+    [Fact]
+    public void UNDERAROOFOverThePlayerTheMonsterStandsOnTheGroundAtHisHeight()
+    {
+        // THE GROUND AT z 10, THE ROOF'S TOP 300 OVER IT, 300 across and 200 deep round the place: the place and six of the ring's points
+        // under it, the two along y out from under it.
+        MonsterModel roofed = Around(
+            [],
+            Slab(0f, 0f, 400f, 400f, 10f, "ground"),
+            Slab(50f, 100f, 350f, 300f, -290f, "roof"));
+        var actor = new MonsterModel(Box(5f, 20f), null, "monster.smd", string.Empty, string.Empty);
+
+        MonsterModel staged = StagedModels.Staged(actor, roofed, modelSize: 0, AreaBlock.Path, stood: new Vector2(200f, 200f), height: 10f);
+        Assert.Equal(7, staged.Standing!.Floors.Count(one => Near(one.Height, -290f)));
+        Landed(new Vector3(200f, 200f, 10f), staged);
+        Assert.Equal(10f, staged.Standing.Floor, 3);
+
+        MonsterModel older = StagedModels.Staged(actor, roofed, modelSize: 0, AreaBlock.Path, stood: new Vector2(200f, 200f));
+        Landed(new Vector3(200f, 200f, -290f), older);
+    }
+
+    /// <summary>
+    /// Where nothing faces up at the place itself and the key names no height, the middle of the ring's floors stands in; a height with
+    /// no place is not asked; and a tie between two floors equally near the player's height goes to the place's own.
+    /// </summary>
+    [Fact]
+    public void THEPLACESOwnFloorWinsATieAndTheRingsMiddleStandsInForNone()
+    {
+        // A HOLE 40 ACROSS AT THE PLACE, the ground at z 10 round it.
+        MonsterModel holed = Around(
+            [],
+            Slab(0f, 0f, 180f, 400f, 10f, "ground"),
+            Slab(220f, 0f, 400f, 400f, 10f, "ground"),
+            Slab(180f, 0f, 220f, 180f, 10f, "ground"),
+            Slab(180f, 220f, 220f, 400f, 10f, "ground"));
+        var actor = new MonsterModel(Box(5f, 20f), null, "monster.smd", string.Empty, string.Empty);
+        MonsterModel staged = StagedModels.Staged(actor, holed, modelSize: 0, AreaBlock.Path, stood: new Vector2(200f, 200f));
+        Assert.False(float.IsFinite(staged.Standing!.Floors[0].Height));
+        Landed(new Vector3(200f, 200f, 10f), staged);
+        Assert.Equal("the middle of the ring's taken - none at the place itself, and the key names no height of the player's", staged.Standing.Taken);
+
+        // TWO FLOORS 20 EITHER SIDE OF HIS HEIGHT: the place's own, a step at z 0, against the ground at 40 round it.
+        MonsterModel stepped = Around(
+            [],
+            Slab(0f, 0f, 400f, 400f, 40f, "ground"),
+            Slab(150f, 150f, 250f, 250f, 0f, "step"));
+        MonsterModel tie = StagedModels.Staged(actor, stepped, modelSize: 0, AreaBlock.Path, stood: new Vector2(200f, 200f), height: 20f);
+        Assert.Equal(0f, tie.Standing!.Floor, 3);
+
+        // A HEIGHT HANDED WITHOUT A PLACE stands him at the middle, as before.
+        MonsterModel middle = StagedModels.Staged(actor, stepped, modelSize: 0, AreaBlock.Path, height: 40f);
+        Assert.Contains("the monster stands at its middle", middle.StageSaid, StringComparison.Ordinal);
+        Landed(new Vector3(200f, 200f, 0f), middle);
     }
 
     /// <summary>
