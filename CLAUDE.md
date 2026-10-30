@@ -476,6 +476,29 @@ are not yet compared on equal terms. The engine raises open_water_color to 2.2 i
 river's curvature (its height times 5e-5) barely moves the hue; water_height_offset moves only the beach, crashing and flood waves and the
 spray, and river areas without one abound - so neither is the cause.
 
+## A material's vertex stages
+
+THE ZONE TRANSITIONS' LIGHT DREW AS A SOLID WHITE TUBE (said from the live client with a probe, v0.1.363: The Red Vale's exit to the
+Grelwood). `generic_cylinder.ao` wears `light_raysc.mat`, whose `AddMaskMuddleTex` reads its mask at `InputVertexUV` taken at VertexInit -
+a node the compile does not know - so the whole alpha chain (the mask, Alpha_SmoothStep, SoftAlphaParticle, FresnelFade) was lost and the
+tube added at alpha one; its `ScaleMoveUV` scrolls the colour three times across by writing `VertexUV` at WorldTransform, a vertex stage the
+compile does not run, so nothing scrolled either. The stage sweep counts the node missing in 1,846 rooms, and writes at the late pixel
+stages the compile does not place (FogStage_Calc's IndirectLightMult in 2,876 rooms, Lighting_Calc 238, PostLighting 89 white). Inside
+the tube stood a capsule lettered AUDIO, `Metadata/Terrain/Tools/AudioTools/G1_5/OldForestEntrance.ao`: a sound emitter, hidden as a tool
+from v0.1.364 (`RoomModels.EditorFolder`, DECIDED from the live client).
+WHAT THE ENGINE'S GRAPHS SAY (render-debug's engine graphs, read offline): fixed.fxgraph and the particles' write VertexUV from the mesh's
+coordinates (VertexLocalUV) at VertexInit and the pixel side's UV from the vertex side's last (FromVertexUV) at PixelInit; the trails link a
+vertex stage's input straight to a pixel stage's writer (InputVertexTrailPhase@VertexInit to TrailPhase@VertexToPixel) - a value crossing
+the two shaders is the engine's own means, so AddMaskMuddleTex's mask reads the mesh's coordinates unscrolled. What is NOT known is the
+vertex stages' order: the links of 335 graphs mostly follow the names and in places run against them (face_camera.fxgraph reads at
+WorldTransform and writes at WorldTransform_Init). DECIDED from the live client: measure before any of it is compiled. `shader-stages.txt`
+(`ShaderStageHunt`, the Memory group, run at the press) reads the client's stage table - an array of MSVC std::string in its image, of
+which only the pixel side's ten entries were ever seen (the schema's 2026-10-09 find) - by reading every eight-byte place of the image as
+one and its heap names, and writes every run of them 0x20 to 0x60 apart holding stage names whole, the compile's order held against it;
+then every link of the install's graphs across stages by stage pair (forwards or backwards in the table), those from a vertex stage to a
+pixel stage by their ends' types, and every write of the coordinates with what feeds it. `shader-stages-replay.txt` holds the report's pairs
+and this build's compile order against its table again. Press it once anywhere before the vertex stages are compiled.
+
 ## Verify against the game, not against yourself
 
 A check that a wrong value passes is worse than no check. Prefer tests the game itself can

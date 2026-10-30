@@ -134,6 +134,20 @@ public partial class CaptureReplayTests
         Assert.False(string.IsNullOrEmpty(replay));
     }
 
+    /// <summary>The engine's stage table read back from shader-stages.txt, its stage pairs and this build's compile order held against it - shader-stages-replay.txt.</summary>
+    [Fact]
+    public void THESHADERStagesAreReadBackFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder || CaptureParts.Find(folder, CaptureReport.ShaderStagesFile) is not { } path || !File.Exists(path))
+        {
+            return;
+        }
+
+        string replay = PoEformance.Game.Diagnostics.ShaderStageHunt.Replay(File.ReadAllText(path));
+        File.WriteAllText(Path.Combine(folder, "shader-stages-replay.txt"), replay);
+        Assert.StartsWith("shader stages replay: ", replay, StringComparison.Ordinal);
+    }
+
     /// <summary>The ground's doodad layers and lists read back from their files beside ground-scatter.txt - ground-scatter-replay.txt.</summary>
     [Fact]
     public void THEGROUNDScatterIsReadBackFromACapture()

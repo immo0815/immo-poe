@@ -99,6 +99,13 @@
   // replaced the rule that left a write out whenever the plain stage, _Calc and _Final of one
   // family both touched a colour. Not written into "structs": it is code-side knowledge,
   // carried by ShadeProgram.Stages, and the address is one launch's.
+  // THE VERTEX SIDE WAS NEVER SEEN, and a material's vertex stages need it (v0.1.365): a chain writes the
+  // coordinates at VertexInit (the engine's fixed.fxgraph, from the mesh), WorldTransform (ScaleMoveUV's
+  // scroll) and VertexOutput_Final (the ground's projection), and InputVertexUV reads them at its own stage
+  // - the zone transitions' light reads its mask at VertexInit. The capture's shader-stages part
+  // (ShaderStageHunt) reads the whole table at the press: every eight-byte place of the image as an MSVC
+  // std::string, the heap's names read, runs 0x20 to 0x60 apart holding stage names written whole. Its
+  // first capture names the table's place in the image (module+0x...) and the vertex side's order.
 
   "version": 1,
   "gameVersion": "0.5.5 (2026-09-04 content patch: GameState, AreaInstance, UiElementBase, MapUiElement and ImportantUiElements re-based 2026-09-11, agreeing with GameHelper2 main a99b8ba; the game chain and AreaInstance confirmed live the same day by session-2026-09-live.rec, the UiElement flags and StringId by session-2026-09-panels.rec and session-2026-09-maphunt.rec, the maps by the latter through MapViewports, RightPanelPtr by session-2026-09-browser.rec, ItemPtr by session-2026-09-itempick.rec; TextPtr moved to 0x360 on session-2026-09-text.rec's evidence and awaits the browser showing text there; earlier: AreaInstance +0x08 wave 2026-08; base port: AHK tool v0.45.13.298, 2026-07)",
