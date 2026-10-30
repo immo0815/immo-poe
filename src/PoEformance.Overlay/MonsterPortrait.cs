@@ -2292,7 +2292,11 @@ public sealed class MonsterPortrait
                 _view = Started(_model.Mesh, reset: true);
                 break;
             case GameSide when _view.Valid:
-                _view = _view.AsTheGame();
+                // A STAGED MONSTER IS LOOKED AT AS THE GAME'S CAMERA LOOKS AT THE PLAYER - at the floor by his feet, GameAhead off them
+                // (said from the live client: about the point looked at, he stood a few metres off where the game's camera has him).
+                _view = _model.Standing is { } standing
+                    ? _view.AsTheGameAt(new Vector3(standing.At, standing.Floor))
+                    : _view.AsTheGame();
                 break;
             case PerspectiveSide:
                 _parallel = !_parallel;
@@ -2340,8 +2344,10 @@ public sealed class MonsterPortrait
                     + CameraHelp);
                 break;
             case GameSide:
-                ImGui.SetTooltip("Game view: the game's own camera about the point looked at - 48.7 degrees down along +x +y, 2,165 units off,\n"
-                    + "30 degrees from the picture's top to its bottom (measured off the game's camera matrix).\n" + CameraHelp);
+                ImGui.SetTooltip("Game view: the game's own camera - 48.7 degrees down along +x +y, 2,165 units off,\n"
+                    + "30 degrees from the picture's top to its bottom (measured off the game's camera matrix).\n"
+                    + "A monster on a stage is looked at as the game's camera looks at the player: at the floor by his feet,\n"
+                    + "38 units back along x and y towards the eye (measured over 20 captures); anything else about the point looked at.\n" + CameraHelp);
                 break;
             case PerspectiveSide:
                 ImGui.SetTooltip((_parallel ? "Parallel: no perspective, as every picture was drawn before. " : "Perspective, as the game sees it. ")
@@ -2363,7 +2369,9 @@ public sealed class MonsterPortrait
     /// </summary>
     /// <remarks>
     /// A STAGE KEPT ACROSS MONSTERS KEEPS ITS CAMERA: the room is the same room, and a view flown to the quay should not jump back to
-    /// the whole harbour because another boss was picked. Anything else starts from its own fit (see <see cref="Started"/>).
+    /// the whole harbour because another boss was picked. Anything else starts from its own fit (see <see cref="Started"/>). The area
+    /// round you taken again in the same block is the same stage too, only the monster moved to where the player stood then
+    /// (AreaBlock.Unstood) - its tiles are the ones kept.
     /// </remarks>
     private void Framed()
     {
@@ -2373,7 +2381,8 @@ public sealed class MonsterPortrait
             return;
         }
 
-        bool kept = _view.Valid && _viewStaged && _model.Staged && string.Equals(_viewStage, _stagedOn, StringComparison.Ordinal);
+        bool kept = _view.Valid && _viewStaged && _model.Staged
+            && string.Equals(AreaBlock.Unstood(_viewStage), AreaBlock.Unstood(_stagedOn), StringComparison.Ordinal);
         _viewFor = mesh;
         _viewStaged = _model.Staged;
         _viewStage = _stagedOn;

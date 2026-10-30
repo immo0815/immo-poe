@@ -699,23 +699,16 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
                 // AND THE AREA ROUND YOU, in any area: its tiles as laid, no room needed - see AroundYou.
                 if (Around is { } offered)
                 {
-                    (string key, string why) = offered.Here();
-                    if (key.Length > 0)
-                    {
-                        Offer(model, "around you: " + offered.Size.ToString(CultureInfo.InvariantCulture) + " x " + offered.Size.ToString(CultureInfo.InvariantCulture) + " tiles", key, AroundYou.Tip);
-                    }
-                    else
-                    {
-                        ImGui.TextDisabled(ImGuiText.Escape("around you: " + why));
-                    }
+                    OfferAround(model, offered);
                 }
 
                 ImGui.EndCombo();
             }
 
-            // THE BLOCK'S SIDE, under the combo, while the area round you is the stage - let go, it is laid again round you.
+            // THE BLOCK'S SIDE, under the combo, while the area round you is the stage - let go, it is laid again round you, the monster
+            // standing where you stand then (AreaBlock.Stood).
             if (aroundShown && Around is { } around && around.Slider("##monster-around", MathF.Max(120f, ImGui.GetContentRegionAvail().X * 0.6f))
-                && around.Here() is { Key.Length: > 0 } again)
+                && around.Taken() is { Key.Length: > 0 } again)
             {
                 model.Stage = again.Key;
             }
@@ -726,7 +719,8 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
                 + " while you stand in one of those areas, its arena rooms as the game laid them, floor and all;"
                 + " from anywhere, those areas' arena rooms built from their tilesets - every tile valid, the arena settled, the ring chosen by weight;"
                 + " the Tile Book's tile is whatever that book is open at;"
-                + " and in any area the area round you, its tiles as the game laid them round the tile you stand on - its size the slider under the combo once chosen."
+                + " and in any area the area round you, its tiles as the game laid them round the tile you stand on - its size the slider under the combo once chosen,"
+                + " the monster standing where you stood when you chose it or let the slider go."
                 + " The picture frames the whole tile - the wheel zooms in on the monster.");
 
             // THE ROOM'S OWN SWITCHES IN COLUMNS, under the combo that chose the room - see RoomSwitches.
@@ -882,6 +876,38 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
         if (ImGui.IsItemHovered())
         {
             ImGui.SetTooltip(ImGuiText.Escape(tip));
+        }
+    }
+
+    /// <summary>
+    /// The area round you in the stage's list: offered as it stands round the player now, taken with where he stands at the click.
+    /// </summary>
+    /// <remarks>
+    /// THE ROW IS THE BLOCK, THE CLICK ADDS THE PLACE (AroundYou.Taken, AreaBlock.Stood): the monster stands where the player stood when he
+    /// chose it. The key offered names no place, so the row keeps its name and its tick while he walks; it is ticked while the stage is
+    /// that block wherever in it he stood (AreaBlock.Unstood). Chosen again, it takes where he stands now - his block's tiles kept, the
+    /// monster moved.
+    /// </remarks>
+    private static void OfferAround(MonsterPortrait model, AroundYou around)
+    {
+        (string key, string why) = around.Here();
+        if (key.Length == 0)
+        {
+            ImGui.TextDisabled(ImGuiText.Escape("around you: " + why));
+            return;
+        }
+
+        string side = around.Size.ToString(CultureInfo.InvariantCulture);
+        bool shown = string.Equals(AreaBlock.Unstood(model.Stage), key, StringComparison.Ordinal);
+        if (ImGui.Selectable(ImGuiText.Escape("around you: " + side + " x " + side + " tiles") + "##monster-stage-around", shown)
+            && around.Taken() is { Key.Length: > 0 } taken)
+        {
+            model.Stage = taken.Key;
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip(ImGuiText.Escape(AroundYou.Tip));
         }
     }
 

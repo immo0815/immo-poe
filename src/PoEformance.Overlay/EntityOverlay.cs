@@ -1861,7 +1861,10 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// The key of the block of a side round the player's tile now, with the area's rooms' masters - or empty with why not. Asked every frame
     /// while the Monster Book's combo is open, so the masters are read once per area.
     /// </summary>
-    private (string Key, string Why) AroundKey(int size)
+    /// <param name="size">The block's side in tiles.</param>
+    /// <param name="taken">Whether the block is being taken: its key then names where the player stands (AreaBlock.Stood), which the
+    /// Monster Book stands its monster at. Offered, it names none, so the key does not change with every step the player takes.</param>
+    private (string Key, string Why) AroundKey(int size, bool taken)
     {
         if (_snapshot.Terrain is not TerrainGrid { Tiles: not null } grid)
         {
@@ -1894,6 +1897,12 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                         standing.Select(one => (one.Room, one.Where.X, one.Where.Y, one.Where.Turn, one.Where.Width, one.Where.Height))),
                 };
             }
+        }
+
+        // WHERE THE PLAYER STANDS AS THE BLOCK IS TAKEN, his world x and y - where the Monster Book stands its monster (StagedModels.Staged).
+        if (taken && _snapshot.Player is WorldEntity player)
+        {
+            block = block with { Stood = new Vector2(player.WorldX, player.WorldY) };
         }
 
         return (block.ToString(), string.Empty);

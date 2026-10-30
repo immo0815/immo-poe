@@ -47,6 +47,22 @@ public readonly record struct CameraPose(Vector3 Focus, float Turn, float Tilt, 
     /// <summary>How far the game's camera stands off the player, in world units - MEASURED, Port's capture of v0.1.319.</summary>
     public const float GameDistance = 2165f;
 
+    /// <summary>
+    /// Where the game's camera looks, from the player's feet, in world x and y: on the ground at his height, a little towards the eye - MEASURED.
+    /// </summary>
+    /// <remarks>
+    /// MEASURED over 20 captures in five areas, The Red Vale, Port, the Canal Hideout and Necropolis among them: each capture.txt's camera
+    /// matrix taken apart (GameCamera), its eye's way followed down to the ground at the player's terrain height, and the point it meets
+    /// held against the player line. It lies -37 to -41 along x and -34 to -39 along y from his feet, (-38.2, -37.7) at the median -
+    /// about 54 units towards the eye along the view - with the eye 2,150 to 2,166 units off it. The committed capture fixtures taken
+    /// under this camera say the same (Augury, Marrow, Steaming Springs, Sulphuric Caverns, the Titan Grotto, Traitor's Passage: -36.1 to
+    /// -39.6 along x, -36.2 to -38.7 along y, 2,149 to 2,165 off); Oasis's and Steppe's, an older camera 46.8 degrees down from 1,917
+    /// units, looked -32 along x and -32 to -34 along y off. Along the x and y <see cref="GameTurn"/> turns the view in, so it is
+    /// towards the eye in any frame the pose is turned so - the world's, a stage's laid as the area laid it (the world less its corner)
+    /// and a built room's alike.
+    /// </remarks>
+    public static readonly Vector2 GameAhead = new(-38f, -38f);
+
     /// <summary>The closest the eye may come to the focus, in model units: close enough for a barrel to fill the picture several times over.</summary>
     public const float Closest = 2f;
 
@@ -230,6 +246,13 @@ public readonly record struct CameraPose(Vector3 Focus, float Turn, float Tilt, 
 
     /// <summary>The pose at the game's own angle and distance, about its focus.</summary>
     public CameraPose AsTheGame() => this with { Turn = GameTurn, Tilt = GameTilt, Distance = GameDistance };
+
+    /// <summary>
+    /// The game's own camera over somebody standing at <paramref name="feet"/>: looking where the game's looks over the player - at the ground at
+    /// his feet's height, <see cref="GameAhead"/> off them - at its angle and distance, perspective or parallel as this pose is.
+    /// </summary>
+    /// <param name="feet">Where he stands, his origin on the floor, in the model's space - a staged monster's (StageStanding's place and floor).</param>
+    public CameraPose AsTheGameAt(Vector3 feet) => new(feet + new Vector3(GameAhead, 0f), GameTurn, GameTilt, GameDistance, Parallel);
 
     /// <summary>
     /// Where the pointer meets the focus's plane - the plane through the focus facing the eye - in the model's space.

@@ -154,6 +154,40 @@ public class StagedModelsTests
     }
 
     /// <summary>
+    /// The area round you stands its monster where the player stood when the block was taken - on the floor there, facing as at the middle -
+    /// and a stage handed no place stands him at its middle as before.
+    /// </summary>
+    /// <remarks>
+    /// A DECK WITH A PLATFORM AT ITS MIDDLE, so the two places stand on two floors: the platform 30 higher than the deck (up is minus z), the
+    /// player's place on the deck, its whole ring of floors asked on the deck too.
+    /// </remarks>
+    [Fact]
+    public void THEMONSTERStandsWhereThePlayerStoodWhenTheBlockWasTaken()
+    {
+        SkinnedMesh ground = SkinnedMesh.Joined(
+        [
+            new MeshJoin(Square(400f, 10f, "deck")),
+            new MeshJoin(Square(100f, -20f, "platform"), Place: Matrix4x4.CreateTranslation(150f, 150f, 0f)),
+        ]);
+        var block = new MonsterModel(ground, null, AreaBlock.Path, string.Empty, string.Empty) { Kind = ModelKind.Room };
+        var actor = new MonsterModel(Box(5f, 20f), null, "monster.smd", string.Empty, string.Empty);
+
+        MonsterModel staged = StagedModels.Staged(actor, block, modelSize: 0, AreaBlock.Path, stood: new Vector2(60f, 300f));
+
+        Assert.Contains("the monster stands where the player stood when the block was taken at 1 of its file's size, on the floor there (10 on the tile's z)", staged.StageSaid, StringComparison.Ordinal);
+        Assert.Equal(new Vector3(60f, 300f, 10f), Vector3.Transform(Vector3.Zero, staged.ActorPlace));
+        StageStanding standing = Assert.IsType<StageStanding>(staged.Standing);
+        Assert.Equal((new Vector2(60f, 300f), 0f, 10f), (standing.At, standing.Turn, standing.Floor));
+        Vector3 facing = Vector3.TransformNormal(new Vector3(0f, -1f, 0f), staged.ActorPlace);
+        Assert.Equal(-1f, facing.Y, 3);
+
+        // HANDED NO PLACE, he stands at the middle of the stage's box - on the platform.
+        MonsterModel middle = StagedModels.Staged(actor, block, modelSize: 0, AreaBlock.Path);
+        Assert.Contains("the monster stands at its middle", middle.StageSaid, StringComparison.Ordinal);
+        Assert.Equal(new Vector3(200f, 200f, -20f), Vector3.Transform(Vector3.Zero, middle.ActorPlace));
+    }
+
+    /// <summary>
     /// A monster whose rest pose hangs below his origin stands his ORIGIN on the floor, as the game stands Malgor: his entity's z is
     /// the terrain less half his height over his origin, while his bind pose hangs 209.7 under his feet (v0.1.328's capture).
     /// </summary>

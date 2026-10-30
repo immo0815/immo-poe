@@ -2612,11 +2612,14 @@ public static class MonsterModels
     /// blend and colour map that material's - or the model itself where none of its materials is swapped.
     /// </summary>
     /// <remarks>
-    /// FOR A TILE'S OWN DOODADS (its <c>.tmd</c>), laid in a room: the master's TileMaterialOverrides swap what the tiles it places
+    /// FOR EVERY DOODAD A LAID OR BUILT ROOM LAYS (RoomModels.Lay): the master's TileMaterialOverrides swap what the tiles it places
     /// wear, and Crimson Shores' names the material of a tile doodad - <c>CorruptionGradientc.mat</c>, the tendrils of its stromatolite
-    /// tiles, to the mask nothing draws - so the swap reaches the tile's doodads as well as its mesh (DECIDED from the live client,
-    /// 2026-10-29). As a tile's mesh takes it (TileModels' Runs): the swap is the whole material, any selector after it dropped.
-    /// The room compiles its shapes from what they wear once they are joined (Shaded), so the swapped material is the one compiled.
+    /// tiles, to the mask nothing draws - so the swap reaches the tile's own doodads (its <c>.tmd</c>) as well as its mesh (DECIDED from
+    /// the live client, 2026-10-29). The ground's scatter wears it too (v0.1.368, chosen: its layers and its list are the master's own).
+    /// AND FROM 2026-10-30 THE ROOM'S OWN DOODAD LINES, and other rooms' laid round the player (DECIDED from the live client, reversing
+    /// "the room's own doodads as they are"): one master swaps for the whole of what it lays. As a tile's mesh takes it (TileModels'
+    /// Runs): the swap is the whole material, any selector after it dropped. The room compiles its shapes from what they wear once
+    /// they are joined (Shaded), so the swapped material is the one compiled.
     /// </remarks>
     internal static MonsterModel Swapped(Func<string, byte[]?> read, MonsterModel model, IReadOnlyDictionary<string, string> swaps, Paints paints)
     {

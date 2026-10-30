@@ -34,7 +34,7 @@ public sealed record RoomAccount
     /// <summary>Tile files a swap reached.</summary>
     public int SwappedTiles { get; init; }
 
-    /// <summary>Doodad files of the tiles a swap reached.</summary>
+    /// <summary>Doodad files a swap reached - the room's own lines, other rooms', the tiles' and the ground scatter's.</summary>
     public int SwappedDoodadFiles { get; init; }
 
     /// <summary>Why the ground is not painted at all - no master, no MaterialsList - or empty where it is.</summary>

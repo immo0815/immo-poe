@@ -1,5 +1,6 @@
 using System.Numerics;
 using PoEformance.Game.Files;
+using PoEformance.Game.World;
 
 namespace PoEformance.Core.Tests;
 
@@ -66,6 +67,50 @@ public class CameraPoseTests
         // THE PICTURE'S DOWN IS THE GAME'S CLIP Y TURNED OVER: (1.983, 1.983, -2.462) over its length, the other way.
         Assert.True(Vector3.Distance(down, -Vector3.Normalize(new Vector3(1.983f, 1.983f, -2.462f))) < 2e-3f, $"{down}");
     }
+
+    /// <summary>
+    /// The game's pose about a player's feet puts the eye where the game's own camera stood over him, within a hundredth of its distance -
+    /// The Red Vale's, and every committed fixture's taken under this camera - where the game view about his feet themselves did not.
+    /// </summary>
+    /// <remarks>
+    /// THE RED VALE'S EYE IS ITS CAPTURE'S, taken from the camera matrix beside the player line (GameAhead's measurement); the fixtures'
+    /// eyes are taken apart here from the camera lines their capture.txt wrote (tests/fixtures/captures), each over the player's place at
+    /// his terrain height.
+    /// </remarks>
+    [Fact]
+    public void THEGAMESPoseAboutThePlayersFeetPutsTheEyeWhereTheGamesCameraStood()
+    {
+        var cases = new List<(string Area, Vector3 Feet, Vector3 Eye)> { ("The Red Vale", new Vector3(4081.842f, 7314.178f, 0f), new Vector3(3040.1f, 6271.5f, -1614.8f)) };
+        foreach ((string area, float[] matrix, Vector3 feet) in UnderThisCamera)
+        {
+            GameCamera camera = Assert.IsType<GameCamera>(GameCamera.Of(matrix, 3440, 1440));
+            cases.Add((area, feet, camera.Eye));
+        }
+
+        foreach ((string area, Vector3 feet, Vector3 eye) in cases)
+        {
+            CameraPose pose = new CameraPose(new Vector3(1f, 2f, 3f), 0.3f, 0.2f, 50f, Parallel: true).AsTheGameAt(feet);
+            Assert.Equal(feet + new Vector3(CameraPose.GameAhead, 0f), pose.Focus);
+            Assert.Equal((CameraPose.GameTurn, CameraPose.GameTilt, CameraPose.GameDistance, true), (pose.Turn, pose.Tilt, pose.Distance, pose.Parallel));
+            Assert.True(Vector3.Distance(pose.Eye, eye) < CameraPose.GameDistance * 0.01f, $"{area}: the eye at {pose.Eye}, the game's at {eye}");
+
+            // ABOUT THE FEET THEMSELVES, as the game view stood before, the eye is out by more than that.
+            Vector3 before = new CameraPose(feet, 0f, 0f, 1f).AsTheGame().Eye;
+            Assert.True(Vector3.Distance(before, eye) > CameraPose.GameDistance * 0.01f, $"{area}: about the feet the eye at {before}, the game's at {eye}");
+        }
+    }
+
+    /// <summary>
+    /// The committed fixtures taken under the game's camera of 48.67 degrees down, each capture.txt's camera line and the player's place at his
+    /// terrain height - Oasis's and Steppe's are an older camera's, 46.8 degrees down from 1,917 units.
+    /// </summary>
+    private static readonly (string Area, float[] Matrix, Vector3 Feet)[] UnderThisCamera =
+    [
+        ("Augury", [1.105f, 1.983f, 0.477f, 0.467f, -1.105f, 1.983f, 0.477f, 0.467f, 0f, -2.462f, 0.769f, 0.751f, 4178.573f, -33445.98f, -5932.682f, -5724.86f], new Vector3(6581.521f, 10364.13f, 0f)),
+        ("Steaming Springs", [1.105f, 1.983f, 0.487f, 0.467f, -1.105f, 1.983f, 0.487f, 0.467f, 0f, -2.462f, 0.784f, 0.751f, 176.982f, -15722.91f, -1658.924f, -1389.074f], new Vector3(3846.552f, 4006.763f, -125f)),
+        ("Sulphuric Caverns", [1.105f, 1.983f, 0.488f, 0.467f, -1.105f, 1.983f, 0.488f, 0.467f, 0f, -2.462f, 0.786f, 0.751f, -327.547f, -21119.06f, -3162.382f, -2824.887f], new Vector3(5513.06f, 5216.551f, 0f)),
+        ("the Titan Grotto", [1.105f, 1.983f, 0.478f, 0.467f, -1.105f, 1.983f, 0.478f, 0.467f, 0f, -2.462f, 0.771f, 0.751f, 10029.18f, -81187.95f, -16376.43f, -15792.02f], new Vector3(15427.51f, 24506.32f, -875f)),
+    ];
 
     /// <summary>In perspective the focus lands in the middle, and the picture spans thirty degrees from its top to its bottom.</summary>
     [Fact]
