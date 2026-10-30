@@ -87,6 +87,21 @@ public partial class CaptureReplayTests
         Assert.StartsWith("stage sweep replay: ", replay, StringComparison.Ordinal);
     }
 
+    /// <summary>The parser survey's stopped files judged again by today's readers - parser-survey-replay.txt.</summary>
+    [Fact]
+    public void THEPARSERSurveysStoppedFilesAreReadAgainFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder || CaptureParts.Find(folder, CaptureReport.ParserSurveyFile) is not { } path || !File.Exists(path))
+        {
+            return;
+        }
+
+        string beside = Path.GetDirectoryName(path)!;
+        string replay = ParserSurvey.Replay(beside);
+        File.WriteAllText(Path.Combine(beside, "parser-survey-replay.txt"), replay);
+        Assert.StartsWith("parser survey replay: ", replay, StringComparison.Ordinal);
+    }
+
     /// <summary>The program's, tables' and paths' debug strings read back from debug-strings.txt and sorted by shape - debug-strings-replay.txt.</summary>
     [Fact]
     public void THEDEBUGStringsAreReadBackFromACapture()

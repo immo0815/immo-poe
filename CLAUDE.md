@@ -1608,6 +1608,29 @@ Measured on the committed captures (`lattice-replay.txt`, `joins-replay.txt`, `o
   lies within it of the floor as drawn - a chamfer distance over the lift's blocks, three a block across and four corner to
   corner. At 1000 the Grotto's sheet is a band round its paths, 286 thousand pixels of 1.9 million.
 
+## Every format the reference reads
+
+EVERY PARSER OF poe_data_tools' `file_parsers` HAS A READER HERE (v0.1.361, asked for from the live client: "so we have them once we
+need them") - `.dlp` aside, which another session wrote (`DoodadLayer`). The new ones follow the reference's grammar to the letter over
+one line cursor (`FileLines`, `LineWords`: winnow's `space1`, `quoted`, `dec_uint` leaving what follows its digits, `float`, `safe_u32`,
+`quoted_comma_separated`), strict as it is - a line its grammar does not take stops the file, and the reader's `Why` says where:
+the master's tables `ChestTable` (`.cht`, `#` comments), `CritterTable` (`.clt`), `DecalTable` (`.dct`), `DoodadTable` (`.ddt`); the
+ground and edge types `GroundTypeFile` (`.gt` whole, beside `GroundType`'s name), `EdgeTypeFile` (`.et`), `GroundCombinations`
+(`.gcf`); `AnimationData` (`.amd`, its lines cut at tabs too); `EffectPackage` (`.epk`, the reference's repairs first), `ParticleEmitters`
+(`.pet`), `TrailEffects` (`.trl`, its count before its version), their JSON payloads kept as text and checked strict; `PassiveGraph`
+(`.psg`, PoE2's layout). The mesh readers' gaps are filled beside the drawing path, not in it: `SkinnedMesh.ReadWhole` (every level of
+detail, the names and the tail - ellipsoids, spheres and their links, skinned vertices, by the tail's own version) and `LevelsAt` (every
+level of a DOLm block) are on demand; a `.fmt` keeps its pieces and records (`FixedMesh.Pieces`, `Records`, `Unread`); a `.tgm` below
+version 9 is read in its own layout and drawn only where the walk ends exactly at the file's end and its shapes cover its indices
+(`TileMesh.Older`); a `.tgt` of version 1 is read whole and NOT drawn - which sub-tiles its one mesh covers no reference says - and a
+version 3 one keeps its scene, its slots and a triple's first numbers (`SourceScene`, `Slots`, `Leads`, `Unread`).
+NONE OF IT IS MEASURED AGAINST THE GAME YET beyond the master's tables and ground types the committed captures write whole
+(`FileParsersTests`). THE PARSER SURVEY does that (`parser-survey.txt`, `ParserSurvey`, the Area files group, on by default): every file
+of those sixteen formats the startup walk found (packed, an even stride past 20,000 a format - CHOSEN) read on every core, the formats
+dealt round in turn so a stop still covers each, judged whole or stopped per format and version with the stops' reasons, stopping itself
+100 s from the press (CHOSEN); the first three stopped files of each format are written beside it (`parser-survey/`), and
+`parser-survey-replay.txt` judges them again offline. Read it before a reader of these formats is trusted or changed.
+
 ## When the overlay stays away
 
 AFTER AN ALT+TAB THE OVERLAY AT TIMES STAYED EMPTY FOR GOOD with the game in front (said from the live
