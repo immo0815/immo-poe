@@ -343,7 +343,12 @@ sun's height and theta its bearing, and of the two signs only one puts the sun a
 `SceneLight.GameSun`, drawn ever since, the panel's choice gone. The bytes read back round those
 copies showed what they are: the shadow cascades' boxes along the light, each face a plane and the
 opposite face its negative, beside the camera frustum's corners - so the axis is the game's and the
-sign the ground's. The sky's turn was not among the first candidates, as written or transposed, so
+sign the ground's. THAT AXIS WAS NOT THE LIGHT (v0.1.368): Necropolis's dump held all three of the
+box's plane pairs, and the one found was the light view's up, the derivative of the light by phi;
+the light is the third, `-(sin phi cos theta, sin phi sin theta, cos phi)` - phi measured from
+straight down - which no reading of the eight made. The game's shadows in four areas fall along it,
+and the drawn sun had thrown them the opposite way and stood 180 - phi high where the game's stands
+phi - 90 (`SunReading.PolarPhiDown`, `SceneLight.GameSun`'s remarks). The sky's turn was not among the first candidates, as written or transposed, so
 the hunt looks for every other arrangement of the same turns (each about any axis, either way, after
 any of the 48 swaps and flips of the axes - 572 needles for AzmerianRanges, found by a binary search
 over their first floats) through 16 GB. One stood out: 37 copies, nearly all at offset 0x80 of a

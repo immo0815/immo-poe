@@ -84,6 +84,8 @@ public sealed class SceneLightPanel : IMovableSun
         "theta as the height above the ground, phi round from x; the vector is the way the light travels",
         "phi from straight up, theta round from x; the vector is the way the light travels",
         "phi as the height above the ground, theta round from x; the vector is the way the light travels",
+        "phi from straight down, theta round from x; the vector points at the sun",
+        "phi from straight down, theta round from x; the vector is the way the light travels",
     ];
 
     private static readonly string[] Ways = ["up", "up-right", "right", "down-right", "down", "down-left", "left", "up-left"];
@@ -697,8 +699,8 @@ public sealed class SceneLightPanel : IMovableSun
         {
             ImGui.AlignTextToFramePadding();
             ImGuiText.Wrapped(OverlayInk.Quiet, ImGuiText.Escape(_sunSaid));
-            OverlayLayout.Hint("The environment's sun as the game reads its angles: phi is its height above the ground, theta its bearing -"
-                + " found in the game's memory, where that one reading's vector was kept and no other's (SceneLight.GameSun).");
+            OverlayLayout.Hint("The environment's sun as the game reads its angles: phi is measured from straight down, so the sun stands phi - 90° high,"
+                + " and theta is its bearing - the light axis of the game's shadow box, found in its memory, and the shadows' way in its pictures (SceneLight.GameSun).");
             ImGui.SetCursorPosX(start);
         }
 

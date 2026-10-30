@@ -267,6 +267,31 @@ public class LaidRoomModelsTests
     }
 
     /// <summary>
+    /// The ground's scatter wears the master's TileMaterialOverrides as the tiles' own doodads do - The Red Vale's ferns and swords, strewn green
+    /// and clean where the master swaps them for its dry, rusted ones.
+    /// </summary>
+    [Fact]
+    public void THESTREWNScatterWearsTheMastersSwaps()
+    {
+        (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement: 3, selector: 0, lies: 3, flat: true);
+        const string master = "Metadata/Terrain/Test/master.tsi", stone = "Art/Models/Test/stone.fmt";
+        files[master] = Text("version 3\nMaterialsList\t\"materials.mtd\"\nTileMaterialOverrides\t\"swaps.tmo\"\n");
+        files["Metadata/Terrain/Test/materials.mtd"] = Text("version 5\n1 0 \"Art/soil.mat\" \"Metadata/Doodads/Clutter.dlp\"\n");
+        files["Metadata/Terrain/Test/swaps.tmo"] = Text("version 1\n\"Art/stone.mat\" \"Art/dry.mat\"\n");
+        files["Art/dry.mat"] = Encoding.UTF8.GetBytes("""{"version":4,"defaultgraph":{"version":3,"overriden_blend_mode":"AlphaTest"}}""");
+        files["Metadata/Doodads/Clutter.dlp"] = Text("version 3\n- RandomScale 1 1\n- AllowOnBlocking\n\"" + stone + "\" 3\n");
+        files[stone] = Packed.Fmt("Art/stone.mat");
+
+        MonsterModel room = LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, master: master);
+
+        Assert.True(room.Ready, room.Why);
+        Assert.Equal(3, room.ShapeSources.Count(one => one == stone));
+        string[] worn = [.. room.ShapeSources.Select((source, at) => (source, at)).Where(one => one.source == stone).Select(one => room.ShapeMaterials[one.at])];
+        Assert.All(worn, one => Assert.StartsWith("Art/dry.mat", one, StringComparison.OrdinalIgnoreCase));
+        Assert.Contains("1 of the doodad files of the tiles and the ground's scatter", room.Move, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// A room laid where nobody walks, in an area whose walkable grid was read, keeps a layer that is not AllowOnBlocking off it: the grid
     /// knows where anybody walks though the room's own tiles hold no walkable cell - its one walkable cell is the area's first, elsewhere.
     /// </summary>

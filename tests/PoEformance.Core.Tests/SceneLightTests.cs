@@ -368,6 +368,37 @@ public class SceneLightTests
         // Low in the sky towards +x, the light travels towards -x and down.
         Vector3 low = SceneLight.SunFrom(0f, 0.2f, SceneLight.SunReading.ElevationTheta);
         Assert.True(low.X < -0.9f && low.Z > 0f);
+
+        // PHI FROM STRAIGHT DOWN: nought is the sun under the ground, a half turn overhead.
+        AssertNear(-Vector3.UnitZ, SceneLight.SunFrom(0f, 0.7f, SceneLight.SunReading.PolarPhiDown));
+        AssertNear(Vector3.UnitZ, SceneLight.SunFrom(MathF.PI, 0.7f, SceneLight.SunReading.PolarPhiDown));
+    }
+
+    /// <summary>
+    /// The game's sun is the light axis of its shadow box as Necropolis's memory held it - the third plane pair, phi from straight down - and the axis the picture drew before is the box's up.
+    /// </summary>
+    [Fact]
+    public void THEGAMESSunIsTheShadowBoxsLightAxis()
+    {
+        // cap1's light-hunt: Necropolis.env's phi and theta, and the box's three plane normals as the game held them.
+        const float phi = 2.07694f, theta = 2.70526f;
+        var side = new Vector3(0.42262f, 0.90631f, 0f);
+        var up = new Vector3(-0.43939f, 0.20489f, 0.87462f);
+        var light = new Vector3(0.79268f, -0.36963f, 0.48481f);
+
+        Vector3 drawn = SceneLight.SunFrom(phi, theta, SceneLight.GameSun);
+        Assert.True(Vector3.Distance(light, drawn) < 2e-5f, drawn.ToString());
+        Assert.True(Vector3.Distance(up, SceneLight.SunFrom(phi, theta, SceneLight.SunReading.ElevationPhi)) < 2e-5f);
+        Assert.True(Vector3.Distance(light, Vector3.Cross(side, up)) < 2e-5f);
+
+        // THE SUN STANDS phi - 90 degrees high, and its twin reading is its negative.
+        Assert.Equal((phi * 180f / MathF.PI) - 90f, MathF.Asin(drawn.Z) * 180f / MathF.PI, 3);
+        AssertNear(-drawn, SceneLight.SunFrom(phi, theta, SceneLight.Twin(SceneLight.GameSun)));
+        foreach (SceneLight.SunReading reading in Enum.GetValues<SceneLight.SunReading>())
+        {
+            Assert.Equal(reading, SceneLight.Twin(SceneLight.Twin(reading)));
+            AssertNear(-SceneLight.SunFrom(phi, theta, reading), SceneLight.SunFrom(phi, theta, SceneLight.Twin(reading)));
+        }
     }
 
     /// <summary>

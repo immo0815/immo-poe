@@ -513,6 +513,30 @@ wherever the arithmetic is affine in the coordinates (a scroll, a tiling), CHOSE
 scrolls three times across (offline, light_raysc.mat of both Red Vale captures); what it still leaves out is IndirectLightMult at
 FogStage_Calc - a stage after the lighting, which the compile does not place.
 
+## The sun and the area's colours
+
+THE SUN THREW ITS SHADOWS THE WRONG WAY UNTIL v0.1.368 (said from the live client with three pictures of The Red Vale: shadows up-right
+where the game's fall down-left, everything too bright, the grass a juicy green the game's picture of the area has nowhere). `SceneLight.GameSun`
+was the shadow box's UP axis, found in Azmerian Ranges as the only one of the eight readings in memory and its sign settled by the ground. Necropolis's
+light hunt (cap1) had dumped all three of the box's plane pairs - eight corners, then each axis's plane and its negative, sixteen bytes apart (schema
+`SunShadowBox`) - and the light is the third: `-(sin phi cos theta, sin phi sin theta, cos phi)`, phi measured from straight down
+(`SunReading.PolarPhiDown`), so the sun stands phi - 90 high (The Red Vale 30, Port 35, Crimson Shores 38, Necropolis 29, Azmerian Ranges 44)
+where the up axis had stood it at 180 - phi and thrown the shadows the opposite way. MEASURED: the shadows' bearing in the game's pictures of four
+areas through each capture's own camera, Port's skeleton's shadow length, the sun's glints on the water; `THEGAMESSunIsTheShadowBoxsLightAxis` pins
+cap1's planes. Port looked right only in its BUILT stage, laid as written while the game's instances had laid the boss room turned 180 - its laid
+stage threw the shadows the other way too, unremarked. `LightHunt` looks for both readings now and takes only the light's pair, naming any other as the
+box's frame and saying the axes stand in a row (`THESHADOWBoxsTwoAxesAreToldApartAndTheLightIsTaken`).
+THE SCATTER WEARS THE MASTER'S SWAPS (v0.1.368, CHOSEN): The Red Vale's TileMaterialOverrides swap the ferns its JungleFoliageA_Redvale layer strews
+(JGD_JungleFoliage01c) for the dry RVL_JungleFoliage01c, and its swords' SkeletonSwords01c likewise - 2,470 of the 3,212 lines its v0.1.365 capture
+laid round the player wore a swapped material unswapped. The room's own lines stay as they are (DECIDED earlier from the live client) - The Red Vale's
+BRDgrass lines among them, BRD_MarshGrass02c, ten lines.
+STILL OPEN, from the same pictures: the shade measured 2.6 times the game's in The Red Vale (more sunlit ground under the old sun accounts for part -
+measure again on v0.1.368); a neutral or blue share the pane lacks in both maps; the ambient's occlusion (indirect_color.a) and the GI, neither drawn;
+and the tree crowns' square shadows - a lead, not a cause: the woods' templates carry canopy cards whose materials are shadow-only
+(JungleCanopyc and canopytestc on ForceAlphaTestWithShadowOnly.fxgraph, black_shadowonlyc on OpaqueShadowOnly), and a mode naming "shadowonly"
+casts whole triangles here, its texture unread. Probe a square shadow (the probe names the triangle that cast it, and the capture writes its
+material whole) and capture before any rule is changed.
+
 ## Verify against the game, not against yourself
 
 A check that a wrong value passes is worse than no check. Prefer tests the game itself can

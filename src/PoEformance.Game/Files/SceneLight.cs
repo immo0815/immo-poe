@@ -249,7 +249,23 @@ public sealed class SceneLight
 
         /// <summary>As <see cref="ElevationPhi"/>, the vector the way the light travels.</summary>
         ElevationPhiFalling,
+
+        /// <summary>Phi from straight down - the game's plus z - theta round it from x; the vector points at the sun.</summary>
+        /// <remarks>Appended, so the readings before it keep the numbers earlier captures name them by.</remarks>
+        PolarPhiDown,
+
+        /// <summary>As <see cref="PolarPhiDown"/>, the vector the way the light travels.</summary>
+        PolarPhiDownFalling,
     }
+
+    /// <summary>The reading whose vector is this one's negative - the same angles read the other way round.</summary>
+    public static SunReading Twin(SunReading reading) => reading switch
+    {
+        SunReading.PolarPhiDown => SunReading.PolarPhiDownFalling,
+        SunReading.PolarPhiDownFalling => SunReading.PolarPhiDown,
+        < SunReading.PolarThetaFalling => reading + 4,
+        _ => reading - 4,
+    };
 
     /// <summary>How vert_angle tips env_map_rotation - candidate readings; the turn by hor_angle is the game's own, see <see cref="CubeTurnFrom"/>.</summary>
     public enum CubeReading
@@ -518,23 +534,30 @@ public sealed class SceneLight
     public int ShadowSide { get; init; } = ShadowMap.Usual;
 
     /// <summary>
-    /// The reading the game uses: phi is the sun's height above the ground, theta its bearing round from x, and the vector they make points at the sun.
+    /// The reading the game uses: phi measured from straight down - the game's plus z - theta its bearing round from x, and the vector they make points at the sun.
     /// </summary>
     /// <remarks>
-    /// FOUND IN THE GAME'S MEMORY, not chosen (LightHunt, AzmerianRanges, phi 2.33874 theta 2.32128):
-    /// of the eight readings' vectors only this one's and its negative were there, nine copies each,
-    /// every copy of one with the other sixteen bytes on. The bytes round them say what they are: the
-    /// shadow cascades' boxes along the light, each face a plane - a normal and a distance - and the
-    /// opposite face its negative, beside the camera frustum's eight corners and its planes. That
-    /// settles the light's axis - which angle is the height and which the bearing - and the ground
-    /// settles its sign, which a box's two faces cannot: of the two, only this reading puts the sun
-    /// above the ground (its light travels plus z, the game's up being minus z), and the area is lit
-    /// by a sun. The other would light nothing but undersides.
+    /// THE LIGHT IS THE SHADOW BOX'S THIRD AXIS (v0.1.368, MEASURED). Necropolis's memory (cap1's
+    /// light-hunt, phi 2.07694 theta 2.70526) holds three pairs of planes sixteen bytes apart, each pair a
+    /// normal and its negative with a distance, and the eight corners they bound just before them: A =
+    /// (0.42262, 0.90631, 0), B = (-0.43939, 0.20489, 0.87462) and C = (0.79268, -0.36963, 0.48481), C = A x B.
+    /// C is <c>-(sin phi cos theta, sin phi sin theta, cos phi)</c> to five digits; B is its derivative by
+    /// phi and A is level - a light's look-at frame with up the world's. The game's pictures say which is
+    /// the light, every one C: the shadows' bearing in four areas through each capture's own camera (The
+    /// Red Vale's trunks at 239 degrees against C's 233 and B's 53, Port's skeleton at 293 against 289 and
+    /// 109, Crimson Shores' rocks, Necropolis's statue on the wall beside it), the length of Port's
+    /// skeleton's shadow (about 320 pixels, C 317 to 323, B 167), and the sun's glint on the water.
     ///
-    /// phi and theta nearly equal there, so the hunt's own words are what tell height from bearing:
-    /// the readings that swap them were not found, though they draw within a few degrees of this one.
+    /// SO THE SUN STANDS phi - 90 DEGREES HIGH: The Red Vale 30, Port 35, Crimson Shores 38, Necropolis 29,
+    /// Azmerian Ranges 44. Until v0.1.367 the picture drew B (<see cref="SunReading.ElevationPhi"/>), found
+    /// first in Azmerian Ranges and taken for the light because it was the only one of the eight readings
+    /// there - C was none of them - and its sign settled by the sun standing above the ground. B threw the
+    /// shadows the opposite way and stood the sun at 180 - phi: 60 degrees in The Red Vale, its shadows a
+    /// third of the game's length and its sunlight on flat ground 1.73 times the game's. It went unseen in
+    /// Port's built stage, which the game's instances laid turned 180 degrees, so the reversal cancelled -
+    /// though not in Port's laid stage, whose shadows fell the other way too.
     /// </remarks>
-    public const SunReading GameSun = SunReading.ElevationPhi;
+    public const SunReading GameSun = SunReading.PolarPhiDown;
 
     /// <summary>The way a sun with these angles shines, as the reading takes them - unit length, the way the light travels.</summary>
     public static Vector3 SunFrom(float phi, float theta, SunReading reading)
@@ -544,15 +567,16 @@ public sealed class SceneLight
         {
             SunReading.PolarTheta or SunReading.PolarThetaFalling => (phi, theta, true),
             SunReading.ElevationTheta or SunReading.ElevationThetaFalling => (phi, theta, false),
-            SunReading.PolarPhi or SunReading.PolarPhiFalling => (theta, phi, true),
+            SunReading.PolarPhi or SunReading.PolarPhiFalling or SunReading.PolarPhiDown or SunReading.PolarPhiDownFalling => (theta, phi, true),
             _ => (theta, phi, false),
         };
 
         float across = polar ? MathF.Sin(tilt) : MathF.Cos(tilt);
         float up = polar ? MathF.Cos(tilt) : MathF.Sin(tilt);
-        var pointing = new Vector3(across * MathF.Cos(round), across * MathF.Sin(round), -up);
+        bool fromDown = reading is SunReading.PolarPhiDown or SunReading.PolarPhiDownFalling;
+        var pointing = new Vector3(across * MathF.Cos(round), across * MathF.Sin(round), fromDown ? up : -up);
         bool falling = reading is SunReading.PolarThetaFalling or SunReading.ElevationThetaFalling
-            or SunReading.PolarPhiFalling or SunReading.ElevationPhiFalling;
+            or SunReading.PolarPhiFalling or SunReading.ElevationPhiFalling or SunReading.PolarPhiDownFalling;
 
         // POINTING AT THE SUN, the light travels the other way.
         Vector3 travels = falling ? pointing : -pointing;
