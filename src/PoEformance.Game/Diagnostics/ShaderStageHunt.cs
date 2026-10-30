@@ -22,15 +22,15 @@ namespace PoEformance.Game.Diagnostics;
 /// fixed.fxgraph writes VertexUV from the mesh's (VertexLocalUV) at VertexInit and the pixel side's UV from the vertex side's
 /// last (FromVertexUV) at PixelInit, and the trails link a vertex stage's input straight to a pixel stage's writer
 /// (InputVertexTrailPhase@VertexInit to TrailPhase@VertexToPixel) - but which vertex stage runs before which is in no file read:
-/// the links of 363 graphs mostly follow the names' order and in places run against it (face_camera.fxgraph reads at
+/// the links of the 335 graphs earlier captures hold mostly follow the names' order and in places run against it (face_camera.fxgraph reads at
 /// WorldTransform and writes at WorldTransform_Init). DECIDED from the live client: measure before compiling any of it.
 ///
 /// THE TABLE (the schema's "THE ORDER OF A MATERIAL'S SHADER STAGES IS A TABLE IN THE CLIENT", 2026-10-09): an array of MSVC
 /// std::string in the client's image, 0x20 an entry - sixteen bytes of text or a pointer to it, the size, the capacity (fifteen
 /// for a name kept inline, one less than a multiple of sixteen once on the heap) - of which ten entries were seen, UVSetup to
 /// PreLighting_Final; the vertex side's were not. So every eight-byte place of the image is read as one, the heap's names read,
-/// and runs of them 0x20 to 0x60 apart kept where they hold two stages the graphs name or more - each written whole, its entries
-/// no graph names among them. The two decoys the schema names, the literal pool and the graphs' own JSON, are no std::string.
+/// and runs of them 0x20 to 0x60 apart kept where they hold two stages the graphs name or more - up to 16 runs of 512 entries written,
+/// its entries no graph names among them, and the best taken as the table where it holds three, written whole on its own. The two decoys the schema names, the literal pool and the graphs' own JSON, are no std::string.
 ///
 /// THE LINKS: a node naming a stage fed, through nodes naming none, by one naming another; counted by graph, by stage pair - held
 /// against the table's order - and by the two ends' types, the ones from a vertex stage to a pixel stage apart, and every write
@@ -186,6 +186,14 @@ public static class ShaderStageHunt
         body.Add(imageSaid);
         Runs(runs, stages, body);
 
+        // THE ORDER EVERY SECTION BELOW READS, whole and apart from the runs' own lines (which stop at MostEntries): the best run, taken only
+        // where it holds FewestTableStages stages - what the replay reads back, so it cannot take a run the report did not.
+        body.Add(string.Empty);
+        body.Add(table is null
+            ? string.Create(CultureInfo.InvariantCulture, $"=== the table taken: none - no run holds {FewestTableStages} stages the graphs or the compile name")
+            : string.Create(CultureInfo.InvariantCulture, $"=== the table taken: run 1, {order.Count} entries, the order every section below reads"));
+        body.AddRange(order.Select((stage, at) => string.Create(CultureInfo.InvariantCulture, $"  table\t{at}\t{stage}")));
+
         body.Add(string.Empty);
         body.Add("=== this build's compile order (ShadeProgram.Stages) against the table");
         Compile(order, body);
@@ -262,7 +270,7 @@ public static class ShaderStageHunt
             .ThenBy(one => one.Path, StringComparer.OrdinalIgnoreCase)];
         int engine = ordered.Count(one => one.Path.StartsWith(EngineFolder, StringComparison.OrdinalIgnoreCase));
         return (ordered, string.Create(CultureInfo.InvariantCulture,
-            $"graphs: {ordered.Count} of the walk's {paths.Length} read ({engine} of them the engine's own, under {EngineFolder}), {missing} not in the install, {unread} not a graph{(running.Stopping ? ", stopped before the rest" : string.Empty)}; {clock.Elapsed.TotalSeconds:0.0} s"));
+            $"graphs: {ordered.Count} of the walk's {paths.Length} read ({engine} of them the engine's own, under {EngineFolder}), {missing} not in the install, {unread} with no node and no link (a graph that only sets a blend mode or a draw order, or no graph at all){(running.Stopping ? ", stopped before the rest" : string.Empty)}; {clock.Elapsed.TotalSeconds:0.0} s"));
     }
 
     /// <summary>One graph's stages, its links across stages and its writes of the coordinates; null for a file that is no graph.</summary>
@@ -708,9 +716,10 @@ public static class ShaderStageHunt
             $"stage pairs: {pairs.Count} - {forwards} forwards, {backwards} backwards, {unplaced} with a stage the table does not hold"));
 
         body.Add(string.Empty);
-        body.Add(order.Count > 0
-            ? $"=== from a vertex stage to a pixel stage: the vertex side the table's stages before {FirstPixelStage} - by the ends' types, the most graphs first"
-            : "=== from a vertex stage to a pixel stage: the vertex side by name, the table not found (" + string.Join(", ", VertexFamilies) + "...) - by the ends' types, the most graphs first");
+        string side = IndexIn(order, FirstPixelStage) >= 0
+            ? $"the vertex side the table's stages before {FirstPixelStage}, a stage it does not hold by name"
+            : $"the vertex side by name, {(order.Count > 0 ? $"the table holding no {FirstPixelStage}" : "the table not found")} ({string.Join(", ", VertexFamilies)}...)";
+        body.Add($"=== from a vertex stage to a pixel stage: {side} - by the ends' types, the most graphs first");
         var written = 0;
         foreach (((string source, string from, string target, string to), (int graphs, List<string> examples)) in crossings
                      .OrderByDescending(one => one.Value.Graphs).ThenBy(one => one.Key.Source, StringComparer.Ordinal)
@@ -829,8 +838,8 @@ public static class ShaderStageHunt
     }
 
     /// <summary>
-    /// A report read back - shader-stages-replay.txt: the first run's entries as the table, every stage pair held against it again, and
-    /// this build's compile order against it.
+    /// A report read back - shader-stages-replay.txt: the table the report took (its <c>table</c> lines - none where it took none), every
+    /// stage pair held against it again, and this build's compile order against it.
     /// </summary>
     public static string Replay(string text)
     {
@@ -840,9 +849,9 @@ public static class ShaderStageHunt
         foreach (string raw in text.Split('\n'))
         {
             string[] parts = raw.TrimEnd('\r').Split('\t');
-            if (parts.Length >= 5 && parts[0] == "  entry" && parts[1] == "1")
+            if (parts.Length >= 3 && parts[0] == "  table")
             {
-                order.Add(parts[4]);
+                order.Add(parts[2]);
             }
             else if (parts.Length >= 4 && parts[0] == "  pair")
             {
@@ -857,9 +866,11 @@ public static class ShaderStageHunt
 
         var said = new List<string>
         {
-            string.Create(CultureInfo.InvariantCulture, $"shader stages replay: a table of {order.Count} entries, {pairs.Count} stage pairs"),
+            order.Count > 0
+                ? string.Create(CultureInfo.InvariantCulture, $"shader stages replay: a table of {order.Count} entries, {pairs.Count} stage pairs")
+                : string.Create(CultureInfo.InvariantCulture, $"shader stages replay: no table taken, {pairs.Count} stage pairs"),
             string.Empty,
-            "=== the table (run 1)",
+            "=== the table the report took",
         };
         said.AddRange(order.Select((stage, at) => string.Create(CultureInfo.InvariantCulture, $"  {at}\t{stage}")));
         said.Add(string.Empty);

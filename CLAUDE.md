@@ -490,14 +490,15 @@ WHAT THE ENGINE'S GRAPHS SAY (render-debug's engine graphs, read offline): fixed
 coordinates (VertexLocalUV) at VertexInit and the pixel side's UV from the vertex side's last (FromVertexUV) at PixelInit; the trails link a
 vertex stage's input straight to a pixel stage's writer (InputVertexTrailPhase@VertexInit to TrailPhase@VertexToPixel) - a value crossing
 the two shaders is the engine's own means, so AddMaskMuddleTex's mask reads the mesh's coordinates unscrolled. What is NOT known is the
-vertex stages' order: the links of 335 graphs mostly follow the names and in places run against them (face_camera.fxgraph reads at
+vertex stages' order: the links of the 335 graphs earlier captures hold mostly follow the names and in places run against them (face_camera.fxgraph reads at
 WorldTransform and writes at WorldTransform_Init). DECIDED from the live client: measure before any of it is compiled. `shader-stages.txt`
 (`ShaderStageHunt`, the Memory group, run at the press) reads the client's stage table - an array of MSVC std::string in its image, of
 which only the pixel side's ten entries were ever seen (the schema's 2026-10-09 find) - by reading every eight-byte place of the image as
-one and its heap names, and writes every run of them 0x20 to 0x60 apart holding stage names whole, the compile's order held against it;
+one and its heap names, and writes the runs of them 0x20 to 0x60 apart holding stage names (up to 16 runs of 512 entries), the best taken
+as the table where it holds three - written whole on its own, the order every later section reads - and the compile's order held against it;
 then every link of the install's graphs across stages by stage pair (forwards or backwards in the table), those from a vertex stage to a
 pixel stage by their ends' types, and every write of the coordinates with what feeds it. `shader-stages-replay.txt` holds the report's pairs
-and this build's compile order against its table again. Press it once anywhere before the vertex stages are compiled.
+and this build's compile order against the table it took again (v0.1.366, from a review: it read run 1 even where the report took none). Press it once anywhere before the vertex stages are compiled.
 
 ## Verify against the game, not against yourself
 
