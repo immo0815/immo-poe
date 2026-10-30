@@ -298,7 +298,8 @@ public static class RoomModels
         DoodadSieve? sieve = null,
         IReadOnlyList<(RoomDoodad One, Matrix4x4 Place)>? also = null,
         IReadOnlyDictionary<string, string>? swaps = null,
-        IReadOnlyList<(RoomDoodad One, Matrix4x4 Place)>? others = null)
+        IReadOnlyList<(RoomDoodad One, Matrix4x4 Place)>? others = null,
+        IReadOnlyList<(RoomDoodad One, Matrix4x4 Place)>? strewn = null)
     {
         // ONE TALLY PER FILE, which also holds its model once loaded: a room places the same tree dozens of times.
         var files = new Dictionary<string, Tally>(StringComparer.OrdinalIgnoreCase);
@@ -416,6 +417,12 @@ public static class RoomModels
             }
 
             Take(one, place, -1, swaps is { Count: > 0 });
+        }
+
+        // THE GROUND'S OWN SCATTER LAST (GroundScatter): where the doodads slider runs out, the grass goes before any line a file names.
+        foreach ((RoomDoodad one, Matrix4x4 place) in strewn ?? [])
+        {
+            Take(one, place, -1);
         }
 
         // EVERY FILE THAT WILL BE LAID, ON EVERY CORE, before any is laid: one model per file, through the shared cache (Paints), so

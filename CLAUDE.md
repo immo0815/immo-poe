@@ -449,6 +449,26 @@ so the tool will strew them ITSELF too (DECIDED from the live client: a scene bu
 writes every layer and list the area's masters name, read and whole, each layer's meshes with their size, and how much of the area each
 ground type covers, the files themselves beside it (`ground-scatter/`); `ground-scatter-replay.txt` reads them again offline. Read it
 before the scatter is given a rule. Then the water's colour: the game's river is brown, the tool's red.
+THE SCATTER IS STREWN (v0.1.362, `GroundScatter`, every laid, built and block stage, as each piece's ground is painted). Its first capture
+(v0.1.360, The Red Vale) MEASURED: a layer's points lie on a grid of thirty-seconds of the unit square, no two of its meshes in one cell - one
+pattern dealt out among them (RVL_SwordScatter01 49 of 49, RVL_SwordScatter02 588 of 588; JungleFoliageA_Redvale's off the grid); in
+RVL_SwordScatter01 every mesh carries round(4 x its number) points, all nine; the numbers are ninths, RVL_SwordScatter02's capped at 10 for
+nine meshes of 39 to 94 points; the ground textures carry no painted weapon where the points lie; and none of it is an entity - the list's
+rusted weapons are a handful among 1,243 entities, each a room's own line. DECIDED from the live client (2026-10-30), each said under the
+picture: the number is a mesh's count a tile and the points a pattern over two tiles by two (`GroundScatter.Pattern`, 500 units - the ground
+colour's repeat too), laid in the area's own coordinates; a mesh without points strewn its number a tile at random; every layer of a group at
+its material's share of the group's weights (the painted ground staying its heaviest) and its ground's share of the sub-tile's corners,
+bilinear; the doodad list one a tile (CHOSEN, it names no density), from the group named as the ground's group, else "Default"; a layer not
+AllowOnBlocking kept off ground nobody walks where the area's walkable grid is known (a built room's is not). CHOSEN: the seed, a turn within
+MaxRotation either way, a size between RandomScale's two shrunk towards MinEdgeScale where the ground gives way, upright on the ground's top.
+NOT DRAWN: waving, AudioType, a layer's own Seed, a group's extra choices. The strewn lines go to `RoomModels.Lay` last (`strewn`), so the
+doodads slider drops them first. THE WATER BESIDE IT (v0.1.360's capture, the Monster Book at the game's view, its probe on the river by the
+bridge): the medium as the engine's pass makes it - 0.0204, 0.0001, 0.0000 - 66 units of water to the rock behind, a tenth let through; the
+game's river there red with its bed showing in the shallows, sRGB (35, 14, 14) at the median with green equal to blue (a neutral share over a
+red medium), the pane's (52, 12, 12), the pane's land twice the game's brightness - so the pane's light is not the game's, and the colours
+are not yet compared on equal terms. The engine raises open_water_color to 2.2 itself (GetWaterMediumColor), as the tool does; the
+river's curvature (its height times 5e-5) barely moves the hue; water_height_offset moves only the beach, crashing and flood waves and the
+spray, and river areas without one abound - so neither is the cause.
 
 ## Verify against the game, not against yourself
 
