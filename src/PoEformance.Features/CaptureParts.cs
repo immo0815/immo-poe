@@ -199,6 +199,9 @@ public static class CaptureParts
     /// <summary>The engine's own debug views: its graphs whole, what the compile makes of them, their sources and the program's table of them.</summary>
     public const string RenderDebug = "render-debug";
 
+    /// <summary>What the install holds of the clouds, the screen-space fog and shadow, the roof sections and the player's light - see CaptureLightExtras.</summary>
+    public const string LightExtras = "light-extras";
+
     /// <summary>The terrain and what it points to searched at the press for the grid the engine's ocean markup is made from.</summary>
     public const string OceanMarkup = "ocean-markup";
 
@@ -488,6 +491,16 @@ public static class CaptureParts
             + "every graph they name; what the compile makes of each, node type by node type, and the node types it does not know "
             + "yet; the textures they name with their headers; the debug pass's shader sources whole, and those naming an unknown "
             + "node; and every string of the game's program round its table of the views, at its address."),
+
+        new(LightExtras, "Area files", "the light beyond the sun", CaptureReport.LightExtrasFile,
+            "What the install holds of the game's light the tool does not draw yet - the clouds' shadows, the screen-space fog, the sun's "
+            + "screen-space shadow, the roof sections it hides round the player and the player's own light: every environment's clouds, "
+            + "screenspace_fog and player_light sections key by key, how many files set each key and each file's values, the area's own "
+            + "first; every shader source naming them whole, the most words first; every graph naming the fog's, the clouds', the roof "
+            + "fade's or the see-through fade's nodes, or whose path names cloud, fog or roof, whole; the game's program's strings naming "
+            + "them; the textures those name with their headers, the first decoded as pictures beside it; and the materials the model "
+            + "panes' models wear whose .mat says \"roofsection\": true, with the shapes and triangles wearing each. Each section bounded, "
+            + "saying what it cut. What the four are built from next, out of the engine's own code."),
 
         new(StageSweep, "Area files", "stage sweep (hours)", CaptureReport.StageSweepFile,
             "Every room of every room set in the install, each under every master naming its set, built as the Monster Book builds a "

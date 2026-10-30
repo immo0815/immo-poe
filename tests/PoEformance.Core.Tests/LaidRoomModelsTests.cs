@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Text;
 using PoEformance.Features;
+using PoEformance.Game.Entities;
 using PoEformance.Game.Files;
 using PoEformance.Game.World;
 
@@ -288,8 +289,106 @@ public class LaidRoomModelsTests
         Assert.Equal(3, room.ShapeSources.Count(one => one == stone));
         string[] worn = [.. room.ShapeSources.Select((source, at) => (source, at)).Where(one => one.source == stone).Select(one => room.ShapeMaterials[one.at])];
         Assert.All(worn, one => Assert.StartsWith("Art/dry.mat", one, StringComparison.OrdinalIgnoreCase));
-        Assert.Contains("1 of the doodad files of the tiles and the ground's scatter", room.Move, StringComparison.Ordinal);
+        Assert.Contains("1 of the doodad files - the swaps reach the tiles, their own doodads, the room's own lines, other rooms' lines and the ground's scatter", room.Move, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// A room's own doodad lines wear the master's TileMaterialOverrides as its tiles' doodads and its scatter do - laid alone, and laid round
+    /// you as the lines of a room the area placed (DECIDED from the live client, 2026-10-30: until then a room's own lines kept their own).
+    /// </summary>
+    [Fact]
+    public void AROOMSOwnDoodadLinesWearTheMastersSwaps()
+    {
+        (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement: 3, selector: 0, lies: 3, flat: true);
+        const string master = "Metadata/Terrain/Test/master.tsi", pot = "Art/Models/Test/pot.fmt";
+        files[master] = Text("version 3\nTileMaterialOverrides\t\"swaps.tmo\"\n");
+        files["Metadata/Terrain/Test/swaps.tmo"] = Text("version 1\n\"Art/stone.mat\" \"Art/dry.mat\"\n");
+        files["Art/dry.mat"] = Encoding.UTF8.GetBytes("""{"version":4,"defaultgraph":{"version":3,"overriden_blend_mode":"AlphaTest"}}""");
+        files[pot] = Packed.Fmt("Art/stone.mat");
+        files[RoomPath] = Text(WithDoodads("""
+            11 11 0 0 0 0 0 1 0 0 1 -115 1 "Art/Models/Test/pot.fmt" "Metadata/Test/Pot" 0
+            """));
+
+        MonsterModel room = LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, master: master);
+        Assert.True(room.Ready, room.Why);
+        Assert.Equal(["Art/dry.mat"], Worn(room, pot));
+        Assert.Contains("TileMaterialOverrides (1 swaps) put on 0 of the 1 tile files and 1 of the doodad files", room.Move, StringComparison.Ordinal);
+        Assert.Equal(1, room.Account!.SwappedDoodadFiles);
+
+        // AND ROUND YOU, the room the area placed reaching the block: its own lines are another room's there, and wear the swaps too.
+        MonsterModel around = LaidRoomModels.Block(files.GetValueOrDefault, grid, 0, 0, 3, master, shaded: false, rooms: [(RoomPath, 1, 1, 0)]);
+        Assert.True(around.Ready, around.Why);
+        Assert.Equal(["Art/dry.mat"], Worn(around, pot));
+    }
+
+    /// <summary>
+    /// The area round you, taken where the player stood, stands its monster there - in the picture's frame, the world less the block's corner -
+    /// on the floor asked at that place; taken again where he stands elsewhere in it, the block's tiles are not laid again; a key naming no
+    /// place stands him at the middle as before.
+    /// </summary>
+    /// <remarks>
+    /// THE KEY AS THE MONSTER BOOK TAKES IT, its place a word of its own (AreaBlock.Stood): from tile 1, 0 the picture's origin lies 250 along x
+    /// from the area's, so the one laid tile spans 0 to 250 across and 250 to 500 down, and the player's 300, 420 is the picture's 50, 420 -
+    /// the tile's own 50, 170, whose ground there is the plane's. Said from the live client in The Red Vale: at the block's middle the monster
+    /// stood some 75 units off the player.
+    /// </remarks>
+    [Fact]
+    public void THEAREARoundYouStandsItsMonsterWhereThePlayerStood()
+    {
+        (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement: 3, selector: 0, lies: 3);
+        files[MeshPath] = Tgm(10, facingUp: true);
+        const string stone = "Art/Models/Test/stone.fmt";
+        files[stone] = Packed.Fmt("Art/stone.mat");
+        var monster = new MonsterVariety(Name: "stone", AoFiles: [stone]);
+        var tileReads = 0;
+        byte[]? Read(string path)
+        {
+            if (string.Equals(path, TilePath, StringComparison.OrdinalIgnoreCase))
+            {
+                Interlocked.Increment(ref tileReads);
+            }
+
+            return files.GetValueOrDefault(path);
+        }
+
+        AreaBlock block = AreaBlock.Around(2, 1, 3, grid, []);
+        Assert.Equal((1, 0), (block.X, block.Y));
+        var keep = new StageKeep();
+        MonsterModel staged = StagedModels.Of(Read, monster, block.ToString() + "+stood=300,420", terrain: () => grid, keep: keep);
+
+        Assert.True(staged.Staged, staged.StageSaid);
+        Assert.Equal(new Vector2(250f, 0f), staged.AreaOrigin);
+        Assert.Contains("the monster stands where the player stood when the block was taken", staged.StageSaid, StringComparison.Ordinal);
+        StageStanding standing = Assert.IsType<StageStanding>(staged.Standing);
+        Assert.Equal(new Vector2(50f, 420f), standing.At);
+        Assert.Equal(0f, standing.Turn);
+
+        // ON THE FLOOR THERE: asked first at the place itself, which found the ground's height at the tile's 50, 170, and his origin set on it.
+        Assert.True(standing.Found);
+        Assert.Equal(0f, standing.Floors[0].Off.Length());
+        Assert.Equal(Plane(50f, 170f), standing.Floors[0].Height, 3);
+        Assert.Equal(new Vector3(50f, 420f, standing.Floor), staged.ActorPlace.Translation);
+        int laid = tileReads;
+        Assert.True(laid > 0);
+
+        // TAKEN AGAIN WHERE HE STANDS ELSEWHERE IN THE BLOCK: the monster moves, and the block is the one kept - no tile is read again.
+        MonsterModel moved = StagedModels.Of(Read, monster, block.ToString() + "+stood=400,300", terrain: () => grid, keep: keep);
+        Assert.Equal(new Vector2(150f, 300f), moved.Standing!.At);
+        Assert.Equal(laid, tileReads);
+
+        // A KEY NAMING NO PLACE - offered, or from before the place rode in it - stands him at the middle of the stage's box, as before.
+        MonsterModel middle = StagedModels.Of(Read, monster, block.ToString(), terrain: () => grid, keep: keep);
+        Assert.Contains("the monster stands at its middle", middle.StageSaid, StringComparison.Ordinal);
+        Assert.Equal(laid, tileReads);
+        MonsterModel stage = block.Build(files.GetValueOrDefault, () => grid);
+        Vector3 box = (stage.Mesh.Least + stage.Mesh.Most) * 0.5f;
+        Assert.Equal(new Vector2(box.X, box.Y), middle.Standing!.At);
+        Assert.NotEqual(standing.At, middle.Standing.At);
+    }
+
+    /// <summary>The materials the shapes a doodad file laid wear, by its path as the room names it.</summary>
+    private static string[] Worn(MonsterModel room, string ao)
+        => [.. room.ShapeSources.Select((source, at) => (source, at)).Where(one => one.source == ao).Select(one => room.ShapeMaterials[one.at])];
 
     /// <summary>
     /// A room laid where nobody walks, in an area whose walkable grid was read, keeps a layer that is not AllowOnBlocking off it: the grid
@@ -956,7 +1055,8 @@ public class LaidRoomModelsTests
     }
 
     /// <summary>A sub-tile of no props and a ground of n by n quads over the tile, on the plane - <paramref name="sunk"/> further down.</summary>
-    private static byte[] Tgm(int n, float sunk = 0f)
+    /// <param name="facingUp">Whether the ground's normals face up, minus z as the game's do - a floor a stage stands its monster on (StagedModels.Floor) - rather than plus z.</param>
+    private static byte[] Tgm(int n, float sunk = 0f, bool facingUp = false)
     {
         using var stream = new MemoryStream();
         using var write = new BinaryWriter(stream);
@@ -1013,7 +1113,7 @@ public class LaidRoomModelsTests
                     write.Write(x);
                     write.Write(y);
                     write.Write(Plane(x, y) + sunk);
-                    write.Write(new byte[] { 0, 0, 127, 0, 127, 0, 0, 0 });
+                    write.Write(new byte[] { 0, 0, facingUp ? (byte)0x81 : (byte)127, 0, 127, 0, 0, 0 });
                     write.Write(BitConverter.HalfToUInt16Bits((Half)0.5f));
                     write.Write(BitConverter.HalfToUInt16Bits((Half)0.5f));
                 }

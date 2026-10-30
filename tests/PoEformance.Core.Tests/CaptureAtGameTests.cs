@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Numerics;
+using System.Text;
 using System.Text.RegularExpressions;
 using PoEformance.Features;
 using PoEformance.Game.Files;
@@ -32,14 +33,14 @@ public class CaptureAtGameTests
 
         byte[] game = Game(own, 0.5f);
         CaptureAtGame scene = CaptureAtGame.Draw(pane, shot, game, Width, Height, null, out _)!;
-        string report = CaptureLightCompare.Write(scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers);
+        string report = CaptureLightCompare.Write(null, scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers);
 
         string head = report[..report.IndexOf('\n')];
         Assert.Matches(@"median 0\.(4[89]|5[01])\d*; in the pane's sun 0\.(4[89]|5[01])\d* \(", head);
         Assert.Contains("lined up: the edges' correlation at no shift", report, StringComparison.Ordinal);
         Assert.Contains("best", report, StringComparison.Ordinal);
         Assert.Matches(@"all\s+s 0\.(4[89]|5[01])", report);
-        Assert.Equal(3, pictures.Count);
+        Assert.Equal(4, pictures.Count);
 
         string folder = Directory.CreateTempSubdirectory("light-against-game").FullName;
         try
@@ -114,7 +115,7 @@ public class CaptureAtGameTests
         WorldSnapshot away = Shot(target: new Vector3(40000f, 9000f, 0f));
         CaptureAtGame empty = CaptureAtGame.Draw(pane, away, Game(Blank(), 1f), Width, Height, null, out _)!;
         Assert.DoesNotContain(empty.Picture.Where((_, at) => at % 4 == 3), alpha => alpha != 0);
-        string report = CaptureLightCompare.Write(empty, out _, out _);
+        string report = CaptureLightCompare.Write(null, empty, out _, out _);
         Assert.Contains("lined up: not measured", report, StringComparison.Ordinal);
         Assert.DoesNotContain("placing agree", report, StringComparison.Ordinal);
 
@@ -122,7 +123,7 @@ public class CaptureAtGameTests
         WorldSnapshot shot = Shot();
         CaptureAtGame own = CaptureAtGame.Draw(sunless, shot, null, Width, Height, null, out _)!;
         CaptureAtGame scene = CaptureAtGame.Draw(sunless, shot, Game(own, 1f), Width, Height, null, out _)!;
-        string lit = CaptureLightCompare.Write(scene, out _, out _);
+        string lit = CaptureLightCompare.Write(null, scene, out _, out _);
         Assert.Matches(@"the pane's sun reaches none of them, in its shade [\d.]+ \([1-9]", lit[..lit.IndexOf('\n')]);
         Assert.Contains("the pane's sun reaches none of the compared pixels", lit, StringComparison.Ordinal);
     }
@@ -167,7 +168,7 @@ public class CaptureAtGameTests
         CaptureAtGame scene = CaptureAtGame.Draw(pane, shot, Game(own, 1f), Width, Height, null, out _)!;
         Assert.Contains(scene.Clipped, one => one);
 
-        string report = CaptureLightCompare.Write(scene, out _, out byte[] numbers);
+        string report = CaptureLightCompare.Write(null, scene, out _, out byte[] numbers);
         string head = report[..report.IndexOf('\n')];
         // WITHIN THE BYTES' ROUNDING of the dark shade left over - taken as exact, the clipped sun would put the median near 0.4.
         Assert.True(Regex.IsMatch(head, @"median (0\.9[5-9]\d*|1(\.0[0-5]\d*)?);"), report);
@@ -209,6 +210,127 @@ public class CaptureAtGameTests
             "the stage: the tile book's", CaptureShadowCasters.Write(null, stage, null, null, out _, out _), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A shape whose .mat says "roofsection" - the game hides it round the player and shows what stands behind - is left out of every
+    /// statistic: the pixels compared and the roof's add up to those compared without the install's word, the head says how many it left
+    /// out, the game equal to the pane everywhere else reads as equal, and its own section sets it out by the distance to the player, the
+    /// ratio picture marks it - and the replay keeps it out from the numbers alone.
+    /// </summary>
+    [Fact]
+    public void AROOFSectionIsLeftOutOfEveryStatisticAndSetOutByTheDistanceToThePlayer()
+    {
+        CapturePane pane = Stage(MaterialBlend.Opaque);
+        WorldSnapshot shot = Shot(player: new Vector3(5000f, 9000f, 0f));
+        CaptureAtGame own = CaptureAtGame.Draw(pane, shot, null, Width, Height, null, out _)!;
+        int rock = pane.Model.ShapeMaterials.ToList().IndexOf("Art/rock.mat");
+        Assert.True(rock >= 0);
+
+        // THE GAME: the pane's own picture, the rock a quarter as bright - what the game shows behind a roof it hides.
+        CaptureAtGame scene = CaptureAtGame.Draw(pane, shot, Exact(own, at => ShapeAt(own, at) == rock ? 0.25f : 1f), Width, Height, null, out _)!;
+        string plain = CaptureLightCompare.Write(null, scene, out _, out _);
+        string report = CaptureLightCompare.Write(RoofRock, scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers);
+
+        string head = report[..report.IndexOf('\n')];
+        int compared = Count(Regex.Match(head, @": ([\d,]+) pixels compared").Groups[1].Value);
+        int roofs = Count(Regex.Match(report, @"([\d,]+) roof sections the game hides round the player").Groups[1].Value);
+        Assert.True(roofs > 50, report);
+        Assert.Equal(Count(Regex.Match(plain, @": ([\d,]+) pixels compared").Groups[1].Value), compared + roofs);
+        Assert.Contains(", 0 roof sections the game hides round the player", plain, StringComparison.Ordinal);
+        Assert.True(Regex.IsMatch(head, @"median (0\.9[5-9]\d*|1(\.0[0-5]\d*)?);"), report);
+        Assert.Matches(@"roof sections: 1 of the \d+ materials the compared pixels wear say ""roofsection""", report);
+        Assert.Matches(@"\n  roof: rock: [\d,]+ pixels, ratio 0\.2[3-7]", report);
+        Assert.Matches(@"\n\s+250-500\s+units:\s+[\d,]+ pixels, ratio 0\.2[3-7]", report);
+
+        GamePicture ratio = pictures.Single(one => one.File == CaptureLightCompare.RatioPicture).Picture;
+        Assert.Contains(Enumerable.Range(0, ratio.Width * ratio.Height), at => ratio.Rgba[at * 4] == 255 && ratio.Rgba[(at * 4) + 1] == 0 && ratio.Rgba[(at * 4) + 2] == 255);
+
+        string folder = Directory.CreateTempSubdirectory("light-against-game-roof").FullName;
+        try
+        {
+            File.WriteAllBytes(Path.Combine(folder, CaptureLightCompare.Numbers), numbers);
+            string replay = CaptureLightCompare.Replay(folder);
+            Assert.Equal(compared, Count(Regex.Match(replay, @": ([\d,]+) pixels compared").Groups[1].Value));
+            Assert.Equal(roofs, Count(Regex.Match(replay, @"([\d,]+) roof sections the game hides round the player").Groups[1].Value));
+            Assert.Matches(@"\n  roof: rock: [\d,]+ pixels, ratio 0\.2[3-7]", replay);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// A game picture darker than the pane's on the lit ground alone - its sun weaker, its shade the pane's - comes out block by block: the
+    /// lit blocks' game over pane the darkening, the shaded blocks' one, the game's contrast between them the pane's times the darkening -
+    /// and the blocks' picture shows the lit ones darker; the replay sets them out alike.
+    /// </summary>
+    [Fact]
+    public void THEGROUNDBlockByBlockSaysHowMuchTheGameDarkensTheSunOverTheGroundThePaneLights()
+    {
+        CapturePane pane = Stage(MaterialBlend.ShadowOnly, floorHalf: 1500f, slabHalf: 450f, slabHeight: 300f);
+        WorldSnapshot shot = Shot();
+        CaptureAtGame own = CaptureAtGame.Draw(pane, shot, null, Width, Height, null, out _)!;
+        CaptureAtGame scene = CaptureAtGame.Draw(pane, shot, Exact(own, at => ShapeAt(own, at) == 0 && Lit(own, at) ? 0.3f : 1f), Width, Height, null, out _)!;
+        string report = CaptureLightCompare.Write(null, scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers);
+
+        static void Rows(string text)
+        {
+            Match lit = Regex.Match(text, @"\n  0\.7-1\s+([\d,]+)\s+([\d.]+)\s+([\d.]+)\.\.([\d.]+)\s+([\d.]+)\s+([\d.]+)\r?\n");
+            Match shaded = Regex.Match(text, @"\n  0-0\.1\s+([\d,]+)\s+([\d.]+)\s+([\d.]+)\.\.([\d.]+)\s+([\d.]+)\s+([\d.]+)\r?\n");
+            Assert.True(lit.Success && shaded.Success, text);
+            Assert.True(Count(lit.Groups[1].Value) > 0 && Count(shaded.Groups[1].Value) > 0, text);
+            Assert.InRange(Number(lit.Groups[6].Value), 0.27, 0.33);
+            Assert.InRange(Number(shaded.Groups[6].Value), 0.95, 1.05);
+            Match contrast = Regex.Match(
+                text, @"over its shaded ones' \(under 0\.1, [\d,]+\) ([\d.]+) to 1, the game's over the same blocks ([\d.]+) to 1 - the game keeps ([\d.]+) of the pane's");
+            Assert.True(contrast.Success, text);
+            Assert.True(Number(contrast.Groups[1].Value) > 10d, text);
+            Assert.InRange(Number(contrast.Groups[3].Value), 0.27, 0.33);
+        }
+
+        Rows(report);
+        Assert.Matches(@"\n  column  row  pixels  sun share  game light  pane light  game over pane\r?\n\s+\d+\s+\d+\s+[\d,]+\s", report);
+
+        GamePicture blocks = pictures.Single(one => one.File == CaptureLightCompare.BlocksPicture).Picture;
+        Assert.Contains(Enumerable.Range(0, blocks.Width * blocks.Height), at => blocks.Rgba[(at * 4) + 2] == 255 && blocks.Rgba[at * 4] < 80);
+
+        string folder = Directory.CreateTempSubdirectory("light-against-game-blocks").FullName;
+        try
+        {
+            File.WriteAllBytes(Path.Combine(folder, CaptureLightCompare.Numbers), numbers);
+            Rows(CaptureLightCompare.Replay(folder));
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// A game whose lamp is twice the pane's - a second light the same as the lamp, where the player stands - asks a gain of two of the
+    /// lamp at every distance in the pane's shade the lamp reaches, and the lamp's share of the pane's light falls with the distance.
+    /// </summary>
+    [Fact]
+    public void THEPLAYERSLampsGainTheGameAsksIsRecoveredInThePanesShade()
+    {
+        var at = new Vector3(0f, 0f, -100f);
+        var lamp = new SceneLight.PlayerLamp(at, new Vector3(0.6f), 300f);
+        CapturePane pane = Stage(MaterialBlend.ShadowOnly, floorHalf: 1500f, slabHalf: 450f, slabHeight: 300f, lamp: lamp);
+        CapturePane twice = Stage(
+            MaterialBlend.ShadowOnly, floorHalf: 1500f, slabHalf: 450f, slabHeight: 300f, lamp: lamp, lights: [new PointLight(at, lamp.Colour, lamp.Radius, 0f, "the lamp again")]);
+        WorldSnapshot shot = Shot(player: new Vector3(5000f, 9000f, 0f));
+        CaptureAtGame brighter = CaptureAtGame.Draw(twice, shot, null, Width, Height, null, out _)!;
+        CaptureAtGame scene = CaptureAtGame.Draw(pane, shot, Exact(brighter, _ => 1f), Width, Height, null, out _)!;
+        string report = CaptureLightCompare.Write(null, scene, out _, out _);
+
+        MatchCollection rows = Regex.Matches(report, @"\n\s+\d+-\d+\s+units:\s+[\d,]+ pixels in shade, the lamp's share ([\d.]+); the gain asked ([\d.]+) \(");
+        List<(double Share, double Gain)> asked = [.. rows.Select(row => (Number(row.Groups[1].Value), Number(row.Groups[2].Value)))];
+        Assert.True(asked.Count(row => row.Share > 0.3) >= 2, report);
+        Assert.All(asked, row => Assert.InRange(row.Gain, 1.9, 2.1));
+        Assert.True(asked.Zip(asked.Skip(1)).All(pair => pair.Second.Share < pair.First.Share), report);
+        Assert.InRange(Number(Regex.Match(report, @"all within 1,200 units: the gain asked ([\d.]+)").Groups[1].Value), 1.95, 2.05);
+    }
+
     private static int Count(string number) => int.Parse(number, NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
 
     /// <summary>The stage's shapes as a lone monster's - lit, and none of them ground.</summary>
@@ -227,14 +349,16 @@ public class CaptureAtGameTests
 
     /// <summary>
     /// A floor laid in the area under a slab of the blend asked and a solid rock beside it, lit by a sun from the side - with no sun, the
-    /// floor in two shapes of one material, or a block under the slab, where asked.
+    /// floor in two shapes of one material, a block under the slab, a wider floor or slab, a player's lamp or room lights, where asked.
     /// </summary>
-    private static CapturePane Stage(MaterialBlend slab, bool sunless = false, bool splitFloor = false, bool blockUnder = false, float sun = 2f)
+    private static CapturePane Stage(
+        MaterialBlend slab, bool sunless = false, bool splitFloor = false, bool blockUnder = false, float sun = 2f, float floorHalf = 600f,
+        float slabHalf = 120f, float slabHeight = 150f, SceneLight.PlayerLamp? lamp = null, IReadOnlyList<PointLight>? lights = null)
     {
         var places = new List<Vector3>
         {
-            new(-600f, -600f, 0f), new(600f, -600f, 0f), new(600f, 600f, 0f), new(-600f, 600f, 0f),
-            new(-120f, -120f, -150f), new(120f, -120f, -150f), new(120f, 120f, -150f), new(-120f, 120f, -150f),
+            new(-floorHalf, -floorHalf, 0f), new(floorHalf, -floorHalf, 0f), new(floorHalf, floorHalf, 0f), new(-floorHalf, floorHalf, 0f),
+            new(-slabHalf, -slabHalf, -slabHeight), new(slabHalf, -slabHalf, -slabHeight), new(slabHalf, slabHalf, -slabHeight), new(-slabHalf, slabHalf, -slabHeight),
             new(-420f, -420f, -150f), new(-260f, -420f, -150f), new(-260f, -260f, -150f), new(-420f, -260f, -150f),
         };
         var indices = new List<int> { 0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11 };
@@ -249,8 +373,9 @@ public class CaptureAtGameTests
         }
 
         Vector3[] normals = [.. places.Select(_ => -Vector3.UnitZ)];
-        Vector2[] spots = [.. places.Select(place => new Vector2((place.X / 1200f) + 0.5f, (place.Y / 1200f) + 0.5f))];
-        SkinnedMesh mesh = SkinnedMesh.Of([.. places], normals, [.. indices], new Vector3(-600f, -600f, -150f), new Vector3(600f, 600f, 0f), spots, shapes);
+        Vector2[] spots = [.. places.Select(place => new Vector2((place.X / (2f * floorHalf)) + 0.5f, (place.Y / (2f * floorHalf)) + 0.5f))];
+        SkinnedMesh mesh = SkinnedMesh.Of(
+            [.. places], normals, [.. indices], new Vector3(-floorHalf, -floorHalf, -MathF.Max(150f, slabHeight)), new Vector3(floorHalf, floorHalf, 0f), spots, shapes);
         var floor = new byte[16 * 16 * 4];
         for (var at = 0; at < floor.Length; at += 4)
         {
@@ -296,7 +421,7 @@ public class CaptureAtGameTests
             Modes = modes,
             Skins = skins,
         };
-        var light = new SceneLight([], SceneLight.PointShape.Zero, null)
+        var light = new SceneLight(lights ?? [], SceneLight.PointShape.Zero, lamp)
         {
             Ambient = SceneAmbient.Flat,
             FlatAmbient = 0.05f,
@@ -317,9 +442,9 @@ public class CaptureAtGameTests
 
     /// <summary>
     /// A camera on a screen of the size asked, looking down at a point from above and to one side - the stage's corner, (5000, 9000), unless
-    /// another is asked.
+    /// another is asked - and a player standing where asked, or none.
     /// </summary>
-    private static WorldSnapshot Shot(int width = Width, int height = Height, Vector3? target = null)
+    private static WorldSnapshot Shot(int width = Width, int height = Height, Vector3? target = null, Vector3? player = null)
     {
         Vector3 at = target ?? new Vector3(5000f, 9000f, 0f);
         Vector3 forward = Vector3.Normalize(new Vector3(0.47f, 0.47f, 0.75f));
@@ -339,7 +464,8 @@ public class CaptureAtGameTests
             ax.Z, ay.Z, az.Z, forward.Z,
             -Vector3.Dot(ax, eye), -Vector3.Dot(ay, eye), b - Vector3.Dot(az, eye), -Vector3.Dot(forward, eye),
         ];
-        return new WorldSnapshot(true, null, [], matrix);
+        WorldEntity? you = player is { } stands ? new WorldEntity(1, 0, "Metadata/Characters/Player", EntityKind.Player, stands.X, stands.Y, stands.Z) : null;
+        return new WorldSnapshot(true, you, [], matrix);
     }
 
     /// <summary>A game picture: the pane's own drawn picture, its light times a share, blue green red at the screen's size.</summary>
@@ -362,6 +488,70 @@ public class CaptureAtGameTests
 
         return bgr;
     }
+
+    /// <summary>
+    /// A game picture of a drawing at the screen's own size (a factor of one): at each gathered pixel its own light times the share asked of
+    /// it, rounded once to the bytes - the drawn picture's bytes times the same share between them.
+    /// </summary>
+    /// <remarks>
+    /// FROM THE LIGHT, NOT THE DRAWN BYTES, where it is measured: the drawn picture truncates to its bytes (MeshPicture's Byte), half a level
+    /// dark at the mean - some three hundredths of the shade's few levels, which a gain read where the lamp gives a fifth of the light
+    /// multiplies sixfold.
+    /// </remarks>
+    private static byte[] Exact(CaptureAtGame drawn, Func<int, float> share)
+    {
+        Assert.Equal(1, drawn.Factor);
+        var bgr = new byte[Width * Height * 3];
+        int step = drawn.Gather.Step, across = drawn.Gather.Width;
+        for (var y = 0; y < Height; y++)
+        {
+            for (var x = 0; x < Width; x++)
+            {
+                int gathered = ((y / step) * across) + (x / step);
+                float times = share(gathered);
+                int to = ((y * Width) + x) * 3;
+                if (x % step == 0 && y % step == 0 && drawn.Gather.Triangle[gathered] >= 0)
+                {
+                    Vector3 light = drawn.Gather.Terms[gathered].Graded * times;
+                    (bgr[to + 2], bgr[to + 1], bgr[to]) = (Encode(light.X), Encode(light.Y), Encode(light.Z));
+                    continue;
+                }
+
+                int from = ((y * drawn.DrawnWidth) + x) * 4;
+                for (var c = 0; c < 3; c++)
+                {
+                    bgr[to + 2 - c] = Encode(Decode(drawn.Picture[from + c]) * times);
+                }
+            }
+        }
+
+        return bgr;
+    }
+
+    /// <summary>The shape a drawing shows at a gathered pixel, or -1.</summary>
+    private static int ShapeAt(CaptureAtGame drawn, int gathered)
+    {
+        int triangle = gathered < drawn.Gather.Triangle.Length ? drawn.Gather.Triangle[gathered] : -1;
+        return triangle >= 0 && triangle < drawn.ShapeOf.Length ? drawn.ShapeOf[triangle] : -1;
+    }
+
+    /// <summary>Whether the pane's sun lights a gathered pixel, as the report classes it.</summary>
+    private static bool Lit(CaptureAtGame drawn, int gathered)
+    {
+        SceneLight.LightTerms terms = drawn.Gather.Terms[gathered];
+        return CaptureLightCompare.ClassOf(terms.Sun, terms.SunFacing) == CaptureLightCompare.Lighting.Lit;
+    }
+
+    /// <summary>
+    /// The install as far as the made stage asks it: the rock's material says it is a roof section as The Red Vale's trees do - the word last
+    /// at the top level - and nothing else is in it.
+    /// </summary>
+    private static byte[]? RoofRock(string path)
+        => path == "Art/rock.mat"
+            ? Encoding.UTF8.GetBytes("""{"version":4,"graphinstances":[{"parent":"Metadata/Materials/DielectricSpecGlossBN.fxgraph"},{"parent":"Metadata/Effects/Graphs/General/ForceAlphaTest.fxgraph"}],"roofsection":true}""")
+            : null;
+
+    private static double Number(string text) => double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
 
     /// <summary>A drawing of nothing, for a game picture of nothing.</summary>
     private static CaptureAtGame Blank()

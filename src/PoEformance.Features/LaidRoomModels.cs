@@ -139,7 +139,7 @@ public static class LaidRoomModels
     /// its 187 rooms - its river rooms are one big slot each and name no doodad, so neither the doodads nor the corner search finds them - while
     /// every tile the area laid is in its terrain with its place and turn. So the block lays the tiles alone: what only a room adds, its own
     /// doodad lines, zones and boss places, is not there, and the line under the picture says so. The master paints the ground and puts its
-    /// swaps on the tiles as a laid room's does - the area's own, handed in (the rooms' master.tsi beside their Rooms/).
+    /// swaps on the tiles and every doodad laid over them as a laid room's does - the area's own, handed in (the rooms' master.tsi beside their Rooms/).
     /// </remarks>
     public static MonsterModel Block(
         Func<string, byte[]?>? read,
@@ -239,8 +239,9 @@ public static class LaidRoomModels
             ? at => !grid.IsWalkable((x * TerrainGrid.CellsPerTile) + (int)MathF.Floor(at.X / RoomModels.CellSize), (y * TerrainGrid.CellsPerTile) + (int)MathF.Floor(at.Y / RoomModels.CellSize))
             : null;
 
-        // AND ITS TILEMATERIALOVERRIDES, on the tiles and the tiles' own doodads - not the room's (DECIDED from the live client,
-        // 2026-10-29; see MonsterModels.Swapped). Crimson Shores' boss room drew pink stromatolites and the tendrils its master hides.
+        // AND ITS TILEMATERIALOVERRIDES, on the tiles and on every doodad laid over them - the tiles' own, the room's own lines, other rooms'
+        // and the ground's scatter (DECIDED from the live client, the tiles' 2026-10-29 and the rooms' lines 2026-10-30; see
+        // MonsterModels.Swapped). Crimson Shores' boss room drew pink stromatolites and the tendrils its master hides.
         IReadOnlyDictionary<string, string> swaps = masterFile.Length > 0 ? TilesetIndex.Overrides(Counted, masterFile) : new Dictionary<string, string>();
         IReadOnlyDictionary<string, string>? tileSwaps = swaps.Count > 0 ? swaps : null;
         string tileset = masterFile.Length > 0 ? TilesetIndex.Short(masterFile) : string.Empty;
@@ -468,7 +469,7 @@ public static class LaidRoomModels
         {
             int swappedTiles = used.Count(id => made.TryGetValue(id, out Made? one) && one.Props.Swapped > 0);
             said.Add(string.Create(CultureInfo.InvariantCulture,
-                $"materials: the master's TileMaterialOverrides ({swaps.Count} swaps) put on {swappedTiles} of the {used.Count} tile files and {laid.SwappedFiles} of the doodad files of the tiles and the ground's scatter, the room's own doodads as they are - DECIDED from the live client (the scatter's chosen, v0.1.368)"));
+                $"materials: the master's TileMaterialOverrides ({swaps.Count} swaps) put on {swappedTiles} of the {used.Count} tile files and {laid.SwappedFiles} of the doodad files - the swaps reach the tiles, their own doodads, the room's own lines, other rooms' lines and the ground's scatter, DECIDED from the live client (the rooms' lines 2026-10-30; the scatter's chosen, v0.1.368)"));
         }
 
         said.Add(painter?.Said() ?? "ground: plain - " + unpainted);

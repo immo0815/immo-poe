@@ -11,6 +11,10 @@ namespace PoEformance.Overlay;
 /// <remarks>
 /// ONE SIDE FOR BOTH BOOKS, kept in the settings (<c>aroundSize</c>, nought for the usual): the block is the same place whichever book draws
 /// it, and the side is a choice about the machine as much as the place.
+///
+/// OFFERED WITHOUT THE PLAYER'S PLACE, TAKEN WITH IT (AreaBlock.Stood): the Monster Book stands its monster where the player stood when the
+/// block was taken, so <see cref="Taken"/> writes the place into the key at that moment; <see cref="Here"/>, asked every frame the
+/// combo is open, leaves it out, so the row stays one row while the player walks.
 /// </remarks>
 public sealed class AroundYou
 {
@@ -28,14 +32,23 @@ public sealed class AroundYou
         }
     }
 
-    /// <summary>The key of the block of a side round the player's tile now, or empty with why not - see AreaBlock.Around.</summary>
-    public Func<int, (string Key, string Why)>? Key { get; init; }
+    /// <summary>
+    /// The key of the block of a side round the player's tile now, or empty with why not - see AreaBlock.Around. Asked with true as the block
+    /// is taken, when the key names where the player stands (AreaBlock.Stood); with false while it is only offered.
+    /// </summary>
+    public Func<int, bool, (string Key, string Why)>? Key { get; init; }
 
     /// <summary>Told when the side changes, so the settings keep it.</summary>
     public Action? Changed { get; init; }
 
-    /// <summary>The block round the player now at the slider's side, or empty with why not.</summary>
-    public (string Key, string Why) Here() => Key?.Invoke(_size) ?? (string.Empty, "nothing reads the area's tiles");
+    /// <summary>The block round the player now at the slider's side, as offered - naming no place of the player's - or empty with why not.</summary>
+    public (string Key, string Why) Here() => Key?.Invoke(_size, false) ?? (string.Empty, "nothing reads the area's tiles");
+
+    /// <summary>
+    /// The block round the player now at the slider's side, taken: its key names where the player stands at this moment, which a stage stands
+    /// its monster at - or empty with why not.
+    /// </summary>
+    public (string Key, string Why) Taken() => Key?.Invoke(_size, true) ?? (string.Empty, "nothing reads the area's tiles");
 
     /// <summary>
     /// The side's slider; true once it is let go at a new side - the block is taken again then, round wherever the player stands.
@@ -70,5 +83,6 @@ public sealed class AroundYou
     /// <summary>What the tooltip of an "around you" choice says.</summary>
     public const string Tip = "The area round you as the game laid it: every tile of the block round the tile you stand on, laid where and"
         + " how the area laid it, with its ground and its own doodads - no room needed, so it works in any area. What only a room adds, its"
-        + " own doodads, is not there. The picture's origin being a place in the area, the river's flow map read live is drawn on it.";
+        + " own doodads, is not there. The picture's origin being a place in the area, the river's flow map read live is drawn on it."
+        + " In the Monster Book the monster stands where you stood when you chose it or let the slider go.";
 }

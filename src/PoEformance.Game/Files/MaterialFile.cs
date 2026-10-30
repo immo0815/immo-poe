@@ -72,6 +72,17 @@ public sealed class MaterialFile
     /// </summary>
     public string ShaderType { get; private init; } = string.Empty;
 
+    /// <summary>
+    /// Whether the material says <c>"roofsection": true</c> at its top level - a shape the game hides round the player.
+    /// </summary>
+    /// <remarks>
+    /// SAID FROM THE LIVE CLIENT (v0.1.373): the engine keeps big objects from standing between the camera and the player - The Red Vale's
+    /// tree trunks (<c>OFO_BlackForestTrees01*_fadec.mat</c>) and crowns (<c>RoofFade_JungleTreeBranches01c.mat</c>) among them - and those
+    /// materials say so here. A trunk beside the player measured 11 times brighter in the game's picture than in the pane's, the game showing
+    /// what stands behind it. Read so the light-against-the-game part can keep such shapes apart; nothing draws by it yet.
+    /// </remarks>
+    public bool RoofSection { get; private init; }
+
     /// <summary>Every texture the file lists, in the order it lists them.</summary>
     public IReadOnlyList<MaterialTexture> Textures { get; private init; }
 
@@ -260,6 +271,7 @@ public sealed class MaterialFile
         var parents = new List<string>();
         var blend = string.Empty;
         var shaderType = string.Empty;
+        var roof = false;
 
         try
         {
@@ -273,7 +285,7 @@ public sealed class MaterialFile
                     CommentHandling = JsonCommentHandling.Skip,
                 });
 
-            Walk(ref reader, textures, slots, graphs, parents, ref blend, ref shaderType);
+            Walk(ref reader, textures, slots, graphs, parents, ref blend, ref shaderType, ref roof);
         }
         catch (JsonException)
         {
@@ -287,12 +299,15 @@ public sealed class MaterialFile
         // three graphs and not one texture, and its graphs are what say the shape is never drawn - so
         // what it names is kept. Dropped as "nothing read", the ship in Port's boss room wore it as
         // black slabs across its hull.
-        return textures.Count == 0 && slots.Count == 0 && parents.Count == 0 && blend.Length == 0 && shaderType.Length == 0
+        return textures.Count == 0 && slots.Count == 0 && parents.Count == 0 && blend.Length == 0 && shaderType.Length == 0 && !roof
             ? None
-            : new MaterialFile { Textures = textures, Slots = slots, Graphs = graphs, Parents = parents, Blend = blend, ShaderType = shaderType };
+            : new MaterialFile
+            {
+                Textures = textures, Slots = slots, Graphs = graphs, Parents = parents, Blend = blend, ShaderType = shaderType, RoofSection = roof,
+            };
     }
 
-    /// <summary>The top-level object, taking the two members that name files, the blend and the shader type.</summary>
+    /// <summary>The top-level object, taking the two members that name files, the blend, the shader type and the roof section's word.</summary>
     private static void Walk(
         ref Utf8JsonReader reader,
         List<MaterialTexture> textures,
@@ -300,7 +315,8 @@ public sealed class MaterialFile
         List<IReadOnlyDictionary<string, string>> graphs,
         List<string> parents,
         ref string blend,
-        ref string shaderType)
+        ref string shaderType,
+        ref bool roof)
     {
         if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
         {
@@ -339,6 +355,23 @@ public sealed class MaterialFile
             {
                 reader.Read();
                 shaderType = reader.TokenType == JsonTokenType.String ? reader.GetString() ?? string.Empty : string.Empty;
+                reader.Skip();
+                continue;
+            }
+
+            // THE FILES WRITE A JSON TRUE, last at the top level after graphinstances (RoofFade_JungleTreeBranches01c.mat and the woods'
+            // trees in The Red Vale's capture of v0.1.372); a number other than nought or the text "true" are taken alike - no file has
+            // shown either, and neither can mean anything else, so a reader that refused them would only miss a roof.
+            if (reader.ValueTextEquals("roofsection"u8))
+            {
+                reader.Read();
+                roof = reader.TokenType switch
+                {
+                    JsonTokenType.True => true,
+                    JsonTokenType.Number => reader.TryGetDouble(out double number) && number != 0,
+                    JsonTokenType.String => reader.GetString() is { } said && (said.Equals("true", StringComparison.OrdinalIgnoreCase) || said == "1"),
+                    _ => false,
+                };
                 reader.Skip();
                 continue;
             }

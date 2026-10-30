@@ -47,7 +47,8 @@ public sealed record StageStanding(Vector2 At, float Turn, float Scale, float Fl
 /// the mesh is that much larger or smaller - the same number ModelFloor.TileOn shrinks the floor's
 /// squares by under a bare picture.
 ///
-/// AND IT STANDS ON THE FLOOR THE PLAYER SEES, at the tile's middle. Not on the tile file's own
+/// AND IT STANDS ON THE FLOOR THE PLAYER SEES, at the tile's middle - or where a room names its boss's place, or where the player
+/// stood when the area round him was taken (AreaBlock.Stood). Not on the tile file's own
 /// "ground" block: on a boss arena that block is the earth under a stone floor built of props, and
 /// the first monster set on it stood a storey under the arena. The floor is the highest surface that
 /// faces up under the middle, over every solid shape of the tile - props and ground alike, cut-out
@@ -93,10 +94,14 @@ public static class StagedModels
         }
 
         string path = PathOf(stage);
+
+        // THE AREA ROUND YOU IS BUILT AND KEPT UNDER ITS KEY WITHOUT WHERE THE PLAYER STOOD (AreaBlock.Unstood): the place stands the
+        // monster and lays no tile, and the block is heavy - taken again where the player stands elsewhere in it, it is not laid again.
+        string built = AreaBlock.Unstood(stage);
         MonsterModel Built()
         {
             // THE AREA ROUND THE PLAYER, laid from its tiles alone - see AreaBlock.
-            if (AreaBlock.TryRead(stage, out AreaBlock block))
+            if (AreaBlock.TryRead(built, out AreaBlock block))
             {
                 return block.Build(read, terrain, progress);
             }
@@ -125,7 +130,7 @@ public static class StagedModels
         }
         else
         {
-            tile = keep.Tile(stage, Built, out bool kept);
+            tile = keep.Tile(built, Built, out bool kept);
             if (kept)
             {
                 progress?.Note("the stage was the one this pane built last, kept - only the monster was built");
@@ -137,7 +142,9 @@ public static class StagedModels
             return actor with { Stage = path, StageSaid = "no stage: " + tile.Why };
         }
 
-        return Staged(actor, tile, one?.ModelSize ?? 0, path);
+        // WHERE THE PLAYER STOOD WHEN THE BLOCK WAS TAKEN, in the picture's frame: the area's world less the block's corner (AreaOrigin).
+        Vector2? stood = AreaBlock.TryRead(stage, out AreaBlock taken) && taken.Stood is { } at && tile.AreaOrigin is { } origin ? at - origin : null;
+        return Staged(actor, tile, one?.ModelSize ?? 0, path, stood);
     }
 
     /// <summary>The path a stage key names, before its words.</summary>
@@ -194,13 +201,15 @@ public static class StagedModels
     }
 
     /// <summary>
-    /// The two joined: the monster placed at the tile's middle, on its floor, at the size the game draws it.
+    /// The two joined: the monster placed at the tile's middle - or where the player stood, or where the room names its boss - on its floor,
+    /// at the size the game draws it.
     /// </summary>
     /// <param name="actor">The monster, ready.</param>
     /// <param name="tile">The stage, ready.</param>
     /// <param name="modelSize">The variety's ModelSizeMultiplier in percent; anything not positive is a hundred.</param>
     /// <param name="stage">The tile's path, for the lines and the probe.</param>
-    public static MonsterModel Staged(MonsterModel actor, MonsterModel tile, int modelSize, string stage)
+    /// <param name="stood">Where the player stood when the area round you was taken, in the stage's frame (AreaBlock.Stood less its corner), or null.</param>
+    public static MonsterModel Staged(MonsterModel actor, MonsterModel tile, int modelSize, string stage, Vector2? stood = null)
     {
         ArgumentNullException.ThrowIfNull(actor);
         ArgumentNullException.ThrowIfNull(tile);
@@ -213,7 +222,16 @@ public static class StagedModels
         float turn = 0f;
         string where;
         var floors = new List<(Vector2 Off, float Height)>(9);
-        if (tile.BossSpot is { } spot)
+        if (stood is { } player)
+        {
+            // WHERE THE PLAYER STOOD WHEN THE BLOCK WAS TAKEN, facing as at the middle, on the floor round the place as a boss is: the
+            // game's camera looks at the player, so the game view (CameraPose.AsTheGameAt) shows him where the game showed the player.
+            // At the middle he stood some 75 units off in The Red Vale's 25 by 25 block (said from the live client, MEASURED in its capture).
+            (middle.X, middle.Y) = (player.X, player.Y);
+            found = FloorAround(tile.Mesh, tile.Blends, player.X, player.Y, out floor, floors);
+            where = "where the player stood when the block was taken";
+        }
+        else if (tile.BossSpot is { } spot)
         {
             // WHERE THE ROOM NAMES ITS BOSS, on the floor round the place rather than at it: a throne at the place has a seat
             // that faces up, and the boss stands on the deck under it - sitting in it and rising out of it are his animation's.

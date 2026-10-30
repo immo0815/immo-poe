@@ -251,4 +251,33 @@ public class MaterialFileTests
         Assert.False(MaterialFile.Read(null, "a/b.mat:0").Ready);
         Assert.False(MaterialFile.Parse(null).Ready);
     }
+
+    /// <summary>
+    /// The shape of RoofFade_JungleTreeBranches01c.mat as The Red Vale's capture of v0.1.372 wrote it, its texture paths shortened: the
+    /// word last at the top level, after the graphs.
+    /// </summary>
+    private const string RoofFade = """
+        {"version":4,"graphinstances":[{"parent":"Metadata/Materials/DielectricSpecGlossBN.fxgraph","custom_parameters":[
+          {"name":"AlbedoTransparency_TEX","parameters":[{"path":"Art/RoofFade_JungleTreeBranches01_colour_BC1.dds","srgb":true}]}]},
+          {"parent":"Metadata/Effects/Graphs/General/ForceAlphaTest.fxgraph"}],"roofsection":true}
+        """;
+
+    /// <summary>
+    /// A material that says <c>"roofsection"</c> at its top level is one the game hides round the player - and one that says it false, or
+    /// says it inside a graph, or nowhere, is not.
+    /// </summary>
+    /// <remarks>
+    /// KEPT EVEN WHERE IT IS ALL THE FILE SAYS: such a material was dropped as "nothing read" before, and the word with it.
+    /// </remarks>
+    [Theory]
+    [InlineData(RoofFade, true)]
+    [InlineData("""{"roofsection":true}""", true)]
+    [InlineData("""{"roofsection":1,"graphinstances":[{"parent":"a.fxgraph"}]}""", true)]
+    [InlineData("""{"roofsection":"true","graphinstances":[{"parent":"a.fxgraph"}]}""", true)]
+    [InlineData("""{"roofsection":false,"graphinstances":[{"parent":"a.fxgraph"}]}""", false)]
+    [InlineData("""{"roofsection":0,"graphinstances":[{"parent":"a.fxgraph"}]}""", false)]
+    [InlineData("""{"graphinstances":[{"parent":"a.fxgraph","roofsection":true}]}""", false)]
+    [InlineData("""{"graphinstances":[{"parent":"a.fxgraph"}]}""", false)]
+    public void AROOFSectionSaysSoAtItsTopLevel(string text, bool roof)
+        => Assert.Equal(roof, MaterialFile.Parse(text).RoofSection);
 }

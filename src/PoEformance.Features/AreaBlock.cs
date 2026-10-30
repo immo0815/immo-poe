@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Numerics;
 using PoEformance.Game.Files;
 using PoEformance.Game.World;
 
@@ -22,6 +23,13 @@ namespace PoEformance.Features;
 ///
 /// THE SAME MARKS AS A TILE'S AND A ROOM'S KEY (TileKey.Mark, WordMark): the name before the first, then the place and the masters. A key
 /// names one reading of one area's grid (RoomKey.Stamp), so a block is never laid over another area's tiles.
+///
+/// WHERE THE PLAYER STOOD RIDES IN THE KEY ONCE THE BLOCK IS TAKEN (<see cref="Stood"/>, said from the live client: on the game view the
+/// monster stood a few metres off where the game draws the player - MEASURED in The Red Vale's capture, the player at 4081.8, 7314.2 and
+/// the monster at the middle of a 25 by 25 block from tile 4, 17, about 75 units off him). A stage stands its monster there. Only the
+/// moment of taking writes it - "around you" chosen, or the side's slider let go - and the stage's build is kept under the key without it
+/// (<see cref="Unstood"/>): the block is heavy, and one taken again where the player stands elsewhere in it moves the monster and lays
+/// no tile again.
 /// </remarks>
 /// <param name="X">The block's least tile across.</param>
 /// <param name="Y">The block's least tile down.</param>
@@ -29,7 +37,9 @@ namespace PoEformance.Features;
 /// <param name="Area">The grid it was taken from - RoomKey.Stamp.</param>
 /// <param name="Masters">The masters (<c>.tsi</c>) of the area's rooms, one of which paints its ground and swaps its tiles - none for plain ground.</param>
 /// <param name="Rooms">The rooms the area placed that reach the block, each where it stands - their own doodads are laid too (v0.1.360) - or none.</param>
-public readonly record struct AreaBlock(int X, int Y, int Size, int Area, IReadOnlyList<string> Masters, IReadOnlyList<(string Room, int X, int Y, int Turn)>? Rooms = null)
+/// <param name="Stood">Where the player stood when the block was taken, in world x and y - where a stage stands its monster - or null: a block offered and not yet taken, or a key from before the place rode in it.</param>
+public readonly record struct AreaBlock(
+    int X, int Y, int Size, int Area, IReadOnlyList<string> Masters, IReadOnlyList<(string Room, int X, int Y, int Turn)>? Rooms = null, Vector2? Stood = null)
 {
     /// <summary>The name the key starts with, and what the block's model is called.</summary>
     public const string Path = "around you";
@@ -54,6 +64,9 @@ public readonly record struct AreaBlock(int X, int Y, int Size, int Area, IReadO
 
     /// <summary>What starts the word naming the rooms; each <c>path@x,y,turn</c>, separated by <see cref="MasterMark"/>.</summary>
     public const string RoomsWord = "rooms=";
+
+    /// <summary>What starts the word naming where the player stood when the block was taken; "x,y" in world units follows - see <see cref="Stood"/>.</summary>
+    public const string StoodWord = "stood=";
 
     /// <summary>
     /// THE ROOMS THE AREA PLACED, ALL OF WHAT IS FOUND (v0.1.360, asked for from the live client: "draw every doodad we find"): the places
@@ -129,7 +142,18 @@ public readonly record struct AreaBlock(int X, int Y, int Size, int Area, IReadO
             + (Masters is { Count: > 0 } ? TileKey.WordMark + MastersWord + string.Join(MasterMark, Masters) : string.Empty)
             + (Rooms is { Count: > 0 } rooms
                 ? TileKey.WordMark + RoomsWord + string.Join(MasterMark, rooms.Select(one => string.Create(CultureInfo.InvariantCulture, $"{one.Room}@{one.X},{one.Y},{one.Turn}")))
-                : string.Empty);
+                : string.Empty)
+            + (Stood is { } stood ? string.Create(CultureInfo.InvariantCulture, $"{TileKey.WordMark}{StoodWord}{stood.X:0.##},{stood.Y:0.##}") : string.Empty);
+
+    /// <summary>
+    /// A key without where the player stood - the block's tiles alone, which a stage's build is kept under (StagedModels.Of) - or the key as it
+    /// is where it names no place or no block.
+    /// </summary>
+    public static string Unstood(string key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        return TryRead(key, out AreaBlock block) && block.Stood is not null ? (block with { Stood = null }).ToString() : key;
+    }
 
     /// <summary>A key read back - false where it is no block's or its place does not read.</summary>
     public static bool TryRead(string? key, out AreaBlock block)
@@ -144,6 +168,7 @@ public readonly record struct AreaBlock(int X, int Y, int Size, int Area, IReadO
         bool placed = false;
         IReadOnlyList<string> masters = [];
         var rooms = new List<(string Room, int X, int Y, int Turn)>();
+        Vector2? stood = null;
         ReadOnlySpan<char> words = key.AsSpan(Path.Length + 1);
         foreach (Range range in words.Split(TileKey.WordMark))
         {
@@ -177,6 +202,17 @@ public readonly record struct AreaBlock(int X, int Y, int Size, int Area, IReadO
                     }
                 }
             }
+            else if (word.StartsWith(StoodWord, StringComparison.Ordinal))
+            {
+                // A PLACE THAT DOES NOT READ IS NO PLACE: the monster then stands at the middle, as a key from before the place rode in it.
+                string[] at = word[StoodWord.Length..].ToString().Split(',');
+                if (at.Length == 2
+                    && float.TryParse(at[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float sx) && float.IsFinite(sx)
+                    && float.TryParse(at[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float sy) && float.IsFinite(sy))
+                {
+                    stood = new Vector2(sx, sy);
+                }
+            }
         }
 
         if (!placed)
@@ -184,7 +220,7 @@ public readonly record struct AreaBlock(int X, int Y, int Size, int Area, IReadO
             return false;
         }
 
-        block = new AreaBlock(x, y, size, area, masters, rooms.Count > 0 ? rooms : null);
+        block = new AreaBlock(x, y, size, area, masters, rooms.Count > 0 ? rooms : null, stood);
         return true;
     }
 

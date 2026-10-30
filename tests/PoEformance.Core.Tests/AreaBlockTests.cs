@@ -1,3 +1,4 @@
+using System.Numerics;
 using PoEformance.Features;
 using PoEformance.Game.World;
 
@@ -44,6 +45,31 @@ public class AreaBlockTests
         Assert.True(AreaBlock.TryRead(block.ToString(), out AreaBlock read));
         Assert.Equal(rooms, read.Rooms);
         Assert.EndsWith("+rooms=Metadata/Terrain/A/Rooms/inside.arm@11,11,3;Metadata/Terrain/A/Rooms/edge.arm@7,12,6", block.ToString(), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Where the player stood when the block was taken rides in its key and reads back; the key without it - what a stage's build is kept
+    /// under - is the block's key as offered, and a place that does not read is no place.
+    /// </summary>
+    [Fact]
+    public void WHERETHEPlayerStoodRidesInTheKeyAndTheBuildIsKeptWithoutIt()
+    {
+        var offered = new AreaBlock(4, 17, 25, 77, ["Metadata/Terrain/Gallows/Act1/1_5/master.tsi"], [("Metadata/Terrain/A/Rooms/inside.arm", 5, 18, 2)]);
+        string taken = (offered with { Stood = new Vector2(4081.842f, 7314.178f) }).ToString();
+        Assert.EndsWith("+rooms=Metadata/Terrain/A/Rooms/inside.arm@5,18,2+stood=4081.84,7314.18", taken, StringComparison.Ordinal);
+        Assert.True(AreaBlock.TryRead(taken, out AreaBlock read));
+        Assert.Equal(new Vector2(4081.84f, 7314.18f), read.Stood);
+        Assert.Equal((4, 17, 25, 77), (read.X, read.Y, read.Size, read.Area));
+
+        // THE BUILD'S KEY IS THE BLOCK'S AS OFFERED, wherever in it the player stood - and a key naming no place, or no block, is its own.
+        Assert.Equal(offered.ToString(), AreaBlock.Unstood(taken));
+        Assert.Equal(offered.ToString(), AreaBlock.Unstood((offered with { Stood = new Vector2(-3f, 5.5f) }).ToString()));
+        Assert.Equal(offered.ToString(), AreaBlock.Unstood(offered.ToString()));
+        Assert.Equal("Metadata/Terrain/Woods/curve5.tdt", AreaBlock.Unstood("Metadata/Terrain/Woods/curve5.tdt"));
+        Assert.True(AreaBlock.TryRead(offered.ToString(), out AreaBlock none));
+        Assert.Null(none.Stood);
+        Assert.True(AreaBlock.TryRead("around you|at=0,0,3,5+stood=a,7", out AreaBlock unread));
+        Assert.Null(unread.Stood);
     }
 
     [Fact]

@@ -410,7 +410,8 @@ internal sealed class CaptureKey
         }
 
         // THE PANES AS THEY STAND, their models immutable - the files they name are read with the rest, off this thread.
-        if ((On(CaptureParts.ModelPanes) || On(CaptureParts.MonsterFiles) || On(CaptureParts.LightCompare) || On(CaptureParts.ShadowCasters)) && _panes is { } panes)
+        if ((On(CaptureParts.ModelPanes) || On(CaptureParts.MonsterFiles) || On(CaptureParts.LightCompare) || On(CaptureParts.ShadowCasters) || On(CaptureParts.LightExtras))
+            && _panes is { } panes)
         {
             run.Panes = panes();
         }
@@ -1090,6 +1091,30 @@ internal sealed class CaptureKey
             }
         }
 
+        if (On(CaptureParts.LightExtras))
+        {
+            if (read is null)
+            {
+                Not(CaptureReport.LightExtrasFile, "no install to read the environments, sources and graphs from");
+            }
+            else
+            {
+                Part(CaptureReport.LightExtrasFile, () =>
+                {
+                    // EVERY GRAPH THE WALKS FOUND: the engine's own folder and the rest of Metadata's, as the stage hunt reads them.
+                    string? install = GameInstall.Find(null);
+                    string[] programs = install is null ? []
+                        : [.. GameInstall.Names.Select(name => Path.Combine(install, name + ".exe")).Where(File.Exists)];
+                    string text = CaptureLightExtras.Write(
+                        read, environments, shaders, [.. engineGraphs, .. shoreFiles], programs, run.Panes, run.Snapshot.Area.Environment,
+                        out IReadOnlyList<(string File, GamePicture Picture)> pictures);
+                    File.WriteAllText(At(CaptureReport.LightExtrasFile), text);
+                    Pictures(pictures);
+                    return text[..text.IndexOf('\n')].TrimEnd('\r');
+                });
+            }
+        }
+
         if (On(CaptureParts.RoomsNear))
         {
             if (read is null)
@@ -1256,7 +1281,7 @@ internal sealed class CaptureKey
                 {
                     Part(CaptureReport.LightCompareFile, () =>
                     {
-                        string text = CaptureLightCompare.Write(scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers, run.AtGame);
+                        string text = CaptureLightCompare.Write(read, scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers, run.AtGame);
                         File.WriteAllText(At(CaptureReport.LightCompareFile), text);
                         Pictures(pictures);
                         File.WriteAllBytes(At(CaptureLightCompare.Numbers), numbers);

@@ -242,7 +242,7 @@ public static class RoomModels
         /// <summary>What the room's wobble cores came to - see RoomSways - or empty where it has none.</summary>
         public string Swayed { get; init; } = string.Empty;
 
-        /// <summary>How many of the tiles' doodad files and the ground scatter's wear a material the tileset swapped in - see MonsterModels.Swapped.</summary>
+        /// <summary>How many of the doodad files laid - the room's own lines, other rooms', the tiles' and the ground scatter's - wear a material the tileset swapped in - see MonsterModels.Swapped.</summary>
         public int SwappedFiles { get; init; }
 
         /// <summary>The lines under the picture about what did not draw, and why.</summary>
@@ -328,7 +328,12 @@ public static class RoomModels
         var laid = new List<(RoomDoodad One, Matrix4x4 Place, Tally File, int Sway)>(room.Doodads.Count + (also?.Count ?? 0));
         // A SET'S LINE IS ONE OF ITS MEMBERS - see Member - each set read once a room.
         var sets = new Dictionary<string, IReadOnlyList<(int Weight, string Ao)>>(StringComparer.OrdinalIgnoreCase);
-        void Take(RoomDoodad one, Matrix4x4 place, int sway, bool swapped = false)
+
+        // EVERY LINE WEARS THE MASTER'S SWAPS WHERE IT HAS ANY - the room's own and other rooms' as the tiles' and the ground's scatter do
+        // (DECIDED from the live client, 2026-10-30: until then a room's own lines kept their own materials) - so a file is one model
+        // however many kinds of line name it. See MonsterModels.Swapped for what decided each.
+        IReadOnlyDictionary<string, string>? wearing = swaps is { Count: > 0 } ? swaps : null;
+        void Take(RoomDoodad one, Matrix4x4 place, int sway)
         {
             one = Member(one, place.Translation, counted, sets);
 
@@ -337,12 +342,10 @@ public static class RoomModels
             // turnable, or because the camera cannot see it, still lights the room in the game.
             lights?.Add(one.Ao, place);
 
-            // A TILE'S DOODAD WEARING THE TILESET'S SWAPS is a model of its own, kept apart from the room's line of the same file.
-            string key = swapped ? one.Ao + SwappedKey : one.Ao;
-            if (!files.TryGetValue(key, out Tally? file))
+            if (!files.TryGetValue(one.Ao, out Tally? file))
             {
-                file = new Tally(one.Ao, place.Translation) { Swaps = swapped ? swaps : null };
-                files[key] = file;
+                file = new Tally(one.Ao, place.Translation) { Swaps = wearing };
+                files[one.Ao] = file;
                 named.Add(file);
             }
 
@@ -393,7 +396,7 @@ public static class RoomModels
         }
 
         // OTHER ROOMS' OWN DOODADS, placed already where those rooms stand - the area round the player's (LaidRoomModels.Block): a room's
-        // own lines, so no tile's swaps.
+        // own lines, wearing the swaps as this room's own do.
         foreach ((RoomDoodad one, Matrix4x4 place) in others ?? [])
         {
             if (one.Ao.Length == 0)
@@ -425,7 +428,7 @@ public static class RoomModels
                 continue;
             }
 
-            Take(one, place, -1, swaps is { Count: > 0 });
+            Take(one, place, -1);
         }
 
         // THE GROUND'S OWN SCATTER LAST (GroundScatter): where the doodads slider runs out, the grass goes before any line a file names.
@@ -436,7 +439,7 @@ public static class RoomModels
         // ground came out a green the game's picture of it has nowhere.
         foreach ((RoomDoodad one, Matrix4x4 place) in strewn ?? [])
         {
-            Take(one, place, -1, swaps is { Count: > 0 });
+            Take(one, place, -1);
         }
 
         // EVERY FILE THAT WILL BE LAID, ON EVERY CORE, before any is laid: one model per file, through the shared cache (Paints), so
@@ -526,16 +529,13 @@ public static class RoomModels
         };
     }
 
-    /// <summary>What a tile's doodad wearing the tileset's swaps is kept under beside its file - see Lay.</summary>
-    private const string SwappedKey = "\u0001swapped";
-
     /// <summary>One doodad file's lines as they are laid, and its model once loaded - see <see cref="DoodadFile"/>.</summary>
     private sealed class Tally(string ao, Vector3 first)
     {
         /// <summary>The file, as its first line names it.</summary>
         public string Ao => ao;
 
-        /// <summary>The tileset's material swaps its model wears - a tile's own doodad's - or null for its own materials.</summary>
+        /// <summary>The tileset's material swaps its model wears - every line's, where the room is laid under a master that swaps any - or null for its own materials.</summary>
         public IReadOnlyDictionary<string, string>? Swaps { get; init; }
 
         /// <summary>The file's model, with the tileset's swaps where it has any.</summary>
