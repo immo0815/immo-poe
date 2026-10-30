@@ -67,9 +67,13 @@ public static class CaptureLightCompare
     /// <param name="scene">The stage drawn through the game's camera.</param>
     /// <param name="pictures">The pictures to write beside the report, by file name.</param>
     /// <param name="numbers">The samples' numbers, <see cref="Numbers"/>.</param>
-    public static string Write(CaptureAtGame scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers)
+    /// <param name="search">Where it says how far it is, or null - the drawing's own, so the capture's window goes on from it.</param>
+    public static string Write(
+        CaptureAtGame scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers, CaptureAtGame.Search? search = null)
     {
         ArgumentNullException.ThrowIfNull(scene);
+        search?.Begin(1);
+        search?.Step("holding every pixel's light against the game's");
         SceneLight light = scene.Pane.Light!;
         MonsterModel model = scene.Pane.Model;
         PixelGather gather = scene.Gather;

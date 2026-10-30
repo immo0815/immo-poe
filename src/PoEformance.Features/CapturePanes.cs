@@ -18,7 +18,10 @@ public sealed record CapturePane(string Book, IReadOnlyList<string> Lines, Monst
     /// <summary>The shapes under the last probe click, nearest first - empty where the probe is off or was not clicked on this model.</summary>
     public IReadOnlyList<int> Probed { get; init; } = [];
 
-    /// <summary>The programs the pane draws each shape with - the flat or the glossy list - or null where it draws none.</summary>
+    /// <summary>
+    /// The programs the pane draws each shape with - the flat or the glossy list, swapped for their spray twins where <see cref="Light"/> asks -
+    /// or null where it draws none.
+    /// </summary>
     public IReadOnlyList<ShadeProgram?>? Shades { get; init; }
 
     /// <summary>Where the time of building the model and drawing its first picture went - see ModelProgress.Report.</summary>
@@ -51,7 +54,7 @@ public sealed record CapturePane(string Book, IReadOnlyList<string> Lines, Monst
     /// <summary>The area's dust the pane's materials read.</summary>
     public Vector3 Dust { get; init; } = EnvironmentSettings.AssumedDust;
 
-    /// <summary>The water the pane draws with - the area's, over the room's shore and the river's flow.</summary>
+    /// <summary>The water the pane draws with - the area's, over the room's shore (its way in <see cref="Light"/>'s) and the river's flow.</summary>
     public WaterLook Water { get; init; } = WaterLook.EngineDefault;
 
     /// <summary>The clock the pane's picture stood at, seconds.</summary>

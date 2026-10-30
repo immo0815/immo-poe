@@ -1219,8 +1219,11 @@ internal sealed class CaptureKey
             CapturePane? chosen = CaptureAtGame.Chosen(run.Panes, shot, out string notChosen);
             CaptureAtGame? scene = null;
             string notDrawn = notChosen;
+            var drawFailed = false;
             if (chosen is not null)
             {
+                // THE DRAWING IS THE LONG STEP, so the first part waiting on it runs from here - its line in the window says what is drawn.
+                run.Progress.Of(On(CaptureParts.LightCompare) ? CaptureReport.LightCompareFile : CaptureReport.ShadowCastersFile)?.Start(Environment.TickCount64);
                 try
                 {
                     scene = CaptureAtGame.Draw(chosen, shot, run.Game, client.Width, client.Height, run.AtGame, out notDrawn);
@@ -1230,13 +1233,18 @@ internal sealed class CaptureKey
                 // wrapped by its parallel loop - the buffers' size, too, is no reason to lose the rest of the capture.
                 catch (Exception failed) when (failed is not StackOverflowException)
                 {
-                    notDrawn = "drawing it failed: " + failed.GetBaseException().Message;
+                    notDrawn = "drawing it: " + failed.GetBaseException().Message;
+                    drawFailed = true;
                 }
             }
 
             if (On(CaptureParts.LightCompare))
             {
-                if (scene is null)
+                if (drawFailed)
+                {
+                    Said(CaptureReport.LightCompareFile, "FAILED: " + notDrawn, CaptureStepState.Failed);
+                }
+                else if (scene is null)
                 {
                     Not(CaptureReport.LightCompareFile, notDrawn.Length > 0 ? notDrawn : "nothing to draw");
                 }
@@ -1248,7 +1256,7 @@ internal sealed class CaptureKey
                 {
                     Part(CaptureReport.LightCompareFile, () =>
                     {
-                        string text = CaptureLightCompare.Write(scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers);
+                        string text = CaptureLightCompare.Write(scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers, run.AtGame);
                         File.WriteAllText(At(CaptureReport.LightCompareFile), text);
                         Pictures(pictures);
                         File.WriteAllBytes(At(CaptureLightCompare.Numbers), numbers);
@@ -1259,13 +1267,14 @@ internal sealed class CaptureKey
 
             if (On(CaptureParts.ShadowCasters))
             {
-                if (chosen is null && run.Panes?.FirstOrDefault(one => one.Light is not null) is null)
+                // WITH NO STAGE LAID IN THIS INSTANCE, another stage with ground: its casters measured, nothing held against the game.
+                string noGround = string.Empty;
+                if ((chosen ?? CaptureShadowCasters.Fallback(run.Panes, out noGround)) is not { } pane)
                 {
-                    Not(CaptureReport.ShadowCastersFile, notChosen.Length > 0 ? notChosen : "no book shows a stage with a light");
+                    Not(CaptureReport.ShadowCastersFile, notChosen.Length > 0 ? notChosen + "; " + noGround : noGround);
                 }
                 else
                 {
-                    CapturePane pane = chosen ?? run.Panes!.First(one => one.Light is not null);
                     Part(CaptureReport.ShadowCastersFile, () =>
                     {
                         string text = CaptureShadowCasters.Write(read, pane, scene, run.AtGame, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers);

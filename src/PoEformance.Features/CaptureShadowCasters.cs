@@ -65,6 +65,29 @@ public static class CaptureShadowCasters
         "Metadata/Materials/Environment/SecondPass/ForceAlphaTestWithShadowOnly.mat",
     ];
 
+    /// <summary>
+    /// The pane measured where no book shows a stage laid as this area instance laid it: the first under a light with ground to cast on - or
+    /// null, with why. A lone monster in the Monster Book has a light and no ground, and would be measured as nothing.
+    /// </summary>
+    public static CapturePane? Fallback(IReadOnlyList<CapturePane>? panes, out string why)
+    {
+        foreach (CapturePane pane in panes ?? [])
+        {
+            if (pane.Light is not null && HasGround(pane.Model))
+            {
+                why = string.Empty;
+                return pane;
+            }
+        }
+
+        why = "no book shows a stage with ground under a light";
+        return null;
+    }
+
+    /// <summary>Whether any shape of a model is ground - the room builder's painted ground.</summary>
+    private static bool HasGround(MonsterModel model)
+        => model.ShapeSources.Any(one => one.StartsWith(RoomModels.GroundSource, StringComparison.Ordinal));
+
     /// <summary>The part's report and what goes beside it.</summary>
     /// <param name="read">How to get a file out of the install, or null.</param>
     /// <param name="pane">The pane whose stage is looked at.</param>
@@ -94,6 +117,11 @@ public static class CaptureShadowCasters
         for (var shape = 0; shape < shapes; shape++)
         {
             ground[shape] = shape < model.ShapeSources.Count && model.ShapeSources[shape].StartsWith(RoomModels.GroundSource, StringComparison.Ordinal);
+        }
+
+        if (!ground.Contains(true))
+        {
+            return $"not written: the {pane.Book} book's stage has no ground to measure the shadows on";
         }
 
         search?.Begin(3);
@@ -163,7 +191,10 @@ public static class CaptureShadowCasters
         int lost = kinds.Count(one => one == Lost);
         text.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"shadow casters: {(floor is null ? "no ground shape in the stage - nothing to measure the shadows on" : $"{groundTexels:N0} texels of ground under the sun, {groundTexels - sunlit:N0} in shadow; {lost:N0} of them are shadow-only shapes' that a cut by their texture's alpha takes away ({(double)lost / Math.Max(1, groundTexels - sunlit):0.###} of the shadow)")}"));
+            $"shadow casters: {(floor is null ? "the ground alone makes no map along the sun - nothing to measure the shadows on" : $"{groundTexels:N0} texels of ground under the sun, {groundTexels - sunlit:N0} in shadow; {lost:N0} of them are shadow-only shapes' that a cut by their texture's alpha takes away ({(double)lost / Math.Max(1, groundTexels - sunlit):0.###} of the shadow)")}"));
+        text.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"the stage: the {pane.Book} book's ({model.Mesh_}), {(scene is not null ? "laid as this area instance laid it and held against the game's picture" : model.AreaOrigin is null ? "not laid in the area - not held against the game's picture" : "not drawn through the game's camera - not held against the game's picture")}"));
         text.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
             $"the sun's map: {side} texels across, {texel:0.###} units a texel, the light travelling ({light.SunDirection.X:0.####}, {light.SunDirection.Y:0.####}, {light.SunDirection.Z:0.####}); a ground texel is shadowed where its nearest caster lies {Before} texels before it along the light (CHOSEN); the game's own cascades are finer near the eye, so the edges' sharpness is not compared, only where the shadows fall"));

@@ -567,7 +567,11 @@ light (built as "game light" would build it, ticked or not - SceneLightPanel.Mea
   one while the pane's is unclamped, and MEASURED on the captures' game pictures Port's sunlit cobblestones reach 255 on 0.7 to 4.3% of the
   picture, Crimson Shores' arena floor on 2.5 to 3.4%: taken as exact they read as a pane too bright and too saturated. The numbers are
   version 2 (a ninth reason left out; version 1 still replays). A drawing's or a part's failure inside a parallel loop (AggregateException)
-  no longer ends the whole capture; the light panel's lines take the frame at the press and the lamp's height as set.
+  no longer ends the whole capture; the light panel's lines take the frame at the press and the lamp's height as set. v0.1.372: the
+  capture draws the programs and the water as the measured light says (its spray twins and way in), "game light" ticked or not; and with
+  no stage laid in this instance the shadow part takes a stage with ground (`CaptureShadowCasters.Fallback`), not a lone monster. The
+  drawing through the game's camera runs as the first waiting part's step, so the capture's window says what it draws, and a drawing that
+  fails is filed as failed, not as not written.
 
 ## Verify against the game, not against yourself
 

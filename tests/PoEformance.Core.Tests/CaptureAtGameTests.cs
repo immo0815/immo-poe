@@ -190,7 +190,40 @@ public class CaptureAtGameTests
         }
     }
 
+    /// <summary>
+    /// With no stage laid in the instance the shadow part takes a stage with ground to cast on, not a lone monster under a light - and a stage
+    /// with no ground says so rather than measuring nothing as nought.
+    /// </summary>
+    [Fact]
+    public void THESHADOWPartFallsBackToAStageWithGroundNotALoneMonster()
+    {
+        CapturePane stage = Stage(MaterialBlend.Opaque);
+        CapturePane monster = Monster();
+        Assert.Same(stage, CaptureShadowCasters.Fallback([monster, stage], out string why));
+        Assert.Empty(why);
+        Assert.Null(CaptureShadowCasters.Fallback([monster], out why));
+        Assert.Contains("ground", why, StringComparison.Ordinal);
+        Assert.StartsWith(
+            "not written: the monster book's stage has no ground", CaptureShadowCasters.Write(null, monster, null, null, out _, out _), StringComparison.Ordinal);
+        Assert.Contains(
+            "the stage: the tile book's", CaptureShadowCasters.Write(null, stage, null, null, out _, out _), StringComparison.Ordinal);
+    }
+
     private static int Count(string number) => int.Parse(number, NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
+
+    /// <summary>The stage's shapes as a lone monster's - lit, and none of them ground.</summary>
+    private static CapturePane Monster()
+    {
+        CapturePane stage = Stage(MaterialBlend.Opaque);
+        var model = new MonsterModel(stage.Model.Mesh, null, "monster", string.Empty, string.Empty)
+        {
+            ShapeMaterials = stage.Model.ShapeMaterials,
+            ShapeSources = ["body.ao", "body.ao", "body.ao"],
+            Modes = stage.Model.Modes,
+            Skins = stage.Model.Skins,
+        };
+        return new CapturePane("monster", [], model) { Light = stage.Light, LightOn = true, Blends = stage.Blends };
+    }
 
     /// <summary>
     /// A floor laid in the area under a slab of the blend asked and a solid rock beside it, lit by a sun from the side - with no sun, the
