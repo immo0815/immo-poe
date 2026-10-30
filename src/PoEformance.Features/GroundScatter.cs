@@ -30,10 +30,16 @@ namespace PoEformance.Features;
 /// the ground's group is, else "Default".
 ///
 /// CHOSEN beside them, and said under the picture: the seed (<see cref="Seed"/>), hashed with the area's own coordinates, so the same
-/// spot strews alike however the block round it is laid; a turn within the layer's MaxRotation either way of the mesh's own, a whole
-/// turn where it sets none; a size between its RandomScale's two, shrunk towards MinEdgeScale where the ground carrying the layer gives
-/// way to another; each stood upright on the ground's top under it. A layer not AllowOnBlocking strews nothing on ground nobody walks
+/// spot strews alike however the block round it is laid - a list doodad that is a set takes its member by the same draw (see
+/// MemberOf); a turn spread over the layer's MaxRotation, half of it either way of the mesh's own, a whole turn where it sets none; a
+/// size between its RandomScale's two, shrunk towards MinEdgeScale where the ground carrying the layer gives way to another; each stood
+/// upright on the ground's top under it - the least z of every template's ground over the place. The list's doodads at their files'
+/// own size and a whole turn, a weight written "All" counted as one. A layer not AllowOnBlocking strews nothing on ground nobody walks
 /// where the area's walkable grid is known - a built room's is not, and strews over all of it - and the list's doodads keep off it too.
+/// A point on the pattern's edge, a coordinate of one (RVL_SwordScatter01 holds five), lies where the next square's nought does and is
+/// laid there; a point the file writes at both is laid twice.
+/// NOT READ: the number on the list's first line - 1 in The Red Vale, 0.25 in Marrow, the Titan Grotto and Traitor's Passage, "0.2 5" in
+/// Port - which poe_data_tools calls a scale with a question mark; taken as a size it would shrink Port's doodads to a fifth.
 /// NOT DRAWN: AllowWaving's sway, the AudioType and a layer's own Seed; a group's extra choices.
 /// </remarks>
 internal sealed class GroundScatter
@@ -60,7 +66,7 @@ internal sealed class GroundScatter
     private readonly GroundPainter _painter;
     private readonly GroundDoodadList _list;
     private readonly string _listPath;
-    private readonly float _listScale;
+    private readonly Dictionary<string, IReadOnlyList<(int Weight, string Ao)>> _sets = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Layer?> _layers = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<int, IReadOnlyList<(Layer Layer, float Share)>> _recipes = [];
     private readonly Dictionary<string, Cell[]> _cells = new(StringComparer.OrdinalIgnoreCase);
@@ -78,7 +84,6 @@ internal sealed class GroundScatter
         _painter = painter;
         _list = list;
         _listPath = listPath;
-        _listScale = float.TryParse(list.First, NumberStyles.Float, CultureInfo.InvariantCulture, out float scale) && scale > 0f ? scale : 1f;
     }
 
     /// <summary>What was strewn, each line where it stands in the room's frame, in the order strewn.</summary>
@@ -206,7 +211,7 @@ internal sealed class GroundScatter
         return string.Create(CultureInfo.InvariantCulture,
             $"ground scatter: {_lines.Count} strewn over {_strewnCells} sub-tiles{(parts.Count > 0 ? " - " + string.Join(", ", parts) : string.Empty)}{left}{unread}")
             + string.Create(CultureInfo.InvariantCulture,
-                $" - a layer's points as a pattern every {Pattern:0} units, its number a tile where it has none, each at its material's share of the group's weights and its ground's share of the corners (DECIDED from the live client), the doodad list {ListPerTile:0} a tile (CHOSEN); turn, size, edge and seed CHOSEN; not drawn: waving");
+                $" - a layer's points as a pattern every {Pattern:0} units, its number a tile where it has none, each at its material's share of the group's weights and its ground's share of the corners (DECIDED from the live client), the doodad list {ListPerTile:0} a tile at its files' own size (CHOSEN; its first line's number not read); turn, size, edge and seed CHOSEN; not drawn: waving");
     }
 
     /// <summary>One layer's meshes over one cell, each place kept by the shares of the grounds carrying the layer there.</summary>
@@ -219,10 +224,11 @@ internal sealed class GroundScatter
             DoodadLayerEntry one = layer.File.Entries[entry];
             if (one.Points.Count > 0)
             {
-                // THE PATTERN every Pattern units of the area's own coordinates, its squares over the cell.
+                // THE PATTERN every Pattern units of the area's own coordinates, its squares over the cell - and one more each side, so a
+                // point on a square's edge (a coordinate of one) is laid in the cell holding it, where the next square's nought lies.
                 Vector2 low = least + offset, high = most + offset;
-                int fromX = (int)MathF.Floor(low.X / Pattern), toX = (int)MathF.Floor((high.X - 0.001f) / Pattern);
-                int fromY = (int)MathF.Floor(low.Y / Pattern), toY = (int)MathF.Floor((high.Y - 0.001f) / Pattern);
+                int fromX = (int)MathF.Floor(low.X / Pattern) - 1, toX = (int)MathF.Floor(high.X / Pattern) + 1;
+                int fromY = (int)MathF.Floor(low.Y / Pattern) - 1, toY = (int)MathF.Floor(high.Y / Pattern) + 1;
                 for (int squareY = fromY; squareY <= toY; squareY++)
                 {
                     for (int squareX = fromX; squareX <= toX; squareX++)
@@ -363,9 +369,64 @@ internal sealed class GroundScatter
                 continue;
             }
 
-            Add(chosen.Ao, new Vector3(inBlock.X, inBlock.Y, z), _listScale, (Unit(hash, 5) - 0.5f) * MathF.Tau, place);
+            Add(MemberOf(chosen.Ao, hash), new Vector3(inBlock.X, inBlock.Y, z), 1f, (Unit(hash, 5) - 0.5f) * MathF.Tau, place);
             _listed++;
         }
+    }
+
+    /// <summary>
+    /// The member a list doodad that is a set draws, by the place's own draw - itself where its file is no set; a member that is a set again
+    /// is chosen from in turn, a few deep.
+    /// </summary>
+    /// <remarks>
+    /// THE SCATTER'S DRAW, NOT THE ROOM'S: RoomModels.Lay picks a set's member by a hash of where the line stands in the room's frame,
+    /// rounded to hundredths, so the same spot under a block laid from another corner - its frame 250 units off, its sums a float's last
+    /// digit off - could draw another member. The draw here is keyed by the cell's corner in the area and the candidate, exactly; the
+    /// member it names is no set, so Lay draws it as it is. A file is asked whether it is a set where its name ends in "set", as Lay asks.
+    /// </remarks>
+    private string MemberOf(string ao, ulong hash)
+    {
+        for (var deep = 0; deep < 4; deep++)
+        {
+            if (!Path.GetFileNameWithoutExtension(ao).EndsWith("set", StringComparison.OrdinalIgnoreCase))
+            {
+                return ao;
+            }
+
+            if (!_sets.TryGetValue(ao, out IReadOnlyList<(int Weight, string Ao)>? members))
+            {
+                members = RoomModels.Members(AnimatedObject.Read(_read(ao.Replace('\\', '/').Trim())));
+                _sets[ao] = members;
+            }
+
+            long total = 0;
+            foreach ((int weight, _) in members)
+            {
+                total += Math.Max(weight, 0);
+            }
+
+            if (total <= 0)
+            {
+                return ao;
+            }
+
+            // THE LAST MEMBER WHERE A FLOAT'S ROUNDING CARRIES THE DRAW PAST THE SUM.
+            double pick = Unit(hash, 6 + deep) * (double)total;
+            string next = members[^1].Ao;
+            foreach ((int weight, string member) in members)
+            {
+                pick -= Math.Max(weight, 0);
+                if (pick < 0)
+                {
+                    next = member;
+                    break;
+                }
+            }
+
+            ao = next;
+        }
+
+        return ao;
     }
 
     /// <summary>The list's group a ground's group's name names - "Default" where none is named so, and null where there is none.</summary>
@@ -488,17 +549,34 @@ internal sealed class GroundScatter
         var cells = new List<Cell>();
         if (gridded)
         {
+            // ONE CELL A SUB-TILE, whatever number of templates lay ground on it: a tile of several templates (Landmark_feature_01's
+            // three) runs one GroundPiece per template at the same sub-tile, and each would strew it again; joined, the place stands on
+            // the top of them all.
             var first = 0;
+            var runs = new Dictionary<(int X, int Y), List<float>>();
+            var order = new List<(int X, int Y)>();
             foreach (GroundPiece piece in pieces)
             {
-                IReadOnlyList<string> corners = definition.CornersOf(piece.X, piece.Y);
                 var least = new Vector2((piece.X - 1) * TileModels.Side, (1 - piece.Y) * TileModels.Side);
-                if (corners.Count == 4)
+                if (!runs.TryGetValue((piece.X, piece.Y), out List<float>? run))
                 {
-                    cells.Add(new Cell(least, least, new Vector2(TileModels.Side), OrdersOf(corners), Triangles(ground, first, piece.Triangles, least), Bilinear: true));
+                    run = [];
+                    runs[(piece.X, piece.Y)] = run;
+                    order.Add((piece.X, piece.Y));
                 }
 
+                run.AddRange(Triangles(ground, first, piece.Triangles, least));
                 first += piece.Triangles;
+            }
+
+            foreach ((int x, int y) in order)
+            {
+                IReadOnlyList<string> corners = definition.CornersOf(x, y);
+                var least = new Vector2((x - 1) * TileModels.Side, (1 - y) * TileModels.Side);
+                if (corners.Count == 4)
+                {
+                    cells.Add(new Cell(least, least, new Vector2(TileModels.Side), OrdersOf(corners), [.. runs[(x, y)]], Bilinear: true));
+                }
             }
 
             return [.. cells];

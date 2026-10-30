@@ -459,10 +459,16 @@ picture: the number is a mesh's count a tile and the points a pattern over two t
 colour's repeat too), laid in the area's own coordinates; a mesh without points strewn its number a tile at random; every layer of a group at
 its material's share of the group's weights (the painted ground staying its heaviest) and its ground's share of the sub-tile's corners,
 bilinear; the doodad list one a tile (CHOSEN, it names no density), from the group named as the ground's group, else "Default"; a layer not
-AllowOnBlocking kept off ground nobody walks where the area's walkable grid is known (a built room's is not). CHOSEN: the seed, a turn within
-MaxRotation either way, a size between RandomScale's two shrunk towards MinEdgeScale where the ground gives way, upright on the ground's top.
-NOT DRAWN: waving, AudioType, a layer's own Seed, a group's extra choices. The strewn lines go to `RoomModels.Lay` last (`strewn`), so the
-doodads slider drops them first. THE WATER BESIDE IT (v0.1.360's capture, the Monster Book at the game's view, its probe on the river by the
+AllowOnBlocking kept off ground nobody walks where the area's walkable grid is known (a built room's is not). CHOSEN: the seed, a turn spread
+over MaxRotation (half of it either way), a size between RandomScale's two shrunk towards MinEdgeScale where the ground gives way, upright on
+the ground's top. NOT DRAWN: waving, AudioType, a layer's own Seed, a group's extra choices. The strewn lines go to `RoomModels.Lay` last
+(`strewn`), so the doodads slider drops them first. v0.1.363 MENDED what an adversarial review of it found and confirmed: a point on the
+pattern's edge (a coordinate of one - five in RVL_SwordScatter01) was laid nowhere, now where the next square's nought lies; a sub-tile two
+templates lay ground on (Landmark_feature_01's three) was strewn once a template, now once on the top of both; whether the walkable grid is
+known was judged from the room's own tiles, so a room over sea or abyss in a read area strewed over it - now from the whole grid
+(`TerrainGrid.AnyWalkable`); a list doodad that is a set drew its member by the room frame's rounded place, now by the scatter's own draw
+(`GroundScatter.MemberOf`); and the list's first number (1 in The Red Vale, 0.25 in Marrow, "0.2 5" in Port), poe_data_tools' "scale?",
+was taken as a size - NOT READ now, the list's doodads at their own size, until its meaning is measured. THE WATER BESIDE IT (v0.1.360's capture, the Monster Book at the game's view, its probe on the river by the
 bridge): the medium as the engine's pass makes it - 0.0204, 0.0001, 0.0000 - 66 units of water to the rock behind, a tenth let through; the
 game's river there red with its bed showing in the shallows, sRGB (35, 14, 14) at the median with green equal to blue (a neutral share over a
 red medium), the pane's (52, 12, 12), the pane's land twice the game's brightness - so the pane's light is not the game's, and the colours

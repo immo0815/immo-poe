@@ -376,6 +376,12 @@ public sealed class TerrainGrid
     public bool IsWalkable(int x, int y) => IsSet(_cells, x, y);
 
     /// <summary>
+    /// True when any cell of the grid can be walked on - false for a grid built with none, a room built from the tileset
+    /// (BuiltRoomModels), whose walkable cells are not known. One vectorised pass over the packed bytes.
+    /// </summary>
+    public bool AnyWalkable => _cells.AsSpan().IndexOfAnyExcept((byte)0) >= 0;
+
+    /// <summary>
     /// True when the projectiles' grid was read beside the walkable one - see <see cref="CanShootOver"/>.
     /// </summary>
     public bool HasShotGrid => _shots is not null;
