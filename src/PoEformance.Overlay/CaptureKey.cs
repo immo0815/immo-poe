@@ -1281,7 +1281,7 @@ internal sealed class CaptureKey
                 {
                     Part(CaptureReport.LightCompareFile, () =>
                     {
-                        string text = CaptureLightCompare.Write(scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers, run.AtGame);
+                        string text = CaptureLightCompare.Write(read, scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers, run.AtGame);
                         File.WriteAllText(At(CaptureReport.LightCompareFile), text);
                         Pictures(pictures);
                         File.WriteAllBytes(At(CaptureLightCompare.Numbers), numbers);
