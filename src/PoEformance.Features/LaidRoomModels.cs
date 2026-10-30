@@ -129,6 +129,33 @@ public static class LaidRoomModels
         bool groundHeights = false)
         => Laid(read, path, grid, x, y, turn, shaded, doodads, tools, fitted, progress, heights, entities, camera, sight, cut, master, maskCells, groundHeights, null);
 
+    /// <summary>
+    /// A block of the area as it laid it, with no room of its own: every piece over <paramref name="size"/> by <paramref name="size"/> tiles from
+    /// (<paramref name="x"/>, <paramref name="y"/>), laid as a laid room lays its pieces, with their ground and their own doodads (.tmd) - see
+    /// AreaBlock.
+    /// </summary>
+    /// <remarks>
+    /// THE ROOMS OF AN AREA ARE OFTEN NOT TO BE FOUND, ITS TILES ALWAYS ARE (v0.1.359, DECIDED from the live client): The Red Vale placed 7 of
+    /// its 187 rooms - its river rooms are one big slot each and name no doodad, so neither the doodads nor the corner search finds them - while
+    /// every tile the area laid is in its terrain with its place and turn. So the block lays the tiles alone: what only a room adds, its own
+    /// doodad lines, zones and boss places, is not there, and the line under the picture says so. The master paints the ground and puts its
+    /// swaps on the tiles as a laid room's does - the area's own, handed in (the rooms' master.tsi beside their Rooms/).
+    /// </remarks>
+    public static MonsterModel Block(
+        Func<string, byte[]?>? read,
+        TerrainGrid? grid,
+        int x,
+        int y,
+        int size,
+        string master,
+        bool shaded = true,
+        int doodads = RoomModels.EveryDoodad,
+        ModelProgress? progress = null,
+        CameraShot? camera = null,
+        bool sight = false)
+        => Laid(read, AreaBlock.Path, grid, x, y, 0, shaded, doodads, tools: false, fitted: false, progress, DoodadHeight.File, entities: null, camera, sight,
+            cut: 0, master ?? string.Empty, maskCells: false, groundHeights: false, shared: null, asBlock: RoomLayout.Block(size, size));
+
     /// <summary>The walk behind <see cref="Of"/>, with a paint cache that may outlive it.</summary>
     /// <param name="shared">A paint cache outliving the build - the stage sweep's, one for every room - or null for one of its own.</param>
     internal static MonsterModel Laid(
@@ -151,7 +178,8 @@ public static class LaidRoomModels
         string master,
         bool maskCells,
         bool groundHeights,
-        MonsterModels.Paints? shared)
+        MonsterModels.Paints? shared,
+        RoomLayout? asBlock = null)
     {
         if (read is null)
         {
@@ -182,7 +210,8 @@ public static class LaidRoomModels
             return got;
         }
 
-        RoomLayout room = RoomLayout.Read(Counted(path));
+        // A BLOCK HAS NO .arm: the area's own tiles over it, and nothing a room would add - see Block.
+        RoomLayout room = asBlock ?? RoomLayout.Read(Counted(path));
         if (!room.Ready)
         {
             return MonsterModel.None with { Why = $"the room did not read: {path} - {room.Why}", Bytes = bytes, Files = files };
@@ -196,7 +225,7 @@ public static class LaidRoomModels
         var made = new Dictionary<int, Made>();
 
         // THE GROUND'S PAINTER, from the area's MaterialsList - the master given, or the one beside the room's Rooms/.
-        string masterFile = master.Length > 0 ? master : GroundPainter.MasterBeside(read, path);
+        string masterFile = master.Length > 0 ? master : asBlock is null ? GroundPainter.MasterBeside(read, path) : string.Empty;
         (GroundPainter? painter, string unpainted) = GroundPainter.For(Counted, masterFile, paints, maskCells, groundHeights);
 
         // AND ITS TILEMATERIALOVERRIDES, on the tiles and the tiles' own doodads - not the room's (DECIDED from the live client,
@@ -384,7 +413,9 @@ public static class LaidRoomModels
 
         var said = new List<string>
         {
-            string.Create(CultureInfo.InvariantCulture, $"laid as the area laid it at tile {x}, {y}, {RoomFinder.Said(turn)}: {laidPieces} pieces of {used.Count} tile files")
+            (asBlock is null
+                ? string.Create(CultureInfo.InvariantCulture, $"laid as the area laid it at tile {x}, {y}, {RoomFinder.Said(turn)}: {laidPieces} pieces of {used.Count} tile files")
+                : string.Create(CultureInfo.InvariantCulture, $"the area round the player as it laid it, {wide} x {tall} tiles from tile {x}, {y} - its tiles and their own doodads, no room's: {laidPieces} pieces of {used.Count} tile files"))
                 + (broken > 0 ? string.Create(CultureInfo.InvariantCulture, $", {broken} not whole and left out") : string.Empty)
                 + (bare > 0 ? string.Create(CultureInfo.InvariantCulture, $", {bare} with nothing to draw") : string.Empty)
                 + (capped > 0 ? string.Create(CultureInfo.InvariantCulture, $", {capped} left out to keep it turnable - the doodads slider raises it") : string.Empty)

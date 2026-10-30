@@ -347,7 +347,7 @@ constant's w), reading the engine's distortion texture (`muddle_double.dds`, the
 `RiverTests` hold both against water.ffx's statements with HLSL's float2x2s. NOT DRAWN: the flow itself, the bubbles and turbulence it
 makes, the refraction's own ground-water ratio. THE FLOW MAP IS SOUGHT: `ocean-markup.txt` now lists every box inside the scene with
 whole corners beside the scene-sized ones ("inner", `ShoreFieldHunt.Inner`) and lays grids at the flow resolutions' multiple 7 too -
-press it in an area with a river (The Riverbank's `arena_crossing_fastflow`, act 1) before the flow is given a rule.
+press it in an area with a river (The Riverbank's `arena_crossing_fastflow`, act 1 - which cannot be revisited, see below) before the flow is given a rule.
 THE RED VALE ANSWERED WHERE, NOT WHAT (v0.1.351's capture, the player on `RedvaleRiver` tiles; schema `WaterPassBlock`). Beside the scene's
 size the processor keeps a block of the water pass's numbers, 25 copies, the same layout as Crimson Shores' - and four boxes in a row where
 common.ffx declares fog_flowmap, guiding_fog, river_flowmap and shoreline_coord_planar_aabb. The Red Vale's river slot holds (-16.30, -16.30)
@@ -385,7 +385,7 @@ them, a reading). The object's first word points at a run whose +0x08 is the riv
 a class anywhere on the way. A static's address is one launch's and the run's order one area's, so before the live read is built,
 v0.1.354 writes every place a chain reads whole, word by word, and finds the program's code reading each static: every [rip + disp32]
 landing on it, the bytes round it and the shortest pattern round it found once in the image - what the schema's statics are found by.
-Press it once more AFTER RESTARTING THE GAME, on The Red Vale's river or another's (The Riverbank, act 1): the pattern and whether the
+Press it once more AFTER RESTARTING THE GAME, on The Red Vale's river or another's (not The Riverbank, which cannot be revisited): the pattern and whether the
 chain holds come from that one capture.
 THE RESTART HELD THE LOWER HOPS (v0.1.353 pressed again after a restart, The Red Vale; every address new): the run holding the river's holder
 at +0x08 and the guiding fog's at +0x10, and the object pointing at it from its +0x00 - but no way home, because the third level's 32 places
@@ -419,6 +419,23 @@ and the 25-step march back up the flow; GetFlowingFoamColor's two nodes; the bub
 Where a drawing carries no map everything is as at no flow, to the bit (`RiverTests`). NOT DRAWN: GetFlowingSurface's march of the view onto
 the moved surface. `river-flow.txt` opens with the live read's own account (`RiverFlowLive.Report`): what the pictures were drawn with, the
 search run again, the cache node by node, the map's box and flow - press it on the river, the stage laid where you stand, if it does not move.
+THE RIVERBANK CANNOT BE REVISITED (said from the live client): it is every character's starting area, left for good at the first town.
+So the second river, which is to say whether the river's field stands second in every area's object (RiverFlowFields), is measured
+elsewhere. Where rivers are, by the second stage sweep (v0.1.348; rooms wearing `FlowingWater` or `NonsplashyFlowingWater`, per master):
+Act 1's 1_5 (The Red Vale, 43 - measured), 1_2 (33), 1_14 (33), 1_13 (30), 1_1 (27) and 1_4 (14); Act 3's 3_10 (57), 3_1 (40), 3_8 (33),
+3_14 (29) and 3_2_2 (22); the interlude's p1_4 (89); the maps Riverhold (78), Rockpools (48), Rupture (42), Hidden Grotto (42), Bluff (31),
+Cenotes (29), Vaal City (26), Deforestation (26), Riverside (24), Woodland (24) and Wetlands (23). A room's material is not a flow map:
+the area's own `river-flow.txt` says whether the engine made one and where it stands.
+NO STAGE WAS TO BE HAD ON THE RED VALE'S RIVER (said from the live client with three pictures, v0.1.357): its river rooms (`curve5` and
+its kin) are one big slot each and name no doodad, so neither the doodads nor the corner search places them - the Tile Book placed 7 of
+the area's 187 rooms, none of them the river - and the Monster Book offers laid rooms named for an arena alone. Every tile the area laid
+is known with its place and turn, so from v0.1.359 both books offer THE AREA ROUND YOU (`AreaBlock`, `LaidRoomModels.Block`, `AroundYou`;
+DECIDED from the live client): the block of tiles round the player's tile laid as a laid room lays its pieces - their ground and their
+own `.tmd` doodads, no room's lines, zones or boss places - its side a slider shared by both books, 3 to 25 tiles, 9 the usual (CHOSEN
+from the live client, the settings' `aroundSize`), the picture's origin the block's corner in the area, so the river's flow map is drawn
+on it. The Tile Book's "around you" button shows it in place of a row until another is chosen; the Monster Book lists it as a stage.
+The ground is painted by the master beside the area's rooms that names the most of the block's ground types (`AreaBlock.MastersOf`,
+`CaptureGroundScreen.MasterOf`), the line under the picture saying which.
 
 ## Verify against the game, not against yourself
 

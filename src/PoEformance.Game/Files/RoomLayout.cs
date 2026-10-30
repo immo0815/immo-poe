@@ -280,6 +280,12 @@ public sealed class RoomLayout
     /// <summary>Nothing read.</summary>
     public static RoomLayout None { get; } = new() { Why = "nothing to read" };
 
+    /// <summary>
+    /// A block of an area with no room of its own: <paramref name="width"/> by <paramref name="height"/> tiles, no doodads, slots, zones or
+    /// points - what a block laid from the area's own tiles alone is laid as (LaidRoomModels' block, "around you").
+    /// </summary>
+    public static RoomLayout Block(int width, int height) => new() { Width = Math.Max(1, width), Height = Math.Max(1, height) };
+
     /// <summary>The file's version.</summary>
     public int Version { get; private init; }
 
