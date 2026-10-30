@@ -160,6 +160,14 @@ gestures: left drag turns about the focus, right drag pans, the wheel stretches 
 (`MeshPicture.Pick`, a ray through every triangle on every core), a double click looks at the point under it from where the eye
 stands (`LookingAt`), W/S A/D Q/E fly eye and focus together while the pointer is over the picture, shift + left drag the sun.
 A capture's `model-panes.txt` writes the pose and what it comes to (`CapturePanes.Camera`).
+THE GAME VIEW LOOKS AT A STAGED MONSTER AS THE GAME'S CAMERA LOOKS AT THE PLAYER (v0.1.373; said from the live client: "when I click game
+view the monster is not at the right coordinates but always a few metres off"). Two causes: the area round you stood the monster at its
+block's middle, 75 units from the player in The Red Vale's capture of v0.1.372 - now where the player stood when the block was taken (the
+key's `stood=` word, `AreaBlock.Stood`, which the stage's cache leaves out - `AreaBlock.Unstood` - so taking it again inside the block moves
+him and lays no tile again); and the button turned about whatever the pane looked at. MEASURED over 20 captures in 5 areas, each from
+capture.txt's camera matrix and player line: the game's camera looks at the ground (-37 to -41, -34 to -39) units from the player's feet in
+x and y, median (-38.2, -37.7) - about 54 towards the camera - from 2,150 to 2,166 units off it; so the button looks at a staged monster's
+feet that much ahead (`CameraPose.GameAhead`, `AsTheGameAt`), the eye within a hundredth of the distance of the game's in every capture held.
 
 PERSPECTIVE REACHES EVERY PLACE THE PARALLEL VIEW WAS ASSUMED, and each keeps the parallel arithmetic to the bit:
 - The processor (`MeshPicture.Drawing.Edged`) finds each pixel's weights as the point its ray meets - `r · (v1 × v2)` and its
@@ -254,7 +262,8 @@ read from the capture, v0.1.344 mends them:
   placement of this room). Over eleven captures the old search split pieces in up to 412 of 624 blocks (Titan Grotto; Port 221 of 403),
   the new in none - every laid room whose block starts inside a piece had holes or shifted tiles.
 - THE MASTER'S TileMaterialOverrides (`material_overrides.tmo`) reached a lone tile only: a laid or built room now puts them on its tiles
-  (`TileModels.Apart`) and on the tiles' own `.tmd` doodads (`MonsterModels.Swapped`), the room's own doodads as they are (DECIDED from
+  (`TileModels.Apart`) and on the tiles' own `.tmd` doodads (`MonsterModels.Swapped`) - the room's own lines too from v0.1.373 (see THE
+  SCATTER WEARS THE MASTER'S SWAPS below) - the room's own doodads as they were (DECIDED from
   the live client: the file names `CorruptionGradientc.mat`, the tendrils of a tile's `.tmd`). Crimson Shores' swaps its rocky edges and
   stromatolites to the dark Vastiri ones and the tendrils to the mask nothing draws. PORT'S SEA WENT WITH IT (said from the live client
   with a picture, v0.1.348: no water, a pale floor): Port's own list swaps `nvidian_Ocean.mat` for `Water01c_water1.mat` -
@@ -528,10 +537,11 @@ stage threw the shadows the other way too, unremarked. `LightHunt` looks for bot
 box's frame and saying the axes stand in a row (`THESHADOWBoxsTwoAxesAreToldApartAndTheLightIsTaken`).
 THE SCATTER WEARS THE MASTER'S SWAPS (v0.1.368, CHOSEN): The Red Vale's TileMaterialOverrides swap the ferns its JungleFoliageA_Redvale layer strews
 (JGD_JungleFoliage01c) for the dry RVL_JungleFoliage01c, and its swords' SkeletonSwords01c likewise - 2,470 of the 3,212 lines its v0.1.365 capture
-laid round the player wore a swapped material unswapped. The room's own lines stay as they are (DECIDED earlier from the live client) - The Red Vale's
-BRDgrass lines among them, BRD_MarshGrass02c, ten lines.
+laid round the player wore a swapped material unswapped. The room's own lines stayed as they were until v0.1.373 - The Red Vale's BRDgrass lines
+among them, BRD_MarshGrass02c, ten lines; from v0.1.373 THEY AND OTHER ROOMS' OWN LINES IN A BLOCK WEAR THE SWAPS TOO (DECIDED from the live
+client, 2026-10-30: "the room's own doodad lines wear the master's material swaps as well").
 STILL OPEN, from the same pictures: the shade measured 2.6 times the game's in The Red Vale (more sunlit ground under the old sun accounts for part -
-measure again on v0.1.368); a neutral or blue share the pane lacks in both maps; the ambient's occlusion (indirect_color.a) and the GI, neither drawn;
+measure again on v0.1.368 - MEASURED on v0.1.372: the shade is the game's now, see THEIR FIRST CAPTURE below); a neutral or blue share the pane lacks in both maps; the ambient's occlusion (indirect_color.a) and the GI, neither drawn;
 and the tree crowns' square shadows - a lead, not a cause: the woods' templates carry canopy cards whose materials are shadow-only
 (JungleCanopyc and canopytestc on ForceAlphaTestWithShadowOnly.fxgraph, black_shadowonlyc on OpaqueShadowOnly), and a mode naming "shadowonly"
 casts whole triangles here, its texture unread. The shadow-casters part below measures it in one press (v0.1.369) - read it before any rule
@@ -572,6 +582,39 @@ light (built as "game light" would build it, ticked or not - SceneLightPanel.Mea
   no stage laid in this instance the shadow part takes a stage with ground (`CaptureShadowCasters.Fallback`), not a lone monster. The
   drawing through the game's camera runs as the first waiting part's step, so the capture's window says what it draws, and a drawing that
   fails is filed as failed, not as not written.
+THEIR FIRST CAPTURE (v0.1.372, The Red Vale, the Monster Book on the area round you at 25 tiles, the player in a clearing among the trees) -
+MEASURED, every number from light-against-game.txt and its .bin worked offline:
+- THE SUN IS THE GAME'S NOW. Per material the game's own sun over its own shade (Otsu on its light over the pane's albedo) is the pane's
+  within a tenth - the ground 7.8 against 7.3, the jungle foliage 8.0 against 8.6 - and in the pane's shade the game is the pane's, 1.06 at
+  the median, where the old sun had measured the shade 2.6 times too bright. The shadows' bands fall the same way in both pictures.
+- WHERE THE PANE LIGHTS THE GROUND THE GAME IS DARK: in the pane's sun the game is 0.245 of the pane. Block by block (16 gathered pixels,
+  the ground beyond 500 units of the player) the pane's lit blocks stand 13 times its shaded ones, the game's 2.2 times; of the ground the
+  pane lights the game shades two thirds. The area's .env sets CLOUDS - clouds_intensity 0.9, midpoint 0.55, sharpness 0.75, scale 0.8,
+  speed 30, angle 2.94, the fade radius the engine's 800 (schema `ParsedEnvironment`) - which the tool draws nowhere; the game's picture
+  is a bright clearing round the player inside dark ground. Where the engine lays the clouds over the sun is in no captured source:
+  common.ffx declares their uniforms, lighting.ffx reads the sun's shadow from a screen-space map a pass makes - `light-extras.txt`
+  (v0.1.373) gathers what applies them before they are drawn.
+- THE GAME IS GREYER: its chroma 0.39 of the pane's, its shade nearly neutral (0.349 0.314 0.337 against the pane's orange 0.368 0.341
+  0.291), and game = s pane + n leaves a grey of a third of the game's mean. A lead: the .env's SCREEN-SPACE FOG (ssf_color 0.139 0.109
+  0.119, alpha 0.1, 5 layers, disperse radius 1,300), drawn by graphs reading effects.ffx's SSF fragments - gathered by the same part.
+- THE PLAYER'S LAMP is stronger in the game: within 400 units across of the player the game in the pane's shade is 2.4 to 2.9 times the pane.
+- THE GAME HIDES ROOF SECTIONS IN FRONT OF THE PLAYER (said from the live client: the engine keeps big objects from standing in front of the
+  camera and blocking the view). A material whose .mat says `"roofsection": true` - the OFO_BlackForestTrees01*_fadec trunks and
+  RoofFade_JungleTreeBranches01c, not the plain OFO_BlackForestTrees01Ac or Dc - is a roof section; of the twelve such shapes the pane drew,
+  the two the game left out (11 and 2.5 times brighter there: what lies behind) stood nearer the camera than the player and within 85 gathered
+  pixels of him on the screen; one as near on the screen but at the player's own depth, and every one farther off, the game drew. A reading,
+  one capture: a cylinder from the eye to the player some 180 units round. light-against-game.txt leaves roof sections out and reports them
+  apart from v0.1.373.
+- THE CANOPY: JungleCanopyc and canopytestc (ShadowOnlyAlphaTest) cast 432,000 of the ground's 949,000 shadowed texels as drawn and keep 98%
+  of them cut by their alpha - the cards overlap; black_shadowonlyc (OpaqueShadowOnly) casts 64,000, 15 of its 392 pieces square-like. The
+  game's light where a cut takes the shadow away, judged over 1,200 pixels: t 0.33 - too few, and the clouds darken the lit reference too.
+- SO v0.1.373 GATHERS AND MEASURES BEFORE ANY OF IT IS BUILT: `light-extras.txt` (`CaptureLightExtras`, Area files) writes every
+  environment's clouds, screen-space fog and player-light keys, every shader source and graph naming the clouds, the fog, the screen-space
+  shadow, roof sections, the see-through fade or the player light, whole, the program's strings and the textures they name, and the
+  roof-section materials the panes wear (`MaterialFile.RoofSection`); `light-against-game.txt` leaves roof sections out and sets them apart
+  by the distance to the player, holds the ground block by block (`light-against-game-blocks.png`: the pane's sun share against the game's
+  light over the albedo), and works out the gain the game asks of the player's lamp in the pane's shade. Press both in The Red Vale, the
+  Monster Book on the area round you, before the clouds, the fog, the roof fade or the lamp is given a rule.
 
 ## Verify against the game, not against yourself
 
