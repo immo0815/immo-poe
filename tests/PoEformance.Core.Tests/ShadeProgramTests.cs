@@ -611,7 +611,8 @@ public class ShadeProgramTests
 
     /// <summary>
     /// The Port tiles' painted wall compiles: TwoMaterialVertexBlend paints the colour, the material
-    /// blend after it reads that colour, and only the height graph is left out.
+    /// blend after it reads that colour, and the height graph multiplies it by a texture read at the
+    /// mesh's own coordinates - InputVertexUV at VertexInit, left out until the vertex stages were run (v0.1.367).
     /// </summary>
     [Fact]
     public void THEPORTWALLSPAINTEDMATERIALCOMPILES()
@@ -623,10 +624,11 @@ public class ShadeProgramTests
             [
                 "Metadata/Materials/Environment/TwoMaterialVertexBlend.fxgraph",
                 "Metadata/Materials/Environment/MaterialBlends/MaterialBlend_2ndMaterialUV.fxgraph",
+                "Metadata/Effects/Graphs/General/MultiplyTexHeight.fxgraph",
                 "Metadata/Materials/BentNormals_fromTBN.fxgraph",
             ],
             compiled.Program.Graphs);
-        Assert.Equal(["InputVertexUV in MultiplyTexHeight"], compiled.Skipped);
+        Assert.Empty(compiled.Skipped);
         Assert.True(compiled.Program.UsesVertexColour);
     }
 
@@ -2188,6 +2190,110 @@ public class ShadeProgramTests
     {
         float encoded = linear <= 0.0031308f ? linear * 12.92f : (1.055f * MathF.Pow(linear, 1f / 2.4f)) - 0.055f;
         return (byte)Math.Clamp((int)MathF.Round(encoded * 255f), 0, 255);
+    }
+
+    /// <summary>
+    /// The vertex side's coordinates are run in the engine's table's order (v0.1.367): ScaleMoveUV's write of VertexUV at
+    /// WorldTransform reaches the pixel's coordinates at PixelInit, an InputVertexUV read at VertexInit sees the mesh's own, and
+    /// FromVertexUV the vertex side's last - the mesh's (0.5, 0.5) halved and quartered.
+    /// </summary>
+    [Fact]
+    public void THEVERTEXSIDESCoordinatesReachThePixelInTheTablesOrder()
+    {
+        const string Tiling =
+            """
+            {"nodes":[
+              {"type":"InputVertexUV","index":0,"stage":"WorldTransform"},
+              {"type":"ConstantVertex2","index":0,"parameters":[{"value":[0.5,0.25]}]},
+              {"type":"Multiply2","index":0},
+              {"type":"VertexUV","index":0,"stage":"WorldTransform"}],
+             "links":[
+              {"src":{"type":"InputVertexUV","index":0,"stage":"WorldTransform","variable":"output"},"dst":{"type":"Multiply2","index":0,"variable":"a"}},
+              {"src":{"type":"ConstantVertex2","index":0,"variable":"output"},"dst":{"type":"Multiply2","index":0,"variable":"b"}},
+              {"src":{"type":"Multiply2","index":0,"variable":"output"},"dst":{"type":"VertexUV","index":0,"stage":"WorldTransform","variable":"input"}}]}
+            """;
+
+        // THE READER FIRST IN THE CHAIN, the tiling after it: the stages, not the chain, order them.
+        foreach ((string reader, string stage, float u, float v) in new[]
+        {
+            ("InputUV", "Texturing_Init", 0.25f, 0.125f),
+            ("InputVertexUV", "VertexInit", 0.5f, 0.5f),
+            ("FromVertexUV", string.Empty, 0.25f, 0.125f),
+        })
+        {
+            string at = stage.Length > 0 ? $$$""","stage":"{{{stage}}}" """.TrimEnd() : string.Empty;
+            string colouring = Colouring(
+                $$$"""
+                  {"type":"{{{reader}}}","index":0{{{at}}}},
+                  {"type":"Float2ToCoords","index":0},
+                  {"type":"Zero","index":0},
+                  {"type":"CoordsToFloat3","index":0}
+                """,
+                $$$"""
+                  {"src":{"type":"{{{reader}}}","index":0{{{at}}},"variable":"output"},"dst":{"type":"Float2ToCoords","index":0,"variable":"input"}},
+                  {"src":{"type":"Float2ToCoords","index":0,"variable":"x"},"dst":{"type":"CoordsToFloat3","index":0,"variable":"x"}},
+                  {"src":{"type":"Float2ToCoords","index":0,"variable":"y"},"dst":{"type":"CoordsToFloat3","index":0,"variable":"y"}},
+                  {"src":{"type":"Zero","index":0,"variable":"output"},"dst":{"type":"CoordsToFloat3","index":0,"variable":"z"}}
+                """,
+                "CoordsToFloat3",
+                "output");
+            ShadeProgram program = Bound(Checked(ShadeProgram.Compile([(Instance(), Graph(colouring)), (Instance(), Graph(Tiling))])), []);
+            AssertClose(
+                MeshPicture.Of(Quad(), 64, skins: [Sheet(Srgb(u), Srgb(v), Srgb(0f))]),
+                MeshPicture.Of(Quad(), 64, shades: [program]));
+        }
+    }
+
+    /// <summary>
+    /// FresnelFactor as effects.ffx writes it - <c>lerp(zero, 1, pow(saturate(1 - dot(normalize(camera - world_pos), world_normal)), 5))</c>,
+    /// clamped a hair inside nought and one - drawn against the same sum made of the engine's own nodes (ViewDir is
+    /// -normalize(camera - world_pos)), pixel by pixel, wherever the camera stands.
+    /// </summary>
+    [Fact]
+    public void FRESNELFACTORIsTheEnginesRimTerm()
+    {
+        const string Inputs =
+            """
+              {"type":"InputWorldPos","index":0,"stage":"Texturing_Init"},
+              {"type":"InputWorldNormal","index":0,"stage":"Texturing_Init"},
+            """;
+        string fresnel = Colouring(
+            Inputs + """{"type":"FresnelFactor","index":0,"parameters":[{"value":0.25}]}""",
+            """
+              {"src":{"type":"InputWorldPos","index":0,"stage":"Texturing_Init","variable":"output"},"dst":{"type":"FresnelFactor","index":0,"variable":"world_pos"}},
+              {"src":{"type":"InputWorldNormal","index":0,"stage":"Texturing_Init","variable":"output"},"dst":{"type":"FresnelFactor","index":0,"variable":"world_normal"}}
+            """,
+            "FresnelFactor",
+            "fresnel_factor");
+        string summed = Colouring(
+            Inputs + """
+              {"type":"ViewDir","index":0},
+              {"type":"DotProduct3","index":0},
+              {"type":"One","index":0},
+              {"type":"Add","index":0},
+              {"type":"Saturate","index":0},
+              {"type":"ConstantFloat","index":0,"parameters":[{"value":5.0}]},
+              {"type":"Power","index":0},
+              {"type":"ConstantFloat","index":1,"parameters":[{"value":0.25}]},
+              {"type":"Lerp","index":0}
+            """,
+            """
+              {"src":{"type":"ViewDir","index":0,"variable":"output"},"dst":{"type":"DotProduct3","index":0,"variable":"a"}},
+              {"src":{"type":"InputWorldNormal","index":0,"stage":"Texturing_Init","variable":"output"},"dst":{"type":"DotProduct3","index":0,"variable":"b"}},
+              {"src":{"type":"DotProduct3","index":0,"variable":"output"},"dst":{"type":"Add","index":0,"variable":"a"}},
+              {"src":{"type":"One","index":0,"variable":"output"},"dst":{"type":"Add","index":0,"variable":"b"}},
+              {"src":{"type":"Add","index":0,"variable":"output"},"dst":{"type":"Saturate","index":0,"variable":"input"}},
+              {"src":{"type":"Saturate","index":0,"variable":"output"},"dst":{"type":"Power","index":0,"variable":"base"}},
+              {"src":{"type":"ConstantFloat","index":0,"variable":"output"},"dst":{"type":"Power","index":0,"variable":"exp"}},
+              {"src":{"type":"ConstantFloat","index":1,"variable":"output"},"dst":{"type":"Lerp","index":0,"variable":"a"}},
+              {"src":{"type":"One","index":0,"variable":"output"},"dst":{"type":"Lerp","index":0,"variable":"b"}},
+              {"src":{"type":"Power","index":0,"variable":"output"},"dst":{"type":"Lerp","index":0,"variable":"alpha"}}
+            """,
+            "Lerp",
+            "output");
+        AssertClose(
+            MeshPicture.Of(Quad(), 64, shades: [Bound(Compile(summed), [])]),
+            MeshPicture.Of(Quad(), 64, shades: [Bound(Compile(fresnel), [])]));
     }
 
     [Fact]

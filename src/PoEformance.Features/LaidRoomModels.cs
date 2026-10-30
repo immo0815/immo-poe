@@ -468,7 +468,7 @@ public static class LaidRoomModels
         {
             int swappedTiles = used.Count(id => made.TryGetValue(id, out Made? one) && one.Props.Swapped > 0);
             said.Add(string.Create(CultureInfo.InvariantCulture,
-                $"materials: the master's TileMaterialOverrides ({swaps.Count} swaps) put on {swappedTiles} of the {used.Count} tile files and {laid.SwappedFiles} of the tiles' doodad files, the room's own doodads as they are - DECIDED from the live client"));
+                $"materials: the master's TileMaterialOverrides ({swaps.Count} swaps) put on {swappedTiles} of the {used.Count} tile files and {laid.SwappedFiles} of the doodad files of the tiles and the ground's scatter, the room's own doodads as they are - DECIDED from the live client (the scatter's chosen, v0.1.368)"));
         }
 
         said.Add(painter?.Said() ?? "ground: plain - " + unpainted);

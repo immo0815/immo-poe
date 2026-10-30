@@ -287,25 +287,9 @@ public sealed class LightHunt
             }
 
             sun = sunFound.Count == 1 ? sunFound[0] : null;
-
-            // BOTH WAYS ROUND, SIDE BY SIDE, is how AzmerianRanges held it: each copy of a reading's
-            // vector had its negative sixteen bytes on. Which of the two is the light's way is then
-            // settled by the ground: the sun of a sunlit area stands above it, so its light travels
-            // down - plus z, the game's up being minus z.
-            if (sunFound.Count == 2 && Math.Abs(sunFound[0] - sunFound[1]) == 4 && env.Phi is { } phi && env.Theta is { } theta)
+            if (env.Phi is { } phi && env.Theta is { } theta)
             {
-                int first = _entries.FindIndex(one => one.What == What.Sun && one.Reading == sunFound[0]);
-                int second = _entries.FindIndex(one => one.What == What.Sun && one.Reading == sunFound[1]);
-                int beside = found[first].Count(place => found[second].Exists(other => Math.Abs((long)other - (long)place) == 16));
-                int[] lighting = [.. sunFound.Where(one => SceneLight.SunFrom(phi, theta, (SceneLight.SunReading)one).Z > 0f)];
-                report.Append(CultureInfo.InvariantCulture,
-                    $"  the two are each other's negatives, {beside} of {found[first].Count} copies side by side, sixteen bytes apart").AppendLine();
-                if (lighting.Length == 1)
-                {
-                    sun = lighting[0];
-                    report.Append(CultureInfo.InvariantCulture,
-                        $"  {_sunName(lighting[0])} is the one whose sun stands above the ground - its light travels down, plus z - so it is the light's way").AppendLine();
-                }
+                sun = Paired(report, found, sunFound, phi, theta) ?? sun;
             }
 
             if (sun is { } settled)
@@ -426,7 +410,7 @@ public sealed class LightHunt
         string sunSaid = !_entries.Exists(one => one.What == What.Sun) ? "no sun angles"
             : sun is { } s ? $"sun: {_sunName(s)}"
             : sunFound.Count == 0 ? "sun: no reading's vector found"
-            : sunFound.Count == 2 && Math.Abs(sunFound[0] - sunFound[1]) == 4 ? $"sun: both {_sunName(sunFound[0])} and {_sunName(sunFound[1])} - the game keeps the vector both ways"
+            : sunFound.Count == 2 && sunFound[1] == (int)SceneLight.Twin((SceneLight.SunReading)sunFound[0]) ? $"sun: both {_sunName(sunFound[0])} and {_sunName(sunFound[1])} - the game keeps the vector both ways"
             : $"sun: {sunFound.Count} readings found - {string.Join(", ", sunFound.Select(one => one + 1))}";
         string cubeSaid = !_entries.Exists(one => one.What == What.Cube) ? "no cube turn"
             : cube is { } c ? $"cube: reading {c + 1}{(_sameCube.ContainsValue(c) ? " (or one that is the same for these angles)" : string.Empty)}"
@@ -441,6 +425,81 @@ public sealed class LightHunt
 
         Costs(report, result);
         return new LightHuntVerdict(report.ToString(), summary, sun, cube);
+    }
+
+    /// <summary>
+    /// Which of the sun readings found is the light's way where they come in pairs, each with its negative - said in the report; null where the pairs do not settle it.
+    /// </summary>
+    /// <remarks>
+    /// BOTH WAYS ROUND, SIDE BY SIDE, is how the game keeps them: every copy of a reading's vector with its
+    /// negative sixteen bytes on - a face of the shadow box and the face opposite. Which of a pair is the
+    /// light's way is settled by the ground: the sun of a sunlit area stands above it, so its light
+    /// travels down - plus z, the game's up being minus z.
+    ///
+    /// SEVERAL PAIRS ARE SEVERAL AXES OF ONE BOX: Necropolis held the light's 0x20 after the light view's
+    /// up, and Azmerian Ranges had only the up to find while the light was none of the readings. The box
+    /// does not say which axis is the light - the game's pictures did (<see cref="SceneLight.GameSun"/>) -
+    /// so only the pair the picture draws by is taken, and any other named as the box's frame.
+    /// </remarks>
+    private int? Paired(StringBuilder report, List<ulong>[] found, List<int> sunFound, float phi, float theta)
+    {
+        List<int> pairs = [.. sunFound.Where(one => one < (int)SceneLight.Twin((SceneLight.SunReading)one)
+            && sunFound.Contains((int)SceneLight.Twin((SceneLight.SunReading)one)))];
+        if (pairs.Count == 0)
+        {
+            return null;
+        }
+
+        int? taken = null;
+        foreach (int one in pairs)
+        {
+            int twin = (int)SceneLight.Twin((SceneLight.SunReading)one);
+            List<ulong> first = SunPlaces(found, one), second = SunPlaces(found, twin);
+            int beside = first.Count(place => second.Exists(other => Math.Abs((long)other - (long)place) == 16));
+            report.Append(CultureInfo.InvariantCulture,
+                $"  {_sunName(one)} and {_sunName(twin)} are each other's negatives, {beside} of {first.Count} copies side by side, sixteen bytes apart").AppendLine();
+            int? lighting = SceneLight.SunFrom(phi, theta, (SceneLight.SunReading)one).Z > 0f ? one
+                : SceneLight.SunFrom(phi, theta, (SceneLight.SunReading)twin).Z > 0f ? twin
+                : null;
+            if (lighting is { } down)
+            {
+                report.Append(CultureInfo.InvariantCulture,
+                    $"  {_sunName(down)} is the one whose sun stands above the ground - its light travels down, plus z").AppendLine();
+                if (one == (int)SceneLight.GameSun || twin == (int)SceneLight.GameSun)
+                {
+                    taken = down;
+                }
+            }
+        }
+
+        // TWO AXES OF ONE BOX keep their planes in a row, 0x20 apart - each a normal and a distance, and its negative.
+        for (var a = 0; a < pairs.Count; a++)
+        {
+            for (int b = a + 1; b < pairs.Count; b++)
+            {
+                List<ulong> those = [.. SunPlaces(found, pairs[b]), .. SunPlaces(found, (int)SceneLight.Twin((SceneLight.SunReading)pairs[b]))];
+                List<ulong> these = SunPlaces(found, pairs[a]);
+                int row = these.Count(place => those.Exists(other => Math.Abs((long)other - (long)place) is 0x20 or 0x10 or 0x30));
+                report.Append(CultureInfo.InvariantCulture,
+                    $"  {_sunName(pairs[a])} and {_sunName(pairs[b])}'s pair stand in a row, 0x20 apart, in {row} of {these.Count} copies - two axes of the shadow box").AppendLine();
+            }
+        }
+
+        // ONLY THE LIGHT'S AXIS IS TAKEN: a lone pair of another reading is the box's frame - Azmerian Ranges' up, taken for the
+        // light until v0.1.368 - and the light's own copies may lie past what was searched.
+        report.AppendLine(taken is { } light
+            ? pairs.Count > 1
+                ? string.Create(CultureInfo.InvariantCulture, $"  of the {pairs.Count} pairs, {_sunName(light)}'s is the light's axis: the box keeps several, and the game's pictures, not its memory, said which one is the light; the others are its frame")
+                : $"  so {_sunName(light)} is the light's way"
+            : $"  none of the pairs is the reading the picture draws the sun by ({_sunName((int)SceneLight.GameSun)}): each is an axis of the shadow box, not its light, which may lie past what was searched - none is taken");
+        return taken;
+    }
+
+    /// <summary>The places a sun reading's vector was found.</summary>
+    private List<ulong> SunPlaces(List<ulong>[] found, int reading)
+    {
+        int at = _entries.FindIndex(one => one.What == What.Sun && one.Reading == reading);
+        return at >= 0 ? found[at] : [];
     }
 
     /// <summary>

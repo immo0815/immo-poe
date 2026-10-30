@@ -224,7 +224,8 @@ public class GraphSurveyTests
         Assert.True(ShadeProgram.Knows("Noise31"));
         Assert.False(ShadeProgram.Knows("BreachMinSphereDist"));
         Assert.True(ShadeProgram.Knows("InputVertexColor"));
-        Assert.False(ShadeProgram.Knows("InputVertexUV"));
+        Assert.True(ShadeProgram.Knows("InputVertexUV"));
+        Assert.True(ShadeProgram.Knows("FromVertexUV"));
         Assert.True(ShadeProgram.Knows("FromVertexLocalPosition"));
         Assert.True(ShadeProgram.Knows("LookUpTexture"));
         Assert.True(ShadeProgram.Knows("SampleTriplanar"));

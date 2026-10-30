@@ -130,6 +130,7 @@ public sealed class SceneLight
         if (player is { } lamp && Of(lamp.Position, lamp.Colour, lamp.Radius, 0f) is { } own)
         {
             lights.Add(own);
+            PlayerIndex = lights.Count - 1;
         }
 
         _lights = [.. lights];
@@ -249,7 +250,23 @@ public sealed class SceneLight
 
         /// <summary>As <see cref="ElevationPhi"/>, the vector the way the light travels.</summary>
         ElevationPhiFalling,
+
+        /// <summary>Phi from straight down - the game's plus z - theta round it from x; the vector points at the sun.</summary>
+        /// <remarks>Appended, so the readings before it keep the numbers earlier captures name them by.</remarks>
+        PolarPhiDown,
+
+        /// <summary>As <see cref="PolarPhiDown"/>, the vector the way the light travels.</summary>
+        PolarPhiDownFalling,
     }
+
+    /// <summary>The reading whose vector is this one's negative - the same angles read the other way round.</summary>
+    public static SunReading Twin(SunReading reading) => reading switch
+    {
+        SunReading.PolarPhiDown => SunReading.PolarPhiDownFalling,
+        SunReading.PolarPhiDownFalling => SunReading.PolarPhiDown,
+        < SunReading.PolarThetaFalling => reading + 4,
+        _ => reading - 4,
+    };
 
     /// <summary>How vert_angle tips env_map_rotation - candidate readings; the turn by hor_angle is the game's own, see <see cref="CubeTurnFrom"/>.</summary>
     public enum CubeReading
@@ -336,6 +353,34 @@ public sealed class SceneLight
 
     /// <summary>How many point lights are drawn, the player's included.</summary>
     public int PointCount { get; }
+
+    /// <summary>Which of <see cref="Points"/> is the player's lamp - the last - or -1 where none is drawn.</summary>
+    public int PlayerIndex { get; } = -1;
+
+    /// <summary>
+    /// One pixel's light term by term, as <see cref="Shade(Vector3, Vector3, Vector3, Vector3, float, bool, Vector3, float, Vector3, float, out LightTerms)"/>
+    /// worked it out - each diffuse term already times the albedo, linear, before the exposure.
+    /// </summary>
+    /// <param name="Albedo">The surface's colour, linear, as lit.</param>
+    /// <param name="Sun">How much of the sun reached it, nought to one - nought where the light has no sun.</param>
+    /// <param name="SunFacing">How squarely it faces the sun, its normal's dot with the way to it - nought where it faces away or there is no sun.</param>
+    /// <param name="SunDiffuse">The sun's diffuse light.</param>
+    /// <param name="RoomDiffuse">The room's point lights' diffuse light, the player's left out.</param>
+    /// <param name="PlayerDiffuse">The player's lamp's diffuse light.</param>
+    /// <param name="Cube">The diffuse cube's share of the ambient.</param>
+    /// <param name="GiStandIn">The flat light standing for the share GI owns - gi_env_occlusion of the flat ambient.</param>
+    /// <param name="Flat">The flat ambient where the cube is not lit with - the flat ambient, or the cube's missing.</param>
+    /// <param name="Lobes">Every light's specular lobe, the glints on the waves among them.</param>
+    /// <param name="EnvironmentSpecular">The uniform environment's specular of a glossy material.</param>
+    /// <param name="WavesReflection">The environment along the waves' reflection.</param>
+    /// <param name="Unexposed">All of it, before the exposure.</param>
+    /// <param name="Exposure">The exposure it was multiplied by.</param>
+    /// <param name="Exposed">After the exposure.</param>
+    /// <param name="Graded">After the grade - what Shade returns.</param>
+    public readonly record struct LightTerms(
+        Vector3 Albedo, float Sun, float SunFacing, Vector3 SunDiffuse, Vector3 RoomDiffuse, Vector3 PlayerDiffuse, Vector3 Cube,
+        Vector3 GiStandIn, Vector3 Flat, Vector3 Lobes, Vector3 EnvironmentSpecular, Vector3 WavesReflection, Vector3 Unexposed,
+        float Exposure, Vector3 Exposed, Vector3 Graded);
 
     /// <summary>The point lights as <see cref="Shade"/> works with them, the player's included - for a drawing that lights elsewhere, the graphics card's.</summary>
     public ReadOnlySpan<Point> Points => _lights;
@@ -518,23 +563,30 @@ public sealed class SceneLight
     public int ShadowSide { get; init; } = ShadowMap.Usual;
 
     /// <summary>
-    /// The reading the game uses: phi is the sun's height above the ground, theta its bearing round from x, and the vector they make points at the sun.
+    /// The reading the game uses: phi measured from straight down - the game's plus z - theta its bearing round from x, and the vector they make points at the sun.
     /// </summary>
     /// <remarks>
-    /// FOUND IN THE GAME'S MEMORY, not chosen (LightHunt, AzmerianRanges, phi 2.33874 theta 2.32128):
-    /// of the eight readings' vectors only this one's and its negative were there, nine copies each,
-    /// every copy of one with the other sixteen bytes on. The bytes round them say what they are: the
-    /// shadow cascades' boxes along the light, each face a plane - a normal and a distance - and the
-    /// opposite face its negative, beside the camera frustum's eight corners and its planes. That
-    /// settles the light's axis - which angle is the height and which the bearing - and the ground
-    /// settles its sign, which a box's two faces cannot: of the two, only this reading puts the sun
-    /// above the ground (its light travels plus z, the game's up being minus z), and the area is lit
-    /// by a sun. The other would light nothing but undersides.
+    /// THE LIGHT IS THE SHADOW BOX'S THIRD AXIS (v0.1.368, MEASURED). Necropolis's memory (cap1's
+    /// light-hunt, phi 2.07694 theta 2.70526) holds three pairs of planes sixteen bytes apart, each pair a
+    /// normal and its negative with a distance, and the eight corners they bound just before them: A =
+    /// (0.42262, 0.90631, 0), B = (-0.43939, 0.20489, 0.87462) and C = (0.79268, -0.36963, 0.48481), C = A x B.
+    /// C is <c>-(sin phi cos theta, sin phi sin theta, cos phi)</c> to five digits; B is its derivative by
+    /// phi and A is level - a light's look-at frame with up the world's. The game's pictures say which is
+    /// the light, every one C: the shadows' bearing in four areas through each capture's own camera (The
+    /// Red Vale's trunks at 239 degrees against C's 233 and B's 53, Port's skeleton at 293 against 289 and
+    /// 109, Crimson Shores' rocks, Necropolis's statue on the wall beside it), the length of Port's
+    /// skeleton's shadow (about 320 pixels, C 317 to 323, B 167), and the sun's glint on the water.
     ///
-    /// phi and theta nearly equal there, so the hunt's own words are what tell height from bearing:
-    /// the readings that swap them were not found, though they draw within a few degrees of this one.
+    /// SO THE SUN STANDS phi - 90 DEGREES HIGH: The Red Vale 30, Port 35, Crimson Shores 38, Necropolis 29,
+    /// Azmerian Ranges 44. Until v0.1.367 the picture drew B (<see cref="SunReading.ElevationPhi"/>), found
+    /// first in Azmerian Ranges and taken for the light because it was the only one of the eight readings
+    /// there - C was none of them - and its sign settled by the sun standing above the ground. B threw the
+    /// shadows the opposite way and stood the sun at 180 - phi: 60 degrees in The Red Vale, its shadows a
+    /// third of the game's length and its sunlight on flat ground 1.73 times the game's. It went unseen in
+    /// Port's built stage, which the game's instances laid turned 180 degrees, so the reversal cancelled -
+    /// though not in Port's laid stage, whose shadows fell the other way too.
     /// </remarks>
-    public const SunReading GameSun = SunReading.ElevationPhi;
+    public const SunReading GameSun = SunReading.PolarPhiDown;
 
     /// <summary>The way a sun with these angles shines, as the reading takes them - unit length, the way the light travels.</summary>
     public static Vector3 SunFrom(float phi, float theta, SunReading reading)
@@ -544,15 +596,16 @@ public sealed class SceneLight
         {
             SunReading.PolarTheta or SunReading.PolarThetaFalling => (phi, theta, true),
             SunReading.ElevationTheta or SunReading.ElevationThetaFalling => (phi, theta, false),
-            SunReading.PolarPhi or SunReading.PolarPhiFalling => (theta, phi, true),
+            SunReading.PolarPhi or SunReading.PolarPhiFalling or SunReading.PolarPhiDown or SunReading.PolarPhiDownFalling => (theta, phi, true),
             _ => (theta, phi, false),
         };
 
         float across = polar ? MathF.Sin(tilt) : MathF.Cos(tilt);
         float up = polar ? MathF.Cos(tilt) : MathF.Sin(tilt);
-        var pointing = new Vector3(across * MathF.Cos(round), across * MathF.Sin(round), -up);
+        bool fromDown = reading is SunReading.PolarPhiDown or SunReading.PolarPhiDownFalling;
+        var pointing = new Vector3(across * MathF.Cos(round), across * MathF.Sin(round), fromDown ? up : -up);
         bool falling = reading is SunReading.PolarThetaFalling or SunReading.ElevationThetaFalling
-            or SunReading.PolarPhiFalling or SunReading.ElevationPhiFalling;
+            or SunReading.PolarPhiFalling or SunReading.ElevationPhiFalling or SunReading.PolarPhiDownFalling;
 
         // POINTING AT THE SUN, the light travels the other way.
         Vector3 travels = falling ? pointing : -pointing;
@@ -645,6 +698,138 @@ public sealed class SceneLight
         Vector3 albedo, Vector3 place, Vector3 normal, Vector3 toEye, float sunShadow, bool glossy, Vector3 specular, float gloss, Vector3 waves,
         float environment = 1f)
     {
+        var none = default(NoTerms);
+        return Shaded(albedo, place, normal, toEye, sunShadow, glossy, specular, gloss, waves, environment, ref none);
+    }
+
+    /// <summary>
+    /// One pixel lit as <see cref="Shade(Vector3, Vector3, Vector3, Vector3, float, bool, Vector3, float, Vector3, float)"/> lights it - the same
+    /// colour to the bit - and its light term by term beside it.
+    /// </summary>
+    /// <param name="albedo">The surface's colour, linear.</param>
+    /// <param name="place">Where the pixel is, model space.</param>
+    /// <param name="normal">Its normal, unit length, turned to face the eye.</param>
+    /// <param name="toEye">The way to the eye, unit length.</param>
+    /// <param name="sunShadow">How much of the sun reaches it, nought to one.</param>
+    /// <param name="glossy">Whether the material's specular light is worked out.</param>
+    /// <param name="specular">The material's specular colour, linear.</param>
+    /// <param name="gloss">Its gloss.</param>
+    /// <param name="waves">The normal its program hands the specular light, or nought.</param>
+    /// <param name="environment">The environment's share of the waves' reflection.</param>
+    /// <param name="terms">The light term by term; in a channel view only <see cref="LightTerms.Graded"/>, the channel.</param>
+    /// <remarks>
+    /// ONE ARITHMETIC FOR BOTH (Shaded over a struct the compiler specialises): the picture's pixels pay nothing for the split, and the
+    /// split cannot drift from what the picture drew. The terms are differences of the running sums, so they add up to the whole within a
+    /// rounding of it, not to the bit.
+    /// </remarks>
+    public Vector3 Shade(
+        Vector3 albedo, Vector3 place, Vector3 normal, Vector3 toEye, float sunShadow, bool glossy, Vector3 specular, float gloss, Vector3 waves,
+        float environment, out LightTerms terms)
+    {
+        var split = new Split(PlayerIndex);
+        Vector3 shown = Shaded(albedo, place, normal, toEye, sunShadow, glossy, specular, gloss, waves, environment, ref split);
+
+        // NO SUN REACHES ANYTHING WHERE THERE IS NONE: the drawing hands a full share where it built no shadow map, and the direction is the
+        // environment's whether or not its sun shines - read as lit, every face towards it would count as in a sun the picture never drew.
+        bool sunless = SunColour == Vector3.Zero;
+        terms = split.Terms(shown, sunless ? 0f : sunShadow, sunless ? 0f : MathF.Max(0f, Vector3.Dot(normal, -SunDirection)), Exposure);
+        return shown;
+    }
+
+    /// <summary>What <see cref="Shaded"/> tells of its terms - nothing, or every one of them.</summary>
+    private interface ITermSink
+    {
+        void Albedo(Vector3 albedo);
+
+        void Light(int source, Vector3 diffuse, Vector3 shine);
+
+        void Surround(Vector3 cube, Vector3 gi, Vector3 flat);
+
+        void Environment(Vector3 shine);
+
+        void Waves(Vector3 shine);
+
+        void Unexposed(Vector3 colour);
+    }
+
+    /// <summary>Tells nothing: the picture's own path, every call of which the compiler drops.</summary>
+    private struct NoTerms : ITermSink
+    {
+        public readonly void Albedo(Vector3 albedo)
+        {
+        }
+
+        public readonly void Light(int source, Vector3 diffuse, Vector3 shine)
+        {
+        }
+
+        public readonly void Surround(Vector3 cube, Vector3 gi, Vector3 flat)
+        {
+        }
+
+        public readonly void Environment(Vector3 shine)
+        {
+        }
+
+        public readonly void Waves(Vector3 shine)
+        {
+        }
+
+        public readonly void Unexposed(Vector3 colour)
+        {
+        }
+    }
+
+    /// <summary>Keeps every term: the lights by source, the surround by part, the specular by kind.</summary>
+    private struct Split(int player) : ITermSink
+    {
+        private Vector3 _albedo, _sun, _room, _player, _cube, _gi, _flat, _lobes, _environment, _waves, _unexposed;
+
+        public void Albedo(Vector3 albedo) => _albedo = albedo;
+
+        public void Light(int source, Vector3 diffuse, Vector3 shine)
+        {
+            if (source < 0)
+            {
+                _sun += diffuse;
+            }
+            else if (source == player)
+            {
+                _player += diffuse;
+            }
+            else
+            {
+                _room += diffuse;
+            }
+
+            _lobes += shine;
+        }
+
+        public void Surround(Vector3 cube, Vector3 gi, Vector3 flat)
+        {
+            _cube = cube;
+            _gi = gi;
+            _flat = flat;
+        }
+
+        public void Environment(Vector3 shine) => _environment += shine;
+
+        public void Waves(Vector3 shine) => _waves += shine;
+
+        public void Unexposed(Vector3 colour) => _unexposed = colour;
+
+        public readonly LightTerms Terms(Vector3 graded, float sun, float facing, float exposure)
+            => new(
+                _albedo, sun, facing, _sun * _albedo, _room * _albedo, _player * _albedo, _cube * _albedo, _gi * _albedo, _flat * _albedo, _lobes,
+                _environment, _waves, _unexposed, exposure, _unexposed * exposure, graded);
+    }
+
+    /// <summary>The light's arithmetic, telling <paramref name="sink"/> each term as it goes - see the Shade overloads.</summary>
+    private Vector3 Shaded<TSink>(
+        Vector3 albedo, Vector3 place, Vector3 normal, Vector3 toEye, float sunShadow, bool glossy, Vector3 specular, float gloss, Vector3 waves,
+        float environment, ref TSink sink)
+        where TSink : struct, ITermSink
+    {
         // A CHANNEL IN PLACE OF THE LIGHT, neither exposed nor graded: the engine's debug views write it straight to the pixel's colour.
         if (Channelled)
         {
@@ -655,6 +840,8 @@ public sealed class SceneLight
         {
             albedo = new Vector3(LightingGrey);
         }
+
+        sink.Albedo(albedo);
 
         Vector3 diffuse = Vector3.Zero;
         Vector3 shine = Vector3.Zero;
@@ -672,12 +859,14 @@ public sealed class SceneLight
         {
             Vector3 light = SunColour * sunShadow;
             Vector3 towards = -SunDirection;
+            Vector3 diffused = diffuse, shone = shine;
             Lit(light, towards, normal, toEye, facing, lobes, specular, gloss, ref diffuse, ref shine);
             if (glints)
             {
                 Glinted(light, towards, waves, toEye, wavesFacing, specular, gloss, ref shine);
             }
 
+            sink.Light(-1, diffuse - diffused, shine - shone);
             total += light;
         }
 
@@ -708,12 +897,14 @@ public sealed class SceneLight
 
                     Vector3 light = one.Colour * attenuation;
                     Vector3 towards = distance > 1e-4f ? offset / distance : normal;
+                    Vector3 diffused = diffuse, shone = shine;
                     Lit(light, towards, normal, toEye, facing, lobes, specular, gloss, ref diffuse, ref shine);
                     if (glints)
                     {
                         Glinted(light, towards, waves, toEye, wavesFacing, specular, gloss, ref shine);
                     }
 
+                    sink.Light(_cellEntries[at], diffuse - diffused, shine - shone);
                     total += light;
                 }
             }
@@ -724,14 +915,20 @@ public sealed class SceneLight
         switch (Ambient)
         {
             case SceneAmbient.Cube when Cube is not null:
+            {
                 // THE SHARE GI OWNS IS THE FLAT AMBIENT - the game's GI is not drawn; see the remarks.
-                surround = (Cube.Sample(Vector3.TransformNormal(normal, CubeTurn))
-                    * (new Vector3(CubeBrightness) + (total * DirectLightEnvRatio)) * (1f - GiEnvOcclusion))
-                    + new Vector3(FlatAmbient * GiEnvOcclusion);
+                Vector3 cubed = Cube.Sample(Vector3.TransformNormal(normal, CubeTurn))
+                    * (new Vector3(CubeBrightness) + (total * DirectLightEnvRatio)) * (1f - GiEnvOcclusion);
+                var stood = new Vector3(FlatAmbient * GiEnvOcclusion);
+                surround = cubed + stood;
+                sink.Surround(cubed, stood, Vector3.Zero);
                 break;
+            }
+
             case SceneAmbient.Flat:
             case SceneAmbient.Cube:
                 surround = new Vector3(FlatAmbient);
+                sink.Surround(Vector3.Zero, Vector3.Zero, surround);
                 break;
         }
 
@@ -743,7 +940,9 @@ public sealed class SceneLight
         {
             GlossLight.Environment(facing, gloss, out float bias, out float scale);
             float level = (surround.X + surround.Y + surround.Z) / 3f;
-            shine += new Vector3(level * bias) + (level * scale * specular);
+            Vector3 environmental = new Vector3(level * bias) + (level * scale * specular);
+            shine += environmental;
+            sink.Environment(environmental);
         }
 
         // THE WAVES' REFLECTION: the specular cube along the view turned about their normal, lit as the
@@ -753,10 +952,14 @@ public sealed class SceneLight
             GlossLight.Environment(wavesFacing, gloss, out float bias, out float scale);
             Vector3 reflected = (2f * Vector3.Dot(waves, toEye) * waves) - toEye;
             Vector3 seen = Reflected(reflected, total) * environment;
-            shine += (seen * bias) + (seen * scale * specular);
+            Vector3 reflection = (seen * bias) + (seen * scale * specular);
+            shine += reflection;
+            sink.Waves(reflection);
         }
 
-        Vector3 exposed = (colour + shine) * Exposure;
+        Vector3 unexposed = colour + shine;
+        sink.Unexposed(unexposed);
+        Vector3 exposed = unexposed * Exposure;
         return Grade is null ? exposed : Grade.Apply(exposed);
     }
 

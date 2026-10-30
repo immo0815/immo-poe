@@ -166,6 +166,12 @@ public static class CaptureParts
     /// <summary>The Monster Book's monster: where the stage stands him, his parts as hung, his lowest point in every animation, his files whole, and the game's entity of him.</summary>
     public const string MonsterFiles = "monster-files";
 
+    /// <summary>The stage drawn through the game's camera and held against the game's picture, light term by term - see CaptureLightCompare.</summary>
+    public const string LightCompare = "light-compare";
+
+    /// <summary>What throws the sun's shadow on the stage's ground, and whether the game casts it - see CaptureShadowCasters.</summary>
+    public const string ShadowCasters = "shadow-casters";
+
     /// <summary>The Memory Dissector's places, route and last search.</summary>
     public const string Dissector = "dissector";
 
@@ -538,6 +544,17 @@ public static class CaptureParts
             + "socketed part's bone in every animation, every part with a rig of its own played by that rig, and "
             + "every .ao and object type file of him whole - beside the game's own entity of him where one is near (its place, the terrain's "
             + "height under it, its bounds, the animation it plays). Stand where the game shows him with him on the Monster Book's stage."),
+        new(LightCompare, "Windows", "light against the game", CaptureReport.LightCompareFile,
+            "The book's stage laid as the area laid it (\"the area round you\") drawn through the game's own camera onto its picture, pixel on pixel, "
+            + "under the light panel's light - and every pixel's light held against the game's: by the pane's sun and shade, by material, as a "
+            + "multiple and a grey, and term by term (sun, cube, GI stand-in, room lights, the player's lamp, specular); the game's own sun and shade "
+            + "per material; by the distance to the player and by depth. Keep \"game picture\" ticked and stand still. The pictures and every pixel's "
+            + "numbers beside it."),
+        new(ShadowCasters, "Windows", "shadow casters", CaptureReport.ShadowCastersFile,
+            "What throws the sun's shadow on the stage's ground: every caster by its blend, the word its graphs spell, its material and how much of "
+            + "its texture is clear; the shadows a cut by a shadow-only shape's alpha would take away, and the game's brightness there beside its "
+            + "sun and its shade; how square each piece of shadow is; the blend graphs and the casting materials whole. The sun's map by caster "
+            + "beside it."),
         new(Dissector, "Windows", "dissector", CaptureReport.DissectorFile,
             "The places the Memory Dissector has open, the route walked to them, and what its last search found with the bytes "
             + "round each place. Nothing where it is untouched."),

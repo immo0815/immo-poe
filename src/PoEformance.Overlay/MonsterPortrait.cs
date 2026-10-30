@@ -865,10 +865,13 @@ public sealed class MonsterPortrait
     /// the stage's programs and, where this pane is unshaded, nothing for the monster's shapes - so he
     /// is drawn from his texture as he is alone, and the ground under him is the tile book's ground.
     /// </remarks>
-    private IReadOnlyList<ShadeProgram?>? ShadesOf(MonsterModel model)
+    private IReadOnlyList<ShadeProgram?>? ShadesOf(MonsterModel model) => ShadesOf(model, SceneLit?.Invoke(model));
+
+    /// <summary>The programs the picture is drawn with under a light - the pane's own, or the one a capture measures with (PaneReport).</summary>
+    private IReadOnlyList<ShadeProgram?>? ShadesOf(MonsterModel model, SceneLight? light)
     {
         IReadOnlyList<ShadeProgram?>? shades = !Shaded && !model.Staged ? null : FlatLight || model.GlossShades.Count == 0 ? model.Shades : model.GlossShades;
-        return shades is not null && SceneLit?.Invoke(model) is { SprayOccluded: true } ? Occluded(shades) : shades;
+        return shades is not null && light is { SprayOccluded: true } ? Occluded(shades) : shades;
     }
 
     /// <summary>The list <see cref="Occluded"/> last swapped, and what it came to - the same list while neither changes, so nothing redraws.</summary>
@@ -965,10 +968,13 @@ public sealed class MonsterPortrait
     /// The area's water, over the room's own shore where the model is a room that has one, its way in the light's - see ShoreField.Way - and
     /// the area's river flow where the model is laid as the area laid it.
     /// </summary>
-    private WaterLook Watered()
+    private WaterLook Watered() => Watered(Lit());
+
+    /// <summary>The water under a light - the pane's own, or the one a capture measures with (PaneReport): its way in is the light's.</summary>
+    private WaterLook Watered(SceneLight? light)
         => (SceneWater?.Invoke() ?? WaterLook.EngineDefault) with
         {
-            Shore = Lit() is { } lit ? _model.Shore?.Way(lit.WaterWayRound, lit.WaterPastWalls) : _model.Shore,
+            Shore = light is { } lit ? _model.Shore?.Way(lit.WaterWayRound, lit.WaterPastWalls) : _model.Shore,
             Flow = _model.AreaOrigin is { } origin && _model.AreaStamp is { } stamp && SceneFlow?.Invoke(stamp) is { } map ? new RiverFlow(map, origin) : null,
         };
 
@@ -1745,18 +1751,56 @@ public sealed class MonsterPortrait
     /// </summary>
     /// <remarks>The lines as the info fold has them, the escape ImGui needs for a percent sign taken off again.</remarks>
     public CapturePane? PaneReport()
-        => _model.Ready
-            ? new CapturePane(Book, [.. _status.Select(line => line.Replace("%%", "%", StringComparison.Ordinal))], _model)
+    {
+        if (!_model.Ready)
+        {
+            return null;
+        }
+
+        // THE LIGHT A CAPTURE HOLDS THE STAGE AGAINST THE GAME UNDER - the panel's, built whether or not the pane draws under it now - and the
+        // pose the pane stands at, copied: the parts that draw it again through the game's camera draw what the pane shows (CaptureAtGame).
+        (SceneLight? light, IReadOnlyList<string> said) = SceneMeasured?.Invoke(_model) ?? (null, []);
+        Vector3[]? positions = null, normals = null;
+        if (_tracks is { Ready: true } && _pose is not null)
+        {
+            CpuPosed();
+            if (_posed.Length == _model.Mesh.Positions.Length)
             {
-                Built = [.. _built],
-                Probed = HasProbe ? _probedShapes : [],
-                Shades = ShadesOf(_model),
-                View = _drawnView.Valid ? _drawnView : null,
-                Variety = _variety,
-                Path = _wanted,
-                Unpack = _unpack,
+                positions = [.. _posed];
+                normals = [.. _posedNormals];
             }
-            : null;
+        }
+
+        // THE PROGRAMS AND THE WATER FOLLOW THE LIGHT HANDED OVER, not the one the pane draws under: with "game light" unticked the pane's
+        // lists know nothing of the light's spray twins or way in, and the capture draws as the measured light says.
+        SceneLight? under = light ?? Lit();
+        return new CapturePane(Book, [.. _status.Select(line => line.Replace("%%", "%", StringComparison.Ordinal))], _model)
+        {
+            Built = [.. _built],
+            Probed = HasProbe ? _probedShapes : [],
+            Shades = ShadesOf(_model, under),
+            View = _drawnView.Valid ? _drawnView : null,
+            Variety = _variety,
+            Path = _wanted,
+            Unpack = _unpack,
+            Light = light,
+            LightOn = Lit() is not null,
+            LightSaid = said,
+            Dust = Dusted(),
+            Water = Watered(under),
+            Clock = _clock,
+            Ink = Ink,
+            Blends = Blends(),
+            Positions = positions,
+            Normals = normals,
+        };
+    }
+
+    /// <summary>
+    /// The light a capture holds the pane's stage against the game under, and what the light panel says of it - see SceneLightPanel.Measured; null
+    /// where the book has no panel.
+    /// </summary>
+    public Func<MonsterModel, (SceneLight? Light, IReadOnlyList<string> Said)>? SceneMeasured { get; set; }
 
     /// <summary>The shapes under the last probe click, nearest first - see <see cref="PaneReport"/>.</summary>
     private IReadOnlyList<int> _probedShapes = [];

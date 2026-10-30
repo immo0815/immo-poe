@@ -105,11 +105,111 @@ public sealed class ShadowMap
             {
                 if (casts(one))
                 {
-                    Draw(depth, side, corners, indices, one, cutout(one));
+                    Draw(new DepthKeep(depth), side, corners, indices, one, cutout(one));
                 }
             });
 
         return new ShadowMap(depth, side, u, v, w, least, perUnit, nearest, w);
+    }
+
+    /// <summary>
+    /// The map of a mesh in a frame given, keeping at each texel which triangle is nearest the light as well as how near - see <see cref="ShadowOwners"/>.
+    /// </summary>
+    /// <param name="places">Every vertex, model space.</param>
+    /// <param name="indices">Three per triangle.</param>
+    /// <param name="triangles">How many triangles.</param>
+    /// <param name="frame">Where the map lies - <see cref="Framed(ReadOnlySpan{Vector3}, Vector3, int)"/>'s, so maps of the same mesh drawn by different rules lie on the same texels.</param>
+    /// <param name="casts">Whether a triangle casts at all, by its index.</param>
+    /// <param name="cutout">For a triangle cut by its texture's alpha, its texture and coordinates; null for a solid one.</param>
+    /// <param name="threads">How many threads may draw it.</param>
+    /// <remarks>
+    /// THE SAME RASTER AS <see cref="Build"/>'s - one Draw, the keeping handed in - so with the same rules its depths are Build's to the bit
+    /// (ShadowOwnersTests). A texel's depth and owner are kept as one long, the depth's bits above the triangle's index, so the nearest wins
+    /// and a tie goes to the lower index, whichever thread came first.
+    /// </remarks>
+    public static ShadowOwners? Owned(
+        Vector3[] places, int[] indices, int triangles, ShadowFrame frame, Func<int, bool> casts, Func<int, (Mipmaps Skin, Vector2[] Coordinates)?> cutout,
+        int threads)
+    {
+        ArgumentNullException.ThrowIfNull(places);
+        ArgumentNullException.ThrowIfNull(indices);
+        ArgumentNullException.ThrowIfNull(casts);
+        ArgumentNullException.ThrowIfNull(cutout);
+        if (triangles == 0 || frame.Side < 16)
+        {
+            return null;
+        }
+
+        int side = frame.Side;
+        var keys = new long[side * side];
+        Array.Fill(keys, long.MaxValue);
+        var corners = new Vector3[places.Length];
+        for (var at = 0; at < places.Length; at++)
+        {
+            Vector3 place = places[at];
+            corners[at] = new Vector3(
+                (Vector3.Dot(place, frame.U) - frame.Least.X) * frame.PerUnit,
+                (Vector3.Dot(place, frame.V) - frame.Least.Y) * frame.PerUnit,
+                Vector3.Dot(place, frame.W) - frame.Nearest);
+        }
+
+        Parallel.For(
+            0, triangles,
+            new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, threads) },
+            one =>
+            {
+                if (casts(one))
+                {
+                    Draw(new OwnerKeep(keys), side, corners, indices, one, cutout(one));
+                }
+            });
+
+        return new ShadowOwners(keys, frame);
+    }
+
+    /// <summary>How a texel keeps what is drawn on it.</summary>
+    private interface IKeep
+    {
+        void Keep(int at, int bits, int one);
+    }
+
+    /// <summary>The nearest depth alone - the picture's map.</summary>
+    private readonly struct DepthKeep(int[] depth) : IKeep
+    {
+        public void Keep(int at, int bits, int one)
+        {
+            int held = Volatile.Read(ref depth[at]);
+            while (bits < held)
+            {
+                int was = Interlocked.CompareExchange(ref depth[at], bits, held);
+                if (was == held)
+                {
+                    break;
+                }
+
+                held = was;
+            }
+        }
+    }
+
+    /// <summary>The nearest depth and the triangle that drew it, as one long - see <see cref="Owned"/>.</summary>
+    private readonly struct OwnerKeep(long[] keys) : IKeep
+    {
+        public void Keep(int at, int bits, int one)
+        {
+            long key = ((long)bits << 32) | (uint)one;
+            long held = Volatile.Read(ref keys[at]);
+            while (key < held)
+            {
+                long was = Interlocked.CompareExchange(ref keys[at], key, held);
+                if (was == held)
+                {
+                    break;
+                }
+
+                held = was;
+            }
+        }
     }
 
     /// <summary>
@@ -215,7 +315,8 @@ public sealed class ShadowMap
         return held == int.MaxValue || depth <= BitConverter.Int32BitsToSingle(held) ? 1f : 0f;
     }
 
-    private static void Draw(int[] depth, int side, Vector3[] corners, int[] indices, int one, (Mipmaps Skin, Vector2[] Coordinates)? cutout)
+    private static void Draw<TKeep>(TKeep keep, int side, Vector3[] corners, int[] indices, int one, (Mipmaps Skin, Vector2[] Coordinates)? cutout)
+        where TKeep : struct, IKeep
     {
         int i0 = indices[one * 3], i1 = indices[(one * 3) + 1], i2 = indices[(one * 3) + 2];
         Vector3 c0 = corners[i0], c1 = corners[i1], c2 = corners[i2];
@@ -267,21 +368,103 @@ public sealed class ShadowMap
                 }
 
                 float away = MathF.Max(0f, (first * c0.Z) + (second * c1.Z) + (third * c2.Z));
-                int bits = BitConverter.SingleToInt32Bits(away);
-                int at = (y * side) + x;
-                int held = Volatile.Read(ref depth[at]);
-                while (bits < held)
-                {
-                    int was = Interlocked.CompareExchange(ref depth[at], bits, held);
-                    if (was == held)
-                    {
-                        break;
-                    }
-
-                    held = was;
-                }
+                keep.Keep((y * side) + x, BitConverter.SingleToInt32Bits(away), one);
             }
         }
+    }
+}
+
+/// <summary>
+/// A sun's shadow map that knows who cast it: at every texel the nearest depth along the light and the triangle that drew it - see <see cref="ShadowMap.Owned"/>.
+/// </summary>
+/// <remarks>
+/// FOR A CAPTURE, NOT A PICTURE: what makes a shadow on the ground is the question (the Red Vale's square crown shadows), and the picture's
+/// map keeps depths alone. Read with the picture's own offsets (<see cref="Lit"/>), so a point is in this map's shadow exactly where it is in
+/// the picture's.
+/// </remarks>
+public sealed class ShadowOwners
+{
+    private readonly long[] _keys;
+
+    internal ShadowOwners(long[] keys, ShadowFrame frame)
+    {
+        _keys = keys;
+        Frame = frame;
+    }
+
+    /// <summary>Where the map lies.</summary>
+    public ShadowFrame Frame { get; }
+
+    /// <summary>How many texels across.</summary>
+    public int Side => Frame.Side;
+
+    /// <summary>How many world units one texel covers.</summary>
+    public float Texel => 1f / Frame.PerUnit;
+
+    /// <summary>The triangle nearest the light at a texel, or -1 where nothing is drawn.</summary>
+    public int OwnerAt(int x, int y)
+    {
+        long key = _keys[(y * Frame.Side) + x];
+        return key == long.MaxValue ? -1 : (int)(uint)key;
+    }
+
+    /// <summary>Its depth past the map's nearest, or +infinity where nothing is drawn.</summary>
+    public float DepthAt(int x, int y)
+    {
+        long key = _keys[(y * Frame.Side) + x];
+        return key == long.MaxValue ? float.PositiveInfinity : BitConverter.Int32BitsToSingle((int)(key >> 32));
+    }
+
+    /// <summary>Where a point falls on the map, texels from its corner, and its depth past the map's nearest.</summary>
+    public Vector3 On(Vector3 place)
+        => new(
+            (Vector3.Dot(place, Frame.U) - Frame.Least.X) * Frame.PerUnit,
+            (Vector3.Dot(place, Frame.V) - Frame.Least.Y) * Frame.PerUnit,
+            Vector3.Dot(place, Frame.W) - Frame.Nearest);
+
+    /// <summary>How much of the light reaches a point - <see cref="ShadowMap.Lit"/>'s reading of this map, to the bit.</summary>
+    public float Lit(Vector3 place, Vector3 normal) => Read(place, normal, out _);
+
+    /// <summary>What casts the shadow on a point: the triangle nearest the light among the texels that hide it, or -1 where none does.</summary>
+    public int Caster(Vector3 place, Vector3 normal)
+    {
+        Read(place, normal, out int caster);
+        return caster;
+    }
+
+    private float Read(Vector3 place, Vector3 normal, out int caster)
+    {
+        caster = -1;
+        float texel = 1f / Frame.PerUnit;
+        Vector3 off = place + (normal * (texel * 1.5f));
+        float x = ((Vector3.Dot(off, Frame.U) - Frame.Least.X) * Frame.PerUnit) - 0.5f;
+        float y = ((Vector3.Dot(off, Frame.V) - Frame.Least.Y) * Frame.PerUnit) - 0.5f;
+        float depth = Vector3.Dot(off, Frame.W) - Frame.Nearest - (texel * 2f);
+        int side = Frame.Side;
+        if (x < 0f || y < 0f || x >= side - 1 || y >= side - 1)
+        {
+            return 1f;
+        }
+
+        int x0 = (int)x, y0 = (int)y;
+        float fx = x - x0, fy = y - y0;
+        long nearest = long.MaxValue;
+        float a = Open(x0, y0, depth, ref nearest), b = Open(x0 + 1, y0, depth, ref nearest);
+        float c = Open(x0, y0 + 1, depth, ref nearest), d = Open(x0 + 1, y0 + 1, depth, ref nearest);
+        caster = nearest == long.MaxValue ? -1 : (int)(uint)nearest;
+        return float.Lerp(float.Lerp(a, b, fx), float.Lerp(c, d, fx), fy);
+    }
+
+    private float Open(int x, int y, float depth, ref long nearest)
+    {
+        long key = _keys[(y * Frame.Side) + x];
+        if (key == long.MaxValue || depth <= BitConverter.Int32BitsToSingle((int)(key >> 32)))
+        {
+            return 1f;
+        }
+
+        nearest = Math.Min(nearest, key);
+        return 0f;
     }
 }
 

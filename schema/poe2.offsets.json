@@ -104,8 +104,17 @@
   // scroll) and VertexOutput_Final (the ground's projection), and InputVertexUV reads them at its own stage
   // - the zone transitions' light reads its mask at VertexInit. The capture's shader-stages part
   // (ShaderStageHunt) reads the whole table at the press: every eight-byte place of the image as an MSVC
-  // std::string, the heap's names read, runs 0x20 to 0x60 apart holding stage names written whole. Its
-  // first capture names the table's place in the image (module+0x...) and the vertex side's order.
+  // std::string, the heap's names read, runs 0x20 to 0x60 apart holding stage names written whole.
+  // ITS FIRST CAPTURE READ IT WHOLE (2026-10-30, The Red Vale, v0.1.365): module+0x459C760 in that launch's
+  // client (module 0x7FF7F5860000, 0x4CA0000 bytes), 81 entries 0x20 apart - VertexInit, Animation,
+  // LocalTransform(_Calc, _Final), WorldTransform_Init, WorldTransform(_Calc, _Final),
+  // ProjectionTransform_Init, ProjectionTransform(_Calc, _Final), VertexOutput(_Calc, _Final, _Pass),
+  // VertexToPixel, PixelInit, UVSetup .. PreLighting_Final as above, AlphaClip, Lighting(_Calc, _Final),
+  // CustomLighting(_Calc, _Final), LightingEnd(_Calc, _Final), PostLighting(_Calc, _Final),
+  // FogStage(_Calc, _Final), PixelOutput(_Calc, _Final), ComputeInit, the particles' 22, the volumetrics'
+  // 7 and the trails' 4. Names up to 15 letters inline (capacity 0x0F), longer ones on the heap (0x1F).
+  // It holds every one of the 69 stages the install's 11,972 graphs use; 193 of the 197 stage pairs
+  // they link run in its order. A build moves the place; the part finds it again by its shape.
 
   "version": 1,
   "gameVersion": "0.5.5 (2026-09-04 content patch: GameState, AreaInstance, UiElementBase, MapUiElement and ImportantUiElements re-based 2026-09-11, agreeing with GameHelper2 main a99b8ba; the game chain and AreaInstance confirmed live the same day by session-2026-09-live.rec, the UiElement flags and StringId by session-2026-09-panels.rec and session-2026-09-maphunt.rec, the maps by the latter through MapViewports, RightPanelPtr by session-2026-09-browser.rec, ItemPtr by session-2026-09-itempick.rec; TextPtr moved to 0x360 on session-2026-09-text.rec's evidence and awaits the browser showing text there; earlier: AreaInstance +0x08 wave 2026-08; base port: AHK tool v0.45.13.298, 2026-07)",
@@ -543,6 +552,16 @@
         "BaseEnvFilePtr": { "offset": "0x08", "type": "ptr", "comment": "Wide string, the .env file the area is lit by - Base_ENVFile." }
       },
       "consts": { "ComputedRowSize": "0x75" }
+    },
+
+    "SunShadowBox": {
+      "comment": "A BOX OF THE SUN'S SHADOW CASCADES AS THE PROCESSOR KEEPS IT - measured, not reached: nothing in this schema points here, and the offsets are counted from its first corner. FOUND by LightHunt's sun needles (cap1, Necropolis's light-hunt.txt, phi 2.07694 theta 2.70526): eight corners, then three pairs of planes - each a unit normal and a distance, then the same plane facing the other way - whose normals are the light's look-at frame. Copies in two runs, 0x830 apart (four whose up plane is at 0x51A425B27A4..) and 0x390 apart (four at 0x51A61D11074..) - likely one box a cascade and a second set, a reading. THE THIRD PAIR IS THE LIGHT (v0.1.368): its normal is -(sin phi cos theta, sin phi sin theta, cos phi), the way the light travels with phi from straight down, and the game's shadows in four areas fall along it (SceneLight.GameSun). Until v0.1.368 the second pair was taken for the light - the only one of the eight readings then looked for - which threw the shadows the opposite way and stood the sun at 180 - phi rather than phi - 90. The corners lie on the planes exactly: 11816.2 and 15526.6 along the first, -4038.7 and -1477.2 along the second, 2391.3 and 7938.4 along the light. Before the corners, 0x60 to 0xA0 before them, stand more planes (normals with distances in the thousands - the camera's frustum, a reading) and after the light's pair a run of small ints (0, 3, 1, 6, 2, 5) and a second set of corners.",
+      "fields": {
+        "Corners": { "offset": "0x00", "type": "f32", "comment": "Eight corners, x y z each, 0x60 bytes: in Necropolis's first copy (10231.83, 12360.51, -2372.993), (14628.84, 10310.15, 316.2588) and on. Each one's projection on the three normals is one of the two distances of that pair." },
+        "SidePlane": { "offset": "0x60", "type": "f32", "comment": "The light view's x: (0.42262, 0.90631, 0) = (sin theta, -cos theta, 0), level; distance at +0x6C (-11816.15), the opposite plane at +0x70 (15526.59)." },
+        "UpPlane": { "offset": "0x80", "type": "f32", "comment": "The light view's up: (-0.43939, 0.20489, 0.87462), the light's derivative by phi - what SunReading.ElevationPhi makes, the axis taken for the light until v0.1.368; distance 4038.654, the opposite plane at +0x90 (-1477.129)." },
+        "LightPlane": { "offset": "0xA0", "type": "f32", "comment": "THE LIGHT'S WAY: (0.79268, -0.36963, 0.48481) = SunReading.PolarPhiDown's vector, the side plane x the up; distance -2391.247, the opposite plane at +0xB0 (7938.29)." }
+      }
     },
 
     "ParsedEnvironment": {

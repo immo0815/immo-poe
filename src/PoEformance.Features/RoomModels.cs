@@ -242,7 +242,7 @@ public static class RoomModels
         /// <summary>What the room's wobble cores came to - see RoomSways - or empty where it has none.</summary>
         public string Swayed { get; init; } = string.Empty;
 
-        /// <summary>How many of the tiles' doodad files wear a material the tileset swapped in - see MonsterModels.Swapped.</summary>
+        /// <summary>How many of the tiles' doodad files and the ground scatter's wear a material the tileset swapped in - see MonsterModels.Swapped.</summary>
         public int SwappedFiles { get; init; }
 
         /// <summary>The lines under the picture about what did not draw, and why.</summary>
@@ -429,9 +429,14 @@ public static class RoomModels
         }
 
         // THE GROUND'S OWN SCATTER LAST (GroundScatter): where the doodads slider runs out, the grass goes before any line a file names.
+        // IT WEARS THE MASTER'S SWAPS AS THE TILES' DOODADS DO (v0.1.368): its layers and its list are the master's own, and the
+        // master's TileMaterialOverrides name their materials - The Red Vale's swaps JGD_JungleFoliage01c, the ferns its
+        // JungleFoliageA_Redvale.dlp strews, for the dry RVL_JungleFoliage01c, and SkeletonSwords01c, its sword layers', likewise.
+        // Unswapped, 2,470 of the 3,212 lines its v0.1.365 capture laid round the player wore a material the master swaps, and the
+        // ground came out a green the game's picture of it has nowhere.
         foreach ((RoomDoodad one, Matrix4x4 place) in strewn ?? [])
         {
-            Take(one, place, -1);
+            Take(one, place, -1, swaps is { Count: > 0 });
         }
 
         // EVERY FILE THAT WILL BE LAID, ON EVERY CORE, before any is laid: one model per file, through the shared cache (Paints), so

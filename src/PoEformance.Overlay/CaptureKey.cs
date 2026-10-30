@@ -291,6 +291,9 @@ internal sealed class CaptureKey
 
                 // The frames drawn empty are on screen now; this one has not been drawn yet.
                 run.Game = ScreenCapture.Grab(run.Client.X, run.Client.Y, run.Client.Width, run.Client.Height);
+
+                // THE CAMERA AS THE PICTURE WAS TAKEN, not as the key went down: the parts drawing through it line up with this picture.
+                run.Shot = _snapshot();
                 run.HiddenFor = now - run.Since;
                 run.Stage = Stage.Rooms;
                 run.Since = now;
@@ -364,12 +367,14 @@ internal sealed class CaptureKey
         var shore = new CaptureWaterShore.Search();
         var debugs = new CaptureWaterShore.Search();
         var sweep = new CaptureStageSweep.Search();
-        var run = new Run(folder, local, snapshot, client, now, new HashSet<string>(_off, StringComparer.Ordinal), Progress(folder, snapshot, hunt, shore, debugs, sweep, now))
+        var atGame = new CaptureAtGame.Search();
+        var run = new Run(folder, local, snapshot, client, now, new HashSet<string>(_off, StringComparer.Ordinal), Progress(folder, snapshot, hunt, shore, debugs, sweep, atGame, now))
         {
             Hunt = hunt,
             Shore = shore,
             Debugs = debugs,
             Sweep = sweep,
+            AtGame = atGame,
             Overlay = On(CaptureParts.OverlayPicture) ? ScreenCapture.Grab(client.X, client.Y, client.Width, client.Height) : null,
             Loaded = _loaded(),
             Masters = _masters(),
@@ -405,7 +410,7 @@ internal sealed class CaptureKey
         }
 
         // THE PANES AS THEY STAND, their models immutable - the files they name are read with the rest, off this thread.
-        if ((On(CaptureParts.ModelPanes) || On(CaptureParts.MonsterFiles)) && _panes is { } panes)
+        if ((On(CaptureParts.ModelPanes) || On(CaptureParts.MonsterFiles) || On(CaptureParts.LightCompare) || On(CaptureParts.ShadowCasters)) && _panes is { } panes)
         {
             run.Panes = panes();
         }
@@ -457,7 +462,9 @@ internal sealed class CaptureKey
     /// THE LONG ONES SAY WHAT THEY ARE DOING: the rooms how many are read, the memory hunt how much of its budget it has looked
     /// through and how fast, with a stop that keeps what it found; the recording that it closes itself.
     /// </remarks>
-    private CaptureProgress Progress(string folder, WorldSnapshot snapshot, FloatHuntProgress hunt, CaptureWaterShore.Search shore, CaptureWaterShore.Search debugs, CaptureStageSweep.Search sweep, long now)
+    private CaptureProgress Progress(
+        string folder, WorldSnapshot snapshot, FloatHuntProgress hunt, CaptureWaterShore.Search shore, CaptureWaterShore.Search debugs, CaptureStageSweep.Search sweep,
+        CaptureAtGame.Search atGame, long now)
     {
         var progress = new CaptureProgress(folder, snapshot.Area.Name.Length > 0 ? snapshot.Area.Name : snapshot.Area.Id, now);
         if (WantsRooms(_off))
@@ -501,6 +508,11 @@ internal sealed class CaptureKey
                     Live = () => sweep.Of > 0 ? $"{sweep.Done:N0} of {sweep.Of:N0} rooms built, {sweep.Failed:N0} did not - {sweep.Now}" : "waiting for its turn",
                     Fraction = () => sweep.Of > 0 ? (float)((double)sweep.Done / sweep.Of) : 0f,
                     Stop = sweep.Stop,
+                },
+                CaptureParts.LightCompare or CaptureParts.ShadowCasters => new CaptureStep(part.File, part.Label)
+                {
+                    Live = () => atGame.Of > 0 ? $"{atGame.Done} of {atGame.Of} steps - {atGame.Now}" : "waiting for its turn",
+                    Fraction = () => atGame.Of > 0 ? (float)((double)atGame.Done / atGame.Of) : 0f,
                 },
                 _ when CaptureParts.RunsAtPress(part.Key) && _workProgress.TryGetValue(part.Key, out CaptureWorkProgress? work) => new CaptureStep(part.File, part.Label)
                 {
@@ -642,9 +654,11 @@ internal sealed class CaptureKey
                     : line.StartsWith("FAILED", StringComparison.Ordinal) ? CaptureStepState.Failed
                     : CaptureStepState.Done);
             }
-            catch (Exception failed) when (failed is IOException or UnauthorizedAccessException or InvalidOperationException or ArgumentException or NotSupportedException)
+            // A PARALLEL LOOP'S FAILURE ARRIVES WRAPPED (Parallel.For's AggregateException), whatever it was - let through, it would end the
+            // whole writing, every part after it and the zip with it.
+            catch (Exception failed) when (failed is IOException or UnauthorizedAccessException or InvalidOperationException or ArgumentException or NotSupportedException or AggregateException)
             {
-                Said(file, "FAILED: " + failed.Message, CaptureStepState.Failed);
+                Said(file, "FAILED: " + failed.GetBaseException().Message, CaptureStepState.Failed);
             }
             finally
             {
@@ -654,6 +668,16 @@ internal sealed class CaptureKey
 
         string At(string file) => Path.Combine(folder, file);
         bool On(string key) => !run.Off.Contains(key);
+
+        // A PART'S PICTURES BESIDE ITS FILE.
+        void Pictures(IReadOnlyList<(string File, GamePicture Picture)> pictures)
+        {
+            foreach ((string file, GamePicture picture) in pictures)
+            {
+                using Image<Rgba32> image = Image.LoadPixelData<Rgba32>(picture.Rgba, picture.Width, picture.Height);
+                image.SaveAsPng(At(file));
+            }
+        }
         ClientRect client = run.Client;
 
         if (On(CaptureParts.GamePicture))
@@ -1188,6 +1212,86 @@ internal sealed class CaptureKey
             }
         }
 
+        // THE STAGE THROUGH THE GAME'S CAMERA, drawn once for both parts that hold it against the game's picture.
+        if (On(CaptureParts.LightCompare) || On(CaptureParts.ShadowCasters))
+        {
+            WorldSnapshot shot = run.Shot ?? run.Snapshot;
+            CapturePane? chosen = CaptureAtGame.Chosen(run.Panes, shot, out string notChosen);
+            CaptureAtGame? scene = null;
+            string notDrawn = notChosen;
+            var drawFailed = false;
+            if (chosen is not null)
+            {
+                // THE DRAWING IS THE LONG STEP, so the first part waiting on it runs from here - its line in the window says what is drawn.
+                run.Progress.Of(On(CaptureParts.LightCompare) ? CaptureReport.LightCompareFile : CaptureReport.ShadowCastersFile)?.Start(Environment.TickCount64);
+                try
+                {
+                    scene = CaptureAtGame.Draw(chosen, shot, run.Game, client.Width, client.Height, run.AtGame, out notDrawn);
+                }
+
+                // THE DRAWING TAKES WHAT THE PANE'S OWN RENDER TAKES: every input is out of the game's files, and a band's failure arrives
+                // wrapped by its parallel loop - the buffers' size, too, is no reason to lose the rest of the capture.
+                catch (Exception failed) when (failed is not StackOverflowException)
+                {
+                    notDrawn = "drawing it: " + failed.GetBaseException().Message;
+                    drawFailed = true;
+                }
+            }
+
+            if (On(CaptureParts.LightCompare))
+            {
+                if (drawFailed)
+                {
+                    Said(CaptureReport.LightCompareFile, "FAILED: " + notDrawn, CaptureStepState.Failed);
+                }
+                else if (scene is null)
+                {
+                    Not(CaptureReport.LightCompareFile, notDrawn.Length > 0 ? notDrawn : "nothing to draw");
+                }
+                else if (scene.Game.Length == 0)
+                {
+                    Not(CaptureReport.LightCompareFile, "no picture of the game alone was taken - tick \"game picture\"");
+                }
+                else
+                {
+                    Part(CaptureReport.LightCompareFile, () =>
+                    {
+                        string text = CaptureLightCompare.Write(scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers, run.AtGame);
+                        File.WriteAllText(At(CaptureReport.LightCompareFile), text);
+                        Pictures(pictures);
+                        File.WriteAllBytes(At(CaptureLightCompare.Numbers), numbers);
+                        return text[..text.IndexOf('\n')];
+                    });
+                }
+            }
+
+            if (On(CaptureParts.ShadowCasters))
+            {
+                // WITH NO STAGE LAID IN THIS INSTANCE, another stage with ground: its casters measured, nothing held against the game.
+                string noGround = string.Empty;
+                if ((chosen ?? CaptureShadowCasters.Fallback(run.Panes, out noGround)) is not { } pane)
+                {
+                    Not(CaptureReport.ShadowCastersFile, notChosen.Length > 0 ? notChosen + "; " + noGround : noGround);
+                }
+                else
+                {
+                    Part(CaptureReport.ShadowCastersFile, () =>
+                    {
+                        string text = CaptureShadowCasters.Write(read, pane, scene, run.AtGame, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers);
+                        File.WriteAllText(At(CaptureReport.ShadowCastersFile), text);
+                        Pictures(pictures);
+                        if (numbers.Length > 0)
+                        {
+                            File.WriteAllBytes(At(CaptureShadowCasters.Numbers), numbers);
+                        }
+
+                        int line = text.IndexOf('\n');
+                        return line < 0 ? text : text[..line];
+                    });
+                }
+            }
+        }
+
         // THE WINDOWS' DIAGNOSES, as they stood on the press - see Offer.
         foreach ((CapturePart part, string? text) in run.Reports)
         {
@@ -1539,6 +1643,12 @@ internal sealed class CaptureKey
 
         /// <summary>The stage sweep's progress, and its stop - the window's and the writer's.</summary>
         public CaptureStageSweep.Search? Sweep { get; init; }
+
+        /// <summary>How far the parts drawing through the game's camera have got - the window's and the writers'.</summary>
+        public CaptureAtGame.Search? AtGame { get; init; }
+
+        /// <summary>The world as read when the game's picture was taken - its camera lines up with that picture; null where none was taken.</summary>
+        public WorldSnapshot? Shot { get; set; }
 
         public DateTime Local { get; } = local;
 

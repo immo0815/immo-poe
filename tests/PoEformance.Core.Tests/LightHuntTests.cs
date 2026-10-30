@@ -209,6 +209,42 @@ public class LightHuntTests
         Assert.Contains("that is the reading the picture draws the sun by", verdict.Report, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The shadow box's planes as Necropolis held them - the light view's up and its negative, then the light and its negative - are two pairs, and the light's is taken: the box's axes in a row, said as such.
+    /// </summary>
+    [Fact]
+    public void THESHADOWBoxsTwoAxesAreToldApartAndTheLightIsTaken()
+    {
+        EnvironmentSettings env = EnvironmentSettings.Read("Necropolis.env", Encoding.UTF8.GetBytes(
+            """{ "directional_light": { "multiplier": 1.0, "phi": 2.07694, "theta": 2.70526 } }"""));
+        LightHunt hunt = LightHunt.For("Necropolis.env", env, one => $"reading {one + 1}", out string why)!;
+        Assert.True(why.Length == 0, why);
+
+        Vector3 up = SceneLight.SunFrom(2.07694f, 2.70526f, SceneLight.SunReading.ElevationPhi);
+        Vector3 light = SceneLight.SunFrom(2.07694f, 2.70526f, SceneLight.GameSun);
+        var bytes = new byte[0x1000];
+        Floats(bytes, 0x100, up.X, up.Y, up.Z, 4038.654f, -up.X, -up.Y, -up.Z, -1477.129f, light.X, light.Y, light.Z, -2391.247f, -light.X, -light.Y, -light.Z, 7938.29f);
+        (FakeMemoryReader memory, Space space) = Memory(bytes);
+
+        LightHuntVerdict verdict = hunt.Read(FloatHunt.Run(memory, space, hunt.Needles));
+
+        Assert.Equal((int)SceneLight.GameSun, verdict.Sun);
+        Assert.Contains("reading 4 and reading 8 are each other's negatives, 1 of 1 copies side by side", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains("reading 9 and reading 10 are each other's negatives, 1 of 1 copies side by side", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains("reading 4 and reading 9's pair stand in a row, 0x20 apart, in 1 of 1 copies - two axes of the shadow box", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains("of the 2 pairs, reading 9's is the light's axis", verdict.Report, StringComparison.Ordinal);
+        Assert.Contains("that is the reading the picture draws the sun by", verdict.Report, StringComparison.Ordinal);
+        Assert.StartsWith("sun: reading 9", verdict.Summary, StringComparison.Ordinal);
+
+        // THE UP'S PAIR ALONE, as Azmerian Ranges held it, is the box's frame and not taken for the light.
+        var upAlone = new byte[0x1000];
+        Floats(upAlone, 0x100, up.X, up.Y, up.Z, 4038.654f, -up.X, -up.Y, -up.Z, -1477.129f);
+        (FakeMemoryReader alone, Space aloneSpace) = Memory(upAlone);
+        LightHuntVerdict framed = hunt.Read(FloatHunt.Run(alone, aloneSpace, hunt.Needles));
+        Assert.Null(framed.Sun);
+        Assert.Contains("none of the pairs is the reading the picture draws the sun by (reading 9)", framed.Report, StringComparison.Ordinal);
+    }
+
     /// <summary>A turn about an axis no reading turns about is found among the other arrangements, said, and not taken.</summary>
     [Fact]
     public void ACUBETurnInAnotherArrangementIsSaidAndNotTaken()

@@ -490,14 +490,88 @@ WHAT THE ENGINE'S GRAPHS SAY (render-debug's engine graphs, read offline): fixed
 coordinates (VertexLocalUV) at VertexInit and the pixel side's UV from the vertex side's last (FromVertexUV) at PixelInit; the trails link a
 vertex stage's input straight to a pixel stage's writer (InputVertexTrailPhase@VertexInit to TrailPhase@VertexToPixel) - a value crossing
 the two shaders is the engine's own means, so AddMaskMuddleTex's mask reads the mesh's coordinates unscrolled. What is NOT known is the
-vertex stages' order: the links of 335 graphs mostly follow the names and in places run against them (face_camera.fxgraph reads at
+vertex stages' order: the links of the 335 graphs earlier captures hold mostly follow the names and in places run against them (face_camera.fxgraph reads at
 WorldTransform and writes at WorldTransform_Init). DECIDED from the live client: measure before any of it is compiled. `shader-stages.txt`
 (`ShaderStageHunt`, the Memory group, run at the press) reads the client's stage table - an array of MSVC std::string in its image, of
 which only the pixel side's ten entries were ever seen (the schema's 2026-10-09 find) - by reading every eight-byte place of the image as
-one and its heap names, and writes every run of them 0x20 to 0x60 apart holding stage names whole, the compile's order held against it;
+one and its heap names, and writes the runs of them 0x20 to 0x60 apart holding stage names (up to 16 runs of 512 entries), the best taken
+as the table where it holds three - written whole on its own, the order every later section reads - and the compile's order held against it;
 then every link of the install's graphs across stages by stage pair (forwards or backwards in the table), those from a vertex stage to a
 pixel stage by their ends' types, and every write of the coordinates with what feeds it. `shader-stages-replay.txt` holds the report's pairs
-and this build's compile order against its table again. Press it once anywhere before the vertex stages are compiled.
+and this build's compile order against the table it took again (v0.1.366, from a review: it read run 1 even where the report took none;
+a v0.1.365 report, which wrote no table of its own, by run 1 where its head says it took one).
+THE TABLE WAS READ WHOLE (v0.1.365's capture, The Red Vale; the schema, at the stage table's note): module+0x459C760, 81 entries - the vertex
+side VertexInit, Animation, LocalTransform, LocalTransform_Calc, LocalTransform_Final, WorldTransform_Init, WorldTransform, WorldTransform_Calc,
+WorldTransform_Final, ProjectionTransform_Init to _Final, VertexOutput, _Calc, _Final, _Pass, then VertexToPixel, PixelInit, the pixel side's
+ten as the compile had them, AlphaClip, the lighting's, the fog's and PixelOutput's, and the particles', volumetrics' and trails' own. Every
+one of the 69 stages the install's 11,972 graphs use is in it; 193 of the 197 stage pairs they link run with it. So FROM v0.1.367 THE
+COMPILE RUNS THE VERTEX SIDE FOR THE COORDINATES (`ShadeProgram.Stages`, MEASURED): `VertexUV` is a channel starting as the mesh's own
+(the engine's fixed.fxgraph writes it from VertexLocalUV at VertexInit), `InputVertexUV` reads it at its own stage, the pixel's `UV` is
+its last at PixelInit (fixed.fxgraph's FromVertexUV), and `FromVertexUV` reads that last - worked out per pixel, the engine's value
+wherever the arithmetic is affine in the coordinates (a scroll, a tiling), CHOSEN for the rest. `ConstantVertex`..4 and `FresnelFactor`
+(effects.ffx) are compiled beside them. The zone transitions' light now reads its mask, fades by its Fresnel rim and its soft edge and
+scrolls three times across (offline, light_raysc.mat of both Red Vale captures); what it still leaves out is IndirectLightMult at
+FogStage_Calc - a stage after the lighting, which the compile does not place.
+
+## The sun and the area's colours
+
+THE SUN THREW ITS SHADOWS THE WRONG WAY UNTIL v0.1.368 (said from the live client with three pictures of The Red Vale: shadows up-right
+where the game's fall down-left, everything too bright, the grass a juicy green the game's picture of the area has nowhere). `SceneLight.GameSun`
+was the shadow box's UP axis, found in Azmerian Ranges as the only one of the eight readings in memory and its sign settled by the ground. Necropolis's
+light hunt (cap1) had dumped all three of the box's plane pairs - eight corners, then each axis's plane and its negative, sixteen bytes apart (schema
+`SunShadowBox`) - and the light is the third: `-(sin phi cos theta, sin phi sin theta, cos phi)`, phi measured from straight down
+(`SunReading.PolarPhiDown`), so the sun stands phi - 90 high (The Red Vale 30, Port 35, Crimson Shores 38, Necropolis 29, Azmerian Ranges 44)
+where the up axis had stood it at 180 - phi and thrown the shadows the opposite way. MEASURED: the shadows' bearing in the game's pictures of four
+areas through each capture's own camera, Port's skeleton's shadow length, the sun's glints on the water; `THEGAMESSunIsTheShadowBoxsLightAxis` pins
+cap1's planes. Port looked right only in its BUILT stage, laid as written while the game's instances had laid the boss room turned 180 - its laid
+stage threw the shadows the other way too, unremarked. `LightHunt` looks for both readings now and takes only the light's pair, naming any other as the
+box's frame and saying the axes stand in a row (`THESHADOWBoxsTwoAxesAreToldApartAndTheLightIsTaken`).
+THE SCATTER WEARS THE MASTER'S SWAPS (v0.1.368, CHOSEN): The Red Vale's TileMaterialOverrides swap the ferns its JungleFoliageA_Redvale layer strews
+(JGD_JungleFoliage01c) for the dry RVL_JungleFoliage01c, and its swords' SkeletonSwords01c likewise - 2,470 of the 3,212 lines its v0.1.365 capture
+laid round the player wore a swapped material unswapped. The room's own lines stay as they are (DECIDED earlier from the live client) - The Red Vale's
+BRDgrass lines among them, BRD_MarshGrass02c, ten lines.
+STILL OPEN, from the same pictures: the shade measured 2.6 times the game's in The Red Vale (more sunlit ground under the old sun accounts for part -
+measure again on v0.1.368); a neutral or blue share the pane lacks in both maps; the ambient's occlusion (indirect_color.a) and the GI, neither drawn;
+and the tree crowns' square shadows - a lead, not a cause: the woods' templates carry canopy cards whose materials are shadow-only
+(JungleCanopyc and canopytestc on ForceAlphaTestWithShadowOnly.fxgraph, black_shadowonlyc on OpaqueShadowOnly), and a mode naming "shadowonly"
+casts whole triangles here, its texture unread. The shadow-casters part below measures it in one press (v0.1.369) - read it before any rule
+is changed.
+
+TWO CAPTURE PARTS MEASURE BOTH (v0.1.369, asked for from the live client: "build the capture option now, it comes anyway - then we need not
+trade crumbs of information"). Both need a book on a stage laid as this area instance laid it ("the area round you") and the light panel's
+light (built as "game light" would build it, ticked or not - SceneLightPanel.Measured); keep "game picture" ticked and stand still.
+- `light-against-game.txt` (`CaptureLightCompare`, over `CaptureAtGame`): the stage drawn on the processor THROUGH THE GAME'S OWN CAMERA
+  (`GameCamera` takes the matrix at WorldData + 0x1A0 apart - eye, right, down, forward, focal lengths, principal point, near and far, held
+  to WorldToScreen by `GameCameraTests`; `MeshPicture.Camera.Through`, `Canvas.Lens`, `Canvas.Rows`) at 1/ceil(longer side / 2048) of the screen,
+  the game's picture averaged over each drawn pixel's block in linear light, its interface and everything that moves masked. Every second
+  drawn pixel each way carries what it was made of (`PixelGather`, written where the drawing lights it: triangle, place, normal and
+  `SceneLight.LightTerms` - the light term by term, the same colour to the bit, `Shaded` over a struct the compiler specialises). Reported:
+  how the two pictures' edges line up (no shift is the camera's and the placing's agreement); the game over the pane by the pane's sun and
+  shade, by material (with the game's OWN sun and shade, Otsu on its light over the pane's albedo), as game = s pane + n, term by term
+  (non-negative least squares of the game taken back through the pane's grade and exposure - CHOSEN: the engine's grade the same table),
+  by the distance to the player (the CHOSEN lamp) and by depth. `light-against-game.bin` keeps every compared pixel; the replay works the
+  report out again (`CaptureLightCompare.Replay`).
+- `shadow-casters.txt` (`CaptureShadowCasters`): the sun's map that keeps its casters (`ShadowOwners`, `ShadowMap.Owned`,
+  `MeshPicture.Casters`) as drawn and with shadow-only shapes cut by their texture's alpha (`CastRule.ShadowOnlyCut`), the ground alone
+  beside them; every caster of the ground's shadow by blend, the word its graphs spell, material and clear share of its texture; each piece
+  of shadow's fill of its tightest box (square-like from 0.8, CHOSEN); the blend graphs (ForceAlphaTestWithShadowOnly and its kin) and
+  the casting materials whole; and, through the game's camera, the game's light where a cut would take the pane's shadow away beside its
+  light in the open and in a shadow both readings cast - t nought the game casts as the picture does, one it casts nothing there.
+  `shadow-casters.bin` keeps the ground's map by kind; the replay counts its pieces again.
+- MENDED FROM A REVIEW (v0.1.370): a screen taller than wide drawn at its width's fraction overran the canvas; a stage out of view was
+  said to line up (no shift measured, nought taken as agreement); a light with no sun counted every face towards its way as in the sun
+  (`LightTerms.Sun` and `SunFacing` are nought now where there is no sun); t counted the lost pixels of groups no brighter lit than
+  shaded among the judged, pulling it to nought; the verdict grouped by shape, a laid block's ground being dozens of shapes of one
+  material; and a cut card's kept shadow was credited to whatever cast once cut. v0.1.371: THE GAME'S PICTURE AT ITS CEILING is left out of
+  both comparisons (`CaptureAtGame.Clipped`, a channel at 254 or more in the block, CHOSEN) - the game's picture clips where its light passes
+  one while the pane's is unclamped, and MEASURED on the captures' game pictures Port's sunlit cobblestones reach 255 on 0.7 to 4.3% of the
+  picture, Crimson Shores' arena floor on 2.5 to 3.4%: taken as exact they read as a pane too bright and too saturated. The numbers are
+  version 2 (a ninth reason left out; version 1 still replays). A drawing's or a part's failure inside a parallel loop (AggregateException)
+  no longer ends the whole capture; the light panel's lines take the frame at the press and the lamp's height as set. v0.1.372: the
+  capture draws the programs and the water as the measured light says (its spray twins and way in), "game light" ticked or not; and with
+  no stage laid in this instance the shadow part takes a stage with ground (`CaptureShadowCasters.Fallback`), not a lone monster. The
+  drawing through the game's camera runs as the first waiting part's step, so the capture's window says what it draws, and a drawing that
+  fails is filed as failed, not as not written.
 
 ## Verify against the game, not against yourself
 

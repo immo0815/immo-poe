@@ -289,8 +289,9 @@ public sealed partial class ShadeProgram
     private static readonly FrozenSet<string> Evaluated = FrozenSet.ToFrozenSet(
         [
             "ConstantPixel", "ConstantPixel2", "ConstantPixel3", "ConstantPixel4",
+            "ConstantVertex", "ConstantVertex2", "ConstantVertex3", "ConstantVertex4",
             "ConstantFloat", "ConstantFloat2", "ConstantFloat3", "ConstantFloat4",
-            "ConstantBool", "ConstantPixelBool", "ConstantInt", "ConstantUInt",
+            "ConstantBool", "ConstantPixelBool", "ConstantVertexBool", "ConstantInt", "ConstantUInt",
             "Zero", "One", "Half", "Two", "Pi", "Epsilon", "ZeroUInt", "OneUInt", "TwoUInt",
             "Dummy", "Dummy2", "Dummy3", "Dummy4", "DummyBool", "DummyInt", "DummyUInt",
             "Add", "Add2", "Add3", "Add4",
@@ -332,7 +333,7 @@ public sealed partial class ShadeProgram
             "FromVertexColor", "Time",
             "ModelOrigin", "ModelTransformDecompose", "LocalPlayerPosition", "GroundScroll", "Transform", "LookUpTexture",
             "Noise31", "PerlinNoise31", "Vibrance", "Rotate", "RotateUV", "RadiusToPolarNorm", "DustColor",
-            "DepthDistance", "GetDepthDistance", "MaskedContactFade", "ViewDir", "FixModelTBN", "ParallaxUvSpace",
+            "DepthDistance", "GetDepthDistance", "MaskedContactFade", "ViewDir", "FresnelFactor", "FixModelTBN", "ParallaxUvSpace",
             "CrashingFoamSurface", "ReadPixelWetness",
         ],
         StringComparer.Ordinal);
@@ -340,15 +341,15 @@ public sealed partial class ShadeProgram
     /// <summary>The channels a graph reads and writes, in the order <see cref="Writer"/> numbers them.</summary>
     /// <remarks>
     /// FROM THE FIRST FOLLOWED ON, a channel whose write is left out is LOST rather than left as it
-    /// was: no later graph reads a stale indirect light without being named for it. The four before
+    /// was: no later graph reads a stale indirect light without being named for it. The five before
     /// keep their old value, as they always have - the colour is what is drawn and a left-out write of
-    /// it is said; a coordinate, position or normal a graph moves and this could not follow changes
-    /// neither.
+    /// it is said; a coordinate (the pixel side's or the vertex side's), position or normal a graph
+    /// moves and this could not follow changes neither.
     /// </remarks>
     private static readonly string[] Channels =
-        ["UV", "WorldPos", "WorldNormal", "Albedo", "IndirectColor", "SpecularColor", "EmissiveColor", "SubsurfaceColor", "Glossiness", "TbnNormal", "TbnBasis", "Height"];
+        ["UV", "VertexUV", "WorldPos", "WorldNormal", "Albedo", "IndirectColor", "SpecularColor", "EmissiveColor", "SubsurfaceColor", "Glossiness", "TbnNormal", "TbnBasis", "Height"];
 
-    private const int FirstFollowed = 4;
+    private const int FirstFollowed = 5;
 
     private static readonly float[] ToLinear = Tabled(x => x <= 0.04045f ? x / 12.92f : MathF.Pow((x + 0.055f) / 1.055f, 2.4f));
 
@@ -590,14 +591,33 @@ public sealed partial class ShadeProgram
     /// family was left out and named; the particles of exit_01 and Dust_Triplanar were.
     ///
     /// A colour written at any stage not here is left out and named.
+    ///
+    /// THE WHOLE TABLE WAS READ (v0.1.365's shader-stages part, The Red Vale, 2026-10-30): 81 entries at module+0x459C760, every
+    /// one of the 69 stages the install's 11,972 graphs use, and the ten above among them in this order. The vertex side comes first -
+    /// VertexInit, Animation, LocalTransform, WorldTransform, ProjectionTransform and VertexOutput, each with its _Init, _Calc or
+    /// _Final as the table has them, then VertexToPixel and PixelInit - and AlphaClip, the lighting, the fog and PixelOutput after
+    /// PreLighting_Final; the particles', volumetrics' and trails' own stages close it. Of the 197 stage pairs the graphs link, 193
+    /// run with the table and 4 against it. So the vertex side's stages are run here too, from v0.1.367, for the one channel the
+    /// pixel side reads of them - the coordinates (<c>VertexUV</c>): a graph scrolls or tiles a texture by writing them at a vertex
+    /// stage (ScaleMoveUV at WorldTransform) and reads the mesh's own before that (AddMaskMuddleTex's InputVertexUV at VertexInit).
+    /// They are worked out per pixel, which is the engine's interpolated value wherever the vertex side's arithmetic is affine in the
+    /// coordinates, as a scroll and a tiling are - CHOSEN for the rest. The stages after PreLighting_Final are not run: what the
+    /// colour is there, lit or not, is the engine's lighting's, which this does not place.
     /// </remarks>
     public static readonly IReadOnlyList<string> Stages =
     [
-        "VertexInit",
+        "VertexInit", "Animation", "LocalTransform", "LocalTransform_Calc", "LocalTransform_Final",
+        "WorldTransform_Init", "WorldTransform", "WorldTransform_Calc", "WorldTransform_Final",
+        "ProjectionTransform_Init", "ProjectionTransform", "ProjectionTransform_Calc", "ProjectionTransform_Final",
+        "VertexOutput", "VertexOutput_Calc", "VertexOutput_Final", "VertexOutput_Pass",
+        "VertexToPixel", PixelInit,
         "UVSetup", "UVSetup_Calc", "UVSetup_Final",
         "Texturing_Init", "Texturing", "Texturing_Calc", "Texturing_Final",
         "PreLighting", "PreLighting_Calc", "PreLighting_Final",
     ];
+
+    /// <summary>The pixel side's first stage the engine's own mesh graphs write at: the pixel's coordinates are the vertex side's last there - see <see cref="Stages"/>.</summary>
+    private const string PixelInit = "PixelInit";
 
     /// <summary>How many registers a run needs.</summary>
     public int Registers { get; }
@@ -868,6 +888,10 @@ public sealed partial class ShadeProgram
         var state = new Dictionary<string, Held>(StringComparer.Ordinal)
         {
             ["UV"] = new(Coordinates, 0),
+
+            // THE VERTEX SIDE'S COORDINATES START AS THE MESH'S: the engine's own mesh graphs (fixed.fxgraph, animated_tex.fxgraph and
+            // the particles') write VertexUV from VertexLocalUV at VertexInit before a material's graphs run - see Stages.
+            ["VertexUV"] = new(Coordinates, 0),
             ["WorldPos"] = new(Position, 0),
             ["WorldNormal"] = new(Normal, 0),
             ["IndirectColor"] = new(build.Constant(Vector4.Zero), 0b1000),
@@ -935,6 +959,14 @@ public sealed partial class ShadeProgram
         for (var at = 0; at < Stages.Count; at++)
         {
             string stage = Stages[at];
+
+            // THE PIXEL'S COORDINATES ARE THE VERTEX SIDE'S LAST, as the engine's mesh graphs write UV from FromVertexUV at PixelInit
+            // before a material's graphs write there.
+            if (stage == PixelInit && state["VertexUV"] != state["UV"])
+            {
+                state["UV"] = state["VertexUV"];
+                changes++;
+            }
             for (var link = 0; link < chain.Count; link++)
             {
                 if (copied != changes)
@@ -963,7 +995,12 @@ public sealed partial class ShadeProgram
                 foreach (Writer writer in mine)
                 {
                     string channel = Channels[writer.Channel];
-                    string what = channel == "UV" ? $"{named}'s coordinates" : named;
+                    string what = channel switch
+                    {
+                        "UV" => $"{named}'s coordinates",
+                        "VertexUV" => $"{named}'s vertex coordinates",
+                        _ => named,
+                    };
                     Builder.Mark mark = build.Marked();
                     unit.Start();
                     if (channel == "Albedo")
@@ -993,7 +1030,7 @@ public sealed partial class ShadeProgram
 
                     // THE COLOUR AND THE COORDINATES ARE SAID WHEN LEFT OUT: one is what is drawn, the
                     // other is where every texture after it is read. A followed channel is lost.
-                    if (channel is "Albedo" or "UV")
+                    if (channel is "Albedo" or "UV" or "VertexUV")
                     {
                         skipped.Add(why);
                     }
@@ -2526,6 +2563,7 @@ public sealed partial class ShadeProgram
     private static string? Written(string type) => type switch
     {
         "UV" => "UV",
+        "VertexUV" => "VertexUV",
         "WorldPos" => "WorldPos",
         "WorldNormal" => "WorldNormal",
         "AlbedoColor" => "Albedo",
@@ -2544,6 +2582,11 @@ public sealed partial class ShadeProgram
     private static string? ReadBy(string type) => type switch
     {
         "InputUV" => "UV",
+
+        // THE VERTEX SIDE'S COORDINATES at the reader's own stage; FromVertexUV is the pixel's interpolant of their last
+        // (utilitynodes.ffx: output = semanticsData.uv1, which VertexOutput fills with vertex_uv).
+        "InputVertexUV" => "VertexUV",
+        "FromVertexUV" => "VertexUV",
         "InputWorldPos" => "WorldPos",
         "InputWorldNormal" => "WorldNormal",
         "InputAlbedoColor" => "Albedo",
@@ -3317,6 +3360,14 @@ public sealed partial class ShadeProgram
                 case "ConstantPixel2":
                 case "ConstantPixel3":
                 case "ConstantPixel4":
+
+                // THE VERTEX SIDE'S CONSTANTS, the same uniform under a vertex name (utilitynodes.ffx: output = constant2_vertex) - read
+                // now the vertex side's coordinates are run (ScaleMoveUV's UV_move and UV_tiling).
+                case "ConstantVertex":
+                case "ConstantVertex2":
+                case "ConstantVertex3":
+                case "ConstantVertex4":
+                case "ConstantVertexBool":
                 case "ConstantFloat":
                 case "ConstantFloat2":
                 case "ConstantFloat3":
@@ -3533,6 +3584,24 @@ public sealed partial class ShadeProgram
                 // -normalize(camera - world_pos): one way everywhere on a parallel view, the place's own in perspective - see Viewer.
                 case "ViewDir":
                     return build.Emit(Op.ViewWay, Position);
+
+                // clamp(zero + (1 - zero) * pow(saturate(1 - dot(normalize(camera - world_pos), world_normal)), 5), 1e-5, 1 - 1e-5) (effects.ffx) -
+                // FresnelFade's, which fades the zone transitions' light at its edges. ViewWay is -normalize(camera - world_pos), so the dot
+                // is added to one; the normal is unit length as the engine's surface keeps it.
+                case "FresnelFactor":
+                {
+                    if (Port(node, "world_pos") is not { } rimAt || Port(node, "world_normal") is not { } rimFacing)
+                    {
+                        return null;
+                    }
+
+                    float zero = Said(node, 0, 0f);
+                    int way = build.Emit(Op.ViewWay, rimAt);
+                    int normal = build.Direction(rimFacing) ? build.Emit(Op.Normalize, rimFacing, extra: 3) : rimFacing;
+                    int grazing = build.Emit(Op.Saturate, build.Emit(Op.MultiplyAdd, build.Emit(Op.Dot, way, normal, extra: 3), build.Constant(Vector4.One), build.Constant(Vector4.One)));
+                    int rim = build.Emit(Op.MultiplyAdd, build.Emit(Op.Power, grazing, build.Constant(new Vector4(5f))), build.Constant(new Vector4(1f - zero)), build.Constant(new Vector4(zero)));
+                    return build.Emit(Op.Clamp, rim, build.Constant(new Vector4(1e-5f)), build.Constant(new Vector4(1f - 1e-5f)));
+                }
 
                 // wetness_sample = wetness_tex at the pixel - the card's wetness pass's, nought on the processor. See ReadsWetness.
                 case "ReadPixelWetness":

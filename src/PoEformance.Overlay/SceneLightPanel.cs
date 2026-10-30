@@ -84,6 +84,8 @@ public sealed class SceneLightPanel : IMovableSun
         "theta as the height above the ground, phi round from x; the vector is the way the light travels",
         "phi from straight up, theta round from x; the vector is the way the light travels",
         "phi as the height above the ground, theta round from x; the vector is the way the light travels",
+        "phi from straight down, theta round from x; the vector points at the sun",
+        "phi from straight down, theta round from x; the vector is the way the light travels",
     ];
 
     private static readonly string[] Ways = ["up", "up-right", "right", "down-right", "down", "down-left", "left", "up-left"];
@@ -239,11 +241,50 @@ public sealed class SceneLightPanel : IMovableSun
             return _built;
         }
 
+        _built = Made(model, player, (PictureView)Math.Clamp(_view, 0, SceneLight.ViewNames.Count - 1), _moving ? ShadowMap.Coarse : ShadowMap.Usual);
+        _builtModel = model;
+        _builtVersion = _version;
+        _builtPath = path;
+        _builtPlayer = player;
+        return _built;
+    }
+
+    /// <summary>
+    /// The light a capture holds the model against the game's picture under: the panel's switches as they stand, the picture lit (not a
+    /// channel), the full shadow map - built whether or not "game light" is ticked - and what the panel says of it; null where the model is no picture.
+    /// </summary>
+    /// <remarks>On the drawing thread, at the press: it may read the environment's cube and grade for the first time.</remarks>
+    public (SceneLight? Light, IReadOnlyList<string> Said) Measured(MonsterModel model)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+        if (!model.Ready)
+        {
+            return (null, []);
+        }
+
+        Load(Chosen());
+        SceneLight light = Made(model, PlayerPlace(model), PictureView.Picture, ShadowMap.Usual);
+        var said = new List<string>
+        {
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"switches: game light {(_on ? "on" : "off - the light below is the one it would draw")}, sun {_sun}, shadows {_shadows}, free sun {_freeSun}, room lights {_points} ({(SceneLight.PointShape)_pointShape}), player light {_playerLight} (radius {_playerRadius:0}, {_playerHeight:0} up), ambient {(SceneAmbient)_ambient} (flat {_flat:0.#####}), cube reading {_cubeReading + 1}, exposure {_exposure}, grade {_grade}, view {SceneLight.ViewNames[Math.Clamp(_view, 0, SceneLight.ViewNames.Count - 1)]}"),
+            "environment: " + (Chosen().Length > 0 ? Chosen() : "none"),
+        };
+        // THE FRAME AT THE PRESS, not the one the panel last labelled by: that is only set while the panel draws with "game light" ticked, and
+        // left at nought it says the sun stands straight overhead.
+        said.AddRange(Lines(model, Frame()));
+        return (light, said);
+    }
+
+    /// <summary>The light the panel's switches make for a model: its sun, lamps, ambient, exposure and grade.</summary>
+    private SceneLight Made(MonsterModel model, Vector3 player, PictureView view, int shadowSide)
+    {
         EnvironmentSettings env = _environment;
 
         // A FREE SUN IN AN ENVIRONMENT WITHOUT ONE shines white at one, or there would be nothing to move.
         Vector3 sunColour = !_sun ? Vector3.Zero : env.SunLight != Vector3.Zero ? env.SunLight : _freeSun ? Vector3.One : Vector3.Zero;
-        _built = new SceneLight(
+        return new SceneLight(
             _points ? model.Lights : [],
             (SceneLight.PointShape)_pointShape,
             _playerLight ? new SceneLight.PlayerLamp(player, env.PlayerLight, _playerRadius) : null)
@@ -251,7 +292,7 @@ public sealed class SceneLightPanel : IMovableSun
             SunColour = sunColour,
             SunDirection = _freeSun ? SceneLight.SunToward(_freeRound, _freeHeight) : SceneLight.SunFrom(env.Phi ?? 0f, env.Theta ?? 0f, SceneLight.GameSun),
             SunShadows = _shadows,
-            ShadowSide = _moving ? ShadowMap.Coarse : ShadowMap.Usual,
+            ShadowSide = shadowSide,
             Ambient = (SceneAmbient)_ambient,
             FlatAmbient = _flat,
             Cube = _cube,
@@ -274,13 +315,8 @@ public sealed class SceneLightPanel : IMovableSun
             GiEnvOcclusion = Math.Clamp(env.GiEnvOcclusion ?? 0f, 0f, 1f),
             Exposure = _exposure ? MathF.Max(1f, env.Exposure ?? 1f) : 1f,
             Grade = _grade ? _gradeTable : null,
-            View = (PictureView)Math.Clamp(_view, 0, SceneLight.ViewNames.Count - 1),
+            View = view,
         };
-        _builtModel = model;
-        _builtVersion = _version;
-        _builtPath = path;
-        _builtPlayer = player;
-        return _built;
     }
 
     /// <summary>The panel: the switches, the environment picker, the readings and what they came to - under a fold the book draws.</summary>
@@ -697,8 +733,8 @@ public sealed class SceneLightPanel : IMovableSun
         {
             ImGui.AlignTextToFramePadding();
             ImGuiText.Wrapped(OverlayInk.Quiet, ImGuiText.Escape(_sunSaid));
-            OverlayLayout.Hint("The environment's sun as the game reads its angles: phi is its height above the ground, theta its bearing -"
-                + " found in the game's memory, where that one reading's vector was kept and no other's (SceneLight.GameSun).");
+            OverlayLayout.Hint("The environment's sun as the game reads its angles: phi is measured from straight down, so the sun stands phi - 90° high,"
+                + " and theta is its bearing - the light axis of the game's shadow box, found in its memory, and the shadows' way in its pictures (SceneLight.GameSun).");
             ImGui.SetCursorPosX(start);
         }
 
@@ -1083,6 +1119,36 @@ public sealed class SceneLightPanel : IMovableSun
     private void Said(MonsterModel? model, SceneLight.GroundOnScreen frame)
     {
         EnvironmentSettings env = _environment;
+        List<string> lines = Lines(model, frame);
+        IReadOnlyList<string> assumed = env.Ready ? env.Assumed() : [];
+        string sunSaid = !env.Ready ? "no environment" : env.SunLight == Vector3.Zero && !_freeSun ? "no sun" : "sun";
+        if (_sun && (_freeSun || (env.Ready && env.SunLight != Vector3.Zero)))
+        {
+            Vector3 travels = _freeSun ? SceneLight.SunToward(_freeRound, _freeHeight) : SceneLight.SunFrom(env.Phi ?? 0f, env.Theta ?? 0f, SceneLight.GameSun);
+            float height = MathF.Asin(Math.Clamp(travels.Z, -1f, 1f)) * 180f / MathF.PI;
+            sunSaid = string.Create(CultureInfo.InvariantCulture, $"{(_freeSun ? "free sun" : "sun")} {height:0}° high{(height < 0f ? " - BELOW the ground" : string.Empty)}");
+        }
+
+        string summary = string.Create(
+            CultureInfo.InvariantCulture,
+            $"details: {sunSaid} · {model?.Lights.Count ?? 0} room lights · {assumed.Count} assumed###scene-details");
+        if (!ImGui.TreeNodeEx(summary, ImGuiTreeNodeFlags.SpanAvailWidth))
+        {
+            return;
+        }
+
+        foreach (string line in lines.Where(one => one.Length > 0))
+        {
+            ImGuiText.Wrapped(OverlayInk.Quiet, ImGuiText.Escape(line));
+        }
+
+        ImGui.TreePop();
+    }
+
+    /// <summary>What the light came to, line by line - the details fold's and a capture's (<see cref="Measured"/>).</summary>
+    private List<string> Lines(MonsterModel? model, SceneLight.GroundOnScreen frame)
+    {
+        EnvironmentSettings env = _environment;
         var lines = new List<string> { env.Said() };
         IReadOnlyList<string> assumed = env.Ready ? env.Assumed() : [];
         if (assumed.Count > 0)
@@ -1090,12 +1156,9 @@ public sealed class SceneLightPanel : IMovableSun
             lines.Add("assumed: " + string.Join("; ", assumed));
         }
 
-        string sunSaid = !env.Ready ? "no environment" : env.SunLight == Vector3.Zero && !_freeSun ? "no sun" : "sun";
         if (_sun && (_freeSun || (env.Ready && env.SunLight != Vector3.Zero)))
         {
             Vector3 travels = _freeSun ? SceneLight.SunToward(_freeRound, _freeHeight) : SceneLight.SunFrom(env.Phi ?? 0f, env.Theta ?? 0f, SceneLight.GameSun);
-            float height = MathF.Asin(Math.Clamp(travels.Z, -1f, 1f)) * 180f / MathF.PI;
-            sunSaid = string.Create(CultureInfo.InvariantCulture, $"{(_freeSun ? "free sun" : "sun")} {height:0}° high{(height < 0f ? " - BELOW the ground" : string.Empty)}");
             lines.Add(string.Create(CultureInfo.InvariantCulture,
                 $"{(_freeSun ? "free sun" : "sun")}: light travels {travels.X:0.##} {travels.Y:0.##} {travels.Z:0.##} - {Throws(travels, frame)}"
                 + $" on the screen{(_screen() is { Ready: true } ? string.Empty : " (by the map's transform - no live camera)")}"));
@@ -1130,20 +1193,7 @@ public sealed class SceneLightPanel : IMovableSun
             lines.AddRange(verdict.Report.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
         }
 
-        string summary = string.Create(
-            CultureInfo.InvariantCulture,
-            $"details: {sunSaid} · {model?.Lights.Count ?? 0} room lights · {assumed.Count} assumed###scene-details");
-        if (!ImGui.TreeNodeEx(summary, ImGuiTreeNodeFlags.SpanAvailWidth))
-        {
-            return;
-        }
-
-        foreach (string line in lines.Where(one => one.Length > 0))
-        {
-            ImGuiText.Wrapped(OverlayInk.Quiet, ImGuiText.Escape(line));
-        }
-
-        ImGui.TreePop();
+        return lines;
     }
 
     /// <summary>

@@ -20,7 +20,7 @@ public sealed class ShaderStageHuntTests
     /// </summary>
     private static readonly string[] Table =
     [
-        "VertexInit", "LocalTransform", "Animation", "WorldTransform_Init", "WorldTransform", "VertexOutput_Final",
+        "VertexInit", "Animation", "LocalTransform", "WorldTransform_Init", "WorldTransform", "VertexOutput_Final",
         "VertexToPixel", "PixelInit", "UVSetup", "Texturing_Init", "Texturing", "PreLighting",
     ];
 
@@ -38,13 +38,17 @@ public sealed class ShaderStageHuntTests
         }
 
         Assert.DoesNotContain("run 2:", text, StringComparison.Ordinal);
+        Assert.Contains("=== the table taken: run 1, 12 entries, the order every section below reads", text, StringComparison.Ordinal);
+        Assert.Contains("  table\t3\tWorldTransform_Init", text, StringComparison.Ordinal);
+        Assert.Contains("=== from a vertex stage to a pixel stage: the vertex side the table's stages before VertexToPixel", text, StringComparison.Ordinal);
         Assert.Contains("image: module 0x1400000000, 0x2000 bytes, 0x0 of them unreadable; 11 std::strings held inline, 2 on the heap (0 more whose text did not read); 1 runs holding stages", text, StringComparison.Ordinal);
 
         // THE COMPILE'S ORDER against it, and the table's stages it does not run.
         Assert.Contains("  compile\tVertexInit\ttable 0", text, StringComparison.Ordinal);
         Assert.Contains("  compile\tUVSetup_Calc\tnot in the table", text, StringComparison.Ordinal);
         Assert.Contains("the compile's stages run in the table's order", text, StringComparison.Ordinal);
-        Assert.Contains("the table's entries the compile does not run: LocalTransform, Animation, WorldTransform_Init, WorldTransform, VertexOutput_Final, VertexToPixel, PixelInit", text, StringComparison.Ordinal);
+        Assert.Contains("  compile\tLocalTransform_Calc\tnot in the table", text, StringComparison.Ordinal);
+        Assert.Contains("the table's entries the compile does not run: none", text, StringComparison.Ordinal);
 
         // THE LINKS: forwards, and face_camera's against the names' order - which the table puts backwards.
         Assert.Contains("  pair\tVertexInit\tTexturing\tgraphs 1\tforwards\te.g. Metadata/Effects/Graphs/General/AddMask.fxgraph", text, StringComparison.Ordinal);
@@ -60,7 +64,7 @@ public sealed class ShaderStageHuntTests
         Assert.Contains("  coords\tUV@PixelInit\tFromVertexUV\tvia FromVertexUV\tgraphs 1\tMetadata/EngineGraphs/fixed.fxgraph", text, StringComparison.Ordinal);
         Assert.Contains("  coords\tVertexUV@VertexInit\tInputVertexUV@VertexInit\tvia InputVertexUV\tgraphs 1", text, StringComparison.Ordinal);
 
-        Assert.Contains("graphs: 3 of the walk's 5 read (2 of them the engine's own, under Metadata/EngineGraphs/), 1 not in the install, 1 not a graph", text, StringComparison.Ordinal);
+        Assert.Contains("graphs: 3 of the walk's 5 read (2 of them the engine's own, under Metadata/EngineGraphs/), 1 not in the install, 1 with no node and no link", text, StringComparison.Ordinal);
         Assert.Contains("  stage\tVertexInit\tgraphs 3\tnodes 4\ttable 0", text, StringComparison.Ordinal);
     }
 
@@ -75,6 +79,10 @@ public sealed class ShaderStageHuntTests
         Assert.Contains("  backwards\tWorldTransform\tWorldTransform_Init\tgraphs 1", replay, StringComparison.Ordinal);
         Assert.Contains("stage pairs: 1 forwards, 1 backwards, 0 with a stage the table does not hold", replay, StringComparison.Ordinal);
         Assert.Contains("the compile's stages run in the table's order", replay, StringComparison.Ordinal);
+
+        // A v0.1.365 REPORT, which wrote no table lines of its own: run 1's entries where its head says it took the table.
+        string older = string.Join("\n", text.Split('\n').Where(line => !line.StartsWith("  table\t", StringComparison.Ordinal) && !line.StartsWith("=== the table taken", StringComparison.Ordinal)));
+        Assert.StartsWith("shader stages replay: a table of 12 entries, 2 stage pairs", ShaderStageHunt.Replay(older), StringComparison.Ordinal);
         Assert.StartsWith("shader stages replay: the report holds no table and no stage pair", ShaderStageHunt.Replay("nothing"), StringComparison.Ordinal);
     }
 
@@ -95,16 +103,42 @@ public sealed class ShaderStageHuntTests
         Assert.Contains("image: not read - the program's module has no base or no size", stopped, StringComparison.Ordinal);
     }
 
-    /// <summary>An image holding the table, a literal pool of the same names as a decoy, and a lone string; two names on the heap.</summary>
-    private static FakeMemoryReader Reader()
+    /// <summary>
+    /// A run holding two stages is written but not taken as the table, and the replay takes none either (v0.1.366, from a review: it read
+    /// run 1 whatever the report took); a table holding no VertexToPixel leaves the vertex side to the stages' names, and says so.
+    /// </summary>
+    [Fact]
+    public void ARUNOfTwoStagesIsNoTableAndTheReplayTakesNoneEither()
     {
+        string text = string.Join("\n", ShaderStageHunt.Run(Reader(["Texturing", "Foo", "UVSetup", "Bar"]), Graphs().GetValueOrDefault, [.. Graphs().Keys], new ShaderStageHunt.Running()));
+
+        Assert.StartsWith("shader stages: no table found;", text, StringComparison.Ordinal);
+        Assert.Contains("run 1: module+0x800, 4 entries 0x20 apart, 2 of them stages the graphs or the compile name", text, StringComparison.Ordinal);
+        Assert.Contains("=== the table taken: none - no run holds 3 stages the graphs or the compile name", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("  table\t", text, StringComparison.Ordinal);
+
+        string replay = ShaderStageHunt.Replay(text);
+        Assert.StartsWith("shader stages replay: no table taken, 2 stage pairs", replay, StringComparison.Ordinal);
+        Assert.StartsWith("shader stages replay: no table taken", ShaderStageHunt.Replay(text.Replace("=== the table taken", "=== removed", StringComparison.Ordinal)), StringComparison.Ordinal);
+        Assert.Contains("no table to hold it against", replay, StringComparison.Ordinal);
+        Assert.Contains("stage pairs: 0 forwards, 0 backwards, 2 with a stage the table does not hold", replay, StringComparison.Ordinal);
+
+        string pixelSide = string.Join("\n", ShaderStageHunt.Run(Reader(["PixelInit", "UVSetup", "Texturing_Init", "Texturing"]), Graphs().GetValueOrDefault, [.. Graphs().Keys], new ShaderStageHunt.Running()));
+        Assert.Contains("=== from a vertex stage to a pixel stage: the vertex side by name, the table holding no VertexToPixel", pixelSide, StringComparison.Ordinal);
+        Assert.Contains("  cross\tInputVertexUV@VertexInit\tAlbedoColor@Texturing\tgraphs 1", pixelSide, StringComparison.Ordinal);
+    }
+
+    /// <summary>An image holding the table, a literal pool of the same names as a decoy, and a lone string; two names on the heap.</summary>
+    private static FakeMemoryReader Reader(string[]? table = null)
+    {
+        table ??= Table;
         var image = new byte[0x2000];
         Encoding.ASCII.GetBytes("Texturing\0UVSetup\0PixelInit\0VertexInit\0").CopyTo(image, 0x100);
         var reader = new FakeMemoryReader { ModuleBase = Base, ModuleSize = (uint)image.Length };
         ulong heap = Heap;
-        for (var at = 0; at < Table.Length; at++)
+        for (var at = 0; at < table.Length; at++)
         {
-            String(image, TableAt + (0x20 * at), Table[at], reader, ref heap);
+            String(image, TableAt + (0x20 * at), table[at], reader, ref heap);
         }
 
         String(image, 0x1800, "Unrelated", reader, ref heap);

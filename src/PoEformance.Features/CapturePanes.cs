@@ -18,7 +18,10 @@ public sealed record CapturePane(string Book, IReadOnlyList<string> Lines, Monst
     /// <summary>The shapes under the last probe click, nearest first - empty where the probe is off or was not clicked on this model.</summary>
     public IReadOnlyList<int> Probed { get; init; } = [];
 
-    /// <summary>The programs the pane draws each shape with - the flat or the glossy list - or null where it draws none.</summary>
+    /// <summary>
+    /// The programs the pane draws each shape with - the flat or the glossy list, swapped for their spray twins where <see cref="Light"/> asks -
+    /// or null where it draws none.
+    /// </summary>
     public IReadOnlyList<ShadeProgram?>? Shades { get; init; }
 
     /// <summary>Where the time of building the model and drawing its first picture went - see ModelProgress.Report.</summary>
@@ -35,6 +38,39 @@ public sealed record CapturePane(string Book, IReadOnlyList<string> Lines, Monst
 
     /// <summary>How the install unpacks a bundle of keyframes, or null where nothing can - the pane's own (MonsterPortrait).</summary>
     public Func<ReadOnlyMemory<byte>, int, byte[]?>? Unpack { get; init; }
+
+    /// <summary>
+    /// The game's light as the pane's light panel builds it with its switches - whether or not the pane draws under it now (<see cref="LightOn"/>) -
+    /// for the parts that hold the pane against the game's picture; null where the book has no panel or the model is no picture.
+    /// </summary>
+    public SceneLight? Light { get; init; }
+
+    /// <summary>Whether the pane draws under <see cref="Light"/> now - its "game light" ticked - or under its own lamp.</summary>
+    public bool LightOn { get; init; }
+
+    /// <summary>What the light panel says of the light: its switches, the environment, what was assumed, the sun, the cube and the grade.</summary>
+    public IReadOnlyList<string> LightSaid { get; init; } = [];
+
+    /// <summary>The area's dust the pane's materials read.</summary>
+    public Vector3 Dust { get; init; } = EnvironmentSettings.AssumedDust;
+
+    /// <summary>The water the pane draws with - the area's, over the room's shore (its way in <see cref="Light"/>'s) and the river's flow.</summary>
+    public WaterLook Water { get; init; } = WaterLook.EngineDefault;
+
+    /// <summary>The clock the pane's picture stood at, seconds.</summary>
+    public float Clock { get; init; }
+
+    /// <summary>The ink a shape with no texture is drawn in.</summary>
+    public Vector3 Ink { get; init; }
+
+    /// <summary>The blends the pane draws each shape with - not always the model's own (MonsterPortrait's Blends) - or null for every shape solid.</summary>
+    public IReadOnlyList<MaterialBlend>? Blends { get; init; }
+
+    /// <summary>The vertices as the pane drew them where a pose moved them - a copy - or null for the mesh's own.</summary>
+    public Vector3[]? Positions { get; init; }
+
+    /// <summary>Their normals, beside <see cref="Positions"/>.</summary>
+    public Vector3[]? Normals { get; init; }
 }
 
 /// <summary>
