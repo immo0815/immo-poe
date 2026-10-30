@@ -1014,9 +1014,9 @@ public sealed class TileBookWindow : BookWindow<TileBook>
 
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip("The level editor's own pieces: walk blockers and markers. The game places them and does not draw them -"
+            ImGui.SetTooltip("The level editor's own pieces: walk blockers, markers and sound emitters. The game places them and does not draw them -"
                 + " the room names DoodadInvisible beside a blocker - so they are hidden unless this is on."
-                + " Everything from Metadata/Terrain/Doodads/Tools/ counts, which is a rule on the folder's name.");
+                + " Everything from Metadata/Terrain/Doodads/Tools/ and Metadata/Terrain/Tools/ counts, which is a rule on the folders' names.");
         }
 
         // A SECOND ROW FOR WHERE THINGS GO: the first says how much is drawn, this one where it stands.

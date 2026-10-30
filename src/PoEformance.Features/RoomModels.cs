@@ -67,6 +67,9 @@ public static class RoomModels
     /// <summary>The folder of the level editor's own pieces - walk blockers, markers, pins.</summary>
     public const string ToolFolder = "Metadata/Terrain/Doodads/Tools/";
 
+    /// <summary>The level editor's other folder - its sound emitters (<c>AudioTools/</c>) among them.</summary>
+    public const string EditorFolder = "Metadata/Terrain/Tools/";
+
     /// <summary>
     /// Whether a doodad is one of the level editor's tools rather than part of the scene.
     /// </summary>
@@ -81,10 +84,16 @@ public static class RoomModels
     /// camera-facing sheet of editor icons hung 350 units over the pin. That half is a rule on a
     /// folder's name, not the game's word, which is why it is a choice the book offers rather than
     /// a filter it applies.
+    ///
+    /// <see cref="EditorFolder"/> IS THE SAME KIND OF THING (v0.1.364, DECIDED from the live client): The Red Vale's exit to the
+    /// Grelwood stood a capsule lettered AUDIO inside its light, <c>AudioTools/G1_5/OldForestEntrance.ao</c> in prismac.mat - a sound
+    /// emitter the game holds as an entity of its own type, named after its file, and does not draw. Its siblings there
+    /// (BattleAudio, RiverRapidsAudio, HighIntensityRiver) carry no mesh that reads, so they drew nothing either way.
     /// </remarks>
     public static bool IsTool(RoomDoodad doodad)
         => string.Equals(doodad.Stub, InvisibleStub, StringComparison.OrdinalIgnoreCase)
-            || doodad.Ao.StartsWith(ToolFolder, StringComparison.OrdinalIgnoreCase);
+            || doodad.Ao.StartsWith(ToolFolder, StringComparison.OrdinalIgnoreCase)
+            || doodad.Ao.StartsWith(EditorFolder, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Cells to a tile - the grid a room's doodad positions and a tile's walkability are written in.</summary>
     public const int CellsPerTile = 23;
@@ -255,7 +264,7 @@ public static class RoomModels
             if (Hidden > 0)
             {
                 yield return string.Create(CultureInfo.InvariantCulture,
-                    $"{Hidden} of the level editor's tools hidden - walk blockers and markers the game does not draw; \"tools\" shows them");
+                    $"{Hidden} of the level editor's tools hidden - walk blockers, markers and sound emitters the game does not draw; \"tools\" shows them");
             }
 
             if (Unloaded + Unseen > 0)

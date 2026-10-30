@@ -545,6 +545,32 @@ public class RoomLayoutTests
         Assert.Contains("1 of the level editor's tools hidden", one.Move, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The level editor's sound emitters are tools too: The Red Vale's AUDIO capsule at its exit to the Grelwood,
+    /// <c>Metadata/Terrain/Tools/AudioTools/G1_5/OldForestEntrance.ao</c>, laid as an entity of its own type.
+    /// </summary>
+    [Fact]
+    public void ASOUNDEmitterOfTheLevelEditorIsATool()
+    {
+        Dictionary<string, byte[]> files = Install();
+        const string path = "Metadata/Terrain/Woods/Rooms/Clearing.arm";
+        const string Emitter = "Metadata/Terrain/Tools/AudioTools/G1_5/OldForestEntrance.ao";
+        files[path] = Encoding.Unicode.GetBytes(Version31
+            .Replace("\"Metadata/Doodads/Tree.ao\"", "\"" + Emitter + "\"", StringComparison.Ordinal));
+        files[Emitter] = files["Metadata/Doodads/Tree.ao"];
+        Func<string, byte[]?> read = one => files.GetValueOrDefault(one);
+
+        RoomLayout room = RoomLayout.Read(read(path));
+        Assert.True(RoomModels.IsTool(Assert.Single(room.Doodads, one => one.Ao == Emitter)));
+        Assert.False(RoomModels.IsTool(Assert.Single(room.Doodads, one => one.Ao != Emitter)));
+
+        MonsterModel hidden = RoomModels.Of(read, path);
+        Assert.True(hidden.Ready, hidden.Why);
+        Assert.Equal(1, hidden.Parts);
+        Assert.Contains("1 of the level editor's tools hidden - walk blockers, markers and sound emitters", hidden.Move, StringComparison.Ordinal);
+        Assert.Equal(2, RoomModels.Of(read, path, tools: true).Parts);
+    }
+
     [Fact]
     public void ARoomThatDidNotLoadIsStillDumpedWithItsOwnFile()
     {

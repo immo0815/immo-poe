@@ -194,8 +194,8 @@ public sealed record OverlaySettings(
     // in the code (RoomModels.UsualDoodads) for everybody who never moved the slider.
     [property: JsonPropertyName("roomDoodads")] int RoomDoodads = 0,
 
-    // Whether the tile book's rooms place the level editor's tools - walk blockers and markers the
-    // game does not draw. Off, the usual, hides them. See RoomModels.IsTool.
+    // Whether the tile book's rooms place the level editor's tools - walk blockers, markers and
+    // sound emitters the game does not draw. Off, the usual, hides them. See RoomModels.IsTool.
     [property: JsonPropertyName("roomTools")] bool RoomTools = false,
 
     // Whether the tile book's room search also lists places covering no walkable ground. Off, the
