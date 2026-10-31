@@ -176,6 +176,20 @@ public partial class CaptureReplayTests
         Assert.StartsWith("ground scatter replay: ", replay, StringComparison.Ordinal);
     }
 
+    /// <summary>The tile definitions and edge types beside tile-layout.txt walked again by zao's layout - tile-layout-replay.txt.</summary>
+    [Fact]
+    public void THETILELayoutIsWalkedAgainFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder || CaptureParts.Find(folder, CaptureReport.TileLayoutFile) is not { } path || !File.Exists(path))
+        {
+            return;
+        }
+
+        string replay = CaptureTileLayout.Replay(Path.GetDirectoryName(path)!);
+        File.WriteAllText(Path.Combine(folder, "tile-layout-replay.txt"), replay);
+        Assert.StartsWith("tile layout replay: ", replay, StringComparison.Ordinal);
+    }
+
     /// <summary>Places every room of the capture by its doodads and writes the result beside the capture's files.</summary>
     [Fact]
     public void THEPLACINGRunsAgainFromACapture()

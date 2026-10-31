@@ -828,6 +828,25 @@ internal sealed class CaptureKey
             }
         }
 
+        if (On(CaptureParts.TileLayout))
+        {
+            if (read is null)
+            {
+                Not(CaptureReport.TileLayoutFile, "no install to read the tile definitions from");
+            }
+            else
+            {
+                // The same files as the tile file chains, walked whole; the definitions and edge types beside it (tile-layout/).
+                Part(CaptureReport.TileLayoutFile, () =>
+                {
+                    string text = CaptureTileLayout.Write(
+                        read, run.Loaded, run.Masters, run.Snapshot.Terrain is TerrainGrid { Tiles: { } laid } ? laid : null, folder);
+                    File.WriteAllText(At(CaptureReport.TileLayoutFile), text);
+                    return text[..text.IndexOf('\n')];
+                });
+            }
+        }
+
         if (On(CaptureParts.Masters))
         {
             if (read is null)

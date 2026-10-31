@@ -124,6 +124,9 @@ public static class CaptureParts
     /// <summary>Every tile file the lists name or the area laid, its definition followed hop by hop, and its doodad list (.tmd).</summary>
     public const string TileFiles = "tile-files";
 
+    /// <summary>Every tile definition walked whole by zao's layout and every edge type the area names, read and whole - see CaptureTileLayout.</summary>
+    public const string TileLayout = "tile-layout";
+
     /// <summary>The area's masters whole, and every file they name.</summary>
     public const string Masters = "masters";
 
@@ -412,6 +415,12 @@ public static class CaptureParts
             "Every tile file the tile lists or fill lists name or the area laid: its definition followed through every file it inherits, "
             + "and the tile's own doodad list (.tmd, beside the .tdt or its template) whole. Every area lays files no tile list names - "
             + "this says for each whether a listed file inherits it, a fill list names it or a listed file shares its template."),
+        new(TileLayout, "Area files", "tile layout", CaptureReport.TileLayoutFile,
+            "Every tile definition (.tdt) the tile lists or fill lists name or the area laid, and every file they inherit, walked whole by "
+            + "zao's layout (poe-cpp, written against PoE1): side offsets, flags, sub-tiles, ground grid, heights, tmd - how many end exactly "
+            + "at the file's end by version and flags, where the rest stop, his ground grid against the tool's search, what the side offsets "
+            + "and heights hold. And every edge type (.et) the tiles and rooms name, virtual ones and what they stand for, read and whole. The "
+            + "files beside it (tile-layout/), walked again offline - before the tile reader takes any of his fields."),
         new(Masters, "Area files", "master file", CaptureReport.MastersFile,
             "Every master (.tsi) of the area whole, and every file it names - room set, fill list (FillTiles), anything else - whole too; "
             + "a tile list by name, being whole in tileset-lists.txt; then the area's ground types whole, whose names a fill list's sections "
