@@ -1,6 +1,9 @@
+using System.Buffers.Binary;
+using System.Globalization;
 using System.Text;
 using PoEformance.Features;
 using PoEformance.Game.Diagnostics;
+using PoEformance.Game.Files;
 using Xunit;
 
 namespace PoEformance.Core.Tests;
@@ -78,6 +81,108 @@ public class PlayerLookTests
     {
         Assert.True(CaptureParts.RunsAtPress(CaptureParts.PlayerLook));
         Assert.Contains(CaptureParts.All, one => one.Key == CaptureParts.PlayerLook && one.File == CaptureReport.PlayerLookFile);
+    }
+
+    /// <summary>
+    /// The survey of ItemVisualIdentity's string columns over the whole table, by the vendored layout: a value counts for the longest body
+    /// it holds (IntFourB, not IntFour inside it), a list's every value counts, a column holding nothing is left out; the bodies are the
+    /// Characters rows' models under Metadata/Characters/ and his own.
+    /// </summary>
+    [Fact]
+    public void THESURVEYCountsEachColumnsBodiesOverTheWholeTable()
+    {
+        QuestTableLayouts layouts = Layouts();
+        int size = layouts.RowSizeOf("ItemVisualIdentity");
+        int idAt = layouts.OffsetOf("ItemVisualIdentity", "Id");
+        int oneAt = layouts.OffsetOf("ItemVisualIdentity", "column_31");
+        int listAt = layouts.OffsetOf("ItemVisualIdentity", "column_48");
+        Assert.True(size > 0 && idAt >= 0 && oneAt >= 0 && listAt >= 0, "the vendored layout lays out nothing");
+        Assert.True(layouts.Tables["ItemVisualIdentity"].Single(column => column.Name == "column_48").Array);
+
+        var variable = new List<byte>();
+        int Text(string text)
+        {
+            int at = 8 + variable.Count;
+            variable.AddRange(Encoding.Unicode.GetBytes(text));
+            variable.AddRange([0, 0]);
+            return at;
+        }
+
+        int robeB = Text("Art/Models/Items/Armours/IntFourB/Robe.sm"), robe = Text("Art/Models/Items/Armours/IntFour/Robe.sm");
+        int plate = Text("Art/Models/Items/Armours/StrFour_Plate.ao"), glow = Text("Metadata/Items/Shared/Glow.ao");
+        int[] ids = [Text("A"), Text("B"), Text("C"), Text("D")];
+        int list = 8 + variable.Count;
+        variable.AddRange(BitConverter.GetBytes((ulong)glow));
+        variable.AddRange(BitConverter.GetBytes((ulong)plate));
+        DatFile art = Assert.IsType<DatFile>(DatFile.Parse(Dat(4, size, (bytes, at, row) =>
+        {
+            BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(at + idAt), (ulong)ids[row]);
+            if (row < 3)
+            {
+                BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(at + oneAt), (ulong)(row == 1 ? robe : robeB));
+            }
+
+            if (row == 0)
+            {
+                BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(at + listAt), 2);
+                BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(at + listAt + 8), (ulong)list);
+            }
+        }, [.. variable])));
+
+        // THE BODIES: the Characters rows' models under Metadata/Characters/, with or without an extension, and his own.
+        variable.Clear();
+        int[] models = [Text("Metadata/Characters/Int/IntFour.ao"), Text("Metadata/Characters/Str/StrFour")];
+        DatFile characters = Assert.IsType<DatFile>(DatFile.Parse(Dat(1, 16, (bytes, at, _) =>
+        {
+            BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(at), (ulong)models[0]);
+            BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(at + 8), (ulong)models[1]);
+        }, [.. variable])));
+        string[] bodies = CapturePlayerLook.Bodies(characters, "Metadata/Characters/Int/IntFourB.ao");
+        Assert.Equal(["IntFour", "IntFourB", "StrFour"], bodies);
+
+        List<string> lines = [.. CapturePlayerLook.Columns(art, layouts.Tables["ItemVisualIdentity"], bodies)];
+        string text = string.Join('\n', lines);
+        Assert.Contains("  Id\t4 of 4 rows, 4 values", lines);
+        int one = lines.IndexOf("  column_31\t3 of 4 rows, 3 values");
+        Assert.True(one >= 0, text);
+        Assert.Equal("    extensions: .sm 3", lines[one + 1]);
+        Assert.Equal("    bodies: IntFourB 2 | IntFour 1", lines[one + 2]);
+        Assert.Equal("    folders (2): Art/Models/Items/Armours/IntFourB 2 | Art/Models/Items/Armours/IntFour 1", lines[one + 3]);
+        int listed = lines.IndexOf("  column_48 (a list)\t1 of 4 rows, 2 values");
+        Assert.True(listed >= 0, text);
+        Assert.Equal("    bodies: StrFour 1", lines[listed + 2]);
+        Assert.Equal("    first: \"Metadata/Items/Shared/Glow.ao\" | \"Art/Models/Items/Armours/StrFour_Plate.ao\"", lines[listed + 4]);
+        Assert.DoesNotContain("DDSFile", text, StringComparison.Ordinal);
+        int strings = layouts.Tables["ItemVisualIdentity"].Count(column => column.Type == "string");
+        Assert.Equal(string.Create(CultureInfo.InvariantCulture, $"  3 of {strings} string columns and lists hold anything"), lines[^1]);
+    }
+
+    /// <summary>The vendored layouts, found up from the test's folder.</summary>
+    private static QuestTableLayouts Layouts()
+    {
+        var folder = new DirectoryInfo(AppContext.BaseDirectory);
+        while (folder is not null && !File.Exists(Path.Combine(folder.FullName, "data", "item-tables.json")))
+        {
+            folder = folder.Parent;
+        }
+
+        Assert.NotNull(folder);
+        return Assert.IsType<QuestTableLayouts>(QuestTableLayouts.Load(Path.Combine(folder!.FullName, "data", "item-tables.json")));
+    }
+
+    /// <summary>A .datc64: the row count, the rows, the separator, then the variable section.</summary>
+    private static byte[] Dat(int rows, int rowSize, Action<byte[], int, int> fill, byte[] variable)
+    {
+        var bytes = new byte[4 + (rows * rowSize) + 8 + variable.Length];
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes, (uint)rows);
+        for (var row = 0; row < rows; row++)
+        {
+            fill(bytes, 4 + (row * rowSize), row);
+        }
+
+        bytes.AsSpan(4 + (rows * rowSize), 8).Fill(0xBB);
+        variable.CopyTo(bytes, 4 + (rows * rowSize) + 8);
+        return bytes;
     }
 
     /// <summary>What names a game file: under Metadata/ or Art/, or a folder and a file's extension - not words, not a bare name.</summary>

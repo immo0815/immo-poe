@@ -798,6 +798,11 @@ his class's Characters row (every string by its offset, matched on his path or m
 column by name, and the .ao, .aoc, .act, .ot and .otc those and the web name, with what each extends, whole under `mem/player-look/`;
 `player-look-replay.txt` reads them again and lists the lines a piece is skinned, attached, hidden or played by. Take it three times - as he
 stands, after changing one MTX, after swapping weapon sets - before anything is built.
+From v0.1.391 the files side also SURVEYS ItemVisualIdentity WHOLE (`CapturePlayerLook.Columns`): every string column and string list that
+holds anything, its rows filled, extensions, folders and first values, and how many of its values name each BODY - the file names of the
+models the Characters rows name under Metadata/Characters/ and his own (`Bodies`), a value counted for the longest body it holds anywhere in
+its path (IntFourB, not IntFour inside it) - with the layout's own standing first (a table read on its verified front alone puts the tail's
+names on other bytes). So one capture names the per-body columns (column_31 and on) of every class, where the carried items name his alone.
 
 ## Verify against the game, not against yourself
 

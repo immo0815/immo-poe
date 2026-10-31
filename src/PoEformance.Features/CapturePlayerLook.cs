@@ -69,7 +69,11 @@ public static class CapturePlayerLook
             named.Add(seen.Model);
         }
 
-        lines.AddRange(Looks(files, layouts, seen, named));
+        // THE VISUAL IDENTITIES OPENED ONCE for the carried items' rows and the survey of the whole table.
+        (LoadedTable? art, string artWhy) = layouts is null ? (null, "data/item-tables.json did not load")
+            : QuestTables.Open(files, layouts, "ItemVisualIdentity", null, "Id");
+        lines.AddRange(Looks(files, layouts, art, artWhy, seen, named));
+        lines.AddRange(Survey(files, layouts, art, artWhy, seen));
         named.AddRange(seen.Files);
         lines.AddRange(Whole(files, named, Path.Combine(folder, Folder)));
         return lines;
@@ -136,7 +140,8 @@ public static class CapturePlayerLook
     }
 
     /// <summary>Each carried item past the backpack: its base type's visual identity and the unique's own, every file column of each.</summary>
-    private static IEnumerable<string> Looks(GameFiles files, QuestTableLayouts? layouts, PlayerLook.Seen seen, List<string> named)
+    private static IEnumerable<string> Looks(
+        GameFiles files, QuestTableLayouts? layouts, LoadedTable? art, string artWhy, PlayerLook.Seen seen, List<string> named)
     {
         var lines = new List<string>
         {
@@ -150,7 +155,6 @@ public static class CapturePlayerLook
         }
 
         (LoadedTable? bases, string basesWhy) = QuestTables.Open(files, layouts, "BaseItemTypes", null, "Id", "Name");
-        (LoadedTable? art, string artWhy) = QuestTables.Open(files, layouts, "ItemVisualIdentity", null, "Id");
         if (bases is not { Usable: true } || art is not { Usable: true })
         {
             lines.Add("  BaseItemTypes: " + (bases?.Say ?? basesWhy) + "; ItemVisualIdentity: " + (art?.Say ?? artWhy));
@@ -194,6 +198,210 @@ public static class CapturePlayerLook
 
         return lines;
     }
+
+    /// <summary>
+    /// Every string column of ItemVisualIdentity over the whole table (<see cref="Columns"/>), the bodies held against it read from the
+    /// Characters rows and his own model (<see cref="Bodies"/>).
+    /// </summary>
+    private static IEnumerable<string> Survey(GameFiles files, QuestTableLayouts? layouts, LoadedTable? art, string artWhy, PlayerLook.Seen seen)
+    {
+        var lines = new List<string>
+        {
+            string.Empty,
+            "=== every string column and string list of ItemVisualIdentity over the whole table - rows filled, extensions, how many values name each body, the folders they lie in, the first three values: PoE2 fills a column per body type there, unnamed in the vendored layout, and the carried items above name the player's alone",
+        };
+        if (layouts is null || art is not { Usable: true })
+        {
+            lines.Add("  ItemVisualIdentity: " + (art?.Say ?? artWhy));
+            return lines;
+        }
+
+        // THE LAYOUT'S OWN STANDING FIRST: a table read on its verified front alone puts the tail's names on other bytes.
+        lines.Add("  " + art.Say + (art.Agrees ? string.Empty : " - the names past the verified front may stand on other bytes"));
+        (DatFile? characters, string where) = Open(files, "Characters");
+        string[] bodies = Bodies(characters, seen.Model);
+        lines.Add("  bodies - the file names of the models the Characters rows name under Metadata/Characters/, and his own: "
+            + (bodies.Length == 0 ? "none (" + where + ")" : string.Join(", ", bodies)));
+
+        // THE OFFSETS ARE LAID OUT ON THE FIRST ASK for the table's size (DatColumns.Layout).
+        if (layouts.RowSizeOf("ItemVisualIdentity") > 0 && layouts.Tables.TryGetValue("ItemVisualIdentity", out List<DatColumn>? columns))
+        {
+            lines.AddRange(Columns(art.File, columns, bodies));
+        }
+
+        return lines;
+    }
+
+    /// <summary>
+    /// The bodies a visual identity's per-body files may name: the file name of every model the Characters rows name under
+    /// Metadata/Characters/ (IntFourB for the Sorceress), and the player's own model's.
+    /// </summary>
+    internal static string[] Bodies(DatFile? characters, string model)
+    {
+        var bodies = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        void Add(string path)
+        {
+            string clean = path.Replace('\\', '/');
+            int slash = clean.LastIndexOf('/');
+            string name = clean[(slash + 1)..];
+            int dot = name.IndexOf('.', StringComparison.Ordinal);
+            name = dot < 0 ? name : name[..dot];
+            if (name.Length >= 3)
+            {
+                bodies.Add(name);
+            }
+        }
+
+        if (model.Length > 0)
+        {
+            Add(model);
+        }
+
+        if (characters is not null)
+        {
+            IReadOnlyList<int> texts = characters.TextOffsets();
+            for (var row = 0; row < characters.Rows; row++)
+            {
+                foreach (int offset in texts)
+                {
+                    if (characters.Text(row, offset) is { Length: > 0 } text && text.StartsWith("Metadata/Characters/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Add(text);
+                    }
+                }
+            }
+        }
+
+        return [.. bodies];
+    }
+
+    /// <summary>
+    /// Every string column and string list of a visual identity table that holds anything: how many rows fill it and how many values, by
+    /// extension, how many values name each body, the folders they lie in, and its first three values.
+    /// </summary>
+    /// <remarks>
+    /// A VALUE NAMES THE LONGEST BODY IT HOLDS, anywhere in its path, case aside - how a per-body file is named is what this measures - and a
+    /// shorter body inside it is not counted again there (IntFour inside IntFourB, Four inside IntFour).
+    /// </remarks>
+    internal static IEnumerable<string> Columns(DatFile table, IReadOnlyList<DatColumn> columns, IReadOnlyList<string> bodies)
+    {
+        ArgumentNullException.ThrowIfNull(table);
+        ArgumentNullException.ThrowIfNull(columns);
+        ArgumentNullException.ThrowIfNull(bodies);
+        string[] longest = [.. bodies.OrderByDescending(one => one.Length).ThenBy(one => one, StringComparer.OrdinalIgnoreCase)];
+        var values = new List<string>();
+        var held = 0;
+        var strings = 0;
+        foreach (DatColumn column in columns)
+        {
+            if (column.Type != "string")
+            {
+                continue;
+            }
+
+            strings++;
+            var rows = 0;
+            var count = 0;
+            var extensions = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var folders = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var named = new int[longest.Length];
+            var first = new List<string>(3);
+            for (var row = 0; row < table.Rows; row++)
+            {
+                Values(table, row, column, values);
+                rows += values.Count > 0 ? 1 : 0;
+                foreach (string value in values)
+                {
+                    count++;
+                    int slash = value.LastIndexOf('/');
+                    int dot = value.LastIndexOf('.');
+                    Tally(extensions, dot > slash ? value[dot..].ToLowerInvariant() : "(none)");
+                    Tally(folders, slash > 0 ? value[..slash] : "(no folder)");
+                    Named(value, longest, named);
+                    if (first.Count < 3 && !first.Contains(value, StringComparer.Ordinal))
+                    {
+                        first.Add(value);
+                    }
+                }
+            }
+
+            if (count == 0)
+            {
+                continue;
+            }
+
+            held++;
+            yield return string.Create(CultureInfo.InvariantCulture, $"  {column.Name}{(column.Array ? " (a list)" : string.Empty)}\t{rows:N0} of {table.Rows:N0} rows, {count:N0} values");
+            yield return "    extensions: " + Top(extensions, 6);
+            yield return "    bodies: " + (named.Any(one => one > 0)
+                ? string.Join(" | ", Enumerable.Range(0, longest.Length).Where(at => named[at] > 0).OrderByDescending(at => named[at])
+                    .Select(at => string.Create(CultureInfo.InvariantCulture, $"{longest[at]} {named[at]:N0}")))
+                : "none named");
+            yield return string.Create(CultureInfo.InvariantCulture, $"    folders ({folders.Count:N0}): {Top(folders, 5)}");
+            yield return "    first: " + string.Join(" | ", first.Select(one => "\"" + one + "\""));
+        }
+
+        yield return string.Create(CultureInfo.InvariantCulture, $"  {held} of {strings} string columns and lists hold anything");
+    }
+
+    /// <summary>A row's values in one string column or string list, into a list made once.</summary>
+    private static void Values(DatFile table, int row, DatColumn column, List<string> into)
+    {
+        into.Clear();
+        if (!column.Array)
+        {
+            if (table.Text(row, column.Offset) is { Length: > 0 } one)
+            {
+                into.Add(one);
+            }
+
+            return;
+        }
+
+        foreach (DatReference element in table.References(row, column.Offset, 8))
+        {
+            if (table.TextAt(element.First) is { Length: > 0 } one)
+            {
+                into.Add(one);
+            }
+        }
+    }
+
+    /// <summary>Counts the longest body a value holds, and the shorter ones only where they stand outside the longer.</summary>
+    private static void Named(string value, string[] longest, int[] named)
+    {
+        char[]? blanked = null;
+        for (var at = 0; at < longest.Length; at++)
+        {
+            string body = longest[at];
+            ReadOnlySpan<char> text = blanked is null ? value.AsSpan() : blanked;
+            int found = text.IndexOf(body, StringComparison.OrdinalIgnoreCase);
+            if (found < 0)
+            {
+                continue;
+            }
+
+            named[at]++;
+
+            // EVERY PLACE IT STANDS BLANKED, so a shorter body inside it is not counted there.
+            blanked ??= value.ToCharArray();
+            Span<char> span = blanked;
+            for (int from = found; from >= 0;)
+            {
+                span.Slice(from, body.Length).Fill('/');
+                int next = span[(from + body.Length)..].IndexOf(body, StringComparison.OrdinalIgnoreCase);
+                from = next < 0 ? -1 : from + body.Length + next;
+            }
+        }
+    }
+
+    private static void Tally(Dictionary<string, int> into, string key)
+        => into[key] = into.GetValueOrDefault(key) + 1;
+
+    /// <summary>The most common keys with their counts, the most first and ties by name.</summary>
+    private static string Top(Dictionary<string, int> counts, int most)
+        => string.Join(" | ", counts.OrderByDescending(one => one.Value).ThenBy(one => one.Key, StringComparer.Ordinal).Take(most)
+            .Select(one => string.Create(CultureInfo.InvariantCulture, $"{one.Key} {one.Value:N0}")));
 
     /// <summary>A visual identity row's string columns and string lists that hold anything, by their names; the files among them kept.</summary>
     private static IEnumerable<string> Row(DatFile table, int row, List<DatColumn> columns, string title, List<string> named)
