@@ -29,8 +29,16 @@ public sealed partial class ShadeProgram
     ///
     /// NOT THE ENGINE'S HEIGHT BLENDING (GROUND_HEIGHT_BLENDING, which a material's EnableGroundHeightBlending turns on and
     /// which sharpens the weights by the materials' height maps): left out by choice (2026-10-12, from the live client). And
-    /// not where either ground's program reads the triangle's tangent frame, which the picture takes from the mesh's own
-    /// coordinates - the block's here, not the material's - nor for any of the water's programs.
+    /// not where either ground's program marches a parallax, which reads the triangle's tangent frame the picture takes from the
+    /// mesh's own coordinates - the block's here, not the material's - nor for any of the water's programs.
+    ///
+    /// A GROUND THAT CARRIES A VECTOR OUT OF ITS TBN BASIS (<see cref="Op.Tbn"/>) MIXES ALL THE SAME (v0.1.376): its frame is handed
+    /// the materials' own rather than the mesh's - the engine's ground basis, READ: its tangent is the world's x (InitGroundVectors'
+    /// <c>(1, 0, 0, 1)</c>), along which the materials' coordinates run, and its binormal <c>normalize(cross(normal, x))</c> (the ground
+    /// graphs' VertexBinormal) - GetGroundTBN's (1, 0, 0), (0, -1, 0), (0, 0, -1) on flat ground. So the step is handed x and, per
+    /// pixel, <c>cross(x, N)</c>, already at right angles to both, which it turns into the engine's binormal on every slope. CHOSEN on a
+    /// slope: the step makes the tangent orthogonal to the normal where the engine's stays x itself. The frame is the pixel's and the
+    /// same for both grounds, so a mixed program reads no frame of the triangle's at all, and neither drawing works one out for it.
     /// </remarks>
     /// <param name="heights">Whether the two are weighed by their heights where either's graphs turn that on - see <see cref="Mixing"/>.</param>
     public static ShadeProgram? Grounds(ShadeProgram first, ShadeProgram second, ShadeTexture mask, Mipmaps? maskSheet, float scale, bool heights = false)
@@ -69,7 +77,7 @@ public sealed partial class ShadeProgram
     {
         ArgumentNullException.ThrowIfNull(first);
         ArgumentNullException.ThrowIfNull(second);
-        if (first.UsesTangents || second.UsesTangents || first._waves >= 0 || second._waves >= 0 || first.Sprays || second.Sprays)
+        if (first.Marches || second.Marches || first._waves >= 0 || second._waves >= 0 || first.Sprays || second.Sprays)
         {
             return null;
         }
@@ -104,13 +112,31 @@ public sealed partial class ShadeProgram
         constants.Add(new Vector4(scale, scale, 0f, 0f));
         steps.Add(new Step(Op.Multiply, Coordinates, Position, tiling, -1, -1, -1, 0));
 
+        // THE ENGINE'S GROUND FRAME, where either ground carries a vector out of its TBN basis - see the remarks: the world's x, and
+        // x × N = (0, -N.z, N.y) per pixel for the binormal's side, which the step turns into normalize(cross(N, x)) on every slope.
+        (int U, int V) frame = (-1, -1);
+        if (Array.Exists(first._steps, one => one.Op == Op.Tbn) || Array.Exists(second._steps, one => one.Op == Op.Tbn))
+        {
+            frame = (next++, next++);
+            constantAt.Add(frame.U);
+            constants.Add(Vector4.UnitX);
+
+            // THE NORMAL'S X, Z, Y AND W - x from x, y from z, z from y - its y and z then signed (0, -1, 1, 0).
+            int turned = next++;
+            steps.Add(new Step(Op.Swizzle, turned, Normal, -1, -1, -1, -1, (2 << 2) | (1 << 4) | (3 << 6) | (0b1111 << 8)));
+            int signs = next++;
+            constantAt.Add(signs);
+            constants.Add(new Vector4(0f, -1f, 1f, 0f));
+            steps.Add(new Step(Op.Multiply, frame.V, turned, signs, -1, -1, -1, 0));
+        }
+
         int firstBase = next;
         next += first.Registers - Fixed;
         int secondBase = next;
         next += second.Registers - Fixed;
-        Appended(first, firstBase, 0, samples.Count, steps, constantAt, constants);
+        Appended(first, firstBase, 0, samples.Count, steps, constantAt, constants, frame);
         samples.AddRange(first._sampleTexture);
-        Appended(second, secondBase, first.Textures.Count, samples.Count, steps, constantAt, constants);
+        Appended(second, secondBase, first.Textures.Count, samples.Count, steps, constantAt, constants, frame);
         foreach (int read in second._sampleTexture)
         {
             samples.Add(read + first.Textures.Count);
@@ -304,15 +330,25 @@ public sealed partial class ShadeProgram
         return (registers[Mix.Green].X, new Vector3(first.X, first.Y, first.Z), new Vector3(second.X, second.Y, second.Z));
     }
 
-    /// <summary>One ground's steps and constants, its registers past the fixed ones moved to start at <paramref name="at"/> and its textures and reads after those before it.</summary>
+    /// <summary>
+    /// One ground's steps and constants, its registers past the fixed ones moved to start at <paramref name="at"/> and its textures and
+    /// reads after those before it - a vector carried out of its TBN basis read over <paramref name="frame"/>'s two registers, the
+    /// materials' own frame, where given.
+    /// </summary>
     private static void Appended(
-        ShadeProgram program, int at, int textures, int reads, List<Step> steps, List<int> constantAt, List<Vector4> constants)
+        ShadeProgram program, int at, int textures, int reads, List<Step> steps, List<int> constantAt, List<Vector4> constants, (int U, int V) frame)
     {
         foreach (Step step in program._steps)
         {
             int b = step.B;
+            int c = Moved(step.C, at);
             int extra = step.Extra;
-            if (step.Op is Op.Sample or Op.Parallax)
+            if (step.Op == Op.Tbn && frame.U >= 0)
+            {
+                b = frame.U;
+                c = frame.V;
+            }
+            else if (step.Op is Op.Sample or Op.Parallax)
             {
                 b += reads;
                 extra += textures;
@@ -340,7 +376,7 @@ public sealed partial class ShadeProgram
             }
 
             steps.Add(new Step(
-                step.Op, Moved(step.To, at), Moved(step.A, at), b, Moved(step.C, at), Moved(step.D, at), Moved(step.E, at), extra, step.Splat));
+                step.Op, Moved(step.To, at), Moved(step.A, at), b, c, Moved(step.D, at), Moved(step.E, at), extra, step.Splat));
         }
 
         for (var one = 0; one < program._constantAt.Length; one++)

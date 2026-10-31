@@ -1,0 +1,3178 @@
+{
+    "version": 6,
+    "shader_group": [
+        "Material"
+    ],
+    "overriden_lighting_model": "SpecGlossPbrMaterial",
+    "nodes": [
+        {
+            "type": "InputVertexPosition",
+            "index": 0,
+            "stage": "LocalTransform",
+            "ui_position": [
+                800.0,
+                -510.0
+            ]
+        },
+        {
+            "type": "VertexPosition",
+            "index": 0,
+            "stage": "LocalTransform",
+            "ui_position": [
+                1300.0,
+                -510.0
+            ]
+        },
+        {
+            "type": "InputWorldPos",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                -189.4849395751953,
+                728.6447143554688
+            ]
+        },
+        {
+            "type": "WorldPos",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                6892.79638671875,
+                799.3967895507813
+            ]
+        },
+        {
+            "type": "InputUV",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                -189.4849395751953,
+                728.6447143554688
+            ]
+        },
+        {
+            "type": "UV",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                6892.79638671875,
+                799.3967895507813
+            ]
+        },
+        {
+            "type": "InputAlbedoColor",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                -189.4849395751953,
+                728.6447143554688
+            ]
+        },
+        {
+            "type": "Dummy4",
+            "index": 1,
+            "ui_position": [
+                341.0831298828125,
+                353.0566711425781
+            ]
+        },
+        {
+            "type": "Dummy4",
+            "index": 0,
+            "ui_position": [
+                343.2879943847656,
+                434.2029113769531
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 1,
+            "parameters": [
+                {
+                    "value": 0.5,
+                    "layout": {
+                        "priority": 1,
+                        "range": [
+                            {
+                                "min": 0.0,
+                                "max": 1.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "Gradient_Shade",
+            "ui_position": [
+                1048.764892578125,
+                533.4966430664063
+            ]
+        },
+        {
+            "type": "Multiply4",
+            "index": 0,
+            "ui_position": [
+                1529.511474609375,
+                436.8915710449219
+            ]
+        },
+        {
+            "type": "ConstantFloat4",
+            "index": 0,
+            "parameters": [
+                {
+                    "value": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        0.0
+                    ],
+                    "layout": {
+                        "priority": 2,
+                        "range": [
+                            {
+                                "min": -1.0,
+                                "max": 10.0
+                            },
+                            {
+                                "min": -1.0,
+                                "max": 10.0
+                            },
+                            {
+                                "min": -1.0,
+                                "max": 10.0
+                            },
+                            {
+                                "min": -1.0,
+                                "max": 10.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "Gradient_Tint",
+            "ui_position": [
+                1431.431884765625,
+                588.8191528320313
+            ]
+        },
+        {
+            "type": "Multiply4",
+            "index": 1,
+            "ui_position": [
+                1854.9000244140626,
+                434.8488464355469
+            ]
+        },
+        {
+            "type": "InputTbnNormal",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                -189.4849395751953,
+                728.6447143554688
+            ]
+        },
+        {
+            "type": "InputTbnBasis",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                -189.4849395751953,
+                728.6447143554688
+            ]
+        },
+        {
+            "type": "Transform",
+            "index": 2,
+            "ui_position": [
+                167.91030883789063,
+                973.99755859375
+            ]
+        },
+        {
+            "type": "Dummy3",
+            "index": 1,
+            "ui_position": [
+                530.3607177734375,
+                1496.5074462890626
+            ]
+        },
+        {
+            "type": "Float3ToCoords",
+            "index": 2,
+            "ui_position": [
+                1514.859619140625,
+                1497.7799072265626
+            ]
+        },
+        {
+            "type": "OneMinus",
+            "index": 3,
+            "ui_position": [
+                1879.024169921875,
+                1428.9039306640626
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 4,
+            "parameters": [
+                {
+                    "value": 0.41100001335144045
+                }
+            ],
+            "ui_position": [
+                1878.6380615234376,
+                1510.72509765625
+            ]
+        },
+        {
+            "type": "Multiply",
+            "index": 1,
+            "ui_position": [
+                2210.527587890625,
+                1439.169189453125
+            ]
+        },
+        {
+            "type": "FitRange",
+            "index": 1,
+            "parameters": [
+                {
+                    "value": 0.75,
+                    "layout": {
+                        "priority": 14,
+                        "range": [
+                            {
+                                "min": 0.0,
+                                "max": 1.0
+                            }
+                        ]
+                    }
+                },
+                {
+                    "value": 20.0,
+                    "layout": {
+                        "priority": 14,
+                        "range": [
+                            {
+                                "max": 255.0
+                            }
+                        ]
+                    }
+                },
+                {
+                    "value": 0.9350000023841858,
+                    "layout": {
+                        "priority": 14,
+                        "range": [
+                            {
+                                "min": 0.0,
+                                "max": 1.0
+                            }
+                        ]
+                    }
+                },
+                {
+                    "layout": {
+                        "priority": 14,
+                        "range": [
+                            {
+                                "max": 255.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "TextureBlend_Control",
+            "ui_position": [
+                2449.682373046875,
+                1439.5826416015626
+            ]
+        },
+        {
+            "type": "Saturate",
+            "index": 5,
+            "ui_position": [
+                3903.112548828125,
+                2883.106201171875
+            ]
+        },
+        {
+            "type": "ConstantBool",
+            "index": 3,
+            "parameters": [
+                {
+                    "layout": {
+                        "priority": -1,
+                        "tooltip": "By Default its Local Space"
+                    }
+                }
+            ],
+            "custom_parameter": "Use_WorldSpace",
+            "ui_position": [
+                -633.9486083984375,
+                2598.13037109375
+            ]
+        },
+        {
+            "type": "Lerp3",
+            "index": 1,
+            "ui_position": [
+                -220.1399688720703,
+                2550.687744140625
+            ]
+        },
+        {
+            "type": "Dummy3",
+            "index": 3,
+            "ui_position": [
+                36.44523239135742,
+                2551.751708984375
+            ]
+        },
+        {
+            "type": "Float3ToCoords",
+            "index": 3,
+            "ui_position": [
+                1561.760498046875,
+                2383.0634765625
+            ]
+        },
+        {
+            "type": "OneMinus",
+            "index": 5,
+            "ui_position": [
+                1779.6953125,
+                2435.872802734375
+            ]
+        },
+        {
+            "type": "ConstantFloat2",
+            "index": 1,
+            "parameters": [
+                {
+                    "value": [
+                        27.659000396728517,
+                        29.014999389648439
+                    ],
+                    "layout": {
+                        "priority": 13,
+                        "range": [
+                            {
+                                "min": -1000.0,
+                                "max": 1000.0
+                            },
+                            {
+                                "min": 0.009999999776482582,
+                                "max": 500.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "TextureBlend_GradientControl",
+            "ui_position": [
+                834.291259765625,
+                2530.567138671875
+            ]
+        },
+        {
+            "type": "Add",
+            "index": 1,
+            "ui_position": [
+                1560.4381103515626,
+                2607.80810546875
+            ]
+        },
+        {
+            "type": "Subtract",
+            "index": 5,
+            "ui_position": [
+                1560.551513671875,
+                2509.456298828125
+            ]
+        },
+        {
+            "type": "Zero",
+            "index": 1,
+            "ui_position": [
+                1560.447509765625,
+                2706.455810546875
+            ]
+        },
+        {
+            "type": "One",
+            "index": 1,
+            "ui_position": [
+                1560.3143310546876,
+                2779.3310546875
+            ]
+        },
+        {
+            "type": "FitRangeFromInput",
+            "index": 1,
+            "ui_position": [
+                2047.415771484375,
+                2512.502197265625
+            ]
+        },
+        {
+            "type": "OneMinus",
+            "index": 4,
+            "ui_position": [
+                2857.701171875,
+                2392.825439453125
+            ]
+        },
+        {
+            "type": "ConstantFloat2",
+            "index": 2,
+            "parameters": [
+                {
+                    "value": [
+                        5.0,
+                        1.2419999837875367
+                    ],
+                    "layout": {
+                        "priority": 19,
+                        "range": [
+                            {
+                                "min": 0.0,
+                                "max": 5.0
+                            },
+                            {
+                                "min": 0.0,
+                                "max": 5.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "CustomMask_Blend",
+            "ui_position": [
+                2308.221923828125,
+                2763.618408203125
+            ]
+        },
+        {
+            "type": "Add",
+            "index": 2,
+            "ui_position": [
+                2671.68017578125,
+                2859.160400390625
+            ]
+        },
+        {
+            "type": "InputTexture",
+            "index": 0,
+            "parameters": [
+                {
+                    "srgb": false,
+                    "layout": {
+                        "icon": 0
+                    }
+                }
+            ],
+            "custom_parameter": "GradientNoise_TextureInput",
+            "ui_position": [
+                1133.26025390625,
+                1838.7420654296876
+            ]
+        },
+        {
+            "type": "Dummy3",
+            "index": 0,
+            "ui_position": [
+                454.826904296875,
+                1104.919677734375
+            ]
+        },
+        {
+            "type": "MultiplyConst3",
+            "index": 0,
+            "parameters": [
+                {
+                    "value": 2.0,
+                    "layout": {
+                        "priority": 3
+                    }
+                }
+            ],
+            "custom_parameter": "GradientNoise_Tiling",
+            "ui_position": [
+                845.394287109375,
+                2004.70166015625
+            ]
+        },
+        {
+            "type": "MultiplyConst3",
+            "index": 1,
+            "parameters": [
+                {
+                    "value": 0.0010000000474974514,
+                    "layout": {
+                        "mode": "Input",
+                        "range": [
+                            {
+                                "min": 0.0,
+                                "max": 1000.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "ui_position": [
+                1166.3062744140626,
+                2003.5760498046876
+            ]
+        },
+        {
+            "type": "Dummy3",
+            "index": 2,
+            "ui_position": [
+                617.2943115234375,
+                2078.95654296875
+            ]
+        },
+        {
+            "type": "SampleInputTriplanar",
+            "index": 0,
+            "parameters": [
+                {}
+            ],
+            "ui_position": [
+                1570.9185791015626,
+                1997.4222412109376
+            ]
+        },
+        {
+            "type": "Saturate",
+            "index": 4,
+            "ui_position": [
+                2056.5908203125,
+                1997.750732421875
+            ]
+        },
+        {
+            "type": "Multiply",
+            "index": 3,
+            "ui_position": [
+                3033.27734375,
+                2758.730712890625
+            ]
+        },
+        {
+            "type": "Multiply",
+            "index": 2,
+            "ui_position": [
+                3025.9638671875,
+                2892.272705078125
+            ]
+        },
+        {
+            "type": "Subtract",
+            "index": 6,
+            "ui_position": [
+                3256.8388671875,
+                2862.842041015625
+            ]
+        },
+        {
+            "type": "ConstantBool",
+            "index": 4,
+            "parameters": [
+                {
+                    "layout": {
+                        "priority": 18
+                    }
+                }
+            ],
+            "custom_parameter": "Use_GradientNoiseAsBlend",
+            "ui_position": [
+                2664.63232421875,
+                2982.633056640625
+            ]
+        },
+        {
+            "type": "SelectFloat",
+            "index": 0,
+            "ui_position": [
+                3600.55029296875,
+                2917.0791015625
+            ]
+        },
+        {
+            "type": "Saturate",
+            "index": 7,
+            "ui_position": [
+                3906.487060546875,
+                2961.342041015625
+            ]
+        },
+        {
+            "type": "Subtract",
+            "index": 4,
+            "ui_position": [
+                4194.86083984375,
+                2937.173095703125
+            ]
+        },
+        {
+            "type": "Dummy3",
+            "index": 8,
+            "ui_position": [
+                2859.77392578125,
+                2489.750244140625
+            ]
+        },
+        {
+            "type": "OneMinus",
+            "index": 7,
+            "ui_position": [
+                3126.893798828125,
+                2542.042236328125
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 7,
+            "parameters": [
+                {
+                    "layout": {
+                        "priority": 13,
+                        "range": [
+                            {
+                                "min": 0.0,
+                                "max": 100.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "AO_Blend",
+            "ui_position": [
+                3139.89404296875,
+                2661.044921875
+            ]
+        },
+        {
+            "type": "Multiply",
+            "index": 4,
+            "ui_position": [
+                3468.561767578125,
+                2611.20849609375
+            ]
+        },
+        {
+            "type": "Add",
+            "index": 3,
+            "ui_position": [
+                4366.39697265625,
+                2641.5439453125
+            ]
+        },
+        {
+            "type": "Saturate",
+            "index": 6,
+            "ui_position": [
+                4697.0419921875,
+                2939.460205078125
+            ]
+        },
+        {
+            "type": "Lerp4",
+            "index": 0,
+            "ui_position": [
+                3104.78466796875,
+                341.634765625
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 3,
+            "parameters": [
+                {
+                    "value": 0.5
+                }
+            ],
+            "ui_position": [
+                2989.786376953125,
+                522.8494262695313
+            ]
+        },
+        {
+            "type": "Multiply4",
+            "index": 2,
+            "ui_position": [
+                3397.104248046875,
+                448.3964538574219
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 2,
+            "parameters": [
+                {
+                    "value": 0.4350000023841858
+                }
+            ],
+            "ui_position": [
+                1506.5555419921876,
+                1655.7247314453126
+            ]
+        },
+        {
+            "type": "Multiply",
+            "index": 0,
+            "ui_position": [
+                1886.3736572265626,
+                1594.0430908203126
+            ]
+        },
+        {
+            "type": "Saturate",
+            "index": 2,
+            "ui_position": [
+                2132.998291015625,
+                1596.4239501953126
+            ]
+        },
+        {
+            "type": "Lerp4",
+            "index": 1,
+            "ui_position": [
+                3768.55029296875,
+                342.1182861328125
+            ]
+        },
+        {
+            "type": "InputTexture",
+            "index": 1,
+            "parameters": [
+                {
+                    "srgb": true,
+                    "layout": {
+                        "icon": 0,
+                        "priority": 9
+                    }
+                }
+            ],
+            "custom_parameter": "TextureBlend_AlbedoInput",
+            "ui_position": [
+                1207.7252197265626,
+                2175.722900390625
+            ]
+        },
+        {
+            "type": "SampleInputTexture",
+            "index": 0,
+            "parameters": [
+                {}
+            ],
+            "ui_position": [
+                1601.7567138671876,
+                2179.9111328125
+            ]
+        },
+        {
+            "type": "ConstantFloat4",
+            "index": 1,
+            "parameters": [
+                {
+                    "value": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        0.0
+                    ],
+                    "layout": {
+                        "priority": 11,
+                        "range": [
+                            {
+                                "min": 0.0,
+                                "max": 10.0
+                            },
+                            {
+                                "min": 0.0,
+                                "max": 10.0
+                            },
+                            {
+                                "min": 0.0,
+                                "max": 10.0
+                            },
+                            {}
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "TextureBlend_Tint",
+            "ui_position": [
+                2021.2550048828126,
+                2282.058837890625
+            ]
+        },
+        {
+            "type": "Multiply4",
+            "index": 3,
+            "ui_position": [
+                2400.060302734375,
+                2195.165771484375
+            ]
+        },
+        {
+            "type": "Dummy4",
+            "index": 2,
+            "ui_position": [
+                3656.27978515625,
+                2195.948486328125
+            ]
+        },
+        {
+            "type": "Lerp4",
+            "index": 2,
+            "ui_position": [
+                5088.31689453125,
+                526.11279296875
+            ]
+        },
+        {
+            "type": "ConstantBool",
+            "index": 0,
+            "parameters": [
+                {
+                    "layout": {
+                        "priority": 7
+                    }
+                }
+            ],
+            "custom_parameter": "Use_TextureBlendAlbedo",
+            "ui_position": [
+                5027.24658203125,
+                425.597412109375
+            ]
+        },
+        {
+            "type": "SelectFloat4",
+            "index": 0,
+            "ui_position": [
+                5399.46240234375,
+                330.0606689453125
+            ]
+        },
+        {
+            "type": "AlbedoColor",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                6892.79638671875,
+                799.3967895507813
+            ]
+        },
+        {
+            "type": "Dummy3",
+            "index": 6,
+            "ui_position": [
+                5963.78955078125,
+                881.1807250976563
+            ]
+        },
+        {
+            "type": "Dummy3",
+            "index": 4,
+            "ui_position": [
+                5318.78955078125,
+                1056.680419921875
+            ]
+        },
+        {
+            "type": "InputTexture",
+            "index": 2,
+            "parameters": [
+                {
+                    "srgb": false,
+                    "layout": {
+                        "priority": 10
+                    }
+                }
+            ],
+            "custom_parameter": "TextureBlend_NormalInput",
+            "ui_position": [
+                1147.40966796875,
+                3046.295654296875
+            ]
+        },
+        {
+            "type": "SampleInputTexture",
+            "index": 1,
+            "parameters": [
+                {}
+            ],
+            "ui_position": [
+                1542.3851318359376,
+                3047.6875
+            ]
+        },
+        {
+            "type": "NormalTexToTbn",
+            "index": 0,
+            "parameters": [
+                {
+                    "layout": {
+                        "priority": 17
+                    }
+                }
+            ],
+            "custom_parameter": "TextureBlend_NormalIntensity",
+            "ui_position": [
+                1976.08984375,
+                3047.156005859375
+            ]
+        },
+        {
+            "type": "Dummy3",
+            "index": 5,
+            "ui_position": [
+                4402.29345703125,
+                3044.817138671875
+            ]
+        },
+        {
+            "type": "CombineTbnNormals",
+            "index": 0,
+            "parameters": [
+                {
+                    "layout": {
+                        "priority": 16
+                    }
+                },
+                {
+                    "layout": {
+                        "priority": 16
+                    }
+                }
+            ],
+            "custom_parameter": "TextureBlend_NormalBlend",
+            "ui_position": [
+                5232.30078125,
+                1238.513427734375
+            ]
+        },
+        {
+            "type": "Lerp3",
+            "index": 0,
+            "ui_position": [
+                5822.54345703125,
+                1077.299072265625
+            ]
+        },
+        {
+            "type": "ConstantBool",
+            "index": 2,
+            "parameters": [
+                {
+                    "layout": {
+                        "priority": 8
+                    }
+                }
+            ],
+            "custom_parameter": "Use_TextureBlendNormal",
+            "ui_position": [
+                5973.66650390625,
+                1358.6661376953126
+            ]
+        },
+        {
+            "type": "SelectFloat3",
+            "index": 0,
+            "ui_position": [
+                6497.33203125,
+                1083.3341064453126
+            ]
+        },
+        {
+            "type": "TbnNormal",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                6892.79638671875,
+                799.3967895507813
+            ]
+        },
+        {
+            "type": "Dummy3",
+            "index": 7,
+            "ui_position": [
+                5966.78955078125,
+                930.1807250976563
+            ]
+        },
+        {
+            "type": "Transform",
+            "index": 1,
+            "ui_position": [
+                6002.58740234375,
+                1189.8790283203126
+            ]
+        },
+        {
+            "type": "SelectFloat3",
+            "index": 1,
+            "ui_position": [
+                6498.3310546875,
+                1219.333984375
+            ]
+        },
+        {
+            "type": "WorldNormal",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                6892.79638671875,
+                799.3967895507813
+            ]
+        },
+        {
+            "type": "InputGlossiness",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                -189.4849395751953,
+                728.6447143554688
+            ]
+        },
+        {
+            "type": "OneMinus",
+            "index": 6,
+            "ui_position": [
+                1919.603759765625,
+                3425.120849609375
+            ]
+        },
+        {
+            "type": "ConstantBool",
+            "index": 5,
+            "parameters": [
+                {}
+            ],
+            "custom_parameter": "UseRoughness",
+            "ui_position": [
+                1910.887939453125,
+                3585.362548828125
+            ]
+        },
+        {
+            "type": "SelectFloat",
+            "index": 1,
+            "ui_position": [
+                2298.05029296875,
+                3370.695556640625
+            ]
+        },
+        {
+            "type": "Lerp",
+            "index": 0,
+            "ui_position": [
+                6513.5791015625,
+                1409.67822265625
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 6,
+            "parameters": [
+                {
+                    "value": 1.0
+                }
+            ],
+            "custom_parameter": "TextureBlend_RoughnessIntensity",
+            "ui_position": [
+                6312.4501953125,
+                1801.2674560546876
+            ]
+        },
+        {
+            "type": "Lerp",
+            "index": 1,
+            "ui_position": [
+                6773.15087890625,
+                1582.00927734375
+            ]
+        },
+        {
+            "type": "ConstantBool",
+            "index": 6,
+            "parameters": [
+                {
+                    "value": true
+                }
+            ],
+            "custom_parameter": "Use_TextureBlendRoughness",
+            "ui_position": [
+                6751.658203125,
+                1821.100341796875
+            ]
+        },
+        {
+            "type": "SelectFloat",
+            "index": 2,
+            "ui_position": [
+                7009.4501953125,
+                1517.2677001953126
+            ]
+        },
+        {
+            "type": "Glossiness",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                6892.79638671875,
+                799.3967895507813
+            ]
+        },
+        {
+            "type": "InputSpecularColor",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                -189.4849395751953,
+                728.6447143554688
+            ]
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 5,
+            "parameters": [
+                {
+                    "value": 0.03999999910593033
+                }
+            ],
+            "ui_position": [
+                6092.2138671875,
+                806.8706665039063
+            ]
+        },
+        {
+            "type": "Lerp3",
+            "index": 2,
+            "ui_position": [
+                6516.6162109375,
+                875.5170288085938
+            ]
+        },
+        {
+            "type": "SpecularColor",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                6892.79638671875,
+                799.3967895507813
+            ]
+        },
+        {
+            "type": "InputIndirectColor",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                -189.4849395751953,
+                728.6447143554688
+            ]
+        },
+        {
+            "type": "Lerp",
+            "index": 2,
+            "ui_position": [
+                4752.7333984375,
+                1023.14794921875
+            ]
+        },
+        {
+            "type": "IndirectColor",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                6892.79638671875,
+                799.3967895507813
+            ]
+        },
+        {
+            "type": "TbnBasis",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                6892.79638671875,
+                799.3967895507813
+            ]
+        },
+        {
+            "type": "MultiplyConst3",
+            "index": 4,
+            "parameters": [
+                {
+                    "value": 4.0,
+                    "layout": {
+                        "priority": 12,
+                        "range": [
+                            {
+                                "min": 0.0,
+                                "max": 1000.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "TextureBlend_Tiling",
+            "ui_position": [
+                -269.1912841796875,
+                2369.052978515625
+            ]
+        },
+        {
+            "type": "MultiplyConst3",
+            "index": 3,
+            "parameters": [
+                {
+                    "value": 0.0010000000474974514,
+                    "layout": {
+                        "range": [
+                            {
+                                "min": 0.0,
+                                "max": 1000.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "ui_position": [
+                73.46412658691406,
+                2367.465576171875
+            ]
+        },
+        {
+            "type": "SampleInputTriplanar",
+            "index": 1,
+            "parameters": [
+                {}
+            ],
+            "ui_position": [
+                -241.3500213623047,
+                2804.45654296875
+            ]
+        },
+        {
+            "type": "SampleInputTriplanar",
+            "index": 2,
+            "parameters": [
+                {}
+            ],
+            "ui_position": [
+                -418.54425048828127,
+                3009.4892578125
+            ]
+        },
+        {
+            "type": "InputWorldNormal",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                -189.4849395751953,
+                728.6447143554688
+            ]
+        }
+    ],
+    "links": [
+        {
+            "src": {
+                "type": "InputVertexPosition",
+                "index": 0,
+                "stage": "LocalTransform",
+                "variable": "output",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "VertexPosition",
+                "index": 0,
+                "stage": "LocalTransform",
+                "variable": "input",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "InputVertexPosition",
+                "index": 0,
+                "stage": "LocalTransform",
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "VertexPosition",
+                "index": 0,
+                "stage": "LocalTransform",
+                "variable": "input",
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "WorldPos",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputUV",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "UV",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputAlbedoColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "Dummy4",
+                "index": 1,
+                "variable": "in_value",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "InputAlbedoColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "Dummy4",
+                "index": 1,
+                "variable": "in_value",
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "InputAlbedoColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "Dummy4",
+                "index": 0,
+                "variable": "in_value",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "InputAlbedoColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "Dummy4",
+                "index": 0,
+                "variable": "in_value",
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy4",
+                "index": 0,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "Multiply4",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply4",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply4",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply4",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat4",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "Multiply4",
+                "index": 1,
+                "variable": "b",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat4",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "Multiply4",
+                "index": 1,
+                "variable": "b",
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTbnNormal",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Transform",
+                "index": 2,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTbnBasis",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Transform",
+                "index": 2,
+                "variable": "inmatrix"
+            }
+        },
+        {
+            "src": {
+                "type": "Transform",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Dummy3",
+                "index": 1,
+                "variable": "in_value"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 1,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "Float3ToCoords",
+                "index": 2,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "Float3ToCoords",
+                "index": 2,
+                "variable": "z"
+            },
+            "dst": {
+                "type": "OneMinus",
+                "index": 3,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "OneMinus",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "FitRange",
+                "index": 1,
+                "variable": "value"
+            }
+        },
+        {
+            "src": {
+                "type": "FitRange",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Saturate",
+                "index": 5,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputVertexPosition",
+                "index": 0,
+                "stage": "LocalTransform",
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantBool",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 1,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp3",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Dummy3",
+                "index": 3,
+                "variable": "in_value"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 3,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "Float3ToCoords",
+                "index": 3,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "Float3ToCoords",
+                "index": 3,
+                "variable": "z"
+            },
+            "dst": {
+                "type": "OneMinus",
+                "index": 5,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 1,
+                "variable": "output",
+                "swizzle": "x"
+            },
+            "dst": {
+                "type": "Add",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 1,
+                "variable": "output",
+                "swizzle": "y"
+            },
+            "dst": {
+                "type": "Add",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 1,
+                "variable": "output",
+                "swizzle": "x"
+            },
+            "dst": {
+                "type": "Subtract",
+                "index": 5,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 1,
+                "variable": "output",
+                "swizzle": "y"
+            },
+            "dst": {
+                "type": "Subtract",
+                "index": 5,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "OneMinus",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "FitRangeFromInput",
+                "index": 1,
+                "variable": "value"
+            }
+        },
+        {
+            "src": {
+                "type": "Add",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "FitRangeFromInput",
+                "index": 1,
+                "variable": "in_min"
+            }
+        },
+        {
+            "src": {
+                "type": "Subtract",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "FitRangeFromInput",
+                "index": 1,
+                "variable": "in_max"
+            }
+        },
+        {
+            "src": {
+                "type": "Zero",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "FitRangeFromInput",
+                "index": 1,
+                "variable": "out_min"
+            }
+        },
+        {
+            "src": {
+                "type": "One",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "FitRangeFromInput",
+                "index": 1,
+                "variable": "out_max"
+            }
+        },
+        {
+            "src": {
+                "type": "FitRangeFromInput",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "OneMinus",
+                "index": 4,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 2,
+                "variable": "output",
+                "swizzle": "x"
+            },
+            "dst": {
+                "type": "Add",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 2,
+                "variable": "output",
+                "swizzle": "y"
+            },
+            "dst": {
+                "type": "Add",
+                "index": 2,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Dummy3",
+                "index": 0,
+                "variable": "in_value"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 0,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "MultiplyConst3",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst3",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "MultiplyConst3",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 1,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "Dummy3",
+                "index": 2,
+                "variable": "in_value"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 0,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "SampleInputTriplanar",
+                "index": 0,
+                "variable": "in_texture"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst3",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SampleInputTriplanar",
+                "index": 0,
+                "variable": "uv"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 2,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "SampleInputTriplanar",
+                "index": 0,
+                "variable": "world_normal"
+            }
+        },
+        {
+            "src": {
+                "type": "SampleInputTriplanar",
+                "index": 0,
+                "variable": "color",
+                "swizzle": "x"
+            },
+            "dst": {
+                "type": "Saturate",
+                "index": 4,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "Add",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 3,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 3,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 2,
+                "variable": "output",
+                "swizzle": "x"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "FitRangeFromInput",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 2,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Subtract",
+                "index": 6,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Subtract",
+                "index": 6,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "OneMinus",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Subtract",
+                "index": 6,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantBool",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat",
+                "index": 0,
+                "variable": "condition"
+            }
+        },
+        {
+            "src": {
+                "type": "SelectFloat",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Saturate",
+                "index": 7,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Subtract",
+                "index": 4,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 7,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Subtract",
+                "index": 4,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTbnNormal",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Dummy3",
+                "index": 8,
+                "variable": "in_value"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 8,
+                "variable": "out_value",
+                "swizzle": "z"
+            },
+            "dst": {
+                "type": "OneMinus",
+                "index": 7,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "OneMinus",
+                "index": 7,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 4,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 7,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 4,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Subtract",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add",
+                "index": 3,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add",
+                "index": 3,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Add",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Saturate",
+                "index": 6,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy4",
+                "index": 1,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "Lerp4",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply4",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp4",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 6,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp4",
+                "index": 0,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp4",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply4",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply4",
+                "index": 2,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Float3ToCoords",
+                "index": 2,
+                "variable": "z"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Saturate",
+                "index": 2,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp4",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp4",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply4",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp4",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp4",
+                "index": 1,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 1,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "SampleInputTexture",
+                "index": 0,
+                "variable": "in_texture"
+            }
+        },
+        {
+            "src": {
+                "type": "InputUV",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SampleInputTexture",
+                "index": 0,
+                "variable": "uv"
+            }
+        },
+        {
+            "src": {
+                "type": "SampleInputTexture",
+                "index": 0,
+                "variable": "color"
+            },
+            "dst": {
+                "type": "Multiply4",
+                "index": 3,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat4",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply4",
+                "index": 3,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply4",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Dummy4",
+                "index": 2,
+                "variable": "in_value"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp4",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp4",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy4",
+                "index": 2,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "Lerp4",
+                "index": 2,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 6,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp4",
+                "index": 2,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp4",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat4",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp4",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat4",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantBool",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat4",
+                "index": 0,
+                "variable": "condition"
+            }
+        },
+        {
+            "src": {
+                "type": "InputAlbedoColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "AlbedoColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "SelectFloat4",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "AlbedoColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input",
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTbnNormal",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Dummy3",
+                "index": 6,
+                "variable": "in_value"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTbnNormal",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Dummy3",
+                "index": 4,
+                "variable": "in_value"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 2,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "SampleInputTexture",
+                "index": 1,
+                "variable": "in_texture"
+            }
+        },
+        {
+            "src": {
+                "type": "InputUV",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SampleInputTexture",
+                "index": 1,
+                "variable": "uv"
+            }
+        },
+        {
+            "src": {
+                "type": "SampleInputTexture",
+                "index": 1,
+                "variable": "color",
+                "swizzle": "x"
+            },
+            "dst": {
+                "type": "NormalTexToTbn",
+                "index": 0,
+                "variable": "x"
+            }
+        },
+        {
+            "src": {
+                "type": "SampleInputTexture",
+                "index": 1,
+                "variable": "color",
+                "swizzle": "y"
+            },
+            "dst": {
+                "type": "NormalTexToTbn",
+                "index": 0,
+                "variable": "y"
+            }
+        },
+        {
+            "src": {
+                "type": "NormalTexToTbn",
+                "index": 0,
+                "variable": "tbn_normal"
+            },
+            "dst": {
+                "type": "Dummy3",
+                "index": 5,
+                "variable": "in_value"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTbnNormal",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "CombineTbnNormals",
+                "index": 0,
+                "variable": "tbn_normal1"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 5,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "CombineTbnNormals",
+                "index": 0,
+                "variable": "tbn_normal2"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 4,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "CombineTbnNormals",
+                "index": 0,
+                "variable": "tbn_normal"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 6,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 0,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 6,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "SelectFloat3",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp3",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat3",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantBool",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat3",
+                "index": 0,
+                "variable": "condition"
+            }
+        },
+        {
+            "src": {
+                "type": "SelectFloat3",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "TbnNormal",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "Transform",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Dummy3",
+                "index": 7,
+                "variable": "in_value"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp3",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Transform",
+                "index": 1,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTbnBasis",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Transform",
+                "index": 1,
+                "variable": "inmatrix"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 7,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "SelectFloat3",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Transform",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat3",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantBool",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat3",
+                "index": 1,
+                "variable": "condition"
+            }
+        },
+        {
+            "src": {
+                "type": "SelectFloat3",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "WorldNormal",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "SampleInputTexture",
+                "index": 1,
+                "variable": "color",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "OneMinus",
+                "index": 6,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "SampleInputTexture",
+                "index": 1,
+                "variable": "color",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "SelectFloat",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "OneMinus",
+                "index": 6,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantBool",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat",
+                "index": 1,
+                "variable": "condition"
+            }
+        },
+        {
+            "src": {
+                "type": "InputGlossiness",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "SelectFloat",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 6,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 0,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "InputGlossiness",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 6,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 1,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "InputGlossiness",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat",
+                "index": 2,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantBool",
+                "index": 6,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat",
+                "index": 2,
+                "variable": "condition"
+            }
+        },
+        {
+            "src": {
+                "type": "SelectFloat",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Glossiness",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputSpecularColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 2,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 6,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp3",
+                "index": 2,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp3",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SpecularColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputIndirectColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "SampleInputTexture",
+                "index": 1,
+                "variable": "color",
+                "swizzle": "z"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 2,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 6,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 2,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "IndirectColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "InputIndirectColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "IndirectColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input",
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTbnBasis",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "TbnBasis",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "InputWorldPos",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output"
+            },
+            "dst": {
+                "type": "MultiplyConst3",
+                "index": 4,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst3",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "MultiplyConst3",
+                "index": 3,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 1,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "SampleInputTriplanar",
+                "index": 1,
+                "variable": "in_texture"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst3",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SampleInputTriplanar",
+                "index": 1,
+                "variable": "uv"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 2,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "SampleInputTriplanar",
+                "index": 1,
+                "variable": "world_normal"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 2,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "SampleInputTriplanar",
+                "index": 2,
+                "variable": "in_texture"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst3",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SampleInputTriplanar",
+                "index": 2,
+                "variable": "uv"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 2,
+                "variable": "out_value"
+            },
+            "dst": {
+                "type": "SampleInputTriplanar",
+                "index": 2,
+                "variable": "world_normal"
+            }
+        }
+    ],
+    "unused_links": [
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 8,
+                "variable": "out_value",
+                "swizzle": "x"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 8,
+                "variable": "out_value",
+                "swizzle": "y"
+            }
+        },
+        {
+            "src": {
+                "type": "InputIndirectColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output",
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "InputIndirectColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "output",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "SampleInputTriplanar",
+                "index": 2,
+                "variable": "color",
+                "swizzle": "x"
+            }
+        },
+        {
+            "src": {
+                "type": "SampleInputTriplanar",
+                "index": 2,
+                "variable": "color",
+                "swizzle": "y"
+            }
+        },
+        {
+            "src": {
+                "type": "SampleInputTriplanar",
+                "index": 2,
+                "variable": "color",
+                "swizzle": "w"
+            }
+        }
+    ]
+}

@@ -3228,7 +3228,7 @@ public static class MonsterModels
                 return (null, flatFirst is null ? whyFirst
                     : flatSecond is null ? whySecond
                     : !cornered && sheet is null ? "its mask did not read: " + mask
-                    : "the two grounds' programs cannot be run as one (more registers than a program takes, or one reads the triangle's tangent frame)");
+                    : "the two grounds' programs cannot be run as one (more registers than a program takes, or one marches a parallax by the triangle's tangent frame)");
             }
 
             ShadeProgram? shine = shineFirst is not null || shineSecond is not null

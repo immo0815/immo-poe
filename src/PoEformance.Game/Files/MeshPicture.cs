@@ -2717,7 +2717,8 @@ public static class MeshPicture
                 s2 = _coordinates[i2];
             }
 
-            // THE TRIANGLE'S OWN ∂p/∂u AND ∂p/∂v where a march reads them - see FixModelTBN.
+            // THE TRIANGLE'S OWN ∂p/∂u AND ∂p/∂v where a march or a vector carried out of the TBN basis reads them - see FixModelTBN
+            // and ShadeProgram.ThroughBasis.
             if (program is { UsesTangents: true })
             {
                 (Vector3 tangent, Vector3 binormal) = ShadeProgram.Spanned(p0, p1, p2, s0, s1, s2);
