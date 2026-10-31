@@ -499,8 +499,11 @@ public static class CaptureParts
             + "first; every shader source naming them whole, the most words first; every graph naming the fog's, the clouds', the roof "
             + "fade's or the see-through fade's nodes, or whose path names cloud, fog or roof, whole; the game's program's strings naming "
             + "them; the textures those name with their headers, the first decoded as pictures beside it; and the materials the model "
-            + "panes' models wear whose .mat says \"roofsection\": true, with the shapes and triangles wearing each. Each section bounded, "
-            + "saying what it cut. What the four are built from next, out of the engine's own code."),
+            + "panes' models wear whose .mat says \"roofsection\": true, with the shapes and triangles wearing each. Then the object the "
+            + "area's .env attaches to the player for its weather, hop by hop, the fog's missing fragments, the engine's noise candidates "
+            + "whole beside it, and every object script, tile, room and effect file naming the roof fade's own words (roof_fade_cylinder, "
+            + "no_roof_fade, HideRoof and their kin) with its lines. Each section bounded, saying what it cut. What the four are built from "
+            + "next, out of the engine's own code."),
 
         new(StageSweep, "Area files", "stage sweep (hours)", CaptureReport.StageSweepFile,
             "Every room of every room set in the install, each under every master naming its set, built as the Monster Book builds a "
@@ -588,7 +591,10 @@ public static class CaptureParts
             + "block as common.ffx declares it, read out by name, its colours among them, and the file's water values in the "
             + "window round the parsed environment, printed whole, with every value the area's file sets mapped to its slot there. "
             + "What the engine draws an area's water with where its file "
-            + "sets no colour. It looks through up to sixteen gigabytes on every core: the capture's window shows how far it is "
+            + "sets no colour. In the same sweep, the player's own light: beside every place its colour as the area's file makes it, "
+            + "or the player's own place, is kept, what stands there - a place over him, the colour at some scale, a spot's way - "
+            + "each window whole, the likeliest first: where the engine stands it, how far it reaches and which way it points. "
+            + "It looks through up to sixteen gigabytes on every core: the capture's window shows how far it is "
             + "and where its time goes, and stops it on a click - what it found until then is written, as it is at five minutes."),
         new(Wobble, "Memory", "wobble watch", CaptureReport.WobbleFile,
             "Every entity carrying a WobblePoint - the wobble core the game lays beside a ship - and the doodads standing by it, "

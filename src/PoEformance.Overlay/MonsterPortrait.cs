@@ -106,7 +106,9 @@ public sealed class MonsterPortrait
     /// are the orbit's size and hang in one column with it. The card's and the light's are skipped
     /// where they have nothing to switch - no card, no specular colour - and the clock's where
     /// nothing plays; the rest close up. THE CAMERA'S THREE come after (v0.1.324, asked for from the live client with the free camera):
-    /// the view fitted again, the game's own angle and distance about the focus, and perspective or parallel.
+    /// the view fitted again, the game's own angle and distance about the focus, and perspective or parallel. THE FOCUS MARKER'S last
+    /// (v0.1.380, asked for from the live client): the camera's focus stands for the player wherever the engine reads the player's place
+    /// - the fog's disperse radius, the clouds' fade - and the marker shows where that is.
     /// </remarks>
     private const int CardSide = 0;
     private const int LightSide = 1;
@@ -116,20 +118,21 @@ public sealed class MonsterPortrait
     private const int ResetSide = 5;
     private const int GameSide = 6;
     private const int PerspectiveSide = 7;
-    private const int Sides = 8;
+    private const int FocusSide = 8;
+    private const int Sides = 9;
 
     /// <summary>The ids ImGui knows the edge buttons by.</summary>
     private static readonly string[] SideIds =
     [
         "##monster-card", "##monster-light", "##monster-orbit", "##monster-probe", "##monster-clock", "##monster-reset", "##monster-game",
-        "##monster-perspective",
+        "##monster-perspective", "##monster-focus",
     ];
 
     /// <summary>The art on the edge buttons, by the end of each manifest resource name - the project file pins them.</summary>
     private static readonly string[] SideArt =
     [
         "3dMV_cpugpu.png", "3dMV_light.png", "3dMV_orbit.png", "3dMV_probe.png", "3dMV_clock.png", "3dMV_reset.png", "3dMV_game.png",
-        "3dMV_perspective.png",
+        "3dMV_perspective.png", "3dMV_focus.png",
     ];
 
     /// <summary>How many panes have been made, so each one's keys are its own.</summary>
@@ -406,6 +409,9 @@ public sealed class MonsterPortrait
 
     /// <summary>Whether the picture is drawn without perspective - the edge button's switch, kept from model to model.</summary>
     private bool _parallel;
+
+    /// <summary>Whether the focus marker is drawn - the edge button's switch, kept from model to model (see <see cref="FocusMark"/>).</summary>
+    private bool _focusShown;
 
     /// <summary>Whether the pointer was over the picture last frame - the keys fly the camera only then (see <see cref="Flown"/>).</summary>
     private bool _hovered;
@@ -1574,6 +1580,7 @@ public sealed class MonsterPortrait
 
         _held = held;
         SunMark(draw, corner, side, camera);
+        FocusMark(draw, corner, side, camera);
 
         // A CLICK, NOT A DRAG, PROBES THE PIXEL UNDER IT while probing - see PictureProbe. As a share
         // of the picture, because the next drawing may be at another rung than this one.
@@ -2088,6 +2095,57 @@ public sealed class MonsterPortrait
         }
     }
 
+    /// <summary>
+    /// The focus marker: three short arms through the point the camera turns about, along x (red), y (green) and up (blue), and a dot
+    /// where they cross - drawn through the picture's own camera, so it moves with the focus and stands in the scene's perspective.
+    /// </summary>
+    /// <remarks>
+    /// ASKED FOR FROM THE LIVE CLIENT (v0.1.380): on a stage the camera's focus stands for the player wherever the engine reads the player's
+    /// place, and the marker shows where that is. DRAWN OVER THE PICTURE rather than into it (CHOSEN), so a roof or a tree crown does not
+    /// hide it; its arms a fortieth of the camera's distance (CHOSEN) - 54 units at the game's view, a few at a barrel - so it stays small at
+    /// every zoom.
+    /// </remarks>
+    private void FocusMark(ImDrawListPtr draw, Vector2 corner, float side, MeshPicture.Camera camera)
+    {
+        CameraPose pose = _drawnView.Valid ? _drawnView : _view;
+        if (!_focusShown || !pose.Valid || !camera.Ready || side <= 0f)
+        {
+            return;
+        }
+
+        Vector3 centre = camera.Place(pose.Focus);
+        if (camera.Perspective && !camera.InFront(centre))
+        {
+            return;
+        }
+
+        float reach = MathF.Max(0.5f, pose.Distance * FocusReach);
+        var at = corner + (new Vector2(centre.X, centre.Y) * side);
+        ReadOnlySpan<(Vector3 Way, Vector4 Ink)> arms =
+        [
+            (Vector3.UnitX, new Vector4(1f, 0.35f, 0.3f, 1f)),
+            (Vector3.UnitY, new Vector4(0.4f, 1f, 0.4f, 1f)),
+            (-Vector3.UnitZ, new Vector4(0.45f, 0.65f, 1f, 1f)),
+        ];
+        foreach ((Vector3 way, Vector4 ink) in arms)
+        {
+            Vector3 one = camera.Place(pose.Focus + (way * reach)), other = camera.Place(pose.Focus - (way * reach));
+            if (camera.Perspective && (!camera.InFront(one) || !camera.InFront(other)))
+            {
+                continue;
+            }
+
+            draw.AddLine(corner + (new Vector2(other.X, other.Y) * side), corner + (new Vector2(one.X, one.Y) * side), ImGui.GetColorU32(ink), 2f);
+        }
+
+        float radius = ImGui.GetFontSize() * 0.22f;
+        draw.AddCircleFilled(at, radius + 1.5f, ImGui.GetColorU32(new Vector4(0f, 0f, 0f, 0.8f)));
+        draw.AddCircleFilled(at, radius, ImGui.GetColorU32(OverlayInk.Accent));
+    }
+
+    /// <summary>How long the focus marker's arms are, as a share of the camera's distance - see <see cref="FocusMark"/>.</summary>
+    private const float FocusReach = 0.025f;
+
     /// <summary>The model's middle and how far its box reaches from it - where the sun's mark is set beyond.</summary>
     private (Vector3 Centre, float Reach) Reach()
     {
@@ -2245,6 +2303,7 @@ public sealed class MonsterPortrait
             ClockSide => !_playing,
             ResetSide or GameSide => false,
             PerspectiveSide => _parallel,
+            FocusSide => _focusShown,
             _ => _probing,
         };
 
@@ -2263,6 +2322,7 @@ public sealed class MonsterPortrait
             ResetSide => "reset view",
             GameSide => "game view",
             PerspectiveSide => _parallel ? "parallel" : "perspective",
+            FocusSide => _focusShown ? "focus: shown" : "focus",
             _ => _probing ? "probe: on" : "probe",
         };
 
@@ -2301,6 +2361,9 @@ public sealed class MonsterPortrait
             case PerspectiveSide:
                 _parallel = !_parallel;
                 _view = _view with { Parallel = _parallel };
+                break;
+            case FocusSide:
+                _focusShown = !_focusShown;
                 break;
             default:
                 break;
@@ -2352,6 +2415,13 @@ public sealed class MonsterPortrait
             case PerspectiveSide:
                 ImGui.SetTooltip((_parallel ? "Parallel: no perspective, as every picture was drawn before. " : "Perspective, as the game sees it. ")
                     + "Press to switch.\n" + CameraHelp);
+                break;
+            case FocusSide:
+                ImGui.SetTooltip((_focusShown ? "Focus marker shown. " : "Focus marker. ")
+                    + "A small mark where the camera's focus stands - the point it turns about - moving with it.\n"
+                    + "On a stage there is no player, and the focus stands for him wherever the engine reads the player's place\n"
+                    + "(the screen-space fog's disperse radius, the clouds' fade): in the game the camera looks at him. Press to show or hide.\n"
+                    + CameraHelp);
                 break;
             default:
                 break;

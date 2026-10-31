@@ -215,6 +215,29 @@ public static class FloatHunt
         };
     }
 
+    /// <summary>
+    /// The part of a hunt's result that belongs to a run of its needles - as though they alone had been looked for, numbered from nought.
+    /// </summary>
+    /// <remarks>
+    /// FOR TWO READERS OF ONE SWEEP: the light hunt and the player light's hunt look through the game's memory once, their needles side by
+    /// side, and each reads back its own. What the sweep cost (bytes, regions, time, kinds) stays the whole sweep's.
+    /// </remarks>
+    /// <param name="result">The whole sweep's result.</param>
+    /// <param name="first">The run's first needle, by its index in the list looked for.</param>
+    /// <param name="count">How many needles the run holds.</param>
+    public static FloatHuntResult Part(FloatHuntResult result, int first, int count)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        bool Ours(int needle) => needle >= first && needle < first + count;
+        return result with
+        {
+            Sightings = [.. result.Sightings.Where(one => Ours(one.Needle)).Select(one => one with { Needle = one.Needle - first })],
+            Capped = [.. result.Capped.Where(Ours).Select(one => one - first)],
+            Unsearched = [.. result.Unsearched.Where(Ours).Select(one => one - first)],
+            Dumps = result.Dumps is null ? null : [.. result.Dumps.Where(one => Ours(one.Needle)).Select(one => one with { Needle = one.Needle - first })],
+        };
+    }
+
     /// <summary>The bytes round the first places of each needle that asked for them, windows another one already read whole left out.</summary>
     /// <remarks>
     /// THE NARROWEST WINDOWS FIRST, then by address: a wide window asked for to read one value well

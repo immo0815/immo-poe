@@ -356,6 +356,23 @@ public static class CaptureWaterShore
     private static (ConcurrentDictionary<string, Hit> Found, long Bytes, int Unread) Searched(Func<string, byte[]?> read, string[] paths, Search search)
         => Searched(read, paths, search, Needles, Words);
 
+    /// <summary>
+    /// Every path searched for other words, the same way - each file naming one with its lines (or, binary, the strings round each word) and its
+    /// text where it is text. For another part's search over the same files: the light extras' roof fade words.
+    /// </summary>
+    internal static (IReadOnlyList<(string Path, IReadOnlyList<string> Lines, string? Text)> Found, long Bytes, int Unread) Find(
+        Func<string, byte[]?> read, IReadOnlyList<string> paths, IReadOnlyList<string> words)
+    {
+        ArgumentNullException.ThrowIfNull(read);
+        ArgumentNullException.ThrowIfNull(paths);
+        ArgumentNullException.ThrowIfNull(words);
+        (byte[] Ascii, byte[] Wide)[] needles =
+            [.. words.Select(word => (Encoding.ASCII.GetBytes(word.ToLowerInvariant()), Encoding.Unicode.GetBytes(word.ToLowerInvariant())))];
+        (ConcurrentDictionary<string, Hit> found, long bytes, int unread) =
+            Searched(read, [.. paths.Distinct(StringComparer.OrdinalIgnoreCase)], new Search(), needles, words);
+        return ([.. found.OrderBy(one => one.Key, StringComparer.OrdinalIgnoreCase).Select(one => (one.Key, (IReadOnlyList<string>)one.Value.Lines, one.Value.Text))], bytes, unread);
+    }
+
     /// <summary>The same, for other words.</summary>
     private static (ConcurrentDictionary<string, Hit> Found, long Bytes, int Unread) Searched(
         Func<string, byte[]?> read, string[] paths, Search search, (byte[] Ascii, byte[] Wide)[] needles, IReadOnlyList<string> words)
