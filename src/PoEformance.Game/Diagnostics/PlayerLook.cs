@@ -159,6 +159,21 @@ public static class PlayerLook
 
         /// <summary>The composition's objects and their one-hop targets as read - matched against the body's rig and sockets on the files side.</summary>
         public IReadOnlyList<PieceObject> Objects { get; init; } = [];
+
+        /// <summary>The pieces in his hands' slots (schema PieceSlots.MainHand, OffHand), or empty.</summary>
+        public string MainHand { get; init; } = string.Empty;
+
+        /// <inheritdoc cref="MainHand"/>
+        public string OffHand { get; init; } = string.Empty;
+
+        /// <summary>The stance in hand's animation pack (.ast) and timeline (.atl) off his Actor (PlayerDress.StanceOf), or empty.</summary>
+        public string Moves { get; init; } = string.Empty;
+
+        /// <inheritdoc cref="Moves"/>
+        public string Timeline { get; init; } = string.Empty;
+
+        /// <summary>His weapon sets' items' paths, in PlayerDress.SetInventories' order.</summary>
+        public IReadOnlyList<(string Main, string Off)> Sets { get; init; } = [];
     }
 
     /// <summary>The part: its lines, and what the files side reads on - null where no player was read.</summary>
@@ -232,6 +247,12 @@ public static class PlayerLook
             lines.Add("=== the pieces he is drawn with: no Render component");
         }
 
+        // THE STANCE IN HAND, through his Actor (schema Actor.AnimationSet) - the pack the Monster Book plays him from - and his hands.
+        string mainHand = PlayerPieces.AtSlot(pieces, schema, "MainHand"), offHand = PlayerPieces.AtSlot(pieces, schema, "OffHand");
+        (string moves, string timeline) = PlayerDress.StanceOf(reader, schema, components.GetValueOrDefault("Actor"));
+        lines.Add(string.Empty);
+        lines.AddRange(Stanced(reader, schema, components.GetValueOrDefault("Actor"), moves, timeline, mainHand, offHand, named));
+
         // THE COMPONENTS WHOLE, word by word, every list they begin written whole, and one hop on from each pointer.
         foreach (string name in Dumped)
         {
@@ -256,7 +277,61 @@ public static class PlayerLook
             Pieces = [.. pieces.Select(one => one.Path).Distinct(StringComparer.OrdinalIgnoreCase)],
             Slots = [.. pieces.Select(one => (one.At, one.Inner, one.Path))],
             Objects = objects,
+            MainHand = mainHand,
+            OffHand = offHand,
+            Moves = moves,
+            Timeline = timeline,
+            Sets = [.. PlayerDress.SetInventories.Select(set => (
+                carried.FirstOrDefault(one => one.Inventory == set.Main)?.Path ?? string.Empty,
+                carried.FirstOrDefault(one => one.Inventory == set.Off)?.Path ?? string.Empty))],
         });
+    }
+
+    /// <summary>How much of the animation set and of its pack is written whole - CHOSEN, past the furthest word read (+0x188, +0x148).</summary>
+    private const int StanceBytes = 0x200;
+
+    /// <summary>
+    /// The stance in hand as his Actor holds it (schema Actor.AnimationSet, ActorAnimationSet, AnimationPack): each hop's address and what it
+    /// names, his hands' pieces, and the animation set and its pack written whole - so a capture after a weapon swap says whether the chain
+    /// follows the stance.
+    /// </summary>
+    private static IEnumerable<string> Stanced(
+        IMemoryReader reader, OffsetSchema schema, ulong actor, string moves, string timeline, string mainHand, string offHand, Func<ulong, string> named)
+    {
+        var lines = new List<string>
+        {
+            "=== the stance in hand: Actor.AnimationSet -> Pack (its .amd at +0x148, its .ast through +0xF0 -> +0x10) and Timeline, the schema's chain - and his hands' pieces",
+            "  main hand (PieceSlots.MainHand): " + (mainHand.Length > 0 ? mainHand : "(none)"),
+            "  off hand (PieceSlots.OffHand): " + (offHand.Length > 0 ? offHand : "(none)"),
+        };
+        if (actor == 0 || !schema.Structs.TryGetValue("Actor", out StructDef? fields) || fields.Field("AnimationSet") is not { } setField
+            || !schema.Structs.TryGetValue("ActorAnimationSet", out StructDef? setFields) || setFields.Field("Pack") is not { } packField
+            || !schema.Structs.TryGetValue("AnimationPack", out StructDef? packFields) || packFields.Field("Metadata") is not { } metadataField)
+        {
+            lines.Add("  no Actor component, or the schema has no Actor.AnimationSet");
+            return lines;
+        }
+
+        ulong set = reader.ReadPointer(actor + (ulong)setField.Offset);
+        ulong pack = set == 0 ? 0 : reader.ReadPointer(set + (ulong)packField.Offset);
+        string metadata = pack == 0 ? string.Empty : reader.ReadStdWString(pack + (ulong)metadataField.Offset, 260);
+        lines.Add(string.Create(CultureInfo.InvariantCulture,
+            $"  Actor 0x{actor:X} +0x{setField.Offset:X} -> 0x{set:X}; +0x{packField.Offset:X} -> pack 0x{pack:X}, its +0x{metadataField.Offset:X} \"{metadata}\""));
+        lines.Add("  the pack's .ast: " + (moves.Length > 0 ? moves : "(not read)"));
+        lines.Add("  the timeline: " + (timeline.Length > 0 ? timeline : "(not read)"));
+        if (set != 0)
+        {
+            lines.Add(string.Empty);
+            lines.AddRange(Whole(reader, "Actor.AnimationSet's target", set, StanceBytes, named));
+        }
+
+        if (pack != 0)
+        {
+            lines.Add(string.Empty);
+            lines.AddRange(Whole(reader, "the pack (ActorAnimationSet.Pack's target)", pack, StanceBytes, named));
+        }
+
+        return lines;
     }
 
     /// <summary>

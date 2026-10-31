@@ -190,6 +190,15 @@ public sealed record MonsterModel(
     public string Rig_ { get; init; } = string.Empty;
 
     /// <summary>
+    /// What became of an animation pack asked for in place of the rig's own animations (MonsterVariety.Moves) - taken, or why not - or
+    /// empty where none was asked for.
+    /// </summary>
+    public string Pack { get; init; } = string.Empty;
+
+    /// <summary>The animation a picture starts with, where its rig has one of the name (MonsterVariety.Opening), or empty.</summary>
+    public string Opening { get; init; } = string.Empty;
+
+    /// <summary>
     /// Why the monster cannot be animated, or empty where it can.
     /// </summary>
     /// <remarks>
@@ -548,7 +557,7 @@ public static class MonsterModels
         }
 
         var paints = new Paints { Progress = progress };
-        MonsterModel model = OfFiles(read, named, wearing, paints, one.Worn);
+        MonsterModel model = OfFiles(read, named, wearing, paints, one.Worn, one.Moves, one.Opening);
         return shaded ? Shaded(read, model, paints) : model;
     }
 
@@ -795,7 +804,7 @@ public static class MonsterModels
     /// </remarks>
     internal static MonsterModel OfFiles(
         Func<string, byte[]?>? read, IReadOnlyList<string>? named, bool wearing, Paints? shared,
-        IReadOnlyList<WornPiece>? pieces = null)
+        IReadOnlyList<WornPiece>? pieces = null, string? moves = null, string? opening = null)
     {
         if (read is null)
         {
@@ -877,6 +886,23 @@ public static class MonsterModels
         Dress dress = Dressed(counted, mesh, found.Materials, manifest, skin, material, paints);
 
         (AnimationSkeleton rig, string move) = Rigged(counted, found.Skeleton, mesh);
+
+        // THE ANIMATIONS OF A PACK IN PLACE OF THE RIG'S OWN, where its bones are the rig's, name for name and in order - the player's
+        // stance pack, read off his Actor (PlayerDress.Moves): his OneRig.ast holds idle_01 alone, the bind pose, and the game plays him
+        // from Art/Models/CharactersFour/Animations/BaseWand/OneRig.ast with a wand in hand (MEASURED in the 16:16 capture).
+        string rigPath = found.Skeleton, packed = string.Empty;
+        if (moves is { Length: > 0 })
+        {
+            AnimationSkeleton pack = Read(counted, moves, AnimationSkeleton.Read);
+            packed = !pack.Ready ? $"the stance's animations {moves} did not read{(pack.Why.Length > 0 ? ": " + pack.Why : string.Empty)}"
+                : !SameBones(rig, pack) ? $"the stance's animations {moves} are on {pack.Bones.Count} bones that are not his {rig.Bones.Count}, name for name and bound alike"
+                : $"{pack.Animations.Count} animations of his stance, from {moves}";
+            if (SameBones(rig, pack))
+            {
+                rig = pack;
+                rigPath = moves;
+            }
+        }
 
         // AND WHAT THE MONSTER WEARS. Doryani's skirt, belt, necklace and six more pieces are
         // attached_object entries naming their own .ao, mesh and rig - see Dressing. Joined into
@@ -964,8 +990,12 @@ public static class MonsterModels
             Textures = dress.Textures,
             Guessed = dress.Guessed,
             Rig = rig,
-            Rig_ = found.Skeleton,
+            Rig_ = rigPath,
             Move = move,
+            Pack = packed,
+            Opening = opening is { Length: > 0 } && rig.Animations.Any(one => string.Equals(one.Name, opening, StringComparison.Ordinal))
+                ? opening
+                : string.Empty,
             Bytes = tally.Bytes,
             Files = tally.Files,
             Shaders = paints.Shaders,
@@ -1216,11 +1246,24 @@ public static class MonsterModels
         }
 
         // THE MONSTER'S OWN RIG IS THE OUTERMOST FIT: every bone stands for itself and needs no
-        // transform to reach model space. Everything below is expressed against it - see Fit.
-        var body = new Fit(where, rest, Itself(parent.Bones.Count), []) { Plain = true };
+        // transform to reach model space. Everything below is expressed against it - see Fit. Its sockets are its files' own.
+        var body = new Fit(where, rest, Itself(parent.Bones.Count), []) { Plain = true, Sockets = SocketsOf(read, files, parent) };
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var queue = new Queue<Hangs_>();
+
+        // EACH PIECE'S CHAIN READ ONCE for what its own file says of where it hangs (Overridden).
+        var chains = new Dictionary<string, IReadOnlyList<AnimatedObject>>(StringComparer.OrdinalIgnoreCase);
+        IReadOnlyList<AnimatedObject> ChainOf(string path)
+        {
+            if (!chains.TryGetValue(path, out IReadOnlyList<AnimatedObject>? chain))
+            {
+                AnimatedObject ao = Object(read, path);
+                chains[path] = chain = ao.Ready ? Whole(read, ao) : [];
+            }
+
+            return chain;
+        }
 
         // THE MONSTER ITSELF IS THE OUTERMOST CARRIER, at the identity: a piece socketed to
         // "<root>" at the top level is already in the monster's own space and wants no transform
@@ -1238,18 +1281,31 @@ public static class MonsterModels
             }
         }
 
-        top.AddRange(worn.Select(one => new Line_(one.Socket, one.Path, Matrix4x4.Identity, string.Empty) { SkinOnly = one.SkinOnly }));
+        // A WORN PIECE THAT IS A BACK ATTACHMENT - its chain extends Metadata/ParentBackAttachment, the player's cape - hangs rigidly at
+        // the body's Back socket (DECIDED from the live client, 2026-10-31: no file names its socket, the files' word for it is the back).
+        foreach (WornPiece one in worn)
+        {
+            bool back = one.SkinOnly && OnTheBack(read, one.Path);
+            top.Add(new Line_(back ? BackSocket : one.Socket, one.Path, Matrix4x4.Identity, string.Empty)
+            {
+                SkinOnly = one.SkinOnly && !back,
+                Held = one.Held || back,
+            });
+        }
+
         foreach ((Line_ line, PieceHiding hiding, HashSet<string> drops) in Uncovered(read, top, covering))
         {
-            if (Socketed(line.Socket, body, Matrix4x4.Identity, 0, Matrix4x4.Identity, top: true, line.Local) is { } put)
+            string socket = Rooted(line.Socket) ? Overridden(ChainOf, line.Path) ?? line.Socket : line.Socket;
+            if (Socketed(socket, body, Matrix4x4.Identity, 0, Matrix4x4.Identity, top: true, line.Local) is { } put)
             {
                 queue.Enqueue(new Hangs_(
-                    line.Path, put.Place, put.Bone, put.Put, put.Socket, line.Socket, 1, Rooted(line.Socket), body)
+                    line.Path, put.Place, put.Bone, put.Put, put.Socket, socket, 1, Rooted(socket), body)
                 {
                     Carrier = Monster,
                     Hiding = hiding,
                     Drops = drops,
-                    SkinOnly = line.SkinOnly,
+                    SkinOnly = line.SkinOnly && Rooted(socket),
+                    Held = line.Held,
                 });
             }
             else
@@ -1258,7 +1314,7 @@ public static class MonsterModels
                 // about it: a socket the monster's own rig has no bone for at the top level.
                 // Counted here because nothing downstream will ever see this piece again.
                 told.Add(new PartFit(
-                    line.Path, line.Socket, PartPlace.Dropped, 1, PartKind.None, 0, 0, 0, 0, false, 0, false,
+                    line.Path, socket, PartPlace.Dropped, 1, PartKind.None, 0, 0, 0, 0, false, 0, false,
                     string.Empty, Vector3.Zero, Vector3.Zero));
             }
         }
@@ -1315,7 +1371,8 @@ public static class MonsterModels
 
                 foreach ((Line_ line, PieceHiding hiding, HashSet<string> drops) in Uncovered(read, lines, covering))
                 {
-                    if (Socketed(line.Socket, inner_, one_.Place, one_.Bone, one_.Put, top: false, line.Local) is { } where_)
+                    string socket = Rooted(line.Socket) ? Overridden(ChainOf, line.Path) ?? line.Socket : line.Socket;
+                    if (Socketed(socket, inner_, one_.Place, one_.Bone, one_.Put, top: false, line.Local) is { } where_)
                     {
                         queue.Enqueue(new Hangs_(
                             line.Path,
@@ -1323,9 +1380,9 @@ public static class MonsterModels
                             where_.Bone,
                             where_.Put,
                             where_.Socket,
-                            line.Socket,
+                            socket,
                             one_.Depth + 1,
-                            Rooted(line.Socket),
+                            Rooted(socket),
                             inner_)
                         {
                             Carrier = carrier,
@@ -1352,6 +1409,9 @@ public static class MonsterModels
     {
         /// <summary>Whether it is drawn only as a skin on its carrier's rig - see WornPiece.SkinOnly.</summary>
         public bool SkinOnly { get; init; }
+
+        /// <summary>Whether it hangs rigidly at its socket - see WornPiece.Held.</summary>
+        public bool Held { get; init; }
     }
 
     /// <summary>
@@ -1562,6 +1622,9 @@ public static class MonsterModels
 
         /// <summary>Whether it is drawn only as a skin on its carrier's rig - see WornPiece.SkinOnly.</summary>
         public bool SkinOnly { get; init; }
+
+        /// <summary>Whether it hangs rigidly at its socket - see WornPiece.Held.</summary>
+        public bool Held { get; init; }
     }
 
     /// <summary>
@@ -1604,6 +1667,12 @@ public static class MonsterModels
         /// geometry per piece.
         /// </remarks>
         public bool Plain { get; init; }
+
+        /// <summary>
+        /// The sockets the rig's own .ao chain defines - each its bone in this rig and its own turn, shift and size off that bone - or
+        /// null. See <see cref="Socketed"/>.
+        /// </summary>
+        public IReadOnlyDictionary<string, (int Bone, Matrix4x4 Local)>? Sockets { get; init; }
     }
 
     /// <summary>The bone table of a rig that stands for itself: nought is nought, one is one.</summary>
@@ -1787,8 +1856,122 @@ public static class MonsterModels
             return (local * there, onto, there, at);
         }
 
+        // A SOCKET THE CARRIER'S OWN FILES DEFINE, where no bone carries its name in any spelling Mounts tries: the player's
+        // Character.ao writes socket = "R_Weapon" with parent = "aux_R_Weapon_attachment_jntBnd", a bone his OneRig names with the
+        // _jntBnd the monsters' rigs leave off. READ from the files; LAST, so nothing that resolved before moves.
+        if (fit.Sockets is { } defined && defined.TryGetValue(socket, out (int Bone, Matrix4x4 Local) named)
+            && named.Bone >= 0 && named.Bone < fit.Rest.BindModel.Count)
+        {
+            (int onto, Matrix4x4 into) = Through(fit, named.Bone);
+            Matrix4x4 there = named.Local * fit.Rest.BindModel[named.Bone] * into;
+            return (local * there, onto, there, named.Bone);
+        }
+
         return top ? null : (local * carrier, bone, put, -1);
     }
+
+    /// <summary>
+    /// The sockets a rig's own .ao files define (see <see cref="BodySockets"/>), each as its bone in the rig and the transform off it:
+    /// its size, then its turn about x, y and z (radians, the order the attachment lines' turn takes - <see cref="Local"/>, not
+    /// settled), then its shift. Null where none names a bone the rig has.
+    /// </summary>
+    private static Dictionary<string, (int Bone, Matrix4x4 Local)>? SocketsOf(
+        Func<string, byte[]?> read, IReadOnlyList<string> files, AnimationSkeleton rig)
+    {
+        Dictionary<string, (int Bone, Matrix4x4 Local)>? said = null;
+        foreach (string file in files)
+        {
+            AnimatedObject ao = Object(read, file);
+            if (!ao.Ready)
+            {
+                continue;
+            }
+
+            foreach (BodySocket socket in BodySockets.Of(Whole(read, ao), rig))
+            {
+                if (socket.Bone < 0)
+                {
+                    continue;
+                }
+
+                Matrix4x4 turn = Matrix4x4.CreateScale(socket.Scale)
+                    * Matrix4x4.CreateRotationX(socket.Rotation.X)
+                    * Matrix4x4.CreateRotationY(socket.Rotation.Y)
+                    * Matrix4x4.CreateRotationZ(socket.Rotation.Z)
+                    * Matrix4x4.CreateTranslation(socket.Translation);
+                (said ??= new Dictionary<string, (int, Matrix4x4)>(StringComparer.OrdinalIgnoreCase)).TryAdd(socket.Name, (socket.Bone, turn));
+            }
+        }
+
+        return said;
+    }
+
+    /// <summary>
+    /// The bone of its carrier a piece's own file hangs it at - BaseAnimationEvents' <c>attach_bone_override</c> through its chain - where
+    /// it pairs none of its own bones with its carrier's (attachment_bones), or null. Asked only of a line that places nothing ("&lt;root&gt;",
+    /// see <see cref="Rooted"/>): which wins over a line naming a socket of its own is not read.
+    /// </summary>
+    /// <remarks>
+    /// READ FROM THE FILES (v0.1.397, the player's capture of 16:16 in The Red Vale): the gloves hang their feathers at "&lt;root&gt;" and each
+    /// feather's own .ao says <c>attach_bone_override = "R_elbow_jntBnd"</c> (the left one L_), so they stood at his feet; the robe's skirt says
+    /// <c>"hip_jntBnd"</c> and pairs its root with the very same bone by attachment_bones, so a piece that pairs is placed by its pairing and
+    /// left as it was.
+    /// </remarks>
+    private static string? Overridden(Func<string, IReadOnlyList<AnimatedObject>> chainOf, string path)
+    {
+        IReadOnlyList<AnimatedObject> chain = chainOf(path);
+        if (chain.Count == 0)
+        {
+            return null;
+        }
+
+        string bone = Entryed(chain, EventsBlock, OverrideEntry).Trim();
+        return bone.Length > 0 && Attaching(chain, out _).Count == 0 ? bone : null;
+    }
+
+    /// <summary>The block a piece's own placing words are written in, and the word naming the carrier's bone it hangs at.</summary>
+    private const string EventsBlock = "BaseAnimationEvents";
+
+    /// <inheritdoc cref="EventsBlock"/>
+    private const string OverrideEntry = "attach_bone_override";
+
+    /// <summary>Whether a piece's chain extends the game's parent of back attachments - the player's cape (GoblinShamanHeld.ao).</summary>
+    private static bool OnTheBack(Func<string, byte[]?> read, string path)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var queue = new Queue<string>(Object(read, path).Extends);
+        while (queue.Count > 0 && seen.Count <= MostDeep * 2)
+        {
+            string up = queue.Dequeue().Replace('\\', '/').Trim();
+            if (up.EndsWith(AnimatedObject.Suffix, StringComparison.OrdinalIgnoreCase))
+            {
+                up = up[..^AnimatedObject.Suffix.Length];
+            }
+
+            if (up.Length == 0 || !seen.Add(up))
+            {
+                continue;
+            }
+
+            if (string.Equals(up, BackParent, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            foreach (string further in Object(read, up).Extends)
+            {
+                queue.Enqueue(further);
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>What a back attachment extends, and the socket of the player's body it is hung at (DECIDED from the live client).</summary>
+    private const string BackParent = "Metadata/ParentBackAttachment";
+
+    /// <inheritdoc cref="BackParent"/>
+    private const string BackSocket = "Back";
 
     /// <summary>
     /// The turn and the shift an attachment line asks for on top of its socket.
@@ -2111,6 +2294,15 @@ public static class MonsterModels
 
         Dress dress = Dressed(read, mesh, [], manifest, fallback, string.Empty, paints);
 
+        // A HELD PIECE GOES RIGIDLY AT ITS SOCKET, its mesh as its file rests it (see WornPiece.Held): the player's wand at R_Weapon, his
+        // focus at L_Weapon, his cape at Back - none of their own rigs is matched against his.
+        if (hung.Held)
+        {
+            (byte[] held, byte[] heldWeights) = Bound(mesh.Positions.Length, bone);
+            var kept = new Part(mesh, held, heldWeights, place, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
+            return (kept, body, Told(hung, where, PartKind.Rigid, default, kept));
+        }
+
         // EITHER WAY THE PIECE'S OWN RIG SAYS WHICH OF THE PARENT'S BONES EACH VERTEX BELONGS
         // TO - see Retargeted. What the attachment line decides is where the piece SITS: a
         // "<root>" piece is already in the monster's space and wants no transform, a socketed
@@ -2154,7 +2346,7 @@ public static class MonsterModels
 
     /// <summary>Why a piece to be drawn as a skin alone (WornPiece.SkinOnly) was left out.</summary>
     internal const string Unsocketed =
-        "a piece of a rig or a mesh of its own, held at a socket no file names and no capture has read yet - left out rather than drawn at his feet";
+        "a piece of a rig or a mesh of its own at no socket read - left out rather than drawn at his feet";
 
     /// <summary>
     /// The rigs of the pieces that play their own animations, gathered as the monster is dressed, each numbered after his bones and
@@ -2829,6 +3021,40 @@ public static class MonsterModels
         /// <summary>A model that was not found, still carrying what was read looking for it.</summary>
         public MonsterModel Failed(string why, string mesh = "")
             => MonsterModel.None with { Mesh_ = mesh, Why = why, Bytes = Bytes, Files = Files };
+    }
+
+    /// <summary>
+    /// Whether two rigs carry the same bones, name for name, in the same order and bound alike (each bind within <see cref="BindTolerance"/>)
+    /// - what lets one's animations pose the other's mesh: the mesh is skinned against the binds of the rig it is played on.
+    /// </summary>
+    internal static bool SameBones(AnimationSkeleton rig, AnimationSkeleton pack)
+    {
+        if (!rig.Ready || rig.Bones.Count != pack.Bones.Count)
+        {
+            return false;
+        }
+
+        for (var one = 0; one < rig.Bones.Count; one++)
+        {
+            if (!string.Equals(rig.Bones[one].Name, pack.Bones[one].Name, StringComparison.Ordinal) || !Alike(rig.Bones[one].Bind, pack.Bones[one].Bind))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>How far two binds' entries may lie apart and still be the same bind - CHOSEN, a hundredth of a unit or of a turn's cosine.</summary>
+    private const float BindTolerance = 0.01f;
+
+    private static bool Alike(Matrix4x4 one, Matrix4x4 other)
+    {
+        Matrix4x4 gap = one - other;
+        return MathF.Abs(gap.M11) <= BindTolerance && MathF.Abs(gap.M12) <= BindTolerance && MathF.Abs(gap.M13) <= BindTolerance
+            && MathF.Abs(gap.M21) <= BindTolerance && MathF.Abs(gap.M22) <= BindTolerance && MathF.Abs(gap.M23) <= BindTolerance
+            && MathF.Abs(gap.M31) <= BindTolerance && MathF.Abs(gap.M32) <= BindTolerance && MathF.Abs(gap.M33) <= BindTolerance
+            && MathF.Abs(gap.M41) <= BindTolerance && MathF.Abs(gap.M42) <= BindTolerance && MathF.Abs(gap.M43) <= BindTolerance;
     }
 
     /// <summary>

@@ -1,0 +1,8 @@
+﻿parent "Metadata/Characters/CharacterFemale.act"
+animated_object "Metadata/Characters/Character.ao"
+{
+	with_tag ClassSpecific replace "_strdex_" "_int_";
+}
+
+movement_speed 333
+action_set character
