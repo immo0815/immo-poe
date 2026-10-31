@@ -96,6 +96,9 @@ public static class CaptureReport
     /// <summary>What the area's ground strews over itself - see CaptureGroundScatter.</summary>
     public const string GroundScatterFile = "ground-scatter.txt";
 
+    /// <summary>Every tile definition walked whole by zao's layout and every edge type the area names - see CaptureTileLayout.</summary>
+    public const string TileLayoutFile = "tile-layout.txt";
+
     /// <summary>The picture beside it.</summary>
     public const string GroundScreenShot = "ground-on-screen.png";
 
@@ -1086,6 +1089,53 @@ public static class CaptureReport
             string joined = string.Join(", ", paths);
             return joined.Length > 0 ? joined : "none";
         }
+    }
+
+    /// <summary>
+    /// The tile files <see cref="TileFiles"/> writes - every file the area's tile lists or fill lists name or its terrain laid - each with
+    /// what names it ("listed", "fill", "laid"), in path order. Shared with the tile-layout part, so the two parts read the same files.
+    /// </summary>
+    internal static SortedDictionary<string, string> TileFileSet(Func<string, byte[]?> read, IReadOnlyList<string> loaded, IReadOnlyList<string>? masters, TerrainTiles? laid)
+    {
+        (List<string> tiles, _, List<string> named) = Listed(read, loaded, masters);
+        var every = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        void Add(string path, string from)
+        {
+            string at = path.Replace('\\', '/').Trim();
+            if (at.Length == 0)
+            {
+                return;
+            }
+
+            if (!every.TryGetValue(at, out string? already))
+            {
+                every[at] = from;
+            }
+            else if (!already.Split(", ").Contains(from, StringComparer.Ordinal))
+            {
+                every[at] = already + ", " + from;
+            }
+        }
+
+        foreach (string tile in tiles)
+        {
+            Add(tile, "listed");
+        }
+
+        foreach ((_, FillList fill) in FillLists(read, named))
+        {
+            foreach (FillListEntry entry in fill.Entries.Where(one => one.Path.EndsWith(".tdt", StringComparison.OrdinalIgnoreCase)))
+            {
+                Add(entry.Path, "fill");
+            }
+        }
+
+        foreach (string path in laid?.Paths ?? [])
+        {
+            Add(path, "laid");
+        }
+
+        return every;
     }
 
     /// <summary>

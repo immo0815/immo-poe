@@ -61,6 +61,12 @@ already cost real time on this project.
     four corner quarters, slots at their own `(x, y)`), but nothing taken from it is settled for
     PoE2 until PoE2 files or the game agree. Its doodads prove nothing: the line that reads them
     (`Arm.cs`) and the loop that places them (`ArmImportComponent.cs`) are both commented out.
+  - `zao/poe-cpp` (gitlab.com, the `libpoe` the tile reader already cites) is **Path of Exile 1 only**: its last
+    commit is 2022-07-02, before PoE2. Its `.tdt` reader walks the WHOLE file - side offsets, flags, sub-tiles,
+    ground grid, heights, tmd - and asks for the file's end; its own code reads the side offsets two ways
+    (`game_data.cpp` a real and a virtual index a side, `level_gen.cpp` four edge then four ground offsets), and its
+    tile-to-slot matcher (`libpog/pog/room.cpp`) is a draft with open TODOs. `tile-layout.txt` (below) measures it.
+    GitLab rate-limits browsing it after a handful of pages; `git clone` is not limited.
 - Do not trust a summarised directory listing over the real thing. A tree summary once
   reported "no Radar plugin" for a repo that plainly has one, and that wrong answer was
   taken at face value.
@@ -1473,7 +1479,14 @@ Augury lays fill-list tiles in most of those too (`dungeon_blank_fill`), but whi
 from is its own question, not yet measured. `tile-files.txt` writes for every listed, filled and laid file its chain, its doodad lists and its
 flags, `area-masters.txt` every master and every file it names whole, and `tile-files-replay.txt`
 counts what explains each laid file no tile list names (inherited, in a fill list, a shared template,
-nothing) - read it before giving the build a rule for any of them. A tile list's words appeared for the
+nothing) - read it before giving the build a rule for any of them. `tile-layout.txt` (`CaptureTileLayout`,
+v0.1.382) walks the same files and every file they inherit WHOLE by zao's layout (`TileLayout`: poe-cpp, PoE1) and counts
+how many end exactly at the file's end, by version and flags, where the rest stop, his ground grid against the tool's search
+(`TileDefinition.GroundGrid`), the side offsets beside the sides' types, the heights and the sub-tile types (version 4's own
+templates among them); and every edge type (`.et`, `EdgeTypeFile`, poe_data_tools' grammar) the tiles and rooms name, a
+virtual edge with the two it stands for - the files beside it (`tile-layout/`), `tile-layout-replay.txt` walking them again.
+Read it before the tile reader takes any field past the corners or SlotWants takes any type as alike by a virtual edge.
+A tile list's words appeared for the
 first time in Marrow (`I`, `R90`, `R180`, `R270`, on its cave entrance and its boss arena); poe_data_tools
 reads them as strings and says nothing of what they mean, so what they do to a tile's placement is to
 be measured on a laid one before the build obeys them. The first laid one, Augury's arena (`I`), lay as
