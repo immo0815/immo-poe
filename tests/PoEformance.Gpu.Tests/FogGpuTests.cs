@@ -50,6 +50,9 @@ public class FogGpuTests(CardFixture card) : IClassFixture<CardFixture>
         byte[] bare = Drawn(gpu, target, Scene(Light(null)));
         byte[] fogged = Drawn(gpu, target, Scene(Light(fog)));
 
+        // A FOG WHOSE SHADER DOES NOT COMPILE is left out of the picture and says why there - said here rather than as a pixel unfogged.
+        Assert.True(gpu.FogWhy.Length == 0, gpu.FogWhy);
+
         // THE FLOOR POINT BEHIND EACH PIXEL, from the camera: the pixel's share less the centre over the focal length is the view's ray at a
         // depth of one - ModelGpu's clip matrix undone - turned back into the model's space and met with the floor.
         MeshPicture.Camera camera = MeshPicture.Camera.Of(floor, pose);

@@ -336,9 +336,10 @@ public static partial class ShadeHlsl
     /// </summary>
     public const string ScreenLibrary = """
         // GetBayerNoise16 of a float2 - ShadeProgram.Bayer: the place in its four by four block through the matrix, centred in its sixteenth.
+        // NOT ShadeBayer, which ModelShaders.Programmed's screen ray already names (its jitter's table) - a second symbol of the name does not compile.
         static const int ShadeBayerMatrix[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
 
-        float ShadeBayer(float2 pixel)
+        float ShadeBayerNoise(float2 pixel)
         {
             float2 quarter = pixel / 4.0;
             float index = ((quarter.x - floor(quarter.x)) * 4.0) - 0.5 + ((((quarter.y - floor(quarter.y)) * 4.0) - 0.5) * 4.0) + 0.5;
@@ -1230,7 +1231,7 @@ public static partial class ShadeHlsl
                 ShadeProgram.PassPlayer => "float4(ShadeScreenPlayer, 0.0)",
                 _ => "float4(0.0, 0.0, 0.0, 0.0)",
             },
-            ShadeProgram.Op.Bayer => $"ShadeBayer({a}.xy).xxxx",
+            ShadeProgram.Op.Bayer => $"ShadeBayerNoise({a}.xy).xxxx",
             ShadeProgram.Op.HashInt => $"float4(ShadeHashInt3(int3({a}.xyz)), 0.0)",
 
             // THE INCLUDING SHADER'S: the scene's light between the layer's two points - ModelShaders' ShadeOmni.

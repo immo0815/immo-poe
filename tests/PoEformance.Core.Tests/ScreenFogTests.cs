@@ -140,7 +140,7 @@ public class ScreenFogTests
 
         Assert.Contains("ShadeScreenCamera", hlsl, StringComparison.Ordinal);
         Assert.Contains("ShadeScreenSurface", hlsl, StringComparison.Ordinal);
-        Assert.Contains("ShadeBayer(", hlsl, StringComparison.Ordinal);
+        Assert.Contains("ShadeBayerNoise(", hlsl, StringComparison.Ordinal);
         Assert.Contains("ShadeHashInt3(int3(", hlsl, StringComparison.Ordinal);
         Assert.Contains("ShadeOmni(", hlsl, StringComparison.Ordinal);
         Assert.Contains("said.colour = colour.xyz;", hlsl, StringComparison.Ordinal);
