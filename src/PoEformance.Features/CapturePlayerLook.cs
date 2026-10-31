@@ -807,19 +807,25 @@ public static class CapturePlayerLook
         var lines = new List<string>
         {
             string.Empty,
-            "=== his stance as the Monster Book reads it (PlayerStance): the pack and timeline his Actor holds, his sets' item stances, the stance and its idle",
+            "=== his weapon sets as the Monster Book reads them (PlayerStance): the pack and timeline his Actor holds, each set's item stances, the set in hand, each set's hands from his equipment looks, its pack and its idle",
         };
-        var dress = new PlayerDress(seen.Path, string.Empty, seen.Model, seen.Pieces, string.Empty)
-        {
-            MainHand = seen.MainHand,
-            OffHand = seen.OffHand,
-            Moves = seen.Moves,
-            Timeline = seen.Timeline,
-            Sets = seen.Sets,
-        };
+        PlayerDress dress = PlayerDress.Composed(
+            new PlayerDress(seen.Path, string.Empty, seen.Model, seen.Pieces, string.Empty) { Moves = seen.Moves, Timeline = seen.Timeline, Looks = seen.Looks },
+            seen.Sets, seen.Weapon1, seen.Weapon2, seen.Offhand2);
+        lines.Add("  the composition alone: " + (dress.InHand >= 0 ? $"set {dress.InHand + 1} in hand" : "no set in hand") + " - "
+            + string.Join("; ", dress.Sets.Select((one, at) => $"set {at + 1} {Tail(one.MainPiece)} + {Tail(one.OffPiece)}")));
         PlayerDress read = PlayerStance.Resolve(files, layouts, dress);
         lines.AddRange(read.Stance.Select(one => "  " + one));
-        lines.Add("  the idle the Monster Book starts him with: " + (read.Opening.Length > 0 ? read.Opening : "(none - his rig's own first)"));
+        lines.Add(read.InHand >= 0 ? $"  the set in hand: set {read.InHand + 1}" : "  the set in hand: not read");
+        for (var set = 0; set < read.Sets.Count; set++)
+        {
+            PlayerSet one = read.Sets[set];
+            lines.Add($"  set {set + 1}{(set == read.InHand ? " (in hand)" : string.Empty)}: {Tail(one.MainItem)} + {Tail(one.OffItem)}, stance {(one.Stance.Length > 0 ? one.Stance : "(none)")}"
+                + $" - the idle the Monster Book starts it with: {(one.Opening.Length > 0 ? one.Opening : "(none - the pack's or his rig's first)")}");
+            lines.AddRange(one.Said.Select(line => "    " + line));
+        }
+
+        lines.Add("  never hung as skins, a hand's: " + (read.Held.Count > 0 ? string.Join(", ", read.Held) : "(none)"));
         if (seen.Moves.Length == 0)
         {
             return lines;
@@ -836,6 +842,15 @@ public static class CapturePlayerLook
         foreach (SkeletonAnimation one in pack.Animations)
         {
             lines.Add(string.Create(CultureInfo.InvariantCulture, $"    {one.Name}\trate {one.Rate}, {one.Tracks} tracks, {one.Length:N0} bytes of keyframes"));
+        }
+
+        // THE OTHER SETS' PACKS, which the Monster Book's switch plays: each named by its stance's timeline, its count and whether it poses him.
+        foreach (PlayerSet other in read.Sets.Where(one => one.Moves.Length > 0 && !string.Equals(one.Moves, seen.Moves, StringComparison.OrdinalIgnoreCase)))
+        {
+            AnimationSkeleton its = AnimationSkeleton.Read(files, other.Moves);
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"  the pack {other.Moves} (stance {other.Stance}): {its.Bones.Count} bones, {its.Animations.Count} animations")
+                + (its.Why.Length > 0 ? " - " + its.Why : string.Empty) + " - "
+                + (MonsterModels.SameBones(rig, its) ? "his bones, name for name and bound alike" : $"NOT his bones; {Unlike(rig, its)}"));
         }
 
         // THE PACK'S METADATA AND THE TIMELINE AS THE INSTALL HOLDS THEM: no reader of either yet, so the bytes, and whether they read as text.
@@ -864,6 +879,9 @@ public static class CapturePlayerLook
 
         return lines;
     }
+
+    /// <summary>A path's file name, or "(empty)".</summary>
+    private static string Tail(string path) => path.Length == 0 ? "(empty)" : path[(path.LastIndexOf('/') + 1)..];
 
     /// <summary>Where two rigs first part: a count, a name or a bind (its widest entry's gap past MonsterModels' hundredth), said with both halves.</summary>
     private static string Unlike(AnimationSkeleton rig, AnimationSkeleton pack)

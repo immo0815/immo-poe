@@ -564,8 +564,11 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
     /// <summary>The player as last taken - kept until the button is pressed again (a snapshot, DECIDED from the live client).</summary>
     private PlayerDress _player = PlayerDress.None;
 
-    /// <summary>The model the book draws him as, made once a take.</summary>
+    /// <summary>The model the book draws him as, made once a take and once a switch of his weapon set.</summary>
     private MonsterVariety? _playerVariety;
+
+    /// <summary>The weapon set he is drawn with, nought the first - the one in hand at the take until switched (DECIDED from the live client).</summary>
+    private int _playerSet;
 
     /// <summary>Whether the pane shows the player rather than the chosen row.</summary>
     private bool _playerShown;
@@ -590,7 +593,8 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
             _player = done.IsCompletedSuccessfully
                 ? done.Result
                 : PlayerDress.None with { Why = done.Exception?.GetBaseException().Message ?? "the read failed" };
-            _playerVariety = _player.Ready ? _player.Variety() : null;
+            _playerSet = _player.Shown;
+            _playerVariety = _player.Ready ? _player.Variety(_playerSet) : null;
             _playerShown = _player.Ready;
             _playerOver = Chosen;
         }
@@ -646,16 +650,20 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
     /// </summary>
     private void PlayerDetail()
     {
-        if (_playerVariety is not { } one)
+        if (_playerVariety is not { } shown)
         {
             return;
         }
 
-        string key = _player.Key;
         ImGui.PushTextWrapPos(0f);
-        ImGui.Text(ImGuiText.Escape((one.Name ?? "the player") + " - " + _player.Path));
+        ImGui.Text(ImGuiText.Escape((shown.Name ?? "the player") + " - " + _player.Path));
         ImGui.TextDisabled(ImGuiText.Escape("body: " + _player.Body));
         ImGui.PopTextWrapPos();
+
+        // THE SET SWITCH BEFORE THE KEY: a set chosen this frame loads under its own key at once.
+        WeaponSets();
+        MonsterVariety one = _playerVariety ?? shown;
+        string key = _player.Key(_playerSet);
         ModelTools(one, key, "the player - " + one.Name);
         Stage(key);
         LightSection();
@@ -669,12 +677,28 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
                 ImGui.TextDisabled(ImGuiText.Escape(_player.Why));
             }
 
+            PlayerSet? hands = _playerSet < _player.Sets.Count ? _player.Sets[_playerSet] : null;
+            if (hands?.MainPiece is { Length: > 0 } main)
+            {
+                ImGui.TextUnformatted(ImGuiText.Escape("main hand, at " + PlayerDress.MainSocket + ": " + main));
+            }
+
+            if (hands?.OffPiece is { Length: > 0 } off)
+            {
+                ImGui.TextUnformatted(ImGuiText.Escape("off hand, at " + PlayerDress.OffSocket + ": " + off));
+            }
+
             foreach (string piece in _player.Pieces)
             {
-                string hand = string.Equals(piece, _player.MainHand, StringComparison.OrdinalIgnoreCase) ? "main hand, at " + PlayerDress.MainSocket + ": "
-                    : string.Equals(piece, _player.OffHand, StringComparison.OrdinalIgnoreCase) ? "off hand, at " + PlayerDress.OffSocket + ": "
-                    : string.Empty;
-                ImGui.TextUnformatted(ImGuiText.Escape(hand + piece));
+                if (!_player.Held.Contains(piece, StringComparer.OrdinalIgnoreCase))
+                {
+                    ImGui.TextUnformatted(ImGuiText.Escape(piece));
+                }
+            }
+
+            foreach (string said in hands?.Said ?? [])
+            {
+                ImGui.TextDisabled(ImGuiText.Escape(said));
             }
         }
 
@@ -710,11 +734,46 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
 
             ImGui.TextDisabled(
                 "Chosen, not measured: the main hand's piece at R_Weapon and the off hand's at L_Weapon, the cape at Back, each rigid there."
-                + " Not yet drawn as the game draws him: a town's idle; the other weapon set; what a piece says to show of its siblings; the held"
-                + " pieces' own animations. He is drawn unscaled, facing as a monster faces.");
+                + " Not yet drawn as the game draws him: a town's idle; what a piece says to show of its siblings; the held pieces' own"
+                + " animations. He is drawn unscaled, facing as a monster faces.");
         }
 
         ImGui.PopTextWrapPos();
+    }
+
+    /// <summary>
+    /// His weapon sets, one button each: the set in hand at the take is drawn first, and either is drawn with its own hands, pack and idle
+    /// when chosen (DECIDED from the live client, 2026-10-31: the weapon set in hand, switchable) - a set with nothing in its hands left out.
+    /// </summary>
+    private void WeaponSets()
+    {
+        if (_player.Sets.Count(one => !one.Empty) < 2)
+        {
+            return;
+        }
+
+        ImGui.TextDisabled("weapon set");
+        for (var set = 0; set < _player.Sets.Count; set++)
+        {
+            PlayerSet one = _player.Sets[set];
+            if (one.Empty)
+            {
+                continue;
+            }
+
+            ImGui.SameLine();
+            string label = $"{set + 1}: {(one.Stance.Length > 0 ? one.Stance : Tail(one.MainItem))}{(set == _player.InHand ? " (in hand)" : string.Empty)}";
+            if (ImGui.RadioButton(ImGuiText.Escape(label) + "##monster-player-set-" + set, _playerSet == set) && _playerSet != set)
+            {
+                _playerSet = set;
+                _playerVariety = _player.Variety(set);
+            }
+
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip(ImGuiText.Escape(string.Join("\n", new[] { $"{Tail(one.MainItem)} + {Tail(one.OffItem)}" }.Concat(one.Said))));
+            }
+        }
     }
 
     /// <summary>The tile chosen in the Tile Book, by path, or empty - so a monster can be stood on whatever tile that book is open at.</summary>

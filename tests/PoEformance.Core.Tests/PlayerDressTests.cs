@@ -42,17 +42,17 @@ public class PlayerDressTests
             ["Metadata/Items/Armours/BodyArmours/BetaDoryaniArmour/BetaDoryaniArmourBodyInt.ao", "Metadata/Items/Armours/Boots/BetaBaron/BetaBaronBootsIntB.ao"],
             string.Empty);
         Assert.True(dress.Ready);
-        MonsterVariety one = dress.Variety();
+        MonsterVariety one = dress.Variety(0);
         Assert.Equal("Sorceress", one.Name);
         Assert.Equal(["Metadata/Characters/Int/IntFourB.ao"], one.AoFiles);
         Assert.Equal(0, one.ModelSize);
         Assert.Equal(2, one.Worn.Count);
         Assert.All(one.Worn, piece => Assert.True(piece.SkinOnly && piece.Socket == "<root>"));
-        Assert.StartsWith("player:Metadata/Characters/Int/IntFourb|", dress.Key, StringComparison.Ordinal);
-        Assert.NotEqual(dress.Key, (dress with { Pieces = [dress.Pieces[0]] }).Key);
+        Assert.StartsWith("player:Metadata/Characters/Int/IntFourb|", dress.Key(0), StringComparison.Ordinal);
+        Assert.NotEqual(dress.Key(0), (dress with { Pieces = [dress.Pieces[0]] }).Key(0));
 
         // NO CLASS NAME READ: the path's last word.
-        Assert.Equal("IntFourb", (dress with { Class = string.Empty }).Variety().Name);
+        Assert.Equal("IntFourb", (dress with { Class = string.Empty }).Variety(0).Name);
         Assert.False(PlayerDress.None.Ready);
     }
 

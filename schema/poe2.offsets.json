@@ -1324,10 +1324,11 @@
     },
 
     "PieceSlots": {
-      "comment": "What Render.Pieces points at: a slot a piece, each a std::shared_ptr (the object, then its control block - make_shared's, 0x10 before the object), the object's +0x08 the record of the .ao the game draws there. MEASURED in the captures of 2026-10-31 (13:36, 13:46 and 16:16, The Red Vale, the Sorceress with her second weapon set - a wand and a focus - in hand): MainHand held the MTX wand, OffHand the MTX focus, the rest as named. Between the slots stand small ints (2 at +0x28, 3 at +0x50, 6 at +0x78, 9 at +0xF0, 10 at +0x118) and words read as nothing yet. WHICH SLOT IS WHICH HAND is this one character's evidence: a capture after a weapon swap is to show the two-handed staff of her first set at MainHand. PlayerDress hangs MainHand at R_Weapon and OffHand at L_Weapon (CHOSEN from the live client, 2026-10-31).",
+      "comment": "What Render.Pieces points at: a slot a piece, each a std::shared_ptr (the object, then its control block - make_shared's, 0x10 before the object), the object's +0x08 the record of the .ao the game draws there. MEASURED in the captures of 2026-10-31 (13:36, 13:46 and 16:16, The Red Vale, the Sorceress with her second weapon set - a wand and a focus - in hand; and 22:17 after a weapon swap, her first set's two-handed staff in hand). THE THREE HELD SLOTS ARE NOT TWO HANDS (v0.1.397 read +0x30 as the main hand and +0x58 as the off hand, and after the swap hung the wand in her hand where the game drew the staff - said from the live client): with the wand and focus in hand +0x08 was empty, +0x30 the MTX wand, +0x58 the MTX focus; with the staff in hand +0x08 the MTX staff, +0x30 the wand again - a NEW object, which the game does not draw (the live client's picture; whether it hangs anywhere out of sight, the back, is not seen) - and +0x58 empty. Their order is the equipment looks' (Inventories.Looks): the staff's slot 0, the wand's 2, the focus's 3, and the small int after each (2 at +0x28, 3 at +0x50, 6 at +0x78, the body's 7 at +0xA0's low byte, the cape's 8 at +0xC8's, 9 at +0xF0, 10 at +0x118) is the NEXT look's slot, the same in both captures. Set 1's off hand, empty in both, was never seen here. So the Monster Book hangs the hands of the set in hand by the looks list (PlayerHands), and these three only stand in where the files cannot say which piece is whose (PlayerDress.Read's fallback): +0x08 filled, the set in hand is set 1.",
       "fields": {
-        "MainHand": { "offset": "0x30", "type": "ptr" },
-        "OffHand": { "offset": "0x58", "type": "ptr" },
+        "Weapon1": { "offset": "0x08", "type": "ptr", "comment": "The staff, set 1's main hand (looks slot 0), while set 1 is in hand; empty while set 2 is (two captures)." },
+        "Weapon2": { "offset": "0x30", "type": "ptr", "comment": "The wand, set 2's main hand (looks slot 2), in both captures - drawn while set 2 is in hand, a new object not drawn while set 1 is." },
+        "Offhand2": { "offset": "0x58", "type": "ptr", "comment": "The focus, set 2's off hand (looks slot 3), while set 2 is in hand; empty while set 1 is." },
         "BodyArmour": { "offset": "0x90", "type": "ptr" },
         "BackAttachment": { "offset": "0xA8", "type": "ptr", "comment": "The cape, a cosmetic - PoE2 has no cape slot among the inventories." },
         "Helmet": { "offset": "0xE0", "type": "ptr" },
@@ -1871,7 +1872,24 @@
           "comment": "begin, with end at +0x28. Pointers, 8 bytes each. maxCount is the inline capacity, so a count above 16 means this is not the vector any more."
         },
         "EntriesVecLast": { "offset": "0x28", "type": "ptr", "comment": "Vector end; count = (Last - First) / 8." },
-        "EntriesCapacityEnd": { "offset": "0x30", "type": "ptr", "comment": "End of the inline buffer: begin + 0x80. Its distance from begin is what says the storage is inline and 16 slots wide." }
+        "EntriesCapacityEnd": { "offset": "0x30", "type": "ptr", "comment": "End of the inline buffer: begin + 0x80. Its distance from begin is what says the storage is inline and 16 slots wide." },
+        "Looks": {
+          "offset": "0x120", "type": "stdVector", "struct": "EquipmentLook",
+          "comment": "THE PLAYER'S EQUIPMENT LOOKS: begin, with end at +0x128 - entries of EquipmentLook.Size, one a worn slot with what the game draws it with, BOTH WEAPON SETS INCLUDED. MEASURED on the player's own component in the captures of 2026-10-31 16:16 and 22:17 (The Red Vale; the wand and focus in hand, then the staff after a weapon swap): 13 entries, byte for byte the same in both - a swap changes nothing here - so the set NOT in hand is here too: v0.1.396's pointer web found the staff's cosmetic through +0x120 -> +0x20 -> +0x188 while the wand was drawn, and nothing else read of him held it. Sorted by EquipmentLook.Slot."
+        },
+        "LooksLast": { "offset": "0x128", "type": "ptr", "comment": "Looks' end; count = (LooksLast - Looks) / EquipmentLook.Size." }
+      }
+    },
+
+    "EquipmentLook": {
+      "comment": "One entry of Inventories.Looks. MEASURED on 13 entries of two captures (2026-10-31 16:16 and 22:17, the Sorceress): the slots 0 (the staff, inventory 3 - set 1's main hand), 2 (the wand, 15 - set 2's main hand), 3 (the focus, 16 - set 2's off hand), 6 (body), 7 (the cape, a cosmetic slot), 8 (helmet), 9 (gloves), 10 (boots), 14 and 15 (the rings, ItemClass 6 both), 16 (the belt), 17 (the amulet), 26 (unread, class 119); set 1's off hand, empty, would be slot 1 by that order - a reading. Each Visual is the visual identity the slot is drawn with: the MTX rows of the wand (6808, AddedEffectWandoftheThaumaturgeSkin), the focus (6812), the body (6794), the helmet (6787) and the gloves (6793) - the rows v0.1.396 matched to the composition's pieces, so the slot's cosmetic where one is applied - and the base rows' art for the belt and the amulet, which wear none. The slot's byte is the low byte of +0x00; the word's other bytes and the entry's floats (+0x40, +0x68 to +0x80: values near 1 and 0, 750, 6000, 2250) are read as nothing.",
+      "consts": { "Size": "0x88" },
+      "fields": {
+        "Slot": { "offset": "0x00", "type": "u8", "comment": "The visual slot, the list's sort key - see the struct's note." },
+        "ItemClass": { "offset": "0x08", "type": "i32", "comment": "The item's ItemClasses row by every reading: the staff 15, the wand 9, the focus 82, body 25, helmet 26, gloves 23, boots 24, rings 6, belt 22, amulet 5 - PoE1's ItemClasses order for all but the PoE2 focus. Not checked against the table in a capture yet; the player look part sets it beside the item's own class." },
+        "Stance": { "offset": "0x10", "type": "ptr", "comment": "-> the item's ItemStances row (the table's record at +0x18), on the three held items alone - the wand's, then the staff's three rows on, the focus's nine. Null on everything worn." },
+        "Visual": { "offset": "0x20", "type": "ptr", "struct": "ItemVisualIdentityRow", "comment": "-> the ItemVisualIdentity row the slot is drawn with (the table's record at +0x28); its IdPtr names it." },
+        "Effect": { "offset": "0x48", "type": "ptr", "comment": "-> an ItemVisualEffect row (the table's record at +0x50), on the focus alone." }
       }
     },
 
@@ -1985,6 +2003,7 @@
     "Animated": {
       "comment": "Component: the model an entity actually loaded. Worth having because it tells apart entities that SHARE a metadata path but look different - the ExpeditionMarker flag variants were the case that needed it. The path is two hops away: ModelInfoPtr -> AnimatedModelInfo.ModelFileRecordPtr -> FileInfoValue.Name. Both references agree.",
       "fields": {
+        "Word180": { "offset": "0x180", "type": "u32", "comment": "UNNAMED, a candidate for the player's weapon set in hand: 1 with his second set in hand and 0 with his first, the word after it 1 in both - the two captures of 2026-10-31 (16:16 and 22:17, a swap between them). Read by nothing; the player look part writes it beside the set the stance names." },
         "AnimatedEntityPtr": { "offset": "0x280", "type": "ptr" },
         "ModelInfoPtr": { "offset": "0x358", "type": "ptr", "struct": "AnimatedModelInfo" }
       }
@@ -2178,7 +2197,7 @@
     },
 
     "ItemVisualIdentityRow": {
-      "comment": "The dat row ItemBaseComponent.UniqueIviRow points at. Its Id - \"FourUniquePinnacle1\" - is the ROBUST key for a unique: it is an engine identifier and stays English on a localised client, where the displayed name does not. data/unique_ivi_name_map.tsv turns it into the name price sites use. Chain and offsets from the AHK tool, live-verified there 2026-06-24.",
+      "comment": "The dat row ItemBaseComponent.UniqueIviRow points at. Its Id - \"FourUniquePinnacle1\" - is the ROBUST key for a unique: it is an engine identifier and stays English on a localised client, where the displayed name does not. data/unique_ivi_name_map.tsv turns it into the name price sites use. Chain and offsets from the AHK tool, live-verified there 2026-06-24. THE WHOLE ROW IS THE FILE'S, 968 bytes (0x3C8, the table's), ITS STRINGS MADE POINTERS TO THEIR UTF-16 TEXT: the player look part's pointer web read column_38 at +0x188 so (a staff's cosmetic, 2026-10-31), and EquipmentLook.Visual reaches rows of it - the 11 cosmetic rows the player's looks named lie in one block exactly (their gaps whole multiples of 968, the wand's and the focus's rows 4 apart as the file's 6808 and 6812 are), the belt's and the amulet's in another. EquipmentLook reads IdPtr alone; the files say the rest.",
       "fields": {
         "IdPtr": { "offset": "0x00", "type": "ptr", "comment": "Points at the Id as a wide string." },
         "DdsFilePtr": { "offset": "0x08", "type": "ptr", "comment": "DDSFile - the inventory picture's path, 'Art/2DItems/Currency/CurrencyAddModToRare.dds', as a raw UTF-16 pointer. Its file name is the key poe.ninja's exchange lines carry (PriceBook.ArtOf), so a reward reached through BaseItemTypesRow.VisualIdentityPtr can be priced on a client in any language. Column 2 of the table by dat-schema arithmetic, and the one offset of that chain the RunecraftHelper reference agrees on ('+0x08 -> .dds path')." }
@@ -2187,6 +2206,7 @@
 
     "Player": {
       "fields": {
+        "Flags1A0": { "offset": "0x1A0", "type": "u8", "comment": "UNNAMED, a candidate for the weapon set in hand: 0x41 with the player's second set in hand and 0x40 with his first - bit 0 the set - the two captures of 2026-10-31 (16:16 and 22:17, a swap between them; Animated.Word180 flipped with it). Read by nothing; the player look part writes it beside the set the stance names." },
         "Name": { "offset": "0x1B0", "type": "stdWString" },
         "Xp": { "offset": "0x1D8", "type": "u64" },
         "Level": { "offset": "0x204", "type": "u8", "invariant": { "kind": "range", "min": 1, "max": 100 }, "comment": "ONE BYTE, as GameHelper2 has it (PlayerOffsets: byte Level at 0x204). It was read as an i32 until 2026-10-08, and a level-96 character in Seepage then read 16777312 = 0x01000060: the level in the low byte and something else at +0x207. The invariant passed for every character whose neighbouring bytes happened to be zero, which is why it went unseen." }

@@ -7,16 +7,21 @@ namespace PoEformance.Game.Entities;
 
 /// <summary>
 /// The local player as the game draws him, taken at a press: his entity's path, the class's name, the body his Animated component loaded,
-/// and the .ao of every slot's piece the game composed him from (Render.Pieces, read by <see cref="PlayerPieces"/>) - cosmetics included,
-/// the weapon set in hand alone - with which of them are in his hands, the animation pack and timeline of the stance in hand (Actor's
-/// AnimationSet) and the items of both weapon sets.
+/// and the .ao of every slot's piece the game composed him from (Render.Pieces, read by <see cref="PlayerPieces"/>) - cosmetics included -
+/// with his weapon sets (<see cref="Sets"/>), his equipment looks that name both sets' cosmetics (<see cref="Looks"/>), the set in hand and
+/// the animation pack and timeline of its stance (Actor's AnimationSet).
 /// </summary>
 /// <remarks>
 /// A SNAPSHOT, NOT A LIVE FEED (DECIDED from the live client, 2026-10-31): taken when the button is pressed and kept until it is pressed
 /// again, so the picture does not rebuild while he walks. Only his own character (DECIDED from the live client). What it hands the model
 /// is files alone - the body, the pieces, the pack - so the build is the Monster Book's: his body's own lines, the pieces hung beside them,
-/// and their ObjectHiding (PieceHiding). Which idle the stance plays is the files' to say (PlayerStance, in Features), and sets
-/// <see cref="Opening"/>.
+/// and their ObjectHiding (PieceHiding).
+/// THE SET IN HAND AND ITS HANDS ARE THE FILES' TO SAY (PlayerStance in Features): which set's stance has the Actor's timeline, and which
+/// piece is which hand by the looks. <see cref="Read"/> fills them from the composition alone, so a dress the files never saw still holds
+/// the pieces in hand: the composition's held slots (schema PieceSlots) - +0x08 filled, the first set is in hand, its piece in the main hand;
+/// else the second's main hand at +0x30 and off hand at +0x58 - the two captures' measurement, said where it stands in.
+/// THE OTHER SET IS DRAWN AS SWITCHED TO (DECIDED from the live client, 2026-10-31: the weapon set in hand, switchable): <see cref="Variety"/>
+/// takes the set.
 /// </remarks>
 /// <param name="Path">His entity's metadata path - <c>Metadata/Characters/Int/IntFourb</c>.</param>
 /// <param name="Class">What the game calls his class (Render.Name reads it for the own character - the schema's note), or empty.</param>
@@ -34,14 +39,11 @@ public sealed record PlayerDress(string Path, string Class, string Body, IReadOn
     /// <inheritdoc cref="MainSocket"/>
     public const string OffSocket = "L_Weapon";
 
-    /// <summary>The inventories of his two weapon sets (Inventories.dat's Weapon1, Offhand1, Weapon2 and Offhand2 - a row plus one, the 16:16 capture).</summary>
+    /// <summary>
+    /// The inventories of his two weapon sets (Inventories.dat's Weapon1, Offhand1, Weapon2 and Offhand2 - a row plus one): MEASURED, the
+    /// staff in 3 and the wand and focus in 15 and 16 in both captures of 2026-10-31, a weapon swap between them moving nothing.
+    /// </summary>
     public static IReadOnlyList<(int Main, int Off)> SetInventories { get; } = [(3, 4), (15, 16)];
-
-    /// <summary>The piece in his main hand's slot (schema PieceSlots.MainHand), or empty.</summary>
-    public string MainHand { get; init; } = string.Empty;
-
-    /// <summary>The piece in his off hand's slot (schema PieceSlots.OffHand), or empty.</summary>
-    public string OffHand { get; init; } = string.Empty;
 
     /// <summary>The .ast of the animation pack of the stance in hand (Actor.AnimationSet -> Pack), or empty.</summary>
     public string Moves { get; init; } = string.Empty;
@@ -49,14 +51,25 @@ public sealed record PlayerDress(string Path, string Class, string Body, IReadOn
     /// <summary>The timeline (.atl) of the stance in hand (Actor.AnimationSet -> Timeline), or empty.</summary>
     public string Timeline { get; init; } = string.Empty;
 
-    /// <summary>The items' metadata paths of his weapon sets, in <see cref="SetInventories"/>' order - empty where a hand is empty.</summary>
-    public IReadOnlyList<(string Main, string Off)> Sets { get; init; } = [];
+    /// <summary>His weapon sets, in <see cref="SetInventories"/>' order - always as many, a set's items empty where a hand is empty.</summary>
+    public IReadOnlyList<PlayerSet> Sets { get; init; } = [];
 
-    /// <summary>The animation his picture starts with - his stance's idle, as PlayerStance reads it from the files - or empty.</summary>
-    public string Opening { get; init; } = string.Empty;
+    /// <summary>His equipment looks (schema Inventories.Looks) - both sets' cosmetics among them - or empty where they did not read.</summary>
+    public IReadOnlyList<EquipmentLook> Looks { get; init; } = [];
+
+    /// <summary>The set in hand, nought for the first, or -1 where nothing said.</summary>
+    public int InHand { get; init; } = -1;
+
+    /// <summary>
+    /// The composition's pieces that are a hand's, of either set - never hung as skins; the set drawn hangs its own in its hands.
+    /// </summary>
+    public IReadOnlyList<string> Held { get; init; } = [];
 
     /// <summary>What reading his stance came to, line by line (PlayerStance), for the Monster Book's account and the capture.</summary>
     public IReadOnlyList<string> Stance { get; init; } = [];
+
+    /// <summary>The set the Monster Book shows him with first: the one in hand, else the first.</summary>
+    public int Shown => InHand >= 0 && InHand < Sets.Count ? InHand : 0;
 
     /// <summary>Whether there is a body to draw.</summary>
     public bool Ready => Body.Length > 0;
@@ -84,13 +97,45 @@ public sealed record PlayerDress(string Path, string Class, string Body, IReadOn
         string why = body.Length == 0 ? "his Animated component named no model"
             : pieces.Count == 0 ? "the game's list of the pieces it draws him with (Render.Pieces) read nothing - drawn bare"
             : string.Empty;
-        return new PlayerDress(player.Path, named, body, [.. pieces.Select(one => one.Path)], why)
+        return Composed(new PlayerDress(player.Path, named, body, [.. pieces.Select(one => one.Path)], why)
         {
-            MainHand = PlayerPieces.AtSlot(pieces, schema, "MainHand"),
-            OffHand = PlayerPieces.AtSlot(pieces, schema, "OffHand"),
             Moves = moves,
             Timeline = timeline,
-            Sets = SetsOf(reader, schema, chain),
+            Looks = EquipmentLook.Read(reader, schema, components.GetValueOrDefault("Inventories")),
+        }, SetsOf(reader, schema, chain), PlayerPieces.AtSlot(pieces, schema, "Weapon1"), PlayerPieces.AtSlot(pieces, schema, "Weapon2"),
+            PlayerPieces.AtSlot(pieces, schema, "Offhand2"));
+    }
+
+    /// <summary>
+    /// The dress with its sets and its hands as the composition alone says them (the class's remarks): the items of each set, the pieces of the
+    /// composition's held slots as their hands - <paramref name="weapon1"/> the first set's main hand, <paramref name="weapon2"/> and
+    /// <paramref name="offhand2"/> the second's - all three never hung as skins, and the first set in hand where its slot is filled.
+    /// </summary>
+    public static PlayerDress Composed(PlayerDress dress, IReadOnlyList<(string Main, string Off)> items, string weapon1, string weapon2, string offhand2)
+    {
+        ArgumentNullException.ThrowIfNull(dress);
+        ArgumentNullException.ThrowIfNull(items);
+        const string Said = "from the composition's held slot (schema PieceSlots) - the files did not say whose it is";
+        var sets = new List<PlayerSet>(SetInventories.Count);
+        for (var set = 0; set < SetInventories.Count; set++)
+        {
+            (string main, string off) = set < items.Count ? items[set] : (string.Empty, string.Empty);
+            string mainPiece = set == 0 ? weapon1 : set == 1 ? weapon2 : string.Empty;
+            string offPiece = set == 1 ? offhand2 : string.Empty;
+            sets.Add(new PlayerSet(main, off)
+            {
+                MainPiece = mainPiece,
+                OffPiece = offPiece,
+                Said = [.. new[] { ("main hand", mainPiece), ("off hand", offPiece) }
+                    .Where(one => one.Item2.Length > 0).Select(one => $"{one.Item1}: {one.Item2} - {Said}")],
+            });
+        }
+
+        return dress with
+        {
+            Sets = sets,
+            Held = [.. new[] { weapon1, weapon2, offhand2 }.Where(one => one.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase)],
+            InHand = weapon1.Length > 0 ? 0 : weapon2.Length > 0 || offhand2.Length > 0 ? 1 : -1,
         };
     }
 
@@ -182,24 +227,54 @@ public sealed record PlayerDress(string Path, string Class, string Body, IReadOn
     }
 
     /// <summary>
-    /// The model the Monster Book draws him as: his body's files with the pieces hung beside them - the main hand's at <see cref="MainSocket"/>
-    /// and the off hand's at <see cref="OffSocket"/>, rigidly (CHOSEN from the live client, 2026-10-31: no file says which slot takes which
-    /// socket; Character.ao names both, and the game's picture of the 16:16 capture holds the wand in his right hand and the focus in his
-    /// left), the rest as skins on his rig at his root - and his stance's animations, starting with its idle - unscaled.
+    /// The model the Monster Book draws him as with one of his weapon sets in hand (nought the first): his body's files with the pieces hung
+    /// beside them - the set's main hand's at <see cref="MainSocket"/> and its off hand's at <see cref="OffSocket"/>, rigidly (CHOSEN from the
+    /// live client, 2026-10-31: no file says which slot takes which socket; Character.ao names both, and the game's pictures hold the wand
+    /// in his right hand and the focus in his left - the two-handed staff, gripped with both, hangs at the main hand's too), every other
+    /// piece as a skin on his rig at his root, no piece of a hand
+    /// (<see cref="Held"/>) among them - and the set's stance's animations, starting with its idle - unscaled.
     /// </summary>
-    public MonsterVariety Variety()
-        => new(Name: Class.Length > 0 ? Class : Tail(Path), AoFiles: Body.Length > 0 ? [Body] : null)
+    public MonsterVariety Variety(int set)
+    {
+        PlayerSet? hands = set >= 0 && set < Sets.Count ? Sets[set] : null;
+        var worn = new List<WornPiece>(Pieces.Count + 2);
+        if (hands?.MainPiece is { Length: > 0 } main)
         {
-            Worn = [.. Pieces.Select(one =>
-                MainHand.Length > 0 && string.Equals(one, MainHand, StringComparison.OrdinalIgnoreCase) ? new WornPiece(MainSocket, one) { Held = true }
-                : OffHand.Length > 0 && string.Equals(one, OffHand, StringComparison.OrdinalIgnoreCase) ? new WornPiece(OffSocket, one) { Held = true }
-                : new WornPiece("<root>", one) { SkinOnly = true })],
-            Moves = Moves,
-            Opening = Opening,
-        };
+            worn.Add(new WornPiece(MainSocket, main) { Held = true });
+        }
 
-    /// <summary>The key the Monster Book shows him under - a path no monster of the table has.</summary>
-    public string Key => "player:" + Path + "|" + string.Join("|", Pieces) + "|" + Moves + "|" + Opening;
+        if (hands?.OffPiece is { Length: > 0 } off)
+        {
+            worn.Add(new WornPiece(OffSocket, off) { Held = true });
+        }
+
+        foreach (string one in Pieces)
+        {
+            if (!Held.Contains(one, StringComparer.OrdinalIgnoreCase))
+            {
+                worn.Add(new WornPiece("<root>", one) { SkinOnly = true });
+            }
+        }
+
+        return new(Name: Class.Length > 0 ? Class : Tail(Path), AoFiles: Body.Length > 0 ? [Body] : null)
+        {
+            Worn = worn,
+            Moves = MovesOf(set),
+            Opening = hands?.Opening ?? string.Empty,
+        };
+    }
+
+    /// <summary>The pack a set plays from: its own as read, else the Actor's where it is the set in hand - or empty.</summary>
+    public string MovesOf(int set)
+        => set >= 0 && set < Sets.Count && Sets[set].Moves.Length > 0 ? Sets[set].Moves : set == InHand ? Moves : string.Empty;
+
+    /// <summary>The key the Monster Book shows him under with a set in hand - a path no monster of the table has.</summary>
+    public string Key(int set)
+    {
+        PlayerSet? hands = set >= 0 && set < Sets.Count ? Sets[set] : null;
+        return "player:" + Path + "|" + string.Join("|", Pieces) + "|set " + set + "|" + hands?.MainPiece + "|" + hands?.OffPiece + "|"
+            + MovesOf(set) + "|" + hands?.Opening;
+    }
 
     private static string Tail(string path) => path[(path.LastIndexOf('/') + 1)..];
 }

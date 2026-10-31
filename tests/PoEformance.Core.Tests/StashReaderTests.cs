@@ -190,6 +190,10 @@ public class StashReaderTests
     [InlineData(2, InventoryKind.Equipped)]
     [InlineData(12, InventoryKind.Equipped)]
     [InlineData(13, InventoryKind.Stash)]
+    [InlineData(14, InventoryKind.Stash)]
+    [InlineData(15, InventoryKind.Equipped)]
+    [InlineData(16, InventoryKind.Equipped)]
+    [InlineData(17, InventoryKind.Stash)]
     [InlineData(27, InventoryKind.Stash)]
     [InlineData(143, InventoryKind.Stash)]
     public void WHATAnInventoryIsComesFromItsId(int id, InventoryKind expected)

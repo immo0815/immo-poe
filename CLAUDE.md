@@ -887,11 +887,40 @@ V0.1.397 HOLDS AND PLAYS HIM (the capture of 16:16, The Red Vale, v0.1.395's par
   the Actor's; its idle the nearest `Idle` up the stance tree with the nearest wildcard and its tags' replace rules - `idle_*_01` and
   `wand_shield`, `idle_wand_shield_01` (`MonsterModel.Opening`, the pane's first). Character.act shuts its whole Claw stance away in a
   `/* */` comment. NOT READ: a town's stance (Idle::town, `idle_relaxed_*_01`), the female's persistent layer, the additive layers, the held
-  pieces' own animations, the other weapon set (not drawn by the game either - the composition holds the set in hand alone).
+  pieces' own animations, the other weapon set (drawn by the switch from v0.1.398 - see THE SWAP SAID OTHERWISE below).
 - THE PART writes the chain and both objects whole and his hands (`PlayerLook.Stanced`), and on the files side the stance as the Monster Book
   reads it, the pack's every animation and whether its bones are his, and the pack's .amd and the timeline as the install holds them
   (`CapturePlayerLook.Stance` - neither format read yet). Take it as he stands and after swapping weapon sets: the pack and timeline must
   follow the stance, the staff its MainHand slot.
+THE SWAP SAID OTHERWISE (the capture of 22:17, the same session after a swap to the staff; said from the live client: "after take again the
+stance switches to the two-handed staff and my focus is hidden - only the wand was not swapped for the staff"). MEASURED, and v0.1.398 mends it:
+- THE PACK AND TIMELINE FOLLOW THE STANCE: BaseStaff/OneRig.ast (81 animations, his bones) and base_staff.atl, idle_staff_01 - the chain holds.
+- THE COMPOSITION'S HELD SLOTS ARE NOT TWO HANDS (schema `PieceSlots`, renamed `Weapon1` +0x08, `Weapon2` +0x30, `Offhand2` +0x58): with the
+  staff in hand +0x08 held the MTX staff, +0x30 the wand again - a NEW object, which the game does not draw - and +0x58 nothing; v0.1.397 took
+  +0x30 for the main hand and hung the wand in her hand. Whether the game hangs that wand anywhere out of sight (her back, `R_Weapon2`) is not
+  seen - she faced the camera.
+- HIS EQUIPMENT LOOKS HOLD BOTH SETS (schema `Inventories.Looks` +0x120, `EquipmentLook` 0x88): 13 entries byte for byte the same before and
+  after the swap - a slot byte, the item's class row at +0x08 (PoE1's ItemClasses order: the staff 15, the wand 9, the rings 6, the belt 22...),
+  an ItemStances row at +0x10 on the three held items alone, the ItemVisualIdentity row it is drawn with at +0x20 (its `IdPtr` the Id - the
+  schema's ItemVisualIdentityRow, live-verified in the AHK tool) - the cosmetic's where one is applied: the wand's MTX row 6808 and the focus's
+  6812 lie four rows apart in memory as in the file. Slot 0 the staff (inventory 3), 2 the wand (15), 3 the focus (16): set 1's hands slots 0
+  and 1, set 2's 2 and 3 - slot 1 an empty hand in both, a reading. The pointer web had found the staff's cosmetic through this list while the
+  wand was drawn - nothing else read of him held the set not in hand.
+- THE INVENTORIES DO NOT MOVE ON A SWAP (the staff in 3, the wand in 15, the focus in 16 both times). `StashReader.KindOf` now calls 15 and 16
+  equipped - they were "Stash tab 15" and "16" in the economy window, their items a stash seen. Two words flipped with the swap and nothing else
+  read: `Player.Flags1A0` 0x41 -> 0x40 and `Animated.Word180` 1 -> 0 - candidates for the set in hand, written by the part, read by nothing.
+- SO EACH SET IS RESOLVED FROM THE FILES (`PlayerStance.Resolve`, `PlayerSet`): its stance from its items, the set in hand by its stance's
+  timeline being the Actor's, its hands from the looks of its slots - each look's Id to its row, the row's held models (every single string
+  column ending .ao but the drop and sheath models: AOFile2 on a base row, one per-class column on a cosmetic's - the wand's column_33, the
+  staff's column_38, the focus's column_81), the one the composition draws, else the only one, else the one sharing the most folders with the
+  item's own model (CHOSEN); a slot whose class row is not its item's gives way to the one held look of its class; no look, the composition's
+  held slot, then the item's own model (decision 6, said); its pack the Actor's for the set in hand and the .ast its stance's timeline names
+  for the other (an .atl is JSON, its `"skeleton"` the pack - base_staff.atl names BaseStaff/OneRig.ast, MEASURED); its idle from its stance.
+  The composition alone stands in where the files cannot say (`PlayerDress.Composed`: +0x08 filled, set 1 in hand).
+- THE MONSTER BOOK SWITCHES THE SET (DECIDED from the live client, 2026-10-31): a button a set beside the player, the set in hand first, each
+  with its own hands, pack and idle, never a piece of either set's hands hung as a skin (`PlayerDress.Held`, `Variety(set)`, `Key(set)`).
+- THE PART writes the composition's three held slots, the looks entry by entry with the set and hand each stands for, the two candidate words,
+  and every set as the Monster Book resolves it - each hand's piece and where it came from, the pack and the idle - and each other set's pack.
 
 ## Verify against the game, not against yourself
 
