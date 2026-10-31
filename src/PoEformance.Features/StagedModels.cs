@@ -22,7 +22,8 @@ public sealed record RoomSpot(Vector2 At, float Turn, string Tag, int Others);
 /// <param name="Floor">The floor he was set on - his origin landing there, as the game stands him - in the stage's z.</param>
 /// <param name="Found">Whether any floor was found, or the tile's lowest point stood in for it.</param>
 /// <param name="Floors">Each place the floor was asked at, off <paramref name="At"/>, with the floor there - infinity where none faced up.</param>
-public sealed record StageStanding(Vector2 At, float Turn, float Scale, float Floor, bool Found, IReadOnlyList<(Vector2 Off, float Height)> Floors);
+/// <param name="Taken">Which of <paramref name="Floors"/> he was set on, and by what rule, as a clause - "the middle of those found taken" for a boss's place.</param>
+public sealed record StageStanding(Vector2 At, float Turn, float Scale, float Floor, bool Found, IReadOnlyList<(Vector2 Off, float Height)> Floors, string Taken);
 
 /// <summary>
 /// A monster standing in the middle of a terrain tile - its arena, or any tile the book is pointed at - or of a room as the area laid it, as one model.
@@ -48,7 +49,8 @@ public sealed record StageStanding(Vector2 At, float Turn, float Scale, float Fl
 /// squares by under a bare picture.
 ///
 /// AND IT STANDS ON THE FLOOR THE PLAYER SEES, at the tile's middle - or where a room names its boss's place, or where the player
-/// stood when the area round him was taken (AreaBlock.Stood). Not on the tile file's own
+/// stood when the area round him was taken (AreaBlock.Stood), on the floor there nearest the ground he stood on
+/// (AreaBlock.StoodHeight). Not on the tile file's own
 /// "ground" block: on a boss arena that block is the earth under a stone floor built of props, and
 /// the first monster set on it stood a storey under the arena. The floor is the highest surface that
 /// faces up under the middle, over every solid shape of the tile - props and ground alike, cut-out
@@ -146,9 +148,11 @@ public static class StagedModels
             return actor with { Stage = path, StageSaid = "no stage: " + tile.Why };
         }
 
-        // WHERE THE PLAYER STOOD WHEN THE BLOCK WAS TAKEN, in the picture's frame: the area's world less the block's corner (AreaOrigin).
+        // WHERE THE PLAYER STOOD WHEN THE BLOCK WAS TAKEN, in the picture's frame: the area's world less the block's corner (AreaOrigin) - and
+        // the height of the ground under him as the key has it: a block lays every piece at its tiles' own level, in the units entities
+        // report (LaidRoomModels.Block, never fitted), and its corner moves the picture in x and y alone, so the picture's z is the world's.
         Vector2? stood = AreaBlock.TryRead(stage, out AreaBlock taken) && taken.Stood is { } at && tile.AreaOrigin is { } origin ? at - origin : null;
-        return Staged(actor, tile, one?.ModelSize ?? 0, path, stood);
+        return Staged(actor, tile, one?.ModelSize ?? 0, path, stood, stood is null ? null : taken.StoodHeight);
     }
 
     /// <summary>The path a stage key names, before its words.</summary>
@@ -213,7 +217,9 @@ public static class StagedModels
     /// <param name="modelSize">The variety's ModelSizeMultiplier in percent; anything not positive is a hundred.</param>
     /// <param name="stage">The tile's path, for the lines and the probe.</param>
     /// <param name="stood">Where the player stood when the area round you was taken, in the stage's frame (AreaBlock.Stood less its corner), or null.</param>
-    public static MonsterModel Staged(MonsterModel actor, MonsterModel tile, int modelSize, string stage, Vector2? stood = null)
+    /// <param name="height">The height of the ground the player stood on, in the stage's z - a block's z is the world's (AreaBlock.StoodHeight) - or
+    /// null where the key names none; asked only with <paramref name="stood"/>.</param>
+    public static MonsterModel Staged(MonsterModel actor, MonsterModel tile, int modelSize, string stage, Vector2? stood = null, float? height = null)
     {
         ArgumentNullException.ThrowIfNull(actor);
         ArgumentNullException.ThrowIfNull(tile);
@@ -225,22 +231,49 @@ public static class StagedModels
         float floor;
         float turn = 0f;
         string where;
+        string taken = "the middle of those found taken";
         var floors = new List<(Vector2 Off, float Height)>(9);
         if (stood is { } player)
         {
-            // WHERE THE PLAYER STOOD WHEN THE BLOCK WAS TAKEN, facing as at the middle, on the floor round the place as a boss is: the
-            // game's camera looks at the player, so the game view (CameraPose.AsTheGameAt) shows him where the game showed the player.
-            // At the middle he stood some 75 units off in The Red Vale's 25 by 25 block (said from the live client, MEASURED in its capture).
+            // WHERE THE PLAYER STOOD WHEN THE BLOCK WAS TAKEN, facing as at the middle: the game's camera looks at the player, so the game
+            // view (CameraPose.AsTheGameAt) shows him where the game showed the player. At the middle he stood some 75 units off in The Red
+            // Vale's 25 by 25 block (said from the live client, MEASURED in its capture).
             (middle.X, middle.Y) = (player.X, player.Y);
-            found = FloorAround(tile.Mesh, tile.Blends, player.X, player.Y, out floor, floors);
+            FloorsAround(tile.Mesh, tile.Blends, player.X, player.Y, floors);
             where = "where the player stood when the block was taken";
+            if (height is { } own && float.IsFinite(own))
+            {
+                // ON THE FLOOR NEAREST THE GROUND HE STOOD ON, of the place's and the ring's - CHOSEN (v0.1.375, from a review). Their middle,
+                // a boss's rule (below), is the river's bed round a footbridge narrower than the ring, the water being translucent, and the
+                // walls' tops round a passage: hundreds of units off him. A roof over him is the place's own floor, passed over too where the
+                // ring reaches out from under it. A tie goes to the place's own, asked first.
+                found = Nearest(floors, own, out floor);
+                taken = string.Create(CultureInfo.InvariantCulture, $"the one nearest the player's own height ({own:0.##}) taken");
+                where += found ? string.Create(CultureInfo.InvariantCulture, $" (on the floor nearest his own height there, {own:0})") : string.Empty;
+            }
+            else if (float.IsFinite(floors[0].Height))
+            {
+                // NO HEIGHT IN THE KEY (v0.1.373's and v0.1.374's): the floor at the place itself, the highest facing up there - what the
+                // game's camera saw him on - where the ring's middle reaches past a footbridge or a passage. CHOSEN with the height's rule.
+                (found, floor) = (true, floors[0].Height);
+                taken = "the one at the place itself taken - the key names no height of the player's";
+                where += " (on the floor at that place - the key names no height of his)";
+            }
+            else
+            {
+                // AND WHERE NOTHING FACES UP AT THE PLACE ITSELF - a seam between two pieces - the middle of the ring's, as a boss's.
+                found = Middle(floors, 1, out floor);
+                taken = "the middle of the ring's taken - none at the place itself, and the key names no height of the player's";
+                where += found ? " (on the middle of the floors round it - none faces up at it, and the key names no height of his)" : string.Empty;
+            }
         }
         else if (tile.BossSpot is { } spot)
         {
             // WHERE THE ROOM NAMES ITS BOSS, on the floor round the place rather than at it: a throne at the place has a seat
             // that faces up, and the boss stands on the deck under it - sitting in it and rising out of it are his animation's.
             (middle.X, middle.Y, turn) = (spot.At.X, spot.At.Y, spot.Turn);
-            found = FloorAround(tile.Mesh, tile.Blends, spot.At.X, spot.At.Y, out floor, floors);
+            FloorsAround(tile.Mesh, tile.Blends, spot.At.X, spot.At.Y, floors);
+            found = Middle(floors, 0, out floor);
             where = string.Create(CultureInfo.InvariantCulture, $"where the room names its boss (\"{spot.Tag}\", facing {spot.Turn * 180f / MathF.PI:0}°{(spot.Others > 0 ? $"; {spot.Others} more boss places passed over" : string.Empty)})");
         }
         else
@@ -253,6 +286,7 @@ public static class StagedModels
         if (!found)
         {
             floor = tile.Mesh.Most.Z;
+            taken = "none taken - nothing faces up at any, the tile's lowest point standing in";
         }
 
         // SCALED ABOUT ITS OWN ORIGIN, TURNED, AND THEN MOVED, as row vectors multiply: the monster's ORIGIN lands on the floor,
@@ -324,7 +358,7 @@ public static class StagedModels
             Actor = actor,
             ActorFirst = first,
             ActorPlace = place,
-            Standing = new StageStanding(new Vector2(middle.X, middle.Y), turn, scale, floor, found, floors),
+            Standing = new StageStanding(new Vector2(middle.X, middle.Y), turn, scale, floor, found, floors, taken),
             Stage = stage,
             StageSaid = said,
 
@@ -352,31 +386,55 @@ public static class StagedModels
     private const float Around = 120f;
 
     /// <summary>
-    /// The floor round a point: the middle of the floors found at it and at eight points a ring round it - or false where none is found.
+    /// The floors round a point, into <paramref name="asked"/>: at the point itself first, then at eight points a ring round it - each off the
+    /// point, with the floor there, infinity where none faced up.
     /// </summary>
-    /// <remarks>
-    /// THE MIDDLE OF NINE, so one surface at the point itself - the seat of the throne a boss is set on - does not lift him off
-    /// the deck the rest stand on, nor one hole in the ring drop him through it.
-    /// </remarks>
-    /// <param name="asked">Each place asked, off the point, with the floor there - infinity where none faced up.</param>
-    private static bool FloorAround(SkinnedMesh mesh, IReadOnlyList<MaterialBlend>? blends, float x, float y, out float height, List<(Vector2 Off, float Height)> asked)
+    private static void FloorsAround(SkinnedMesh mesh, IReadOnlyList<MaterialBlend>? blends, float x, float y, List<(Vector2 Off, float Height)> asked)
     {
-        var floors = new List<float>(9);
         for (var one = -1; one < 8; one++)
         {
             (float sin, float cos) = MathF.SinCos(one * MathF.PI / 4f);
             float r = one < 0 ? 0f : Around;
-            bool hit = Floor(mesh, blends, x + (r * cos), y + (r * sin), out float found);
+            Floor(mesh, blends, x + (r * cos), y + (r * sin), out float found);
             asked.Add((new Vector2(r * cos, r * sin), found));
-            if (hit)
+        }
+    }
+
+    /// <summary>The middle of the floors found among those asked, from <paramref name="from"/> on - or false where none was.</summary>
+    /// <remarks>
+    /// THE MIDDLE OF NINE, so one surface at the point itself - the seat of the throne a boss is set on - does not lift him off
+    /// the deck the rest stand on, nor one hole in the ring drop him through it.
+    /// </remarks>
+    private static bool Middle(List<(Vector2 Off, float Height)> asked, int from, out float height)
+    {
+        var floors = new List<float>(asked.Count);
+        for (int one = from; one < asked.Count; one++)
+        {
+            if (float.IsFinite(asked[one].Height))
             {
-                floors.Add(found);
+                floors.Add(asked[one].Height);
             }
         }
 
         floors.Sort();
         height = floors.Count > 0 ? floors[floors.Count / 2] : float.PositiveInfinity;
         return floors.Count > 0;
+    }
+
+    /// <summary>Of the floors found among those asked, the one nearest a height - the first asked on a tie, the point's own - or false where none was.</summary>
+    private static bool Nearest(List<(Vector2 Off, float Height)> asked, float wanted, out float height)
+    {
+        height = float.PositiveInfinity;
+        float off = float.PositiveInfinity;
+        foreach ((_, float one) in asked)
+        {
+            if (float.IsFinite(one) && MathF.Abs(one - wanted) < off)
+            {
+                (off, height) = (MathF.Abs(one - wanted), one);
+            }
+        }
+
+        return float.IsFinite(height);
     }
 
     /// <summary>

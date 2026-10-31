@@ -418,13 +418,24 @@ public class LaidRoomModelsTests
         Assert.Equal(new Vector2(50f, 420f), standing.At);
         Assert.Equal(0f, standing.Turn);
 
-        // ON THE FLOOR THERE: asked first at the place itself, which found the ground's height at the tile's 50, 170, and his origin set on it.
+        // ON THE FLOOR THERE: asked first at the place itself, which found the ground's height at the tile's 50, 170, and his origin set on it
+        // - the key, as v0.1.373 and v0.1.374 wrote it, naming no height of his. The nine floors' middle was the ring's at the tile's 134.85, 85.15.
         Assert.True(standing.Found);
         Assert.Equal(0f, standing.Floors[0].Off.Length());
         Assert.Equal(Plane(50f, 170f), standing.Floors[0].Height, 3);
+        Assert.Equal(Plane(50f, 170f), standing.Floor, 3);
         Assert.Equal(new Vector3(50f, 420f, standing.Floor), staged.ActorPlace.Translation);
         int laid = tileReads;
         Assert.True(laid > 0);
+
+        // WITH THE HEIGHT OF THE GROUND HE STOOD ON, as the key names it from v0.1.375: the floor round the place nearest it - the ring's at
+        // the tile's 50, 50, z 15, against 27 at the place itself - the picture's z being the world's; and a block taken again at another
+        // height is the one kept.
+        MonsterModel high = StagedModels.Of(Read, monster, block.ToString() + "+stood=300,420,14", terrain: () => grid, keep: keep);
+        Assert.Equal(Plane(50f, 50f), high.Standing!.Floor, 3);
+        Assert.Equal(new Vector3(50f, 420f, high.Standing.Floor), high.ActorPlace.Translation);
+        Assert.Contains("(on the floor nearest his own height there, 14)", high.StageSaid, StringComparison.Ordinal);
+        Assert.Equal(laid, tileReads);
 
         // TAKEN AGAIN WHERE HE STANDS ELSEWHERE IN THE BLOCK: the monster moves, and the block is the one kept - no tile is read again.
         MonsterModel moved = StagedModels.Of(Read, monster, block.ToString() + "+stood=400,300", terrain: () => grid, keep: keep);

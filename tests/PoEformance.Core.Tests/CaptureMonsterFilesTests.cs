@@ -38,8 +38,9 @@ public sealed class CaptureMonsterFilesTests
 
         Assert.StartsWith($"monster files: ? [{Path}] - on a stage, 0 parts as hung, 1 of 1 animations swept, 0 parts' own rigs played, 1 of the game's entities of him read", text, StringComparison.Ordinal);
 
-        // THE FLOOR AT THE PLACE AND ROUND IT: nine places asked, the deck at z 40 everywhere.
+        // THE FLOOR AT THE PLACE AND ROUND IT: nine places asked, the deck at z 40 everywhere - and a boss's place takes their middle.
         Assert.Contains("  floor\tasked at the place and round it: (0, 0) 40; (120, 0) 40;", text, StringComparison.Ordinal);
+        Assert.Contains("(85, -85) 40; the middle of those found taken", text, StringComparison.Ordinal);
         Assert.Equal(9, staged.Standing.Floors.Count);
 
         // HIS ORIGIN ON THE FLOOR, as the game stands him - the rule held against the game's entity below.
@@ -55,6 +56,23 @@ public sealed class CaptureMonsterFilesTests
         Assert.Contains("  7\t100\t4000\t3000\t-150\t-120\t-30\t310\tno\t-", text, StringComparison.Ordinal);
         Assert.DoesNotContain("\t4100\t", text, StringComparison.Ordinal);
         Assert.Contains("(no install to read them from)", text, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Stood where the player stood when the area round him was taken, the floor line says the one nearest the player's own height was
+    /// taken - not the middle, a boss's rule, which the line said of every stage before v0.1.375.
+    /// </summary>
+    [Fact]
+    public void THEPLAYERSPlaceSaysItsFloorWasTheOneNearestHisHeight()
+    {
+        (_, _, SkinnedMesh body) = RigBody.Ready();
+        var actor = new MonsterModel(body, null, "Art/Models/MONSTERS/Test/rig.smd", string.Empty, string.Empty) { Rig = RigBody.Rig() };
+        var block = new MonsterModel(Deck(), null, AreaBlock.Path, string.Empty, string.Empty) { Kind = ModelKind.Room };
+        MonsterModel staged = StagedModels.Staged(actor, block, 100, AreaBlock.Path, stood: new Vector2(500f, 500f), height: 38f);
+
+        string text = CaptureMonsterFiles.Write(null, new CapturePane("monster", [], staged) { Path = Path }, [], null);
+        Assert.Contains("(85, -85) 40; the one nearest the player's own height (38) taken", text, StringComparison.Ordinal);
+        Assert.Contains("(on the floor nearest his own height there, 38)", text, StringComparison.Ordinal);
     }
 
     /// <summary>Standing alone, and with no entity of him near: said so, rather than left out.</summary>

@@ -86,7 +86,8 @@ public static class CaptureMonsterFiles
             body.Append(Invariant($" ({MathF.Round(off.X) + 0f:0}, {MathF.Round(off.Y) + 0f:0}) {(float.IsFinite(height) ? height.ToString("0.###", CultureInfo.InvariantCulture) : "none")};"));
         }
 
-        body.AppendLine(" the middle of those found taken");
+        // WHICH OF THEM, BY THE RULE THE PLACE TOOK: a boss's the middle, the player's place the one nearest the ground he stood on (v0.1.375).
+        body.Append(' ').AppendLine(standing.Taken);
     }
 
     /// <summary>Each part as it was hung (PartFit): its file, its socket and how that was answered, what it is, and its box once on him.</summary>

@@ -30,6 +30,13 @@ namespace PoEformance.Features;
 /// moment of taking writes it - "around you" chosen, or the side's slider let go - and the stage's build is kept under the key without it
 /// (<see cref="Unstood"/>): the block is heavy, and one taken again where the player stands elsewhere in it moves the monster and lays
 /// no tile again.
+///
+/// AND THE HEIGHT OF THE GROUND HE STOOD ON (<see cref="StoodHeight"/>, v0.1.375, from a review): v0.1.373 stood the monster on the middle
+/// of nine floors round the place - the point and eight on a ring 120 units out - a rule made for a boss's place, where the seat of a throne
+/// at the point must not lift him. Round the player it fails wherever what he stands on is narrower than the ring: on a footbridge the
+/// river's bed under the translucent water is most of the nine, in a passage the walls' tops - the monster hundreds of units off, and the
+/// game view looking at the wrong height with him. Of the floors round the place the one nearest his own height is the one he stood on
+/// (StagedModels.Staged). A key written before it names x and y alone and still reads, its height unknown.
 /// </remarks>
 /// <param name="X">The block's least tile across.</param>
 /// <param name="Y">The block's least tile down.</param>
@@ -38,8 +45,16 @@ namespace PoEformance.Features;
 /// <param name="Masters">The masters (<c>.tsi</c>) of the area's rooms, one of which paints its ground and swaps its tiles - none for plain ground.</param>
 /// <param name="Rooms">The rooms the area placed that reach the block, each where it stands - their own doodads are laid too (v0.1.360) - or none.</param>
 /// <param name="Stood">Where the player stood when the block was taken, in world x and y - where a stage stands its monster - or null: a block offered and not yet taken, or a key from before the place rode in it.</param>
+/// <param name="StoodHeight">The height of the ground the player stood on then, in world z - the frame the block's picture keeps - where a stage takes the floor nearest it; or null: no place, or a key from before the height rode in it.</param>
 public readonly record struct AreaBlock(
-    int X, int Y, int Size, int Area, IReadOnlyList<string> Masters, IReadOnlyList<(string Room, int X, int Y, int Turn)>? Rooms = null, Vector2? Stood = null)
+    int X,
+    int Y,
+    int Size,
+    int Area,
+    IReadOnlyList<string> Masters,
+    IReadOnlyList<(string Room, int X, int Y, int Turn)>? Rooms = null,
+    Vector2? Stood = null,
+    float? StoodHeight = null)
 {
     /// <summary>The name the key starts with, and what the block's model is called.</summary>
     public const string Path = "around you";
@@ -65,7 +80,10 @@ public readonly record struct AreaBlock(
     /// <summary>What starts the word naming the rooms; each <c>path@x,y,turn</c>, separated by <see cref="MasterMark"/>.</summary>
     public const string RoomsWord = "rooms=";
 
-    /// <summary>What starts the word naming where the player stood when the block was taken; "x,y" in world units follows - see <see cref="Stood"/>.</summary>
+    /// <summary>
+    /// What starts the word naming where the player stood when the block was taken; "x,y,z" in world units follows - see <see cref="Stood"/> and
+    /// <see cref="StoodHeight"/> - or "x,y" alone, as v0.1.373 and v0.1.374 wrote it.
+    /// </summary>
     public const string StoodWord = "stood=";
 
     /// <summary>
@@ -143,16 +161,19 @@ public readonly record struct AreaBlock(
             + (Rooms is { Count: > 0 } rooms
                 ? TileKey.WordMark + RoomsWord + string.Join(MasterMark, rooms.Select(one => string.Create(CultureInfo.InvariantCulture, $"{one.Room}@{one.X},{one.Y},{one.Turn}")))
                 : string.Empty)
-            + (Stood is { } stood ? string.Create(CultureInfo.InvariantCulture, $"{TileKey.WordMark}{StoodWord}{stood.X:0.##},{stood.Y:0.##}") : string.Empty);
+            + (Stood is { } stood
+                ? string.Create(CultureInfo.InvariantCulture, $"{TileKey.WordMark}{StoodWord}{stood.X:0.##},{stood.Y:0.##}")
+                    + (StoodHeight is { } height && float.IsFinite(height) ? string.Create(CultureInfo.InvariantCulture, $",{height:0.##}") : string.Empty)
+                : string.Empty);
 
     /// <summary>
     /// A key without where the player stood - the block's tiles alone, which a stage's build is kept under (StagedModels.Of) - or the key as it
-    /// is where it names no place or no block.
+    /// is where it names no place or no block. The height goes with the place: a block taken again at another height lays no tile again.
     /// </summary>
     public static string Unstood(string key)
     {
         ArgumentNullException.ThrowIfNull(key);
-        return TryRead(key, out AreaBlock block) && block.Stood is not null ? (block with { Stood = null }).ToString() : key;
+        return TryRead(key, out AreaBlock block) && block.Stood is not null ? (block with { Stood = null, StoodHeight = null }).ToString() : key;
     }
 
     /// <summary>A key read back - false where it is no block's or its place does not read.</summary>
@@ -169,6 +190,7 @@ public readonly record struct AreaBlock(
         IReadOnlyList<string> masters = [];
         var rooms = new List<(string Room, int X, int Y, int Turn)>();
         Vector2? stood = null;
+        float? height = null;
         ReadOnlySpan<char> words = key.AsSpan(Path.Length + 1);
         foreach (Range range in words.Split(TileKey.WordMark))
         {
@@ -205,12 +227,15 @@ public readonly record struct AreaBlock(
             else if (word.StartsWith(StoodWord, StringComparison.Ordinal))
             {
                 // A PLACE THAT DOES NOT READ IS NO PLACE: the monster then stands at the middle, as a key from before the place rode in it.
+                // Two numbers are a place whose height is unknown - v0.1.373's and v0.1.374's keys - and three a place with the ground's
+                // height; a third that does not read leaves no place, not a place without a height, as any number that does not read.
                 string[] at = word[StoodWord.Length..].ToString().Split(',');
-                if (at.Length == 2
-                    && float.TryParse(at[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float sx) && float.IsFinite(sx)
-                    && float.TryParse(at[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float sy) && float.IsFinite(sy))
+                float sz = float.NaN;
+                if (at.Length is 2 or 3
+                    && Number(at[0], out float sx) && Number(at[1], out float sy) && (at.Length == 2 || Number(at[2], out sz)))
                 {
                     stood = new Vector2(sx, sy);
+                    height = at.Length == 3 ? sz : null;
                 }
             }
         }
@@ -220,8 +245,11 @@ public readonly record struct AreaBlock(
             return false;
         }
 
-        block = new AreaBlock(x, y, size, area, masters, rooms.Count > 0 ? rooms : null, stood);
+        block = new AreaBlock(x, y, size, area, masters, rooms.Count > 0 ? rooms : null, stood, height);
         return true;
+
+        static bool Number(string said, out float value)
+            => float.TryParse(said, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && float.IsFinite(value);
     }
 
     /// <summary>How a combo or a heading names the block.</summary>
