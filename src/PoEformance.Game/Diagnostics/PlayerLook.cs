@@ -25,7 +25,7 @@ namespace PoEformance.Game.Diagnostics;
 /// - THE PLAYER as the entity list has him, his components by name, the model his Animated component loaded (ModelInfoPtr -> file record
 ///   -> name), and Actor's AnimationId.
 /// - EVERY INVENTORY StashReader reads, each item with its path, base, unique and visual identity (ItemReader) - every id written whole up
-///   to <see cref="MostPlayerId"/>, so the worn slots past StashReader.KindOf's 2 to 12 (a second weapon set, a third, a third ring - Inventories.dat
+///   to <see cref="MostPlayerId"/>, so the worn slots past StashReader.KindOf's 2 to 12, 15 and 16 (a third weapon set, a third ring - Inventories.dat
 ///   rows plus one, a reading the part's files side checks against the table) are in the file whatever KindOf calls them.
 /// - THE INVENTORIES COMPONENT WHOLE and every list its words begin and end, each word said for what it points at, one hop on: a lead from
 ///   the committed captures (a list at +0x120 of entries naming two rows of tables each, one of them a row of ItemVisualIdentity's size
@@ -160,11 +160,17 @@ public static class PlayerLook
         /// <summary>The composition's objects and their one-hop targets as read - matched against the body's rig and sockets on the files side.</summary>
         public IReadOnlyList<PieceObject> Objects { get; init; } = [];
 
-        /// <summary>The pieces in his hands' slots (schema PieceSlots.MainHand, OffHand), or empty.</summary>
-        public string MainHand { get; init; } = string.Empty;
+        /// <summary>The pieces in the composition's held slots (schema PieceSlots.Weapon1, Weapon2, Offhand2), or empty.</summary>
+        public string Weapon1 { get; init; } = string.Empty;
 
-        /// <inheritdoc cref="MainHand"/>
-        public string OffHand { get; init; } = string.Empty;
+        /// <inheritdoc cref="Weapon1"/>
+        public string Weapon2 { get; init; } = string.Empty;
+
+        /// <inheritdoc cref="Weapon1"/>
+        public string Offhand2 { get; init; } = string.Empty;
+
+        /// <summary>His equipment looks (schema Inventories.Looks), both weapon sets' among them, or empty.</summary>
+        public IReadOnlyList<EquipmentLook> Looks { get; init; } = [];
 
         /// <summary>The stance in hand's animation pack (.ast) and timeline (.atl) off his Actor (PlayerDress.StanceOf), or empty.</summary>
         public string Moves { get; init; } = string.Empty;
@@ -247,11 +253,17 @@ public static class PlayerLook
             lines.Add("=== the pieces he is drawn with: no Render component");
         }
 
-        // THE STANCE IN HAND, through his Actor (schema Actor.AnimationSet) - the pack the Monster Book plays him from - and his hands.
-        string mainHand = PlayerPieces.AtSlot(pieces, schema, "MainHand"), offHand = PlayerPieces.AtSlot(pieces, schema, "OffHand");
+        // THE STANCE IN HAND, through his Actor (schema Actor.AnimationSet) - the pack the Monster Book plays him from - the composition's
+        // held slots, his equipment looks and the two words that flipped with a weapon swap.
+        IReadOnlyList<PlayerPieces.Piece> slots = PlayerPieces.Slots(pieces);
+        string weapon1 = PlayerPieces.AtSlot(slots, schema, "Weapon1"), weapon2 = PlayerPieces.AtSlot(slots, schema, "Weapon2");
+        string offhand2 = PlayerPieces.AtSlot(slots, schema, "Offhand2");
         (string moves, string timeline) = PlayerDress.StanceOf(reader, schema, components.GetValueOrDefault("Actor"));
+        IReadOnlyList<EquipmentLook> looks = EquipmentLook.Read(reader, schema, components.GetValueOrDefault("Inventories"));
         lines.Add(string.Empty);
-        lines.AddRange(Stanced(reader, schema, components.GetValueOrDefault("Actor"), moves, timeline, mainHand, offHand, named));
+        lines.AddRange(Stanced(reader, schema, components.GetValueOrDefault("Actor"), moves, timeline, (weapon1, weapon2, offhand2), named));
+        lines.Add(string.Empty);
+        lines.AddRange(Looked(reader, schema, components, looks));
 
         // THE COMPONENTS WHOLE, word by word, every list they begin written whole, and one hop on from each pointer.
         foreach (string name in Dumped)
@@ -277,8 +289,10 @@ public static class PlayerLook
             Pieces = [.. pieces.Select(one => one.Path).Distinct(StringComparer.OrdinalIgnoreCase)],
             Slots = [.. pieces.Select(one => (one.At, one.Inner, one.Path))],
             Objects = objects,
-            MainHand = mainHand,
-            OffHand = offHand,
+            Weapon1 = weapon1,
+            Weapon2 = weapon2,
+            Offhand2 = offhand2,
+            Looks = looks,
             Moves = moves,
             Timeline = timeline,
             Sets = [.. PlayerDress.SetInventories.Select(set => (
@@ -296,13 +310,15 @@ public static class PlayerLook
     /// follows the stance.
     /// </summary>
     private static IEnumerable<string> Stanced(
-        IMemoryReader reader, OffsetSchema schema, ulong actor, string moves, string timeline, string mainHand, string offHand, Func<ulong, string> named)
+        IMemoryReader reader, OffsetSchema schema, ulong actor, string moves, string timeline, (string Weapon1, string Weapon2, string Offhand2) held,
+        Func<ulong, string> named)
     {
         var lines = new List<string>
         {
-            "=== the stance in hand: Actor.AnimationSet -> Pack (its .amd at +0x148, its .ast through +0xF0 -> +0x10) and Timeline, the schema's chain - and his hands' pieces",
-            "  main hand (PieceSlots.MainHand): " + (mainHand.Length > 0 ? mainHand : "(none)"),
-            "  off hand (PieceSlots.OffHand): " + (offHand.Length > 0 ? offHand : "(none)"),
+            "=== the stance in hand: Actor.AnimationSet -> Pack (its .amd at +0x148, its .ast through +0xF0 -> +0x10) and Timeline, the schema's chain - and the composition's held slots",
+            "  PieceSlots.Weapon1 (+0x08): " + (held.Weapon1.Length > 0 ? held.Weapon1 : "(none)"),
+            "  PieceSlots.Weapon2 (+0x30): " + (held.Weapon2.Length > 0 ? held.Weapon2 : "(none)"),
+            "  PieceSlots.Offhand2 (+0x58): " + (held.Offhand2.Length > 0 ? held.Offhand2 : "(none)"),
         };
         if (actor == 0 || !schema.Structs.TryGetValue("Actor", out StructDef? fields) || fields.Field("AnimationSet") is not { } setField
             || !schema.Structs.TryGetValue("ActorAnimationSet", out StructDef? setFields) || setFields.Field("Pack") is not { } packField
@@ -332,6 +348,42 @@ public static class PlayerLook
         }
 
         return lines;
+    }
+
+    /// <summary>
+    /// His equipment looks as read (schema Inventories.Looks, EquipmentLook) - each entry's slot, class row, whether it is held and its visual
+    /// identity's Id - and the two words that flipped between the captures of a weapon swap (Player.Flags1A0, Animated.Word180), for the files
+    /// side to set beside the set his stance names.
+    /// </summary>
+    private static IEnumerable<string> Looked(IMemoryReader reader, OffsetSchema schema, IReadOnlyDictionary<string, ulong> components, IReadOnlyList<EquipmentLook> looks)
+    {
+        var lines = new List<string>
+        {
+            string.Create(CultureInfo.InvariantCulture,
+                $"=== his equipment looks (Inventories.Looks): {looks.Count} entries - slot, class row, held, the visual identity's Id; and the words that flipped with a weapon swap"),
+        };
+        foreach (EquipmentLook look in looks)
+        {
+            (int set, int hand) = EquipmentLook.SetOf(look.Slot, PlayerDress.SetInventories.Count);
+            lines.Add(string.Create(CultureInfo.InvariantCulture,
+                $"  slot {look.Slot}\tclass {look.ItemClass}\t{(look.Held ? "held" : "worn")}\t{(look.Visual.Length > 0 ? look.Visual : "(no id read)")}{(set >= 0 && look.Held ? $"\tset {set + 1}'s {(hand == 0 ? "main" : "off")} hand" : string.Empty)}"));
+        }
+
+        lines.Add("  " + Word(reader, schema, components, "Player", "Flags1A0", 1) + "; " + Word(reader, schema, components, "Animated", "Word180", 4));
+        return lines;
+    }
+
+    /// <summary>One component's field read as a number, said with where it stands - or why not.</summary>
+    private static string Word(IMemoryReader reader, OffsetSchema schema, IReadOnlyDictionary<string, ulong> components, string component, string field, int bytes)
+    {
+        ulong address = components.GetValueOrDefault(component);
+        if (address == 0 || !schema.Structs.TryGetValue(component, out StructDef? fields) || fields.Field(field) is not { } at)
+        {
+            return $"{component}.{field}: not read";
+        }
+
+        ulong value = bytes == 1 ? reader.Read<byte>(address + (ulong)at.Offset) : reader.Read<uint>(address + (ulong)at.Offset);
+        return string.Create(CultureInfo.InvariantCulture, $"{component}.{field} (+0x{at.Offset:X}): 0x{value:X}");
     }
 
     /// <summary>

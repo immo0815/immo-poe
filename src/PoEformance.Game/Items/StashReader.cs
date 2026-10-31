@@ -165,11 +165,15 @@ public sealed class StashReader
     /// the worn gear - and everything else is a stash tab. Written as a range rather than a
     /// list of known tab ids because tab ids are not knowable: they depend on how many tabs
     /// somebody has bought.
+    /// AND 15 AND 16 ARE THE SECOND WEAPON SET (MEASURED, the player look part's captures of
+    /// 2026-10-31): a wand in 15 and a focus in 16 - Inventories.dat's Weapon2 and Offhand2, a
+    /// row plus one - while the game's own inventory panel showed them as the swap set. They were
+    /// called "Stash tab 15" and "Stash tab 16" before, and their items counted as a stash seen.
     /// </remarks>
     public static InventoryKind KindOf(int id) => id switch
     {
         1 => InventoryKind.Backpack,
-        >= 2 and <= 12 => InventoryKind.Equipped,
+        >= 2 and <= 12 or 15 or 16 => InventoryKind.Equipped,
         _ => InventoryKind.Stash,
     };
 

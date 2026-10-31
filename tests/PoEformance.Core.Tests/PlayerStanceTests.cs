@@ -115,38 +115,288 @@ public class PlayerStanceTests
     }
 
     /// <summary>
-    /// The composition's slots by the schema: the piece at +0x30 is the main hand's, at +0x58 the off hand's; the model hangs them at R_Weapon
-    /// and L_Weapon, rigidly, the rest as skins at his root, and carries the stance's pack and idle - which change the key.
+    /// The composition's held slots by the schema, as the two captures of 2026-10-31 hold them: with the wand and focus in hand +0x08 empty,
+    /// +0x30 the wand and +0x58 the focus; after the swap to the staff +0x08 the staff and +0x30 the wand again, which the game does not draw.
+    /// The composition alone puts the first set in hand where +0x08 is filled; the model hangs the set's hands at R_Weapon and L_Weapon,
+    /// rigidly, never a piece of the other set's hands as a skin - v0.1.397 hung the wand in her hand with the staff in the game's - and
+    /// carries the set's pack and idle, which change the key.
     /// </summary>
     [Fact]
-    public void HISHandsPiecesHangRigidlyAtRWeaponAndLWeapon()
+    public void THESETInHandHangsItsOwnHandsAndTheOtherSetsPiecesNowhere()
     {
+        const string staff = "Metadata/Items/Weapons/TwoHandWeapons/Staves/mtx/WandererStaff/WandererStaffHeld.ao";
+        const string wand = "Metadata/Items/Weapons/OneHandWeapons/Wands/Microtransactions/WandOfTheThaumaturge/WandOfTheThaumaturgeHeld.ao";
+        const string focus = "Metadata/Items/Armours/Focus/Microtransactions/BetaDoryaniFocus/BetaDoryaniFocusHeld.ao";
+        const string body = "Metadata/Items/Armours/BodyArmours/BetaDoryaniArmour/BetaDoryaniArmourBodyInt.ao";
         OffsetSchema schema = Schema();
-        PlayerPieces.Piece[] slots =
-        [
-            new(0x30, 0x08, 1, 2, "Metadata/Items/Weapons/Wand.ao"),
-            new(0x58, 0x08, 3, 4, "Metadata/Items/Armours/Focus.ao"),
-            new(0x90, 0x08, 5, 6, "Metadata/Items/Armours/Body.ao"),
-        ];
-        Assert.Equal("Metadata/Items/Weapons/Wand.ao", PlayerPieces.AtSlot(slots, schema, "MainHand"));
-        Assert.Equal("Metadata/Items/Armours/Focus.ao", PlayerPieces.AtSlot(slots, schema, "OffHand"));
-        Assert.Equal(string.Empty, PlayerPieces.AtSlot(slots, schema, "Boots"));
+        PlayerPieces.Piece[] after = [new(0x08, 0x08, 1, 2, staff), new(0x30, 0x08, 3, 4, wand), new(0x90, 0x08, 5, 6, body)];
+        Assert.Equal(staff, PlayerPieces.AtSlot(after, schema, "Weapon1"));
+        Assert.Equal(wand, PlayerPieces.AtSlot(after, schema, "Weapon2"));
+        Assert.Equal(string.Empty, PlayerPieces.AtSlot(after, schema, "Offhand2"));
+        Assert.Equal(string.Empty, PlayerPieces.AtSlot(after, schema, "Boots"));
 
-        var dress = new PlayerDress("Metadata/Characters/Int/IntFourb", "Sorceress", "Metadata/Characters/Int/IntFourB.ao", [.. slots.Select(one => one.Path)], string.Empty)
+        (string, string)[] items = [("Metadata/Items/Weapons/TwoHandWeapons/Staves/FourStaff6", string.Empty),
+            ("Metadata/Items/Weapons/OneHandWeapons/Wands/FourWand13", "Metadata/Items/Armours/Focii/FourFocus6Endgame")];
+        var taken = new PlayerDress("Metadata/Characters/Int/IntFourb", "Sorceress", "Metadata/Characters/Int/IntFourB.ao", [staff, wand, body], string.Empty)
         {
-            MainHand = slots[0].Path,
-            OffHand = slots[1].Path,
-            Moves = "Art/Models/CharactersFour/Animations/BaseWand/OneRig.ast",
-            Opening = "idle_wand_shield_01",
+            Moves = "Art/Models/CharactersFour/Animations/BaseStaff/OneRig.ast",
         };
-        MonsterVariety one = dress.Variety();
-        Assert.Equal(new WornPiece("R_Weapon", slots[0].Path) { Held = true }, one.Worn[0]);
-        Assert.Equal(new WornPiece("L_Weapon", slots[1].Path) { Held = true }, one.Worn[1]);
-        Assert.Equal(new WornPiece("<root>", slots[2].Path) { SkinOnly = true }, one.Worn[2]);
-        Assert.Equal(dress.Moves, one.Moves);
-        Assert.Equal("idle_wand_shield_01", one.Opening);
-        Assert.NotEqual(dress.Key, (dress with { Moves = string.Empty }).Key);
+
+        // THE 22:17 CAPTURE: the staff in hand.
+        PlayerDress swapped = PlayerDress.Composed(taken, items, staff, wand, string.Empty);
+        Assert.Equal(0, swapped.InHand);
+        Assert.Equal(0, swapped.Shown);
+        Assert.Equal([staff, wand], swapped.Held);
+        MonsterVariety held = swapped.Variety(0);
+        Assert.Equal(new WornPiece("R_Weapon", staff) { Held = true }, held.Worn[0]);
+        Assert.Equal(new WornPiece("<root>", body) { SkinOnly = true }, Assert.Single(held.Worn, one => !one.Held));
+        Assert.DoesNotContain(held.Worn, one => one.Path == wand);
+        Assert.Equal(swapped.Moves, held.Moves);
+
+        // THE OTHER SET, switched to: the wand from its slot, no pack of its own read yet - so none, not the staff's.
+        MonsterVariety other = swapped.Variety(1);
+        Assert.Equal(new WornPiece("R_Weapon", wand) { Held = true }, Assert.Single(other.Worn, one => one.Held));
+        Assert.DoesNotContain(other.Worn, one => one.Path == staff);
+        Assert.Equal(string.Empty, other.Moves);
+        Assert.NotEqual(swapped.Key(0), swapped.Key(1));
+
+        // THE 16:16 CAPTURE: the wand and the focus in hand, +0x08 empty.
+        PlayerDress before = PlayerDress.Composed(taken with { Pieces = [wand, focus, body] }, items, string.Empty, wand, focus);
+        Assert.Equal(1, before.InHand);
+        MonsterVariety wandAndFocus = before.Variety(1);
+        Assert.Equal(new WornPiece("R_Weapon", wand) { Held = true }, wandAndFocus.Worn[0]);
+        Assert.Equal(new WornPiece("L_Weapon", focus) { Held = true }, wandAndFocus.Worn[1]);
+        Assert.Equal(new WornPiece("<root>", body) { SkinOnly = true }, wandAndFocus.Worn[2]);
+
+        // A SET'S OWN PACK AND IDLE are its model's and its key's.
+        PlayerDress resolved = before with { Sets = [before.Sets[0], before.Sets[1] with { Moves = "Art/Models/CharactersFour/Animations/BaseWand/OneRig.ast", Opening = "idle_wand_shield_01" }] };
+        Assert.Equal("idle_wand_shield_01", resolved.Variety(1).Opening);
+        Assert.Equal("Art/Models/CharactersFour/Animations/BaseWand/OneRig.ast", resolved.Variety(1).Moves);
+        Assert.NotEqual(before.Key(1), resolved.Key(1));
     }
+
+    /// <summary>
+    /// His equipment looks as the captures hold them: entries of 0x88 behind Inventories +0x120, the slot in the first byte, the class row at
+    /// +0x08, an item stance's row at +0x10 on a held item alone, the visual identity's row at +0x20 naming its Id at its own +0x00 in UTF-16 -
+    /// and the slots 0 to 3 standing for the two sets' hands, main then off.
+    /// </summary>
+    [Fact]
+    public void HISEquipmentLooksAreReadWithBothSetsCosmetics()
+    {
+        const ulong inventories = 0x3100_0000, list = 0x3200_0000, rows = 0x3300_0000, ids = 0x3400_0000, stance = 0x3500_0000;
+        var memory = new FakeMemoryReader();
+        memory.Place(inventories, new byte[0x150]);
+        (int Slot, int Class, bool Held, string Id)[] looks =
+        [
+            (0, 15, true, "AddedEffectWandererStaffSkin"),
+            (2, 9, true, "AddedEffectWandoftheThaumaturgeSkin"),
+            (3, 82, true, "AddedEffectDoryanisIdolFocusandShieldSkin"),
+            (6, 25, false, "AddedEffectThaumaturgeoftheVaalBodyArmour"),
+        ];
+        byte[] block = new byte[looks.Length * 0x88];
+        for (var one = 0; one < looks.Length; one++)
+        {
+            ulong row = rows + (ulong)(one * 0x3C8), id = ids + (ulong)(one * 0x100);
+            block[one * 0x88] = (byte)looks[one].Slot;
+            BitConverter.GetBytes(looks[one].Class).CopyTo(block, (one * 0x88) + 0x08);
+            BitConverter.GetBytes(looks[one].Held ? stance + (ulong)one : 0UL).CopyTo(block, (one * 0x88) + 0x10);
+            BitConverter.GetBytes(row).CopyTo(block, (one * 0x88) + 0x20);
+            memory.Place(row, new byte[0x3C8]);
+            memory.Place(row, id);
+            memory.PlaceUtf16(id, looks[one].Id);
+        }
+
+        memory.Place(list, block);
+        memory.Place(inventories + 0x120, list);
+        memory.Place(inventories + 0x128, list + (ulong)block.Length);
+        OffsetSchema schema = Schema();
+
+        IReadOnlyList<EquipmentLook> read = EquipmentLook.Read(memory, schema, inventories);
+        Assert.Equal(looks.Select(one => new EquipmentLook(one.Slot, one.Class, one.Held, one.Id)), read);
+        Assert.Equal((0, 0), EquipmentLook.SetOf(0, 2));
+        Assert.Equal((0, 1), EquipmentLook.SetOf(1, 2));
+        Assert.Equal((1, 0), EquipmentLook.SetOf(2, 2));
+        Assert.Equal((1, 1), EquipmentLook.SetOf(3, 2));
+        Assert.Equal((-1, -1), EquipmentLook.SetOf(6, 2));
+
+        // A LIST THAT IS NOT WHOLE ENTRIES, or none, reads nothing.
+        memory.Place(inventories + 0x128, list + 0x40);
+        Assert.Empty(EquipmentLook.Read(memory, schema, inventories));
+        Assert.Empty(EquipmentLook.Read(memory, schema, 0));
+    }
+
+    /// <summary>
+    /// A set's pack is the .ast its stance's timeline names: an .atl is JSON whose "skeleton" names it (base_staff.atl names BaseStaff/OneRig.ast,
+    /// the 22:17 capture); a value that is no .ast, or no key at all, names none.
+    /// </summary>
+    [Fact]
+    public void ATIMELINENamesItsPackAsItsSkeleton()
+    {
+        Assert.Equal("Art/Models/CharactersFour/Animations/BaseStaff/OneRig.ast", PlayerStance.SkeletonOf(
+            "{\n\t\"metadata\": \"Art/Models/CharactersFour/Animations/BaseStaff/OneRig.amd\",\n\t\"skeleton\": \"Art/Models/CharactersFour/Animations/BaseStaff/OneRig.ast\",\n\t\"animations\": []\n}"));
+        Assert.Equal("Art/X/OneRig.ast", PlayerStance.SkeletonOf("{\"skeleton\" :\"Art\\/X\\/OneRig.ast\"}"));
+        Assert.Equal(string.Empty, PlayerStance.SkeletonOf("{\"skeleton\": \"Art/X/OneRig.amd\"}"));
+        Assert.Equal(string.Empty, PlayerStance.SkeletonOf("{\"name\": \"skeleton\", \"metadata\": \"Art/X/OneRig.amd\"}"));
+    }
+
+    /// <summary>
+    /// The held model hung for a hand: the one the composition draws among those its look names, else the only one, else the one sharing the
+    /// most folders with the item's own model - a focus-and-shield skin naming both is hung as the focus.
+    /// </summary>
+    [Fact]
+    public void AHANDHangsTheModelItsLookNamesThatTheGameDraws()
+    {
+        string[] both = ["Metadata/Items/Armours/Shields/Microtransactions/Doryani/DoryaniShieldHeld.ao", "Metadata/Items/Armours/Focus/Microtransactions/Doryani/DoryaniFocusHeld.ao"];
+        Assert.Equal(both[1], PlayerStance.Pick(both, [both[1]], string.Empty));
+        Assert.Equal(both[1], PlayerStance.Pick(both, [], "Metadata/Items/Armours/Focus/CrystalFocus/CrystalFocusHeld.ao"));
+        Assert.Equal(both[0], PlayerStance.Pick(both, [], string.Empty));
+        Assert.Equal(both[0], PlayerStance.Pick([both[0]], [], "Metadata/Items/Armours/Focus/CrystalFocus/CrystalFocusHeld.ao"));
+        Assert.Equal(string.Empty, PlayerStance.Pick([], [both[1]], string.Empty));
+    }
+
+    /// <summary>
+    /// The 22:17 capture whole, through an install holding his tables, his .act chain (the fixtures), both stances' timelines and packs: the
+    /// staff's set is in hand (its stance's timeline is his Actor's) and holds the staff the game draws; the other set holds the wand the
+    /// composition kept and the focus its look's cosmetic names - the focus-and-shield skin's focus, by the folder of the focus's own model -
+    /// and plays the pack its stance's timeline names from its idle. A hand whose slot's class row is not its item's takes the one held look
+    /// of its class; an item with no look draws its own model, said so.
+    /// </summary>
+    [Fact]
+    public void THEOTHERSetsHandsComeFromHisLooksAndItsPackFromItsTimeline()
+    {
+        const string staffItem = "Metadata/Items/Weapons/TwoHandWeapons/Staves/FourStaff6";
+        const string wandItem = "Metadata/Items/Weapons/OneHandWeapons/Wands/FourWand13";
+        const string focusItem = "Metadata/Items/Armours/Focii/FourFocus6Endgame";
+        const string staff = "Metadata/Items/Weapons/TwoHandWeapons/Staves/mtx/WandererStaff/WandererStaffHeld.ao";
+        const string wand = "Metadata/Items/Weapons/OneHandWeapons/Wands/Microtransactions/WandOfTheThaumaturge/WandOfTheThaumaturgeHeld.ao";
+        const string focus = "Metadata/Items/Armours/Focus/Microtransactions/BetaDoryaniFocus/BetaDoryaniFocusHeld.ao";
+        const string shield = "Metadata/Items/Armours/Shields/Microtransactions/BetaDoryaniShield/BetaDoryaniShieldHeld.ao";
+        const string ownFocus = "Metadata/Items/Armours/Focus/CrystalFocus/CrystalFocusHeld.ao";
+        const string body = "Metadata/Items/Armours/BodyArmours/BetaDoryaniArmour/BetaDoryaniArmourBodyInt.ao";
+        const string staffPack = "Art/Models/CharactersFour/Animations/BaseStaff/OneRig.ast";
+        const string wandPack = "Art/Models/CharactersFour/Animations/BaseWand/OneRig.ast";
+        const string staffLine = "Metadata/Characters/Timelines/base_staff/base_staff.atl";
+        QuestTableLayouts layouts = Layouts();
+        var files = new List<(string, byte[])>
+        {
+            Table(layouts, "Characters", [new() { ["Id"] = "Metadata/Characters/Int/IntFourb", ["ACTFile"] = "Metadata/Characters/Int/IntFour.act" }]),
+            Table(layouts, "BaseItemTypes",
+            [
+                new() { ["Id"] = staffItem, ["ItemClass"] = 0, ["ItemStance"] = 0, ["ItemVisualIdentity"] = 0 },
+                new() { ["Id"] = wandItem, ["ItemClass"] = 1, ["ItemStance"] = 1, ["ItemVisualIdentity"] = 1 },
+                new() { ["Id"] = focusItem, ["ItemClass"] = 2, ["ItemStance"] = 2, ["ItemVisualIdentity"] = 2 },
+            ]),
+            Table(layouts, "ItemClasses", [new() { ["Id"] = "Staff" }, new() { ["Id"] = "Wand" }, new() { ["Id"] = "Focus" }]),
+            Table(layouts, "ItemStances", [new() { ["Id"] = "Staff" }, new() { ["Id"] = "Wand" }, new() { ["Id"] = "SpiritShield" }]),
+            Table(layouts, "ItemVisualIdentity",
+            [
+                new() { ["Id"] = "FourStaff6", ["AOFile"] = "Metadata/Items/Weapons/TwoHandWeapons/Staves/ChimingStaff/ChimingStaffDrop.ao", ["AOFile2"] = "Metadata/Items/Weapons/TwoHandWeapons/Staves/ChimingStaff/ChimingStaffHeld.ao" },
+                new() { ["Id"] = "FourWand13", ["AOFile2"] = "Metadata/Items/Weapons/OneHandWeapons/Wands/DuelingWand/DuelingWandHeld.ao" },
+                new() { ["Id"] = "FourFocus6", ["AOFile2"] = ownFocus },
+                new() { ["Id"] = "AddedEffectWandererStaffSkin", ["AOFile"] = "Metadata/Items/Currency/CurrencyOrb.ao", ["column_38"] = staff },
+                new() { ["Id"] = "AddedEffectWandoftheThaumaturgeSkin", ["AOFile"] = "Metadata/Items/Currency/CurrencyOrb.ao", ["column_33"] = wand },
+                new() { ["Id"] = "AddedEffectDoryanisIdolFocusandShieldSkin", ["AOFile"] = "Metadata/Items/Currency/CurrencyOrb.ao", ["column_81"] = shield, ["column_82"] = focus },
+            ]),
+            ("Metadata/Characters/Int/IntFour.act", File.ReadAllBytes(Fixture(Path.Combine("player-act", "Metadata", "Characters", "Int", "IntFour.act")))),
+            ("Metadata/Characters/CharacterFemale.act", File.ReadAllBytes(Fixture(Path.Combine("player-act", "Metadata", "Characters", "CharacterFemale.act")))),
+            ("Metadata/Characters/Character.act", File.ReadAllBytes(Fixture(Path.Combine("player-act", "Metadata", "Characters", "Character.act")))),
+            (staffLine, Utf16("{\n\t\"metadata\": \"Art/Models/CharactersFour/Animations/BaseStaff/OneRig.amd\",\n\t\"skeleton\": \"" + staffPack + "\"\n}")),
+            ("Metadata/Characters/Timelines/base_wand/base_wand.atl", Utf16("{\n\t\"skeleton\": \"" + wandPack + "\",\n\t\"animations\": []\n}")),
+            (staffPack, Packed.Skeleton([("root_jntBnd", 255, 255, 0f)], [("idle_staff_01", string.Empty, 1, 60, 0x6f, 0, 0)])),
+            (wandPack, Packed.Skeleton([("root_jntBnd", 255, 255, 0f)], [("idle_wand_shield_01", string.Empty, 1, 60, 0x6f, 0, 0)])),
+        };
+        GameFiles install = Assert.IsType<GameFiles>(FakeInstall.Of([.. files]));
+        PlayerDress taken = PlayerDress.Composed(
+            new PlayerDress("Metadata/Characters/Int/IntFourb", "Sorceress", "Metadata/Characters/Int/IntFourB.ao", [staff, wand, body], string.Empty)
+            {
+                Moves = staffPack,
+                Timeline = staffLine,
+                Looks =
+                [
+                    new(0, 0, true, "AddedEffectWandererStaffSkin"),
+                    new(2, 1, true, "AddedEffectWandoftheThaumaturgeSkin"),
+                    new(3, 2, true, "AddedEffectDoryanisIdolFocusandShieldSkin"),
+                    new(6, 25, false, "AddedEffectThaumaturgeoftheVaalBodyArmour"),
+                ],
+            },
+            [(staffItem, string.Empty), (wandItem, focusItem)], staff, wand, string.Empty);
+
+        PlayerDress read = PlayerStance.Resolve(install, layouts, taken);
+        Assert.Equal(0, read.InHand);
+        Assert.Equal((staff, string.Empty, "Staff", staffPack, "idle_staff_01"),
+            (read.Sets[0].MainPiece, read.Sets[0].OffPiece, read.Sets[0].Stance, read.Sets[0].Moves, read.Sets[0].Opening));
+        Assert.Equal((wand, focus, "WandSpiritShield", wandPack, "idle_wand_shield_01"),
+            (read.Sets[1].MainPiece, read.Sets[1].OffPiece, read.Sets[1].Stance, read.Sets[1].Moves, read.Sets[1].Opening));
+        Assert.Contains(read.Sets[1].Said, line => line.StartsWith("off hand: " + focus + " - its cosmetic", StringComparison.Ordinal));
+        Assert.Contains(read.Sets[0].Said, line => line.StartsWith("main hand: " + staff + " - as the game draws it", StringComparison.Ordinal));
+
+        MonsterVariety inHand = read.Variety(read.InHand);
+        Assert.Equal([staff, body], inHand.Worn.Select(one => one.Path));
+        MonsterVariety switched = read.Variety(1);
+        Assert.Equal([wand, focus, body], switched.Worn.Select(one => one.Path));
+        Assert.Equal((wandPack, "idle_wand_shield_01"), (switched.Moves, switched.Opening));
+
+        // A SLOT WHOSE CLASS ROW IS NOT ITS ITEM'S gives way to the one held look of the item's class.
+        PlayerDress moved = PlayerStance.Resolve(install, layouts, taken with { Looks = [new(0, 0, true, "AddedEffectWandererStaffSkin"), new(5, 2, true, "AddedEffectDoryanisIdolFocusandShieldSkin"), new(3, 1, true, "AddedEffectWandoftheThaumaturgeSkin")] });
+        Assert.Equal((wand, focus), (moved.Sets[1].MainPiece, moved.Sets[1].OffPiece));
+
+        // NO LOOKS READ: the composition's held slots, else the item's own model, said so.
+        PlayerDress bare = PlayerStance.Resolve(install, layouts, taken with { Looks = [] });
+        Assert.Equal((staff, wand, ownFocus), (bare.Sets[0].MainPiece, bare.Sets[1].MainPiece, bare.Sets[1].OffPiece));
+        Assert.Contains(bare.Sets[1].Said, line => line.StartsWith("off hand: " + ownFocus + " - the item's own model", StringComparison.Ordinal));
+    }
+
+    /// <summary>A .datc64 of one table by the vendored layout: each row's strings and foreign rows by column name, the rest nought.</summary>
+    private static (string Path, byte[] Bytes) Table(QuestTableLayouts layouts, string table, List<Dictionary<string, object>> rows)
+    {
+        int size = layouts.RowSizeOf(table);
+        var variable = new List<byte>(Encoding.Unicode.GetBytes("\0"));
+        var bytes = new byte[size * rows.Count];
+        for (var row = 0; row < rows.Count; row++)
+        {
+            foreach ((string column, object value) in rows[row])
+            {
+                int at = (row * size) + layouts.OffsetOf(table, column);
+                if (value is string text)
+                {
+                    BitConverter.GetBytes((ulong)(8 + variable.Count)).CopyTo(bytes, at);
+                    variable.AddRange(Encoding.Unicode.GetBytes(text + "\0"));
+                }
+                else
+                {
+                    BitConverter.GetBytes((ulong)(int)value).CopyTo(bytes, at);
+                    BitConverter.GetBytes(0UL).CopyTo(bytes, at + 8);
+                }
+            }
+        }
+
+        // EVERY FOREIGN ROW NOT WRITTEN NAMES NOTHING, as the file writes it - a nought would be row nought.
+        DatColumns.Layout(layouts.Tables[table]);
+        foreach (DatColumn column in layouts.Tables[table].Where(one => one.Type == "foreignrow" && !one.Array))
+        {
+            for (var row = 0; row < rows.Count; row++)
+            {
+                if (!rows[row].ContainsKey(column.Name))
+                {
+                    BitConverter.GetBytes(0xFEFE_FEFE_FEFE_FEFEUL).CopyTo(bytes, (row * size) + column.Offset);
+                }
+            }
+        }
+
+        var file = new List<byte>(BitConverter.GetBytes(rows.Count));
+        file.AddRange(bytes);
+        file.AddRange(Enumerable.Repeat((byte)0xBB, 8));
+        file.AddRange(variable);
+        return ($"data/balance/{table.ToLowerInvariant()}.datc64", [.. file]);
+    }
+
+    /// <summary>UTF-16 with its mark, as the game writes its text files.</summary>
+    private static byte[] Utf16(string text) => [.. Encoding.Unicode.GetPreamble(), .. Encoding.Unicode.GetBytes(text)];
+
+    /// <summary>The vendored item layouts, found up from the test's folder.</summary>
+    private static QuestTableLayouts Layouts()
+        => Assert.IsType<QuestTableLayouts>(QuestTableLayouts.Load(Path.Combine(
+            Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Fixture("x"))!)!)!, "data", "item-tables.json")));
 
     /// <summary>
     /// A piece's own attach_bone_override hangs it at that bone of its carrier, where its line says "&lt;root&gt;" (the glove feathers' elbows);

@@ -3663,8 +3663,8 @@ internal static class Program
         };
 
         // THE PLAYER AS THE GAME DRAWS HIM, taken at the Monster Book's button - see PlayerDress. Past the tap: a press's few thousand
-        // reads of his pieces belong in no recording. His stance's idle is read from the files (PlayerStance), the item tables' layouts
-        // loaded at the first press.
+        // reads of his pieces belong in no recording. His weapon sets - the set in hand, each set's hands, pack and idle - are read from the
+        // files (PlayerStance), the item tables' layouts loaded at the first press.
         var playerLayouts = new Lazy<PoEformance.Features.QuestTableLayouts?>(
             () => PoEformance.Features.QuestTableLayouts.Load(FindDataFile("item-tables.json")));
         overlay.PlayerTaken = () =>
