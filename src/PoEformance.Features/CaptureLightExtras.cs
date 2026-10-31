@@ -708,10 +708,15 @@ public static class CaptureLightExtras
     /// with the shapes and triangles wearing each and the doodads they came from - then each such material whole. Returns how many roof
     /// sections were found, counted once a pane, and over how many panes.
     /// </summary>
+    /// <remarks>
+    /// TWO GROUNDS MIXED ARE COUNTED AS THE TWO MATERIALS THEY ARE (v0.1.375), as CapturePanes.Materials writes them: the name a mix is worn
+    /// under (GroundBlend) is no file, and counted as one every mix a laid stage wears was a material "not in the install" while its grounds
+    /// read. How many mixes a pane wears is its line's last column.
+    /// </remarks>
     private static (int Roofs, int Panes) Roofs(Func<string, byte[]?> read, IReadOnlyList<CapturePane>? panes, Bounds bounds, StringBuilder said)
     {
         said.AppendLine().AppendLine("=== 6. the roof sections: every material a model pane's model wears whose .mat says \"roofsection\": true - the shapes and triangles wearing it, and the doodads they came from")
-            .AppendLine("    (pane: its book, what it shows, its shapes, the materials they wear, those not in the install, the roof sections among them)");
+            .AppendLine("    (pane: its book, what it shows, its shapes, the materials they wear, those not in the install, the roof sections among them, the mixes of two grounds among the shapes - each counted as its two grounds)");
         if (panes is not { Count: > 0 })
         {
             said.AppendLine("(no model pane showed a model when the key went down)");
@@ -721,7 +726,7 @@ public static class CaptureLightExtras
         // EVERY MATERIAL READ ONCE, on every core - a laid block wears hundreds.
         string[] materials = [.. panes
             .SelectMany(pane => pane.Model.ShapeMaterials)
-            .Select(MaterialFile.Bare)
+            .SelectMany(material => Files(MaterialFile.Bare(material)))
             .Where(material => material.Length > 0)
             .Distinct(StringComparer.OrdinalIgnoreCase)];
         var materialFiles = new ConcurrentDictionary<string, (bool Held, bool Roof, string Text)>(StringComparer.OrdinalIgnoreCase);
@@ -739,29 +744,39 @@ public static class CaptureLightExtras
             MonsterModel model = pane.Model;
             IReadOnlyList<MeshShape> shapes = model.Mesh.Shapes;
             var worn = new Dictionary<string, (int Shapes, long Triangles, List<string> Sources)>(StringComparer.OrdinalIgnoreCase);
+            var mixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             for (var shape = 0; shape < shapes.Count && shape < model.ShapeMaterials.Count; shape++)
             {
-                string material = MaterialFile.Bare(model.ShapeMaterials[shape]);
-                if (material.Length == 0)
+                string wears = MaterialFile.Bare(model.ShapeMaterials[shape]);
+                string[] files = Files(wears);
+                if (files.Length > 1)
                 {
-                    continue;
+                    mixes.Add(wears);
                 }
 
-                (int count, long triangles, List<string> sources) = worn.TryGetValue(material, out var had) ? had : (0, 0L, []);
                 string source = shape < model.ShapeSources.Count ? model.ShapeSources[shape] : string.Empty;
-                if (source.Length > 0 && !sources.Contains(source, StringComparer.OrdinalIgnoreCase))
+                foreach (string material in files)
                 {
-                    sources.Add(source);
-                }
+                    if (material.Length == 0)
+                    {
+                        continue;
+                    }
 
-                worn[material] = (count + 1, triangles + (shapes[shape].Count / 3), sources);
+                    (int count, long triangles, List<string> sources) = worn.TryGetValue(material, out var had) ? had : (0, 0L, []);
+                    if (source.Length > 0 && !sources.Contains(source, StringComparer.OrdinalIgnoreCase))
+                    {
+                        sources.Add(source);
+                    }
+
+                    worn[material] = (count + 1, triangles + (shapes[shape].Count / 3), sources);
+                }
             }
 
             string[] theirs = [.. worn.Keys.Where(material => materialFiles.TryGetValue(material, out var one) && one.Roof).Order(StringComparer.OrdinalIgnoreCase)];
             int missing = worn.Keys.Count(material => !materialFiles.TryGetValue(material, out var one) || !one.Held);
             roofs += theirs.Length;
             said.Append(CultureInfo.InvariantCulture,
-                    $"  pane\t{pane.Book}\t{(model.Ready ? model.Mesh_ : "nothing - " + model.Why)}\t{shapes.Count}\t{worn.Count}\t{missing}\t{theirs.Length}")
+                    $"  pane\t{pane.Book}\t{(model.Ready ? model.Mesh_ : "nothing - " + model.Why)}\t{shapes.Count}\t{worn.Count}\t{missing}\t{theirs.Length}\t{mixes.Count}")
                 .AppendLine();
             foreach (string material in theirs.OrderByDescending(material => worn[material].Triangles))
             {
@@ -779,6 +794,10 @@ public static class CaptureLightExtras
         Wholes([.. whole.Select(one => (one.Material, materialFiles[one.Material].Text, "\"roofsection\": true, worn in the " + one.Book + " book's pane"))], bounds.RoofChars, bounds.LargestRoof, "materials", said);
         return (roofs, panes.Count);
     }
+
+    /// <summary>The files a shape's material is read from: a mix of two grounds its two grounds (see <see cref="Roofs"/>), any other itself.</summary>
+    private static string[] Files(string material)
+        => GroundBlend.Parts(material, out string first, out string second, out _) ? [MaterialFile.Bare(first), MaterialFile.Bare(second)] : [material];
 
     /// <summary>
     /// The files whole, each under a <c>##### path  (why)</c> heading with its lines marked, in order while the section's characters last
@@ -1042,7 +1061,11 @@ public static class CaptureLightExtras
         said.AppendLine().AppendLine("=== 6. the roof sections, pane by pane");
         foreach (string[] pane in panes)
         {
-            said.Append(CultureInfo.InvariantCulture, $"  the {Field(pane, 0)} book's pane: {Field(pane, 1)} - {Field(pane, 2)} shapes in {Field(pane, 3)} materials, {Field(pane, 4)} not in the install, {Field(pane, 5)} roof sections").AppendLine();
+            // THE GROUND MIXES ARE THE LAST COLUMN FROM v0.1.375; a line written before counted each mix as a material, one not in the install.
+            string mixes = pane.Length > 6
+                ? $", {Field(pane, 6)} ground mixes among the shapes, each counted as its two grounds"
+                : " (written before the ground mixes were told apart: each mix among the materials, and among those not in the install)";
+            said.Append(CultureInfo.InvariantCulture, $"  the {Field(pane, 0)} book's pane: {Field(pane, 1)} - {Field(pane, 2)} shapes in {Field(pane, 3)} materials, {Field(pane, 4)} not in the install, {Field(pane, 5)} roof sections").AppendLine(mixes);
             foreach (string[] roof in roofs.Where(roof => Field(roof, 0) == Field(pane, 0)))
             {
                 said.Append(CultureInfo.InvariantCulture, $"    {Field(roof, 1)}: {Field(roof, 2)} shapes, {Field(roof, 3)} triangles, from {Field(roof, 4)}").AppendLine(Whole('6').Contains(Field(roof, 1)) ? " - whole" : string.Empty);

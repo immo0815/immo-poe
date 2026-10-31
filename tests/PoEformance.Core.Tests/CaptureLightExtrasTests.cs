@@ -41,6 +41,7 @@ public sealed class CaptureLightExtrasTests
     private const string Branches = "Art/Models/Trees/RoofFade_JungleTreeBranches01c.mat";
     private const string Forest = "Art/Models/Trees/OFO_BlackForestTrees01A_fadec.mat";
     private const string Dirt = "Art/Textures/Ground/G_Dirt.mat";
+    private const string Sand = "Art/Textures/Ground/G_Sand.mat";
     private const string NotRoof = "Art/Textures/Ground/NotRoof.mat";
     private const string Gone = "Art/Textures/Gone.mat";
 
@@ -169,8 +170,8 @@ public sealed class CaptureLightExtrasTests
     {
         string text = Written(out _);
 
-        // SIX SHAPES OVER FIVE MATERIALS, ONE NOT IN THE INSTALL, TWO ROOF SECTIONS - the most triangles first.
-        Assert.Contains("  pane\tmonster\troom.arm\t6\t5\t1\t2\n", text, StringComparison.Ordinal);
+        // SIX SHAPES OVER FIVE MATERIALS, ONE NOT IN THE INSTALL, TWO ROOF SECTIONS, NO GROUND MIX - the most triangles first.
+        Assert.Contains("  pane\tmonster\troom.arm\t6\t5\t1\t2\t0\n", text, StringComparison.Ordinal);
         Assert.Contains(
             "  roof\tmonster\t" + Branches + "\t2\t3\tMetadata/Terrain/Doodads/Trees/JungleTree01.ao, Metadata/Terrain/Doodads/Trees/JungleTree02.ao\n"
             + "  roof\tmonster\t" + Forest + "\t1\t1\tMetadata/Terrain/Doodads/Trees/BlackForest01.ao\n",
@@ -179,6 +180,26 @@ public sealed class CaptureLightExtrasTests
         Assert.DoesNotContain("\t" + NotRoof + "\t", text, StringComparison.Ordinal);
         Assert.Contains("=== 6b. the roof-section materials whole: 2", text, StringComparison.Ordinal);
         Assert.Contains("##### " + Branches + "  (\"roofsection\": true, worn in the monster book's pane)\n  | {\"version\":4,\"graphinstances\":", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AGROUNDMixIsCountedAsItsTwoGroundsNotAsAMaterialMissingFromTheInstall()
+    {
+        string text = CaptureLightExtras.Write(Read, [], null, null, [], [Mixed()], null, out _).ReplaceLineEndings("\n");
+
+        // FOUR SHAPES: the dirt and the sand mixed by the corners and by a mask's green, the dirt alone, the dirt and a ground not in the
+        // install mixed - three materials, the one not in the install a ground of its own, three mixes; no mix's name is asked as a file.
+        Assert.Contains("  pane\ttile\troom.arm\t4\t3\t1\t0\t3\n", text, StringComparison.Ordinal);
+
+        string replay = CaptureLightExtras.Replay(text).ReplaceLineEndings("\n");
+        Assert.Contains(
+            "  the tile book's pane: room.arm - 4 shapes in 3 materials, 1 not in the install, 0 roof sections, 3 ground mixes among the shapes, each counted as its two grounds\n",
+            replay, StringComparison.Ordinal);
+
+        // A LINE WRITTEN BEFORE THE MIXES WERE TOLD APART is read as it stands, and said to be so.
+        Assert.Contains(
+            "  the monster book's pane: room.arm - 6 shapes in 5 materials, 1 not in the install, 2 roof sections (written before the ground mixes were told apart",
+            CaptureLightExtras.Replay("=== 6. the roof sections\n  pane\tmonster\troom.arm\t6\t5\t1\t2\n"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -351,6 +372,22 @@ public sealed class CaptureLightExtrasTests
         return new CapturePane("monster", [], model);
     }
 
+    /// <summary>A model pane laid as a room lays its ground: three shapes wearing mixes of two grounds, one a ground not in the install, and one wearing a ground alone.</summary>
+    private static CapturePane Mixed()
+    {
+        Vector3[] positions = [new(0f, 0f, 0f), new(1f, 0f, 0f), new(0f, 1f, 0f)];
+        SkinnedMesh mesh = SkinnedMesh.Of(
+            positions, [.. positions.Select(_ => -Vector3.UnitZ)], [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2], Vector3.Zero, Vector3.One, null,
+            [new MeshShape("0", 0, 3), new MeshShape("1", 3, 3), new MeshShape("2", 6, 3), new MeshShape("3", 9, 3)]);
+        var model = new MonsterModel(mesh, null, "room.arm", string.Empty, string.Empty)
+        {
+            ShapeMaterials = [GroundBlend.Cornered(Dirt, Sand), GroundBlend.Name(Dirt, Sand, "Art/Textures/Ground/newmask.dds", heights: true), Dirt, GroundBlend.Cornered(Dirt, Gone)],
+            ShapeSources = ["ground of tile", "ground of tile", "ground of tile", "ground of tile"],
+        };
+
+        return new CapturePane("tile", [], model);
+    }
+
     /// <summary>A program's bytes on disk: a cloud texture's path, the fog and roof words, a player light in two bytes a character - and ssf and roof inside other words.</summary>
     private static string Program()
     {
@@ -410,7 +447,7 @@ public sealed class CaptureLightExtrasTests
         Branches => Encoding.UTF8.GetBytes(
             "{\"version\":4,\"graphinstances\":[{\"parent\":\"Metadata/Materials/DielectricSpecGlossBN.fxgraph\"},{\"parent\":\"Metadata/Effects/Graphs/General/ForceAlphaTest.fxgraph\"}],\"roofsection\":true}"),
         Forest => CaptureGroundTests.Text("{\"version\": 4, \"roofsection\": true}"),
-        Dirt => Encoding.UTF8.GetBytes("{\"version\":4,\"graphinstances\":[]}"),
+        Dirt or Sand => Encoding.UTF8.GetBytes("{\"version\":4,\"graphinstances\":[]}"),
         NotRoof => Encoding.UTF8.GetBytes("{\"version\":4,\"roofsection\":false}"),
         _ => null,
     };
