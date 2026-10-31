@@ -287,9 +287,11 @@ public class ModelGpuTests
             Light: light);
         Same(hidden, draws: 2);
 
-        // AS THE FLOOR ALONE: the caster gone from the mesh altogether draws the same picture.
-        byte[] alone = Drawn(hidden with { Mesh = Stage().Keeping([true, true, false, false]), Blends = [MaterialBlend.Opaque, MaterialBlend.Opaque] });
-        Compared(alone, Drawn(hidden));
+        // AS THE FLOOR ALONE: the caster gone from the mesh altogether draws the same picture - both through the whole stage's camera,
+        // since a mesh kept to fewer triangles frames its own smaller box.
+        CameraPose pose = CameraPose.Fitted(Stage(), -0.2f, 0.25f, parallel: true);
+        byte[] alone = Drawn(hidden with { Mesh = Stage().Keeping([true, true, false, false]), Blends = [MaterialBlend.Opaque, MaterialBlend.Opaque], Pose = pose });
+        Compared(alone, Drawn(hidden with { Pose = pose }));
     }
 
     /// <summary>Point lights through their grid, the player's among them, with the exposure on top.</summary>
