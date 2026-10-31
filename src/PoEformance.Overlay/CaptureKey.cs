@@ -410,7 +410,8 @@ internal sealed class CaptureKey
         }
 
         // THE PANES AS THEY STAND, their models immutable - the files they name are read with the rest, off this thread.
-        if ((On(CaptureParts.ModelPanes) || On(CaptureParts.MonsterFiles) || On(CaptureParts.LightCompare) || On(CaptureParts.ShadowCasters) || On(CaptureParts.LightExtras))
+        if ((On(CaptureParts.ModelPanes) || On(CaptureParts.MonsterFiles) || On(CaptureParts.LightCompare) || On(CaptureParts.ShadowCasters) || On(CaptureParts.LightExtras)
+                || On(CaptureParts.RoofFade))
             && _panes is { } panes)
         {
             run.Panes = panes();

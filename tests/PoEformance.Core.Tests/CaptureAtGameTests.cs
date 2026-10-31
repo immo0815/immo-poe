@@ -528,7 +528,7 @@ public class CaptureAtGameTests
     private static CapturePane Stage(
         MaterialBlend slab, bool sunless = false, bool splitFloor = false, bool blockUnder = false, float sun = 2f, float floorHalf = 600f,
         float slabHalf = 120f, float slabHeight = 150f, SceneLight.PlayerLamp? lamp = null, IReadOnlyList<PointLight>? lights = null,
-        Vector3? sunWay = null, bool patterned = false, string rockSource = "rock.ao")
+        Vector3? sunWay = null, bool patterned = false, string rockSource = "rock.ao", bool rockHoles = false)
     {
         var places = new List<Vector3>
         {
@@ -567,7 +567,7 @@ public class CaptureAtGameTests
         List<string> materials = ["Art/ground.mat", "Art/canopy.mat", "Art/rock.mat"];
         List<string> sources = [RoomModelsGround + "tile", "canopy.ao", rockSource];
         List<string> modes = ["Opaque", mode, "Opaque"];
-        List<Mipmaps?> skins = [ground, card, patterned ? Patterned(stripes: true) : ground];
+        List<Mipmaps?> skins = [ground, card, patterned ? Patterned(stripes: true, holes: rockHoles) : ground];
         List<MaterialBlend> blends = [MaterialBlend.Opaque, slab, MaterialBlend.Opaque];
         if (splitFloor)
         {
@@ -615,8 +615,11 @@ public class CaptureAtGameTests
     /// <summary>The ground source's word, as the room builder writes it.</summary>
     private const string RoomModelsGround = "ground of ";
 
-    /// <summary>A texture with a pattern a correlation can follow: the floor's checks of four texels, or the rock's stripes a texel wide.</summary>
-    private static Mipmaps Patterned(bool stripes)
+    /// <summary>
+    /// A texture with a pattern a correlation can follow: the floor's checks of four texels, or the rock's stripes a texel wide - their dark
+    /// ones clear where holes are asked for, as a cut-out's leaves are.
+    /// </summary>
+    private static Mipmaps Patterned(bool stripes, bool holes = false)
     {
         const int side = 64;
         var rgba = new byte[side * side * 4];
@@ -628,7 +631,7 @@ public class CaptureAtGameTests
                 (byte r, byte g, byte b) = stripes ? (dark ? ((byte)60, (byte)60, (byte)70) : ((byte)210, (byte)200, (byte)180))
                     : (dark ? ((byte)95, (byte)80, (byte)60) : ((byte)150, (byte)120, (byte)90));
                 int at = ((y * side) + x) * 4;
-                (rgba[at], rgba[at + 1], rgba[at + 2], rgba[at + 3]) = (r, g, b, 255);
+                (rgba[at], rgba[at + 1], rgba[at + 2], rgba[at + 3]) = (r, g, b, holes && dark ? (byte)0 : (byte)255);
             }
         }
 
@@ -1027,6 +1030,63 @@ public class CaptureAtGameTests
         byte[] again = MeshPicture.Of(mesh, kept, skins: pane.Model.Skins, blends: hidden).Rgba;
         byte[] fresh = MeshPicture.Of(mesh, Canvas(), skins: pane.Model.Skins, blends: hidden).Rgba;
         Assert.Equal(fresh, again);
+    }
+
+    /// <summary>
+    /// A shape drawn as a shadow caster alone through its texture (MaterialBlend.ShadowCut) is not drawn and casts as a cut-out does: its
+    /// texture's holes let the sun through, where one drawn as a shadow caster alone (ShadowOnly) casts every triangle whole - the leaves
+    /// of a roof section kept as their shadow in the roof part's drawing, which drawn ShadowOnly cast square cards.
+    /// </summary>
+    [Fact]
+    public void ACUTShadowCasterCastsThroughItsTextureAndIsNotDrawn()
+    {
+        CapturePane pane = Stage(MaterialBlend.Opaque, sunWay: Vector3.Normalize(new Vector3(-0.5f, -0.5f, 1f)), patterned: true, rockHoles: true);
+        CaptureAtGame own = CaptureAtGame.Draw(pane, Shot(player: new Vector3(5000f, 9000f, 0f)), null, Width, Height, null, out _)!;
+        SkinnedMesh mesh = pane.Model.Mesh;
+        int rock = pane.Model.ShapeMaterials.ToList().IndexOf("Art/rock.mat");
+        byte[] As(MaterialBlend blend) => own.Redrawn(mesh, [.. Enumerable.Range(0, mesh.Shapes.Count).Select(shape => shape == rock ? blend : pane.Blends![shape])]);
+        byte[] none = As(MaterialBlend.Hidden), cut = As(MaterialBlend.ShadowCut), whole = As(MaterialBlend.ShadowOnly), drawn = As(MaterialBlend.Cutout);
+
+        // DARKER THAN THE STAGE WITHOUT THE ROCK, pixel by pixel: the shadow each casts. And drawn, the rock covers pixels of its own.
+        static int Shadowed(byte[] cast, byte[] bare)
+        {
+            var count = 0;
+            for (var at = 0; at < bare.Length; at += 4)
+            {
+                count += cast[at] + cast[at + 1] + cast[at + 2] + 30 < bare[at] + bare[at + 1] + bare[at + 2] ? 1 : 0;
+            }
+
+            return count;
+        }
+
+        int cutShadow = Shadowed(cut, none), wholeShadow = Shadowed(whole, none);
+        Assert.True(cutShadow > 30, $"{cutShadow} pixels in the cut caster's shadow");
+        Assert.True(cutShadow < wholeShadow * 0.8, $"cut {cutShadow}, whole {wholeShadow}");
+
+        // NOT DRAWN: where the cut caster's picture differs from the stage without it, it is darker - its shadow, never its own colour.
+        for (var at = 0; at < none.Length; at += 4)
+        {
+            Assert.False(cut[at] + cut[at + 1] + cut[at + 2] > none[at] + none[at + 1] + none[at + 2] + 3, $"pixel {at / 4} brighter than the stage without the rock");
+        }
+
+        // AND THE CUT CASTER'S SHADOW IS THE DRAWN CUT-OUT'S, wherever the drawn rock does not stand over it.
+        var same = 0;
+        var compared = 0;
+        for (var at = 0; at < none.Length; at += 4)
+        {
+            bool rockThere = Math.Abs(drawn[at] - cut[at]) + Math.Abs(drawn[at + 1] - cut[at + 1]) + Math.Abs(drawn[at + 2] - cut[at + 2]) > 3
+                && Math.Abs(drawn[at] - none[at]) + Math.Abs(drawn[at + 1] - none[at + 1]) + Math.Abs(drawn[at + 2] - none[at + 2]) > 3
+                && Math.Abs(cut[at] - none[at]) + Math.Abs(cut[at + 1] - none[at + 1]) + Math.Abs(cut[at + 2] - none[at + 2]) <= 3;
+            if (rockThere)
+            {
+                continue;
+            }
+
+            compared++;
+            same += Math.Abs(drawn[at] - cut[at]) + Math.Abs(drawn[at + 1] - cut[at + 1]) + Math.Abs(drawn[at + 2] - cut[at + 2]) <= 3 ? 1 : 0;
+        }
+
+        Assert.True(same > compared * 0.97, $"{same} of {compared} alike");
     }
 
     /// <summary>A stage with no roof section says so and keeps no numbers.</summary>

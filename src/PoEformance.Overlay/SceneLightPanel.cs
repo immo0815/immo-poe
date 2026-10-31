@@ -1309,7 +1309,9 @@ public sealed class SceneLightPanel : IMovableSun
             lines.AddRange(Fogged().Said);
         }
 
-        lines.Add(_roofFade ? "roof fade: the roof sections of the tile piece under the focus hidden (CHOSEN reading)" : "roof fade: off");
+        lines.Add(_roofFade
+            ? "roof fade: on - the panes hide the roof sections of the tile piece under the focus (CHOSEN reading); a capture's drawings draw every section"
+            : "roof fade: off");
         lines.Add(!_clouds ? "clouds: off"
             : Clouded() is not { } clouds ? "clouds: none - " + _cloudsWhy
             : string.Create(CultureInfo.InvariantCulture,

@@ -842,6 +842,9 @@ public sealed class MonsterPortrait
 
     private MonsterModel? _roofsOf;
     private RoofFade? _roofs;
+    private RoofFade? _roofSaidOf;
+    private int[]? _roofSaidFor;
+    private string _roofSaid = string.Empty;
     private IReadOnlyList<MaterialBlend>? _fadedOf;
     private IReadOnlyList<MaterialBlend>? _faded;
     private int[] _roofsHolding = [];
@@ -2597,7 +2600,7 @@ public sealed class MonsterPortrait
         bool Shown(int shape)
         {
             MaterialBlend blend = blends is not null && shape < blends.Count ? blends[shape] : MaterialBlend.Opaque;
-            return blend is not (MaterialBlend.ShadowOnly or MaterialBlend.Hidden)
+            return blend is not (MaterialBlend.ShadowOnly or MaterialBlend.Hidden or MaterialBlend.ShadowCut)
                 && !(blend == MaterialBlend.Cutout && shades is not null && shape < shades.Count && shades[shape] is { } cutting && cutting.CutAway(cutting.Cut));
         }
 
@@ -2832,7 +2835,13 @@ public sealed class MonsterPortrait
         // THE ROOF FADE, both drawings' (RoofFade): which pieces' roof sections are hidden round the focus, and what the reading takes as given.
         if (SceneRoofFade?.Invoke() == true && Roofs() is { } roofs)
         {
-            _status.Add(roofs.Said(_roofsHolding));
+            // MADE AGAIN ONLY WHEN THE PIECES UNDER THE FOCUS CHANGE - their list is replaced then and only then (Blends).
+            if (!ReferenceEquals(_roofSaidOf, roofs) || !ReferenceEquals(_roofSaidFor, _roofsHolding))
+            {
+                (_roofSaidOf, _roofSaidFor, _roofSaid) = (roofs, _roofsHolding, roofs.Said(_roofsHolding));
+            }
+
+            _status.Add(_roofSaid);
         }
 
         // WHERE THE FILES WENT, and it stays up until the next export rather than flashing: the

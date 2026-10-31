@@ -41,6 +41,15 @@ public enum MaterialBlend : byte
     /// which casts every triangle whole - a tree's cut-out leaves hidden so cast square shadows.
     /// </remarks>
     Hidden,
+
+    /// <summary>
+    /// Not drawn, and casting its shadow through its texture as a cut-out does - a cut-out shape drawn as a shadow caster alone.
+    /// </summary>
+    /// <remarks>
+    /// NO MATERIAL IS READ AS IT EITHER: the roof fade's capture part (CaptureRoofFade) draws the stage with its roof sections' shadows kept
+    /// and the sections themselves gone, and a tree's leaves drawn ShadowOnly cast square cards where the game's cast leaves.
+    /// </remarks>
+    ShadowCut,
 }
 
 /// <summary>

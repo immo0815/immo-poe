@@ -17,8 +17,9 @@ namespace PoEformance.Features;
 /// the cylinders, boxes and circles some files set; light-extras.txt section 10). Before a rule is given, this part measures it.
 ///
 /// THE STAGE IS DRAWN THREE TIMES through the game's camera (CaptureAtGame): as the light parts draw it, with every roof section; with the
-/// sections drawn as shadow casters alone (MaterialBlend.ShadowOnly) - what lies behind them, their shadows kept; and with the sections left
-/// out of the mesh - what lies behind them, their shadows gone too. Where the game hides a section its picture shows what lies behind it.
+/// sections drawn as shadow casters alone, each casting as it does in the first (a cut-out through its texture, MaterialBlend.ShadowCut) -
+/// what lies behind them, their shadows kept; and with the sections neither drawn nor cast (MaterialBlend.Hidden) - what lies behind
+/// them, their shadows gone too. Where the game hides a section its picture shows what lies behind it.
 ///
 /// THE GAME'S PATTERN DECIDES, NOT ITS BRIGHTNESS (v0.1.386). v0.1.385 fitted the game's light at a section's pixels as a mix of the two
 /// drawings, which read the light's own mismatch - the clouds, the fog, the lamp the pane does not draw as the game does - as a share: The
@@ -260,7 +261,7 @@ public static class CaptureRoofFade
         byte[] kept = scene.Redrawn(mesh, Without(given, roof, keepShadows: true));
         search?.Step("drawing the stage again without its roof sections, their shadows gone");
         int[] shapeOf = scene.ShapeOf;
-        byte[] gone = scene.Redrawn(mesh.Keeping(Kept(shapeOf, roof)), Without(given, roof, keepShadows: false));
+        byte[] gone = scene.Redrawn(mesh, Without(given, roof, keepShadows: false));
 
         // EVERY GATHERED PIXEL OF A SECTION the game's picture shows plainly: not masked, not at its ceiling, something behind it on the stage.
         var samples = new List<Sample>();
@@ -721,7 +722,7 @@ public static class CaptureRoofFade
         byte[] kept = scene.Redrawn(mesh, Without(given, hidden, keepShadows: true));
         search?.Step("drawing the stage without the sections the game hides, their shadows gone");
         int[] shapeOf = scene.ShapeOf;
-        byte[] gone = scene.Redrawn(mesh.Keeping(Kept(shapeOf, hidden)), Without(given, hidden, keepShadows: false));
+        byte[] gone = scene.Redrawn(mesh, Without(given, hidden, keepShadows: false));
 
         PixelGather gather = scene.Gather;
         int entries = gather.Triangle.Length;
@@ -810,28 +811,33 @@ public static class CaptureRoofFade
     /// <summary>Whether the game's picture is no measure at a drawn pixel: masked, or at its ceiling.</summary>
     private static bool Hidden(CaptureAtGame scene, int drawn) => scene.Masked[drawn] || (scene.Clipped.Length > drawn && scene.Clipped[drawn]);
 
-    /// <summary>The blends with the marked shapes drawn as shadow casters alone, or as opaque where they are left out of the mesh anyway.</summary>
+    /// <summary>
+    /// The blends with the marked shapes not drawn: casting as they cast in the drawing with them - a cut-out through its texture
+    /// (MaterialBlend.ShadowCut), a solid one whole, a mixed or added one not at all - or neither drawn nor cast (MaterialBlend.Hidden).
+    /// </summary>
+    /// <remarks>
+    /// ON THE WHOLE MESH, NOT A MESH KEPT TO FEWER TRIANGLES (a review of v0.1.386-389): a kept mesh stands the staged monster in his bind
+    /// pose (CaptureAtGame.Posed takes the pane's posed vertices for the pane's own mesh alone) and frames the sun's map over fewer
+    /// vertices, so his limbs' shadows and the map's texels differed between the drawings for reasons no roof made. And not
+    /// ShadowOnly for a cut-out section, which casts every triangle whole - a tree's leaves as square cards the game never cast.
+    /// </remarks>
     private static MaterialBlend[] Without(MaterialBlend[] given, bool[] marked, bool keepShadows)
     {
         var blends = new MaterialBlend[given.Length];
         for (var shape = 0; shape < blends.Length; shape++)
         {
-            blends[shape] = !marked[shape] ? given[shape] : keepShadows ? MaterialBlend.ShadowOnly : MaterialBlend.Opaque;
+            blends[shape] = !marked[shape] ? given[shape]
+                : !keepShadows ? MaterialBlend.Hidden
+                : given[shape] switch
+                {
+                    MaterialBlend.Cutout => MaterialBlend.ShadowCut,
+                    MaterialBlend.Alpha or MaterialBlend.Additive or MaterialBlend.Hidden => MaterialBlend.Hidden,
+                    MaterialBlend.ShadowCut => MaterialBlend.ShadowCut,
+                    _ => MaterialBlend.ShadowOnly,
+                };
         }
 
         return blends;
-    }
-
-    /// <summary>Which triangles stay when the marked shapes are left out.</summary>
-    private static bool[] Kept(int[] shapeOf, bool[] marked)
-    {
-        var keep = new bool[shapeOf.Length];
-        for (var triangle = 0; triangle < keep.Length; triangle++)
-        {
-            keep[triangle] = shapeOf[triangle] < 0 || !marked[shapeOf[triangle]];
-        }
-
-        return keep;
     }
 
     /// <summary>The tile a place in the area stands on.</summary>

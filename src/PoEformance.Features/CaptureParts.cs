@@ -249,7 +249,8 @@ public static class CaptureParts
     /// lines under the buttons that nobody playing reads. They read the file table and the bundles, which takes seconds, so they
     /// cannot be asked for on the frame the key goes down as a window's text is.
     /// </remarks>
-    public static bool RunsAtPress(string key) => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow or ShaderStages;
+    public static bool RunsAtPress(string key)
+        => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow or ShaderStages or PlayerLook;
 
     /// <summary>
     /// A heading as the Keys page writes it. The headings themselves stay as they are: they are what <see cref="FolderOfGroup"/> keys

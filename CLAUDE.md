@@ -726,7 +726,9 @@ now fails on `FogWhy` itself. Found by compiling the program's dumped HLSL with 
 runs in this environment where Vortice.Dxc does not): compile a changed shader so before it goes to the Windows job.
 THE ROOF FADE IS MEASURED FIRST (v0.1.385, DECIDED from the live client): `roof-fade.txt` (`CaptureRoofFade`, the Windows group, drawn from
 light-against-game's own drawing) draws the stage laid as the area laid it through the game's camera twice more - without its roof sections,
-their shadows kept (`MaterialBlend.ShadowOnly`), and without them, their shadows gone (`SkinnedMesh.Keeping`) - and fits the game's picture
+their shadows kept (`MaterialBlend.ShadowOnly`; from v0.1.390 each casting as in the first drawing, a cut-out through its texture,
+`MaterialBlend.ShadowCut`), and without them, their shadows gone (`SkinnedMesh.Keeping`; from v0.1.390 `MaterialBlend.Hidden` on the whole
+mesh - a kept mesh stood a staged monster in his bind pose and framed the sun's map anew) - and fits the game's picture
 over each section's pixels as `a with + b without` (non-negative least squares on the three channels, a + b let free since the pane's light
 is not the game's; CHOSEN: a pixel tells where the two drawings' luminance stand a fifth of the brighter apart): the hidden share b / (a + b),
 which way without fits the better (whether the game keeps a hidden section's shadow), and beside it the section's box, its distance across
@@ -767,6 +769,11 @@ shadow gone with the section (the engine's shadow pass taken to read the object'
 through roof_fade.fxgraph's speckle, and an object's own roof sections left drawn. The processor's sun map is kept for the same blends only
 (it was kept for the same mesh and sun alone, so a blend switched since cast on as before). A capture's panes hand on the blends
 unfaded (`MonsterPortrait.Unfaded`), so roof-fade.txt still draws every section against the game.
+A REVIEW OF v0.1.386-389 found, and v0.1.390 mends: the player look part was offered and never started (`CaptureParts.RunsAtPress` did not
+name it); the roof part's drawing with the sections' shadows kept cast cut-out leaves as whole cards (now `MaterialBlend.ShadowCut`, not
+drawn and cast through the texture, on both drawings) and its drawings without them stood a staged monster in his bind pose (now
+`MaterialBlend.Hidden` on the whole mesh); the panes were not snapshot for the roof part ticked alone; the light panel's line, which the
+captures carry, said sections hidden that a capture's drawings draw; and the pane's roof line was made anew every frame.
 
 ## The player on a stage
 

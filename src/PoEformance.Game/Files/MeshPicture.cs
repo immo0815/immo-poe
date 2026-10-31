@@ -1494,7 +1494,7 @@ public static class MeshPicture
                         continue;
                     }
 
-                    if (blend == MaterialBlend.Cutout && coordinated && palette[wears[one]] is { } skin
+                    if (blend is MaterialBlend.Cutout or MaterialBlend.ShadowCut && coordinated && palette[wears[one]] is { } skin
                         && Sample4(skin, ((1f - u - v) * coordinates[i0]) + (u * coordinates[i1]) + (v * coordinates[i2]), 0f).W < CutoutAlpha)
                     {
                         continue;
@@ -1654,7 +1654,7 @@ public static class MeshPicture
         ShadowMap? map = ShadowMap.Build(
             places, mesh.Indices, triangles, direction,
             one => Casts(blends, shadeOf, cutAway, one),
-            one => blends[one] == MaterialBlend.Cutout && coordinated && palette[wears[one]] is { } skin ? (skin, coordinates) : null,
+            one => blends[one] is MaterialBlend.Cutout or MaterialBlend.ShadowCut && coordinated && palette[wears[one]] is { } skin ? (skin, coordinates) : null,
             canvas.Threads,
             side,
             bounds);
@@ -1716,7 +1716,7 @@ public static class MeshPicture
         return ShadowMap.Owned(
             positions, mesh.Indices, triangles, frame,
             one => (only is null || only(one)) && Casts(blended, shadeOf, cutAway, one),
-            one => (blended[one] == MaterialBlend.Cutout || (cutsShadowOnly && blended[one] == MaterialBlend.ShadowOnly))
+            one => (blended[one] is MaterialBlend.Cutout or MaterialBlend.ShadowCut || (cutsShadowOnly && blended[one] == MaterialBlend.ShadowOnly))
                 && coordinated && palette[wears[one]] is { } worn ? (worn, coordinates) : null,
             threads > 0 ? threads : Environment.ProcessorCount);
     }
@@ -1730,7 +1730,7 @@ public static class MeshPicture
     /// </summary>
     private static bool Casts(MaterialBlend[] blends, int[] shadeOf, bool[] cutAway, int one)
         => !Translucent(blends[one]) && blends[one] != MaterialBlend.Hidden
-            && !(blends[one] == MaterialBlend.Cutout && one < shadeOf.Length && shadeOf[one] >= 0 && cutAway[shadeOf[one]]);
+            && !(blends[one] is MaterialBlend.Cutout or MaterialBlend.ShadowCut && one < shadeOf.Length && shadeOf[one] >= 0 && cutAway[shadeOf[one]]);
 
     /// <summary>Whether a triangle is drawn in the second pass - mixed or added, not solid or cut out.</summary>
     private static bool Translucent(MaterialBlend blend) => blend is MaterialBlend.Alpha or MaterialBlend.Additive;
@@ -1834,7 +1834,7 @@ public static class MeshPicture
         {
             byte kind;
             MaterialBlend blend = blends[one];
-            if (tops[one] > feet[one] || blend is MaterialBlend.ShadowOnly or MaterialBlend.Hidden)
+            if (tops[one] > feet[one] || blend is MaterialBlend.ShadowOnly or MaterialBlend.Hidden or MaterialBlend.ShadowCut)
             {
                 kind = 0;
             }
@@ -2087,7 +2087,7 @@ public static class MeshPicture
 
             // A CUT-OUT SHAPE IS SOLID WHERE IT IS DRAWN, so it needs neither an owner nor the
             // second pass - it rides in the first with the opaque ones. A shadow-only one is not drawn.
-            if (blend is MaterialBlend.Cutout or MaterialBlend.ShadowOnly or MaterialBlend.Hidden)
+            if (blend is MaterialBlend.Cutout or MaterialBlend.ShadowOnly or MaterialBlend.Hidden or MaterialBlend.ShadowCut)
             {
                 continue;
             }

@@ -72,6 +72,14 @@ public class PlayerLookTests
         Assert.Contains("floats 1.5, 0", text, StringComparison.Ordinal);
     }
 
+    /// <summary>The part is started at the press, as every piece of work the app offers the capture is - a review found it offered and never started.</summary>
+    [Fact]
+    public void THEPARTRunsAtThePress()
+    {
+        Assert.True(CaptureParts.RunsAtPress(CaptureParts.PlayerLook));
+        Assert.Contains(CaptureParts.All, one => one.Key == CaptureParts.PlayerLook && one.File == CaptureReport.PlayerLookFile);
+    }
+
     /// <summary>What names a game file: under Metadata/ or Art/, or a folder and a file's extension - not words, not a bare name.</summary>
     [Fact]
     public void AGAMEPathIsAFolderAndAFile()
