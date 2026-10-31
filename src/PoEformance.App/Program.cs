@@ -3662,6 +3662,14 @@ internal static class Program
             return riverLive.Current(untapped, untapped as PoEformance.Core.Memory.IMemoryRegions);
         };
 
+        // THE PLAYER AS THE GAME DRAWS HIM, taken at the Monster Book's button - see PlayerDress. Past the tap: a press's few thousand
+        // reads of his pieces belong in no recording.
+        overlay.PlayerTaken = () =>
+        {
+            PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
+            return PoEformance.Game.Entities.PlayerDress.Read(untapped, schema, gameStatesStatic);
+        };
+
         // THE RIVER FLOW MAP HUNT: the grid the engine's river flow map is made from, or the map, in the whole of memory on every core -
         // see RiverFlowHunt. Its lists' bytes are written beside the part's own file. Past the tap, as the shore field's hunt reads. The
         // live read's own account comes first (RiverFlowLive.Report): the search again, the cache node by node, the map it reads.

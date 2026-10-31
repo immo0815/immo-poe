@@ -513,7 +513,21 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
 
     private void Detail()
     {
+        PlayerRow();
         string chosen = Chosen;
+
+        // THE PLAYER IN PLACE OF THE ROW while he is shown - a row chosen since takes the pane back.
+        if (_playerShown && _player.Ready)
+        {
+            if (string.Equals(chosen, _playerOver, StringComparison.Ordinal))
+            {
+                PlayerDetail();
+                return;
+            }
+
+            _playerShown = false;
+        }
+
         if (chosen.Length == 0 || _of.Find(chosen) is not { } one)
         {
             ImGui.TextDisabled("Choose a monster on the left.");
@@ -537,6 +551,152 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
         Words("Skills", _of.Skills(one));
         Mods(_of, one, _said);
         Words("Built on", one.Inherits ?? []);
+    }
+
+    /// <summary>
+    /// The local player as the game draws him now - see PlayerDress - read on a thread of its own when the button asks. Null leaves the button out.
+    /// </summary>
+    public Func<PlayerDress>? PlayerTaken { get; init; }
+
+    /// <summary>The read the button started, until it lands.</summary>
+    private Task<PlayerDress>? _taking;
+
+    /// <summary>The player as last taken - kept until the button is pressed again (a snapshot, DECIDED from the live client).</summary>
+    private PlayerDress _player = PlayerDress.None;
+
+    /// <summary>The model the book draws him as, made once a take.</summary>
+    private MonsterVariety? _playerVariety;
+
+    /// <summary>Whether the pane shows the player rather than the chosen row.</summary>
+    private bool _playerShown;
+
+    /// <summary>The row chosen when the player was shown - choosing another gives the pane back to the book.</summary>
+    private string _playerOver = string.Empty;
+
+    /// <summary>
+    /// The button that takes the player as the game draws him, and its line: shown in place of the chosen monster, on the same stages -
+    /// alone, or in the area round you standing where he stood (AreaBlock.Stood).
+    /// </summary>
+    private void PlayerRow()
+    {
+        if (PlayerTaken is not { } take || Model is not { Possible: true })
+        {
+            return;
+        }
+
+        if (_taking is { IsCompleted: true } done)
+        {
+            _taking = null;
+            _player = done.IsCompletedSuccessfully
+                ? done.Result
+                : PlayerDress.None with { Why = done.Exception?.GetBaseException().Message ?? "the read failed" };
+            _playerVariety = _player.Ready ? _player.Variety() : null;
+            _playerShown = _player.Ready;
+            _playerOver = Chosen;
+        }
+
+        bool busy = _taking is not null;
+        if (busy)
+        {
+            ImGui.BeginDisabled();
+        }
+
+        if (ImGui.Button((_player.Ready ? "take the player again" : "take the player") + "##monster-player-take"))
+        {
+            _taking = Task.Run(take);
+        }
+
+        if (busy)
+        {
+            ImGui.EndDisabled();
+        }
+
+        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+        {
+            ImGui.SetTooltip(ImGuiText.Escape(
+                "Your character as the game draws him now: the class's body and the pieces the game composed him from - your armour, or the"
+                + " cosmetics over it, and the weapons in hand - read from the game when pressed and kept until pressed again."));
+        }
+
+        if (_player.Ready && !_playerShown)
+        {
+            ImGui.SameLine();
+            if (ImGui.SmallButton("show him##monster-player-show"))
+            {
+                _playerShown = true;
+                _playerOver = Chosen;
+            }
+        }
+
+        if (busy)
+        {
+            ImGui.SameLine();
+            ImGui.TextDisabled("reading...");
+        }
+        else if (!_player.Ready && !ReferenceEquals(_player, PlayerDress.None) && _player.Why.Length > 0)
+        {
+            ImGui.PushTextWrapPos(0f);
+            ImGui.TextDisabled(ImGuiText.Escape("not taken: " + _player.Why));
+            ImGui.PopTextWrapPos();
+        }
+    }
+
+    /// <summary>
+    /// The player's pane: who he is, what the game composed him from, the model and its stages and light, and what the build hid or left out.
+    /// </summary>
+    private void PlayerDetail()
+    {
+        if (_playerVariety is not { } one)
+        {
+            return;
+        }
+
+        string key = _player.Key;
+        ImGui.PushTextWrapPos(0f);
+        ImGui.Text(ImGuiText.Escape((one.Name ?? "the player") + " - " + _player.Path));
+        ImGui.TextDisabled(ImGuiText.Escape("body: " + _player.Body));
+        ImGui.PopTextWrapPos();
+        ModelTools(one, key, "the player - " + one.Name);
+        Stage(key);
+        LightSection();
+        ImGui.Separator();
+
+        ImGui.PushTextWrapPos(0f);
+        if (OverlayLayout.Subsection("what the game draws him with##monster-player-pieces"))
+        {
+            if (_player.Pieces.Count == 0)
+            {
+                ImGui.TextDisabled(ImGuiText.Escape(_player.Why));
+            }
+
+            foreach (string piece in _player.Pieces)
+            {
+                ImGui.TextUnformatted(ImGuiText.Escape(piece));
+            }
+        }
+
+        // WHAT THE BUILD MADE OF THEM, once the model is in: what a piece's ObjectHiding hid, and what was left out and why.
+        if (Model is { } model && model.Showing.Ready && OverlayLayout.Subsection("hidden and left out##monster-player-hidden"))
+        {
+            foreach (string said in model.Showing.Covered)
+            {
+                ImGui.TextDisabled(ImGuiText.Escape(said));
+            }
+
+            foreach (PartFit fit in model.Showing.Fitted)
+            {
+                if (fit.Why.Length > 0 && fit.Kind is PartKind.None or PartKind.Unread)
+                {
+                    ImGui.TextDisabled(ImGuiText.Escape(Tail(fit.File) + ": " + fit.Why));
+                }
+            }
+
+            ImGui.TextDisabled(
+                "Not yet drawn as the game draws him: the held pieces (a weapon, a focus) until a capture reads their socket; his idle animation"
+                + " until his .act is read; the other weapon set; what a piece says to show of its siblings. He is drawn unscaled, facing as a monster faces.");
+        }
+
+        ImGui.PopTextWrapPos();
     }
 
     /// <summary>The tile chosen in the Tile Book, by path, or empty - so a monster can be stood on whatever tile that book is open at.</summary>

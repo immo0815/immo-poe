@@ -863,10 +863,19 @@ public class CaptureAtGameTests
                 Assert.Contains("on tile 20, 36, of the piece rocky at tile 18, 34, 3 x 3", report, StringComparison.Ordinal);
                 Assert.Contains(
                     verdict == "hidden"
-                        ? "the piece the player stands on fades whole, no other (a reading of RoofFadeMode \"Tile\"): 1 of 1 verdicts agree\n"
-                        : $"the piece the player stands on fades whole, no other (a reading of RoofFadeMode \"Tile\"): 0 of 1 verdicts agree - against it: {rock} shown (rocky at tile 18, 34, 3 x 3)",
+                        ? "the piece the player stands on fades whole, no other (a reading of RoofFadeMode \"Tile\" - the pane's until v0.1.393): 1 of 1 verdicts agree\n"
+                        : $"the piece the player stands on fades whole, no other (a reading of RoofFadeMode \"Tile\" - the pane's until v0.1.393): 0 of 1 verdicts agree - against it: {rock} shown (rocky at tile 18, 34, 3 x 3)",
                     report.ReplaceLineEndings("\n"),
                     StringComparison.Ordinal);
+
+                // THE PANE'S OWN READING, held first: the rock round the player reaches into the region, so it agrees with hidden and not with shown.
+                Assert.Contains(
+                    verdict == "hidden"
+                        ? "250 aside, 0 behind (the pane's reading, RoofFade - its extents CHOSEN): 1 of 1 verdicts agree\n"
+                        : $"250 aside, 0 behind (the pane's reading, RoofFade - its extents CHOSEN): 0 of 1 verdicts agree - against it: {rock} shown (rocky at tile 18, 34, 3 x 3)",
+                    report.ReplaceLineEndings("\n"),
+                    StringComparison.Ordinal);
+                Assert.Contains("=== the region's extents the verdicts allow", report, StringComparison.Ordinal);
                 Assert.Matches(@"\n  rocky at tile 18, 34, 3 x 3\this\t[-\d]+ to [-\d]+\t[-\d]+ to [-\d]+\t", report);
                 Assert.Contains("  1 tile pieces: their words are the area's, below", report, StringComparison.Ordinal);
             }
@@ -885,6 +894,13 @@ public class CaptureAtGameTests
                 Assert.StartsWith("roof fade replay: 1 roof sections on the stage", replay, StringComparison.Ordinal);
                 Assert.Contains(row.Value, replay, StringComparison.Ordinal);
                 Assert.Contains(shadow, replay, StringComparison.Ordinal);
+
+                // THE EXTENTS OVER CAPTURES read the same numbers: a tile piece's verdict placed, an object's left out.
+                string extents = CaptureRoofFade.ExtentsOver([folder]);
+                Assert.StartsWith(
+                    string.Create(CultureInfo.InvariantCulture, $"roof fade extents over 1 captures: #1 {Path.GetFileName(folder)}: {(ofTile && verdict == "hidden" ? 1 : 0)} hidden, {(ofTile && verdict == "shown" ? 1 : 0)} shown"),
+                    extents,
+                    StringComparison.Ordinal);
             }
             finally
             {

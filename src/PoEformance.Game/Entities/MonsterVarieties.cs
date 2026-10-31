@@ -84,6 +84,24 @@ public sealed record MonsterVariety(
 
     /// <summary>Whether the table says anything about this monster beyond its existence.</summary>
     public bool SaysSomething => Name is { Length: > 0 } || SkillCount > 0;
+
+    /// <summary>
+    /// Pieces hung beside the lines of its own files - the player's, as the game composed him (PlayerDress) - or none for a monster of the table.
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyList<WornPiece> Worn { get; init; } = [];
+}
+
+/// <summary>One piece hung on a model beside its own files' lines: its .ao and the socket it hangs at ("&lt;root&gt;" for a skin on its rig).</summary>
+/// <param name="Socket">The socket, as an attached_object line writes it.</param>
+/// <param name="Path">The piece's .ao.</param>
+public sealed record WornPiece(string Socket, string Path)
+{
+    /// <summary>
+    /// Whether it is drawn only as a skin on its carrier's rig and left out, said why, otherwise - a piece whose socket nothing read yet:
+    /// the player's held pieces, which name none (see PlayerDress).
+    /// </summary>
+    public bool SkinOnly { get; init; }
 }
 
 /// <summary>One stat a modifier sets, and the range it sets it to.</summary>

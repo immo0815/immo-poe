@@ -774,6 +774,22 @@ name it); the roof part's drawing with the sections' shadows kept cast cut-out l
 drawn and cast through the texture, on both drawings) and its drawings without them stood a staged monster in his bind pose (now
 `MaterialBlend.Hidden` on the whole mesh); the panes were not snapshot for the roof part ticked alone; the light panel's line, which the
 captures carry, said sections hidden that a capture's drawings draw; and the pane's roof line was made anew every frame.
+THE GAME HIDES WHAT STANDS BETWEEN ITS CAMERA AND THE PLAYER, NOT THE PIECE HE STANDS ON (v0.1.393; said from the live client: "it hides a
+little much", with two captures). Three captures of The Red Vale held ONE tree against the game - curve5's trunk 1581 and crown 1578, sections
+of the very piece the player stood on in all three: at 09:12 and 13:46 the tree stood 460 to 600 units towards the camera and 130 to 260 aside,
+and the game hid trunk and crown; at 13:36 the player stood beside the trunk, 47 to 176 behind him and 10 to 139 aside ("it does not cover
+the player in the game"), and the game showed it while the pane, by the piece, hid it. Another trunk 388 to 516 towards the camera but 372 to
+501 aside stayed shown. MEASURED from those verdicts with the pane's reading as the shape (`CaptureRoofFade.Extents`, every capture's
+roof-fade.txt and `roof-fade-extents-replay.txt` over several, POEF_CAPTURES): the region reaches at least 467 towards the camera, 134 to
+under 372 aside, -126 to under 47 behind. So FROM v0.1.393 THE PANE HIDES BY A REGION (`RoofFade.Reaches`, `Hide`): a tile piece's section
+whose box's spreads across the ground - into the picture and to its side, from the focus - meet 600 towards the camera, 250 aside and
+nought behind, CHOSEN within those bounds; along the VIEWER'S camera's ways (`RoofFade.AheadOf(turn)`, DECIDED from the live client: what stands
+between the viewer's eye and its focus fades, turning with the camera; at the game's angle it is the game's). The engine's own extents are
+the environment's `area.roof_fade_circle_up`, `_dn` and `_lr` (sanctum_floor1.env 361.2 up and 400 down, the prison hideout's and
+gallows/4_5_1's 500 down, Expedition's subareas -10 up; The Red Vale sets none): its parsed environment's area slots between ground_scale
+(+0x158) and the clouds (+0x1B8) hold 0, 0, 0, pi, wind_intensity, 0.5, 1, 1, 0, 0 and 0.2 there, unnamed - a capture in an area whose .env sets one
+names its slot (light-hunt.txt's layout). Until then every roof capture narrows the bounds; take them where a tree stands at the region's
+edge - beside the player, half a tile to a tile aside, a little in front of him.
 
 ## The player on a stage
 
@@ -803,6 +819,38 @@ holds anything, its rows filled, extensions, folders and first values, and how m
 models the Characters rows name under Metadata/Characters/ and his own (`Bodies`), a value counted for the longest body it holds anywhere in
 its path (IntFourB, not IntFour inside it) - with the layout's own standing first (a table read on its verified front alone puts the tail's
 names on other bytes). So one capture names the per-body columns (column_31 and on) of every class, where the carried items name his alone.
+THE GAME'S OWN LIST OF WHAT IT DRAWS HIM WITH (v0.1.393's two captures, The Red Vale, one session; schema `Render.Pieces`): his Render component's
++0x1D0 points at an object whose words lead, each through an object whose +0x08 is a file record, to the .ao of every slot AS DRAWN - the
+cosmetic over the item: an MTX wand and focus (the second weapon set, the one in hand; the first set's staff appears nowhere), a body armour,
+a cape, a helmet, gloves and boots, and one word deeper an attachment the body armour's own .ao names. The survey's body names matched
+nothing because the per-body columns name ATTRIBUTES (`...Str.ao`, `...IntB.ao`): column_48 to 53 Str, Dex, Int, StrDex, StrInt, DexInt, and
+69 to 74 the same with B where a row has one (the tiara's 70, 71 and 73 are DexB, IntB, StrIntB) - his drawn boots are an IntB file, his body
+armour, helmet and gloves Int ones. WHAT THE FILES SAY OF THE COMPOSITION, read whole in the capture: the body (`IntFourB.ao`) carries the
+class's default outfit as `attached_object = "<root> ….ao alias Body_Attach"` (and Boots_, Gloves_, Head_Attach) and names its skin's shapes
+in groups (`SkinMesh`'s `alias = "Body_Seg shape, shape…"`); an armour piece extends `Metadata/SkinBodyArmour` (Boots, Gloves, Helmet) - a
+skin with no rig of its own, so its bones can only be the body's - whose `ObjectHiding` hides the parent's segments and attachments by
+those names (`hide_parent_segments = "Body_Seg"`, `hide_parent_attachments = "Body_Attach"`, sibling keys likewise; a child's plain key
+replaces its parent's, an `add_` key adds to it); a held piece (`…Held.ao`) has a rig of its own and names no socket. NOT READ: which socket
+a held piece hangs at, the composition's layout and length. So v0.1.394's part writes Render whole, the composition whole and every object
+it points at (`PlayerPieces`, the reader the live read will share), every ItemVisualIdentity row and column naming each drawn piece (which
+per-body column the game took), and follows an .act's `parent` line (`CharacterFemale.act`). Take it as he stands, and after swapping weapon
+sets, before the held pieces are hung.
+THE PLAYER IS TAKEN INTO THE MONSTER BOOK (v0.1.395; the seven decisions of 2026-10-31, from the live client: a snapshot at a button, his
+idle and the animation list, alone or where he stood, the weapon set in hand and switchable, the slots' skins before any effect, built from
+the equipment where no cosmetic reads with the line saying so, his own character alone). "take the player" (`MonsterBookWindow.PlayerRow`,
+the overlay's `PlayerTaken`, read past the tap on a thread of its own) reads `PlayerDress` - his path, the class's name (Render.Name), the
+body his Animated component loaded, the slots' pieces (`PlayerPieces.Slots`) - and shows him in place of the chosen row until a row is
+chosen: a `MonsterVariety` of his body whose `Worn` hangs every piece at his root, so the stages, the light, the export and the capture
+are the monster's (the area round you stands him where he stood). WHAT THE BUILD READS FROM THE FILES, for every model now: an
+attached_object line's alias (dropped whole before - the path ended in it), `clear_inherited_attached_objects`, every piece's `ObjectHiding`
+through its chain (`PieceHiding`: a plain key replaces, an `add_` key adds; parent and sibling attachments by alias, segments by a skin's
+`alias` group or a shape's name, taken off by `SkinnedMesh.Keeping`; `MonsterModel.Covered` says what), a skin with no rig of its own at
+its carrier's root as a skin on the carrier's rig (`PartFit.Past`, nought bones of its own), and a shape's material written beside the
+skin rather than under it (IntFourB.ao indents one of 57). READ, NOT MEASURED against the game's picture: the hiding's override rule and the
+rigless skins. NOT YET: the held pieces (a wand, a focus - a rig of their own and no socket named; left out and said, `WornPiece.SkinOnly`,
+until v0.1.394's capture reads where they hang), his idle clip (his .act's chain, which that capture writes), the other weapon set, the
+equipment fallback (which per-body column the game takes - the same capture's `Drawn` section), `show_sibling_segments`, his scale and
+his facing (unscaled, facing as a monster faces - CHOSEN).
 
 ## Verify against the game, not against yourself
 
