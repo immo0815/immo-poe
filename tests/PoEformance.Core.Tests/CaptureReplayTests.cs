@@ -120,6 +120,20 @@ public partial class CaptureReplayTests
         Assert.StartsWith("ocean markup replay: ", replay, StringComparison.Ordinal);
     }
 
+    /// <summary>The player light's windows read back from light-hunt.txt and ranked again by today's rules - player-light-replay.txt.</summary>
+    [Fact]
+    public void THEPLAYERLightHuntIsReadBackFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder || CaptureParts.Find(folder, CaptureReport.LightHuntFile) is not { } path || !File.Exists(path))
+        {
+            return;
+        }
+
+        string replay = PoEformance.Game.Diagnostics.PlayerLightHunt.Replay(File.ReadAllText(path));
+        File.WriteAllText(Path.Combine(folder, PoEformance.Game.Diagnostics.PlayerLightHunt.ReplayFile), replay);
+        Assert.StartsWith("player light hunt replay: ", replay, StringComparison.Ordinal);
+    }
+
     /// <summary>The river flow hunt's lists read back from their files beside river-flow.txt and set out again - river-flow-replay.txt.</summary>
     [Fact]
     public void THERIVERFlowHuntIsReadBackFromACapture()

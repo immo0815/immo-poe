@@ -208,7 +208,7 @@ public sealed class CaptureLightExtrasTests
         string text = Written(out _);
 
         Assert.StartsWith(
-            "light extras: 3 of 5 environments set 9 keys of the clouds, the fog and the player's light; 4 shader sources name a word, 4 whole; 3 of 5 graphs name a node or their path a word, 3 whole; 5 strings in the program name one; 5 textures named, 3 drawn; 2 roof-section materials over 1 model panes; the player's attachment 0 files; 0 of 5 fog fragments; 1 noises whole (",
+            "light extras: 3 of 5 environments set 9 keys of the clouds, the fog and the player's light; 4 shader sources name a word, 4 whole; 3 of 5 graphs name a node or their path a word, 3 whole; 5 strings in the program name one; 5 textures named, 3 drawn; 2 roof-section materials over 1 model panes; the player's attachment 0 files; 0 of 5 fog fragments; 1 noises whole; the roof fade's words in 0 of 6 files (",
             text, StringComparison.Ordinal);
 
         string replay = CaptureLightExtras.Replay(text).ReplaceLineEndings("\n");
@@ -266,7 +266,7 @@ public sealed class CaptureLightExtrasTests
 
         // THE MADE-UP INSTALL HOLDS perlin_noise.dds, the noise candidates' first - written whole whatever else the walk found.
         Assert.True(text.StartsWith(
-            "light extras: no environments; no shader sources; no graphs; no program to search; 0 textures named, 0 drawn; no model pane; the player's attachment 0 files; 0 of 5 fog fragments; 1 noises whole (",
+            "light extras: no environments; no shader sources; no graphs; no program to search; 0 textures named, 0 drawn; no model pane; the player's attachment 0 files; 0 of 5 fog fragments; 1 noises whole; the roof fade's words in 0 of 0 files (",
             StringComparison.Ordinal), text[..text.IndexOf('\n', StringComparison.Ordinal)]);
         Assert.Empty(pictures);
         Assert.StartsWith("light extras replay: 0 environment keys in 0 files;", CaptureLightExtras.Replay(text), StringComparison.Ordinal);
@@ -490,5 +490,35 @@ public sealed class CaptureLightExtrasTests
         Assert.Equal("FRAGMENT WindVector\n\tcost: cheap\n\tout float2 wind_direction\n{{\n\twind_direction = float2(1, 0);\n}}\n", CaptureLightExtras.Block(lines, "WindVector")!.ReplaceLineEndings("\n"));
         Assert.EndsWith("\t\treturn 1;\n\t}\n", CaptureLightExtras.Block(lines, "GetBurnSample")!.ReplaceLineEndings("\n"), StringComparison.Ordinal);
         Assert.Null(CaptureLightExtras.Block(lines, "PlayerTrailingGhost"));
+    }
+
+    /// <summary>
+    /// Section 10: the walks' files naming a roof fade word - an object type setting roof_fade_cylinder, a tile's UTF-16 string - each listed
+    /// with its lines, the text one whole; the replay counts them by kind and by the program's own words.
+    /// </summary>
+    [Fact]
+    public void THEROOFFadesWordsAreFoundInTheWalksFiles()
+    {
+        const string Roof = "Metadata/Terrain/Doodads/Roofs/RoofA.ot", Tile = "Metadata/Terrain/Tiles/Roof.tdt", Plain = "Metadata/Terrain/Doodads/Plain.ot";
+        var files = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            [Roof] = Encoding.UTF8.GetBytes("version 2\nextends \"Metadata/Terrain/Doodads/Base\"\nClientAnimationController\n{\n\troof_fade_cylinder = \"200 400\"\n}\n"),
+            [Tile] = [0, 1, 2, .. Encoding.Unicode.GetBytes("roof_fade_with_parent_tile"), 0, 0, 9],
+            [Plain] = Encoding.UTF8.GetBytes("version 2\n"),
+        };
+
+        string text = CaptureLightExtras.Write(path => files.GetValueOrDefault(path), [], null, [Roof, Tile, Plain], [], null, null, out _).ReplaceLineEndings("\n");
+        Assert.Contains("the roof fade's words in 2 of 3 files (", text, StringComparison.Ordinal);
+        Assert.Contains("=== 10. the install's files naming the roof fade's words", text, StringComparison.Ordinal);
+        Assert.Contains("  rooffile\t" + Roof + "\t1\troof_fade_cylinder = \"200 400\"\n", text, StringComparison.Ordinal);
+        Assert.Contains("  rooffile\t" + Tile + "\t1\t@0x3 utf-16: roof_fade_with_parent_tile\n", text, StringComparison.Ordinal);
+        Assert.Contains("##### " + Roof + "  (names roof_fade)\n", text, StringComparison.Ordinal);
+
+        string replay = CaptureLightExtras.Replay(text).ReplaceLineEndings("\n");
+        Assert.Contains("  .ot: 1 - " + Roof + "\n", replay, StringComparison.Ordinal);
+        Assert.Contains("  roof_fade_cylinder: 1 files\n", replay, StringComparison.Ordinal);
+        Assert.Contains("  roof_fade_with_parent_tile: 1 files\n", replay, StringComparison.Ordinal);
+        Assert.Contains("  no_roof_fade: 0 files\n", replay, StringComparison.Ordinal);
+        Assert.Contains("  whole: 1\n", replay, StringComparison.Ordinal);
     }
 }

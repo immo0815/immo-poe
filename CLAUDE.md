@@ -659,6 +659,23 @@ WHAT v0.1.373'S light-extras.txt SAYS OF THEM, read offline:
   apart (the engine's `time`), the best correlation per candidate; taken where it reaches r 0.25 and 0.1 over the next (CHOSEN). The
   replay measures again from the candidates light-extras wrote whole. Press F9 in The Red Vale, the Monster Book on the area round you, with
   "game picture" ticked and the player standing still in the sun - before the fog or the clouds are drawn.
+WHAT THE FILES SAY OF THE OTHER TWO, read offline from v0.1.374's light-extras.txt (v0.1.381), and what the same capture now measures:
+- THE ROOF FADE'S SHADER IS SETTLED: a roof section wears the engine's `roof_fade.fxgraph`, an AlphaTest of the object uniform `roof_fade`
+  (internalonly.ffx's RoofFade) against world-space noise - Noise31 of the place times 0.2, FitRange to 0.01..0.99 - so a section dissolves
+  through a speckle as its value falls from one to nought. WHAT SETS THE VALUE IS THE PROCESSOR'S: the program names
+  `TileMeshInstance::UpdateHaveRoofFade`, `ClientTileMap::CalculateRoofFadeRanges`, `RoofFadeMode`, `RoofFadeBlend`,
+  `RoofFadeDistanceUpscreen`/`Downscreen` and the keys `roof_fade_bounding_box`, `roof_fade_circle_up`/`_dn`/`_lr`, `roof_fade_cylinder`,
+  `roof_fade_with_parent_tile`, `no_roof_fade`, `enable_roof_fade`, `disable_automatic_roof_fade`, `HideRoof`; fifteen environments set
+  `area.roof_fade_circle_dn` or `_up`. legacy.ffx's SeeThroughFade, a discard in a cone from the eye to the player 150 short of him, is a
+  graph's (seethroughfade.fxgraph), not the roof sections'. light-extras.txt's section 10 lists every object script, tile, room and effect
+  file naming those words with its lines (`CaptureLightExtras.RoofWords`, `CaptureWaterShore.Find`) - read it before the roof fade's rule.
+- THE PLAYER'S LIGHT IS A DYNAMIC LIGHT the processor sets: lighting.ffx's ComputeSpotLightParams or ComputePointLightParamsNew (whose own
+  comment calls a nought w "params of player light"), from a .env naming only its colour, intensity (ParsedEnvironment +0x58, default 1),
+  penumbra (+0x60 by the keys' order, 0.62832 where unset - a reading) and shadows_enabled. light-hunt.txt now ends with the player light's
+  own hunt, in the same sweep (`PlayerLightHunt`, `FloatHunt.Part`): beside every place its colour as the file makes it, or the player's
+  own x and y, is kept, what stands there - a place over him and how high, the colour at a scale, a spot's way and its lean, the file's
+  numbers - each with the float after it, the window holding a place and the colour first; `player-light-replay.txt` ranks them again.
+  Read it before the lamp's height, reach or cone is changed - the tool's lamp is CHOSEN until then.
 
 ## Verify against the game, not against yourself
 

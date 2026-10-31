@@ -103,7 +103,7 @@ public static partial class CaptureLightExtras
     private const int Run = 256;
 
     /// <summary>The tags of the list lines, which <see cref="Replay"/> reads back.</summary>
-    private static readonly string[] Tags = ["key", "env", "source", "graph", "program", "string", "texture", "decoded", "undecoded", "pane", "roof"];
+    private static readonly string[] Tags = ["key", "env", "source", "graph", "program", "string", "texture", "decoded", "undecoded", "pane", "roof", "rooffile"];
 
     private static readonly JsonDocumentOptions Lenient = new()
     {
@@ -213,11 +213,12 @@ public static partial class CaptureLightExtras
         var whole = new List<(string File, byte[] Bytes)>();
         int noises = Noises(read, body, whole);
         files = whole;
+        (int roofFiles, int roofSearched) = RoofWords(read, graphs, body);
         clock.Stop();
 
         string head = string.Create(
             CultureInfo.InvariantCulture,
-            $"light extras: {(environments is { Count: > 0 } ? $"{envFiles} of {environments.Count} environments set {keys} keys of the clouds, the fog and the player's light" : "no environments")}; {(sources < 0 ? "no shader sources" : $"{sources} shader sources name a word, {sourcesWhole} whole")}; {(searched == 0 ? "no graphs" : $"{found} of {searched} graphs name a node or their path a word, {graphsWhole} whole")}; {strings}; {textures} textures named, {decoded} drawn; {(panes is { Count: > 0 } ? $"{roofs} roof-section materials over {shown} model panes" : "no model pane")}; the player's attachment {attached} files; {fragments} of {FogFragments.Count} fog fragments; {noises} noises whole ({clock.Elapsed.TotalSeconds:0.0} s)");
+            $"light extras: {(environments is { Count: > 0 } ? $"{envFiles} of {environments.Count} environments set {keys} keys of the clouds, the fog and the player's light" : "no environments")}; {(sources < 0 ? "no shader sources" : $"{sources} shader sources name a word, {sourcesWhole} whole")}; {(searched == 0 ? "no graphs" : $"{found} of {searched} graphs name a node or their path a word, {graphsWhole} whole")}; {strings}; {textures} textures named, {decoded} drawn; {(panes is { Count: > 0 } ? $"{roofs} roof-section materials over {shown} model panes" : "no model pane")}; the player's attachment {attached} files; {fragments} of {FogFragments.Count} fog fragments; {noises} noises whole; the roof fade's words in {roofFiles} of {roofSearched} files ({clock.Elapsed.TotalSeconds:0.0} s)");
         return head + Environment.NewLine + body;
     }
 
@@ -964,14 +965,21 @@ public static partial class CaptureLightExtras
     {
         ArgumentNullException.ThrowIfNull(text);
         var records = Tags.ToDictionary(tag => tag, _ => new List<string[]>(), StringComparer.Ordinal);
-        var whole = new Dictionary<char, HashSet<string>>();
-        char section = '0';
+        var whole = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        string section = "0";
         foreach (string raw in text.Split('\n'))
         {
             string line = raw.TrimEnd('\r');
+            // A SECTION'S NUMBER IS EVERY DIGIT AFTER THE MARK - the tenth from v0.1.381, read as the first before.
             if (line.StartsWith("=== ", StringComparison.Ordinal) && line.Length > 4 && char.IsAsciiDigit(line[4]))
             {
-                section = line[4];
+                int digits = 4;
+                while (digits < line.Length && char.IsAsciiDigit(line[digits]))
+                {
+                    digits++;
+                }
+
+                section = line[4..digits];
                 continue;
             }
 
@@ -1001,16 +1009,16 @@ public static partial class CaptureLightExtras
             }
         }
 
-        HashSet<string> Whole(char of) => whole.TryGetValue(of, out HashSet<string>? paths) ? paths : [];
+        HashSet<string> Whole(string of) => whole.TryGetValue(of, out HashSet<string>? paths) ? paths : [];
         string Field(string[] fields, int at) => at < fields.Length ? fields[at] : string.Empty;
         static int Number(string text) => int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : 0;
 
         List<string[]> keys = records["key"], envs = records["env"], sources = records["source"], graphs = records["graph"];
         List<string[]> programs = records["program"], strings = records["string"], textures = records["texture"], decoded = records["decoded"];
-        List<string[]> panes = records["pane"], roofs = records["roof"];
+        List<string[]> panes = records["pane"], roofs = records["roof"], roofFiles = records["rooffile"];
         var said = new StringBuilder();
         said.Append(CultureInfo.InvariantCulture,
-            $"light extras replay: {keys.Count} environment keys in {envs.Count} files; {sources.Count} shader sources, {Whole('2').Count} whole; {graphs.Count} graphs, {Whole('3').Count} whole; {strings.Count} program strings in {programs.Count} programs; {textures.Count} textures, {decoded.Count} drawn; {roofs.Count} roof-section materials over {panes.Count} panes")
+            $"light extras replay: {keys.Count} environment keys in {envs.Count} files; {sources.Count} shader sources, {Whole("2").Count} whole; {graphs.Count} graphs, {Whole("3").Count} whole; {strings.Count} program strings in {programs.Count} programs; {textures.Count} textures, {decoded.Count} drawn; {roofs.Count} roof-section materials over {panes.Count} panes")
             .AppendLine();
 
         said.AppendLine().AppendLine("=== 1. the environments' keys by section, each key with how many files set it - the most first");
@@ -1033,7 +1041,7 @@ public static partial class CaptureLightExtras
         said.AppendLine().AppendLine("=== 2. the shader sources, the most words first - whole where the part wrote them so");
         foreach (string[] source in sources)
         {
-            said.Append("  ").Append(Field(source, 0)).Append("  (").Append(Field(source, 2)).Append(')').AppendLine(Whole('2').Contains(Field(source, 0)) ? " - whole" : string.Empty);
+            said.Append("  ").Append(Field(source, 0)).Append("  (").Append(Field(source, 2)).Append(')').AppendLine(Whole("2").Contains(Field(source, 0)) ? " - whole" : string.Empty);
         }
 
         said.AppendLine().AppendLine("=== 2b. each word, by the sources naming it");
@@ -1059,7 +1067,7 @@ public static partial class CaptureLightExtras
             said.Append(CultureInfo.InvariantCulture, $"  path {word}: {naming.Length}").AppendLine(naming.Length > 0 ? " - " + string.Join(", ", naming.Take(40)) + (naming.Length > 40 ? ", ..." : string.Empty) : string.Empty);
         }
 
-        said.Append(CultureInfo.InvariantCulture, $"  whole: {Whole('3').Count} - ").AppendLine(string.Join(", ", Whole('3').Order(StringComparer.OrdinalIgnoreCase)));
+        said.Append(CultureInfo.InvariantCulture, $"  whole: {Whole("3").Count} - ").AppendLine(string.Join(", ", Whole("3").Order(StringComparer.OrdinalIgnoreCase)));
 
         said.AppendLine().AppendLine("=== 4. the program's strings");
         foreach (string[] program in programs)
@@ -1088,10 +1096,23 @@ public static partial class CaptureLightExtras
             said.Append(CultureInfo.InvariantCulture, $"  the {Field(pane, 0)} book's pane: {Field(pane, 1)} - {Field(pane, 2)} shapes in {Field(pane, 3)} materials, {Field(pane, 4)} not in the install, {Field(pane, 5)} roof sections").AppendLine(mixes);
             foreach (string[] roof in roofs.Where(roof => Field(roof, 0) == Field(pane, 0)))
             {
-                said.Append(CultureInfo.InvariantCulture, $"    {Field(roof, 1)}: {Field(roof, 2)} shapes, {Field(roof, 3)} triangles, from {Field(roof, 4)}").AppendLine(Whole('6').Contains(Field(roof, 1)) ? " - whole" : string.Empty);
+                said.Append(CultureInfo.InvariantCulture, $"    {Field(roof, 1)}: {Field(roof, 2)} shapes, {Field(roof, 3)} triangles, from {Field(roof, 4)}").AppendLine(Whole("6").Contains(Field(roof, 1)) ? " - whole" : string.Empty);
             }
         }
 
+        said.AppendLine().AppendLine("=== 10. the files naming the roof fade's words, by kind - and each roof fade word with how many files' lines name it");
+        foreach (IGrouping<string, string[]> kind in roofFiles.GroupBy(one => Path.GetExtension(Field(one, 0)).ToLowerInvariant()).OrderByDescending(group => group.Count()))
+        {
+            said.Append(CultureInfo.InvariantCulture, $"  {kind.Key}: {kind.Count()} - ").AppendLine(string.Join(", ", kind.Select(one => Field(one, 0)).Take(24)) + (kind.Count() > 24 ? ", ..." : string.Empty));
+        }
+
+        foreach (string word in (string[])["roof_fade_bounding_box", "roof_fade_circle", "roof_fade_cylinder", "roof_fade_with_parent_tile", "no_roof_fade", "enable_roof_fade", "disable_automatic_roof_fade", "set_roof_fade_dynamic_parameter", "hideroof", "rooffademode"])
+        {
+            int naming = roofFiles.Count(one => Field(one, 2).Contains(word, StringComparison.OrdinalIgnoreCase));
+            said.Append(CultureInfo.InvariantCulture, $"  {word}: {naming} files").AppendLine();
+        }
+
+        said.Append(CultureInfo.InvariantCulture, $"  whole: {Whole("10").Count}").AppendLine();
         return said.ToString();
     }
 

@@ -2798,6 +2798,10 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// IN THE CAPTURE, NOT ONLY BEHIND THE LIGHT PANEL'S BUTTON (asked for from the live client): a measurement the tool can
     /// make is one key's work. The same hunt the panel runs - the same needles, the anchor the player's own entity - and the
     /// water's two lines of evidence with it, see LightHunt.
+    ///
+    /// THE PLAYER'S LIGHT IN THE SAME SWEEP (v0.1.381): its needles after the light hunt's, one pass over memory for both, each reading
+    /// back its own part (FloatHunt.Part) - see PlayerLightHunt. Where the player is not read, the report says so and the light hunt
+    /// runs as before.
     /// </remarks>
     private Task<string>? CaptureLightHunt(FloatHuntProgress progress)
     {
@@ -2820,10 +2824,27 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             return Task.FromResult($"nothing to hunt for in {path}: {why}");
         }
 
-        return search(hunt.Needles, _snapshot.Player?.Address ?? 0, progress)?.ContinueWith(
-            done => done.IsCompletedSuccessfully
-                ? hunt.Read(done.Result) is { } verdict ? verdict.Summary + Environment.NewLine + Environment.NewLine + verdict.Report : string.Empty
-                : "the hunt failed: " + (done.Exception?.GetBaseException().Message ?? "cancelled"),
+        PlayerLightHunt? player = _snapshot.Player is { } you
+            ? PlayerLightHunt.For(env, new System.Numerics.Vector3(you.WorldX, you.WorldY, you.WorldZ), you.TerrainHeight)
+            : null;
+        int own = hunt.Needles.Count;
+        IReadOnlyList<FloatNeedle> needles = player is null ? hunt.Needles : [.. hunt.Needles, .. player.Needles];
+        return search(needles, _snapshot.Player?.Address ?? 0, progress)?.ContinueWith(
+            done =>
+            {
+                if (!done.IsCompletedSuccessfully)
+                {
+                    return "the hunt failed: " + (done.Exception?.GetBaseException().Message ?? "cancelled");
+                }
+
+                string lights = hunt.Read(FloatHunt.Part(done.Result, 0, own)) is { } verdict
+                    ? verdict.Summary + Environment.NewLine + Environment.NewLine + verdict.Report
+                    : string.Empty;
+                string theirs = player is null
+                    ? "=== the player light, sought in the light hunt's own sweep (PlayerLightHunt)" + Environment.NewLine + "player light hunt: not looked for - the player was not read"
+                    : player.Read(FloatHunt.Part(done.Result, own, player.Needles.Count));
+                return lights + Environment.NewLine + Environment.NewLine + theirs;
+            },
             CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
     }
 
