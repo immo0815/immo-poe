@@ -693,6 +693,17 @@ public sealed partial class ModelGpu : IDisposable
             Lit(light, buffers, plan, view, placed, _swayed is null ? pose : -1, skin?.From ?? (posed ? scene.PoseFrom : 0), skin?.Hull);
         }
 
+        // THE AIR FOR THE WHOLE PICTURE - the clouds every sunlit surface reads, the fog's values - and the clouds' noise, bound before the
+        // solid part they shade; the player the camera's focus (ModelGpu.Fog).
+        bool clouded = Clouds(light);
+        Vector3 player = scene.Pose?.Focus ?? ((mesh.Least + mesh.Most) * 0.5f);
+        if (light is not null)
+        {
+            Aired(context, light, player, clouded);
+        }
+
+        context.PSSetShaderResource(ModelShaders.DistortionSlot, clouded ? Skin(distortion!).View : null!);
+
         context.OMSetRenderTargets(target.AccumulatedTarget, target.Depth);
         context.RSSetViewport(new Viewport(0f, 0f, target.Size, target.Size, 0f, 1f));
         context.VSSetShader(_placed);
@@ -751,7 +762,7 @@ public sealed partial class ModelGpu : IDisposable
             context.PSSetShaderResource(ModelShaders.CausticsSlot, patterned ? Skin(caustics!).View : null!);
             // THE DISTORTION ALSO FOR A RIVER'S FOAM (ShadeProgram.RiverFoam), which reads nought where nothing is bound, as the processor's does.
             bool rivers = distortion is not null && Array.Exists(plan.Programs, one => one.Rivers);
-            context.PSSetShaderResource(ModelShaders.DistortionSlot, patterned || rivers ? Skin(distortion!).View : null!);
+            context.PSSetShaderResource(ModelShaders.DistortionSlot, patterned || rivers || clouded ? Skin(distortion!).View : null!);
 
             var owner = -1;
             var lifted = false;
@@ -814,10 +825,10 @@ public sealed partial class ModelGpu : IDisposable
             }
         }
 
-        // THE SCREEN-SPACE FOG OVER THE PICTURE, its player the camera's focus - see ModelGpu.Fog.
-        if (light is not null && Fogs(light) is { } fogged)
+        // THE SCREEN-SPACE FOG OVER THE PICTURE, over the air's constants Aired bound - see ModelGpu.Fog.
+        if (Fogs(light) is { } fogged)
         {
-            Fogged(context, target, light, fogged, scene.Pose?.Focus ?? ((mesh.Least + mesh.Most) * 0.5f));
+            Fogged(context, target, fogged);
         }
 
         // THE CASTERS ONCE THE PICTURE IS DRAWN, for the next frame's receivers - see ModelGpu.Wet.

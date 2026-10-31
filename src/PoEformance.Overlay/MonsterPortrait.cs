@@ -891,7 +891,14 @@ public sealed class MonsterPortrait
     /// <summary>The line under a card's picture the screen-space fog is laid over - see SceneLight.Fog and ModelGpu's Fogged.</summary>
     private const string FogDrawn = "screen-space fog: the area's weather attachment's pass (ScreenspaceFogFlat.fxgraph and its group, compiled from its"
         + " own files) laid over the picture - CHOSEN: the camera's focus stands for the player, drawn at the picture's own size, exposed and"
-        + " graded as a mixed layer, none where nothing solid lies behind, its sun's shadow sampled a texel apart, no clouds yet; the card's alone";
+        + " graded as a mixed layer, none where nothing solid lies behind, its sun's shadow sampled a texel apart and clouded as the ground's;"
+        + " the card's alone";
+
+    /// <summary>The line under a card's picture the clouds' shadow lies on - see SceneLight.Clouds and ModelShaders' Clouded.</summary>
+    private const string CloudsDrawn = "clouds: shadows.ffx's GetCloudsIntensity on the sun's light, on every surface and through the fog, as the area's"
+        + " .env sets them - CHOSEN: muddle_double.dds's alpha as the engine's noise (no file names it; the best of the candidates held against"
+        + " The Red Vale's picture, not a clear one), clouds_velocity along (cos a, sin a) of the .env's angle, the camera's focus as the"
+        + " player, the picture's clock as the engine's time; the card's alone";
 
     /// <summary>
     /// A list with every program that has one swapped for its twin whose spray reads the stone's own occlusion (ShadeProgram.Occluded) -
@@ -2757,6 +2764,14 @@ public sealed class MonsterPortrait
                 : FogDrawn);
         }
 
+        // AND THE CLOUDS, the card's alone too (SceneLight.Clouds), once their noise is in.
+        if (_drawnLight?.Clouds is not null)
+        {
+            _status.Add(!_onCard ? "clouds: not drawn - the processor's picture leaves them out (the card's alone)"
+                : ShadeProgram.Distortion is null ? "clouds: not drawn yet - their noise, muddle_double.dds, is not in: " + ShadeProgram.CausticsSaid
+                : CloudsDrawn);
+        }
+
         // WHERE THE FILES WENT, and it stays up until the next export rather than flashing: the
         // whole point of the button is that somebody then goes and finds what it wrote.
         if (_exported.Length > 0)
@@ -3861,8 +3876,10 @@ public sealed class MonsterPortrait
     private bool HasClock()
     {
         // A SWAY RUNS WITH THE CLOCK, on the card - the processor's picture stands still, and says so. So does the screen-space fog,
-        // which drifts and rises with it (SceneLight.Fog: ScreenspaceFogFlat reads Time), drawn by the card alone.
-        if ((_model.Sways.Count > 0 || _drawnLight?.Fog is { Ready: true, Program.UsesTime: true }) && _onCard)
+        // which drifts and rises with it (SceneLight.Fog: ScreenspaceFogFlat reads Time), and the clouds' shadow, which drifts along their
+        // velocity (SceneLight.Clouds), both drawn by the card alone.
+        bool drifting = _drawnLight?.Clouds is { } clouds && clouds.Drift.Speed > 0f && ShadeProgram.Distortion is not null;
+        if ((_model.Sways.Count > 0 || _drawnLight?.Fog is { Ready: true, Program.UsesTime: true } || drifting) && _onCard)
         {
             return true;
         }

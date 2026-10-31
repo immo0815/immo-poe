@@ -537,8 +537,15 @@ public sealed class SceneLight
     public ScreenFog? Fog { get; init; }
 
     /// <summary>
+    /// The area's clouds as its .env sets them, whose shadow (shadows.ffx's GetCloudsIntensity, AreaClouds) the sun's light takes on every
+    /// surface and through the fog - or null for none. The card's alone, as the fog is (DECIDED from the live client): drawn once their noise is
+    /// in (AreaClouds.NoisePath, CHOSEN); the processor's picture says it leaves them out.
+    /// </summary>
+    public AreaClouds? Clouds { get; init; }
+
+    /// <summary>
     /// Where the picture's frame stands in the area, its x and y - a laid room's corner (MonsterModel.AreaOrigin) - or nought for a picture in a
-    /// frame of its own: what the screen-space fog lays its pattern in the area's own place by, as the game lays it.
+    /// frame of its own: what the screen-space fog and the clouds lay their patterns in the area's own place by, as the game lays them.
     /// </summary>
     public Vector2 AreaOrigin { get; init; }
 

@@ -162,6 +162,20 @@ internal static class ModelShaders
             row_major float4x4 Bone[{{MostBones}}];
         };
 
+        // THE AIR, written once a picture (ModelGpu.Aired - AirConstants, field for field): the clouds every surface the sun lights reads
+        // (Clouded) and the screen-space fog's pass (ModelGpu.Fogged, ModelShaders.Air).
+        cbuffer Air : register(b5)
+        {
+            float4 AirFog;     // the pass's ssf_color - ScreenFog.Colour
+            float4 AirShape;   // xy: ssf_disperse_radius and ssf_feathering - ScreenFog.Shape
+            float4 AirPlayer;  // xyz: PlayerTrailingGhost in the area's frame - on a stage the camera's focus (CHOSEN)
+            float4 AirLight;   // rgb: GetTotalEnvLight - ScreenFog.Environment
+            float4 AirOrigin;  // xy: where the picture's frame stands in the area - SceneLight.AreaOrigin
+            float4 AirClouds;  // clouds_scale, clouds_intensity, clouds_midpoint, clouds_sharpness - AreaClouds
+            float4 AirDrift;   // xy: the noise's x axis, clouds_velocity's way; z: its speed; w: clouds_fade_radius - AreaClouds.Drift
+            float4 AirFades;   // x: clouds_pre_fade; y: clouds_post_fade; z: one where the clouds are drawn - SceneLight.Clouds
+        };
+
         // EACH VERTEX'S FOUR BONES AND FOUR WEIGHTS, a byte each - the weighted mesh's own arrays, from Skinning.y on.
         Buffer<uint4> SkinBones : register(t{{SkinBonesSlot}});
         Buffer<uint4> SkinWeights : register(t{{SkinWeightsSlot}});
@@ -415,6 +429,59 @@ internal static class ModelShaders
             float top = lerp(Open(x0, y0, depth), Open(x0 + 1, y0, depth), fx);
             float bottom = lerp(Open(x0, y0 + 1, depth), Open(x0 + 1, y0 + 1, depth), fx);
             return lerp(top, bottom, fy);
+        }
+
+        // SamplerLinearWrap at level nought, as the engine reads its caustics' two textures and the clouds' noise: the four nearest texels'
+        // centres mixed by hand, wrapping - ShadeProgram.Ripple's arithmetic and AreaClouds.Sample's, whatever sampler the picture is drawn with.
+        float4 WrappedRead(Texture2D<float4> sheet, float2 spot)
+        {
+            uint width;
+            uint height;
+            sheet.GetDimensions(width, height);
+            float2 at = (spot * float2(width, height)) - 0.5;
+            float2 low = floor(at);
+            float2 share = at - low;
+            int2 size = int2(width, height);
+            int2 a = (((int2)low % size) + size) % size;
+            int2 b = (a + 1) % size;
+            float4 top = lerp(sheet.Load(int3(a.x, a.y, 0)), sheet.Load(int3(b.x, a.y, 0)), share.x);
+            float4 bottom = lerp(sheet.Load(int3(a.x, b.y, 0)), sheet.Load(int3(b.x, b.y, 0)), share.x);
+            return lerp(top, bottom, share.y);
+        }
+
+        // math_utils' SmoothStep - the DECLARATIONS block shadows.ffx includes, saturated outside: AreaClouds.MathSmoothStep.
+        float CloudStep(float value, float center, float curve)
+        {
+            float power = (2.0 / max(1e-3, 1.0 - curve)) - 1.0;
+            return saturate(1.0 - center
+                + (-pow(saturate(1.0 - max(center, value)), power) * pow(saturate(1.0 - center), -(power - 1.0)))
+                + (pow(saturate(min(center, value)), power) * pow(saturate(center), -(power - 1.0))));
+        }
+
+        // shadows.ffx's GetCloudsIntensity (AreaClouds.At): the clouds' shadow on the sun's light at a place of the picture - the area's own
+        // place read, so the pattern lies where the area lays it, the noise the distortion texture's alpha (AreaClouds.NoisePath, CHOSEN), the
+        // player's fade round AirPlayer. One where none is drawn, or where the sun stands at the horizon (AreaClouds.LeastRise, 1e-3).
+        float Clouded(float3 place)
+        {
+            if (!(AirFades.z > 0.5) || abs(SunTravels.z) < 1e-3)
+            {
+                return 1.0;
+            }
+
+            float2 area = place.xy + AirOrigin.xy;
+            float fade = smoothstep(0.0, 1.0, saturate(1.0 - (length(AirPlayer.xy - area) / max(1e-4, AirDrift.w))));
+            float2 reference = area - (SunTravels.xy / SunTravels.z * 1000.0);
+            float2 across = float2(-AirDrift.y, AirDrift.x);
+            float2 spot = float2(dot(AirDrift.xy, reference) + (AirDrift.z * Clock.x), dot(across, reference)) * (0.001 * AirClouds.x);
+            float faded = saturate(WrappedRead(DistortionSheet, spot).a + (fade * AirFades.x));
+            return lerp(1.0, saturate(CloudStep(faded, AirClouds.z, AirClouds.w) + (fade * AirFades.y)), AirClouds.y);
+        }
+
+        // THE SUN'S SHARE AT A SURFACE: its shadow map where it is read (SunTravels.w), times the clouds' shadow - the engine's ShadowMap
+        // for the directional light, which multiplies the one by the other.
+        float SunLit(float3 place, float3 normal)
+        {
+            return (SunTravels.w > 0.5 ? SunReaches(place, normal) : 1.0) * Clouded(place);
         }
 
         // CubeMap.Sample: Direct3D's face selection, bilinear within the face, clamped at its edge.
@@ -833,7 +900,7 @@ internal static class ModelShaders
             }
 
             float3 normal = Toward(pixel.turn);
-            float sun = SunTravels.w > 0.5 ? SunReaches(pixel.place, normal) : 1.0;
+            float sun = SunLit(pixel.place, normal);
             return float4(Srgb(Lighted(Linear(colour), pixel.place, normal, sun, false, float3(0.0, 0.0, 0.0), 0.0, float3(0.0, 0.0, 0.0), 1.0)), 1.0);
         }
 
@@ -1123,24 +1190,6 @@ internal static class ModelShaders
             return float3(red, green, unshifted.b);
         }
 
-        // SamplerLinearWrap at level nought, as the engine reads its caustics' two textures: the four nearest texels' centres mixed by hand,
-        // wrapping - ShadeProgram.Ripple's arithmetic.
-        float4 WrappedRead(Texture2D<float4> sheet, float2 spot)
-        {
-            uint width;
-            uint height;
-            sheet.GetDimensions(width, height);
-            float2 at = (spot * float2(width, height)) - 0.5;
-            float2 low = floor(at);
-            float2 share = at - low;
-            int2 size = int2(width, height);
-            int2 a = (((int2)low % size) + size) % size;
-            int2 b = (a + 1) % size;
-            float4 top = lerp(sheet.Load(int3(a.x, a.y, 0)), sheet.Load(int3(b.x, a.y, 0)), share.x);
-            float4 bottom = lerp(sheet.Load(int3(a.x, b.y, 0)), sheet.Load(int3(b.x, b.y, 0)), share.x);
-            return lerp(top, bottom, share.y);
-        }
-
         // SceneLight.WaterCaustics: water.ffx's GetCausticsBias and GetCausticsIntensity over the light where the bent ray ended, the ground
         // water ratio nought as it is everywhere here - the deep water's frequency and intensity - and the strength WaterLit.w, the area's
         // caustics_mult less the shore's ratio. The light is the picture's sRGB, so it is multiplied as light and put back.
@@ -1345,7 +1394,7 @@ internal static class ModelShaders
         float4 WaterSceneLit(ShadeOut said, float3 place, float3 turn, float4 position, bool mixed)
         {
             float3 normal = Toward(turn);
-            float sun = SunTravels.w > 0.5 ? SunReaches(place, normal) : 1.0;
+            float sun = SunLit(place, normal);
             float environment = 1.0;
             float3 mirrored = float3(0.0, 0.0, 0.0);
             if (ShadeHasSpecular && ShadeHasGloss && Finish.z > 0.5 && ToEye.w > 0.5)
@@ -1383,7 +1432,7 @@ internal static class ModelShaders
                 albedo += max(specular - 0.04, 0.0);
             }
 
-            float sun = SunTravels.w > 0.5 ? SunReaches(place, normal) : 1.0;
+            float sun = SunLit(place, normal);
             bool glossy = ShadeHasSpecular && ShadeHasGloss;
             float3 wavy = ShadeHasWaves ? waves : float3(0.0, 0.0, 0.0);
             float environment = 1.0;
@@ -1561,26 +1610,17 @@ internal static class ModelShaders
             : Common + ShadeHlsl.Of(program, FirstSheet) + Programmed;
 
     /// <summary>
-    /// A screen program's light (ShadeProgram.CompileScreen, the screen-space fog): the pass's values in constants of their own, and the omni light
-    /// its layers take - <c>ShadeOmni</c>, which the program's steps call.
+    /// A screen program's light (ShadeProgram.CompileScreen, the screen-space fog): the omni light its layers take - <c>ShadeOmni</c>, which the
+    /// program's steps call - over the pass's values in Common's cbuffer Air.
     /// </summary>
     /// <remarks>
     /// GetIntegralOmniLight AS lighting.ffx WRITES IT, over this tool's own lights: the sun through IntegrateShadowMap's seven samples along the
-    /// layer, every point light at the layer's first point as Lighted finds them in the light grid (ComputePointLightParams, unshadowed: the
-    /// engine's shadowed dynamic lights have no map here), the environment's light times the ambient's alpha, and the ambient's colour. The
-    /// layer's points are the area's (the fog's pattern is laid in the world, as the game lays it); the sun's map and the lights are in the
-    /// picture's own frame, so the frame's place in the area is taken off before they are read.
+    /// layer and the clouds' shadow at its first point (Clouded), every point light at the layer's first point as Lighted finds them in the
+    /// light grid (ComputePointLightParams, unshadowed: the engine's shadowed dynamic lights have no map here), the environment's light times
+    /// the ambient's alpha, and the ambient's colour. The layer's points are the area's (the fog's pattern is laid in the world, as the game
+    /// lays it); the sun's map and the lights are in the picture's own frame, so the frame's place in the area is taken off before they are read.
     /// </remarks>
     public static readonly string Air = """
-        cbuffer Air : register(b5)
-        {
-            float4 AirFog;     // the pass's ssf_color - ScreenFog.Colour
-            float4 AirShape;   // xy: ssf_disperse_radius and ssf_feathering - ScreenFog.Shape
-            float4 AirPlayer;  // xyz: PlayerTrailingGhost in the area's frame - on a stage the camera's focus (CHOSEN)
-            float4 AirLight;   // rgb: GetTotalEnvLight - ScreenFog.Environment
-            float4 AirOrigin;  // xy: where the picture's frame stands in the area - SceneLight.AreaOrigin
-        };
-
         // IntegrateShadowMap's one sample of the sun's map at a point of the air: ShadowMap.Lit's four texels compared and lerped, as SunReaches
         // reads them for a surface, with nothing to lift it off and the map's own bias kept - the point moved across the map by an offset.
         float SunAt(float3 place, float2 offset)
@@ -1606,7 +1646,7 @@ internal static class ModelShaders
 
         // IntegrateShadowMap for the directional light (shadows.ffx): seven samples from the layer's first point towards its last, the i-th at
         // (i + hash) / 7 of the way, each moved by its point of the hexagon times shadow_scale.xy - CHOSEN a texel of the sun's map, the engine's
-        // scale being read nowhere - and averaged. The clouds' factor (GetCloudsIntensity) is not drawn yet.
+        // scale being read nowhere - and averaged; ShadeOmni lays the clouds' factor over it at the first point, as IntegrateShadowMap does.
         float SunAlong(float3 near, float3 far, float hash)
         {
             static const float2 offsets[7] =
@@ -1638,7 +1678,7 @@ internal static class ModelShaders
             float3 total = float3(0.0, 0.0, 0.0);
             if (SunColour.w > 0.5)
             {
-                total += SunColour.rgb * (SunTravels.w > 0.5 ? SunAlong(near, far, hash) : 1.0);
+                total += SunColour.rgb * (SunTravels.w > 0.5 ? SunAlong(near, far, hash) : 1.0) * Clouded(near);
             }
 
             if (Ambient.w > 0)

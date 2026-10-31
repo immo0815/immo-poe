@@ -21,14 +21,18 @@ namespace PoEformance.Features;
 /// </remarks>
 public static partial class CaptureLightExtras
 {
-    /// <summary>The engine's noise texture's candidates: the four noises with an alpha the program names in Art/2DArt/Lookup/.</summary>
+    /// <summary>
+    /// The engine's noise texture's candidates: the four noises with an alpha the program names in Art/2DArt/Lookup/, and the two the clouds
+    /// went best with offline (v0.1.381's capture of The Red Vale) - the one drawn, <see cref="AreaClouds.NoisePath"/> (CHOSEN), and the next.
+    /// </summary>
     /// <remarks>
     /// influence_noise.dds is named beside them but is R8G8: its alpha reads one, and the clouds read the noise's alpha - so it is left out.
+    /// THE NOISE DRAWN IS MEASURED AGAIN in every capture, against the four the program names, so the choice is held against each new area.
     /// </remarks>
     public static IReadOnlyList<string> NoiseCandidates { get; } =
     [
         "Art/2DArt/Lookup/perlin_noise.dds", "Art/2DArt/Lookup/noise_perlin_worley_high.dds", "Art/2DArt/Lookup/noise_curl3.dds",
-        "Art/2DArt/Lookup/noise_worley_low.dds",
+        "Art/2DArt/Lookup/noise_worley_low.dds", AreaClouds.NoisePath, "Art/particles/distortion/flowmap_04.dds",
     ];
 
     /// <summary>The fog's layer texture as screenspacefogenv.fxgraph names it - its custom parameter "1.Fog_Texture" may be set otherwise by a material.</summary>

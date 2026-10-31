@@ -701,8 +701,23 @@ place); `ModelGpu.Fogged` draws it on the card after the translucent shapes over
 WindVector nought (the graph's influence is nought anyway); drawn at the picture's size, exposed and graded as a mixed layer is laid over it
 (the engine's DownScaledAlphaBlend under its grade); none where nothing solid lies behind; the sun's shadow through IntegrateShadowMap with its
 seven samples a texel apart (shadow_scale unread), the room's lights at the layer's first point unshadowed; on a parallel view the eye a
-hundred thousand units back along the view. NOT DRAWN: the clouds' factor in its shadow (item 2), the mesh's own material SSTexturec.mat -
-light-extras.txt's section 7 writes it whole from v0.1.383 (`shapefile` lines), read it before it is drawn or left out.
+hundred thousand units back along the view; the clouds' factor at each layer's first point from v0.1.384 (below). NOT DRAWN: the mesh's own
+material SSTexturec.mat - light-extras.txt's section 7 writes it whole from v0.1.383 (`shapefile` lines), read it before it is drawn or left out.
+THE CLOUDS ARE DRAWN (v0.1.384), shadows.ffx's GetCloudsIntensity as written (`AreaClouds`, the card's `Clouded`; the light panel's
+"atmosphere" fold, "clouds", on by default; the card's alone, the processor's picture saying it leaves them out): on the sun's light at every
+surface (`SunLit` - the engine's ShadowMap multiplies the directional shadow by it) and through the fog at each layer's first point
+(IntegrateShadowMap's), the area's own place read (`SceneLight.AreaOrigin`), the .env's clouds section (`AreaClouds.Of`, the fade radius
+the engine's measured 800 where unset). CHOSEN from the live client and said under the picture: the noise muddle_double.dds's alpha
+(`AreaClouds.NoisePath`; held offline against v0.1.381's light-against-game.bin, r 0.48 against flowmap_04's 0.35 over the lit ground, 0.39
+against 0.33 beyond 900 units of the player - not clear by CloudNoise's own rule); clouds_velocity `speed (cos a, sin a)`, the way
+muddle_double went best with at every distance; the camera's focus as the player; the picture's clock as the engine's time. AS WRITTEN the
+noise slides along the velocity's way with the clock, so the clouds' shadow DRIFTS AGAINST clouds_velocity, at |velocity| a second
+(`THEPATTERNMovesAsTheEnginesTextureSlides`) - with the CHOSEN way towards -(cos a, sin a): a video of the game's cloud shadows settles the
+way. math_utils' SmoothStep, which the clouds call, is the .ffx DECLARATIONS block's - saturated outside, the value not held inside nought
+and one; CloudNoise had util.hlsl's, which does the latter (the two agree for a value in nought to one). light-against-game's clouds'
+measurement holds muddle_double and flowmap_04 beside the program's four noises from v0.1.384 (`CaptureLightExtras.NoiseCandidates`), so
+every capture measures the noise drawn again. `AreaCloudsTests` hold AreaClouds against a second transcription of shadows.ffx;
+`THECLOUDSShadowTheSunOnTheCardAsAreaCloudsLaysThem` the card against AreaClouds on WARP.
 
 ## Verify against the game, not against yourself
 

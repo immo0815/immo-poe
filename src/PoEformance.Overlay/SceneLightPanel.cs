@@ -128,6 +128,15 @@ public sealed class SceneLightPanel : IMovableSun
     private ScreenFog? _screenFog;
 
     private string _fogPath = "\0";
+
+    /// <summary>Whether the clouds the area's .env sets throw their shadow on the sun's light - see <see cref="Clouded"/>.</summary>
+    private bool _clouds = true;
+
+    /// <summary>The clouds of the environment <see cref="_cloudsPath"/> names, or null with why in <see cref="_cloudsWhy"/> - read once per environment.</summary>
+    private AreaClouds? _areaClouds;
+
+    private string _cloudsWhy = string.Empty;
+    private string _cloudsPath = "\0";
     private float _lift = 1f;
 
     /// <summary>How far the ocean ripples' wind is turned from the area's own way, in degrees - see <see cref="Water"/>.</summary>
@@ -317,6 +326,7 @@ public sealed class SceneLightPanel : IMovableSun
             WaterWetness = _wetness,
             SprayOccluded = _sprayOccluded,
             Fog = _fog ? Fogged() : null,
+            Clouds = _clouds ? Clouded() : null,
             AreaOrigin = model.AreaOrigin ?? Vector2.Zero,
             WaterLift = _lift,
             CubeTurn = SceneLight.CubeTurnFrom(env.HorAngle ?? 0f, env.VertAngle ?? 0f, (SceneLight.CubeReading)_cubeReading),
@@ -434,7 +444,7 @@ public sealed class SceneLightPanel : IMovableSun
             }
         }
 
-        if (Fold(Count("atmosphere", _fog) + "###scene-fold-air", open: false))
+        if (Fold(Count("atmosphere", _fog, _clouds) + "###scene-fold-air", open: false))
         {
             try
             {
@@ -619,7 +629,7 @@ public sealed class SceneLightPanel : IMovableSun
             + " former constants roll them, along x, stands for it. Hold it against the game's ripples.");
     }
 
-    /// <summary>The air's switches, in columns: the screen-space fog.</summary>
+    /// <summary>The air's switches, in columns: the screen-space fog and the clouds.</summary>
     private void AirRows()
     {
         if (!OverlayLayout.Switches("##scene-air", AirLabels))
@@ -636,6 +646,12 @@ public sealed class SceneLightPanel : IMovableSun
                 + " lights and the environment's. CHOSEN: on a stage the camera's focus stands for the player; drawn at the picture's own size (the"
                 + " engine's a smaller one); its light exposed and graded and laid over the picture as a mixed layer is; nothing solid behind, no fog."
                 + " The card's alone.");
+            Switch("clouds##scene-clouds", ref _clouds,
+                "The clouds the area's .env sets (its clouds section): their shadow drifting over the ground, as shadows.ffx's GetCloudsIntensity"
+                + " lays it on the sun's light - on every surface and through the fog - read 1000 units up along the light, thinned round the"
+                + " player. CHOSEN: the engine's noise is a pass texture no file names, so muddle_double.dds's alpha stands for it (the best of"
+                + " the candidates held against The Red Vale's picture, not a clear one); clouds_velocity is (cos a, sin a) of the .env's angle,"
+                + " which the engine's formula drifts the shadow against; on a stage the camera's focus stands for the player. The card's alone.");
         }
         finally
         {
@@ -644,7 +660,7 @@ public sealed class SceneLightPanel : IMovableSun
     }
 
     /// <summary>The air's switches' visible labels, for their columns.</summary>
-    private static readonly string[] AirLabels = ["fog"];
+    private static readonly string[] AirLabels = ["fog", "clouds"];
 
     /// <summary>The fog the environment in use names, read and compiled once per environment - see ScreenFog.Of.</summary>
     /// <remarks>
@@ -662,6 +678,23 @@ public sealed class SceneLightPanel : IMovableSun
         }
 
         return _screenFog;
+    }
+
+    /// <summary>The clouds the environment in use sets, read once per environment - see AreaClouds.Of; null where it sets none.</summary>
+    private AreaClouds? Clouded()
+    {
+        if (!string.Equals(_cloudsPath, _loadedPath, StringComparison.OrdinalIgnoreCase))
+        {
+            _cloudsPath = _loadedPath;
+            _areaClouds = null;
+            _cloudsWhy = "no environment read";
+            if (_environment.Ready)
+            {
+                _areaClouds = AreaClouds.Of(_environment, out _cloudsWhy);
+            }
+        }
+
+        return _areaClouds;
     }
 
     /// <summary>What the picture shows: the lit picture, or a material channel as the engine's debug views show it - see PictureView.</summary>
@@ -1263,6 +1296,11 @@ public sealed class SceneLightPanel : IMovableSun
         {
             lines.AddRange(Fogged().Said);
         }
+
+        lines.Add(!_clouds ? "clouds: off"
+            : Clouded() is not { } clouds ? "clouds: none - " + _cloudsWhy
+            : string.Create(CultureInfo.InvariantCulture,
+                $"clouds: the .env's - scale {clouds.Scale:0.###}, intensity {clouds.Intensity:0.###}, midpoint {clouds.Midpoint:0.###}, sharpness {clouds.Sharpness:0.###}, speed {clouds.Speed:0.###} along angle {clouds.Angle:0.####}, fade radius {clouds.FadeRadius:0.#}, pre {clouds.PreFade:0.###}, post {clouds.PostFade:0.###}{(_cloudsWhy.Length > 0 ? " - " + _cloudsWhy : string.Empty)}"));
 
         if (_verdict is { } verdict)
         {

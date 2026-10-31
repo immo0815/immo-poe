@@ -477,6 +477,117 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
         }
     }
 
+    /// <summary>
+    /// The clouds' shadow on the card (SceneLight.Clouds, ModelShaders' Clouded) as AreaClouds lays it: a floor the sun alone lights, drawn
+    /// with the clouds and without, each pixel's light the plain one's times AreaClouds.At at the floor's point - the area's own place (the
+    /// frame's origin added), the noise's alpha slid by the clock, both fades round the camera's focus.
+    /// </summary>
+    [GpuFact]
+    public void THECLOUDSShadowTheSunOnTheCardAsAreaCloudsLaysThem()
+    {
+        ModelGpu? gpu = card.Gpu;
+        Assert.True(gpu is not null, card.Why);
+        using ModelTarget target = gpu.Target(Side);
+        SkinnedMesh floor = Ground();
+        CameraPose pose = CameraPose.Fitted(floor, 0.4f, 0.7f, parallel: true);
+        MeshPicture.Camera camera = MeshPicture.Camera.Of(floor, pose);
+        Assert.True(Matrix4x4.Invert(camera.View, out Matrix4x4 back));
+        var clouds = new AreaClouds(1f, 0.9f, 0.5f, 0.2f, 30f, 0.7f, 450f, 0.15f, 0.15f);
+        var origin = new Vector2(1234f, -567f);
+        var sun = Vector3.Normalize(new Vector3(0.3f, -0.4f, 1f));
+        const float clock = 3.7f;
+        SceneLight Lit(AreaClouds? with) => new([], SceneLight.PointShape.Penumbra, null)
+        {
+            SunColour = new Vector3(1f, 0.95f, 0.9f),
+            SunDirection = sun,
+            Ambient = SceneAmbient.None,
+            Clouds = with,
+            AreaOrigin = origin,
+        };
+
+        (Mipmaps noise, float[] alpha) = CloudNoise();
+        ShadeProgram.UseCaustics(Flat(128), noise, "a test's");
+        var scene = new ModelScene(floor, Skins: [Flat(170)], Blends: [MaterialBlend.Opaque], Light: Lit(null), Time: clock, Pose: pose);
+        byte[] plain = Drawn(gpu, target, scene);
+        byte[] clouded = Drawn(gpu, target, scene with { Light = Lit(clouds) });
+
+        var compared = 0;
+        float least = 1f, most = 0f;
+        Vector2 player = new Vector2(pose.Focus.X, pose.Focus.Y) + origin;
+        for (var y = 0; y < Side; y++)
+        {
+            for (var x = 0; x < Side; x++)
+            {
+                if (!OnPlane(camera, back, new Vector2((x + 0.5f) / Side, (y + 0.5f) / Side), 0f, out Vector3 surface)
+                    || MathF.Abs(surface.X) > GroundReach - 20f || MathF.Abs(surface.Y) > GroundReach - 20f)
+                {
+                    continue;
+                }
+
+                int at = ((y * Side) + x) * 4;
+                if (plain[at + 1] < 60)
+                {
+                    continue;
+                }
+
+                float factor = clouds.At(new Vector2(surface.X, surface.Y) + origin, sun, player, clock, alpha, CloudSide, CloudSide);
+                for (var part = 0; part < 3; part++)
+                {
+                    float expected = Tabled(ShadeProgram.SrgbTable, Tabled(ShadeProgram.LinearTable, plain[at + part] / 255f) * factor) * 255f;
+                    Assert.True(
+                        MathF.Abs(clouded[at + part] - expected) <= 3f,
+                        $"pixel ({x}, {y}), channel {part}: the card {clouded[at + part]}, {expected:0.0} expected - the plain {plain[at + part]} times {factor:0.000}");
+                }
+
+                compared++;
+                least = MathF.Min(least, factor);
+                most = MathF.Max(most, factor);
+            }
+        }
+
+        // NOT A COMPARISON OF ONE SHADE: the floor runs from deep cloud to open sun.
+        Assert.True(compared > 5000, $"{compared} pixels compared");
+        Assert.True(least < 0.5f && most > 0.85f, $"the clouds' factor runs only from {least} to {most}");
+    }
+
+    /// <summary>How far either way <see cref="Ground"/> reaches.</summary>
+    private const float GroundReach = 700f;
+
+    /// <summary>The side of <see cref="CloudNoise"/>'s texture.</summary>
+    private const int CloudSide = 64;
+
+    /// <summary>A floor at nought facing up (minus z), <see cref="GroundReach"/> either way.</summary>
+    private static SkinnedMesh Ground()
+    {
+        Vector3[] places = [new(-GroundReach, -GroundReach, 0f), new(GroundReach, -GroundReach, 0f), new(GroundReach, GroundReach, 0f), new(-GroundReach, GroundReach, 0f)];
+        var normals = new Vector3[places.Length];
+        Array.Fill(normals, new Vector3(0f, 0f, -1f));
+        return SkinnedMesh.Of(
+            places, normals, [0, 1, 2, 0, 2, 3], new Vector3(-GroundReach, -GroundReach, -1f), new Vector3(GroundReach, GroundReach, 1f),
+            [.. places.Select(one => new Vector2((one.X / (2f * GroundReach)) + 0.5f, (one.Y / (2f * GroundReach)) + 0.5f))],
+            [new MeshShape("ground", 0, 6)]);
+    }
+
+    /// <summary>A noise for the clouds: grey, its alpha smooth waves across the whole range, wrapping - and that alpha as fractions.</summary>
+    private static (Mipmaps Noise, float[] Alpha) CloudNoise()
+    {
+        var rgba = new byte[CloudSide * CloudSide * 4];
+        var alpha = new float[CloudSide * CloudSide];
+        for (var y = 0; y < CloudSide; y++)
+        {
+            for (var x = 0; x < CloudSide; x++)
+            {
+                float wave = 0.5f + (0.45f * MathF.Sin(2f * MathF.PI * x / CloudSide) * MathF.Cos(2f * MathF.PI * 2f * y / CloudSide));
+                int at = (y * CloudSide) + x;
+                rgba[at * 4] = rgba[(at * 4) + 1] = rgba[(at * 4) + 2] = 128;
+                rgba[(at * 4) + 3] = (byte)Math.Clamp((int)MathF.Round(wave * 255f), 0, 255);
+                alpha[at] = rgba[(at * 4) + 3] / 255f;
+            }
+        }
+
+        return (Mipmaps.Of(new GamePicture(CloudSide, CloudSide, rgba))!, alpha);
+    }
+
     /// <summary>ShadeProgram's Linear and Srgb: a table's nearest entry.</summary>
     private static float Tabled(ReadOnlySpan<float> table, float value)
         => table[(int)((Math.Clamp(value, 0f, 1f) * (ShadeProgram.TableSteps - 1)) + 0.5f)];

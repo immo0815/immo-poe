@@ -8,7 +8,8 @@ using Vortice.Mathematics;
 namespace PoEformance.Gpu;
 
 /// <summary>
-/// The screen-space fog on the card: the weather attachment's pass (SceneLight.Fog, a screen program) drawn over the whole picture once the rest is.
+/// The air on the card: the clouds' shadow on every surface the sun lights (SceneLight.Clouds, ModelShaders' Clouded) and the screen-space
+/// fog - the weather attachment's pass (SceneLight.Fog, a screen program) drawn over the whole picture once the rest is.
 /// </summary>
 /// <remarks>
 /// THE CARD'S ALONE (DECIDED from the live client): the processor's picture leaves it out, and the line under it says so. Drawn after the
@@ -69,31 +70,54 @@ public sealed partial class ModelGpu
     }
 
     /// <summary>
+    /// The air's constants for the whole picture (ModelShaders' cbuffer Air, b5), written and bound before anything is drawn: the clouds every
+    /// surface the sun lights reads, and the fog's pass's values.
+    /// </summary>
+    /// <param name="context">The immediate context.</param>
+    /// <param name="light">The picture's light.</param>
+    /// <param name="player">Where the player stands in the picture's frame - the camera's focus on a stage (CHOSEN, DECIDED from the live client).</param>
+    /// <param name="clouded">Whether the clouds are drawn - <see cref="Clouds"/>.</param>
+    private void Aired(ID3D11DeviceContext context, SceneLight light, Vector3 player, bool clouded)
+    {
+        _air ??= _device.CreateBuffer(Marshal.SizeOf<AirConstants>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
+        Vector2 origin = light.AreaOrigin;
+        ScreenFog? fog = light.Fog;
+        AreaClouds? clouds = clouded ? light.Clouds : null;
+        (Vector2 along, float speed) = clouds?.Drift ?? (Vector2.UnitX, 0f);
+        Written(_air, new AirConstants
+        {
+            Fog = fog?.Colour ?? Vector4.Zero,
+            Shape = new Vector4(fog?.Shape ?? Vector2.Zero, 0f, 0f),
+            Player = new Vector4(player.X + origin.X, player.Y + origin.Y, player.Z, 0f),
+            Light = new Vector4(fog?.Environment ?? Vector3.Zero, 0f),
+            Origin = new Vector4(origin, 0f, 0f),
+            Clouds = clouds is null ? Vector4.Zero : new Vector4(clouds.Scale, clouds.Intensity, clouds.Midpoint, clouds.Sharpness),
+            Drift = clouds is null ? Vector4.Zero : new Vector4(along, speed, clouds.FadeRadius),
+            Fades = clouds is null ? Vector4.Zero : new Vector4(clouds.PreFade, clouds.PostFade, 1f, 0f),
+        });
+
+        context.PSSetConstantBuffer(5, _air);
+    }
+
+    /// <summary>
+    /// Whether a light's clouds are drawn: it carries them and their noise is in (ShadeProgram.Distortion, which UseCaustics hands over as the
+    /// install opens - AreaClouds.NoisePath).
+    /// </summary>
+    private static bool Clouds(SceneLight? light) => light?.Clouds is not null && ShadeProgram.Distortion is not null;
+
+    /// <summary>
     /// The fog over the picture in the target: the solid depth copied for it, its program run on every pixel by one triangle over the whole
-    /// target, laid over the picture as a mixed layer is.
+    /// target, laid over the picture as a mixed layer is - over the air's constants <see cref="Aired"/> bound.
     /// </summary>
     /// <param name="context">The immediate context.</param>
     /// <param name="target">The picture's target, its picture drawn.</param>
-    /// <param name="light">The light, whose fog it is.</param>
     /// <param name="program">The fog's program - <see cref="Fogs"/>.</param>
-    /// <param name="player">Where the player stands in the picture's frame - the camera's focus on a stage (CHOSEN, DECIDED from the live client).</param>
-    private void Fogged(ID3D11DeviceContext context, ModelTarget target, SceneLight light, ShadeProgram program, Vector3 player)
+    private void Fogged(ID3D11DeviceContext context, ModelTarget target, ShadeProgram program)
     {
-        if (_programs.Of(program, ProgramPass.Screen, out _, out _) is not { } shader || light.Fog is not { } fog)
+        if (_programs.Of(program, ProgramPass.Screen, out _, out _) is not { } shader)
         {
             return;
         }
-
-        _air ??= _device.CreateBuffer(Marshal.SizeOf<AirConstants>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
-        Vector2 origin = light.AreaOrigin;
-        Written(_air, new AirConstants
-        {
-            Fog = fog.Colour,
-            Shape = new Vector4(fog.Shape, 0f, 0f),
-            Player = new Vector4(player.X + origin.X, player.Y + origin.Y, player.Z, 0f),
-            Light = new Vector4(fog.Environment, 0f),
-            Origin = new Vector4(origin, 0f, 0f),
-        });
 
         target.Kept(context);
         context.OMSetRenderTargets(target.AccumulatedTarget, null);
@@ -104,7 +128,6 @@ public sealed partial class ModelGpu
         context.IASetPrimitiveTopology(PrimitiveTopology.TriangleList);
         context.VSSetShader(_whole);
         context.PSSetShader(shader);
-        context.PSSetConstantBuffer(5, _air);
         context.PSSetShaderResource(ModelShaders.BehindSlot, target.Behind);
         IReadOnlyList<Mipmaps?> sheets = program.Sheets;
         for (var sheet = 0; sheet < sheets.Count; sheet++)
@@ -116,7 +139,7 @@ public sealed partial class ModelGpu
         context.Draw(3, 0);
     }
 
-    /// <summary>The fog's constants - ModelShaders' Air, field for field.</summary>
+    /// <summary>The air's constants - ModelShaders' cbuffer Air, field for field.</summary>
     [StructLayout(LayoutKind.Sequential)]
     private struct AirConstants
     {
@@ -125,5 +148,8 @@ public sealed partial class ModelGpu
         public Vector4 Player;
         public Vector4 Light;
         public Vector4 Origin;
+        public Vector4 Clouds;
+        public Vector4 Drift;
+        public Vector4 Fades;
     }
 }
