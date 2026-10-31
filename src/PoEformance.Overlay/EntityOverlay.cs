@@ -1833,6 +1833,12 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     public Func<RiverFlowMap?>? RiverFlow { get; set; }
 
     /// <summary>
+    /// The local player as the game draws him now - his body and the pieces it composed him from (PlayerDress) - read when the Monster Book's
+    /// button asks, on a thread of its own. Null where nothing reads the game's memory.
+    /// </summary>
+    public Func<PlayerDress>? PlayerTaken { get; set; }
+
+    /// <summary>
     /// The river's flow map for a model laid in the area instance <paramref name="stamp"/> names - none once the area on screen is another
     /// (RoomKey.Stamp), so a picture kept from an area since left takes no other area's river.
     /// </summary>
@@ -4081,6 +4087,9 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
 
             // THE AREA ROUND YOU, any area's - see AroundYou.
             Around = AroundChoice,
+
+            // THE PLAYER AS THE GAME DRAWS HIM, taken at the book's button - see PlayerDress.
+            PlayerTaken = () => PlayerTaken?.Invoke() ?? PlayerDress.None with { Why = "nothing reads the game's memory" },
 
             // READ WHEN ASKED, not captured: the tile book is attached after this one, and the choice
             // is whatever that book is open at when the stage is picked.

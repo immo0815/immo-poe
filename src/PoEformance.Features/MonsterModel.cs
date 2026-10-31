@@ -90,6 +90,12 @@ public sealed record MonsterModel(
     public IReadOnlyList<PartFit> Fitted { get; init; } = [];
 
     /// <summary>
+    /// What the pieces' ObjectHiding left off or hid - a default outfit under armour, the body's segments, a piece beside another - as
+    /// sentences, in the order decided (see <see cref="PieceHiding"/>). Empty where nothing hides anything.
+    /// </summary>
+    public IReadOnlyList<string> Covered { get; init; } = [];
+
+    /// <summary>
     /// The monster's own box, before anything he wears is joined onto him.
     /// </summary>
     /// <remarks>
@@ -542,7 +548,7 @@ public static class MonsterModels
         }
 
         var paints = new Paints { Progress = progress };
-        MonsterModel model = OfFiles(read, named, wearing, paints);
+        MonsterModel model = OfFiles(read, named, wearing, paints, one.Worn);
         return shaded ? Shaded(read, model, paints) : model;
     }
 
@@ -783,9 +789,13 @@ public static class MonsterModels
     /// doodads - a rock and a stump - that share a .mat and its .dds would otherwise decode that
     /// sheet once each and hand the renderer two copies of one texture. The cache is per call by
     /// default and nothing else changes.
+    ///
+    /// <paramref name="pieces"/> ARE PIECES HUNG BESIDE THE FILES' OWN LINES - the player's composition, each an .ao and the socket it hangs
+    /// at ("&lt;root&gt;" for a skin on his rig) - read, placed and hidden as a line of his own file would be.
     /// </remarks>
     internal static MonsterModel OfFiles(
-        Func<string, byte[]?>? read, IReadOnlyList<string>? named, bool wearing, Paints? shared)
+        Func<string, byte[]?>? read, IReadOnlyList<string>? named, bool wearing, Paints? shared,
+        IReadOnlyList<WornPiece>? pieces = null)
     {
         if (read is null)
         {
@@ -879,9 +889,23 @@ public static class MonsterModels
 
         var told = new List<PartFit>();
         var riding = new Riding(rig);
+        var covering = new Covering();
         if (wearing)
         {
-            parts.AddRange(Dressing(counted, found.Files, rig, paints, skin, told, riding));
+            parts.AddRange(Dressing(counted, found.Files, rig, paints, skin, told, riding, pieces ?? [], covering));
+        }
+
+        // HIS OWN SHAPES HIS PIECES HIDE - a body armour's Body_Seg, the gloves' fingers - off the body and its sections alike (PieceHiding).
+        if (covering.Body.Count > 0)
+        {
+            mesh = Without(mesh, covering.Body, out int gone);
+            for (var section = 0; section < sections; section++)
+            {
+                parts[section] = parts[section] with { Mesh = Without(parts[section].Mesh, covering.Body, out int more) };
+                gone += more;
+            }
+
+            covering.Said.Add($"{gone} of the body's shapes hidden");
         }
 
         // THE PIECES THAT PLAY THEIR OWN ANIMATIONS RIDE HIS RIG, their bones after his - see AnimationSkeleton.Carrying. Said by
@@ -927,6 +951,7 @@ public static class MonsterModels
             Parts = parts.Count - sections,
             Sections = found.Meshes.Count,
             Fitted = told,
+            Covered = covering.Said,
             BodyLeast = bare,
             BodyMost = worn_,
             BodyFacts = facts,
@@ -1172,7 +1197,9 @@ public static class MonsterModels
         Paints paints,
         Mipmaps? fallback,
         List<PartFit> told,
-        Riding riding)
+        Riding riding,
+        IReadOnlyList<WornPiece> worn,
+        Covering covering)
     {
         var parts = new List<Part>();
         if (SkeletonPose.Of(parent) is not { } rest)
@@ -1198,27 +1225,46 @@ public static class MonsterModels
         // THE MONSTER ITSELF IS THE OUTERMOST CARRIER, at the identity: a piece socketed to
         // "<root>" at the top level is already in the monster's own space and wants no transform
         // at all. Bone 0 is the rig's root, so the piece still follows the monster.
+        // A FILE THAT CLEARS WHAT IT INHERITS (clear_inherited_attached_objects, the player's IntFourB.ao) ends the walk up its chain, and
+        // the pieces worn beyond the files' own lines - the player's composition (PlayerPieces) - hang beside them.
+        var top = new List<Line_>();
         foreach (string one in files)
         {
-            foreach ((string socket, string path, Matrix4x4 local) in Hung(Object(read, one)))
+            AnimatedObject ao = Object(read, one);
+            top.AddRange(Hung(ao));
+            if (Clears(ao))
             {
-                if (Socketed(socket, body, Matrix4x4.Identity, 0, Matrix4x4.Identity, top: true, local) is { } put)
-                {
-                    queue.Enqueue(new Hangs_(
-                        path, put.Place, put.Bone, put.Put, put.Socket, socket, 1, Rooted(socket), body));
-                }
-                else
-                {
-                    // THE ONE ANSWER THAT LOSES A PIECE OUTRIGHT, and the walk is otherwise silent
-                    // about it: a socket the monster's own rig has no bone for at the top level.
-                    // Counted here because nothing downstream will ever see this piece again.
-                    told.Add(new PartFit(
-                        path, socket, PartPlace.Dropped, 1, PartKind.None, 0, 0, 0, 0, false, 0, false,
-                        string.Empty, Vector3.Zero, Vector3.Zero));
-                }
+                break;
             }
         }
 
+        top.AddRange(worn.Select(one => new Line_(one.Socket, one.Path, Matrix4x4.Identity, string.Empty) { SkinOnly = one.SkinOnly }));
+        foreach ((Line_ line, PieceHiding hiding, HashSet<string> drops) in Uncovered(read, top, covering))
+        {
+            if (Socketed(line.Socket, body, Matrix4x4.Identity, 0, Matrix4x4.Identity, top: true, line.Local) is { } put)
+            {
+                queue.Enqueue(new Hangs_(
+                    line.Path, put.Place, put.Bone, put.Put, put.Socket, line.Socket, 1, Rooted(line.Socket), body)
+                {
+                    Carrier = Monster,
+                    Hiding = hiding,
+                    Drops = drops,
+                    SkinOnly = line.SkinOnly,
+                });
+            }
+            else
+            {
+                // THE ONE ANSWER THAT LOSES A PIECE OUTRIGHT, and the walk is otherwise silent
+                // about it: a socket the monster's own rig has no bone for at the top level.
+                // Counted here because nothing downstream will ever see this piece again.
+                told.Add(new PartFit(
+                    line.Path, line.Socket, PartPlace.Dropped, 1, PartKind.None, 0, 0, 0, 0, false, 0, false,
+                    string.Empty, Vector3.Zero, Vector3.Zero));
+            }
+        }
+
+        // EVERY PIECE BUILT, with its carrier and what it hides - the shapes are taken off once the whole tree is built (Cover).
+        var made = new List<Made_>();
         while (queue.Count > 0 && parts.Count < MostParts)
         {
             Hangs_ one_ = queue.Dequeue();
@@ -1238,34 +1284,254 @@ public static class MonsterModels
             // they are dequeued, which this does not change.
             (Part? part, Fit inner_, PartFit fit) = Worn(read, ao, one_, paints, fallback, body, riding);
             told.Add(fit);
-            if (part is { } worn)
+
+            // EVERY PIECE THE GAME WEARS HIDES WHAT IT HIDES, drawn here or not - a held piece left out still covers what it covers there.
+            int carrier = Unbuilt;
+            if (part is { } built)
             {
-                parts.Add(worn);
+                parts.Add(built);
+                carrier = made.Count;
+                made.Add(new Made_(parts.Count - 1, one_.Carrier, one_.Hiding, PieceHiding.Aliases(Whole(read, ao)), one_.Path));
+            }
+            else if (one_.Hiding.Any)
+            {
+                made.Add(new Made_(Unbuilt, one_.Carrier, one_.Hiding, new Dictionary<string, string[]>(), one_.Path));
             }
 
             if (one_.Depth < MostDeep)
             {
-                foreach ((string inner, string path_, Matrix4x4 local) in Hung(ao))
+                // ITS OWN PIECES BUT THOSE ITS CARRIER'S OTHER PIECES HIDE (hide_sibling_attachments), and among them those one of them hides.
+                var lines = new List<Line_>();
+                foreach (Line_ line in Hung(ao))
                 {
-                    if (Socketed(inner, inner_, one_.Place, one_.Bone, one_.Put, top: false, local) is { } where_)
+                    if (line.Alias.Length > 0 && one_.Drops.Contains(line.Alias))
+                    {
+                        covering.Said.Add($"{Name(line.Path)} ({line.Alias}) left off {Name(one_.Path)}: a piece beside it hides it");
+                        continue;
+                    }
+
+                    lines.Add(line);
+                }
+
+                foreach ((Line_ line, PieceHiding hiding, HashSet<string> drops) in Uncovered(read, lines, covering))
+                {
+                    if (Socketed(line.Socket, inner_, one_.Place, one_.Bone, one_.Put, top: false, line.Local) is { } where_)
                     {
                         queue.Enqueue(new Hangs_(
-                            path_,
+                            line.Path,
                             where_.Place,
                             where_.Bone,
                             where_.Put,
                             where_.Socket,
-                            inner,
+                            line.Socket,
                             one_.Depth + 1,
-                            Rooted(inner),
-                            inner_));
+                            Rooted(line.Socket),
+                            inner_)
+                        {
+                            Carrier = carrier,
+                            Hiding = hiding,
+                            Drops = drops,
+                        });
                     }
                 }
             }
         }
 
+        Cover(read, files, parts, made, covering);
         return parts;
     }
+
+    /// <summary>The carrier of a top-level piece: the monster himself.</summary>
+    private const int Monster = -1;
+
+    /// <summary>The carrier of a piece whose own carrier drew nothing: none whose shapes it could hide.</summary>
+    private const int Unbuilt = -2;
+
+    /// <summary>One attached_object line: its socket, its .ao, the turn and shift its children ask for, and the alias it ends with.</summary>
+    private readonly record struct Line_(string Socket, string Path, Matrix4x4 Local, string Alias)
+    {
+        /// <summary>Whether it is drawn only as a skin on its carrier's rig - see WornPiece.SkinOnly.</summary>
+        public bool SkinOnly { get; init; }
+    }
+
+    /// <summary>
+    /// A piece dressed: its place among the parts (<see cref="Unbuilt"/> for one left out that still hides), its carrier among the pieces
+    /// built (or the monster), what it hides, and its skin's groups.
+    /// </summary>
+    private readonly record struct Made_(int Part, int Carrier, PieceHiding Hiding, IReadOnlyDictionary<string, string[]> Aliases, string Path);
+
+    /// <summary>
+    /// What the pieces' ObjectHiding took off (see <see cref="PieceHiding"/>): the monster's own shapes, which <see cref="OfFiles"/> takes off
+    /// his mesh and his sections, and the account said under the picture.
+    /// </summary>
+    internal sealed class Covering
+    {
+        /// <summary>The monster's own shapes his pieces hide.</summary>
+        public HashSet<string> Body { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>What was hidden and by what, in the order decided.</summary>
+        public List<string> Said { get; } = [];
+    }
+
+    /// <summary>
+    /// The lines of one carrier with those its other pieces hide (hide_parent_attachments, by the alias a line ends with) left off, each
+    /// kept line with its own hiding and the aliases of ITS pieces its siblings hide (hide_sibling_attachments).
+    /// </summary>
+    private static List<(Line_ Line, PieceHiding Hiding, HashSet<string> Drops)> Uncovered(Func<string, byte[]?> read, List<Line_> lines, Covering covering)
+    {
+        var hidings = new PieceHiding[lines.Count];
+        var hidden = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        for (var one = 0; one < lines.Count; one++)
+        {
+            AnimatedObject ao = Object(read, lines[one].Path);
+            hidings[one] = ao.Ready ? PieceHiding.Of(Whole(read, ao)) : PieceHiding.None;
+            foreach (string alias in hidings[one].ParentAttachments)
+            {
+                hidden.TryAdd(alias, lines[one].Path);
+            }
+        }
+
+        var kept = new List<(Line_ Line, PieceHiding Hiding, HashSet<string> Drops)>(lines.Count);
+        for (var one = 0; one < lines.Count; one++)
+        {
+            Line_ line = lines[one];
+            if (line.Alias.Length > 0 && hidden.TryGetValue(line.Alias, out string? by))
+            {
+                covering.Said.Add($"{Name(line.Path)} ({line.Alias}) left off: {Name(by)} hides it");
+                continue;
+            }
+
+            var drops = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (var other = 0; other < lines.Count; other++)
+            {
+                if (other != one)
+                {
+                    drops.UnionWith(hidings[other].SiblingAttachments);
+                }
+            }
+
+            kept.Add((line, hidings[one], drops));
+        }
+
+        return kept;
+    }
+
+    /// <summary>
+    /// The shapes the built pieces hide taken off: a piece's hide_parent_segments off its carrier (the monster's into <see cref="Covering.Body"/>,
+    /// a piece's off its part), its hide_sibling_segments off its carrier's other pieces - each name a group of the target's skin
+    /// (<see cref="PieceHiding.Aliases"/>) or a shape itself. A shape keeps its place in its piece's list with nothing left in it (SkinnedMesh.Keeping).
+    /// </summary>
+    private static void Cover(Func<string, byte[]?> read, IReadOnlyList<string> files, List<Part> parts, List<Made_> made, Covering covering)
+    {
+        if (!made.Any(one => one.Hiding.ParentSegments.Count > 0 || one.Hiding.SiblingSegments.Count > 0))
+        {
+            return;
+        }
+
+        IReadOnlyDictionary<string, string[]> own = PieceHiding.Aliases([.. files.Select(one => Object(read, one)).Where(one => one.Ready)]);
+        var hidden = new HashSet<string>[made.Count];
+        for (var one = 0; one < made.Count; one++)
+        {
+            Made_ piece = made[one];
+            if (piece.Hiding.ParentSegments.Count > 0)
+            {
+                if (piece.Carrier == Monster)
+                {
+                    covering.Body.UnionWith(PieceHiding.Shapes(piece.Hiding.ParentSegments, own));
+                    covering.Said.Add($"{Name(piece.Path)} hides the body's {string.Join(", ", piece.Hiding.ParentSegments)}");
+                }
+                else if (piece.Carrier >= 0)
+                {
+                    (hidden[piece.Carrier] ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase))
+                        .UnionWith(PieceHiding.Shapes(piece.Hiding.ParentSegments, made[piece.Carrier].Aliases));
+                    covering.Said.Add($"{Name(piece.Path)} hides {Name(made[piece.Carrier].Path)}'s {string.Join(", ", piece.Hiding.ParentSegments)}");
+                }
+            }
+
+            if (piece.Hiding.SiblingSegments.Count == 0)
+            {
+                continue;
+            }
+
+            for (var other = 0; other < made.Count; other++)
+            {
+                if (other != one && made[other].Carrier == piece.Carrier && made[other].Part >= 0)
+                {
+                    (hidden[other] ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase))
+                        .UnionWith(PieceHiding.Shapes(piece.Hiding.SiblingSegments, made[other].Aliases));
+                }
+            }
+        }
+
+        for (var one = 0; one < made.Count; one++)
+        {
+            if (made[one].Part >= 0 && hidden[one] is { Count: > 0 } shapes)
+            {
+                Part part = parts[made[one].Part];
+                SkinnedMesh kept = Without(part.Mesh, shapes, out int gone);
+                if (gone > 0)
+                {
+                    parts[made[one].Part] = part with { Mesh = kept };
+                    covering.Said.Add($"{gone} shapes of {Name(made[one].Path)} hidden by the pieces beside or on it");
+                }
+            }
+        }
+    }
+
+    /// <summary>A mesh without the triangles of the shapes named - each shape keeping its place, empty - and how many shapes lost any.</summary>
+    internal static SkinnedMesh Without(SkinnedMesh mesh, IReadOnlySet<string> shapes, out int gone)
+    {
+        gone = 0;
+        if (shapes.Count == 0 || mesh.Shapes.Count == 0)
+        {
+            return mesh;
+        }
+
+        bool[]? keep = null;
+        foreach (MeshShape shape in mesh.Shapes)
+        {
+            if (!shapes.Contains(shape.Name) || shape.Count < 3)
+            {
+                continue;
+            }
+
+            if (keep is null)
+            {
+                keep = new bool[mesh.Triangles];
+                Array.Fill(keep, true);
+            }
+
+            gone++;
+            int first = shape.From / 3, last = Math.Min(keep.Length, (shape.From + shape.Count) / 3);
+            for (int triangle = first; triangle < last; triangle++)
+            {
+                keep[triangle] = false;
+            }
+        }
+
+        return keep is null ? mesh : mesh.Keeping(keep);
+    }
+
+    /// <summary>Whether a file says to take none of the attached objects of what it extends.</summary>
+    private static bool Clears(AnimatedObject ao)
+    {
+        foreach (AoStruct block in ao.Named("AttachedAnimatedObject"))
+        {
+            foreach (AoEntry entry in block.Entries)
+            {
+                if (string.Equals(entry.Key, "clear_inherited_attached_objects", StringComparison.Ordinal)
+                    && string.Equals(entry.Value.Trim(), "true", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>A file's name without its folders, for the account.</summary>
+    private static string Name(string path) => path[(path.LastIndexOf('/') + 1)..];
 
     /// <summary>One piece waiting to be read: where its carrier puts it, and the rig it belongs to.</summary>
     /// <param name="Place">Its transform into model space, for a piece that goes rigidly.</param>
@@ -1283,7 +1549,20 @@ public static class MonsterModels
         string Named,
         int Depth,
         bool Rooted,
-        Fit Under);
+        Fit Under)
+    {
+        /// <summary>Its carrier among the pieces built, <see cref="Monster"/> or <see cref="Unbuilt"/>.</summary>
+        public int Carrier { get; init; } = Monster;
+
+        /// <summary>What its ObjectHiding hides - see <see cref="PieceHiding"/>.</summary>
+        public PieceHiding Hiding { get; init; } = PieceHiding.None;
+
+        /// <summary>The aliases of its own pieces that its carrier's other pieces hide.</summary>
+        public HashSet<string> Drops { get; init; } = [];
+
+        /// <summary>Whether it is drawn only as a skin on its carrier's rig - see WornPiece.SkinOnly.</summary>
+        public bool SkinOnly { get; init; }
+    }
 
     /// <summary>
     /// The rig a piece is authored against, and what that rig's bones are in the MONSTER's.
@@ -1727,8 +2006,12 @@ public static class MonsterModels
     /// A SOCKET AND THEN A PATH INSIDE ONE PAIR OF QUOTES, which taken whole is a path no install
     /// has - the trap that cost AoSurvey 2289 of its 3262 files. Split on the first space; the
     /// socket is a bone name of the parent's rig, or <c>&lt;root&gt;</c> for the piece's own.
+    ///
+    /// A LINE MAY END IN AN ALIAS - <c>"&lt;root&gt; Metadata/Characters/Int/attachments/Outfits/SorceressOutfit/SorceressBody.ao alias Body_Attach"</c>,
+    /// the player's default outfit - the name a worn piece's ObjectHiding leaves it off by (<see cref="PieceHiding"/>). Read whole the
+    /// path ended in the alias and not in ".ao", and every such line was dropped.
     /// </remarks>
-    private static IEnumerable<(string Socket, string Path, Matrix4x4 Local)> Hung(AnimatedObject ao)
+    private static IEnumerable<Line_> Hung(AnimatedObject ao)
     {
         foreach (AoStruct block in ao.Structs)
         {
@@ -1742,13 +2025,24 @@ public static class MonsterModels
                 string said = entry.Value.Trim();
                 int space = said.IndexOf(' ', StringComparison.Ordinal);
                 string path = space < 0 ? said : said[(space + 1)..].Trim();
+                string alias = string.Empty;
+                int named = path.IndexOf(AliasWord, StringComparison.Ordinal);
+                if (named > 0)
+                {
+                    alias = path[(named + AliasWord.Length)..].Trim();
+                    path = path[..named].Trim();
+                }
+
                 if (path.EndsWith(AnimatedObject.Suffix, StringComparison.OrdinalIgnoreCase))
                 {
-                    yield return (space < 0 ? string.Empty : said[..space], path, Local(entry));
+                    yield return new Line_(space < 0 ? string.Empty : said[..space], path, Local(entry), alias);
                 }
             }
         }
     }
+
+    /// <summary>What an attached_object line names its alias after.</summary>
+    private const string AliasWord = " alias ";
 
     /// <summary>One attachment read whole: its mesh, its textures, and where on the body it goes.</summary>
     /// <remarks>
@@ -1786,6 +2080,11 @@ public static class MonsterModels
         string skin = Skin(chain);
         if (skin.Length == 0)
         {
+            if (hung.SkinOnly)
+            {
+                return (null, body, Told(hung, where, PartKind.None, default, null, Unsocketed));
+            }
+
             Part? prop = Propped(read, chain, place, bone, paints, fallback);
             return (
                 prop,
@@ -1825,6 +2124,12 @@ public static class MonsterModels
             return (worn, map.Under, Told(hung, where, PartKind.Skin, counted, worn));
         }
 
+        // A PIECE TO BE DRAWN AS A SKIN ALONE that is none - the player's held pieces, whose socket no file names - is left out, said why.
+        if (hung.SkinOnly)
+        {
+            return (null, body, Told(hung, where, PartKind.None, counted, null, Unsocketed));
+        }
+
         // A "<root>" PIECE ON A RIG OF ITS OWN WHOSE ANIMATIONS CARRY HIS NAMES RIDES HIS RIG: its vertices keep its own bones,
         // numbered after his, and its own animation of each name plays in step with his - see AnimationSkeleton.Carrying. Malgor's
         // ship's wheel, which every other answer here left at his origin while the game hangs it round his neck.
@@ -1846,6 +2151,10 @@ public static class MonsterModels
         var rigid = new Part(mesh, bones, weights, place, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
         return (rigid, body, Told(hung, where, PartKind.Rigid, counted, rigid));
     }
+
+    /// <summary>Why a piece to be drawn as a skin alone (WornPiece.SkinOnly) was left out.</summary>
+    internal const string Unsocketed =
+        "a piece of a rig or a mesh of its own, held at a socket no file names and no capture has read yet - left out rather than drawn at his feet";
 
     /// <summary>
     /// The rigs of the pieces that play their own animations, gathered as the monster is dressed, each numbered after his bones and
@@ -1989,7 +2298,24 @@ public static class MonsterModels
         told = default;
 
         string path = Entryed(chain, RigBlock, RigEntry);
-        if (path.Length == 0 || mesh.Bones.Length != mesh.Positions.Length * 4)
+        bool weighted = mesh.Bones.Length == mesh.Positions.Length * 4;
+
+        // A SKIN WITH NO RIG OF ITS OWN, at its carrier's root: every armour piece the player wears - BetaDoryaniArmourBodyInt.ao extends
+        // Metadata/SkinBodyArmour, which extends Metadata/Skin, and no file of the chain names a skeleton - so the only rig its weighted
+        // vertices can name is its carrier's, and its numbers are taken as that rig's, as a mesh indexed past its own rig's are (below).
+        // READ, not measured: bound rigidly to the root before, it stood right at rest and stayed behind as the body moved.
+        if (path.Length == 0)
+        {
+            if (rooted && weighted && mesh.Positions.Length > 0 && SkeletonPose.Highest(mesh) < fit.Onto.Length)
+            {
+                told = told with { Past = true };
+                return new Retarget(fit.Plain ? mesh.Bones : Passed(fit, mesh.Bones), fit.Into, fit);
+            }
+
+            return null;
+        }
+
+        if (!weighted)
         {
             return null;
         }
@@ -3522,13 +3848,25 @@ public static class MonsterModels
             {
                 foreach (AoStruct block in ao.Named(Block))
                 {
+                    var skinned = false;
                     foreach (AoEntry entry in block.Entries)
                     {
+                        // A SHAPE'S MATERIAL BESIDE THE SKIN, not under it: the player's IntFourB.ao indents its first shape line under
+                        // `skin = "…Witch.sm"` and the fifty-six after it one tab less, so read by indentation they were the block's own
+                        // entries and the body wore the skin's default paint but for one shape. The key is a shape's name either way.
+                        if (skinned && Shaped(entry))
+                        {
+                            materials.Add((entry.Key, entry.Value));
+                            continue;
+                        }
+
                         if (!string.Equals(entry.Key, Entry, StringComparison.Ordinal)
                             || entry.Value.Length == 0)
                         {
                             continue;
                         }
+
+                        skinned = true;
 
                         // THE MATERIAL SITS UNDER THE SKIN, ONE CHILD PER SHAPE, and this used
                         // to take the first on the reasoning that they name the same file with
@@ -3598,6 +3936,15 @@ public static class MonsterModels
 
         return meshes.Count == 0 ? null : (meshes, materials, skeleton ?? string.Empty, walked);
     }
+
+    /// <summary>
+    /// Whether a SkinMesh entry beside a skin names one of its shapes' material: a value naming a .mat (or one of its graphs, <c>.mat:0</c>)
+    /// under a key that is none of the block's own words.
+    /// </summary>
+    private static bool Shaped(AoEntry entry)
+        => entry.Kind == AoValueKind.Quoted
+            && entry.Key is not (Entry or Dropped or "alias")
+            && entry.Value.Contains(".mat", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Reads an .ao, adding the extension where the game left it off.

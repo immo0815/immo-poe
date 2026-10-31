@@ -835,6 +835,22 @@ a held piece hangs at, the composition's layout and length. So v0.1.394's part w
 it points at (`PlayerPieces`, the reader the live read will share), every ItemVisualIdentity row and column naming each drawn piece (which
 per-body column the game took), and follows an .act's `parent` line (`CharacterFemale.act`). Take it as he stands, and after swapping weapon
 sets, before the held pieces are hung.
+THE PLAYER IS TAKEN INTO THE MONSTER BOOK (v0.1.395; the seven decisions of 2026-10-31, from the live client: a snapshot at a button, his
+idle and the animation list, alone or where he stood, the weapon set in hand and switchable, the slots' skins before any effect, built from
+the equipment where no cosmetic reads with the line saying so, his own character alone). "take the player" (`MonsterBookWindow.PlayerRow`,
+the overlay's `PlayerTaken`, read past the tap on a thread of its own) reads `PlayerDress` - his path, the class's name (Render.Name), the
+body his Animated component loaded, the slots' pieces (`PlayerPieces.Slots`) - and shows him in place of the chosen row until a row is
+chosen: a `MonsterVariety` of his body whose `Worn` hangs every piece at his root, so the stages, the light, the export and the capture
+are the monster's (the area round you stands him where he stood). WHAT THE BUILD READS FROM THE FILES, for every model now: an
+attached_object line's alias (dropped whole before - the path ended in it), `clear_inherited_attached_objects`, every piece's `ObjectHiding`
+through its chain (`PieceHiding`: a plain key replaces, an `add_` key adds; parent and sibling attachments by alias, segments by a skin's
+`alias` group or a shape's name, taken off by `SkinnedMesh.Keeping`; `MonsterModel.Covered` says what), a skin with no rig of its own at
+its carrier's root as a skin on the carrier's rig (`PartFit.Past`, nought bones of its own), and a shape's material written beside the
+skin rather than under it (IntFourB.ao indents one of 57). READ, NOT MEASURED against the game's picture: the hiding's override rule and the
+rigless skins. NOT YET: the held pieces (a wand, a focus - a rig of their own and no socket named; left out and said, `WornPiece.SkinOnly`,
+until v0.1.394's capture reads where they hang), his idle clip (his .act's chain, which that capture writes), the other weapon set, the
+equipment fallback (which per-body column the game takes - the same capture's `Drawn` section), `show_sibling_segments`, his scale and
+his facing (unscaled, facing as a monster faces - CHOSEN).
 
 ## Verify against the game, not against yourself
 
