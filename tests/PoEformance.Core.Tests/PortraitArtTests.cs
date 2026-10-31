@@ -16,8 +16,11 @@ namespace PoEformance.Core.Tests;
 /// </remarks>
 public class PortraitArtTests
 {
-    /// <summary>How many buttons hang down the edge, so a name dropped from the list is noticed too - the camera's three among them from v0.1.324.</summary>
-    private const int Sides = 8;
+    /// <summary>
+    /// How many buttons hang down the edge, so a name dropped from the list is noticed too - the camera's three among them from v0.1.324, the
+    /// focus marker's from v0.1.380.
+    /// </summary>
+    private const int Sides = 9;
 
     /// <summary>The repository root, found by a file only it has.</summary>
     private static string RepositoryRoot

@@ -208,7 +208,7 @@ public sealed class CaptureLightExtrasTests
         string text = Written(out _);
 
         Assert.StartsWith(
-            "light extras: 3 of 5 environments set 9 keys of the clouds, the fog and the player's light; 4 shader sources name a word, 4 whole; 3 of 5 graphs name a node or their path a word, 3 whole; 5 strings in the program name one; 5 textures named, 3 drawn; 2 roof-section materials over 1 model panes (",
+            "light extras: 3 of 5 environments set 9 keys of the clouds, the fog and the player's light; 4 shader sources name a word, 4 whole; 3 of 5 graphs name a node or their path a word, 3 whole; 5 strings in the program name one; 5 textures named, 3 drawn; 2 roof-section materials over 1 model panes; the player's attachment 0 files; 0 of 5 fog fragments; 1 noises whole (",
             text, StringComparison.Ordinal);
 
         string replay = CaptureLightExtras.Replay(text).ReplaceLineEndings("\n");
@@ -264,9 +264,10 @@ public sealed class CaptureLightExtrasTests
     {
         string text = CaptureLightExtras.Write(Read, [], null, null, [], null, null, out IReadOnlyList<(string File, GamePicture Picture)> pictures);
 
-        Assert.StartsWith(
-            "light extras: no environments; no shader sources; no graphs; no program to search; 0 textures named, 0 drawn; no model pane (",
-            text, StringComparison.Ordinal);
+        // THE MADE-UP INSTALL HOLDS perlin_noise.dds, the noise candidates' first - written whole whatever else the walk found.
+        Assert.True(text.StartsWith(
+            "light extras: no environments; no shader sources; no graphs; no program to search; 0 textures named, 0 drawn; no model pane; the player's attachment 0 files; 0 of 5 fog fragments; 1 noises whole (",
+            StringComparison.Ordinal), text[..text.IndexOf('\n', StringComparison.Ordinal)]);
         Assert.Empty(pictures);
         Assert.StartsWith("light extras replay: 0 environment keys in 0 files;", CaptureLightExtras.Replay(text), StringComparison.Ordinal);
     }
@@ -462,5 +463,32 @@ public sealed class CaptureLightExtrasTests
         }
 
         return bgra;
+    }
+
+    /// <summary>
+    /// The fog's three sections' helpers: an environment's player_environment_ao found in any section; the files a text names by their
+    /// extension, and an extends line's bare path as an .ao; a FRAGMENT to its closing }} and a function to its closing brace.
+    /// </summary>
+    [Fact]
+    public void THEFOGSSectionsFindTheAttachmentWhatItNamesAndTheFragments()
+    {
+        byte[] env = Encoding.UTF8.GetBytes("""{ "area": { "dust_color": [0.6, 0.4, 0.3], "player_environment_ao": "Metadata\\Effects\\weather_attachments\\act1\\Red_Vale\\Red_Vale.ao" } }""");
+        Assert.Equal("Metadata/Effects/weather_attachments/act1/Red_Vale/Red_Vale.ao", CaptureLightExtras.AttachmentOf(env));
+        Assert.Null(CaptureLightExtras.AttachmentOf(Encoding.UTF8.GetBytes("""{ "area": { "dust_color": [0.6, 0.4, 0.3] } }""")));
+
+        string ao = "version 2\nextends \"Metadata/Effects/weather_attachments/Base\"\nAttachedAnimatedObject { ao = \"Metadata/Effects/fog/fog_plane.ao\" }\n"
+            + "ParticleEffects { continuous_effect = \"root Metadata/Particles/enviro/fog_circle.pet\" }\nSkinMesh { skin = \"Art/Models/Effects/fog_plane.sm\" }\n";
+        Assert.Equal(
+            ["Metadata/Effects/fog/fog_plane.ao", "Metadata/Particles/enviro/fog_circle.pet", "Art/Models/Effects/fog_plane.sm", "Metadata/Effects/weather_attachments/Base.ao"],
+            CaptureLightExtras.NamedIn(ao));
+
+        string[] lines =
+        [
+            "FRAGMENT Other", "{{", "}}", "", "FRAGMENT WindVector", "\tcost: cheap", "\tout float2 wind_direction", "{{", "\twind_direction = float2(1, 0);", "}}",
+            "\tfloat4 GetBurnSample(float3 world_pos)", "\t{", "\t\tif (x) { return 0; }", "\t\treturn 1;", "\t}", "float after;",
+        ];
+        Assert.Equal("FRAGMENT WindVector\n\tcost: cheap\n\tout float2 wind_direction\n{{\n\twind_direction = float2(1, 0);\n}}\n", CaptureLightExtras.Block(lines, "WindVector")!.ReplaceLineEndings("\n"));
+        Assert.EndsWith("\t\treturn 1;\n\t}\n", CaptureLightExtras.Block(lines, "GetBurnSample")!.ReplaceLineEndings("\n"), StringComparison.Ordinal);
+        Assert.Null(CaptureLightExtras.Block(lines, "PlayerTrailingGhost"));
     }
 }

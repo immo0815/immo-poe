@@ -42,6 +42,13 @@ public class CaptureAtGameTests
         Assert.Matches(@"all\s+s 0\.(4[89]|5[01])", report);
         Assert.Equal(4, pictures.Count);
 
+        // VERSION 3 KEEPS EVERY SAMPLE'S PLACE and the stage's corner in the area, what the clouds' noise is measured over offline.
+        (CaptureLightCompare.Header kept, List<CaptureLightCompare.Sample> samples) = CaptureLightCompare.Read(numbers);
+        Assert.Equal(scene.Origin, kept.Origin);
+        Assert.NotEmpty(samples);
+        Assert.All(samples, one => Assert.True(float.IsFinite(one.Place.X) && float.IsFinite(one.Place.Z)));
+        Assert.Contains("no measurement: no .env read", report, StringComparison.Ordinal);
+
         string folder = Directory.CreateTempSubdirectory("light-against-game").FullName;
         try
         {
@@ -175,8 +182,10 @@ public class CaptureAtGameTests
         Assert.Matches(@"[1-9][\d,]* the game's picture at its ceiling", report);
         Assert.True(Regex.IsMatch(report, @"all\s+s (0\.9[5-9]\d*|1(\.0[0-5]\d*)?)\s"), report);
 
-        // VERSION 1: the same numbers less the ninth reason - read with nought there.
-        byte[] first = [.. numbers[..4], .. BitConverter.GetBytes(1), .. numbers[8..60], .. numbers[64..]];
+        // VERSION 1: the same numbers less the ninth reason - read with nought there. Made from version 2's, which version 3 is written as on asking.
+        (CaptureLightCompare.Header header, List<CaptureLightCompare.Sample> samples) = CaptureLightCompare.Read(numbers);
+        byte[] second = CaptureLightCompare.Bytes(header, samples, version: 2);
+        byte[] first = [.. second[..4], .. BitConverter.GetBytes(1), .. second[8..60], .. second[64..]];
         string folder = Directory.CreateTempSubdirectory("light-against-game-v1").FullName;
         try
         {

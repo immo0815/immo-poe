@@ -1107,9 +1107,15 @@ internal sealed class CaptureKey
                         : [.. GameInstall.Names.Select(name => Path.Combine(install, name + ".exe")).Where(File.Exists)];
                     string text = CaptureLightExtras.Write(
                         read, environments, shaders, [.. engineGraphs, .. shoreFiles], programs, run.Panes, run.Snapshot.Area.Environment,
-                        out IReadOnlyList<(string File, GamePicture Picture)> pictures);
+                        out IReadOnlyList<(string File, GamePicture Picture)> pictures, out IReadOnlyList<(string File, byte[] Bytes)> wholes);
                     File.WriteAllText(At(CaptureReport.LightExtrasFile), text);
                     Pictures(pictures);
+
+                    // THE NOISE CANDIDATES AND THE FOG'S TEXTURE WHOLE beside it, for light-against-game's clouds to be measured again offline.
+                    foreach ((string file, byte[] bytes) in wholes)
+                    {
+                        File.WriteAllBytes(At(file), bytes);
+                    }
                     return text[..text.IndexOf('\n')].TrimEnd('\r');
                 });
             }
@@ -1281,7 +1287,8 @@ internal sealed class CaptureKey
                 {
                     Part(CaptureReport.LightCompareFile, () =>
                     {
-                        string text = CaptureLightCompare.Write(read, scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers, run.AtGame);
+                        string text = CaptureLightCompare.Write(
+                            read, scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers, run.AtGame, run.Snapshot.Area.Environment);
                         File.WriteAllText(At(CaptureReport.LightCompareFile), text);
                         Pictures(pictures);
                         File.WriteAllBytes(At(CaptureLightCompare.Numbers), numbers);

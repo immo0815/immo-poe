@@ -626,6 +626,40 @@ MEASURED, every number from light-against-game.txt and its .bin worked offline:
   light over the albedo), and works out the gain the game asks of the player's lamp in the pane's shade. Press both in The Red Vale, the
   Monster Book on the area round you, before the clouds, the fog, the roof fade or the lamp is given a rule.
 
+THE FOUR ARE BUILT IN THE ORDER ASKED (2026-10-31, from the live client): the screen-space fog, the clouds, the roof fade, the player's light.
+DECIDED from the live client for the first two: drawn on the card alone, the processor's picture saying under it what it leaves out; on a
+stage the camera's focus stands for the player wherever the engine reads his place (the fog's disperse radius, the clouds' fade), and the
+model pane's edge button "focus" (v0.1.380, `MonsterPortrait.FocusMark`) shows a small mark there - three arms along x, y and up and a dot,
+drawn over the picture through its own camera, a fortieth of the camera's distance across (CHOSEN).
+WHAT v0.1.373'S light-extras.txt SAYS OF THEM, read offline:
+- THE FOG IS A MATERIAL, `Metadata/Materials/Environment/ScreenspaceFogEnv.fxgraph`: DownScaledAddablend, no depth write; its ScreenspaceFog
+  node (utilitynodes.ffx) marches RaymarchFogColor from the eye to the depth behind the pixel (UnprojectPixelDepth) through `ssf_layer_count`
+  layers `ssf_thickness` deep, standing from `start_dist` (100) over the terrain under the depth's point upward (GetHeightAtWorldPos at
+  level 3, up is minus z); each layer's density the fog texture's blue (BakedFog_BC1.dds unless a material sets "1.Fog_Texture") flowing
+  through SampleFlowingTexMip2 with `ssf_turbulence`, times its colour - `ssf_color` and `ssf_color_alpha * 0.02` at the top,
+  `ssf_color / 3.5` and `alpha * 0.1` at the bottom; thinned past `ssf_disperse_radius` round the player (PlayerTrailingGhost) by
+  `ssf_feathering` (ApplyCylinderFade, math_utils' SmoothStep); lit by the sun integrated through each layer with its shadow
+  (GetIntegralTotalLightIntensity, IntegrateShadowMap), the point lights, the env light and a constant ambient (0.0568). WindParams reads the
+  engine's burn simulation (GetBurnSample: no burn, velocity nought and opacity one). WHO WEARS IT IS NOT READ: no room, tile or doodad of
+  The Red Vale names it and the program names no such file - the lead is the area's `area.player_environment_ao` (Red_Vale.ao, a weather
+  attachment the game puts on the player). So v0.1.380's light-extras.txt writes, from section 7, that attachment's files hop by hop (the
+  text ones whole) and the model the tool builds of it - its box and each shape's material; section 8 the fragments the march reads that
+  no captured source held (WindVector, PlayerTrailingGhost, GetBurnSample and the rest); section 9 the noise candidates and BakedFog whole
+  beside it (`light-extras-<name>.dds`, `CaptureLightExtras.WholeFile`).
+- THE CLOUDS ARE GetCloudsIntensity (shadows.ffx), a factor on the sun's shadow: the noise's ALPHA 1000 units up along the light (the
+  same whichever way the light's axis points), turned along `clouds_velocity`, times `0.001 * clouds_scale`, slid by `speed * time`;
+  `saturate(alpha + fade * pre_fade)`, math_utils' SmoothStep about the midpoint with the sharpness (NOT HLSL's smoothstep - its own
+  power curve), `+ fade * post_fade`, lerped from one by the intensity; the fade the smoothstep of one less the player's distance over
+  `clouds_fade_radius` (The Red Vale's engine default 800, MEASURED). The noise is `noise_sampler`, a pass texture no file names; the program
+  names four noises with an alpha in Art/2DArt/Lookup/ (perlin_noise 512 BGRA8, noise_perlin_worley_high and noise_curl3 128 RGBA8,
+  noise_worley_low 32). DECIDED from the live client: measured against the game's picture, not assumed. light-against-game.bin is version 3
+  from v0.1.380 (each sample's place in the stage's frame, the stage's corner in the area, the player, the sun and the area's clouds), and
+  light-against-game.txt holds every candidate's cloud factor against the game's light over the pane's on the ground the pane lights
+  (`CloudNoise.Measure`): eight ways of making clouds_velocity from the angle (the engine's C++) and every slide along it half a texel
+  apart (the engine's `time`), the best correlation per candidate; taken where it reaches r 0.25 and 0.1 over the next (CHOSEN). The
+  replay measures again from the candidates light-extras wrote whole. Press F9 in The Red Vale, the Monster Book on the area round you, with
+  "game picture" ticked and the player standing still in the sun - before the fog or the clouds are drawn.
+
 ## Verify against the game, not against yourself
 
 A check that a wrong value passes is worse than no check. Prefer tests the game itself can

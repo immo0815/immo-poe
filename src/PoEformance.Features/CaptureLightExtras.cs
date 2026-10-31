@@ -29,7 +29,7 @@ namespace PoEformance.Features;
 /// numbered heading - the form <see cref="Replay"/> reads back - and every file written whole has its lines marked <c>  | </c>, so no
 /// line of a source (whose comments draw rules of = signs) is taken for a heading.
 /// </remarks>
-public static class CaptureLightExtras
+public static partial class CaptureLightExtras
 {
     /// <summary>The words an environment's section is taken whole by, any case: its name holding one - clouds, screenspace_fog, player_light.</summary>
     public static IReadOnlyList<string> SectionWords { get; } = ["cloud", "fog", "player_light"];
@@ -171,13 +171,28 @@ public static class CaptureLightExtras
     public static string Write(
         Func<string, byte[]?> read, IReadOnlyList<string>? environments, IReadOnlyList<string>? shaders, IReadOnlyList<string>? graphs,
         IReadOnlyList<string>? programs, IReadOnlyList<CapturePane>? panes, string? area, out IReadOnlyList<(string File, GamePicture Picture)> pictures)
-        => Write(read, environments, shaders, graphs, programs, panes, area, Bounds.Part, out pictures);
+        => Write(read, environments, shaders, graphs, programs, panes, area, Bounds.Part, out pictures, out _);
+
+    /// <summary>The same, with the files to write whole beside the part - the noise candidates and the fog's texture (section 9).</summary>
+    /// <param name="files">Each file's name beside the part and its bytes.</param>
+    public static string Write(
+        Func<string, byte[]?> read, IReadOnlyList<string>? environments, IReadOnlyList<string>? shaders, IReadOnlyList<string>? graphs,
+        IReadOnlyList<string>? programs, IReadOnlyList<CapturePane>? panes, string? area, out IReadOnlyList<(string File, GamePicture Picture)> pictures,
+        out IReadOnlyList<(string File, byte[] Bytes)> files)
+        => Write(read, environments, shaders, graphs, programs, panes, area, Bounds.Part, out pictures, out files);
 
     /// <summary>The same, within the bounds given.</summary>
     internal static string Write(
         Func<string, byte[]?> read, IReadOnlyList<string>? environments, IReadOnlyList<string>? shaders, IReadOnlyList<string>? graphs,
         IReadOnlyList<string>? programs, IReadOnlyList<CapturePane>? panes, string? area, Bounds bounds,
         out IReadOnlyList<(string File, GamePicture Picture)> pictures)
+        => Write(read, environments, shaders, graphs, programs, panes, area, bounds, out pictures, out _);
+
+    /// <summary>The same, within the bounds given, with the files to write whole beside it.</summary>
+    internal static string Write(
+        Func<string, byte[]?> read, IReadOnlyList<string>? environments, IReadOnlyList<string>? shaders, IReadOnlyList<string>? graphs,
+        IReadOnlyList<string>? programs, IReadOnlyList<CapturePane>? panes, string? area, Bounds bounds,
+        out IReadOnlyList<(string File, GamePicture Picture)> pictures, out IReadOnlyList<(string File, byte[] Bytes)> files)
     {
         ArgumentNullException.ThrowIfNull(read);
         ArgumentNullException.ThrowIfNull(bounds);
@@ -185,7 +200,7 @@ public static class CaptureLightExtras
         var body = new StringBuilder();
         var named = new Named();
 
-        (int files, int keys) = Environments(read, environments, area, bounds, body, named);
+        (int envFiles, int keys) = Environments(read, environments, area, bounds, body, named);
         (int sources, int sourcesWhole) = Sources(read, shaders, bounds, body, named);
         (int found, int searched, int graphsWhole) = Graphs(read, graphs, bounds, body, named);
         string strings = Programs(programs, bounds, body, named);
@@ -193,11 +208,16 @@ public static class CaptureLightExtras
         (int textures, int decoded) = Textures(read, named, bounds, body, drawn);
         pictures = drawn;
         (int roofs, int shown) = Roofs(read, panes, bounds, body);
+        int attached = Attachment(read, area, body);
+        int fragments = Fragments(read, shaders, body);
+        var whole = new List<(string File, byte[] Bytes)>();
+        int noises = Noises(read, body, whole);
+        files = whole;
         clock.Stop();
 
         string head = string.Create(
             CultureInfo.InvariantCulture,
-            $"light extras: {(environments is { Count: > 0 } ? $"{files} of {environments.Count} environments set {keys} keys of the clouds, the fog and the player's light" : "no environments")}; {(sources < 0 ? "no shader sources" : $"{sources} shader sources name a word, {sourcesWhole} whole")}; {(searched == 0 ? "no graphs" : $"{found} of {searched} graphs name a node or their path a word, {graphsWhole} whole")}; {strings}; {textures} textures named, {decoded} drawn; {(panes is { Count: > 0 } ? $"{roofs} roof-section materials over {shown} model panes" : "no model pane")} ({clock.Elapsed.TotalSeconds:0.0} s)");
+            $"light extras: {(environments is { Count: > 0 } ? $"{envFiles} of {environments.Count} environments set {keys} keys of the clouds, the fog and the player's light" : "no environments")}; {(sources < 0 ? "no shader sources" : $"{sources} shader sources name a word, {sourcesWhole} whole")}; {(searched == 0 ? "no graphs" : $"{found} of {searched} graphs name a node or their path a word, {graphsWhole} whole")}; {strings}; {textures} textures named, {decoded} drawn; {(panes is { Count: > 0 } ? $"{roofs} roof-section materials over {shown} model panes" : "no model pane")}; the player's attachment {attached} files; {fragments} of {FogFragments.Count} fog fragments; {noises} noises whole ({clock.Elapsed.TotalSeconds:0.0} s)");
         return head + Environment.NewLine + body;
     }
 

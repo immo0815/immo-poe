@@ -63,12 +63,14 @@ public static class CaptureLightCompare
 
     /// <summary>How the numbers are laid out, written into the report.</summary>
     public const string BinaryFormat =
-        "little-endian: \"PLAG\", int version 2, int gathered width, int gathered height, int step, int factor, float exposure, int left-out counts (9: no surface, water, "
+        "little-endian: \"PLAG\", int version 3, int gathered width, int gathered height, int step, int factor, float exposure, int left-out counts (9: no surface, water, "
         + "translucent over it, beach or lifted water over it, masked, past the far plane, a shape's edge, no game picture, the game's picture at its ceiling; "
         + "version 1 had the first 8), int materials, each a ushort "
         + "length and UTF-8 (a ground's name begins \"ground: \", a roof section's \"roof: \"), int samples, each: int gathered index, int shape (-1 none), int material, then halves: game rgb, game unexposed rgb, pane rgb, "
         + "albedo rgb, sun, facing, sun diffuse rgb, cube rgb, gi stand-in and flat rgb, room lights rgb, player lamp rgb, specular rgb, pane unexposed rgb; "
-        + "then floats: depth, distance to the player across";
+        + "then floats: depth, distance to the player across; version 3 (v0.1.380) after the left-out counts: floats the stage's corner in the area x y, the player's place "
+        + "in the area x y, the sun's way x y z, a byte whether the clouds follow and 9 floats: clouds_scale, _intensity, _midpoint, _sharpness, _speed, _angle, "
+        + "_fade_radius, _pre_fade, _post_fade; and each sample ends with floats its place in the stage's frame x y z";
 
     /// <summary>The word a ground's material is named under.</summary>
     internal const string GroundWord = "ground: ";
@@ -122,9 +124,10 @@ public static class CaptureLightCompare
     /// <param name="pictures">The pictures to write beside the report, by file name.</param>
     /// <param name="numbers">The samples' numbers, <see cref="Numbers"/>.</param>
     /// <param name="search">Where it says how far it is, or null - the drawing's own, so the capture's window goes on from it.</param>
+    /// <param name="environment">The area's own .env, whose clouds the clouds' noise is measured with - or null.</param>
     public static string Write(
         Func<string, byte[]?>? read, CaptureAtGame scene, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers,
-        CaptureAtGame.Search? search = null)
+        CaptureAtGame.Search? search = null, string? environment = null)
     {
         ArgumentNullException.ThrowIfNull(scene);
         search?.Begin(1);
@@ -244,10 +247,20 @@ public static class CaptureLightCompare
                 at, shape, MaterialOf(shape), game, Ungraded(game, light), terms.Graded, terms.Albedo, terms.Sun, terms.SunFacing,
                 terms.SunDiffuse, terms.Cube, terms.GiStandIn + terms.Flat, terms.RoomDiffuse, terms.PlayerDiffuse,
                 terms.Lobes + terms.EnvironmentSpecular + terms.WavesReflection, terms.Unexposed, gather.Depth[at],
-                float.IsNaN(player.X) ? float.NaN : Vector2.Distance(new Vector2(place.X, place.Y), player)));
+                float.IsNaN(player.X) ? float.NaN : Vector2.Distance(new Vector2(place.X, place.Y), player)) { Place = place });
         }
 
-        var header = new Header(gather.Width, (scene.DrawnHeight + gather.Step - 1) / gather.Step, gather.Step, scene.Factor, light.Exposure, left, materials);
+        string cloudsWhy = "no .env read";
+        CloudNoise.Clouds? clouds = read is not null && environment is { Length: > 0 }
+            ? CloudNoise.Of(EnvironmentSettings.Read(environment, read(environment)), out cloudsWhy)
+            : null;
+        var header = new Header(gather.Width, (scene.DrawnHeight + gather.Step - 1) / gather.Step, gather.Step, scene.Factor, light.Exposure, left, materials)
+        {
+            Origin = scene.Origin,
+            PlayerArea = scene.PlayerAcross,
+            Sun = light.SunDirection,
+            Clouds = clouds,
+        };
         numbers = Bytes(header, samples);
         pictures = Pictures(scene, header, samples);
 
@@ -267,6 +280,9 @@ public static class CaptureLightCompare
         text.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
             $"light: sun ({light.SunColour.X:0.###}, {light.SunColour.Y:0.###}, {light.SunColour.Z:0.###}) travelling ({light.SunDirection.X:0.####}, {light.SunDirection.Y:0.####}, {light.SunDirection.Z:0.####}), {(light.SunShadows ? "shadows" : "no shadows")} on a map of {light.ShadowSide}; ambient {light.Ambient}, flat {light.FlatAmbient:0.#####}, cube brightness {light.CubeBrightness:0.###}, direct_light_env_ratio {light.DirectLightEnvRatio:0.###}, gi_env_occlusion {light.GiEnvOcclusion:0.###}; exposure {light.Exposure:0.###}; grade {(light.Grade is null ? "none" : "the environment's table")}; {light.PointCount} point lights{(light.PlayerIndex >= 0 ? ", the player's lamp the last" : string.Empty)}"));
+        text.AppendLine().AppendLine("=== the clouds' noise: which of the engine's noise candidates the game's light on the ground the pane lights follows (CloudNoise)");
+        text.Append(CloudsMeasured(header, samples, clouds is null ? cloudsWhy : string.Empty,
+            [.. CaptureLightExtras.NoiseCandidates.Select(path => (path, read?.Invoke(path) is { } bytes ? GameArt.Decode(bytes) : null))]));
         text.AppendLine().AppendLine("=== the numbers beside it");
         text.AppendLine(Numbers + ": " + BinaryFormat);
         text.AppendLine(PanePicture + ": the pane's picture through the game's camera, at the drawn size");
@@ -289,7 +305,52 @@ public static class CaptureLightCompare
         }
 
         (Header header, List<Sample> samples) = Read(File.ReadAllBytes(path));
-        return Report(header, samples, "light against the game replay");
+        var text = new StringBuilder(Report(header, samples, "light against the game replay"));
+
+        // THE CLOUDS' NOISE AGAIN from the candidates light-extras wrote whole beside the capture.
+        text.AppendLine().AppendLine("=== the clouds' noise");
+        text.Append(CloudsMeasured(header, samples, header.Clouds is null ? "the numbers keep no clouds (before version 3, or the .env left a key out)" : string.Empty,
+            [.. CaptureLightExtras.NoiseCandidates.Select(candidate =>
+                (candidate, File.Exists(CaptureParts.Find(folder, CaptureLightExtras.WholeFile(candidate)))
+                    ? GameArt.Decode(File.ReadAllBytes(CaptureParts.Find(folder, CaptureLightExtras.WholeFile(candidate))))
+                    : null))]));
+        return text.ToString();
+    }
+
+    /// <summary>
+    /// The clouds' noise measured over the samples (CloudNoise.Measure) - the ground the pane lights, each with the game's unexposed light over
+    /// the pane's - or why it is not.
+    /// </summary>
+    internal static string CloudsMeasured(Header header, IReadOnlyList<Sample> samples, string why, IReadOnlyList<(string Path, GamePicture? Picture)> candidates)
+    {
+        if (header.Clouds is not { } clouds)
+        {
+            return "no measurement: " + why + Environment.NewLine;
+        }
+
+        if (float.IsNaN(header.Origin.X) || float.IsNaN(header.Sun.X))
+        {
+            return "no measurement: the numbers keep no place in the area" + Environment.NewLine;
+        }
+
+        bool[] roof = Kinds(header, RoofWord);
+        var points = new List<CloudNoise.Point>();
+        foreach (Sample one in samples)
+        {
+            if (one.Class != Lighting.Lit || float.IsNaN(one.Place.X) || (one.Material >= 0 && one.Material < roof.Length && roof[one.Material]))
+            {
+                continue;
+            }
+
+            double pane = CaptureAtGame.Luminance(one.Unexposed), game = CaptureAtGame.Luminance(one.GameUnexposed);
+            if (pane > 1e-5 && double.IsFinite(game))
+            {
+                points.Add(new CloudNoise.Point(new Vector2(one.Place.X, one.Place.Y) + header.Origin, (float)Math.Clamp(game / pane, 0d, 8d)));
+            }
+        }
+
+        Vector2 player = float.IsNaN(header.PlayerArea.X) ? new Vector2(1e9f) : header.PlayerArea;
+        return CloudNoise.Measure(clouds, header.Sun, player, points, candidates);
     }
 
     /// <summary>One compared pixel.</summary>
@@ -297,6 +358,9 @@ public static class CaptureLightCompare
         int Index, int Shape, int Material, Vector3 Game, Vector3 GameUnexposed, Vector3 Pane, Vector3 Albedo, float Sun, float Facing, Vector3 SunDiffuse,
         Vector3 Cube, Vector3 GiFlat, Vector3 Room, Vector3 Player, Vector3 Specular, Vector3 Unexposed, float Depth, float PlayerDistance)
     {
+        /// <summary>Where the pixel's surface stands in the stage's frame - NaN in numbers of version 1 and 2, which kept none.</summary>
+        public Vector3 Place { get; init; } = new(float.NaN);
+
         /// <summary>The pane's sun at the pixel: lit, between, or in shade.</summary>
         public Lighting Class => ClassOf(Sun, Facing);
     }
@@ -319,7 +383,20 @@ public static class CaptureLightCompare
     }
 
     /// <summary>What the numbers carry besides the samples.</summary>
-    internal sealed record Header(int Width, int Height, int Step, int Factor, float Exposure, int[] Left, IReadOnlyList<string> Materials);
+    internal sealed record Header(int Width, int Height, int Step, int Factor, float Exposure, int[] Left, IReadOnlyList<string> Materials)
+    {
+        /// <summary>The stage's corner in the area - a place in its frame plus this is the area's - NaN before version 3.</summary>
+        public Vector2 Origin { get; init; } = new(float.NaN);
+
+        /// <summary>Where the player stood in the area, x and y - NaN before version 3 or where no player was read.</summary>
+        public Vector2 PlayerArea { get; init; } = new(float.NaN);
+
+        /// <summary>The way the pane's sun travels - NaN before version 3.</summary>
+        public Vector3 Sun { get; init; } = new(float.NaN);
+
+        /// <summary>The area's clouds as its .env sets them, or null - before version 3, or where the .env leaves out a key (see CloudNoise.Of).</summary>
+        public CloudNoise.Clouds? Clouds { get; init; }
+    }
 
     /// <summary>The material a shape wears, as the report groups it - a roof section's and a ground's each under its own word.</summary>
     /// <remarks>
@@ -1436,13 +1513,13 @@ public static class CaptureLightCompare
         ];
     }
 
-    /// <summary>The samples as bytes - <see cref="BinaryFormat"/>.</summary>
-    private static byte[] Bytes(Header header, IReadOnlyList<Sample> samples)
+    /// <summary>The samples as bytes - <see cref="BinaryFormat"/> - of version 3, or 2 for a test that makes an older file.</summary>
+    internal static byte[] Bytes(Header header, IReadOnlyList<Sample> samples, int version = 3)
     {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8);
         writer.Write("PLAG"u8);
-        writer.Write(2);
+        writer.Write(version);
         writer.Write(header.Width);
         writer.Write(header.Height);
         writer.Write(header.Step);
@@ -1451,6 +1528,12 @@ public static class CaptureLightCompare
         foreach (int one in header.Left)
         {
             writer.Write(one);
+        }
+
+        // VERSION 3: where the stage stands in the area, the player, the sun and the clouds - what the clouds' noise is measured with.
+        if (version >= 3)
+        {
+            ThreeOn(writer, header);
         }
 
         writer.Write(header.Materials.Count);
@@ -1482,10 +1565,35 @@ public static class CaptureLightCompare
             Halves(writer, one.Unexposed);
             writer.Write(one.Depth);
             writer.Write(one.PlayerDistance);
+            if (version >= 3)
+            {
+                writer.Write(one.Place.X);
+                writer.Write(one.Place.Y);
+                writer.Write(one.Place.Z);
+            }
         }
 
         writer.Flush();
         return stream.ToArray();
+    }
+
+    /// <summary>Version 3's header past the left-out counts - see <see cref="BinaryFormat"/>.</summary>
+    private static void ThreeOn(BinaryWriter writer, Header header)
+    {
+        writer.Write(header.Origin.X);
+        writer.Write(header.Origin.Y);
+        writer.Write(header.PlayerArea.X);
+        writer.Write(header.PlayerArea.Y);
+        writer.Write(header.Sun.X);
+        writer.Write(header.Sun.Y);
+        writer.Write(header.Sun.Z);
+        CloudNoise.Clouds? clouds = header.Clouds;
+        writer.Write(clouds is null ? (byte)0 : (byte)1);
+        foreach (float one in clouds is null ? new float[9]
+            : [clouds.Scale, clouds.Intensity, clouds.Midpoint, clouds.Sharpness, clouds.Speed, clouds.Angle, clouds.FadeRadius, clouds.PreFade, clouds.PostFade])
+        {
+            writer.Write(one);
+        }
     }
 
     private static void Halves(BinaryWriter writer, Vector3 value)
@@ -1500,9 +1608,9 @@ public static class CaptureLightCompare
     {
         using var reader = new BinaryReader(new MemoryStream(bytes), Encoding.UTF8);
         int version = reader.ReadBytes(4).AsSpan().SequenceEqual("PLAG"u8) ? reader.ReadInt32() : -1;
-        if (version is not (1 or 2))
+        if (version is not (1 or 2 or 3))
         {
-            throw new InvalidDataException("not the light-against-the-game numbers of version 1 or 2");
+            throw new InvalidDataException("not the light-against-the-game numbers of version 1, 2 or 3");
         }
 
         // VERSION 1 KEPT NO CEILING: its pixels at the game's ceiling are among the samples, and its ninth reason reads nought.
@@ -1512,6 +1620,24 @@ public static class CaptureLightCompare
         for (var at = 0; at < (version == 1 ? 8 : Reasons); at++)
         {
             left[at] = reader.ReadInt32();
+        }
+
+        Vector2 origin = new(float.NaN), playerArea = new(float.NaN);
+        Vector3 sun = new(float.NaN);
+        CloudNoise.Clouds? clouds = null;
+        if (version >= 3)
+        {
+            origin = new Vector2(reader.ReadSingle(), reader.ReadSingle());
+            playerArea = new Vector2(reader.ReadSingle(), reader.ReadSingle());
+            sun = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+            bool any = reader.ReadByte() != 0;
+            var values = new float[9];
+            for (var at = 0; at < values.Length; at++)
+            {
+                values[at] = reader.ReadSingle();
+            }
+
+            clouds = any ? new CloudNoise.Clouds(values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8]) : null;
         }
 
         int count = reader.ReadInt32();
@@ -1528,13 +1654,14 @@ public static class CaptureLightCompare
         {
             int index = reader.ReadInt32(), shape = reader.ReadInt32(), material = reader.ReadInt32();
             Vector3 game = Halves(reader), gameUnexposed = Halves(reader), pane = Halves(reader), albedo = Halves(reader);
-            float sun = (float)reader.ReadHalf(), facing = (float)reader.ReadHalf();
+            float sunShare = (float)reader.ReadHalf(), facing = (float)reader.ReadHalf();
             Vector3 sunDiffuse = Halves(reader), cube = Halves(reader), giFlat = Halves(reader), room = Halves(reader), player = Halves(reader), specular = Halves(reader), unexposed = Halves(reader);
             float depth = reader.ReadSingle(), distance = reader.ReadSingle();
-            list.Add(new Sample(index, shape, material, game, gameUnexposed, pane, albedo, sun, facing, sunDiffuse, cube, giFlat, room, player, specular, unexposed, depth, distance));
+            Vector3 place = version >= 3 ? new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()) : new Vector3(float.NaN);
+            list.Add(new Sample(index, shape, material, game, gameUnexposed, pane, albedo, sunShare, facing, sunDiffuse, cube, giFlat, room, player, specular, unexposed, depth, distance) { Place = place });
         }
 
-        return (new Header(width, height, step, factor, exposure, left, materials), list);
+        return (new Header(width, height, step, factor, exposure, left, materials) { Origin = origin, PlayerArea = playerArea, Sun = sun, Clouds = clouds }, list);
     }
 
     private static Vector3 Halves(BinaryReader reader)
