@@ -168,6 +168,11 @@ him and lays no tile again); and the button turned about whatever the pane looke
 capture.txt's camera matrix and player line: the game's camera looks at the ground (-37 to -41, -34 to -39) units from the player's feet in
 x and y, median (-38.2, -37.7) - about 54 towards the camera - from 2,150 to 2,166 units off it; so the button looks at a staged monster's
 feet that much ahead (`CameraPose.GameAhead`, `AsTheGameAt`), the eye within a hundredth of the distance of the game's in every capture held.
+FROM v0.1.375 THE WORD CARRIES HIS GROUND'S HEIGHT TOO (`stood=x,y,z`, his Render TerrainHeight - the tile levels' frame the block's picture
+keeps, LaidRoomModels' measured relation), and the monster stands on the floor nearest it of the nine asked round the place; a key from before
+stands him on the floor at the place itself, the ring's middle only where the place finds none (`StagedModels.Staged`; a review found the
+ring's median, a boss place's rule, put him on the river bed beside a footbridge and on the wall tops in a doorway). A roof wider than the
+ring still covers all nine.
 
 PERSPECTIVE REACHES EVERY PLACE THE PARALLEL VIEW WAS ASSUMED, and each keeps the parallel arithmetic to the bit:
 - The processor (`MeshPicture.Drawing.Edged`) finds each pixel's weights as the point its ray meets - `r · (v1 × v2)` and its
@@ -598,6 +603,11 @@ MEASURED, every number from light-against-game.txt and its .bin worked offline:
   0.291), and game = s pane + n leaves a grey of a third of the game's mean. A lead: the .env's SCREEN-SPACE FOG (ssf_color 0.139 0.109
   0.119, alpha 0.1, 5 layers, disperse radius 1,300), drawn by graphs reading effects.ffx's SSF fragments - gathered by the same part.
 - THE PLAYER'S LAMP is stronger in the game: within 400 units across of the player the game in the pane's shade is 2.4 to 2.9 times the pane.
+  From v0.1.375 the part FITS game = a rest + g lamp over the pane's shade (non-negative least squares, `CaptureLightCompare.LampFit`) where
+  it took each pixel's ratio, which divides the rest's mismatch by the lamp's share (a review: 1.46 asked of The Red Vale's v0.1.372, negative
+  in two bins). MEASURED: v0.1.372's capture g 2.725, a 1.341; v0.1.374's (another spot, the same area) g 0.674, a 1.691 - the two disagree,
+  and in both the 300 to 500 unit bins ask the rest three times the pane's where the pane's lamp hardly reaches: a reading, not settled, that
+  the game's lamp reaches farther than the pane's 500 units. Hold the lamp against the engine's own (light-extras.txt) before a rule.
 - THE GAME HIDES ROOF SECTIONS IN FRONT OF THE PLAYER (said from the live client: the engine keeps big objects from standing in front of the
   camera and blocking the view). A material whose .mat says `"roofsection": true` - the OFO_BlackForestTrees01*_fadec trunks and
   RoofFade_JungleTreeBranches01c, not the plain OFO_BlackForestTrees01Ac or Dc - is a roof section; of the twelve such shapes the pane drew,
@@ -1207,6 +1217,20 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   client with a picture) - after crash, wetness and shadows had each been switched off on v0.1.336 without taking them away. Their
   cause is NOT FOUND; if they come back, probe one at once (the probe names every fragment under the pixel) and capture
   (`model-panes.txt`'s water seams).
+  THE RUNOFF WENT WITH THE TILESET'S SWAPS (said from the live client, v0.1.374: "spray from occlusion no longer works in Port"; its capture,
+  the probe on the quay's face). The quay is TILES (Port_Boss_01.tgt and the OceanEdge templates name MSHD_GraveBrickTile01c.mat), and from
+  v0.1.344 a laid or built room puts the master's TileMaterialOverrides on its tiles, as the game does (Crimson Shores matched the game only
+  so): Port's material_overrides.tmo swaps MSHD_GraveBrickTile01c.mat for `Art/Models/Terrain/Maps/Port/Textures/Architecture/
+  MPRT_GraveBrickTile01c.mat`. So the GAME'S QUAY WEARS MPRT, and that answers v0.1.338's question: its moss is MaterialBlend_GradientUV, whose
+  write of the occlusion is `lerp(occlusion, the moss normal texture's z, a moss mask)` - no reset to one - and OceanSprayFoam after it
+  (OceanSpray_Height -200, OceanSpray_Intensity -0.325) reads the stone's own, moss-lerped occlusion: the runoff the twin stood in for. The
+  compile drops it: the moss mask transforms the normal map's normal through the TBN basis (`Transform(InputTbnNormal, InputTbnBasis)`), which
+  ShadeProgram refuses with no mesh tangents; the occlusion's write is lost, OceanSprayFoam's read of it after, and the spray with it - so the
+  quay draws no runoff with the switch on or off. The same refusal is among the stage sweep's largest causes (MaterialBlend_GradientTriplanar
+  alone 2,804 rooms). Being mended by compiling the transform over the engine's screen-space tangent frame (FixModelTBN's, which the
+  parallax already reads). From v0.1.375 `model-panes.txt` writes every master swap a stage wears beside its original, what each can do
+  (sprays, the twin, wetness read and cast, water, alpha) and LOST: / GAINED:, both whole where they differ - this swap reads "LOST: sprays,
+  spray from occlusion" with no probe click.
   THE CAUSTICS' AND THE ROCKY SHORE'S TEXTURES. water.ffx's GetCausticsBias reads `distortion_sampler` (red and green as a vector,
   `(rg * 2 - 1) * 0.4`, at the place times 0.001 drifting with the clock) and `caustics_tex_sampler` (its green, `pow(g, 1 / 4.2) * 2 - 1`,
   at the place times 0.002), both wrapping, and GetClashingWaterPlanarState and the beach foam's leading edge read the same distortion -

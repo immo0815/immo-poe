@@ -462,6 +462,40 @@ public class CaptureAtGameTests
         Assert.StartsWith("roof sections: 1 of the 4 materials the compared pixels wear say \"roofsection\" in their .mat (1 not in the install or not read) - named", roofs.Said(), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A floor of two shapes, one wearing sand alone and one sand mixed with the ground by its sub-tiles' corners, is set out by material as
+    /// the two it is - the mix under both its grounds' names, not under the second's, whose own group it would otherwise join - and so in
+    /// the numbers the replay reads.
+    /// </summary>
+    [Fact]
+    public void AGROUNDMixIsSetOutByMaterialUnderBothItsGroundsNotTheSecondsName()
+    {
+        CapturePane stage = Stage(MaterialBlend.Opaque, splitFloor: true);
+        Assert.Equal(["Art/ground.mat", "Art/ground.mat"], stage.Model.ShapeMaterials.Take(2));
+        MonsterModel model = stage.Model with
+        {
+            ShapeMaterials = [GroundBlend.Cornered("Art/ground.mat", "Art/sand.mat"), "Art/sand.mat", .. stage.Model.ShapeMaterials.Skip(2)],
+        };
+        var pane = new CapturePane("tile", [], model) { Light = stage.Light, LightOn = true, Blends = stage.Blends };
+        WorldSnapshot shot = Shot();
+        CaptureAtGame own = CaptureAtGame.Draw(pane, shot, null, Width, Height, null, out _)!;
+        CaptureAtGame scene = CaptureAtGame.Draw(pane, shot, Exact(own, _ => 1f), Width, Height, null, out _)!;
+        string report = CaptureLightCompare.Write(null, scene, out _, out byte[] numbers);
+
+        Assert.Matches(@"\n  ground: ground \+ sand\s+[\d,]+\s", report);
+        Assert.Matches(@"\n  ground: sand\s+[\d,]+\s", report);
+        string folder = Directory.CreateTempSubdirectory("light-against-game-mix").FullName;
+        try
+        {
+            File.WriteAllBytes(Path.Combine(folder, CaptureLightCompare.Numbers), numbers);
+            Assert.Matches(@"\n  ground: ground \+ sand\s+[\d,]+\s", CaptureLightCompare.Replay(folder));
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
     private static int Count(string number) => int.Parse(number, NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
 
     /// <summary>The stage's shapes as a lone monster's - lit, and none of them ground.</summary>

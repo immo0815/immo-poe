@@ -325,12 +325,19 @@ public static class CaptureLightCompare
     /// <remarks>
     /// THE ROOF SECTION'S WORD FIRST: its pixels are kept out of everything, so a ground wearing one (none seen) is no measure of the ground's
     /// light either. And IN THE NAME, not a field of its own, so the numbers keep their layout and a file written before carries no roof.
+    ///
+    /// TWO GROUNDS MIXED ARE NAMED BY BOTH (v0.1.375): their name (GroundBlend) is no file, and taken as one its last "file" was the second
+    /// ground's name with the mix's words for an extension, or the mask's - so a corner mix grouped under its second ground's own name and a
+    /// mask mix under the mask's, one ground's light measured over another's pixels.
     /// </remarks>
     private static string MaterialName(MonsterModel model, int shape, RoofSections roofs)
     {
         string material = shape < model.ShapeMaterials.Count ? MaterialFile.Bare(model.ShapeMaterials[shape]) : string.Empty;
         string source = shape < model.ShapeSources.Count ? model.ShapeSources[shape] : string.Empty;
-        string name = material.Length > 0 ? Path.GetFileNameWithoutExtension(material) : "(no material)";
+        string name = material.Length == 0 ? "(no material)"
+            : GroundBlend.Parts(material, out string first, out string second, out _)
+                ? Path.GetFileNameWithoutExtension(first) + " + " + Path.GetFileNameWithoutExtension(second)
+                : Path.GetFileNameWithoutExtension(material);
         return roofs.Of(material) ? RoofWord + name
             : source.StartsWith(RoomModels.GroundSource, StringComparison.Ordinal) ? GroundWord + name
             : name;
