@@ -897,8 +897,9 @@ stance switches to the two-handed staff and my focus is hidden - only the wand w
 - THE PACK AND TIMELINE FOLLOW THE STANCE: BaseStaff/OneRig.ast (81 animations, his bones) and base_staff.atl, idle_staff_01 - the chain holds.
 - THE COMPOSITION'S HELD SLOTS ARE NOT TWO HANDS (schema `PieceSlots`, renamed `Weapon1` +0x08, `Weapon2` +0x30, `Offhand2` +0x58): with the
   staff in hand +0x08 held the MTX staff, +0x30 the wand again - a NEW object, which the game does not draw - and +0x58 nothing; v0.1.397 took
-  +0x30 for the main hand and hung the wand in her hand. Whether the game hangs that wand anywhere out of sight (her back, `R_Weapon2`) is not
-  seen - she faced the camera.
+  +0x30 for the main hand and hung the wand in her hand. The game draws that wand NOWHERE: every character has two weapon sets, and the
+  set not in hand is shown to nobody, anywhere - PoE1 and PoE2 alike (said from the live client, 2026-10-31). The wand's and the focus's
+  cosmetics as the Monster Book drew them in hand under v0.1.397 are the game's (said from the live client).
 - HIS EQUIPMENT LOOKS HOLD BOTH SETS (schema `Inventories.Looks` +0x120, `EquipmentLook` 0x88): 13 entries byte for byte the same before and
   after the swap - a slot byte, the item's class row at +0x08 (PoE1's ItemClasses order: the staff 15, the wand 9, the rings 6, the belt 22...),
   an ItemStances row at +0x10 on the three held items alone, the ItemVisualIdentity row it is drawn with at +0x20 (its `IdPtr` the Id - the
