@@ -753,8 +753,11 @@ public static class CapturePanes
     private static string Swaps(StringBuilder body, Func<string, byte[]?>? read, IReadOnlyList<CapturePane> panes, MonsterModels.Paints paints)
     {
         // EVERY ROOM AND STAGE, a master swapping anything there or not: "under no master" rules a swap out as plainly as a pair rules one in.
+        // A STAGE THAT STANDS, not one asked for: a monster whose stage did not build still names it (StagedModels.Of, "no stage: ...") and
+        // stands on nothing, and "made under no master" said of him would read as the answer of the stage he asked for - Port's laid harbour,
+        // say, once the player has left the area it was laid in.
         CapturePane[] shown = [.. panes.Where(pane => pane.Model.MasterSwaps.Count > 0 || pane.Model.MasterFile.Length > 0
-            || pane.Model.Kind == ModelKind.Room || pane.Model.Stage.Length > 0)];
+            || pane.Model.Kind == ModelKind.Room || pane.Model.Staged)];
         if (shown.Length == 0)
         {
             return string.Empty;

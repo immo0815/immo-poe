@@ -175,7 +175,8 @@ public sealed class CapturePanesTests
 
     /// <summary>
     /// A room or stage made under no master says so, and one made under a master that swaps nothing it wears says that - each a line, no
-    /// pair; a monster standing on nothing is no stage and the section is not written.
+    /// pair; a monster standing on nothing is no stage and the section is not written - nor where his stage was asked for and did not
+    /// build, which would have said "made under no master" of a stage nobody drew.
     /// </summary>
     [Fact]
     public void ASTAGEUnderNoMasterOrWearingNoSwapSaysSo()
@@ -198,6 +199,20 @@ public sealed class CapturePanesTests
 
         var monster = new MonsterModel(Square(), null, "monster.smd", string.Empty, string.Empty);
         Assert.DoesNotContain("=== the master's material swaps", CapturePanes.Write(null, [new CapturePane("monster", [], monster)]), StringComparison.Ordinal);
+
+        // A MONSTER STANDING ON A STAGE no master made is listed as a room is; one whose stage did not build names the stage asked for
+        // (StagedModels.Of) and stands on nothing.
+        MonsterModel standing = monster with { Actor = monster, Stage = "Metadata/Terrain/Test/Arena.tdt" };
+        string staged = CapturePanes.Write(null, [new CapturePane("monster", [], standing)]).ReplaceLineEndings("\n");
+        Assert.Contains("(0 of 1 rooms and stages shown made under a master that swaps materials)", staged, StringComparison.Ordinal);
+        Assert.Contains("  the monster book's pane\tmade under no master - every material its own\n", staged, StringComparison.Ordinal);
+
+        MonsterModel unbuilt = monster with
+        {
+            Stage = "Metadata/Terrain/Maps/Port/Rooms/Unique/Boss_01.arm",
+            StageSaid = "no stage: the area this room was laid in is gone - it is a stage while the player stands in that area",
+        };
+        Assert.DoesNotContain("=== the master's material swaps", CapturePanes.Write(null, [new CapturePane("monster", [], unbuilt)]), StringComparison.Ordinal);
     }
 
     private static byte[]? Install(string path) => path switch
