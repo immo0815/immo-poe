@@ -1,8 +1,10 @@
 using System.Buffers.Binary;
 using System.Globalization;
 using System.Text;
+using PoEformance.Core.Schema;
 using PoEformance.Features;
 using PoEformance.Game.Diagnostics;
+using PoEformance.Game.Entities;
 using PoEformance.Game.Files;
 using Xunit;
 
@@ -73,6 +75,121 @@ public class PlayerLookTests
         Assert.Contains("--- one hop on: 0x80 bytes at 0x71000000", text, StringComparison.Ordinal);
         Assert.Contains("\"Metadata/Items/Armours/Gloves/Wraps\"", text, StringComparison.Ordinal);
         Assert.Contains("floats 1.5, 0", text, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The pieces the game draws the player with, behind Render.Pieces as v0.1.393's captures found them: a slot's word points at an object whose
+    /// +0x08 is the record of its .ao, the body armour's attachment one word deeper; a record naming no .ao, a float and a record read twice are
+    /// told apart, and the slots' pieces are those at +0x08, each once.
+    /// </summary>
+    [Fact]
+    public void THEPIECESAreReadFromWhatRenderPointsAt()
+    {
+        const ulong render = 0x1100_0000, composition = 0x1200_0000, wand = 0x1300_0000, holder = 0x1310_0000, sheet = 0x1320_0000;
+        const ulong wandRecord = 0x1400_0000, skirtRecord = 0x1410_0000, sheetRecord = 0x1420_0000;
+        var memory = new FakeMemoryReader();
+        memory.Place(render, new byte[0x630]);
+        memory.Place(composition, new byte[PlayerPieces.Bytes]);
+        foreach (ulong one in new[] { wand, holder, sheet, wandRecord, skirtRecord, sheetRecord })
+        {
+            memory.Place(one, new byte[0x100]);
+        }
+
+        memory.Place(render + 0x1D0, composition);
+        memory.Place(composition + 0x00, holder);
+        memory.Place(composition + 0x30, wand);
+        memory.Place(composition + 0x58, wand);
+        memory.Place(composition + 0x60, sheet);
+        memory.Place(composition + 0x68, 1.5f);
+        memory.Place(wand + 0x08, wandRecord);
+        memory.Place(holder + 0x98, skirtRecord);
+        memory.Place(sheet + 0x08, sheetRecord);
+        memory.PlaceStdWString(wandRecord + 0x08, "Metadata/Items/Weapons/Wands/WandHeld.ao", 0x1500_0000);
+        memory.PlaceStdWString(skirtRecord + 0x08, "Metadata/Items/Armours/BodyArmours/Robe/SkirtHeld.ao", 0x1510_0000);
+        memory.PlaceStdWString(sheetRecord + 0x08, "Art/Models/Items/Weapons/Wands/Wand.sm", 0x1520_0000);
+        OffsetSchema schema = Schema();
+
+        ulong found = PlayerPieces.CompositionOf(memory, schema, render);
+        Assert.Equal(composition, found);
+        IReadOnlyList<PlayerPieces.Piece> pieces = PlayerPieces.Read(memory, schema, found);
+        Assert.Equal(
+            [(0x00, 0x98, "Metadata/Items/Armours/BodyArmours/Robe/SkirtHeld.ao"), (0x30, 0x08, "Metadata/Items/Weapons/Wands/WandHeld.ao"), (0x58, 0x08, "Metadata/Items/Weapons/Wands/WandHeld.ao")],
+            pieces.Select(one => (one.At, one.Inner, one.Path)));
+        Assert.Equal(["Metadata/Items/Weapons/Wands/WandHeld.ao"], PlayerPieces.Slots(pieces).Select(one => one.Path));
+        Assert.Equal(0UL, PlayerPieces.CompositionOf(memory, schema, 0));
+        Assert.Empty(PlayerPieces.Read(memory, schema, 0));
+    }
+
+    /// <summary>The real schema, found up from the test's folder.</summary>
+    private static OffsetSchema Schema()
+    {
+        var folder = new DirectoryInfo(AppContext.BaseDirectory);
+        while (folder is not null && !File.Exists(Path.Combine(folder.FullName, "schema", "poe2.offsets.json")))
+        {
+            folder = folder.Parent;
+        }
+
+        return SchemaJson.Load(Path.Combine(folder!.FullName, "schema", "poe2.offsets.json"));
+    }
+
+    /// <summary>
+    /// For each drawn piece, every visual identity row and string column naming it, a list's values included - so the capture says which
+    /// per-body column the game took (an IntB beside an Int); a piece no row names says so.
+    /// </summary>
+    [Fact]
+    public void EACHDrawnPieceIsSetBesideTheRowsAndColumnsNamingIt()
+    {
+        QuestTableLayouts layouts = Layouts();
+        int size = layouts.RowSizeOf("ItemVisualIdentity");
+        int idAt = layouts.OffsetOf("ItemVisualIdentity", "Id");
+        int intAt = layouts.OffsetOf("ItemVisualIdentity", "column_50");
+        int intBAt = layouts.OffsetOf("ItemVisualIdentity", "column_71");
+        var variable = new List<byte>();
+        int Text(string text)
+        {
+            int at = 8 + variable.Count;
+            variable.AddRange(Encoding.Unicode.GetBytes(text));
+            variable.AddRange([0, 0]);
+            return at;
+        }
+
+        int bootsInt = Text("Metadata/Items/Armours/Boots/Baron/BaronBootsInt.ao"), bootsIntB = Text("Metadata/Items/Armours/Boots/Baron/BaronBootsIntB.ao");
+        int[] ids = [Text("Baron"), Text("Other")];
+        int Lists(int value)
+        {
+            int at = 8 + variable.Count;
+            variable.AddRange(BitConverter.GetBytes((ulong)value));
+            return at;
+        }
+
+        int intList = Lists(bootsInt), intBList = Lists(bootsIntB);
+        DatFile art = Assert.IsType<DatFile>(DatFile.Parse(Dat(2, size, (bytes, at, row) =>
+        {
+            BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(at + idAt), (ulong)ids[row]);
+            if (row == 0)
+            {
+                BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(at + intAt), 1);
+                BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(at + intAt + 8), (ulong)intList);
+                BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(at + intBAt), 1);
+                BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(at + intBAt + 8), (ulong)intBList);
+            }
+        }, [.. variable])));
+
+        var named = CapturePlayerLook.Naming(art, layouts.Tables["ItemVisualIdentity"],
+            ["Metadata/Items/Armours/Boots/Baron/BaronBootsIntB.ao", "Metadata/Items/Armours/Robe/SkirtHeld.ao", "Metadata/Items/Armours/Boots/Baron/BaronBootsIntB.ao"]).ToList();
+        Assert.Equal(2, named.Count);
+        Assert.Equal([(0, "column_71 (a list)")], named[0].Where);
+        Assert.Empty(named[1].Where);
+    }
+
+    /// <summary>An .act names its parent on a "parent" line, behind the byte order mark - which the files side follows as an .ao's extends.</summary>
+    [Fact]
+    public void ANACTsParentIsFollowedAsAnAosExtends()
+    {
+        Assert.Equal(
+            "Metadata/Characters/CharacterFemale.act",
+            CapturePlayerLook.Extends("﻿parent \"Metadata/Characters/CharacterFemale.act\"\nanimated_object \"Metadata/Characters/Character.ao\"\n", "Metadata/Characters/Int/IntFour.act"));
+        Assert.Null(CapturePlayerLook.Extends("﻿parent \"Metadata/Characters/CharacterFemale.act\"\n", "Metadata/Characters/Int/IntFour.ao"));
     }
 
     /// <summary>The part is started at the press, as every piece of work the app offers the capture is - a review found it offered and never started.</summary>

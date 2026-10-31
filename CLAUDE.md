@@ -819,6 +819,22 @@ holds anything, its rows filled, extensions, folders and first values, and how m
 models the Characters rows name under Metadata/Characters/ and his own (`Bodies`), a value counted for the longest body it holds anywhere in
 its path (IntFourB, not IntFour inside it) - with the layout's own standing first (a table read on its verified front alone puts the tail's
 names on other bytes). So one capture names the per-body columns (column_31 and on) of every class, where the carried items name his alone.
+THE GAME'S OWN LIST OF WHAT IT DRAWS HIM WITH (v0.1.393's two captures, The Red Vale, one session; schema `Render.Pieces`): his Render component's
++0x1D0 points at an object whose words lead, each through an object whose +0x08 is a file record, to the .ao of every slot AS DRAWN - the
+cosmetic over the item: an MTX wand and focus (the second weapon set, the one in hand; the first set's staff appears nowhere), a body armour,
+a cape, a helmet, gloves and boots, and one word deeper an attachment the body armour's own .ao names. The survey's body names matched
+nothing because the per-body columns name ATTRIBUTES (`...Str.ao`, `...IntB.ao`): column_48 to 53 Str, Dex, Int, StrDex, StrInt, DexInt, and
+69 to 74 the same with B where a row has one (the tiara's 70, 71 and 73 are DexB, IntB, StrIntB) - his drawn boots are an IntB file, his body
+armour, helmet and gloves Int ones. WHAT THE FILES SAY OF THE COMPOSITION, read whole in the capture: the body (`IntFourB.ao`) carries the
+class's default outfit as `attached_object = "<root> ….ao alias Body_Attach"` (and Boots_, Gloves_, Head_Attach) and names its skin's shapes
+in groups (`SkinMesh`'s `alias = "Body_Seg shape, shape…"`); an armour piece extends `Metadata/SkinBodyArmour` (Boots, Gloves, Helmet) - a
+skin with no rig of its own, so its bones can only be the body's - whose `ObjectHiding` hides the parent's segments and attachments by
+those names (`hide_parent_segments = "Body_Seg"`, `hide_parent_attachments = "Body_Attach"`, sibling keys likewise; a child's plain key
+replaces its parent's, an `add_` key adds to it); a held piece (`…Held.ao`) has a rig of its own and names no socket. NOT READ: which socket
+a held piece hangs at, the composition's layout and length. So v0.1.394's part writes Render whole, the composition whole and every object
+it points at (`PlayerPieces`, the reader the live read will share), every ItemVisualIdentity row and column naming each drawn piece (which
+per-body column the game took), and follows an .act's `parent` line (`CharacterFemale.act`). Take it as he stands, and after swapping weapon
+sets, before the held pieces are hung.
 
 ## Verify against the game, not against yourself
 

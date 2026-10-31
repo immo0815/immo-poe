@@ -90,7 +90,7 @@ public static class PlayerLook
     };
 
     /// <summary>The components written whole, word by word, with one hop from each pointer.</summary>
-    private static readonly string[] Dumped = ["Inventories", "Animated", "Player", "PlayerClass"];
+    private static readonly string[] Dumped = ["Inventories", "Animated", "Player", "PlayerClass", "Render"];
 
     /// <summary>A capture's progress and its stop.</summary>
     public sealed class Running
@@ -149,7 +149,11 @@ public static class PlayerLook
     /// <param name="Model">The .ao his Animated component loaded, or empty.</param>
     /// <param name="Items">What he carries in the inventories up to <see cref="MostPlayerId"/>.</param>
     /// <param name="Files">Every game file the pointer web reached.</param>
-    public sealed record Seen(string Path, string Model, IReadOnlyList<Carried> Items, IReadOnlyList<string> Files);
+    public sealed record Seen(string Path, string Model, IReadOnlyList<Carried> Items, IReadOnlyList<string> Files)
+    {
+        /// <summary>The .ao files of the pieces he is drawn with (PlayerPieces), each once, in the composition's order.</summary>
+        public IReadOnlyList<string> Pieces { get; init; } = [];
+    }
 
     /// <summary>The part: its lines, and what the files side reads on - null where no player was read.</summary>
     public static (List<string> Lines, Seen? Seen) Run(IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic, Running running)
@@ -207,6 +211,20 @@ public static class PlayerLook
         lines.Add(string.Empty);
         lines.AddRange(Inventories(reader, schema, chain, carried));
 
+        // THE PIECES HE IS DRAWN WITH, which v0.1.393's pointer web found behind Render.Pieces alone - see PlayerPieces.
+        IReadOnlyList<PlayerPieces.Piece> pieces = [];
+        lines.Add(string.Empty);
+        if (components.GetValueOrDefault("Render") is var render and not 0)
+        {
+            ulong composition = PlayerPieces.CompositionOf(reader, schema, render);
+            pieces = PlayerPieces.Read(reader, schema, composition);
+            lines.AddRange(Composed(reader, composition, pieces, named));
+        }
+        else
+        {
+            lines.Add("=== the pieces he is drawn with: no Render component");
+        }
+
         // THE COMPONENTS WHOLE, word by word, every list they begin written whole, and one hop on from each pointer.
         foreach (string name in Dumped)
         {
@@ -226,7 +244,65 @@ public static class PlayerLook
         lines.Add(string.Empty);
         lines.AddRange(web.Said());
         running.Phase(2);
-        return (lines, new Seen(player.Path, model, carried, [.. web.Paths.Keys.Order(StringComparer.OrdinalIgnoreCase)]));
+        return (lines, new Seen(player.Path, model, carried, [.. web.Paths.Keys.Order(StringComparer.OrdinalIgnoreCase)])
+        {
+            Pieces = [.. pieces.Select(one => one.Path).Distinct(StringComparer.OrdinalIgnoreCase)],
+        });
+    }
+
+    /// <summary>
+    /// The composition Render.Pieces points at: the pieces found in it (every word, every inner word), then the composition whole word by
+    /// word, then every object a word of it points at, <see cref="PlayerPieces.ObjectBytes"/> of each - so its layout and whatever a held
+    /// piece's socket is can be read from one capture.
+    /// </summary>
+    private static List<string> Composed(IMemoryReader reader, ulong composition, IReadOnlyList<PlayerPieces.Piece> pieces, Func<ulong, string> named)
+    {
+        var lines = new List<string>
+        {
+            string.Create(CultureInfo.InvariantCulture,
+                $"=== the pieces he is drawn with: Render.Pieces -> 0x{composition:X}, every word of its first 0x{PlayerPieces.Bytes:X} bytes that points at an object one of whose words (its first 0x{PlayerPieces.ObjectBytes:X}) points at a file record naming an .ao - the word, the object's word, the .ao (a slot's piece where the object's word is +0x{PlayerPieces.SlotInner:X})"),
+        };
+        if (composition == 0)
+        {
+            lines.Add("  Render.Pieces read nought, or the schema has no such field");
+            return lines;
+        }
+
+        foreach (PlayerPieces.Piece piece in pieces)
+        {
+            lines.Add(string.Create(CultureInfo.InvariantCulture,
+                $"  +0x{piece.At:X3} -> 0x{piece.Object:X} +0x{piece.Inner:X2} -> record 0x{piece.Record:X}\t{piece.Path}{(piece.Inner == PlayerPieces.SlotInner ? string.Empty : "\t(not a slot's word)")}"));
+        }
+
+        lines.Add(string.Create(CultureInfo.InvariantCulture, $"  {pieces.Count} found, {PlayerPieces.Slots(pieces).Count} slots' pieces"));
+        lines.Add(string.Empty);
+        lines.Add(string.Create(CultureInfo.InvariantCulture, $"=== Render.Pieces' target whole: 0x{PlayerPieces.Bytes:X} bytes at 0x{composition:X}, each word with what it points at"));
+        byte[] block = new byte[PlayerPieces.Bytes];
+        if (!reader.TryRead(composition, block))
+        {
+            lines.Add("  did not read");
+            return lines;
+        }
+
+        lines.AddRange(Words(block, composition, named));
+        lines.Add(string.Empty);
+        lines.Add(string.Create(CultureInfo.InvariantCulture,
+            $"=== each object Render.Pieces' target points at, 0x{PlayerPieces.ObjectBytes:X} bytes of it, each word with what it points at"));
+        var done = new HashSet<ulong>();
+        byte[] inner = new byte[PlayerPieces.ObjectBytes];
+        for (var at = 0; at + 8 <= block.Length; at += 8)
+        {
+            ulong target = BinaryPrimitives.ReadUInt64LittleEndian(block.AsSpan(at));
+            if (!MemoryReaderExtensions.IsPlausiblePointer(target) || !done.Add(target) || !reader.TryRead(target, inner))
+            {
+                continue;
+            }
+
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"  --- +0x{at:X3} -> 0x{target:X} ({named(target)})"));
+            lines.AddRange(Words(inner, target, named).Select(one => "  " + one));
+        }
+
+        return lines;
     }
 
     /// <summary>The .ao an Animated component loaded, or empty.</summary>

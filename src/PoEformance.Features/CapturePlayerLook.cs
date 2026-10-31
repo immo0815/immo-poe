@@ -73,7 +73,9 @@ public static class CapturePlayerLook
         (LoadedTable? art, string artWhy) = layouts is null ? (null, "data/item-tables.json did not load")
             : QuestTables.Open(files, layouts, "ItemVisualIdentity", null, "Id");
         lines.AddRange(Looks(files, layouts, art, artWhy, seen, named));
+        lines.AddRange(Drawn(layouts, art, artWhy, seen, named));
         lines.AddRange(Survey(files, layouts, art, artWhy, seen));
+        named.AddRange(seen.Pieces);
         named.AddRange(seen.Files);
         lines.AddRange(Whole(files, named, Path.Combine(folder, Folder)));
         return lines;
@@ -197,6 +199,75 @@ public static class CapturePlayerLook
         }
 
         return lines;
+    }
+
+    /// <summary>
+    /// The pieces the game draws him with (PlayerPieces), each beside every ItemVisualIdentity row and column that names it, and each such
+    /// row whole - which column of the per-body ones the game took for his body, with the row's others beside it (an MTX boots row naming
+    /// IntB beside Int says which wins), and which rows a cosmetic piece belongs to.
+    /// </summary>
+    private static IEnumerable<string> Drawn(QuestTableLayouts? layouts, LoadedTable? art, string artWhy, PlayerLook.Seen seen, List<string> named)
+    {
+        var lines = new List<string>
+        {
+            string.Empty,
+            "=== the pieces he is drawn with (Render.Pieces) beside every ItemVisualIdentity row and column naming one - the column the game took for his body, the row's others beside it",
+        };
+        if (seen.Pieces.Count == 0)
+        {
+            lines.Add("  none read");
+            return lines;
+        }
+
+        if (layouts is null || art is not { Usable: true } || !layouts.Tables.TryGetValue("ItemVisualIdentity", out List<DatColumn>? columns))
+        {
+            lines.Add("  ItemVisualIdentity: " + (art?.Say ?? artWhy));
+            return lines;
+        }
+
+        foreach ((string piece, IReadOnlyList<(int Row, string Column)> where) in Naming(art.File, columns, seen.Pieces))
+        {
+            lines.Add("  " + piece + (where.Count == 0 ? "\tno row names it - an attachment a piece's own .ao names, or a file no visual identity holds" : string.Empty));
+            foreach ((int row, string column) in where)
+            {
+                lines.Add(string.Create(CultureInfo.InvariantCulture, $"    row {row} {column}"));
+            }
+
+            foreach (int row in where.Select(one => one.Row).Distinct())
+            {
+                lines.AddRange(Row(art.File, row, columns, "    the row whole", named));
+            }
+        }
+
+        return lines;
+    }
+
+    /// <summary>For each path, every row and string column (or string list) of a table holding it exactly, the rows in order.</summary>
+    internal static IEnumerable<(string Path, IReadOnlyList<(int Row, string Column)> Where)> Naming(
+        DatFile table, IReadOnlyList<DatColumn> columns, IReadOnlyList<string> paths)
+    {
+        ArgumentNullException.ThrowIfNull(table);
+        ArgumentNullException.ThrowIfNull(columns);
+        ArgumentNullException.ThrowIfNull(paths);
+        string[] distinct = [.. paths.Distinct(StringComparer.OrdinalIgnoreCase)];
+        var found = distinct.ToDictionary(one => one, _ => new List<(int Row, string Column)>(), StringComparer.OrdinalIgnoreCase);
+        var values = new List<string>();
+        foreach (DatColumn column in columns.Where(one => one.Type == "string"))
+        {
+            for (var row = 0; row < table.Rows; row++)
+            {
+                Values(table, row, column, values);
+                foreach (string value in values)
+                {
+                    if (found.TryGetValue(value, out List<(int Row, string Column)>? into))
+                    {
+                        into.Add((row, column.Name + (column.Array ? " (a list)" : string.Empty)));
+                    }
+                }
+            }
+        }
+
+        return [.. distinct.Select(one => (one, (IReadOnlyList<(int Row, string Column)>)[.. found[one].OrderBy(at => at.Row)]))];
     }
 
     /// <summary>
@@ -483,15 +554,20 @@ public static class CapturePlayerLook
         return lines;
     }
 
-    /// <summary>What a text file extends, with the file's own extension where it names none - or null.</summary>
+    /// <summary>
+    /// What a text file extends, with the file's own extension where it names none - or null. An .act names its parent on a
+    /// <c>parent "…"</c> line (IntFour.act's first, behind the byte order mark: <c>parent "Metadata/Characters/CharacterFemale.act"</c>).
+    /// </summary>
     internal static string? Extends(string content, string path)
     {
+        ArgumentNullException.ThrowIfNull(content);
+        string word = path.EndsWith(".act", StringComparison.OrdinalIgnoreCase) ? "parent" : "extends";
         foreach (string raw in content.Split('\n'))
         {
-            string line = raw.Trim();
+            string line = raw.Trim().TrimStart('﻿');
             int open = line.IndexOf('"', StringComparison.Ordinal);
             int close = open < 0 ? -1 : line.IndexOf('"', open + 1);
-            if (line.StartsWith("extends", StringComparison.Ordinal) && open >= 0 && close > open)
+            if (line.StartsWith(word, StringComparison.Ordinal) && open >= 0 && close > open)
             {
                 string parent = line[(open + 1)..close];
                 return parent.Length == 0 || parent.Contains("nothing", StringComparison.OrdinalIgnoreCase) ? null
