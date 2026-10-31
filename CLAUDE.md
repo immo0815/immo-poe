@@ -1227,10 +1227,21 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   compile drops it: the moss mask transforms the normal map's normal through the TBN basis (`Transform(InputTbnNormal, InputTbnBasis)`), which
   ShadeProgram refuses with no mesh tangents; the occlusion's write is lost, OceanSprayFoam's read of it after, and the spray with it - so the
   quay draws no runoff with the switch on or off. The same refusal is among the stage sweep's largest causes (MaterialBlend_GradientTriplanar
-  alone 2,804 rooms). Being mended by compiling the transform over the engine's screen-space tangent frame (FixModelTBN's, which the
-  parallax already reads). From v0.1.375 `model-panes.txt` writes every master swap a stage wears beside its original, what each can do
-  (sprays, the twin, wetness read and cast, water, alpha) and LOST: / GAINED:, both whole where they differ - this swap reads "LOST: sprays,
-  spray from occlusion" with no probe click.
+  alone 2,804 rooms). MENDED IN v0.1.376: `Transform(v, InputTbnBasis)` compiles for any v as `mul(v, tbn)` over the triangle's own frame
+  (`ShadeProgram.ThroughBasis`, `Op.Tbn`: dp/du and dp/dv - the card's from the screen's derivatives, the processor's from the edges, the
+  frame the parallax already read - made orthonormal against the normalised normal, the binormal against dp/dv as FixModelTBN's "y is
+  flipped" and GetGroundTBN's (0, -1, 0) read; CHOSEN: the mesh's own vertex tangents are not read). MPRT compiles whole and sprays from its
+  moss-lerped occlusion (the probe's curvature 0.24 on a mossy floor, 0.95 on bare stone - never the reset's 1.24), no twin needed; of 340
+  materials compiled before and after (the fixtures and the stage sweep's samples) all 11 that carried the refusal lose it and none other
+  changes. MSHD now draws TRO_MossBlend's colour, lost before. A ground mix carrying the transform takes the engine's ground frame (x along,
+  GetGroundTBN); one marching a parallax still splits by triangle. From v0.1.375 `model-panes.txt` writes every master swap a stage wears
+  beside its original, what each can do (sprays, the twin, wetness read and cast, water, alpha) and LOST: / GAINED:, both whole where they
+  differ - this swap read "LOST: sprays, spray from occlusion" with no probe click.
+  THE SHIP LOST ITS MAST TO THE SAME SWAPS (said from the live client with a picture, v0.1.375: yards, crow's nest and rigging hanging in the
+  air, no sails): Port's list carries a PirateShip section, 17 of boss_boat.ao's 26 materials to `Maps/Port/Textures/PirateShip/MPRT_*`, which
+  the ship wears since v0.1.373 put the swaps on a room's own lines (DECIDED from the live client; the designers writing the ship's swaps says
+  the game wears them too). Some of them draw nothing here - why is NOT READ yet: a capture with the stage shown (the swaps section) and the
+  probe where the mast stands says it.
   THE CAUSTICS' AND THE ROCKY SHORE'S TEXTURES. water.ffx's GetCausticsBias reads `distortion_sampler` (red and green as a vector,
   `(rg * 2 - 1) * 0.4`, at the place times 0.001 drifting with the clock) and `caustics_tex_sampler` (its green, `pow(g, 1 / 4.2) * 2 - 1`,
   at the place times 0.002), both wrapping, and GetClashingWaterPlanarState and the beach foam's leading edge read the same distortion -
