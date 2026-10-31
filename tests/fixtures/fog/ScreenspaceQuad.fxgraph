@@ -1,0 +1,227 @@
+{
+    "version": 3,
+    "shader_group": [
+        "Material"
+    ],
+    "render_state_overwrite": {
+        "cull_mode": "none"
+    },
+    "nodes": [
+        {
+            "type": "InputVertexMeshPosition",
+            "index": 0,
+            "stage": "ProjectionTransform_Final",
+            "ui_position": [
+                1800.0,
+                -510.0
+            ]
+        },
+        {
+            "type": "VertexMeshPosition",
+            "index": 0,
+            "stage": "ProjectionTransform_Final",
+            "ui_position": [
+                2760.000732421875,
+                -546.6665649414063
+            ]
+        },
+        {
+            "type": "MultiplyConst2",
+            "index": 0,
+            "parameters": [
+                {
+                    "value": 2.0
+                }
+            ],
+            "ui_position": [
+                2098.936767578125,
+                -368.861083984375
+            ]
+        },
+        {
+            "type": "AddConst2",
+            "index": 0,
+            "parameters": [
+                {
+                    "value": -1.0
+                }
+            ],
+            "ui_position": [
+                2437.26904296875,
+                -368.5834045410156
+            ]
+        },
+        {
+            "type": "ConstantFloat2",
+            "index": 0,
+            "parameters": [
+                {
+                    "value": [
+                        9.999999974752428e-7,
+                        1.0
+                    ]
+                }
+            ],
+            "ui_position": [
+                2318.935791015625,
+                -468.86102294921877
+            ]
+        },
+        {
+            "type": "VertexProjectedPosition",
+            "index": 0,
+            "stage": "ProjectionTransform_Final",
+            "ui_position": [
+                2760.000732421875,
+                -546.6665649414063
+            ]
+        },
+        {
+            "type": "ConstantPixel4",
+            "index": 0,
+            "parameters": [
+                {
+                    "value": [
+                        0.0,
+                        0.37300002574920657,
+                        0.017899999395012857,
+                        1.0
+                    ],
+                    "srgb": true
+                }
+            ],
+            "ui_position": [
+                1575.0,
+                251.0
+            ]
+        },
+        {
+            "type": "AlbedoColor",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                2042.0,
+                14.0
+            ]
+        },
+        {
+            "type": "InputAlbedoColor",
+            "index": 0,
+            "stage": "Texturing",
+            "ui_position": [
+                800.0,
+                20.0
+            ]
+        },
+        {
+            "type": "InputVertexProjectedPosition",
+            "index": 0,
+            "stage": "ProjectionTransform_Final",
+            "ui_position": [
+                1800.0,
+                -510.0
+            ]
+        }
+    ],
+    "links": [
+        {
+            "src": {
+                "type": "InputVertexMeshPosition",
+                "index": 0,
+                "stage": "ProjectionTransform_Final",
+                "variable": "output",
+                "swizzle": "xy"
+            },
+            "dst": {
+                "type": "VertexMeshPosition",
+                "index": 0,
+                "stage": "ProjectionTransform_Final",
+                "variable": "input",
+                "swizzle": "xy"
+            }
+        },
+        {
+            "src": {
+                "type": "InputVertexMeshPosition",
+                "index": 0,
+                "stage": "ProjectionTransform_Final",
+                "variable": "output",
+                "swizzle": "zw"
+            },
+            "dst": {
+                "type": "VertexMeshPosition",
+                "index": 0,
+                "stage": "ProjectionTransform_Final",
+                "variable": "input",
+                "swizzle": "zw"
+            }
+        },
+        {
+            "src": {
+                "type": "InputVertexMeshPosition",
+                "index": 0,
+                "stage": "ProjectionTransform_Final",
+                "variable": "output",
+                "swizzle": "xy"
+            },
+            "dst": {
+                "type": "MultiplyConst2",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst2",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "AddConst2",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "AddConst2",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "VertexProjectedPosition",
+                "index": 0,
+                "stage": "ProjectionTransform_Final",
+                "variable": "input",
+                "swizzle": "xy"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "VertexProjectedPosition",
+                "index": 0,
+                "stage": "ProjectionTransform_Final",
+                "variable": "input",
+                "swizzle": "zw"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantPixel4",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "AlbedoColor",
+                "index": 0,
+                "stage": "Texturing",
+                "variable": "input"
+            }
+        }
+    ]
+}

@@ -8,7 +8,7 @@ namespace PoEformance.Core.Tests;
 /// <summary>The clouds' noise measured against the game's picture - see CloudNoise.</summary>
 public sealed class CloudNoiseTests
 {
-    private static readonly CloudNoise.Clouds RedVale = new(0.8f, 0.9f, 0.55f, 0.75f, 30f, 2.939f, 800f, 0.15f, 0.15f);
+    private static readonly AreaClouds RedVale = new(0.8f, 0.9f, 0.55f, 0.75f, 30f, 2.939f, 800f, 0.15f, 0.15f);
 
     /// <summary>
     /// Ground lit through one candidate's clouds, laid by one way of making clouds_velocity and one slide along it, is found to be that
@@ -26,13 +26,13 @@ public sealed class CloudNoiseTests
         float[] alpha = [.. Enumerable.Range(0, truth.Width * truth.Height).Select(at => truth.Rgba[(at * 4) + 3] / 255f)];
         var random = new Random(7);
         var points = new List<CloudNoise.Point>();
-        Vector2 up = new Vector2(sun.X, sun.Y) / sun.Z * CloudNoise.Height;
+        Vector2 up = new Vector2(sun.X, sun.Y) / sun.Z * AreaClouds.Height;
         for (var at = 0; at < 4000; at++)
         {
             var area = new Vector2(random.NextSingle() * 4000f, random.NextSingle() * 4000f);
             Vector2 reference = area - up;
-            float a = CloudNoise.Sample(alpha, truth.Width, truth.Height, (Vector2.Dot(x, reference) * frequency) + slide, Vector2.Dot(y, reference) * frequency);
-            float game = 0.3f + (0.7f * CloudNoise.Factor(RedVale, a, 0f)) + ((random.NextSingle() - 0.5f) * 0.05f);
+            float a = AreaClouds.Sample(alpha, truth.Width, truth.Height, (Vector2.Dot(x, reference) * frequency) + slide, Vector2.Dot(y, reference) * frequency);
+            float game = 0.3f + (0.7f * RedVale.Factor(a, 0f)) + ((random.NextSingle() - 0.5f) * 0.05f);
             points.Add(new CloudNoise.Point(area, game));
         }
 
@@ -50,21 +50,21 @@ public sealed class CloudNoiseTests
     [Fact]
     public void THEFACTORIsGetCloudsIntensitys()
     {
-        Assert.Equal(0.55f, CloudNoise.MathSmoothStep(0.55f, 0.55f, 0.75f), 5);
-        Assert.Equal(0f, CloudNoise.MathSmoothStep(0f, 0.55f, 0.75f), 4);
-        Assert.Equal(1f, CloudNoise.MathSmoothStep(1f, 0.55f, 0.75f), 4);
+        Assert.Equal(0.55f, AreaClouds.MathSmoothStep(0.55f, 0.55f, 0.75f), 5);
+        Assert.Equal(0f, AreaClouds.MathSmoothStep(0f, 0.55f, 0.75f), 4);
+        Assert.Equal(1f, AreaClouds.MathSmoothStep(1f, 0.55f, 0.75f), 4);
         float last = -1f;
         foreach (float value in new[] { 0.1f, 0.3f, 0.5f, 0.6f, 0.8f, 0.95f })
         {
-            float shaped = CloudNoise.MathSmoothStep(value, 0.55f, 0.75f);
+            float shaped = AreaClouds.MathSmoothStep(value, 0.55f, 0.75f);
             Assert.True(shaped > last, $"{value}: {shaped} after {last}");
             last = shaped;
         }
 
-        Assert.Equal(1f, CloudNoise.Factor(RedVale with { Intensity = 0f }, 0.2f, 0f));
-        Assert.Equal(1f, CloudNoise.Fade(0f, 800f));
-        Assert.Equal(0f, CloudNoise.Fade(900f, 800f));
-        Assert.True(CloudNoise.Factor(RedVale, 0.05f, 0f) < CloudNoise.Factor(RedVale, 0.95f, 0f));
+        Assert.Equal(1f, (RedVale with { Intensity = 0f }).Factor(0.2f, 0f));
+        Assert.Equal(1f, AreaClouds.Fade(0f, 800f));
+        Assert.Equal(0f, AreaClouds.Fade(900f, 800f));
+        Assert.True(RedVale.Factor(0.05f, 0f) < RedVale.Factor(0.95f, 0f));
     }
 
     /// <summary>Smooth blobs in the alpha: a wrapping grid of eight by eight random values, read bilinearly at 64 a side.</summary>
@@ -82,7 +82,7 @@ public sealed class CloudNoiseTests
         {
             for (var column = 0; column < 64; column++)
             {
-                float value = CloudNoise.Sample(grid, 8, 8, (column + 0.5f) / 64f, (row + 0.5f) / 64f);
+                float value = AreaClouds.Sample(grid, 8, 8, (column + 0.5f) / 64f, (row + 0.5f) / 64f);
                 int to = ((row * 64) + column) * 4;
                 rgba[to] = rgba[to + 1] = rgba[to + 2] = 128;
                 rgba[to + 3] = (byte)Math.Clamp((int)MathF.Round(value * 255f), 0, 255);

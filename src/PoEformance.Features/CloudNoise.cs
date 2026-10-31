@@ -23,15 +23,6 @@ namespace PoEformance.Features;
 /// </remarks>
 public static class CloudNoise
 {
-    /// <summary>The engine's own clouds' height: GetCloudsIntensity's <c>clouds_height</c>, a constant in shadows.ffx.</summary>
-    public const float Height = 1000f;
-
-    /// <summary>
-    /// The fade radius where an environment sets none: 800 - MEASURED in The Red Vale's parsed environment (light-hunt.txt, v0.1.372), whose
-    /// file sets every other key of its clouds.
-    /// </summary>
-    public const float DefaultFadeRadius = 800f;
-
     /// <summary>The most ground points the measurement holds - every core runs every slide of every way over each.</summary>
     public const int MostPoints = 12_000;
 
@@ -46,19 +37,6 @@ public static class CloudNoise
     private const float ClearOver = 0.1f;
 
     private const float ClearLeast = 0.25f;
-
-    /// <summary>An area's clouds, as its .env sets them.</summary>
-    /// <param name="Scale">clouds_scale.</param>
-    /// <param name="Intensity">clouds_intensity.</param>
-    /// <param name="Midpoint">clouds_midpoint.</param>
-    /// <param name="Sharpness">clouds_sharpness.</param>
-    /// <param name="Speed">clouds_speed.</param>
-    /// <param name="Angle">clouds_angle, radians.</param>
-    /// <param name="FadeRadius">clouds_fade_radius - <see cref="DefaultFadeRadius"/> where the file sets none.</param>
-    /// <param name="PreFade">clouds_pre_fade.</param>
-    /// <param name="PostFade">clouds_post_fade.</param>
-    public sealed record Clouds(
-        float Scale, float Intensity, float Midpoint, float Sharpness, float Speed, float Angle, float FadeRadius, float PreFade, float PostFade);
 
     /// <summary>One point of the ground the pane lights: where it stands in the area, and the game's light there over the pane's.</summary>
     public readonly record struct Point(Vector2 Area, float Game);
@@ -76,64 +54,6 @@ public static class CloudNoise
         ("(-sin a, -cos a)", a => new Vector2(-MathF.Sin(a), -MathF.Cos(a))),
     ];
 
-    /// <summary>The clouds an environment sets, or null and why where it leaves out a key whose default is not measured.</summary>
-    public static Clouds? Of(EnvironmentSettings environment, out string why)
-    {
-        ArgumentNullException.ThrowIfNull(environment);
-        var values = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
-        foreach (EnvironmentValue value in environment.All)
-        {
-            if (value.Key.StartsWith("clouds.", StringComparison.OrdinalIgnoreCase) && value.Values.Count > 0)
-            {
-                values[value.Key["clouds.".Length..]] = value.Values[0];
-            }
-        }
-
-        string[] needed = ["clouds_scale", "clouds_intensity", "clouds_midpoint", "clouds_sharpness", "clouds_speed", "clouds_angle", "clouds_pre_fade", "clouds_post_fade"];
-        string[] missing = [.. needed.Where(key => !values.ContainsKey(key))];
-        if (missing.Length > 0)
-        {
-            why = "the area's .env leaves out " + string.Join(", ", missing) + " - their defaults are not measured";
-            return null;
-        }
-
-        why = values.ContainsKey("clouds_fade_radius") ? string.Empty
-            : string.Create(CultureInfo.InvariantCulture, $"clouds_fade_radius not set - the engine's {DefaultFadeRadius:0} (measured)");
-        return new Clouds(
-            values["clouds_scale"], values["clouds_intensity"], values["clouds_midpoint"], values["clouds_sharpness"], values["clouds_speed"],
-            values["clouds_angle"], values.GetValueOrDefault("clouds_fade_radius", DefaultFadeRadius), values["clouds_pre_fade"], values["clouds_post_fade"]);
-    }
-
-    /// <summary>GetCloudsIntensity's factor on the sun for a noise alpha and the player's fade there.</summary>
-    public static float Factor(Clouds clouds, float alpha, float fade)
-    {
-        ArgumentNullException.ThrowIfNull(clouds);
-        float faded = Math.Clamp(alpha + (fade * clouds.PreFade), 0f, 1f);
-        float shaped = Math.Clamp(MathSmoothStep(faded, clouds.Midpoint, clouds.Sharpness) + (fade * clouds.PostFade), 0f, 1f);
-        return 1f + ((shaped - 1f) * clouds.Intensity);
-    }
-
-    /// <summary>The player's fade at a distance: HLSL's smoothstep(0, 1, saturate(1 - distance / radius)).</summary>
-    public static float Fade(float distance, float radius)
-    {
-        float t = Math.Clamp(1f - (distance / MathF.Max(1e-4f, radius)), 0f, 1f);
-        return t * t * (3f - (2f * t));
-    }
-
-    /// <summary>
-    /// math_utils.ffx's SmoothStep(val, center, curve), as the engine writes it - the value held a hair inside nought and one first (the
-    /// spray's copy, ShadeProgram.MathSmoothStep, leaves that to its callers).
-    /// </summary>
-    public static float MathSmoothStep(float value, float center, float curve)
-    {
-        const float eps = 1e-7f;
-        value = MathF.Max(MathF.Min(value, 1f - eps), eps);
-        float power = (2f / MathF.Max(1e-3f, 1f - curve)) - 1f;
-        return 1f - center
-            + (-MathF.Pow(Saturate(1f - MathF.Max(center, value)), power) * MathF.Pow(Saturate(1f - center), -(power - 1f)))
-            + (MathF.Pow(Saturate(MathF.Min(center, value)), power) * MathF.Pow(Saturate(center), -(power - 1f)));
-    }
-
     /// <summary>
     /// Every candidate held against the points: for each, the way and the slide its cloud factor goes best with the game's light at, how
     /// well, and how far that stands over its other slides - then the one taken, or that none stands clear.
@@ -143,7 +63,7 @@ public static class CloudNoise
     /// <param name="player">Where the player stood, area x and y.</param>
     /// <param name="points">The ground the pane lights, each with the game's light over the pane's.</param>
     /// <param name="candidates">Each candidate's path and its picture, or null where it did not read.</param>
-    public static string Measure(Clouds clouds, Vector3 sun, Vector2 player, IReadOnlyList<Point> points, IReadOnlyList<(string Path, GamePicture? Picture)> candidates)
+    public static string Measure(AreaClouds clouds, Vector3 sun, Vector2 player, IReadOnlyList<Point> points, IReadOnlyList<(string Path, GamePicture? Picture)> candidates)
     {
         ArgumentNullException.ThrowIfNull(clouds);
         ArgumentNullException.ThrowIfNull(points);
@@ -167,12 +87,12 @@ public static class CloudNoise
         var reference = new Vector2[count];
         var fade = new float[count];
         var game = new float[count];
-        Vector2 up = new Vector2(sun.X, sun.Y) / sun.Z * Height;
+        Vector2 up = new Vector2(sun.X, sun.Y) / sun.Z * AreaClouds.Height;
         for (var at = 0; at < count; at++)
         {
             Point one = points[at * step];
             reference[at] = one.Area - up;
-            fade[at] = Fade(Vector2.Distance(player, one.Area), clouds.FadeRadius);
+            fade[at] = AreaClouds.Fade(Vector2.Distance(player, one.Area), clouds.FadeRadius);
             game[at] = one.Game;
         }
 
@@ -194,7 +114,7 @@ public static class CloudNoise
                 continue;
             }
 
-            float[] alpha = Alpha(picture);
+            float[] alpha = AreaClouds.AlphaOf(picture);
             int slides = picture.Width * 2;
             (string Way, float Best, float Slide, float Mean, float Spread) best = (string.Empty, float.NegativeInfinity, 0f, 0f, 0f);
             foreach ((string name, Func<float, Vector2> wayOf) in Ways)
@@ -217,7 +137,7 @@ public static class CloudNoise
                     double sumC = 0, sumCC = 0, sumCY = 0;
                     for (var at = 0; at < count; at++)
                     {
-                        float c = Factor(clouds, Sample(alpha, picture.Width, picture.Height, u[at] + shift, v[at]), fade[at]);
+                        float c = clouds.Factor(AreaClouds.Sample(alpha, picture.Width, picture.Height, u[at] + shift, v[at]), fade[at]);
                         sumC += c;
                         sumCC += (double)c * c;
                         sumCY += (double)c * game[at];
@@ -262,37 +182,6 @@ public static class CloudNoise
         return said.ToString();
     }
 
-    /// <summary>A picture's alpha as fractions.</summary>
-    private static float[] Alpha(GamePicture picture)
-    {
-        var alpha = new float[picture.Width * picture.Height];
-        for (var at = 0; at < alpha.Length; at++)
-        {
-            alpha[at] = picture.Rgba[(at * 4) + 3] / 255f;
-        }
-
-        return alpha;
-    }
-
-    /// <summary>A wrapping linear read at level nought, texel centres at halves - SamplerLinearWrapNoBias's.</summary>
-    internal static float Sample(float[] texels, int width, int height, float u, float v)
-    {
-        float x = (u * width) - 0.5f, y = (v * height) - 0.5f;
-        float fx = MathF.Floor(x), fy = MathF.Floor(y);
-        float tx = x - fx, ty = y - fy;
-        int x0 = Wrap((int)fx, width), y0 = Wrap((int)fy, height);
-        int x1 = x0 + 1 == width ? 0 : x0 + 1, y1 = y0 + 1 == height ? 0 : y0 + 1;
-        float top = texels[(y0 * width) + x0] + ((texels[(y0 * width) + x1] - texels[(y0 * width) + x0]) * tx);
-        float bottom = texels[(y1 * width) + x0] + ((texels[(y1 * width) + x1] - texels[(y1 * width) + x0]) * tx);
-        return top + ((bottom - top) * ty);
-    }
-
-    private static int Wrap(int at, int size)
-    {
-        int wrapped = at % size;
-        return wrapped < 0 ? wrapped + size : wrapped;
-    }
-
     private static float Correlation(int n, double sumX, double sumXX, double sumY, double sumYY, double sumXY)
     {
         double cov = sumXY - (sumX * sumY / n);
@@ -300,5 +189,4 @@ public static class CloudNoise
         return varX <= 1e-12 || varY <= 1e-12 ? 0f : (float)(cov / Math.Sqrt(varX * varY));
     }
 
-    private static float Saturate(float value) => Math.Clamp(value, 0f, 1f);
 }

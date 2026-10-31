@@ -128,6 +128,9 @@ public sealed class CaptureAtGame
     /// <summary>The player across in the world at the press, NaN where there was none.</summary>
     public Vector2 PlayerAcross { get; private set; } = new(float.NaN);
 
+    /// <summary>The player in the world at the press, his Render place - NaN where there was none.</summary>
+    public Vector3 PlayerWorld { get; private set; } = new(float.NaN);
+
     /// <summary>The lines saying what was drawn, from where and what was left out.</summary>
     public IReadOnlyList<string> Said { get; private set; } = [];
 
@@ -211,19 +214,9 @@ public sealed class CaptureAtGame
 
         MonsterModel model = pane.Model;
         SkinnedMesh mesh = model.Mesh;
-        Vector3[] positions = pane.Positions is { } posed && posed.Length == mesh.Positions.Length ? posed : mesh.Positions;
-        Vector3[] normals = pane.Normals is { } turned && turned.Length == mesh.Normals.Length && ReferenceEquals(positions, pane.Positions) ? turned : mesh.Normals;
+        (Vector3[] positions, Vector3[] normals) = Posed(pane, mesh);
         var gather = new PixelGather(side, GatherStep);
-        var canvas = new MeshPicture.Canvas(side)
-        {
-            Lens = MeshPicture.Camera.Through(camera, origin, side, default, 1f / factor),
-            Rows = drawnHeight,
-            Light = light,
-            Time = pane.Clock,
-            Dust = pane.Dust,
-            Water = pane.Water,
-            Gather = gather,
-        };
+        MeshPicture.Canvas canvas = scene.Canvas(gather);
 
         search?.Step("drawing the stage through the game's camera");
         long began = Environment.TickCount64;
@@ -258,6 +251,7 @@ public sealed class CaptureAtGame
 
         Vector3 player = shot.Player is { } one ? new Vector3(one.WorldX, one.WorldY, one.WorldZ) : new Vector3(float.NaN);
         scene.PlayerAcross = new Vector2(player.X, player.Y);
+        scene.PlayerWorld = player;
         Vector2 playerPixel = float.IsNaN(player.X) ? new Vector2(float.NaN) : camera.Pixel(player);
         ScreenPoint projected = float.IsNaN(player.X) ? default : WorldToScreen.Project(shot.Matrix, player.X, player.Y, player.Z, width, height);
         var said = new List<string>
@@ -275,6 +269,52 @@ public sealed class CaptureAtGame
         said.AddRange(pane.LightSaid.Select(line => "light panel: " + line));
         scene.Said = said;
         return scene;
+    }
+
+    /// <summary>
+    /// The same stage drawn again through the same camera - with other blends, or a mesh with shapes left out (SkinnedMesh.Keeping, every shape
+    /// in its place) - RGBA, <see cref="DrawnWidth"/> by <see cref="DrawnHeight"/>, alpha nought where it drew nothing: what lies behind the
+    /// shapes a part takes away (CaptureRoofFade).
+    /// </summary>
+    /// <param name="mesh">The stage's mesh, or one kept from it.</param>
+    /// <param name="blends">A blend per shape.</param>
+    internal byte[] Redrawn(SkinnedMesh mesh, IReadOnlyList<MaterialBlend> blends)
+    {
+        ArgumentNullException.ThrowIfNull(mesh);
+        (Vector3[] positions, Vector3[] normals) = Posed(Pane, mesh);
+        MonsterModel model = Pane.Model;
+        GamePicture picture = MeshPicture.Of(
+            mesh, Canvas(null), positions, normals, ink: Pane.Ink, skin: model.Skin, skins: model.Skins, blends: blends, shades: Pane.Shades);
+        var rgba = new byte[DrawnWidth * DrawnHeight * 4];
+        for (var y = 0; y < DrawnHeight; y++)
+        {
+            Array.Copy(picture.Rgba, y * Side * 4, rgba, y * DrawnWidth * 4, DrawnWidth * 4);
+        }
+
+        return rgba;
+    }
+
+    /// <summary>The canvas the stage is drawn on through the game's camera, gathering where asked.</summary>
+    private MeshPicture.Canvas Canvas(PixelGather? gather) => new(Side)
+    {
+        Lens = MeshPicture.Camera.Through(Camera, Origin, Side, default, 1f / Factor),
+        Rows = DrawnHeight,
+        Light = Pane.Light,
+        Time = Pane.Clock,
+        Dust = Pane.Dust,
+        Water = Pane.Water,
+        Gather = gather,
+    };
+
+    /// <summary>
+    /// The places and normals a mesh is drawn at: the pane's posed ones where they are this mesh's, the mesh's own otherwise - a mesh kept from
+    /// the stage has vertices of its own, and its staged monster stands in his bind pose (masked, as everything that moves is).
+    /// </summary>
+    private static (Vector3[] Positions, Vector3[] Normals) Posed(CapturePane pane, SkinnedMesh mesh)
+    {
+        Vector3[] positions = pane.Positions is { } posed && posed.Length == mesh.Positions.Length && ReferenceEquals(mesh, pane.Model.Mesh) ? posed : mesh.Positions;
+        Vector3[] normals = pane.Normals is { } turned && turned.Length == mesh.Normals.Length && ReferenceEquals(positions, pane.Positions) ? turned : mesh.Normals;
+        return (positions, normals);
     }
 
     /// <summary>Each triangle's shape in a mesh, -1 for one in none.</summary>

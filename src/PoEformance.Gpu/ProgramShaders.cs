@@ -29,6 +29,9 @@ internal enum ProgramPass
 
     /// <summary>The wetness pass: the alpha a caster's program leaves - see ModelGpu's Wet and ShadeProgram.Wetness.</summary>
     Wet,
+
+    /// <summary>A screen program over the whole picture - the screen-space fog, see ModelGpu's Fogged and ModelShaders.Screened.</summary>
+    Screen,
 }
 
 /// <summary>
@@ -65,7 +68,7 @@ internal sealed class ProgramShaders : IDisposable
 
     private const ShaderFlags Flags = ShaderFlags.IeeeStrictness | ShaderFlags.OptimizationLevel3;
 
-    private static readonly string[] Entries = ["ProgramSolid", "ProgramSolidScened", "ProgramMixed", "ProgramMixedScened", "ProgramWet"];
+    private static readonly string[] Entries = ["ProgramSolid", "ProgramSolidScened", "ProgramMixed", "ProgramMixedScened", "ProgramWet", "ProgramScreen"];
 
     private readonly ID3D11Device _device;
     private readonly string? _cache;

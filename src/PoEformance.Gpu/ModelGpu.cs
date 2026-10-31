@@ -392,6 +392,13 @@ public sealed partial class ModelGpu : IDisposable
         // THE SAME LISTS AS THE LAST YES, nothing landed since: the same answer, without walking a room's
         // thousands of runs again every frame. A program's shader, once in, stays while its program does.
         _programs.Pump();
+
+        // THE FOG'S SHADER FIRST, outside the lists the answer is kept by: the light that carries it changes with the panel's switches.
+        if (!FogReady(scene.Light, out why))
+        {
+            return false;
+        }
+
         bool lit = scene.Light is not null;
         if (_canFor is { } was && ReferenceEquals(was.Mesh, scene.Mesh) && ReferenceEquals(was.Skin, scene.Skin)
             && ReferenceEquals(was.Skins, scene.Skins) && ReferenceEquals(was.Blends, scene.Blends) && ReferenceEquals(was.Shades, scene.Shades)
@@ -686,6 +693,17 @@ public sealed partial class ModelGpu : IDisposable
             Lit(light, buffers, plan, view, placed, _swayed is null ? pose : -1, skin?.From ?? (posed ? scene.PoseFrom : 0), skin?.Hull);
         }
 
+        // THE AIR FOR THE WHOLE PICTURE - the clouds every sunlit surface reads, the fog's values - and the clouds' noise, bound before the
+        // solid part they shade; the player the camera's focus (ModelGpu.Fog).
+        bool clouded = Clouds(light);
+        Vector3 player = scene.Pose?.Focus ?? ((mesh.Least + mesh.Most) * 0.5f);
+        if (light is not null)
+        {
+            Aired(context, light, player, clouded);
+        }
+
+        context.PSSetShaderResource(ModelShaders.DistortionSlot, clouded ? Skin(distortion!).View : null!);
+
         context.OMSetRenderTargets(target.AccumulatedTarget, target.Depth);
         context.RSSetViewport(new Viewport(0f, 0f, target.Size, target.Size, 0f, 1f));
         context.VSSetShader(_placed);
@@ -744,7 +762,7 @@ public sealed partial class ModelGpu : IDisposable
             context.PSSetShaderResource(ModelShaders.CausticsSlot, patterned ? Skin(caustics!).View : null!);
             // THE DISTORTION ALSO FOR A RIVER'S FOAM (ShadeProgram.RiverFoam), which reads nought where nothing is bound, as the processor's does.
             bool rivers = distortion is not null && Array.Exists(plan.Programs, one => one.Rivers);
-            context.PSSetShaderResource(ModelShaders.DistortionSlot, patterned || rivers ? Skin(distortion!).View : null!);
+            context.PSSetShaderResource(ModelShaders.DistortionSlot, patterned || rivers || clouded ? Skin(distortion!).View : null!);
 
             var owner = -1;
             var lifted = false;
@@ -805,6 +823,12 @@ public sealed partial class ModelGpu : IDisposable
 
                 Drawn(run, plan);
             }
+        }
+
+        // THE SCREEN-SPACE FOG OVER THE PICTURE, over the air's constants Aired bound - see ModelGpu.Fog.
+        if (Fogs(light) is { } fogged)
+        {
+            Fogged(context, target, fogged);
         }
 
         // THE CASTERS ONCE THE PICTURE IS DRAWN, for the next frame's receivers - see ModelGpu.Wet.
@@ -1016,6 +1040,7 @@ public sealed partial class ModelGpu : IDisposable
         _scene.Dispose();
         _part.Dispose();
         _frame.Dispose();
+        _air?.Dispose();
         _layout.Dispose();
         _straight.Dispose();
         _whole.Dispose();

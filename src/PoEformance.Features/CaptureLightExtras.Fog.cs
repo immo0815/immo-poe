@@ -21,14 +21,18 @@ namespace PoEformance.Features;
 /// </remarks>
 public static partial class CaptureLightExtras
 {
-    /// <summary>The engine's noise texture's candidates: the four noises with an alpha the program names in Art/2DArt/Lookup/.</summary>
+    /// <summary>
+    /// The engine's noise texture's candidates: the four noises with an alpha the program names in Art/2DArt/Lookup/, and the two the clouds
+    /// went best with offline (v0.1.381's capture of The Red Vale) - the one drawn, <see cref="AreaClouds.NoisePath"/> (CHOSEN), and the next.
+    /// </summary>
     /// <remarks>
     /// influence_noise.dds is named beside them but is R8G8: its alpha reads one, and the clouds read the noise's alpha - so it is left out.
+    /// THE NOISE DRAWN IS MEASURED AGAIN in every capture, against the four the program names, so the choice is held against each new area.
     /// </remarks>
     public static IReadOnlyList<string> NoiseCandidates { get; } =
     [
         "Art/2DArt/Lookup/perlin_noise.dds", "Art/2DArt/Lookup/noise_perlin_worley_high.dds", "Art/2DArt/Lookup/noise_curl3.dds",
-        "Art/2DArt/Lookup/noise_worley_low.dds",
+        "Art/2DArt/Lookup/noise_worley_low.dds", AreaClouds.NoisePath, "Art/particles/distortion/flowmap_04.dds",
     ];
 
     /// <summary>The fog's layer texture as screenspacefogenv.fxgraph names it - its custom parameter "1.Fog_Texture" may be set otherwise by a material.</summary>
@@ -145,6 +149,11 @@ public static partial class CaptureLightExtras
                     string mode = shape < model.Modes.Count ? model.Modes[shape] : string.Empty;
                     said.Append(CultureInfo.InvariantCulture, $"  shape\t{shape}\t{model.Mesh.Shapes[shape].Name}\t{model.Mesh.Shapes[shape].Count / 3} triangles\t{material}\t{mode}").AppendLine();
                 }
+
+                // THE SHAPES' OWN MATERIALS WHOLE, with what they name (v0.1.383): the mesh is drawn with them as well as with its render pass,
+                // whose type is "Append" - The Red Vale's screenSpaceGeoShape wears SSTexturec.mat, which the walk above never reaches, the
+                // .fmt naming it in its bytes. The fog is drawn from the pass alone until this says what the mesh's own material is.
+                Shapes(read, model.ShapeMaterials, seen, texts, said);
             }
         }
         catch (Exception exception) when (exception is not (OutOfMemoryException or StackOverflowException))
@@ -154,6 +163,58 @@ public static partial class CaptureLightExtras
 
         _ = Wholes(texts, AttachmentChars, LargestAttachment, "attachment files", said);
         return taken;
+    }
+
+    /// <summary>
+    /// The model's shape materials not walked yet, each read and written whole with the graphs and materials it names (a textures' header
+    /// each) - two hops at most.
+    /// </summary>
+    private static void Shapes(
+        Func<string, byte[]?> read, IReadOnlyList<string> materials, HashSet<string> seen, List<(string Path, string Text, string Why)> texts, StringBuilder said)
+    {
+        var queue = new Queue<(string Path, int Hop, string By)>();
+        foreach (string material in materials.Where(one => one.Length > 0).Select(Clean).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (seen.Add(material))
+            {
+                queue.Enqueue((material, 0, "a shape of the model"));
+            }
+        }
+
+        while (queue.Count > 0)
+        {
+            (string path, int hop, string by) = queue.Dequeue();
+            byte[]? bytes = read(path);
+            if (bytes is not { Length: > 0 })
+            {
+                said.Append(CultureInfo.InvariantCulture, $"  shapefile\t{path}\tnot in the install\t{hop}\t{by}").AppendLine();
+                continue;
+            }
+
+            bool text = TextKinds.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
+            string kind = text ? "text" : path.EndsWith(".dds", StringComparison.OrdinalIgnoreCase) ? ModelDump.Header(bytes) : "binary";
+            said.Append(CultureInfo.InvariantCulture, $"  shapefile\t{path}\t{bytes.Length}\t{hop}\t{by}\t{kind}").AppendLine();
+            if (!text)
+            {
+                continue;
+            }
+
+            string decoded = StatDescriptionFiles.Decode(bytes);
+            texts.Add((path, decoded, $"a shape's material of the model, hop {hop}, named by {by}"));
+            if (hop >= 2)
+            {
+                continue;
+            }
+
+            foreach (string named in NamedIn(decoded).Where(one => one.EndsWith(".fxgraph", StringComparison.OrdinalIgnoreCase)
+                || one.EndsWith(".mat", StringComparison.OrdinalIgnoreCase) || one.EndsWith(".dds", StringComparison.OrdinalIgnoreCase)))
+            {
+                if (seen.Add(named))
+                {
+                    queue.Enqueue((named, hop + 1, path));
+                }
+            }
+        }
     }
 
     /// <summary>The text kinds of the attachment's walk: written whole and read for what they name.</summary>

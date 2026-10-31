@@ -743,6 +743,136 @@ public class CaptureAtGameTests
 
     private static double Number(string text) => double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
 
+    /// <summary>
+    /// A roof section the game hides comes out hidden whole and one the game shows comes out shown - each the stage drawn without the section,
+    /// its shadow kept, held against the game (CaptureRoofFade); with its shadow gone too nothing tells them apart here, the rock wearing the
+    /// floor's own texture under the same sun, so that fit says nothing rather than a number. The section's object's words are read through
+    /// what it extends; the replay of the kept numbers fits alike.
+    /// </summary>
+    [Fact]
+    public void AROOFSectionTheGameHidesIsMeasuredHiddenAndOneItShowsShown()
+    {
+        CapturePane pane = Stage(MaterialBlend.Opaque);
+        WorldSnapshot shot = Shot(player: new Vector3(5000f, 9000f, 0f));
+        CaptureAtGame own = CaptureAtGame.Draw(pane, shot, null, Width, Height, null, out _)!;
+        int rock = pane.Model.ShapeMaterials.ToList().IndexOf("Art/rock.mat");
+        MaterialBlend[] hiding = [.. Enumerable.Range(0, pane.Model.Mesh.Shapes.Count).Select(shape => shape == rock ? MaterialBlend.ShadowOnly : pane.Blends![shape])];
+
+        static byte[]? Read(string path) => path switch
+        {
+            "Art/rock.mat" => RoofRock(path),
+            "rock.ao" => Encoding.Unicode.GetBytes("﻿version 2\r\nextends \"Metadata/Terrain/RoofParent\"\r\nAnimatedRender\r\n{\r\n\tenable_roof_fade = true\r\n}\r\n"),
+            "Metadata/Terrain/RoofParent.ao" => Encoding.UTF8.GetBytes("version 2\nextends \"nothing\"\nAnimatedRender\n{\n\troof_fade_cylinder = \"150 300 0\"\n}\n"),
+            _ => null,
+        };
+
+        foreach ((string game, byte[] rgba, string hidden) in new[] { ("hidden", own.Redrawn(pane.Model.Mesh, hiding), "1.00"), ("shown", own.Picture, "0.00") })
+        {
+            CaptureAtGame scene = CaptureAtGame.Draw(pane, shot, Bgr(rgba), Width, Height, null, out _)!;
+            string report = CaptureRoofFade.Write(Read, scene, string.Empty, null, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers);
+
+            Assert.Matches(@"^roof fade: 1 roof sections on the stage, 1 on the screen, [\d,]+ of their pixels compared", report);
+            Match row = Regex.Match(report, @"\n  (\d+)\trock\t([\d,]+)\t([\d,]+)\t([\d.]+)\t([\d.]+)\t([\d.]+)\t-\t-\t-\t-\t");
+            Assert.True(row.Success, report);
+            Assert.Equal(rock, int.Parse(row.Groups[1].Value, CultureInfo.InvariantCulture));
+            Assert.True(Count(row.Groups[3].Value) > 50, $"{game}: {row.Groups[3].Value} telling pixels\n{report}");
+            Assert.Equal(hidden, row.Groups[4].Value);
+            Assert.Equal(1.0, Number(row.Groups[5].Value), 2);
+            Assert.True(Number(row.Groups[6].Value) < 0.01, $"{game}: the error {row.Groups[6].Value}\n{report}");
+            if (game == "hidden")
+            {
+                Assert.Contains("1 mostly hidden by the game, 0 mostly shown", report, StringComparison.Ordinal);
+            }
+            else
+            {
+                Assert.Contains("0 mostly hidden by the game, 1 mostly shown", report, StringComparison.Ordinal);
+            }
+
+            Assert.Contains("  rock.ao: enable_roof_fade = true | Metadata/Terrain/RoofParent.ao: roof_fade_cylinder = \"150 300 0\"", report, StringComparison.Ordinal);
+            Assert.Equal(CaptureRoofFade.Tinted, Assert.Single(pictures).File);
+
+            string folder = Directory.CreateTempSubdirectory("roof-fade").FullName;
+            try
+            {
+                File.WriteAllBytes(Path.Combine(folder, CaptureRoofFade.Numbers), numbers);
+                string replay = CaptureRoofFade.Replay(folder);
+                Assert.StartsWith("roof fade replay: 1 roof sections on the stage", replay, StringComparison.Ordinal);
+                Assert.Contains(row.Value, replay, StringComparison.Ordinal);
+            }
+            finally
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The fit itself: a game showing what lies behind a section with its shadow gone fits hidden whole at its own brightness, nothing left,
+    /// and says the shadow is gone - the fit with the shadow kept leaving something; a game half the section and half what lies behind fits
+    /// half hidden; a section whose pixels tell nothing apart is not fitted.
+    /// </summary>
+    [Fact]
+    public void THEROOFFadesFitTakesTheGameApartIntoTheSectionAndWhatLiesBehindIt()
+    {
+        var section = new CaptureRoofFade.Section(4, "branches", "tree.ao", new Vector3(-50f, -50f, -400f), new Vector3(50f, 50f, -100f));
+        var header = new CaptureRoofFade.Header(64, 64, 1, new Vector2(1000f, 2000f), new Vector3(1000f, 2000f, 0f), new Vector3(0f, 0f, -2000f), Vector3.UnitZ, new Vector2(32f, 32f), [section]);
+        List<CaptureRoofFade.Sample> Samples(Func<Vector3, Vector3, Vector3, Vector3> game)
+        {
+            var made = new List<CaptureRoofFade.Sample>();
+            for (var at = 0; at < 200; at++)
+            {
+                var with = new Vector3(0.05f + (0.002f * at), 0.06f + (0.0015f * (at % 13)), 0.04f);
+                var kept = new Vector3(0.5f + (0.001f * (at % 17)), 0.45f, 0.4f + (0.002f * (at % 5)));
+                var gone = new Vector3(0.7f + (0.004f * (at % 11)), 0.62f + (0.003f * (at % 7)), 0.55f + (0.005f * (at % 3)));
+                made.Add(new CaptureRoofFade.Sample(4, at, game(with, kept, gone), with, kept, gone, new Vector3(at % 64, at / 64, -200f), 1800f));
+            }
+
+            return made;
+        }
+
+        List<CaptureRoofFade.Sample> behind = Samples((with, kept, gone) => gone * 0.8f);
+        CaptureRoofFade.Fit gone = CaptureRoofFade.Fitted(behind, kept: false);
+        Assert.Equal(1f, gone.Hidden, 3);
+        Assert.Equal(0.8f, gone.A + gone.B, 3);
+        Assert.True(gone.Error < 1e-3f, $"{gone}");
+        Assert.True(CaptureRoofFade.Fitted(behind, kept: true).Error > 0.01f);
+        Assert.Matches(@"\n  4\tbranches\t200\t200\t[\d.]+\t[\d.]+\t[\d.]+\t1\.00\t0\.8\t0\.000\tgone\t", CaptureRoofFade.Report(header, behind, "test"));
+
+        CaptureRoofFade.Fit half = CaptureRoofFade.Fitted(Samples((with, kept, gone) => (with + kept) * 0.5f), kept: true);
+        Assert.Equal(0.5f, half.Hidden, 3);
+        Assert.Equal(1f, half.A + half.B, 3);
+
+        List<CaptureRoofFade.Sample> alike = Samples((with, kept, gone) => with);
+        alike = [.. alike.Select(one => one with { Kept = one.With, Gone = one.With })];
+        Assert.Contains("\n  4\tbranches\t200\t0\t-\t-\t-\t-\t-\t-\t-\t", CaptureRoofFade.Report(header, alike, "test"), StringComparison.Ordinal);
+    }
+
+    /// <summary>A stage with no roof section says so and keeps no numbers.</summary>
+    [Fact]
+    public void ASTAGEWithoutRoofSectionsSaysSo()
+    {
+        CapturePane pane = Stage(MaterialBlend.Opaque);
+        WorldSnapshot shot = Shot(player: new Vector3(5000f, 9000f, 0f));
+        CaptureAtGame own = CaptureAtGame.Draw(pane, shot, null, Width, Height, null, out _)!;
+        CaptureAtGame scene = CaptureAtGame.Draw(pane, shot, Bgr(own.Picture), Width, Height, null, out _)!;
+        string report = CaptureRoofFade.Write(_ => null, scene, string.Empty, null, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers);
+        Assert.StartsWith("roof fade: no roof sections on the stage", report, StringComparison.Ordinal);
+        Assert.Empty(pictures);
+        Assert.Empty(numbers);
+    }
+
+    /// <summary>A drawing's RGBA bytes as the game's picture at the screen's size, blue green red - a drawing of a factor of one.</summary>
+    private static byte[] Bgr(byte[] rgba)
+    {
+        var bgr = new byte[Width * Height * 3];
+        for (var at = 0; at < Width * Height; at++)
+        {
+            (bgr[at * 3], bgr[(at * 3) + 1], bgr[(at * 3) + 2]) = (rgba[(at * 4) + 2], rgba[(at * 4) + 1], rgba[at * 4]);
+        }
+
+        return bgr;
+    }
+
     /// <summary>A drawing of nothing, for a game picture of nothing.</summary>
     private static CaptureAtGame Blank()
         => CaptureAtGame.Draw(Stage(MaterialBlend.Opaque), Shot(target: new Vector3(40000f, 9000f, 0f)), null, Width, Height, null, out _)!;

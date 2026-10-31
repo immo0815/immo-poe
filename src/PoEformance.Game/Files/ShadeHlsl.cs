@@ -332,6 +332,30 @@ public static partial class ShadeHlsl
     public static readonly string FoamLibrary = Foams();
 
     /// <summary>
+    /// A screen program's helpers - ShadeProgram.Bayer and hash3i3fStable, line for line - after <see cref="Library"/>, whose PCG it reads.
+    /// </summary>
+    public const string ScreenLibrary = """
+        // GetBayerNoise16 of a float2 - ShadeProgram.Bayer: the place in its four by four block through the matrix, centred in its sixteenth.
+        // NOT ShadeBayer, which ModelShaders.Programmed's screen ray already names (its jitter's table) - a second symbol of the name does not compile.
+        static const int ShadeBayerMatrix[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
+
+        float ShadeBayerNoise(float2 pixel)
+        {
+            float2 quarter = pixel / 4.0;
+            float index = ((quarter.x - floor(quarter.x)) * 4.0) - 0.5 + ((((quarter.y - floor(quarter.y)) * 4.0) - 0.5) * 4.0) + 0.5;
+            uint at = index > 0.0 ? (uint)index : 0u;
+            return (ShadeBayerMatrix[min(at, 15u)] + 0.5) / 16.0;
+        }
+
+        // hash3i3fStable: PCG's rounds over the ints' own bits - ShadeProgram.HashStable.
+        float3 ShadeHashInt3(int3 value)
+        {
+            uint3 v = ShadePcg(asuint(value));
+            return float3(ShadeHashUnit(v.x), ShadeHashUnit(v.y), ShadeHashUnit(v.z));
+        }
+        """;
+
+    /// <summary>
     /// ShadeProgram.Spraying, line for line, for a program with a <c>Spray</c> step - after <see cref="WavesLibrary"/>, whose shore it
     /// reads, and <see cref="FoamLibrary"/>.
     /// </summary>
@@ -376,15 +400,32 @@ public static partial class ShadeHlsl
         // wetness pass at (ShadeProgram.ReadsWetness); off the picture until set, where a read gives nought.
         hlsl.AppendLine("static float2 ShadePixel = float2(-1.0, -1.0);");
         hlsl.Append(CultureInfo.InvariantCulture, $"Texture2D<float> ShadeWetness : register(t{WetnessSlot});").AppendLine();
+
+        // WHAT A SCREEN PASS HANDS EVERY PIXEL (ShadeProgram's Pass steps, ScreenPixel), set by the including shader before ShadeRun.
+        hlsl.AppendLine("static float3 ShadeScreenCamera = float3(0.0, 0.0, 0.0);");
+        hlsl.AppendLine("static float3 ShadeScreenSurface = float3(0.0, 0.0, 0.0);");
+        hlsl.AppendLine("static float2 ShadeScreenPixel = float2(0.0, 0.0);");
+        hlsl.AppendLine("static float4 ShadeScreenFog = float4(0.0, 0.0, 0.0, 0.0);");
+        hlsl.AppendLine("static float2 ShadeScreenShape = float2(0.0, 0.0);");
+        hlsl.AppendLine("static float3 ShadeScreenPlayer = float3(0.0, 0.0, 0.0);");
         hlsl.AppendLine(Library);
         bool sprays = false;
         bool fields = false;
         bool rivers = false;
+        bool flows = false;
+        bool screened = false;
         foreach (ShadeProgram.Step step in program.Steps)
         {
             sprays |= step.Op == ShadeProgram.Op.Spray;
             fields |= step.Op == ShadeProgram.Op.Field;
             rivers |= step.Op == ShadeProgram.Op.River;
+            flows |= step.Op == ShadeProgram.Op.Flow;
+            screened |= step.Op is ShadeProgram.Op.Bayer or ShadeProgram.Op.HashInt;
+        }
+
+        if (screened)
+        {
+            hlsl.AppendLine(ScreenLibrary);
         }
 
         foreach (ShadeProgram.Step step in program.Steps)
@@ -397,7 +438,7 @@ public static partial class ShadeHlsl
             }
         }
 
-        if (sprays || program.Beaches || fields || rivers)
+        if (sprays || program.Beaches || fields || rivers || flows)
         {
             hlsl.AppendLine(FoamLibrary);
         }
@@ -517,7 +558,11 @@ public static partial class ShadeHlsl
 
         hlsl.AppendLine("    ShadeOut said;");
         hlsl.Append(CultureInfo.InvariantCulture, $"    float4 colour = r{program.Result};").AppendLine();
-        hlsl.AppendLine("    said.colour = float3(SrgbOf(colour.x), SrgbOf(colour.y), SrgbOf(colour.z));");
+
+        // A SCREEN PROGRAM'S COLOUR IS ITS OWN LIGHT, linear and unbounded - ShadeProgram.RunScreen - not an albedo put into sRGB.
+        hlsl.AppendLine(program.Screen
+            ? "    said.colour = colour.xyz;"
+            : "    said.colour = float3(SrgbOf(colour.x), SrgbOf(colour.y), SrgbOf(colour.z));");
         hlsl.AppendLine("    said.alpha = colour.w;");
         hlsl.AppendLine(program.Discards ? "    said.dropped = r10.x > 0.0;" : "    said.dropped = false;");
         hlsl.AppendLine(program.SpecularRegister >= 0
@@ -1174,6 +1219,24 @@ public static partial class ShadeHlsl
                 ShadeProgram.RiverBubbleOut => $"ShadeRiverBubbles({a}.xy, {b}.y, {c}.x, {c}.w).xxxx",
                 _ => $"ShadeRiver({a}.xy, {b}.x, ShadeRiverFlowAt({a}.xy, {c}.x))",
             },
+
+            // WHAT THE SCREEN PASS HANDS THE PIXEL - ShadeProgram.Passed: a place with a w of nought, a colour whole, a pair in x and y.
+            ShadeProgram.Op.Pass => step.Extra switch
+            {
+                ShadeProgram.PassCamera => "float4(ShadeScreenCamera, 0.0)",
+                ShadeProgram.PassSurface => "float4(ShadeScreenSurface, 0.0)",
+                ShadeProgram.PassPixel => "float4(ShadeScreenPixel, 0.0, 0.0)",
+                ShadeProgram.PassFogColour => "ShadeScreenFog",
+                ShadeProgram.PassFogShape => "float4(ShadeScreenShape, 0.0, 0.0)",
+                ShadeProgram.PassPlayer => "float4(ShadeScreenPlayer, 0.0)",
+                _ => "float4(0.0, 0.0, 0.0, 0.0)",
+            },
+            ShadeProgram.Op.Bayer => $"ShadeBayerNoise({a}.xy).xxxx",
+            ShadeProgram.Op.HashInt => $"float4(ShadeHashInt3(int3({a}.xyz)), 0.0)",
+
+            // THE INCLUDING SHADER'S: the scene's light between the layer's two points - ModelShaders' ShadeOmni.
+            ShadeProgram.Op.Omni => $"float4(ShadeOmni({a}.xyz, {b}.xyz, {c}.x, {d}), 0.0)",
+            ShadeProgram.Op.Exp => $"exp({a})",
             _ => null,
         };
 
@@ -1238,6 +1301,32 @@ public static partial class ShadeHlsl
                 case ShadeProgram.Op.Wet:
                     hlsl.Append("    ").Append(to).AppendLine(" = float4(0.0, 0.0, 0.0, ShadeWetness.Load(int3(int2(ShadePixel), 0)));");
                     break;
+
+                // SampleFlowingTexMip2 - ShadeProgram.Flowed, line for line: two nodes, their reads mixed, PreserveVariance about the mean.
+                case ShadeProgram.Op.Flow:
+                {
+                    string sheet = "ShadeSheet" + Invariant(step.Extra);
+                    hlsl.Append("    { float4 flowPacked = ").Append(c).AppendLine(";");
+                    hlsl.AppendLine("      float2 flowPhases;");
+                    hlsl.AppendLine("      float2 flowSeeds;");
+                    hlsl.AppendLine("      float2 flowWeights;");
+                    hlsl.AppendLine("      ShadeInterpNodes(flowPacked.x, flowPhases, flowSeeds, flowWeights);");
+                    hlsl.AppendLine("      float4 flowColour = float4(0.0, 0.0, 0.0, 0.0);");
+                    hlsl.AppendLine("      float flowMoment = 0.0;");
+                    hlsl.AppendLine("      [unroll] for (int flowNode = 0; flowNode < 2; flowNode++)");
+                    hlsl.AppendLine("      {");
+                    hlsl.AppendLine("        float3 flowHash = ShadeHash33(float3(flowSeeds[flowNode], flowPacked.y, 0.0));");
+                    hlsl.AppendLine("        float flowAlong = (flowPhases[flowNode] * 2.0) - 1.0 + flowPacked.w;");
+                    hlsl.Append("        float2 flowAt = float2(flowHash.x + ").Append(a).Append(".x + (").Append(b).Append(".x * flowAlong), flowHash.y + ")
+                        .Append(a).Append(".y + (").Append(b).AppendLine(".y * flowAlong));");
+                    hlsl.AppendLine("        flowMoment += flowWeights[flowNode] * flowWeights[flowNode];");
+                    hlsl.Append("        flowColour += ").Append(Read(program, step.Extra, sheet + ".SampleLevel(wrap, flowAt, max(flowPacked.z, 0.0))"))
+                        .AppendLine(" * flowWeights[flowNode];");
+                    hlsl.AppendLine("      }");
+                    hlsl.Append("      float4 flowMean = ").Append(Read(program, step.Extra, sheet + ".SampleLevel(wrap, float2(0.5, 0.5), 10.0)")).AppendLine(";");
+                    hlsl.Append("      ").Append(to).AppendLine(" = ((flowColour - flowMean) / sqrt(flowMoment)) + flowMean; }");
+                    break;
+                }
 
                 // ShadeProgram.ThroughBasis, line for line: the frame made orthonormal against the normal, the binormal against ∂p/∂v.
                 case ShadeProgram.Op.Tbn:

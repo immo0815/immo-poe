@@ -41,7 +41,16 @@ public sealed record ShaderValue(string Path, float[] Numbers, bool? Srgb)
 /// <param name="Stage">The stage it reads or writes at, for the nodes that have one; empty for the rest.</param>
 /// <param name="Parameters">Its parameters, in order.</param>
 /// <param name="Custom">The name a material can set its parameters by, or empty.</param>
-public sealed record ShaderNode(string Type, int Index, string Stage, ShaderValue[] Parameters, string Custom);
+/// <param name="Group">
+/// The group the node runs inside - its <c>group_id</c>, the group node's type and index (<c>ScreenspaceFogFlatRaymarchGroup_0</c>) - or empty
+/// for a node outside every group. See ShadeProgram's group nodes.
+/// </param>
+/// <param name="Slots">A group node's own input slots by name (<c>input_slots</c>) - values handed in from outside and read inside; else empty.</param>
+public sealed record ShaderNode(string Type, int Index, string Stage, ShaderValue[] Parameters, string Custom, string Group = "", string[]? Slots = null)
+{
+    /// <summary>The key a node inside this group names it by - <see cref="Group"/>'s spelling, the type and index.</summary>
+    public string GroupKey => string.Create(CultureInfo.InvariantCulture, $"{Type}_{Index}");
+}
 
 /// <summary>One end of a link: a node's port, and which components of it.</summary>
 /// <param name="Type">The node's type.</param>
@@ -143,7 +152,9 @@ public sealed class ShaderGraph
                         Whole(node, "index"),
                         Text(node, "stage"),
                         node.TryGetProperty("parameters", out JsonElement parameters) ? Values(parameters) : [],
-                        Text(node, "custom_parameter")));
+                        Text(node, "custom_parameter"),
+                        Text(node, "group_id"),
+                        node.TryGetProperty("input_slots", out JsonElement slots) ? Names(slots) : null));
                 }
             }
 
@@ -231,6 +242,12 @@ public sealed class ShaderGraph
 
     private static ShaderEnd End(JsonElement end)
         => new(Text(end, "type"), Whole(end, "index"), Text(end, "stage"), Text(end, "variable"), Text(end, "swizzle"));
+
+    /// <summary>A group node's input slots by name - <c>[{"name": "noise", "type": "float"}, ...]</c>.</summary>
+    private static string[] Names(JsonElement slots)
+        => slots.ValueKind == JsonValueKind.Array
+            ? [.. slots.EnumerateArray().Where(one => one.ValueKind == JsonValueKind.Object).Select(one => Text(one, "name")).Where(name => name.Length > 0)]
+            : [];
 
     private static ShaderValue[] Values(JsonElement parameters)
     {

@@ -335,6 +335,10 @@ public sealed partial class ShadeProgram
             "Noise31", "PerlinNoise31", "Vibrance", "Rotate", "RotateUV", "RadiusToPolarNorm", "DustColor",
             "DepthDistance", "GetDepthDistance", "MaskedContactFade", "ViewDir", "FresnelFactor", "FixModelTBN", "ParallaxUvSpace",
             "CrashingFoamSurface", "ReadPixelWetness",
+
+            // THE SCREEN-SPACE FOG'S (v0.1.383) - see CompileScreen.
+            RaymarchGroup, "CameraPos", "UnprojectPixelDepth", "ReadBayerNoise", "SSFColor", "SSFDisperseRadiusFeathering", "PlayerTrailingGhost",
+            "WindVector", "Hash3i3fStable", "RGBToTbn4", "SampleFlowTextureLod2", "GetIntegralOmniLight",
         ],
         StringComparer.Ordinal);
 
@@ -589,6 +593,27 @@ public sealed partial class ShadeProgram
         /// C (∂p/∂v) made orthonormal against D, the pixel's normal. One step for the whole of it - see <see cref="ThroughBasis"/>.
         /// </summary>
         Tbn,
+
+        /// <summary>A value a screen pass hands every pixel - Extra says which, <see cref="PassCamera"/> and on; see <see cref="CompileScreen"/>.</summary>
+        Pass,
+
+        /// <summary>ReadBayerNoise: GetBayerNoise16 of A's xy, the pixel's place on the screen - <see cref="Bayer"/>.</summary>
+        Bayer,
+
+        /// <summary>Hash3i3fStable: hash3u3fStable of A's x, y and z taken as ints - <see cref="HashStable(uint, uint, uint)"/>.</summary>
+        HashInt,
+
+        /// <summary>
+        /// SampleFlowTextureLod2: Extra's texture read flowing at A's xy along B's xy, C holding the phase, the seed, the level and the phase's
+        /// offset - SampleFlowingTexMip2, see <see cref="Flowed"/>.
+        /// </summary>
+        Flow,
+
+        /// <summary>GetIntegralOmniLight between A's place and B's, C's x the ray's hash, D the ambient - the card's light; see <see cref="Omni"/>.</summary>
+        Omni,
+
+        /// <summary><c>exp</c> of every component - the fog's layers' throughput (ScreenspaceFogFlatRaymarchGroup's inner epilogue).</summary>
+        Exp,
     }
 
     /// <summary>The stages a colour is assembled across, in the order they are run.</summary>
@@ -1235,6 +1260,7 @@ public sealed partial class ShadeProgram
             Wetness = Wetness is { } wet && wet.Textures.SequenceEqual(Textures) ? wet.With(sheets) : null,
             Occluded = Occluded is { } occluded && occluded.Textures.SequenceEqual(Textures) ? occluded.With(sheets) : null,
             Cut = Cut,
+            Screen = Screen,
         };
     }
 
@@ -1838,6 +1864,38 @@ public sealed partial class ShadeProgram
                     break;
                 }
 
+                case Op.Pass:
+                    r[step.To] = Passed(step.Extra);
+                    break;
+
+                case Op.Bayer:
+                    r[step.To] = new Vector4(Bayer(new Vector2(r[step.A].X, r[step.A].Y)));
+                    break;
+
+                // int3(...) TRUNCATES TOWARDS NOUGHT, as HLSL's conversion does, and uint3 of an int keeps its bits.
+                case Op.HashInt:
+                {
+                    Vector4 v = r[step.A];
+                    r[step.To] = new Vector4(HashStable(unchecked((uint)(int)v.X), unchecked((uint)(int)v.Y), unchecked((uint)(int)v.Z)), 0f);
+                    break;
+                }
+
+                // A READ AT ITS OWN LEVEL, so the corners' pass that picks levels has nothing to pick.
+                case Op.Flow:
+                    r[step.To] = corner >= 0 ? Vector4.Zero : Flowed(step.Extra, r[step.A], r[step.B], r[step.C]);
+                    break;
+
+                case Op.Omni:
+                    r[step.To] = new Vector4(Omni(r[step.D]), 0f);
+                    break;
+
+                case Op.Exp:
+                {
+                    Vector4 v = r[step.A];
+                    r[step.To] = new Vector4(MathF.Exp(v.X), MathF.Exp(v.Y), MathF.Exp(v.Z), MathF.Exp(v.W));
+                    break;
+                }
+
                 case Op.Parallax:
                     if (corner >= 0)
                     {
@@ -2249,7 +2307,7 @@ public sealed partial class ShadeProgram
 
             int b = step.B;
             int extra = step.Extra;
-            if (step.Op is Op.Sample or Op.SampleLod or Op.Parallax)
+            if (step.Op is Op.Sample or Op.SampleLod or Op.Parallax or Op.Flow)
             {
                 if (textureMap[extra] < 0)
                 {
@@ -2757,6 +2815,22 @@ public sealed partial class ShadeProgram
             "glossiness" => "y",
             _ => string.Empty,
         },
+
+        // ONE REGISTER, the pass's ssf_disperse_radius_feathering: the radius in x, the feathering in y - see PassFogShape.
+        "SSFDisperseRadiusFeathering" => variable switch
+        {
+            "disperse_radius" => "x",
+            "feathering" => "y",
+            _ => string.Empty,
+        },
+
+        // WindVector.xy and its w, as the fragment hands them on.
+        "WindVector" => variable switch
+        {
+            "wind_direction" => "xy",
+            "wind_strength" => "w",
+            _ => string.Empty,
+        },
         _ => string.Empty,
     };
 
@@ -2994,13 +3068,16 @@ public sealed partial class ShadeProgram
     /// is pinned that way is shared by all of its graph's stages, so a node feeding two of them is
     /// compiled once - a march is the most a pixel costs.
     /// </remarks>
-    private sealed class Unit(
+    private sealed partial class Unit(
         Builder build, Lookup lookup, ShaderInstance instance,
         IReadOnlyDictionary<string, Held> seen, IReadOnlyDictionary<string, string> lost, Displaced moved,
         Func<int, IReadOnlyDictionary<string, Held>?> viewAt)
     {
         /// <summary>Every component taken from x - a float spread across a register.</summary>
         private const int Spread = 0b1111 << 8;
+
+        /// <summary>The steps being collected - for the unit's part in ShadeProgram.Screen.cs.</summary>
+        private Builder Build => build;
 
         private readonly Dictionary<ShaderNode, int> _done = new(ReferenceEqualityComparer.Instance);
         private readonly HashSet<ShaderNode> _open = new(ReferenceEqualityComparer.Instance);
@@ -3267,6 +3344,19 @@ public sealed partial class ShadeProgram
             if (lookup.Node(end) is not { } node)
             {
                 return Fail($"a link to {end.Type} #{end.Index}, which the graph does not have");
+            }
+
+            // A GROUP'S OUTPUTS ARE ITS LOOP'S: the result once the loop has run, a pass's own values inside it - see Grouped.
+            if (node.Type == RaymarchGroup)
+            {
+                return Grouped(node, end.Variable);
+            }
+
+            // A NODE INSIDE A GROUP'S LOOP RUNS ONCE A PASS of it, while that pass is being compiled - see Grouped. Not a node of a group
+            // the graph editor draws round nodes for order alone ("<Group>_3"), which runs as any other.
+            if (Looped(node.Group) && !Inside(node))
+            {
+                return Fail($"{node.Type} inside {node.Group}, read from outside it");
             }
 
             if (_done.TryGetValue(node, out int known))
@@ -3890,7 +3980,9 @@ public sealed partial class ShadeProgram
                 case "FromVertexVariance":
                     return build.Constant(Vector4.Zero);
 
+                // tbn_vec = 2 * rgb_vec - 1, the float3's and RGBToTbn4's float4 alike.
                 case "RGBToTbn":
+                case "RGBToTbn4":
                     return Single(node) is { } rgb
                         ? build.Emit(Op.MultiplyAdd, rgb, build.Constant(new Vector4(2f)), build.Constant(new Vector4(-1f)))
                         : null;
@@ -4005,6 +4097,19 @@ public sealed partial class ShadeProgram
 
                 case "Transform":
                     return Transformed(node);
+
+                // THE SCREEN-SPACE FOG'S NODES - see ShadeProgram.Screen.cs.
+                case "CameraPos":
+                case "UnprojectPixelDepth":
+                case "ReadBayerNoise":
+                case "SSFColor":
+                case "SSFDisperseRadiusFeathering":
+                case "PlayerTrailingGhost":
+                case "WindVector":
+                case "Hash3i3fStable":
+                case "SampleFlowTextureLod2":
+                case "GetIntegralOmniLight":
+                    return Screened(node);
 
                 default:
                     return Fail(node.Type);

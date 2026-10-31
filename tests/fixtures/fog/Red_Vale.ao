@@ -1,0 +1,25 @@
+version 3
+extends "Metadata/FmtParent"
+
+client
+{
+	AnimatedRender
+	{
+		RenderPasses = 
+		'{
+		    "passes": [
+		        {
+		            "is_main": true,
+		            "type": "Append",
+		            "filename": "Metadata/Effects/weather_attachments/act1/Red_Vale/Red_Vale_ao_pass0.mat"
+		        }
+		    ]
+		}'
+		cannot_be_disabled = true
+	}
+	
+	FixedMesh
+	{
+		fixed_mesh = "Art/Models/Effects/enviro_effects/Fogs/screenSpaceWeatherEffect.fmt"
+	}
+}

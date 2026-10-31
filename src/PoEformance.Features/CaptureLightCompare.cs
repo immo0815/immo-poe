@@ -251,8 +251,8 @@ public static class CaptureLightCompare
         }
 
         string cloudsWhy = "no .env read";
-        CloudNoise.Clouds? clouds = read is not null && environment is { Length: > 0 }
-            ? CloudNoise.Of(EnvironmentSettings.Read(environment, read(environment)), out cloudsWhy)
+        AreaClouds? clouds = read is not null && environment is { Length: > 0 }
+            ? AreaClouds.Of(EnvironmentSettings.Read(environment, read(environment)), out cloudsWhy)
             : null;
         var header = new Header(gather.Width, (scene.DrawnHeight + gather.Step - 1) / gather.Step, gather.Step, scene.Factor, light.Exposure, left, materials)
         {
@@ -394,8 +394,8 @@ public static class CaptureLightCompare
         /// <summary>The way the pane's sun travels - NaN before version 3.</summary>
         public Vector3 Sun { get; init; } = new(float.NaN);
 
-        /// <summary>The area's clouds as its .env sets them, or null - before version 3, or where the .env leaves out a key (see CloudNoise.Of).</summary>
-        public CloudNoise.Clouds? Clouds { get; init; }
+        /// <summary>The area's clouds as its .env sets them, or null - before version 3, or where the .env leaves out a key (see AreaClouds.Of).</summary>
+        public AreaClouds? Clouds { get; init; }
     }
 
     /// <summary>The material a shape wears, as the report groups it - a roof section's and a ground's each under its own word.</summary>
@@ -407,7 +407,7 @@ public static class CaptureLightCompare
     /// ground's name with the mix's words for an extension, or the mask's - so a corner mix grouped under its second ground's own name and a
     /// mask mix under the mask's, one ground's light measured over another's pixels.
     /// </remarks>
-    private static string MaterialName(MonsterModel model, int shape, RoofSections roofs)
+    internal static string MaterialName(MonsterModel model, int shape, RoofSections roofs)
     {
         string material = shape < model.ShapeMaterials.Count ? MaterialFile.Bare(model.ShapeMaterials[shape]) : string.Empty;
         string source = shape < model.ShapeSources.Count ? model.ShapeSources[shape] : string.Empty;
@@ -1587,7 +1587,7 @@ public static class CaptureLightCompare
         writer.Write(header.Sun.X);
         writer.Write(header.Sun.Y);
         writer.Write(header.Sun.Z);
-        CloudNoise.Clouds? clouds = header.Clouds;
+        AreaClouds? clouds = header.Clouds;
         writer.Write(clouds is null ? (byte)0 : (byte)1);
         foreach (float one in clouds is null ? new float[9]
             : [clouds.Scale, clouds.Intensity, clouds.Midpoint, clouds.Sharpness, clouds.Speed, clouds.Angle, clouds.FadeRadius, clouds.PreFade, clouds.PostFade])
@@ -1624,7 +1624,7 @@ public static class CaptureLightCompare
 
         Vector2 origin = new(float.NaN), playerArea = new(float.NaN);
         Vector3 sun = new(float.NaN);
-        CloudNoise.Clouds? clouds = null;
+        AreaClouds? clouds = null;
         if (version >= 3)
         {
             origin = new Vector2(reader.ReadSingle(), reader.ReadSingle());
@@ -1637,7 +1637,7 @@ public static class CaptureLightCompare
                 values[at] = reader.ReadSingle();
             }
 
-            clouds = any ? new CloudNoise.Clouds(values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8]) : null;
+            clouds = any ? new AreaClouds(values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8]) : null;
         }
 
         int count = reader.ReadInt32();

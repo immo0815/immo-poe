@@ -821,26 +821,7 @@ public sealed partial class ShadeProgram
 
     /// <summary>The engine's hash33Stable: the three numbers' bits through PCG's rounds (hash33UintPcg), each as HashUToF makes it a fraction.</summary>
     public static Vector3 HashStable(Vector3 value)
-    {
-        uint x = BitConverter.SingleToUInt32Bits(value.X), y = BitConverter.SingleToUInt32Bits(value.Y), z = BitConverter.SingleToUInt32Bits(value.Z);
-        unchecked
-        {
-            x = (x * 1664525u) + 1013904223u;
-            y = (y * 1664525u) + 1013904223u;
-            z = (z * 1664525u) + 1013904223u;
-            x += y * z;
-            y += z * x;
-            z += x * y;
-            x ^= x >> 16;
-            y ^= y >> 16;
-            z ^= z >> 16;
-            x += y * z;
-            y += z * x;
-            z += x * y;
-        }
-
-        return new Vector3(HashUnit(x), HashUnit(y), HashUnit(z));
-    }
+        => HashStable(BitConverter.SingleToUInt32Bits(value.X), BitConverter.SingleToUInt32Bits(value.Y), BitConverter.SingleToUInt32Bits(value.Z));
 
     /// <summary>math_utils' RampPow.</summary>
     internal static float RampPow(float value, float power)

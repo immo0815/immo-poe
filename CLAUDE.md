@@ -676,6 +676,63 @@ WHAT THE FILES SAY OF THE OTHER TWO, read offline from v0.1.374's light-extras.t
   own x and y, is kept, what stands there - a place over him and how high, the colour at a scale, a spot's way and its lean, the file's
   numbers - each with the float after it, the window holding a place and the colour first; `player-light-replay.txt` ranks them again.
   Read it before the lamp's height, reach or cone is changed - the tool's lamp is CHOSEN until then.
+THE ATTACHMENT WAS READ (v0.1.380's capture, light-extras.txt section 7) and v0.1.381's capture decided the rest (asked from the live client:
+the fog by extending the material compiler, the clouds' noise muddle_double CHOSEN, the roof fade measured first, the lamp left CHOSEN; strictly
+in that order). Red_Vale.ao's AnimatedRender lists one render pass, `Red_Vale_ao_pass0.mat` (type Append, is_main): `ScreenspaceQuad.fxgraph`,
+which lays its FixedMesh (`screenSpaceWeatherEffect.fmt`, two triangles ±1500) over the whole screen, and `ScreenspaceFogFlat.fxgraph` under
+DownScaledAlphaBlend, its OutPixelColor `(res.rgb / max(res.a, Epsilon), res.a)` - NOT ScreenspaceFogEnv.fxgraph above, whose ssf_layer_count,
+ssf_thickness and ssf_turbulence this graph does not read. Its loop is a GROUP, ScreenspaceFogFlatRaymarchGroup (utilitynodes.ffx: a prologue,
+an inner prologue and epilogue round the nodes carrying its `group_id`, an epilogue), five layers between heights 0 and 400 (the material's;
+up is minus z, so the slab z -400..0 of the world) from the eye to the solid depth behind the pixel, each the fog texture's blue flowing
+(SampleFlowTextureLod2: SampleFlowingTexMip2 over the flow map flow_muddle_blur_01_R16G16, hash3i3fStable of the layer's seed) and thinned
+round the player by ssf_feathering within a reach growing from a tenth of ssf_disperse_radius at the bottom to all of it at the top, coloured
+from ssf_color times (0.5, 0.5, 0.5, 6) at the bottom
+to ssf_color at the top, lit by GetIntegralOmniLight, its opacity the material's 0.2, the layers laid over one another by exp(-a fade length).
+SO THE SCREEN-SPACE FOG IS DRAWN (v0.1.383), compiled from its own files: `ShadeProgram.CompileScreen` (OutPixelColor's pixel_color into
+PixelOutput, the vertex side a screen quad), the group unrolled at the compile over the material's constant count (`Unit.Raymarched`, its HLSL
+line for line; a count that is not a constant refused and named), and the fog's nodes (`ShadeProgram.Screen.cs`: CameraPos, UnprojectPixelDepth,
+ReadBayerNoise, SSFColor, SSFDisperseRadiusFeathering, PlayerTrailingGhost as pass values - `Op.Pass`, `ScreenPixel` - refused on a mesh's
+surface; Hash3i3fStable, SampleFlowTextureLod2, RGBToTbn4, GetIntegralOmniLight; the graph reader keeps `group_id` and `input_slots`).
+`ScreenFogTests` hold the compiled program against the group and the fragments written out apart, 216 pixels and times. `ScreenFog` reads the
+.env's attachment, its pass's material and textures and GetTotalEnvLight (both cubes' last level along (0, 1, 0) times env_brightness);
+the light panel's "atmosphere" fold has its switch, "fog", on by default (`SceneLight.Fog`, `AreaOrigin` - the pattern laid in the area's own
+place); `ModelGpu.Fogged` draws it on the card after the translucent shapes over the solid depth (`ModelShaders.Air`, `Screened`), and
+`FogGpuTests` hold the card against the processor's program on WARP. CHOSEN, and said under the picture: the camera's focus as the player;
+WindVector nought (the graph's influence is nought anyway); drawn at the picture's size, exposed and graded as a mixed layer is laid over it
+(the engine's DownScaledAlphaBlend under its grade); none where nothing solid lies behind; the sun's shadow through IntegrateShadowMap with its
+seven samples a texel apart (shadow_scale unread), the room's lights at the layer's first point unshadowed; on a parallel view the eye a
+hundred thousand units back along the view; the clouds' factor at each layer's first point from v0.1.384 (below). NOT DRAWN: the mesh's own
+material SSTexturec.mat - light-extras.txt's section 7 writes it whole from v0.1.383 (`shapefile` lines), read it before it is drawn or left out.
+THE CLOUDS ARE DRAWN (v0.1.384), shadows.ffx's GetCloudsIntensity as written (`AreaClouds`, the card's `Clouded`; the light panel's
+"atmosphere" fold, "clouds", on by default; the card's alone, the processor's picture saying it leaves them out): on the sun's light at every
+surface (`SunLit` - the engine's ShadowMap multiplies the directional shadow by it) and through the fog at each layer's first point
+(IntegrateShadowMap's), the area's own place read (`SceneLight.AreaOrigin`), the .env's clouds section (`AreaClouds.Of`, the fade radius
+the engine's measured 800 where unset). CHOSEN from the live client and said under the picture: the noise muddle_double.dds's alpha
+(`AreaClouds.NoisePath`; held offline against v0.1.381's light-against-game.bin, r 0.48 against flowmap_04's 0.35 over the lit ground, 0.39
+against 0.33 beyond 900 units of the player - not clear by CloudNoise's own rule); clouds_velocity `speed (cos a, sin a)`, the way
+muddle_double went best with at every distance; the camera's focus as the player; the picture's clock as the engine's time. AS WRITTEN the
+noise slides along the velocity's way with the clock, so the clouds' shadow DRIFTS AGAINST clouds_velocity, at |velocity| a second
+(`THEPATTERNMovesAsTheEnginesTextureSlides`) - with the CHOSEN way towards -(cos a, sin a): a video of the game's cloud shadows settles the
+way. math_utils' SmoothStep, which the clouds call, is the .ffx DECLARATIONS block's - saturated outside, the value not held inside nought
+and one; CloudNoise had util.hlsl's, which does the latter (the two agree for a value in nought to one). light-against-game's clouds'
+measurement holds muddle_double and flowmap_04 beside the program's four noises from v0.1.384 (`CaptureLightExtras.NoiseCandidates`), so
+every capture measures the noise drawn again. `AreaCloudsTests` hold AreaClouds against a second transcription of shadows.ffx;
+`THECLOUDSShadowTheSunOnTheCardAsAreaCloudsLaysThem` the card against AreaClouds on WARP.
+FXC REFUSED v0.1.383'S FOG PROGRAM (the Windows job's first compile of it): a function `ShadeBayer` beside the screen ray's table of the same
+name (`ModelShaders.Programmed`), so the card drew no fog and said why under the picture - `ShadeBayerNoise` from v0.1.385, and `FogGpuTests`
+now fails on `FogWhy` itself. Found by compiling the program's dumped HLSL with Microsoft's own DXC (the Linux tarball of its GitHub release
+runs in this environment where Vortice.Dxc does not): compile a changed shader so before it goes to the Windows job.
+THE ROOF FADE IS MEASURED FIRST (v0.1.385, DECIDED from the live client): `roof-fade.txt` (`CaptureRoofFade`, the Windows group, drawn from
+light-against-game's own drawing) draws the stage laid as the area laid it through the game's camera twice more - without its roof sections,
+their shadows kept (`MaterialBlend.ShadowOnly`), and without them, their shadows gone (`SkinnedMesh.Keeping`) - and fits the game's picture
+over each section's pixels as `a with + b without` (non-negative least squares on the three channels, a + b let free since the pane's light
+is not the game's; CHOSEN: a pixel tells where the two drawings' luminance stand a fifth of the brighter apart): the hidden share b / (a + b),
+which way without fits the better (whether the game keeps a hidden section's shadow), and beside it the section's box, its distance across
+and in space to the player, how near the line from the game's eye to the player passes it and where along that line, its nearest pixel to
+the player's on the screen, its depth against the player's, and the roof fade words of its object (its .ao and what that extends), the
+area's master and its environment. `roof-fade.png` tints each section's pixels green (shown) to red (hidden); `roof-fade.bin` keeps every
+section pixel and `roof-fade-replay.txt` fits them again offline. Press F9 in The Red Vale among the trees - the Monster Book on the area
+round you, "game picture" ticked, standing still - before the roof fade is given a rule.
 
 ## Verify against the game, not against yourself
 
