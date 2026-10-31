@@ -777,6 +777,72 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
     }
 
     /// <summary>
+    /// Vectors carried out of the TBN basis (ShadeProgram.ThroughBasis) - over the frame the card works out of the screen's derivatives
+    /// and the processor out of each triangle's corners - drawn alike on a quad whose two coordinate axes are not at right angles, under
+    /// normals that turn across it and are not its face's; and a ground carrying one mixed with a plain one, over the grounds' own frame.
+    /// </summary>
+    [GpuFact]
+    public void AVECTOROutOfTheTbnBasisIsCarriedByTheCardAsByTheProcessor()
+    {
+        ModelGpu? gpu = card.Gpu;
+        Assert.True(gpu is not null, card.Why);
+        using ModelTarget target = gpu.Target(Side);
+        Vector3 alongU = new(400f, 0f, 0f), alongV = new(200f, 240f, 320f);
+        Vector3 origin = -(alongU + alongV) / 2f;
+        Vector2[] corners = [new(0f, 0f), new(1f, 0f), new(1f, 1f), new(0f, 1f)];
+        Vector3[] places = [.. corners.Select(one => origin + (alongU * one.X) + (alongV * one.Y))];
+        Vector3[] normals = [new(0.6f, -0.8f, 0f), new(0.8f, -0.6f, 0f), new(0f, -0.6f, 0.8f), new(0.36f, -0.48f, 0.8f)];
+        SkinnedMesh tilted = SkinnedMesh.Of(
+            places, normals, [0, 1, 2, 0, 2, 3], places.Aggregate(Vector3.Min), places.Aggregate(Vector3.Max), corners);
+        foreach (string vector in (ReadOnlySpan<string>)["[1.0,0.0,0.0]", "[0.0,1.0,0.0]", "[0.36,0.48,0.8]"])
+        {
+            var scene = new ModelScene(tilted, Turn: 0.3f, Tilt: 0.4f, Blends: [MaterialBlend.Opaque], Shades: [Carrying(vector)]);
+            Assert.Null(Mismatch(gpu, target, scene));
+        }
+
+        // THE GROUND'S OWN FRAME, the place's x and y: the second ground's share runs across the quad in the coordinates' first channel.
+        Vector3[] floor = [new(-400f, -400f, 0f), new(400f, -400f, 0f), new(400f, 400f, 0f), new(-400f, 400f, 0f)];
+        var up = new Vector3[floor.Length];
+        Array.Fill(up, new Vector3(0f, 0f, -1f));
+        SkinnedMesh quad = SkinnedMesh.Of(
+            floor, up, [0, 1, 2, 0, 2, 3], new Vector3(-400f, -400f, 0f), new Vector3(400f, 400f, 0f),
+            [.. floor.Select(one => new Vector2((one.X + 400f) / 800f, 0f))]);
+        ShadeProgram? mixed = ShadeProgram.GroundsByCorners(
+            Bound(Programs().First(one => one.Name.Contains("G_VST_Sand01", StringComparison.Ordinal)).Program), Carrying("[0.6,0.8,0.0]"), 1f / 600f);
+        Assert.NotNull(mixed);
+        Assert.False(mixed.UsesTangents);
+        Assert.Null(Mismatch(gpu, target, new ModelScene(quad, Turn: 0.3f, Tilt: 0.9f, Skins: [null], Blends: [MaterialBlend.Opaque], Shades: [mixed])));
+    }
+
+    /// <summary>The colour <c>0.4 mul(v, InputTbnBasis) + 0.5</c>, compiled whole - a vector carried out of the basis, each part a colour.</summary>
+    private static ShadeProgram Carrying(string vector)
+    {
+        string graph = $$$"""
+            {"nodes":[
+              {"type":"ConstantFloat3","index":0,"parameters":[{"value":{{{vector}}}}]},
+              {"type":"InputTbnBasis","index":0,"stage":"Texturing_Init"},
+              {"type":"Transform","index":0},
+              {"type":"ConstantFloat","index":0,"parameters":[{"value":0.4}]},
+              {"type":"ConstantFloat","index":1,"parameters":[{"value":0.5}]},
+              {"type":"MultiplyAdd3","index":0},
+              {"type":"AlbedoColor","index":0,"stage":"Texturing_Init"}],
+             "links":[
+              {"src":{"type":"ConstantFloat3","index":0,"variable":"output"},"dst":{"type":"Transform","index":0,"variable":"input"}},
+              {"src":{"type":"InputTbnBasis","index":0,"stage":"Texturing_Init","variable":"output"},"dst":{"type":"Transform","index":0,"variable":"inmatrix"}},
+              {"src":{"type":"Transform","index":0,"variable":"output"},"dst":{"type":"MultiplyAdd3","index":0,"variable":"a"}},
+              {"src":{"type":"ConstantFloat","index":0,"variable":"output"},"dst":{"type":"MultiplyAdd3","index":0,"variable":"b"}},
+              {"src":{"type":"ConstantFloat","index":1,"variable":"output"},"dst":{"type":"MultiplyAdd3","index":0,"variable":"c"}},
+              {"src":{"type":"MultiplyAdd3","index":0,"variable":"output"},"dst":{"type":"AlbedoColor","index":0,"stage":"Texturing_Init","variable":"input","swizzle":"xyz"}}]}
+            """;
+        ShadeCompile compiled = ShadeProgram.Compile(
+            [(new ShaderInstance("Metadata/Test.fxgraph", new Dictionary<string, ShaderValue[]>()), ShaderGraph.Read(System.Text.Encoding.UTF8.GetBytes(graph)))]);
+        Assert.Empty(compiled.Skipped);
+        Assert.NotNull(compiled.Program);
+        Assert.True(compiled.Program.UsesTangents);
+        return compiled.Program.With([]);
+    }
+
+    /// <summary>
     /// A beach rising a tenth a unit along x out of water standing at nought - its ground, and the beach waves' sheet over it in the shore's
     /// band (ShoreField.Beach) - with its shore. Up is minus z.
     /// </summary>
@@ -940,10 +1006,12 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
     /// Dung01c's pixels with ramps and 0.1% with waves, which have no seam and lose next to nothing to
     /// the first few levels. A wave is not used for every material because a level changes it more far
     /// down: RockyLedgec, tiled densely, moves 46% with ramps and 86% with waves under the same forcing,
-    /// and its straight coordinates draw alike either way.
+    /// and its straight coordinates draw alike either way. By the march itself, not by the frame: a vector
+    /// carried out of the TBN basis reads the frame too (ShadeProgram.UsesTangents) and leaves the
+    /// coordinates straight.
     /// </remarks>
     private static ShadeProgram Bound(ShadeProgram program)
-        => program.With([.. program.Textures.Select(one => (Mipmaps?)(program.UsesTangents ? Wave(one.Path) : Ramp(one.Path)))]);
+        => program.With([.. program.Textures.Select(one => (Mipmaps?)(program.Marches ? Wave(one.Path) : Ramp(one.Path)))]);
 
     /// <summary>
     /// A seamless wave, its own per path - red a cosine across, green a sine down, alpha one along the diagonal - so the wrap has no seam and the first levels hardly differ.

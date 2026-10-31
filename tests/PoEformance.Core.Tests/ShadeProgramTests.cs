@@ -943,13 +943,16 @@ public class ShadeProgramTests
     public void THETBNBasisNormalSteersATriplanarRead()
         => AssertColour(Triplanar("[0.0,0.0,1.0]", "SampleInputTriplanar", "world_normal"), 0.8f, 0.4f, 0.2f, new() { ["Art/dust.dds"] = Sheet(Srgb(0.8f), Srgb(0.4f), Srgb(0.2f)) });
 
-    /// <summary>The mesh has no tangents, and the basis's normal has no known length: both are refused where they would matter.</summary>
+    /// <summary>
+    /// The basis's normal, a constant along it alone, has no known length and is refused where that would matter; a vector along the
+    /// tangent is carried over the triangle's own frame (from v0.1.376 - before, refused for the mesh having no tangents) - see TbnBasisTests.
+    /// </summary>
     [Fact]
     public void ANDWHATTheBasisDoesNotSayIsRefused()
     {
         ShadeCompile tangent = ShadeProgram.Compile([(Instance(), Graph(Triplanar("[1.0,0.0,0.0]", "SampleInputTriplanar", "world_normal")))]);
-        Assert.Null(tangent.Program);
-        Assert.Equal(["Transform of a vector along the tangent or binormal, which the mesh does not have in Test"], tangent.Skipped);
+        Assert.Empty(tangent.Skipped);
+        Assert.True(Assert.IsType<ShadeProgram>(tangent.Program).UsesTangents);
 
         ShadeCompile length = ShadeProgram.Compile([(Instance(), Graph(Triplanar("[0.0,0.0,1.0]", "Add3", "a")))]);
         Assert.Null(length.Program);

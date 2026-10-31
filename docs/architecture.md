@@ -411,7 +411,10 @@ against it) - under the picture's lamp, with a glossy material's lobe and enviro
 one's specular laid on, or under the game's light. A texture read takes its level from the screen's
 derivatives, the game's own way and the processor's wherever a triangle's coordinates are straight;
 a parallax march reads at the level its starting coordinates step at (SAMPLE_TEX2DGRAD), and
-FixModelTBN's frame comes from the screen's derivatives too (GetScreenspaceTangentFrame). The vertex
+FixModelTBN's frame comes from the screen's derivatives too (GetScreenspaceTangentFrame), as does the
+TBN basis a vector is carried out of - that frame made orthonormal against the pixel's normal, the
+binormal against ∂p/∂v as the engine's own (`ShadeProgram.ThroughBasis`), where the processor takes
+each triangle's from its corners. The vertex
 colour is a stream of its own, white where a mesh has none, as `MeshPicture.VertexColourOf` reads
 it; and a translucent shape covers a pixel once, however many of its triangles reach it - a
 stencil number per shape, the processor's stamps. `ProgramShaders` compiles each program behind the
