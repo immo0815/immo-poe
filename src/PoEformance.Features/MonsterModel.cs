@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Numerics;
@@ -308,6 +309,17 @@ public sealed record MonsterModel(
     /// TileModels - and for reading each shape's shader graphs - see MonsterModels.Shaded.
     /// </remarks>
     public IReadOnlyList<string> ShapeMaterials { get; init; } = [];
+
+    /// <summary>
+    /// Each shape's material as its own file names it, before a master's TileMaterialOverrides swapped it - empty where nothing was
+    /// swapped, every shape then wearing its own (<see cref="ShapeMaterials"/>).
+    /// </summary>
+    /// <remarks>
+    /// WHAT STANDS IN THE SEA IS JUDGED BY IT TOO (MonsterModels.Shaded, RoomModels.ShoreOf): Port's list gives the ship's timbers the
+    /// sea's spray (its MPRT_* materials add OceanSprayFoam), and from v0.1.373, when the room's own lines took the swaps, the ship stood
+    /// in the sea as the rocks do - land wherever its bowsprit, ropes and anchor rose over the water, whole foam drawn on the water there.
+    /// </remarks>
+    public IReadOnlyList<string> AuthoredMaterials { get; init; } = [];
 
     /// <summary>Each shape's colour texture, by path - empty where none was found. See <see cref="ShapeMaterials"/>.</summary>
     public IReadOnlyList<string> ShapeTextures { get; init; } = [];
@@ -643,9 +655,9 @@ public static class MonsterModels
 
         // WHAT STANDS IN THE SEA JOINS THE SHORE now that the materials say which shapes the sea breaks on - see RoomModels.ShoreOf.
         ShoreField? shore = model.Shore;
-        if (shore is not null && Array.Exists(shades, one => one is { Sprays: true }))
+        if (shore is not null && Standing(Counted, model, shades, paints) is { } stands)
         {
-            shore = RoomModels.ShoreOf(model.Mesh, model.Modes, model.ShapeSources, shades) ?? shore;
+            shore = RoomModels.ShoreOf(model.Mesh, model.Modes, model.ShapeSources, stands) ?? shore;
         }
 
         return model with
@@ -660,6 +672,56 @@ public static class MonsterModels
             Bytes = model.Bytes + bytes,
             Files = model.Files + files,
         };
+    }
+
+    /// <summary>
+    /// Which shapes stand in the sea - those whose program draws the sea's spray, and whose own material, before a master's swap, draws
+    /// it too - or null where none does.
+    /// </summary>
+    /// <remarks>
+    /// A SPRAY ONLY THE SWAP GAVE IS NO SHORE (v0.1.379, said from the live client with a probe: white lines and patches on Port's water
+    /// round the ship's bow since v0.1.373). The rule (ShoreField.Of, v0.1.236) took the shapes authored to have the sea crash on them -
+    /// the rocks and the pier's stones - and left the ship out, its timbers carrying no spray; Port's list swaps 17 of them for MPRT_*
+    /// materials that add OceanSprayFoam, so the ship stood in the sea from the room's lines taking the swaps, and the probe found the
+    /// water under its bow on a wall cell, its near-shore term whole. A swap that keeps the spray (the quay's MSHD_GraveBrickTile01c to
+    /// MPRT_GraveBrickTile01c) keeps the shape standing; a material worn as its file names it is judged as before. The own materials are
+    /// compiled alone, never drawn, so their textures are not read.
+    /// </remarks>
+    internal static bool[]? Standing(Func<string, byte[]?> read, MonsterModel model, ShadeProgram?[] shades, Paints paints)
+    {
+        IReadOnlyList<string> authored = model.AuthoredMaterials;
+        IReadOnlyList<string> wearing = model.ShapeMaterials;
+        string? OwnOf(int shape)
+        {
+            string own = shape < authored.Count ? authored[shape] : string.Empty;
+            return own.Length > 0 && shape < wearing.Count
+                && !string.Equals(MaterialFile.Bare(own), MaterialFile.Bare(wearing[shape]), StringComparison.OrdinalIgnoreCase) ? own : null;
+        }
+
+        // THE OWN MATERIALS OF THE SWAPPED SHAPES THAT SPRAY, each compiled once on every core - the ship's handful in Port.
+        var owns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var shape = 0; shape < shades.Length; shape++)
+        {
+            if (shades[shape] is { Sprays: true } && OwnOf(shape) is { } own)
+            {
+                owns.Add(MaterialFile.Bare(own));
+            }
+        }
+
+        var spraying = new ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        Parallel.ForEach(owns, own => spraying[own] = paints.Compiled(read, own).Compiled.Program is { Sprays: true });
+
+        bool[]? stands = null;
+        for (var shape = 0; shape < shades.Length; shape++)
+        {
+            if (shades[shape] is { Sprays: true } && (OwnOf(shape) is not { } own || spraying.GetValueOrDefault(MaterialFile.Bare(own))))
+            {
+                stands ??= new bool[shades.Length];
+                stands[shape] = true;
+            }
+        }
+
+        return stands;
     }
 
     /// <summary>What one material's graphs came to: a program, a plain texture, or neither - and what was left out.</summary>
@@ -2681,7 +2743,14 @@ public static class MonsterModels
             textures[shape] = worn is not null ? texture : string.Empty;
         }
 
-        return model with { ShapeMaterials = wearing, Skins = skins, Modes = modes, ShapeTextures = textures };
+        return model with
+        {
+            ShapeMaterials = wearing,
+            AuthoredMaterials = model.AuthoredMaterials.Count > 0 ? model.AuthoredMaterials : model.ShapeMaterials,
+            Skins = skins,
+            Modes = modes,
+            ShapeTextures = textures,
+        };
     }
 
     /// <summary>What the shapes ended up wearing, and how sure the walk is about it.</summary>

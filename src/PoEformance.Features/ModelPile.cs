@@ -21,6 +21,12 @@ internal sealed class ModelPile
 
     public List<string> Wearing { get; } = [];
 
+    /// <summary>Each shape's material as its own file names it, before a master's swap - see MonsterModel.AuthoredMaterials.</summary>
+    public List<string> Authored { get; } = [];
+
+    /// <summary>Whether any shape laid wears a master's swap in place of its own material - see <see cref="Authored"/>.</summary>
+    public bool Swapped { get; private set; }
+
     public List<string> Textures { get; } = [];
 
     /// <summary>What each shape came from - see MonsterModel.ShapeSources.</summary>
@@ -51,12 +57,15 @@ internal sealed class ModelPile
             Cores.Add(core.Placed(place));
         }
 
+        Swapped |= model.AuthoredMaterials.Count > 0;
         for (var shape = 0; shape < model.Mesh.Shapes.Count; shape++)
         {
             Sways.Add(sway >= 0 ? sway : shape < model.ShapeSways.Count && model.ShapeSways[shape] >= 0 ? first + model.ShapeSways[shape] : -1);
             Skins.Add(shape < model.Skins.Count ? model.Skins[shape] : model.Skin);
             Modes.Add(shape < model.Modes.Count ? model.Modes[shape] : string.Empty);
-            Wearing.Add(shape < model.ShapeMaterials.Count ? model.ShapeMaterials[shape] : string.Empty);
+            string wearing = shape < model.ShapeMaterials.Count ? model.ShapeMaterials[shape] : string.Empty;
+            Wearing.Add(wearing);
+            Authored.Add(shape < model.AuthoredMaterials.Count ? model.AuthoredMaterials[shape] : wearing);
             Textures.Add(shape < model.ShapeTextures.Count ? model.ShapeTextures[shape] : string.Empty);
             Sources.Add(source);
         }
@@ -76,6 +85,7 @@ internal sealed class ModelPile
             Skins.Add(null);
             Modes.Add(mode);
             Wearing.Add(wearing);
+            Authored.Add(wearing);
             Textures.Add(string.Empty);
             Sources.Add(source);
         }
@@ -96,6 +106,7 @@ internal sealed class ModelPile
             Skins.Add(null);
             Modes.Add(string.Empty);
             Wearing.Add(string.Empty);
+            Authored.Add(string.Empty);
             Textures.Add(string.Empty);
             Sources.Add(source);
         }

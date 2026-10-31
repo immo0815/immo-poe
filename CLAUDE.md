@@ -1245,6 +1245,16 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   (nought where no foam) AND sets `"alphatest_threshold": 0`; the engine cuts at the material's threshold, `clip(alpha - alpha_test_desc.y
   + 0.001)` (PerformAlphaTestClip), so it cuts nothing, while the tool cut every program at a fixed half. From v0.1.377 a program is cut
   at the last of its graphs' thresholds (`ShaderGraph.AlphaThreshold`, `ShadeProgram.Cut`; the half where none sets one), on both drawings.
+  AND THE SHIP STOOD IN THE SEA (said from the live client with a picture and a probe, v0.1.378: white lines and patches on the water round
+  the bow, never there before). The same swaps give the ship's timbers the sea's spray - MEASURED in v0.1.377's capture, whose swap lines read
+  KGS_Beams01c, PRT_Beams01c and KGS_WoodTileable01c to their MPRT_* twins "GAINED: sprays" - and what stands in the sea was every shape whose
+  program sprays (v0.1.236's CHOSEN rule, which named the ship as carrying none), so the bowsprit, the ropes and the anchor became land where
+  they rose over the water: the probe's water pixel on a wall cell, the shore -25 units, the field waves' near-shore term whole. From v0.1.379
+  a shape stands in the sea where its program sprays AND its own material - as its file names it, before the master's swap - sprays too
+  (`MonsterModel.AuthoredMaterials`, carried by `ModelPile`, `TileModels` and `MonsterModels.Swapped`; `MonsterModels.Standing`, its own
+  materials compiled alone, no texture read): the quay's swap keeps the spray (MSHD to MPRT_GraveBrickTile01c) and stands as before, the
+  ship's does not; a swap that takes the spray away (HBR_StoneSteps01_Oceanc to MSHD_StoneSteps01_Edgec, "LOST: sprays") stands nowhere as
+  since v0.1.344. CHOSEN, keeping v0.1.236's reading: the engine's field knows no doodad, the ship's spray stays drawn on its timbers.
   THE AREA ROUND YOU CAME OUT UNPAINTED (said from the live client with a picture, v0.1.375: The Red Vale's ground grey, its ferns green,
   nothing strewn). Its capture said "ground: no master beside the area's rooms" and every part "0 masters, 0 rooms": the game's list of
   files loaded since the area change named the area's ground types (`Gallows/Act1/1_5/GroundTypes/`) and no room and no master - a
