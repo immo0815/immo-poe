@@ -213,6 +213,7 @@ public static class TileModels
         var grounds = new List<MeshJoin>();
         var pieces = new List<GroundPiece>();
         var named = new List<(string Shape, string Material)>();
+        var authored = new List<string>();
         var swapped = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var said = new List<string>();
         int inexact = 0;
@@ -264,7 +265,7 @@ public static class TileModels
                     if (part.Props.Ready)
                     {
                         joins.Add(new MeshJoin(part.Props, null, null, place));
-                        Runs(layout, layout.RunsOf(x, y), part.Props.Shapes.Count, named, swaps, swapped);
+                        Runs(layout, layout.RunsOf(x, y), part.Props.Shapes.Count, named, authored, swaps, swapped);
                     }
 
                     if (ground && part.Ground.Ready)
@@ -326,6 +327,13 @@ public static class TileModels
             Tileset = swaps is null ? string.Empty : tileset,
             Laid = laid.IsPlacement ? laid.ToString() : string.Empty,
         };
+
+        // WHAT THE TILE'S OWN TEMPLATES NAME, where a swap reached any - what stands in the sea is judged by it too (MonsterModels.Standing).
+        if (swapped.Count > 0)
+        {
+            IReadOnlyList<string> worn = model.ShapeMaterials;
+            model = model with { AuthoredMaterials = [.. worn.Select((one, shape) => shape < authored.Count ? authored[shape] : one)] };
+        }
 
         // THE WALLS GO BEFORE THE GRAPHS ARE READ, so a material only the walls wear is not compiled
         // for nothing.
@@ -398,6 +406,7 @@ public static class TileModels
         var skins = new Mipmaps?[kept];
         var modes = new string[kept];
         var materials = new string[kept];
+        string[] owns = model.AuthoredMaterials.Count > 0 ? new string[kept] : [];
         var painted = new string[kept];
         Vector3[] positions = mesh.Positions;
         var least = new Vector3(float.MaxValue);
@@ -426,6 +435,11 @@ public static class TileModels
             skins[next] = model.Skins[shape];
             modes[next] = model.Modes[shape];
             materials[next] = shape < model.ShapeMaterials.Count ? model.ShapeMaterials[shape] : string.Empty;
+            if (owns.Length > 0)
+            {
+                owns[next] = shape < model.AuthoredMaterials.Count ? model.AuthoredMaterials[shape] : materials[next];
+            }
+
             painted[next] = textures[shape];
             at += length;
             next++;
@@ -460,6 +474,7 @@ public static class TileModels
             Shaders = model.Shaders,
             Kind = model.Kind,
             ShapeMaterials = materials,
+            AuthoredMaterials = owns,
             ShapeTextures = painted,
             Walls = count - kept,
             Swapped = model.Swapped,
@@ -516,6 +531,7 @@ public static class TileModels
         IReadOnlyList<TileRun> runs,
         int shapes,
         List<(string Shape, string Material)> into,
+        List<string> authored,
         IReadOnlyDictionary<string, string>? swaps,
         HashSet<string> swapped)
     {
@@ -523,6 +539,7 @@ public static class TileModels
         foreach (TileRun run in runs)
         {
             string material = run.Material >= 0 ? layout.Materials[run.Material] : string.Empty;
+            string own = material;
             if (swaps is not null && material.Length > 0 && swaps.TryGetValue(Slashed(MaterialFile.Bare(material)), out string? swap))
             {
                 swapped.Add(material);
@@ -532,6 +549,7 @@ public static class TileModels
             for (var one = 0; one < run.Shapes && given < shapes; one++)
             {
                 into.Add((Name(into.Count), material));
+                authored.Add(own);
                 given++;
             }
         }
@@ -539,6 +557,7 @@ public static class TileModels
         for (; given < shapes; given++)
         {
             into.Add((Name(into.Count), string.Empty));
+            authored.Add(string.Empty);
         }
     }
 

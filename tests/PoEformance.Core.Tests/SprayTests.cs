@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Numerics;
 using System.Text;
+using PoEformance.Features;
 using PoEformance.Game.Files;
 using Xunit;
 
@@ -393,6 +394,60 @@ public class SprayTests
         ShadeProgram later = Assert.IsType<ShadeProgram>(
             ShadeProgram.Compile([clear, Link("Metadata/Nought.fxgraph", Threshold(0f)), Link("Metadata/More.fxgraph", Threshold(0.7f))]).Program);
         Assert.Equal(0.7f, later.Cut);
+    }
+
+    /// <summary>
+    /// What stands in the sea is a shape whose program sprays and whose own material sprays too (MonsterModels.Standing): Port's ship wore
+    /// swaps adding the spray to timbers that carry none, and stood in the sea from v0.1.373 - its bowsprit, ropes and anchor land, whole
+    /// foam on the water under them. The quay's swap keeps the spray (MSHD_GraveBrickTile01c to MPRT_GraveBrickTile01c, both as the
+    /// install holds them) and keeps it standing, a rock worn as its file names it stands as before, and with nothing swapped every
+    /// spraying shape stands.
+    /// </summary>
+    [Fact]
+    public void ASPRAYOnlyTheMastersSwapGaveStandsNowhereInTheSea()
+    {
+        const string Timber = "Art/Ship/Timber.mat";
+        const string Mshd = "Art/Models/Terrain/Maps/Stronghold/Textures/Architecture/MSHD_GraveBrickTile01c.mat";
+        const string Mprt = "Art/Models/Terrain/Maps/Port/Textures/Architecture/MPRT_GraveBrickTile01c.mat";
+        const string Rock = "Art/Models/Terrain/Islands/Tiles/Island/Textures/Rocks/ISL_RockLarge01c.mat";
+        byte[] timber = Encoding.UTF8.GetBytes("""{"version":4,"graphinstances":[{"parent":"Metadata/Clear.fxgraph"}]}""");
+        byte[]? Read(string path) => path switch
+        {
+            Timber => timber,
+            "Metadata/Clear.fxgraph" => Encoding.UTF8.GetBytes(Clear),
+            _ => FixtureOrNone(path),
+        };
+
+        ShadeProgram swappedIn = Material(Mprt), rock = Material(Rock);
+        Assert.True(swappedIn.Sprays && rock.Sprays);
+        ShadeProgram plain = Assert.IsType<ShadeProgram>(ShadeProgram.Compile([Link("Metadata/Clear.fxgraph", Clear)]).Program);
+        Assert.False(plain.Sprays);
+
+        // THE SHIP'S TIMBER, THE QUAY, A ROCK AND A PLAIN BOARD.
+        MonsterModel room = MonsterModel.None with
+        {
+            ShapeMaterials = [Mprt, Mprt, Rock, Timber],
+            AuthoredMaterials = [Timber, Mshd, Rock, Timber],
+        };
+        ShadeProgram?[] shades = [swappedIn, swappedIn, rock, plain];
+
+        Assert.Equal([false, true, true, false], Assert.IsType<bool[]>(MonsterModels.Standing(Read, room, shades, new MonsterModels.Paints())));
+        Assert.Equal(
+            [true, true, true, false], Assert.IsType<bool[]>(MonsterModels.Standing(Read, room with { AuthoredMaterials = [] }, shades, new MonsterModels.Paints())));
+        Assert.Null(MonsterModels.Standing(Read, room, [plain, null, plain, plain], new MonsterModels.Paints()));
+    }
+
+    /// <summary>A file of tests/fixtures/shaders, or null where there is none.</summary>
+    private static byte[]? FixtureOrNone(string path)
+    {
+        DirectoryInfo? dir = new(AppContext.BaseDirectory);
+        while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "tests", "fixtures")))
+        {
+            dir = dir.Parent;
+        }
+
+        string file = Path.Combine(dir?.FullName ?? ".", "tests", "fixtures", "shaders", path.Replace("/", "__", StringComparison.Ordinal));
+        return File.Exists(file) ? File.ReadAllBytes(file) : null;
     }
 
     /// <summary>A colour whose alpha is nought, written whole.</summary>

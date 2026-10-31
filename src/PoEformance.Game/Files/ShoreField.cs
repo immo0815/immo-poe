@@ -407,6 +407,8 @@ public sealed class ShoreField
     /// here"): CHOSEN, the shapes whose own material carries the sea's spray (CrashingFoamSurface) - the game's rocks by the sea and
     /// the pier's stones, authored to have the sea crash on them; the ship's timbers carry none, and the game draws no breaking
     /// round its hull. The engine marks its shore in a field it makes itself; which of the room's doodads it counts is read nowhere.
+    /// OWN MEANS AS ITS FILE NAMES IT (v0.1.379): Port's master swaps the ship's timbers for materials that spray, and the ship stood in the
+    /// sea until the material before the swap had to spray too (MonsterModels.Standing).
     /// </remarks>
     public static ShoreField? Of(
         SkinnedMesh mesh, Func<int, bool> water, Func<int, bool> ground, Func<int, bool>? standing = null, Func<int, bool>? blocking = null)

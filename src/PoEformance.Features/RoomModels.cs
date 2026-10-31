@@ -757,15 +757,17 @@ public static class RoomModels
 
     /// <summary>
     /// A room's shore from its water and its ground, and - once its materials are compiled - what stands in the sea: every shape whose
-    /// program draws the sea's spray on it (ShadeProgram.Sprays). What may stand in the waves' way is every solid shape that is neither
-    /// water, the ground nor the beach's sheet - the ship's hull among them (CHOSEN, see ShoreField's remarks). See ShoreField.Of.
+    /// program draws the sea's spray on it (ShadeProgram.Sprays) as its own material does too (MonsterModels.Standing). What may stand in
+    /// the waves' way is every solid shape that is neither water, the ground nor the beach's sheet - the ship's hull among them (CHOSEN,
+    /// see ShoreField's remarks). See ShoreField.Of.
     /// </summary>
-    internal static ShoreField? ShoreOf(SkinnedMesh mesh, IReadOnlyList<string> modes, IReadOnlyList<string> sources, IReadOnlyList<ShadeProgram?>? shades)
+    /// <param name="standing">Per shape, whether it stands in the sea - or null before the materials are compiled.</param>
+    internal static ShoreField? ShoreOf(SkinnedMesh mesh, IReadOnlyList<string> modes, IReadOnlyList<string> sources, IReadOnlyList<bool>? standing)
         => ShoreField.Of(
             mesh,
             shape => shape < modes.Count && modes[shape] == MonsterModels.Paints.OceanMode,
             shape => shape < sources.Count && sources[shape].StartsWith(GroundSource, StringComparison.Ordinal),
-            shades is null ? null : shape => shape < shades.Count && shades[shape] is { Sprays: true },
+            standing is null ? null : shape => shape < standing.Count && standing[shape],
             shape => shape < modes.Count && shape < sources.Count
                 && MaterialBlends.Of(modes[shape]) is MaterialBlend.Opaque or MaterialBlend.Cutout
                 && !sources[shape].StartsWith(GroundSource, StringComparison.Ordinal)
@@ -803,6 +805,9 @@ public static class RoomModels
             Skins = pile.Skins,
             Modes = pile.Modes,
             ShapeMaterials = pile.Wearing,
+
+            // WHAT EACH SHAPE'S OWN FILE NAMES, where a master's swap reached any - what stands in the sea is judged by it too.
+            AuthoredMaterials = pile.Swapped ? pile.Authored : [],
 
             // CARRIED LIKE THE MATERIALS, so the dump's "tex" column names each doodad's colour map;
             // left out, every room shape read "tex -" whether it was textured or not.
