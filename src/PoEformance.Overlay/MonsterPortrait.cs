@@ -797,9 +797,69 @@ public sealed class MonsterPortrait
     public bool Masked { get; set; }
 
     /// <summary>
-    /// The blends handed to the picture: all of them, the solid-or-absent ones only, or none.
+    /// The blends handed to the picture: <see cref="Unfaded"/>'s, with the roof sections round the camera's focus left out whole where the
+    /// light panel's "roof fade" is on (RoofFade - the piece under the focus fades whole, CHOSEN until roof-fade.txt settles it).
     /// </summary>
+    /// <remarks>
+    /// A NEW LIST ONLY WHEN THE PIECES UNDER THE FOCUS CHANGE: both drawings compare the list they were drawn with by reference, so the
+    /// picture is drawn again when the focus crosses onto another piece, and not on every step of a drag.
+    /// </remarks>
     private IReadOnlyList<MaterialBlend>? Blends()
+    {
+        IReadOnlyList<MaterialBlend>? own = Unfaded();
+        if (SceneRoofFade?.Invoke() != true || Roofs() is not { } roofs || !_view.Valid)
+        {
+            _roofsHolding = [];
+            return own;
+        }
+
+        // A NEW LIST ONLY WHEN THE PIECES UNDER THE FOCUS CHANGE - the frame asks without making one.
+        if (!ReferenceEquals(_fadedOf, own) || !roofs.HeldBy(_view.Focus, _roofsHolding) || (_faded is null && _roofsHolding.Length > 0))
+        {
+            int[] holding = roofs.Holding(_view.Focus);
+            _fadedOf = own;
+            _roofsHolding = holding;
+            _faded = roofs.Faded(own, _model.Mesh.Shapes.Count, holding);
+        }
+
+        return _roofsHolding.Length == 0 ? own : _faded;
+    }
+
+    /// <summary>The roof sections of the model shown by tile piece, worked out once a model - see RoofFade - or null where it has none.</summary>
+    private RoofFade? Roofs()
+    {
+        if (!ReferenceEquals(_roofsOf, _model))
+        {
+            _roofsOf = _model;
+            _roofs = RoofFade.Of(_model);
+            _fadedOf = null;
+            _faded = null;
+            _roofsHolding = [];
+        }
+
+        return _roofs;
+    }
+
+    private MonsterModel? _roofsOf;
+    private RoofFade? _roofs;
+    private RoofFade? _roofSaidOf;
+    private int[]? _roofSaidFor;
+    private string _roofSaid = string.Empty;
+    private IReadOnlyList<MaterialBlend>? _fadedOf;
+    private IReadOnlyList<MaterialBlend>? _faded;
+    private int[] _roofsHolding = [];
+
+    /// <summary>
+    /// Whether the roof sections round the camera's focus are hidden - the light panel's "roof fade", asked whether the game's light is on or
+    /// not, like the dust; null for never. See RoofFade.
+    /// </summary>
+    public Func<bool>? SceneRoofFade { get; set; }
+
+    /// <summary>
+    /// The blends handed to the picture before the roof fade: all of them, the solid-or-absent ones only, or none - and what a capture's pane
+    /// is drawn with, every roof section in it (CaptureRoofFade measures what the game hides against them).
+    /// </summary>
+    private IReadOnlyList<MaterialBlend>? Unfaded()
     {
         IReadOnlyList<MaterialBlend> all = _model.Blends;
         if (Translucent)
@@ -896,9 +956,9 @@ public sealed class MonsterPortrait
 
     /// <summary>The line under a card's picture the clouds' shadow lies on - see SceneLight.Clouds and ModelShaders' Clouded.</summary>
     private const string CloudsDrawn = "clouds: shadows.ffx's GetCloudsIntensity on the sun's light, on every surface and through the fog, as the area's"
-        + " .env sets them - CHOSEN: muddle_double.dds's alpha as the engine's noise (no file names it; the best of the candidates held against"
-        + " The Red Vale's picture, not a clear one), clouds_velocity along (cos a, sin a) of the .env's angle, the camera's focus as the"
-        + " player, the picture's clock as the engine's time; the card's alone";
+        + " .env sets them - MEASURED in The Red Vale: muddle_double.dds's alpha as the engine's noise (no file names it; held against the"
+        + " game's picture it is the best candidate in two captures, clearly in the second) and clouds_velocity along (cos a, sin a) of the"
+        + " .env's angle; CHOSEN: the camera's focus as the player, the picture's clock as the engine's time; the card's alone";
 
     /// <summary>
     /// A list with every program that has one swapped for its twin whose spray reads the stone's own occlusion (ShadeProgram.Occluded) -
@@ -1809,7 +1869,7 @@ public sealed class MonsterPortrait
             Water = Watered(under),
             Clock = _clock,
             Ink = Ink,
-            Blends = Blends(),
+            Blends = Unfaded(),
             Positions = positions,
             Normals = normals,
         };
@@ -2540,7 +2600,7 @@ public sealed class MonsterPortrait
         bool Shown(int shape)
         {
             MaterialBlend blend = blends is not null && shape < blends.Count ? blends[shape] : MaterialBlend.Opaque;
-            return blend != MaterialBlend.ShadowOnly
+            return blend is not (MaterialBlend.ShadowOnly or MaterialBlend.Hidden or MaterialBlend.ShadowCut)
                 && !(blend == MaterialBlend.Cutout && shades is not null && shape < shades.Count && shades[shape] is { } cutting && cutting.CutAway(cutting.Cut));
         }
 
@@ -2770,6 +2830,18 @@ public sealed class MonsterPortrait
             _status.Add(!_onCard ? "clouds: not drawn - the processor's picture leaves them out (the card's alone)"
                 : ShadeProgram.Distortion is null ? "clouds: not drawn yet - their noise, muddle_double.dds, is not in: " + ShadeProgram.CausticsSaid
                 : CloudsDrawn);
+        }
+
+        // THE ROOF FADE, both drawings' (RoofFade): which pieces' roof sections are hidden round the focus, and what the reading takes as given.
+        if (SceneRoofFade?.Invoke() == true && Roofs() is { } roofs)
+        {
+            // MADE AGAIN ONLY WHEN THE PIECES UNDER THE FOCUS CHANGE - their list is replaced then and only then (Blends).
+            if (!ReferenceEquals(_roofSaidOf, roofs) || !ReferenceEquals(_roofSaidFor, _roofsHolding))
+            {
+                (_roofSaidOf, _roofSaidFor, _roofSaid) = (roofs, _roofsHolding, roofs.Said(_roofsHolding));
+            }
+
+            _status.Add(_roofSaid);
         }
 
         // WHERE THE FILES WENT, and it stays up until the next export rather than flashing: the

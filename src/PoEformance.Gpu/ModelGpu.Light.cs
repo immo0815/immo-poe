@@ -209,7 +209,7 @@ public sealed partial class ModelGpu
         foreach (Run run in casts)
         {
             // ONLY A CUT-OUT ONE READS ITS TEXTURE - ShadowMap.Build cuts nothing else.
-            Mipmaps? worn = run.Blend == MaterialBlend.Cutout ? plan.Palette[run.Wears] : null;
+            Mipmaps? worn = run.Blend is MaterialBlend.Cutout or MaterialBlend.ShadowCut ? plan.Palette[run.Wears] : null;
             ID3D11ShaderResourceView? view = worn is null ? null : Skin(worn).View;
             context.PSSetShaderResource(0, view!);
             Part(new Vector4(view is null ? 0f : 1f, view is null ? -1f : MeshPicture.CutoutAlpha, 0f, 0f), run.Sway);
@@ -236,13 +236,14 @@ public sealed partial class ModelGpu
         foreach (Run run in runs)
         {
             // NOR A CUT-OUT SHAPE ITS PROGRAM CUTS AWAY AT EVERY PIXEL - MeshPicture's Casts, ShadeProgram.FixedAlpha.
-            if (run.Blend is MaterialBlend.Alpha or MaterialBlend.Additive
-                || (run.Blend == MaterialBlend.Cutout && run.Shade >= 0 && programs[run.Shade].CutAway(programs[run.Shade].Cut)))
+            // NOR A SHAPE HIDDEN WHOLE - a roof section round the focus, RoofFade.
+            if (run.Blend is MaterialBlend.Alpha or MaterialBlend.Additive or MaterialBlend.Hidden
+                || (run.Blend is MaterialBlend.Cutout or MaterialBlend.ShadowCut && run.Shade >= 0 && programs[run.Shade].CutAway(programs[run.Shade].Cut)))
             {
                 continue;
             }
 
-            if (run.Blend == MaterialBlend.Cutout && palette[run.Wears] is not null)
+            if (run.Blend is MaterialBlend.Cutout or MaterialBlend.ShadowCut && palette[run.Wears] is not null)
             {
                 casts.Add(run);
                 continue;

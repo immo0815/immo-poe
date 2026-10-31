@@ -710,7 +710,9 @@ surface (`SunLit` - the engine's ShadowMap multiplies the directional shadow by 
 the engine's measured 800 where unset). CHOSEN from the live client and said under the picture: the noise muddle_double.dds's alpha
 (`AreaClouds.NoisePath`; held offline against v0.1.381's light-against-game.bin, r 0.48 against flowmap_04's 0.35 over the lit ground, 0.39
 against 0.33 beyond 900 units of the player - not clear by CloudNoise's own rule); clouds_velocity `speed (cos a, sin a)`, the way
-muddle_double went best with at every distance; the camera's focus as the player; the picture's clock as the engine's time. AS WRITTEN the
+muddle_double went best with at every distance; the camera's focus as the player; the picture's clock as the engine's time. THE NOISE AND THE
+WAY ARE MEASURED SINCE (The Red Vale's second capture, 09:12, another spot, v0.1.384's light-against-game): muddle_double r 0.531 by
+`speed (cos a, sin a)`, 2.5 spreads over its other slides, flowmap_04 next at 0.378 - clear by CloudNoise's rule; one area's evidence. AS WRITTEN the
 noise slides along the velocity's way with the clock, so the clouds' shadow DRIFTS AGAINST clouds_velocity, at |velocity| a second
 (`THEPATTERNMovesAsTheEnginesTextureSlides`) - with the CHOSEN way towards -(cos a, sin a): a video of the game's cloud shadows settles the
 way. math_utils' SmoothStep, which the clouds call, is the .ffx DECLARATIONS block's - saturated outside, the value not held inside nought
@@ -724,15 +726,83 @@ now fails on `FogWhy` itself. Found by compiling the program's dumped HLSL with 
 runs in this environment where Vortice.Dxc does not): compile a changed shader so before it goes to the Windows job.
 THE ROOF FADE IS MEASURED FIRST (v0.1.385, DECIDED from the live client): `roof-fade.txt` (`CaptureRoofFade`, the Windows group, drawn from
 light-against-game's own drawing) draws the stage laid as the area laid it through the game's camera twice more - without its roof sections,
-their shadows kept (`MaterialBlend.ShadowOnly`), and without them, their shadows gone (`SkinnedMesh.Keeping`) - and fits the game's picture
+their shadows kept (`MaterialBlend.ShadowOnly`; from v0.1.390 each casting as in the first drawing, a cut-out through its texture,
+`MaterialBlend.ShadowCut`), and without them, their shadows gone (`SkinnedMesh.Keeping`; from v0.1.390 `MaterialBlend.Hidden` on the whole
+mesh - a kept mesh stood a staged monster in his bind pose and framed the sun's map anew) - and fits the game's picture
 over each section's pixels as `a with + b without` (non-negative least squares on the three channels, a + b let free since the pane's light
 is not the game's; CHOSEN: a pixel tells where the two drawings' luminance stand a fifth of the brighter apart): the hidden share b / (a + b),
 which way without fits the better (whether the game keeps a hidden section's shadow), and beside it the section's box, its distance across
 and in space to the player, how near the line from the game's eye to the player passes it and where along that line, its nearest pixel to
 the player's on the screen, its depth against the player's, and the roof fade words of its object (its .ao and what that extends), the
 area's master and its environment. `roof-fade.png` tints each section's pixels green (shown) to red (hidden); `roof-fade.bin` keeps every
-section pixel and `roof-fade-replay.txt` fits them again offline. Press F9 in The Red Vale among the trees - the Monster Book on the area
-round you, "game picture" ticked, standing still - before the roof fade is given a rule.
+section pixel and `roof-fade-replay.txt` fits them again offline.
+ITS FIRST CAPTURE (The Red Vale, 09:12, the player among the trees) SHOWED THE FIT READ THE LIGHT, NOT THE FADE: the game's picture hides the
+two trees between the camera and the player (a trunk and its crown) and shows the two beside him, and the fit called three of the four mostly
+hidden - the light the pane does not draw as the game does (the clouds, the fog, the lamp) taken for a share. FROM v0.1.386 THE GAME'S PATTERN
+DECIDES (`CaptureRoofFade.Judge`): over a section's telling pixels the logarithm of the game's luminance is correlated with each drawing's (a
+scale or an offset of the light leaves a correlation as it is; `LogFloor` 1e-3, CHOSEN), hidden where the better drawing without the section
+leads by a tenth (`Margin`, CHOSEN), shown where the one with it does - that capture read again: with 0.00 against without 0.50 and 0.20
+against 0.62 (hidden), 0.26 against 0.07 and 0.68 against 0.17 (shown); the share of a fit of the centred logarithms beside it. The sections
+called hidden are drawn out twice more, their shadows kept and gone, judged the same way over the pixels those two tell apart and a band of
+six gathered pixels round them (`Shades`: inside a shadow the two differ by a scale alone, its edge tells them apart) - whether the engine keeps
+a hidden roof's shadow. Each section stands beside the player in the camera's own ways laid on the ground (`Ways`: up the screen and across
+it), with its height over him and its pixels from his, and with its TILE PIECE - its source names the piece's least corner, the footprint read
+from the area's tiles (`PieceOf`, `PieceAt`) - his, touching his, or other; the pieces carrying roof sections are listed with their verdicts,
+and two readings are held against every verdict: his piece fades whole (RoofFadeMode "Tile"'s reading), and with the pieces touching it. The
+ground under him is named with each type's HideRoof. WHAT THE FILES SAY (that capture's light-extras section 10): 68 masters set RoofFadeMode
+"Tile", "BoundingBox", "Island" or "Global", some RoofFadeDistanceUpscreen and Downscreen (Act 4's town and ship 10 each, Sanctum's level 4
+12); 36 ground types say HideRoof (`forest/forest_floor_fade.gt` among them); 49 rooms carry no_roof_fade or force_roof_fade zones; 327
+objects enable_roof_fade, most with disable_automatic_roof_fade; The Red Vale's master and environment set none - the program's default holds
+there. In that capture both hidden trees are pieces of curve5 (9 x 6 tiles from tile 21, 30) and the player stands on its tile 23, 33; the
+shown ones are StSW_01's at 21, 36 - the Tile reading fits, as would a reach down the screen. `roof-fade.bin` is version 2 (the camera's right,
+the pieces, the ground, the hidden list and their shadows' pixels); version 1 replays with the pieces' corners alone. NEXT, before a rule:
+captures where the readings disagree - a tree of ANOTHER piece standing between the camera and the player, and a tree of HIS piece far up the
+screen or to its side - each standing still a few seconds, "game picture" ticked, the Monster Book on the area round you.
+THE PANE HIDES THEM (v0.1.387, asked for from the live client overnight: "build everything as far as possible", the rule left to the
+captures). A shape is a roof section where its .mat says so (`MonsterModel.RoofSections`, read where the shapes are compiled,
+`MonsterModels.Shaded`, and carried through a staged monster's join), and the light panel's "atmosphere" fold has "roof fade", on by default
+(`MonsterPortrait.SceneRoofFade`, `RoofFade`): every roof section of the tile piece the camera's focus stands on is left out whole, on both
+drawings (`MaterialBlend.Hidden`: neither drawn nor cast - as a shadow caster alone a tree's cut-out leaves cast square shadows) - a piece's
+footprint its ground's box (its shapes named "ground of" and the piece's source), its own shapes' where it lays no ground. CHOSEN and said
+under the picture until roof-fade.txt settles them: the reading (the piece the player stands on fades whole), the focus as the player, the
+shadow gone with the section (the engine's shadow pass taken to read the object's roof_fade too), hidden at once rather than dissolving
+through roof_fade.fxgraph's speckle, and an object's own roof sections left drawn. The processor's sun map is kept for the same blends only
+(it was kept for the same mesh and sun alone, so a blend switched since cast on as before). A capture's panes hand on the blends
+unfaded (`MonsterPortrait.Unfaded`), so roof-fade.txt still draws every section against the game.
+A REVIEW OF v0.1.386-389 found, and v0.1.390 mends: the player look part was offered and never started (`CaptureParts.RunsAtPress` did not
+name it); the roof part's drawing with the sections' shadows kept cast cut-out leaves as whole cards (now `MaterialBlend.ShadowCut`, not
+drawn and cast through the texture, on both drawings) and its drawings without them stood a staged monster in his bind pose (now
+`MaterialBlend.Hidden` on the whole mesh); the panes were not snapshot for the roof part ticked alone; the light panel's line, which the
+captures carry, said sections hidden that a capture's drawings draw; and the pane's roof line was made anew every frame.
+
+## The player on a stage
+
+ASKED FOR FROM THE LIVE CLIENT (2026-10-31): the current player put into a scene as the game draws him - his class, his equipment and, where
+it can be had, his cosmetics (MTX) - not a stock body. Researched the same night (repoe-fork's PoE2 table export and poe-tool-dev/dat-schema,
+GameHelper2's forks, the committed captures) and NOTHING BUILT ON IT YET; the decisions it needs are the live client's. What the files say:
+the class's body is the .ao the player's Animated component loaded (ModelInfoPtr -> record -> name, `Metadata/Characters/Int/IntFourB.ao` for
+the Sorceress, the bare body); an item's look is its BaseItemTypes row's ItemVisualIdentity, whose per-body .ao columns PoE2 fills unnamed in
+the vendored layout (column_31 and on, a body type each; the "Fourb" bodies' columns sparse); an MTX is no BaseItemTypes row but an
+ItemisedVisualEffect over another visual identity (MtxTypes, MtxTypeGameSpecific), applied PER SLOT (MicrotransactionSlot's rows each name an
+inventory). Which cosmetic a slot wears is in no file and no reference reads it for PoE2. A lead from the committed captures, NOT SETTLED: the
+player's Inventories component holds at +0x120 a list of 0x6E8 bytes, entries of perhaps 0x88 naming two rows of tables each, one pair a
+row of ItemVisualIdentity's size apart. And StashReader.KindOf calls only ids 2 to 12 worn, while ids read as Inventories.dat rows plus one
+would put a second weapon set at 15 and 16, a third at 80 and 81 and a third ring at 102.
+SO A CAPTURE PART MEASURES FIRST (v0.1.388): `player-look.txt` (`PlayerLook`, the Memory group, at the press, past the tap) writes the
+player's entity and components, the model and animation id, every inventory up to id 200 with each item's path, base, unique and visual
+identity, his Inventories, Animated, Player and PlayerClass components whole word by word with every list they begin and end and one hop on,
+and a POINTER WEB - every pointer followed out from his components four hops deep (0x200-byte blocks, 150,000 blocks or a minute, CHOSEN),
+every MSVC string or wide C string naming a game file set down with its chain - where the client keeps the pieces and cosmetics it composed
+him from, if they hang off his components. Its files side (`CapturePlayerLook`) sets each inventory id beside Inventories.dat's row, writes
+his class's Characters row (every string by its offset, matched on his path or model), each item's visual identity rows with every string
+column by name, and the .ao, .aoc, .act, .ot and .otc those and the web name, with what each extends, whole under `mem/player-look/`;
+`player-look-replay.txt` reads them again and lists the lines a piece is skinned, attached, hidden or played by. Take it three times - as he
+stands, after changing one MTX, after swapping weapon sets - before anything is built.
+From v0.1.391 the files side also SURVEYS ItemVisualIdentity WHOLE (`CapturePlayerLook.Columns`): every string column and string list that
+holds anything, its rows filled, extensions, folders and first values, and how many of its values name each BODY - the file names of the
+models the Characters rows name under Metadata/Characters/ and his own (`Bodies`), a value counted for the longest body it holds anywhere in
+its path (IntFourB, not IntFour inside it) - with the layout's own standing first (a table read on its verified front alone puts the tail's
+names on other bytes). So one capture names the per-body columns (column_31 and on) of every class, where the carried items name his alone.
 
 ## Verify against the game, not against yourself
 

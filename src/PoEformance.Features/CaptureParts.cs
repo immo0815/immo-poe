@@ -211,6 +211,9 @@ public static class CaptureParts
     /// <summary>The whole of memory searched at the press for the grid the engine's river flow map is made from, or the map itself.</summary>
     public const string RiverFlow = "river-flow";
 
+    /// <summary>The local player's look read at the press - his model, his inventories and items, his components whole, the files his pointers reach - see PlayerLook.</summary>
+    public const string PlayerLook = "player-look";
+
     /// <summary>The engine's shader stages measured at the press: its stage table in the program's image, and every link of the install's graphs across stages.</summary>
     public const string ShaderStages = "shader-stages";
 
@@ -246,7 +249,8 @@ public static class CaptureParts
     /// lines under the buttons that nobody playing reads. They read the file table and the bundles, which takes seconds, so they
     /// cannot be asked for on the frame the key goes down as a window's text is.
     /// </remarks>
-    public static bool RunsAtPress(string key) => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow or ShaderStages;
+    public static bool RunsAtPress(string key)
+        => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow or ShaderStages or PlayerLook;
 
     /// <summary>
     /// A heading as the Keys page writes it. The headings themselves stay as they are: they are what <see cref="FolderOfGroup"/> keys
@@ -575,11 +579,12 @@ public static class CaptureParts
             + "sun and its shade; how square each piece of shadow is; the blend graphs and the casting materials whole. The sun's map by caster "
             + "beside it."),
         new(RoofFade, "Windows", "roof fade", CaptureReport.RoofFadeFile,
-            "How much of each roof section (a material whose .mat says \"roofsection\") the game hides round the player: the book's stage laid as "
-            + "the area laid it drawn through the game's camera with its roof sections, without them their shadows kept, and without them their "
-            + "shadows gone, and the game's picture at each section fitted as a mix of the two - beside where the section stands to the player "
-            + "and the game's eye, and the roof fade words its object, the area's master and its environment set. Keep \"game picture\" ticked "
-            + "and stand still. The tinted picture and every section pixel's numbers beside it."),
+            "Which roof sections (a material whose .mat says \"roofsection\") the game hides round the player: the book's stage laid as the "
+            + "area laid it drawn through the game's camera with its roof sections, without them their shadows kept, and without them their "
+            + "shadows gone, and each section judged by which drawing the game's pattern goes with; the hidden ones' shadows held against the "
+            + "game the same way - beside where each section stands to the player and the camera, its tile piece and whether the player stands "
+            + "on it, the ground under him, and the roof fade words its object, the area's master and its environment set. Keep \"game "
+            + "picture\" ticked and stand still a few seconds. The tinted picture and every section pixel's numbers beside it."),
         new(Dissector, "Windows", "dissector", CaptureReport.DissectorFile,
             "The places the Memory Dissector has open, the route walked to them, and what its last search found with the bytes "
             + "round each place. Nothing where it is untouched."),
@@ -642,6 +647,15 @@ public static class CaptureParts
             + "whole, word by word, and the game program's code that reads each static found, with the shortest pattern round it found "
             + "once, what finds the static again after a restart or a patch. It stops itself after about four minutes; the capture's "
             + "window shows how far it is and stops it on a click."),
+        new(PlayerLook, "Memory", "player look", CaptureReport.PlayerLookFile,
+            "What the game holds of your character's look, for putting him on a stage as the game draws him: his entity and components, "
+            + "the model his Animated component loaded and the animation he plays, every inventory he carries with each item's path, base, "
+            + "unique and visual identity, his Inventories, Animated, Player and PlayerClass components written whole word by word with every "
+            + "list they hold and one hop on, and every game file a walk of pointers out from his components reaches, with the chain that "
+            + "reaches it - where the client keeps the pieces and cosmetics (MTX) it composed him from. Beside it, from the install: each "
+            + "inventory id set beside Inventories.dat's row, his class's Characters row, each item's visual identity with every file it "
+            + "names, and the .ao files those and the walk name written whole. Take it three times for the cosmetics - as you stand, after "
+            + "changing one MTX, after swapping weapon sets. About a minute at most; the capture's window shows how far it is."),
         new(ShaderStages, "Memory", "shader stages", CaptureReport.ShaderStagesFile,
             "The order the engine runs a material's shader stages in, read off its own table in the running program - an array of "
             + "std::string in its image, of which only the pixel side's ten were ever seen - written whole, beside this build's compile "

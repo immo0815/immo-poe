@@ -1844,7 +1844,7 @@ public sealed partial class ModelGpu : IDisposable
 
             for (var one = 0; one < triangles; one++)
             {
-                if (blends[one] is MaterialBlend.Additive or MaterialBlend.ShadowOnly)
+                if (blends[one] is MaterialBlend.Additive or MaterialBlend.ShadowOnly or MaterialBlend.Hidden)
                 {
                     shades[one] = -1;
                 }
