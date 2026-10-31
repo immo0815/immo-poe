@@ -3684,6 +3684,35 @@ internal static class Program
                 () => riverHunt?.Fraction ?? 0f,
                 () => riverHunt?.Stop()));
 
+        // THE PLAYER'S LOOK: his model, inventories, components whole and the files his pointers reach, read at the press - see PlayerLook
+        // - and what the install says of them, the files written whole beside the part - see CapturePlayerLook. Past the tap, as the
+        // hunts read: the pointer web's blocks belong in no recording.
+        PoEformance.Game.Diagnostics.PlayerLook.Running? playerLook = null;
+        overlay.OfferCaptureWork(
+            PoEformance.Features.CaptureParts.PlayerLook,
+            path =>
+            {
+                var running = new PoEformance.Game.Diagnostics.PlayerLook.Running();
+                playerLook = running;
+                PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
+                (List<string> lines, PoEformance.Game.Diagnostics.PlayerLook.Seen? seen) =
+                    PoEformance.Game.Diagnostics.PlayerLook.Run(untapped, schema, gameStatesStatic, running);
+                if (seen is not null)
+                {
+                    lines.AddRange(PoEformance.Features.CapturePlayerLook.Write(
+                        installed,
+                        PoEformance.Features.QuestTableLayouts.Load(FindDataFile("item-tables.json")),
+                        seen,
+                        Path.GetDirectoryName(path) ?? string.Empty));
+                }
+
+                return lines;
+            },
+            new PoEformance.Overlay.CaptureWorkProgress(
+                () => playerLook?.Line ?? "starting",
+                () => playerLook?.Fraction ?? 0f,
+                () => playerLook?.Stop()));
+
         // THE ENGINE'S SHADER STAGES: its stage table read off the program's image, and the install's graphs' links across stages - see
         // ShaderStageHunt. Past the tap: the image's megabytes and the heap's names belong in no recording. The graphs are every one the
         // startup walk found, read at the press.

@@ -144,6 +144,9 @@ public static class CaptureReport
     /// <summary>The whole of memory searched for the river's flow map's grid at the press - see RiverFlowHunt; its lists' bytes beside it.</summary>
     public const string RiverFlowFile = "river-flow.txt";
 
+    /// <summary>The local player's look, read at the press - see PlayerLook and CapturePlayerLook.</summary>
+    public const string PlayerLookFile = "player-look.txt";
+
     /// <summary>The engine's stage table and the graphs' links across stages, measured at the press - see ShaderStageHunt.</summary>
     public const string ShaderStagesFile = "shader-stages.txt";
 

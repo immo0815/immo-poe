@@ -34,6 +34,20 @@ public partial class CaptureReplayTests
         Assert.StartsWith("shadow casters replay: ", replay, StringComparison.Ordinal);
     }
 
+    /// <summary>The files the player look part wrote whole read again, each one's lines a piece attaches by - player-look-replay.txt.</summary>
+    [Fact]
+    public void THEPLAYERLooksFilesAreReadAgainFromACapture()
+    {
+        if (Folder is not { Length: > 0 } folder || !Directory.EnumerateDirectories(folder, CapturePlayerLook.Folder, SearchOption.AllDirectories).Any())
+        {
+            return;
+        }
+
+        string replay = CapturePlayerLook.Replay(folder);
+        File.WriteAllText(Path.Combine(folder, CapturePlayerLook.ReplayFile), replay);
+        Assert.StartsWith("player look replay: ", replay, StringComparison.Ordinal);
+    }
+
     /// <summary>Each roof section's hidden share fitted again from roof-fade.bin - roof-fade-replay.txt.</summary>
     [Fact]
     public void THEROOFSectionsFadeIsJudgedAgainFromACapture()

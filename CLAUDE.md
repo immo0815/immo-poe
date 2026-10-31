@@ -768,6 +768,30 @@ through roof_fade.fxgraph's speckle, and an object's own roof sections left draw
 (it was kept for the same mesh and sun alone, so a blend switched since cast on as before). A capture's panes hand on the blends
 unfaded (`MonsterPortrait.Unfaded`), so roof-fade.txt still draws every section against the game.
 
+## The player on a stage
+
+ASKED FOR FROM THE LIVE CLIENT (2026-10-31): the current player put into a scene as the game draws him - his class, his equipment and, where
+it can be had, his cosmetics (MTX) - not a stock body. Researched the same night (repoe-fork's PoE2 table export and poe-tool-dev/dat-schema,
+GameHelper2's forks, the committed captures) and NOTHING BUILT ON IT YET; the decisions it needs are the live client's. What the files say:
+the class's body is the .ao the player's Animated component loaded (ModelInfoPtr -> record -> name, `Metadata/Characters/Int/IntFourB.ao` for
+the Sorceress, the bare body); an item's look is its BaseItemTypes row's ItemVisualIdentity, whose per-body .ao columns PoE2 fills unnamed in
+the vendored layout (column_31 and on, a body type each; the "Fourb" bodies' columns sparse); an MTX is no BaseItemTypes row but an
+ItemisedVisualEffect over another visual identity (MtxTypes, MtxTypeGameSpecific), applied PER SLOT (MicrotransactionSlot's rows each name an
+inventory). Which cosmetic a slot wears is in no file and no reference reads it for PoE2. A lead from the committed captures, NOT SETTLED: the
+player's Inventories component holds at +0x120 a list of 0x6E8 bytes, entries of perhaps 0x88 naming two rows of tables each, one pair a
+row of ItemVisualIdentity's size apart. And StashReader.KindOf calls only ids 2 to 12 worn, while ids read as Inventories.dat rows plus one
+would put a second weapon set at 15 and 16, a third at 80 and 81 and a third ring at 102.
+SO A CAPTURE PART MEASURES FIRST (v0.1.388): `player-look.txt` (`PlayerLook`, the Memory group, at the press, past the tap) writes the
+player's entity and components, the model and animation id, every inventory up to id 200 with each item's path, base, unique and visual
+identity, his Inventories, Animated, Player and PlayerClass components whole word by word with every list they begin and end and one hop on,
+and a POINTER WEB - every pointer followed out from his components four hops deep (0x200-byte blocks, 150,000 blocks or a minute, CHOSEN),
+every MSVC string or wide C string naming a game file set down with its chain - where the client keeps the pieces and cosmetics it composed
+him from, if they hang off his components. Its files side (`CapturePlayerLook`) sets each inventory id beside Inventories.dat's row, writes
+his class's Characters row (every string by its offset, matched on his path or model), each item's visual identity rows with every string
+column by name, and the .ao, .aoc, .act, .ot and .otc those and the web name, with what each extends, whole under `mem/player-look/`;
+`player-look-replay.txt` reads them again and lists the lines a piece is skinned, attached, hidden or played by. Take it three times - as he
+stands, after changing one MTX, after swapping weapon sets - before anything is built.
+
 ## Verify against the game, not against yourself
 
 A check that a wrong value passes is worse than no check. Prefer tests the game itself can
