@@ -530,6 +530,18 @@ public sealed class SceneLight
     /// </summary>
     public bool SprayOccluded { get; init; }
 
+    /// <summary>
+    /// The screen-space fog the area's .env puts on the player, drawn over the picture where it is ready - its weather attachment's pass, compiled
+    /// from its own files (ScreenFog) - or null for none. The card's alone (DECIDED from the live client): the processor's picture says it leaves it out.
+    /// </summary>
+    public ScreenFog? Fog { get; init; }
+
+    /// <summary>
+    /// Where the picture's frame stands in the area, its x and y - a laid room's corner (MonsterModel.AreaOrigin) - or nought for a picture in a
+    /// frame of its own: what the screen-space fog lays its pattern in the area's own place by, as the game lays it.
+    /// </summary>
+    public Vector2 AreaOrigin { get; init; }
+
     /// <summary>env_map_rotation: what a normal is put through before the cube is read - the world's axes as the cube's unless the environment turns it, see <see cref="CubeTurnFrom"/>.</summary>
     public Matrix4x4 CubeTurn { get; init; } = CubeSwap;
 

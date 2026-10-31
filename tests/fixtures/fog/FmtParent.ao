@@ -1,0 +1,17 @@
+version 3
+extends "nothing"
+
+AttachedAnimatedObject { }
+Hull { }
+
+client
+{
+	AnimatedRender { }
+	FixedMesh { }
+	BoneGroups { }
+	ParticleEffects { }
+	TrailsEffects { }
+	VolumetricEffects { }
+	Lights { }
+	EffectPack { }
+}

@@ -120,6 +120,14 @@ public sealed class SceneLightPanel : IMovableSun
     private bool _breakByGround;
     private bool _wetness = true;
     private bool _sprayOccluded = true;
+
+    /// <summary>Whether the screen-space fog the area's .env puts on the player is drawn - see <see cref="Fogged"/>.</summary>
+    private bool _fog = true;
+
+    /// <summary>The fog of the environment <see cref="_fogPath"/> names, worked out once per environment.</summary>
+    private ScreenFog? _screenFog;
+
+    private string _fogPath = "\0";
     private float _lift = 1f;
 
     /// <summary>How far the ocean ripples' wind is turned from the area's own way, in degrees - see <see cref="Water"/>.</summary>
@@ -308,6 +316,8 @@ public sealed class SceneLightPanel : IMovableSun
             WaterBreakByGround = _breakByGround,
             WaterWetness = _wetness,
             SprayOccluded = _sprayOccluded,
+            Fog = _fog ? Fogged() : null,
+            AreaOrigin = model.AreaOrigin ?? Vector2.Zero,
             WaterLift = _lift,
             CubeTurn = SceneLight.CubeTurnFrom(env.HorAngle ?? 0f, env.VertAngle ?? 0f, (SceneLight.CubeReading)_cubeReading),
             CubeBrightness = env.EnvBrightness ?? 1f,
@@ -417,6 +427,18 @@ public sealed class SceneLightPanel : IMovableSun
             try
             {
                 WaterRows(column);
+            }
+            finally
+            {
+                ImGui.Unindent();
+            }
+        }
+
+        if (Fold(Count("atmosphere", _fog) + "###scene-fold-air", open: false))
+        {
+            try
+            {
+                AirRows();
             }
             finally
             {
@@ -595,6 +617,51 @@ public sealed class SceneLightPanel : IMovableSun
         OverlayLayout.Hint("Which way the wind rolls the ocean's ripples: the area's own way (water.wind_direction_angle) turned by this."
             + " CHOSEN until measured: where the file sets none - Port sets none - the engine's default is not yet read, and the way the"
             + " former constants roll them, along x, stands for it. Hold it against the game's ripples.");
+    }
+
+    /// <summary>The air's switches, in columns: the screen-space fog.</summary>
+    private void AirRows()
+    {
+        if (!OverlayLayout.Switches("##scene-air", AirLabels))
+        {
+            return;
+        }
+
+        try
+        {
+            Switch("fog##scene-fog", ref _fog,
+                "The screen-space fog the area's .env puts on the player (area.player_environment_ao - The Red Vale's Red_Vale.ao): its render pass,"
+                + " ScreenspaceFogFlat.fxgraph, compiled from its own files and drawn over the picture - layers of drifting fog between two heights,"
+                + " from the eye to whatever lies behind each pixel, thinned round the player and lit by the sun through its shadow, the room's"
+                + " lights and the environment's. CHOSEN: on a stage the camera's focus stands for the player; drawn at the picture's own size (the"
+                + " engine's a smaller one); its light exposed and graded and laid over the picture as a mixed layer is; nothing solid behind, no fog."
+                + " The card's alone.");
+        }
+        finally
+        {
+            OverlayLayout.EndSwitches();
+        }
+    }
+
+    /// <summary>The air's switches' visible labels, for their columns.</summary>
+    private static readonly string[] AirLabels = ["fog"];
+
+    /// <summary>The fog the environment in use names, read and compiled once per environment - see ScreenFog.Of.</summary>
+    /// <remarks>
+    /// ON THE DRAWING THREAD, the first time a light with the fog on is made for an environment: two textures decoded (The Red Vale's
+    /// 1024 square and 512 square) and one material compiled, as the environment's cube and grade are read when it is chosen.
+    /// </remarks>
+    private ScreenFog Fogged()
+    {
+        if (_screenFog is null || !string.Equals(_fogPath, _loadedPath, StringComparison.OrdinalIgnoreCase))
+        {
+            _fogPath = _loadedPath;
+            _screenFog = _read is null || !_environment.Ready
+                ? ScreenFog.None("screen-space fog: no environment read")
+                : ScreenFog.Of(_read, _environment);
+        }
+
+        return _screenFog;
     }
 
     /// <summary>What the picture shows: the lit picture, or a material channel as the engine's debug views show it - see PictureView.</summary>
@@ -1188,6 +1255,15 @@ public sealed class SceneLightPanel : IMovableSun
         }
 
         lines.Add(!_grade ? "colour grade: off" : _gradeSaid);
+        if (!_fog)
+        {
+            lines.Add("screen-space fog: off");
+        }
+        else
+        {
+            lines.AddRange(Fogged().Said);
+        }
+
         if (_verdict is { } verdict)
         {
             lines.AddRange(verdict.Report.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));

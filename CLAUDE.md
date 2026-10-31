@@ -676,6 +676,33 @@ WHAT THE FILES SAY OF THE OTHER TWO, read offline from v0.1.374's light-extras.t
   own x and y, is kept, what stands there - a place over him and how high, the colour at a scale, a spot's way and its lean, the file's
   numbers - each with the float after it, the window holding a place and the colour first; `player-light-replay.txt` ranks them again.
   Read it before the lamp's height, reach or cone is changed - the tool's lamp is CHOSEN until then.
+THE ATTACHMENT WAS READ (v0.1.380's capture, light-extras.txt section 7) and v0.1.381's capture decided the rest (asked from the live client:
+the fog by extending the material compiler, the clouds' noise muddle_double CHOSEN, the roof fade measured first, the lamp left CHOSEN; strictly
+in that order). Red_Vale.ao's AnimatedRender lists one render pass, `Red_Vale_ao_pass0.mat` (type Append, is_main): `ScreenspaceQuad.fxgraph`,
+which lays its FixedMesh (`screenSpaceWeatherEffect.fmt`, two triangles ±1500) over the whole screen, and `ScreenspaceFogFlat.fxgraph` under
+DownScaledAlphaBlend, its OutPixelColor `(res.rgb / max(res.a, Epsilon), res.a)` - NOT ScreenspaceFogEnv.fxgraph above, whose ssf_layer_count,
+ssf_thickness and ssf_turbulence this graph does not read. Its loop is a GROUP, ScreenspaceFogFlatRaymarchGroup (utilitynodes.ffx: a prologue,
+an inner prologue and epilogue round the nodes carrying its `group_id`, an epilogue), five layers between heights 0 and 400 (the material's;
+up is minus z, so the slab z -400..0 of the world) from the eye to the solid depth behind the pixel, each the fog texture's blue flowing
+(SampleFlowTextureLod2: SampleFlowingTexMip2 over the flow map flow_muddle_blur_01_R16G16, hash3i3fStable of the layer's seed) and thinned
+round the player by ssf_feathering within a reach growing from a tenth of ssf_disperse_radius at the bottom to all of it at the top, coloured
+from ssf_color times (0.5, 0.5, 0.5, 6) at the bottom
+to ssf_color at the top, lit by GetIntegralOmniLight, its opacity the material's 0.2, the layers laid over one another by exp(-a fade length).
+SO THE SCREEN-SPACE FOG IS DRAWN (v0.1.383), compiled from its own files: `ShadeProgram.CompileScreen` (OutPixelColor's pixel_color into
+PixelOutput, the vertex side a screen quad), the group unrolled at the compile over the material's constant count (`Unit.Raymarched`, its HLSL
+line for line; a count that is not a constant refused and named), and the fog's nodes (`ShadeProgram.Screen.cs`: CameraPos, UnprojectPixelDepth,
+ReadBayerNoise, SSFColor, SSFDisperseRadiusFeathering, PlayerTrailingGhost as pass values - `Op.Pass`, `ScreenPixel` - refused on a mesh's
+surface; Hash3i3fStable, SampleFlowTextureLod2, RGBToTbn4, GetIntegralOmniLight; the graph reader keeps `group_id` and `input_slots`).
+`ScreenFogTests` hold the compiled program against the group and the fragments written out apart, 216 pixels and times. `ScreenFog` reads the
+.env's attachment, its pass's material and textures and GetTotalEnvLight (both cubes' last level along (0, 1, 0) times env_brightness);
+the light panel's "atmosphere" fold has its switch, "fog", on by default (`SceneLight.Fog`, `AreaOrigin` - the pattern laid in the area's own
+place); `ModelGpu.Fogged` draws it on the card after the translucent shapes over the solid depth (`ModelShaders.Air`, `Screened`), and
+`FogGpuTests` hold the card against the processor's program on WARP. CHOSEN, and said under the picture: the camera's focus as the player;
+WindVector nought (the graph's influence is nought anyway); drawn at the picture's size, exposed and graded as a mixed layer is laid over it
+(the engine's DownScaledAlphaBlend under its grade); none where nothing solid lies behind; the sun's shadow through IntegrateShadowMap with its
+seven samples a texel apart (shadow_scale unread), the room's lights at the layer's first point unshadowed; on a parallel view the eye a
+hundred thousand units back along the view. NOT DRAWN: the clouds' factor in its shadow (item 2), the mesh's own material SSTexturec.mat -
+light-extras.txt's section 7 writes it whole from v0.1.383 (`shapefile` lines), read it before it is drawn or left out.
 
 ## Verify against the game, not against yourself
 

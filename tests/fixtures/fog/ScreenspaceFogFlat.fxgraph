@@ -1,0 +1,2424 @@
+{
+    "version": 6,
+    "shader_group": [
+        "Material"
+    ],
+    "overriden_blend_mode": "DownScaledAlphaBlend",
+    "render_state_overwrite": {
+        "depth_write_enable": false
+    },
+    "nodes": [
+        {
+            "type": "CameraPos",
+            "index": 0,
+            "ui_position": [
+                524.0,
+                235.0
+            ]
+        },
+        {
+            "type": "UnprojectPixelDepth",
+            "index": 0,
+            "ui_position": [
+                495.0,
+                316.0
+            ]
+        },
+        {
+            "type": "ConstantInt",
+            "index": 0,
+            "parameters": [
+                {
+                    "value": 4,
+                    "layout": {
+                        "priority": 1,
+                        "icon": 105,
+                        "range": [
+                            {
+                                "min": 1,
+                                "max": 100
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "Layers count",
+            "ui_position": [
+                382.2856750488281,
+                431.7142639160156
+            ]
+        },
+        {
+            "type": "Time",
+            "index": 2,
+            "ui_position": [
+                230.0,
+                622.0
+            ]
+        },
+        {
+            "type": "MultiplyConst",
+            "index": 0,
+            "parameters": [
+                {
+                    "value": 0.009999999776482582,
+                    "layout": {
+                        "priority": 24,
+                        "icon": 22,
+                        "range": [
+                            {
+                                "min": -0.5,
+                                "max": 0.5
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "Rise speed",
+            "ui_position": [
+                452.0,
+                605.0
+            ]
+        },
+        {
+            "type": "ConstantFloat2",
+            "index": 0,
+            "parameters": [
+                {
+                    "value": [
+                        -10.081000328063965,
+                        124.37799835205078
+                    ],
+                    "layout": {
+                        "priority": -1,
+                        "icon": 55,
+                        "range": [
+                            {
+                                "min": -50000.0,
+                                "max": 50000.0
+                            },
+                            {
+                                "min": -50000.0,
+                                "max": 50000.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "Height range",
+            "ui_position": [
+                397.9643249511719,
+                820.5003051757813
+            ]
+        },
+        {
+            "type": "ReadBayerNoise",
+            "index": 0,
+            "ui_position": [
+                496.1430969238281,
+                1015.4287109375
+            ]
+        },
+        {
+            "type": "ConstantFloat4",
+            "index": 0,
+            "parameters": [
+                {
+                    "value": [
+                        0.46760743856430056,
+                        0.46760743856430056,
+                        0.46760743856430056,
+                        1.370350956916809
+                    ],
+                    "layout": {
+                        "mode": "ColorPicker",
+                        "priority": 4,
+                        "icon": 22,
+                        "unit": "sRGB"
+                    }
+                }
+            ],
+            "custom_parameter": "Fog bottom color",
+            "ui_position": [
+                -116.0034408569336,
+                1087.857666015625
+            ]
+        },
+        {
+            "type": "SSFColor",
+            "index": 0,
+            "ui_position": [
+                -775.886962890625,
+                1079.2733154296876
+            ]
+        },
+        {
+            "type": "ConstantFloat4",
+            "index": 4,
+            "parameters": [
+                {
+                    "value": [
+                        0.5,
+                        0.5,
+                        0.5,
+                        4.0
+                    ],
+                    "layout": {
+                        "icon": 25
+                    }
+                }
+            ],
+            "custom_parameter": "Env fog bottom color mult",
+            "ui_position": [
+                -992.1429443359375,
+                1229.0260009765626
+            ]
+        },
+        {
+            "type": "Multiply4",
+            "index": 1,
+            "ui_position": [
+                -312.14239501953127,
+                1174.7408447265626
+            ]
+        },
+        {
+            "type": "ConstantBool",
+            "index": 0,
+            "parameters": [
+                {
+                    "layout": {
+                        "icon": 92
+                    }
+                }
+            ],
+            "custom_parameter": "Use env settings",
+            "ui_position": [
+                -478.5714111328125,
+                968.1727294921875
+            ]
+        },
+        {
+            "type": "SelectFloat4",
+            "index": 0,
+            "ui_position": [
+                219.81285095214845,
+                1088.539306640625
+            ]
+        },
+        {
+            "type": "ConstantFloat4",
+            "index": 1,
+            "parameters": [
+                {
+                    "value": [
+                        0.6536241173744202,
+                        0.6536241173744202,
+                        0.6536241173744202,
+                        0.7297400832176209
+                    ],
+                    "layout": {
+                        "mode": "ColorPicker",
+                        "priority": 3,
+                        "icon": 25,
+                        "unit": "sRGB"
+                    }
+                }
+            ],
+            "custom_parameter": "Fog top color",
+            "ui_position": [
+                -107.57493591308594,
+                1181.7135009765626
+            ]
+        },
+        {
+            "type": "SelectFloat4",
+            "index": 1,
+            "ui_position": [
+                216.78257751464845,
+                1220.8878173828126
+            ]
+        },
+        {
+            "type": "ConstantFloat2",
+            "index": 1,
+            "parameters": [
+                {
+                    "value": [
+                        100.0,
+                        2000.0
+                    ],
+                    "layout": {
+                        "priority": 30,
+                        "icon": 144,
+                        "range": [
+                            {
+                                "min": 50.0,
+                                "max": 3000.0
+                            },
+                            {
+                                "min": 50.0,
+                                "max": 3000.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "Player fade bottom/top radii",
+            "ui_position": [
+                -883.72607421875,
+                1474.2734375
+            ]
+        },
+        {
+            "type": "SSFDisperseRadiusFeathering",
+            "index": 0,
+            "ui_position": [
+                -519.4509887695313,
+                1581.335205078125
+            ]
+        },
+        {
+            "type": "MultiplyConst",
+            "index": 5,
+            "parameters": [
+                {
+                    "value": 0.10000000149011612
+                }
+            ],
+            "ui_position": [
+                -53.92100524902344,
+                1422.67333984375
+            ]
+        },
+        {
+            "type": "SelectFloat2",
+            "index": 0,
+            "ui_position": [
+                353.35345458984377,
+                1383.582763671875
+            ]
+        },
+        {
+            "type": "One",
+            "index": 2,
+            "ui_position": [
+                -296.98175048828127,
+                1797.467529296875
+            ]
+        },
+        {
+            "type": "MultiplyConst",
+            "index": 3,
+            "parameters": [
+                {
+                    "value": 0.20000000298023225,
+                    "layout": {
+                        "priority": 31,
+                        "icon": 80,
+                        "range": [
+                            {
+                                "min": 0.0,
+                                "max": 1.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "PLayer fade amount",
+            "ui_position": [
+                -104.5364990234375,
+                1909.1427001953126
+            ]
+        },
+        {
+            "type": "SelectFloat",
+            "index": 0,
+            "ui_position": [
+                396.3502197265625,
+                1751.911865234375
+            ]
+        },
+        {
+            "type": "ScreenspaceFogFlatRaymarchGroup",
+            "index": 0,
+            "ui_position": [
+                940.428466796875,
+                477.36370849609377
+            ],
+            "ui_size": [
+                2948.214111328125,
+                1666.13623046875
+            ],
+            "title": "Description",
+            "input_slots": [
+                {
+                    "name": "noise",
+                    "type": "float"
+                },
+                {
+                    "name": "bottom_color",
+                    "type": "float4"
+                },
+                {
+                    "name": "top_color",
+                    "type": "float4"
+                },
+                {
+                    "name": "bottom_fade_radius",
+                    "type": "float"
+                },
+                {
+                    "name": "top_fade_radius",
+                    "type": "float"
+                },
+                {
+                    "name": "fade_amount",
+                    "type": "float"
+                }
+            ]
+        },
+        {
+            "type": "Epsilon",
+            "index": 0,
+            "ui_position": [
+                4283.30126953125,
+                654.0794677734375
+            ]
+        },
+        {
+            "type": "Max",
+            "index": 0,
+            "ui_position": [
+                4433.30126953125,
+                406.9364929199219
+            ]
+        },
+        {
+            "type": "Divide3",
+            "index": 0,
+            "ui_position": [
+                4679.0166015625,
+                286.9366149902344
+            ]
+        },
+        {
+            "type": "OutPixelColor",
+            "index": 0,
+            "ui_position": [
+                4738.77978515625,
+                -163.747802734375
+            ]
+        },
+        {
+            "type": "ConnectionPixel",
+            "index": 0,
+            "stage": "PixelOutput",
+            "ui_position": [
+                5252.14404296875,
+                -43.57147216796875
+            ]
+        },
+        {
+            "type": "InputConnectionPixel",
+            "index": 0,
+            "stage": "PixelOutput",
+            "ui_position": [
+                1108.3331298828126,
+                48.33332061767578
+            ]
+        },
+        {
+            "type": "Add3",
+            "index": 0,
+            "ui_position": [
+                1200.7147216796876,
+                635.8801879882813
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "MultiplyConst2",
+            "index": 1,
+            "parameters": [
+                {
+                    "value": 1.2999999523162842,
+                    "layout": {
+                        "priority": 6,
+                        "icon": 67,
+                        "range": [
+                            {
+                                "min": 0.0,
+                                "max": 5.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "Fog tiling rate",
+            "ui_position": [
+                1405.277587890625,
+                1139.5556640625
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Hash3i3fStable",
+            "index": 0,
+            "ui_position": [
+                1117.83203125,
+                531.8329467773438
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "SampleFlowTextureLod2",
+            "index": 0,
+            "ui_position": [
+                2184.575439453125,
+                961.7262573242188
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Time",
+            "index": 1,
+            "ui_position": [
+                1820.75,
+                1189.0
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Add",
+            "index": 0,
+            "ui_position": [
+                2009.16748046875,
+                1237.00146484375
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "InputTexture",
+            "index": 1,
+            "parameters": [
+                {
+                    "path": "Art/particles/FXLib/tileables/16bit/flow_muddle_blur_01_R16G16.dds",
+                    "srgb": false,
+                    "layout": {
+                        "icon": 150,
+                        "priority": 20
+                    }
+                }
+            ],
+            "custom_parameter": "Flowmap tex",
+            "ui_position": [
+                1394.5,
+                1241.0
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "SampleInputTexture",
+            "index": 0,
+            "parameters": [
+                {}
+            ],
+            "ui_position": [
+                1581.00146484375,
+                1538.8330078125
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "MultiplyConst2",
+            "index": 2,
+            "parameters": [
+                {
+                    "value": 1.600000023841858,
+                    "layout": {
+                        "priority": 21,
+                        "icon": 67,
+                        "range": [
+                            {
+                                "min": 0.0,
+                                "max": 5.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "Flow tiling rate",
+            "ui_position": [
+                1324.94482421875,
+                1377.97216796875
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "RGBToTbn4",
+            "index": 0,
+            "ui_position": [
+                1554.333740234375,
+                1651.333251953125
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "MultiplyConst2",
+            "index": 3,
+            "parameters": [
+                {
+                    "value": 0.029999999329447748,
+                    "layout": {
+                        "priority": 22,
+                        "icon": 19
+                    }
+                }
+            ],
+            "custom_parameter": "Flow speed",
+            "ui_position": [
+                1534.333740234375,
+                1750.333251953125
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Add2",
+            "index": 0,
+            "ui_position": [
+                1086.0,
+                1246.0
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Dummy3",
+            "index": 0,
+            "ui_position": [
+                1324.33203125,
+                826.3323364257813
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Divide2",
+            "index": 0,
+            "ui_position": [
+                1922.9764404296876,
+                1780.8017578125
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "ConstantFloat",
+            "index": 4,
+            "parameters": [
+                {
+                    "value": 0.10000000149011612,
+                    "layout": {
+                        "priority": 23,
+                        "icon": 111
+                    }
+                }
+            ],
+            "custom_parameter": "Evolution speed",
+            "ui_position": [
+                1525.73828125,
+                1847.881103515625
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Multiply",
+            "index": 0,
+            "ui_position": [
+                1815.3763427734376,
+                1263.51953125
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Lerp4",
+            "index": 0,
+            "ui_position": [
+                1139.25732421875,
+                742.0485229492188
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Multiply4",
+            "index": 0,
+            "ui_position": [
+                3145.204345703125,
+                861.714599609375
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "InputTexture",
+            "index": 2,
+            "parameters": [
+                {
+                    "path": "Art/Textures/Environment/Leagues/Affliction/fog/BakedFog_BC1.dds",
+                    "srgb": false,
+                    "layout": {
+                        "icon": 77
+                    }
+                }
+            ],
+            "custom_parameter": "Fog tex",
+            "ui_position": [
+                2204.053955078125,
+                744.5770874023438
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Saturate",
+            "index": 0,
+            "ui_position": [
+                2708.170166015625,
+                969.2123413085938
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "One",
+            "index": 1,
+            "ui_position": [
+                2942.323486328125,
+                878.1405029296875
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "GetIntegralOmniLight",
+            "index": 0,
+            "ui_position": [
+                3121.3232421875,
+                687.364013671875
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Multiply3",
+            "index": 1,
+            "ui_position": [
+                3528.61181640625,
+                690.274169921875
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "ConstantFloat4",
+            "index": 2,
+            "parameters": [
+                {
+                    "value": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "layout": {
+                        "mode": "ColorPicker",
+                        "priority": 5,
+                        "icon": 65,
+                        "unit": "sRGB"
+                    }
+                }
+            ],
+            "custom_parameter": "Ambient light color",
+            "ui_position": [
+                2767.536865234375,
+                793.6663208007813
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "MultiplyConst",
+            "index": 2,
+            "parameters": [
+                {
+                    "value": 2.9709999561309816,
+                    "layout": {
+                        "priority": 2,
+                        "icon": 52,
+                        "range": [
+                            {
+                                "min": 0.0,
+                                "max": 20.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "Opacity",
+            "ui_position": [
+                3457.94482421875,
+                909.0797119140625
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "ConstantFloat4",
+            "index": 3,
+            "parameters": [
+                {
+                    "value": [
+                        0.0,
+                        0.0,
+                        1.0,
+                        0.0
+                    ],
+                    "layout": {
+                        "priority": 8,
+                        "icon": 41
+                    }
+                }
+            ],
+            "custom_parameter": "Fog tex component",
+            "ui_position": [
+                2196.582763671875,
+                1234.484130859375
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "DotProduct4",
+            "index": 0,
+            "ui_position": [
+                2566.997314453125,
+                844.4843139648438
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "MultiplyConst2",
+            "index": 4,
+            "parameters": [
+                {
+                    "value": 0.0010000000474974514
+                }
+            ],
+            "ui_position": [
+                1623.317138671875,
+                1375.5001220703126
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "MultiplyConst2",
+            "index": 5,
+            "parameters": [
+                {
+                    "value": 0.0010000000474974514
+                }
+            ],
+            "ui_position": [
+                1729.4287109375,
+                1101.0556640625
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Subtract",
+            "index": 0,
+            "ui_position": [
+                3036.03564453125,
+                1448.6785888671876
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Saturate",
+            "index": 1,
+            "ui_position": [
+                3177.107421875,
+                1360.1070556640626
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "PlayerTrailingGhost",
+            "index": 0,
+            "ui_position": [
+                1819.011962890625,
+                1992.369140625
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Subtract2",
+            "index": 0,
+            "ui_position": [
+                2108.773681640625,
+                1781.416748046875
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Divide",
+            "index": 0,
+            "ui_position": [
+                2667.7021484375,
+                1854.09521484375
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Lerp",
+            "index": 0,
+            "ui_position": [
+                1134.4881591796876,
+                891.4169311523438
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Length3",
+            "index": 0,
+            "ui_position": [
+                2335.91650390625,
+                1794.27392578125
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Saturate",
+            "index": 2,
+            "ui_position": [
+                2832.880615234375,
+                1865.345458984375
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "OneMinus",
+            "index": 0,
+            "ui_position": [
+                3001.630859375,
+                1816.595458984375
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Add2",
+            "index": 1,
+            "ui_position": [
+                1962.5,
+                955.0
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "ConstantFloat2",
+            "index": 2,
+            "parameters": [
+                {
+                    "layout": {
+                        "priority": 7,
+                        "icon": 67
+                    }
+                }
+            ],
+            "custom_parameter": "Fog scrolling rate",
+            "ui_position": [
+                1637.5,
+                851.0
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Multiply2",
+            "index": 0,
+            "ui_position": [
+                1769.5,
+                953.0
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Time",
+            "index": 3,
+            "ui_position": [
+                1572.5,
+                1009.0
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "ReadBayerNoise",
+            "index": 1,
+            "ui_position": [
+                210.20274353027345,
+                1000.8565673828125
+            ]
+        },
+        {
+            "type": "Multiply",
+            "index": 1,
+            "ui_position": [
+                3066.90478515625,
+                1641.318359375
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "ConstantFloat2",
+            "index": 3,
+            "parameters": [
+                {
+                    "value": [
+                        0.5619999766349793,
+                        0.0
+                    ],
+                    "layout": {
+                        "priority": 25,
+                        "icon": 23,
+                        "range": [
+                            {
+                                "min": -10.0,
+                                "max": 10.0
+                            },
+                            {
+                                "min": -10.0,
+                                "max": 10.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "Bottom wind speed",
+            "ui_position": [
+                1160.0,
+                1973.0
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Add2",
+            "index": 2,
+            "ui_position": [
+                2085.0,
+                1572.0
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "ConstantFloat2",
+            "index": 4,
+            "parameters": [
+                {
+                    "value": [
+                        -0.44999998807907107,
+                        0.0
+                    ],
+                    "layout": {
+                        "priority": 25,
+                        "icon": 23,
+                        "range": [
+                            {
+                                "min": -10.0,
+                                "max": 10.0
+                            },
+                            {
+                                "min": -10.0,
+                                "max": 10.0
+                            }
+                        ]
+                    }
+                }
+            ],
+            "custom_parameter": "Top wind speed",
+            "ui_position": [
+                1115.0,
+                1733.0
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Lerp2",
+            "index": 0,
+            "ui_position": [
+                1299.0,
+                1564.0
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "MultiplyConst",
+            "index": 6,
+            "parameters": [
+                {
+                    "layout": {
+                        "priority": 22,
+                        "icon": 19
+                    }
+                }
+            ],
+            "custom_parameter": "Environment wind Influence",
+            "ui_position": [
+                2238.61083984375,
+                1515.5322265625
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Multiply2",
+            "index": 1,
+            "ui_position": [
+                2472.54150390625,
+                1405.255859375
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "WindVector",
+            "index": 0,
+            "ui_position": [
+                1977.8837890625,
+                1410.0777587890626
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        },
+        {
+            "type": "Add2",
+            "index": 3,
+            "ui_position": [
+                2564.10888671875,
+                1545.627197265625
+            ],
+            "group_id": "ScreenspaceFogFlatRaymarchGroup_0"
+        }
+    ],
+    "links": [
+        {
+            "src": {
+                "type": "Time",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "MultiplyConst",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "SSFColor",
+                "index": 0,
+                "variable": "color"
+            },
+            "dst": {
+                "type": "Multiply4",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat4",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply4",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat4",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat4",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply4",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat4",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantBool",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat4",
+                "index": 0,
+                "variable": "condition"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat4",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat4",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "SSFColor",
+                "index": 0,
+                "variable": "color"
+            },
+            "dst": {
+                "type": "SelectFloat4",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantBool",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat4",
+                "index": 1,
+                "variable": "condition"
+            }
+        },
+        {
+            "src": {
+                "type": "SSFDisperseRadiusFeathering",
+                "index": 0,
+                "variable": "disperse_radius"
+            },
+            "dst": {
+                "type": "MultiplyConst",
+                "index": 5,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat2",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat2",
+                "index": 0,
+                "variable": "b",
+                "swizzle": "x"
+            }
+        },
+        {
+            "src": {
+                "type": "SSFDisperseRadiusFeathering",
+                "index": 0,
+                "variable": "disperse_radius"
+            },
+            "dst": {
+                "type": "SelectFloat2",
+                "index": 0,
+                "variable": "b",
+                "swizzle": "y"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantBool",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat2",
+                "index": 0,
+                "variable": "condition"
+            }
+        },
+        {
+            "src": {
+                "type": "One",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "MultiplyConst",
+                "index": 3,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "SSFDisperseRadiusFeathering",
+                "index": 0,
+                "variable": "feathering"
+            },
+            "dst": {
+                "type": "SelectFloat",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantBool",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SelectFloat",
+                "index": 0,
+                "variable": "condition"
+            }
+        },
+        {
+            "src": {
+                "type": "CameraPos",
+                "index": 0,
+                "variable": "cam_pos"
+            },
+            "dst": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "world_ray_start"
+            }
+        },
+        {
+            "src": {
+                "type": "UnprojectPixelDepth",
+                "index": 0,
+                "variable": "world_pos"
+            },
+            "dst": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "world_ray_end"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantInt",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "layers_count"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "vertical_phase"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "height_range"
+            }
+        },
+        {
+            "src": {
+                "type": "ReadBayerNoise",
+                "index": 0,
+                "variable": "bayer_noise"
+            },
+            "dst": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "noise"
+            }
+        },
+        {
+            "src": {
+                "type": "SelectFloat4",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "bottom_color"
+            }
+        },
+        {
+            "src": {
+                "type": "SelectFloat4",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "top_color"
+            }
+        },
+        {
+            "src": {
+                "type": "SelectFloat2",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "x"
+            },
+            "dst": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "bottom_fade_radius"
+            }
+        },
+        {
+            "src": {
+                "type": "SelectFloat2",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "y"
+            },
+            "dst": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "top_fade_radius"
+            }
+        },
+        {
+            "src": {
+                "type": "SelectFloat",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "fade_amount"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "layer_color",
+                "internal": true,
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply3",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "layer_color",
+                "internal": true,
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "res_color",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "Max",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Epsilon",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Max",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "res_color",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "Divide3",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Max",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Divide3",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "res_color",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "OutPixelColor",
+                "index": 0,
+                "variable": "pixel_color",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "Divide3",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "OutPixelColor",
+                "index": 0,
+                "variable": "pixel_color",
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "OutPixelColor",
+                "index": 0,
+                "variable": "connection"
+            },
+            "dst": {
+                "type": "ConnectionPixel",
+                "index": 0,
+                "stage": "PixelOutput",
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "layer_world_start",
+                "internal": true
+            },
+            "dst": {
+                "type": "Add3",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Add3",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "xy"
+            },
+            "dst": {
+                "type": "MultiplyConst2",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "layer_seed",
+                "internal": true
+            },
+            "dst": {
+                "type": "Hash3i3fStable",
+                "index": 0,
+                "variable": "pos",
+                "swizzle": "x"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 2,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "SampleFlowTextureLod2",
+                "index": 0,
+                "variable": "tex"
+            }
+        },
+        {
+            "src": {
+                "type": "Add2",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SampleFlowTextureLod2",
+                "index": 0,
+                "variable": "uv"
+            }
+        },
+        {
+            "src": {
+                "type": "Add2",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SampleFlowTextureLod2",
+                "index": 0,
+                "variable": "flow_vec"
+            }
+        },
+        {
+            "src": {
+                "type": "Add",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SampleFlowTextureLod2",
+                "index": 0,
+                "variable": "phase"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "layer_seed",
+                "internal": true
+            },
+            "dst": {
+                "type": "SampleFlowTextureLod2",
+                "index": 0,
+                "variable": "seed"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 0,
+                "variable": "out_value",
+                "swizzle": "z"
+            },
+            "dst": {
+                "type": "Add",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "InputTexture",
+                "index": 1,
+                "variable": "out_texture"
+            },
+            "dst": {
+                "type": "SampleInputTexture",
+                "index": 0,
+                "variable": "in_texture"
+            }
+        },
+        {
+            "src": {
+                "type": "Add2",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "SampleInputTexture",
+                "index": 0,
+                "variable": "uv"
+            }
+        },
+        {
+            "src": {
+                "type": "Add3",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "xy"
+            },
+            "dst": {
+                "type": "MultiplyConst2",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "SampleInputTexture",
+                "index": 0,
+                "variable": "color"
+            },
+            "dst": {
+                "type": "RGBToTbn4",
+                "index": 0,
+                "variable": "rgb_vec"
+            }
+        },
+        {
+            "src": {
+                "type": "RGBToTbn4",
+                "index": 0,
+                "variable": "tbn_vec",
+                "swizzle": "xy"
+            },
+            "dst": {
+                "type": "MultiplyConst2",
+                "index": 3,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Dummy3",
+                "index": 0,
+                "variable": "out_value",
+                "swizzle": "xy"
+            },
+            "dst": {
+                "type": "Add2",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst2",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add2",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Hash3i3fStable",
+                "index": 0,
+                "variable": "noise"
+            },
+            "dst": {
+                "type": "Dummy3",
+                "index": 0,
+                "variable": "in_value"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst2",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Divide2",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Divide2",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Time",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "bottom_color",
+                "internal": true
+            },
+            "dst": {
+                "type": "Lerp4",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "top_color",
+                "internal": true
+            },
+            "dst": {
+                "type": "Lerp4",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "layer_ratio",
+                "internal": true
+            },
+            "dst": {
+                "type": "Lerp4",
+                "index": 0,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply4",
+                "index": 0,
+                "variable": "a",
+                "swizzle": "w"
+            }
+        },
+        {
+            "src": {
+                "type": "One",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply4",
+                "index": 0,
+                "variable": "a",
+                "swizzle": "xyz"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp4",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply4",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "DotProduct4",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Saturate",
+                "index": 0,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "layer_world_start",
+                "internal": true
+            },
+            "dst": {
+                "type": "GetIntegralOmniLight",
+                "index": 0,
+                "variable": "ray_point0"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "layer_world_end",
+                "internal": true
+            },
+            "dst": {
+                "type": "GetIntegralOmniLight",
+                "index": 0,
+                "variable": "ray_point1"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "noise",
+                "internal": true
+            },
+            "dst": {
+                "type": "GetIntegralOmniLight",
+                "index": 0,
+                "variable": "ray_hash"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat4",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "GetIntegralOmniLight",
+                "index": 0,
+                "variable": "ambient_light"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply4",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "xyz"
+            },
+            "dst": {
+                "type": "Multiply3",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "GetIntegralOmniLight",
+                "index": 0,
+                "variable": "omni_light"
+            },
+            "dst": {
+                "type": "Multiply3",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply4",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "w"
+            },
+            "dst": {
+                "type": "MultiplyConst",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "SampleFlowTextureLod2",
+                "index": 0,
+                "variable": "color"
+            },
+            "dst": {
+                "type": "DotProduct4",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat4",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "DotProduct4",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst2",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "MultiplyConst2",
+                "index": 4,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst2",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "MultiplyConst2",
+                "index": 5,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Subtract",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Subtract",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Subtract",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Saturate",
+                "index": 1,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "Add3",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "xy"
+            },
+            "dst": {
+                "type": "Subtract2",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "PlayerTrailingGhost",
+                "index": 0,
+                "variable": "output",
+                "swizzle": "xy"
+            },
+            "dst": {
+                "type": "Subtract2",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Length3",
+                "index": 0,
+                "variable": "len"
+            },
+            "dst": {
+                "type": "Divide",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Divide",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "bottom_fade_radius",
+                "internal": true
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "top_fade_radius",
+                "internal": true
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "layer_ratio",
+                "internal": true
+            },
+            "dst": {
+                "type": "Lerp",
+                "index": 0,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "Subtract2",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Length3",
+                "index": 0,
+                "variable": "vec",
+                "swizzle": "xy"
+            }
+        },
+        {
+            "src": {
+                "type": "Divide",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Saturate",
+                "index": 2,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "Saturate",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "OneMinus",
+                "index": 0,
+                "variable": "input"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply2",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add2",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst2",
+                "index": 5,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add2",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply2",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Time",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply2",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "fade_amount",
+                "internal": true
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "OneMinus",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Divide2",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add2",
+                "index": 2,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Lerp2",
+                "index": 0,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add2",
+                "index": 2,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 4,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp2",
+                "index": 0,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "ConstantFloat2",
+                "index": 3,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Lerp2",
+                "index": 0,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "ScreenspaceFogFlatRaymarchGroup",
+                "index": 0,
+                "variable": "layer_ratio",
+                "internal": true
+            },
+            "dst": {
+                "type": "Lerp2",
+                "index": 0,
+                "variable": "alpha"
+            }
+        },
+        {
+            "src": {
+                "type": "WindVector",
+                "index": 0,
+                "variable": "wind_strength"
+            },
+            "dst": {
+                "type": "MultiplyConst",
+                "index": 6,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "WindVector",
+                "index": 0,
+                "variable": "wind_direction"
+            },
+            "dst": {
+                "type": "Multiply2",
+                "index": 1,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "MultiplyConst",
+                "index": 6,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Multiply2",
+                "index": 1,
+                "variable": "b"
+            }
+        },
+        {
+            "src": {
+                "type": "Multiply2",
+                "index": 1,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add2",
+                "index": 3,
+                "variable": "a"
+            }
+        },
+        {
+            "src": {
+                "type": "Add2",
+                "index": 2,
+                "variable": "output"
+            },
+            "dst": {
+                "type": "Add2",
+                "index": 3,
+                "variable": "b"
+            }
+        }
+    ]
+}

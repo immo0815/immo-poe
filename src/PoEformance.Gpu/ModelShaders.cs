@@ -1551,8 +1551,183 @@ internal static class ModelShaders
         }
         """;
 
-    /// <summary>A program's shader source: <see cref="Common"/>, the program, and <see cref="Programmed"/>.</summary>
-    public static string Program(ShadeProgram program) => Common + ShadeHlsl.Of(program, FirstSheet) + Programmed;
+    /// <summary>
+    /// A program's shader source: <see cref="Common"/>, the program, and <see cref="Programmed"/> - a screen program's with <see cref="Air"/> before
+    /// it, whose light it calls, and <see cref="Screened"/> after.
+    /// </summary>
+    public static string Program(ShadeProgram program)
+        => program.Screen
+            ? Common + Air + ShadeHlsl.Of(program, FirstSheet) + Programmed + Screened
+            : Common + ShadeHlsl.Of(program, FirstSheet) + Programmed;
+
+    /// <summary>
+    /// A screen program's light (ShadeProgram.CompileScreen, the screen-space fog): the pass's values in constants of their own, and the omni light
+    /// its layers take - <c>ShadeOmni</c>, which the program's steps call.
+    /// </summary>
+    /// <remarks>
+    /// GetIntegralOmniLight AS lighting.ffx WRITES IT, over this tool's own lights: the sun through IntegrateShadowMap's seven samples along the
+    /// layer, every point light at the layer's first point as Lighted finds them in the light grid (ComputePointLightParams, unshadowed: the
+    /// engine's shadowed dynamic lights have no map here), the environment's light times the ambient's alpha, and the ambient's colour. The
+    /// layer's points are the area's (the fog's pattern is laid in the world, as the game lays it); the sun's map and the lights are in the
+    /// picture's own frame, so the frame's place in the area is taken off before they are read.
+    /// </remarks>
+    public static readonly string Air = """
+        cbuffer Air : register(b5)
+        {
+            float4 AirFog;     // the pass's ssf_color - ScreenFog.Colour
+            float4 AirShape;   // xy: ssf_disperse_radius and ssf_feathering - ScreenFog.Shape
+            float4 AirPlayer;  // xyz: PlayerTrailingGhost in the area's frame - on a stage the camera's focus (CHOSEN)
+            float4 AirLight;   // rgb: GetTotalEnvLight - ScreenFog.Environment
+            float4 AirOrigin;  // xy: where the picture's frame stands in the area - SceneLight.AreaOrigin
+        };
+
+        // IntegrateShadowMap's one sample of the sun's map at a point of the air: ShadowMap.Lit's four texels compared and lerped, as SunReaches
+        // reads them for a surface, with nothing to lift it off and the map's own bias kept - the point moved across the map by an offset.
+        float SunAt(float3 place, float2 offset)
+        {
+            float texel = ShadowSize.y;
+            float x = ((dot(place, ShadowU.xyz) - ShadowU.w + offset.x) * ShadowSize.x) - 0.5;
+            float y = ((dot(place, ShadowV.xyz) - ShadowV.w + offset.y) * ShadowSize.x) - 0.5;
+            float depth = dot(place, ShadowW.xyz) - ShadowW.w - (texel * 2.0);
+            float last = ShadowSize.z - 1.0;
+            if (x < 0.0 || y < 0.0 || x >= last || y >= last)
+            {
+                return 1.0;
+            }
+
+            int x0 = (int)x;
+            int y0 = (int)y;
+            float fx = x - x0;
+            float fy = y - y0;
+            float top = lerp(Open(x0, y0, depth), Open(x0 + 1, y0, depth), fx);
+            float bottom = lerp(Open(x0, y0 + 1, depth), Open(x0 + 1, y0 + 1, depth), fx);
+            return lerp(top, bottom, fy);
+        }
+
+        // IntegrateShadowMap for the directional light (shadows.ffx): seven samples from the layer's first point towards its last, the i-th at
+        // (i + hash) / 7 of the way, each moved by its point of the hexagon times shadow_scale.xy - CHOSEN a texel of the sun's map, the engine's
+        // scale being read nowhere - and averaged. The clouds' factor (GetCloudsIntensity) is not drawn yet.
+        float SunAlong(float3 near, float3 far, float hash)
+        {
+            static const float2 offsets[7] =
+            {
+                float2(0.000, 0.000),
+                float2(1.000, 0.000),
+                float2(0.500, 0.866),
+                float2(-0.500, 0.866),
+                float2(-1.000, 0.000),
+                float2(-0.500, -0.866),
+                float2(0.500, -0.866)
+            };
+
+            float light = 0.0;
+            [unroll] for (int i = 0; i < 7; i++)
+            {
+                light += SunAt(lerp(near, far, (float(i) + hash) / 7.0), offsets[i] * ShadowSize.y);
+            }
+
+            return light / 7.0;
+        }
+
+        // GetIntegralOmniLight - see ModelShaders.Air. The points come in the area's frame.
+        float3 ShadeOmni(float3 nearAt, float3 farAt, float hash, float4 ambient)
+        {
+            float3 shift = float3(AirOrigin.xy, 0.0);
+            float3 near = nearAt - shift;
+            float3 far = farAt - shift;
+            float3 total = float3(0.0, 0.0, 0.0);
+            if (SunColour.w > 0.5)
+            {
+                total += SunColour.rgb * (SunTravels.w > 0.5 ? SunAlong(near, far, hash) : 1.0);
+            }
+
+            if (Ambient.w > 0)
+            {
+                float3 at = (near - CellLeast.xyz) / CellLeast.w;
+                if (at.x >= 0.0 && at.y >= 0.0 && at.z >= 0.0)
+                {
+                    int3 cell = int3(at);
+                    if (cell.x < Cells.x && cell.y < Cells.y && cell.z < Cells.z)
+                    {
+                        int index = (((cell.z * Cells.y) + cell.y) * Cells.x) + cell.x;
+                        int upto = (int)Reach.Load(index + 1);
+                        for (int entry = (int)Reach.Load(index); entry < upto; entry++)
+                        {
+                            int one = (int)Reach.Load(Cells.w + entry) * 3;
+                            float4 where = Points.Load(one);
+                            float4 tint = Points.Load(one + 1);
+                            float zero = Points.Load(one + 2).x;
+                            float3 offset = where.xyz - near;
+                            float squared = dot(offset, offset);
+                            if (squared >= where.w * where.w)
+                            {
+                                continue;
+                            }
+
+                            float distance = sqrt(squared);
+                            float ratio = distance / where.w;
+                            float fade = max(0.0, 1.0 - (ratio * ratio * ratio * ratio));
+                            float divisor = (distance / tint.w) + 1.0;
+                            float attenuation = min(10.0, zero * fade * fade / (divisor * divisor));
+                            if (attenuation > 0.0)
+                            {
+                                total += tint.rgb * attenuation;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return total + (AirLight.rgb * ambient.a) + ambient.rgb;
+        }
+        """;
+
+    /// <summary>
+    /// A screen program drawn over the whole picture (ModelGpu's fog pass): the pass's values set for <c>ShadeRun</c>, its light laid over the
+    /// picture by its cover.
+    /// </summary>
+    /// <remarks>
+    /// THE SOLID DEPTH BEHIND THE PIXEL put back into the picture's frame through Clip's inverse - the engine's UnprojectPixelDepth, as the
+    /// water's GetViewPoint is (SolidAt) - and nothing drawn where nothing solid lies behind: CHOSEN, the fog lying over the scene and not the
+    /// empty ground round a stage, which the game never shows. CameraPos is the eye in perspective; on a parallel view, which the engine never
+    /// draws, a point far back along the view from each pixel's surface (CHOSEN), so the layers' rays run as the view does. Its light exposed
+    /// and graded as a mixed layer's is and laid over the picture as one is (CHOSEN: the engine's lies under the grade, in its own smaller
+    /// target - DownScaledAlphaBlend).
+    /// </remarks>
+    public const string Screened = """
+        float4 ProgramScreen(float4 position : SV_Position) : SV_Target
+        {
+            float held = Behind.Load(int3(position.xy, 0));
+            if (!(held > 0.0))
+            {
+                discard;
+            }
+
+            uint width;
+            uint height;
+            Behind.GetDimensions(width, height);
+            float4 back = mul(float4(((position.x / width) * 2.0) - 1.0, 1.0 - ((position.y / height) * 2.0), held, 1.0), Unclip);
+            float3 surface = back.w != 0.0 ? back.xyz / back.w : float3(0.0, 0.0, 0.0);
+            float3 camera = Viewer.w > 0.5 ? Viewer.xyz : surface - (Eye.xyz * 100000.0);
+            float3 shift = float3(AirOrigin.xy, 0.0);
+            ShadeScreenCamera = camera + shift;
+            ShadeScreenSurface = surface + shift;
+            ShadeScreenPixel = position.xy;
+            ShadeScreenFog = AirFog;
+            ShadeScreenShape = AirShape.xy;
+            ShadeScreenPlayer = AirPlayer.xyz;
+            ShadeOut said = ShadeRun(Wrap, float2(0.0, 0.0), surface, float3(0.0, 0.0, -1.0), float4(1.0, 1.0, 1.0, 1.0), held, Clock.x, Eye, Dust.xyz, Water, Flow, Wind, Shore, Swell, Viewer);
+            float cover = saturate(said.alpha);
+            if (!(cover > 0.0))
+            {
+                discard;
+            }
+
+            float3 exposed = said.colour * Finish.x;
+            float3 shown = Srgb(Ambient.y != 0 ? Graded3(exposed) : exposed);
+            return float4(shown * cover, cover);
+        }
+        """;
 
     /// <summary>The pass that turns the premultiplied float target into the straight bytes ImGui shows.</summary>
     /// <remarks>

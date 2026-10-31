@@ -392,6 +392,13 @@ public sealed partial class ModelGpu : IDisposable
         // THE SAME LISTS AS THE LAST YES, nothing landed since: the same answer, without walking a room's
         // thousands of runs again every frame. A program's shader, once in, stays while its program does.
         _programs.Pump();
+
+        // THE FOG'S SHADER FIRST, outside the lists the answer is kept by: the light that carries it changes with the panel's switches.
+        if (!FogReady(scene.Light, out why))
+        {
+            return false;
+        }
+
         bool lit = scene.Light is not null;
         if (_canFor is { } was && ReferenceEquals(was.Mesh, scene.Mesh) && ReferenceEquals(was.Skin, scene.Skin)
             && ReferenceEquals(was.Skins, scene.Skins) && ReferenceEquals(was.Blends, scene.Blends) && ReferenceEquals(was.Shades, scene.Shades)
@@ -807,6 +814,12 @@ public sealed partial class ModelGpu : IDisposable
             }
         }
 
+        // THE SCREEN-SPACE FOG OVER THE PICTURE, its player the camera's focus - see ModelGpu.Fog.
+        if (light is not null && Fogs(light) is { } fogged)
+        {
+            Fogged(context, target, light, fogged, scene.Pose?.Focus ?? ((mesh.Least + mesh.Most) * 0.5f));
+        }
+
         // THE CASTERS ONCE THE PICTURE IS DRAWN, for the next frame's receivers - see ModelGpu.Wet.
         if (wets)
         {
@@ -1016,6 +1029,7 @@ public sealed partial class ModelGpu : IDisposable
         _scene.Dispose();
         _part.Dispose();
         _frame.Dispose();
+        _air?.Dispose();
         _layout.Dispose();
         _straight.Dispose();
         _whole.Dispose();

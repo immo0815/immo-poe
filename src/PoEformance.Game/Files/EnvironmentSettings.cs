@@ -85,6 +85,25 @@ public sealed record EnvironmentSettings(
     /// </remarks>
     public IReadOnlyList<EnvironmentValue> All { get; init; } = [];
 
+    /// <summary>
+    /// <c>screenspace_fog.ssf_color</c> with <c>ssf_color_alpha</c> in w - what the screen-space fog's SSFColor reads, the pass's ssf_color - or
+    /// null where the file sets no colour; an alpha it leaves out is nought.
+    /// </summary>
+    /// <remarks>
+    /// THE ALPHA BESIDE THE COLOUR, a reading: common.ffx declares <c>float4 ssf_color</c> and the file writes three numbers and
+    /// <c>ssf_color_alpha</c> apart, as it writes every colour and its alpha. The Red Vale's: (0.13898, 0.10869, 0.11924) and 0.1.
+    /// </remarks>
+    public Vector4? FogColour { get; init; }
+
+    /// <summary>
+    /// <c>screenspace_fog.ssf_disperse_radius</c> and <c>ssf_feathering</c> - the pass's ssf_disperse_radius_feathering, what
+    /// SSFDisperseRadiusFeathering reads - or null where the file sets neither; one it leaves out is nought.
+    /// </summary>
+    public Vector2? FogShape { get; init; }
+
+    /// <summary><c>area.player_environment_ao</c>: the weather attachment the game puts on the player (the screen-space fog's) - or empty.</summary>
+    public string PlayerEnvironmentAo { get; init; } = string.Empty;
+
     /// <summary>Nothing read.</summary>
     public static EnvironmentSettings None { get; } = new(
         string.Empty, null, null, null, null, null, null, null, string.Empty, string.Empty, null, null, null, null, null, null, null, string.Empty, null, "no environment");
@@ -170,6 +189,9 @@ public sealed record EnvironmentSettings(
             JsonElement sun = Section(root, "directional_light");
             JsonElement player = Section(root, "player_light");
             JsonElement mapping = Section(root, "environment_mapping");
+            JsonElement fog = Section(root, "screenspace_fog");
+            float? radius = Number(fog, "ssf_disperse_radius");
+            float? feathering = Number(fog, "ssf_feathering");
             return new EnvironmentSettings(
                 path ?? string.Empty,
                 Colour(sun, "colour"),
@@ -193,6 +215,9 @@ public sealed record EnvironmentSettings(
             {
                 Water = Values(Section(root, "water")),
                 All = Every(root),
+                FogColour = Colour(fog, "ssf_color") is { } tint ? new Vector4(tint, Number(fog, "ssf_color_alpha") ?? 0f) : null,
+                FogShape = radius is null && feathering is null ? null : new Vector2(radius ?? 0f, feathering ?? 0f),
+                PlayerEnvironmentAo = Text(Section(root, "area"), "player_environment_ao"),
             };
         }
         catch (JsonException fault)

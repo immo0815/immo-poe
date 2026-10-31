@@ -103,7 +103,31 @@ public static partial class CaptureLightExtras
     private const int Run = 256;
 
     /// <summary>The tags of the list lines, which <see cref="Replay"/> reads back.</summary>
-    private static readonly string[] Tags = ["key", "env", "source", "graph", "program", "string", "texture", "decoded", "undecoded", "pane", "roof", "rooffile"];
+    private static readonly string[] Tags = ["key", "env", "source", "graph", "program", "string", "texture", "decoded", "undecoded", "pane", "roof", "rooffile", "attach", "shapefile"];
+
+    /// <summary>
+    /// Every material among the attachment's files written whole whose graphs are all there too, compiled again as a screen program
+    /// (ShadeProgram.CompileScreen) - the fog's pass held against today's compiler without the install.
+    /// </summary>
+    private static void Recompiled(Dictionary<string, StringBuilder> files, StringBuilder said)
+    {
+        foreach ((string path, StringBuilder held) in files.Where(one => one.Key.EndsWith(".mat", StringComparison.OrdinalIgnoreCase)).OrderBy(one => one.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            IReadOnlyList<ShaderInstance> instances = ShaderGraph.Instances(Encoding.UTF8.GetBytes(held.ToString()));
+            string[] missing = [.. instances.Select(one => Clean(one.Parent)).Where(parent => !files.ContainsKey(parent))];
+            if (instances.Count == 0 || missing.Length > 0)
+            {
+                said.Append(CultureInfo.InvariantCulture, $"  material {path}: {(instances.Count == 0 ? "no graph instances" : "its graphs not written whole - " + string.Join(", ", missing))}").AppendLine();
+                continue;
+            }
+
+            ShadeCompile compiled = ShadeProgram.CompileScreen(
+                [.. instances.Select(one => (one, ShaderGraph.Read(Encoding.UTF8.GetBytes(files[Clean(one.Parent)].ToString()))))]);
+            said.Append(CultureInfo.InvariantCulture, $"  material {path}: ").AppendLine(compiled.Program is { } program
+                ? string.Create(CultureInfo.InvariantCulture, $"compiled as a screen program - {program.Registers} registers, reads the clock {program.UsesTime}, textures {string.Join(", ", program.Textures.Select(one => one.Path))}")
+                : "not a screen program - " + string.Join("; ", compiled.Skipped));
+        }
+    }
 
     private static readonly JsonDocumentOptions Lenient = new()
     {
@@ -966,6 +990,10 @@ public static partial class CaptureLightExtras
         ArgumentNullException.ThrowIfNull(text);
         var records = Tags.ToDictionary(tag => tag, _ => new List<string[]>(), StringComparer.Ordinal);
         var whole = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
+        // THE ATTACHMENT'S FILES WRITTEN WHOLE, by path - its pass compiled again from them below.
+        var attached = new Dictionary<string, StringBuilder>(StringComparer.OrdinalIgnoreCase);
+        StringBuilder? reading = null;
         string section = "0";
         foreach (string raw in text.Split('\n'))
         {
@@ -980,6 +1008,7 @@ public static partial class CaptureLightExtras
                 }
 
                 section = line[4..digits];
+                reading = null;
                 continue;
             }
 
@@ -994,6 +1023,13 @@ public static partial class CaptureLightExtras
                 }
 
                 paths.Add(path);
+                reading = section == "7" ? attached[path] = new StringBuilder() : null;
+                continue;
+            }
+
+            if (reading is not null && line.StartsWith("  | ", StringComparison.Ordinal))
+            {
+                reading.AppendLine(line[4..]);
                 continue;
             }
 
@@ -1099,6 +1135,19 @@ public static partial class CaptureLightExtras
                 said.Append(CultureInfo.InvariantCulture, $"    {Field(roof, 1)}: {Field(roof, 2)} shapes, {Field(roof, 3)} triangles, from {Field(roof, 4)}").AppendLine(Whole("6").Contains(Field(roof, 1)) ? " - whole" : string.Empty);
             }
         }
+
+        said.AppendLine().AppendLine("=== 7. the player's environment attachment: its files, the model's own shape materials, and its passes compiled again from the files written whole");
+        foreach (string[] attach in records["attach"])
+        {
+            said.Append(CultureInfo.InvariantCulture, $"  {Field(attach, 0)}  ({Field(attach, 1)}{(Field(attach, 4).Length > 0 ? ", " + Field(attach, 4) : string.Empty)}), hop {Field(attach, 2)} from {Field(attach, 3)}").AppendLine();
+        }
+
+        foreach (string[] shape in records["shapefile"])
+        {
+            said.Append(CultureInfo.InvariantCulture, $"  shape's file {Field(shape, 0)}  ({Field(shape, 1)}{(Field(shape, 4).Length > 0 ? ", " + Field(shape, 4) : string.Empty)}), hop {Field(shape, 2)} from {Field(shape, 3)}").AppendLine();
+        }
+
+        Recompiled(attached, said);
 
         said.AppendLine().AppendLine("=== 10. the files naming the roof fade's words, by kind - and each roof fade word with how many files' lines name it");
         foreach (IGrouping<string, string[]> kind in roofFiles.GroupBy(one => Path.GetExtension(Field(one, 0)).ToLowerInvariant()).OrderByDescending(group => group.Count()))

@@ -500,7 +500,7 @@ public static class CaptureParts
             + "fade's or the see-through fade's nodes, or whose path names cloud, fog or roof, whole; the game's program's strings naming "
             + "them; the textures those name with their headers, the first decoded as pictures beside it; and the materials the model "
             + "panes' models wear whose .mat says \"roofsection\": true, with the shapes and triangles wearing each. Then the object the "
-            + "area's .env attaches to the player for its weather, hop by hop, the fog's missing fragments, the engine's noise candidates "
+            + "area's .env attaches to the player for its weather, hop by hop, its model's own shape materials with their graphs whole, the fog's missing fragments, the engine's noise candidates "
             + "whole beside it, and every object script, tile, room and effect file naming the roof fade's own words (roof_fade_cylinder, "
             + "no_roof_fade, HideRoof and their kin) with its lines. Each section bounded, saying what it cut. What the four are built from "
             + "next, out of the engine's own code."),

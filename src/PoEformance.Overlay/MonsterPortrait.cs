@@ -888,6 +888,11 @@ public sealed class MonsterPortrait
 
     private int _occludedSaidFor = -1;
 
+    /// <summary>The line under a card's picture the screen-space fog is laid over - see SceneLight.Fog and ModelGpu's Fogged.</summary>
+    private const string FogDrawn = "screen-space fog: the area's weather attachment's pass (ScreenspaceFogFlat.fxgraph and its group, compiled from its"
+        + " own files) laid over the picture - CHOSEN: the camera's focus stands for the player, drawn at the picture's own size, exposed and"
+        + " graded as a mixed layer, none where nothing solid lies behind, its sun's shadow sampled a texel apart, no clouds yet; the card's alone";
+
     /// <summary>
     /// A list with every program that has one swapped for its twin whose spray reads the stone's own occlusion (ShadeProgram.Occluded) -
     /// the light panel's "spray from occlusion"; the list itself where none has one. Both drawings take it.
@@ -2743,6 +2748,15 @@ public sealed class MonsterPortrait
             _status.Add(_occludedSaid);
         }
 
+        // THE SCREEN-SPACE FOG, the card's alone (SceneLight.Fog): whether this picture shows it, or why there is none.
+        if (_drawnLight?.Fog is { } fog)
+        {
+            _status.Add(!fog.Ready ? fog.Said[0]
+                : !_onCard ? "screen-space fog: not drawn - the processor's picture leaves it out (the card's alone)"
+                : Card?.Gpu?.FogWhy is { Length: > 0 } failed ? "screen-space fog: not drawn - " + failed
+                : FogDrawn);
+        }
+
         // WHERE THE FILES WENT, and it stays up until the next export rather than flashing: the
         // whole point of the button is that somebody then goes and finds what it wrote.
         if (_exported.Length > 0)
@@ -3846,8 +3860,9 @@ public sealed class MonsterPortrait
     /// <summary>Whether a shade program the picture is drawn with reads <c>Time</c> - or a ship sways in it. Worked out once per list, since it is asked every frame.</summary>
     private bool HasClock()
     {
-        // A SWAY RUNS WITH THE CLOCK, on the card - the processor's picture stands still, and says so.
-        if (_model.Sways.Count > 0 && _onCard)
+        // A SWAY RUNS WITH THE CLOCK, on the card - the processor's picture stands still, and says so. So does the screen-space fog,
+        // which drifts and rises with it (SceneLight.Fog: ScreenspaceFogFlat reads Time), drawn by the card alone.
+        if ((_model.Sways.Count > 0 || _drawnLight?.Fog is { Ready: true, Program.UsesTime: true }) && _onCard)
         {
             return true;
         }
