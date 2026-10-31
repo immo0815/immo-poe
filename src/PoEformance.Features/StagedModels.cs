@@ -347,6 +347,7 @@ public static class StagedModels
             Clocked = Union(tile.Clocked, actor.Clocked),
             Shades = Shades(tile, actor, gloss: false),
             GlossShades = Shades(tile, actor, gloss: true),
+            RoofSections = Roofs(tile, actor),
             ShadedBy = tile.ShadedBy + actor.ShadedBy,
             Bytes = tile.Bytes + actor.Bytes,
             Files = tile.Files + actor.Files,
@@ -540,6 +541,29 @@ public static class StagedModels
         for (var one = tiles; one < all.Length; one++)
         {
             all[one] = one - tiles < second.Count ? second[one - tiles] : null;
+        }
+
+        return all;
+    }
+
+    /// <summary>The stage's roof sections and the monster's, in the joined mesh's shape order - see MonsterModel.RoofSections.</summary>
+    private static IReadOnlyList<bool> Roofs(MonsterModel tile, MonsterModel actor)
+    {
+        if (tile.RoofSections.Count == 0 && actor.RoofSections.Count == 0)
+        {
+            return [];
+        }
+
+        int tiles = tile.Mesh.Shapes.Count;
+        var all = new bool[tiles + actor.Mesh.Shapes.Count];
+        for (var one = 0; one < tiles && one < tile.RoofSections.Count; one++)
+        {
+            all[one] = tile.RoofSections[one];
+        }
+
+        for (var one = 0; one < actor.Mesh.Shapes.Count && one < actor.RoofSections.Count; one++)
+        {
+            all[tiles + one] = actor.RoofSections[one];
         }
 
         return all;

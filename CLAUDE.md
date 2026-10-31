@@ -756,6 +756,17 @@ shown ones are StSW_01's at 21, 36 - the Tile reading fits, as would a reach dow
 the pieces, the ground, the hidden list and their shadows' pixels); version 1 replays with the pieces' corners alone. NEXT, before a rule:
 captures where the readings disagree - a tree of ANOTHER piece standing between the camera and the player, and a tree of HIS piece far up the
 screen or to its side - each standing still a few seconds, "game picture" ticked, the Monster Book on the area round you.
+THE PANE HIDES THEM (v0.1.387, asked for from the live client overnight: "build everything as far as possible", the rule left to the
+captures). A shape is a roof section where its .mat says so (`MonsterModel.RoofSections`, read where the shapes are compiled,
+`MonsterModels.Shaded`, and carried through a staged monster's join), and the light panel's "atmosphere" fold has "roof fade", on by default
+(`MonsterPortrait.SceneRoofFade`, `RoofFade`): every roof section of the tile piece the camera's focus stands on is left out whole, on both
+drawings (`MaterialBlend.Hidden`: neither drawn nor cast - as a shadow caster alone a tree's cut-out leaves cast square shadows) - a piece's
+footprint its ground's box (its shapes named "ground of" and the piece's source), its own shapes' where it lays no ground. CHOSEN and said
+under the picture until roof-fade.txt settles them: the reading (the piece the player stands on fades whole), the focus as the player, the
+shadow gone with the section (the engine's shadow pass taken to read the object's roof_fade too), hidden at once rather than dissolving
+through roof_fade.fxgraph's speckle, and an object's own roof sections left drawn. The processor's sun map is kept for the same blends only
+(it was kept for the same mesh and sun alone, so a blend switched since cast on as before). A capture's panes hand on the blends
+unfaded (`MonsterPortrait.Unfaded`), so roof-fade.txt still draws every section against the game.
 
 ## Verify against the game, not against yourself
 

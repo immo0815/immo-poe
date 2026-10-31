@@ -797,9 +797,65 @@ public sealed class MonsterPortrait
     public bool Masked { get; set; }
 
     /// <summary>
-    /// The blends handed to the picture: all of them, the solid-or-absent ones only, or none.
+    /// The blends handed to the picture: <see cref="Unfaded"/>'s, with the roof sections round the camera's focus left out whole where the
+    /// light panel's "roof fade" is on (RoofFade - the piece under the focus fades whole, CHOSEN until roof-fade.txt settles it).
     /// </summary>
+    /// <remarks>
+    /// A NEW LIST ONLY WHEN THE PIECES UNDER THE FOCUS CHANGE: both drawings compare the list they were drawn with by reference, so the
+    /// picture is drawn again when the focus crosses onto another piece, and not on every step of a drag.
+    /// </remarks>
     private IReadOnlyList<MaterialBlend>? Blends()
+    {
+        IReadOnlyList<MaterialBlend>? own = Unfaded();
+        if (SceneRoofFade?.Invoke() != true || Roofs() is not { } roofs || !_view.Valid)
+        {
+            _roofsHolding = [];
+            return own;
+        }
+
+        int[] holding = roofs.Holding(_view.Focus);
+        if (!ReferenceEquals(_fadedOf, own) || !holding.AsSpan().SequenceEqual(_roofsHolding) || (_faded is null && holding.Length > 0))
+        {
+            _fadedOf = own;
+            _roofsHolding = holding;
+            _faded = roofs.Faded(own, _model.Mesh.Shapes.Count, holding);
+        }
+
+        return holding.Length == 0 ? own : _faded;
+    }
+
+    /// <summary>The roof sections of the model shown by tile piece, worked out once a model - see RoofFade - or null where it has none.</summary>
+    private RoofFade? Roofs()
+    {
+        if (!ReferenceEquals(_roofsOf, _model))
+        {
+            _roofsOf = _model;
+            _roofs = RoofFade.Of(_model);
+            _fadedOf = null;
+            _faded = null;
+            _roofsHolding = [];
+        }
+
+        return _roofs;
+    }
+
+    private MonsterModel? _roofsOf;
+    private RoofFade? _roofs;
+    private IReadOnlyList<MaterialBlend>? _fadedOf;
+    private IReadOnlyList<MaterialBlend>? _faded;
+    private int[] _roofsHolding = [];
+
+    /// <summary>
+    /// Whether the roof sections round the camera's focus are hidden - the light panel's "roof fade", asked whether the game's light is on or
+    /// not, like the dust; null for never. See RoofFade.
+    /// </summary>
+    public Func<bool>? SceneRoofFade { get; set; }
+
+    /// <summary>
+    /// The blends handed to the picture before the roof fade: all of them, the solid-or-absent ones only, or none - and what a capture's pane
+    /// is drawn with, every roof section in it (CaptureRoofFade measures what the game hides against them).
+    /// </summary>
+    private IReadOnlyList<MaterialBlend>? Unfaded()
     {
         IReadOnlyList<MaterialBlend> all = _model.Blends;
         if (Translucent)
@@ -1809,7 +1865,7 @@ public sealed class MonsterPortrait
             Water = Watered(under),
             Clock = _clock,
             Ink = Ink,
-            Blends = Blends(),
+            Blends = Unfaded(),
             Positions = positions,
             Normals = normals,
         };
@@ -2540,7 +2596,7 @@ public sealed class MonsterPortrait
         bool Shown(int shape)
         {
             MaterialBlend blend = blends is not null && shape < blends.Count ? blends[shape] : MaterialBlend.Opaque;
-            return blend != MaterialBlend.ShadowOnly
+            return blend is not (MaterialBlend.ShadowOnly or MaterialBlend.Hidden)
                 && !(blend == MaterialBlend.Cutout && shades is not null && shape < shades.Count && shades[shape] is { } cutting && cutting.CutAway(cutting.Cut));
         }
 
@@ -2770,6 +2826,12 @@ public sealed class MonsterPortrait
             _status.Add(!_onCard ? "clouds: not drawn - the processor's picture leaves them out (the card's alone)"
                 : ShadeProgram.Distortion is null ? "clouds: not drawn yet - their noise, muddle_double.dds, is not in: " + ShadeProgram.CausticsSaid
                 : CloudsDrawn);
+        }
+
+        // THE ROOF FADE, both drawings' (RoofFade): which pieces' roof sections are hidden round the focus, and what the reading takes as given.
+        if (SceneRoofFade?.Invoke() == true && Roofs() is { } roofs)
+        {
+            _status.Add(roofs.Said(_roofsHolding));
         }
 
         // WHERE THE FILES WENT, and it stays up until the next export rather than flashing: the

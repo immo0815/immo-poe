@@ -132,6 +132,9 @@ public sealed class SceneLightPanel : IMovableSun
     /// <summary>Whether the clouds the area's .env sets throw their shadow on the sun's light - see <see cref="Clouded"/>.</summary>
     private bool _clouds = true;
 
+    /// <summary>Whether the roof sections round the camera's focus are hidden, as the game hides them round the player - see <see cref="RoofFade"/>.</summary>
+    private bool _roofFade = true;
+
     /// <summary>The clouds of the environment <see cref="_cloudsPath"/> names, or null with why in <see cref="_cloudsWhy"/> - read once per environment.</summary>
     private AreaClouds? _areaClouds;
 
@@ -444,7 +447,7 @@ public sealed class SceneLightPanel : IMovableSun
             }
         }
 
-        if (Fold(Count("atmosphere", _fog, _clouds) + "###scene-fold-air", open: false))
+        if (Fold(Count("atmosphere", _fog, _clouds, _roofFade) + "###scene-fold-air", open: false))
         {
             try
             {
@@ -653,6 +656,11 @@ public sealed class SceneLightPanel : IMovableSun
                 + " the candidates held against the game's picture in two captures, clearly in the second, with clouds_velocity (cos a, sin a) of"
                 + " the .env's angle, which the engine's formula drifts the shadow against. CHOSEN: on a stage the camera's focus stands for the"
                 + " player. The card's alone.");
+            Switch("roof fade##scene-roof", ref _roofFade,
+                "The roof sections the game hides round the player - trees, canopies and roofs whose material says \"roofsection\" - hidden round"
+                + " the camera's focus, on both drawings. CHOSEN until the capture's roof-fade part settles it: every roof section of the tile"
+                + " piece the focus stands on is hidden (RoofFadeMode \"Tile\"'s reading; one capture of The Red Vale fits it, and fits a reach"
+                + " down the screen too), its shadow gone with it, at once rather than dissolving; an object's own roof sections stay drawn.");
         }
         finally
         {
@@ -661,7 +669,10 @@ public sealed class SceneLightPanel : IMovableSun
     }
 
     /// <summary>The air's switches' visible labels, for their columns.</summary>
-    private static readonly string[] AirLabels = ["fog", "clouds"];
+    private static readonly string[] AirLabels = ["fog", "clouds", "roof fade"];
+
+    /// <summary>Whether the roof sections round the camera's focus are hidden - the "roof fade" switch, asked by the panes every frame (MonsterPortrait.SceneRoofFade).</summary>
+    public bool RoofFade() => _roofFade;
 
     /// <summary>The fog the environment in use names, read and compiled once per environment - see ScreenFog.Of.</summary>
     /// <remarks>
@@ -1298,6 +1309,7 @@ public sealed class SceneLightPanel : IMovableSun
             lines.AddRange(Fogged().Said);
         }
 
+        lines.Add(_roofFade ? "roof fade: the roof sections of the tile piece under the focus hidden (CHOSEN reading)" : "roof fade: off");
         lines.Add(!_clouds ? "clouds: off"
             : Clouded() is not { } clouds ? "clouds: none - " + _cloudsWhy
             : string.Create(CultureInfo.InvariantCulture,

@@ -994,6 +994,41 @@ public class CaptureAtGameTests
         Assert.Null(CaptureRoofFade.PieceOf("Art/Models/tree.ao", tiles, null));
     }
 
+    /// <summary>
+    /// A shape hidden whole (MaterialBlend.Hidden, the pane's roof fade) draws as the mesh without it - neither seen nor casting its shadow -
+    /// and a canvas that drew the stage with the shape casting draws it hidden as a fresh one does: the processor's sun map is kept for the
+    /// same blends only.
+    /// </summary>
+    [Fact]
+    public void AHIDDENShapeDrawsAsTheMeshWithoutItOnAKeptCanvasToo()
+    {
+        CapturePane pane = Stage(MaterialBlend.Opaque, sunWay: Vector3.Normalize(new Vector3(-0.5f, -0.5f, 1f)), patterned: true);
+        WorldSnapshot shot = Shot(player: new Vector3(5000f, 9000f, 0f));
+        CaptureAtGame own = CaptureAtGame.Draw(pane, shot, null, Width, Height, null, out _)!;
+        SkinnedMesh mesh = pane.Model.Mesh;
+        int rock = pane.Model.ShapeMaterials.ToList().IndexOf("Art/rock.mat");
+        MaterialBlend[] hidden = [.. Enumerable.Range(0, mesh.Shapes.Count).Select(shape => shape == rock ? MaterialBlend.Hidden : pane.Blends![shape])];
+        int[] shapeOf = CaptureAtGame.ShapesOf(mesh);
+
+        byte[] withHidden = own.Redrawn(mesh, hidden);
+        Assert.Equal(own.Redrawn(mesh.Keeping([.. shapeOf.Select(shape => shape != rock)]), pane.Blends!), withHidden);
+        Assert.NotEqual(own.Redrawn(mesh, pane.Blends!), withHidden);
+
+        // ONE CANVAS, drawn first with the rock casting and then with it hidden, against a fresh canvas.
+        MeshPicture.Canvas Canvas() => new(own.Side)
+        {
+            Lens = MeshPicture.Camera.Through(own.Camera, own.Origin, own.Side, default, 1f / own.Factor),
+            Rows = own.DrawnHeight,
+            Light = pane.Light,
+        };
+
+        MeshPicture.Canvas kept = Canvas();
+        _ = MeshPicture.Of(mesh, kept, skins: pane.Model.Skins, blends: pane.Blends);
+        byte[] again = MeshPicture.Of(mesh, kept, skins: pane.Model.Skins, blends: hidden).Rgba;
+        byte[] fresh = MeshPicture.Of(mesh, Canvas(), skins: pane.Model.Skins, blends: hidden).Rgba;
+        Assert.Equal(fresh, again);
+    }
+
     /// <summary>A stage with no roof section says so and keeps no numbers.</summary>
     [Fact]
     public void ASTAGEWithoutRoofSectionsSaysSo()

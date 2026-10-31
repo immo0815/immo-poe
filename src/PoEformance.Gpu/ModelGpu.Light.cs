@@ -236,7 +236,8 @@ public sealed partial class ModelGpu
         foreach (Run run in runs)
         {
             // NOR A CUT-OUT SHAPE ITS PROGRAM CUTS AWAY AT EVERY PIXEL - MeshPicture's Casts, ShadeProgram.FixedAlpha.
-            if (run.Blend is MaterialBlend.Alpha or MaterialBlend.Additive
+            // NOR A SHAPE HIDDEN WHOLE - a roof section round the focus, RoofFade.
+            if (run.Blend is MaterialBlend.Alpha or MaterialBlend.Additive or MaterialBlend.Hidden
                 || (run.Blend == MaterialBlend.Cutout && run.Shade >= 0 && programs[run.Shade].CutAway(programs[run.Shade].Cut)))
             {
                 continue;

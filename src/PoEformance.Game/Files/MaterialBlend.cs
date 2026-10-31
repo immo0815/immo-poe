@@ -32,6 +32,15 @@ public enum MaterialBlend : byte
     /// of its own to show, so the picture leaves it out rather than painting it black.
     /// </remarks>
     ShadowOnly,
+
+    /// <summary>
+    /// Neither drawn nor casting a shadow: a shape the picture leaves out whole - a roof section the game hides round the player (RoofFade).
+    /// </summary>
+    /// <remarks>
+    /// NO MATERIAL IS READ AS IT: a model's own blends never hold it, only the pane's list with the roof fade laid on it. Not ShadowOnly,
+    /// which casts every triangle whole - a tree's cut-out leaves hidden so cast square shadows.
+    /// </remarks>
+    Hidden,
 }
 
 /// <summary>

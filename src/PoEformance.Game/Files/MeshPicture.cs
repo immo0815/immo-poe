@@ -513,7 +513,7 @@ public static class MeshPicture
         internal ShadowMap? Shadow { get; set; }
 
         /// <inheritdoc cref="Shadow"/>
-        internal (SkinnedMesh Mesh, Vector3 Direction, int Side)? ShadowFor { get; set; }
+        internal (SkinnedMesh Mesh, IReadOnlyList<MaterialBlend>? Blends, Vector3 Direction, int Side)? ShadowFor { get; set; }
 
         internal byte[] Pixels { get; }
 
@@ -1082,7 +1082,7 @@ public static class MeshPicture
         // A POINT'S DEPTH IS THE VIEW'S THIRD COLUMN, the way into the picture - see ShadeProgram.Eye.
         var eye = new Vector4(view.M13, view.M23, view.M33, view.M43);
         ShadowMap? shadow = scene is { SunShadows: true } && scene.SunColour != Vector3.Zero
-            ? Shadowed(canvas, mesh, places, positions == mesh.Positions, triangles, scene.SunDirection, scene.ShadowSide, palette, programs)
+            ? Shadowed(canvas, mesh, blends, places, positions == mesh.Positions, triangles, scene.SunDirection, scene.ShadowSide, palette, programs)
             : null;
         var drawn = new Drawn(mesh, triangles, lamp, ink, palette, translucent, programs, stride, places, turns, ticking, clocked, eye)
         {
@@ -1624,11 +1624,13 @@ public static class MeshPicture
     }
 
     private static ShadowMap? Shadowed(
-        Canvas canvas, SkinnedMesh mesh, Vector3[] places, bool still, int triangles, Vector3 direction, int side, Mipmaps?[] palette,
-        ShadeProgram[] programs)
+        Canvas canvas, SkinnedMesh mesh, IReadOnlyList<MaterialBlend>? given, Vector3[] places, bool still, int triangles, Vector3 direction, int side,
+        Mipmaps?[] palette, ShadeProgram[] programs)
     {
-        if (still && canvas.ShadowFor is { } was && ReferenceEquals(was.Mesh, mesh) && was.Direction == direction && was.Side == side
-            && canvas.Shadow is not null)
+        // KEPT FOR THE SAME BLENDS TOO: what casts follows them - a roof section hidden round the focus (MaterialBlend.Hidden) casts nothing,
+        // and a translucent shape drawn solid casts where it did not.
+        if (still && canvas.ShadowFor is { } was && ReferenceEquals(was.Mesh, mesh) && ReferenceEquals(was.Blends, given) && was.Direction == direction
+            && was.Side == side && canvas.Shadow is not null)
         {
             return canvas.Shadow;
         }
@@ -1657,7 +1659,7 @@ public static class MeshPicture
             side,
             bounds);
         canvas.Shadow = map;
-        canvas.ShadowFor = still ? (mesh, direction, side) : null;
+        canvas.ShadowFor = still ? (mesh, given, direction, side) : null;
         return map;
     }
 
@@ -1727,7 +1729,7 @@ public static class MeshPicture
     /// pixel, which the engine's shadow pass clips as its drawing does (ShadeProgram.FixedAlpha).
     /// </summary>
     private static bool Casts(MaterialBlend[] blends, int[] shadeOf, bool[] cutAway, int one)
-        => !Translucent(blends[one])
+        => !Translucent(blends[one]) && blends[one] != MaterialBlend.Hidden
             && !(blends[one] == MaterialBlend.Cutout && one < shadeOf.Length && shadeOf[one] >= 0 && cutAway[shadeOf[one]]);
 
     /// <summary>Whether a triangle is drawn in the second pass - mixed or added, not solid or cut out.</summary>
@@ -1832,7 +1834,7 @@ public static class MeshPicture
         {
             byte kind;
             MaterialBlend blend = blends[one];
-            if (tops[one] > feet[one] || blend == MaterialBlend.ShadowOnly)
+            if (tops[one] > feet[one] || blend is MaterialBlend.ShadowOnly or MaterialBlend.Hidden)
             {
                 kind = 0;
             }
@@ -2085,7 +2087,7 @@ public static class MeshPicture
 
             // A CUT-OUT SHAPE IS SOLID WHERE IT IS DRAWN, so it needs neither an owner nor the
             // second pass - it rides in the first with the opaque ones. A shadow-only one is not drawn.
-            if (blend is MaterialBlend.Cutout or MaterialBlend.ShadowOnly)
+            if (blend is MaterialBlend.Cutout or MaterialBlend.ShadowOnly or MaterialBlend.Hidden)
             {
                 continue;
             }

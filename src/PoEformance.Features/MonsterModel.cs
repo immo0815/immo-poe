@@ -325,6 +325,16 @@ public sealed record MonsterModel(
     public IReadOnlyList<string> ShapeTextures { get; init; } = [];
 
     /// <summary>
+    /// Whether each shape is a roof section - its material's .mat says <c>"roofsection": true</c> - in shape order, or empty where none is.
+    /// </summary>
+    /// <remarks>
+    /// THE GAME HIDES THEM ROUND THE PLAYER (RoofFade, CaptureRoofFade): The Red Vale's trees wear OFO_BlackForestTrees01*_fadec and
+    /// RoofFade_JungleTreeBranches01c, whose .mat says so. Read where the shapes are compiled (MonsterModels.Shaded), from the shared cache
+    /// of material files, and carried through a staged monster's join.
+    /// </remarks>
+    public IReadOnlyList<bool> RoofSections { get; init; } = [];
+
+    /// <summary>
     /// What each shape of a room came from - a doodad's <c>.ao</c>, a tile piece's file, the ground under it - or empty where the model is not a room.
     /// </summary>
     /// <remarks>
@@ -653,6 +663,23 @@ public static class MonsterModels
             }
         }
 
+        // THE ROOF SECTIONS, by their own .mat - see MonsterModel.RoofSections. A mix of two grounds wears a name that is no file, and no
+        // ground is a roof; what is not a .mat (the beach's graph) says nothing.
+        bool[]? roofs = null;
+        for (var shape = 0; shape < count; shape++)
+        {
+            string material = wearing[shape];
+            string file = MaterialFile.Bare(material);
+            if (material.Length == 0 || model.Mesh.Shapes[shape].Count == 0 || GroundBlend.Parts(material, out _, out _, out _)
+                || !file.EndsWith(".mat", StringComparison.OrdinalIgnoreCase) || !paints.Paint(Counted, file).RoofSection)
+            {
+                continue;
+            }
+
+            roofs ??= new bool[count];
+            roofs[shape] = true;
+        }
+
         // WHAT STANDS IN THE SEA JOINS THE SHORE now that the materials say which shapes the sea breaks on - see RoomModels.ShoreOf.
         ShoreField? shore = model.Shore;
         if (shore is not null && Standing(Counted, model, shades, paints) is { } stands)
@@ -665,6 +692,7 @@ public static class MonsterModels
             Shore = shore,
             Shades = shades,
             GlossShades = shines ? glossy : shades,
+            RoofSections = roofs ?? (IReadOnlyList<bool>)[],
             Skins = skins ?? model.Skins,
             ShadedBy = drawn.Count,
             Unshaded = unshaded,

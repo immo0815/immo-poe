@@ -264,6 +264,34 @@ public class ModelGpuTests
             draws: 2);
     }
 
+    /// <summary>
+    /// A shape hidden whole (MaterialBlend.Hidden, the pane's roof fade) is neither drawn nor cast on the card, as on the processor - the
+    /// floor lit where the caster's shadow fell, on the frame that draws the map and the one that keeps it.
+    /// </summary>
+    [GpuFact]
+    public void AHIDDENShapeIsNeitherDrawnNorCast()
+    {
+        var light = new SceneLight([], SceneLight.PointShape.Zero, null)
+        {
+            SunColour = new Vector3(2f, 2f, 2f),
+            SunDirection = Vector3.Normalize(new Vector3(-0.4f, -1f, 0.5f)),
+            SunShadows = true,
+            FlatAmbient = 0.08f,
+        };
+        var hidden = new ModelScene(
+            Stage(),
+            Turn: -0.2f,
+            Tilt: 0.25f,
+            Skins: [Plain(new Vector4(0.5f, 0.6f, 0.7f, 1f)), Plain(Vector4.One)],
+            Blends: [MaterialBlend.Opaque, MaterialBlend.Hidden],
+            Light: light);
+        Same(hidden, draws: 2);
+
+        // AS THE FLOOR ALONE: the caster gone from the mesh altogether draws the same picture.
+        byte[] alone = Drawn(hidden with { Mesh = Stage().Keeping([true, true, false, false]), Blends = [MaterialBlend.Opaque, MaterialBlend.Opaque] });
+        Compared(alone, Drawn(hidden));
+    }
+
     /// <summary>Point lights through their grid, the player's among them, with the exposure on top.</summary>
     [GpuFact]
     public void POINTLightsAndTheExposureLightTheBoxAsTheProcessorLightsIt()

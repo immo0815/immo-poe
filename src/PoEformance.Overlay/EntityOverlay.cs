@@ -4075,6 +4075,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 SceneDust = lighting.Dust,
                 SceneWater = lighting.Water,
                 SceneFlow = RiverFlowIn,
+                SceneRoofFade = lighting.RoofFade,
                 Sun = lighting,
             }),
 
@@ -4301,6 +4302,7 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
                 SceneDust = lighting.Dust,
                 SceneWater = lighting.Water,
                 SceneFlow = RiverFlowIn,
+                SceneRoofFade = lighting.RoofFade,
                 Sun = lighting,
             }),
         };
