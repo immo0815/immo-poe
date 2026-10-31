@@ -35,6 +35,10 @@ public class RoofFadeTests
         Assert.Equal([0, 1], roofs.Holding(new Vector3(500f, 250f, 0f)));
         Assert.Equal([2], roofs.Holding(new Vector3(50f, 650f, 0f)));
         Assert.Empty(roofs.Holding(new Vector3(2000f, 2000f, 0f)));
+        Assert.True(roofs.HeldBy(new Vector3(500f, 250f, 0f), [0, 1]));
+        Assert.False(roofs.HeldBy(new Vector3(500f, 250f, 0f), [0]));
+        Assert.False(roofs.HeldBy(new Vector3(150f, 150f, 0f), []));
+        Assert.True(roofs.HeldBy(new Vector3(2000f, 2000f, 0f), []));
 
         MaterialBlend[] own = [.. Enumerable.Repeat(MaterialBlend.Opaque, model.Mesh.Shapes.Count)];
         IReadOnlyList<MaterialBlend> faded = roofs.Faded(own, model.Mesh.Shapes.Count, [1])!;

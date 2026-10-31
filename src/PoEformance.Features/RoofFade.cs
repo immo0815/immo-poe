@@ -127,14 +127,41 @@ public sealed class RoofFade
         var holding = new List<int>();
         for (var piece = 0; piece < _pieces.Length; piece++)
         {
-            Piece one = _pieces[piece];
-            if (place.X >= one.Least.X && place.X <= one.Most.X && place.Y >= one.Least.Y && place.Y <= one.Most.Y)
+            if (Holds(piece, place))
             {
                 holding.Add(piece);
             }
         }
 
         return [.. holding];
+    }
+
+    /// <summary>Whether exactly these pieces, in order, hold a place - the frame's question, asked without making a list.</summary>
+    public bool HeldBy(Vector3 place, ReadOnlySpan<int> pieces)
+    {
+        var at = 0;
+        for (var piece = 0; piece < _pieces.Length; piece++)
+        {
+            if (!Holds(piece, place))
+            {
+                continue;
+            }
+
+            if (at >= pieces.Length || pieces[at] != piece)
+            {
+                return false;
+            }
+
+            at++;
+        }
+
+        return at == pieces.Length;
+    }
+
+    private bool Holds(int piece, Vector3 place)
+    {
+        Piece one = _pieces[piece];
+        return place.X >= one.Least.X && place.X <= one.Most.X && place.Y >= one.Least.Y && place.Y <= one.Most.Y;
     }
 
     /// <summary>The roof sections of the pieces given, by their index.</summary>

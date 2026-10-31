@@ -813,15 +813,16 @@ public sealed class MonsterPortrait
             return own;
         }
 
-        int[] holding = roofs.Holding(_view.Focus);
-        if (!ReferenceEquals(_fadedOf, own) || !holding.AsSpan().SequenceEqual(_roofsHolding) || (_faded is null && holding.Length > 0))
+        // A NEW LIST ONLY WHEN THE PIECES UNDER THE FOCUS CHANGE - the frame asks without making one.
+        if (!ReferenceEquals(_fadedOf, own) || !roofs.HeldBy(_view.Focus, _roofsHolding) || (_faded is null && _roofsHolding.Length > 0))
         {
+            int[] holding = roofs.Holding(_view.Focus);
             _fadedOf = own;
             _roofsHolding = holding;
             _faded = roofs.Faded(own, _model.Mesh.Shapes.Count, holding);
         }
 
-        return holding.Length == 0 ? own : _faded;
+        return _roofsHolding.Length == 0 ? own : _faded;
     }
 
     /// <summary>The roof sections of the model shown by tile piece, worked out once a model - see RoofFade - or null where it has none.</summary>
