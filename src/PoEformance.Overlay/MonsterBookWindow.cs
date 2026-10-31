@@ -671,7 +671,24 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
 
             foreach (string piece in _player.Pieces)
             {
-                ImGui.TextUnformatted(ImGuiText.Escape(piece));
+                string hand = string.Equals(piece, _player.MainHand, StringComparison.OrdinalIgnoreCase) ? "main hand, at " + PlayerDress.MainSocket + ": "
+                    : string.Equals(piece, _player.OffHand, StringComparison.OrdinalIgnoreCase) ? "off hand, at " + PlayerDress.OffSocket + ": "
+                    : string.Empty;
+                ImGui.TextUnformatted(ImGuiText.Escape(hand + piece));
+            }
+        }
+
+        // HIS STANCE AS READ: the pack and timeline off his Actor, the sets' item stances, the idle the files give it (PlayerStance).
+        if (OverlayLayout.Subsection("his stance##monster-player-stance"))
+        {
+            foreach (string said in _player.Stance)
+            {
+                ImGui.TextDisabled(ImGuiText.Escape(said));
+            }
+
+            if (Model is { } built && built.Showing.Ready && built.Showing.Pack.Length > 0)
+            {
+                ImGui.TextDisabled(ImGuiText.Escape("animations: " + built.Showing.Pack));
             }
         }
 
@@ -692,8 +709,9 @@ public sealed class MonsterBookWindow : BookWindow<MonsterBook>
             }
 
             ImGui.TextDisabled(
-                "Not yet drawn as the game draws him: the held pieces (a weapon, a focus) until a capture reads their socket; his idle animation"
-                + " until his .act is read; the other weapon set; what a piece says to show of its siblings. He is drawn unscaled, facing as a monster faces.");
+                "Chosen, not measured: the main hand's piece at R_Weapon and the off hand's at L_Weapon, the cape at Back, each rigid there."
+                + " Not yet drawn as the game draws him: a town's idle; the other weapon set; what a piece says to show of its siblings; the held"
+                + " pieces' own animations. He is drawn unscaled, facing as a monster faces.");
         }
 
         ImGui.PopTextWrapPos();

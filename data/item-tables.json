@@ -1,6 +1,6 @@
 {
   "comment": "Column order of the three tables a unique item's NAME is joined out of, from poe-tool-dev/dat-schema (PoE2 entries; its CI republishes schema.min.json on every commit). Offsets are NOT stored - they are arithmetic over the widths in DatColumns, and recomputing them is what keeps this honest when a width is corrected; the interval rule that cost Mods a whole table is one such correction. THE JOIN: UniqueStashLayout carries a WordsKey and an ItemVisualIdentityKey, Words holds the unique's name as Text, and ItemVisualIdentity's Id is the key the game exposes on the item itself at Base+0x30 - which is why the name is reached this way round rather than from the metadata path, and why a German client still prices its uniques in English. IsAlternateArt breaks the tie where two layout rows name one art. WHAT IS NOT VERIFIED HERE, said plainly: none of these three is in the loader's file table, so unlike BaseItemTypes and Mods their row size cannot be checked against a running client. The check is the FILE's own row size, which a .dat declares by where it puts its separator, and it happens at runtime against a real install - LoadedTable.Agrees, and the readout says which way it went. The sizes these columns compute are UniqueStashLayout 83 (0x53), Words 64 (0x40), ItemVisualIdentity 968 (0x3C8). THE ITEM BOOK ADDS TWO MORE, BaseItemTypes and ItemClasses, from the same schema release: BaseItemTypes' ItemVisualIdentity column is the join from a base type to the .ao its model is in, and ItemClass is what the book groups by. BaseItemTypes computes 360 (0x168), which is byte for byte what the loader's own file table reports on a live 0.5.5 client - see BaseItemTypesRow in schema/poe2.offsets.json. ItemClasses computes 150 (0x96) and is NOT verified against the client: it is checked against the file's own row size at runtime like the other three, and ItemVisuals.Say reports which way it went.",
-  "source": "poe-tool-dev/dat-schema, release latest, read 2026-09-16 (UniqueStashLayout, Words, ItemVisualIdentity) and 2026-10-04 (BaseItemTypes, ItemClasses; schema createdAt 2026-09-15, and the three older tables compared unchanged); ItemVisualHeldBodyModel from the PoE2 schema (dat-schema/poe2/_Core.gql at 6034b07, 2026-10-29) for the player look part",
+  "source": "poe-tool-dev/dat-schema, release latest, read 2026-09-16 (UniqueStashLayout, Words, ItemVisualIdentity) and 2026-10-04 (BaseItemTypes, ItemClasses; schema createdAt 2026-09-15, and the three older tables compared unchanged); ItemVisualHeldBodyModel from the PoE2 schema (dat-schema/poe2/_Core.gql at 6034b07, 2026-10-29) for the player look part; Characters and ItemStances from the same PoE2 schema (dat-schema/poe2/_Core.gql, main, read 2026-10-31) for the player's stance (PlayerStance)",
   "tables": {
     "UniqueStashLayout": [
       {
@@ -1011,6 +1011,355 @@
       {
         "name": "column_28",
         "type": "string",
+        "array": false
+      }
+    ],
+    "Characters": [
+      {
+        "name": "Id",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "Name",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "AOFile",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "ACTFile",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "BaseMaxLife",
+        "type": "i32",
+        "array": false
+      },
+      {
+        "name": "BaseMaxMana",
+        "type": "i32",
+        "array": false
+      },
+      {
+        "name": "WeaponSpeed",
+        "type": "i32",
+        "array": false
+      },
+      {
+        "name": "MinDamage",
+        "type": "i32",
+        "array": false
+      },
+      {
+        "name": "MaxDamage",
+        "type": "i32",
+        "array": false
+      },
+      {
+        "name": "MaxAttackDistance",
+        "type": "i32",
+        "array": false
+      },
+      {
+        "name": "Icon",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "IntegerId",
+        "type": "i32",
+        "array": false
+      },
+      {
+        "name": "BaseStrength",
+        "type": "i32",
+        "array": false
+      },
+      {
+        "name": "BaseDexterity",
+        "type": "i32",
+        "array": false
+      },
+      {
+        "name": "BaseIntelligence",
+        "type": "i32",
+        "array": false
+      },
+      {
+        "name": "StartingSkill",
+        "type": "foreignrow",
+        "array": true
+      },
+      {
+        "name": "Description",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "StartSkillGem",
+        "type": "foreignrow",
+        "array": false
+      },
+      {
+        "name": "column_18",
+        "type": "rid",
+        "array": false
+      },
+      {
+        "name": "WeaponSoundType",
+        "type": "foreignrow",
+        "array": false
+      },
+      {
+        "name": "column_20",
+        "type": "i32",
+        "array": false
+      },
+      {
+        "name": "CharacterSize",
+        "type": "i32",
+        "array": false
+      },
+      {
+        "name": "IntroSoundFile",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "StartWeapons",
+        "type": "foreignrow",
+        "array": true
+      },
+      {
+        "name": "Gender",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "TraitDescription",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_26",
+        "type": "rid",
+        "array": false
+      },
+      {
+        "name": "column_27",
+        "type": "rid",
+        "array": false
+      },
+      {
+        "name": "column_28",
+        "type": "rid",
+        "array": true
+      },
+      {
+        "name": "LevelUpEffect",
+        "type": "foreignrow",
+        "array": false
+      },
+      {
+        "name": "column_30",
+        "type": "i32",
+        "array": false
+      },
+      {
+        "name": "PassiveTreeImage",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_32",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "AttrsAsId",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "LoginScreen",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "PlayerCritter",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "PlayerEffect",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "AfterImage",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "Mirage",
+        "type": "foreignrow",
+        "array": false
+      },
+      {
+        "name": "CloneImmobile",
+        "type": "foreignrow",
+        "array": false
+      },
+      {
+        "name": "ReplicateClone",
+        "type": "foreignrow",
+        "array": false
+      },
+      {
+        "name": "LightningClone",
+        "type": "foreignrow",
+        "array": false
+      },
+      {
+        "name": "column_42",
+        "type": "f32",
+        "array": false
+      },
+      {
+        "name": "column_43",
+        "type": "f32",
+        "array": false
+      },
+      {
+        "name": "SkillTreeBackground",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "Clone",
+        "type": "foreignrow",
+        "array": false
+      },
+      {
+        "name": "column_46",
+        "type": "rid",
+        "array": true
+      },
+      {
+        "name": "MirageWarrior",
+        "type": "foreignrow",
+        "array": false
+      },
+      {
+        "name": "DoubleTwo",
+        "type": "foreignrow",
+        "array": false
+      },
+      {
+        "name": "DarkExile",
+        "type": "foreignrow",
+        "array": false
+      },
+      {
+        "name": "Attr",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "AttrLowercase",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "Script",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "GhostArmMtx",
+        "type": "foreignrow",
+        "array": false
+      },
+      {
+        "name": "column_54",
+        "type": "i32",
+        "array": false
+      },
+      {
+        "name": "column_55",
+        "type": "f32",
+        "array": false
+      },
+      {
+        "name": "column_56",
+        "type": "f32",
+        "array": false
+      },
+      {
+        "name": "column_57",
+        "type": "f32",
+        "array": false
+      },
+      {
+        "name": "BaseClass",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "StartingPassive",
+        "type": "foreignrow",
+        "array": false
+      },
+      {
+        "name": "StartingWeapon",
+        "type": "foreignrow",
+        "array": false
+      },
+      {
+        "name": "CreationIcons",
+        "type": "foreignrow",
+        "array": true
+      },
+      {
+        "name": "column_62",
+        "type": "f32",
+        "array": false
+      },
+      {
+        "name": "GemCuttingIcon",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "Portrait",
+        "type": "foreignrow",
+        "array": false
+      },
+      {
+        "name": "column_65",
+        "type": "foreignrow",
+        "array": false
+      }
+    ],
+    "ItemStances": [
+      {
+        "name": "Id",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_1",
+        "type": "bool",
+        "array": false
+      },
+      {
+        "name": "column_2",
+        "type": "row",
         "array": false
       }
     ]

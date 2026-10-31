@@ -107,6 +107,29 @@ public static class PlayerPieces
         return [.. pieces.Where(one => one.Inner == SlotInner && seen.Add(one.Path))];
     }
 
+    /// <summary>
+    /// The .ao of one named slot of the composition (schema PieceSlots - MainHand, OffHand and the rest), among the slots' pieces, or empty.
+    /// </summary>
+    public static string AtSlot(IReadOnlyList<Piece> slots, OffsetSchema schema, string slot)
+    {
+        ArgumentNullException.ThrowIfNull(slots);
+        ArgumentNullException.ThrowIfNull(schema);
+        if (!schema.Structs.TryGetValue("PieceSlots", out StructDef? fields) || fields.Field(slot) is not { } field)
+        {
+            return string.Empty;
+        }
+
+        foreach (Piece one in slots)
+        {
+            if (one.At == field.Offset)
+            {
+                return one.Path;
+            }
+        }
+
+        return string.Empty;
+    }
+
     /// <summary>Whether a record's name is an .ao under Metadata/ - printable, a folder and a name.</summary>
     internal static bool IsAo(string path)
         => path.Length > 13 && path.Length <= MostChars

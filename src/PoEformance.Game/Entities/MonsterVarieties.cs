@@ -90,6 +90,17 @@ public sealed record MonsterVariety(
     /// </summary>
     [JsonIgnore]
     public IReadOnlyList<WornPiece> Worn { get; init; } = [];
+
+    /// <summary>
+    /// An <c>.ast</c> whose animations the model plays in place of its own rig's, where its bones are the rig's own - the player's stance
+    /// pack, read off his Actor (PlayerDress.Moves) - or empty.
+    /// </summary>
+    [JsonIgnore]
+    public string Moves { get; init; } = string.Empty;
+
+    /// <summary>The animation a picture of it starts with, where its rig has one of the name - the player's stance's idle - or empty.</summary>
+    [JsonIgnore]
+    public string Opening { get; init; } = string.Empty;
 }
 
 /// <summary>One piece hung on a model beside its own files' lines: its .ao and the socket it hangs at ("&lt;root&gt;" for a skin on its rig).</summary>
@@ -102,6 +113,12 @@ public sealed record WornPiece(string Socket, string Path)
     /// the player's held pieces, which name none (see PlayerDress).
     /// </summary>
     public bool SkinOnly { get; init; }
+
+    /// <summary>
+    /// Whether it hangs rigidly at its socket, its own rig never matched against its carrier's - a held weapon, a focus, a back attachment:
+    /// the wand's rig shares one bone name with the body's, and matched by it the wand stood at his feet (v0.1.395, said from the live client).
+    /// </summary>
+    public bool Held { get; init; }
 }
 
 /// <summary>One stat a modifier sets, and the range it sets it to.</summary>

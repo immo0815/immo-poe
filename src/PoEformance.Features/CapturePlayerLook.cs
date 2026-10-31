@@ -78,6 +78,7 @@ public static class CapturePlayerLook
         lines.AddRange(Looks(files, layouts, art, artWhy, seen, named));
         lines.AddRange(Drawn(layouts, art, artWhy, seen, named));
         lines.AddRange(Sockets(files, seen));
+        lines.AddRange(Stance(files, layouts, seen, Path.Combine(folder, Folder)));
         lines.AddRange(HeldBodies(files, layouts, art, seen, named));
         lines.AddRange(Survey(files, layouts, art, artWhy, seen));
         named.AddRange(seen.Pieces);
@@ -795,6 +796,125 @@ public static class CapturePlayerLook
         }
 
         return lines;
+    }
+
+    /// <summary>
+    /// His stance as the Monster Book reads it (PlayerStance over what the memory side read), the pack's every animation with its frames and
+    /// whether its bones are his rig's, and the pack's .amd and the timeline written as the install holds them - their formats unread.
+    /// </summary>
+    private static IEnumerable<string> Stance(GameFiles files, QuestTableLayouts? layouts, PlayerLook.Seen seen, string folder)
+    {
+        var lines = new List<string>
+        {
+            string.Empty,
+            "=== his stance as the Monster Book reads it (PlayerStance): the pack and timeline his Actor holds, his sets' item stances, the stance and its idle",
+        };
+        var dress = new PlayerDress(seen.Path, string.Empty, seen.Model, seen.Pieces, string.Empty)
+        {
+            MainHand = seen.MainHand,
+            OffHand = seen.OffHand,
+            Moves = seen.Moves,
+            Timeline = seen.Timeline,
+            Sets = seen.Sets,
+        };
+        PlayerDress read = PlayerStance.Resolve(files, layouts, dress);
+        lines.AddRange(read.Stance.Select(one => "  " + one));
+        lines.Add("  the idle the Monster Book starts him with: " + (read.Opening.Length > 0 ? read.Opening : "(none - his rig's own first)"));
+        if (seen.Moves.Length == 0)
+        {
+            return lines;
+        }
+
+        AnimationSkeleton pack = AnimationSkeleton.Read(files, seen.Moves);
+        string rigPath = seen.Model.Length > 0 ? RigOf(files, seen.Model) : string.Empty;
+        AnimationSkeleton rig = rigPath.Length > 0 ? AnimationSkeleton.Read(files, rigPath) : AnimationSkeleton.None;
+        string packSaid = string.Create(CultureInfo.InvariantCulture, $"  the pack {seen.Moves}: {pack.Bones.Count} bones, {pack.Animations.Count} animations");
+        string rigSaid = string.Create(CultureInfo.InvariantCulture, $"his rig {(rigPath.Length > 0 ? rigPath : "(not found)")}: {rig.Bones.Count} bones, {rig.Animations.Count} animations");
+        lines.Add(packSaid + (pack.Why.Length > 0 ? " - " + pack.Why : string.Empty) + "; " + rigSaid + " - "
+            + (MonsterModels.SameBones(rig, pack) ? "the same bones, name for name and bound alike - the pack poses his mesh"
+                : $"NOT the same bones - the pack is not taken; {Unlike(rig, pack)}"));
+        foreach (SkeletonAnimation one in pack.Animations)
+        {
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"    {one.Name}\trate {one.Rate}, {one.Tracks} tracks, {one.Length:N0} bytes of keyframes"));
+        }
+
+        // THE PACK'S METADATA AND THE TIMELINE AS THE INSTALL HOLDS THEM: no reader of either yet, so the bytes, and whether they read as text.
+        string amd = seen.Moves.EndsWith(".ast", StringComparison.OrdinalIgnoreCase) ? seen.Moves[..^4] + ".amd" : string.Empty;
+        foreach (string path in new[] { amd, seen.Timeline }.Where(one => one.Length > 0))
+        {
+            byte[]? bytes = GameArt.ReadRaw(files, path);
+            if (bytes is not { Length: > 0 })
+            {
+                lines.Add("  " + path + "\tnot in the install");
+                continue;
+            }
+
+            string to = Path.Combine(folder, path.Replace('/', Path.DirectorySeparatorChar));
+            Directory.CreateDirectory(Path.GetDirectoryName(to)!);
+            File.WriteAllBytes(to, bytes);
+            string text = StatDescriptionFiles.Decode(bytes);
+            double printable = text.Length == 0 ? 0 : text.Count(one => one is '\t' or '\n' or '\r' || (one >= ' ' && one != '�')) / (double)text.Length;
+            lines.Add(string.Create(CultureInfo.InvariantCulture,
+                $"  {path}\t{bytes.Length:N0} bytes written as the install holds them; decoded {text.Length:N0} characters, {printable:P0} printable"));
+            if (printable > 0.95)
+            {
+                lines.AddRange(text.Split('\n').Take(MostTextLines).Select(one => "    | " + one.TrimEnd('\r')));
+            }
+        }
+
+        return lines;
+    }
+
+    /// <summary>Where two rigs first part: a count, a name or a bind (its widest entry's gap past MonsterModels' hundredth), said with both halves.</summary>
+    private static string Unlike(AnimationSkeleton rig, AnimationSkeleton pack)
+    {
+        if (rig.Bones.Count != pack.Bones.Count)
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"{rig.Bones.Count} bones against {pack.Bones.Count}");
+        }
+
+        for (var one = 0; one < rig.Bones.Count; one++)
+        {
+            SkeletonBone mine = rig.Bones[one], theirs = pack.Bones[one];
+            if (!string.Equals(mine.Name, theirs.Name, StringComparison.Ordinal))
+            {
+                return string.Create(CultureInfo.InvariantCulture, $"bone {one} is {mine.Name} in his rig and {theirs.Name} in the pack");
+            }
+
+            Matrix4x4 gap = mine.Bind - theirs.Bind;
+            float widest = new[] { gap.M11, gap.M12, gap.M13, gap.M21, gap.M22, gap.M23, gap.M31, gap.M32, gap.M33, gap.M41, gap.M42, gap.M43 }
+                .Max(MathF.Abs);
+            if (widest > 0.01f)
+            {
+                return string.Create(CultureInfo.InvariantCulture,
+                    $"bone {one} ({mine.Name}) is bound otherwise, {widest:0.###} apart at the widest: at {mine.Bind.Translation} in his rig, {theirs.Bind.Translation} in the pack");
+            }
+        }
+
+        return "they agree";
+    }
+
+    /// <summary>The most lines of a text file the stance's section quotes.</summary>
+    private const int MostTextLines = 400;
+
+    /// <summary>The skeleton a model's .ao chain names (ClientAnimationController's skeleton), or empty.</summary>
+    private static string RigOf(GameFiles files, string model)
+    {
+        foreach (AnimatedObject one in Chain(files, model))
+        {
+            foreach (AoStruct block in one.Named("ClientAnimationController"))
+            {
+                foreach (AoEntry entry in block.Entries)
+                {
+                    if (string.Equals(entry.Key, "skeleton", StringComparison.Ordinal) && entry.Value.Trim() is { Length: > 0 } rig)
+                    {
+                        return rig;
+                    }
+                }
+            }
+        }
+
+        return string.Empty;
     }
 
     /// <summary>
