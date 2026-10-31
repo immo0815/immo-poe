@@ -322,6 +322,61 @@ public class LaidRoomModelsTests
     }
 
     /// <summary>
+    /// A doodad file counts as one a swap reached only where a swap changed what it wears: a vase wearing the swap's own material of its
+    /// own is no such file, though from v0.1.373 every file of a laying under a master carries the swaps - and the line under the picture
+    /// said two files where the master's swap had reached one (a review's finding).
+    /// </summary>
+    [Fact]
+    public void ADOODADFileWearingTheSwapsMaterialOfItsOwnIsNoFileASwapReached()
+    {
+        (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement: 3, selector: 0, lies: 3, flat: true);
+        const string master = "Metadata/Terrain/Test/master.tsi", pot = "Art/Models/Test/pot.fmt", vase = "Art/Models/Test/vase.fmt";
+        files[master] = Text("version 3\nTileMaterialOverrides\t\"swaps.tmo\"\n");
+        files["Metadata/Terrain/Test/swaps.tmo"] = Text("version 1\n\"Art/stone.mat\" \"Art/dry.mat\"\n");
+        files["Art/dry.mat"] = Encoding.UTF8.GetBytes("""{"version":4,"defaultgraph":{"version":3,"overriden_blend_mode":"AlphaTest"}}""");
+        files[pot] = Packed.Fmt("Art/stone.mat");
+        files[vase] = Packed.Fmt("Art/dry.mat");
+        files[RoomPath] = Text(WithDoodads("""
+            11 11 0 0 0 0 0 1 0 0 1 -115 1 "Art/Models/Test/pot.fmt" "Metadata/Test/Pot" 0
+            5 5 0 0 0 0 0 1 0 0 1 -115 1 "Art/Models/Test/vase.fmt" "Metadata/Test/Vase" 0
+            """));
+
+        MonsterModel room = LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, master: master);
+
+        Assert.True(room.Ready, room.Why);
+        Assert.Equal(["Art/dry.mat"], Worn(room, pot));
+        Assert.Equal(["Art/dry.mat"], Worn(room, vase));
+        Assert.Contains("TileMaterialOverrides (1 swaps) put on 0 of the 1 tile files and 1 of the doodad files", room.Move, StringComparison.Ordinal);
+        Assert.Equal(1, room.Account!.SwappedDoodadFiles);
+    }
+
+    /// <summary>
+    /// A laid room and the area round you carry the master they were made under and its swaps, for the capture to hold against what each
+    /// does to its material (CapturePanes) - the model keeps what its shapes wear, not what they wore; one made under no master carries none.
+    /// </summary>
+    [Fact]
+    public void ALAIDRoomAndTheAreaRoundYouCarryTheMastersSwaps()
+    {
+        (Dictionary<string, byte[]> files, TerrainGrid grid) = Area(placement: 3, selector: 0, lies: 3, flat: true);
+        const string master = "Metadata/Terrain/Test/master.tsi";
+        files[master] = Text("version 3\nTileMaterialOverrides\t\"swaps.tmo\"\n");
+        files["Metadata/Terrain/Test/swaps.tmo"] = Text("version 1\n\"Art\\stone.mat\" \"Art/dry.mat\"\n");
+
+        MonsterModel room = LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0, master: master);
+        MonsterModel around = LaidRoomModels.Block(files.GetValueOrDefault, grid, 0, 0, 3, master, shaded: false);
+        foreach (MonsterModel made in new[] { room, around })
+        {
+            Assert.True(made.Ready, made.Why);
+            Assert.Equal(master, made.MasterFile);
+            Assert.Equal("Art/dry.mat", Assert.Single(made.MasterSwaps, one => one.Key == "Art/stone.mat").Value);
+        }
+
+        MonsterModel bare = LaidRoomModels.Of(files.GetValueOrDefault, RoomPath, grid, 1, 1, 0);
+        Assert.True(bare.Ready, bare.Why);
+        Assert.Equal((string.Empty, 0), (bare.MasterFile, bare.MasterSwaps.Count));
+    }
+
+    /// <summary>
     /// The area round you, taken where the player stood, stands its monster there - in the picture's frame, the world less the block's corner -
     /// on the floor asked at that place; taken again where he stands elsewhere in it, the block's tiles are not laid again; a key naming no
     /// place stands him at the middle as before.
@@ -363,13 +418,24 @@ public class LaidRoomModelsTests
         Assert.Equal(new Vector2(50f, 420f), standing.At);
         Assert.Equal(0f, standing.Turn);
 
-        // ON THE FLOOR THERE: asked first at the place itself, which found the ground's height at the tile's 50, 170, and his origin set on it.
+        // ON THE FLOOR THERE: asked first at the place itself, which found the ground's height at the tile's 50, 170, and his origin set on it
+        // - the key, as v0.1.373 and v0.1.374 wrote it, naming no height of his. The nine floors' middle was the ring's at the tile's 134.85, 85.15.
         Assert.True(standing.Found);
         Assert.Equal(0f, standing.Floors[0].Off.Length());
         Assert.Equal(Plane(50f, 170f), standing.Floors[0].Height, 3);
+        Assert.Equal(Plane(50f, 170f), standing.Floor, 3);
         Assert.Equal(new Vector3(50f, 420f, standing.Floor), staged.ActorPlace.Translation);
         int laid = tileReads;
         Assert.True(laid > 0);
+
+        // WITH THE HEIGHT OF THE GROUND HE STOOD ON, as the key names it from v0.1.375: the floor round the place nearest it - the ring's at
+        // the tile's 50, 50, z 15, against 27 at the place itself - the picture's z being the world's; and a block taken again at another
+        // height is the one kept.
+        MonsterModel high = StagedModels.Of(Read, monster, block.ToString() + "+stood=300,420,14", terrain: () => grid, keep: keep);
+        Assert.Equal(Plane(50f, 50f), high.Standing!.Floor, 3);
+        Assert.Equal(new Vector3(50f, 420f, high.Standing.Floor), high.ActorPlace.Translation);
+        Assert.Contains("(on the floor nearest his own height there, 14)", high.StageSaid, StringComparison.Ordinal);
+        Assert.Equal(laid, tileReads);
 
         // TAKEN AGAIN WHERE HE STANDS ELSEWHERE IN THE BLOCK: the monster moves, and the block is the one kept - no tile is read again.
         MonsterModel moved = StagedModels.Of(Read, monster, block.ToString() + "+stood=400,300", terrain: () => grid, keep: keep);
@@ -384,6 +450,31 @@ public class LaidRoomModelsTests
         Vector3 box = (stage.Mesh.Least + stage.Mesh.Most) * 0.5f;
         Assert.Equal(new Vector2(box.X, box.Y), middle.Standing!.At);
         Assert.NotEqual(standing.At, middle.Standing.At);
+    }
+
+    /// <summary>
+    /// A monster staged on a lone tile drawn as its tileset carries the tileset's master and its swaps onto the stage, as one on a laid room
+    /// does - the tile wears them as a laid room's tiles do; drawn as its own, it carries none.
+    /// </summary>
+    [Fact]
+    public void ATILEDrawnAsItsTilesetCarriesTheMastersSwapsOntoItsStage()
+    {
+        (Dictionary<string, byte[]> files, _) = Area(placement: 3, selector: 0, lies: 3);
+        files[MeshPath] = Tgm(10, facingUp: true);
+        const string master = "Metadata/Terrain/Test/master.tsi", stone = "Art/Models/Test/stone.fmt";
+        files[master] = Text("version 3\nTileMaterialOverrides\t\"swaps.tmo\"\n");
+        files["Metadata/Terrain/Test/swaps.tmo"] = Text("version 1\n\"Art/stone.mat\" \"Art/dry.mat\"\n");
+        files[stone] = Packed.Fmt("Art/stone.mat");
+        var monster = new MonsterVariety(Name: "stone", AoFiles: [stone]);
+
+        MonsterModel staged = StagedModels.Of(files.GetValueOrDefault, monster, new TileKey(TilePath, Tileset: master).ToString());
+        Assert.True(staged.Staged, staged.StageSaid);
+        Assert.Equal(master, staged.MasterFile);
+        Assert.Equal("Art/dry.mat", staged.MasterSwaps["Art/stone.mat"]);
+
+        MonsterModel own = StagedModels.Of(files.GetValueOrDefault, monster, new TileKey(TilePath).ToString());
+        Assert.True(own.Staged, own.StageSaid);
+        Assert.Equal((string.Empty, 0), (own.MasterFile, own.MasterSwaps.Count));
     }
 
     /// <summary>The materials the shapes a doodad file laid wear, by its path as the room names it.</summary>

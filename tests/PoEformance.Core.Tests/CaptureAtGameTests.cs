@@ -307,28 +307,193 @@ public class CaptureAtGameTests
     }
 
     /// <summary>
-    /// A game whose lamp is twice the pane's - a second light the same as the lamp, where the player stands - asks a gain of two of the
-    /// lamp at every distance in the pane's shade the lamp reaches, and the lamp's share of the pane's light falls with the distance.
+    /// A game whose light in the pane's shade is the rest of the pane's 1.2 times and its lamp 2.8 times - over pixels the lamp gives from a
+    /// twentieth to past four fifths of their light - comes out of the lamp's fit as both, pooled and in every bin where the lamp gives a
+    /// twentieth or more, and the replay alike; while each pixel's own ratio, 2.8 + 0.2 rest / lamp, asks the more the thinner the lamp's
+    /// share, so its median - the reading before the fit - lies off 2.8. The lamp's share falls with the distance.
     /// </summary>
+    /// <remarks>
+    /// NOT AT THE LAMP'S EDGE, where it gives a few thousandths of the light: there the game's picture rounded to its bytes says nothing of
+    /// the lamp, whatever reads it (2.15 asked of 508 pixels at a median share of 0.002).
+    /// </remarks>
     [Fact]
-    public void THEPLAYERSLampsGainTheGameAsksIsRecoveredInThePanesShade()
+    public void THEPLAYERSLampsGainIsFittedApartFromTheRestOfTheLightInThePanesShade()
     {
         var at = new Vector3(0f, 0f, -100f);
         var lamp = new SceneLight.PlayerLamp(at, new Vector3(0.6f), 300f);
         CapturePane pane = Stage(MaterialBlend.ShadowOnly, floorHalf: 1500f, slabHalf: 450f, slabHeight: 300f, lamp: lamp);
-        CapturePane twice = Stage(
-            MaterialBlend.ShadowOnly, floorHalf: 1500f, slabHalf: 450f, slabHeight: 300f, lamp: lamp, lights: [new PointLight(at, lamp.Colour, lamp.Radius, 0f, "the lamp again")]);
         WorldSnapshot shot = Shot(player: new Vector3(5000f, 9000f, 0f));
-        CaptureAtGame brighter = CaptureAtGame.Draw(twice, shot, null, Width, Height, null, out _)!;
-        CaptureAtGame scene = CaptureAtGame.Draw(pane, shot, Exact(brighter, _ => 1f), Width, Height, null, out _)!;
-        string report = CaptureLightCompare.Write(null, scene, out _, out _);
+        CaptureAtGame own = CaptureAtGame.Draw(pane, shot, null, Width, Height, null, out _)!;
+        CaptureAtGame scene = CaptureAtGame.Draw(pane, shot, Exact(own, gathered => Asked(own, gathered, 1.2, 2.8)), Width, Height, null, out _)!;
+        string report = CaptureLightCompare.Write(null, scene, out _, out byte[] numbers);
 
-        MatchCollection rows = Regex.Matches(report, @"\n\s+\d+-\d+\s+units:\s+[\d,]+ pixels in shade, the lamp's share ([\d.]+); the gain asked ([\d.]+) \(");
-        List<(double Share, double Gain)> asked = [.. rows.Select(row => (Number(row.Groups[1].Value), Number(row.Groups[2].Value)))];
-        Assert.True(asked.Count(row => row.Share > 0.3) >= 2, report);
-        Assert.All(asked, row => Assert.InRange(row.Gain, 1.9, 2.1));
-        Assert.True(asked.Zip(asked.Skip(1)).All(pair => pair.Second.Share < pair.First.Share), report);
-        Assert.InRange(Number(Regex.Match(report, @"all within 1,200 units: the gain asked ([\d.]+)").Groups[1].Value), 1.95, 2.05);
+        static void Pooled(string text)
+        {
+            Match all = Regex.Match(text, @"all within 1,200 units: the lamp's gain g ([\d.]+), the rest's a ([\d.]+) - over ([\d,]+) pixels");
+            Assert.True(all.Success, text);
+            Assert.InRange(Number(all.Groups[1].Value), 2.72, 2.88);
+            Assert.InRange(Number(all.Groups[2].Value), 1.165, 1.235);
+        }
+
+        Pooled(report);
+        MatchCollection rows = Regex.Matches(report, @"\n\s+\d+-\d+\s+units:\s+[\d,]+ pixels in shade, the lamp's share ([\d.]+); g ([\d.]+), a ([\d.]+) over ([\d,]+) the lamp reaches");
+        List<(double Share, double Gain, double Others, int Pixels)> bins =
+            [.. rows.Select(row => (Number(row.Groups[1].Value), Number(row.Groups[2].Value), Number(row.Groups[3].Value), Count(row.Groups[4].Value)))];
+        Assert.True(bins.Count(row => row.Share > 0.3) >= 2, report);
+        Assert.True(bins.Zip(bins.Skip(1)).All(pair => pair.Second.Share < pair.First.Share), report);
+        List<(double Share, double Gain, double Others, int Pixels)> lit = [.. bins.Where(row => row.Pixels >= 200 && row.Share >= 0.05)];
+        Assert.True(lit.Count >= 3, report);
+        Assert.All(lit, row =>
+        {
+            Assert.InRange(row.Gain, 2.66, 2.94);
+            Assert.InRange(row.Others, 1.14, 1.26);
+        });
+
+        // EACH PIXEL'S OWN RATIO ASKS THE MORE THE THINNER ITS LAMP'S SHARE, in every band of it.
+        Match banded = Regex.Match(
+            report, @"its median by that share: 0\.05-0\.1 ([\d.]+) \(([\d,]+)\), 0\.1-0\.2 ([\d.]+) \(([\d,]+)\), 0\.2-0\.3 ([\d.]+) \(([\d,]+)\), 0\.3-0\.5 ([\d.]+) \(([\d,]+)\), 0\.5 and more ([\d.]+) \(([\d,]+)\)");
+        Assert.True(banded.Success, report);
+        Assert.All(Enumerable.Range(0, 5), band => Assert.True(Count(banded.Groups[2 + (2 * band)].Value) > 0, report));
+        double[] medians = [.. Enumerable.Range(0, 5).Select(band => Number(banded.Groups[1 + (2 * band)].Value))];
+        Assert.True(medians.Zip(medians.Skip(1)).All(pair => pair.Second < pair.First), report);
+        Assert.True(medians[0] > 3.5, report);
+
+        // THE SHARES SPREAD FROM UNDER A TWENTIETH TO PAST FOUR FIFTHS; and the reading before the fit, the median of each pixel's ratio
+        // where the lamp gives a twentieth or more of the light, asks too much of the lamp.
+        (_, List<CaptureLightCompare.Sample> samples) = CaptureLightCompare.Read(numbers);
+        List<double> shares = [], ratios = [];
+        foreach (CaptureLightCompare.Sample one in samples)
+        {
+            double light = CaptureAtGame.Luminance(one.Unexposed), its = CaptureAtGame.Luminance(one.Player);
+            if (one.Class != CaptureLightCompare.Lighting.Shade || !(one.PlayerDistance < 1200f) || !(light > 1e-6) || !(its > 0d))
+            {
+                continue;
+            }
+
+            shares.Add(its / light);
+            if (its / light > 0.05)
+            {
+                ratios.Add((CaptureAtGame.Luminance(one.GameUnexposed) - (light - its)) / its);
+            }
+        }
+
+        Assert.True(shares.Min() < 0.05 && shares.Max() > 0.8, $"the lamp's shares {shares.Min():0.###} to {shares.Max():0.###}");
+        ratios.Sort();
+        Assert.True(ratios[ratios.Count / 2] > 2.95, $"the median of each pixel's ratio {ratios[ratios.Count / 2]:0.###}");
+
+        string folder = Directory.CreateTempSubdirectory("light-against-game-lamp").FullName;
+        try
+        {
+            File.WriteAllBytes(Path.Combine(folder, CaptureLightCompare.Numbers), numbers);
+            Pooled(CaptureLightCompare.Replay(folder));
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// The lamp's fit takes a and g apart where the pixels hold both; where the normal equations put one below nought it is nought and the
+    /// other is fitted alone; and where every pixel's lamp gives the same share of its light - one pixel alone - it gives no fit.
+    /// </summary>
+    [Fact]
+    public void THELAMPSFitKeepsBothGainsNoughtAtLeastAndGivesNoneItCannotTellApart()
+    {
+        (double Others, double Lamp)[] pixels = [(1, 0.5), (1, 1), (0.5, 2), (2, 0.4)];
+        var both = new CaptureLightCompare.LampFit();
+        foreach ((double rest, double lamp) in pixels)
+        {
+            both.Add(rest, lamp, (1.2 * rest) + (2.8 * lamp));
+        }
+
+        (double Others, double Lamp) fitted = both.Solve()!.Value;
+        Assert.Equal(1.2, fitted.Others, 9);
+        Assert.Equal(2.8, fitted.Lamp, 9);
+
+        // A GAME ASKING LESS THAN NOTHING OF THE REST: the rest nought, the lamp fitted alone.
+        var under = new CaptureLightCompare.LampFit();
+        foreach ((double rest, double lamp) in pixels)
+        {
+            under.Add(rest, lamp, (-0.2 * rest) + (3 * lamp));
+        }
+
+        double alone = pixels.Sum(one => one.Lamp * ((-0.2 * one.Others) + (3 * one.Lamp))) / pixels.Sum(one => one.Lamp * one.Lamp);
+        (double Others, double Lamp) edge = under.Solve()!.Value;
+        Assert.Equal(0d, edge.Others);
+        Assert.Equal(alone, edge.Lamp, 9);
+
+        // ONE PIXEL ALONE, EVERY PIXEL AT ONE SHARE OF ITS LIGHT, AND NONE: no fit rather than a nought.
+        var same = new CaptureLightCompare.LampFit();
+        same.Add(1, 0.5, 2.6);
+        Assert.Null(same.Solve());
+        same.Add(2, 1, 5.2);
+        Assert.Null(same.Solve());
+        Assert.Null(new CaptureLightCompare.LampFit().Solve());
+    }
+
+    /// <summary>
+    /// A ground of two grounds mixed wears a name that is no file: asked whether it is a roof section, its two grounds are read and counted
+    /// as the materials they are, the name itself neither read nor counted as unread - a ground not in the install still is - and the mix is
+    /// a roof section where one of its grounds says so.
+    /// </summary>
+    [Fact]
+    public void AGROUNDMixIsAskedWhetherItIsARoofSectionAsItsTwoGrounds()
+    {
+        var asked = new List<string>();
+        byte[]? Read(string path)
+        {
+            asked.Add(path);
+            return path switch
+            {
+                "Art/ground.mat" or "Art/sand.mat" => Encoding.UTF8.GetBytes("""{"version":4,"graphinstances":[]}"""),
+                "Art/rock.mat" => RoofRock(path),
+                _ => null,
+            };
+        }
+
+        var roofs = new CaptureLightCompare.RoofSections(Read);
+        Assert.False(roofs.Of(GroundBlend.Cornered("Art/ground.mat", "Art/sand.mat")));
+        Assert.False(roofs.Of(GroundBlend.Name("Art/ground.mat", "Art/sand.mat", "Art/Textures/newmask.dds", heights: true)));
+        Assert.Equal(["Art/ground.mat", "Art/sand.mat"], asked);
+        Assert.StartsWith("roof sections: 0 of the 2 materials the compared pixels wear say \"roofsection\" in their .mat - named", roofs.Said(), StringComparison.Ordinal);
+
+        Assert.True(roofs.Of(GroundBlend.Cornered("Art/rock.mat", "Art/gone.mat")));
+        Assert.StartsWith("roof sections: 1 of the 4 materials the compared pixels wear say \"roofsection\" in their .mat (1 not in the install or not read) - named", roofs.Said(), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A floor of two shapes, one wearing sand alone and one sand mixed with the ground by its sub-tiles' corners, is set out by material as
+    /// the two it is - the mix under both its grounds' names, not under the second's, whose own group it would otherwise join - and so in
+    /// the numbers the replay reads.
+    /// </summary>
+    [Fact]
+    public void AGROUNDMixIsSetOutByMaterialUnderBothItsGroundsNotTheSecondsName()
+    {
+        CapturePane stage = Stage(MaterialBlend.Opaque, splitFloor: true);
+        Assert.Equal(["Art/ground.mat", "Art/ground.mat"], stage.Model.ShapeMaterials.Take(2));
+        MonsterModel model = stage.Model with
+        {
+            ShapeMaterials = [GroundBlend.Cornered("Art/ground.mat", "Art/sand.mat"), "Art/sand.mat", .. stage.Model.ShapeMaterials.Skip(2)],
+        };
+        var pane = new CapturePane("tile", [], model) { Light = stage.Light, LightOn = true, Blends = stage.Blends };
+        WorldSnapshot shot = Shot();
+        CaptureAtGame own = CaptureAtGame.Draw(pane, shot, null, Width, Height, null, out _)!;
+        CaptureAtGame scene = CaptureAtGame.Draw(pane, shot, Exact(own, _ => 1f), Width, Height, null, out _)!;
+        string report = CaptureLightCompare.Write(null, scene, out _, out byte[] numbers);
+
+        Assert.Matches(@"\n  ground: ground \+ sand\s+[\d,]+\s", report);
+        Assert.Matches(@"\n  ground: sand\s+[\d,]+\s", report);
+        string folder = Directory.CreateTempSubdirectory("light-against-game-mix").FullName;
+        try
+        {
+            File.WriteAllBytes(Path.Combine(folder, CaptureLightCompare.Numbers), numbers);
+            Assert.Matches(@"\n  ground: ground \+ sand\s+[\d,]+\s", CaptureLightCompare.Replay(folder));
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
     }
 
     private static int Count(string number) => int.Parse(number, NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
@@ -526,6 +691,22 @@ public class CaptureAtGameTests
         }
 
         return bgr;
+    }
+
+    /// <summary>
+    /// The share of a gathered pixel's own light asked of a game whose light there is the rest of the pane's <paramref name="rest"/> times
+    /// and its lamp <paramref name="lamp"/> times - by their luminances, which the lamp's fit works in; one where nothing is drawn.
+    /// </summary>
+    private static float Asked(CaptureAtGame drawn, int gathered, double rest, double lamp)
+    {
+        if (gathered >= drawn.Gather.Triangle.Length || drawn.Gather.Triangle[gathered] < 0)
+        {
+            return 1f;
+        }
+
+        SceneLight.LightTerms terms = drawn.Gather.Terms[gathered];
+        double light = CaptureAtGame.Luminance(terms.Unexposed), its = CaptureAtGame.Luminance(terms.PlayerDiffuse);
+        return light > 1e-9 ? (float)(((rest * (light - its)) + (lamp * its)) / light) : 1f;
     }
 
     /// <summary>The shape a drawing shows at a gathered pixel, or -1.</summary>

@@ -37,7 +37,8 @@ namespace PoEformance.Features;
 /// set out by how much of the block the pane's sun reaches. Worked offline on that capture: the pane's lit blocks about 13 times as bright
 /// over their albedo as its shaded ones, the game's about 2.2 times - a sign the game darkens its sun over most of the ground the pane lights.</item>
 /// <item>THE PLAYER'S LAMP. Within 400 units of the player the game in the pane's shade was 2.4 to 2.9 times the pane's: the lamp's share
-/// of the pane's light and the gain the game asks of it, by the distance, so the lamp can be set from a measurement.</item>
+/// of the pane's light and the gain the game asks of it, by the distance, so the lamp can be set from a measurement - fitted apart from
+/// the scale the game asks of the rest of the light (v0.1.375; see <see cref="LampFit"/>).</item>
 /// </list>
 /// </remarks>
 public static class CaptureLightCompare
@@ -102,12 +103,16 @@ public static class CaptureLightCompare
     /// <summary>How many of the lamp's bins - out to 1,200 units.</summary>
     private const int LampBins = 12;
 
-    /// <summary>The share of a pixel's light its lamp must give for the pixel to say how strong the game's lamp is.</summary>
-    private const double LampShareFloor = 0.05;
-
     /// <summary>The rows the ground's blocks are set out in, by the share of each block the pane's sun reaches.</summary>
     private static readonly (string Label, double From, double To)[] ShareRows =
         [("0-0.1", 0d, 0.1), ("0.1-0.3", 0.1, 0.3), ("0.3-0.5", 0.3, 0.5), ("0.5-0.7", 0.5, 0.7), ("0.7-1", 0.7, double.PositiveInfinity)];
+
+    /// <summary>
+    /// The bands of the lamp's share of a pixel's light each pixel's own ratio is set out by beside the lamp's fit - see <see cref="LampLines"/>;
+    /// under a twentieth the ratio says nothing of the lamp at all.
+    /// </summary>
+    private static readonly (string Label, double From, double To)[] LampShareBands =
+        [("0.05-0.1", 0.05, 0.1), ("0.1-0.2", 0.1, 0.2), ("0.2-0.3", 0.2, 0.3), ("0.3-0.5", 0.3, 0.5), ("0.5 and more", 0.5, double.PositiveInfinity)];
 
     /// <summary>
     /// The part's report and what goes beside it: the pictures and the numbers.
@@ -320,30 +325,48 @@ public static class CaptureLightCompare
     /// <remarks>
     /// THE ROOF SECTION'S WORD FIRST: its pixels are kept out of everything, so a ground wearing one (none seen) is no measure of the ground's
     /// light either. And IN THE NAME, not a field of its own, so the numbers keep their layout and a file written before carries no roof.
+    ///
+    /// TWO GROUNDS MIXED ARE NAMED BY BOTH (v0.1.375): their name (GroundBlend) is no file, and taken as one its last "file" was the second
+    /// ground's name with the mix's words for an extension, or the mask's - so a corner mix grouped under its second ground's own name and a
+    /// mask mix under the mask's, one ground's light measured over another's pixels.
     /// </remarks>
     private static string MaterialName(MonsterModel model, int shape, RoofSections roofs)
     {
         string material = shape < model.ShapeMaterials.Count ? MaterialFile.Bare(model.ShapeMaterials[shape]) : string.Empty;
         string source = shape < model.ShapeSources.Count ? model.ShapeSources[shape] : string.Empty;
-        string name = material.Length > 0 ? Path.GetFileNameWithoutExtension(material) : "(no material)";
+        string name = material.Length == 0 ? "(no material)"
+            : GroundBlend.Parts(material, out string first, out string second, out _)
+                ? Path.GetFileNameWithoutExtension(first) + " + " + Path.GetFileNameWithoutExtension(second)
+                : Path.GetFileNameWithoutExtension(material);
         return roofs.Of(material) ? RoofWord + name
             : source.StartsWith(RoomModels.GroundSource, StringComparison.Ordinal) ? GroundWord + name
             : name;
     }
 
     /// <summary>Which materials say they are roof sections - each .mat read once - and how many were asked, said so, and did not read.</summary>
-    private sealed class RoofSections(Func<string, byte[]?>? read)
+    internal sealed class RoofSections(Func<string, byte[]?>? read)
     {
         private readonly Dictionary<string, bool> _said = new(StringComparer.OrdinalIgnoreCase);
         private int _roofs;
         private int _unread;
 
         /// <summary>Whether a material, by its file, says it is a roof section - false where nothing can be read.</summary>
+        /// <remarks>
+        /// TWO GROUNDS MIXED ARE ASKED AS THE TWO MATERIALS THEY ARE (v0.1.375), the name they are worn under (GroundBlend) being no file:
+        /// asked as one, every mix a stage wears was counted as a material not in the install, while each of its grounds read. The mix is a
+        /// roof section where either of its grounds says so, as a ground wearing one is (MaterialName).
+        /// </remarks>
         public bool Of(string material)
         {
             if (read is null || material.Length == 0)
             {
                 return false;
+            }
+
+            if (GroundBlend.Parts(material, out string first, out string second, out _))
+            {
+                bool firstSays = Of(MaterialFile.Bare(first)), secondSays = Of(MaterialFile.Bare(second));
+                return firstSays || secondSays;
             }
 
             if (_said.TryGetValue(material, out bool roof))
@@ -533,7 +556,7 @@ public static class CaptureLightCompare
             text.AppendLine(line);
         }
 
-        text.AppendLine().AppendLine("=== the player's lamp - in the pane's shade, by the distance across to the player: the lamp's share of the pane's light, and the gain the game asks of it");
+        text.AppendLine().AppendLine("=== the player's lamp - in the pane's shade, by the distance across to the player: the lamp's share of the pane's light, and the gains the game asks of the lamp (g) and of the rest of the light (a)");
         foreach (string line in LampLines(samples))
         {
             text.AppendLine(line);
@@ -759,23 +782,38 @@ public static class CaptureLightCompare
     }
 
     /// <summary>
-    /// The player's lamp in the pane's shade by the distance to the player: its share of the pane's light, and the gain on it that makes the
-    /// game's - (the game's light before its grade and exposure, less the pane's without the lamp) over the pane's lamp, each pixel's luminance.
+    /// The player's lamp in the pane's shade by the distance to the player: its share of the pane's light, and the game's light fitted as
+    /// a times the rest of the pane's light plus g times its lamp - each pixel's luminance before the exposure, the game's taken back through
+    /// the pane's grade and exposure - g the gain the game asks of the lamp and a the scale it asks of the rest; pooled first, then by bin.
     /// </summary>
     /// <remarks>
-    /// IN THE SHADE ALONE, where the sun adds nothing to either picture; and the gain only where the lamp gives over
-    /// <see cref="LampShareFloor"/> of the light, below which the rest's difference would be divided by next to nothing. One says the game's
-    /// lamp is the pane's, two that it is twice as strong there; it is a measurement for the lamp, which is not changed here.
+    /// IN THE SHADE ALONE, where the sun adds nothing to either picture. A FIT, NOT EACH PIXEL'S RATIO (v0.1.375): the ratio a pixel asks
+    /// of its lamp, (game - rest) / lamp, is g + (a - 1) rest / lamp - the rest's mismatch divided by the lamp's share of the light, twentyfold
+    /// where the lamp gives a twentieth - so wherever the game's shade is not the pane's, its median measures the shade and not the lamp. The
+    /// Red Vale's v0.1.372 capture asked a pooled median of 1.462 (-1.038..5.511) so, the bins 500 to 600 and 700 to 800 units out asking
+    /// negative gains of a lamp; its pixels the lamp gives 0.05 to 0.1 of their light asked -0.837, those it gives a half or more 2.874
+    /// (MEASURED, its replay). The fit (<see cref="LampFit"/>, every shaded pixel the lamp reaches) gives the rest's mismatch to a and leaves
+    /// g the lamp's - the same pixels ask g 2.725 and a 1.341, over 29,425 - and the line by the lamp's share sets the ratios out beside it,
+    /// so a reader sees why its bands disagree. Least squares weighs what a pixel says of g by its lamp's light, so where the lamp gives
+    /// next to nothing a bin's g says nothing (that capture's 1,100 to 1,200 units asked 1,439 of 57 pixels) while the pooled g stands. One
+    /// says the game has it as the pane has it; it is a measurement for the lamp, which is not changed here.
     /// </remarks>
     private static List<string> LampLines(List<Sample> samples)
     {
         var shares = new List<double>[LampBins];
-        var gains = new List<double>[LampBins];
+        var fits = new LampFit[LampBins];
         var counts = new int[LampBins];
         for (var bin = 0; bin < LampBins; bin++)
         {
             shares[bin] = [];
-            gains[bin] = [];
+            fits[bin] = new LampFit();
+        }
+
+        var pooled = new LampFit();
+        var ratios = new List<double>[LampShareBands.Length];
+        for (var band = 0; band < ratios.Length; band++)
+        {
+            ratios[band] = [];
         }
 
         var placed = false;
@@ -795,24 +833,30 @@ public static class CaptureLightCompare
 
             counts[bin]++;
             double light = CaptureAtGame.Luminance(one.Unexposed), lamp = CaptureAtGame.Luminance(one.Player);
-            if (!(light > 1e-6))
+            if (light > 1e-6)
+            {
+                shares[bin].Add(lamp / light);
+            }
+
+            if (!(lamp > 0d))
             {
                 continue;
             }
 
-            double share = lamp / light;
-            shares[bin].Add(share);
-            if (share > LampShareFloor)
+            // THE REST NOUGHT AT LEAST: where the lamp is all of a pixel's light, the halves a replay reads can round it past the whole.
+            double rest = Math.Max(0d, light - lamp), game = CaptureAtGame.Luminance(one.GameUnexposed);
+            fits[bin].Add(rest, lamp, game);
+            pooled.Add(rest, lamp, game);
+            int band = light > 1e-6 ? BandOf(lamp / light) : -1;
+            if (band >= 0)
             {
-                gains[bin].Add((CaptureAtGame.Luminance(one.GameUnexposed) - (light - lamp)) / lamp);
+                ratios[band].Add((game - rest) / lamp);
             }
         }
 
         var lines = new List<string>
         {
-            string.Create(
-                CultureInfo.InvariantCulture,
-                $"  each pixel's luminance: the lamp's share of the pane's light before the exposure, the median over the bin; the gain, the game's light taken back through the pane's grade and exposure less the pane's without its lamp, over the pane's lamp - the median and quartiles over the pixels the lamp gives more than {LampShareFloor:0.##} of their light; one says the game's lamp is the pane's"),
+            "  each pixel's luminance before the exposure: the lamp's share of the pane's light, the median over the bin; and the game's light taken back through the pane's grade and exposure fitted as a x the rest + g x the lamp - the rest the pane's light without its lamp - by least squares over the pixels the lamp reaches, a and g nought at least: g the gain the game asks of the lamp, a the scale it asks of the rest; one says the game has it as the pane has it, and where the lamp gives next to nothing of the light its g says nothing",
         };
         if (!placed)
         {
@@ -820,7 +864,18 @@ public static class CaptureLightCompare
             return lines;
         }
 
-        var all = new List<double>();
+        lines.Add(pooled.Count == 0
+            ? string.Create(
+                CultureInfo.InvariantCulture,
+                $"  all: the lamp reaches no pixel in the pane's shade within {LampBins * LampBin:N0} units - none is drawn, or it reaches no shade")
+            : pooled.Solve() is { } all
+                ? string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"  all within {LampBins * LampBin:N0} units: the lamp's gain g {all.Lamp:0.###}, the rest's a {all.Others:0.###} - over {pooled.Count:N0} pixels in the pane's shade the lamp reaches")
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"  all within {LampBins * LampBin:N0} units: the lamp's gain not told from the rest's - each of the {pooled.Count:N0} pixels in the pane's shade it reaches takes the same share of its light from it"));
+
         for (var bin = 0; bin < LampBins; bin++)
         {
             if (counts[bin] == 0)
@@ -828,26 +883,93 @@ public static class CaptureLightCompare
                 continue;
             }
 
-            List<double> gain = gains[bin];
-            all.AddRange(gain);
-            gain.Sort();
-            string asked = gain.Count == 0
-                ? string.Create(CultureInfo.InvariantCulture, $"none with a share over {LampShareFloor:0.##}")
-                : string.Create(CultureInfo.InvariantCulture, $"the gain asked {gain[gain.Count / 2]:0.###} ({gain[gain.Count / 4]:0.###}..{gain[gain.Count * 3 / 4]:0.###}) of {gain.Count:N0}");
+            LampFit fit = fits[bin];
+            string asked = fit.Count == 0 ? "the lamp reaches none of them"
+                : fit.Solve() is { } one ? string.Create(CultureInfo.InvariantCulture, $"g {one.Lamp:0.###}, a {one.Others:0.###} over {fit.Count:N0} the lamp reaches")
+                : string.Create(CultureInfo.InvariantCulture, $"g not told from a over {fit.Count:N0} the lamp reaches, each the same share of its light");
             lines.Add(string.Create(
                 CultureInfo.InvariantCulture,
                 $"  {bin * LampBin,5:0}-{(bin + 1) * LampBin,-5:0} units: {counts[bin],7:N0} pixels in shade, the lamp's share {Median(shares[bin]):0.###}; {asked}"));
         }
 
-        all.Sort();
-        lines.Add(all.Count == 0
-            ? string.Create(
-                CultureInfo.InvariantCulture,
-                $"  all: no pixel in the pane's shade within {LampBins * LampBin:N0} units takes over {LampShareFloor:0.##} of its light from the lamp - none is drawn, or it reaches no shade")
-            : string.Create(
-                CultureInfo.InvariantCulture,
-                $"  all within {LampBins * LampBin:N0} units: the gain asked {all[all.Count / 2]:0.###} ({all[all.Count / 4]:0.###}..{all[all.Count * 3 / 4]:0.###}) of {all.Count:N0}"));
+        // EACH PIXEL'S OWN RATIO BESIDE THE FIT, by the lamp's share: where the bands disagree, the rest is off and the thin shares say by how much.
+        string banded = string.Join(", ", LampShareBands.Select((band, at) => ratios[at].Count == 0
+            ? $"{band.Label} - (0)"
+            : string.Create(CultureInfo.InvariantCulture, $"{band.Label} {Median(ratios[at]):0.###} ({ratios[at].Count:N0})")));
+        lines.Add("  beside it each pixel's own ratio, (the game less the rest) over the lamp - g + (a - 1) rest / lamp, the rest's mismatch over the lamp's share - its median by that share: " + banded);
         return lines;
+    }
+
+    /// <summary>Which of <see cref="LampShareBands"/> a lamp's share falls in, or -1.</summary>
+    private static int BandOf(double share)
+    {
+        for (var band = 0; band < LampShareBands.Length; band++)
+        {
+            if (share >= LampShareBands[band].From && share < LampShareBands[band].To)
+            {
+                return band;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// The game's light fitted as a times the rest of the pane's light plus g times its lamp, by least squares with a and g nought at least -
+    /// the two-by-two normal equations' sums, gathered a pixel at a time.
+    /// </summary>
+    /// <remarks>
+    /// NOUGHT AT LEAST because neither light can be taken away. Where the normal equations' answer puts one below nought, the least squares
+    /// over the quarter of the plane the two may stand in lies on its edge - that one nought and the other fitted alone - and of the two edges
+    /// on the one whose own best leaves the less, which is how it is taken. Where every pixel's lamp gives the same share of its light - one
+    /// pixel alone among them - the two cannot be told apart, and no fit is given rather than a nought.
+    /// </remarks>
+    internal sealed class LampFit
+    {
+        private double _restRest, _restLamp, _lampLamp, _restGame, _lampGame;
+
+        /// <summary>The pixels added.</summary>
+        public int Count { get; private set; }
+
+        /// <summary>One pixel's luminances: the pane's light without its lamp, the lamp's, and the game's.</summary>
+        public void Add(double rest, double lamp, double game)
+        {
+            _restRest += rest * rest;
+            _restLamp += rest * lamp;
+            _lampLamp += lamp * lamp;
+            _restGame += rest * game;
+            _lampGame += lamp * game;
+            Count++;
+        }
+
+        /// <summary>
+        /// The fit: a, the scale the game asks of the rest of the light (Others), and g, the gain it asks of the lamp - or null where nothing
+        /// was added or the two cannot be told apart.
+        /// </summary>
+        public (double Others, double Lamp)? Solve()
+        {
+            double determinant = (_restRest * _lampLamp) - (_restLamp * _restLamp);
+            if (Count == 0 || !(determinant > 1e-9 * _restRest * _lampLamp))
+            {
+                return null;
+            }
+
+            double rest = ((_lampLamp * _restGame) - (_restLamp * _lampGame)) / determinant;
+            double lamp = ((_restRest * _lampGame) - (_restLamp * _restGame)) / determinant;
+            if (rest >= 0d && lamp >= 0d)
+            {
+                return (rest, lamp);
+            }
+
+            (double Others, double Lamp) restAlone = (Math.Max(0d, _restGame / _restRest), 0d);
+            (double Others, double Lamp) lampAlone = (0d, Math.Max(0d, _lampGame / _lampLamp));
+            return Left(restAlone) <= Left(lampAlone) ? restAlone : lampAlone;
+        }
+
+        /// <summary>The squares a fit leaves, less the game's own sum of squares - the same for every fit, so enough to tell two apart.</summary>
+        private double Left((double Others, double Lamp) fit)
+            => (fit.Others * fit.Others * _restRest) + (2d * fit.Others * fit.Lamp * _restLamp) + (fit.Lamp * fit.Lamp * _lampLamp)
+                - (2d * ((fit.Others * _restGame) + (fit.Lamp * _lampGame)));
     }
 
     /// <summary>Medians, chromaticities and saturations of a set of samples.</summary>

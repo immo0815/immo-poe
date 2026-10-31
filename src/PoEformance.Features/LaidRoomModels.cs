@@ -521,6 +521,11 @@ public static class LaidRoomModels
             AreaOrigin = origin,
             AreaStamp = RoomKey.Stamp(grid),
             BossSpot = BossSpotOf(room, laying),
+
+            // THE SWAPS IT WEARS AND WHOSE THEY ARE, for the capture to say what each does to its material (CapturePanes) - a laid room, a
+            // room built from its tileset and the area round you are all made here.
+            MasterSwaps = swaps,
+            MasterFile = masterFile,
         };
 
         return shaded ? MonsterModels.Shaded(Counted, model, paints) : model;

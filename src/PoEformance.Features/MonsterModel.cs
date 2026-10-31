@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Numerics;
 using PoEformance.Game.Entities;
@@ -344,6 +345,22 @@ public sealed record MonsterModel(
 
     /// <summary>The tileset a tile was drawn as, or empty for the tile's own materials.</summary>
     public string Tileset { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The material swaps of the master a laid or built room, the area round you or a tile drawn as its tileset was made under - its
+    /// TileMaterialOverrides by the material swapped (TilesetIndex.Overrides), put on its tiles and every doodad laid over them - or empty
+    /// where it was made under none, or the master swaps nothing. A stage keeps its room's (StagedModels.Staged).
+    /// </summary>
+    /// <remarks>
+    /// FOR THE CAPTURE, which says what each swap does to the material it puts in place (CapturePanes): nothing did, and Port's quay
+    /// runoff went unseen for thirty versions - from v0.1.344 a laid or built room puts its master's swaps on its tiles, and Port's
+    /// material_overrides.tmo swaps the quay's MSHD_GraveBrickTile01c.mat, the material the spray from occlusion was built for, for
+    /// MPRT_GraveBrickTile01c.mat. The model keeps what its shapes wear, not what they wore, so these are what tells the two apart.
+    /// </remarks>
+    public IReadOnlyDictionary<string, string> MasterSwaps { get; init; } = ReadOnlyDictionary<string, string>.Empty;
+
+    /// <summary>The master (<c>.tsi</c>) that <see cref="MasterSwaps"/> are of, or empty where the model was made under none.</summary>
+    public string MasterFile { get; init; } = string.Empty;
 
     /// <summary>How a tile was turned to match the way the current area laid it, in words, or empty for the file's own orientation.</summary>
     public string Laid { get; init; } = string.Empty;

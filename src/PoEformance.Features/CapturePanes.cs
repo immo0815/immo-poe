@@ -187,7 +187,10 @@ public static class CapturePanes
             }
         }
 
-        Materials(body, read, panes);
+        // ONE COMPILE CACHE FOR BOTH SECTIONS: the materials every pane wears are compiled for the first, and the swaps' are among them.
+        var paints = new MonsterModels.Paints();
+        Materials(body, read, panes, paints);
+        string swapped = Swaps(body, read, panes, paints);
 
         if (unlaid.Count > 0)
         {
@@ -208,7 +211,7 @@ public static class CapturePanes
         var said = new StringBuilder();
         said.Append(CultureInfo.InvariantCulture,
             $"{panes.Count} model panes showing a model, {files} doodad files of their rooms with what became of each one's lines, {unlaid.Count} that did not draw written whole, {moving} with a rig or among the largest written whole")
-            .AppendLine();
+            .AppendLine(swapped.Length > 0 ? ", " + swapped : string.Empty);
         said.Append(body);
         return said.ToString();
     }
@@ -609,7 +612,7 @@ public static class CapturePanes
     /// them - and why is in the material and its graphs, which no part wrote for a doodad. The probed ones first, nearest
     /// first, then the plain ones by how many triangles they cover; a shadow-only material is not drawn, so not listed.
     /// </remarks>
-    private static void Materials(StringBuilder body, Func<string, byte[]?>? read, IReadOnlyList<CapturePane> panes)
+    private static void Materials(StringBuilder body, Func<string, byte[]?>? read, IReadOnlyList<CapturePane> panes, MonsterModels.Paints paints)
     {
         var picked = new List<(string Material, string Why)>();
         var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -663,7 +666,6 @@ public static class CapturePanes
             }
         }
 
-        var paints = new MonsterModels.Paints();
         int found = picked.Count;
         List<(string Material, string Why)> shore = read is null ? [] : ShoreOnes(read, panes, paints, named);
         picked.AddRange(shore.Take(MostShore));
@@ -688,24 +690,267 @@ public static class CapturePanes
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach ((string material, string why) in picked.Take(Math.Min(found, MostMaterials)).Concat(picked.Skip(found)))
         {
-            body.AppendLine().Append("##### ").Append(material).Append("  (").Append(why).AppendLine(")");
-            if (!CaptureMaterials.Material(read, material, paints, body, graphs, seen))
+            Whole(body, read, material, why, paints, graphs, seen);
+        }
+
+        CaptureMaterials.Graphs(read, graphs, "a graph these materials are instances of", body);
+    }
+
+    /// <summary>
+    /// One material whole under its heading - the file, what it compiles to and how it is drawn - its graphs added to <paramref name="graphs"/>
+    /// to be written once after.
+    /// </summary>
+    private static void Whole(
+        StringBuilder body, Func<string, byte[]?> read, string material, string why, MonsterModels.Paints paints, List<string> graphs, HashSet<string> seen)
+    {
+        body.AppendLine().Append("##### ").Append(material).Append("  (").Append(why).AppendLine(")");
+        if (!CaptureMaterials.Material(read, material, paints, body, graphs, seen))
+        {
+            return;
+        }
+
+        // AND WHAT DRAWING IT LEFT OUT - a texture that would not read is the step past the compile.
+        MonsterModels.Shade shade = paints.Shade(read, material);
+        body.Append("drawn: ").AppendLine(shade.Program switch
+        {
+            { UsesTime: true } => "from its program, running with the clock",
+            not null => "from its program",
+            null when shade.Plain is not null => "from a plain sheet",
+            _ => "plain - nothing to colour it with",
+        } + (shade.Skipped.Count > 0 ? " · left out: " + string.Join("; ", shade.Skipped) : string.Empty));
+    }
+
+    /// <summary>
+    /// Most swap pairs whose two materials are written whole - CHOSEN: the masters of the committed captures swap 2 to 97 materials each
+    /// (Augury 78, Marrow 66, Traitor's Passage 97), and two materials with their graphs run to thousands of lines.
+    /// </summary>
+    private const int MostSwapsWhole = 12;
+
+    /// <summary>What a list of the swap's losses or gains says when it holds none.</summary>
+    private const string NoChange = "nothing";
+
+    /// <summary>
+    /// The master's material swaps each room and stage shown wears, no probe click needed: for a picture made under a master that swaps
+    /// any, every pair whose material it wears with the shapes and triangles wearing it, most first, and how many of the list it does not
+    /// wear; each such pair's two materials as compiled, side by side, and what the swap loses and gains - and where it changes anything,
+    /// both materials whole. Returns what it came to for the part's first line, or empty where no pane shows a room or a stage.
+    /// </summary>
+    /// <remarks>
+    /// WRITTEN FOR PORT'S QUAY RUNOFF: the water running down the quay's face (ShadeProgram.Occluded, "spray from occlusion") went from
+    /// the Monster Book's stage when, from v0.1.344, a laid or built room put its master's TileMaterialOverrides on its tiles - Port's
+    /// material_overrides.tmo swaps the quay's MSHD_GraveBrickTile01c.mat, OceanSprayFoam over TRO_MossBlend and the very material the
+    /// twin is built for, for MPRT_GraveBrickTile01c.mat. Nothing in a capture said what a swap does to the material it puts in place, and
+    /// it went unseen for thirty versions.
+    ///
+    /// AS COMPILED, BEFORE ANY TEXTURE IS READ: whether a material sprays, reads or casts the wetness, is the engine's water or sets its
+    /// own alpha is its graphs', and the compile reads no texture - so a pair costs two compiles at most, through the cache the materials
+    /// section filled, which holds the worn one already. Only a pair written whole reads its textures, and says whether they read as the
+    /// materials section does.
+    ///
+    /// WORN, NOT SWAPPED: the model keeps what its shapes wear, not what they wore, so a shape wearing a swap's material of its own counts
+    /// under that pair too, and under every pair putting the same material in place - said as "wearing", never as "swapped".
+    /// </remarks>
+    private static string Swaps(StringBuilder body, Func<string, byte[]?>? read, IReadOnlyList<CapturePane> panes, MonsterModels.Paints paints)
+    {
+        // EVERY ROOM AND STAGE, a master swapping anything there or not: "under no master" rules a swap out as plainly as a pair rules one in.
+        // A STAGE THAT STANDS, not one asked for: a monster whose stage did not build still names it (StagedModels.Of, "no stage: ...") and
+        // stands on nothing, and "made under no master" said of him would read as the answer of the stage he asked for - Port's laid harbour,
+        // say, once the player has left the area it was laid in.
+        CapturePane[] shown = [.. panes.Where(pane => pane.Model.MasterSwaps.Count > 0 || pane.Model.MasterFile.Length > 0
+            || pane.Model.Kind == ModelKind.Room || pane.Model.Staged)];
+        if (shown.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        body.AppendLine().Append(CultureInfo.InvariantCulture,
+                $"=== the master's material swaps each stage wears ({shown.Count(pane => pane.Model.MasterSwaps.Count > 0)} of {shown.Length} rooms and stages shown made under a master that swaps materials)")
+            .AppendLine()
+            .AppendLine("  every pair whose material a picture wears, with the shapes and triangles wearing it - swapped there or wearing it of its own, the model keeping what its shapes wear and not what they wore - then its two materials as compiled, before any texture is read, and what the swap loses and gains");
+
+        var worn = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var changed = new List<(string From, string To, string Master, string Lost, string Gained, string WornBy)>();
+        foreach (CapturePane pane in shown)
+        {
+            MonsterModel model = pane.Model;
+            body.AppendLine().Append("  the ").Append(pane.Book).Append(" book's pane\t");
+            if (model.MasterSwaps.Count == 0)
+            {
+                body.AppendLine(model.MasterFile.Length > 0
+                    ? $"made under {model.MasterFile}, whose TileMaterialOverrides swap nothing - every material its own"
+                    : "made under no master - every material its own");
+                continue;
+            }
+
+            string master = model.MasterFile.Length > 0 ? model.MasterFile : "a master the model does not name";
+            List<(string From, string To, int Shapes, long Triangles)> pairs = Worn(model);
+            body.Append(CultureInfo.InvariantCulture,
+                $"made under {master}, whose TileMaterialOverrides swap {model.MasterSwaps.Count} materials: {pairs.Count} of them worn here, {model.MasterSwaps.Count - pairs.Count} not").AppendLine();
+            foreach ((string from, string to, int shapes, long triangles) in pairs)
+            {
+                worn.Add(from + "\n" + to);
+                body.Append(CultureInfo.InvariantCulture, $"    {shapes} shapes, {triangles} triangles\twearing the swap's material {to} - the master swaps {from} for it").AppendLine();
+                if (read is null)
+                {
+                    body.AppendLine("      compiled\t(no install to read them from)");
+                    continue;
+                }
+
+                (List<string> before, string beforeSaid) = Able(read, paints, from);
+                (List<string> after, string afterSaid) = Able(read, paints, to);
+                string lost = Listed([.. before.Except(after, StringComparer.Ordinal)]);
+                string gained = Listed([.. after.Except(before, StringComparer.Ordinal)]);
+                body.Append("      compiled\t").Append(Path.GetFileName(from)).Append(": ").Append(beforeSaid)
+                    .Append(" · ").Append(Path.GetFileName(to)).Append(": ").Append(afterSaid)
+                    .Append(" · LOST: ").Append(lost).Append(" · GAINED: ").AppendLine(gained);
+                if ((lost != NoChange || gained != NoChange) && !changed.Exists(one => Same(one.From, from) && Same(one.To, to)))
+                {
+                    changed.Add((from, to, master, lost, gained,
+                        string.Create(CultureInfo.InvariantCulture, $"worn by {shapes} shapes, {triangles} triangles in the {pane.Book} book's pane")));
+                }
+            }
+        }
+
+        if (read is null)
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"{worn.Count} pairs of the masters' material swaps worn, not compiled - no install to read them from");
+        }
+
+        if (changed.Count > 0)
+        {
+            body.AppendLine().Append(CultureInfo.InvariantCulture,
+                    $"=== the two materials of each swap that changes what its material can do, whole ({Math.Min(changed.Count, MostSwapsWhole)} of {changed.Count} pairs - at most {MostSwapsWhole}, CHOSEN - the rest a line each), then their graphs once each")
+                .AppendLine();
+            var graphs = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var written = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach ((string from, string to, string master, string lost, string gained, string wornBy) in changed.Take(MostSwapsWhole))
+            {
+                if (written.Add(from))
+                {
+                    Whole(body, read, from, $"the master {master} swaps it for {Path.GetFileName(to)} · LOST: {lost} · GAINED: {gained}", paints, graphs, seen);
+                }
+
+                if (written.Add(to))
+                {
+                    Whole(body, read, to, $"the swap's material in place of {Path.GetFileName(from)}, {wornBy}", paints, graphs, seen);
+                }
+            }
+
+            if (changed.Count > MostSwapsWhole)
+            {
+                body.AppendLine();
+                foreach ((string from, string to, _, string lost, string gained, _) in changed.Skip(MostSwapsWhole))
+                {
+                    body.Append("  not written whole\t").Append(from).Append(" swapped for ").Append(to)
+                        .Append(" · LOST: ").Append(lost).Append(" · GAINED: ").AppendLine(gained);
+                }
+            }
+
+            CaptureMaterials.Graphs(read, graphs, "a graph these swapped materials are instances of", body);
+        }
+
+        return string.Create(CultureInfo.InvariantCulture, $"{worn.Count} pairs of the masters' material swaps worn, {changed.Count} of them changing what their material can do");
+    }
+
+    private static bool Same(string one, string other) => string.Equals(one, other, StringComparison.OrdinalIgnoreCase);
+
+    private static string Listed(IReadOnlyList<string> some) => some.Count > 0 ? string.Join(", ", some) : NoChange;
+
+    /// <summary>
+    /// The pairs of a model's master swaps whose material it wears, each with the shapes and triangles wearing it - most triangles first.
+    /// </summary>
+    /// <remarks>
+    /// A SHAPE LEFT WITH NO TRIANGLE WEARS NOTHING - every one of them hidden from the game's camera (LaidRoomModels) - and two grounds
+    /// mixed are the two materials they are, the name they are worn under being no file (GroundBlend), as the materials section has them.
+    /// </remarks>
+    private static List<(string From, string To, int Shapes, long Triangles)> Worn(MonsterModel model)
+    {
+        var wearing = new Dictionary<string, (int Shapes, long Triangles)>(StringComparer.OrdinalIgnoreCase);
+        for (var shape = 0; shape < model.Mesh.Shapes.Count; shape++)
+        {
+            long triangles = model.Mesh.Shapes[shape].Count / 3;
+            if (triangles == 0 || MaterialOf(model, shape) is not { Length: > 0 } worn)
             {
                 continue;
             }
 
-            // AND WHAT DRAWING IT LEFT OUT - a texture that would not read is the step past the compile.
-            MonsterModels.Shade shade = paints.Shade(read, material);
-            body.Append("drawn: ").AppendLine(shade.Program switch
+            string[] materials = GroundBlend.Parts(worn, out string first, out string second, out _) ? [MaterialFile.Bare(first), MaterialFile.Bare(second)] : [worn];
+            foreach (string material in materials)
             {
-                { UsesTime: true } => "from its program, running with the clock",
-                not null => "from its program",
-                null when shade.Plain is not null => "from a plain sheet",
-                _ => "plain - nothing to colour it with",
-            } + (shade.Skipped.Count > 0 ? " · left out: " + string.Join("; ", shade.Skipped) : string.Empty));
+                wearing[material] = wearing.TryGetValue(material, out (int Shapes, long Triangles) had) ? (had.Shapes + 1, had.Triangles + triangles) : (1, triangles);
+            }
         }
 
-        CaptureMaterials.Graphs(read, graphs, "a graph these materials are instances of", body);
+        var pairs = new List<(string From, string To, int Shapes, long Triangles)>();
+        foreach ((string from, string to) in model.MasterSwaps)
+        {
+            if (wearing.TryGetValue(MaterialFile.Bare(to), out (int Shapes, long Triangles) on))
+            {
+                pairs.Add((MaterialFile.Bare(from), MaterialFile.Bare(to), on.Shapes, on.Triangles));
+            }
+        }
+
+        pairs.Sort((one, other) => one.Triangles != other.Triangles ? other.Triangles.CompareTo(one.Triangles)
+            : one.Shapes != other.Shapes ? other.Shapes.CompareTo(one.Shapes)
+            : StringComparer.OrdinalIgnoreCase.Compare(one.From, other.From));
+        return pairs;
+    }
+
+    /// <summary>
+    /// What a material can do as compiled, before any texture is read, each in a few words and always in one order - the things a swap may
+    /// take away or bring - and the line saying them with what the compile left out.
+    /// </summary>
+    /// <remarks>
+    /// CASTS WETNESS AS THE CARD'S WETNESS PASS TELLS A CASTER (ModelGpu's Casts): the engine's water of any kind, or a program carrying a
+    /// wetness to cast (the beach's). The water of every kind is the engine's pass, not its graphs (MonsterModels.Paints' compile), so it is
+    /// never "compiled whole" - the compile says it left the graphs out.
+    /// </remarks>
+    private static (List<string> Can, string Said) Able(Func<string, byte[]?> read, MonsterModels.Paints paints, string material)
+    {
+        MaterialFile paint = paints.Paint(read, material);
+        if (ReferenceEquals(paint, MaterialFile.None))
+        {
+            return ([], "not in the install, or not a material that reads");
+        }
+
+        ShadeCompile compiled = paints.Compiled(read, material).Compiled;
+        ShadeProgram? program = compiled.Program;
+        WaterKind water = ShadeProgram.KindOf(paint.ShaderType);
+        var can = new List<string>();
+        void Add(bool has, string what)
+        {
+            if (has)
+            {
+                can.Add(what);
+            }
+        }
+
+        string? drawn = water switch
+        {
+            WaterKind.Ocean => "drawn as the engine's ocean",
+            WaterKind.River => "drawn as the engine's river",
+            WaterKind.Still => "drawn as the engine's standing water",
+            _ => program switch
+            {
+                null => null,
+                { Plain: >= 0 } => "drawn from a plain sheet",
+                _ => "drawn from its program",
+            },
+        };
+        Add(drawn is not null, drawn ?? string.Empty);
+        Add(program is { Sprays: true }, "sprays");
+        Add(program?.Occluded is not null, "spray from occlusion");
+        Add(program is { ReadsWetness: true }, "reads wetness");
+        Add(water != WaterKind.None || program?.Wetness is not null, "casts wetness");
+        Add(program is { HasAlpha: true }, "sets its own alpha");
+        Add(water == WaterKind.None && program is not null && compiled.Skipped.Count == 0, "compiled whole");
+
+        // NOTHING WITHOUT A PROGRAM: every other word asks one, or is the water's, which always has one.
+        string said = (can.Count > 0 ? string.Join(", ", can) : "no program - drawn from the texture the walk found, or plain")
+            + (compiled.Skipped.Count > 0 ? string.Create(CultureInfo.InvariantCulture, $"; the compile left out {compiled.Skipped.Count}") : string.Empty)
+            + (compiled.Lost.Count > 0 ? string.Create(CultureInfo.InvariantCulture, $"; lost {compiled.Lost.Count} on the other channels") : string.Empty);
+        return (can, said);
     }
 
     /// <summary>How the pane draws a shape: from a program, a texture, or plain - as the probe says it.</summary>

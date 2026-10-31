@@ -1899,10 +1899,16 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             }
         }
 
-        // WHERE THE PLAYER STANDS AS THE BLOCK IS TAKEN, his world x and y - where the Monster Book stands its monster (StagedModels.Staged).
+        // WHERE THE PLAYER STANDS AS THE BLOCK IS TAKEN, his world x and y - where the Monster Book stands its monster (StagedModels.Staged) -
+        // and the height of the ground under him, which tells the floor he stands on from the others round that place (AreaBlock.StoodHeight).
+        // HIS RENDER TERRAINHEIGHT, NOT HIS Z: the z is his box's middle, 87.825 over his terrain height in every committed capture (z plus
+        // the bound is the ground, MEASURED v0.1.328), while the terrain height is the ground itself - what the map and the projection to his
+        // feet take - and in the frame the block's picture keeps: a block lays its pieces at their tiles' own levels, in the units entities
+        // report (TerrainHeightField.LevelAt), a tile's doodad entity holds its line's z plus that level as its terrain height exactly
+        // (MEASURED, Marrow and Sulphuric; LaidRoomModels.TileDoodadsOf), and the block's corner moves the picture in x and y alone.
         if (taken && _snapshot.Player is WorldEntity player)
         {
-            block = block with { Stood = new Vector2(player.WorldX, player.WorldY) };
+            block = block with { Stood = new Vector2(player.WorldX, player.WorldY), StoodHeight = player.TerrainHeight };
         }
 
         return (block.ToString(), string.Empty);
