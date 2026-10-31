@@ -110,7 +110,7 @@ public sealed class RiverFlowLive
                     _busy = true;
                     _said = "looking for the program's markup cache";
                     ulong module = _module;
-                    Task.Run(() => Search(reader, regions, module));
+                    Behind(() => Search(reader, regions, module));
                 }
 
                 return null;
@@ -153,12 +153,26 @@ public sealed class RiverFlowLive
                 _busy = true;
                 _reading = root;
                 _said = "reading this instance's flow map";
-                Task.Run(() => Refresh(reader, current, root));
+                Behind(() => Refresh(reader, current, root));
             }
 
             return null;
         }
     }
+
+    /// <summary>
+    /// Runs the search or a read on a thread of its own - never queued on the shared pool.
+    /// </summary>
+    /// <remarks>
+    /// THE POOL IS WHAT EVERY CORE'S WORK QUEUES ON - a picture's bands, a texture's unpacking behind the load, a capture's hunts, and in
+    /// the test suite every other test's parallel loops - and a search of milliseconds queued behind it waited past ten seconds: main's
+    /// CI run 388 (after #150) found the live read still "looking for the program's markup cache" when its test gave up. A long-running
+    /// task is handed a thread of its own by the default scheduler, and keeps Task.Run's way with an exception: held by the task, not
+    /// thrown on the process. At most one runs at a time (_busy) - a search once a launch, again every SearchAgain while none is found,
+    /// a read once an instance - so a thread each costs nothing worth weighing.
+    /// </remarks>
+    private static void Behind(Action work)
+        => Task.Factory.StartNew(work, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
     private void Search(IMemoryReader reader, IMemoryRegions regions, ulong module)
     {

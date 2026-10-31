@@ -82,6 +82,22 @@ public class RiverFlowLiveTests
     }
 
     /// <summary>
+    /// The search and the read run on a thread of their own, never the shared pool's: main's CI run 388 found the live read still looking
+    /// for the cache after ten seconds, its search of milliseconds queued behind every other test's parallel loops.
+    /// </summary>
+    [Fact]
+    public void THESEARCHAndTheReadRunOffTheSharedPool()
+    {
+        (FakeMemoryReader memory, Space space) = Memory(River());
+        var watched = new Watched(memory, Environment.CurrentManagedThreadId);
+        var live = new RiverFlowLive(TimeSpan.Zero);
+        Assert.Null(live.Current(watched, space));
+        Assert.True(SpinWait.SpinUntil(() => live.Current(watched, space) is not null, TimeSpan.FromSeconds(10)), live.Said);
+        Assert.True(watched.Behind > 0, "nothing was read behind the caller");
+        Assert.Equal(0, watched.BehindOnThePool);
+    }
+
+    /// <summary>
     /// The capture's half of it: the search run again, the cache's nodes from the head, the current object and the map's box - both halves
     /// of what the pictures were drawn with.
     /// </summary>
@@ -164,5 +180,40 @@ public class RiverFlowLiveTests
     private sealed class Space(params MemoryRegion[] regions) : IMemoryRegions
     {
         public IEnumerable<MemoryRegion> Regions() => regions;
+    }
+
+    /// <summary>A reader counting the reads made off the caller's thread, and how many of them the shared pool's threads made.</summary>
+    private sealed class Watched(IMemoryReader inner, int caller) : IMemoryReader
+    {
+        private int _behind;
+        private int _onThePool;
+
+        public int Behind => Volatile.Read(ref _behind);
+
+        public int BehindOnThePool => Volatile.Read(ref _onThePool);
+
+        public bool IsAttached => inner.IsAttached;
+
+        public int ProcessId => inner.ProcessId;
+
+        public ulong ModuleBase => inner.ModuleBase;
+
+        public uint ModuleSize => inner.ModuleSize;
+
+        public bool TryRead(ulong address, Span<byte> destination)
+        {
+            if (Environment.CurrentManagedThreadId != caller)
+            {
+                Interlocked.Increment(ref _behind);
+                if (Thread.CurrentThread.IsThreadPoolThread)
+                {
+                    Interlocked.Increment(ref _onThePool);
+                }
+            }
+
+            return inner.TryRead(address, destination);
+        }
+
+        public void Dispose() => inner.Dispose();
     }
 }
