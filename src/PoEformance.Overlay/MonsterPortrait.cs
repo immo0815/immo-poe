@@ -2459,7 +2459,7 @@ public sealed class MonsterPortrait
         {
             MaterialBlend blend = blends is not null && shape < blends.Count ? blends[shape] : MaterialBlend.Opaque;
             return blend != MaterialBlend.ShadowOnly
-                && !(blend == MaterialBlend.Cutout && shades is not null && shape < shades.Count && shades[shape]?.CutAway(MeshPicture.CutoutAlpha) == true);
+                && !(blend == MaterialBlend.Cutout && shades is not null && shape < shades.Count && shades[shape] is { } cutting && cutting.CutAway(cutting.Cut));
         }
 
         return MeshPicture.Pick(_model.Mesh, positions, from, way, out float away, shown: Shown) ? from + (way * away) : null;

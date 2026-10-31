@@ -391,7 +391,8 @@ public sealed partial class ShadeProgram
         UsesNormal = result == Normal || steps.Any(one => one.Reads(Normal));
         UsesVertexNormal = result == VertexNormal || steps.Any(one => one.Reads(VertexNormal) || one.Op == Op.Parallax);
         UsesVertexColour = result == VertexColour || steps.Any(one => one.Reads(VertexColour));
-        UsesTangents = steps.Any(one => one.Op == Op.Parallax);
+        UsesTangents = steps.Any(one => one.Op == Op.Parallax || one.Reads(Tangent) || one.Reads(Binormal));
+        Marches = steps.Any(one => one.Op == Op.Parallax);
         UsesDepth = steps.Any(one => one.Op is Op.Depth or Op.ContactFade);
         Discards = steps.Any(one => one.Op == Op.ContactFade || (one.Op == Op.Depth && one.Extra != 0));
         UsesTime = result == Clock || specular == Clock || gloss == Clock || steps.Any(one => one.Reads(Clock));
@@ -418,6 +419,17 @@ public sealed partial class ShadeProgram
 
     /// <summary>Whether a cut-out shape of this program is cut away at every pixel - its alpha one number under the cut - and so neither drawn nor casting.</summary>
     public bool CutAway(float cutoff) => FixedAlpha is { } alpha && !(alpha >= cutoff);
+
+    /// <summary>
+    /// The alpha a cut-out shape of this program is cut at: the last of its graphs that sets one (ShaderGraph.AlphaThreshold), else the
+    /// usual half (MeshPicture.CutoutAlpha).
+    /// </summary>
+    /// <remarks>
+    /// THE LAST THAT SETS ONE, as the last graph setting a blend mode gives the material's: a later graph overrides what an earlier one
+    /// set. OceanSprayFoam's nought made Port's swapped ship wood cut nothing where its foam's cover, written into the alpha, is nought -
+    /// with the half the mast and the sails were cut away whole (v0.1.375's capture).
+    /// </remarks>
+    public float Cut { get; private set; } = MeshPicture.CutoutAlpha;
 
     /// <summary>
     /// Whether the material draws the sea's spray on itself (CrashingFoamSurface) - the game's own word that the sea breaks on it; see ShoreField.Of.
@@ -571,6 +583,12 @@ public sealed partial class ShadeProgram
         /// its wetness pass's target read where the pixel stands; nought on the processor, which casts none. See <see cref="ReadsWetness"/>.
         /// </summary>
         Wet,
+
+        /// <summary>
+        /// Transform by the TBN basis, <c>mul(A, tbn)</c>: A's xyz along the rows tangent, binormal and normal - the frame B (∂p/∂u) and
+        /// C (∂p/∂v) made orthonormal against D, the pixel's normal. One step for the whole of it - see <see cref="ThroughBasis"/>.
+        /// </summary>
+        Tbn,
     }
 
     /// <summary>The stages a colour is assembled across, in the order they are run.</summary>
@@ -660,8 +678,18 @@ public sealed partial class ShadeProgram
     /// <summary>Whether a run reads the game's clock - then the picture changes as it runs, and is redrawn as an animation is.</summary>
     public bool UsesTime { get; }
 
-    /// <summary>Whether a step reads the triangle's ∂p/∂u and ∂p/∂v - see <see cref="Frame"/>.</summary>
+    /// <summary>
+    /// Whether a step reads the triangle's ∂p/∂u and ∂p/∂v - the parallax's march, or a vector carried out of the TBN basis
+    /// (<see cref="Op.Tbn"/>) - so both drawings hand the frame over: the processor per triangle (<see cref="Frame"/>), the card from the
+    /// screen's derivatives (ShadeHlsl).
+    /// </summary>
     public bool UsesTangents { get; }
+
+    /// <summary>
+    /// Whether a step marches a parallax (ParallaxUvSpace through FixModelTBN's basis) - which reads the frame of the coordinates it
+    /// starts from, and so cannot run where a program's coordinates are not the mesh's (see <see cref="Grounds"/>).
+    /// </summary>
+    public bool Marches { get; }
 
     /// <summary>Whether a step reads the solid surface's depth behind the pixel - see <see cref="Behind"/>.</summary>
     public bool UsesDepth { get; }
@@ -766,6 +794,8 @@ public sealed partial class ShadeProgram
     {
         ArgumentNullException.ThrowIfNull(chain);
         ShadeCompile compiled = Compile(chain, null);
+        float cut = chain.LastOrDefault(one => one.Graph.AlphaThreshold is not null).Graph?.AlphaThreshold ?? MeshPicture.CutoutAlpha;
+        Cutting(compiled.Program, cut);
 
         // THE TWIN WHOSE SPRAY READS THE STONE'S OWN OCCLUSION, compiled only where a spray is carried and something sets the occlusion
         // to one before the spray reads it - see Occluded. OceanSprayFoam sets it to one itself at PreLighting_Calc, after its read,
@@ -773,6 +803,7 @@ public sealed partial class ShadeProgram
         if (compiled.Program is { } program && SprayRead(chain) is { } read && ResetBefore(chain, read))
         {
             ShadeProgram? twin = Compile(chain, read).Program;
+            Cutting(twin, cut);
             program.Occluded = twin;
             if (program.Glossy is { } glossy)
             {
@@ -781,6 +812,21 @@ public sealed partial class ShadeProgram
         }
 
         return compiled;
+    }
+
+    /// <summary>A program and its glossy twin cut at the chain's threshold - see <see cref="Cut"/>.</summary>
+    private static void Cutting(ShadeProgram? program, float cut)
+    {
+        if (program is null)
+        {
+            return;
+        }
+
+        program.Cut = cut;
+        if (program.Glossy is { } glossy)
+        {
+            glossy.Cut = cut;
+        }
     }
 
     /// <summary>A line added once, however many writes of a chain say it - see ShadeCompile.Lost.</summary>
@@ -1188,6 +1234,7 @@ public sealed partial class ShadeProgram
             Rivers = Rivers,
             Wetness = Wetness is { } wet && wet.Textures.SequenceEqual(Textures) ? wet.With(sheets) : null,
             Occluded = Occluded is { } occluded && occluded.Textures.SequenceEqual(Textures) ? occluded.With(sheets) : null,
+            Cut = Cut,
         };
     }
 
@@ -1261,6 +1308,48 @@ public sealed partial class ShadeProgram
         Vector3 e2 = p2 - p0;
         float inv = 1f / det;
         return (((e1 * d2.Y) - (e2 * d1.Y)) * inv, ((e2 * d1.X) - (e1 * d2.X)) * inv);
+    }
+
+    /// <summary>
+    /// <c>Transform(vector, InputTbnBasis)</c>, <c>mul(vector, tbn)</c>: the vector along the TBN basis's rows - the tangent and the
+    /// binormal out of the frame ∂p/∂u and ∂p/∂v, made orthonormal against the pixel's normal, and that normal - nought along a row the
+    /// frame gives no direction to.
+    /// </summary>
+    /// <param name="vector">The vector in the basis.</param>
+    /// <param name="alongU">∂p/∂u, the frame's first row - <see cref="Tangent"/>.</param>
+    /// <param name="alongV">∂p/∂v, its second - <see cref="Binormal"/>.</param>
+    /// <param name="normal">The pixel's normal, unit length - <see cref="Normal"/>.</param>
+    /// <remarks>
+    /// THE ENGINE'S BASIS, READ (render-debug's sources): Transform is <c>output = mul(input, inmatrix)</c>, a row vector times the
+    /// rows; base.fxgraph builds the pixel's TbnBasis at PixelInit from the interpolated tangent, binormal and normal, each through its
+    /// own Normalize3; fixed.fxgraph makes the vertex's binormal <c>tangent.w * normalize(cross(normal, tangent))</c>, at right angles to
+    /// both, as the ground's graphs do over the world's x (InitGroundVectors). So every row is unit length and the three stand nearly at
+    /// right angles wherever the interpolation has not bent them apart - the reason a Gram-Schmidt of the frame stands in for them.
+    ///
+    /// THE BINORMAL RUNS AGAINST ∂p/∂v, the engine's convention where two of its sources settle it: FixModelTBN takes
+    /// <c>normalize(-model_tbn_basis[1])</c> as its ∂p/∂v row ("y is flipped"), and GetGroundTBN is (1, 0, 0), (0, -1, 0), (0, 0, -1)
+    /// over coordinates running along +x and +y (CreateProjectedCoords). NormalTexToTbn flips nothing, so a normal map's green leans the
+    /// normal towards minus v, as in the game.
+    ///
+    /// CHOSEN, NOT READ: the mesh's own vertex tangents are not read (SkinnedMesh reads past them), so the rows are the screen-space frame
+    /// - GetScreenspaceTangentFrame's, the engine's own and the one FixModelTBN takes its lengths from - made orthonormal against the
+    /// pixel's normal: <c>T = normalize(∂p/∂u - N (N · ∂p/∂u))</c>, <c>B = -normalize(∂p/∂v - N (N · ∂p/∂v) - T (T · ∂p/∂v))</c>. That
+    /// is the model's basis wherever its tangents run with its coordinates, as tangents are built to and as FixModelTBN itself assumes;
+    /// it parts from it only on a mesh whose tangents were authored otherwise. Where the coordinates do not span the triangle the frame
+    /// is nought and so are those rows, and what stays is the vector's part along the normal - never not a number.
+    /// </remarks>
+    public static Vector3 ThroughBasis(Vector3 vector, Vector3 alongU, Vector3 alongV, Vector3 normal)
+    {
+        Vector3 tangent = Direction(alongU - (normal * Vector3.Dot(normal, alongU)));
+        Vector3 binormal = -Direction(alongV - (normal * Vector3.Dot(normal, alongV)) - (tangent * Vector3.Dot(tangent, alongV)));
+        return (tangent * vector.X) + (binormal * vector.Y) + (normal * vector.Z);
+    }
+
+    /// <summary>A direction at length one, or nought where it has none - normalize's, guarded as the beach's flat one is.</summary>
+    private static Vector3 Direction(Vector3 v)
+    {
+        float length = v.Length();
+        return length > 1e-12f ? v / length : Vector3.Zero;
     }
 
     /// <summary>
@@ -1375,6 +1464,15 @@ public sealed partial class ShadeProgram
         Span<float> levels,
         ReadOnlySpan<Vector4> colours = default)
     {
+        // THE TRIANGLE'S OWN FRAME AT ITS CORNERS TOO, where a step reads it: a read whose coordinates hang on a vector carried out of
+        // the TBN basis takes its level from what its pixels will read, and a caller that runs the program on with these registers
+        // (GroundReader) has the frame its pixels have.
+        if (UsesTangents)
+        {
+            (Vector3 tangent, Vector3 binormal) = Spanned(positions[0], positions[1], positions[2], coordinates[0], coordinates[1], coordinates[2]);
+            Frame(registers, tangent, binormal);
+        }
+
         for (var corner = 0; corner < 3; corner++)
         {
             registers[Coordinates] = new Vector4(coordinates[corner], 0f, 0f);
@@ -1728,6 +1826,17 @@ public sealed partial class ShadeProgram
                 case Op.Wet:
                     r[step.To] = Vector4.Zero;
                     break;
+
+                case Op.Tbn:
+                {
+                    Vector4 vector = r[step.A], alongU = r[step.B], alongV = r[step.C], normal = r[step.D];
+                    r[step.To] = new Vector4(
+                        ThroughBasis(
+                            new Vector3(vector.X, vector.Y, vector.Z), new Vector3(alongU.X, alongU.Y, alongU.Z),
+                            new Vector3(alongV.X, alongV.Y, alongV.Z), new Vector3(normal.X, normal.Y, normal.Z)),
+                        0f);
+                    break;
+                }
 
                 case Op.Parallax:
                     if (corner >= 0)
@@ -3076,7 +3185,8 @@ public sealed partial class ShadeProgram
         /// any graph wrote it, the vertex world position's w, which no file says. The TBN basis
         /// anywhere but where a matrix goes. And the basis's normal anywhere its length would matter:
         /// the engine builds the basis from the interpolated normal, and whether it normalises it on
-        /// the way is not written down.
+        /// the way is not written down. (Read since: base.fxgraph does - see ThroughBasis - but the
+        /// normal row this compile hands on is the interpolated normal as it comes, so the refusal stands.)
         /// </remarks>
         private int? Brought(ShaderNode node, string port, ShaderEnd source, string swizzle)
         {
@@ -4300,7 +4410,8 @@ public sealed partial class ShadeProgram
         /// A dot product of it is a cosine wherever a graph uses one - ParallaxUvSpaceContactFade
         /// weighs its fade by the view against the surface - so it is taken as one: exact if the
         /// engine normalises, and off by the interpolation's shrink between unlike vertex normals if
-        /// it does not, which on a flat ground layer is nothing.
+        /// it does not, which on a flat ground layer is nothing. (Read since in render-debug's capture:
+        /// base.fxgraph normalises every row - see ThroughBasis - so the cosine is the engine's.)
         /// </remarks>
         private int Unit3(ShaderNode node, int operand)
             => node.Type == "DotProduct3" && build.Direction(operand) ? build.Emit(Op.Normalize, operand, extra: 3) : operand;
@@ -4381,13 +4492,18 @@ public sealed partial class ShadeProgram
         }
 
         /// <summary>
-        /// Transform by the TBN basis, where the vector lies along the basis's normal alone.
+        /// Transform by the TBN basis: <c>mul(input, inmatrix)</c>, the basis's rows tangent, binormal and normal.
         /// </summary>
         /// <remarks>
-        /// <c>mul(input, inmatrix)</c> with the basis's rows tangent, binormal and normal, so
-        /// <c>Transform(float3(0, 0, 1), InputTbnBasis)</c> - AGT_DesertDust's and the parallax's
-        /// surface normal - is the normal row. The mesh has no tangents, so a vector with any part
-        /// along the other two rows is refused; and the result is a direction only - see Brought.
+        /// A CONSTANT ALONG THE NORMAL ALONE IS THE NORMAL ROW, as it always was: <c>Transform(float3(0, 0, 1), InputTbnBasis)</c> -
+        /// AGT_DesertDust's and the parallax's surface normal - is the interpolated normal times the constant, and a direction only
+        /// (see Brought).
+        ///
+        /// ANY OTHER VECTOR IS ONE STEP (<see cref="Op.Tbn"/>) over the screen-space frame made orthonormal against the pixel's normal
+        /// (<see cref="ThroughBasis"/>), its rows unit length as base.fxgraph's are - so its result has the vector's own length, and is
+        /// no mere direction. Before v0.1.376 it was refused, the mesh having no tangents: MaterialBlend_GradientUV's moss on Port's
+        /// quay stone (MPRT_GraveBrickTile01c.mat, the master's swap for its tiles) weighs its mask by the normal-mapped normal carried
+        /// out of the basis, and with it lost went the occlusion it writes and the sea's spray that reads it - the quay's runoff.
         /// </remarks>
         private int? Transformed(ShaderNode node)
         {
@@ -4401,14 +4517,14 @@ public sealed partial class ShadeProgram
                 return Fail("Transform by a matrix other than the TBN basis");
             }
 
-            if (!build.ConstantOf(vector, out Vector4 along) || along.X != 0f || along.Y != 0f)
+            if (build.ConstantOf(vector, out Vector4 along) && along.X == 0f && along.Y == 0f)
             {
-                return Fail("Transform of a vector along the tangent or binormal, which the mesh does not have");
+                int said = build.Emit(Op.Multiply, VertexNormal, build.Constant(new Vector4(along.Z)));
+                build.Directional(said);
+                return said;
             }
 
-            int said = build.Emit(Op.Multiply, VertexNormal, build.Constant(new Vector4(along.Z)));
-            build.Directional(said);
-            return said;
+            return build.Emit(Op.Tbn, vector, Tangent, Binormal, Normal);
         }
 
         /// <summary>A one-input node's input, whatever its port is called - there is only the one, and nought where it is unlinked.</summary>

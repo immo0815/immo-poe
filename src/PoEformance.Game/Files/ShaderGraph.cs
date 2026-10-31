@@ -100,6 +100,17 @@ public sealed class ShaderGraph
     /// <summary>Whether the file read as a graph.</summary>
     public bool Ready => Nodes.Count > 0 || Links.Count > 0;
 
+    /// <summary>
+    /// The alpha the graph sets the alpha test's cut at (<c>alphatest_threshold</c>) - or null where it says none.
+    /// </summary>
+    /// <remarks>
+    /// THE ENGINE CUTS AT THE MATERIAL'S OWN THRESHOLD, <c>clip(alpha - alpha_test_desc.y + 0.001)</c> (PerformAlphaTestClip), not at a
+    /// half: OceanSprayFoam.fxgraph sets it to nought, as it writes its foam's cover into the albedo's alpha - so a cut-out material
+    /// carrying the spray cuts nothing away. Read past, Port's ship lost its mast to the cut (v0.1.375's capture: MPRT_WoodTileable01c.mat,
+    /// the probe "cut out" over the whole mast).
+    /// </remarks>
+    public float? AlphaThreshold { get; private init; }
+
     /// <summary>Reads a graph file's bytes; <see cref="None"/> for anything that is not one.</summary>
     public static ShaderGraph Read(byte[]? content)
     {
@@ -150,7 +161,11 @@ public sealed class ShaderGraph
                 }
             }
 
-            return new ShaderGraph { Nodes = nodes, Links = links };
+            float? threshold = root.TryGetProperty("alphatest_threshold", out JsonElement cut) && cut.ValueKind == JsonValueKind.Number
+                && cut.TryGetSingle(out float at) && float.IsFinite(at)
+                ? at
+                : null;
+            return new ShaderGraph { Nodes = nodes, Links = links, AlphaThreshold = threshold };
         }
         catch (JsonException)
         {

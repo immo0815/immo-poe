@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Numerics;
 using System.Text;
 using PoEformance.Game.Files;
@@ -367,6 +368,47 @@ public class SprayTests
         """;
 
     /// <summary>The cells of a drawing a probe stands in the middle of.</summary>
+    /// <summary>
+    /// A graph's <c>alphatest_threshold</c> sets where a cut-out program is cut (ShadeProgram.Cut, the engine's alpha_test_desc.y), the last
+    /// graph setting one winning: the spray's own graph sets nought, so a shape whose albedo's alpha is nought - the spray's foam cover where
+    /// there is no foam, as on Port's swapped ship wood - is not cut away, where the usual half cut it away whole; the bound copy keeps it.
+    /// </summary>
+    [Fact]
+    public void ACUTOutProgramIsCutAtItsGraphsThresholdTheSpraysNought()
+    {
+        Assert.Equal(0f, ShaderGraph.Read(Fixture("Metadata/Materials/OceanSprayFoam.fxgraph")).AlphaThreshold);
+        Assert.Null(ShaderGraph.Read(Encoding.UTF8.GetBytes(Stone)).AlphaThreshold);
+
+        (ShaderInstance, ShaderGraph) clear = Link("Metadata/Clear.fxgraph", Clear);
+        ShadeProgram usual = Assert.IsType<ShadeProgram>(ShadeProgram.Compile([clear]).Program);
+        Assert.Equal(0f, usual.FixedAlpha);
+        Assert.Equal(MeshPicture.CutoutAlpha, usual.Cut);
+        Assert.True(usual.CutAway(usual.Cut));
+
+        ShadeProgram nought = Assert.IsType<ShadeProgram>(ShadeProgram.Compile([clear, Link("Metadata/Nought.fxgraph", Threshold(0f))]).Program);
+        Assert.Equal(0f, nought.Cut);
+        Assert.False(nought.CutAway(nought.Cut));
+        Assert.Equal(0f, nought.With([.. nought.Textures.Select(_ => Sheet())]).Cut);
+
+        ShadeProgram later = Assert.IsType<ShadeProgram>(
+            ShadeProgram.Compile([clear, Link("Metadata/Nought.fxgraph", Threshold(0f)), Link("Metadata/More.fxgraph", Threshold(0.7f))]).Program);
+        Assert.Equal(0.7f, later.Cut);
+    }
+
+    /// <summary>A colour whose alpha is nought, written whole.</summary>
+    private const string Clear = """
+        {"nodes":[
+          {"type":"ConstantPixel4","index":0,"parameters":[{"value":[0.4,0.4,0.4,0.0]}]},
+          {"type":"AlbedoColor","index":0,"stage":"Texturing_Init"}],
+         "links":[
+          {"src":{"type":"ConstantPixel4","index":0,"variable":"output"},"dst":{"type":"AlbedoColor","index":0,"stage":"Texturing_Init","variable":"input"}}]}
+        """;
+
+    /// <summary>A graph that sets the alpha test's threshold and writes nothing.</summary>
+    private static string Threshold(float at) => string.Create(
+        CultureInfo.InvariantCulture,
+        $$"""{"alphatest_threshold":{{at}},"nodes":[{"type":"ConstantFloat","index":0,"parameters":[{"value":1.0}]}],"links":[]}""");
+
     private const int Size = 32;
 
     private static (ShaderInstance, ShaderGraph) Link(string parent, string json)

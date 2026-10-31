@@ -439,7 +439,8 @@ public static partial class ShadeHlsl
         {
             // FixModelTBN's frame from the screen's derivatives - GetScreenspaceTangentFrame, the
             // engine's own: dp = T du + B dv along x and along y, solved. On a flat triangle it is
-            // ShadeProgram.Spanned's answer from the edges.
+            // ShadeProgram.Spanned's answer from the edges. The parallax marches in it; a vector
+            // carried out of the TBN basis is carried along it made orthonormal (ShadeProgram.ThroughBasis).
             hlsl.AppendLine("    float2 uvx = ddx(uv);");
             hlsl.AppendLine("    float2 uvy = ddy(uv);");
             hlsl.AppendLine("    float3 px = ddx(place);");
@@ -1236,6 +1237,19 @@ public static partial class ShadeHlsl
 
                 case ShadeProgram.Op.Wet:
                     hlsl.Append("    ").Append(to).AppendLine(" = float4(0.0, 0.0, 0.0, ShadeWetness.Load(int3(int2(ShadePixel), 0)));");
+                    break;
+
+                // ShadeProgram.ThroughBasis, line for line: the frame made orthonormal against the normal, the binormal against ∂p/∂v.
+                case ShadeProgram.Op.Tbn:
+                    hlsl.Append("    { float3 tbnN = ").Append(d).AppendLine(".xyz;");
+                    hlsl.Append("      float3 tbnT = ").Append(b).Append(".xyz - (tbnN * dot(tbnN, ").Append(b).AppendLine(".xyz));");
+                    hlsl.AppendLine("      float tbnSize = length(tbnT);");
+                    hlsl.AppendLine("      tbnT = tbnSize > 1e-12 ? tbnT / tbnSize : float3(0.0, 0.0, 0.0);");
+                    hlsl.Append("      float3 tbnB = ").Append(c).Append(".xyz - (tbnN * dot(tbnN, ").Append(c).Append(".xyz)) - (tbnT * dot(tbnT, ").Append(c).AppendLine(".xyz));");
+                    hlsl.AppendLine("      tbnSize = length(tbnB);");
+                    hlsl.AppendLine("      tbnB = tbnSize > 1e-12 ? -tbnB / tbnSize : float3(0.0, 0.0, 0.0);");
+                    hlsl.Append("      float3 tbnV = ").Append(a).AppendLine(".xyz;");
+                    hlsl.Append("      ").Append(to).AppendLine(" = float4((tbnT * tbnV.x) + (tbnB * tbnV.y) + (tbnN * tbnV.z), 0.0); }");
                     break;
 
                 // A STEP LEFT OUT WOULD BE A COLOUR GONE WRONG WITHOUT A WORD - an op added to the

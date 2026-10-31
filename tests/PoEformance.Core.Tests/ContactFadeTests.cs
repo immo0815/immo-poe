@@ -210,6 +210,7 @@ public class ContactFadeTests
         Assert.True(compiled.Program.HasAlpha);
         Assert.True(compiled.Program.UsesDepth);
         Assert.True(compiled.Program.Discards);
+        Assert.Equal(marches, compiled.Program.Marches);
         Assert.Equal(marches, compiled.Program.UsesTangents);
     }
 

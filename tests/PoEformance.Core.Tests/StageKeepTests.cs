@@ -66,15 +66,22 @@ public class StageKeepTests
             return Ready();
         }
 
-        Task<MonsterModel> first = Task.Run(() => keep.Tile("a", Slow, out _));
+        // ON THREADS OF THEIR OWN, not the pool's: the suite's drawings fill every pool thread, and a Task.Run waited longer than ten
+        // seconds to start on CI (v0.1.376's run) - the build was never what the test waited for.
+        Task<MonsterModel> first = Task.Factory.StartNew(
+            () => keep.Tile("a", Slow, out _), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         Assert.True(started.Wait(TimeSpan.FromSeconds(10)));
         var keptSecond = false;
-        Task<MonsterModel> second = Task.Run(() =>
-        {
-            MonsterModel got = keep.Tile("a", Slow, out bool kept);
-            keptSecond = kept;
-            return got;
-        });
+        Task<MonsterModel> second = Task.Factory.StartNew(
+            () =>
+            {
+                MonsterModel got = keep.Tile("a", Slow, out bool kept);
+                keptSecond = kept;
+                return got;
+            },
+            CancellationToken.None,
+            TaskCreationOptions.LongRunning,
+            TaskScheduler.Default);
 
         release.Set();
         Assert.Same(await first, await second);

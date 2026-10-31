@@ -1720,7 +1720,7 @@ public static class MeshPicture
     }
 
     /// <summary>Each program's <see cref="ShadeProgram.CutAway"/> at the picture's cut.</summary>
-    private static bool[] CutAway(ShadeProgram[] programs) => Array.ConvertAll(programs, one => one.CutAway(CutoutAlpha));
+    private static bool[] CutAway(ShadeProgram[] programs) => Array.ConvertAll(programs, one => one.CutAway(one.Cut));
 
     /// <summary>
     /// Whether a triangle casts the sun's shadow: solid, shadow-only and cut out - but not a cut-out shape its program cuts away at every
@@ -2717,7 +2717,8 @@ public static class MeshPicture
                 s2 = _coordinates[i2];
             }
 
-            // THE TRIANGLE'S OWN ∂p/∂u AND ∂p/∂v where a march reads them - see FixModelTBN.
+            // THE TRIANGLE'S OWN ∂p/∂u AND ∂p/∂v where a march or a vector carried out of the TBN basis reads them - see FixModelTBN
+            // and ShadeProgram.ThroughBasis.
             if (program is { UsesTangents: true })
             {
                 (Vector3 tangent, Vector3 binormal) = ShadeProgram.Spanned(p0, p1, p2, s0, s1, s2);
@@ -2908,7 +2909,7 @@ public static class MeshPicture
                         // they do not. Either way before depth is written - see the plain cut-out below.
                         bool cut = blend == MaterialBlend.Cutout;
                         if (cut && !program.HasAlpha && skinned
-                            && Sample4(skin!, (first * s0) + (second * s1) + (third * s2), level).W < CutoutAlpha)
+                            && Sample4(skin!, (first * s0) + (second * s1) + (third * s2), level).W < program.Cut)
                         {
                             if (here)
                             {
@@ -2940,7 +2941,7 @@ public static class MeshPicture
                         {
                             ShadeProgram.ProbeSprays(null, 0, 0f);
                         }
-                        if ((cut && program.HasAlpha && alpha < CutoutAlpha) || float.IsNegativeInfinity(alpha))
+                        if ((cut && program.HasAlpha && alpha < program.Cut) || float.IsNegativeInfinity(alpha))
                         {
                             if (here)
                             {

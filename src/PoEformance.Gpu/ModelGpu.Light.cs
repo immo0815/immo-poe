@@ -237,7 +237,7 @@ public sealed partial class ModelGpu
         {
             // NOR A CUT-OUT SHAPE ITS PROGRAM CUTS AWAY AT EVERY PIXEL - MeshPicture's Casts, ShadeProgram.FixedAlpha.
             if (run.Blend is MaterialBlend.Alpha or MaterialBlend.Additive
-                || (run.Blend == MaterialBlend.Cutout && run.Shade >= 0 && programs[run.Shade].CutAway(MeshPicture.CutoutAlpha)))
+                || (run.Blend == MaterialBlend.Cutout && run.Shade >= 0 && programs[run.Shade].CutAway(programs[run.Shade].Cut)))
             {
                 continue;
             }
