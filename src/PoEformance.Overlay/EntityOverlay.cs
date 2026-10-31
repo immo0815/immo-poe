@@ -1845,6 +1845,9 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
     /// <summary>The masters beside the area's rooms, worked out once per area - see AreaBlock.MastersOf.</summary>
     private (int Stamp, IReadOnlyList<string> Masters) _aroundMasters = (0, []);
 
+    /// <summary>When the masters were last asked for, in Environment.TickCount64's milliseconds - see AroundKey.</summary>
+    private long _aroundAsked;
+
     private AroundYou AroundChoice => _aroundYou ??= new AroundYou { Key = AroundKey, Changed = () => SettingsChanged?.Invoke() };
 
     /// <summary>The side of the area round you in tiles, as the settings keep it - nought or less for the usual. See AroundYou.</summary>
@@ -1876,10 +1879,17 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
             return (string.Empty, "the player is not known");
         }
 
+        // ASKED AGAIN WHILE NONE CAME BACK, every two seconds at most (CHOSEN): asked before the area's room files are read - the tool
+        // started inside an area, a book opened at once - the answer is none, and kept for the area the block came out with no master:
+        // its ground unpainted, nothing swapped, nothing strewn (The Red Vale from the live client, v0.1.375).
         int stamp = RoomKey.Stamp(grid);
-        if (_aroundMasters.Stamp != stamp && _aroundRead is { } read)
+        long now = Environment.TickCount64;
+        if (_aroundRead is { } read
+            && (_aroundMasters.Stamp != stamp || (_aroundMasters.Masters.Count == 0 && now - _aroundAsked >= 2000)))
         {
-            _aroundMasters = (stamp, AreaBlock.MastersOf(read, AreaRoomFiles()));
+            IReadOnlyList<string> masters = AreaBlock.MastersOf(read, AreaRoomFiles());
+            _aroundMasters = (stamp, masters.Count > 0 ? masters : AreaBlock.MastersNear(read, LoadedFiles?.Invoke() ?? []));
+            _aroundAsked = now;
         }
 
         AreaBlock block = AreaBlock.Around(here.X, here.Y, size, grid, _aroundMasters.Stamp == stamp ? _aroundMasters.Masters : []);

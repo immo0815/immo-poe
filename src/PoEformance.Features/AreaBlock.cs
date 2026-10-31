@@ -151,6 +151,56 @@ public readonly record struct AreaBlock(
         return masters;
     }
 
+    /// <summary>
+    /// The masters standing in the folders of the area's own terrain files, or up to two folders above them - where no room of the area
+    /// is known to find one beside (<see cref="MastersOf"/>).
+    /// </summary>
+    /// <remarks>
+    /// A RE-ENTERED INSTANCE LOADS NO ROOM AGAIN: the game's list of what was loaded since the area change then holds the area's ground
+    /// types and little else - The Red Vale from the live client (v0.1.375): no room, no master, its ground types under
+    /// <c>Gallows/Act1/1_5/GroundTypes/</c> - so no master was found and the area round you came out unpainted, unswapped and unstrewn.
+    /// The area's own ground types stand in its master's folder or one under it (<c>1_5/GroundTypes/</c> beside <c>1_5/master.tsi</c>),
+    /// so the masters are sought up from them; which of them paints a block is chosen as ever, by the ground types it names. CHOSEN: the
+    /// file's own folder and two above it, terrain files alone.
+    /// </remarks>
+    public static IReadOnlyList<string> MastersNear(Func<string, byte[]?> read, IEnumerable<string> files)
+    {
+        ArgumentNullException.ThrowIfNull(read);
+        ArgumentNullException.ThrowIfNull(files);
+        var folders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var masters = new List<string>();
+        foreach (string file in files)
+        {
+            string path = file.Replace('\\', '/').Trim();
+            if (!path.StartsWith("Metadata/Terrain/", StringComparison.OrdinalIgnoreCase)
+                || !(path.EndsWith(".gt", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".tdt", StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            int slash = path.LastIndexOf('/');
+            for (var up = 0; up < 3 && slash > 0; up++)
+            {
+                string folder = path[..slash];
+                if (!folders.Add(folder))
+                {
+                    break;
+                }
+
+                string master = folder + "/master.tsi";
+                if (read(master) is { Length: > 0 })
+                {
+                    masters.Add(master);
+                    break;
+                }
+
+                slash = folder.LastIndexOf('/');
+            }
+        }
+
+        return masters;
+    }
+
     /// <summary>Whether a key names a block rather than a tile or a room.</summary>
     public static bool IsKey([NotNullWhen(true)] string? key) => key is not null && key.StartsWith(Path + TileKey.Mark, StringComparison.Ordinal);
 

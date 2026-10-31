@@ -1240,8 +1240,18 @@ the top - every earlier capture and every fixture - or in its folder. That is th
   THE SHIP LOST ITS MAST TO THE SAME SWAPS (said from the live client with a picture, v0.1.375: yards, crow's nest and rigging hanging in the
   air, no sails): Port's list carries a PirateShip section, 17 of boss_boat.ao's 26 materials to `Maps/Port/Textures/PirateShip/MPRT_*`, which
   the ship wears since v0.1.373 put the swaps on a room's own lines (DECIDED from the live client; the designers writing the ship's swaps says
-  the game wears them too). Some of them draw nothing here - why is NOT READ yet: a capture with the stage shown (the swaps section) and the
-  probe where the mast stands says it.
+  the game wears them too). Some of them drew nothing here. ITS CAPTURE (v0.1.375, the probe where the mast stands) said why: "cut out",
+  MPRT_WoodTileable01c.mat under AlphaTestWithShadow - it adds OceanSprayFoam, whose graph writes its foam's cover into the albedo's alpha
+  (nought where no foam) AND sets `"alphatest_threshold": 0`; the engine cuts at the material's threshold, `clip(alpha - alpha_test_desc.y
+  + 0.001)` (PerformAlphaTestClip), so it cuts nothing, while the tool cut every program at a fixed half. From v0.1.377 a program is cut
+  at the last of its graphs' thresholds (`ShaderGraph.AlphaThreshold`, `ShadeProgram.Cut`; the half where none sets one), on both drawings.
+  THE AREA ROUND YOU CAME OUT UNPAINTED (said from the live client with a picture, v0.1.375: The Red Vale's ground grey, its ferns green,
+  nothing strewn). Its capture said "ground: no master beside the area's rooms" and every part "0 masters, 0 rooms": the game's list of
+  files loaded since the area change named the area's ground types (`Gallows/Act1/1_5/GroundTypes/`) and no room and no master - a
+  re-entered instance, the rest cached (see "The loaded-file list is not the area"); the same instance had been painted under v0.1.374,
+  freshly loaded. From v0.1.377 a block with no room's master takes the masters up from the area's own terrain files
+  (`AreaBlock.MastersNear`: a ground type's or tile's folder and two above; `1_5/GroundTypes/` lies under `1_5/master.tsi`, the master
+  v0.1.372's capture named), and none is asked again every two seconds (CHOSEN).
   THE CAUSTICS' AND THE ROCKY SHORE'S TEXTURES. water.ffx's GetCausticsBias reads `distortion_sampler` (red and green as a vector,
   `(rg * 2 - 1) * 0.4`, at the place times 0.001 drifting with the clock) and `caustics_tex_sampler` (its green, `pow(g, 1 / 4.2) * 2 - 1`,
   at the place times 0.002), both wrapping, and GetClashingWaterPlanarState and the beach foam's leading edge read the same distortion -

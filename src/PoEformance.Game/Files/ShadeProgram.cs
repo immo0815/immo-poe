@@ -421,6 +421,17 @@ public sealed partial class ShadeProgram
     public bool CutAway(float cutoff) => FixedAlpha is { } alpha && !(alpha >= cutoff);
 
     /// <summary>
+    /// The alpha a cut-out shape of this program is cut at: the last of its graphs that sets one (ShaderGraph.AlphaThreshold), else the
+    /// usual half (MeshPicture.CutoutAlpha).
+    /// </summary>
+    /// <remarks>
+    /// THE LAST THAT SETS ONE, as the last graph setting a blend mode gives the material's: a later graph overrides what an earlier one
+    /// set. OceanSprayFoam's nought made Port's swapped ship wood cut nothing where its foam's cover, written into the alpha, is nought -
+    /// with the half the mast and the sails were cut away whole (v0.1.375's capture).
+    /// </remarks>
+    public float Cut { get; private set; } = MeshPicture.CutoutAlpha;
+
+    /// <summary>
     /// Whether the material draws the sea's spray on itself (CrashingFoamSurface) - the game's own word that the sea breaks on it; see ShoreField.Of.
     /// </summary>
     public bool Sprays { get; }
@@ -783,6 +794,8 @@ public sealed partial class ShadeProgram
     {
         ArgumentNullException.ThrowIfNull(chain);
         ShadeCompile compiled = Compile(chain, null);
+        float cut = chain.LastOrDefault(one => one.Graph.AlphaThreshold is not null).Graph?.AlphaThreshold ?? MeshPicture.CutoutAlpha;
+        Cutting(compiled.Program, cut);
 
         // THE TWIN WHOSE SPRAY READS THE STONE'S OWN OCCLUSION, compiled only where a spray is carried and something sets the occlusion
         // to one before the spray reads it - see Occluded. OceanSprayFoam sets it to one itself at PreLighting_Calc, after its read,
@@ -790,6 +803,7 @@ public sealed partial class ShadeProgram
         if (compiled.Program is { } program && SprayRead(chain) is { } read && ResetBefore(chain, read))
         {
             ShadeProgram? twin = Compile(chain, read).Program;
+            Cutting(twin, cut);
             program.Occluded = twin;
             if (program.Glossy is { } glossy)
             {
@@ -798,6 +812,21 @@ public sealed partial class ShadeProgram
         }
 
         return compiled;
+    }
+
+    /// <summary>A program and its glossy twin cut at the chain's threshold - see <see cref="Cut"/>.</summary>
+    private static void Cutting(ShadeProgram? program, float cut)
+    {
+        if (program is null)
+        {
+            return;
+        }
+
+        program.Cut = cut;
+        if (program.Glossy is { } glossy)
+        {
+            glossy.Cut = cut;
+        }
     }
 
     /// <summary>A line added once, however many writes of a chain say it - see ShadeCompile.Lost.</summary>
@@ -1205,6 +1234,7 @@ public sealed partial class ShadeProgram
             Rivers = Rivers,
             Wetness = Wetness is { } wet && wet.Textures.SequenceEqual(Textures) ? wet.With(sheets) : null,
             Occluded = Occluded is { } occluded && occluded.Textures.SequenceEqual(Textures) ? occluded.With(sheets) : null,
+            Cut = Cut,
         };
     }
 

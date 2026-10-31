@@ -1079,7 +1079,9 @@ public sealed partial class ModelGpu : IDisposable
             _sheetsBound = Math.Max(_sheetsBound, sheets.Count);
         }
 
-        Part(new Vector4(view is null ? 0f : 1f, run.Blend == MaterialBlend.Cutout ? MeshPicture.CutoutAlpha : -1f, 0f, 0f), run.Sway);
+        // CUT AT THE PROGRAM'S OWN THRESHOLD where it has one - its graphs' alphatest_threshold (ShadeProgram.Cut), the spray's nought.
+        float cut = run.Blend != MaterialBlend.Cutout ? -1f : run.Shade >= 0 ? plan.Programs[run.Shade].Cut : MeshPicture.CutoutAlpha;
+        Part(new Vector4(view is null ? 0f : 1f, cut, 0f, 0f), run.Sway);
         _context.DrawIndexed(run.Count * 3, run.First * 3, 0);
     }
 

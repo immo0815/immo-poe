@@ -149,4 +149,26 @@ public class AreaBlockTests
         ]);
         Assert.Equal(["Metadata/Terrain/Gallows/Act1/1_5/master.tsi", "Metadata/Terrain/WorldMaps/Act1/master.tsi"], masters);
     }
+
+    /// <summary>
+    /// A re-entered instance's list names its ground types and no room (The Red Vale, v0.1.375): the master is found up from the ground
+    /// types' folder - its own or two above - each folder asked once, files that are no terrain ground or tile passed over.
+    /// </summary>
+    [Fact]
+    public void WITHNoRoomTheMasterIsFoundUpFromTheAreasGroundTypes()
+    {
+        var files = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Metadata/Terrain/Gallows/Act1/1_5/master.tsi"] = [1],
+            ["Metadata/Terrain/Faraway/master.tsi"] = [1],
+        };
+        IReadOnlyList<string> masters = AreaBlock.MastersNear(files.GetValueOrDefault, [
+            "Metadata/Terrain/Gallows/Act1/1_5/GroundTypes/arenamud.gt",
+            "Metadata/Terrain/Gallows/Act1/1_5/GroundTypes/zombiemud.gt",
+            "Metadata/Terrain/Woods/Woods/inside_woods.gt",
+            "Metadata/Terrain/Faraway/a/b/c/deep.gt",
+            "Art/Models/Terrain/Faraway/rock.mat",
+        ]);
+        Assert.Equal(["Metadata/Terrain/Gallows/Act1/1_5/master.tsi"], masters);
+    }
 }
