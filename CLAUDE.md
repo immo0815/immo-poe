@@ -901,7 +901,7 @@ stance switches to the two-handed staff and my focus is hidden - only the wand w
   set not in hand is shown to nobody, anywhere - PoE1 and PoE2 alike (said from the live client, 2026-10-31). The wand's and the focus's
   cosmetics as the Monster Book drew them in hand under v0.1.397 are the game's (said from the live client).
 - HIS EQUIPMENT LOOKS HOLD BOTH SETS (schema `Inventories.Looks` +0x120, `EquipmentLook` 0x88): 13 entries byte for byte the same before and
-  after the swap - a slot byte, the item's class row at +0x08 (PoE1's ItemClasses order: the staff 15, the wand 9, the rings 6, the belt 22...),
+  after the swap - a slot byte, the item's class at +0x08 (its ItemClasses row plus one - see below: the staff 15, the wand 9, the rings 6...),
   an ItemStances row at +0x10 on the three held items alone, the ItemVisualIdentity row it is drawn with at +0x20 (its `IdPtr` the Id - the
   schema's ItemVisualIdentityRow, live-verified in the AHK tool) - the cosmetic's where one is applied: the wand's MTX row 6808 and the focus's
   6812 lie four rows apart in memory as in the file. Slot 0 the staff (inventory 3), 2 the wand (15), 3 the focus (16): set 1's hands slots 0
@@ -922,6 +922,15 @@ stance switches to the two-handed staff and my focus is hidden - only the wand w
   with its own hands, pack and idle, never a piece of either set's hands hung as a skin (`PlayerDress.Held`, `Variety(set)`, `Key(set)`).
 - THE PART writes the composition's three held slots, the looks entry by entry with the set and hand each stands for, the two candidate words,
   and every set as the Monster Book resolves it - each hand's piece and where it came from, the pack and the idle - and each other set's pack.
+THE LOOKS' CLASS IS THE ROW PLUS ONE (the captures of 2026-11-01 00:19, the staff in hand, and 00:23, the wand and focus; v0.1.400). Their
+resolve lines turned every look away - "slot 0's class row 15 is not the item's 14" - so the set NOT in hand fell back to its items' own models:
+at 00:23 set 1 hung ChimingStaffHeld.ao, not the Exile's Staff, and at 00:19 set 2's focus the plain CrystalFocusHeld.ao; the set in hand came
+right only because the composition holds its pieces. MEASURED, six of six held entries: memory's number is the item's BaseItemTypes ItemClasses
+key plus one (15/14, 9/8, 82/81), and the worn ones fit PoE1's order one on too (`EquipmentLook.ClassRow`; the note above counted it from one).
+`Player.Flags1A0`'s BIT 0 IS SET 2 IN HAND in all four captures (0x41 at 16:16 and 00:23, 0x40 at 22:17 and 00:19); `Animated.Word180` was 0 with
+set 2 in hand at 00:23 and is no candidate - neither is read yet, the timeline deciding. THE COSMETIC'S COLUMNS ARE PER ITEM CLASS: the Exile's
+Staff row (6980, AddedEffectExilesStaff) names WandererStaffHeld.ao in column_38 and WandererMaceHeld.ao in column_41, and the game's own
+tooltip says "Changes the appearance of any equipped One Hand Mace or Staff" (from the live client) - the folder rule takes the staff for a staff.
 
 ## Verify against the game, not against yourself
 

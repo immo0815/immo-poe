@@ -351,22 +351,22 @@ public static class PlayerLook
     }
 
     /// <summary>
-    /// His equipment looks as read (schema Inventories.Looks, EquipmentLook) - each entry's slot, class row, whether it is held and its visual
-    /// identity's Id - and the two words that flipped between the captures of a weapon swap (Player.Flags1A0, Animated.Word180), for the files
-    /// side to set beside the set his stance names.
+    /// His equipment looks as read (schema Inventories.Looks, EquipmentLook) - each entry's slot, class (memory's number and the ItemClasses
+    /// row it is one more than), whether it is held and its visual identity's Id - and the two words that flipped between the first captures
+    /// of a weapon swap (Player.Flags1A0, whose bit 0 is set 2 in hand, MEASURED in four; Animated.Word180, which does not follow the set).
     /// </summary>
     private static IEnumerable<string> Looked(IMemoryReader reader, OffsetSchema schema, IReadOnlyDictionary<string, ulong> components, IReadOnlyList<EquipmentLook> looks)
     {
         var lines = new List<string>
         {
             string.Create(CultureInfo.InvariantCulture,
-                $"=== his equipment looks (Inventories.Looks): {looks.Count} entries - slot, class row, held, the visual identity's Id; and the words that flipped with a weapon swap"),
+                $"=== his equipment looks (Inventories.Looks): {looks.Count} entries - slot, class as memory holds it and the ItemClasses row it is one more than, held, the visual identity's Id; and the words that flipped with a weapon swap (Player.Flags1A0's bit 0 set 2 in hand)"),
         };
         foreach (EquipmentLook look in looks)
         {
             (int set, int hand) = EquipmentLook.SetOf(look.Slot, PlayerDress.SetInventories.Count);
             lines.Add(string.Create(CultureInfo.InvariantCulture,
-                $"  slot {look.Slot}\tclass {look.ItemClass}\t{(look.Held ? "held" : "worn")}\t{(look.Visual.Length > 0 ? look.Visual : "(no id read)")}{(set >= 0 && look.Held ? $"\tset {set + 1}'s {(hand == 0 ? "main" : "off")} hand" : string.Empty)}"));
+                $"  slot {look.Slot}\tclass {look.ItemClass} (row {look.ClassRow})\t{(look.Held ? "held" : "worn")}\t{(look.Visual.Length > 0 ? look.Visual : "(no id read)")}{(set >= 0 && look.Held ? $"\tset {set + 1}'s {(hand == 0 ? "main" : "off")} hand" : string.Empty)}"));
         }
 
         lines.Add("  " + Word(reader, schema, components, "Player", "Flags1A0", 1) + "; " + Word(reader, schema, components, "Animated", "Word180", 4));
