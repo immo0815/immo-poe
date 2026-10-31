@@ -1,6 +1,6 @@
 {
   "comment": "Column order of the three tables a unique item's NAME is joined out of, from poe-tool-dev/dat-schema (PoE2 entries; its CI republishes schema.min.json on every commit). Offsets are NOT stored - they are arithmetic over the widths in DatColumns, and recomputing them is what keeps this honest when a width is corrected; the interval rule that cost Mods a whole table is one such correction. THE JOIN: UniqueStashLayout carries a WordsKey and an ItemVisualIdentityKey, Words holds the unique's name as Text, and ItemVisualIdentity's Id is the key the game exposes on the item itself at Base+0x30 - which is why the name is reached this way round rather than from the metadata path, and why a German client still prices its uniques in English. IsAlternateArt breaks the tie where two layout rows name one art. WHAT IS NOT VERIFIED HERE, said plainly: none of these three is in the loader's file table, so unlike BaseItemTypes and Mods their row size cannot be checked against a running client. The check is the FILE's own row size, which a .dat declares by where it puts its separator, and it happens at runtime against a real install - LoadedTable.Agrees, and the readout says which way it went. The sizes these columns compute are UniqueStashLayout 83 (0x53), Words 64 (0x40), ItemVisualIdentity 968 (0x3C8). THE ITEM BOOK ADDS TWO MORE, BaseItemTypes and ItemClasses, from the same schema release: BaseItemTypes' ItemVisualIdentity column is the join from a base type to the .ao its model is in, and ItemClass is what the book groups by. BaseItemTypes computes 360 (0x168), which is byte for byte what the loader's own file table reports on a live 0.5.5 client - see BaseItemTypesRow in schema/poe2.offsets.json. ItemClasses computes 150 (0x96) and is NOT verified against the client: it is checked against the file's own row size at runtime like the other three, and ItemVisuals.Say reports which way it went.",
-  "source": "poe-tool-dev/dat-schema, release latest, read 2026-09-16 (UniqueStashLayout, Words, ItemVisualIdentity) and 2026-10-04 (BaseItemTypes, ItemClasses; schema createdAt 2026-09-15, and the three older tables compared unchanged)",
+  "source": "poe-tool-dev/dat-schema, release latest, read 2026-09-16 (UniqueStashLayout, Words, ItemVisualIdentity) and 2026-10-04 (BaseItemTypes, ItemClasses; schema createdAt 2026-09-15, and the three older tables compared unchanged); ItemVisualHeldBodyModel from the PoE2 schema (dat-schema/poe2/_Core.gql at 6034b07, 2026-10-29) for the player look part",
   "tables": {
     "UniqueStashLayout": [
       {
@@ -864,6 +864,153 @@
       {
         "name": "column_27",
         "type": "bool",
+        "array": false
+      }
+    ],
+    "ItemVisualHeldBodyModel": [
+      {
+        "name": "ItemVisualIdentity",
+        "type": "foreignrow",
+        "array": false
+      },
+      {
+        "name": "MarauderAnimatedObject",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "RangerAnimatedObject",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "WitchAnimatedObject",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "DuelistAnimatedObject",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "TemplarAnimatedObject",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "ShadowAnimatedObject",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "ScionAnimatedObject",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "MarauderBone",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "RangerBone",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "WitchBone",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "DuelistBone",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "TemplarBone",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "ShadowBone",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "ScionBone",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_15",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_16",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_17",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_18",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_19",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_20",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_21",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_22",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_23",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_24",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_25",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_26",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_27",
+        "type": "string",
+        "array": false
+      },
+      {
+        "name": "column_28",
+        "type": "string",
         "array": false
       }
     ]

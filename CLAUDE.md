@@ -851,6 +851,16 @@ rigless skins. NOT YET: the held pieces (a wand, a focus - a rig of their own an
 until v0.1.394's capture reads where they hang), his idle clip (his .act's chain, which that capture writes), the other weapon set, the
 equipment fallback (which per-body column the game takes - the same capture's `Drawn` section), `show_sibling_segments`, his scale and
 his facing (unscaled, facing as a monster faces - CHOSEN).
+WHERE A HELD PIECE HANGS IS MEASURED, NOT CHOSEN (asked from the live client: "how do we get the socket?"). No file read so far says which of the
+body's sockets a wand or a focus takes - `Character.ao` defines some seventy (`R_Weapon` on `aux_R_Weapon_attachment_jntBnd`, `L_Weapon`,
+`Back`, the sheaths), the held pieces' own `.ao` name none. So v0.1.396's player look part hunts it three ways in one press: the
+composition's objects followed one hop further (`PlayerLook.Composed`, `MostPieceHops`), each block handed to the files side
+(`Seen.Objects`) and set against the body's rig and its sockets (`BodySockets`, read from the body's chain; `CapturePlayerLook.Sockets`):
+every word naming a socket or a socket's bone - its number, its name as text - and the slots' objects side by side where they differ
+(`Beside`), so a wand's and a focus's object differing where a socket's bone stands is read off the file; `ItemVisualHeldBodyModel` whole
+(dat-schema's PoE2 layout, vendored: per class an .ao and a BONE, keyed by visual identity); and the player's own object type (`.ot`,
+`.otc`) with what it extends. The game's picture settles a candidate after: the piece drawn at it through the game's camera must lie in his
+hand. Take it as he stands and after swapping weapon sets.
 
 ## Verify against the game, not against yourself
 

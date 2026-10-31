@@ -192,6 +192,89 @@ public class PlayerLookTests
         Assert.Null(CapturePlayerLook.Extends("﻿parent \"Metadata/Characters/CharacterFemale.act\"\n", "Metadata/Characters/Int/IntFour.ao"));
     }
 
+    /// <summary>
+    /// A body's sockets as Character.ao writes them - a socket and its indented parent, turn, shift and scale - each with its bone's number in
+    /// the rig, the piece's own socket winning over the one it inherits, a parent the rig lacks said as no bone.
+    /// </summary>
+    [Fact]
+    public void ABODYSSocketsAreReadWithTheirBones()
+    {
+        AnimationSkeleton rig = AnimationSkeleton.Read(File.ReadAllBytes(Fixture("basicskeleton-rig.headers.ast")));
+        int chest = rig.Bones.Select(one => one.Name).ToList().IndexOf("chest_jntBnd");
+        Assert.True(chest > 0, "the fixture rig names no chest_jntBnd");
+        AnimatedObject child = AnimatedObject.Parse(
+            "version 3\nclient\n{\n\tClientAnimationController\n\t{\n\t\tsocket = \"R_Weapon\"\n\t\t\tparent = \"chest_jntBnd\"\n"
+            + "\t\t\ttranslation = \"0 -4.45 -12.85\"\n\t}\n}\n");
+        AnimatedObject parent = AnimatedObject.Parse(
+            "version 3\nclient\n{\n\tClientAnimationController\n\t{\n\t\tskeleton = \"Art/Models/CharactersFour/OneRig.ast\"\n"
+            + "\t\tsocket = \"R_Weapon\"\n\t\t\tparent = \"root_jntBnd\"\n\t\tsocket = \"sheath_Staff\"\n\t\t\tparent = \"aux_Nowhere_attachment\"\n"
+            + "\t\t\trotation = \"-0 0.532 0\"\n\t\t\ttranslation = \"23.564 7.315 62.935\"\n\t\tsocket = \"aux_STRIKE_POSITION\"\n\t\t\ttranslation = \"0 -65 0\"\n\t}\n}\n");
+
+        IReadOnlyList<BodySocket> sockets = BodySockets.Of([child, parent], rig);
+        Assert.Equal(["R_Weapon", "sheath_Staff", "aux_STRIKE_POSITION"], sockets.Select(one => one.Name));
+        Assert.Equal(("chest_jntBnd", chest), (sockets[0].Parent, sockets[0].Bone));
+        Assert.Equal(new System.Numerics.Vector3(0f, -4.45f, -12.85f), sockets[0].Translation);
+        Assert.Equal(("aux_Nowhere_attachment", -1), (sockets[1].Parent, sockets[1].Bone));
+        Assert.Equal(0.532f, sockets[1].Rotation.Y, 4);
+        Assert.Equal(System.Numerics.Vector3.One, sockets[1].Scale);
+        Assert.Equal((string.Empty, -1), (sockets[2].Parent, sockets[2].Bone));
+    }
+
+    /// <summary>
+    /// Every word of the pieces' objects naming a socket: a socket's bone by its number, its name as narrow or wide text at a word's start -
+    /// and the slots' objects side by side where they differ, a held piece's socket word standing out from a skin's.
+    /// </summary>
+    [Fact]
+    public void AHELDPiecesSocketIsFoundInItsObjectAndSetBesideTheOthers()
+    {
+        BodySocket[] sockets = [new("R_Weapon", "aux_R_Weapon_attachment_jntBnd", 57, default, default, System.Numerics.Vector3.One),
+            new("L_Weapon", "aux_L_Weapon_attachment_jntBnd", 42, default, default, System.Numerics.Vector3.One)];
+        string[] bones = [.. Enumerable.Range(0, 60).Select(one => one switch { 57 => "aux_R_Weapon_attachment_jntBnd", 42 => "aux_L_Weapon_attachment_jntBnd", _ => "bone_" + one })];
+        byte[] wand = new byte[0x40], focus = new byte[0x40], boots = new byte[0x40];
+        BinaryPrimitives.WriteInt32LittleEndian(wand.AsSpan(0x18), 57);
+        BinaryPrimitives.WriteInt32LittleEndian(focus.AsSpan(0x18), 42);
+        Encoding.ASCII.GetBytes("L_Weapon").CopyTo(focus, 0x20);
+        Encoding.Unicode.GetBytes("aux_R_Weapon_attachment_jntBnd").AsSpan(0, 32).CopyTo(wand.AsSpan(0x20));
+        PlayerLook.PieceObject[] objects = [new("+0x030", 0x1000, wand), new("+0x058", 0x2000, focus), new("+0x130", 0x3000, boots)];
+
+        string text = string.Join('\n', CapturePlayerLook.Matches(objects, sockets, bones));
+        Assert.Contains("+0x030 +0x018\tint 57\tbone aux_R_Weapon_attachment_jntBnd - socket R_Weapon", text, StringComparison.Ordinal);
+        Assert.Contains("+0x058 +0x018\tint 42\tbone aux_L_Weapon_attachment_jntBnd - socket L_Weapon", text, StringComparison.Ordinal);
+        Assert.Contains("+0x058 +0x020\t\"L_Weapon\"\ta socket", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("+0x130", text, StringComparison.Ordinal);
+
+        var seen = new PlayerLook.Seen("Metadata/Characters/Int/IntFourb", "Metadata/Characters/Int/IntFourB.ao", [], [])
+        {
+            Slots = [(0x30, 8, "Metadata/Items/Weapons/WandHeld.ao"), (0x58, 8, "Metadata/Items/Armours/Focus/FocusHeld.ao"), (0x130, 8, "Metadata/Items/Armours/Boots/BootsIntB.ao"), (0x0, 0x98, "Metadata/Items/Skirt.ao")],
+            Objects = objects,
+        };
+        List<string> beside = [.. CapturePlayerLook.Beside(seen)];
+        Assert.Equal("  the slots' objects side by side, every 32-bit word where they differ: +0x030 WandHeld.ao | +0x058 FocusHeld.ao | +0x130 BootsIntB.ao", beside[0]);
+        Assert.Contains("    +0x018\t57 | 42 | 0", beside);
+        Assert.DoesNotContain(beside, one => one.StartsWith("    +0x000", StringComparison.Ordinal));
+    }
+
+    /// <summary>The vendored layout of ItemVisualHeldBodyModel is dat-schema's PoE2 one: a visual identity and 28 strings, 240 bytes a row.</summary>
+    [Fact]
+    public void THEHELDBodyModelsLayoutIsPoE2s()
+    {
+        QuestTableLayouts layouts = Layouts();
+        Assert.Equal(240, layouts.RowSizeOf("ItemVisualHeldBodyModel"));
+        Assert.Equal(16 + (7 * 8), layouts.OffsetOf("ItemVisualHeldBodyModel", "MarauderBone"));
+    }
+
+    /// <summary>A fixture's path, found up from the test's folder.</summary>
+    private static string Fixture(string name)
+    {
+        var folder = new DirectoryInfo(AppContext.BaseDirectory);
+        while (folder is not null && !Directory.Exists(Path.Combine(folder.FullName, "tests", "fixtures")))
+        {
+            folder = folder.Parent;
+        }
+
+        return Path.Combine(folder!.FullName, "tests", "fixtures", name);
+    }
+
     /// <summary>The part is started at the press, as every piece of work the app offers the capture is - a review found it offered and never started.</summary>
     [Fact]
     public void THEPARTRunsAtThePress()

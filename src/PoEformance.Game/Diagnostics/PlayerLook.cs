@@ -153,6 +153,12 @@ public static class PlayerLook
     {
         /// <summary>The .ao files of the pieces he is drawn with (PlayerPieces), each once, in the composition's order.</summary>
         public IReadOnlyList<string> Pieces { get; init; } = [];
+
+        /// <summary>Every piece found with the composition's word and the object's word that reached it - PlayerPieces.Piece's At and Inner.</summary>
+        public IReadOnlyList<(int At, int Inner, string Path)> Slots { get; init; } = [];
+
+        /// <summary>The composition's objects and their one-hop targets as read - matched against the body's rig and sockets on the files side.</summary>
+        public IReadOnlyList<PieceObject> Objects { get; init; } = [];
     }
 
     /// <summary>The part: its lines, and what the files side reads on - null where no player was read.</summary>
@@ -213,12 +219,13 @@ public static class PlayerLook
 
         // THE PIECES HE IS DRAWN WITH, which v0.1.393's pointer web found behind Render.Pieces alone - see PlayerPieces.
         IReadOnlyList<PlayerPieces.Piece> pieces = [];
+        var objects = new List<PieceObject>();
         lines.Add(string.Empty);
         if (components.GetValueOrDefault("Render") is var render and not 0)
         {
             ulong composition = PlayerPieces.CompositionOf(reader, schema, render);
             pieces = PlayerPieces.Read(reader, schema, composition);
-            lines.AddRange(Composed(reader, composition, pieces, named));
+            lines.AddRange(Composed(reader, composition, pieces, named, objects));
         }
         else
         {
@@ -247,6 +254,8 @@ public static class PlayerLook
         return (lines, new Seen(player.Path, model, carried, [.. web.Paths.Keys.Order(StringComparer.OrdinalIgnoreCase)])
         {
             Pieces = [.. pieces.Select(one => one.Path).Distinct(StringComparer.OrdinalIgnoreCase)],
+            Slots = [.. pieces.Select(one => (one.At, one.Inner, one.Path))],
+            Objects = objects,
         });
     }
 
@@ -255,7 +264,8 @@ public static class PlayerLook
     /// word, then every object a word of it points at, <see cref="PlayerPieces.ObjectBytes"/> of each - so its layout and whatever a held
     /// piece's socket is can be read from one capture.
     /// </summary>
-    private static List<string> Composed(IMemoryReader reader, ulong composition, IReadOnlyList<PlayerPieces.Piece> pieces, Func<ulong, string> named)
+    private static List<string> Composed(
+        IMemoryReader reader, ulong composition, IReadOnlyList<PlayerPieces.Piece> pieces, Func<ulong, string> named, List<PieceObject> objects)
     {
         var lines = new List<string>
         {
@@ -287,23 +297,54 @@ public static class PlayerLook
         lines.AddRange(Words(block, composition, named));
         lines.Add(string.Empty);
         lines.Add(string.Create(CultureInfo.InvariantCulture,
-            $"=== each object Render.Pieces' target points at, 0x{PlayerPieces.ObjectBytes:X} bytes of it, each word with what it points at"));
+            $"=== each object Render.Pieces' target points at, 0x{PlayerPieces.ObjectBytes:X} bytes of it, each word with what it points at - and one hop on from each of its pointers but the file records, 0x{PlayerPieces.ObjectBytes:X} bytes of each, at most {MostPieceHops} an object"));
         var done = new HashSet<ulong>();
-        byte[] inner = new byte[PlayerPieces.ObjectBytes];
         for (var at = 0; at + 8 <= block.Length; at += 8)
         {
             ulong target = BinaryPrimitives.ReadUInt64LittleEndian(block.AsSpan(at));
+            byte[] inner = new byte[PlayerPieces.ObjectBytes];
             if (!MemoryReaderExtensions.IsPlausiblePointer(target) || !done.Add(target) || !reader.TryRead(target, inner))
             {
                 continue;
             }
 
-            lines.Add(string.Create(CultureInfo.InvariantCulture, $"  --- +0x{at:X3} -> 0x{target:X} ({named(target)})"));
+            string label = string.Create(CultureInfo.InvariantCulture, $"+0x{at:X3}");
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"  --- {label} -> 0x{target:X} ({named(target)})"));
             lines.AddRange(Words(inner, target, named).Select(one => "  " + one));
+            objects.Add(new PieceObject(label, target, inner));
+
+            // ONE HOP ON: where a held piece's socket is kept, if not in the object itself - its runtime instance, a socket's name, a bone.
+            var hops = 0;
+            for (var word = 0; word + 8 <= inner.Length && hops < MostPieceHops; word += 8)
+            {
+                ulong next = BinaryPrimitives.ReadUInt64LittleEndian(inner.AsSpan(word));
+                string said = MemoryReaderExtensions.IsPlausiblePointer(next) ? named(next) : string.Empty;
+                byte[] deeper = new byte[PlayerPieces.ObjectBytes];
+                if (said.Length == 0 || said.StartsWith("-> record of ", StringComparison.Ordinal) || said.StartsWith("-> module+", StringComparison.Ordinal)
+                    || next == target || !reader.TryRead(next, deeper))
+                {
+                    continue;
+                }
+
+                hops++;
+                string deep = string.Create(CultureInfo.InvariantCulture, $"{label} +0x{word:X2}");
+                lines.Add(string.Create(CultureInfo.InvariantCulture, $"    --- {deep} -> 0x{next:X} ({said})"));
+                lines.AddRange(Words(deeper, next, named).Select(one => "    " + one));
+                objects.Add(new PieceObject(deep, next, deeper));
+            }
         }
 
         return lines;
     }
+
+    /// <summary>The most pointers of one composition object followed a hop on - CHOSEN.</summary>
+    public const int MostPieceHops = 24;
+
+    /// <summary>One block of the composition the part read: where it was reached from, its address, its bytes - matched against the body's rig on the files side.</summary>
+    /// <param name="Label">The composition's word that reached it, and the object's word where it is a hop on.</param>
+    /// <param name="Address">Where it lies.</param>
+    /// <param name="Bytes">What it held.</param>
+    public sealed record PieceObject(string Label, ulong Address, byte[] Bytes);
 
     /// <summary>The .ao an Animated component loaded, or empty.</summary>
     private static string ModelOf(IMemoryReader reader, OffsetSchema schema, ulong animated)
@@ -511,7 +552,7 @@ public static class PlayerLook
     }
 
     /// <summary>Printable ASCII from the start of a span, to its first nought or first unprintable - at most 64 characters.</summary>
-    private static string Narrow(ReadOnlySpan<byte> bytes)
+    public static string Narrow(ReadOnlySpan<byte> bytes)
     {
         var text = new StringBuilder();
         foreach (byte one in bytes)

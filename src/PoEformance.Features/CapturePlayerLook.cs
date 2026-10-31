@@ -1,6 +1,9 @@
+using System.Buffers.Binary;
 using System.Globalization;
+using System.Numerics;
 using System.Text;
 using PoEformance.Game.Diagnostics;
+using PoEformance.Game.Entities;
 using PoEformance.Game.Files;
 
 namespace PoEformance.Features;
@@ -74,8 +77,18 @@ public static class CapturePlayerLook
             : QuestTables.Open(files, layouts, "ItemVisualIdentity", null, "Id");
         lines.AddRange(Looks(files, layouts, art, artWhy, seen, named));
         lines.AddRange(Drawn(layouts, art, artWhy, seen, named));
+        lines.AddRange(Sockets(files, seen));
+        lines.AddRange(HeldBodies(files, layouts, art, seen, named));
         lines.AddRange(Survey(files, layouts, art, artWhy, seen));
         named.AddRange(seen.Pieces);
+
+        // HIS OBJECT TYPE TOO, server and client halves and what they extend - where an inventory's look may name its socket.
+        if (seen.Path.Length > 0)
+        {
+            named.Add(seen.Path + ".ot");
+            named.Add(seen.Path + ".otc");
+        }
+
         named.AddRange(seen.Files);
         lines.AddRange(Whole(files, named, Path.Combine(folder, Folder)));
         return lines;
@@ -237,6 +250,236 @@ public static class CapturePlayerLook
             {
                 lines.AddRange(Row(art.File, row, columns, "    the row whole", named));
             }
+        }
+
+        return lines;
+    }
+
+    /// <summary>
+    /// Where a held piece hangs, as far as one capture says: the body's rig and the sockets its chain defines (BodySockets), every word of
+    /// the composition's objects and their hops naming one - a socket's or a bone's name as text, a socket's bone by its number - and the
+    /// slots' objects side by side where they differ. A held piece's object differing from an armour piece's where a socket's bone or name
+    /// stands is the measurement; a capture after a weapon swap holds it against another piece.
+    /// </summary>
+    private static IEnumerable<string> Sockets(GameFiles files, PlayerLook.Seen seen)
+    {
+        var lines = new List<string>
+        {
+            string.Empty,
+            "=== where a held piece hangs: the body's rig and the sockets its .ao chain defines, every word of the pieces' objects (and their hops) naming a socket or one's bone, and the slots' objects side by side where they differ",
+        };
+        if (seen.Model.Length == 0)
+        {
+            lines.Add("  no body model read");
+            return lines;
+        }
+
+        List<AnimatedObject> chain = Chain(files, seen.Model);
+        string rigPath = chain.SelectMany(one => one.Named("ClientAnimationController"))
+            .SelectMany(block => block.Entries)
+            .FirstOrDefault(entry => string.Equals(entry.Key, "skeleton", StringComparison.Ordinal) && entry.Value.Length > 0)?.Value.Trim() ?? string.Empty;
+        AnimationSkeleton rig = AnimationSkeleton.Read(files, rigPath);
+        IReadOnlyList<BodySocket> sockets = BodySockets.Of(chain, rig);
+        lines.Add(string.Create(CultureInfo.InvariantCulture,
+            $"  rig {(rigPath.Length > 0 ? rigPath : "(the chain names none)")}: {rig.Bones.Count} bones; {sockets.Count} sockets over {chain.Count} files ({string.Join(", ", chain.Select(Name))})"));
+        static string Three(string word, Vector3 value)
+            => string.Create(CultureInfo.InvariantCulture, $", {word} {value.X:0.###} {value.Y:0.###} {value.Z:0.###}");
+
+        foreach (BodySocket socket in sockets)
+        {
+            string bone = socket.Bone >= 0 ? string.Create(CultureInfo.InvariantCulture, $" (bone {socket.Bone})")
+                : socket.Parent.Length > 0 ? " (no such bone)" : string.Empty;
+            lines.Add("    socket " + socket.Name + " -> " + (socket.Parent.Length > 0 ? socket.Parent : "(no parent)") + bone
+                + (socket.Rotation != Vector3.Zero ? Three("turned", socket.Rotation) : string.Empty)
+                + (socket.Translation != Vector3.Zero ? Three("shifted", socket.Translation) : string.Empty)
+                + (socket.Scale != Vector3.One ? Three("scaled", socket.Scale) : string.Empty));
+        }
+
+        string[] bones = [.. rig.Bones.Select(one => one.Name)];
+        lines.Add("  the rig's bones by number: " + string.Join(", ", bones.Select((one, at) => string.Create(CultureInfo.InvariantCulture, $"{at} {one}"))));
+        lines.Add(string.Empty);
+        lines.AddRange(Matches(seen.Objects, sockets, bones));
+        lines.Add(string.Empty);
+        lines.AddRange(Beside(seen));
+        return lines;
+    }
+
+    /// <summary>A body's .ao and everything it extends, nearest first.</summary>
+    private static List<AnimatedObject> Chain(GameFiles files, string path)
+    {
+        var chain = new List<AnimatedObject>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var queue = new Queue<string>([path]);
+        while (queue.Count > 0 && chain.Count < MostHops * 2)
+        {
+            string one = queue.Dequeue().Trim();
+            string file = Path.HasExtension(one) ? one : one + ".ao";
+            if (!seen.Add(file) || AnimatedObject.Read(files, file) is not { Ready: true } ao)
+            {
+                continue;
+            }
+
+            chain.Add(ao);
+            foreach (string up in ao.Extends.Where(up => !up.Contains("nothing", StringComparison.OrdinalIgnoreCase)))
+            {
+                queue.Enqueue(up);
+            }
+        }
+
+        return chain;
+    }
+
+    /// <summary>
+    /// Every word of the objects naming a socket or a bone: a 32-bit number one of the sockets' bones carries (nought left out - it is
+    /// everywhere), and narrow or wide text at a word's start spelling a socket's or a bone's name - each with where it was found.
+    /// </summary>
+    internal static IEnumerable<string> Matches(IReadOnlyList<PlayerLook.PieceObject> objects, IReadOnlyList<BodySocket> sockets, IReadOnlyList<string> bones)
+    {
+        ArgumentNullException.ThrowIfNull(objects);
+        ArgumentNullException.ThrowIfNull(sockets);
+        ArgumentNullException.ThrowIfNull(bones);
+        var byBone = new Dictionary<int, List<string>>();
+        foreach (BodySocket socket in sockets.Where(one => one.Bone > 0))
+        {
+            (byBone.TryGetValue(socket.Bone, out List<string>? named) ? named : byBone[socket.Bone] = []).Add(socket.Name);
+        }
+
+        var names = new HashSet<string>(sockets.Select(one => one.Name).Concat(bones), StringComparer.OrdinalIgnoreCase);
+        yield return string.Create(CultureInfo.InvariantCulture,
+            $"  every word naming a socket or a socket's bone, over {objects.Count} blocks of the pieces' objects and their hops:");
+        var found = 0;
+        foreach (PlayerLook.PieceObject one in objects)
+        {
+            byte[] bytes = one.Bytes;
+            for (var at = 0; at + 4 <= bytes.Length; at += 4)
+            {
+                int value = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(at));
+                if (byBone.TryGetValue(value, out List<string>? named))
+                {
+                    found++;
+                    yield return string.Create(CultureInfo.InvariantCulture,
+                        $"    {one.Label} +0x{at:X3}\tint {value}\tbone {bones[value]} - socket {string.Join(", ", named)}");
+                }
+
+                if (at % 8 != 0)
+                {
+                    continue;
+                }
+
+                string narrow = PlayerLook.Narrow(bytes.AsSpan(at)), wide = PlayerLook.Wide(bytes.AsSpan(at));
+                foreach (string text in new[] { narrow, wide }.Where(text => text.Length >= 3 && names.Contains(text)))
+                {
+                    found++;
+                    yield return string.Create(CultureInfo.InvariantCulture, $"    {one.Label} +0x{at:X3}\t\"{text}\"\t{(sockets.Any(socket => string.Equals(socket.Name, text, StringComparison.OrdinalIgnoreCase)) ? "a socket" : "a bone")}");
+                }
+            }
+        }
+
+        yield return string.Create(CultureInfo.InvariantCulture, $"  {found} found");
+    }
+
+    /// <summary>
+    /// The slots' objects side by side - one column a slot, its piece's file name over it - every 32-bit word where they do not all agree,
+    /// as a number and, where it reads as one, as a float: what tells a held piece's object from a skin's.
+    /// </summary>
+    internal static IEnumerable<string> Beside(PlayerLook.Seen seen)
+    {
+        ArgumentNullException.ThrowIfNull(seen);
+        var slots = new List<(string Name, byte[] Bytes)>();
+        foreach ((int at, int inner, string path) in seen.Slots.Where(one => one.Inner == PlayerPieces.SlotInner))
+        {
+            string label = string.Create(CultureInfo.InvariantCulture, $"+0x{at:X3}");
+            if (seen.Objects.FirstOrDefault(one => string.Equals(one.Label, label, StringComparison.Ordinal)) is { } found
+                && !slots.Any(one => one.Name.StartsWith(label, StringComparison.Ordinal)))
+            {
+                slots.Add((label + " " + Name(path), found.Bytes));
+            }
+        }
+
+        yield return string.Create(CultureInfo.InvariantCulture,
+            $"  the slots' objects side by side, every 32-bit word where they differ: {(slots.Count == 0 ? "none read" : string.Join(" | ", slots.Select(one => one.Name)))}");
+        if (slots.Count < 2)
+        {
+            yield break;
+        }
+
+        int length = slots.Min(one => one.Bytes.Length);
+        for (var at = 0; at + 4 <= length; at += 4)
+        {
+            int[] values = [.. slots.Select(one => BinaryPrimitives.ReadInt32LittleEndian(one.Bytes.AsSpan(at)))];
+            if (values.All(one => one == values[0]))
+            {
+                continue;
+            }
+
+            yield return string.Create(CultureInfo.InvariantCulture, $"    +0x{at:X3}\t") + string.Join(" | ", values.Select(Said));
+        }
+    }
+
+    /// <summary>A 32-bit word as a number, and as a float beside it where it reads as a plain one.</summary>
+    private static string Said(int value)
+    {
+        float single = BitConverter.Int32BitsToSingle(value);
+        return float.IsFinite(single) && single != 0f && MathF.Abs(single) is > 1e-4f and < 1e6f
+            ? string.Create(CultureInfo.InvariantCulture, $"{value} ({single:G5})")
+            : value.ToString(CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>A path's file name.</summary>
+    private static string Name(string path) => path[(path.LastIndexOf('/') + 1)..];
+
+    /// <summary>A loaded .ao's own file name is not kept, so a chain is named by what it extends.</summary>
+    private static string Name(AnimatedObject ao) => ao.Extends.Count > 0 ? "extends " + string.Join(", ", ao.Extends) : "(the root)";
+
+    /// <summary>
+    /// ItemVisualHeldBodyModel whole - an item's look held on the body, by class: an .ao and the BONE it hangs at (dat-schema's PoE2 layout:
+    /// seven named classes' objects and bones, fourteen unnamed strings after) - each row's visual identity by its Id; rows whose visual
+    /// identity a carried item names, or whose strings name a drawn piece, marked.
+    /// </summary>
+    private static IEnumerable<string> HeldBodies(GameFiles files, QuestTableLayouts? layouts, LoadedTable? art, PlayerLook.Seen seen, List<string> named)
+    {
+        var lines = new List<string>
+        {
+            string.Empty,
+            "=== ItemVisualHeldBodyModel whole - an item's look held on the body, by class: the .ao and the bone it hangs at; its visual identity by Id, a row marked * where a carried item's visual identity or a drawn piece is its",
+        };
+        if (layouts is null || !layouts.Tables.ContainsKey("ItemVisualHeldBodyModel"))
+        {
+            lines.Add("  the vendored layout has no ItemVisualHeldBodyModel");
+            return lines;
+        }
+
+        (LoadedTable? table, string why) = QuestTables.Open(files, layouts, "ItemVisualHeldBodyModel", null, "MarauderAnimatedObject", "MarauderBone");
+        lines.Add("  " + (table?.Say ?? why));
+        if (table is not { Usable: true })
+        {
+            return lines;
+        }
+
+        List<DatColumn> columns = layouts.Tables["ItemVisualHeldBodyModel"];
+        int visualAt = layouts.OffsetOf("ItemVisualHeldBodyModel", "ItemVisualIdentity");
+        int artIdAt = art is { Usable: true } ? layouts.OffsetOf("ItemVisualIdentity", "Id") : -1;
+        var carried = new HashSet<string>(seen.Items.Select(one => one.Ivi).Where(one => one.Length > 0), StringComparer.OrdinalIgnoreCase);
+        var drawn = new HashSet<string>(seen.Pieces, StringComparer.OrdinalIgnoreCase);
+        for (var row = 0; row < table.File.Rows; row++)
+        {
+            int visual = visualAt >= 0 && art is not null ? table.File.Reference(row, visualAt).RowIn(art.File.Rows) : -1;
+            string id = visual >= 0 && artIdAt >= 0 ? art!.File.Text(visual, artIdAt) : string.Empty;
+            var said = new List<string>();
+            foreach (DatColumn column in columns.Where(one => one.Type == "string" && !one.Array))
+            {
+                if (table.File.Text(row, column.Offset) is { Length: > 0 } value)
+                {
+                    said.Add(column.Name + " = " + value);
+                    if (PlayerLook.GamePath(value))
+                    {
+                        named.Add(value);
+                    }
+                }
+            }
+
+            bool mine = carried.Contains(id) || said.Any(one => drawn.Contains(one[(one.IndexOf(" = ", StringComparison.Ordinal) + 3)..]));
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"  {(mine ? "*" : " ")}row {row}: {(id.Length > 0 ? id : visual >= 0 ? "visual identity row " + visual.ToString(CultureInfo.InvariantCulture) : "no visual identity")}\t{string.Join(" | ", said)}"));
         }
 
         return lines;
