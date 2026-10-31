@@ -1243,8 +1243,8 @@ internal sealed class CaptureKey
             }
         }
 
-        // THE STAGE THROUGH THE GAME'S CAMERA, drawn once for both parts that hold it against the game's picture.
-        if (On(CaptureParts.LightCompare) || On(CaptureParts.ShadowCasters))
+        // THE STAGE THROUGH THE GAME'S CAMERA, drawn once for the parts that hold it against the game's picture.
+        if (On(CaptureParts.LightCompare) || On(CaptureParts.ShadowCasters) || On(CaptureParts.RoofFade))
         {
             WorldSnapshot shot = run.Shot ?? run.Snapshot;
             CapturePane? chosen = CaptureAtGame.Chosen(run.Panes, shot, out string notChosen);
@@ -1254,7 +1254,8 @@ internal sealed class CaptureKey
             if (chosen is not null)
             {
                 // THE DRAWING IS THE LONG STEP, so the first part waiting on it runs from here - its line in the window says what is drawn.
-                run.Progress.Of(On(CaptureParts.LightCompare) ? CaptureReport.LightCompareFile : CaptureReport.ShadowCastersFile)?.Start(Environment.TickCount64);
+                run.Progress.Of(On(CaptureParts.LightCompare) ? CaptureReport.LightCompareFile
+                    : On(CaptureParts.ShadowCasters) ? CaptureReport.ShadowCastersFile : CaptureReport.RoofFadeFile)?.Start(Environment.TickCount64);
                 try
                 {
                     scene = CaptureAtGame.Draw(chosen, shot, run.Game, client.Width, client.Height, run.AtGame, out notDrawn);
@@ -1315,6 +1316,39 @@ internal sealed class CaptureKey
                         if (numbers.Length > 0)
                         {
                             File.WriteAllBytes(At(CaptureShadowCasters.Numbers), numbers);
+                        }
+
+                        int line = text.IndexOf('\n');
+                        return line < 0 ? text : text[..line];
+                    });
+                }
+            }
+
+            if (On(CaptureParts.RoofFade))
+            {
+                if (drawFailed)
+                {
+                    Said(CaptureReport.RoofFadeFile, "FAILED: " + notDrawn, CaptureStepState.Failed);
+                }
+                else if (scene is null)
+                {
+                    Not(CaptureReport.RoofFadeFile, notDrawn.Length > 0 ? notDrawn : "nothing to draw");
+                }
+                else if (scene.Game.Length == 0)
+                {
+                    Not(CaptureReport.RoofFadeFile, "no picture of the game alone was taken - tick \"game picture\"");
+                }
+                else
+                {
+                    Part(CaptureReport.RoofFadeFile, () =>
+                    {
+                        string text = CaptureRoofFade.Write(
+                            read, scene, run.Snapshot.Area.Environment, run.AtGame, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers);
+                        File.WriteAllText(At(CaptureReport.RoofFadeFile), text);
+                        Pictures(pictures);
+                        if (numbers.Length > 0)
+                        {
+                            File.WriteAllBytes(At(CaptureRoofFade.Numbers), numbers);
                         }
 
                         int line = text.IndexOf('\n');

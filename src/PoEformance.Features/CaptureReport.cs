@@ -177,6 +177,9 @@ public static class CaptureReport
     /// <summary>What casts the stage's shadows - see CaptureShadowCasters.</summary>
     public const string ShadowCastersFile = "shadow-casters.txt";
 
+    /// <summary>How much of each roof section the game hides - see CaptureRoofFade.</summary>
+    public const string RoofFadeFile = "roof-fade.txt";
+
     /// <summary>The Memory Dissector's places, route and last search.</summary>
     public const string DissectorFile = "dissector.txt";
 

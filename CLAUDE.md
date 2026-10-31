@@ -718,6 +718,21 @@ and one; CloudNoise had util.hlsl's, which does the latter (the two agree for a 
 measurement holds muddle_double and flowmap_04 beside the program's four noises from v0.1.384 (`CaptureLightExtras.NoiseCandidates`), so
 every capture measures the noise drawn again. `AreaCloudsTests` hold AreaClouds against a second transcription of shadows.ffx;
 `THECLOUDSShadowTheSunOnTheCardAsAreaCloudsLaysThem` the card against AreaClouds on WARP.
+FXC REFUSED v0.1.383'S FOG PROGRAM (the Windows job's first compile of it): a function `ShadeBayer` beside the screen ray's table of the same
+name (`ModelShaders.Programmed`), so the card drew no fog and said why under the picture - `ShadeBayerNoise` from v0.1.385, and `FogGpuTests`
+now fails on `FogWhy` itself. Found by compiling the program's dumped HLSL with Microsoft's own DXC (the Linux tarball of its GitHub release
+runs in this environment where Vortice.Dxc does not): compile a changed shader so before it goes to the Windows job.
+THE ROOF FADE IS MEASURED FIRST (v0.1.385, DECIDED from the live client): `roof-fade.txt` (`CaptureRoofFade`, the Windows group, drawn from
+light-against-game's own drawing) draws the stage laid as the area laid it through the game's camera twice more - without its roof sections,
+their shadows kept (`MaterialBlend.ShadowOnly`), and without them, their shadows gone (`SkinnedMesh.Keeping`) - and fits the game's picture
+over each section's pixels as `a with + b without` (non-negative least squares on the three channels, a + b let free since the pane's light
+is not the game's; CHOSEN: a pixel tells where the two drawings' luminance stand a fifth of the brighter apart): the hidden share b / (a + b),
+which way without fits the better (whether the game keeps a hidden section's shadow), and beside it the section's box, its distance across
+and in space to the player, how near the line from the game's eye to the player passes it and where along that line, its nearest pixel to
+the player's on the screen, its depth against the player's, and the roof fade words of its object (its .ao and what that extends), the
+area's master and its environment. `roof-fade.png` tints each section's pixels green (shown) to red (hidden); `roof-fade.bin` keeps every
+section pixel and `roof-fade-replay.txt` fits them again offline. Press F9 in The Red Vale among the trees - the Monster Book on the area
+round you, "game picture" ticked, standing still - before the roof fade is given a rule.
 
 ## Verify against the game, not against yourself
 

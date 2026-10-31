@@ -407,7 +407,7 @@ public static class CaptureLightCompare
     /// ground's name with the mix's words for an extension, or the mask's - so a corner mix grouped under its second ground's own name and a
     /// mask mix under the mask's, one ground's light measured over another's pixels.
     /// </remarks>
-    private static string MaterialName(MonsterModel model, int shape, RoofSections roofs)
+    internal static string MaterialName(MonsterModel model, int shape, RoofSections roofs)
     {
         string material = shape < model.ShapeMaterials.Count ? MaterialFile.Bare(model.ShapeMaterials[shape]) : string.Empty;
         string source = shape < model.ShapeSources.Count ? model.ShapeSources[shape] : string.Empty;

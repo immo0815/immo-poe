@@ -172,6 +172,9 @@ public static class CaptureParts
     /// <summary>What throws the sun's shadow on the stage's ground, and whether the game casts it - see CaptureShadowCasters.</summary>
     public const string ShadowCasters = "shadow-casters";
 
+    /// <summary>How much of each roof section the game hides round the player, measured on its picture - see CaptureRoofFade.</summary>
+    public const string RoofFade = "roof-fade";
+
     /// <summary>The Memory Dissector's places, route and last search.</summary>
     public const string Dissector = "dissector";
 
@@ -571,6 +574,12 @@ public static class CaptureParts
             + "its texture is clear; the shadows a cut by a shadow-only shape's alpha would take away, and the game's brightness there beside its "
             + "sun and its shade; how square each piece of shadow is; the blend graphs and the casting materials whole. The sun's map by caster "
             + "beside it."),
+        new(RoofFade, "Windows", "roof fade", CaptureReport.RoofFadeFile,
+            "How much of each roof section (a material whose .mat says \"roofsection\") the game hides round the player: the book's stage laid as "
+            + "the area laid it drawn through the game's camera with its roof sections, without them their shadows kept, and without them their "
+            + "shadows gone, and the game's picture at each section fitted as a mix of the two - beside where the section stands to the player "
+            + "and the game's eye, and the roof fade words its object, the area's master and its environment set. Keep \"game picture\" ticked "
+            + "and stand still. The tinted picture and every section pixel's numbers beside it."),
         new(Dissector, "Windows", "dissector", CaptureReport.DissectorFile,
             "The places the Memory Dissector has open, the route walked to them, and what its last search found with the bytes "
             + "round each place. Nothing where it is untouched."),
