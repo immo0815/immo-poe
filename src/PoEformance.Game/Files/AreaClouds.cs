@@ -21,7 +21,10 @@ namespace PoEformance.Game.Files;
 /// Vale's picture (v0.1.381's light-against-game.bin, measured offline by CloudNoise over every way and slide): <see cref="NoisePath"/>'s
 /// alpha - r 0.48 against flowmap_04's 0.35 over all the lit ground, 0.39 against 0.33 beyond 900 units of the player, 0.34 against 0.31
 /// beyond 1200, none of it clear by CloudNoise's own rule - and the velocity <c>speed (cos a, sin a)</c>, the way muddle_double went best
-/// with at every distance.
+/// with at every distance. MEASURED by a second capture in The Red Vale (09:12, another spot, the processor's picture drawn without clouds
+/// so the game's own cloud shadow stands in its light over the pane's): muddle_double r 0.531 by <c>speed (cos a, sin a)</c>, 2.5 spreads
+/// over its other slides, flowmap_04 next at 0.378 - clear by CloudNoise's own rule. One area's evidence; another area's capture is to
+/// confirm it.
 /// </remarks>
 /// <param name="Scale">clouds_scale.</param>
 /// <param name="Intensity">clouds_intensity.</param>
@@ -44,7 +47,7 @@ public sealed record AreaClouds(
     /// </summary>
     public const float DefaultFadeRadius = 800f;
 
-    /// <summary>The noise the clouds read - CHOSEN, see the remarks: the engine's distortion texture, which the caustics and the river read too.</summary>
+    /// <summary>The noise the clouds read - MEASURED in The Red Vale, see the remarks: the engine's distortion texture, which the caustics and the river read too.</summary>
     public const string NoisePath = ShadeProgram.DistortionPath;
 
     /// <summary>
@@ -53,7 +56,7 @@ public sealed record AreaClouds(
     /// </summary>
     public const float LeastRise = 1e-3f;
 
-    /// <summary>clouds_velocity: <c>speed (cos a, sin a)</c> - CHOSEN, see the remarks.</summary>
+    /// <summary>clouds_velocity: <c>speed (cos a, sin a)</c> - MEASURED in The Red Vale, see the remarks.</summary>
     public Vector2 Velocity => new Vector2(MathF.Cos(Angle), MathF.Sin(Angle)) * Speed;
 
     /// <summary>

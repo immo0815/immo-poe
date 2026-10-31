@@ -710,7 +710,9 @@ surface (`SunLit` - the engine's ShadowMap multiplies the directional shadow by 
 the engine's measured 800 where unset). CHOSEN from the live client and said under the picture: the noise muddle_double.dds's alpha
 (`AreaClouds.NoisePath`; held offline against v0.1.381's light-against-game.bin, r 0.48 against flowmap_04's 0.35 over the lit ground, 0.39
 against 0.33 beyond 900 units of the player - not clear by CloudNoise's own rule); clouds_velocity `speed (cos a, sin a)`, the way
-muddle_double went best with at every distance; the camera's focus as the player; the picture's clock as the engine's time. AS WRITTEN the
+muddle_double went best with at every distance; the camera's focus as the player; the picture's clock as the engine's time. THE NOISE AND THE
+WAY ARE MEASURED SINCE (The Red Vale's second capture, 09:12, another spot, v0.1.384's light-against-game): muddle_double r 0.531 by
+`speed (cos a, sin a)`, 2.5 spreads over its other slides, flowmap_04 next at 0.378 - clear by CloudNoise's rule; one area's evidence. AS WRITTEN the
 noise slides along the velocity's way with the clock, so the clouds' shadow DRIFTS AGAINST clouds_velocity, at |velocity| a second
 (`THEPATTERNMovesAsTheEnginesTextureSlides`) - with the CHOSEN way towards -(cos a, sin a): a video of the game's cloud shadows settles the
 way. math_utils' SmoothStep, which the clouds call, is the .ffx DECLARATIONS block's - saturated outside, the value not held inside nought
@@ -731,8 +733,29 @@ which way without fits the better (whether the game keeps a hidden section's sha
 and in space to the player, how near the line from the game's eye to the player passes it and where along that line, its nearest pixel to
 the player's on the screen, its depth against the player's, and the roof fade words of its object (its .ao and what that extends), the
 area's master and its environment. `roof-fade.png` tints each section's pixels green (shown) to red (hidden); `roof-fade.bin` keeps every
-section pixel and `roof-fade-replay.txt` fits them again offline. Press F9 in The Red Vale among the trees - the Monster Book on the area
-round you, "game picture" ticked, standing still - before the roof fade is given a rule.
+section pixel and `roof-fade-replay.txt` fits them again offline.
+ITS FIRST CAPTURE (The Red Vale, 09:12, the player among the trees) SHOWED THE FIT READ THE LIGHT, NOT THE FADE: the game's picture hides the
+two trees between the camera and the player (a trunk and its crown) and shows the two beside him, and the fit called three of the four mostly
+hidden - the light the pane does not draw as the game does (the clouds, the fog, the lamp) taken for a share. FROM v0.1.386 THE GAME'S PATTERN
+DECIDES (`CaptureRoofFade.Judge`): over a section's telling pixels the logarithm of the game's luminance is correlated with each drawing's (a
+scale or an offset of the light leaves a correlation as it is; `LogFloor` 1e-3, CHOSEN), hidden where the better drawing without the section
+leads by a tenth (`Margin`, CHOSEN), shown where the one with it does - that capture read again: with 0.00 against without 0.50 and 0.20
+against 0.62 (hidden), 0.26 against 0.07 and 0.68 against 0.17 (shown); the share of a fit of the centred logarithms beside it. The sections
+called hidden are drawn out twice more, their shadows kept and gone, judged the same way over the pixels those two tell apart and a band of
+six gathered pixels round them (`Shades`: inside a shadow the two differ by a scale alone, its edge tells them apart) - whether the engine keeps
+a hidden roof's shadow. Each section stands beside the player in the camera's own ways laid on the ground (`Ways`: up the screen and across
+it), with its height over him and its pixels from his, and with its TILE PIECE - its source names the piece's least corner, the footprint read
+from the area's tiles (`PieceOf`, `PieceAt`) - his, touching his, or other; the pieces carrying roof sections are listed with their verdicts,
+and two readings are held against every verdict: his piece fades whole (RoofFadeMode "Tile"'s reading), and with the pieces touching it. The
+ground under him is named with each type's HideRoof. WHAT THE FILES SAY (that capture's light-extras section 10): 68 masters set RoofFadeMode
+"Tile", "BoundingBox", "Island" or "Global", some RoofFadeDistanceUpscreen and Downscreen (Act 4's town and ship 10 each, Sanctum's level 4
+12); 36 ground types say HideRoof (`forest/forest_floor_fade.gt` among them); 49 rooms carry no_roof_fade or force_roof_fade zones; 327
+objects enable_roof_fade, most with disable_automatic_roof_fade; The Red Vale's master and environment set none - the program's default holds
+there. In that capture both hidden trees are pieces of curve5 (9 x 6 tiles from tile 21, 30) and the player stands on its tile 23, 33; the
+shown ones are StSW_01's at 21, 36 - the Tile reading fits, as would a reach down the screen. `roof-fade.bin` is version 2 (the camera's right,
+the pieces, the ground, the hidden list and their shadows' pixels); version 1 replays with the pieces' corners alone. NEXT, before a rule:
+captures where the readings disagree - a tree of ANOTHER piece standing between the camera and the player, and a tree of HIS piece far up the
+screen or to its side - each standing still a few seconds, "game picture" ticked, the Monster Book on the area round you.
 
 ## Verify against the game, not against yourself
 

@@ -527,7 +527,8 @@ public class CaptureAtGameTests
     /// </summary>
     private static CapturePane Stage(
         MaterialBlend slab, bool sunless = false, bool splitFloor = false, bool blockUnder = false, float sun = 2f, float floorHalf = 600f,
-        float slabHalf = 120f, float slabHeight = 150f, SceneLight.PlayerLamp? lamp = null, IReadOnlyList<PointLight>? lights = null)
+        float slabHalf = 120f, float slabHeight = 150f, SceneLight.PlayerLamp? lamp = null, IReadOnlyList<PointLight>? lights = null,
+        Vector3? sunWay = null, bool patterned = false, string rockSource = "rock.ao")
     {
         var places = new List<Vector3>
         {
@@ -559,14 +560,14 @@ public class CaptureAtGameTests
             floor[at + 3] = 255;
         }
 
-        Mipmaps ground = Mipmaps.Of(new GamePicture(16, 16, floor))!;
+        Mipmaps ground = patterned ? Patterned(stripes: false) : Mipmaps.Of(new GamePicture(16, 16, floor))!;
         Mipmaps clear = Mipmaps.Of(new GamePicture(16, 16, new byte[16 * 16 * 4]))!;
         Mipmaps card = slab == MaterialBlend.ShadowOnly ? clear : ground;
         string mode = slab == MaterialBlend.ShadowOnly ? "AlphaTestWithShadowOnly" : "Opaque";
         List<string> materials = ["Art/ground.mat", "Art/canopy.mat", "Art/rock.mat"];
-        List<string> sources = [RoomModelsGround + "tile", "canopy.ao", "rock.ao"];
+        List<string> sources = [RoomModelsGround + "tile", "canopy.ao", rockSource];
         List<string> modes = ["Opaque", mode, "Opaque"];
-        List<Mipmaps?> skins = [ground, card, ground];
+        List<Mipmaps?> skins = [ground, card, patterned ? Patterned(stripes: true) : ground];
         List<MaterialBlend> blends = [MaterialBlend.Opaque, slab, MaterialBlend.Opaque];
         if (splitFloor)
         {
@@ -600,7 +601,7 @@ public class CaptureAtGameTests
             Ambient = SceneAmbient.Flat,
             FlatAmbient = 0.05f,
             SunColour = sunless ? Vector3.Zero : new Vector3(sun),
-            SunDirection = Vector3.Normalize(new Vector3(0.2f, 0.1f, 1f)),
+            SunDirection = sunWay ?? Vector3.Normalize(new Vector3(0.2f, 0.1f, 1f)),
             SunShadows = true,
         };
         return new CapturePane("tile", [], model)
@@ -613,6 +614,58 @@ public class CaptureAtGameTests
 
     /// <summary>The ground source's word, as the room builder writes it.</summary>
     private const string RoomModelsGround = "ground of ";
+
+    /// <summary>A texture with a pattern a correlation can follow: the floor's checks of four texels, or the rock's stripes a texel wide.</summary>
+    private static Mipmaps Patterned(bool stripes)
+    {
+        const int side = 64;
+        var rgba = new byte[side * side * 4];
+        for (var y = 0; y < side; y++)
+        {
+            for (var x = 0; x < side; x++)
+            {
+                bool dark = stripes ? x % 2 == 0 : ((x / 4) + (y / 4)) % 2 == 0;
+                (byte r, byte g, byte b) = stripes ? (dark ? ((byte)60, (byte)60, (byte)70) : ((byte)210, (byte)200, (byte)180))
+                    : (dark ? ((byte)95, (byte)80, (byte)60) : ((byte)150, (byte)120, (byte)90));
+                int at = ((y * side) + x) * 4;
+                (rgba[at], rgba[at + 1], rgba[at + 2], rgba[at + 3]) = (r, g, b, 255);
+            }
+        }
+
+        return Mipmaps.Of(new GamePicture(side, side, rgba))!;
+    }
+
+    /// <summary>An area's tiles: each piece a file laid as filed from its least corner, every tile naming its place from that corner.</summary>
+    private static TerrainTiles Laid(int width, int height, params (string File, int X, int Y, int Wide, int Tall)[] pieces)
+    {
+        var paths = new List<string>();
+        var ids = new int[width * height];
+        Array.Fill(ids, -1);
+        var subX = new byte[width * height];
+        var subY = new byte[width * height];
+        var placements = new sbyte[width * height];
+        Array.Fill(placements, (sbyte)-1);
+        foreach ((string file, int x, int y, int wide, int tall) in pieces)
+        {
+            int id = paths.IndexOf(file);
+            if (id < 0)
+            {
+                id = paths.Count;
+                paths.Add(file);
+            }
+
+            for (var dy = 0; dy < tall; dy++)
+            {
+                for (var dx = 0; dx < wide; dx++)
+                {
+                    int at = ((y + dy) * width) + x + dx;
+                    (ids[at], subX[at], subY[at], placements[at]) = (id, (byte)dx, (byte)dy, (sbyte)0);
+                }
+            }
+        }
+
+        return new TerrainTiles(paths, ids, subX, subY, placements, width, height);
+    }
 
     /// <summary>
     /// A camera on a screen of the size asked, looking down at a point from above and to one side - the stage's corner, (5000, 9000), unless
@@ -744,52 +797,82 @@ public class CaptureAtGameTests
     private static double Number(string text) => double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
 
     /// <summary>
-    /// A roof section the game hides comes out hidden whole and one the game shows comes out shown - each the stage drawn without the section,
-    /// its shadow kept, held against the game (CaptureRoofFade); with its shadow gone too nothing tells them apart here, the rock wearing the
-    /// floor's own texture under the same sun, so that fit says nothing rather than a number. The section's object's words are read through
-    /// what it extends; the replay of the kept numbers fits alike.
+    /// A roof section the game hides comes out hidden and one it shows comes out shown, by the game's pattern - the stage drawn without the
+    /// section held against the game (CaptureRoofFade); and where it is hidden, whether its shadow stays: a game drawn with the rock as a
+    /// shadow caster alone keeps it, one drawn without the rock drops it. The rock is a piece of a tile laid in the area, its footprint read
+    /// from the area's tiles beside another piece of the same file, the player standing on it - the reading that his piece fades whole
+    /// agrees with the hidden verdicts and not with the shown one. As an object of its own its words are read through what it extends. The
+    /// replay of the kept numbers judges alike.
     /// </summary>
     [Fact]
     public void AROOFSectionTheGameHidesIsMeasuredHiddenAndOneItShowsShown()
     {
-        CapturePane pane = Stage(MaterialBlend.Opaque);
+        const string rocky = "Metadata/Terrain/Woods/rocky.tdt";
+        TerrainTiles tiles = Laid(40, 40, (rocky, 18, 34, 3, 3), (rocky, 21, 34, 3, 3), ("Metadata/Terrain/Woods/grass.tdt", 18, 37, 2, 2));
+        Vector3 away = Vector3.Normalize(new Vector3(-0.5f, -0.5f, 1f));
         WorldSnapshot shot = Shot(player: new Vector3(5000f, 9000f, 0f));
-        CaptureAtGame own = CaptureAtGame.Draw(pane, shot, null, Width, Height, null, out _)!;
-        int rock = pane.Model.ShapeMaterials.ToList().IndexOf("Art/rock.mat");
-        MaterialBlend[] hiding = [.. Enumerable.Range(0, pane.Model.Mesh.Shapes.Count).Select(shape => shape == rock ? MaterialBlend.ShadowOnly : pane.Blends![shape])];
 
         static byte[]? Read(string path) => path switch
         {
             "Art/rock.mat" => RoofRock(path),
-            "rock.ao" => Encoding.Unicode.GetBytes("﻿version 2\r\nextends \"Metadata/Terrain/RoofParent\"\r\nAnimatedRender\r\n{\r\n\tenable_roof_fade = true\r\n}\r\n"),
+            "rock.ao" => Encoding.Unicode.GetBytes("\ufeffversion 2\r\nextends \"Metadata/Terrain/RoofParent\"\r\nAnimatedRender\r\n{\r\n\tenable_roof_fade = true\r\n}\r\n"),
             "Metadata/Terrain/RoofParent.ao" => Encoding.UTF8.GetBytes("version 2\nextends \"nothing\"\nAnimatedRender\n{\n\troof_fade_cylinder = \"150 300 0\"\n}\n"),
             _ => null,
         };
 
-        foreach ((string game, byte[] rgba, string hidden) in new[] { ("hidden", own.Redrawn(pane.Model.Mesh, hiding), "1.00"), ("shown", own.Picture, "0.00") })
+        foreach ((string game, string source, string verdict, string shadow) in new[]
         {
-            CaptureAtGame scene = CaptureAtGame.Draw(pane, shot, Bgr(rgba), Width, Height, null, out _)!;
-            string report = CaptureRoofFade.Write(Read, scene, string.Empty, null, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers);
+            ("hidden, its shadow kept", rocky + " at tile 18, 34", "hidden", "the game KEEPS a hidden section's shadow"),
+            ("hidden, its shadow dropped", rocky + " at tile 18, 34", "hidden", "the game DROPS a hidden section's shadow"),
+            ("shown", rocky + " at tile 18, 34", "shown", "the hidden sections' shadows: no section called hidden"),
+            ("shown, an object of its own", "rock.ao", "shown", "the hidden sections' shadows: no section called hidden"),
+        })
+        {
+            CapturePane pane = Stage(MaterialBlend.Opaque, sunWay: away, patterned: true, rockSource: source);
+            CaptureAtGame own = CaptureAtGame.Draw(pane, shot, null, Width, Height, null, out _)!;
+            SkinnedMesh mesh = pane.Model.Mesh;
+            int rock = pane.Model.ShapeMaterials.ToList().IndexOf("Art/rock.mat");
+            MaterialBlend[] hiding = [.. Enumerable.Range(0, mesh.Shapes.Count).Select(shape => shape == rock ? MaterialBlend.ShadowOnly : pane.Blends![shape])];
+            int[] shapeOf = CaptureAtGame.ShapesOf(mesh);
+            byte[] picture = game switch
+            {
+                "hidden, its shadow kept" => own.Redrawn(mesh, hiding),
+                "hidden, its shadow dropped" => own.Redrawn(mesh.Keeping([.. shapeOf.Select(shape => shape != rock)]), pane.Blends!),
+                _ => own.Picture,
+            };
+
+            CaptureAtGame scene = CaptureAtGame.Draw(pane, shot, Bgr(picture), Width, Height, null, out _)!;
+            bool ofTile = source.StartsWith(rocky, StringComparison.Ordinal);
+            string report = CaptureRoofFade.Write(
+                Read, scene, string.Empty, ofTile ? tiles : null, null, null, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers);
 
             Assert.Matches(@"^roof fade: 1 roof sections on the stage, 1 on the screen, [\d,]+ of their pixels compared", report);
-            Match row = Regex.Match(report, @"\n  (\d+)\trock\t([\d,]+)\t([\d,]+)\t([\d.]+)\t([\d.]+)\t([\d.]+)\t-\t-\t-\t-\t");
+            Match row = Regex.Match(report, @"\n  (\d+)\trock\t([\d,]+)\t([\d,]+)\t(hidden|shown|unclear|-)\t([-\d.]+)\t([-\d.]+)\t([-\d.]+)\t([-\d.]+)\t([^\t]+)\t");
             Assert.True(row.Success, report);
             Assert.Equal(rock, int.Parse(row.Groups[1].Value, CultureInfo.InvariantCulture));
             Assert.True(Count(row.Groups[3].Value) > 50, $"{game}: {row.Groups[3].Value} telling pixels\n{report}");
-            Assert.Equal(hidden, row.Groups[4].Value);
-            Assert.Equal(1.0, Number(row.Groups[5].Value), 2);
-            Assert.True(Number(row.Groups[6].Value) < 0.01, $"{game}: the error {row.Groups[6].Value}\n{report}");
-            if (game == "hidden")
+            Assert.True(verdict == row.Groups[4].Value, $"{game}: {row.Groups[4].Value}\n{report}");
+            Assert.Contains(shadow, report, StringComparison.Ordinal);
+            Assert.Equal(CaptureRoofFade.Tinted, Assert.Single(pictures).File);
+            if (ofTile)
             {
-                Assert.Contains("1 mostly hidden by the game, 0 mostly shown", report, StringComparison.Ordinal);
+                Assert.Equal("his", row.Groups[9].Value);
+                Assert.Contains("on tile 20, 36, of the piece rocky at tile 18, 34, 3 x 3", report, StringComparison.Ordinal);
+                Assert.Contains(
+                    verdict == "hidden"
+                        ? "the piece the player stands on fades whole, no other (a reading of RoofFadeMode \"Tile\"): 1 of 1 verdicts agree\n"
+                        : $"the piece the player stands on fades whole, no other (a reading of RoofFadeMode \"Tile\"): 0 of 1 verdicts agree - against it: {rock} shown (rocky at tile 18, 34, 3 x 3)",
+                    report.ReplaceLineEndings("\n"),
+                    StringComparison.Ordinal);
+                Assert.Matches(@"\n  rocky at tile 18, 34, 3 x 3\this\t[-\d]+ to [-\d]+\t[-\d]+ to [-\d]+\t", report);
+                Assert.Contains("  1 tile pieces: their words are the area's, below", report, StringComparison.Ordinal);
             }
             else
             {
-                Assert.Contains("0 mostly hidden by the game, 1 mostly shown", report, StringComparison.Ordinal);
+                Assert.Equal("-", row.Groups[9].Value);
+                Assert.Contains("the player's piece: not known", report, StringComparison.Ordinal);
+                Assert.Contains("  rock.ao: enable_roof_fade = true | Metadata/Terrain/RoofParent.ao: roof_fade_cylinder = \"150 300 0\"", report, StringComparison.Ordinal);
             }
-
-            Assert.Contains("  rock.ao: enable_roof_fade = true | Metadata/Terrain/RoofParent.ao: roof_fade_cylinder = \"150 300 0\"", report, StringComparison.Ordinal);
-            Assert.Equal(CaptureRoofFade.Tinted, Assert.Single(pictures).File);
 
             string folder = Directory.CreateTempSubdirectory("roof-fade").FullName;
             try
@@ -798,6 +881,7 @@ public class CaptureAtGameTests
                 string replay = CaptureRoofFade.Replay(folder);
                 Assert.StartsWith("roof fade replay: 1 roof sections on the stage", replay, StringComparison.Ordinal);
                 Assert.Contains(row.Value, replay, StringComparison.Ordinal);
+                Assert.Contains(shadow, replay, StringComparison.Ordinal);
             }
             finally
             {
@@ -807,44 +891,107 @@ public class CaptureAtGameTests
     }
 
     /// <summary>
-    /// The fit itself: a game showing what lies behind a section with its shadow gone fits hidden whole at its own brightness, nothing left,
-    /// and says the shadow is gone - the fit with the shadow kept leaving something; a game half the section and half what lies behind fits
-    /// half hidden; a section whose pixels tell nothing apart is not fitted.
+    /// The verdict goes by the game's pattern, not its light: a game showing what lies behind a section at a third of its light and an offset
+    /// comes out hidden, one showing the section three times as bright shown - v0.1.385's fit of the light read such a light's own mismatch
+    /// as a share; a game whose logarithm is the two drawings' halved is unclear, its share without one half; a section whose pixels tell
+    /// nothing has no verdict. The hidden sections' shadows go by the step at their edge: a game keeping it comes out kept, one without it
+    /// dropped. The numbers read back from their file judge alike.
     /// </summary>
     [Fact]
-    public void THEROOFFadesFitTakesTheGameApartIntoTheSectionAndWhatLiesBehindIt()
+    public void THEROOFFadesVerdictGoesByTheGamesPatternNotItsLight()
     {
         var section = new CaptureRoofFade.Section(4, "branches", "tree.ao", new Vector3(-50f, -50f, -400f), new Vector3(50f, 50f, -100f));
-        var header = new CaptureRoofFade.Header(64, 64, 1, new Vector2(1000f, 2000f), new Vector3(1000f, 2000f, 0f), new Vector3(0f, 0f, -2000f), Vector3.UnitZ, new Vector2(32f, 32f), [section]);
+        var header = new CaptureRoofFade.Header(
+            64, 64, 1, new Vector2(1000f, 2000f), new Vector3(1000f, 2000f, 0f), new Vector3(0f, 0f, -2000f), Vector3.UnitZ, Vector3.UnitX, new Vector2(32f, 32f), [section]);
         List<CaptureRoofFade.Sample> Samples(Func<Vector3, Vector3, Vector3, Vector3> game)
         {
             var made = new List<CaptureRoofFade.Sample>();
             for (var at = 0; at < 200; at++)
             {
-                var with = new Vector3(0.05f + (0.002f * at), 0.06f + (0.0015f * (at % 13)), 0.04f);
-                var kept = new Vector3(0.5f + (0.001f * (at % 17)), 0.45f, 0.4f + (0.002f * (at % 5)));
-                var gone = new Vector3(0.7f + (0.004f * (at % 11)), 0.62f + (0.003f * (at % 7)), 0.55f + (0.005f * (at % 3)));
+                var with = new Vector3(0.05f * MathF.Exp(0.4f * MathF.Sin(at * 0.37f)));
+                var kept = new Vector3(0.4f * MathF.Exp(0.4f * MathF.Sin((at * 1.13f) + 1f)));
+                Vector3 gone = kept * 1.1f;
                 made.Add(new CaptureRoofFade.Sample(4, at, game(with, kept, gone), with, kept, gone, new Vector3(at % 64, at / 64, -200f), 1800f));
             }
 
             return made;
         }
 
-        List<CaptureRoofFade.Sample> behind = Samples((with, kept, gone) => gone * 0.8f);
-        CaptureRoofFade.Fit gone = CaptureRoofFade.Fitted(behind, kept: false);
-        Assert.Equal(1f, gone.Hidden, 3);
-        Assert.Equal(0.8f, gone.A + gone.B, 3);
-        Assert.True(gone.Error < 1e-3f, $"{gone}");
-        Assert.True(CaptureRoofFade.Fitted(behind, kept: true).Error > 0.01f);
-        Assert.Matches(@"\n  4\tbranches\t200\t200\t[\d.]+\t[\d.]+\t[\d.]+\t1\.00\t0\.8\t0\.000\tgone\t", CaptureRoofFade.Report(header, behind, "test"));
+        List<CaptureRoofFade.Sample> behind = Samples((with, kept, gone) => (kept * 0.3f) + new Vector3(0.002f));
+        CaptureRoofFade.Judged hidden = CaptureRoofFade.Judge(behind);
+        Assert.Equal("hidden", hidden.Verdict);
+        Assert.True(hidden.Kept > 0.99f && MathF.Abs(hidden.With) < 0.3f, $"{hidden}");
+        Assert.Equal(1f, hidden.Share, 1);
 
-        CaptureRoofFade.Fit half = CaptureRoofFade.Fitted(Samples((with, kept, gone) => (with + kept) * 0.5f), kept: true);
-        Assert.Equal(0.5f, half.Hidden, 3);
-        Assert.Equal(1f, half.A + half.B, 3);
+        CaptureRoofFade.Judged shown = CaptureRoofFade.Judge(Samples((with, kept, gone) => with * 3f));
+        Assert.Equal("shown", shown.Verdict);
+        Assert.Equal(1f, shown.With, 4);
+        Assert.Equal(0f, shown.Share, 3);
 
-        List<CaptureRoofFade.Sample> alike = Samples((with, kept, gone) => with);
-        alike = [.. alike.Select(one => one with { Kept = one.With, Gone = one.With })];
-        Assert.Contains("\n  4\tbranches\t200\t0\t-\t-\t-\t-\t-\t-\t-\t", CaptureRoofFade.Report(header, alike, "test"), StringComparison.Ordinal);
+        CaptureRoofFade.Judged half = CaptureRoofFade.Judge(Samples((with, kept, gone) => new Vector3(MathF.Sqrt(with.X * kept.X))));
+        Assert.Equal("unclear", half.Verdict);
+        Assert.Equal(0.5f, half.Share, 1);
+
+        List<CaptureRoofFade.Sample> alike = [.. Samples((with, kept, gone) => with).Select(one => one with { Kept = one.With, Gone = one.With })];
+        Assert.Equal("-", CaptureRoofFade.Judge(alike).Verdict);
+        Assert.Contains("\n  4\tbranches\t200\t0\t-\t-\t-\t-\t-\t-\t", CaptureRoofFade.Report(header, alike, [], "test").ReplaceLineEndings("\n"), StringComparison.Ordinal);
+
+        // THE SHADOWS: half the pixels in a shadow a tenth as bright, the floor's pattern under all of them.
+        List<CaptureRoofFade.Shade> Shades(bool keeps)
+        {
+            var made = new List<CaptureRoofFade.Shade>();
+            for (var at = 0; at < 200; at++)
+            {
+                var floor = new Vector3(0.3f * MathF.Exp(0.3f * MathF.Sin(at * 0.71f)));
+                Vector3 shaded = at < 100 ? floor * 0.1f : floor;
+                made.Add(new CaptureRoofFade.Shade(at, (keeps ? shaded : floor) * 0.6f, shaded, floor));
+            }
+
+            return made;
+        }
+
+        Assert.Equal("kept", CaptureRoofFade.Shadow(Shades(keeps: true)).Verdict);
+        Assert.Equal("dropped", CaptureRoofFade.Shadow(Shades(keeps: false)).Verdict);
+
+        CaptureRoofFade.Header told = header with { Removed = [4] };
+        string report = CaptureRoofFade.Report(told, behind, Shades(keeps: true), "test");
+        Assert.Contains("\n  4\tbranches\t200\t200\thidden\t", report.ReplaceLineEndings("\n"), StringComparison.Ordinal);
+        Assert.Contains("the game KEEPS a hidden section's shadow", report, StringComparison.Ordinal);
+        (CaptureRoofFade.Header back, List<CaptureRoofFade.Sample> samples, List<CaptureRoofFade.Shade> shades) = CaptureRoofFade.Read(CaptureRoofFade.Write(told, behind, Shades(keeps: true)));
+        Assert.Equal(report, CaptureRoofFade.Report(back, samples, shades, "test"));
+    }
+
+    /// <summary>
+    /// A section's piece is the tile file its source names laid from the corner it names, its footprint every tile of that file naming its
+    /// place from that corner - not a neighbouring piece of the same file - and the player's is the piece of the tile he stands on; a corner
+    /// the tiles do not hold keeps the corner alone, and a source naming no piece has none.
+    /// </summary>
+    [Fact]
+    public void ASECTIONSPieceIsReadFromTheAreasTilesAtTheCornerItsSourceNames()
+    {
+        const string file = "Metadata/Terrain/Woods/Features_RedvaleRiver/curve5.tdt";
+        TerrainTiles tiles = Laid(48, 48, (file, 21, 30, 9, 6), (file, 21, 36, 9, 6), ("Metadata/Terrain/Woods/StSW_01.tdt", 30, 30, 3, 3));
+        CaptureRoofFade.Piece piece = CaptureRoofFade.PieceOf(file + " at tile 21, 30", tiles, null)!;
+        Assert.Equal(new CaptureRoofFade.Piece(file, 21, 30, 29, 35), piece);
+        Assert.True(piece.Known);
+        Assert.True(piece.Holds(23, 33));
+        Assert.False(piece.Holds(23, 36));
+        Assert.Equal("curve5 at tile 21, 30, 9 x 6", piece.Said);
+
+        CaptureRoofFade.Piece mine = CaptureRoofFade.PieceAt(tiles, 23, 33)!;
+        Assert.True(mine.Same(piece));
+        CaptureRoofFade.Piece below = CaptureRoofFade.PieceAt(tiles, 25, 40)!;
+        Assert.Equal(new CaptureRoofFade.Piece(file, 21, 36, 29, 41), below);
+        Assert.False(below.Same(mine));
+        Assert.True(below.Touches(mine));
+        Assert.True(CaptureRoofFade.PieceAt(tiles, 31, 31)!.Touches(mine));
+        Assert.Null(CaptureRoofFade.PieceAt(tiles, 2, 2));
+
+        CaptureRoofFade.Piece lost = CaptureRoofFade.PieceOf(file + " at tile 5, 5", tiles, null)!;
+        Assert.False(lost.Known);
+        Assert.Equal("curve5 at tile 5, 5", lost.Said);
+        Assert.False(CaptureRoofFade.PieceOf(file + " at tile 21, 30", null, null)!.Known);
+        Assert.Null(CaptureRoofFade.PieceOf("Art/Models/tree.ao", tiles, null));
     }
 
     /// <summary>A stage with no roof section says so and keeps no numbers.</summary>
@@ -855,7 +1002,7 @@ public class CaptureAtGameTests
         WorldSnapshot shot = Shot(player: new Vector3(5000f, 9000f, 0f));
         CaptureAtGame own = CaptureAtGame.Draw(pane, shot, null, Width, Height, null, out _)!;
         CaptureAtGame scene = CaptureAtGame.Draw(pane, shot, Bgr(own.Picture), Width, Height, null, out _)!;
-        string report = CaptureRoofFade.Write(_ => null, scene, string.Empty, null, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers);
+        string report = CaptureRoofFade.Write(_ => null, scene, string.Empty, null, null, null, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers);
         Assert.StartsWith("roof fade: no roof sections on the stage", report, StringComparison.Ordinal);
         Assert.Empty(pictures);
         Assert.Empty(numbers);

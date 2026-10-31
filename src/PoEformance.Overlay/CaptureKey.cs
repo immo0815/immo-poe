@@ -1342,8 +1342,10 @@ internal sealed class CaptureKey
                 {
                     Part(CaptureReport.RoofFadeFile, () =>
                     {
+                        TerrainGrid? terrain = run.Snapshot.Terrain as TerrainGrid;
                         string text = CaptureRoofFade.Write(
-                            read, scene, run.Snapshot.Area.Environment, run.AtGame, out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers);
+                            read, scene, run.Snapshot.Area.Environment, terrain?.Tiles, terrain?.Ground, run.AtGame,
+                            out IReadOnlyList<(string File, GamePicture Picture)> pictures, out byte[] numbers);
                         File.WriteAllText(At(CaptureReport.RoofFadeFile), text);
                         Pictures(pictures);
                         if (numbers.Length > 0)

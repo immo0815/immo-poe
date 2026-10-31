@@ -896,9 +896,9 @@ public sealed class MonsterPortrait
 
     /// <summary>The line under a card's picture the clouds' shadow lies on - see SceneLight.Clouds and ModelShaders' Clouded.</summary>
     private const string CloudsDrawn = "clouds: shadows.ffx's GetCloudsIntensity on the sun's light, on every surface and through the fog, as the area's"
-        + " .env sets them - CHOSEN: muddle_double.dds's alpha as the engine's noise (no file names it; the best of the candidates held against"
-        + " The Red Vale's picture, not a clear one), clouds_velocity along (cos a, sin a) of the .env's angle, the camera's focus as the"
-        + " player, the picture's clock as the engine's time; the card's alone";
+        + " .env sets them - MEASURED in The Red Vale: muddle_double.dds's alpha as the engine's noise (no file names it; held against the"
+        + " game's picture it is the best candidate in two captures, clearly in the second) and clouds_velocity along (cos a, sin a) of the"
+        + " .env's angle; CHOSEN: the camera's focus as the player, the picture's clock as the engine's time; the card's alone";
 
     /// <summary>
     /// A list with every program that has one swapped for its twin whose spray reads the stone's own occlusion (ShadeProgram.Occluded) -

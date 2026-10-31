@@ -36,7 +36,7 @@ public partial class CaptureReplayTests
 
     /// <summary>Each roof section's hidden share fitted again from roof-fade.bin - roof-fade-replay.txt.</summary>
     [Fact]
-    public void THEROOFSectionsFadeIsFittedAgainFromACapture()
+    public void THEROOFSectionsFadeIsJudgedAgainFromACapture()
     {
         if (Folder is not { Length: > 0 } folder || !File.Exists(CaptureParts.Find(folder, CaptureRoofFade.Numbers)))
         {

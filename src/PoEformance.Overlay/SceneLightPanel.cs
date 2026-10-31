@@ -649,9 +649,10 @@ public sealed class SceneLightPanel : IMovableSun
             Switch("clouds##scene-clouds", ref _clouds,
                 "The clouds the area's .env sets (its clouds section): their shadow drifting over the ground, as shadows.ffx's GetCloudsIntensity"
                 + " lays it on the sun's light - on every surface and through the fog - read 1000 units up along the light, thinned round the"
-                + " player. CHOSEN: the engine's noise is a pass texture no file names, so muddle_double.dds's alpha stands for it (the best of"
-                + " the candidates held against The Red Vale's picture, not a clear one); clouds_velocity is (cos a, sin a) of the .env's angle,"
-                + " which the engine's formula drifts the shadow against; on a stage the camera's focus stands for the player. The card's alone.");
+                + " player. The engine's noise is a pass texture no file names: MEASURED in The Red Vale, muddle_double.dds's alpha is the best of"
+                + " the candidates held against the game's picture in two captures, clearly in the second, with clouds_velocity (cos a, sin a) of"
+                + " the .env's angle, which the engine's formula drifts the shadow against. CHOSEN: on a stage the camera's focus stands for the"
+                + " player. The card's alone.");
         }
         finally
         {
