@@ -3663,11 +3663,15 @@ internal static class Program
         };
 
         // THE PLAYER AS THE GAME DRAWS HIM, taken at the Monster Book's button - see PlayerDress. Past the tap: a press's few thousand
-        // reads of his pieces belong in no recording.
+        // reads of his pieces belong in no recording. His stance's idle is read from the files (PlayerStance), the item tables' layouts
+        // loaded at the first press.
+        var playerLayouts = new Lazy<PoEformance.Features.QuestTableLayouts?>(
+            () => PoEformance.Features.QuestTableLayouts.Load(FindDataFile("item-tables.json")));
         overlay.PlayerTaken = () =>
         {
             PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
-            return PoEformance.Game.Entities.PlayerDress.Read(untapped, schema, gameStatesStatic);
+            PoEformance.Game.Entities.PlayerDress dress = PoEformance.Game.Entities.PlayerDress.Read(untapped, schema, gameStatesStatic);
+            return installed is null ? dress : PoEformance.Features.PlayerStance.Resolve(installed, playerLayouts.Value, dress);
         };
 
         // THE RIVER FLOW MAP HUNT: the grid the engine's river flow map is made from, or the map, in the whole of memory on every core -

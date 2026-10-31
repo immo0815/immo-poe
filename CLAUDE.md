@@ -861,6 +861,37 @@ every word naming a socket or a socket's bone - its number, its name as text - a
 (dat-schema's PoE2 layout, vendored: per class an .ao and a BONE, keyed by visual identity); and the player's own object type (`.ot`,
 `.otc`) with what it extends. The game's picture settles a candidate after: the piece drawn at it through the game's camera must lie in his
 hand. Take it as he stands and after swapping weapon sets.
+V0.1.397 HOLDS AND PLAYS HIM (the capture of 16:16, The Red Vale, v0.1.395's part; the screenshot showed the wand at his feet). What it read:
+- THE WAND STOOD AT HIS FEET because its rig shares one bone name with his and a "<root>" piece sharing a name is skinned on his rig - its
+  other bones fell to his root. The glove feathers too: the gloves hang them at "<root>" while each feather's own .ao says
+  `BaseAnimationEvents { attach_bone_override = "R_elbow_jntBnd" }` (L_ the left), READ now (`MonsterModel.Overridden`) - a piece that pairs
+  its bones with its carrier's by attachment_bones (the robe's skirt, whose root pairs with the very hip_jntBnd its override names) is placed
+  by the pairing and left as it was.
+- THE HANDS: no file says which slot takes which socket. Character.ao names `R_Weapon` and `L_Weapon` on the hands, the game's picture holds
+  the wand in her right hand and the focus in her left, and the composition held the wand at +0x30 and the focus at +0x58 (schema `PieceSlots`).
+  So the main hand's piece hangs at R_Weapon and the off hand's at L_Weapon, rigidly, its own rig never matched against his (`WornPiece.Held`,
+  `PlayerDress.Variety`) - CHOSEN from the live client, said under the picture. His OneRig names the bones `aux_R_Weapon_attachment_jntBnd`,
+  a spelling Mounts never tried, so a socket only the carrier's own files define is now its last resort (`Fit.Sockets`, `SocketsOf`:
+  parent, turn, shift, size - LAST, so nothing that resolved before moves). A worn piece extending `Metadata/ParentBackAttachment` - the cape
+  - hangs rigidly at `Back` (DECIDED from the live client; no file names its socket).
+- HIS ANIMATIONS ARE NOT IN HIS RIG: Character.ao's `OneRig.ast` holds `idle_01` alone, the bind pose. The pointer web found the stance in
+  hand's pack and timeline behind his Actor (schema `Actor.AnimationSet` 0x228 -> `ActorAnimationSet` +0x180 the pack, `AnimationPack` +0x148
+  its .amd, +0xF0 -> +0x10 its .ast's record; +0x188 the timeline's record): `Art/Models/CharactersFour/Animations/BaseWand/OneRig.ast` and
+  `Metadata/Characters/Timelines/base_wand/base_wand.atl`. MEASURED ONCE. The Monster Book reads them at the press (`PlayerDress.StanceOf`,
+  DECIDED from the live client) and plays the pack in place of his rig's own where its bones are his name for name (`MonsterModels.SameBones`,
+  `MonsterModel.Pack`).
+- HIS IDLE IS HIS STANCE'S, read from the files (`PlayerStance`, `ActFile`): the class's .act is Characters.ACTFile (IntFour.act <-
+  CharacterFemale.act <- Character.act); a stance's name is its hands' item stances, main then off (BaseItemTypes.ItemStance, else ItemClasses',
+  in ItemStances - the layouts vendored from dat-schema) - Character.act's stances read so throughout (DaggerShield, OneHandSwordSceptre,
+  WandSpiritShield, BowQuiver; an empty hand adds nothing; none at all is Unarmed); the set in hand is the one whose stance's Base timeline is
+  the Actor's; its idle the nearest `Idle` up the stance tree with the nearest wildcard and its tags' replace rules - `idle_*_01` and
+  `wand_shield`, `idle_wand_shield_01` (`MonsterModel.Opening`, the pane's first). Character.act shuts its whole Claw stance away in a
+  `/* */` comment. NOT READ: a town's stance (Idle::town, `idle_relaxed_*_01`), the female's persistent layer, the additive layers, the held
+  pieces' own animations, the other weapon set (not drawn by the game either - the composition holds the set in hand alone).
+- THE PART writes the chain and both objects whole and his hands (`PlayerLook.Stanced`), and on the files side the stance as the Monster Book
+  reads it, the pack's every animation and whether its bones are his, and the pack's .amd and the timeline as the install holds them
+  (`CapturePlayerLook.Stance` - neither format read yet). Take it as he stands and after swapping weapon sets: the pack and timeline must
+  follow the stance, the staff its MainHand slot.
 
 ## Verify against the game, not against yourself
 

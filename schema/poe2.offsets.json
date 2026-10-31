@@ -1161,7 +1161,7 @@
         "TerrainHeight": { "offset": "0x1B0", "type": "f32" },
 
         "Pieces": {
-          "offset": "0x1D0", "type": "ptr",
+          "offset": "0x1D0", "type": "ptr", "struct": "PieceSlots",
           "comment": "THE PIECES THE GAME DRAWS THE PLAYER WITH - what it composed his look from, cosmetics (MTX) included. UNNAMED (no reference reads it); MEASURED in two captures of one game session (v0.1.393's player look part, The Red Vale, 13:36 and 13:46 on 2026-10-31, the Sorceress): its pointer web reached the very .ao files of every slot through this word and nothing else - the target's +0x30, +0x58, +0x90, +0xA8, +0xE0, +0x108 and +0x130 each point at an object whose +0x08 is a FileInfoValue naming WandOfTheThaumaturgeHeld.ao (an MTX wand), BetaDoryaniFocusHeld.ao (an MTX focus), BetaDoryaniArmourBodyInt.ao, GoblinShamanHeld.ao (a cape), BetaPerennialKingArmourHelmetInt.ao, BetaDoryaniArmourGlovesInt.ao and BetaBaronBootsIntB.ao, and its +0x00 points at one whose +0x98 names BetaDoryaniSkirtFHeld.ao, an attachment the body armour's own .ao names. The worn items' own visual identities (a staff, a unique body armour, a tiara, cuffs, sandals) appear nowhere: the slots hold what the game DRAWS, the cosmetic over the item. The held pieces are the second weapon set's (a wand and a focus), the first set's staff absent - the set drawn is the one in hand. NOT YET READ: the target's layout (how long, which word is which slot, whether a held piece's socket is in it) - v0.1.394's player look part writes Render whole, this target whole and every object it points at, and PlayerPieces reads every word that leads to an .ao record; a capture after a restart and one after a weapon swap settle it."
         }
       }
@@ -1260,6 +1260,10 @@
     "Actor": {
       "comment": "Component: animation + skills + cooldowns + THE CURRENT ACTION. The action fields were found 2026-08-29 by --actionhunt against tests/fixtures/session-2026-08-actions.rec, and they are the ones no reference could supply: neither GameHelper2 (main) nor the AHK tool reads any of them for PoE2, and ExileCore2 - which proves they exist, its GameOffsets2 metadata naming ActionPtr, SimpleActionPtr, ActionId and AnimationControllerPtr, its API exposing CurrentAction.Skill/.Destination - decodes its offset values at runtime, so it contributed names and PoE1's shape (ActionPtr 0x1A8 -> wrapper with Skill 0x150 and Destination 0x170, ActionId 0x208, all below AnimationId) and no numbers. THE TWO ACTION SLOTS ARE MUTUALLY EXCLUSIVE, which is what makes them a pair rather than two findings: over 42 acting frames, 0x240 was set for exactly the 15 running frames and null for all 27 casting ones, and 0x238 exactly the other way round. Both point at the same LAYOUT (see ActionWrapper), so whichever way ExileCore2's two names map onto them, they are one mechanism. ActionId itself is still NOT found: 0x380 and 0x2A0 clear the hunt's id test on this recording, but 0x380 is the locomotion-LAYER field already noted below and neither was shown to carry action flags rather than a movement state. CORROBORATED BY A SECOND SESSION (2026-08-29, tests/fixtures/session-2026-08-fight.rec, a different area later the same day, 1383 sampled frames against the first session's 1312): the hunt re-derived 0x240 from scratch as the only pointer slot that separates acting from idle (set on 91% of acting frames, 0% of idle ones, 60 toggles), 0x2A0 again as a short id, and the destination pair again at ActionWrapper+0x150 inside that slot's block - this time over 43 arrivals rather than four, with a scale-free fit returning 10.78 world units per cell against the 10.87 the project's own grid factor gives. Two independent sessions is the difference between a measurement and a coincidence; FightSessionTests asserts the re-derivation.",
       "fields": {
+        "AnimationSet": {
+          "offset": "0x228", "type": "ptr", "struct": "ActorAnimationSet",
+          "comment": "-> the object holding the animations the player is played from IN THE STANCE IN HAND: its +0x180 the animation pack (ActorAnimationSet.Pack, the .amd and .ast of Art/Models/CharactersFour/Animations/<pack>/) and its +0x188 the stance's timeline (Metadata/Characters/Timelines/<base>/<base>.atl). UNNAMED (no reference reads it). MEASURED ONCE, by the player look part's pointer web (v0.1.395, The Red Vale, 2026-10-31 16:16, the Sorceress with a wand and a focus in hand): Actor +0x228 -> +0x180 named Animations/BaseWand/OneRig.amd at +0x148 and, through +0xF0 -> +0x10, Animations/BaseWand/OneRig.ast at +0x8; Actor +0x228 -> +0x188 named Metadata/Characters/Timelines/base_wand/base_wand.atl at +0x8 - the very timeline Character.act gives the Wand stance's Base actions. His own rig (Character.ao's Art/Models/CharactersFour/OneRig.ast) holds idle_01 alone, the bind pose. PlayerDress reads the pack and the timeline through it. A capture after a weapon swap is to show the pack and timeline change with the stance."
+        },
         "SkillActionPtr": {
           "offset": "0x238", "type": "ptr", "struct": "ActionWrapper",
           "invariant": { "kind": "plausiblePtr" },
@@ -1316,6 +1320,42 @@
       },
       "consts": {
         "Size": "0x18"
+      }
+    },
+
+    "PieceSlots": {
+      "comment": "What Render.Pieces points at: a slot a piece, each a std::shared_ptr (the object, then its control block - make_shared's, 0x10 before the object), the object's +0x08 the record of the .ao the game draws there. MEASURED in the captures of 2026-10-31 (13:36, 13:46 and 16:16, The Red Vale, the Sorceress with her second weapon set - a wand and a focus - in hand): MainHand held the MTX wand, OffHand the MTX focus, the rest as named. Between the slots stand small ints (2 at +0x28, 3 at +0x50, 6 at +0x78, 9 at +0xF0, 10 at +0x118) and words read as nothing yet. WHICH SLOT IS WHICH HAND is this one character's evidence: a capture after a weapon swap is to show the two-handed staff of her first set at MainHand. PlayerDress hangs MainHand at R_Weapon and OffHand at L_Weapon (CHOSEN from the live client, 2026-10-31).",
+      "fields": {
+        "MainHand": { "offset": "0x30", "type": "ptr" },
+        "OffHand": { "offset": "0x58", "type": "ptr" },
+        "BodyArmour": { "offset": "0x90", "type": "ptr" },
+        "BackAttachment": { "offset": "0xA8", "type": "ptr", "comment": "The cape, a cosmetic - PoE2 has no cape slot among the inventories." },
+        "Helmet": { "offset": "0xE0", "type": "ptr" },
+        "Gloves": { "offset": "0x108", "type": "ptr" },
+        "Boots": { "offset": "0x130", "type": "ptr" }
+      }
+    },
+
+    "ActorAnimationSet": {
+      "comment": "What Actor.AnimationSet points at - see there. Only the two words below are read; MEASURED once (2026-10-31 16:16, The Red Vale).",
+      "fields": {
+        "Pack": { "offset": "0x180", "type": "ptr", "struct": "AnimationPack", "comment": "-> the animation pack of the stance in hand: its .amd's path at +0x148, its .ast's record through +0xF0 -> +0x10." },
+        "Timeline": { "offset": "0x188", "type": "ptr", "struct": "FileInfoValue", "comment": "-> the record of the stance's timeline (.atl), its path at +0x08 like any file record's. The record 0x140 after it in memory named another timeline at its own +0x08 - a pool of records, read nothing into it." }
+      }
+    },
+
+    "AnimationPack": {
+      "comment": "One animation pack of the player's rig - Art/Models/CharactersFour/Animations/<pack>/OneRig.amd and its .ast, the bones of his OneRig.ast with a stance's animations. MEASURED once (2026-10-31 16:16, The Red Vale: BaseWand).",
+      "fields": {
+        "Keyframes": { "offset": "0xF0", "type": "ptr", "struct": "AnimationPackKeyframes", "comment": "-> the object whose +0x10 is the record of the pack's .ast." },
+        "Metadata": { "offset": "0x148", "type": "stdWString", "comment": "The pack's .amd path, e.g. Art/Models/CharactersFour/Animations/BaseWand/OneRig.amd. Read as a check only: whether this object IS the .amd's record 0x140 before another is not settled - the .ast's record (through Keyframes) named another pack's .amd at its own +0x148 too, which is what a pool of 0x140-byte records would do." }
+      }
+    },
+
+    "AnimationPackKeyframes": {
+      "comment": "What AnimationPack.Keyframes points at. MEASURED once (2026-10-31 16:16, The Red Vale).",
+      "fields": {
+        "Record": { "offset": "0x10", "type": "ptr", "struct": "FileInfoValue", "comment": "-> the record of the pack's .ast, e.g. Art/Models/CharactersFour/Animations/BaseWand/OneRig.ast at its +0x08." }
       }
     },
 

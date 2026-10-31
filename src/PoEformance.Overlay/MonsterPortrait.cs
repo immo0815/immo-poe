@@ -3833,10 +3833,12 @@ public sealed class MonsterPortrait
         IReadOnlyList<SkeletonAnimation> moves = _model.Rig.Animations;
         _count = $"({moves.Count})";
 
+        // THE MODEL'S OWN OPENING FIRST - the player's stance's idle (MonsterModel.Opening) - then a monster's idle_01, then the first.
         var first = 0;
+        string opening = _model.Opening.Length > 0 ? _model.Opening : Idle;
         for (var one = 0; one < moves.Count; one++)
         {
-            if (string.Equals(moves[one].Name, Idle, StringComparison.Ordinal))
+            if (string.Equals(moves[one].Name, opening, StringComparison.Ordinal))
             {
                 first = one;
                 break;
