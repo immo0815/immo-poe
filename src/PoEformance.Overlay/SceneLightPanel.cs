@@ -658,9 +658,11 @@ public sealed class SceneLightPanel : IMovableSun
                 + " player. The card's alone.");
             Switch("roof fade##scene-roof", ref _roofFade,
                 "The roof sections the game hides round the player - trees, canopies and roofs whose material says \"roofsection\" - hidden round"
-                + " the camera's focus, on both drawings. CHOSEN until the capture's roof-fade part settles it: every roof section of the tile"
-                + " piece the focus stands on is hidden (RoofFadeMode \"Tile\"'s reading; one capture of The Red Vale fits it, and fits a reach"
-                + " down the screen too), its shadow gone with it, at once rather than dissolving; an object's own roof sections stay drawn.");
+                + " the camera's focus, on both drawings: a tile piece's section is hidden where its box on the ground reaches into the region"
+                + " between this camera and its focus - 600 units towards the camera, 250 to either side, nothing behind. MEASURED in three"
+                + " captures of The Red Vale: the game hides what stands between its camera and the player, not the tile piece he stands on;"
+                + " the extents CHOSEN within what they allow (roof-fade.txt narrows them with every capture). Its shadow goes with it, at once"
+                + " rather than dissolving; an object's own roof sections stay drawn.");
         }
         finally
         {
@@ -1310,7 +1312,7 @@ public sealed class SceneLightPanel : IMovableSun
         }
 
         lines.Add(_roofFade
-            ? "roof fade: on - the panes hide the roof sections of the tile piece under the focus (CHOSEN reading); a capture's drawings draw every section"
+            ? "roof fade: on - the panes hide the roof sections reaching into the region between their camera and its focus (600 towards the camera, 250 aside, 0 behind - CHOSEN within what the captures allow); a capture's drawings draw every section"
             : "roof fade: off");
         lines.Add(!_clouds ? "clouds: off"
             : Clouded() is not { } clouds ? "clouds: none - " + _cloudsWhy

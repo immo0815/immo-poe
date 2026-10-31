@@ -430,41 +430,218 @@ public static class CaptureRoofFade
             $"the hidden sections' shadows ({string.Join(", ", header.Removed)}): {shadowed.Count:N0} pixels where the stage without them tells their shadows kept from gone, and a band of {Band} gathered pixels round them (the step at a shadow's edge, which a scale inside it cannot show); the game's log luminance goes with the shadows kept r {Number(shadowed.Kept, "0.00")}, gone r {Number(shadowed.Gone, "0.00")}, share gone {share} - {said}");
     }
 
-    /// <summary>The readings held against every verdict: the player's piece fading whole, and with the pieces touching it.</summary>
+    /// <summary>
+    /// The readings held against every verdict: the pane's region round the player (RoofFade), the player's piece fading whole, and with
+    /// the pieces touching it - then the region's extents the verdicts allow.
+    /// </summary>
     private static string Rules(Header header, IReadOnlyList<(Section Section, Judged Judged, int Pixels)> rows)
     {
         var text = new StringBuilder();
         text.AppendLine("=== readings held against the verdicts (hidden or shown, sections of a tile piece)");
         var verdicted = rows.Where(one => one.Judged.Verdict is "hidden" or "shown").ToList();
-        int loose = verdicted.Count(one => one.Section.Piece is null);
-        if (header.PlayerPiece is not { } mine)
-        {
-            text.AppendLine("  the player's piece: not known (no tiles read, or numbers of version 1) - no reading held");
-            return text.ToString();
-        }
+        int loose = verdicted.Count(one => !one.Section.Source.Contains(AtTile, StringComparison.Ordinal));
 
-        void Held(string reading, Func<Piece, bool> hides)
+        void Held(string reading, IReadOnlyList<(Section Section, Judged Judged, int Pixels)> held, Func<Section, bool> hides)
         {
-            var held = verdicted.Where(one => one.Section.Piece is not null).ToList();
-            var against = held.Where(one => (one.Judged.Verdict == "hidden") != hides(one.Section.Piece!)).ToList();
+            var against = held.Where(one => (one.Judged.Verdict == "hidden") != hides(one.Section)).ToList();
             text.Append(CultureInfo.InvariantCulture, $"  {reading}: {held.Count - against.Count} of {held.Count} verdicts agree");
             if (against.Count > 0)
             {
-                text.Append(" - against it: ").Append(string.Join(", ", against.Select(one => string.Create(CultureInfo.InvariantCulture, $"{one.Section.Shape} {one.Judged.Verdict} ({one.Section.Piece!.Said})"))));
+                text.Append(" - against it: ").Append(string.Join(", ", against.Select(one =>
+                    string.Create(CultureInfo.InvariantCulture, $"{one.Section.Shape} {one.Judged.Verdict} ({one.Section.Piece?.Said ?? Path.GetFileNameWithoutExtension(one.Section.Source)})"))));
             }
 
             text.AppendLine();
         }
 
-        Held("the piece the player stands on fades whole, no other (a reading of RoofFadeMode \"Tile\")", piece => piece.Same(mine));
-        Held("his piece and every piece touching it fade (a reading of an island of pieces)", piece => piece.Same(mine) || piece.Touches(mine));
+        // THE PANE'S OWN READING FIRST, over the game camera's ways from the player, as the pane lays its own camera's from its focus.
+        IReadOnlyList<Placed> placed = PlacedOf(header, rows, string.Empty);
+        if (float.IsNaN(header.Player.X))
+        {
+            text.AppendLine("  the region round the player: no player read - not held");
+        }
+        else
+        {
+            var ofPieces = verdicted.Where(one => one.Section.Source.Contains(AtTile, StringComparison.Ordinal)).ToList();
+            var reaches = placed.ToDictionary(one => one.Shape, one => RoofFade.Reaches(one.Ahead, one.Aside));
+            Held(
+                string.Create(CultureInfo.InvariantCulture,
+                    $"a section is hidden where its box across the ground reaches into the region round the player, {RoofFade.Toward:0} towards the game's camera, {RoofFade.Aside:0} aside, {RoofFade.Behind:0} behind (the pane's reading, RoofFade - its extents CHOSEN)"),
+                ofPieces,
+                section => reaches.GetValueOrDefault(section.Shape));
+        }
+
+        if (header.PlayerPiece is not { } mine)
+        {
+            text.AppendLine("  the player's piece: not known (no tiles read, or numbers of version 1) - the readings by piece not held");
+        }
+        else
+        {
+            var ofKnown = verdicted.Where(one => one.Section.Piece is not null).ToList();
+            Held("the piece the player stands on fades whole, no other (a reading of RoofFadeMode \"Tile\" - the pane's until v0.1.393)", ofKnown, section => section.Piece!.Same(mine));
+            Held("his piece and every piece touching it fade (a reading of an island of pieces)", ofKnown, section => section.Piece!.Same(mine) || section.Piece!.Touches(mine));
+        }
+
         if (loose > 0)
         {
             text.Append(CultureInfo.InvariantCulture, $"  {loose} verdicts on sections of no tile piece left out").AppendLine();
         }
 
+        text.AppendLine().Append(Extents(placed));
         return text.ToString();
     }
+
+    /// <summary>A verdict on a tile piece's section and where its box stands from the player along the game camera's two ways across the ground.</summary>
+    /// <param name="Label">What the verdict is named by - its shape, and its capture where several are read together.</param>
+    /// <param name="Shape">Its shape.</param>
+    /// <param name="Hidden">Whether the game hid it - else it showed it.</param>
+    /// <param name="Ahead">Its box's least and most along the way into the picture, minus towards the eye.</param>
+    /// <param name="Aside">Along the picture's side.</param>
+    internal readonly record struct Placed(string Label, int Shape, bool Hidden, (float Least, float Most) Ahead, (float Least, float Most) Aside);
+
+    /// <summary>The verdicts on tile pieces' sections, each placed along the game camera's ways from the player - none where no player was read.</summary>
+    internal static IReadOnlyList<Placed> PlacedOf(Header header, IReadOnlyList<(Section Section, Judged Judged, int Pixels)> rows, string label)
+    {
+        ArgumentNullException.ThrowIfNull(header);
+        ArgumentNullException.ThrowIfNull(rows);
+        if (float.IsNaN(header.Player.X))
+        {
+            return [];
+        }
+
+        (Vector2 up, Vector2 right) = Ways(header);
+        var at = new Vector2(header.Player.X, header.Player.Y);
+        var placed = new List<Placed>();
+        foreach ((Section section, Judged judged, int pixels) in rows)
+        {
+            if (pixels == 0 || judged.Verdict is not ("hidden" or "shown") || !section.Source.Contains(AtTile, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            Vector2 least = new Vector2(section.Least.X, section.Least.Y) + header.Origin, most = new Vector2(section.Most.X, section.Most.Y) + header.Origin;
+            placed.Add(new Placed(
+                label + section.Shape.ToString(CultureInfo.InvariantCulture), section.Shape, judged.Verdict == "hidden",
+                RoofFade.Spread(up, least, most, at), RoofFade.Spread(right, least, most, at)));
+        }
+
+        return placed;
+    }
+
+    /// <summary>
+    /// The region's extents the verdicts allow: how far towards the camera, aside and behind the region round the player must at least reach for
+    /// the sections the game hid to reach into it, and how far it may at most reach for those it showed not to.
+    /// </summary>
+    /// <remarks>
+    /// THE PANE'S READING TAKEN AS THE SHAPE (RoofFade.Reaches): a section is hidden where its box's spread into the picture meets the region's,
+    /// from minus its reach towards the camera to its reach behind, and its spread aside meets the region's either side. So a HIDDEN section
+    /// sets three least reaches - towards the camera at least minus its spread's most, behind at least its spread's least, aside at least its
+    /// spread's distance from the player's line - and a SHOWN one fails at least one of the three; where the hidden ones already settle two of
+    /// its three, the third must fail, which sets that side's most. A shown section with two sides or more open sets nothing, and is counted.
+    /// An extent whose least passes its most says the verdicts do not fit a region of this shape.
+    /// </remarks>
+    internal static string Extents(IReadOnlyList<Placed> placed)
+    {
+        ArgumentNullException.ThrowIfNull(placed);
+        var text = new StringBuilder();
+        text.AppendLine("=== the region's extents the verdicts allow (the pane's reading as the shape: a hidden section's box reaches into the region, a shown one's does not; along the game camera's ways from the player)");
+        if (placed.Count == 0)
+        {
+            text.AppendLine("  no verdict on a tile piece's section with the player read - nothing bounds the region");
+            return text.ToString();
+        }
+
+        static float Off((float Least, float Most) aside) => aside.Least > 0f ? aside.Least : aside.Most < 0f ? -aside.Most : 0f;
+
+        // THE LEAST REACHES, from what the game hid.
+        (float Value, string By) toward = (float.NegativeInfinity, "-"), behind = (float.NegativeInfinity, "-"), side = (float.NegativeInfinity, "-");
+        foreach (Placed one in placed.Where(one => one.Hidden))
+        {
+            toward = -one.Ahead.Most > toward.Value ? (-one.Ahead.Most, one.Label) : toward;
+            behind = one.Ahead.Least > behind.Value ? (one.Ahead.Least, one.Label) : behind;
+            side = Off(one.Aside) > side.Value ? (Off(one.Aside), one.Label) : side;
+        }
+
+        // THE MOST REACHES, from what it showed where two of its three sides are settled to reach it.
+        (float Value, string By) towardMost = (float.PositiveInfinity, "-"), behindMost = (float.PositiveInfinity, "-"), sideMost = (float.PositiveInfinity, "-");
+        var open = new List<string>();
+        foreach (Placed one in placed.Where(one => !one.Hidden))
+        {
+            bool towardHolds = -one.Ahead.Most <= toward.Value, behindHolds = one.Ahead.Least <= behind.Value, sideHolds = Off(one.Aside) <= side.Value;
+            if (behindHolds && sideHolds)
+            {
+                towardMost = -one.Ahead.Most < towardMost.Value ? (-one.Ahead.Most, one.Label) : towardMost;
+            }
+            else if (towardHolds && sideHolds)
+            {
+                behindMost = one.Ahead.Least < behindMost.Value ? (one.Ahead.Least, one.Label) : behindMost;
+            }
+            else if (towardHolds && behindHolds)
+            {
+                sideMost = Off(one.Aside) < sideMost.Value ? (Off(one.Aside), one.Label) : sideMost;
+            }
+            else
+            {
+                open.Add(one.Label);
+            }
+        }
+
+        string Line(string name, (float Value, string By) least, (float Value, string By) most, float chosen)
+        {
+            string from = float.IsNegativeInfinity(least.Value) ? "no least" : string.Create(CultureInfo.InvariantCulture, $"at least {least.Value:0} ({least.By})");
+            string to = float.IsPositiveInfinity(most.Value) ? "no most" : string.Create(CultureInfo.InvariantCulture, $"under {most.Value:0} ({most.By})");
+            string fits = !float.IsNegativeInfinity(least.Value) && !float.IsPositiveInfinity(most.Value) && least.Value >= most.Value
+                ? " - THE VERDICTS DO NOT FIT A REGION OF THIS SHAPE"
+                : chosen >= least.Value && chosen < most.Value ? string.Create(CultureInfo.InvariantCulture, $" - the pane's {chosen:0} within")
+                : string.Create(CultureInfo.InvariantCulture, $" - the pane's {chosen:0} OUTSIDE");
+            return string.Create(CultureInfo.InvariantCulture, $"  {name}: {from}, {to}{fits}");
+        }
+
+        text.AppendLine(Line("towards the camera", toward, towardMost, RoofFade.Toward));
+        text.AppendLine(Line("aside", side, sideMost, RoofFade.Aside));
+        text.AppendLine(Line("behind", behind, behindMost, RoofFade.Behind));
+        text.AppendLine(string.Create(CultureInfo.InvariantCulture,
+            $"  over {placed.Count(one => one.Hidden)} hidden and {placed.Count(one => !one.Hidden)} shown; {open.Count} shown with two sides or more open set nothing{(open.Count > 0 ? ": " + string.Join(", ", open) : string.Empty)}"));
+        text.AppendLine("  the engine's own extents are the environment's area.roof_fade_circle_up, _dn and _lr (up the screen, down it, aside); where the area's .env sets none its parsed environment holds the defaults unnamed - a capture in an area whose .env sets one (light-extras.txt section 1 lists them: the prison hideout and gallows/4_5_1 down 500, sanctum_floor1 down 400 and up 361.2, Expedition's subareas up -10) names its slot in light-hunt.txt's layout");
+        return text.ToString();
+    }
+
+    /// <summary>
+    /// The region's extents the verdicts of several captures allow together - each one's roof-fade.bin judged again and its verdicts placed
+    /// from its own player, labelled by its number in the list (#1, #2, ...) - folders unpacked alike share a name.
+    /// </summary>
+    public static string ExtentsOver(IReadOnlyList<string> folders)
+    {
+        ArgumentNullException.ThrowIfNull(folders);
+        var placed = new List<Placed>();
+        var read = new List<string>();
+        for (var at = 0; at < folders.Count; at++)
+        {
+            string folder = folders[at];
+            string name = string.Create(CultureInfo.InvariantCulture, $"#{at + 1} {Path.GetFileName(Path.TrimEndingDirectorySeparator(folder))}");
+            string path = CaptureParts.Find(folder, Numbers);
+            if (!File.Exists(path))
+            {
+                read.Add(name + ": no " + Numbers);
+                continue;
+            }
+
+            (Header header, List<Sample> samples, _) = Read(File.ReadAllBytes(path));
+            ILookup<int, Sample> byShape = samples.ToLookup(one => one.Shape);
+            var rows = header.Sections.Select(section => (Section: section, Judged: Judge(byShape[section.Shape]), Pixels: byShape[section.Shape].Count())).ToList();
+            IReadOnlyList<Placed> own = PlacedOf(header, rows, string.Create(CultureInfo.InvariantCulture, $"#{at + 1} "));
+            placed.AddRange(own);
+            read.Add(string.Create(CultureInfo.InvariantCulture, $"{name}: {own.Count(one => one.Hidden)} hidden, {own.Count(one => !one.Hidden)} shown"));
+        }
+
+        var text = new StringBuilder();
+        text.Append(CultureInfo.InvariantCulture, $"roof fade extents over {folders.Count} captures: ").AppendLine(string.Join("; ", read));
+        text.Append(Extents(placed));
+        return text.ToString();
+    }
+
+    /// <summary>The offline reader's file of the extents over several captures, written beside the first.</summary>
+    public const string ExtentsFile = "roof-fade-extents-replay.txt";
 
     /// <summary>The pieces carrying roof sections: each one's footprint, where it stands to the player, and its sections' verdicts.</summary>
     private static string Pieces(Header header, IReadOnlyList<(Section Section, Judged Judged, int Pixels)> rows, Vector2 up, Vector2 right)

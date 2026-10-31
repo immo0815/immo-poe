@@ -798,43 +798,52 @@ public sealed class MonsterPortrait
 
     /// <summary>
     /// The blends handed to the picture: <see cref="Unfaded"/>'s, with the roof sections round the camera's focus left out whole where the
-    /// light panel's "roof fade" is on (RoofFade - the piece under the focus fades whole, CHOSEN until roof-fade.txt settles it).
+    /// light panel's "roof fade" is on (RoofFade - the sections reaching into the region between the viewer's camera and its focus,
+    /// the extents CHOSEN within what the captures allow).
     /// </summary>
     /// <remarks>
-    /// A NEW LIST ONLY WHEN THE PIECES UNDER THE FOCUS CHANGE: both drawings compare the list they were drawn with by reference, so the
-    /// picture is drawn again when the focus crosses onto another piece, and not on every step of a drag.
+    /// A NEW LIST ONLY WHEN THE SECTIONS HIDDEN CHANGE: both drawings compare the list they were drawn with by reference, so the picture is
+    /// drawn again when a section crosses the region's edge, and not on every step of a drag. The sections are asked again only when the
+    /// focus or the turn moved - a few hundred boxes laid on two ways, into a list kept for the purpose.
     /// </remarks>
     private IReadOnlyList<MaterialBlend>? Blends()
     {
         IReadOnlyList<MaterialBlend>? own = Unfaded();
         if (SceneRoofFade?.Invoke() != true || Roofs() is not { } roofs || !_view.Valid)
         {
-            _roofsHolding = [];
+            _roofsShown = false;
             return own;
         }
 
-        // A NEW LIST ONLY WHEN THE PIECES UNDER THE FOCUS CHANGE - the frame asks without making one.
-        if (!ReferenceEquals(_fadedOf, own) || !roofs.HeldBy(_view.Focus, _roofsHolding) || (_faded is null && _roofsHolding.Length > 0))
+        if (!_roofsShown || !ReferenceEquals(_fadedOf, own) || _roofsAt != _view.Focus || _roofsTurn != _view.Turn)
         {
-            int[] holding = roofs.Holding(_view.Focus);
-            _fadedOf = own;
-            _roofsHolding = holding;
-            _faded = roofs.Faded(own, _model.Mesh.Shapes.Count, holding);
+            int count = roofs.Hide(_view.Focus, RoofFade.AheadOf(_view.Turn), _roofsAsked);
+            (_roofsAt, _roofsTurn) = (_view.Focus, _view.Turn);
+            if (!_roofsShown || !ReferenceEquals(_fadedOf, own) || !_roofsAsked.AsSpan().SequenceEqual(_roofsHidden))
+            {
+                (_roofsHidden, _roofsAsked) = (_roofsAsked, _roofsHidden);
+                _roofsShown = true;
+                _roofsChanged++;
+                _fadedOf = own;
+                _faded = count == 0 ? own : roofs.Faded(own, _model.Mesh.Shapes.Count, _roofsHidden);
+            }
         }
 
-        return _roofsHolding.Length == 0 ? own : _faded;
+        return _faded;
     }
 
-    /// <summary>The roof sections of the model shown by tile piece, worked out once a model - see RoofFade - or null where it has none.</summary>
+    /// <summary>The roof sections of tile pieces of the model shown, worked out once a model - see RoofFade - or null where it has none.</summary>
     private RoofFade? Roofs()
     {
         if (!ReferenceEquals(_roofsOf, _model))
         {
             _roofsOf = _model;
             _roofs = RoofFade.Of(_model);
+            _roofsHidden = new bool[_roofs?.Sections ?? 0];
+            _roofsAsked = new bool[_roofsHidden.Length];
+            _roofsShown = false;
             _fadedOf = null;
             _faded = null;
-            _roofsHolding = [];
         }
 
         return _roofs;
@@ -843,11 +852,22 @@ public sealed class MonsterPortrait
     private MonsterModel? _roofsOf;
     private RoofFade? _roofs;
     private RoofFade? _roofSaidOf;
-    private int[]? _roofSaidFor;
+    private int _roofSaidFor = -1;
     private string _roofSaid = string.Empty;
     private IReadOnlyList<MaterialBlend>? _fadedOf;
     private IReadOnlyList<MaterialBlend>? _faded;
-    private int[] _roofsHolding = [];
+
+    /// <summary>The sections the picture is drawn with hidden, one flag a section, and the list the next ask fills - swapped when they differ.</summary>
+    private bool[] _roofsHidden = [];
+    private bool[] _roofsAsked = [];
+
+    /// <summary>Whether <see cref="_roofsHidden"/> holds the hidden sections of the blends last handed on, and where they were asked from.</summary>
+    private bool _roofsShown;
+    private Vector3 _roofsAt;
+    private float _roofsTurn;
+
+    /// <summary>How many times the hidden sections changed - what the line under the picture is kept by.</summary>
+    private int _roofsChanged;
 
     /// <summary>
     /// Whether the roof sections round the camera's focus are hidden - the light panel's "roof fade", asked whether the game's light is on or
@@ -2832,13 +2852,13 @@ public sealed class MonsterPortrait
                 : CloudsDrawn);
         }
 
-        // THE ROOF FADE, both drawings' (RoofFade): which pieces' roof sections are hidden round the focus, and what the reading takes as given.
-        if (SceneRoofFade?.Invoke() == true && Roofs() is { } roofs)
+        // THE ROOF FADE, both drawings' (RoofFade): which roof sections are hidden round the focus, and what the reading takes as given.
+        if (SceneRoofFade?.Invoke() == true && Roofs() is { } roofs && _roofsShown)
         {
-            // MADE AGAIN ONLY WHEN THE PIECES UNDER THE FOCUS CHANGE - their list is replaced then and only then (Blends).
-            if (!ReferenceEquals(_roofSaidOf, roofs) || !ReferenceEquals(_roofSaidFor, _roofsHolding))
+            // MADE AGAIN ONLY WHEN THE SECTIONS HIDDEN CHANGE - their flags are swapped in then and only then (Blends).
+            if (!ReferenceEquals(_roofSaidOf, roofs) || _roofSaidFor != _roofsChanged)
             {
-                (_roofSaidOf, _roofSaidFor, _roofSaid) = (roofs, _roofsHolding, roofs.Said(_roofsHolding));
+                (_roofSaidOf, _roofSaidFor, _roofSaid) = (roofs, _roofsChanged, roofs.Said(_roofsHidden));
             }
 
             _status.Add(_roofSaid);

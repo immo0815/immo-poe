@@ -61,4 +61,22 @@ public partial class CaptureReplayTests
         File.WriteAllText(Path.Combine(folder, CaptureRoofFade.ReplayFile), replay);
         Assert.StartsWith("roof fade replay: ", replay, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// The roof fade region's extents the verdicts of several captures allow together - POEF_CAPTURES, or POEF_CAPTURE alone - written as
+    /// roof-fade-extents-replay.txt beside the first: each capture's verdicts narrow how far towards the camera, aside and behind the game hides.
+    /// </summary>
+    [Fact]
+    public void THEROOFRegionsExtentsAreBoundedOverCaptures()
+    {
+        string[] folders = [.. Folders().Where(one => File.Exists(CaptureParts.Find(one, CaptureRoofFade.Numbers)))];
+        if (folders.Length == 0)
+        {
+            return;
+        }
+
+        string extents = CaptureRoofFade.ExtentsOver(folders);
+        File.WriteAllText(Path.Combine(folders[0], CaptureRoofFade.ExtentsFile), extents);
+        Assert.StartsWith("roof fade extents over ", extents, StringComparison.Ordinal);
+    }
 }

@@ -774,6 +774,22 @@ name it); the roof part's drawing with the sections' shadows kept cast cut-out l
 drawn and cast through the texture, on both drawings) and its drawings without them stood a staged monster in his bind pose (now
 `MaterialBlend.Hidden` on the whole mesh); the panes were not snapshot for the roof part ticked alone; the light panel's line, which the
 captures carry, said sections hidden that a capture's drawings draw; and the pane's roof line was made anew every frame.
+THE GAME HIDES WHAT STANDS BETWEEN ITS CAMERA AND THE PLAYER, NOT THE PIECE HE STANDS ON (v0.1.393; said from the live client: "it hides a
+little much", with two captures). Three captures of The Red Vale held ONE tree against the game - curve5's trunk 1581 and crown 1578, sections
+of the very piece the player stood on in all three: at 09:12 and 13:46 the tree stood 460 to 600 units towards the camera and 130 to 260 aside,
+and the game hid trunk and crown; at 13:36 the player stood beside the trunk, 47 to 176 behind him and 10 to 139 aside ("it does not cover
+the player in the game"), and the game showed it while the pane, by the piece, hid it. Another trunk 388 to 516 towards the camera but 372 to
+501 aside stayed shown. MEASURED from those verdicts with the pane's reading as the shape (`CaptureRoofFade.Extents`, every capture's
+roof-fade.txt and `roof-fade-extents-replay.txt` over several, POEF_CAPTURES): the region reaches at least 467 towards the camera, 134 to
+under 372 aside, -126 to under 47 behind. So FROM v0.1.393 THE PANE HIDES BY A REGION (`RoofFade.Reaches`, `Hide`): a tile piece's section
+whose box's spreads across the ground - into the picture and to its side, from the focus - meet 600 towards the camera, 250 aside and
+nought behind, CHOSEN within those bounds; along the VIEWER'S camera's ways (`RoofFade.AheadOf(turn)`, DECIDED from the live client: what stands
+between the viewer's eye and its focus fades, turning with the camera; at the game's angle it is the game's). The engine's own extents are
+the environment's `area.roof_fade_circle_up`, `_dn` and `_lr` (sanctum_floor1.env 361.2 up and 400 down, the prison hideout's and
+gallows/4_5_1's 500 down, Expedition's subareas -10 up; The Red Vale sets none): its parsed environment's area slots between ground_scale
+(+0x158) and the clouds (+0x1B8) hold 0, 0, 0, pi, wind_intensity, 0.5, 1, 1, 0, 0 and 0.2 there, unnamed - a capture in an area whose .env sets one
+names its slot (light-hunt.txt's layout). Until then every roof capture narrows the bounds; take them where a tree stands at the region's
+edge - beside the player, half a tile to a tile aside, a little in front of him.
 
 ## The player on a stage
 
