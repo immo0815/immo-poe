@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
@@ -67,11 +68,31 @@ public static partial class GameWindowTracker
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool ShowWindow(IntPtr hWnd, int command);
+    private static partial bool ShowWindowAsync(IntPtr hWnd, int command);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool BringWindowToTop(IntPtr hWnd);
+    private static partial bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int width, int height, uint flags);
+
+    [LibraryImport("user32.dll", EntryPoint = "PeekMessageW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool PeekMessage(out Message message, IntPtr hWnd, uint first, uint last, uint remove);
+
+    /// <summary>A window message as PeekMessage writes it - only made, to give a thread its message queue.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Message
+    {
+        public IntPtr Window;
+        public uint Kind;
+        public UIntPtr WordParameter;
+        public IntPtr LongParameter;
+        public uint Time;
+        public Point At;
+        public uint Private;
+    }
+
+    /// <summary>SetWindowPos's flags: keep the place and size, and post the change rather than wait for the window's thread.</summary>
+    private const uint KeepPlaceAndPost = 0x0002 | 0x0001 | 0x4000;
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -242,8 +263,8 @@ public static partial class GameWindowTracker
 
     /// <summary>
     /// Brings the game's window to the front where another window is - the game's own other windows count as the game; null where no
-    /// game window is followed. Call it on a thread with a message queue (the render thread): AttachThreadInput fails on one without.
-    /// Whether it came is <see cref="Settled"/>'s to say, off that thread.
+    /// game window is followed. Call it on a thread with a message queue - AttachThreadInput fails on one without - and never the render
+    /// thread: <see cref="RaiseAside"/> runs it on a thread of its own. Whether it came is <see cref="Settled"/>'s to say.
     /// </summary>
     /// <remarks>
     /// ASKED FOR FROM THE LIVE CLIENT (2026-11-01): the agent link brings the game to the front before every call, so a capture or a
@@ -266,9 +287,12 @@ public static partial class GameWindowTracker
             return new Raised(who, front, false);
         }
 
+        // POSTED, NOT SENT: ShowWindow and BringWindowToTop wait for the game's window thread to answer, and v0.1.416 held the render
+        // thread for good on one of them with the game in the background (MEASURED through the agent link: no frame from the first call
+        // on, the watchdog's "stopped at: building the frame").
         if (IsIconic(game))
         {
-            ShowWindow(game, Restore);
+            ShowWindowAsync(game, Restore);
         }
 
         uint mine = GetCurrentThreadId();
@@ -276,7 +300,7 @@ public static partial class GameWindowTracker
         bool joined = theirs != 0 && theirs != mine && AttachThreadInput(mine, theirs, true);
         try
         {
-            BringWindowToTop(game);
+            SetWindowPos(game, IntPtr.Zero, 0, 0, 0, 0, KeepPlaceAndPost);
             SetForegroundWindow(game);
         }
         finally
@@ -288,6 +312,67 @@ public static partial class GameWindowTracker
         }
 
         return new Raised(who, front, joined);
+    }
+
+    /// <summary>How long a raise on its own thread is waited for before the call goes on without it (CHOSEN).</summary>
+    public static readonly TimeSpan RaiseWithin = TimeSpan.FromSeconds(2);
+
+    /// <summary>The raise running on its own thread, while it has not returned - a second is not started beside a stuck one.</summary>
+    private static Task<Raised?>? _raising;
+
+    /// <summary>
+    /// <see cref="Raise"/> on a thread of its own, given its message queue first, waited for up to <see cref="RaiseWithin"/>; null where
+    /// no game window is followed, and an exception's or a stuck raise's reason in <paramref name="why"/>.
+    /// </summary>
+    /// <remarks>
+    /// NEVER ON THE RENDER THREAD (v0.1.417): a raise that hangs on the game's window thread - the game in the background, busy or
+    /// minimised - held every frame of the overlay from the first agent call on. On a thread of its own it holds only that thread; the
+    /// call goes on and says so, and no second raise is started while it has not returned.
+    /// </remarks>
+    public static async Task<(Raised? Raised, string Why)> RaiseAside()
+    {
+        Task<Raised?> raising;
+        lock (Gate)
+        {
+            if (_raising is { IsCompleted: false })
+            {
+                return (null, "the last raise of the game's window has not returned - its window is not answering");
+            }
+
+            var done = new TaskCompletionSource<Raised?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    // A MESSAGE QUEUE FIRST, which a thread gets on its first such call: AttachThreadInput refuses a thread without one.
+                    PeekMessage(out _, IntPtr.Zero, 0, 0, 0);
+                    done.TrySetResult(Raise());
+                }
+                catch (Exception failed) when (failed is not OutOfMemoryException)
+                {
+                    done.TrySetException(failed);
+                }
+            })
+            {
+                IsBackground = true,
+                Name = "raise the game's window",
+            };
+            thread.Start();
+            raising = _raising = done.Task;
+        }
+
+        try
+        {
+            return (await raising.WaitAsync(RaiseWithin).ConfigureAwait(false), string.Empty);
+        }
+        catch (TimeoutException)
+        {
+            return (null, $"the game's window did not answer within {RaiseWithin.TotalSeconds:0} s - the raise goes on on its own thread");
+        }
+        catch (Exception failed) when (failed is ExternalException or InvalidOperationException or Win32Exception)
+        {
+            return (null, "the raise failed: " + failed.Message);
+        }
     }
 
     /// <summary>
