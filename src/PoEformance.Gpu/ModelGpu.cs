@@ -855,7 +855,7 @@ public sealed partial class ModelGpu : IDisposable
                 }
                 catch (Exception exception) when (exception is not (OutOfMemoryException or StackOverflowException))
                 {
-                    _particlesFailed = "particles: the card failed to draw them, not tried again - " + exception.Message;
+                    _particlesFailed = $"particles: the card failed to draw them at {_particleStep}, not tried again - {exception.Message}";
                     context.CSSetShader(null);
                     context.OMSetRenderTargets(target.AccumulatedTarget, target.Depth);
                     context.VSSetShader(_placed);
