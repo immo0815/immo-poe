@@ -3917,6 +3917,23 @@ internal static class Program
                 () => clothLive?.Fraction ?? 0f,
                 () => clothLive?.Stop()));
 
+        // THE PARTICLE EMITTERS AS THE CARD GETS THEM: every ParticleEmitterData record found in memory by how its fields agree, the
+        // nearest the player decoded and watched - see ParticleEmitterHunt. Past the tap: a sweep of memory belongs in no recording.
+        PoEformance.Game.Diagnostics.ParticleEmitterHunt.Running? emitterHunt = null;
+        overlay.OfferCaptureWork(
+            PoEformance.Features.CaptureParts.ParticleEmitters,
+            _ =>
+            {
+                var running = new PoEformance.Game.Diagnostics.ParticleEmitterHunt.Running();
+                emitterHunt = running;
+                PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
+                return PoEformance.Game.Diagnostics.ParticleEmitterHunt.Run(untapped, schema, gameStatesStatic, running);
+            },
+            new PoEformance.Overlay.CaptureWorkProgress(
+                () => emitterHunt?.Line ?? "starting",
+                () => emitterHunt?.Fraction ?? 0f,
+                () => emitterHunt?.Stop()));
+
         // THE CLOTH FRAME BY FRAME: the cloth objects near the player read as often as they change while he stands, takes a few steps and
         // stands again, and the tool's own cloth stepped against them - see ClothWatch. Past the tap; its reads go beside its file. The
         // Monster Book's model as it stood at the press gives the tool's own cloth of each piece (take the player first).

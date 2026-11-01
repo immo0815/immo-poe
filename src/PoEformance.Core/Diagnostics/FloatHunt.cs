@@ -30,6 +30,16 @@ public sealed record FloatDump(ulong At, int Needle, ulong From, byte[] Bytes);
 /// <param name="Needle">Which needle, by its index in the list asked for.</param>
 public readonly record struct FloatSighting(ulong At, int Needle);
 
+/// <summary>
+/// Looks through one chunk of the target's memory for what no run of floats can say - a record known by how its fields agree with one
+/// another - and adds every place it finds, tagged by which of the caller's kinds it is. See <see cref="FloatHunt.Scan"/>.
+/// </summary>
+/// <param name="chunk">The chunk's bytes and a few read past it, so a record starting in it is seen whole.</param>
+/// <param name="starts">How many of its bytes are this chunk's own: a record starting past them is the next chunk's.</param>
+/// <param name="at">The address of its first byte.</param>
+/// <param name="into">Where the places go, each with its kind as the needle.</param>
+public delegate void FloatSweeper(ReadOnlySpan<byte> chunk, int starts, ulong at, List<FloatSighting> into);
+
 /// <summary>How far a running hunt has got - read from another thread while it runs - and how to stop it.</summary>
 public sealed class FloatHuntProgress
 {
@@ -210,6 +220,54 @@ public static class FloatHunt
         (List<FloatSighting> sightings, HashSet<int> capped) = hunt.Gather();
         return new FloatHuntResult(
             hunt.Walked, hunt.Scanned, sightings, [.. capped.Order()], unsearched, hunt.Truncated, clock.Elapsed, Dumps(reader, needles, sightings))
+        {
+            Stopped = hunt.Stopped,
+            Workers = hunt.Workers,
+            Kinds = hunt.Kinds(),
+            Listed = hunt.Listed,
+            Listing = listing,
+        };
+    }
+
+    /// <summary>
+    /// Walks every region as <see cref="Run"/> does - on every core, the chunks handed out in order, within a budget - but hands each chunk
+    /// to the caller's own test, for a record known by how its fields agree rather than by values the caller can work out beforehand.
+    /// </summary>
+    /// <remarks>
+    /// FOR THE ENGINE'S PARTICLE EMITTER RECORDS (v0.1.432, ParticleEmitterHunt): each holds a scale beside its exact inverse and two unit
+    /// quaternions, which say what it is wherever it lies and whatever it holds - no needle of values could. The kinds the sweeper tags are
+    /// capped and gathered as needles are: <paramref name="kinds"/> names them and says how many of each are kept.
+    /// </remarks>
+    /// <param name="reader">The target's memory.</param>
+    /// <param name="regions">Its regions.</param>
+    /// <param name="kinds">What the sweeper finds, one a kind: the name for the report and how many places are kept (<see cref="FloatNeedle.Most"/>).</param>
+    /// <param name="sweeper">The test, run on every chunk on every worker - it must touch nothing shared.</param>
+    /// <param name="overlap">How many bytes past a chunk it needs to see a record starting at its last byte whole.</param>
+    /// <param name="progress">Where to say how far it has got, and where it is asked to stop - or null.</param>
+    /// <param name="budget">The most bytes looked through.</param>
+    /// <param name="workers">How many threads look - nought for one a core.</param>
+    public static FloatHuntResult Scan(
+        IMemoryReader reader,
+        IMemoryRegions regions,
+        IReadOnlyList<FloatNeedle> kinds,
+        FloatSweeper sweeper,
+        int overlap,
+        FloatHuntProgress? progress = null,
+        long budget = HeapScan.ByteBudget,
+        int workers = 0)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(regions);
+        ArgumentNullException.ThrowIfNull(kinds);
+        ArgumentNullException.ThrowIfNull(sweeper);
+        var clock = Stopwatch.StartNew();
+        progress?.Budgeted(budget);
+        var hunt = new Hunt(reader, kinds, [], Math.Max(0, overlap), budget, progress, default) { Custom = sweeper };
+        hunt.Plan([.. regions.Regions()]);
+        TimeSpan listing = clock.Elapsed;
+        hunt.Go(workers > 0 ? workers : Environment.ProcessorCount);
+        (List<FloatSighting> sightings, HashSet<int> capped) = hunt.Gather();
+        return new FloatHuntResult(hunt.Walked, hunt.Scanned, sightings, [.. capped.Order()], [], hunt.Truncated, clock.Elapsed)
         {
             Stopped = hunt.Stopped,
             Workers = hunt.Workers,
@@ -473,7 +531,7 @@ public static class FloatHunt
         IMemoryReader reader, IReadOnlyList<FloatNeedle> needles, Anchor[] anchors, int overlap, long budget, FloatHuntProgress? progress,
         CancellationToken cancel)
     {
-        private readonly float _widest = anchors.Max(one => one.High - one.Low);
+        private readonly float _widest = anchors.Length == 0 ? 0f : anchors.Max(one => one.High - one.Low);
         private readonly ulong[] _buckets = Buckets(anchors);
         private readonly List<string> _kindNames = [];
         private MemoryRegion[] _regions = [];
@@ -486,6 +544,9 @@ public static class FloatHunt
         private ExceptionDispatchInfo? _failed;
 
         public long Scanned => Volatile.Read(ref _scanned);
+
+        /// <summary>The caller's own test in place of the needles' (<see cref="Scan"/>), or null.</summary>
+        public FloatSweeper? Custom { get; init; }
 
         public long Walked => _lanes.Sum(lane => lane.Walked);
 
@@ -611,9 +672,34 @@ public static class FloatHunt
 
                     Interlocked.Add(ref _scanned, want);
                     progress?.Add(want);
-                    Sweep(
-                        buffer.AsSpan(0, (want + extra) & ~3), want, region.Address + chunk.Offset, needles, anchors, _widest, _buckets,
-                        lane.Found, lane.Capped, lane.Fresh);
+                    if (Custom is { } custom)
+                    {
+                        // THE CALLER'S TEST, its places capped per kind as a needle's are.
+                        lane.Raw.Clear();
+                        custom(buffer.AsSpan(0, (want + extra) & ~3), want, region.Address + chunk.Offset, lane.Raw);
+                        foreach (FloatSighting one in lane.Raw)
+                        {
+                            if ((uint)one.Needle >= (uint)needles.Count)
+                            {
+                                continue;
+                            }
+
+                            if (lane.Found[one.Needle] >= Most(needles[one.Needle]))
+                            {
+                                lane.Capped.Add(one.Needle);
+                                continue;
+                            }
+
+                            lane.Found[one.Needle]++;
+                            lane.Fresh.Add(one);
+                        }
+                    }
+                    else
+                    {
+                        Sweep(
+                            buffer.AsSpan(0, (want + extra) & ~3), want, region.Address + chunk.Offset, needles, anchors, _widest, _buckets,
+                            lane.Found, lane.Capped, lane.Fresh);
+                    }
                     if (lane.Fresh.Count > 0)
                     {
                         progress?.Found(lane.Fresh.Count);
@@ -711,6 +797,9 @@ public static class FloatHunt
 
         /// <summary>The places the chunk in hand yielded, before they are tagged with it.</summary>
         public List<FloatSighting> Fresh { get; } = [];
+
+        /// <summary>What a caller's own test found in the chunk in hand, before each kind's cap.</summary>
+        public List<FloatSighting> Raw { get; } = [];
 
         public List<(int Item, FloatSighting Place)> Sightings { get; } = [];
 

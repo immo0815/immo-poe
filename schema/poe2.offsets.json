@@ -1420,6 +1420,39 @@
       }
     },
 
+    "ParticleEmitterData": {
+      "comment": "One GPU particle emitter as the processor hands it to the card, 0xA0 bytes - THE ENGINE'S OWN STRUCT: Shaders/CommonDeclarations.inc (written whole by particles.txt from v0.1.429, read from the exe on disk) declares it under GPU_PARTICLE_DRAW_CALL, 'has to be in-sync with CPP code', and the update shaders read it as StructuredBuffer<ParticleEmitterData> particles_emitter_data[gpu_particle_emitter]. Every bit's meaning is gpuparticles.ffx's (PARTICLE_EMITTER_FLAG_*, PARTICLE_LOCK_FLAG_*, PARTICLE_DYN_CULL_TAG_BITS 5, PARTICLE_GROUP_SIZE_BITS 6, PARTICLE_LOCK_CND_BITS 3, GPU_PARTICLE_BONE_COUNT_BITS 8); a half pair is HalfUtility.hlsl's UnpackHalf2, the low sixteen bits first. WHAT THE PROCESSOR PUTS IN IT is measured by particle-emitters.txt (ParticleEmitterHunt, v0.1.432): found in memory by a scale beside its exact inverse twice and two unit quaternions. Not yet seen in memory; the offsets are the declaration's.",
+      "fields": {
+        "Scale": { "offset": "0x0", "type": "f32", "comment": "float3 scale." },
+        "EmitterDuration": { "offset": "0xC", "type": "f32", "comment": "emitter_duration." },
+        "LastScale": { "offset": "0x10", "type": "f32", "comment": "float3 last_scale - last frame's; the shaders lerp between the two by the sub-frame." },
+        "DeadTime": { "offset": "0x1C", "type": "u32", "comment": "dead_time: two halves, the emitter's dead time and the normalised fade-out time (UpdateParticles' dead_time_fade_out_time)." },
+        "InverseScale": { "offset": "0x20", "type": "f32", "comment": "float3 inverse_scale - the scale's inverse, axis by axis (the inverse transform's)." },
+        "LockFlags": { "offset": "0x2C", "type": "u32", "comment": "lock_flags: PARTICLE_LOCK_FLAG_* - TRANSLATION 0x1, ROTATION 0x2, ROTATION_EMIT 0x4, the scale's per axis 0x8..0x4000, MOVEMENT 0x8000, TRANSLATION_BONE 0x10000, ROTATION_BONE 0x20000, ROTATION_BONE_EMIT 0x40000, MOVEMENT_BONE 0x80000, ROTATION_BONE_FIXED 0x100000, ALONG 0x200000, ALONG_BONE 0x400000, INVERSE_CND 0x800000." },
+        "LastInverseScale": { "offset": "0x30", "type": "f32", "comment": "float3 last_inverse_scale." },
+        "SpeedFactor": { "offset": "0x3C", "type": "u32", "comment": "speed_factor: two halves, 'sim speed, particle speed' - delta_time = x * subframe, particle_delta_time = y * subframe." },
+        "Rotation": { "offset": "0x40", "type": "f32", "comment": "float4 rotation, a quaternion (x, y, z, w)." },
+        "LastRotation": { "offset": "0x50", "type": "f32", "comment": "float4 last_rotation." },
+        "Translation": { "offset": "0x60", "type": "f32", "comment": "float3 translation." },
+        "Time": { "offset": "0x6C", "type": "f32", "comment": "time - the emitter's clock this frame (emitter_curr_time)." },
+        "LastTranslation": { "offset": "0x70", "type": "f32", "comment": "float3 last_translation." },
+        "PrevTime": { "offset": "0x7C", "type": "f32", "comment": "prev_time - last frame's (emitter_prev_time)." },
+        "CullingAggression": { "offset": "0x80", "type": "u32", "comment": "culling_aggression: two halves, the first read (UnpackHalf2(..).x)." },
+        "Bones": { "offset": "0x84", "type": "u32", "comment": "bones: the first bone's index into emitter_bones_data (BoneData: pos and prev_pos, float4 each, w the distance along the bones) shifted left by 8, and how many in the low 8 bits (UnpackBoneSize)." },
+        "CullingTag": { "offset": "0x88", "type": "u32", "comment": "culling_tag: the dynamic culling tag in bits 0..4, the group size less one in 5..10, the lock condition in 11..13 (ParticleLockCondition), the emitter flags from bit 14 (ParticleEmitterFlags): IS_ALIVE 0x1, IS_INFINITE 0x2, REVERSE_BONES 0x4, IS_NEW 0x8, TELEPORTED 0x10, IS_VISIBLE 0x20, ORPHANED 0x40, PAUSED 0x80, EMIT_WHEN_ORPHANED 0x100, NO_SUBFRAME 0x200, INDIVIDUAL_GROUP_CULL 0x400, FADE_OUT 0x800." },
+        "ParticlesStart": { "offset": "0x8C", "type": "u32", "comment": "particles_start: the emitter's first particle in the pool (particles_data_write); particle_id = local % instance_count + particles_start." },
+        "CustomDataA": { "offset": "0x90", "type": "u32", "comment": "uint2 custom_data_a: four halves (UnpackHalf4)." },
+        "CustomDataB": { "offset": "0x98", "type": "u32", "comment": "uint2 custom_data_b: four halves." }
+      }
+    },
+
+    "GpuParticlesImpl": {
+      "comment": "The engine's GPU particle system's processor side (GpuParticles::Impl, MSVC run-time type names of its job lambdas) - READ FROM THE ENGINE'S CODE (v0.1.432; program-code.bin of the capture 2026-11-01 16-13-49, build of 2026-10-27, module 0x7FF7F5860000). Its frame runs as Job2 graph jobs, std::function lambdas whose call functions are: EntitiesFrameMoveBegin's lambda_1 module+0x1247AE0 (each bucket: every entity through module+0x123E2A0 with the frame's two floats and a byte), lambda_2 module+0x1247A80 (-> module+0x123FEE0); EntitiesFrameMoveTick's lambda_1 module+0x1247C40 (-> module+0x123F8C0), lambda_2 module+0x1247C00 (-> module+0x123FD10); MoveEntities' lambda_1 module+0x1247CA0 (each bucket: every entity through module+0x123BA60); EntitiesFrameMoveEnd's lambda_1 module+0x1247A30 (-> module+0x123FAF0), lambda_2 module+0x1247910; CpuCulling::Move's lambda_1 module+0x1247D70. Where the 0xA0-byte ParticleEmitterData records are filled is not yet found in the code; particle-emitters.txt looks for them in memory. Addresses one build's.",
+      "fields": {
+        "Buckets": { "offset": "0x60A0", "type": "u8", "comment": "An array of 0x1148-byte buckets, the lambda's index times 0x1148 (module+0x1247CB8); each begins with a lock (the call through [rip+...] before and after), holds a std::vector of entity pointers at +0x08 (one per entity, module+0x1247B60), and its entities as records of 0x110 bytes at +0x640 with their count at +0x650 - one per emitter instance, a reading." }
+      }
+    },
+
     "ClothObject": {
       "comment": "The physics object a ClientAnimationController with a simulation makes, 0x168 bytes - READ FROM THE ENGINE'S CODE (v0.1.420, build of 2026-10-27): made by module+0x13303B0 on the physics system (a static, module+0x470B150 in that build, its getter module+0x132F0F0; its objects std::vector at +0xC8, a slot per handle at +0x80, the world's manager at +0x18), constructed by module+0x13A7A60 from the simulation mesh's vertices (a particle each, a body made in the world by the container's +0xD8 at the vertex's place through the setup's transform, mass 1) and triangles; edges made into the world's distance constraints by module+0x13AADC0 (container +0xE0 with linear_stiffness, 1.0, linear_allowed_contraction), bend constraints by module+0x13AB450 (bend_stiffness, bend_allowed_angle). Stepped in jobs of eight objects (module+0x1331850) by module+0x1330160: each particle's body given the force (0, 0, Gravity) through container +0x90 unless kinematic (+0xB0), then the drag (module+0x13AB700: relative to the wind sampled at the particle by module+0x1335690, the velocity across the particle's surface normal decays as exp(-NormalViscosity*30*dt) and along it as exp(-TangentViscosity*30*dt)), then where AnimationVelocityFactor or AnimationForceFactor passes 1e-7 the animation (module+0x13ABBC0: target velocity = (target - place)*VelocityFactor*Scale + (target - last target)/(dt + 0.001)*Multiplier, held to MaxVelocity; velocity = target + (velocity - target)*exp(-dt*ForceFactor*Scale)). The enclosure (module+0x13A8440, called by the component each frame): a particle further than max(depth,0)*EnclosureRadius + Additive + |target - parent's target|*EnclosureAngle from its target is set back onto that sphere (container +0x88); a NaN place or velocity is set to the target. Found in memory by ClothLive.",
       "fields": {
