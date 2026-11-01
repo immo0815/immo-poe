@@ -49,7 +49,7 @@ public static partial class CaptureParticles
     private const int GraphChars = 24 * 1024 * 1024, LargestGraph = 1024 * 1024;
 
     /// <summary>The characters the defining sources may take whole, and the most one may.</summary>
-    private const int SourceChars = 12 * 1024 * 1024, LargestSource = 2 * 1024 * 1024;
+    private const int SourceChars = 32 * 1024 * 1024, LargestSource = 2 * 1024 * 1024;
 
 
     /// <summary>The part's text: a line saying what it found, then the walk, the emitters, the node census, the sources and the files whole.</summary>
@@ -91,6 +91,10 @@ public static partial class CaptureParticles
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Order(StringComparer.OrdinalIgnoreCase)];
         seeds.AddRange(engine.Select(path => (path, "the engine's particle graphs")));
+
+        // AND THE BASE EVERY RENDER PASS IS BUILT ON (v0.1.439): Metadata/EngineGraphs/base.fxgraph stands first in every pass the composer
+        // makes, outside the particles' own folder - the material pipeline's frame the render passes are linked into.
+        seeds.Add((ParticleComposition.Base, "the base every render pass is built on (ParticleComposition.Base)"));
 
         List<Walked> walked = Walk(read, seeds, body);
         int emitters = Emitters(walked, body);
@@ -388,6 +392,13 @@ public static partial class CaptureParticles
         body.AppendLine().Append(CultureInfo.InvariantCulture, $"=== 5. the sources defining them whole: {bySource.Length}, each with how many of the names above it defines").AppendLine();
         var wholes = bySource.Where(group => texts.ContainsKey(group.Key)).Select(group => (group.Key, texts[group.Key], $"defines {group.Count()}: {string.Join(", ", group.Select(one => one.Key).Take(40))}{(group.Count() > 40 ? ", ..." : string.Empty)}")).ToList();
 
+        // EVERY OTHER SOURCE OF THE INSTALL TOO (v0.1.439): the render passes are linked from the material pipeline's fragments, its
+        // lighting and its outputs, and what a pass's engine graphs reach is wider than what their own nodes name - one capture should
+        // hold everything a pass can be linked from offline.
+        HashSet<string> written = [.. wholes.Select(one => one.Key)];
+        wholes.AddRange(texts.Keys.Where(path => !written.Contains(path)).Order(StringComparer.OrdinalIgnoreCase)
+            .Select(path => (path, texts[path], "no graph above names a definition of it - whole so a render pass can be linked offline")));
+
         // THE .hlsl FILES THEIR CODE INCLUDES (Shaders/Include/Quaternions.hlsl, HalfUtility.hlsl - asked for by v0.1.429's link, which compiles
         // nothing without them), through their own includes, read from the install whole.
         if (prelude is { } engine)
@@ -414,8 +425,8 @@ public static partial class CaptureParticles
             }
         }
 
-        int written = CaptureLightExtras.Wholes(wholes, SourceChars, LargestSource, "sources", body);
-        return (needed.Count, missing.Distinct(StringComparer.Ordinal).Count(), written, texts);
+        int wrote = CaptureLightExtras.Wholes(wholes, SourceChars, LargestSource, "sources", body);
+        return (needed.Count, missing.Distinct(StringComparer.Ordinal).Count(), wrote, texts);
     }
 
     /// <summary>The includes of a definition's head: its lines from the name to the body's opening <c>{{</c>.</summary>

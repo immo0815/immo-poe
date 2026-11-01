@@ -1405,6 +1405,15 @@ pass uniform whose meaning is the source's own comment (the frame's delta, its s
 instance_count and batch_size, the instances' (the update's DefineParticleUpdate runs instance_count * batch_size threads, each particle
 `local % instance_count + particles_start`); frame_index; how the seed and the count are drawn (random each emitter, not read); and the engine's
 own constant buffer layout, which the tool's dispatch does not need - it compiles and fills its own.
+THE RENDER PASSES ARE THE MATERIAL PIPELINE (2026-11-01, DECIDED from the live client: update and render in one go; instance_count the
+emitter's count, batch_size 1, frame_delta_time (dt, 0, 1, 0) and frame_index the pane's - the shaders' own readings, said under the picture;
+seed and count stable from a hash within the file's range). render_default.fxgraph is a "Material" and "ParticlesRender" graph: VertexInit to
+VertexOutput_Final on the vertex side (VertexPosition, VertexUV, VertexNormal, VertexColor, VertexProjectedPosition and the
+ParticlesRender::Vertex* points), the pixel side through SurfaceData (inputoutput.ffx's UV, AlbedoColor, WorldNormal...), every pass built on
+Metadata/EngineGraphs/base.fxgraph. The engine's generator writes a ShaderOut struct of machine semantics and returns it, fetches a mesh's
+vertices through vts_mesh_buffer (FetchVertex_<semantic>), names cross-stage values AUTO_S_%s_%s, and returns PIXEL_RETURN_SEMANTIC_COLOR
+(its template strings, module+0x3193388 to +0x3195030 of the build of 2026-10-27, read offline from program-code.bin). So v0.1.439's particles
+part also walks base.fxgraph and writes every .ffx source of the install whole - one capture to link a render pass from offline.
 
 ## Verify against the game, not against yourself
 
