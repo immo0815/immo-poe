@@ -1280,9 +1280,14 @@ for 3.5 s, then stood; ten objects round him, 675 frames each; read offline with
   now (nought in the books, CHOSEN: no source is read), and the reading fits one to each frame (`ClothWatchSeries.Blown`): the helmet's
   dangle (no contact, no bend) from 0.0061 off at the median to 0.0012, 562 of 675 frames within 0.01 (250 before), at 40 units a second; the
   cape from 0.0055 to 0.0019. The winds fitted to his cloths in one frame are no one field (apart by 26 to 600 units a second).
-- STILL OFF: the glove feathers (0.02 to 0.08 at the median, no wind fixing it) - the stiffest bends (500, allowed 0.2); the bend's measuring
-  step is the one part of the port not read ("the engine's own length of the way it measures along"), read it next. And the robe's tail
-  (0.09 at 90%), its 157 contacts a frame on the CHOSEN capsule surface motion.
+- THE BEND MEASURES IN ITS OWN FRAME (v0.1.428): the glove feathers, the stiffest bends (500, allowed 0.2), stood 0.02 to 0.08 off at the
+  median with any wind. Under the emulator the engine's bend (module+0x139CDF0) hands its fold the four corners LESS THE FIRST - a at the
+  origin, the frame not turned - and moves the world's corners after; the port probed a thousandth along its way in the world's own
+  coordinates, where at ten thousand units a float's ulp is a thousandth and the probe vanished. Measured in the bend's frame
+  (`ClothMath.Bend`): the left feathers 0.085 off at the median to 0.015 (0.0023 with a wind fitted), the right 0.017 to 0.008 (0.0014), the
+  robe's 90% from 0.091 to 0.056. The engine's way is Bridson's gradient times a factor of the geometry alone (not of stiffness, rest,
+  allowance or time) that cancels in the Newton step - not ported. STILL OFF: the robe's tail (2.4 at most), its 157 contacts a frame on
+  the CHOSEN capsule surface motion.
 
 ## Verify against the game, not against yourself
 
