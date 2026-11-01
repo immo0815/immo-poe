@@ -3690,18 +3690,19 @@ internal static class Program
                 () => bones?.Fraction ?? 0f,
                 () => bones?.Stop())
             {
-                // THE BANNER (v0.1.407, DECIDED from the live client): stand still while it searches, then walk, stop and turn until the low tone.
+                // THE BANNER (v0.1.407, DECIDED from the live client): stand still while it searches, then walk until the low tone - from
+                // v0.1.411 a few steps and then a stand: the 08:00 capture walked to the end, and the swing after a stop is the damping.
                 Ask = () => bones?.Now switch
                 {
                     PoEformance.Game.Diagnostics.BoneWatch.Stage.Searching => new PoEformance.Overlay.CaptureAsk(
                         false,
                         "STAND STILL - the bone watch is searching memory",
-                        "When this turns green and a high tone sounds: walk, stop and turn a few times.",
+                        "When this turns green and a high tone sounds: walk a few steps, then stop and stand still until the low tone.",
                         double.NaN),
                     PoEformance.Game.Diagnostics.BoneWatch.Stage.Watching => new PoEformance.Overlay.CaptureAsk(
                         true,
-                        "NOW: walk, stop and turn a few times",
-                        "Keep going until the low tone - a swing wants a start and a stop.",
+                        "NOW: walk a few steps, then STOP and stand still",
+                        "Stand until the low tone - the swing after a stop is what is measured.",
                         bones.Left),
                     _ => null,
                 },

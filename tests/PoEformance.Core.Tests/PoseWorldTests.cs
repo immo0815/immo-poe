@@ -442,6 +442,42 @@ public sealed partial class PoseWorldTests
         Assert.Contains(" from it in the piece's frame, moved 5900 in the world and 0 in the piece's frame over 5.9 s", line, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A lamp hanging straight down in the world from its staff, turned and scaled as the player's pieces are, while he stands - and swung
+    /// out to the side while he walks: the reading says how it hangs (v0.1.411; the 08:00 capture's lamp hung so, its mean way 0.9999 down).
+    /// </summary>
+    [Fact]
+    public void ALAMPHangingStraightDownInTheWorldIsSaidSo()
+    {
+        PoseRig staff = PoseHuntTests.Rig("WandererStaffHeld.ao", PoseHuntTests.Staff);
+        var world = new BoneWatchSeries.Block("WandererStaffHeld.ao's World", 0xA_0000_0000, 64, []);
+        var near = new BoneWatchSeries.Block("places in the world", 0xA_1000_0000, 16, []);
+        var his = new BoneWatchSeries.Block("his place", 0xA_2000_0000, 12, []);
+        float length = 24f * 0.925f;
+        for (var read = 0; read < 120; read++)
+        {
+            double at = read / 30.0;
+            bool walking = at >= 2;
+            Matrix4x4 its = World * Matrix4x4.CreateTranslation(walking ? 300f * (float)(at - 2) : 0f, 0f, 0f);
+            Vector3 pivot = Vector3.Transform(staff.Model[1].Translation, its);
+            Vector3 lamp = pivot + (walking ? new Vector3(length, 0f, 0f) : new Vector3(0f, 0f, length));
+            byte[] matrix = new byte[64], place = new byte[16], where = new byte[12];
+            PoseHuntTests.WriteMatrix(matrix, 0, its);
+            WriteVector(place, 0, lamp);
+            WriteVector(where, 0, new Vector3(its.M41, its.M42, its.M43));
+            world.Reads.Add((at, matrix));
+            near.Reads.Add((at, place));
+            his.Reads.Add((at, where));
+        }
+
+        var series = new BoneWatchSeries(
+            [world, near, his], ["bone watch: a test"], null, 2, [new BoneWatchSeries.Place(0, 0, staff)], [new BoneWatchSeries.Candidate(1, 0, PoseLayout.Packed, 0, 2, 1)]);
+        string line = series.Describe().Single(one => one.Contains(", WandererStaffHeld.ao: taken for phys_tri_lamp_jntBnd", StringComparison.Ordinal));
+
+        // THE FIRST STEP'S READ COUNTS AS STOOD: his speed is taken over the tenth of a second before it, and the lamp swings out at once.
+        Assert.Contains("; hangs from base_lamp_jntBnd in the world 0 degrees from straight down at the median while he stood (61 reads, its mean way (0.017, 0, 0.9999)), 90 while he moved (59 reads), 90 at most", line, StringComparison.Ordinal);
+    }
+
     /// <summary>Memory one place of which changes at every read covering it - a live pose - over a fake process.</summary>
     private sealed class Ticking(FakeMemoryReader memory, ulong live) : IMemoryReader
     {
