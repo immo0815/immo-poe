@@ -113,6 +113,13 @@ public sealed class ParticleGpuTests
         Assert.Contains("pass 0 on the screen over nothing: ", state, StringComparison.Ordinal);
         Assert.DoesNotContain("pass 0 on the screen over nothing: nothing", state, StringComparison.Ordinal);
         Assert.DoesNotContain("pass 0 on the screen against the picture's depth: nothing", state, StringComparison.Ordinal);
+
+        // AND WHY, WHERE IT WOULD SAY NOTHING: the card's pipeline over the draw (eight quads, two triangles each), every vertex the vertex shader
+        // made streamed out - none at the cull value, all of them in view - and a stand-in pixel shader covering what the geometry covers.
+        Assert.Contains("pass 0 through the card's pipeline over nothing: 48 vertices and 16 triangles in, ", state, StringComparison.Ordinal);
+        Assert.Contains("pass 0 as its vertex shader left it: 16 triangles streamed of 16 made; 48 vertices: 0 at the cull value (0, 0, -1, 1), 0 behind the eye, 0 not finite, 48 with the whole of them in view, 0 out of it", state, StringComparison.Ordinal);
+        Assert.Contains("pass 0 with a stand-in pixel shader writing one colour, over nothing: ", state, StringComparison.Ordinal);
+        Assert.DoesNotContain("pass 0 with a stand-in pixel shader writing one colour, over nothing: nothing", state, StringComparison.Ordinal);
     }
 
     private static SkinnedMesh Box()

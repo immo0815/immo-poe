@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using PoEformance.Game.Files;
+using SharpGen.Runtime;
+using Vortice.D3DCompiler;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
@@ -60,6 +62,13 @@ public sealed partial class ModelGpu
     /// nothing and once against the picture's depth - and read back: the pixels it covered, their box, the largest colour and alpha and the mean
     /// alpha over them. Placed out of view, hidden behind the model and drawn transparent are told apart here; the simulation is not stepped.
     /// </summary>
+    /// <remarks>
+    /// v0.1.448'S LIVE CAPTURE SAID "nothing" for both of the lamp's passes, over nothing too, while their pools held live particles at the lantern -
+    /// and "nothing" cannot tell geometry that never lands from a pixel shader that writes nought. So three readings stand beside it (v0.1.449): the
+    /// card's own pipeline statistics over the draw (what reached the clipper, what passed it, how often the pixel shader ran); every vertex the
+    /// engine's vertex shader made, streamed out as it left the shader (hidden at render_default's cull value, behind the eye, out of view or in
+    /// it); and the pass drawn once more with a stand-in pixel shader writing one colour, which covers whatever the geometry covers.
+    /// </remarks>
     private void Screened(ParticleCard card, List<string> lines)
     {
         if (_particleLast is not { } last || card.LastDrawn is not { } emitter || card.Passes.Count == 0)
@@ -73,6 +82,8 @@ public sealed partial class ModelGpu
         using ID3D11RenderTargetView into = _device.CreateRenderTargetView(texture);
         using ID3D11Texture2D staging = _device.CreateTexture2D(new Texture2DDescription(
             Format.R32G32B32A32_Float, size, size, arraySize: 1, mipLevels: 1, BindFlags.None, ResourceUsage.Staging, CpuAccessFlags.Read));
+        using ID3D11Query statistics = _device.CreateQuery(QueryType.PipelineStatistics);
+        ID3D11PixelShader? standIn = StandIn(out string standInWhy);
         var row = new float[size * 4];
         for (var p = 0; p < card.Passes.Count; p++)
         {
@@ -80,50 +91,243 @@ public sealed partial class ModelGpu
             {
                 _context.ClearRenderTargetView(into, new Color4(0f, 0f, 0f, 0f));
                 Neutrals();
+                if (!tested)
+                {
+                    _context.Begin(statistics);
+                }
+
                 Drew(_context, target, card, emitter, frame, view, light, into, tested, p);
-                _context.CopyResource(staging, texture);
-                MappedSubresource mapped = _context.Map(staging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
-                long covered = 0, opaque = 0, odd = 0;
-                int left = size, top = size, right = -1, bottom = -1;
-                float red = 0f, green = 0f, blue = 0f, alpha = 0f;
-                double alphas = 0;
-                try
+                if (!tested)
                 {
-                    for (var y = 0; y < size; y++)
-                    {
-                        Marshal.Copy(mapped.DataPointer + (y * mapped.RowPitch), row, 0, row.Length);
-                        for (var x = 0; x < size; x++)
-                        {
-                            float r = row[x * 4], g = row[(x * 4) + 1], b = row[(x * 4) + 2], a = row[(x * 4) + 3];
-                            if (!float.IsFinite(r) || !float.IsFinite(g) || !float.IsFinite(b) || !float.IsFinite(a))
-                            {
-                                odd++;
-                                continue;
-                            }
-
-                            if (r == 0f && g == 0f && b == 0f && a == 0f)
-                            {
-                                continue;
-                            }
-
-                            covered++;
-                            opaque += a > 0f ? 1 : 0;
-                            alphas += a;
-                            (left, top, right, bottom) = (Math.Min(left, x), Math.Min(top, y), Math.Max(right, x), Math.Max(bottom, y));
-                            (red, green, blue, alpha) = (Math.Max(red, r), Math.Max(green, g), Math.Max(blue, b), Math.Max(alpha, a));
-                        }
-                    }
-                }
-                finally
-                {
-                    _context.Unmap(staging, 0);
+                    _context.End(statistics);
                 }
 
-                string box = covered == 0 ? "nothing" : Say($"{covered} pixels in ({left}, {top})..({right}, {bottom}) of {size}, {opaque} with alpha, mean alpha {alphas / covered:0.###}, most {red:0.###} {green:0.###} {blue:0.###} {alpha:0.###}");
-                lines.Add(Say($"  pass {p} on the screen {(tested ? "against the picture's depth" : "over nothing")}: ") + box + (odd > 0 ? Say($", {odd} not finite") : string.Empty));
+                lines.Add(Say($"  pass {p} on the screen {(tested ? "against the picture's depth" : "over nothing")}: ") + Covered(texture, staging, row, size));
+                if (!tested)
+                {
+                    lines.Add(Say($"  pass {p} through the card's pipeline over nothing: ") + Pipeline(statistics));
+                }
             }
+
+            lines.Add(Say($"  pass {p} as its vertex shader left it: ") + Streamed(card, emitter, frame, view, light, target, into, p));
+            if (standIn is null)
+            {
+                lines.Add(Say($"  pass {p} with a stand-in pixel shader: not drawn - ") + standInWhy);
+                continue;
+            }
+
+            _context.ClearRenderTargetView(into, new Color4(0f, 0f, 0f, 0f));
+            Neutrals();
+            Drew(_context, target, card, emitter, frame, view, light, into, tested: false, p, standIn);
+            lines.Add(Say($"  pass {p} with a stand-in pixel shader writing one colour, over nothing: ") + Covered(texture, staging, row, size));
         }
     }
+
+    /// <summary>What a target holds after a pass drew into it alone: the pixels not nought, their box, the largest colour and alpha, the mean alpha.</summary>
+    private string Covered(ID3D11Texture2D texture, ID3D11Texture2D staging, float[] row, int size)
+    {
+        _context.CopyResource(staging, texture);
+        MappedSubresource mapped = _context.Map(staging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
+        long covered = 0, opaque = 0, odd = 0;
+        int left = size, top = size, right = -1, bottom = -1;
+        float red = 0f, green = 0f, blue = 0f, alpha = 0f;
+        double alphas = 0;
+        try
+        {
+            for (var y = 0; y < size; y++)
+            {
+                Marshal.Copy(mapped.DataPointer + (y * mapped.RowPitch), row, 0, row.Length);
+                for (var x = 0; x < size; x++)
+                {
+                    float r = row[x * 4], g = row[(x * 4) + 1], b = row[(x * 4) + 2], a = row[(x * 4) + 3];
+                    if (!float.IsFinite(r) || !float.IsFinite(g) || !float.IsFinite(b) || !float.IsFinite(a))
+                    {
+                        odd++;
+                        continue;
+                    }
+
+                    if (r == 0f && g == 0f && b == 0f && a == 0f)
+                    {
+                        continue;
+                    }
+
+                    covered++;
+                    opaque += a > 0f ? 1 : 0;
+                    alphas += a;
+                    (left, top, right, bottom) = (Math.Min(left, x), Math.Min(top, y), Math.Max(right, x), Math.Max(bottom, y));
+                    (red, green, blue, alpha) = (Math.Max(red, r), Math.Max(green, g), Math.Max(blue, b), Math.Max(alpha, a));
+                }
+            }
+        }
+        finally
+        {
+            _context.Unmap(staging, 0);
+        }
+
+        string box = covered == 0 ? "nothing" : Say($"{covered} pixels in ({left}, {top})..({right}, {bottom}) of {size}, {opaque} with alpha, mean alpha {alphas / covered:0.###}, most {red:0.###} {green:0.###} {blue:0.###} {alpha:0.###}");
+        return box + (odd > 0 ? Say($", {odd} not finite") : string.Empty);
+    }
+
+    /// <summary>A pipeline statistics query's numbers once the card has them (two seconds at most).</summary>
+    private string Pipeline(ID3D11Query statistics)
+    {
+        QueryDataPipelineStatistics data;
+        for (long until = Environment.TickCount64 + 2000; !_context.GetData(statistics, AsyncGetDataFlags.None, out data);)
+        {
+            if (Environment.TickCount64 > until)
+            {
+                return "the card gave no statistics within two seconds";
+            }
+
+            Thread.Yield();
+        }
+
+        return Say($"{data.IAVertices} vertices and {data.IAPrimitives} triangles in, {data.VSInvocations} vertex shader runs, {data.CInvocations} triangles to the clipper, {data.CPrimitives} past it, {data.PSInvocations} pixel shader runs");
+    }
+
+    /// <summary>The most vertices a pass streams out for the capture (16 bytes each).</summary>
+    private const int MostStreamedVertices = 1 << 16;
+
+    /// <summary>The vertices a pass streams out that are written whole.</summary>
+    private const int StreamedSaid = 6;
+
+    /// <summary>
+    /// Every vertex a pass's vertex shader made, as it left the shader: its SV_Position streamed out through a geometry shader made from the vertex
+    /// shader itself (the card's own pass-through), nothing rasterized. Counted as render_default's cull value (0, 0, -1, 1), behind the eye (w at
+    /// most nought), not finite, in view (inside the clip volume) or out of it, with the ranges of the rest after the divide and the first few whole.
+    /// </summary>
+    private unsafe string Streamed(
+        ParticleCard card, ParticleEmitterNow emitter, ParticleFrame frame, in ParticleView view, SceneLight? light, ModelTarget target, ID3D11RenderTargetView into, int p)
+    {
+        PassCard pass = card.Passes[p];
+        ParticleProgram program = emitter.Program;
+        int count = (int)Math.Min((long)program.Mesh.Indices.Length * program.Count, MostStreamedVertices);
+        if (count <= 0)
+        {
+            return "no vertices to stream";
+        }
+
+        byte[] code = pass.Vertex.Code;
+        SODeclarationEntry[] entries = [new SODeclarationEntry { Stream = 0, SemanticName = "SV_Position", SemanticIndex = 0, StartComponent = 0, ComponentCount = 4, OutputSlot = 0 }];
+        ID3D11GeometryShader geometry;
+        fixed (byte* at = code)
+        {
+            // NO RASTERIZED STREAM (D3D11_SO_NO_RASTERIZED_STREAM): only the stream-out is wanted here.
+            geometry = _device.CreateGeometryShaderWithStreamOutput((IntPtr)at, new PointerSize(code.Length), entries, entries.Length, [16], 1, -1, null!);
+        }
+
+        using (geometry)
+        using (ID3D11Buffer buffer = _device.CreateBuffer(new BufferDescription(count * 16, BindFlags.StreamOutput)))
+        using (ID3D11Buffer back = _device.CreateBuffer(new BufferDescription(count * 16, BindFlags.None, ResourceUsage.Staging, CpuAccessFlags.Read)))
+        using (ID3D11Query written = _device.CreateQuery(QueryType.SOStatistics))
+        {
+            Neutrals();
+            _context.SOSetTargets([buffer], [0]);
+            _context.Begin(written);
+            Drew(_context, target, card, emitter, frame, view, light, into, tested: false, p, streamed: geometry);
+            _context.End(written);
+            _context.SOSetTargets(0, [], []);
+            _context.CopyResource(back, buffer);
+            QueryDataSOStatistics streamed;
+            for (long until = Environment.TickCount64 + 2000; !_context.GetData(written, AsyncGetDataFlags.None, out streamed);)
+            {
+                if (Environment.TickCount64 > until)
+                {
+                    return "the card gave no stream-out statistics within two seconds";
+                }
+
+                Thread.Yield();
+            }
+
+            int vertices = (int)Math.Min((long)streamed.NumPrimitivesWritten * 3, count);
+            var positions = new Vector4[vertices];
+            MappedSubresource mapped = _context.Map(back, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
+            try
+            {
+                new ReadOnlySpan<Vector4>((void*)mapped.DataPointer, vertices).CopyTo(positions);
+            }
+            finally
+            {
+                _context.Unmap(back, 0);
+            }
+
+            return Say($"{streamed.NumPrimitivesWritten} triangles streamed of {streamed.PrimitivesStorageNeeded} made; ") + Positions(positions);
+        }
+    }
+
+    /// <summary>Streamed clip positions counted by what becomes of them, with the ranges after the divide and the first few whole.</summary>
+    private static string Positions(Vector4[] positions)
+    {
+        long culled = 0, behind = 0, odd = 0, inside = 0, outside = 0;
+        var low = new Vector4(float.MaxValue);
+        var high = new Vector4(float.MinValue);
+        var hidden = new Vector4(0f, 0f, -1f, 1f);
+        foreach (Vector4 at in positions)
+        {
+            if (!float.IsFinite(at.X) || !float.IsFinite(at.Y) || !float.IsFinite(at.Z) || !float.IsFinite(at.W))
+            {
+                odd++;
+                continue;
+            }
+
+            if (at == hidden)
+            {
+                culled++;
+                continue;
+            }
+
+            if (at.W <= 0f)
+            {
+                behind++;
+                continue;
+            }
+
+            var divided = new Vector4(at.X / at.W, at.Y / at.W, at.Z / at.W, at.W);
+            low = Vector4.Min(low, divided);
+            high = Vector4.Max(high, divided);
+            bool seen = MathF.Abs(divided.X) <= 1f && MathF.Abs(divided.Y) <= 1f && divided.Z >= 0f && divided.Z <= 1f;
+            inside += seen ? 1 : 0;
+            outside += seen ? 0 : 1;
+        }
+
+        string ranges = inside + outside == 0
+            ? string.Empty
+            : Say($", after the divide x {low.X:0.###}..{high.X:0.###} y {low.Y:0.###}..{high.Y:0.###} z {low.Z:0.####}..{high.Z:0.####}, w {low.W:0.###}..{high.W:0.###}");
+        string first = string.Join(" ", positions.Take(StreamedSaid).Select(at => Say($"({at.X:0.###}, {at.Y:0.###}, {at.Z:0.####}, {at.W:0.###})")));
+        return Say($"{positions.Length} vertices: {culled} at the cull value (0, 0, -1, 1), {behind} behind the eye, {odd} not finite, {inside} with the whole of them in view, {outside} out of it")
+            + ranges + (first.Length > 0 ? "; first " + first : string.Empty);
+    }
+
+    /// <summary>
+    /// A pixel shader writing one colour and reading nothing - an empty input signature, so it links behind any vertex shader - made once: drawn
+    /// in place of a pass's own, it covers whatever the pass's geometry covers.
+    /// </summary>
+    private ID3D11PixelShader? StandIn(out string why)
+    {
+        why = string.Empty;
+        if (_particleStandIn is not null)
+        {
+            return _particleStandIn;
+        }
+
+        const string Source = "float4 StandIn() : SV_Target0 { return float4(1.0f, 0.0f, 1.0f, 1.0f); }";
+        Result result = Compiler.Compile(Source, "StandIn", "stand-in.hlsl", "ps_5_0", out Blob blob, out Blob errors);
+        using (blob)
+        using (errors)
+        {
+            if (result.Failure || blob is null)
+            {
+                why = "it did not compile: " + (errors?.AsString() ?? result.ToString());
+                return null;
+            }
+
+            _particleStandIn = _device.CreatePixelShader(blob.AsBytes());
+            return _particleStandIn;
+        }
+    }
+
+    /// <summary>The capture's stand-in pixel shader, made at its first use (<see cref="StandIn"/>).</summary>
+    private ID3D11PixelShader? _particleStandIn;
 
     private static string Say(FormattableString text) => text.ToString(CultureInfo.InvariantCulture);
 
