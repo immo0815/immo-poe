@@ -229,7 +229,11 @@ public class ParticleLinkerTests
         Assert.Contains("uint3 dispatch_index = sv_DispatchThreadID;", hlsl, StringComparison.Ordinal);
         Assert.Contains("#define GROUP_SIZE_X 64", hlsl, StringComparison.Ordinal);
         Assert.StartsWith("// The engine's GPU particle update", hlsl, StringComparison.Ordinal);
-        Assert.True(hlsl.IndexOf("#define DX11", StringComparison.Ordinal) < hlsl.IndexOf("#define COMPUTE_SHADER", StringComparison.Ordinal));
+        // THE MACROS BEFORE THE PRELUDE (CommonDeclarations.inc declares the particle structs under GPU_PARTICLE_DRAW_CALL), the generator's
+        // group size and vertex layout among them.
+        Assert.True(hlsl.IndexOf("#define COMPUTE_SHADER", StringComparison.Ordinal) < hlsl.IndexOf("#define DX11", StringComparison.Ordinal));
+        Assert.Contains("#define GROUP_SIZE (GROUP_SIZE_X*GROUP_SIZE_Y*GROUP_SIZE_Z)", hlsl, StringComparison.Ordinal);
+        Assert.Contains("#define VERTEX_OFFSET_NORMAL(F) ((VERTEX_HAS_POSITION(F) ? 12 : 0) + VERTEX_OFFSET_POSITION(F))", hlsl, StringComparison.Ordinal);
         Assert.True(hlsl.IndexOf("DECLARATIONS basics", StringComparison.Ordinal) < hlsl.IndexOf("DECLARATIONS helpers", StringComparison.Ordinal));
         Assert.True(hlsl.IndexOf("float Twice", StringComparison.Ordinal) < hlsl.IndexOf("void UpdateParticles", StringComparison.Ordinal));
 

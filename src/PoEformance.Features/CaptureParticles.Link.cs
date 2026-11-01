@@ -16,8 +16,12 @@ public static partial class CaptureParticles
     /// <param name="effects">The .pet files to link, in order.</param>
     /// <param name="body">Where the section goes.</param>
     /// <param name="prelude">The engine's DX11 prelude (ShaderPrelude), or null.</param>
+    /// <param name="compile">
+    /// Compiles a shader whose includes are expanded, by its text and entry point, into a line saying what came of it - the Windows build's FXC
+    /// (ParticleCompile.Fxc); null where none is offered (the offline reader).
+    /// </param>
     /// <returns>A line saying how many emitters were linked and with how much left unresolved.</returns>
-    public static string Link(Func<string, string?> text, ShaderSource source, IEnumerable<string> effects, StringBuilder body, string? prelude)
+    public static string Link(Func<string, string?> text, ShaderSource source, IEnumerable<string> effects, StringBuilder body, string? prelude, Func<string, string, string>? compile = null)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(source);
@@ -96,6 +100,16 @@ public static partial class CaptureParticles
                 foreach (string open in shader.Unresolved)
                 {
                     body.Append("  unresolved\t").AppendLine(open);
+                }
+
+                if (compile is not null)
+                {
+                    string expanded = ParticleLinker.Expanded(shader.Hlsl, text, out IReadOnlyList<string> absent);
+                    body.Append("  compile\t").AppendLine(compile(expanded, shader.Entry).Replace('\r', ' ').Replace('\n', ' '));
+                    if (absent.Count > 0)
+                    {
+                        body.Append("  include not found\t").AppendLine(string.Join(", ", absent));
+                    }
                 }
 
                 IReadOnlyList<CurveKey[]> tracks = shader.Tracks ?? [];

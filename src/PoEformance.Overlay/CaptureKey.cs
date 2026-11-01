@@ -1379,7 +1379,7 @@ internal sealed class CaptureKey
                     string? install = GameInstall.Find(null);
                     string[] programs = install is null ? []
                         : [.. GameInstall.Names.Select(name => Path.Combine(install, name + ".exe")).Where(File.Exists)];
-                    string text = CaptureParticles.Write(read, run.Panes, engineGraphs, shaders, programs);
+                    string text = CaptureParticles.Write(read, run.Panes, engineGraphs, shaders, programs, PoEformance.Gpu.ParticleCompile.Fxc);
                     File.WriteAllText(At(CaptureReport.ParticlesFile), text);
                     return text[..text.IndexOf('\n')].TrimEnd('\r');
                 });

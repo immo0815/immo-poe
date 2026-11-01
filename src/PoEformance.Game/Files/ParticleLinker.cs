@@ -10,7 +10,7 @@ namespace PoEformance.Game.Files;
 public sealed record LinkedGraph(string Path, ShaderGraph Graph, IReadOnlyDictionary<string, ShaderValue[]> Custom);
 
 /// <summary>A shader linked from the engine's fragments, and everything the link could not settle.</summary>
-/// <param name="Hlsl">The HLSL, whole: the macros, the engine's structs as the sources use them, the declarations, the entry point.</param>
+/// <param name="Hlsl">The HLSL, whole: the engine's DX11 prelude, the macros, the declarations, the entry point.</param>
 /// <param name="Entry">The entry point's name.</param>
 /// <param name="Unresolved">What the link left out or stood in for, each once - a node type no source defines, an input no link feeds, an engine type it cannot fill.</param>
 /// <param name="Resources">The textures and samplers the nodes name, each a global of the HLSL the drawing must bind: its name, then what fills it.</param>
@@ -56,10 +56,13 @@ public sealed record LinkedShader(
 ///   (Better Emitter Phase in BoneSphereEmitter.fxgraph: in_FrameFrac in, out_EmitterPhase out).
 ///
 /// CHOSEN, said in <see cref="LinkedShader.Unresolved"/> where it stands in: UNIQUE_NODE_ID as a hash of the graph's path and the node's key
-/// (the engine's value is set by its graph compiler and read in no file); COMPUTE_SHADER and COMPUTE both defined for the update shader (the
-/// sources test both); the engine's structs (ParticleData, ParticleEmitterData, BoneData, spline5) written from the fields the sources use,
-/// in an order of this tool's own (they live in its own buffers); a Spline5 parameter baked from its keys as straight lines between them
-/// (<see cref="Spline"/>; the engine's baking is its C++'s).
+/// (the engine's compiler hands it to each node function as `in uint UNIQUE_NODE_ID`, module+0x3193F18, its value not read); COMPUTE beside
+/// the generator's own COMPUTE_SHADER (the program keeps a table of compute passes' macros, COMPUTE and COMPUTE_PHYSIC among them,
+/// module+0x459B070 - which the particle update takes is not read); a Spline5 parameter baked from its keys as straight lines between them
+/// (<see cref="Spline"/>; the engine inlines it through LoadSpline5 of five float4s, module+0x31946A0, baked by its C++).
+///
+/// THE ENGINE'S STRUCTS ARE ITS OWN: ParticleData, ParticleEmitterData, BoneData, spline5 and LUT_WIDTH (128) stand in
+/// Shaders/CommonDeclarations.inc, which the DX11 prelude includes (v0.1.429's capture) - the drawing fills its buffers in that layout.
 /// </remarks>
 public static class ParticleLinker
 {
@@ -76,67 +79,37 @@ public static class ParticleLinker
     public const string UpdateEntry = "UpdateParticles";
 
     /// <summary>
-    /// The engine's structs no source defines, written from the fields the sources use (WriteParticleData and ReadParticleData for ParticleData;
-    /// every <c>particles_emitter_data[...]</c> and <c>emitter_bones_data[...]</c> read for the others; SampleSpline5's for spline5) - each
-    /// field's type from what is done with it (UnpackHalf2 takes a uint, UnpackHalf4 a uint2). The ORDER is this tool's: the buffers are its own.
+    /// The engine's vertex layout as its graph compiler turns it into the <c>VERTEX_HAS_*</c>, <c>VERTEX_OFFSET_*</c> and <c>VERTEX_SIZE</c> macros
+    /// the sources read a mesh's vertex by (gpu_particles_emitter_mesh) - READ from the program (the build of 2026-10-27): the generator at
+    /// module+0x12DFC80 walks the eleven 12-byte entries at module+0x3183430 in the order the list at module+0x3183400 gives (0 to 10), each
+    /// a flag bit, a format, a semantic (the names at module+0x3194D60) with its number appended where not nought, and a size in bytes.
     /// </summary>
-    public const string Prelude = """
-        struct ParticleData
-        {
-            float3 pos;
-            float phase;
-            float4 rotation;
-            float3 scale;
-            float custom_data;
-            uint2 angular_velocity;
-            uint2 color;
-            uint2 velocity;
-            uint2 uniform_scale;
-            uint2 along_direction;
-            uint emitter_uid;
-            uint size_mass;
-            uint spawn_uvs;
-            uint emitter_phase;
-            uint bone_frac;
-            uint kinematic_velocity;
-        };
+    public static readonly IReadOnlyList<(string Semantic, uint Bit, int Size)> VertexLayout =
+    [
+        ("POSITION", 0x200, 12), ("NORMAL", 0x10, 4), ("TANGENT", 0x20, 4), ("TEXCOORD", 0x8, 4), ("TEXCOORD1", 0x80, 8),
+        ("TEXCOORD2", 0x100, 8), ("BLENDINDICES", 0x4, 4), ("BLENDWEIGHT", 0x4, 4), ("COLOR3", 0x1, 4), ("COLOR", 0x2, 4), ("COLOR4", 0x40, 4),
+    ];
 
-        struct ParticleEmitterData
+    /// <summary>
+    /// The vertex layout's macros as the generator writes them: <c>VERTEX_HAS_X(F) (((F) &amp; bit) != 0)</c> (<c>(true)</c> for a bit of nought),
+    /// <c>VERTEX_OFFSET_X(F)</c> the one before's offset plus its size where present (<c>(0)</c> for the first), and <c>VERTEX_SIZE(F)</c> the
+    /// last's offset plus its size.
+    /// </summary>
+    public static string VertexMacros()
+    {
+        var text = new StringBuilder();
+        (string Semantic, uint Bit, int Size)? previous = null;
+        foreach ((string semantic, uint bit, int size) in VertexLayout)
         {
-            float3 translation;
-            float time;
-            float4 rotation;
-            float3 scale;
-            float prev_time;
-            float3 last_translation;
-            float emitter_duration;
-            float4 last_rotation;
-            float3 last_scale;
-            uint particles_start;
-            float3 inverse_scale;
-            uint bones;
-            float3 last_inverse_scale;
-            uint culling_tag;
-            uint2 custom_data_a;
-            uint2 custom_data_b;
-            uint lock_flags;
-            uint speed_factor;
-            uint dead_time;
-            uint culling_aggression;
-        };
+            text.Append(CultureInfo.InvariantCulture, $"#define VERTEX_HAS_{semantic}(F) ({(bit != 0 ? $"((F) & {bit}) != 0" : "true")})\n");
+            text.Append(CultureInfo.InvariantCulture, $"#define VERTEX_OFFSET_{semantic}(F) ({(previous is { } before ? $"(VERTEX_HAS_{before.Semantic}(F) ? {before.Size} : 0) + VERTEX_OFFSET_{before.Semantic}(F)" : "0")})\n");
+            previous = (semantic, bit, size);
+        }
 
-        struct BoneData
-        {
-            float4 pos;
-            float4 prev_pos;
-        };
-
-        struct spline5
-        {
-            float4 segment_polynom[4];
-            float4 time_variance;
-        };
-        """;
+        (string last, _, int lastSize) = VertexLayout[^1];
+        text.Append(CultureInfo.InvariantCulture, $"#define VERTEX_SIZE(F) ((VERTEX_HAS_{last}(F) ? {lastSize} : 0) + VERTEX_OFFSET_{last}(F))\n");
+        return text.ToString();
+    }
 
     /// <summary>Links the update compute shader of an emitter from its graphs, in the composer's order.</summary>
     /// <param name="source">The engine's shader sources.</param>
@@ -189,6 +162,58 @@ public static class ParticleLinker
         }
 
         return (polynoms, [breaks[0], breaks[1], breaks[2], variance]);
+    }
+
+    /// <summary>
+    /// A shader with every <c>#include "path"</c> line replaced by the file's text, through the files' own includes, each where it is named -
+    /// what a compiler's include handler hands it, done before the compile so one string is all it needs (the prelude names
+    /// Shaders/CommonDeclarations.inc and Shaders/SamplerDeclarations.inc, the sources Shaders/Include/HalfUtility.hlsl and Quaternions.hlsl).
+    /// </summary>
+    /// <param name="hlsl">The shader.</param>
+    /// <param name="include">A file's text by the path its include line names; null where there is none, the line then kept and said.</param>
+    /// <param name="missing">The paths no text was found for.</param>
+    public static string Expanded(string hlsl, Func<string, string?> include, out IReadOnlyList<string> missing)
+    {
+        ArgumentNullException.ThrowIfNull(hlsl);
+        ArgumentNullException.ThrowIfNull(include);
+        var absent = new List<string>();
+        string text = Expand(hlsl, include, absent, 0);
+        missing = absent;
+        return text;
+    }
+
+    private static string Expand(string text, Func<string, string?> include, List<string> missing, int depth)
+    {
+        if (!text.Contains("#include", StringComparison.Ordinal) || depth > 16)
+        {
+            return text;
+        }
+
+        var result = new StringBuilder(text.Length);
+        foreach (string line in text.Split('\n'))
+        {
+            string trimmed = line.Trim();
+            int open = trimmed.IndexOf('"', StringComparison.Ordinal);
+            int close = open < 0 ? -1 : trimmed.IndexOf('"', open + 1);
+            if (trimmed.StartsWith("#include", StringComparison.Ordinal) && close > open)
+            {
+                string path = trimmed[(open + 1)..close];
+                if (include(path) is { } file)
+                {
+                    result.Append(Expand(file.Replace("\r\n", "\n", StringComparison.Ordinal), include, missing, depth + 1)).Append('\n');
+                    continue;
+                }
+
+                if (!missing.Contains(path, StringComparer.OrdinalIgnoreCase))
+                {
+                    missing.Add(path);
+                }
+            }
+
+            result.Append(line).Append('\n');
+        }
+
+        return result.ToString();
     }
 
     /// <summary>A float as HLSL writes it, to the bit.</summary>
@@ -633,6 +658,10 @@ public static class ParticleLinker
                     return $"int {uniform.Name} = {Track(said, "A", node)};";
                 case "splineColour":
                     return $"int4 {uniform.Name} = int4({Track(said, "R", node)}, {Track(said, "G", node)}, {Track(said, "B", node)}, {Track(said, "A", node)});";
+                case "splineVariance":
+                    // Which channels a SplineVariance parameter writes its two curves under is not read - no graph captured so far uses one.
+                    _unresolved.Add($"{node.Source.Type} ({Path.GetFileName(graphs[node.Graph].Path)}): a splineVariance's channels are not read, both rows -1 (nought)");
+                    return $"int2 {uniform.Name} = int2(-1, -1);";
                 case "texture" or "texture3d" or "textureCube" or "sampler":
                 {
                     string global = $"res_{node.Name}_{uniform.Name}";
@@ -697,16 +726,6 @@ public static class ParticleLinker
                 hlsl.Append("//   ").Append(graph).Append('\n');
             }
 
-            // THE ENGINE'S PRELUDE FIRST, as it compiles every shader.
-            if (prelude.Length > 0)
-            {
-                hlsl.Append(prelude.Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd()).Append('\n');
-            }
-            else
-            {
-                _unresolved.Add("no prelude: the engine's DX11 text (ShaderPrelude) was not read, so its macros and sampler and struct declarations are missing");
-            }
-
             // MACROS: the update shader's, then every fragment's.
             var macros = new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -735,8 +754,31 @@ public static class ParticleLinker
                 hlsl.Append("#define ").Append(name).Append(value.Length > 0 ? " " + value : string.Empty).Append('\n');
             }
 
-            hlsl.Append("#ifndef GROUP_SIZE_X\n#define GROUP_SIZE_X 64\n#endif\n#ifndef GROUP_SIZE_Y\n#define GROUP_SIZE_Y 1\n#endif\n#ifndef GROUP_SIZE_Z\n#define GROUP_SIZE_Z 1\n#endif\n");
-            hlsl.Append(Prelude.Replace("\r\n", "\n", StringComparison.Ordinal)).Append('\n');
+            // THE GENERATOR'S OWN LINES (module+0x3194328 to +0x3194460, written by module+0x12E0300's preamble): the group size's defaults and
+            // their product, then the vertex layout's macros.
+            hlsl.Append("#ifndef GROUP_SIZE_X\n\t#define GROUP_SIZE_X 64\n#endif\n#ifndef GROUP_SIZE_Y\n\t#define GROUP_SIZE_Y  1\n#endif\n#ifndef GROUP_SIZE_Z\n\t#define GROUP_SIZE_Z  1\n#endif\n");
+            hlsl.Append("#define GROUP_SIZE (GROUP_SIZE_X*GROUP_SIZE_Y*GROUP_SIZE_Z)\n");
+            hlsl.Append(VertexMacros());
+
+            // THE CURVES' TYPES AS THE GENERATOR DECLARES THEM ("int %s", "int2 %s", "int4 %s", module+0x3194AA8 to +0x3194AC0): a row of the
+            // spline LUT, two for a variance, four for a colour.
+            hlsl.Append("typedef int splineGrayscale;\ntypedef int2 splineVariance;\ntypedef int4 splineColour;\n");
+
+            // THE INSTANCES' CONSTANTS: the generator writes a cbuffer of InstanceData[] followed by padding0, padding1, instance_count and
+            // batch_size (module+0x31935F8 to +0x3193728). This tool dispatches one emitter at a time, so the two the sources read stand as
+            // globals - CHOSEN, the instance array's per-object values the drawing's own constants.
+            hlsl.Append("uint instance_count;\nuint batch_size;\n");
+
+            // THE ENGINE'S PRELUDE AFTER THE MACROS: CommonDeclarations.inc, which it includes, declares the particle structs only under
+            // GPU_PARTICLE_DRAW_CALL, a fragment's macro.
+            if (prelude.Length > 0)
+            {
+                hlsl.Append(prelude.Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd()).Append('\n');
+            }
+            else
+            {
+                _unresolved.Add("no prelude: the engine's DX11 text (ShaderPrelude) was not read, so its macros and sampler and struct declarations are missing");
+            }
 
             // DECLARATIONS: every one the fragments include, through every include, an include before what includes it.
             var declared = new List<ShaderBlock>();
