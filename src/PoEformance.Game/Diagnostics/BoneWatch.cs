@@ -69,6 +69,12 @@ public sealed class BoneWatch
     /// <summary>Most bytes the candidates in the world are read as, together, each sweep - CHOSEN: some five hundred places a sweep.</summary>
     public const int MostCandidateBytes = 48 * 1024;
 
+    /// <summary>Most blocks read as often as they change between the sweeps - CHOSEN.</summary>
+    public const int MostFast = 16;
+
+    /// <summary>Most reads kept of a block read as often as it changes - CHOSEN: some ten a frame for twelve seconds.</summary>
+    public const int MostFastReads = 8000;
+
     /// <summary>Where it stands, for the banner the capture's window shows the person at the game.</summary>
     public enum Stage
     {
@@ -252,6 +258,14 @@ public sealed class BoneWatch
         int changing = walked.Count(Changes);
         List<BoneWatchSeries.Block> watching = [.. kept, .. always];
 
+        // THE LIVE ARRAYS AS OFTEN AS THEY CHANGE: between the sweeps the arrays that moved between the search's two reads and the pieces'
+        // Worlds are read again and again, a read kept only where it differs from the one before - the 07:26 capture's staff array held the
+        // staff in one read of three, every 0.23 s at thirty sweeps a second, too coarse for a swing of half a second (2026-11-01,
+        // v0.1.410). The sweeps leave them to this; while there are any the loop does not sleep.
+        HashSet<BoneWatchSeries.Block> fast = [.. found.Fast];
+        List<BoneWatchSeries.Block> swept = [.. watching.Where(block => !fast.Contains(block))];
+        int fastReads = 0;
+
         // THE WATCH: the kept blocks, the skeletons and his place every thirtieth of a second until the time is up.
         while (!_stop)
         {
@@ -263,17 +277,28 @@ public sealed class BoneWatch
 
             if (now >= next)
             {
-                foreach (BoneWatchSeries.Block block in watching)
+                foreach (BoneWatchSeries.Block block in swept)
                 {
                     Read(block, now, buffer);
                 }
 
                 sweeps++;
                 next = now + Every;
-                Line = string.Create(CultureInfo.InvariantCulture, $"{now:0.0} of {_seconds:0} s - {kept.Count} blocks, {skeletons.Count} skeletons and {found.Candidates.Count} places in the world read {sweeps} times - walk, stop and turn");
+                Line = string.Create(CultureInfo.InvariantCulture, $"{now:0.0} of {_seconds:0} s - {kept.Count} blocks, {skeletons.Count} skeletons and {found.Candidates.Count} places in the world read {sweeps} times, {fast.Count} live ones {fastReads} times as they changed - walk, stop and turn");
             }
 
-            Thread.Sleep(1);
+            if (fast.Count == 0)
+            {
+                Thread.Sleep(1);
+                continue;
+            }
+
+            foreach (BoneWatchSeries.Block block in found.Fast)
+            {
+                fastReads += Changed(block, Stopwatch.GetElapsedTime(_began).TotalSeconds, buffer) ? 1 : 0;
+            }
+
+            Thread.Yield();
         }
 
         double watched = Stopwatch.GetElapsedTime(_began).TotalSeconds;
@@ -281,6 +306,7 @@ public sealed class BoneWatch
             CultureInfo.InvariantCulture,
             $"bone watch: {pieces.Count} pieces and his own components, {walked.Count} blocks walked {Depth} hops deep, {changing} changing in the first {FindSeconds:0.#} s, {kept.Count} watched, {skeletons.Count} skeletons found by their rest or in the world and {found.Candidates.Count} places near the pieces in the world, for {watched:0.0} s{(_stop ? " (stopped)" : string.Empty)}, {sweeps} sweeps"));
         head.Insert(1, string.Create(CultureInfo.InvariantCulture, $"each block {BlockBytes} bytes; a block is kept where it changed in the finding, the most changing turn matrices first, at most {MostKept}; its reads are in {BoneWatchSeries.File} beside this file"));
+        head.Insert(2, string.Create(CultureInfo.InvariantCulture, $"read as often as they changed between the sweeps: {fast.Count} blocks - the arrays that moved between the search's two reads and the pieces' Worlds, at most {MostFast} - {fastReads} reads kept, at most {MostFastReads} a block"));
         var series = new BoneWatchSeries(
             watching,
             head,
@@ -299,7 +325,11 @@ public sealed class BoneWatch
 
     /// <summary>What the search found, as blocks to watch: the skeletons, the pieces' places in the world and the candidates there, each naming its block.</summary>
     private sealed record Found(
-        List<BoneWatchSeries.Block> Blocks, List<BoneWatchSeries.Skeleton> Skeletons, List<BoneWatchSeries.Place> Places, List<BoneWatchSeries.Candidate> Candidates);
+        List<BoneWatchSeries.Block> Blocks, List<BoneWatchSeries.Skeleton> Skeletons, List<BoneWatchSeries.Place> Places, List<BoneWatchSeries.Candidate> Candidates)
+    {
+        /// <summary>The blocks read as often as they change between the sweeps: the arrays that moved between the search's two reads and the pieces' Worlds.</summary>
+        public List<BoneWatchSeries.Block> Fast { get; } = [];
+    }
 
     /// <summary>
     /// The skeletons of his body and every piece he is drawn with - and of the pieces those hang off themselves - found in the whole of
@@ -378,6 +408,11 @@ public sealed class BoneWatch
                 found.Blocks.Add(new BoneWatchSeries.Block(
                     string.Create(CultureInfo.InvariantCulture, $"{Path.GetFileName(rigs[one.Rig].Piece)}'s World (PiecePlacement.World)"), one.WorldAt, 64, []));
                 found.Places.Add(new BoneWatchSeries.Place(found.Blocks.Count - 1, 0, rigs[one.Rig]));
+                if (found.Fast.Count < MostFast)
+                {
+                    found.Fast.Add(found.Blocks[^1]);
+                }
+
                 placeBlocks[place] = index = found.Places.Count - 1;
             }
 
@@ -407,6 +442,10 @@ public sealed class BoneWatch
                 size,
                 []));
             found.Skeletons.Add(new BoneWatchSeries.Skeleton(found.Blocks.Count - 1, rig, array.Frame, array.Layout, array.Stride, margin, array.Matched, array.Fixed, array.Votes) { Place = place });
+            if (array.Moving && found.Fast.Count < MostFast)
+            {
+                found.Fast.Add(found.Blocks[^1]);
+            }
         }
 
         if (past > 0)
@@ -610,6 +649,23 @@ public sealed class BoneWatch
 
         // THE FINDING'S READS ARE KEPT: they are the first second of the watch.
         return [.. ranked.OrderByDescending(one => one.Turns).ThenByDescending(one => one.Floats).Take(MostKept).Select(one => one.Block)];
+    }
+
+    /// <summary>
+    /// Reads a block once more and keeps the read only where it differs from the block's last - whether it was kept; none past
+    /// <see cref="MostFastReads"/>.
+    /// </summary>
+    private bool Changed(BoneWatchSeries.Block block, double now, byte[] buffer)
+    {
+        Span<byte> span = buffer.AsSpan(0, block.Size);
+        if (block.Reads.Count >= MostFastReads || !_reader.TryRead(block.Address, span)
+            || (block.Reads.Count > 0 && span.SequenceEqual(block.Reads[^1].Bytes)))
+        {
+            return false;
+        }
+
+        block.Reads.Add((now, span.ToArray()));
+        return true;
     }
 
     /// <summary>Whether a block's reads differ anywhere.</summary>

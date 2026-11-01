@@ -1052,6 +1052,20 @@ bone - made "arrays" at every stride from one copy of its root. SO v0.1.409:
   WHILE HE WALKED" for a World that is no live placement - and each place near it FOLLOWS ITS PIECE (half its distance or more in the world, within a
   quarter of that of one place in its frame), is LEFT BEHIND (within a unit of where it was found) or moves otherwise (all CHOSEN), followers first.
 - The place's block is made before any window, so every candidate reads its own window.
+WHAT v0.1.409'S CAPTURE SAID (2026-11-01 07:26, The Red Vale, through the agent link; the STAFF in hand, the person standing three seconds, then
+walking 3,735 units with two stops): the staff's skeleton turned up in its model's frame as positions alone, 12 bytes a bone - seven such arrays,
+six still copies with the lamp 8 to 13 units off its rest, and one that moved: A BUFFER THE ENGINE FILLS FOR MORE THAN ONE THING, holding the staff
+in 82 of its 252 reads (every fixed bone at its rest to the bit) and another's pose in the rest. Read where it holds the staff, THE LAMP IS A RIGID
+PENDULUM (its distance from base_lamp_jntBnd 1.004 to 1.009 of the rest's 24) - MEASURED: standing, it hangs 19.6 to 25.7 degrees off its rest's way,
+swaying with a period of about 2.4 s; walking, it swings to 130 degrees either side. Its samples came every 0.23 s or so, too sparse for the swing
+while walking. The world search found the staff's root copies and two places of the lamp in another such buffer, nothing that stays. So v0.1.410:
+- THE READING TAKES ONLY THE READS IN WHICH A SKELETON HOLDS ITS RIG (`BoneWatchSeries.Holding`: half its fixed bones at their rest, PoseHunt's
+  tolerance, PoseWorld's for an array taken from the world), and says how many.
+- THE WATCH READS THE LIVE ARRAYS AS OFTEN AS THEY CHANGE (`BoneWatch.Found.Fast`: the arrays that moved between the search's two reads and the
+  pieces' Worlds, read between the sweeps without a sleep, a read kept only where it differs - `MostFast` 16 blocks, `MostFastReads` 8,000, CHOSEN);
+  a World read so stands until its next read (`Backs`, the last at or before).
+- THE CANDIDATES' LINES ARE SHARED OUT PIECE BY PIECE (`LeastCandidateLines` 24, CHOSEN): the 07:26 report wrote not one of the staff's twelve.
+Take it again with the staff in hand: stand, walk, then STOP AND STAND a few seconds - the swing after a stop is the damping.
 
 ## Verify against the game, not against yourself
 
