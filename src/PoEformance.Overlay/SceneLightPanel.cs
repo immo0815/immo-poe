@@ -118,6 +118,10 @@ public sealed partial class SceneLightPanel : IMovableSun
 
     // A LIGHT'S STYLE FLICKERS IT, on by default - SceneLight.Flickers (MEASURED for style 1, v0.1.414).
     private bool _flicker = true;
+
+    // A PIECE'S LAMP SWINGS AS THE ENGINE SWINGS IT, on by default - BoneSwing, asked by the panes every pose (MonsterPortrait.SceneSwing;
+    // DECIDED from the live client, 2026-11-01, v0.1.416).
+    private bool _swing = true;
     private bool _glints = true;
     private bool _reflection = true;
     private bool _mirroring = true;
@@ -297,7 +301,7 @@ public sealed partial class SceneLightPanel : IMovableSun
         {
             string.Create(
                 CultureInfo.InvariantCulture,
-                $"switches: game light {(_on ? "on" : "off - the light below is the one it would draw")}, sun {_sun}, shadows {_shadows}, free sun {_freeSun}, room lights {_points} ({(SceneLight.PointShape)_pointShape}), carried lights {_carried}, flicker {_flicker}, player light {_playerLight} (radius {_playerRadius:0}, {_playerHeight:0} up), ambient {(SceneAmbient)_ambient} (flat {_flat:0.#####}), cube reading {_cubeReading + 1}, exposure {_exposure}, grade {_grade}, emissive {_emissive}, view {SceneLight.ViewNames[Math.Clamp(_view, 0, SceneLight.ViewNames.Count - 1)]}"),
+                $"switches: game light {(_on ? "on" : "off - the light below is the one it would draw")}, sun {_sun}, shadows {_shadows}, free sun {_freeSun}, room lights {_points} ({(SceneLight.PointShape)_pointShape}), carried lights {_carried}, flicker {_flicker}, swing {_swing}, player light {_playerLight} (radius {_playerRadius:0}, {_playerHeight:0} up), ambient {(SceneAmbient)_ambient} (flat {_flat:0.#####}), cube reading {_cubeReading + 1}, exposure {_exposure}, grade {_grade}, emissive {_emissive}, view {SceneLight.ViewNames[Math.Clamp(_view, 0, SceneLight.ViewNames.Count - 1)]}"),
             "environment: " + (Chosen().Length > 0 ? Chosen() : "none"),
         };
         // THE FRAME AT THE PRESS, not the one the panel last labelled by: that is only set while the panel draws with "game light" ticked, and
@@ -393,7 +397,7 @@ public sealed partial class SceneLightPanel : IMovableSun
         Label("environment", column);
         Picker(path);
 
-        if (Fold(Count("lights", _points, _carried, _flicker, _sun, _shadows, _playerLight, _exposure, _grade, _emissive) + "###scene-fold-lights", open: true))
+        if (Fold(Count("lights", _points, _carried, _flicker, _swing, _sun, _shadows, _playerLight, _exposure, _grade, _emissive) + "###scene-fold-lights", open: true))
         {
             try
             {
@@ -535,9 +539,13 @@ public sealed partial class SceneLightPanel : IMovableSun
         {
             Switch("room##scene-points", ref _points, "The point lights the room's doodads carry in their .ao Lights blocks, the default state of each.");
             Switch("carried##scene-carried", ref _carried, "The point lights a monster and his pieces carry on their bones (an .ao Lights block's bone_name) - the Exile's Staff's"
-                + " lamp - standing where the pose puts each bone, every frame. The bone's own physics (a lamp's swing) is not drawn.");
+                + " lamp - standing where the pose puts each bone, every frame; a swung lamp's light swings with it (\"swing\").");
             Switch("flicker##scene-flicker", ref _flicker, "A light's style line: style 1 runs its colour through 25 keys at ten a second, 0.72 to 1 of the colour, as the"
                 + " game's own light list holds the Exile's Staff's lamp (measured). Carried lights only; any other style stands as written.");
+            Switch("swing##scene-swing", ref _swing, "A held piece's lamp swinging as the engine swings it - the Exile's Staff's phys_tri_lamp_jntBnd, a rigid rod"
+                + " on base_lamp_jntBnd stepped every 10.1 ms as measured off the game's light list (keep 0.98076, gravity, the hand's acceleration a"
+                + " tick late times 0.45), its light with it. Pieces whose .ao names another simulation stand as animated. Off, the lamp hangs as"
+                + " authored; on again, it starts hanging straight down.");
             Switch("sun##scene-sun", ref _sun, "directional_light: its colour times its multiplier. Seepage's is nought.");
             Switch("shadows##scene-shadows", ref _shadows,
                 "The sun's shadows: the room drawn once more along the sun's light, and a pixel is shaded where something nearer the sun covers it.");
@@ -695,6 +703,9 @@ public sealed partial class SceneLightPanel : IMovableSun
     /// <summary>Whether the roof sections round the camera's focus are hidden - the "roof fade" switch, asked by the panes every frame (MonsterPortrait.SceneRoofFade).</summary>
     public bool RoofFade() => _roofFade;
 
+    /// <summary>Whether a piece's lamp swings - the "swing" switch, asked by the panes every pose (MonsterPortrait.SceneSwing).</summary>
+    public bool Swings() => _swing;
+
     /// <summary>The fog the environment in use names, read and compiled once per environment - see ScreenFog.Of.</summary>
     /// <remarks>
     /// ON THE DRAWING THREAD, the first time a light with the fog on is made for an environment: two textures decoded (The Red Vale's
@@ -765,7 +776,7 @@ public sealed partial class SceneLightPanel : IMovableSun
     ];
 
     /// <summary>The lights' switches' visible labels, for their columns.</summary>
-    private static readonly string[] LightLabels = ["room", "carried", "flicker", "sun", "shadows", "player", "exposure", "colour grade", "emissive"];
+    private static readonly string[] LightLabels = ["room", "carried", "flicker", "swing", "sun", "shadows", "player", "exposure", "colour grade", "emissive"];
 
     /// <summary>The water's switches' visible labels, for their columns.</summary>
     private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "refraction", "caustics", "crash", "way round", "past walls", "break by ground", "wetness", "spray from occlusion"];
@@ -1318,9 +1329,22 @@ public sealed partial class SceneLightPanel : IMovableSun
             if ((model.Actor ?? model).CarriedSaid is { Length: > 0 } carried)
             {
                 lines.Add(_carried
-                    ? "carried lights: " + carried + " - standing where the pose puts their bones every frame, the bones' own physics not drawn"
+                    ? "carried lights: " + carried + " - standing where the pose puts their bones every frame"
+                        + ((model.Actor ?? model).Swings.Count > 0 ? (_swing ? ", a swung lamp's light with its swing" : ", swing off") : ", no bone of them swung")
                         + (_flicker ? "; a style 1 light flickering as the game's (0.72 to 1 of its colour, 25 keys at ten a second)" : "; flicker off")
                     : "carried lights: off - " + carried);
+            }
+
+            // WHAT SWINGS, AND WHAT OF THE SWING IS NOT THE GAME'S - see BoneSwing and Pendulum.
+            if ((model.Actor ?? model).SwingSaid is { Length: > 0 } swung)
+            {
+                lines.Add(!_swing
+                    ? "swing: off, every lamp as authored - " + swung
+                    : (model.Actor ?? model).Swings.Count == 0
+                        ? "swing: " + swung
+                        : "swing: " + swung + string.Create(
+                            CultureInfo.InvariantCulture,
+                            $" - stepped every {Pendulum.Tick * 1000:0.#} ms as measured, from hanging straight down (CHOSEN), still while the clock stands; not modelled: his turning, the resting lamp's tilt towards its rest, the twist about the rod"));
             }
             lines.Add(model.AreaOrigin is null
                 ? "player light: over the middle of the picture - the room is not laid in the area"

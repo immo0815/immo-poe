@@ -876,6 +876,43 @@ public sealed partial class MonsterPortrait
     public Func<bool>? SceneRoofFade { get; set; }
 
     /// <summary>
+    /// Whether a piece's lamp swings - the light panel's "swing", asked every pose whether the game's light is on or not; null for always.
+    /// See BoneSwinger and <see cref="Swung"/>.
+    /// </summary>
+    public Func<bool>? SceneSwing { get; set; }
+
+    /// <summary>The model's swings stepped with its clock, or null where it swings nothing - made with the pose (<see cref="Rigged"/>).</summary>
+    private BoneSwinger? _swinger;
+
+    /// <summary>Whether the last pose was swung, so a change of the switch takes the pose again.</summary>
+    private bool _drawnSwing = true;
+
+    /// <summary>Whether the lamps swing now - the panel's switch, on where none is wired.</summary>
+    private bool Swinging() => SceneSwing?.Invoke() ?? true;
+
+    /// <summary>
+    /// The swung bones set into the pose just taken: every tick the clock ran on stepped at its own frame, then each lamp hung from where the
+    /// pose put its hand (BoneSwinger.Swing). Nothing where the model swings nothing.
+    /// </summary>
+    /// <remarks>
+    /// RIGHT AFTER EVERY TAKE, before anything reads the pose's skin matrices - the card's upload, the processor's vertices, the hull, the
+    /// carried lights - all of which key on the pose (<see cref="_poseKey"/>).
+    /// </remarks>
+    private void Swung()
+    {
+        if (_swinger is not { } swinger || _pose is not { } pose || _tracks is not { Ready: true } tracks
+            || _chosen < 0 || _chosen >= _model.Rig.Animations.Count)
+        {
+            return;
+        }
+
+        float rate = _model.Rig.Animations[_chosen].Rate;
+        bool on = Swinging();
+        swinger.Swing(pose, tracks, _frame, rate > 0f ? rate : UsualRate, tracks.Frames, on);
+        _drawnSwing = on;
+    }
+
+    /// <summary>
     /// The blends handed to the picture before the roof fade: all of them, the solid-or-absent ones only, or none - and what a capture's pane
     /// is drawn with, every roof section in it (CaptureRoofFade measures what the game hides against them).
     /// </summary>
@@ -3683,6 +3720,7 @@ public sealed partial class MonsterPortrait
     private void Rest()
     {
         _pose = null;
+        _swinger = null;
         _tracks = null;
         _loadingTracks = null;
         _loadingAnimation = -1;
@@ -3819,6 +3857,7 @@ public sealed partial class MonsterPortrait
             || _drawnDust != Dusted()
             || _drawnWater != Watered()
             || (posed && (_drawnFrame != _frame || _drawnAnimation != _chosen))
+            || (posed && _swinger is not null && _drawnSwing != Swinging())
             || _drawnSharp != (Card?.Sharp ?? false)
             || (_cardWaiting && Card is { } card && card.Gpu is { } gpu && gpu.Landed != _cardLanded)
             || (_unpackWaiting && UnpackDone)
@@ -3860,6 +3899,10 @@ public sealed partial class MonsterPortrait
         }
 
         _pose = SkeletonPose.Of(_model.Rig);
+
+        // HIS LAMPS HANG STRAIGHT DOWN AT HIS FIRST POSE, a swinger of their own for every model (BoneSwinger).
+        IReadOnlyList<BoneSwing> swings = (_model.Actor ?? _model).Swings;
+        _swinger = swings.Count > 0 ? new BoneSwinger(swings) : null;
         _posedFor = null;
         _cpuPosedKey = -1;
         _cardBonesKey = -1;
@@ -3968,12 +4011,15 @@ public sealed partial class MonsterPortrait
             rate = UsualRate;
         }
 
-        float step = Math.Clamp(ImGui.GetIO().DeltaTime, 0f, 0.25f) * rate;
-        _frame += step;
+        float seconds = Math.Clamp(ImGui.GetIO().DeltaTime, 0f, 0.25f);
+        _frame += seconds * rate;
         if (_frame > tracks.Frames)
         {
             _frame %= tracks.Frames;
         }
+
+        // THE SWING RUNS ON THE SAME CLOCK, stepped where the pose is next taken (Swung).
+        _swinger?.Due(seconds);
     }
 
     /// <summary>What the model is drawn at: the rung that covers the pane, capped while it moves on the processor.</summary>
@@ -4264,9 +4310,11 @@ public sealed partial class MonsterPortrait
             {
                 // THE SKELETON ALONE IS POSED HERE: the card skins the vertices itself, and the processor's arrays are posed
                 // where the processor draws (CpuPosed).
-                if (_posedFor is not { } was || !ReferenceEquals(was.Model, _model) || !ReferenceEquals(was.Tracks, _tracks) || was.Frame != _frame)
+                if (_posedFor is not { } was || !ReferenceEquals(was.Model, _model) || !ReferenceEquals(was.Tracks, _tracks) || was.Frame != _frame
+                    || (_swinger is not null && _drawnSwing != Swinging()))
                 {
                     _pose!.Take(_tracks!, _frame);
+                    Swung();
                     _posedFor = (_model, _tracks!, _frame);
                     _poseKey = Interlocked.Increment(ref _poseKeys);
                 }
@@ -5312,6 +5360,7 @@ public sealed partial class MonsterPortrait
         if (_tracks is { Ready: true } && _pose is not null)
         {
             _pose.Take(_tracks, _frame);
+            Swung();
 
             // THE SKELETON NOW HOLDS THIS POSE, whatever the frame's said - see _posedFor - and the arrays are brought to it.
             _posedFor = (_model, _tracks, _frame);

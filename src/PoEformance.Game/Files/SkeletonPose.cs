@@ -471,4 +471,103 @@ public sealed class SkeletonPose
             _skin[one] = _inverseBind[one] * _world[one];
         }
     }
+
+    /// <summary>
+    /// Sets one bone's skin matrix after a pose is taken, its world with it - a bone no animation drives, which the tool moves itself (a
+    /// swinging lamp, BoneSwing). Its children are not moved: a bone set so has none.
+    /// </summary>
+    public void Override(int bone, Matrix4x4 skin)
+    {
+        if (bone < 0 || bone >= _skin.Length)
+        {
+            return;
+        }
+
+        _skin[bone] = skin;
+        _world[bone] = BindModel[bone] * skin;
+    }
+
+    /// <summary>
+    /// One bone's skin matrix at a moment of an animation - <see cref="Take"/>'s for that bone to the bit, worked out down its own chain
+    /// alone and leaving the pose as it stands.
+    /// </summary>
+    /// <param name="tracks">The animation's keyframes; the bind pose's identity where they do not read.</param>
+    /// <param name="time">Where in it, in frames.</param>
+    /// <param name="bone">The bone.</param>
+    /// <remarks>
+    /// FOR A SWING STEPPED A HUNDRED TIMES A SECOND (BoneSwinger): the hand that carries the lamp is wanted at every tick between two
+    /// frames, and a pose of 255 bones a tick is a hundred times the work of the dozen bones between the root and the hand.
+    /// </remarks>
+    public Matrix4x4 SkinAt(AnimationTracks? tracks, float time, int bone)
+    {
+        if (bone < 0 || bone >= _skin.Length || tracks is not { Ready: true })
+        {
+            return Matrix4x4.Identity;
+        }
+
+        Indexed(tracks);
+        Span<int> chain = stackalloc int[Math.Min(_skin.Length, AnimationSkeleton.MostBones + 1)];
+        var length = 0;
+        for (int one = bone; one >= 0 && length < chain.Length; one = _parent[one])
+        {
+            chain[length++] = one;
+        }
+
+        Matrix4x4 world = Matrix4x4.Identity;
+        for (int at = length - 1; at >= 0; at--)
+        {
+            Matrix4x4 local = LocalAt(tracks, chain[at], time);
+            world = at == length - 1 ? local : local * world;
+        }
+
+        return _inverseBind[bone] * world;
+    }
+
+    /// <summary>The tracks <see cref="_trackOf"/> was made for.</summary>
+    private AnimationTracks? _indexed;
+
+    /// <summary>Each bone's track among the indexed tracks' - the first naming it, as <see cref="Take"/> takes - or -1 for none.</summary>
+    private int[] _trackOf = [];
+
+    /// <summary>Makes <see cref="_trackOf"/> for these tracks, once while they stand.</summary>
+    private void Indexed(AnimationTracks tracks)
+    {
+        if (ReferenceEquals(_indexed, tracks))
+        {
+            return;
+        }
+
+        if (_trackOf.Length != _skin.Length)
+        {
+            _trackOf = new int[_skin.Length];
+        }
+
+        Array.Fill(_trackOf, -1);
+        IReadOnlyList<BoneTrack> all = tracks.Tracks;
+        for (var at = 0; at < all.Count; at++)
+        {
+            int bone = all[at].Bone;
+            if (bone >= 0 && bone < _trackOf.Length && _trackOf[bone] < 0)
+            {
+                _trackOf[bone] = at;
+            }
+        }
+
+        _indexed = tracks;
+    }
+
+    /// <summary>One bone's local matrix at a moment - <see cref="Take"/>'s: its track's scale, turn and place, its bind where it has none.</summary>
+    private Matrix4x4 LocalAt(AnimationTracks tracks, int bone, float time)
+    {
+        int at = _trackOf[bone];
+        if (at < 0)
+        {
+            return _skeleton.Bones[bone].Bind;
+        }
+
+        BoneTrack track = tracks.Tracks[at];
+        return Matrix4x4.CreateScale(tracks.Scale(track, time, _restScale[bone]))
+            * Matrix4x4.CreateFromQuaternion(tracks.Rotation(track, time, _restTurn[bone]))
+            * Matrix4x4.CreateTranslation(tracks.Position(track, time, _restPlace[bone]));
+    }
 }

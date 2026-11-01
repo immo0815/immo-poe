@@ -40,7 +40,8 @@ public readonly record struct CarriedLight(int Bone, Vector3 Rest, Vector3 Colou
 /// <item>A SKIN ON HIS RIG: on his bone of the same name, its position line in his bone's frame - a READING: the piece's own rig rests the
 /// bone elsewhere, and the light stands where his does. One his rig has not is left out, said so.</item>
 /// </list>
-/// The bone's own simulation (phys_ bones swing in the game) is not drawn: the lamp stands where the animation puts its bone.
+/// THE BONE'S OWN SIMULATION swings it where its piece's .ao carries the measured one (v0.1.416, BoneSwing): the light is put on the swung bone
+/// with the lamp's vertices (<see cref="Gathering.Rebone"/>); any other simulated bone stands where the animation puts it.
 /// A LIGHT'S STYLE FLICKERS IT (v0.1.414, MEASURED off the game's light list - <see cref="LightStyle"/>): its colour times style 1's keys as the
 /// picture's clock runs, the reach following the colour as the shader's cutoff does (GetPointCutoffRadius over the flickered colour).
 /// </remarks>
@@ -126,13 +127,17 @@ public static class CarriedLights
             }
         }
 
-        /// <summary>A piece hung rigidly at a bone: its lights where its own rig rests their bones, put through its place, carried by that bone.</summary>
+        /// <summary>
+        /// A piece hung rigidly at a bone: its lights where its own rig rests their bones, put through its place, carried by that bone; which of
+        /// the lights found they are, for <see cref="Rebone"/>.
+        /// </summary>
         /// <param name="chain">The piece's .ao and what it extends, already read - a piece writing no light costs nothing more.</param>
-        public void Rigid(IReadOnlyList<AnimatedObject> chain, string path, Matrix4x4 place, int bone)
+        public (int From, int Count) Rigid(IReadOnlyList<AnimatedObject> chain, string path, Matrix4x4 place, int bone)
         {
+            int from = _found.Count;
             if (!Writes(chain))
             {
-                return;
+                return (from, 0);
             }
 
             RoomLights.Lit lit = Of(path);
@@ -140,6 +145,24 @@ public static class CarriedLights
             for (var one = 0; one < lit.Lights.Count; one++)
             {
                 _found.Add(new Found(bone, Vector3.Transform(lit.Lights[one].Position, place), Framed: false, lit.Lights[one], lit.Bones[one]));
+            }
+
+            return (from, _found.Count - from);
+        }
+
+        /// <summary>
+        /// The lights of a rigid piece (<see cref="Rigid"/>'s range) on any of the bones named moved onto another bone of the rig, their rest
+        /// kept - a lamp's light onto the bone that swings it (MonsterModel's Swaying).
+        /// </summary>
+        public void Rebone((int From, int Count) range, IReadOnlySet<string> bones, int bone)
+        {
+            ArgumentNullException.ThrowIfNull(bones);
+            for (int at = range.From; at < range.From + range.Count && at < _found.Count; at++)
+            {
+                if (bones.Contains(_found[at].Name))
+                {
+                    _found[at] = _found[at] with { Bone = bone };
+                }
             }
         }
 
