@@ -22,7 +22,7 @@ namespace PoEformance.Overlay;
 /// checkbox above the list, so the rail, the count and the text all agree on what is shown.
 /// </remarks>
 [SupportedOSPlatform("windows")]
-public sealed class TileBookWindow : BookWindow<TileBook>
+public sealed partial class TileBookWindow : BookWindow<TileBook>
 {
     /// <summary>
     /// The fields the rail offers, and what it calls them.

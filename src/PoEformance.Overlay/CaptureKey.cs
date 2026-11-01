@@ -102,6 +102,61 @@ internal sealed class CaptureKey
     private bool _listening;
     private Run? _run;
 
+    /// <summary>A capture asked for from another thread, waiting for the next frame to begin it - see <see cref="Request"/>.</summary>
+    private CaptureRequest? _asked;
+
+    /// <summary>Why the last press could not begin, for a request that met the same refusal.</summary>
+    private string _refusedWhy = string.Empty;
+
+    /// <summary>
+    /// Asks for a capture from any thread; it begins on the next frame that polls (the game or one of the tool's
+    /// windows in front), as a press of the key would, with the given parts on or the settings' ticks.
+    /// </summary>
+    /// <remarks>
+    /// FOR THE AGENT LINK (asked for from the live client, 2026-11-01): a Claude session taking the capture it needs
+    /// without a key being pressed. One request waits at a time; a second while one waits or runs is refused at once,
+    /// as a second press is ignored, rather than queued behind a capture that may take minutes.
+    /// </remarks>
+    /// <param name="on">The parts to write, by key, every other one off; null for the settings' ticks.</param>
+    public Task<CaptureOutcome> Request(IReadOnlyCollection<string>? on)
+    {
+        HashSet<string>? off = on is null
+            ? null
+            : new HashSet<string>(CaptureParts.All.Where(part => !on.Contains(part.Key)).Select(part => part.Key), StringComparer.Ordinal);
+        var request = new CaptureRequest(off);
+        if (Busy || Interlocked.CompareExchange(ref _asked, request, null) is not null)
+        {
+            return Task.FromResult(new CaptureOutcome(false, string.Empty, [], "a capture is already running or waiting to begin"));
+        }
+
+        return request.Done.Task;
+    }
+
+    /// <summary>Withdraws a requested capture that has not begun; false where none waits.</summary>
+    public bool CancelRequest()
+    {
+        if (Interlocked.Exchange(ref _asked, null) is not { } waiting)
+        {
+            return false;
+        }
+
+        waiting.Done.TrySetResult(new CaptureOutcome(false, string.Empty, [], "withdrawn before it began"));
+        return true;
+    }
+
+    /// <summary>Whether a capture runs now. Read from any thread; a moment stale at worst.</summary>
+    public bool Busy => Volatile.Read(ref _run) is not null;
+
+    /// <summary>Where the running capture stands, in a few words, for the agent link's status; empty when none runs.</summary>
+    public string Phase => Volatile.Read(ref _run) is { } run
+        ? run.Stage switch
+        {
+            Stage.Hiding => "taking the game's picture",
+            Stage.Rooms => run.Waiting.Length > 0 ? "waiting for " + run.Waiting : "waiting for the rooms",
+            _ => "writing the parts",
+        }
+        : Volatile.Read(ref _asked) is not null ? "asked, waiting for the game or the tool to be in front" : string.Empty;
+
     /// <summary>The window's capture - the one running, or the last until its window is closed.</summary>
     private CaptureProgress? _shown;
 
@@ -276,7 +331,22 @@ internal sealed class CaptureKey
 
         if (pressed && !typing && _run is null)
         {
-            Begin(now);
+            Begin(now, null);
+        }
+
+        // A CAPTURE ASKED FOR BY THE AGENT LINK begins here as the key's would, on this thread, with the
+        // parts it asked for - the typing check is the key's alone, nobody typed this.
+        if (_run is null && Interlocked.Exchange(ref _asked, null) is { } asked)
+        {
+            Begin(now, asked.Off);
+            if (_run is { } begun)
+            {
+                begun.Asked = asked;
+            }
+            else
+            {
+                asked.Done.TrySetResult(new CaptureOutcome(false, _shown?.Folder ?? string.Empty, [], _refusedWhy));
+            }
         }
 
         if (_run is { } run)
@@ -324,6 +394,13 @@ internal sealed class CaptureKey
 
                 // BACK UP WITH ITS SUMMARY, even where its window was closed while it ran.
                 _shown = run.Progress;
+                run.Asked?.Done.TrySetResult(new CaptureOutcome(
+                    written.IsCompletedSuccessfully && run.LeftOut.Count == 0,
+                    run.Folder,
+                    run.Files,
+                    written.IsCompletedSuccessfully
+                        ? run.LeftOut.Count == 0 ? "saved and packed" : "packed without " + string.Join(", ", run.LeftOut)
+                        : "failed: " + written.Exception?.GetBaseException().Message));
             }
         }
 
@@ -331,10 +408,17 @@ internal sealed class CaptureKey
         return false;
     }
 
-    private bool On(string key) => !_off.Contains(key);
+    /// <summary>Whether a part is ticked in the settings - for the controls; a capture reads its own copy.</summary>
+    private bool Ticked(string key) => !_off.Contains(key);
 
-    private void Begin(long now)
+    /// <param name="only">The parts switched off for this one capture, or null for the ticks the settings keep.</param>
+    private void Begin(long now, HashSet<string>? only)
     {
+        // THIS CAPTURE'S PARTS, copied: everything from here to the zip reads this set, never the live
+        // ticks, so a box ticked meanwhile - or a request's own choice - holds for exactly one capture.
+        var off = new HashSet<string>(only ?? _off, StringComparer.Ordinal);
+        bool On(string key) => !off.Contains(key);
+
         WorldSnapshot snapshot = _snapshot();
         ClientRect client = _client();
         if (!client.IsValid)
@@ -368,7 +452,7 @@ internal sealed class CaptureKey
         var debugs = new CaptureWaterShore.Search();
         var sweep = new CaptureStageSweep.Search();
         var atGame = new CaptureAtGame.Search();
-        var run = new Run(folder, local, snapshot, client, now, new HashSet<string>(_off, StringComparer.Ordinal), Progress(folder, snapshot, hunt, shore, debugs, sweep, atGame, now))
+        var run = new Run(folder, local, snapshot, client, now, off, Progress(folder, snapshot, hunt, shore, debugs, sweep, atGame, off, now))
         {
             Hunt = hunt,
             Shore = shore,
@@ -436,7 +520,7 @@ internal sealed class CaptureKey
         {
             try
             {
-                run.Memory = record(new CaptureMemoryAsk(folder, CaptureParts.Reads(_off)));
+                run.Memory = record(new CaptureMemoryAsk(folder, CaptureParts.Reads(off)));
                 run.MemoryNote = run.Memory is null ? "a recording was already running" : string.Empty;
                 if (run.Memory is not null)
                 {
@@ -466,10 +550,11 @@ internal sealed class CaptureKey
     /// </remarks>
     private CaptureProgress Progress(
         string folder, WorldSnapshot snapshot, FloatHuntProgress hunt, CaptureWaterShore.Search shore, CaptureWaterShore.Search debugs, CaptureStageSweep.Search sweep,
-        CaptureAtGame.Search atGame, long now)
+        CaptureAtGame.Search atGame, HashSet<string> off, long now)
     {
+        bool On(string key) => !off.Contains(key);
         var progress = new CaptureProgress(folder, snapshot.Area.Name.Length > 0 ? snapshot.Area.Name : snapshot.Area.Id, now);
-        if (WantsRooms(_off))
+        if (WantsRooms(off))
         {
             progress.Add(new CaptureStep(RoomsStep, "the rooms, placed")
             {
@@ -556,6 +641,7 @@ internal sealed class CaptureKey
         var refused = new CaptureProgress(string.Empty, snapshot.Area.Name.Length > 0 ? snapshot.Area.Name : snapshot.Area.Id, now);
         refused.Finish("not captured: " + why, false, now);
         _shown = refused;
+        _refusedWhy = "not captured: " + why;
     }
 
     /// <summary>The rooms' step - not a file, the wait before the files.</summary>
@@ -572,7 +658,7 @@ internal sealed class CaptureKey
         bool wantsRooms = WantsRooms(run.Off);
         CaptureStep? step = run.Progress.Of(RoomsStep);
         step?.Start(now);
-        bool wantsSurvey = On(CaptureParts.Doodads) || On(CaptureParts.RoomsPlaced);
+        bool wantsSurvey = !run.Off.Contains(CaptureParts.Doodads) || !run.Off.Contains(CaptureParts.RoomsPlaced);
         bool sameArea = _snapshot().AreaHash == run.Snapshot.AreaHash;
         bool possible = wantsRooms && sameArea && _roomsPossible();
         IReadOnlyList<(string Room, RoomLayout Layout, RoomCandidate Where)>? standing = possible ? _standing() : null;
@@ -1533,6 +1619,7 @@ internal sealed class CaptureKey
                 ? Path.GetFileName(files[0])
                 : $"{Path.GetFileName(files[0])} to {Path.GetFileName(files[^1])} - {files.Count} pieces under 29 MB, joined by 7-Zip or copy /b";
             run.Packed = files.Count == 1 ? files[0] : $"{files[0]} ({files.Count} pieces)";
+            run.Files = files;
             run.LeftOut = leftOut;
             packing?.End(
                 leftOut.Count == 0 ? CaptureStepState.Done : CaptureStepState.Failed,
@@ -1651,7 +1738,7 @@ internal sealed class CaptureKey
     /// <summary>A box per part, flowing under its group's heading - see CaptureParts.</summary>
     private void DrawCatalogue()
     {
-        bool memory = On(CaptureParts.Memory);
+        bool memory = Ticked(CaptureParts.Memory);
         foreach (string group in CaptureParts.Groups)
         {
             ImGui.TextColored(OverlayInk.Quiet, CaptureParts.GroupLabel(group));
@@ -1673,7 +1760,7 @@ internal sealed class CaptureKey
                 // greyed, so what it would add is still readable.
                 bool moot = CaptureParts.NeedsRecording(part.Key) && !memory;
                 ImGui.BeginDisabled(moot);
-                bool on = On(part.Key);
+                bool on = Ticked(part.Key);
                 if (OverlayLayout.Toggle(part.Box, ref on))
                 {
                     _ = on ? _off.Remove(part.Key) : _off.Add(part.Key);
@@ -1753,6 +1840,12 @@ internal sealed class CaptureKey
         /// <summary>The parts off as the key went down - a copy, so a box ticked while the files are written changes nothing of this capture.</summary>
         public HashSet<string> Off { get; } = off;
 
+        /// <summary>The request that began this capture, when one did - told the outcome at the end.</summary>
+        public CaptureRequest? Asked { get; set; }
+
+        /// <summary>The zip, or its pieces in order, once packed.</summary>
+        public IReadOnlyList<string> Files { get; set; } = [];
+
         public Stage Stage { get; set; } = Stage.Hiding;
 
         public long Since { get; set; } = since;
@@ -1821,3 +1914,19 @@ internal sealed class CaptureKey
 /// <param name="Fraction">How far it is, nought to one.</param>
 /// <param name="Stop">Stops it early, what it found until then kept - or null where it cannot be stopped.</param>
 public sealed record CaptureWorkProgress(Func<string> Live, Func<float> Fraction, Action? Stop);
+
+/// <summary>A capture asked for from another thread: the parts it switched off, and where its outcome goes.</summary>
+internal sealed class CaptureRequest(HashSet<string>? off)
+{
+    public HashSet<string>? Off { get; } = off;
+
+    public TaskCompletionSource<CaptureOutcome> Done { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+}
+
+/// <summary>What a requested capture came to.</summary>
+/// <param name="Ok">Written and packed whole.</param>
+/// <param name="Folder">Its folder, every file unpacked; empty when it never began.</param>
+/// <param name="Files">The zip, or its pieces in order.</param>
+/// <param name="Said">What happened, in a line.</param>
+public sealed record CaptureOutcome(bool Ok, string Folder, IReadOnlyList<string> Files, string Said);
+

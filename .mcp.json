@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "poeformance": {
+      "command": "sh",
+      "args": ["-c", "exec python3 -I \"${CLAUDE_PROJECT_DIR:-$PWD}/tools/agent/poef.py\" mcp"]
+    }
+  }
+}

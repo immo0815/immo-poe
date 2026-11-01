@@ -46,7 +46,7 @@ public interface IMovableSun
 /// THE ROWS WRAP (<see cref="OverlayLayout.Flow"/>): the pane is narrow, and set side by side they ran
 /// past its edge - the player light's height slider was there and could not be seen.
 /// </remarks>
-public sealed class SceneLightPanel : IMovableSun
+public sealed partial class SceneLightPanel : IMovableSun
 {
     /// <summary>The player light's radius until a file says what it is - a candidate, see the slider's tooltip.</summary>
     private const float UsualPlayerRadius = 500f;

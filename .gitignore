@@ -41,3 +41,6 @@ tests/fixtures/captures/*/*-replay.txt
 # from data/minimap-icons.urls.txt, so the recipe is committed and the 2.6 MB of
 # icons are not.
 /assets/minimap-icons/
+
+# Python bytecode of the agent bridge (tools/agent).
+__pycache__/

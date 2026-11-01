@@ -287,6 +287,88 @@ public sealed class GitHubWriter : IDisposable
         }
     }
 
+    /// <summary>
+    /// Makes a branch hold exactly one commit with exactly one file, whatever it held before.
+    /// </summary>
+    /// <remarks>
+    /// For a branch that is a notice board rather than history - the agent link's address
+    /// (<see cref="AgentBeacon"/>): a commit with no parent, the branch forced onto it. Nothing accumulates,
+    /// and no workflow watches such a branch. 200 or 201 when the branch holds it, else what GitHub answered.
+    /// </remarks>
+    public async Task<UploadOutcome> PlaceAlone(
+        string branch, string path, byte[] content, string message, CancellationToken cancelling = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(branch);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(content);
+        try
+        {
+            (int made, JsonElement blob) = await Ask(HttpMethod.Post, "git/blobs", Body(writer =>
+            {
+                writer.WriteString("content", Convert.ToBase64String(content));
+                writer.WriteString("encoding", "base64");
+            }), cancelling).ConfigureAwait(false);
+            if (made != 201)
+            {
+                return Refused(made);
+            }
+
+            (int planted, JsonElement tree) = await Ask(HttpMethod.Post, "git/trees", Body(writer =>
+            {
+                writer.WriteStartArray("tree");
+                writer.WriteStartObject();
+                writer.WriteString("path", path);
+                writer.WriteString("mode", "100644");
+                writer.WriteString("type", "blob");
+                writer.WriteString("sha", blob.GetProperty("sha").GetString());
+                writer.WriteEndObject();
+                writer.WriteEndArray();
+            }), cancelling).ConfigureAwait(false);
+            if (planted != 201)
+            {
+                return Refused(planted);
+            }
+
+            (int committed, JsonElement commit) = await Ask(HttpMethod.Post, "git/commits", Body(writer =>
+            {
+                writer.WriteString("message", message);
+                writer.WriteString("tree", tree.GetProperty("sha").GetString());
+                writer.WriteStartArray("parents");
+                writer.WriteEndArray();
+            }), cancelling).ConfigureAwait(false);
+            if (committed != 201)
+            {
+                return Refused(committed);
+            }
+
+            string sha = commit.GetProperty("sha").GetString() ?? string.Empty;
+            int moved = (await Ask(HttpMethod.Patch, $"git/refs/heads/{branch}", Body(writer =>
+            {
+                writer.WriteString("sha", sha);
+                writer.WriteBoolean("force", true);
+            }), cancelling).ConfigureAwait(false)).Status;
+
+            // A branch that does not exist yet answers 422 ("Reference does not exist") to a move.
+            if (moved is 404 or 422)
+            {
+                moved = (await Ask(HttpMethod.Post, "git/refs", Body(writer =>
+                {
+                    writer.WriteString("ref", $"refs/heads/{branch}");
+                    writer.WriteString("sha", sha);
+                }), cancelling).ConfigureAwait(false)).Status;
+            }
+
+            return moved is 200 or 201
+                ? new UploadOutcome(true, 1, $"{branch} holds {path}")
+                : Refused(moved);
+        }
+        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or JsonException
+            or InvalidOperationException or KeyNotFoundException)
+        {
+            return new UploadOutcome(false, 0, $"could not reach GitHub: {exception.Message}");
+        }
+    }
+
     /// <summary>The blobs, the tree and the commit. The commit's id, or empty when GitHub refused.</summary>
     private async Task<string> Commit(string parent, List<UploadFile> changed, CancellationToken cancelling)
     {
