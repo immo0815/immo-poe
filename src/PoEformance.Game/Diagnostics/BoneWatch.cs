@@ -24,8 +24,15 @@ namespace PoEformance.Game.Diagnostics;
 /// own skeleton - and those of the pieces it hangs off itself - is first looked for in the whole of memory by its rest (<see cref="PoseHunt"/>)
 /// and watched beside the blocks with the player's place; each simulated bone's swing on its parent is set out by <see cref="PoseSwing"/>.
 ///
-/// WHAT THE PERSON DOES: press the key, and once the search is done and the window says so, walk, stop and turn a few times until it says it
-/// is done - a swing wants a start and a stop to show its period and how it settles.
+/// THE 04:49 CAPTURE FOUND ONLY COPIES OF THE REST (v0.1.404's, 2026-11-01): 21 arrays in the parents' and the model's frames, not one bone of
+/// which moved while his hand did. So from v0.1.407 every piece whose rig the engine simulates a bone of is also looked for in the WORLD,
+/// round its placement's World matrix (<see cref="PoseWorld"/>), in the same sweep - arrays of its bones there and single places where a
+/// simulated bone may be kept - and both are watched with the World they are taken back through. The sweep leaves out the memory the game
+/// cannot write and the driver's write-combined heaps, which held that sweep for 1,150 of its threads' seconds and ended it on its budget.
+///
+/// WHAT THE PERSON DOES, as the capture's window asks in a banner with a tone (v0.1.407, DECIDED from the live client: "in that window
+/// finding anything is hard"): stand still while the search runs, then - at the high tone and the green banner - walk, stop and turn a few
+/// times until the low tone; a swing wants a start and a stop to show its period and how it settles.
 /// </remarks>
 public sealed class BoneWatch
 {
@@ -56,12 +63,35 @@ public sealed class BoneWatch
     /// <summary>Most bytes the skeletons found are read as, together, each sweep - CHOSEN: forty arrays of a 91-bone rig would be a quarter of a megabyte a sweep.</summary>
     public const int MostSkeletonBytes = 96 * 1024;
 
+    /// <summary>The bytes read before a candidate's x in the world, and after it - for what the engine keeps beside it (a last place, a speed).</summary>
+    public const int CandidateMargin = 32;
+
+    /// <summary>Most bytes the candidates in the world are read as, together, each sweep - CHOSEN: some five hundred places a sweep.</summary>
+    public const int MostCandidateBytes = 48 * 1024;
+
+    /// <summary>Where it stands, for the banner the capture's window shows the person at the game.</summary>
+    public enum Stage
+    {
+        /// <summary>Not begun.</summary>
+        Starting,
+
+        /// <summary>Reading the player and searching memory: the person is to stand still.</summary>
+        Searching,
+
+        /// <summary>Watching: the person is to walk, stop and turn.</summary>
+        Watching,
+
+        /// <summary>Finished, or stopped.</summary>
+        Done,
+    }
+
     private readonly IMemoryReader _reader;
     private readonly OffsetSchema _schema;
     private readonly double _seconds;
     private readonly FloatHuntProgress _hunting = new();
     private volatile bool _stop;
     private volatile bool _hunted;
+    private volatile Stage _stage;
     private long _began;
 
     /// <param name="reader">The game's memory.</param>
@@ -78,6 +108,12 @@ public sealed class BoneWatch
 
     /// <summary>For the capture's window: what it is doing.</summary>
     public string Line { get; private set; } = "not started";
+
+    /// <summary>For the capture's banner: where it stands - see <see cref="Stage"/>.</summary>
+    public Stage Now => _stage;
+
+    /// <summary>For the capture's banner: the seconds left of the watch while it watches, its whole length before.</summary>
+    public double Left => _began == 0 ? _seconds : Math.Max(0, _seconds - Stopwatch.GetElapsedTime(_began).TotalSeconds);
 
     /// <summary>For the capture's window: how far it is, nought to one - the search for the skeletons its first half where one runs.</summary>
     public float Fraction
@@ -111,6 +147,19 @@ public sealed class BoneWatch
     /// </param>
     /// <param name="regions">The game's memory regions, for the search; null leaves it out.</param>
     public IReadOnlyList<string> Run(ulong gameStatesStatic, string? bin, Func<string, IReadOnlyList<PoseRig>>? rigsOf = null, IMemoryRegions? regions = null)
+    {
+        _stage = Stage.Searching;
+        try
+        {
+            return Watch(gameStatesStatic, bin, rigsOf, regions);
+        }
+        finally
+        {
+            _stage = Stage.Done;
+        }
+    }
+
+    private IReadOnlyList<string> Watch(ulong gameStatesStatic, string? bin, Func<string, IReadOnlyList<PoseRig>>? rigsOf, IMemoryRegions? regions)
     {
         GameChainAddresses chain = GameChain.Resolve(_reader, _schema, gameStatesStatic);
         var entities = new EntityReader(_reader, _schema);
@@ -151,15 +200,17 @@ public sealed class BoneWatch
             return [.. head.Prepend("bone watch: nothing to watch - no piece read and no component of his")];
         }
 
-        // THE SKELETONS BY THEIR REST, first: the search reads the whole of memory, and a pose holds its rest whatever he does meanwhile.
-        (List<BoneWatchSeries.Block> skeletal, List<BoneWatchSeries.Skeleton> skeletons) = Skeletons(player, pieces, rigsOf, regions, head);
+        // THE SKELETONS BY THEIR REST AND IN THE WORLD, first: the search reads the whole of memory while he stands still.
+        Found found = Skeletons(player, pieces, rigsOf, regions, head);
+        List<BoneWatchSeries.Skeleton> skeletons = found.Skeletons;
 
         // THE WALK: every block a root's pointers reach, Depth hops deep, read once.
         Line = "following the pieces' pointers";
         List<BoneWatchSeries.Block> walked = Walk(roots);
 
-        // HIS PLACE, read with every sweep: the swing is the hand's motion's, and the table sets his speed beside it.
-        var always = new List<BoneWatchSeries.Block>(skeletal);
+        // HIS PLACE, read with every sweep: the swing is the hand's motion's, and the table sets his speed beside it. The skeletons, the
+        // pieces' places and the candidates in the world first, in the order their records name them.
+        var always = new List<BoneWatchSeries.Block>(found.Blocks);
         ulong render = components.GetValueOrDefault("Render");
         if (render != 0)
         {
@@ -167,8 +218,9 @@ public sealed class BoneWatch
         }
 
         // THE FINDING: every block read over the first second, those that change kept - the most changing turns first. The skeletons and
-        // his place are watched from the start.
+        // his place are watched from the start - and from here he is to move.
         _began = Stopwatch.GetTimestamp();
+        _stage = Stage.Watching;
         byte[] buffer = new byte[Math.Max(BlockBytes, always.Count == 0 ? 0 : always.Max(block => block.Size))];
         int finds = 0, sweeps = 0;
         double next = 0;
@@ -218,7 +270,7 @@ public sealed class BoneWatch
 
                 sweeps++;
                 next = now + Every;
-                Line = string.Create(CultureInfo.InvariantCulture, $"{now:0.0} of {_seconds:0} s - {kept.Count} blocks and {skeletons.Count} skeletons read {sweeps} times - walk, stop and turn");
+                Line = string.Create(CultureInfo.InvariantCulture, $"{now:0.0} of {_seconds:0} s - {kept.Count} blocks, {skeletons.Count} skeletons and {found.Candidates.Count} places in the world read {sweeps} times - walk, stop and turn");
             }
 
             Thread.Sleep(1);
@@ -227,13 +279,15 @@ public sealed class BoneWatch
         double watched = Stopwatch.GetElapsedTime(_began).TotalSeconds;
         head.Insert(0, string.Create(
             CultureInfo.InvariantCulture,
-            $"bone watch: {pieces.Count} pieces and his own components, {walked.Count} blocks walked {Depth} hops deep, {changing} changing in the first {FindSeconds:0.#} s, {kept.Count} watched and {skeletons.Count} skeletons found by their rest, for {watched:0.0} s{(_stop ? " (stopped)" : string.Empty)}, {sweeps} sweeps"));
+            $"bone watch: {pieces.Count} pieces and his own components, {walked.Count} blocks walked {Depth} hops deep, {changing} changing in the first {FindSeconds:0.#} s, {kept.Count} watched, {skeletons.Count} skeletons found by their rest or in the world and {found.Candidates.Count} places near the pieces in the world, for {watched:0.0} s{(_stop ? " (stopped)" : string.Empty)}, {sweeps} sweeps"));
         head.Insert(1, string.Create(CultureInfo.InvariantCulture, $"each block {BlockBytes} bytes; a block is kept where it changed in the finding, the most changing turn matrices first, at most {MostKept}; its reads are in {BoneWatchSeries.File} beside this file"));
         var series = new BoneWatchSeries(
             watching,
             head,
             [.. skeletons.Select(one => one with { Block = kept.Count + one.Block })],
-            render != 0 ? watching.Count - 1 : -1);
+            render != 0 ? watching.Count - 1 : -1,
+            [.. found.Places.Select(one => one with { Block = kept.Count + one.Block })],
+            [.. found.Candidates.Select(one => one with { Block = kept.Count + one.Block })]);
         if (bin is not null)
         {
             File.WriteAllBytes(bin, series.ToBytes());
@@ -243,28 +297,32 @@ public sealed class BoneWatch
         return series.Describe();
     }
 
+    /// <summary>What the search found, as blocks to watch: the skeletons, the pieces' places in the world and the candidates there, each naming its block.</summary>
+    private sealed record Found(
+        List<BoneWatchSeries.Block> Blocks, List<BoneWatchSeries.Skeleton> Skeletons, List<BoneWatchSeries.Place> Places, List<BoneWatchSeries.Candidate> Candidates);
+
     /// <summary>
     /// The skeletons of his body and every piece he is drawn with - and of the pieces those hang off themselves - found in the whole of
-    /// memory by their rest (<see cref="PoseHunt"/>), as blocks to watch; what the search said goes into the head.
+    /// memory by their rest (<see cref="PoseHunt"/>), and the pieces whose rigs the engine simulates a bone of in the world
+    /// (<see cref="PoseWorld"/>), as blocks to watch; what the search said goes into the head.
     /// </summary>
-    private (List<BoneWatchSeries.Block> Blocks, List<BoneWatchSeries.Skeleton> Skeletons) Skeletons(
+    private Found Skeletons(
         EntityIdentity player, IReadOnlyList<PlayerPieces.Piece> pieces, Func<string, IReadOnlyList<PoseRig>>? rigsOf, IMemoryRegions? regions, List<string> head)
     {
-        var blocks = new List<BoneWatchSeries.Block>();
-        var skeletons = new List<BoneWatchSeries.Skeleton>();
+        var found = new Found([], [], [], []);
         head.Add(string.Empty);
         if (rigsOf is null || regions is null)
         {
             head.Add("the skeletons by their rest: not looked for - " + (rigsOf is null ? "no install to read the pieces' rigs from" : "the game's memory regions are not listed"));
-            return (blocks, skeletons);
+            return found;
         }
 
         // HIS BODY'S OWN RIG FIRST (its attachments are what the pieces cover), then every piece's and what each hangs off itself.
         var rigs = new List<PoseRig>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        void Take(IReadOnlyList<PoseRig> found, bool firstOnly)
+        void Take(IReadOnlyList<PoseRig> taken, bool firstOnly)
         {
-            foreach (PoseRig rig in found)
+            foreach (PoseRig rig in taken)
             {
                 if (seen.Add(rig.Path))
                 {
@@ -293,23 +351,41 @@ public sealed class BoneWatch
 
         if (rigs.Count == 0)
         {
-            return (blocks, skeletons);
+            return found;
         }
 
+        List<PiecePlace> places = Places(pieces, rigs, head);
         _hunted = true;
-        Line = "looking for each piece's skeleton by its rest in the whole of memory - walk, stop and turn once the watch begins";
-        PoseHuntResult found = PoseHunt.Find(_reader, regions, rigs, pieces.Count > 0 ? pieces[0].Object : player.Address, _hunting);
-        head.AddRange(found.Lines.Select(line => "  " + line));
+        Line = "looking for each piece's skeleton by its rest and in the world, in the memory the game writes - stand still until the banner turns green";
+        PoseHuntResult result = PoseHunt.Find(_reader, regions, rigs, pieces.Count > 0 ? pieces[0].Object : player.Address, _hunting, places);
+        head.AddRange(result.Lines.Select(line => "  " + line));
         head.Add("  array\trig\tframe\tlayout\tstride\tbone 0's x\tfixed bones at rest\tbones agreeing\tsimulated bones from their rest");
-        foreach (PoseArray array in found.Arrays)
+        foreach (PoseArray array in result.Arrays)
         {
             head.Add(string.Create(
                 CultureInfo.InvariantCulture,
                 $"  array\t{array.Rig}\t{array.Frame}\t{array.Layout}\t{array.Stride}\t0x{array.First:X}\t{array.Matched} of {array.Fixed}\t{array.Votes}\t{array.Stray:0.###}"));
         }
 
+        // EACH PIECE'S PLACE IN THE WORLD watched as a block of its own, once a world array or a candidate names it: what they are taken
+        // back through at every sweep.
+        var placeBlocks = new Dictionary<int, int>();
+        int PlaceOf(int place)
+        {
+            if (!placeBlocks.TryGetValue(place, out int index))
+            {
+                PiecePlace one = result.Places[place];
+                found.Blocks.Add(new BoneWatchSeries.Block(
+                    string.Create(CultureInfo.InvariantCulture, $"{Path.GetFileName(rigs[one.Rig].Piece)}'s World (PiecePlacement.World)"), one.WorldAt, 64, []));
+                found.Places.Add(new BoneWatchSeries.Place(found.Blocks.Count - 1, 0, rigs[one.Rig]));
+                placeBlocks[place] = index = found.Places.Count - 1;
+            }
+
+            return index;
+        }
+
         int bytes = 0, past = 0;
-        foreach (PoseArray array in found.Arrays)
+        foreach (PoseArray array in result.Arrays)
         {
             PoseRig rig = rigs[array.Rig];
             int length = ((rig.Count - 1) * array.Stride) + PoseHunt.Span(array.Layout);
@@ -324,12 +400,13 @@ public sealed class BoneWatch
             }
 
             bytes += size;
-            skeletons.Add(new BoneWatchSeries.Skeleton(blocks.Count, rig, array.Frame, array.Layout, array.Stride, margin, array.Matched, array.Fixed, array.Votes));
-            blocks.Add(new BoneWatchSeries.Block(
-                string.Create(CultureInfo.InvariantCulture, $"skeleton {skeletons.Count}: {Path.GetFileName(rig.Piece)} {array.Frame} {array.Layout} {array.Stride}"),
+            int place = array.Frame == PoseFrame.World && array.Place >= 0 ? PlaceOf(array.Place) : -1;
+            found.Blocks.Add(new BoneWatchSeries.Block(
+                string.Create(CultureInfo.InvariantCulture, $"skeleton {found.Skeletons.Count + 1}: {Path.GetFileName(rig.Piece)} {array.Frame} {array.Layout} {array.Stride}"),
                 array.First - (ulong)margin,
                 size,
                 []));
+            found.Skeletons.Add(new BoneWatchSeries.Skeleton(found.Blocks.Count - 1, rig, array.Frame, array.Layout, array.Stride, margin, array.Matched, array.Fixed, array.Votes) { Place = place });
         }
 
         if (past > 0)
@@ -337,7 +414,117 @@ public sealed class BoneWatch
             head.Add(string.Create(CultureInfo.InvariantCulture, $"  {past} more arrays found, past the {MostSkeletonBytes / 1024} KB read a sweep: not watched"));
         }
 
-        return (blocks, skeletons);
+        Candidates(result, rigs, PlaceOf, found, head);
+        return found;
+    }
+
+    /// <summary>
+    /// The places of the pieces whose own rig the engine simulates a bone of: each piece's placement (PieceObject.Placement) and its World
+    /// matrix there (PiecePlacement.World), read once before the sweep - a piece whose World is not one left out, said why.
+    /// </summary>
+    private List<PiecePlace> Places(IReadOnlyList<PlayerPieces.Piece> pieces, List<PoseRig> rigs, List<string> head)
+    {
+        var places = new List<PiecePlace>();
+        if (!_schema.Structs.TryGetValue("PieceObject", out StructDef? objectFields) || objectFields.Field("Placement") is not { } placement
+            || !_schema.Structs.TryGetValue("PiecePlacement", out StructDef? placementFields) || placementFields.Field("World") is not { } world)
+        {
+            head.Add("the pieces in the world: not looked for - the schema names no PieceObject.Placement or PiecePlacement.World");
+            return places;
+        }
+
+        byte[] bytes = new byte[64];
+        foreach (PlayerPieces.Piece piece in pieces)
+        {
+            int rig = rigs.FindIndex(one => string.Equals(one.Piece, piece.Path, StringComparison.OrdinalIgnoreCase));
+            if (rig < 0 || rigs[rig].SimulatedCount == 0)
+            {
+                continue;
+            }
+
+            ulong at = _reader.ReadPointer(piece.Object + (ulong)placement.Offset);
+            ulong worldAt = at + (ulong)world.Offset;
+            string name = Path.GetFileName(piece.Path);
+            if (at == 0 || !_reader.TryRead(worldAt, bytes) || PoseWorld.Read(bytes, 0) is var matrix && !PoseWorld.IsWorld(matrix))
+            {
+                head.Add(string.Create(CultureInfo.InvariantCulture, $"  the pieces in the world: {name}'s placement 0x{at:X} holds no World at +0x{world.Offset:X} - not looked for there"));
+                continue;
+            }
+
+            places.Add(new PiecePlace(rig, worldAt, matrix));
+        }
+
+        head.Add(string.Create(
+            CultureInfo.InvariantCulture,
+            $"the pieces in the world (PoseWorld): {places.Count} pieces whose own rig the engine simulates a bone of, each looked for round its placement's World"));
+        return places;
+    }
+
+    /// <summary>
+    /// The candidates in the world as blocks to watch: each with <see cref="CandidateMargin"/> bytes either side, those whose windows meet
+    /// read as one block - the simulated bones' first, the nearest their bone's length first, until <see cref="MostCandidateBytes"/>.
+    /// </summary>
+    private void Candidates(PoseHuntResult result, List<PoseRig> rigs, Func<int, int> placeOf, Found found, List<string> head)
+    {
+        if (result.Candidates.Count == 0)
+        {
+            return;
+        }
+
+        // THE WINDOWS, joined where they meet: a world array of a rig no fixed bone of which agreed still lies among its candidates.
+        WorldCandidate[] chosen = [.. result.Candidates
+            .OrderByDescending(one => one.Parent >= 0)
+            .ThenBy(one => one.Parent >= 0 ? MathF.Abs(one.Ratio - 1f) : one.Ratio)];
+        var windows = new List<(ulong From, ulong To, List<WorldCandidate> Inside)>();
+        int bytes = 0, past = 0;
+        foreach (WorldCandidate candidate in chosen)
+        {
+            ulong from = candidate.At - CandidateMargin, to = candidate.At + (ulong)PoseHunt.Span(candidate.Layout) + CandidateMargin;
+            int joined = windows.FindIndex(window => from <= window.To && to >= window.From);
+            int grows = joined < 0 ? (int)(to - from) : (int)(Math.Max(to, windows[joined].To) - Math.Min(from, windows[joined].From) - (windows[joined].To - windows[joined].From));
+            if (bytes + grows > MostCandidateBytes)
+            {
+                past++;
+                continue;
+            }
+
+            bytes += grows;
+            if (joined < 0)
+            {
+                windows.Add((from, to, [candidate]));
+            }
+            else
+            {
+                (ulong was, ulong end, List<WorldCandidate> inside) = windows[joined];
+                inside.Add(candidate);
+                windows[joined] = (Math.Min(was, from), Math.Max(end, to), inside);
+            }
+        }
+
+        byte[] probe = new byte[(int)windows.Select(window => window.To - window.From).DefaultIfEmpty(0UL).Max()];
+        foreach ((ulong from, ulong to, List<WorldCandidate> inside) in windows.OrderBy(window => window.From))
+        {
+            int size = (int)(to - from);
+            if (!_reader.TryRead(from, probe.AsSpan(0, size)))
+            {
+                past += inside.Count;
+                continue;
+            }
+
+            found.Blocks.Add(new BoneWatchSeries.Block(
+                string.Create(CultureInfo.InvariantCulture, $"places in the world near {string.Join(", ", inside.Select(one => Path.GetFileName(rigs[result.Places[one.Place].Rig].Piece)).Distinct())}: {inside.Count}"),
+                from,
+                size,
+                []));
+            foreach (WorldCandidate candidate in inside)
+            {
+                found.Candidates.Add(new BoneWatchSeries.Candidate(
+                    found.Blocks.Count - 1, (int)(candidate.At - from), candidate.Layout, placeOf(candidate.Place), candidate.Bone, candidate.Parent));
+            }
+        }
+
+        head.Add(string.Create(
+            CultureInfo.InvariantCulture,
+            $"  the places in the world watched: {found.Candidates.Count} in {windows.Count} windows of {CandidateMargin} bytes either side{(past > 0 ? $", {past} more past the {MostCandidateBytes / 1024} KB read a sweep or no longer read" : string.Empty)}"));
     }
 
     /// <summary>Every block the roots' pointers reach, <see cref="Depth"/> hops deep, each named by its way - read once to choose.</summary>

@@ -606,6 +606,7 @@ internal sealed class CaptureKey
                     Live = work.Live,
                     Fraction = work.Fraction,
                     Stop = work.Stop,
+                    Ask = work.Ask,
                 },
                 _ when CaptureParts.RunsAtPress(part.Key) => new CaptureStep(part.File, part.Label)
                 {
@@ -1913,7 +1914,21 @@ internal sealed class CaptureKey
 /// <param name="Live">Its line: what it is doing.</param>
 /// <param name="Fraction">How far it is, nought to one.</param>
 /// <param name="Stop">Stops it early, what it found until then kept - or null where it cannot be stopped.</param>
-public sealed record CaptureWorkProgress(Func<string> Live, Func<float> Fraction, Action? Stop);
+public sealed record CaptureWorkProgress(Func<string> Live, Func<float> Fraction, Action? Stop)
+{
+    /// <summary>What it asks of the person at the game now, shown as a banner over the capture's window - null for nothing (see <see cref="CaptureAsk"/>).</summary>
+    public Func<CaptureAsk?>? Ask { get; init; }
+}
+
+/// <summary>
+/// What a part running at the press asks of the person at the game - a coloured banner over the capture's window, its countdown, and a tone
+/// as the asking to act begins and ends (v0.1.407, DECIDED from the live client: "in that window finding anything is hard").
+/// </summary>
+/// <param name="Act">Whether the person is to act now - the banner green, a high tone as it begins and a low one as it ends - or to wait, standing still.</param>
+/// <param name="Text">What to do, in a few words, set large.</param>
+/// <param name="Detail">A line under it - what comes next, how long.</param>
+/// <param name="Left">The seconds left of the asking, counted down in the banner - NaN where not known.</param>
+public sealed record CaptureAsk(bool Act, string Text, string Detail, double Left);
 
 /// <summary>A capture asked for from another thread: the parts it switched off, and where its outcome goes.</summary>
 internal sealed class CaptureRequest(HashSet<string>? off)

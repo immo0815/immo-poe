@@ -47,6 +47,9 @@ internal sealed class CaptureStep(string file, string label)
     /// <summary>Ends it early, keeping what it has - null where it cannot be.</summary>
     public Action? Stop { get; init; }
 
+    /// <summary>What it asks of the person at the game while it runs - a banner over the window - null for nothing.</summary>
+    public Func<CaptureAsk?>? Ask { get; init; }
+
     /// <summary>Whether <see cref="Stop"/> was pressed.</summary>
     public bool Stopped { get; set; }
 
@@ -114,12 +117,19 @@ internal sealed class CaptureProgress(string folder, string area, long began)
     /// <summary>Most rows the list shows before it scrolls.</summary>
     private const int MostRows = 14;
 
+    /// <summary>The tone as an asking to act begins: high and short - CHOSEN.</summary>
+    private const int ActPitch = 1320;
+
+    /// <summary>The tone as it ends: low and longer - CHOSEN.</summary>
+    private const int DonePitch = 520;
+
     private readonly List<CaptureStep> _steps = [];
     private readonly Lock _gate = new();
     private string _outcome = string.Empty;
     private bool _ok = true;
     private long _ended;
     private CaptureStep? _scrolledTo;
+    private bool _acting;
 
     /// <summary>The capture's folder.</summary>
     public string Folder { get; } = folder;
@@ -217,6 +227,7 @@ internal sealed class CaptureProgress(string folder, string area, long began)
         }
 
         long took = (ended != 0 ? ended : now) - Began;
+        Banner(states);
         ImGui.TextColored(OverlayInk.Quiet, Folder.Length > 0 ? $"{Area} · {Path.GetFileName(Folder)}" : Area);
         float whole = _steps.Count == 0 ? 1f : (finished + partly) / _steps.Count;
         ImGui.ProgressBar(ended != 0 ? 1f : whole, new Vector2(Width, 0), Invariant($"{finished} of {_steps.Count} parts · {took / 1000.0:0.0} s"));
@@ -232,6 +243,73 @@ internal sealed class CaptureProgress(string folder, string area, long began)
 
         ImGui.Spacing();
         List(states, now);
+    }
+
+    /// <summary>
+    /// What a running part asks of the person at the game, as a banner over everything else: a wide coloured bar - green to act, amber to
+    /// stand still and wait - its words set large, a line under them and the seconds left; a high tone as an asking to act begins and a low
+    /// one as it ends, so the person looking at the game rather than this window knows when to move and when to stop.
+    /// </summary>
+    /// <remarks>
+    /// ASKED FOR FROM THE LIVE CLIENT (v0.1.407): the bone watch's "walk, stop and turn" stood in a line among thirty parts, and the 04:49
+    /// capture was taken standing still - "in that window finding anything is hard". The first running part asking anything is shown.
+    /// </remarks>
+    private void Banner((CaptureStepState State, string Result, long Began, long Ended)[] states)
+    {
+        CaptureAsk? ask = null;
+        for (var at = 0; at < _steps.Count && ask is null; at++)
+        {
+            if (states[at].State == CaptureStepState.Running && _steps[at].Ask is { } asking)
+            {
+                ask = asking();
+            }
+        }
+
+        bool acting = ask is { Act: true };
+        if (acting != _acting)
+        {
+            SoundCue.Play(acting ? ActPitch : DonePitch, acting ? 250 : 450);
+            _acting = acting;
+        }
+
+        if (ask is null)
+        {
+            return;
+        }
+
+        Vector4 fill = ask.Act ? OverlayInk.Good : OverlayInk.Warn;
+        string left = double.IsFinite(ask.Left) ? Invariant($"{Math.Ceiling(Math.Max(0, ask.Left)):0} s left") : string.Empty;
+        Vector2 from = ImGui.GetCursorScreenPos();
+        float pad = ImGui.GetStyle().FramePadding.Y * 2;
+        float big = 0;
+        OverlayFonts.Heading(() => big = ImGui.CalcTextSize(ask.Text, false, Width - (2 * pad)).Y);
+        float line = ImGui.GetTextLineHeight();
+        float height = big + line + (3 * pad);
+        ImDrawListPtr draw = ImGui.GetWindowDrawList();
+        draw.AddRectFilled(from, from + new Vector2(Width, height), ImGui.GetColorU32(fill), 6f);
+        uint ink = ImGui.GetColorU32(OverlayInk.Panel);
+
+        // THE WORDS LARGE, then the line under them and the count on its right.
+        ImGui.SetCursorScreenPos(from + new Vector2(pad, pad));
+        ImGui.PushStyleColor(ImGuiCol.Text, ink);
+        OverlayFonts.Heading(() =>
+        {
+            ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + Width - (2 * pad));
+            ImGui.TextUnformatted(ask.Text);
+            ImGui.PopTextWrapPos();
+        });
+        ImGui.SetCursorScreenPos(from + new Vector2(pad, big + (2 * pad)));
+        ImGui.TextUnformatted(ask.Detail);
+        if (left.Length > 0)
+        {
+            float wide = ImGui.CalcTextSize(left).X;
+            ImGui.SetCursorScreenPos(from + new Vector2(Width - pad - wide, big + (2 * pad)));
+            ImGui.TextUnformatted(left);
+        }
+
+        ImGui.PopStyleColor();
+        ImGui.SetCursorScreenPos(from + new Vector2(0, height + ImGui.GetStyle().ItemSpacing.Y));
+        ImGui.Dummy(new Vector2(Width, 0));
     }
 
     /// <summary>The parts running now - the long ones with what they are doing, how far they are and a stop where there is one.</summary>

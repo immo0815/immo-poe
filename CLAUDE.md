@@ -1017,6 +1017,27 @@ SO v0.1.404 MEASURES BOTH BEFORE EITHER IS BUILT:
   (a FRAGMENT, the EXTENSIONPOINT an Input node reads) and every DECLARATIONS block those include, through every include - those sources
   whole. `particles-replay.txt` compiles the graphs again offline.
 Take a capture with the staff in hand, OUT OF TOWN: press, and once the window says to, walk, stop and turn a few times.
+WHAT v0.1.404'S CAPTURE SAID (2026-11-01 04:49, The Red Vale; the wand and focus in hand - the staff in the set not drawn - and the person stood
+still, the window's one line unread among thirty parts): the search found only COPIES OF THE REST - 21 arrays of the body, the wand, the focus and
+the shawl in their parents' and the model's frames, not one bone of which moved while the wand's placement went 6 units; the sweep spent 1,150 of
+its threads' seconds on 5.2 GB of the driver's write-combined heaps and ended on its budget, 58 of its 118 needles held at 64 places. The
+placements MEASURED (schema `PiecePlacement`): World's rows 0.925 long; the fourth matrix the body's socket bone's model rest (`Socket`:
+aux_R_Weapon_attachment_jntBnd the main hand's, aux_L_ the off hand's, aux_Back_attachment the cape's); a box round the piece at +0x338 (a reading).
+DECIDED from the live client: a new search, then a new capture - and a banner ("in that window finding anything is hard"). SO v0.1.407:
+- THE SWEEP READS ONLY WHAT THE GAME WRITES and none of the driver's slow heaps (`WritableRegions`, `MemoryRegion.Slow`, `Writable`), and a rest
+  keeps 256 places (`FloatNeedle.Most`, `PoseHunt.MostRestPlaces`).
+- EVERY PIECE WHOSE OWN RIG THE ENGINE SIMULATES A BONE OF IS LOOKED FOR IN THE WORLD too (`PoseWorld`, `PiecePlace`): one box round its bones'
+  rests through its placement's World, as wide as its chains reach and the hand may wander (30 units, CHOSEN), in the same sweep. Once done, each
+  place found is read again with the World of the same moment and taken into the piece's frame: at a fixed bone's rest (within 0.5, CHOSEN) it
+  votes for an array of the rig in the world (`PoseFrame.World`); from a simulated bone's fixed ancestor at that bone's rest distance (0.9 to 1.1,
+  CHOSEN) it is a candidate (`WorldCandidate`). The world arrays, the candidates with 32 bytes either side and each piece's World are watched
+  (bone-watch.bin version 3; 2 and 1 still read), and the reading takes every read back through the World read with it - a candidate swinging at
+  a steady length on its ancestor is set out as a pendulum beside his speed. A copy of the rest is said in one line.
+- THE CAPTURE'S WINDOW ASKS IN A BANNER (`CaptureAsk`, `CaptureWorkProgress.Ask`): amber "STAND STILL" while the bone watch searches, green
+  "NOW: walk, stop and turn" with its seconds counted down while it watches, a high tone as it turns green and a low one as it ends (`SoundCue`,
+  in the overlay now). Any part that needs the person to act asks so.
+Take the capture with the STAFF IN HAND, out of town: press, stand still while the banner is amber, and at the high tone walk, stop and turn until
+the low one.
 
 ## Verify against the game, not against yourself
 

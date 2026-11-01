@@ -17,7 +17,7 @@ public sealed class PoseHuntTests
     private const int HeapBytes = 0x8000;
 
     /// <summary>The staff's rig as v0.1.401's capture wrote it: its model rests, every bone's turn the identity.</summary>
-    private static readonly (string Name, int Parent, Vector3 At)[] Staff =
+    internal static readonly (string Name, int Parent, Vector3 At)[] Staff =
     [
         ("root_jntBnd", -1, Vector3.Zero),
         ("base_lamp_jntBnd", 0, new(-14.542f, -0.024f, -141.029f)),
@@ -233,7 +233,7 @@ public sealed class PoseHuntTests
     }
 
     /// <summary>A rig from bones' model rests (or, with <paramref name="local"/>, their rests in their parents' frames), every turn the identity.</summary>
-    private static PoseRig Rig(string piece, (string Name, int Parent, Vector3 At)[] bones, bool local = false)
+    internal static PoseRig Rig(string piece, (string Name, int Parent, Vector3 At)[] bones, bool local = false)
     {
         var model = new Matrix4x4[bones.Length];
         var locals = new Matrix4x4[bones.Length];
@@ -267,7 +267,7 @@ public sealed class PoseHuntTests
     }
 
     /// <summary>A matrix's sixteen floats by rows at <paramref name="at"/>.</summary>
-    private static void WriteMatrix(byte[] bytes, int at, Matrix4x4 matrix)
+    internal static void WriteMatrix(byte[] bytes, int at, Matrix4x4 matrix)
     {
         float[] values =
         [
@@ -281,7 +281,7 @@ public sealed class PoseHuntTests
     }
 
     /// <summary>Floats of every size from a seed, as a heap holds them - never a rest of the rigs here.</summary>
-    private static byte[] Noise(int length, int seed)
+    internal static byte[] Noise(int length, int seed)
     {
         var random = new Random(seed);
         byte[] bytes = new byte[length];
@@ -294,7 +294,7 @@ public sealed class PoseHuntTests
         return bytes;
     }
 
-    private sealed class Space(params MemoryRegion[] regions) : IMemoryRegions
+    internal sealed class Space(params MemoryRegion[] regions) : IMemoryRegions
     {
         public IEnumerable<MemoryRegion> Regions() => regions;
     }

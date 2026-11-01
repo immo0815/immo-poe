@@ -265,12 +265,12 @@ public static class PoseSwing
 
             if (Way(block, skeleton, how, bone, parent) is { } way)
             {
-                swings.Add(Measured(rig.Names[bone], rig.Names[parent], "place", times, way.Vectors, way.Length, way.Ratios));
+                swings.Add(Measure(rig.Names[bone], rig.Names[parent], "place", times, way.Vectors, way.Length, way.Ratios));
             }
 
             if (how.Kind != TurnKind.None && Turned(block, skeleton, how, bone, parent) is { } turned)
             {
-                swings.Add(Measured(rig.Names[bone], rig.Names[parent], "turn", times, turned, 0f, null));
+                swings.Add(Measure(rig.Names[bone], rig.Names[parent], "turn", times, turned, 0f, null));
             }
         }
 
@@ -375,8 +375,17 @@ public static class PoseSwing
     }
 
     /// <summary>A swing measured: signed along its main axis, its period both ways, its turning points and its decrement.</summary>
-    private static BoneSwing Measured(string bone, string parent, string by, double[] times, Vector3[] vectors, float rest, float[]? ratios)
+    /// <param name="bone">The bone, by name.</param>
+    /// <param name="parent">What it swings on, by name.</param>
+    /// <param name="by">What it is measured by - "place", "turn", or a place in the world.</param>
+    /// <param name="times">Each read's time.</param>
+    /// <param name="vectors">Its turn from its rest at each read, the axis times the angle in degrees.</param>
+    /// <param name="rest">How far it rests from what it swings on - nought where measured by its turn.</param>
+    /// <param name="ratios">Its distance at each read over its rest's, or null.</param>
+    public static BoneSwing Measure(string bone, string parent, string by, double[] times, Vector3[] vectors, float rest, float[]? ratios)
     {
+        ArgumentNullException.ThrowIfNull(times);
+        ArgumentNullException.ThrowIfNull(vectors);
         (float[] signed, Vector3 axis) = Signed(vectors);
         float[] angle = [.. vectors.Select(one => one.Length())];
         IReadOnlyList<(double At, float Value, bool High)> extrema = Extrema(times, signed, LeastTurningPoint);
