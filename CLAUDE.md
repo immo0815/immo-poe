@@ -1363,6 +1363,16 @@ translation the staff's placement?); their bones (`emitter_bones_data`) found by
 the array's start by the emitter's own bone start, the bases most emitters agree on read back; the region holding the arrays written whole
 (`particle-emitters.bin`, the frame's other uploads with it - where the dispatch's globals are to be looked for offline; the replay votes for
 the bones inside it again); and the near emitters followed frame by frame by their first particle through both arrays.
+ITS CAPTURE (19:44) SETTLED THE TRANSFORM AND THE CLOCK: each lamp emitter's translation and rotation are the held staff's
+`PiecePlacement.World` (0.385 units and 0.47 degrees off, read a moment apart) at his scale 0.925; followed by its first particle, an emitter's
+time runs at a second a second, its step to prev_time the frame (102 frames a second then), its bone start changing every frame (12, 20, 10,
+16...: the bones array is packed anew each frame). The bones were not found: the vote's bases all lay inside the emitter arrays (a record's
+translation and time read as a float4 pair), and the region holds no bones at all. The shader says why the search looked in the wrong frame -
+a bone is in the EMITTER'S OWN FRAME, placed at `translation + RotateVec(bone * scale, rotation)` - and gives a fingerprint that needs no
+frame: w is the distance along the bones (GetParticleEmitterBoneGroupLength, the binary search over it), so a run starts with w nought and the
+next bone's w is its distance from the first. v0.1.434 looks for those runs in the heap and the driver's heaps (`ParticleEmitterHunt.Chains`),
+every near record of both arrays voting by its own first bone, the best bases read back and their bones placed in the world through the
+emitter; `particle-emitters.bin` holds the region and the bones arrays read, and the replay votes inside them again.
 
 ## Verify against the game, not against yourself
 

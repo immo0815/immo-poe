@@ -89,52 +89,47 @@ public sealed class ParticleEmitterHuntTests
     }
 
     [Fact]
-    public void THEBONESArrayIsWhereTheEmittersStartsAgree()
+    public void THEBONESArrayIsWhereTheEmittersRunsOfBonesAgree()
     {
-        // THREE EMITTERS at one place with their bones at 6, 8 and 16 (two each), as the staff's lamp: a region whose bones array starts at
-        // +0x100, a stray float4 pair near them elsewhere that only one emitter could vote for.
+        // THREE EMITTERS with their two bones at 6, 8 and 16, as the staff's lamp: each run w nought then the next bone's w its distance,
+        // the array starting at +0x100; a stray run elsewhere that one record alone could vote for; a block of noughts that is no run.
         var place = new Vector3(11439.5f, 10848.4f, -85.8f);
-        ParticleEmitterHunt.Record[] near =
+        ParticleEmitterHunt.Record[] voters =
         [
             ParticleEmitterHunt.Decode(Record(0.925f, place, 1f)) with { Bones = (6, 2) },
             ParticleEmitterHunt.Decode(Record(0.925f, place, 1f)) with { Bones = (8, 2) },
             ParticleEmitterHunt.Decode(Record(0.925f, place, 1f)) with { Bones = (16, 2) },
         ];
         byte[] region = new byte[0x2000];
-        void Bone(int at, Vector3 pos)
+        void Run(int at, Vector3 first, Vector3 second)
         {
-            for (var half = 0; half < 2; half++)
+            float distance = Vector3.Distance(first, second);
+            foreach ((int Offset, Vector3 Pos, float W) bone in new[] { (0, first, 0f), (16, first, 0f), (32, second, distance), (48, second, distance) })
             {
-                BinaryPrimitives.WriteSingleLittleEndian(region.AsSpan(at + (half * 16)), pos.X);
-                BinaryPrimitives.WriteSingleLittleEndian(region.AsSpan(at + (half * 16) + 4), pos.Y);
-                BinaryPrimitives.WriteSingleLittleEndian(region.AsSpan(at + (half * 16) + 8), pos.Z);
+                BinaryPrimitives.WriteSingleLittleEndian(region.AsSpan(at + bone.Offset), bone.Pos.X);
+                BinaryPrimitives.WriteSingleLittleEndian(region.AsSpan(at + bone.Offset + 4), bone.Pos.Y);
+                BinaryPrimitives.WriteSingleLittleEndian(region.AsSpan(at + bone.Offset + 8), bone.Pos.Z);
+                BinaryPrimitives.WriteSingleLittleEndian(region.AsSpan(at + bone.Offset + 12), bone.W);
             }
         }
 
-        foreach (int bone in new[] { 6, 7, 8, 9, 16, 17 })
+        var lamp = new Vector3(-16.3f, 6.5f, -118f);
+        foreach (int start in new[] { 6, 8, 16 })
         {
-            Bone(0x100 + (bone * ParticleEmitterHunt.BoneBytes), place + new Vector3(0, 0, -100 - bone));
+            Run(0x100 + (start * ParticleEmitterHunt.BoneBytes), lamp, lamp + new Vector3(0, 0, 10));
         }
 
-        Bone(0x1800, place + new Vector3(5, 0, 0));
-        var places = new List<(ulong At, int Emitter)>();
-        for (var at = 0; at + 32 <= region.Length; at += 16)
-        {
-            var pos = new Vector3(BinaryPrimitives.ReadSingleLittleEndian(region.AsSpan(at)), BinaryPrimitives.ReadSingleLittleEndian(region.AsSpan(at + 4)), BinaryPrimitives.ReadSingleLittleEndian(region.AsSpan(at + 8)));
-            for (var e = 0; e < near.Length; e++)
-            {
-                if (Vector3.Distance(pos, near[e].Translation) <= ParticleEmitterHunt.BoneReach)
-                {
-                    places.Add((Heap + (ulong)at, e));
-                }
-            }
-        }
+        Run(0x1800, lamp, lamp + new Vector3(3, 0, 0));
+        var runs = new List<FloatSighting>();
+        ParticleEmitterHunt.ChainSweep(region, region.Length, Heap, runs);
 
-        (ulong first, uint agreed) = ParticleEmitterHunt.Votes(places, near)[0];
-
+        Assert.Equal(4, runs.Count);
+        (ulong first, uint agreed) = ParticleEmitterHunt.Votes(runs.Select(one => one.At), voters)[0];
         Assert.Equal(Heap + 0x100, first);
         Assert.Equal(0b111u, agreed);
-        Assert.Contains(ParticleEmitterHunt.RegionVotes(region, Heap, near), line => line.Contains("the most agreed 3 of 3, first at 0x20000100", StringComparison.Ordinal));
+        List<string> said = ParticleEmitterHunt.SaidBones(region.AsSpan(0x100), voters);
+        Assert.All(said, line => Assert.DoesNotContain("NO RUN STARTS THERE", line, StringComparison.Ordinal));
+        Assert.Contains("[1] (-16.3, 6.5, -108) w 10", said[0], StringComparison.Ordinal);
     }
 
     /// <summary>A record as the engine lays it out, with the scale <paramref name="scale"/> and a turn about z.</summary>

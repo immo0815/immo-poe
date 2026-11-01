@@ -52,9 +52,6 @@ public static class ParticleEmitterHunt
     /// <summary>The most changes of one followed emitter written - CHOSEN; all are counted.</summary>
     public const int MostChanges = 48;
 
-    /// <summary>How far from its emitter's translation a bone may stand to be taken for one of its bones - CHOSEN: a staff's length and more.</summary>
-    public const float BoneReach = 400f;
-
     /// <summary>The most places near one emitter kept as its bones' candidates - CHOSEN.</summary>
     public const int MostBonePlaces = 32768;
 
@@ -396,16 +393,19 @@ public static class ParticleEmitterHunt
             .GroupBy(one => one.ParticlesStart)
             .Select(group => group.MaxBy(one => one.Time))
             .Take(MostNear)];
+        // EVERY RECORD NEAR HIM VOTES for where the bones array starts - both frames' arrays, each by its own first bone.
+        List<Record> voters = [.. ranked.Where(one => one.Distance <= NearReach).Select(one => Decode(one.Bytes)).Take(32)];
         Pieces(reader, schema, render, near, lines);
-        if (!running.Stopping && near.Count > 0)
+        List<(ulong At, byte[] Bytes)> bones = [];
+        if (!running.Stopping && voters.Count > 0)
         {
             running.Phase(2);
-            Bones(reader, writable, near, running, lines);
+            bones = Bones(reader, regions, writable, voters, running, lines);
         }
 
         if (runs.Count > 0 && runs.MaxBy(one => one.Length) is var longest && Array.Find(all, region => longest.At >= region.Address && longest.At < region.Address + region.Size) is { Size: > 0 } holding)
         {
-            Region(reader, holding, folder, near, lines);
+            Region(reader, holding, folder, bones, lines);
         }
 
         // THE EMITTERS NEAR HIM, FOLLOWED by their first particle through every array, frame after frame.
@@ -500,11 +500,30 @@ public static class ParticleEmitterHunt
                 .GroupBy(one => one.ParticlesStart)
                 .Select(group => group.MaxBy(one => one.Time))
                 .Take(MostNear)];
-            ulong address = BinaryPrimitives.ReadUInt64LittleEndian(region);
-            int length = (int)Math.Min(BinaryPrimitives.ReadUInt64LittleEndian(region.AsSpan(8)), (ulong)(region.Length - 16));
+            // EVERY BLOCK searched for runs of bones as the capture searched memory, voted for by the near records, the best read back.
+            List<Record> voters = [.. decoded.Where(one => Vector3.Distance(one.Translation, player.Value) <= NearReach).Take(32)];
+            List<(ulong At, byte[] Bytes)> blocks = Blocks(region);
+            var runs = new List<FloatSighting>();
+            foreach ((ulong at, byte[] bytes) in blocks)
+            {
+                ChainSweep(bytes, bytes.Length, at, runs);
+            }
+
+            List<(ulong Base, uint Agreed)> bases = Votes(runs.Select(one => one.At), voters);
             lines.Add(string.Empty);
-            lines.Add(string.Create(CultureInfo.InvariantCulture, $"=== the region 0x{address:X} ({length:N0} bytes, {RegionFile}): the {near.Count} emitters within {NearReach:0} of the nearest record's translation, their bones voted for inside it"));
-            lines.AddRange(RegionVotes(region.AsSpan(16, length), address, near));
+            lines.Add(string.Create(CultureInfo.InvariantCulture,
+                $"=== {RegionFile}: {blocks.Count} blocks ({string.Join(", ", blocks.Select(one => $"0x{one.At:X} {one.Bytes.Length:N0} bytes"))}); {runs.Count} runs of bones in them, voted for by {voters.Count} near records ({near.Count} emitters)"));
+            foreach ((ulong at, uint agreed) in bases.Take(2))
+            {
+                (ulong blockAt, byte[] block) = blocks.Find(one => at >= one.At && at < one.At + (ulong)one.Bytes.Length);
+                if (block is null)
+                {
+                    continue;
+                }
+
+                lines.Add(string.Create(CultureInfo.InvariantCulture, $"--- base 0x{at:X}: {BitOperations.PopCount(agreed)} of {voters.Count} records agree"));
+                lines.AddRange(SaidBones(block.AsSpan((int)(at - blockAt)), voters).Select(one => "  " + one));
+            }
         }
 
         return lines;
@@ -557,163 +576,195 @@ public static class ParticleEmitterHunt
     }
 
     /// <summary>
-    /// The near emitters' bones (emitter_bones_data): the game's heap swept for float4 pairs near an emitter's translation, the next one
-    /// within a hundred units of the first (pos and prev_pos), each voting for where the array starts by the emitter's own bone start
-    /// (base = place - 32 x start); the bases most emitters agree on read back, each emitter's bones decoded there.
+    /// The near emitters' bones (emitter_bones_data). A bone position is in the EMITTER'S OWN FRAME - the update places it through the
+    /// emitter's transform, <c>translation + RotateVec(bone * scale, rotation)</c> (gpuparticles.ffx's emitter transform with bones) - and its
+    /// w is the distance along the bones (GetParticleEmitterBoneGroupLength reads the last bone's, a binary search runs over them), so an
+    /// emitter's run of bones begins with w nought, pos and prev_pos alike, and the next bone's w is its distance from the first. Every such
+    /// pair in the game's heap and then in the driver's heaps (<see cref="SlowLimit"/>) votes for the array's start by each near record's
+    /// own first bone (base = place - 32 x start), records of both frames' arrays alike; the bases most records agree on are read back, each
+    /// record's bones decoded there and placed in the world through its emitter.
     /// </summary>
-    private static void Bones(IMemoryReader reader, IMemoryRegions writable, IReadOnlyList<Record> near, Running running, List<string> lines)
+    /// <remarks>
+    /// MEASURED BEFORE (v0.1.433, 19:44): the bones stand neither in the region holding the arrays nor anywhere in the heap in the world's
+    /// frame - every base voted for then lay inside the emitter arrays themselves, whose translation and time read as a float4 pair.
+    /// </remarks>
+    private static List<(ulong At, byte[] Bytes)> Bones(
+        IMemoryReader reader, IMemoryRegions regions, IMemoryRegions writable, IReadOnlyList<Record> voters, Running running, List<string> lines)
     {
-        Vector3[] places = [.. near.Select(one => one.Translation)];
-        Vector3 least = places.Aggregate(Vector3.Min) - new Vector3(BoneReach), most = places.Aggregate(Vector3.Max) + new Vector3(BoneReach);
-        FloatNeedle[] kinds = [.. near.Select(one => new FloatNeedle($"a bone of the emitter of particles {one.ParticlesStart}", [], 0f, Most: MostBonePlaces))];
-        void Sweeper(ReadOnlySpan<byte> chunk, int starts, ulong at, List<FloatSighting> into)
-        {
-            ReadOnlySpan<float> f = MemoryMarshal.Cast<byte, float>(chunk);
-            int first = (int)((16 - (at & 15)) & 15) / 4;
-            int last = Math.Min((starts / 4) - 1, f.Length - 8);
-            for (int i = first; i <= last; i += 4)
-            {
-                float x = f[i], y = f[i + 1], z = f[i + 2];
-                if (!(x >= least.X && x <= most.X && y >= least.Y && y <= most.Y && z >= least.Z && z <= most.Z))
-                {
-                    continue;
-                }
-
-                var pos = new Vector3(x, y, z);
-                var prev = new Vector3(f[i + 4], f[i + 5], f[i + 6]);
-                if (!float.IsFinite(f[i + 3]) || !float.IsFinite(f[i + 7]) || !(Vector3.Distance(pos, prev) <= 100f))
-                {
-                    continue;
-                }
-
-                for (var e = 0; e < places.Length; e++)
-                {
-                    if (Vector3.Distance(pos, places[e]) <= BoneReach)
-                    {
-                        into.Add(new FloatSighting(at + (ulong)(i * 4), e));
-                    }
-                }
-            }
-        }
-
-        FloatHuntResult swept = FloatHunt.Scan(reader, writable, kinds, Sweeper, BoneBytes, running.BoneSweep, budget: 2 * HeapScan.ByteBudget);
+        FloatNeedle[] kinds = [new("a run of an emitter's bones: w nought, then the next bone's w its distance", [], 0f, Most: MostBonePlaces)];
+        FloatHuntResult heap = FloatHunt.Scan(reader, writable, kinds, ChainSweep, 2 * BoneBytes, running.BoneSweep, budget: 2 * HeapScan.ByteBudget);
+        var places = new List<(ulong At, string Where)>(heap.Sightings.Select(one => (one.At, "heap")));
         lines.Add(string.Empty);
-        lines.Add(string.Create(CultureInfo.InvariantCulture,
-            $"=== the near emitters' bones (emitter_bones_data: BoneData pos and prev_pos, a float4 each, w the distance along the bones): {Swept("the game's heap swept for float4 pairs within " + BoneReach.ToString("0", CultureInfo.InvariantCulture) + " of a near emitter's translation", swept, string.Empty)}"));
-        List<(ulong Base, uint Agreed)> bases = Votes(swept.Sightings.Select(one => (one.At, one.Needle)), near);
-        lines.Add(string.Create(CultureInfo.InvariantCulture, $"  {bases.Count:N0} bases voted for; the {Math.Min(6, bases.Count)} most emitters agree on, each read back - every near emitter's bones at it, whether all stand within {BoneReach:0} of its translation"));
-        foreach ((ulong at, uint agreed) in bases.Take(6))
+        lines.Add("=== the near emitters' bones (emitter_bones_data: BoneData pos and prev_pos, a float4 each, in the emitter's own frame, w the distance along the bones) - found as runs whose first w is nought and whose second w is the distance between them, voted for by every near record's first bone");
+        lines.Add("  " + Swept("the game's heap", heap, string.Empty));
+        if (!running.Stopping)
         {
-            Said(reader, at, agreed, near, lines);
+            using var limit = new Timer(_ => running.Slow.Stop(), null, SlowLimit, Timeout.InfiniteTimeSpan);
+            FloatHuntResult slow = FloatHunt.Scan(reader, new DriverHeaps(regions), kinds, ChainSweep, 2 * BoneBytes, running.Slow, budget: long.MaxValue / 4);
+            places.AddRange(slow.Sightings.Select(one => (one.At, "driver")));
+            lines.Add("  " + Swept($"the driver's write-combined and uncached heaps (at most {SlowLimit.TotalSeconds:0} s)", slow, string.Empty));
         }
+
+        List<(ulong Base, uint Agreed)> bases = Votes(places.Select(one => one.At), voters);
+        lines.Add(string.Create(CultureInfo.InvariantCulture,
+            $"  {places.Count:N0} runs found, {bases.Count:N0} bases voted for by {voters.Count} near records (each record's own first bone); the {Math.Min(4, bases.Count)} most agree on, read back"));
+        var blocks = new List<(ulong At, byte[] Bytes)>();
+        foreach ((ulong at, uint agreed) in bases.Take(4))
+        {
+            string where = places.Exists(one => one.At >= at && one.At < at + (64UL * BoneBytes) && one.Where == "driver") ? "the driver's heaps" : "the heap";
+            uint most = voters.Count == 0 ? 0 : voters.Max(one => one.Bones.Start + one.Bones.Count);
+            byte[] bytes = new byte[(int)Math.Max(1u, most) * BoneBytes];
+            if (!reader.TryRead(at, bytes))
+            {
+                lines.Add(string.Create(CultureInfo.InvariantCulture, $"  --- base 0x{at:X}: did not read"));
+                continue;
+            }
+
+            blocks.Add((at, bytes));
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"  --- base 0x{at:X} in {where}: {BitOperations.PopCount(agreed)} of {voters.Count} records agree"));
+            lines.AddRange(SaidBones(bytes, voters).Select(line => "    " + line));
+        }
+
+        return blocks;
     }
 
-    /// <summary>
-    /// Where an emitter's bones array may start, by every place found near an emitter: base = place - 32 x the emitter's first bone; the
-    /// bases the most emitters vote for first. Shared by the capture and the offline reader.
-    /// </summary>
-    /// <param name="places">Each place found and which emitter it was found near.</param>
-    /// <param name="near">The emitters, by the index the places name.</param>
-    public static List<(ulong Base, uint Agreed)> Votes(IEnumerable<(ulong At, int Emitter)> places, IReadOnlyList<Record> near)
+    /// <summary>The chain's test: a 16-byte place where a run of bones begins - w nought now and last frame, the next bone's w its distance.</summary>
+    public static void ChainSweep(ReadOnlySpan<byte> chunk, int starts, ulong at, List<FloatSighting> into)
     {
-        ArgumentNullException.ThrowIfNull(places);
-        ArgumentNullException.ThrowIfNull(near);
-        // EVERY BONE OF AN EMITTER VOTES, and a base is ranked by the emitters agreeing and then by the bones it fills: an emitter's bones
-        // stand side by side, so a base one bone off gets every emitter's vote too, through one bone each.
-        var votes = new Dictionary<ulong, (uint Agreed, int Bones)>();
-        foreach ((ulong at, int emitter) in places)
+        ArgumentNullException.ThrowIfNull(into);
+        ReadOnlySpan<float> f = MemoryMarshal.Cast<byte, float>(chunk);
+        int first = (int)((16 - (at & 15)) & 15) / 4;
+        int last = Math.Min((starts / 4) - 1, f.Length - 16);
+        for (int i = first; i <= last; i += 4)
         {
-            if ((uint)emitter >= (uint)Math.Min(near.Count, 32))
+            if (f[i + 3] != 0f || f[i + 7] != 0f || f[i + 11] == 0f)
             {
                 continue;
             }
 
-            for (uint bone = 0; bone < Math.Max(1u, near[emitter].Bones.Count); bone++)
+            if (Chains(f.Slice(i, 16)))
             {
-                ulong offset = (ulong)(near[emitter].Bones.Start + bone) * BoneBytes;
-                if (at >= offset)
+                into.Add(new FloatSighting(at + (ulong)(i * 4), 0));
+            }
+        }
+    }
+
+    /// <summary>Whether sixteen floats begin a run of bones: w nought for both of the first, and the second's w its distance from the first, now and last frame.</summary>
+    public static bool Chains(ReadOnlySpan<float> f)
+    {
+        if (f.Length < 16 || f[3] != 0f || f[7] != 0f)
+        {
+            return false;
+        }
+
+        float d = Distance(f, 8, 0), dp = Distance(f, 12, 4);
+        return float.IsFinite(d) && float.IsFinite(dp) && d > 0.01f && d < 1e5f
+            && MathF.Abs(f[11] - d) <= 1e-3f * MathF.Max(1f, d) && MathF.Abs(f[15] - dp) <= 1e-3f * MathF.Max(1f, dp);
+    }
+
+    private static float Distance(ReadOnlySpan<float> f, int a, int b)
+    {
+        float x = f[a] - f[b], y = f[a + 1] - f[b + 1], z = f[a + 2] - f[b + 2];
+        return MathF.Sqrt((x * x) + (y * y) + (z * z));
+    }
+
+    /// <summary>
+    /// Where the bones array may start, by every run found: base = run - 32 x a record's first bone, for every record with two bones or more;
+    /// the bases the most records vote for first. Shared by the capture and the offline reader.
+    /// </summary>
+    /// <param name="runs">Where each run of bones was found.</param>
+    /// <param name="voters">The near records (at most 32), each voting by its own first bone.</param>
+    public static List<(ulong Base, uint Agreed)> Votes(IEnumerable<ulong> runs, IReadOnlyList<Record> voters)
+    {
+        ArgumentNullException.ThrowIfNull(runs);
+        ArgumentNullException.ThrowIfNull(voters);
+        var votes = new Dictionary<ulong, uint>();
+        foreach (ulong at in runs)
+        {
+            for (var r = 0; r < voters.Count && r < 32; r++)
+            {
+                ulong offset = (ulong)voters[r].Bones.Start * BoneBytes;
+                if (voters[r].Bones.Count >= 2 && at >= offset)
                 {
-                    (uint agreed, int bones) = votes.GetValueOrDefault(at - offset);
-                    votes[at - offset] = (agreed | (1u << emitter), bones + 1);
+                    votes[at - offset] = votes.GetValueOrDefault(at - offset) | (1u << r);
                 }
             }
         }
 
         return [.. votes
-            .OrderByDescending(one => BitOperations.PopCount(one.Value.Agreed))
-            .ThenByDescending(one => one.Value.Bones)
-            .ThenBy(one => one.Key)
-            .Select(one => (Base: one.Key, Agreed: one.Value.Agreed))];
+            .Select(one => (Base: one.Key, Agreed: one.Value))
+            .OrderByDescending(one => BitOperations.PopCount(one.Agreed))
+            .ThenBy(one => one.Base)];
     }
 
-    /// <summary>Every near emitter's bones as they stand at one base, decoded.</summary>
-    private static void Said(IMemoryReader reader, ulong at, uint agreed, IReadOnlyList<Record> near, List<string> lines)
+    /// <summary>Every record's bones as a bones array's bytes hold them from its start: each bone in the emitter's frame, its w, and where it stands in the world through the emitter.</summary>
+    public static List<string> SaidBones(ReadOnlySpan<byte> bones, IReadOnlyList<Record> voters)
     {
-        int whole = 0;
-        var said = new List<string>();
-        for (var e = 0; e < near.Count; e++)
+        ArgumentNullException.ThrowIfNull(voters);
+        var lines = new List<string>();
+        for (var r = 0; r < voters.Count; r++)
         {
-            Record emitter = near[e];
-            uint count = emitter.Bones.Count;
-            if (count == 0)
+            Record emitter = voters[r];
+            var said = new List<string>();
+            bool chain = true;
+            for (var b = 0; b < emitter.Bones.Count; b++)
             {
-                continue;
-            }
+                int at = (int)(emitter.Bones.Start + (uint)b) * BoneBytes;
+                if (at + BoneBytes > bones.Length)
+                {
+                    said.Add("past the bytes read");
+                    chain = false;
+                    break;
+                }
 
-            byte[] bytes = new byte[(int)count * BoneBytes];
-            if (!reader.TryRead(at + ((ulong)emitter.Bones.Start * BoneBytes), bytes))
-            {
-                said.Add(string.Create(CultureInfo.InvariantCulture, $"    particles {emitter.ParticlesStart}: its bones did not read"));
-                continue;
-            }
-
-            bool all = true;
-            var bones = new List<string>();
-            for (var b = 0; b < count; b++)
-            {
-                ReadOnlySpan<float> f = MemoryMarshal.Cast<byte, float>(bytes.AsSpan(b * BoneBytes, BoneBytes));
+                ReadOnlySpan<float> f = MemoryMarshal.Cast<byte, float>(bones.Slice(at, BoneBytes));
                 var pos = new Vector3(f[0], f[1], f[2]);
-                all &= Vector3.Distance(pos, emitter.Translation) <= BoneReach;
-                bones.Add(string.Create(CultureInfo.InvariantCulture, $"[{b}] pos {Say(pos)} w {f[3]:G6} prev {Say(new Vector3(f[4], f[5], f[6]))} w {f[7]:G6} ({Vector3.Distance(pos, emitter.Translation):0.#} from the emitter)"));
+                Vector3 world = emitter.Translation + Vector3.Transform(pos * emitter.Scale, emitter.Rotation);
+                said.Add(string.Create(CultureInfo.InvariantCulture,
+                    $"[{b}] {Say(pos)} w {f[3]:G6} prev {Say(new Vector3(f[4], f[5], f[6]))} w {f[7]:G6} -> world {Say(world)} ({Vector3.Distance(world, emitter.Translation):0.#} from the emitter)"));
+                chain &= b > 0 || (f[3] == 0f && f[7] == 0f);
             }
 
-            whole += all ? 1 : 0;
-            said.Add(string.Create(CultureInfo.InvariantCulture,
-                $"    particles {emitter.ParticlesStart} (bones {emitter.Bones.Start}+{count}{(((agreed >> e) & 1) != 0 ? ", voted" : string.Empty)}){(all ? string.Empty : " NOT ALL NEAR")}: {string.Join("; ", bones)}"));
+            lines.Add(string.Create(CultureInfo.InvariantCulture,
+                $"particles {emitter.ParticlesStart} at {emitter.Time:G8} (bones {emitter.Bones.Start}+{emitter.Bones.Count}){(chain ? string.Empty : " - NO RUN STARTS THERE")}: {string.Join("; ", said)}"));
         }
 
-        lines.Add(string.Create(CultureInfo.InvariantCulture, $"  --- base 0x{at:X}: {BitOperations.PopCount(agreed)} emitters voted, {whole} of {near.Count(one => one.Bones.Count > 0)} with every bone near"));
-        lines.AddRange(said);
+        return lines;
     }
 
     /// <summary>
-    /// The region holding the longest array written whole beside the report (<see cref="RegionFile"/>) - the frame's other uploads stand
-    /// there too - and the near emitters' bones voted for inside it, in the world's frame and in the emitter's own (a bone within reach of
-    /// the origin), offline as here.
+    /// The region holding the longest array and the bones read back written beside the report (<see cref="RegionFile"/>: blocks of an address
+    /// and a length, eight bytes each, then the bytes) - the frame's other uploads stand beside them.
     /// </summary>
-    private static void Region(IMemoryReader reader, MemoryRegion region, string? folder, IReadOnlyList<Record> near, List<string> lines)
+    private static void Region(IMemoryReader reader, MemoryRegion region, string? folder, IReadOnlyList<(ulong At, byte[] Bytes)> bones, List<string> lines)
     {
         int length = (int)Math.Min(region.Size, (ulong)MostRegionBytes);
         byte[] bytes = new byte[length];
         lines.Add(string.Empty);
-        if (!reader.TryRead(region.Address, bytes))
+        bool read = reader.TryRead(region.Address, bytes);
+        var blocks = new List<(ulong At, byte[] Bytes)>();
+        if (read)
         {
-            lines.Add(string.Create(CultureInfo.InvariantCulture, $"=== the region holding the longest array, 0x{region.Address:X} ({region.Size:N0} bytes): did not read"));
-            return;
+            blocks.Add((region.Address, bytes));
         }
 
+        blocks.AddRange(bones);
         string written = "not written (no folder)";
-        if (folder is { Length: > 0 })
+        if (folder is { Length: > 0 } && blocks.Count > 0)
         {
             try
             {
                 using FileStream file = File.Create(Path.Combine(folder, RegionFile));
                 Span<byte> head = stackalloc byte[16];
-                BinaryPrimitives.WriteUInt64LittleEndian(head, region.Address);
-                BinaryPrimitives.WriteUInt64LittleEndian(head[8..], (ulong)length);
-                file.Write(head);
-                file.Write(bytes);
-                written = $"written whole as {RegionFile}";
+                foreach ((ulong at, byte[] block) in blocks)
+                {
+                    BinaryPrimitives.WriteUInt64LittleEndian(head, at);
+                    BinaryPrimitives.WriteUInt64LittleEndian(head[8..], (ulong)block.Length);
+                    file.Write(head);
+                    file.Write(block);
+                }
+
+                written = $"written as {RegionFile} with the {bones.Count} bones arrays read back";
             }
             catch (IOException failed)
             {
@@ -721,60 +772,24 @@ public static class ParticleEmitterHunt
             }
         }
 
-        lines.Add(string.Create(CultureInfo.InvariantCulture, $"=== the region holding the longest array, 0x{region.Address:X} ({region.Size:N0} bytes, {region.Kind}): {length:N0} bytes {written}; the near emitters' bones voted for inside it"));
-        lines.AddRange(RegionVotes(bytes, region.Address, near));
+        lines.Add(string.Create(CultureInfo.InvariantCulture,
+            $"=== the region holding the longest array, 0x{region.Address:X} ({region.Size:N0} bytes, {region.Kind}): {(read ? $"{length:N0} bytes read" : "did not read")}, {written}"));
     }
 
-    /// <summary>The near emitters' bones voted for inside a region's bytes, in the world's frame and in the emitter's own - the capture's and the offline reader's.</summary>
-    public static List<string> RegionVotes(ReadOnlySpan<byte> bytes, ulong address, IReadOnlyList<Record> near)
+    /// <summary>The blocks of a region file: each block's address and bytes.</summary>
+    public static List<(ulong At, byte[] Bytes)> Blocks(byte[] file)
     {
-        ArgumentNullException.ThrowIfNull(near);
-        var lines = new List<string>();
-        ReadOnlySpan<float> f = MemoryMarshal.Cast<byte, float>(bytes[..(bytes.Length & ~15)]);
-        foreach (bool local in new[] { false, true })
+        ArgumentNullException.ThrowIfNull(file);
+        var blocks = new List<(ulong At, byte[] Bytes)>();
+        for (var at = 0; at + 16 <= file.Length;)
         {
-            var places = new List<(ulong At, int Emitter)>();
-            for (var i = 0; i + 8 <= f.Length; i += 4)
-            {
-                var pos = new Vector3(f[i], f[i + 1], f[i + 2]);
-                var prev = new Vector3(f[i + 4], f[i + 5], f[i + 6]);
-                if (!float.IsFinite(pos.X) || !float.IsFinite(f[i + 3]) || !float.IsFinite(f[i + 7]) || !(Vector3.Distance(pos, prev) <= 100f)
-                    || (local && pos == Vector3.Zero))
-                {
-                    continue;
-                }
-
-                for (var e = 0; e < near.Count && e < 32; e++)
-                {
-                    if (Vector3.Distance(pos, local ? Vector3.Zero : near[e].Translation) <= BoneReach)
-                    {
-                        places.Add((address + (ulong)(i * 4), e));
-                    }
-                }
-            }
-
-            List<(ulong Base, uint Agreed)> bases = Votes(places, near);
-            int most = bases.Count > 0 ? BitOperations.PopCount(bases[0].Agreed) : 0;
-            lines.Add(string.Create(CultureInfo.InvariantCulture,
-                $"  {(local ? "in the emitter's own frame (within " : "in the world (within ")}{BoneReach:0} of {(local ? "the origin" : "its translation")}): {places.Count:N0} places, {bases.Count:N0} bases, the most agreed {most} of {Math.Min(near.Count, 32)}{(bases.Count > 0 ? string.Create(CultureInfo.InvariantCulture, $", first at 0x{bases[0].Base:X} (+0x{bases[0].Base - address:X})") : string.Empty)}"));
-            foreach ((ulong at, uint agreed) in bases.Take(3).Where(one => BitOperations.PopCount(one.Agreed) >= Math.Min(2, most)))
-            {
-                foreach (Record emitter in near.Where((_, e) => ((agreed >> e) & 1) != 0).Take(6))
-                {
-                    long from = (long)(at - address) + ((long)emitter.Bones.Start * BoneBytes);
-                    var bones = new List<string>();
-                    for (var b = 0; b < emitter.Bones.Count && from + ((b + 1) * BoneBytes) <= bytes.Length; b++)
-                    {
-                        ReadOnlySpan<float> g = MemoryMarshal.Cast<byte, float>(bytes.Slice((int)from + (b * BoneBytes), BoneBytes));
-                        bones.Add(string.Create(CultureInfo.InvariantCulture, $"[{b}] pos {Say(new Vector3(g[0], g[1], g[2]))} w {g[3]:G6} prev {Say(new Vector3(g[4], g[5], g[6]))} w {g[7]:G6}"));
-                    }
-
-                    lines.Add(string.Create(CultureInfo.InvariantCulture, $"    base 0x{at:X}: particles {emitter.ParticlesStart} bones {emitter.Bones.Start}+{emitter.Bones.Count}: {string.Join("; ", bones)}"));
-                }
-            }
+            ulong address = BinaryPrimitives.ReadUInt64LittleEndian(file.AsSpan(at));
+            int length = (int)Math.Min(BinaryPrimitives.ReadUInt64LittleEndian(file.AsSpan(at + 8)), (ulong)(file.Length - at - 16));
+            blocks.Add((address, file.AsSpan(at + 16, length).ToArray()));
+            at += 16 + length;
         }
 
-        return lines;
+        return blocks;
     }
 
     /// <summary>
