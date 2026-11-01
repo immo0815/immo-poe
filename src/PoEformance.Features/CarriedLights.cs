@@ -17,7 +17,11 @@ namespace PoEformance.Features;
 /// <param name="PenumbraDist">Its <c>penumbra_dist</c> line.</param>
 /// <param name="Source">The .ao it came from and its state, for the line under the picture.</param>
 /// <param name="BoneName">The bone as its own file names it, for the account - empty for none.</param>
-public readonly record struct CarriedLight(int Bone, Vector3 Rest, Vector3 Colour, float Radius, float PenumbraDist, string Source, string BoneName);
+public readonly record struct CarriedLight(int Bone, Vector3 Rest, Vector3 Colour, float Radius, float PenumbraDist, string Source, string BoneName)
+{
+    /// <summary>Its <c>style</c> line - nought for none; its colour times <see cref="LightStyle.Factor"/> as the picture's clock runs.</summary>
+    public int Style { get; init; }
+}
 
 /// <summary>
 /// The point lights a monster and his pieces carry on their bones - read from each one's .ao as a room's are (RoomLights), put on the bone
@@ -37,6 +41,8 @@ public readonly record struct CarriedLight(int Bone, Vector3 Rest, Vector3 Colou
 /// bone elsewhere, and the light stands where his does. One his rig has not is left out, said so.</item>
 /// </list>
 /// The bone's own simulation (phys_ bones swing in the game) is not drawn: the lamp stands where the animation puts its bone.
+/// A LIGHT'S STYLE FLICKERS IT (v0.1.414, MEASURED off the game's light list - <see cref="LightStyle"/>): its colour times style 1's keys as the
+/// picture's clock runs, the reach following the colour as the shader's cutoff does (GetPointCutoffRadius over the flickered colour).
 /// </remarks>
 public static class CarriedLights
 {
@@ -48,7 +54,8 @@ public static class CarriedLights
     /// <param name="skin">The pose's skin matrices (SkeletonPose.Skin), or empty for the bind pose.</param>
     /// <param name="place">Where the model stands in the picture - a stage's ActorPlace, else the identity.</param>
     /// <param name="into">Where to write them, as many as there is room for.</param>
-    public static int At(IReadOnlyList<CarriedLight> lights, IReadOnlyList<Matrix4x4> skin, Matrix4x4 place, Span<PointLight> into)
+    /// <param name="seconds">The picture's clock, for a light's style (<see cref="LightStyle.Factor"/>); NaN for none - every colour as written.</param>
+    public static int At(IReadOnlyList<CarriedLight> lights, IReadOnlyList<Matrix4x4> skin, Matrix4x4 place, Span<PointLight> into, double seconds = double.NaN)
     {
         ArgumentNullException.ThrowIfNull(lights);
         ArgumentNullException.ThrowIfNull(skin);
@@ -57,10 +64,28 @@ public static class CarriedLights
         {
             CarriedLight one = lights[at];
             Vector3 position = one.Bone >= 0 && one.Bone < skin.Count ? Vector3.Transform(one.Rest, skin[one.Bone]) : one.Rest;
-            into[at] = new PointLight(Vector3.Transform(position, place), one.Colour, one.Radius, one.PenumbraDist, one.Source);
+            into[at] = new PointLight(Vector3.Transform(position, place), one.Colour * LightStyle.Factor(one.Style, seconds), one.Radius, one.PenumbraDist, one.Source)
+            {
+                Style = one.Style,
+            };
         }
 
         return count;
+    }
+
+    /// <summary>Whether any of the lights changes with the clock - the picture's light is laid again as it runs only where one does.</summary>
+    public static bool Flicker(IReadOnlyList<CarriedLight> lights)
+    {
+        ArgumentNullException.ThrowIfNull(lights);
+        foreach (CarriedLight one in lights)
+        {
+            if (LightStyle.Flickers(one.Style))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -194,7 +219,10 @@ public static class CarriedLights
                     continue;
                 }
 
-                lights.Add(new CarriedLight(one.Bone, at, one.Light.Colour, one.Light.Radius, one.Light.PenumbraDist, one.Light.Source, one.Name));
+                lights.Add(new CarriedLight(one.Bone, at, one.Light.Colour, one.Light.Radius, one.Light.PenumbraDist, one.Light.Source, one.Name)
+                {
+                    Style = one.Light.Style,
+                });
             }
 
             var said = string.Create(CultureInfo.InvariantCulture, $"{lights.Count} point lights carried");

@@ -734,6 +734,51 @@ public sealed class BoneWatchSeries
         return kept.Count == block.Reads.Count ? block : block with { Reads = kept };
     }
 
+    /// <summary>Where Render.RotationCurrent stands in the player's block from v0.1.414 - the block starting at CurrentWorldPosition (0x188 less 0x138).</summary>
+    public const int FacingAt = 0x50;
+
+    /// <summary>
+    /// How he turned over the watch, from his facing (Render.RotationCurrent) where his block holds it (v0.1.414): how many reads changed
+    /// it, how far he turned all told and at most a second - empty for an older file, whose block held his place alone.
+    /// </summary>
+    private string Facing()
+    {
+        if (Player < 0)
+        {
+            return string.Empty;
+        }
+
+        var reads = Blocks[Player].Reads.Where(one => one.Bytes.Length >= FacingAt + 4).ToArray();
+        if (reads.Length < 2)
+        {
+            return string.Empty;
+        }
+
+        double turned = 0, most = 0;
+        var changes = 0;
+        for (var read = 1; read < reads.Length; read++)
+        {
+            double step = BitConverter.ToSingle(reads[read].Bytes, FacingAt) - BitConverter.ToSingle(reads[read - 1].Bytes, FacingAt);
+            step = Math.IEEERemainder(step, 2 * Math.PI);
+            if (step == 0)
+            {
+                continue;
+            }
+
+            changes++;
+            turned += Math.Abs(step);
+            double span = reads[read].At - reads[read - 1].At;
+            if (span > 0)
+            {
+                most = Math.Max(most, Math.Abs(step) / span);
+            }
+        }
+
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"his facing (Render.RotationCurrent) read {reads.Length} times, {changes} of them changed: he turned {turned * 180 / Math.PI:0.#} degrees all told over {reads[^1].At - reads[0].At:0.0} s, at most {most * 180 / Math.PI:0} a second between two reads");
+    }
+
     /// <summary>The player's place at each of its reads, where it was watched.</summary>
     private (double At, Vector3 Place)[] PlayerReads() => Player >= 0
         ? [.. Blocks[Player].Reads.Where(one => one.Bytes.Length >= 12).Select(one => (one.At, Row(one.Bytes, 0)))]
@@ -897,6 +942,11 @@ public sealed class BoneWatchSeries
                 CultureInfo.InvariantCulture,
                 $"he walked {walked:0.#} along his path over {player[^1].At - player[0].At:0.0} s, ending {Vector3.Distance(player[^1].Place, player[0].Place):0.#} from where he began")
             : "(his place was not watched - how far he walked is not told)");
+        if (Facing() is { Length: > 0 } facing)
+        {
+            lines.Add(facing);
+        }
+
         for (var index = 0; index < Places.Count; index++)
         {
             PlaceTravel travel = travels[index];

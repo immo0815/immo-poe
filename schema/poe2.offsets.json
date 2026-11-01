@@ -1355,6 +1355,18 @@
       }
     },
 
+    "RenderPointLight": {
+      "comment": "A point light as the renderer's light list holds it - the three float4s lighting.ffx hands a light by (light_position_data, light_direction_data, light_colour_data), with 32 bytes before them. MEASURED once (2026-11-01 08:31, The Red Vale, v0.1.412's bone watch, read every tick for 10.8 s): the Exile's Staff's lamp (WandererStaffHeld.ao: point_light on phys_tri_lamp_jntBnd, colour 2.4671 0.493089 0.0398032, radius 150, penumbra_dist 0.5, penumbra_radius 0.01, style 1), found by PoseWorld as a place 24.148 model units from base_lamp_jntBnd through the staff's World (0.6% past its rest's 24, constant to 0.005 at every speed - the bone held rigid). TWO RECORDS, THIS TICK AND THE LAST: at 0x218D0D04940 the light at the tick of the staff's World read beside it (its distance to the pivot 22.33 to 22.34 world units throughout), at +0x4000 the tick before (the same distance against the World read before) - both written together every second tick (20 ms) while the World moved every tick (10 ms), so the two give every tick; each stood again 0xC000 on, byte for byte. WHERE THE RECORD BEGINS is not read: the window began 0x20 before the position, and a wide window round it is read from v0.1.414. The offsets below are from that window's start.",
+      "fields": {
+        "Unnamed00": { "offset": "0x0", "type": "f32", "comment": "Four floats not named: 0.651767, 0.424116, 0.424116, 50 for the lamp, fixed over the watch. 50 is a third of its radius." },
+        "Unnamed10": { "offset": "0x10", "type": "f32", "comment": "Three noughts, then 86.6025 at +0x1C - 50 times the square root of three, a cube's half diagonal over the 50 before, a reading." },
+        "Position": { "offset": "0x20", "type": "f32", "comment": "light_position_data.xyz: where the light stands in the world, x; y at +0x24, z at +0x28 - the lamp's bone, swinging." },
+        "PositionA": { "offset": "0x2C", "type": "f32", "comment": "light_position_data.a: 1 for the lamp throughout - a point light's shape, ComputePointLightParamsNew's lerp(1/sqrt(0.02), 100, saturate(a)) at its sharpest (SceneLight.PointShape.One), where its .ao says penumbra_dist 0.5. One light: whether every .ao light stands at one is not read." },
+        "Direction": { "offset": "0x30", "type": "f32", "comment": "light_direction_data.xyz, a unit vector turning with the lamp; +0x3C (its w) nought." },
+        "Colour": { "offset": "0x40", "type": "f32", "comment": "light_colour_data.rgb: the .ao's colour times its style's factor - style 1's 25 keys at ten a second, 0.72 to 1 (LightStyle), the three channels in the .ao's proportions throughout; green at +0x44, blue at +0x48. Its a (+0x4C, the radius by lighting.ffx's reading) was past the window." }
+      }
+    },
+
     "ActorAnimationSet": {
       "comment": "What Actor.AnimationSet points at - see there. Only the two words below are read; MEASURED once (2026-10-31 16:16, The Red Vale).",
       "fields": {

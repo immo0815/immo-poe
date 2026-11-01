@@ -1042,6 +1042,7 @@ public sealed partial class MonsterPortrait
     private MonsterModel? _carriedModel;
     private long _carriedPose = -1;
     private bool _carriedPosed;
+    private float _carriedClock = float.NaN;
     private SceneLight? _carriedLight;
     private PointLight[] _carriedAt = [];
 
@@ -1052,8 +1053,11 @@ public sealed partial class MonsterPortrait
     private SceneLight Carrying(SceneLight light)
     {
         bool posed = _tracks is { Ready: true } && _pose is not null;
+
+        // A FLICKERING LIGHT IS LAID AGAIN AS THE CLOCK RUNS, the pose standing or not (LightStyle) - a light with no style as before.
+        bool flickers = light.Flickers && light.Carries && CarriedLights.Flicker((_model.Actor ?? _model).Carried);
         if (_carriedLight is not null && ReferenceEquals(_carriedFrom, light) && ReferenceEquals(_carriedModel, _model)
-            && _carriedPosed == posed && (!posed || _carriedPose == _poseKey))
+            && _carriedPosed == posed && (!posed || _carriedPose == _poseKey) && (!flickers || _carriedClock == _clock))
         {
             return _carriedLight;
         }
@@ -1063,6 +1067,7 @@ public sealed partial class MonsterPortrait
         _carriedModel = _model;
         _carriedPose = _poseKey;
         _carriedPosed = posed;
+        _carriedClock = _clock;
         return _carriedLight;
     }
 
@@ -1084,7 +1089,8 @@ public sealed partial class MonsterPortrait
         }
 
         int count = CarriedLights.At(
-            carrier.Carried, posed ? _pose!.Skin : [], _model.Actor is null ? Matrix4x4.Identity : _model.ActorPlace, _carriedAt);
+            carrier.Carried, posed ? _pose!.Skin : [], _model.Actor is null ? Matrix4x4.Identity : _model.ActorPlace, _carriedAt,
+            light.Flickers ? _clock : double.NaN);
         return light.Carrying(_carriedAt.AsSpan(0, count));
     }
 

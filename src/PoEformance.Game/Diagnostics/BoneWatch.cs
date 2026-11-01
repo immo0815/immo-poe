@@ -82,6 +82,13 @@ public sealed class BoneWatch
     /// <summary>Most reads kept of a block read as often as it changes - CHOSEN: some ten a frame for twelve seconds.</summary>
     public const int MostFastReads = 8000;
 
+    /// <summary>
+    /// Bytes either side of a window read as often as it changes that are read once a sweep too, as a block of their own (CHOSEN): the
+    /// 08:31 capture's lamp stood in the renderer's light list, its record 76 bytes read and what stands round it - the record's head, its
+    /// neighbours, the list's stride - not (2026-11-01, v0.1.414).
+    /// </summary>
+    public const int WideMargin = 0x200;
+
     /// <summary>Where it stands, for the banner the capture's window shows the person at the game.</summary>
     public enum Stage
     {
@@ -91,7 +98,7 @@ public sealed class BoneWatch
         /// <summary>Reading the player and searching memory: the person is to stand still.</summary>
         Searching,
 
-        /// <summary>Watching: the person is to walk a few steps, then stop and stand still.</summary>
+        /// <summary>Watching: the person is to take one short walk, then stand completely still.</summary>
         Watching,
 
         /// <summary>Finished, or stopped.</summary>
@@ -221,13 +228,23 @@ public sealed class BoneWatch
         Line = "following the pieces' pointers";
         List<BoneWatchSeries.Block> walked = Walk(roots);
 
-        // HIS PLACE, read with every sweep: the swing is the hand's motion's, and the table sets his speed beside it. The skeletons, the
-        // pieces' places and the candidates in the world first, in the order their records name them.
+        // HIS PLACE AND FACING, read as often as they change (v0.1.414; with every sweep before): the swing is the hand's motion's, and
+        // whether the engine swings it in the world or in his own frame - the 08:31 capture's lamp followed his turns' sudden steps by half
+        // or more where a pendulum in the world takes none - is told only beside his own frame every frame. The skeletons, the pieces'
+        // places and the candidates in the world first, in the order their records name them; his last, where the series looks for it.
         var always = new List<BoneWatchSeries.Block>(found.Blocks);
         ulong render = components.GetValueOrDefault("Render");
         if (render != 0)
         {
-            always.Add(new BoneWatchSeries.Block("his place (Render.CurrentWorldPosition)", render + (ulong)_schema.Structs["Render"].OffsetOf("CurrentWorldPosition"), 12, []));
+            StructDef renderStruct = _schema.Structs["Render"];
+            int from = renderStruct.OffsetOf("CurrentWorldPosition");
+            var his = new BoneWatchSeries.Block(
+                "his place and facing (Render.CurrentWorldPosition to RotationCurrent)",
+                render + (ulong)from,
+                renderStruct.OffsetOf("RotationCurrent") + 4 - from,
+                []);
+            always.Add(his);
+            found.Fast.Add(his);
         }
 
         // THE FINDING: every block read over the first second, those that change kept - the most changing turns first. The skeletons and
@@ -257,7 +274,7 @@ public sealed class BoneWatch
             }
 
             finds++;
-            Line = string.Create(CultureInfo.InvariantCulture, $"finding what changes: {walked.Count} blocks read {finds} times - walk a few steps now, then stop");
+            Line = string.Create(CultureInfo.InvariantCulture, $"finding what changes: {walked.Count} blocks read {finds} times - at the tone one short walk, then stand still");
             Thread.Sleep(10);
         }
 
@@ -291,7 +308,7 @@ public sealed class BoneWatch
 
                 sweeps++;
                 next = now + Every;
-                Line = string.Create(CultureInfo.InvariantCulture, $"{now:0.0} of {_seconds:0} s - {kept.Count} blocks, {skeletons.Count} skeletons and {found.Candidates.Count} places in the world read {sweeps} times, {fast.Count} live ones {fastReads} times as they changed - walk a few steps, then stop and stand still");
+                Line = string.Create(CultureInfo.InvariantCulture, $"{now:0.0} of {_seconds:0} s - {kept.Count} blocks, {skeletons.Count} skeletons and {found.Candidates.Count} places in the world read {sweeps} times, {fast.Count} live ones {fastReads} times as they changed - one short walk, then stand completely still");
             }
 
             if (fast.Count == 0)
@@ -591,6 +608,7 @@ public sealed class BoneWatch
         // THE SWINGING PLACES AS OFTEN AS THEY CHANGE too: the 08:00 capture's lamp, read thirty times a second against its staff's World
         // read every frame, came at a random point of each frame - too coarse a clock for its swing (2026-11-01, v0.1.411). Each piece's
         // windows holding a place taken for a simulated bone that moved between the search's two reads, the nearest its length first.
+        var wide = new List<BoneWatchSeries.Block>();
         foreach (IGrouping<int, (BoneWatchSeries.Block Block, int Place, float Off)> piece in swinging.GroupBy(one => one.Place))
         {
             foreach (BoneWatchSeries.Block block in piece.OrderBy(one => one.Off).Select(one => one.Block).Distinct().Take(MostFastWindows))
@@ -598,8 +616,20 @@ public sealed class BoneWatch
                 if (found.Fast.Count < MostFast && !found.Fast.Contains(block))
                 {
                     found.Fast.Add(block);
+                    wide.Add(block);
                 }
             }
+        }
+
+        // AND WHAT STANDS ROUND EACH, once a sweep: the record a place stands in and its neighbours - the 08:31 capture's lamp was a light of
+        // the renderer's list, and 76 bytes said what three of its numbers are but not the rest (v0.1.414). Made last, so no window's index moves.
+        foreach (BoneWatchSeries.Block block in wide)
+        {
+            found.Blocks.Add(new BoneWatchSeries.Block(
+                string.Create(CultureInfo.InvariantCulture, $"round {block.Name} (0x{WideMargin:X} bytes either side, once a sweep)"),
+                block.Address - WideMargin,
+                block.Size + (2 * WideMargin),
+                []));
         }
 
         head.Add(string.Create(

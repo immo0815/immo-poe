@@ -314,11 +314,12 @@ public static class CaptureMonsterFiles
             return;
         }
 
-        body.AppendLine("  bone\this bone\tits own file's bone\trest\tcolour\tradius\tpenumbra\tsource");
+        body.AppendLine("  bone\this bone\tits own file's bone\trest\tcolour\tradius\tpenumbra\tstyle\tsource");
         foreach (CarriedLight light in actor.Carried)
         {
             string his = light.Bone >= 0 && light.Bone < actor.Rig.Bones.Count ? actor.Rig.Bones[light.Bone].Name : "(none - it stands where he does)";
-            body.Append(Invariant($"  {light.Bone}\t{his}\t{(light.BoneName.Length > 0 ? light.BoneName : "-")}\t{At(light.Rest)}\t{At(light.Colour)}\t{light.Radius:0.###}\t{light.PenumbraDist:0.###}\t"))
+            string style = light.Style == 0 ? "-" : LightStyle.Measured(light.Style) ? Invariant($"{light.Style} (flickers, measured)") : Invariant($"{light.Style} (not measured - drawn as written)");
+            body.Append(Invariant($"  {light.Bone}\t{his}\t{(light.BoneName.Length > 0 ? light.BoneName : "-")}\t{At(light.Rest)}\t{At(light.Colour)}\t{light.Radius:0.###}\t{light.PenumbraDist:0.###}\t{style}\t"))
                 .AppendLine(light.Source);
         }
 

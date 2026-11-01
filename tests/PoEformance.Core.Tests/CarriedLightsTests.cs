@@ -51,6 +51,7 @@ public sealed class CarriedLightsTests
         Assert.Equal(150f, lamp.Radius);
         Assert.Equal(0.5f, lamp.PenumbraDist);
         Assert.Equal("phys_tri_lamp_jntBnd", lamp.BoneName);
+        Assert.Equal(1, lamp.Style);
         Assert.Equal("1 point lights carried (StaffHeld.ao (unnamed state) on phys_tri_lamp_jntBnd)", model.CarriedSaid);
 
         // THE POSE MOVES IT AS IT MOVES THE VERTICES BOUND TO THE WRIST: the bone's skin matrix, then where the model stands.
@@ -71,7 +72,7 @@ public sealed class CarriedLightsTests
         string text = CaptureMonsterFiles.Write(install.Read, new CapturePane("monster", [], model) { Path = "Metadata/Characters/Test" }, null, null, out _);
         Assert.Contains("=== the lights he carries on his bones (CarriedLights, the light panel's \"carried\"): 1 ", text, StringComparison.Ordinal);
         Assert.Contains($"  {wrist}\t{rig.Bones[wrist].Name}\tphys_tri_lamp_jntBnd\t", text, StringComparison.Ordinal);
-        Assert.Contains("\t150\t0.5\tstaff/StaffHeld.ao (unnamed state)", text, StringComparison.Ordinal);
+        Assert.Contains("\t150\t0.5\t1 (flickers, measured)\tstaff/StaffHeld.ao (unnamed state)", text, StringComparison.Ordinal);
     }
 
     /// <summary>

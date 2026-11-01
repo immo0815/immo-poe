@@ -115,6 +115,9 @@ public sealed partial class SceneLightPanel : IMovableSun
 
     // THE LIGHTS A MODEL CARRIES ON ITS BONES, on by default - SceneLight.Carries (DECIDED from the live client, 2026-11-01).
     private bool _carried = true;
+
+    // A LIGHT'S STYLE FLICKERS IT, on by default - SceneLight.Flickers (MEASURED for style 1, v0.1.414).
+    private bool _flicker = true;
     private bool _glints = true;
     private bool _reflection = true;
     private bool _mirroring = true;
@@ -294,7 +297,7 @@ public sealed partial class SceneLightPanel : IMovableSun
         {
             string.Create(
                 CultureInfo.InvariantCulture,
-                $"switches: game light {(_on ? "on" : "off - the light below is the one it would draw")}, sun {_sun}, shadows {_shadows}, free sun {_freeSun}, room lights {_points} ({(SceneLight.PointShape)_pointShape}), carried lights {_carried}, player light {_playerLight} (radius {_playerRadius:0}, {_playerHeight:0} up), ambient {(SceneAmbient)_ambient} (flat {_flat:0.#####}), cube reading {_cubeReading + 1}, exposure {_exposure}, grade {_grade}, emissive {_emissive}, view {SceneLight.ViewNames[Math.Clamp(_view, 0, SceneLight.ViewNames.Count - 1)]}"),
+                $"switches: game light {(_on ? "on" : "off - the light below is the one it would draw")}, sun {_sun}, shadows {_shadows}, free sun {_freeSun}, room lights {_points} ({(SceneLight.PointShape)_pointShape}), carried lights {_carried}, flicker {_flicker}, player light {_playerLight} (radius {_playerRadius:0}, {_playerHeight:0} up), ambient {(SceneAmbient)_ambient} (flat {_flat:0.#####}), cube reading {_cubeReading + 1}, exposure {_exposure}, grade {_grade}, emissive {_emissive}, view {SceneLight.ViewNames[Math.Clamp(_view, 0, SceneLight.ViewNames.Count - 1)]}"),
             "environment: " + (Chosen().Length > 0 ? Chosen() : "none"),
         };
         // THE FRAME AT THE PRESS, not the one the panel last labelled by: that is only set while the panel draws with "game light" ticked, and
@@ -346,6 +349,7 @@ public sealed partial class SceneLightPanel : IMovableSun
             Grade = _grade ? _gradeTable : null,
             Emissive = _emissive,
             Carries = _carried,
+            Flickers = _flicker,
             View = view,
         };
     }
@@ -389,7 +393,7 @@ public sealed partial class SceneLightPanel : IMovableSun
         Label("environment", column);
         Picker(path);
 
-        if (Fold(Count("lights", _points, _carried, _sun, _shadows, _playerLight, _exposure, _grade, _emissive) + "###scene-fold-lights", open: true))
+        if (Fold(Count("lights", _points, _carried, _flicker, _sun, _shadows, _playerLight, _exposure, _grade, _emissive) + "###scene-fold-lights", open: true))
         {
             try
             {
@@ -532,6 +536,8 @@ public sealed partial class SceneLightPanel : IMovableSun
             Switch("room##scene-points", ref _points, "The point lights the room's doodads carry in their .ao Lights blocks, the default state of each.");
             Switch("carried##scene-carried", ref _carried, "The point lights a monster and his pieces carry on their bones (an .ao Lights block's bone_name) - the Exile's Staff's"
                 + " lamp - standing where the pose puts each bone, every frame. The bone's own physics (a lamp's swing) is not drawn.");
+            Switch("flicker##scene-flicker", ref _flicker, "A light's style line: style 1 runs its colour through 25 keys at ten a second, 0.72 to 1 of the colour, as the"
+                + " game's own light list holds the Exile's Staff's lamp (measured). Carried lights only; any other style stands as written.");
             Switch("sun##scene-sun", ref _sun, "directional_light: its colour times its multiplier. Seepage's is nought.");
             Switch("shadows##scene-shadows", ref _shadows,
                 "The sun's shadows: the room drawn once more along the sun's light, and a pixel is shaded where something nearer the sun covers it.");
@@ -759,7 +765,7 @@ public sealed partial class SceneLightPanel : IMovableSun
     ];
 
     /// <summary>The lights' switches' visible labels, for their columns.</summary>
-    private static readonly string[] LightLabels = ["room", "carried", "sun", "shadows", "player", "exposure", "colour grade", "emissive"];
+    private static readonly string[] LightLabels = ["room", "carried", "flicker", "sun", "shadows", "player", "exposure", "colour grade", "emissive"];
 
     /// <summary>The water's switches' visible labels, for their columns.</summary>
     private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "refraction", "caustics", "crash", "way round", "past walls", "break by ground", "wetness", "spray from occlusion"];
@@ -1313,6 +1319,7 @@ public sealed partial class SceneLightPanel : IMovableSun
             {
                 lines.Add(_carried
                     ? "carried lights: " + carried + " - standing where the pose puts their bones every frame, the bones' own physics not drawn"
+                        + (_flicker ? "; a style 1 light flickering as the game's (0.72 to 1 of its colour, 25 keys at ten a second)" : "; flicker off")
                     : "carried lights: off - " + carried);
             }
             lines.Add(model.AreaOrigin is null

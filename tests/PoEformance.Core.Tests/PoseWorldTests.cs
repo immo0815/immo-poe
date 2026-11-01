@@ -337,6 +337,40 @@ public sealed partial class PoseWorldTests
     }
 
     /// <summary>
+    /// His facing beside his place (v0.1.414): his block runs from Render.CurrentWorldPosition through RotationCurrent and is read every
+    /// frame, so the reading says how he turned - the 08:31 capture's staff whirled round him twelve times, his turns read only through it.
+    /// </summary>
+    [Fact]
+    public void HISFacingIsReadBesideHisPlace()
+    {
+        PoseRig staff = PoseHuntTests.Rig("WandererStaffHeld.ao", PoseHuntTests.Staff);
+        var world = new BoneWatchSeries.Block("WandererStaffHeld.ao's World", 0x9_0000_0000, 64, []);
+        var his = new BoneWatchSeries.Block("his place and facing", 0x9_1000_0000, BoneWatchSeries.FacingAt + 4, []);
+        for (var read = 0; read <= 200; read++)
+        {
+            double at = read / 100.0;
+            byte[] matrix = new byte[64];
+            PoseHuntTests.WriteMatrix(matrix, 0, World);
+            world.Reads.Add((at, matrix));
+            byte[] bytes = new byte[BoneWatchSeries.FacingAt + 4];
+            WriteVector(bytes, 0, new Vector3(100f, 200f, -50f));
+
+            // ONE TURN A SECOND, kept between nought and two pi as the game keeps it.
+            BitConverter.TryWriteBytes(bytes.AsSpan(BoneWatchSeries.FacingAt), (float)((2 * Math.PI * at) % (2 * Math.PI)));
+            his.Reads.Add((at, bytes));
+        }
+
+        var series = new BoneWatchSeries([world, his], ["bone watch: a test"], null, 1, [new BoneWatchSeries.Place(0, 0, staff)], []);
+        string line = series.Describe().Single(one => one.StartsWith("his facing", StringComparison.Ordinal));
+        Assert.StartsWith("his facing (Render.RotationCurrent) read 201 times, 200 of them changed: he turned 720 degrees all told over 2.0 s, at most 360 a second", line, StringComparison.Ordinal);
+
+        // AN OLDER FILE'S BLOCK held his place alone: nothing said of his facing.
+        var place = new BoneWatchSeries.Block("his place", 0x9_2000_0000, 12, [.. his.Reads.Select(one => (one.At, one.Bytes[..12]))]);
+        Assert.DoesNotContain(new BoneWatchSeries([world, place], ["bone watch: a test"], null, 1, [new BoneWatchSeries.Place(0, 0, staff)], []).Describe(),
+            one => one.StartsWith("his facing", StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// A buffer the engine fills for more than one thing (v0.1.410, the 07:26 capture's staff array): the staff's pose in its model's frame,
     /// the lamp swinging as a damped pendulum, in two reads of three, another's pose in the third. Only the reads holding the staff are read,
     /// and they say so - one bone moved, the lamp, measured back to its damping; read whole, every bone would have moved.
