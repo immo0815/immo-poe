@@ -180,7 +180,7 @@ public sealed class ClothSwingTests
     /// <summary>
     /// The swinger stands the cloth on its targets at its first pose, keeps the lamp's pinned corner on the hand and its rod's lengths through
     /// a real animation at 99 frames a second, sets the simulated bone's skin so its bind lands where the cloth holds it, and with the switch
-    /// off hangs it from its socket as authored.
+    /// off leaves the pose as taken - the appended bone following the hand rigidly, as authored.
     /// </summary>
     [Fact]
     public void THESwingerStepsTheClothWithThePosesClock()
@@ -221,14 +221,17 @@ public sealed class ClothSwingTests
         }
 
         Assert.Equal(300, swinger.Steps);
+        pose.Take(tracks, frame);
         swinger.Swing(pose, tracks, frame, rate, tracks.Frames, swinging: false);
-        Assert.Equal(pose.Skin[hand], pose.Skin[bone]);
+        Assert.True(Distance(pose.Skin[hand], pose.Skin[bone]) < 1e-3f, "off, the appended bone follows the hand as the pose took it");
+        Assert.Equal(0, swinger.Steps);
     }
 
     /// <summary>
     /// A HELD STAFF WHOSE .ao SIMULATES AND WHOSE MESH CARRIES A SIMULATION MESH gets its lamp's bone simulated: a bone appended under the hand,
     /// the lamp's vertices and its light on it, its cloth from the mesh's simulation mesh, the bone on its triangle - and the capture writes the
-    /// cloth and plays it through his opening animation. Any simulation is run, under its own keys; a piece writing none simulates nothing.
+    /// cloth and plays it through his opening animation. Any simulation is run, under its own keys; a piece writing none runs under the
+    /// engine's defaults (v0.1.424: the setup asks for no key - the shawl writes none).
     /// </summary>
     [Fact]
     public void AHELDStaffsLampIsSimulatedWhereItsAoAndMeshCarryASimulation()
@@ -290,12 +293,120 @@ public sealed class ClothSwingTests
         Assert.Equal(10f, caped.Cloth.Settings.AnimationForceFactor, 3);
         Assert.Equal(ClothSettings.Defaults.BendStiffness, caped.Cloth.Settings.BendStiffness);
 
-        // AND A PIECE WRITING NO SIMULATION SAYS NOTHING OF ONE.
+        // AND A PIECE WRITING NO SIMULATION KEY RUNS UNDER THE ENGINE'S DEFAULTS.
         install.Files["staff/StaffHeld.ao"] = Text(Staff(string.Empty));
         MonsterModel plain = MonsterModels.OfFiles(
             install.Read, ["body.ao"], true, null, [new WornPiece("R_wrist_jntBnd", "staff/StaffHeld.ao") { Held = true }]);
-        Assert.Empty(plain.Swings);
-        Assert.Equal(string.Empty, plain.SwingSaid);
+        Assert.Equal(ClothSettings.Defaults, Assert.Single(plain.Swings).Cloth.Settings);
+    }
+
+    /// <summary>
+    /// A SKIN ON A RIG OF ITS OWN whose mesh carries a simulation mesh - the robe's skirt, the shawl, a helmet's dangle - gets each phys_ bone
+    /// of its rig appended to his under the bone its nearest unsimulated ancestor went to, the vertices it carries put on it, and its cloth
+    /// over his bones (module+0x2863C00 sets a piece's cloth up on the piece's own skeleton, which the tool joins to his).
+    /// </summary>
+    [Fact]
+    public void ASKINOnARigOfItsOwnSimulatesItsPhysBonesAppendedToHis()
+    {
+        MonsterModelTests.Fake install = MonsterModelTests.Install();
+        install.Files["art/rig.ast"] = Packed.Skeleton([("root_jntBnd", 255, 1, 0f), ("chest_jntBnd", 255, 255, -90f)], []);
+        install.Files["body.ao"] = MonsterModelTests.Ao(skin: "art/mesh.sm", attach: "art/cloak.ao", socket: "<root>", skeleton: "art/rig.ast");
+        install.Files["art/cloak.ao"] = MonsterModelTests.Ao(skin: "art/cloak.sm", skeleton: "art/cloak.ast");
+        install.Files["art/cloak.sm"] = MonsterModelTests.Sm("art/cloak.smd", "art/paint.mat");
+        install.Files["art/cloak.smd"] = MonsterModelTests.Smd(lamp: true);
+
+        // ITS RIG: root, chest - his names - and a phys_ feather under the chest, which he has not. The mesh is weighted wholly to bone one.
+        install.Files["art/cloak.ast"] = Packed.Skeleton(
+            [("root_jntBnd", 255, 2, 0f), ("phys_feather_jntBnd", 255, 255, -100f), ("chest_jntBnd", 255, 1, -90f)], []);
+
+        MonsterModel model = MonsterModels.OfFiles(install.Read, ["body.ao"]);
+        Assert.Equal(3, model.Rig.Bones.Count);
+        Assert.Equal("swung:phys_feather_jntBnd", model.Rig.Bones[2].Name);
+        Assert.Equal(1, model.Rig.Swung);
+        Assert.Equal(1, SkeletonPose.Of(model.Rig)!.Parents[2]);
+
+        // THE CLOAK'S FOUR VERTICES ON THE APPENDED BONE, wholly.
+        for (var vertex = 4; vertex < 8; vertex++)
+        {
+            Assert.Equal(2, model.Mesh.Bones[vertex * 4]);
+            Assert.Equal(255, model.Mesh.Weights[vertex * 4]);
+        }
+
+        ClothSwing swing = Assert.Single(model.Swings);
+        Assert.Equal(-1, swing.Socket);
+        Assert.Equal(3, swing.Cloth.Count);
+        ClothBoneLink link = Assert.Single(swing.Cloth.Links);
+        Assert.Equal(2, link.Bone);
+        Assert.Equal("phys_feather_jntBnd", link.Name);
+
+        // ITS PARTICLES ON HIS ROOT - the cloak's root went to his - and its bind where the cloak's rig rests the feather.
+        Assert.All(swing.Cloth.Bones, bones => Assert.Equal(0, bones.X));
+        AnimationSkeleton cloak = AnimationSkeleton.Read(install.Files["art/cloak.ast"]);
+        Assert.True(Vector3.Distance(SkeletonPose.Of(cloak)!.BindModel[1].Translation, link.Bind.Translation) < 1e-3f, $"the feather rests at {link.Bind.Translation}");
+        Assert.Contains("cloak.ao simulates 1 bones (1 on a particle) by the engine's cloth: 3 particles, 1 triangles, 1 pinned, skin", model.SwingSaid, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// HIS BODY'S OWN SIMULATION MESH SETS HIS OWN RIG'S phys_ BONES - the player's chest - and its spheres and capsules are the colliders every
+    /// cloth of his meets; a rig with no phys_ bone leaves the simulation mesh moving nothing, and says so.
+    /// </summary>
+    [Fact]
+    public void HISBodysOwnClothSetsHisPhysBonesAndItsCapsulesAreTheColliders()
+    {
+        MonsterModelTests.Fake install = MonsterModelTests.Install();
+        install.Files["art/rig.smd"] = MonsterModelTests.Smd(lamp: true, capsule: true);
+        // THE FIXTURE'S SIMULATION VERTICES ARE WEIGHTED TO BONE NOUGHT, so it is the skinned phys_ bone here: its members are all three.
+        install.Files["art/rig.ast"] = Packed.Skeleton([("phys_skinned_chest_jntBnd", 255, 1, 0f), ("chest_jntBnd", 255, 255, -90f)], []);
+        install.Files["body.ao"] = Text(Body);
+
+        MonsterModel model = MonsterModels.OfFiles(install.Read, ["body.ao"]);
+        ClothSwing swing = Assert.Single(model.Swings);
+        Assert.Equal(2, model.Rig.Bones.Count);
+        ClothBoneLink link = Assert.Single(swing.Cloth.Links);
+        Assert.Equal(0, link.Bone);
+        Assert.Equal(3, link.Members.Count);
+        Assert.Equal(ClothBoneKind.Skinned, link.Kind);
+        Assert.Contains("his own rig", model.SwingSaid, StringComparison.Ordinal);
+
+        ClothColliders colliders = model.Colliders;
+        Assert.Equal(2, colliders.Spheres.Count);
+        Assert.Equal([(0, 1)], colliders.Capsules);
+        Assert.Equal(new ClothSphere(1, new Vector3(0f, 0f, -60f), 8f), colliders.Spheres[1]);
+        Assert.Contains("the cloths meet 1 capsules between 2 spheres", model.SwingSaid, StringComparison.Ordinal);
+
+        // NO phys_ BONE, NOTHING SET.
+        install.Files["art/rig.ast"] = Packed.Skeleton([("root_jntBnd", 255, 1, 0f), ("chest_jntBnd", 255, 255, -90f)], []);
+        MonsterModel bare = MonsterModels.OfFiles(install.Read, ["body.ao"]);
+        Assert.Empty(bare.Swings);
+        Assert.Contains("his own simulation mesh moves no bone", bare.SwingSaid, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A CLOTH MEETS A CAPSULE: a particle resting two units off a capsule's axis, inside its radius of six, is pushed out onto its surface and
+    /// held there against the pull back to its target (the contact module+0x139E520, ten iterations a step) - and without the capsule it
+    /// stays on its target.
+    /// </summary>
+    [Fact]
+    public void ACLOTHsParticleIsHeldOutOfACapsule()
+    {
+        Vector3[] rest = [new(10f, 0f, -60f), new(0f, 0f, -100f), new(-10f, 0f, -60f)];
+        ClothRig Cloth() => new(rest, [.. rest.Select(_ => new Int4(0, -1, -1, -1))], [.. rest.Select(_ => Vector4.UnitX)], [0, 1, 2], [1],
+            [(1, "phys_tri_test_jntBnd", Matrix4x4.CreateTranslation(0f, 0f, -80f), [])], LampSettings(), "test.ao");
+        ClothSphere[] spheres = [new(0, new Vector3(12f, -30f, -60f), 6f), new(0, new Vector3(12f, 30f, -60f), 6f)];
+        float Off(ClothWorld world)
+        {
+            Matrix4x4[] skin = [Matrix4x4.Identity];
+            for (var frame = 0; frame < 300; frame++)
+            {
+                world.Frame(0.0101f, skin);
+            }
+
+            Vector3 at = world.Particles(0)[0];
+            return new Vector2(at.X - 12f, at.Z + 60f).Length();
+        }
+
+        Assert.InRange(Off(new ClothWorld([Cloth()], [], spheres, [(0, 1)])), 5.5f, 7f);
+        Assert.InRange(Off(new ClothWorld([Cloth()], [], spheres, [])), 1.5f, 2.5f);
     }
 
     /// <summary>A body on the fixture's rig, its client block closed by the last two characters.</summary>

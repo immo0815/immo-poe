@@ -474,7 +474,7 @@ public sealed class SkeletonPose
 
     /// <summary>
     /// Sets one bone's skin matrix after a pose is taken, its world with it - a bone no animation drives, which the tool moves itself (a
-    /// swinging lamp, BoneSwing). Its children are not moved: a bone set so has none.
+    /// simulated bone, ClothSwinger). Its children are not moved: a bone set so has none.
     /// </summary>
     public void Override(int bone, Matrix4x4 skin)
     {
@@ -495,7 +495,7 @@ public sealed class SkeletonPose
     /// <param name="time">Where in it, in frames.</param>
     /// <param name="bone">The bone.</param>
     /// <remarks>
-    /// FOR A SWING STEPPED A HUNDRED TIMES A SECOND (BoneSwinger): the hand that carries the lamp is wanted at every tick between two
+    /// FOR A SWING STEPPED A HUNDRED TIMES A SECOND (v0.1.416's pendulum, gone since v0.1.422): the hand that carries the lamp is wanted at every tick between two
     /// frames, and a pose of 255 bones a tick is a hundred times the work of the dozen bones between the root and the hand.
     /// </remarks>
     public Matrix4x4 SkinAt(AnimationTracks? tracks, float time, int bone)

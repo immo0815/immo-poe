@@ -350,6 +350,17 @@ public static class CaptureMonsterFiles
             return;
         }
 
+        // THE CAPSULES THE CLOTHS MEET, each sphere on his bone at its bind - a capsule nobody's cloth comes near costs nothing but a test.
+        ClothColliders colliders = actor.Colliders;
+        body.AppendLine(Invariant($"  colliders: {colliders.Capsules.Count} capsules between {colliders.Spheres.Count} spheres, {colliders.Ellipsoids.Count} ellipsoids"));
+        for (var one = 0; one < colliders.Spheres.Count; one++)
+        {
+            ClothSphere sphere = colliders.Spheres[one];
+            string bone = sphere.Bone >= 0 && sphere.Bone < actor.Rig.Bones.Count ? actor.Rig.Bones[sphere.Bone].Name : "-";
+            body.AppendLine(Invariant($"  sphere\t{one}\t{bone}\t{At(sphere.Centre)}\tradius {sphere.Radius:0.###}"));
+        }
+
+        body.AppendLine("  capsules: " + string.Join(' ', colliders.Capsules.Select(one => Invariant($"{one.From}-{one.To}"))));
         body.AppendLine("  bone\tits own bone\tkind\tparticle, edge or triangle\this bone it hangs from\tbind place\tsource");
         foreach (ClothSwing swing in actor.Swings)
         {
@@ -387,7 +398,7 @@ public static class CaptureMonsterFiles
 
         const double Frame = 0.0101;
         float rate = move.Rate > 0 ? move.Rate : 30f;
-        var swinger = new ClothSwinger(actor.Swings);
+        var swinger = new ClothSwinger(actor.Swings, actor.Colliders);
         ClothBoneLink[] links = [.. actor.Swings.SelectMany(one => one.Cloth.Links)];
         var most = new float[links.Length];
         var line = new StringBuilder();
@@ -406,10 +417,11 @@ public static class CaptureMonsterFiles
                 swinger.Due(Frame);
             }
 
+            // THE ANIMATION ALONE IS THE POSE TAKEN, its simulated bones as it moves them - not a second swing with the switch off, which
+            // starts the cloth over (v0.1.422's part did, every frame, and measured cloths that never left their targets).
             pose.Take(tracks, frame);
             still.Take(tracks, frame);
             swinger.Swing(pose, tracks, frame, rate, tracks.Frames, swinging: true);
-            swinger.Swing(still, tracks, frame, rate, tracks.Frames, swinging: false);
             for (var one = 0; one < links.Length; one++)
             {
                 Vector3 moved = Vector3.Transform(links[one].Bind.Translation, pose.Skin[links[one].Bone]);
@@ -896,9 +908,12 @@ public static class CaptureMonsterFiles
                 body.Append("  pinned: ").AppendLine(string.Join(' ', cloth.Pinned.Take(MostClothRecords)));
             }
 
+            // THE SPHERE'S LAST WORD TAKEN AS ITS BONE (Swaying): the bone it names and how far its bind stands from the centre, both halves.
             foreach (SimulationSphere sphere in cloth.Spheres)
             {
-                body.Append(Invariant($"  sphere\t{sphere.Name}\t{At(sphere.Centre)}\tradius {sphere.Radius:0.###}\t{sphere.Unknown}")).AppendLine();
+                bool named = rest is not null && sphere.Unknown < (uint)rig.Bones.Count;
+                string bone = named ? Invariant($"{rig.Bones[(int)sphere.Unknown].Name}, its bind {Vector3.Distance(rest!.BindModel[(int)sphere.Unknown].Translation, sphere.Centre):0.###} off") : "no bone of the rig";
+                body.Append(Invariant($"  sphere\t{sphere.Name}\t{At(sphere.Centre)}\tradius {sphere.Radius:0.###}\t{sphere.Unknown}\t{bone}")).AppendLine();
             }
 
             foreach ((int from, int to) in cloth.Connections)

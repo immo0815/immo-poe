@@ -428,7 +428,7 @@ public sealed class AnimationSkeleton
     }
 
     /// <summary>
-    /// How many bones at the end of this rig no animation drives - each a bone the tool swings itself (<see cref="Swinging"/>, BoneSwing).
+    /// How many bones at the end of this rig no animation drives - each a bone the tool swings itself (<see cref="Swinging"/>, ClothSwinger).
     /// Nought for a rig as its file has it.
     /// </summary>
     public int Swung { get; private init; }
@@ -437,7 +437,7 @@ public sealed class AnimationSkeleton
     /// This rig with a bone after all of its own and its riders' for each one given - a child of the bone named, bound so that it rests at
     /// the model's origin and follows its parent rigidly (its skin matrix its parent's in every pose), which no animation names and whose
     /// skin matrix the tool sets itself after a pose (SkeletonPose.Override): a piece's lamp swinging as the engine's simulation swings it
-    /// (BoneSwing). Null where the bones would pass <see cref="MostBones"/> or the tree does not hold together.
+    /// (ClothSwinger). Null where the bones would pass <see cref="MostBones"/> or the tree does not hold together.
     /// </summary>
     /// <remarks>
     /// LAST, AFTER THE RIDERS, so a rider's first bone keeps its number; and counted (<see cref="Swung"/>), so <see cref="Played"/> keeps

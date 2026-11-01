@@ -40,8 +40,8 @@ public readonly record struct CarriedLight(int Bone, Vector3 Rest, Vector3 Colou
 /// <item>A SKIN ON HIS RIG: on his bone of the same name, its position line in his bone's frame - a READING: the piece's own rig rests the
 /// bone elsewhere, and the light stands where his does. One his rig has not is left out, said so.</item>
 /// </list>
-/// THE BONE'S OWN SIMULATION swings it where its piece's .ao carries the measured one (v0.1.416, BoneSwing): the light is put on the swung bone
-/// with the lamp's vertices (<see cref="Gathering.Rebone"/>); any other simulated bone stands where the animation puts it.
+/// THE BONE'S OWN SIMULATION swings it where its piece simulates it (v0.1.416; the engine's cloth from v0.1.422, ClothSwinger): the light
+/// is put on the simulated bone with the lamp's vertices (<see cref="Gathering.Rebone"/>).
 /// A LIGHT'S STYLE FLICKERS IT (v0.1.414, MEASURED off the game's light list - <see cref="LightStyle"/>): its colour times style 1's keys as the
 /// picture's clock runs, the reach following the colour as the shader's cutoff does (GetPointCutoffRadius over the flickered colour).
 /// </remarks>

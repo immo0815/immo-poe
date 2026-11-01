@@ -227,12 +227,16 @@ public sealed record MonsterModel(
     public string CarriedSaid { get; init; } = string.Empty;
 
     /// <summary>
-    /// The cloths of his rigid pieces the tool simulates as the engine does - each simulated bone a bone appended to <see cref="Rig"/>, see
-    /// <see cref="ClothSwing"/> and MonsterModel's Swaying. Empty where none of his rigid pieces carries a simulation.
+    /// The cloths the tool simulates as the engine does - his own body's on his own rig's phys_ bones, and every piece's with a rig and a
+    /// simulation mesh of its own, each of its simulated bones a bone appended to <see cref="Rig"/>; see <see cref="ClothSwing"/> and
+    /// MonsterModel's Swaying. Empty where nothing of him carries a simulation.
     /// </summary>
     public IReadOnlyList<ClothSwing> Swings { get; init; } = [];
 
-    /// <summary>What became of his pieces' simulated bones - swung, or why not - for the line under the picture; empty where none has one.</summary>
+    /// <summary>The capsules his cloths meet - his body's and every piece's, in his rig and his space; none where nothing carries one.</summary>
+    public ClothColliders Colliders { get; init; } = ClothColliders.None;
+
+    /// <summary>What became of his cloths' simulated bones - swung, or why not - for the line under the picture; empty where none has one.</summary>
     public string SwingSaid { get; init; } = string.Empty;
 
     /// <summary>Where a stage stood its monster and the floor it found there - see <see cref="StageStanding"/>; null for anything but a staged monster.</summary>
@@ -940,8 +944,13 @@ public static class MonsterModels
         var lamps = new CarriedLights.Gathering(counted);
         lamps.Body(found.Files, rig);
 
-        // AND THE BONES OF HIS RIGID PIECES THE ENGINE SWINGS, where it swings them as measured - see Swaying.
+        // AND THE CLOTHS THE ENGINE SIMULATES - his own body's first, then every piece's as it is hung - with their collision shapes; see Swaying.
         var swaying = new Swaying(counted);
+        swaying.Body(
+            [.. found.Files.Select(file => Object(counted, file)).Where(ao => ao.Ready).SelectMany(ao => Whole(counted, ao))],
+            [mesh, .. parts.Take(sections).Select(part => part.Mesh)],
+            rig,
+            named[0]);
         if (wearing)
         {
             parts.AddRange(Dressing(counted, found.Files, rig, paints, skin, told, riding, pieces ?? [], covering, lamps, swaying));
@@ -969,7 +978,7 @@ public static class MonsterModels
         }
 
         // THE SWUNG BONES AFTER EVERY OTHER, their pieces' vertices and lights put on them - before the lights are made and the mesh is joined.
-        (rig, IReadOnlyList<ClothSwing> swings, string swingSaid) = swaying.Made(rig, lamps);
+        (rig, IReadOnlyList<ClothSwing> swings, ClothColliders colliders, string swingSaid) = swaying.Made(rig, lamps);
         (IReadOnlyList<CarriedLight> carried, string carriedSaid) = lamps.Made(rig);
 
         // THE MONSTER WITHOUT WHAT HE IS WEARING, taken BEFORE the join and kept - see
@@ -1033,6 +1042,7 @@ public static class MonsterModels
             Carried = carried,
             CarriedSaid = carriedSaid,
             Swings = swings,
+            Colliders = colliders,
             SwingSaid = swingSaid,
         };
     }
@@ -2364,6 +2374,16 @@ public static class MonsterModels
             // socketed piece's own bind cancels down to exactly its socket's transform.
             var worn = new Part(Corrected(mesh, map.Into), map.Bones, mesh.Weights, null, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
             lamps.Skin(chain, hung.Path, body.Where);
+
+            // ITS CLOTH ON ITS OWN RIG'S phys_ BONES, appended to his - or, a skin with no rig, its collision shapes alone (see Swaying).
+            if (map.Own is { } itsRig)
+            {
+                swaying.Skinned(chain, mesh, itsRig, map.Under.Rest, map.Under.Onto, map.Into, map.Bones, body.Where, hung.Path);
+            }
+            else if (map.Rigless)
+            {
+                swaying.Rigless(mesh, map.Under.Plain, body.Onto.Length, hung.Path);
+            }
             return (worn, map.Under, Told(hung, where, PartKind.Skin, counted, worn));
         }
 
@@ -2435,83 +2455,125 @@ public static class MonsterModels
     }
 
     /// <summary>
-    /// The bones of his rigid pieces the engine simulates, gathered as he is dressed: each piece's vertices put on its socket's bone but the
-    /// share its simulated bones carry, which goes to a bone of its own appended to his rig once the riders are joined (<see cref="Made"/>),
-    /// and the piece's cloth built from its mesh's simulation mesh (ClothRig) to move those bones.
+    /// The cloths the engine simulates on him and the collision shapes they meet, gathered as he is dressed: his own body's simulation
+    /// meshes on the phys_ bones of his own rig (<see cref="Body"/>); every piece with a rig and a simulation mesh of its own - a rigid piece
+    /// (<see cref="Bound"/>) and a skin (<see cref="Skinned"/>) - each of its phys_ bones a bone of its own appended to his rig once the
+    /// riders are joined (<see cref="Made"/>), the piece's vertices that bone carries put on it; and every capsule any of them carries, in his
+    /// rig and his space.
     /// </summary>
     /// <remarks>
-    /// EVERY SIMULATION, NOT THE ONE MEASURED (v0.1.422, DECIDED from the live client: "chains, cloth and hair directly"). v0.1.416 swung the
-    /// Exile's Staff's lamp alone, as a pendulum fitted to the game's light list, and only under that .ao's ten keys; the engine's own
-    /// simulation is now read and ported (ClothWorld, ClothEngineTests), so every rigid piece whose .ao carries a ClientAnimationController and
-    /// whose mesh a simulation mesh is swung by it, under its own keys (ClothSettings.Of) - the staff's lamp, the player's cape, a weapon's
-    /// chains. Every bone of the piece's own rig whose name holds "phys_" is simulated (the engine's test, module+0x2863C00), each a bone of
-    /// its own in his rig; a bone below one that is not simulated rides with it. A rigid piece's targets are its socket's: the tool hangs the
-    /// piece rigidly, its own rig not played. Its lights move with their bones (CarriedLights.Gathering.Rebone).
+    /// EVERY CONTROLLER'S CLOTH, READ FROM THE ENGINE'S CODE (v0.1.424). A ClientAnimationController's setup (module+0x2863C00) hands its own
+    /// SkinMesh's simulation meshes to the physics world (module+0x2862510), skins their targets from its own skeleton (the 0x60-byte records
+    /// at +0x2C0, every mesh's vertices in one list) and links every phys_ bone of that skeleton to them (the 0x58-byte records at +0x2A8);
+    /// then, of the objects attached to it, each with no ClientAnimationController of its own - a rigless skin, the player's body armour -
+    /// has its SkinMesh handed to the world too, AFTER the targets and the links were made: such a skin's simulation mesh moves no bone, and
+    /// its collision shapes count. A piece with a controller of its own sets its own cloth up on its own skeleton - the robe's skirt, the
+    /// shawl, a helmet's dangle, the staff's lamp - which the tool joins to his rig, so their phys_ bones are appended to it.
+    /// THE COLLISION SHAPES ARE THE SYSTEM'S: the world step (module+0x139F150) tests every capsule of the physics system against each
+    /// container's bounds, so the skirt meets his legs' capsules though they are his body's.
+    /// NO KEY IS ASKED FOR: v0.1.422 swung a piece only where its .ao wrote a simulation key, while the setup reads none to start - a controller
+    /// with a simulation mesh simulates under the engine's defaults where its .ao writes none (the shawl writes none).
     /// </remarks>
     internal sealed class Swaying(Func<string, byte[]?> read)
     {
         private readonly List<Ask> _asks = [];
         private readonly List<Pending> _cloths = [];
         private readonly List<string> _said = [];
-        private int _count;
+        private readonly List<(int Ref, Vector3 Centre, float Radius)> _spheres = [];
+        private readonly List<(int From, int To)> _capsules = [];
+        private int _ellipsoids;
 
         /// <summary>
-        /// A rigid piece's vertex bones and weights: every vertex on <paramref name="socket"/> - and, where its .ao simulates and its mesh carries
-        /// a simulation mesh, the share its simulated bones carry on bones numbered once the rig is made, the socket standing in until then.
+        /// His own body's simulation meshes - the controller's own SkinMesh - as one cloth on his own rig, every phys_ bone of it linked, and
+        /// their collision shapes.
+        /// </summary>
+        /// <remarks>
+        /// ONE CLOTH OF EVERY MESH'S VERTICES, CHOSEN where a body carries more than one: the setup searches them as one list for each bone's
+        /// link (+0x2C0), and keeps a container a mesh - where a particle's nearest pinned one is sought - which only a body of several
+        /// simulated meshes tells apart.
+        /// </remarks>
+        public void Body(IReadOnlyList<AnimatedObject> chain, IReadOnlyList<SkinnedMesh> meshes, AnimationSkeleton rig, string path)
+        {
+            int count = rig.Bones.Count;
+            foreach (SkinnedMesh mesh in meshes)
+            {
+                Collide(mesh.Simulation, bone => bone >= 0 && bone < count ? bone : NoBone, (_, centre) => centre);
+            }
+
+            List<SimulationMesh> simulated = [.. meshes.Select(mesh => mesh.Simulation).Where(simulation => simulation.Simulates)];
+            if (simulated.Count == 0)
+            {
+                return;
+            }
+
+            string name = Name(path);
+            List<int> physics = [.. Enumerable.Range(0, count).Where(bone => Simulated(rig, bone))];
+            if (physics.Count == 0 || SkeletonPose.Of(rig) is not { } rest)
+            {
+                _said.Add($"{name}: his own simulation mesh moves no bone - his rig has no {CaptureMonsterFiles.PhysicsBone} bone{(physics.Count > 0 ? " that holds together" : string.Empty)}");
+                return;
+            }
+
+            var particles = new List<Vector3>();
+            var refs = new List<int>();
+            var weights = new List<Vector4>();
+            var triangles = new List<int>();
+            var pinned = new List<int>();
+            foreach (SimulationMesh simulation in simulated)
+            {
+                int first = particles.Count;
+                foreach (SimulationVertex vertex in simulation.Vertices)
+                {
+                    particles.Add(vertex.Position);
+                    for (var k = 0; k < 4; k++)
+                    {
+                        int bone = vertex.Bones[k];
+                        refs.Add(bone >= 0 && bone < count ? bone : NoBone);
+                    }
+
+                    weights.Add(vertex.Weights);
+                }
+
+                triangles.AddRange(simulation.Triangles.Select(corner => corner + first));
+                pinned.AddRange(simulation.Pinned.Select(one => one + first));
+            }
+
+            List<Link> links = [.. physics.Select(bone => new Link(bone, rig.Bones[bone].Name, rest.BindModel[bone], Weighted(simulated, bone)))];
+            ClothSettings settings = ClothSettings.Of(Simulation(chain), out IReadOnlyList<string> unknown);
+            _cloths.Add(new Pending([.. particles], [.. refs], [.. weights], triangles, pinned, settings, unknown, links, -1, path, "his own rig"));
+        }
+
+        /// <summary>A skin with no rig of its own: its collision shapes, on his bones where it hangs on him; its simulation mesh moves no bone.</summary>
+        public void Rigless(SkinnedMesh mesh, bool onHim, int bones, string path)
+        {
+            SimulationMesh simulation = mesh.Simulation;
+            if (!onHim)
+            {
+                return;
+            }
+
+            Collide(simulation, bone => bone >= 0 && bone < bones ? bone : NoBone, (_, centre) => centre);
+            if (simulation.Simulates)
+            {
+                _said.Add($"{Name(path)}: a skin with no rig of its own - its simulation mesh ({simulation.Vertices.Count} vertices) moves no bone, as the engine adds it after his bones were linked");
+            }
+        }
+
+        /// <summary>
+        /// A rigid piece's vertex bones and weights: every vertex on <paramref name="socket"/> - and, where its own rig and mesh carry a
+        /// simulation, the share its simulated bones carry on bones numbered once the rig is made, the socket standing in until then.
         /// </summary>
         public (byte[] Bones, byte[] Weights) Bound(
             IReadOnlyList<AnimatedObject> chain, SkinnedMesh mesh, Matrix4x4 place, int socket, string path, (int From, int Count) lights)
         {
             (byte[] bones, byte[] weights) = MonsterModels.Bound(mesh.Positions.Length, socket);
-            Dictionary<string, string> said = Simulation(chain);
-            if (said.Count == 0)
+            if (Own(chain, mesh, path) is not { } own)
             {
                 return (bones, weights);
             }
 
-            string name = Name(path);
-            SimulationMesh simulation = mesh.Simulation;
-            if (!simulation.Simulates)
-            {
-                _said.Add($"{name}: its .ao names a simulation but its mesh carries no simulation mesh{(simulation.Why.Length > 0 ? " (" + simulation.Why + ")" : string.Empty)} - its bones stand as animated");
-                return (bones, weights);
-            }
-
-            AnimationSkeleton own = Read(read, Entryed(chain, RigBlock, RigEntry), AnimationSkeleton.Read);
-            if (!own.Ready || SkeletonPose.Of(own) is not { } rest)
-            {
-                _said.Add($"{name}: its own rig did not read - nothing simulated");
-                return (bones, weights);
-            }
-
-            if (mesh.Bones.Length != mesh.Positions.Length * 4 || mesh.Weights.Length != mesh.Bones.Length || SkeletonPose.Highest(mesh) >= own.Bones.Count)
-            {
-                _said.Add($"{name}: its mesh is not weighted to its own rig - nothing simulated");
-                return (bones, weights);
-            }
-
-            List<int> simulated = [.. Enumerable.Range(0, own.Bones.Count).Where(bone => Simulated(own, bone))];
-            if (simulated.Count == 0)
-            {
-                _said.Add($"{name}: no bone of its rig is a {CaptureMonsterFiles.PhysicsBone} bone - nothing simulated");
-                return (bones, weights);
-            }
-
-            // EACH OF ITS OWN BONES' SIMULATED BONE, -1 for none: itself where it is one, else the nearest above it that is.
-            var ownerOf = new int[own.Bones.Count];
-            for (var bone = 0; bone < own.Bones.Count; bone++)
-            {
-                ownerOf[bone] = -1;
-                for (int up = bone; up >= 0; up = rest.Parents[up])
-                {
-                    int found = simulated.IndexOf(up);
-                    if (found >= 0)
-                    {
-                        ownerOf[bone] = found;
-                        break;
-                    }
-                }
-            }
+            (AnimationSkeleton rig, SkeletonPose rest, List<int> simulated) = own;
+            int[] ownerOf = Owners(rig, rest, simulated);
 
             var carried = new List<int>[simulated.Count];
             Span<int> shares = stackalloc int[simulated.Count + 1];
@@ -2559,96 +2621,406 @@ public static class MonsterModels
                 }
             }
 
-            // EACH SIMULATED BONE'S WEIGHTED SIMULATION VERTICES - a "skinned" bone's members (module+0x2863C00).
-            var weighted = new List<(int Particle, float Weight)>[simulated.Count];
-            for (var vertex = 0; vertex < simulation.Vertices.Count; vertex++)
-            {
-                SimulationVertex one = simulation.Vertices[vertex];
-                for (var k = 0; k < 4; k++)
-                {
-                    int found = one.Bones[k] >= 0 && one.Bones[k] < own.Bones.Count ? simulated.IndexOf(one.Bones[k]) : -1;
-                    float weight = k switch { 0 => one.Weights.X, 1 => one.Weights.Y, 2 => one.Weights.Z, _ => one.Weights.W };
-                    if (found >= 0)
-                    {
-                        (weighted[found] ??= []).Add((vertex, weight));
-                    }
-                }
-            }
-
-            var asked = new List<int>(simulated.Count);
+            var askedFor = new int[simulated.Count];
+            var links = new List<Link>(simulated.Count);
+            List<SimulationMesh> mine = [mesh.Simulation];
             for (var at = 0; at < simulated.Count; at++)
             {
                 int bone = simulated[at];
                 var names = new HashSet<string>(
-                    Enumerable.Range(0, own.Bones.Count).Where(one => ownerOf[one] == at).Select(one => own.Bones[one].Name), StringComparer.OrdinalIgnoreCase);
-                asked.Add(_count);
-                _asks.Add(new Ask(_count++, bones, carried[at] ?? [], socket, rest.BindModel[bone] * place, own.Bones[bone].Name, path, lights, names,
-                    [.. weighted[at] ?? []]));
+                    Enumerable.Range(0, rig.Bones.Count).Where(one => ownerOf[one] == at).Select(one => rig.Bones[one].Name), StringComparer.OrdinalIgnoreCase);
+                askedFor[at] = Asked(socket, rig.Bones[bone].Name, bones, carried[at] ?? [], lights, names);
+                links.Add(new Link(askedFor[at], rig.Bones[bone].Name, rest.BindModel[bone] * place, Weighted(mine, bone)));
             }
 
-            ClothSettings settings = ClothSettings.Of(said, out IReadOnlyList<string> unknown);
-            _cloths.Add(new Pending(
-                [.. simulation.Vertices.Select(one => Vector3.Transform(one.Position, place))], simulation.Triangles, simulation.Pinned, settings, unknown,
-                asked, socket, path));
+            // EVERY PARTICLE'S TARGET ON ITS OWN BONES: a simulated one's appended bone - which follows the socket rigidly before the cloth sets
+            // it - and every other one the socket, as the piece hangs rigidly and its own rig is not played.
+            int Mapped(int ownBone) => ownBone >= 0 && ownBone < ownerOf.Length && ownerOf[ownBone] >= 0 ? askedFor[ownerOf[ownBone]] : socket;
+            Collide(mesh.Simulation, ownBone => Mapped(ownBone), (_, centre) => Vector3.Transform(centre, place));
+            AddCloth(mesh.Simulation, chain, (_, position) => Vector3.Transform(position, place), Mapped, links, socket, path, "rigid");
             return (bones, weights);
         }
 
         /// <summary>
-        /// His rig with a bone appended for every simulated bone asked for (AnimationSkeleton.Swinging), each one's vertices and lights put on it,
-        /// and each piece's cloth built over them; what became of every piece that simulates bones, said.
+        /// A skin on a rig of its own, joined to his (Retargeted): each of its phys_ bones a bone appended to his under the bone its nearest
+        /// unsimulated ancestor went to - or his own of the same name - the vertices it carries put on it, and its cloth over them.
         /// </summary>
-        public (AnimationSkeleton Rig, IReadOnlyList<ClothSwing> Swings, string Said) Made(AnimationSkeleton rig, CarriedLights.Gathering lamps)
+        /// <param name="chain">The piece's .ao and what it extends.</param>
+        /// <param name="mesh">Its mesh, its vertices on its own rig.</param>
+        /// <param name="rig">Its own rig.</param>
+        /// <param name="rest">Its own rig's rest.</param>
+        /// <param name="over">Each of its own bones' bone in his rig, as the retarget joined them.</param>
+        /// <param name="into">Each of its own bones' way out of its own bind into his, as the retarget corrected its vertices.</param>
+        /// <param name="bones">The vertex bones the piece is drawn with - its slots put on the appended bones once they are numbered.</param>
+        /// <param name="his">His rig's bones by name.</param>
+        /// <param name="path">The piece's .ao.</param>
+        public void Skinned(
+            IReadOnlyList<AnimatedObject> chain,
+            SkinnedMesh mesh,
+            AnimationSkeleton rig,
+            SkeletonPose rest,
+            byte[] over,
+            Matrix4x4[] into,
+            byte[] bones,
+            IReadOnlyDictionary<string, int> his,
+            string path)
         {
-            if (_asks.Count == 0)
+            List<int> simulated = [.. Enumerable.Range(0, rig.Bones.Count).Where(bone => Simulated(rig, bone))];
+            int[] ownerOf = Owners(rig, rest, simulated);
+            var askedFor = new int[simulated.Count];
+            var links = new List<Link>(simulated.Count);
+            List<SimulationMesh> mine = [mesh.Simulation];
+            bool simulates = mesh.Simulation.Simulates && simulated.Count > 0;
+            for (var at = 0; at < simulated.Count && simulates; at++)
             {
-                return (rig, [], string.Join("; ", _said));
-            }
+                int bone = simulated[at];
+                string name = rig.Bones[bone].Name;
 
-            // PAST THE PALETTE'S LIMIT nothing swings, and the socket that stood in keeps every vertex where it hung before.
-            if (rig.Swinging([.. _asks.Select(one => (SwingName + one.Name, one.Socket))]) is not { } swinging)
-            {
-                _said.Add($"{_asks.Count} simulated bones would take his rig past {AnimationSkeleton.MostBones} bones, or its tree does not hold together - none simulated");
-                return (rig, [], string.Join("; ", _said));
-            }
-
-            int first = rig.Bones.Count;
-            foreach (Ask one in _asks)
-            {
-                int bone = first + one.Ordinal;
-                foreach (int slot in one.Slots)
+                // HIS OWN BONE OF THE NAME where he has one - the retarget put the piece's vertices on it already; else one appended under the
+                // bone the nearest unsimulated ancestor went to, which follows that bone rigidly until the cloth sets it.
+                if (his.TryGetValue(name, out int same))
                 {
-                    one.Bones[slot] = (byte)bone;
+                    askedFor[at] = same;
+                }
+                else
+                {
+                    int up = bone;
+                    for (var hops = 0; up >= 0 && Simulated(rig, up) && hops <= rig.Bones.Count; hops++)
+                    {
+                        up = up < rest.Parents.Count ? rest.Parents[up] : -1;
+                    }
+
+                    int under = over.Length == 0 ? 0 : over[up >= 0 && up < over.Length ? up : Math.Min(bone, over.Length - 1)];
+                    var slots = new List<int>();
+                    for (var slot = 0; slot < mesh.Bones.Length && slot < bones.Length; slot++)
+                    {
+                        byte ownBone = mesh.Bones[slot];
+                        if (mesh.Weights[slot] > 0 && ownBone < ownerOf.Length && ownerOf[ownBone] == at)
+                        {
+                            slots.Add(slot);
+                        }
+                    }
+
+                    askedFor[at] = Asked(under, name, bones, slots, default, []);
                 }
 
-                lamps.Rebone(one.Lights, one.Names, bone);
+                Matrix4x4 bind = bone < into.Length ? rest.BindModel[bone] * into[bone] : rest.BindModel[bone];
+                links.Add(new Link(askedFor[at], name, bind, Weighted(mine, bone)));
             }
 
+            int Mapped(int ownBone) => ownBone < 0 || ownBone >= over.Length ? NoBone
+                : simulates && ownBone < ownerOf.Length && ownerOf[ownBone] >= 0 ? askedFor[ownerOf[ownBone]]
+                : over[ownBone];
+            Vector3 Moved(int ownBone, Vector3 at) => ownBone >= 0 && ownBone < into.Length ? Vector3.Transform(at, into[ownBone]) : at;
+            Collide(mesh.Simulation, Mapped, Moved);
+            if (simulates)
+            {
+                AddCloth(mesh.Simulation, chain, (vertex, position) => Corrected(vertex, position, into), Mapped, links, -1, path, "skin");
+            }
+        }
+
+        /// <summary>
+        /// His rig with a bone appended for every simulated bone asked for (AnimationSkeleton.Swinging), each one's vertices and lights put on
+        /// it, every cloth built over his bones and them, and the collision shapes; what became of every cloth, said.
+        /// </summary>
+        public (AnimationSkeleton Rig, IReadOnlyList<ClothSwing> Swings, ClothColliders Colliders, string Said) Made(AnimationSkeleton rig, CarriedLights.Gathering lamps)
+        {
+            int first = rig.Bones.Count;
+            AnimationSkeleton swinging = rig;
+            bool appended = true;
+            if (_asks.Count > 0)
+            {
+                // PAST THE PALETTE'S LIMIT no appended bone is made, and the bones that stood in keep every vertex where it hung before.
+                if (rig.Swinging([.. _asks.Select(one => (SwingName + one.Name, one.Under))]) is { } grown)
+                {
+                    swinging = grown;
+                    foreach (Ask one in _asks)
+                    {
+                        int bone = first + one.Ordinal;
+                        foreach (int slot in one.Slots)
+                        {
+                            one.Bones[slot] = (byte)bone;
+                        }
+
+                        lamps.Rebone(one.Lights, one.Names, bone);
+                    }
+                }
+                else
+                {
+                    appended = false;
+                    _said.Add($"{_asks.Count} simulated bones would take his rig past {AnimationSkeleton.MostBones} bones, or its tree does not hold together - no piece's cloth simulated");
+                }
+            }
+
+            int Resolved(int reference) => reference >= 0 ? reference : reference == NoBone || !appended ? NoBone : first + (-1 - reference);
+
             var swings = new List<ClothSwing>(_cloths.Count);
+            var linked = new HashSet<int>();
+            Span<int> four = stackalloc int[4];
             foreach (Pending cloth in _cloths)
             {
-                var all = new Int4(cloth.Socket, -1, -1, -1);
-                var built = new ClothRig(
-                    cloth.Rest,
-                    [.. cloth.Rest.Select(_ => all)],
-                    [.. cloth.Rest.Select(_ => Vector4.UnitX)],
-                    cloth.Triangles,
-                    cloth.Pinned,
-                    [.. cloth.Asked.Select(ask => (first + _asks[ask].Ordinal, _asks[ask].Name, _asks[ask].Bind, (IReadOnlyList<(int, float)>)_asks[ask].Weighted))],
-                    cloth.Settings,
-                    cloth.Path);
+                var particleBones = new Int4[cloth.Rest.Length];
+                var particleWeights = new Vector4[cloth.Rest.Length];
+                for (var p = 0; p < cloth.Rest.Length; p++)
+                {
+                    Vector4 weight = cloth.Weights[p];
+                    for (var k = 0; k < 4; k++)
+                    {
+                        four[k] = Resolved(cloth.Refs[(p * 4) + k]);
+                        if (four[k] == NoBone)
+                        {
+                            four[k] = -1;
+                            weight = k switch { 0 => weight with { X = 0f }, 1 => weight with { Y = 0f }, 2 => weight with { Z = 0f }, _ => weight with { W = 0f } };
+                        }
+                    }
+
+                    particleBones[p] = new Int4(four[0], four[1], four[2], four[3]);
+                    particleWeights[p] = weight;
+                }
+
+                // A BONE TWO CLOTHS WOULD SET is set by the first - his own body's before any piece's (CHOSEN: in the engine each controller sets
+                // its own skeleton's, which the tool's joined rig shares).
+                var simulated = new List<(int Bone, string Name, Matrix4x4 Bind, IReadOnlyList<(int Particle, float Weight)> Weighted)>(cloth.Links.Count);
+                var twice = new List<string>();
+                foreach (Link link in cloth.Links)
+                {
+                    int bone = Resolved(link.Ref);
+                    if (bone == NoBone)
+                    {
+                        continue;
+                    }
+
+                    if (!linked.Add(bone))
+                    {
+                        twice.Add(link.Name);
+                        continue;
+                    }
+
+                    simulated.Add((bone, link.Name, link.Bind, link.Weighted));
+                }
+
+                if (simulated.Count == 0)
+                {
+                    _said.Add($"{Name(cloth.Path)}: its cloth moves no bone{(twice.Count > 0 ? " - another cloth sets " + string.Join(", ", twice) : string.Empty)}");
+                    continue;
+                }
+
+                var built = new ClothRig(cloth.Rest, particleBones, particleWeights, cloth.Triangles, cloth.Pinned, simulated, cloth.Settings, cloth.Path);
                 swings.Add(new ClothSwing(built, cloth.Socket, cloth.Path));
-                string socket = cloth.Socket >= 0 && cloth.Socket < rig.Bones.Count ? rig.Bones[cloth.Socket].Name : "no bone";
+                string held = cloth.Socket >= 0 && cloth.Socket < rig.Bones.Count ? "held at " + rig.Bones[cloth.Socket].Name : cloth.Kind;
                 string kinds = string.Join(", ", built.Links.GroupBy(link => link.Kind).Select(group => $"{group.Count()} on a {group.Key.ToString().ToLowerInvariant()}"));
                 _said.Add(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{Name(cloth.Path)} simulates {built.Links.Count} bones ({kinds}) by the engine's cloth: {built.Count} particles, {built.Triangles.Length} triangles, {built.Pinned.Count(pin => pin)} pinned, held at {socket}{(built.Unlinked.Count > 0 ? "; no frame for " + string.Join(", ", built.Unlinked) : string.Empty)}{(cloth.Unknown.Count > 0 ? "; keys the engine does not read: " + string.Join(", ", cloth.Unknown) : string.Empty)}"));
+                    $"{Name(cloth.Path)} simulates {built.Links.Count} bones ({kinds}) by the engine's cloth: {built.Count} particles, {built.Triangles.Length} triangles, {built.Pinned.Count(pin => pin)} pinned, {held}{(built.Unlinked.Count > 0 ? "; no frame for " + string.Join(", ", built.Unlinked) : string.Empty)}{(twice.Count > 0 ? "; set by another cloth: " + string.Join(", ", twice) : string.Empty)}{(cloth.Unknown.Count > 0 ? "; keys the engine does not read: " + string.Join(", ", cloth.Unknown) : string.Empty)}"));
             }
 
-            return (swinging, swings, string.Join("; ", _said));
+            // THE CAPSULES, each between two spheres on his bones; a sphere on a bone that was not made takes its capsules with it.
+            var spheres = new List<ClothSphere>(_spheres.Count);
+            var kept = new int[_spheres.Count];
+            for (var one = 0; one < _spheres.Count; one++)
+            {
+                int bone = Resolved(_spheres[one].Ref);
+                kept[one] = bone == NoBone ? -1 : spheres.Count;
+                if (bone != NoBone)
+                {
+                    spheres.Add(new ClothSphere(bone, _spheres[one].Centre, _spheres[one].Radius));
+                }
+            }
+
+            List<(int From, int To)> capsules = [.. _capsules.Where(one => kept[one.From] >= 0 && kept[one.To] >= 0).Select(one => (kept[one.From], kept[one.To]))];
+            if (swings.Count > 0 && (capsules.Count > 0 || _ellipsoids > 0))
+            {
+                _said.Add($"the cloths meet {capsules.Count} capsules between {spheres.Count} spheres{(_ellipsoids > 0 ? $"; {_ellipsoids} ellipsoids not read as colliders (their fifteen floats' frame is not read)" : string.Empty)}");
+            }
+
+            return (swinging, swings, new ClothColliders(spheres, capsules, []), string.Join("; ", _said));
         }
 
         /// <summary>A simulated bone's name in his rig: its own bone's, marked.</summary>
         private const string SwingName = "swung:";
+
+        /// <summary>No bone - a reference that resolves to nothing.</summary>
+        private const int NoBone = int.MinValue;
+
+        /// <summary>A bone asked to be appended under <paramref name="under"/>; the reference a cloth names it by until it is numbered.</summary>
+        private int Asked(int under, string name, byte[] bones, List<int> slots, (int From, int Count) lights, HashSet<string> names)
+        {
+            int ordinal = _asks.Count;
+            _asks.Add(new Ask(ordinal, under, name, bones, slots, lights, names));
+            return -1 - ordinal;
+        }
+
+        /// <summary>A piece's own rig, its rest and its simulated bones, where its .ao names a rig, its mesh a simulation mesh weighted to that rig, and the rig a phys_ bone; null otherwise, said where it is near.</summary>
+        private (AnimationSkeleton Rig, SkeletonPose Pose, List<int> Simulated)? Own(IReadOnlyList<AnimatedObject> chain, SkinnedMesh mesh, string path)
+        {
+            SimulationMesh simulation = mesh.Simulation;
+            string rigPath = Entryed(chain, RigBlock, RigEntry);
+            if (!simulation.Simulates)
+            {
+                if (rigPath.Length > 0 && Simulation(chain).Count > 0)
+                {
+                    _said.Add($"{Name(path)}: its .ao names a simulation but its mesh carries no simulation mesh{(simulation.Why.Length > 0 ? " (" + simulation.Why + ")" : string.Empty)} - its bones stand as animated");
+                }
+
+                return null;
+            }
+
+            string name = Name(path);
+            AnimationSkeleton own = rigPath.Length > 0 ? Read(read, rigPath, AnimationSkeleton.Read) : AnimationSkeleton.None;
+            if (!own.Ready || SkeletonPose.Of(own) is not { } rest)
+            {
+                _said.Add($"{name}: its own rig did not read - nothing simulated");
+                return null;
+            }
+
+            if (mesh.Bones.Length != mesh.Positions.Length * 4 || mesh.Weights.Length != mesh.Bones.Length || SkeletonPose.Highest(mesh) >= own.Bones.Count)
+            {
+                _said.Add($"{name}: its mesh is not weighted to its own rig - nothing simulated");
+                return null;
+            }
+
+            List<int> simulated = [.. Enumerable.Range(0, own.Bones.Count).Where(bone => Simulated(own, bone))];
+            if (simulated.Count == 0)
+            {
+                _said.Add($"{name}: no bone of its rig is a {CaptureMonsterFiles.PhysicsBone} bone - nothing simulated");
+                return null;
+            }
+
+            return (own, rest, simulated);
+        }
+
+        /// <summary>A cloth of a piece's simulation mesh: each vertex where <paramref name="moved"/> puts it in his space, its bones by <paramref name="mapped"/>.</summary>
+        /// <remarks>
+        /// THE WEIGHTS AS WRITTEN, not made to sum to one: the engine's target skinning (module+0x2868EF0) sums them as they are, and the
+        /// files write 0.999 for a whole weight. It sums in the piece's own frame and the tool in his - a tenth of a unit apart at that.
+        /// </remarks>
+        private void AddCloth(
+            SimulationMesh simulation,
+            IReadOnlyList<AnimatedObject> chain,
+            Func<SimulationVertex, Vector3, Vector3> moved,
+            Func<int, int> mapped,
+            List<Link> links,
+            int socket,
+            string path,
+            string kind)
+        {
+            var rest = new Vector3[simulation.Vertices.Count];
+            var refs = new int[simulation.Vertices.Count * 4];
+            var weights = new Vector4[simulation.Vertices.Count];
+            for (var vertex = 0; vertex < rest.Length; vertex++)
+            {
+                SimulationVertex one = simulation.Vertices[vertex];
+                rest[vertex] = moved(one, one.Position);
+                for (var k = 0; k < 4; k++)
+                {
+                    refs[(vertex * 4) + k] = mapped(one.Bones[k]);
+                }
+
+                weights[vertex] = one.Weights;
+            }
+
+            ClothSettings settings = ClothSettings.Of(Simulation(chain), out IReadOnlyList<string> unknown);
+            _cloths.Add(new Pending(rest, refs, weights, simulation.Triangles, simulation.Pinned, settings, unknown, links, socket, path, kind));
+        }
+
+        /// <summary>The spheres and capsules of a simulation mesh, each sphere on the bone <paramref name="bone"/> maps its own to and where <paramref name="centre"/> puts it in his space.</summary>
+        private void Collide(SimulationMesh simulation, Func<int, int> bone, Func<int, Vector3, Vector3> centre)
+        {
+            _ellipsoids += simulation.Ellipsoids.Count;
+            var kept = new int[simulation.Spheres.Count];
+            for (var one = 0; one < kept.Length; one++)
+            {
+                SimulationSphere sphere = simulation.Spheres[one];
+                int own = sphere.Unknown <= int.MaxValue ? (int)sphere.Unknown : -1;
+                int reference = bone(own);
+                kept[one] = reference == NoBone || !(sphere.Radius > 0f) ? -1 : _spheres.Count;
+                if (kept[one] >= 0)
+                {
+                    _spheres.Add((reference, centre(own, sphere.Centre), sphere.Radius));
+                }
+            }
+
+            foreach ((int from, int to) in simulation.Connections)
+            {
+                if (from >= 0 && from < kept.Length && to >= 0 && to < kept.Length && kept[from] >= 0 && kept[to] >= 0)
+                {
+                    _capsules.Add((kept[from], kept[to]));
+                }
+            }
+        }
+
+        /// <summary>A simulation vertex of a skin moved out of its own bind into his, by its own bones' corrections and weights - as the retarget moves its mesh.</summary>
+        private static Vector3 Corrected(SimulationVertex vertex, Vector3 position, Matrix4x4[] into)
+        {
+            Vector3 sum = Vector3.Zero;
+            var total = 0f;
+            for (var k = 0; k < 4; k++)
+            {
+                int bone = vertex.Bones[k];
+                float weight = k switch { 0 => vertex.Weights.X, 1 => vertex.Weights.Y, 2 => vertex.Weights.Z, _ => vertex.Weights.W };
+                if (weight > 0f && bone >= 0 && bone < into.Length)
+                {
+                    sum += Vector3.Transform(position, into[bone]) * weight;
+                    total += weight;
+                }
+            }
+
+            return total > 0f ? sum / total : into.Length > 0 ? Vector3.Transform(position, into[0]) : position;
+        }
+
+        /// <summary>Each bone's simulated bone - itself where it is one, else the nearest above it that is - by its place among them, -1 for none.</summary>
+        private static int[] Owners(AnimationSkeleton rig, SkeletonPose rest, List<int> simulated)
+        {
+            var ordinal = new Dictionary<int, int>(simulated.Count);
+            for (var at = 0; at < simulated.Count; at++)
+            {
+                ordinal[simulated[at]] = at;
+            }
+
+            var ownerOf = new int[rig.Bones.Count];
+            for (var bone = 0; bone < ownerOf.Length; bone++)
+            {
+                ownerOf[bone] = -1;
+                int up = bone;
+                for (var hops = 0; up >= 0 && hops <= ownerOf.Length; hops++)
+                {
+                    if (ordinal.TryGetValue(up, out int found))
+                    {
+                        ownerOf[bone] = found;
+                        break;
+                    }
+
+                    up = up < rest.Parents.Count ? rest.Parents[up] : -1;
+                }
+            }
+
+            return ownerOf;
+        }
+
+        /// <summary>The simulation vertices weighted to <paramref name="bone"/> itself, numbered through every mesh in turn - a "skinned" bone's members (module+0x2863C00).</summary>
+        private static List<(int Particle, float Weight)> Weighted(IReadOnlyList<SimulationMesh> meshes, int bone)
+        {
+            var said = new List<(int Particle, float Weight)>();
+            int first = 0;
+            foreach (SimulationMesh simulation in meshes)
+            {
+                for (var vertex = 0; vertex < simulation.Vertices.Count; vertex++)
+                {
+                    SimulationVertex one = simulation.Vertices[vertex];
+                    for (var k = 0; k < 4; k++)
+                    {
+                        if (one.Bones[k] == bone)
+                        {
+                            said.Add((first + vertex, k switch { 0 => one.Weights.X, 1 => one.Weights.Y, 2 => one.Weights.Z, _ => one.Weights.W }));
+                        }
+                    }
+                }
+
+                first += simulation.Vertices.Count;
+            }
+
+            return said;
+        }
 
         /// <summary>The ClientAnimationController lines of a chain bearing on a simulation, nearest file first - empty where none is written.</summary>
         private static Dictionary<string, string> Simulation(IReadOnlyList<AnimatedObject> chain)
@@ -2681,29 +3053,32 @@ public static class MonsterModels
         private static bool Simulated(AnimationSkeleton rig, int bone)
             => rig.Bones[bone].Name.Contains(CaptureMonsterFiles.PhysicsBone, StringComparison.Ordinal);
 
-        /// <summary>One simulated bone asked for: its number among them, the piece's bone array and the slots that name it, and what it is.</summary>
+        /// <summary>One bone asked to be appended: its number among them, its parent in his rig, its name, and the piece's vertex slots and lights it takes.</summary>
         private sealed record Ask(
             int Ordinal,
+            int Under,
+            string Name,
             byte[] Bones,
             List<int> Slots,
-            int Socket,
-            Matrix4x4 Bind,
-            string Name,
-            string Path,
             (int From, int Count) Lights,
-            HashSet<string> Names,
-            List<(int Particle, float Weight)> Weighted);
+            HashSet<string> Names);
 
-        /// <summary>One piece's cloth waiting for its bones' numbers: its particles' rest in his space, its triangles, pins and simulation.</summary>
+        /// <summary>A simulated bone a cloth sets: his bone or an appended one (a reference), its name, its bind in his space, the vertices weighted to it.</summary>
+        private sealed record Link(int Ref, string Name, Matrix4x4 Bind, List<(int Particle, float Weight)> Weighted);
+
+        /// <summary>One cloth waiting for its bones' numbers: its particles' rest in his space, four bone references and weights each, its triangles, pins and simulation.</summary>
         private sealed record Pending(
             Vector3[] Rest,
+            int[] Refs,
+            Vector4[] Weights,
             IReadOnlyList<int> Triangles,
             IReadOnlyList<int> Pinned,
             ClothSettings Settings,
             IReadOnlyList<string> Unknown,
-            List<int> Asked,
+            List<Link> Links,
             int Socket,
-            string Path);
+            string Path,
+            string Kind);
     }
 
     /// <summary>One line of the walk's account of itself - see <see cref="PartFit"/>.</summary>
@@ -2788,7 +3163,7 @@ public static class MonsterModels
     /// nothing but the root has no bones to be moved onto. Malgor's ship's wheel is that piece, and
     /// from v0.1.329 it rides his rig and plays its own animations in step - see Riding.
     /// </remarks>
-    private readonly record struct Retarget(byte[] Bones, Matrix4x4[] Into, Fit Under);
+    private readonly record struct Retarget(byte[] Bones, Matrix4x4[] Into, Fit Under, AnimationSkeleton? Own = null, bool Rigless = false);
 
     /// <summary>
     /// What the retarget found, whether or not it could use it - see <see cref="PartFit"/>.
@@ -2827,7 +3202,7 @@ public static class MonsterModels
             if (rooted && weighted && mesh.Positions.Length > 0 && SkeletonPose.Highest(mesh) < fit.Onto.Length)
             {
                 told = told with { Past = true };
-                return new Retarget(fit.Plain ? mesh.Bones : Passed(fit, mesh.Bones), fit.Into, fit);
+                return new Retarget(fit.Plain ? mesh.Bones : Passed(fit, mesh.Bones), fit.Into, fit, Rigless: true);
             }
 
             return null;
@@ -2976,7 +3351,7 @@ public static class MonsterModels
         }
 
         Matrix4x4[] into = Correcting(mine, fit, own.Bones.Count, onto, anchor, rooted, put, spare);
-        return new Retarget(bones, into, new Fit(Where(own), mine, over, into));
+        return new Retarget(bones, into, new Fit(Where(own), mine, over, into), own);
     }
 
     /// <summary>A rig's bones by name, first number wins - the table every fit is looked up in.</summary>

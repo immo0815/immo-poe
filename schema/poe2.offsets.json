@@ -1451,6 +1451,31 @@
       }
     },
 
+    "ClientAnimationControllerCloth": {
+      "comment": "The cloth fields of a ClientAnimationController component - READ FROM THE ENGINE'S CODE (v0.1.424, the build of 2026-10-27, program-code.bin of the capture 2026-11-01 11:23). Its setup (module+0x2863C00) hands its own SkinMesh component's meshes (the component's +0x98 std::vector) to module+0x2862510, which makes their cloth objects and collision shapes in the physics system; then builds a target record (+0x2C0) for every simulation vertex of every one of those meshes, in one list, and a link record (+0x2A8) for every bone of its skeleton whose name holds \"phys_\" (+0x290 the bone's record's number, -1 for none); and LAST walks its object's AttachedAnimatedObject component (+0x180 std::vector of 0xB0-byte attachments): an attachment WITH a ClientAnimationController of its own is skipped - it sets its own cloth up on its own skeleton - and one with none (a rigless skin, the player's body armour) has its SkinMesh handed to module+0x2862510 too, after the targets and the links were made: such a skin's simulation mesh moves no bone. The frame's skinning (module+0x2868EF0) sums each target record's four bones as written - weights not made to sum to one - through the object's transform (+0x210..+0x230) into +0x2F0. See MonsterModel's Swaying.",
+      "fields": {
+        "Skeleton": { "offset": "0x190", "type": "ptr", "comment": "-> its skeleton holder; +0x20 -> +0x28 the rig: bones of 0xB8 bytes at +0x08, the bind matrices (64 bytes a bone) at +0x50." },
+        "Objects": { "offset": "0x1A8", "type": "ptr", "comment": "The physics objects module+0x2862510 made of each SkinMesh handed to it (cloths)." },
+        "Shapes": { "offset": "0x1C0", "type": "ptr", "comment": "Collision shapes module+0x2862510 made (written there, read nothing into)." },
+        "MoreShapes": { "offset": "0x1F0", "type": "ptr", "comment": "Collision shapes module+0x2862510 made (written there, read nothing into)." },
+        "LinkOf": { "offset": "0x290", "type": "ptr", "comment": "Each skeleton bone's link record's number (u64), -1 where its name holds no \"phys_\"." },
+        "Links": { "offset": "0x2A8", "type": "ptr", "comment": "std::vector of 0x58-byte link records, one per phys_ bone in the skeleton's order: the bone (u64), -1 (u64), an identity 4x4 then the link's kind (+0x50)." },
+        "Targets": { "offset": "0x2C0", "type": "ptr", "comment": "std::vector of 0x60-byte target records, one per simulation vertex of the controller's own SkinMesh's meshes: four bone numbers (u64), four weights (f32), the vertex in each bone's bind frame (four times three f32)." },
+        "Placed": { "offset": "0x2F0", "type": "ptr", "comment": "std::vector of the targets skinned this frame, 12 bytes each." }
+      }
+    },
+
+    "PhysicsSystemColliders": {
+      "comment": "The physics system's collision shapes as the world step reads them (module+0x139F150, v0.1.424) - the SYSTEM's, not a container's: every capsule of the system is boxed (its two spheres' centres plus and minus their radii, then the contact margin) and tested against each container's Bounds, so a piece's cloth meets the shapes of the body it hangs on. Offsets from the system's object (the static's +0x0 as the step reads it).",
+      "fields": {
+        "SphereSlots": { "offset": "0x110", "type": "ptr", "comment": "A sphere's slot by its handle (u64 each)." },
+        "Spheres": { "offset": "0x158", "type": "ptr", "comment": "std::vector of 0x64-byte spheres: the centre at +0x24, the radius at +0x30." },
+        "CapsuleSlots": { "offset": "0x190", "type": "ptr", "comment": "A capsule's slot by its handle (u64 each)." },
+        "Active": { "offset": "0x1A8", "type": "ptr", "comment": "The handles of the capsules tested this step (u64 each)." },
+        "Capsules": { "offset": "0x1D8", "type": "ptr", "comment": "std::vector of 0x70-byte capsules: its two spheres' handles at +0x0 and +0x8." }
+      }
+    },
+
     "ClothBody": {
       "comment": "One body of a ClothContainer, 0x38 bytes - READ FROM THE ENGINE'S CODE (v0.1.421, the container's vtable +0x68 to +0xB0).",
       "fields": {
