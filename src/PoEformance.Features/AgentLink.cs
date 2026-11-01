@@ -125,6 +125,12 @@ public sealed class AgentLink
     /// <summary>When the last request with the right key came, or default.</summary>
     public DateTimeOffset LastSeen { get; private set; }
 
+    /// <summary>
+    /// Runs before every call, given the tool's name - the overlay brings the game's window to the front there (asked for from the live
+    /// client, 2026-11-01). What it says, where anything, opens the call's answer; it failing does not stop the call.
+    /// </summary>
+    public Func<string, Task<string?>>? Before { get; set; }
+
     /// <summary>Gives a listed tool its handler, replacing any before it.</summary>
     public void Bind(string name, AgentHandler handler)
     {
@@ -386,25 +392,46 @@ public sealed class AgentLink
         Log?.Invoke($"agent   call {jobId}: {name} {Shortened(arguments.GetRawText())}");
         Task<AgentResult> run = handler is null
             ? Task.FromResult(AgentResult.Fail($"'{name}' is not available in this run of the tool"))
-            : Run(handler, arguments);
+            : Run(name, handler, arguments);
         var job = new Job(jobId, name, run, DateTimeOffset.UtcNow);
         _jobs[jobId] = job;
         Sweep();
         return await Answer(id, job, ReplyWithin, cancelling).ConfigureAwait(false);
     }
 
-    private static async Task<AgentResult> Run(AgentHandler handler, JsonElement arguments)
+    private async Task<AgentResult> Run(string name, AgentHandler handler, JsonElement arguments)
     {
+        string? before = null;
+        if (Before is { } hook)
+        {
+            try
+            {
+                before = await Task.Run(() => hook(name)).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                before = $"before the call: {exception.GetType().Name}: {exception.Message}";
+            }
+        }
+
+        AgentResult result;
         try
         {
             // Off the request's thread and free of its cancellation: a job runs to its end whether or not
             // anybody is still waiting for it, and the bridge collects it later.
-            return await Task.Run(() => handler(arguments, CancellationToken.None)).ConfigureAwait(false);
+            result = await Task.Run(() => handler(arguments, CancellationToken.None)).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
-            return AgentResult.Fail($"the tool failed: {exception.GetType().Name}: {exception.Message}");
+            result = AgentResult.Fail($"the tool failed: {exception.GetType().Name}: {exception.Message}");
         }
+
+        if (before is { Length: > 0 })
+        {
+            result.Content.Insert(0, AgentContent.Of(before));
+        }
+
+        return result;
     }
 
     private async Task<byte[]> Waited(JsonElement id, JsonElement parameters, CancellationToken cancelling)

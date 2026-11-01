@@ -117,6 +117,39 @@ public sealed class AgentLinkTests : IDisposable
         Assert.Equal("echo: hello", result.GetProperty("content")[0].GetProperty("text").GetString());
     }
 
+    /// <summary>
+    /// What runs before every call (v0.1.412: the overlay brings the game's window to the front there) is handed the tool's name, and
+    /// what it says opens the answer; one that says nothing leaves the answer as it was, and one that fails does not stop the call.
+    /// </summary>
+    [Fact]
+    public async Task WHATRUNSBeforeEveryCallOpensItsAnswerAndNeverStopsIt()
+    {
+        var asked = new List<string>();
+        _link.Before = name =>
+        {
+            lock (asked)
+            {
+                asked.Add(name);
+            }
+
+            return Task.FromResult<string?>(name == "echo" ? "brought the game's window to the front" : null);
+        };
+        JsonElement brought = (await Rpc("tools/call", """{"name":"echo","arguments":{"text":"hello"}}""")).GetProperty("result").GetProperty("content");
+        Assert.Equal("brought the game's window to the front", brought[0].GetProperty("text").GetString());
+        Assert.Equal("echo: hello", brought[1].GetProperty("text").GetString());
+
+        JsonElement quiet = (await Rpc("tools/call", """{"name":"picture"}""", 2)).GetProperty("result").GetProperty("content");
+        Assert.Equal(1, quiet.GetArrayLength());
+        Assert.Equal("image", quiet[0].GetProperty("type").GetString());
+
+        _link.Before = _ => throw new InvalidOperationException("no window");
+        JsonElement failed = (await Rpc("tools/call", """{"name":"echo","arguments":{"text":"still"}}""", 3)).GetProperty("result");
+        Assert.False(failed.GetProperty("isError").GetBoolean());
+        Assert.Equal("before the call: InvalidOperationException: no window", failed.GetProperty("content")[0].GetProperty("text").GetString());
+        Assert.Equal("echo: still", failed.GetProperty("content")[1].GetProperty("text").GetString());
+        Assert.Equal(["echo", "picture"], asked);
+    }
+
     [Fact]
     public async Task APICTUREIsSentAsAnImageTheAgentSees()
     {

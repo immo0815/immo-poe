@@ -61,6 +61,32 @@ public static partial class GameWindowTracker
     [LibraryImport("user32.dll")]
     private static partial uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
 
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool IsIconic(IntPtr hWnd);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool ShowWindow(IntPtr hWnd, int command);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool BringWindowToTop(IntPtr hWnd);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool SetForegroundWindow(IntPtr hWnd);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool AttachThreadInput(uint attach, uint attachTo, [MarshalAs(UnmanagedType.Bool)] bool join);
+
+    [LibraryImport("kernel32.dll")]
+    private static partial uint GetCurrentThreadId();
+
+    /// <summary>ShowWindow's SW_RESTORE: a minimised window back to its place.</summary>
+    private const int Restore = 9;
+
     private static readonly Lock Gate = new();
     private static IntPtr _followed;
     private static uint _process;
@@ -196,6 +222,61 @@ public static partial class GameWindowTracker
             : processId != 0 && processId == GameProcess ? Front.GameElsewhere
             : Front.Elsewhere;
         return (who, foreground, processId);
+    }
+
+    /// <summary>What <see cref="BringToFront"/> came to: whether the game is in front now, whether it had to be brought, and what to say.</summary>
+    public readonly record struct Brought(bool InFront, bool Moved, string Said);
+
+    /// <summary>
+    /// Brings the game's window to the front where another window is - the game's own other windows count as the game. Call it on a
+    /// thread with a message queue (the render thread): AttachThreadInput fails on one without.
+    /// </summary>
+    /// <remarks>
+    /// ASKED FOR FROM THE LIVE CLIENT (2026-11-01): the agent link brings the game to the front before every call, so a capture or a
+    /// picture never waits on a person to click the game. NO KEY IS SENT: the common trick presses Alt so that Windows lets a background
+    /// process take the front, and Alt held in the game shows its items' labels. Instead this thread joins the input of the window in
+    /// front for the moment of the call (AttachThreadInput), which Windows takes as the right to hand the front on. A minimised game is
+    /// restored first.
+    /// </remarks>
+    public static Brought BringToFront()
+    {
+        IntPtr game = Game;
+        if (game == IntPtr.Zero)
+        {
+            return new Brought(false, false, "no game window is followed");
+        }
+
+        (Front who, IntPtr front, _) = InFront(game);
+        if (who is Front.Game or Front.GameElsewhere)
+        {
+            return new Brought(true, false, "the game was in front");
+        }
+
+        if (IsIconic(game))
+        {
+            ShowWindow(game, Restore);
+        }
+
+        uint mine = GetCurrentThreadId();
+        uint theirs = front == IntPtr.Zero ? 0 : GetWindowThreadProcessId(front, out _);
+        bool joined = theirs != 0 && theirs != mine && AttachThreadInput(mine, theirs, true);
+        try
+        {
+            BringWindowToTop(game);
+            SetForegroundWindow(game);
+        }
+        finally
+        {
+            if (joined)
+            {
+                AttachThreadInput(mine, theirs, false);
+            }
+        }
+
+        (Front now, IntPtr after, _) = InFront(game);
+        return now is Front.Game or Front.GameElsewhere
+            ? new Brought(true, true, $"brought the game's window to the front ({who} was, 0x{front:X})")
+            : new Brought(false, false, $"Windows did not bring the game's window to the front: 0x{after:X} is ({now}, {(joined ? "its input joined" : "its input not joined")})");
     }
 
     /// <summary>True when the game is the window the user is actually looking at.</summary>

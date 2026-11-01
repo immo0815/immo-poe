@@ -56,6 +56,43 @@ public sealed partial class EntityOverlay
         link.Bind(AgentCatalogue.MonsterBook, AgentMonsterBook);
         link.Bind(AgentCatalogue.TileBook, AgentTileBook);
         link.Bind(AgentCatalogue.Pane, AgentPane);
+        link.Bind(AgentCatalogue.Front, AgentFrontTool);
+        link.Before = AgentFront;
+    }
+
+    /// <summary>
+    /// The game's window to the front before every call where another window is (asked for from the live client, 2026-11-01) - on the
+    /// render thread, whose message queue AttachThreadInput needs; what it says opens the call's answer, nothing where the game was in front.
+    /// </summary>
+    private async Task<string?> AgentFront(string tool)
+    {
+        GameWindowTracker.Brought brought = await Bring().ConfigureAwait(false);
+        if (brought.Moved || !brought.InFront)
+        {
+            OverlayLog.Write($"agent   {brought.Said} - for {tool}");
+        }
+
+        return brought.Moved || !brought.InFront ? brought.Said : null;
+    }
+
+    private async Task<GameWindowTracker.Brought> Bring()
+    {
+        try
+        {
+            return (await _agentFrames.Next(() => new Boxed<GameWindowTracker.Brought>(GameWindowTracker.BringToFront()))
+                .WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false)).Value;
+        }
+        catch (TimeoutException)
+        {
+            return new GameWindowTracker.Brought(false, false, "no frame came to bring the game's window to the front");
+        }
+    }
+
+    /// <summary>The front tool: the game to the front (the call's own preamble has done it already) and who is in front now.</summary>
+    private async Task<AgentResult> AgentFrontTool(JsonElement arguments, CancellationToken cancelling)
+    {
+        GameWindowTracker.Brought brought = await Bring().ConfigureAwait(false);
+        return brought.InFront ? AgentResult.Say("the game is in front") : AgentResult.Fail(brought.Said);
     }
 
     /// <summary>The agent link's switch, its key and what it is doing - the About page's "agent link".</summary>
@@ -88,7 +125,8 @@ public sealed partial class EntityOverlay
             "Lets a Claude session in the cloud use this tool - take captures, update it, show and look at the model panes - through a"
             + " Cloudflare quick tunnel (free, no account): cloudflared is fetched once, pinned to its SHA-256, and the tunnel's address is"
             + " published on the repository's agent-link branch with your GitHub token, which must be allowed to write (Contents: read and"
-            + " write). Every request must carry the key below. Nothing here sends anything to the game.");
+            + " write). Every request must carry the key below. Every call brings the game's window to the front first; nothing here sends"
+            + " anything to the game.");
 
         ImGui.TextDisabled(ImGuiText.Escape($"key {AgentKeyStore.Fingerprint(key.Key)}… - put it in the cloud environment as {AgentKeyStore.EnvironmentVariable}"));
         if (ImGui.SmallButton("copy key##agent-link-copy"))
