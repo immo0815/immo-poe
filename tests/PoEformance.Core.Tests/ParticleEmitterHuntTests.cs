@@ -132,6 +132,72 @@ public sealed class ParticleEmitterHuntTests
         Assert.Contains("[1] (-16.3, 6.5, -108) w 10", said[0], StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ANEMITTERSObjectUniformsAreReadWhereItsDurationStandsAndTheCountComesAgain()
+    {
+        // THE SHIMMER'S BLOCK as the 20:42 capture held it: the staff's World, sixteen noughts, then the duration and the rest; and a
+        // duration pair elsewhere, followed by numbers that are no block, which must not read as one.
+        byte[] window = new byte[0x200];
+        void F(int at, float value) => BinaryPrimitives.WriteSingleLittleEndian(window.AsSpan(at), value);
+        void U(int at, uint value) => BinaryPrimitives.WriteUInt32LittleEndian(window.AsSpan(at), value);
+        const int World = 0x40, Duration = World + 0x50;
+        F(World + 0x00, 0.915443f);
+        F(World + 0x14, 0.916928f);
+        F(World + 0x28, 0.920868f);
+        F(World + 0x30, 8764.77f);
+        F(World + 0x34, 6993.83f);
+        F(World + 0x38, -50.3437f);
+        F(World + 0x3C, 1f);
+        F(Duration + 0x00, 0.7f);
+        F(Duration + 0x04, 1.3f);
+        F(Duration + 0x08, 0f);
+        F(Duration + 0x0C, 0.622956f);
+        U(Duration + 0x10, 992);
+        U(Duration + 0x14, 7);
+        U(Duration + 0x18, 0);
+        U(Duration + 0x1C, 1);
+        F(Duration + 0x20, 1654.55f);
+        U(Duration + 0x24, 0xB8E24);
+        U(Duration + 0x28, 1);
+        U(Duration + 0x2C, 1);
+        U(Duration + 0x34, 7);
+        F(0x180, 0.7f);
+        F(0x184, 1.3f);
+        F(0x188, 0.5f);
+        F(0x18C, 0.25f);
+        U(0x194, 7);
+        U(0x19C, 1);
+
+        List<ParticleEmitterHunt.ObjectUniforms> found = ParticleEmitterHunt.Uniforms(window, Heap, [new Vector2(0.7f, 1.3f)]);
+
+        ParticleEmitterHunt.ObjectUniforms one = Assert.Single(found);
+        Assert.Equal(Heap + Duration, one.At);
+        Assert.Equal((992u, 7u, 0u, 1u, 0xB8E24u), (one.Emitter, one.Count, one.Culling, one.Passes, one.Id));
+        Assert.Equal(0.622956f, one.Seed);
+        Assert.Equal(new Vector3(8764.77f, 6993.83f, -50.3437f), one.Translation);
+        Assert.Contains("gpu_particle_emitter 992, gpu_particle_count 7", ParticleEmitterHunt.Said(one), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void THEREPLAYReadsTheGlobalsWindowsBackFromTheirRows()
+    {
+        // TWO ROWS of a window as the report writes them - offset, four words as hex, floats, marks - and the needle naming the duration.
+        List<string> lines = ParticleEmitterHunt.Replay(
+        [
+            "=== the dispatch's globals, looked for",
+            "  needle 2: lamp.pet gpu_emitters[2] particle_duration_min, _max (0.7, 1.3): 112 places in the heap, 0 in the driver's heaps",
+            "--- needle 2 at 0x5AC1BB1E670 (heap, private rw region 0x5AC1B960000 of 1,835,008 bytes): 1 words an index or a step; changed since the sweep: yes",
+            "      +0\t3F333333 3FA66666 00000000 3F1F7A08 \t0.7 1.3 0 0.622956 \t[0] n2 [1] n2",
+            "     +16\t000003E0 00000007 00000000 00000001 \t0 0 0 0 \t",
+            "     +32\t44CED198 000B8E24 00000001 00000001 \t1654.55 0 0 0 \t",
+            "     +48\t00000000 00000007 00000000 00000000 \t0 0 0 0 \t",
+            "=== the region",
+        ]);
+
+        Assert.Contains(lines, line => line.Contains("1 blocks of an emitter's object uniforms", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("0x5AC1BB1E670: gpu_particles_duration (0.7, 1.3), gpu_particle_burst 0, gpu_particle_seed 0.622956, gpu_particle_emitter 992, gpu_particle_count 7", StringComparison.Ordinal));
+    }
+
     /// <summary>A record as the engine lays it out, with the scale <paramref name="scale"/> and a turn about z.</summary>
     private static byte[] Record(float scale, Vector3 translation, float time)
     {

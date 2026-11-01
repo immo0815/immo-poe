@@ -30,6 +30,13 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        // AN END NOBODY ASKED FOR SAYS WHY (v0.1.438): the tool went down after a capture and its log said nothing - no code caught the
+        // exception and nothing wrote as the process ended. A managed exception no code catches, and one a task dropped, now go into
+        // overlay.log before the process ends; a native fault never reaches these and is read from Windows' own log (CaptureCrashes).
+        AppDomain.CurrentDomain.UnhandledException += (_, unhandled) => PoEformance.Overlay.OverlayLog.Write(
+            $"an exception no code caught{(unhandled.IsTerminating ? ", the tool ends" : string.Empty)}: {unhandled.ExceptionObject}");
+        TaskScheduler.UnobservedTaskException += (_, dropped) => PoEformance.Overlay.OverlayLog.Write($"a task's exception nobody observed: {dropped.Exception}");
+
         // The features from the config first, then the command line adds to them for this start -
         // see LaunchSettings. Loaded once here and handed on: the status page saves changes to the
         // same file, and a flag given for one start must never reach it.
@@ -3883,6 +3890,13 @@ internal static class Program
 
         // THE PROGRAM'S CODE: the image whole beside the report, and where the bone simulation's keys stand in it - see ProgramCode.
         // Past the tap: the image's hundred megabytes belong in no recording.
+        // THE CRASHES WINDOWS WROTE DOWN for the tool and the game, read at the press off the frame - see CaptureCrashes.
+        overlay.OfferCaptureWork(PoEformance.Features.CaptureParts.Crashes, _ =>
+        {
+            (string? events, string? why) = WindowsEvents.Query("Application", PoEformance.Features.CaptureCrashes.Query, PoEformance.Features.CaptureCrashes.MostEvents);
+            return PoEformance.Features.CaptureCrashes.Report(events, why);
+        });
+
         PoEformance.Game.Diagnostics.ProgramCode.Running? codeCopy = null;
         overlay.OfferCaptureWork(
             PoEformance.Features.CaptureParts.ProgramCode,

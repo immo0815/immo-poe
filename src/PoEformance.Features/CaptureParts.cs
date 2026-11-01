@@ -187,6 +187,9 @@ public static class CaptureParts
     /// <summary>The overlay's own log, this session's and the one before: its window, its graphics device and the game's window.</summary>
     public const string OverlayLog = "overlay-log";
 
+    /// <summary>The crashes Windows wrote down for the tool and the game - see CaptureCrashes.</summary>
+    public const string Crashes = "crashes";
+
     /// <summary>The light hunt run at the press: the sun, the sky's turn, the dust and the water as the game's memory holds them.</summary>
     public const string LightHunt = "light-hunt";
 
@@ -272,7 +275,7 @@ public static class CaptureParts
     /// </remarks>
     public static bool RunsAtPress(string key)
         => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow or ShaderStages or PlayerLook or BoneWatch
-            or AoSimulations or ProgramCode or ClothLive or ClothWatch or ParticleEmitters;
+            or AoSimulations or ProgramCode or ClothLive or ClothWatch or ParticleEmitters or Crashes;
 
     /// <summary>
     /// A heading as the Keys page writes it. The headings themselves stay as they are: they are what <see cref="FolderOfGroup"/> keys
@@ -634,6 +637,10 @@ public static class CaptureParts
             + "overlay stayed away is still there after the restart: the game leaving the front and coming back with the overlay "
             + "window as it stood, what Present answered, the graphics device lost and made anew, frames that stood still, the "
             + "restore key. No offline reader: the lines are the reading."),
+        new(Crashes, "Windows", "crashes", CaptureReport.CrashesFile,
+            "What Windows wrote down when the tool or the game ended unasked: the Application log's crash, error report, hang and .NET "
+            + "runtime events of the last fortnight naming either - the faulting module, the exception code and where, a managed "
+            + "exception's stack - which a process that ended can no longer write itself. No offline reader: the events are the reading."),
 
         new(RunecraftPanel, "Windows", "runecraft panel", CaptureReport.RunecraftPanelFile,
             "What the Runecraft page read off the game's runecraft panel: its status, what the game calls the elements found, where the "

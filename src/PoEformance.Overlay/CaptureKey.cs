@@ -498,9 +498,10 @@ internal sealed class CaptureKey
         }
 
         // THE PANES AS THEY STAND, their models immutable - the files they name are read with the rest, off this thread; and before the
-        // slow diagnoses start, which may read them (the cloth watch holds the game's cloth against the Monster Book's).
+        // slow diagnoses start, which may read them (the cloth watch holds the game's cloth against the Monster Book's; the particle emitters'
+        // globals are looked for by the numbers its monster's effects carry - v0.1.436 left that part out here, and its first press took no panes).
         if ((On(CaptureParts.ModelPanes) || On(CaptureParts.MonsterFiles) || On(CaptureParts.LightCompare) || On(CaptureParts.ShadowCasters) || On(CaptureParts.LightExtras)
-                || On(CaptureParts.RoofFade) || On(CaptureParts.Particles) || On(CaptureParts.ClothWatch))
+                || On(CaptureParts.RoofFade) || On(CaptureParts.Particles) || On(CaptureParts.ClothWatch) || On(CaptureParts.ParticleEmitters))
             && _panes is { } panes)
         {
             run.Panes = panes();
