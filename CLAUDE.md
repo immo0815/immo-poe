@@ -1458,7 +1458,7 @@ THE PARTICLES ARE DRAWN ON THE CARD (v0.1.442, DECIDED from the live client: upd
   as their bytes; the clock starting at nought as the programs land and standing while the pane's stands.
 - The light panel's "particles", on by default (`SceneLightPanel.Particles`, `MonsterPortrait.SceneParticles`). `ParticleGpuTests` holds a
   hand-written program under the engine's binding names on WARP: the update places the pool, the pass draws an instance a particle in front of
-  the box. NOT YET: the sort pass, the shimmer, the engine's lights for a lit particle, a capture part writing the card's particle state.
+  the box. NOT YET: the sort pass, the shimmer, the engine's lights for a lit particle.
 v0.1.442 DREW NOTHING ON WARP (the Windows job's gpu-test: "the card refused its shaders or buffers: E_INVALIDARG"): Vortice's array
 overload of CreateBuffer takes `sizeInBytes` sixth and `structureByteStride` seventh, and the spline LUT and the pool passed their stride
 sixth - structured buffers of stride nought. Named from v0.1.443, and a refusal names the step it came at (`ParticleCard.Made`).
@@ -1466,6 +1466,11 @@ v0.1.444: the update's resource loop handed its own cbuffers a neutral VIEW at t
 buffer at that t overwritten), and $Globals was bound at b0 whatever register it took; it is bound at its own now (`Shader.GlobalsSlot`).
 v0.1.445: the buffers made, the drawing was refused next (E_INVALIDARG): the neutral black cube was laid out as one face of six levels -
 Texture2DDescription takes the array's size before the levels. Named, and a refusal while drawing names its step (`_particleStep`).
+v0.1.445 DREW ON WARP (gpu-test green). FROM v0.1.446 THE CAPTURE WRITES THE CARD'S PARTICLE STATE (`ModelGpu.ParticleState`, read back on the
+render thread as the key goes down, under each pane in model-panes.txt as `particles` lines; `CapturePane.Particles`): every emitter's record and
+update globals as last written beside its pool as the update left it - each member by the shader's own reflected layout (the engine's ParticleData,
+a uint also as the two halves it packs), its range over the pool and the first four particles whole - and the order and culling buffers' first
+words. Read it before theorising why a flame does not show: spawned nothing, placed out of view, or drawn transparent are told apart there.
 
 ## Verify against the game, not against yourself
 

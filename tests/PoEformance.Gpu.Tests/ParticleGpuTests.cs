@@ -99,6 +99,14 @@ public sealed class ParticleGpuTests
 
         // EIGHT SQUARES IN A ROW across the box's face, each a few pixels across at this size.
         Assert.True(red > 8 * 4, $"{red} red pixels; {gpu.ParticlesSaid}");
+
+        // THE CARD'S POOL READ BACK AS THE CAPTURE WRITES IT (model-panes.txt): each member by the shader's own layout, the update's eight
+        // particles from -0.7 to 0.7 along x at a height of 2.
+        string state = string.Join("\n", gpu.ParticleState());
+        Assert.Contains("pool: 8 particles of 16 bytes", state, StringComparison.Ordinal);
+        Assert.Contains("8 not all nought", state, StringComparison.Ordinal);
+        Assert.Contains("pos (float4, +0): -0.7..0.7", state, StringComparison.Ordinal);
+        Assert.Contains("; 2..2 mean 2", state, StringComparison.Ordinal);
     }
 
     private static SkinnedMesh Box()
