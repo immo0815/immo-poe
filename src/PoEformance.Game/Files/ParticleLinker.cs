@@ -221,6 +221,9 @@ public static class ParticleLinker
     /// <summary>A value a pixel stage reads of a vertex stage: the node and output it comes from, its type, and the interpolant carrying it.</summary>
     public sealed record Crossing(int Graph, string Key, string Variable, string Type, string Name);
 
+    /// <summary>The engine's sampler a node's own sampler uniform stands for - SamplerDeclarations.inc's s0, CHOSEN (no graph names one).</summary>
+    public const string NodeSampler = "SamplerLinearWrap";
+
     /// <summary>Where the struct between the two shaders goes, until both are linked.</summary>
     private const string InterstagePlace = "/*INTERSTAGE*/";
 
@@ -411,6 +414,7 @@ public static class ParticleLinker
         private readonly StringBuilder _main = new();
         private readonly SortedSet<string> _unresolved = new(StringComparer.Ordinal);
         private readonly List<(string Name, string Filled)> _resources = [];
+        private readonly Dictionary<string, string> _resourceTypes = new(StringComparer.Ordinal);
         private readonly List<CurveKey[]> _tracks = [];
         private readonly Dictionary<string, ShaderBlock> _extensions = new(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _semantics = new(StringComparer.Ordinal);
@@ -1139,11 +1143,18 @@ public static class ParticleLinker
                     // Which channels a SplineVariance parameter writes its two curves under is not read - no graph captured so far uses one.
                     _unresolved.Add($"{node.Source.Type} ({Path.GetFileName(graphs[node.Graph].Path)}): a splineVariance's channels are not read, both rows -1 (nought)");
                     return $"int2 {uniform.Name} = int2(-1, -1);";
-                case "texture" or "texture3d" or "textureCube" or "sampler":
+                // A NODE'S SAMPLER IS ONE OF THE ENGINE'S OWN (v0.1.441): no graph names one (every such parameter is "{}"), and SamplerDeclarations.inc
+                // already takes s0 to s14 by name - a register of its own a node sampler took the pixel shaders past ps_5_0's sixteen under FXC
+                // ("maximum ps_5_0 sampler register index (16) exceeded", the capture of 22:44). CHOSEN: SamplerLinearWrap, said.
+                case "sampler":
+                    _unresolved.Add($"a node's sampler no graph names: the engine's {NodeSampler} (CHOSEN)");
+                    return $"#define {uniform.Name} {NodeSampler}";
+                case "texture" or "texture3d" or "textureCube":
                 {
                     string global = $"res_{node.Name}_{uniform.Name}";
-                    _resources.Add((global, uniform.Type == "sampler" ? "sampler (its name is a string the graph reader drops)" : said.Path.Length > 0 ? said.Path : "no texture named"));
-                    return uniform.Type == "sampler" ? $"#define {uniform.Name} {global}" : $"#define {uniform.Name} {global}\n#define {uniform.Name}_index 0u";
+                    _resources.Add((global, said.Path.Length > 0 ? said.Path : "no texture named"));
+                    _resourceTypes[global] = Resource(uniform.Type)!;
+                    return $"#define {uniform.Name} {global}\n#define {uniform.Name}_index 0u";
                 }
 
                 default:
@@ -1333,7 +1344,7 @@ public static class ParticleLinker
 
             foreach ((string name, string _) in _resources)
             {
-                hlsl.Append(name.Contains("sampler", StringComparison.OrdinalIgnoreCase) ? "SamplerState " : "Texture2D ").Append(name).Append(";\n");
+                hlsl.Append(_resourceTypes.GetValueOrDefault(name, "Texture2D")).Append(' ').Append(name).Append(";\n");
             }
 
             foreach ((string name, string type) in _semantics)

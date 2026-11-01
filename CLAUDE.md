@@ -1429,6 +1429,11 @@ stage of what it reads, after that stage's reads and before its writes; POSITION
 the motion vector, the GI's light and normals 1 to 3. All eight of the lamp's render shaders compile under DXC (vs_6_0, ps_6_0) and the
 updates are unchanged to the byte; particles.txt compiles each through FXC at vs_5_0 and ps_5_0 (`ParticleCompile.ProfileOf`). Left:
 TileGroundUVs' scroll fed by no link, a Spline5's Smooth key baked straight, and a sampler's name the graph reader drops.
+FXC SAID WHAT DXC DID NOT (v0.1.440's capture of 22:44, the staff in hand): the three updates and all four vertex shaders compile at cs_5_0
+and vs_5_0, every pixel shader stopped at "maximum ps_5_0 sampler register index (16) exceeded" - SamplerDeclarations.inc takes s0 to s14
+by name and the prelude SamplerDepth s15, and each node's `uniform sampler` took a register of its own. No graph names a node's sampler
+(every such parameter is `{}`), so from v0.1.441 a node's sampler is the engine's SamplerLinearWrap (`ParticleLinker.NodeSampler`, CHOSEN,
+said in the shader's unresolved list) and a node texture keeps its own kind (Texture3D, TextureCube).
 
 ## Verify against the game, not against yourself
 
