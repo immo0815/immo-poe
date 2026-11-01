@@ -1352,6 +1352,17 @@ exact inverse twice and whose rotations are unit quaternions (`FloatHunt.Scan`, 
 heaps for at most a minute (the card's copy may stand only there); writes the runs of them 160 bytes apart (the arrays), the 96 nearest the
 player decoded field by field with their bytes, and watches the 32 nearest for three seconds - every read that differs, which fields
 changed; `particle-emitters-replay.txt` decodes the records again. Press it with the staff in hand, standing still, before the dispatch is built.
+ITS FIRST CAPTURE (19:18, Cemetery of the Eternals, the staff in hand; schema `ParticleEmitterData`): two arrays of ~536 records in the game's
+own heap, 0x3FFFC0 apart in one 12 MB region, rebuilt and alternating every frame (a slot holds another emitter the next one), nothing in the
+driver's heaps (so from v0.1.433 those are searched only where the heap holds none). The lamp's flame, embers and shimmer: scale 0.925, the
+translation and a full turn 31 units from his Render place at his middle's height - the held staff's placement, a reading - each emitter its
+own clock in seconds (15692 for the lamp, prev_time a frame before at about 29 frames a second), duration 1, dead time 0, speeds 1 and 1,
+lock condition 7 ('always'), flags IS_ALIVE | IS_INFINITE | IS_VISIBLE, two bones each (6, 8 and 16), the shimmer's locks TRANSLATION |
+TRANSLATION_BONE, the flame's group size 8. SO v0.1.433 MEASURES THE REST: the player's pieces' World beside the near emitters (is the
+translation the staff's placement?); their bones (`emitter_bones_data`) found by vote - every float4 pair near an emitter in the heap voting for
+the array's start by the emitter's own bone start, the bases most emitters agree on read back; the region holding the arrays written whole
+(`particle-emitters.bin`, the frame's other uploads with it - where the dispatch's globals are to be looked for offline; the replay votes for
+the bones inside it again); and the near emitters followed frame by frame by their first particle through both arrays.
 
 ## Verify against the game, not against yourself
 

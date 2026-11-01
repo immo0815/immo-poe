@@ -3922,12 +3922,12 @@ internal static class Program
         PoEformance.Game.Diagnostics.ParticleEmitterHunt.Running? emitterHunt = null;
         overlay.OfferCaptureWork(
             PoEformance.Features.CaptureParts.ParticleEmitters,
-            _ =>
+            path =>
             {
                 var running = new PoEformance.Game.Diagnostics.ParticleEmitterHunt.Running();
                 emitterHunt = running;
                 PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
-                return PoEformance.Game.Diagnostics.ParticleEmitterHunt.Run(untapped, schema, gameStatesStatic, running);
+                return PoEformance.Game.Diagnostics.ParticleEmitterHunt.Run(untapped, schema, gameStatesStatic, Path.GetDirectoryName(path), running);
             },
             new PoEformance.Overlay.CaptureWorkProgress(
                 () => emitterHunt?.Line ?? "starting",
