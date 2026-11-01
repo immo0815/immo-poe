@@ -97,6 +97,7 @@ public static class ParticleEmitterHunt
         private readonly FloatHuntProgress _heap = new();
         private readonly FloatHuntProgress _slow = new();
         private readonly FloatHuntProgress _bones = new();
+        private readonly FloatHuntProgress _globals = new();
         private int _phase;
 
         /// <summary>The heap's sweep.</summary>
@@ -108,12 +109,16 @@ public static class ParticleEmitterHunt
         /// <summary>The bones' sweep.</summary>
         public FloatHuntProgress BoneSweep => _bones;
 
+        /// <summary>The globals' sweep.</summary>
+        public FloatHuntProgress GlobalSweep => _globals;
+
         /// <summary>Asks it to stop, keeping what it found.</summary>
         public void Stop()
         {
             _heap.Stop();
             _slow.Stop();
             _bones.Stop();
+            _globals.Stop();
         }
 
         /// <summary>Whether <see cref="Stop"/> was asked for.</summary>
@@ -126,6 +131,7 @@ public static class ParticleEmitterHunt
             1 => string.Create(CultureInfo.InvariantCulture, $"none in the heap, so in the driver's upload heaps (at most {SlowLimit.TotalSeconds:0} s): {_slow.Bytes / 1e9:0.00} GB, {_slow.Places:N0} found"),
             2 => string.Create(CultureInfo.InvariantCulture, $"looking for the near emitters' bones: {_bones.Bytes / 1e9:0.0} GB, {_bones.Places:N0} places"),
             3 => "following the emitters near the player frame by frame",
+            5 => string.Create(CultureInfo.InvariantCulture, $"looking for the dispatch's globals by the emitters' numbers: {_globals.Bytes / 1e9:0.0} GB, {_globals.Places:N0} places"),
             _ => "writing what was found",
         };
 
@@ -136,6 +142,7 @@ public static class ParticleEmitterHunt
             1 => 0.45f,
             2 => _bones.Budget > 0 ? 0.45f + (0.35f * Math.Clamp((float)_bones.Bytes / _bones.Budget, 0f, 1f)) : 0.5f,
             3 => 0.85f,
+            5 => 0.8f,
             _ => 0.95f,
         };
 
@@ -282,7 +289,8 @@ public static class ParticleEmitterHunt
     /// <param name="gameStatesStatic">The game states' static, for the player.</param>
     /// <param name="folder">Where the region holding the arrays is written whole (<see cref="RegionFile"/>), or null.</param>
     /// <param name="running">The progress and the stop.</param>
-    public static List<string> Run(IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic, string? folder, Running running)
+    /// <param name="anchors">The numbers the dispatch's globals may hold (the panes' emitters' bursts and durations, CaptureParticles.Anchors), or null for no globals search.</param>
+    public static List<string> Run(IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic, string? folder, Running running, IReadOnlyList<FloatNeedle>? anchors = null)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(schema);
@@ -401,6 +409,12 @@ public static class ParticleEmitterHunt
         {
             running.Phase(2);
             bones = Bones(reader, regions, writable, voters, running, lines);
+        }
+
+        if (!running.Stopping && anchors is { Count: > 0 })
+        {
+            running.Phase(5);
+            Globals(reader, regions, writable, all, runs, near, anchors, running, lines);
         }
 
         if (runs.Count > 0 && runs.MaxBy(one => one.Length) is var longest && Array.Find(all, region => longest.At >= region.Address && longest.At < region.Address + region.Size) is { Size: > 0 } holding)
@@ -791,6 +805,149 @@ public static class ParticleEmitterHunt
 
         return blocks;
     }
+
+    /// <summary>
+    /// The dispatch's own globals - gpu_particle_emitter (the record's index), gpu_particle_seed, _count, _burst, gpu_particles_duration,
+    /// frame_delta_time, instance_count, batch_size - which neither a file nor a record holds: the heap and then the driver's heaps (within
+    /// <see cref="SlowLimit"/>) swept for the numbers they should hold (<paramref name="anchors"/>: the panes' emitters' bursts and
+    /// durations), each place's window read again AT ONE MOMENT with the frame's arrays, and every word of it marked where it equals a near
+    /// emitter's index in an array read that moment, its first particle, its time or its frame's step, or an anchor's number - the windows
+    /// holding an index or a step first. The block the card's constant buffer is copied from is to be read off them.
+    /// </summary>
+    private static void Globals(
+        IMemoryReader reader, IMemoryRegions regions, IMemoryRegions writable, MemoryRegion[] all, IReadOnlyList<(ulong At, int Length)> runs,
+        IReadOnlyList<Record> near, IReadOnlyList<FloatNeedle> anchors, Running running, List<string> lines)
+    {
+        FloatHuntResult heap = FloatHunt.Run(reader, writable, anchors, 0, running.GlobalSweep, budget: 2 * HeapScan.ByteBudget);
+        FloatHuntResult? slow = null;
+        if (!running.Stopping)
+        {
+            using var limit = new Timer(_ => running.Slow.Stop(), null, SlowLimit, Timeout.InfiniteTimeSpan);
+            slow = FloatHunt.Run(reader, new DriverHeaps(regions), anchors, 0, running.Slow, budget: long.MaxValue / 4);
+        }
+
+        lines.Add(string.Empty);
+        lines.Add("=== the dispatch's globals, looked for by the numbers the emitters' files give them (gpu_particle_burst, gpu_particles_duration by their names, a reading): every place of each, its window read again at one moment with the frame's arrays, each word marked - idx(P,a) a near emitter's index in array a read that moment (P its first particle), first(P) its first particle, time(P) its clock, step(P) its frame's step, and an anchor's number by its needle");
+        lines.Add("  " + Swept("the game's heap", heap, string.Empty));
+        if (slow is not null)
+        {
+            lines.Add("  " + Swept($"the driver's write-combined and uncached heaps (at most {SlowLimit.TotalSeconds:0} s)", slow, string.Empty));
+        }
+
+        for (var n = 0; n < anchors.Count; n++)
+        {
+            int inHeap = heap.Sightings.Count(one => one.Needle == n), inSlow = slow?.Sightings.Count(one => one.Needle == n) ?? 0;
+            lines.Add(string.Create(CultureInfo.InvariantCulture,
+                $"  needle {n}: {anchors[n].Name} ({string.Join(", ", anchors[n].Values.Select(value => value.ToString("G7", CultureInfo.InvariantCulture)))}): {inHeap} places in the heap{(heap.Capped.Contains(n) ? " (capped)" : string.Empty)}, {inSlow} in the driver's heaps"));
+        }
+
+        // EVERY WINDOW AND THE ARRAYS AT ONE MOMENT: the windows first, then the arrays, as fast as they read.
+        List<(FloatDump Dump, string Where)> dumps = [.. (heap.Dumps ?? []).Select(one => (one, "heap")).Concat((slow?.Dumps ?? []).Select(one => (one, "driver")))];
+        var windows = new List<(FloatDump Dump, string Where, byte[] Now)>(dumps.Count);
+        foreach ((FloatDump dump, string where) in dumps)
+        {
+            byte[] now = new byte[dump.Bytes.Length];
+            windows.Add((dump, where, reader.TryRead(dump.From, now) ? now : dump.Bytes));
+        }
+
+        var index = new Dictionary<uint, List<(uint Index, int Array, float Time, float Step)>>();
+        HashSet<uint> firsts = [.. near.Select(one => one.ParticlesStart)];
+        List<(ulong At, int Length)> arrays = [.. runs.Where(one => one.Length >= 8).OrderByDescending(one => one.Length).Take(4)];
+        for (var a = 0; a < arrays.Count; a++)
+        {
+            byte[] bytes = new byte[Math.Min(arrays[a].Length + 64, FollowRecords) * RecordBytes];
+            if (!reader.TryRead(arrays[a].At, bytes))
+            {
+                continue;
+            }
+
+            for (var r = 0; r < bytes.Length / RecordBytes; r++)
+            {
+                ReadOnlySpan<byte> record = bytes.AsSpan(r * RecordBytes, RecordBytes);
+                uint first = BinaryPrimitives.ReadUInt32LittleEndian(record[0x8C..]);
+                if (!firsts.Contains(first) || !Fits(MemoryMarshal.Cast<byte, float>(record)))
+                {
+                    continue;
+                }
+
+                float time = BinaryPrimitives.ReadSingleLittleEndian(record[0x6C..]), prev = BinaryPrimitives.ReadSingleLittleEndian(record[0x7C..]);
+                if (!index.TryGetValue(first, out List<(uint Index, int Array, float Time, float Step)>? list))
+                {
+                    index[first] = list = [];
+                }
+
+                list.Add(((uint)r, a, time, time - prev));
+            }
+        }
+
+        lines.Add(string.Create(CultureInfo.InvariantCulture,
+            $"  the near emitters in the arrays read with the windows: {string.Join("; ", index.Select(one => $"first {one.Key}: {string.Join(", ", one.Value.Select(v => string.Create(CultureInfo.InvariantCulture, $"index {v.Index} in array {v.Array} at {v.Time:G8} (step {v.Step:G5})")))}"))}"));
+
+        // THE MARKS, then the windows holding an index or a step first.
+        string Marks(byte[] bytes, int at)
+        {
+            uint u = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(at));
+            float f = BinaryPrimitives.ReadSingleLittleEndian(bytes.AsSpan(at));
+            var marks = new List<string>();
+            foreach ((uint first, List<(uint Index, int Array, float Time, float Step)> seen) in index)
+            {
+                marks.AddRange(seen.Where(one => one.Index == u && u != 0).Select(one => string.Create(CultureInfo.InvariantCulture, $"idx({first},{one.Array})")));
+                if (u == first)
+                {
+                    marks.Add($"first({first})");
+                }
+
+                if (float.IsFinite(f) && f != 0f)
+                {
+                    marks.AddRange(seen.Where(one => MathF.Abs(one.Time - f) <= 1e-3f).Select(one => $"time({first})"));
+                    marks.AddRange(seen.Where(one => one.Step > 0 && MathF.Abs(one.Step - f) <= 2e-4f).Select(one => $"step({first})"));
+                }
+            }
+
+            for (var n = 0; n < anchors.Count; n++)
+            {
+                if (f != 0f && Array.Exists(anchors[n].Values, value => MathF.Abs(value - f) <= 1e-5f))
+                {
+                    marks.Add($"n{n}");
+                }
+            }
+
+            return string.Join(",", marks.Distinct());
+        }
+
+        var said = windows
+            .Select(one => (one.Dump, one.Where, one.Now, Telling: Enumerable.Range(0, one.Now.Length / 4).Count(w => Marks(one.Now, w * 4) is { Length: > 0 } m && (m.Contains("idx(", StringComparison.Ordinal) || m.Contains("step(", StringComparison.Ordinal)))))
+            .OrderByDescending(one => one.Telling)
+            .ThenBy(one => one.Dump.At)
+            .ToList();
+        lines.Add(string.Create(CultureInfo.InvariantCulture, $"  {said.Count} windows of {2 * CaptureWindow} bytes and the needle's own; the {said.Count(one => one.Telling > 0)} holding a near emitter's index or step first; each row 16 bytes - its offset from the needle, four words as hex, as floats, and their marks"));
+        foreach ((FloatDump dump, string where, byte[] now, int telling) in said)
+        {
+            lines.Add(string.Create(CultureInfo.InvariantCulture,
+                $"--- needle {dump.Needle} at 0x{dump.At:X} ({where}, {KindAt(all, dump.At)}): {telling} words an index or a step; changed since the sweep: {(now.AsSpan().SequenceEqual(dump.Bytes) ? "no" : "yes")}"));
+            for (var row = 0; row + 16 <= now.Length; row += 16)
+            {
+                long offset = (long)(dump.From + (ulong)row) - (long)dump.At;
+                var floats = new StringBuilder();
+                var hex = new StringBuilder();
+                var marks = new List<string>();
+                for (var w = 0; w < 4; w++)
+                {
+                    hex.Append(CultureInfo.InvariantCulture, $"{BinaryPrimitives.ReadUInt32LittleEndian(now.AsSpan(row + (w * 4))):X8} ");
+                    floats.Append(CultureInfo.InvariantCulture, $"{BinaryPrimitives.ReadSingleLittleEndian(now.AsSpan(row + (w * 4))):G6} ");
+                    if (Marks(now, row + (w * 4)) is { Length: > 0 } m)
+                    {
+                        marks.Add(string.Create(CultureInfo.InvariantCulture, $"[{w}] {m}"));
+                    }
+                }
+
+                lines.Add(string.Create(CultureInfo.InvariantCulture, $"  {offset,6:+0;-0}\t{hex}\t{floats}\t{string.Join(" ", marks)}"));
+            }
+        }
+    }
+
+    /// <summary>The bytes either side of an anchor's place the globals' windows hold - CaptureParticles.GlobalsAround's.</summary>
+    private const int CaptureWindow = 256;
 
     /// <summary>
     /// The near emitters followed frame after frame by their first particle: every array read whole as often as it changes - the runs found

@@ -3922,12 +3922,17 @@ internal static class Program
         PoEformance.Game.Diagnostics.ParticleEmitterHunt.Running? emitterHunt = null;
         overlay.OfferCaptureWork(
             PoEformance.Features.CaptureParts.ParticleEmitters,
-            path =>
+            (path, panes) =>
             {
                 var running = new PoEformance.Game.Diagnostics.ParticleEmitterHunt.Running();
                 emitterHunt = running;
                 PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
-                return PoEformance.Game.Diagnostics.ParticleEmitterHunt.Run(untapped, schema, gameStatesStatic, Path.GetDirectoryName(path), running);
+
+                // THE GLOBALS' ANCHORS: the numbers the Monster Book's monster's emitters carry (take the player first) - see CaptureParticles.Anchors.
+                List<PoEformance.Core.Diagnostics.FloatNeedle>? anchors = installed is null
+                    ? null
+                    : PoEformance.Features.CaptureParticles.Anchors(file => PoEformance.Game.Files.GameArt.ReadRaw(installed, file), panes);
+                return PoEformance.Game.Diagnostics.ParticleEmitterHunt.Run(untapped, schema, gameStatesStatic, Path.GetDirectoryName(path), running, anchors);
             },
             new PoEformance.Overlay.CaptureWorkProgress(
                 () => emitterHunt?.Line ?? "starting",

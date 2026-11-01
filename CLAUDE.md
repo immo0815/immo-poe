@@ -1381,7 +1381,14 @@ was read 30 s after the records), which the tool's own dispatch does not need: i
 World again (0.03 units, 0 degrees off); its clock starts at nought when the effect is made (107 s in the hideout, then 4 s after it was made
 anew). SO EVERY FIELD OF A RECORD IS READ: the tool can make the lamp's from its own swung lamp - the staff's World, the clock, the bone group's
 model-frame places and their distances along. NOT YET MEASURED: the dispatch's own globals (gpu_particle_seed, _count, _burst,
-gpu_particles_duration, frame_delta_time, instance_count, batch_size) - in no file and not in the records.
+gpu_particles_duration, frame_delta_time, instance_count, batch_size) - in no file and not in the records. DECIDED from the live client
+(2026-11-01): measured before the dispatch is built. So v0.1.436's part also looks for them by what they should hold
+(`CaptureParticles.Anchors`: the Monster Book's monster's emitters' emit_burst where not nought and particle_duration_min and _max side by side
+- the embers' 45.8 and the shimmer's 0.7, 1.3, rare in memory; take the player first): the heap and the driver's heaps swept for them, each
+place's window (256 bytes either side) read again AT ONE MOMENT with the frame's arrays and every word marked where it equals a near emitter's
+index in an array read that moment, its first particle, its clock, its frame's step or an anchor's number - the windows holding an index or a
+step first; the block the card's constant buffer is copied from is to be read off them. Press it with the player taken in the Monster Book
+and the staff in hand, standing still.
 
 ## Verify against the game, not against yourself
 
