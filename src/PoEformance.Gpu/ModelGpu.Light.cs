@@ -100,6 +100,7 @@ public sealed partial class ModelGpu
             Ambient = new Int4(ambient, grade is null ? 0 : 1, ambient == 2 ? light.Cube!.Size : 0, light.PointCount),
             Cells = new Int4(cells.X, cells.Y, cells.Z, (cells.X * cells.Y * cells.Z) + 1),
             Graded = new Int4(grade?.Width ?? 0, grade?.Height ?? 0, grade?.Depth ?? 0, (int)light.View),
+            Glow = new Vector4(light.Emissive ? 1f : 0f, 0f, 0f, 0f),
         });
         context.VSSetConstantBuffer(2, _scene);
         context.PSSetConstantBuffer(2, _scene);
@@ -393,6 +394,7 @@ public sealed partial class ModelGpu
         public Int4 Ambient;
         public Int4 Cells;
         public Int4 Graded;
+        public Vector4 Glow;
     }
 
     /// <summary>An HLSL int4.</summary>

@@ -152,6 +152,7 @@ internal static class ModelShaders
             int4 Ambient;       // x: nought none, one flat, two the cube; y: one where graded; z: the cube's side; w: point lights
             int4 Cells;         // xyz: the light grid's cells each way; w: where the cells' entries start in Reach
             int4 Graded;        // xyz: the grade's texels each way; w: the picture's view - SceneLight.View
+            float4 Glow;        // x: one where a material's own light is added - SceneLight.Emissive
         };
 
         // THE BONES THE CARD SKINS BY - ModelGpu.Skinned: x one where it skins; y the first vertex it moves; z the rig's bones, a bone at
@@ -718,7 +719,7 @@ internal static class ModelShaders
         }
 
         // SceneLight.Shade: every light, the surround, a glossy material's environment, the waves' own specular, the exposure, the grade.
-        float3 Lighted(float3 albedo, float3 place, float3 normal, float sun, bool glossy, float3 specular, float gloss, float3 waves, float environment)
+        float3 Lighted(float3 albedo, float3 place, float3 normal, float sun, bool glossy, float3 specular, float gloss, float3 waves, float environment, float3 emission)
         {
             if (Channelled())
             {
@@ -829,7 +830,9 @@ internal static class ModelShaders
                 shine += (seen * bias) + (seen * scale * specular);
             }
 
-            float3 exposed = (colour + shine) * Finish.x;
+            // THE MATERIAL'S OWN LIGHT, as EndLighting adds it - SceneLight.Shaded; in "Lighting Only" too, whose graph replaces the albedo alone.
+            float3 glowing = Glow.x > 0.5 ? emission : float3(0.0, 0.0, 0.0);
+            float3 exposed = (colour + shine + glowing) * Finish.x;
             return Ambient.y != 0 ? Graded3(exposed) : exposed;
         }
 
@@ -901,7 +904,7 @@ internal static class ModelShaders
 
             float3 normal = Toward(pixel.turn);
             float sun = SunLit(pixel.place, normal);
-            return float4(Srgb(Lighted(Linear(colour), pixel.place, normal, sun, false, float3(0.0, 0.0, 0.0), 0.0, float3(0.0, 0.0, 0.0), 1.0)), 1.0);
+            return float4(Srgb(Lighted(Linear(colour), pixel.place, normal, sun, false, float3(0.0, 0.0, 0.0), 0.0, float3(0.0, 0.0, 0.0), 1.0, float3(0.0, 0.0, 0.0))), 1.0);
         }
 
         // THE SUN'S SHADOW MAP - ShadowMap.Build: the mesh drawn along the light onto the map's texels,
@@ -1422,7 +1425,7 @@ internal static class ModelShaders
         }
 
         // MeshPicture.Drawing.Scened with a program.
-        float3 SceneLit(float3 colour, float3 specular, float gloss, float3 place, float3 turn, float3 waves, float4 position)
+        float3 SceneLit(float3 colour, float3 specular, float gloss, float3 place, float3 turn, float3 waves, float4 position, float3 emission)
         {
             // THE BEACH'S OWN SURFACE FOR ALL ITS LIGHT - MeshPicture.Drawing.Scened's.
             float3 normal = Toward(ShadeBeach ? waves : turn);
@@ -1443,7 +1446,7 @@ internal static class ModelShaders
             }
 
             // THE PICTURE'S OWN LIGHT IS ADDED AS IT WAS DRAWN, exposed and graded already.
-            return Srgb(Lighted(albedo, place, normal, sun, glossy, specular, gloss, wavy, environment) + mirrored);
+            return Srgb(Lighted(albedo, place, normal, sun, glossy, specular, gloss, wavy, environment, emission) + mirrored);
         }
 
         float4 Solidly(Pixel pixel, bool scened)
@@ -1469,7 +1472,7 @@ internal static class ModelShaders
             }
 
             float3 shown = scened
-                ? SceneLit(said.colour, said.specular, said.gloss, pixel.place, pixel.turn, said.waves, pixel.position)
+                ? SceneLit(said.colour, said.specular, said.gloss, pixel.place, pixel.turn, said.waves, pixel.position, said.emissive)
                 : LampLit(said.colour, said.specular, said.gloss, pixel.facing);
             return float4(shown, 1.0);
         }
@@ -1500,7 +1503,7 @@ internal static class ModelShaders
             }
 
             float3 shown = scened
-                ? SceneLit(said.colour, said.specular, said.gloss, pixel.place, pixel.turn, said.waves, pixel.position)
+                ? SceneLit(said.colour, said.specular, said.gloss, pixel.place, pixel.turn, said.waves, pixel.position, said.emissive)
                 : LampLit(said.colour, said.specular, said.gloss, pixel.facing);
             float alpha = saturate(cover);
             return float4(shown * alpha, alpha);

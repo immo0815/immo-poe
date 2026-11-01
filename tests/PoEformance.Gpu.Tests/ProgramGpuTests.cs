@@ -1019,6 +1019,48 @@ public class ProgramGpuTests(CardFixture card) : IClassFixture<CardFixture>
                 Water: WaterLook.EngineDefault with { Shore = BayShore() }),
             program => program.HasAlpha && program.Occluded is null);
 
+    /// <summary>
+    /// A material's own light (v0.1.402, the Exile's Staff's lantern): its emissive added to the lit colour before the exposure and the grade
+    /// on the card as on the processor - under the sun and a point light, solid and as a mixed layer, and with the switch off.
+    /// </summary>
+    [GpuFact]
+    public void ANEMISSIVEMaterialGlowsOnTheCardAsOnTheProcessor()
+    {
+        ModelGpu? gpu = card.Gpu;
+        Assert.True(gpu is not null, card.Why);
+        using ModelTarget target = gpu.Target(Side);
+        const string Glowing = """
+            {"version":3,"nodes":[
+              {"type":"ConstantPixel3","index":0,"parameters":[{"value":[0.25,0.2,0.15]}]},
+              {"type":"AlbedoColor","index":0,"stage":"Texturing_Init"},
+              {"type":"ConstantPixel3","index":1,"parameters":[{"value":[1.6,0.3,0.05]}]},
+              {"type":"EmissiveColor","index":0,"stage":"Texturing"}],
+             "links":[
+              {"src":{"type":"ConstantPixel3","index":0,"variable":"output"},"dst":{"type":"AlbedoColor","index":0,"stage":"Texturing_Init","variable":"input","swizzle":"xyz"}},
+              {"src":{"type":"ConstantPixel3","index":1,"variable":"output"},"dst":{"type":"EmissiveColor","index":0,"stage":"Texturing","variable":"input"}}]}
+            """;
+        ShaderGraph graph = ShaderGraph.Read(System.Text.Encoding.UTF8.GetBytes(Glowing));
+        ShadeProgram twin = ShadeProgram.Compile([(new ShaderInstance("Metadata/Test.fxgraph", new Dictionary<string, ShaderValue[]>()), graph)]).Program!.Glossy!.With([]);
+        Assert.True(twin.HasEmissive);
+        foreach (bool emissive in new[] { true, false })
+        {
+            PointLight[] points = [new(new Vector3(0.5f, 0.8f, -0.3f) * Scale, new Vector3(2f, 1f, 0.5f), 1.5f * Scale, 0.4f, "warm")];
+            var light = new SceneLight(points, SceneLight.PointShape.Penumbra, null)
+            {
+                SunColour = new Vector3(1.4f, 1.3f, 1.1f),
+                SunDirection = Vector3.Normalize(new Vector3(0.4f, -1f, 0.3f)),
+                FlatAmbient = 0.1f,
+                Exposure = 1.2f,
+                Emissive = emissive,
+            };
+            foreach (MaterialBlend blend in new[] { MaterialBlend.Opaque, MaterialBlend.Alpha })
+            {
+                var scene = new ModelScene(Hill(layered: false), Turn: -0.3f, Tilt: 0.45f, Blends: [blend], Shades: [twin], Light: light);
+                Assert.Null(Mismatch(gpu, target, scene));
+            }
+        }
+    }
+
     /// <summary>A material's compiled shaders are kept in the folder handed in, and a new card reads them back rather than compiling again.</summary>
     [GpuFact]
     public void COMPILEDShadersAreKeptOnDiskAndReadBack()

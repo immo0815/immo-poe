@@ -134,9 +134,9 @@ public sealed partial class ShadeProgram
         next += first.Registers - Fixed;
         int secondBase = next;
         next += second.Registers - Fixed;
-        Appended(first, firstBase, 0, samples.Count, steps, constantAt, constants, frame);
+        Appended(first, firstBase, 0, samples.Count, steps, constantAt, constants, frame, 0);
         samples.AddRange(first._sampleTexture);
-        Appended(second, secondBase, first.Textures.Count, samples.Count, steps, constantAt, constants, frame);
+        Appended(second, secondBase, first.Textures.Count, samples.Count, steps, constantAt, constants, frame, first._curves.Length);
         foreach (int read in second._sampleTexture)
         {
             samples.Add(read + first.Textures.Count);
@@ -210,7 +210,7 @@ public sealed partial class ShadeProgram
         Mipmaps?[] sheets = mask is not null ? [.. first._sheets, .. second._sheets, maskSheet] : [.. first._sheets, .. second._sheets];
         return new ShadeProgram(
             [.. steps], [.. constantAt], [.. constants], next, result, specular, gloss, textures, [.. samples], -1,
-            [.. first.Graphs, .. second.Graphs], sheets, hasAlpha: false)
+            [.. first.Graphs, .. second.Graphs], sheets, hasAlpha: false, curves: [.. first._curves, .. second._curves])
         {
             Mix = (green, Moved(first._result, firstBase), Moved(second._result, secondBase)),
             MixesByCorners = mask is null,
@@ -336,7 +336,8 @@ public sealed partial class ShadeProgram
     /// materials' own frame, where given.
     /// </summary>
     private static void Appended(
-        ShadeProgram program, int at, int textures, int reads, List<Step> steps, List<int> constantAt, List<Vector4> constants, (int U, int V) frame)
+        ShadeProgram program, int at, int textures, int reads, List<Step> steps, List<int> constantAt, List<Vector4> constants, (int U, int V) frame,
+        int curves)
     {
         foreach (Step step in program._steps)
         {
@@ -357,6 +358,12 @@ public sealed partial class ShadeProgram
             {
                 b = Moved(b, at);
                 extra += textures;
+            }
+            else if (step.Op == Op.Curve)
+            {
+                // THE SECOND PROGRAM'S CURVES AFTER THE FIRST'S, as its textures are.
+                b = Moved(b, at);
+                extra += curves;
             }
             else if (step.Op is Op.Spray or Op.Beach)
             {

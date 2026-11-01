@@ -955,6 +955,20 @@ first second (48 at most, the most changing turn matrices first) and reads them 
 turn matrices (a skeleton's bones side by side) and sets each matrix against the run's first - in whichever order, rows or columns, holds the
 run stillest - its signed swing along the axis it turns about most and its period, the reads kept in `bone-watch.bin`; the replay
 (`bone-watch-replay.txt`) reads them again. Read both before the particles or the swing are built.
+THE GLOW IS DRAWN (v0.1.402), for every material in every book: the emissive a material's graphs write is carried by the program the game's
+light draws (`ShadeProgram.Glossy` - a twin of its own where the material has no gloss; `HasEmissive`) and added to the lit colour before the
+exposure and the grade, as EndLighting adds `emissionData.emission` (`SceneLight.Shaded`, the card's `Lighted`), behind the light panel's
+"emissive", on by default (DECIDED from the live client). READ from the engine's graph: "Lighting Only" keeps it - debug_lighting_only.fxgraph
+writes the albedo alone (0.25, an additive material's 0.01) - and a channel view writes its channel in place of the light. The lantern's chain
+was lost to five nodes the compile did not know, each now as the engine's fragments write it: SampleSplineColour and SampleSplineGrayscale (a
+curve of the graph editor, its keys under the parameter's channels' "points" - `ShaderGraph`'s `CurveKey` - read through a table of
+`ShadeProgram.CurveWidth` values, SplineLUTSample's two round the time lerped; CHOSEN: 128 values, keys joined by straight lines whatever their
+kind - LUT_WIDTH and the processor's bake are in no captured source, and the lantern's curves come out the same under any reading),
+Hash33Stable, AddUInt and SubtractUInt (held at nought below); NodeIDHash, RandomSeed and SyncedRandomSeed CHOSEN 0.5 (the engine's
+UNIQUE_NODE_ID, RANDOM_SEED and synced_random_seed, set at run time); SampleTileGroundNormalTexture, an object texture of the ground tile's
+normals a model has none of, CHOSEN flat (normal nought, occlusion one, gloss nought - MASK_TextureStatic turns its coordinates by it times a
+factor the lantern leaves at nought). The lantern now compiles losing nothing, its glossy twin reading WandererStaff_glow.dds. NOT DRAWN: the
+glow lighting anything else (IndirectLightMult's GI feed; the bone's point light comes next).
 
 ## Verify against the game, not against yourself
 

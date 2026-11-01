@@ -323,9 +323,10 @@ public sealed partial class ShadeProgram
             "Lerp", "Lerp2", "Lerp3", "Lerp4",
             "SmoothStep", "CheapSmoothstep", "If", "FitRange", "FitRangeFromInput", "RemapHue", "RemapHueInput",
             "SelectFloat", "SelectFloat2", "SelectFloat3", "SelectFloat4", "SelectBool", "SelectUInt", "SelectChannel",
-            "GreaterThan", "LessThan", "EqualsUInt", "GreaterThanUInt", "LessThanUInt", "And", "Or", "Not",
+            "GreaterThan", "LessThan", "EqualsUInt", "GreaterThanUInt", "LessThanUInt", "And", "Or", "Not", "AddUInt", "SubtractUInt",
             "Float2ToCoords", "Float3ToCoords", "Float4ToCoords", "CoordsToFloat2", "CoordsToFloat3", "CoordsToFloat4",
-            "SampleTexture", "SampleInputTexture", "SampleInputTextureLod", "SampleInputTriplanar",
+            "SampleTexture", "SampleInputTexture", "SampleInputTextureLod", "SampleInputTriplanar", "SampleSplineColour", "SampleSplineGrayscale",
+            "Hash33Stable", "NodeIDHash", "RandomSeed", "SyncedRandomSeed",
             "SampleTriplanar", "SampleTexture2", "SampleTextureAtlas2", "SampleTextureLod", "SampleDispersedTexture",
             "MuddleTex", "MuddleTexFromInput", "MuddleTex2", "Muddle", "MuddleInput", "FromVertexVariance",
             "RGBToTbn", "NormalTexToTbn", "NormalTexToTbnInput", "ScaleUVMaya", "HardLightBlend", "Sine", "RotateUVOld",
@@ -368,13 +369,15 @@ public sealed partial class ShadeProgram
     private readonly int _waves;
     private readonly int _waterFoam;
     private readonly int _waterState;
+    private readonly int _emissive;
+    private readonly Vector4[][] _curves;
     private readonly int[] _sampleTexture;
     private readonly Mipmaps?[] _sheets;
 
     private ShadeProgram(
         Step[] steps, int[] constantAt, Vector4[] constants, int registers, int result, int specular, int gloss,
         ShadeTexture[] textures, int[] sampleTexture, int plain, IReadOnlyList<string> graphs, Mipmaps?[] sheets, bool hasAlpha, int waves = -1,
-        int waterFoam = -1, int waterState = -1)
+        int waterFoam = -1, int waterState = -1, int emissive = -1, Vector4[][]? curves = null)
     {
         HasAlpha = hasAlpha;
         _steps = steps;
@@ -387,6 +390,8 @@ public sealed partial class ShadeProgram
         _waves = waves;
         _waterFoam = waterFoam;
         _waterState = waterState;
+        _emissive = emissive;
+        _curves = curves ?? [];
         Textures = textures;
         _sampleTexture = sampleTexture;
         Plain = plain;
@@ -399,7 +404,7 @@ public sealed partial class ShadeProgram
         Marches = steps.Any(one => one.Op == Op.Parallax);
         UsesDepth = steps.Any(one => one.Op is Op.Depth or Op.ContactFade);
         Discards = steps.Any(one => one.Op == Op.ContactFade || (one.Op == Op.Depth && one.Extra != 0));
-        UsesTime = result == Clock || specular == Clock || gloss == Clock || steps.Any(one => one.Reads(Clock));
+        UsesTime = result == Clock || specular == Clock || gloss == Clock || emissive == Clock || steps.Any(one => one.Reads(Clock));
         Sprays = steps.Any(one => one.Op == Op.Spray);
         Beaches = steps.Any(one => one.Op == Op.Beach);
         ReadsWetness = steps.Any(one => one.Op == Op.Wet);
@@ -614,6 +619,15 @@ public sealed partial class ShadeProgram
 
         /// <summary><c>exp</c> of every component - the fog's layers' throughput (ScreenspaceFogFlatRaymarchGroup's inner epilogue).</summary>
         Exp,
+
+        /// <summary>
+        /// A curve read at A's x: Extra's table of <see cref="CurveWidth"/> values (<see cref="Curves"/>), linearly between the two round it -
+        /// the engine's SampleSplineColour and SampleSplineGrayscale over its spline_lut (color_spline_data).
+        /// </summary>
+        Curve,
+
+        /// <summary>Hash33Stable: the engine's hash33Stable of A's xyz - its floats' bits through PCG's rounds, each a fraction (<see cref="HashStable(Vector3)"/>).</summary>
+        HashStable,
     }
 
     /// <summary>The stages a colour is assembled across, in the order they are run.</summary>
@@ -727,6 +741,22 @@ public sealed partial class ShadeProgram
 
     /// <summary>Whether a run also leaves the glossiness the graphs wrote, beside the specular colour.</summary>
     public bool HasGloss => _gloss >= 0;
+
+    /// <summary>
+    /// Whether a run also leaves the emissive colour the graphs wrote - the light the surface gives off itself, added to its lit colour as
+    /// the engine's EndLighting adds <c>emissionData.emission</c>; only a program lit the game's way carries it (<see cref="Glossy"/>).
+    /// </summary>
+    /// <remarks>
+    /// THE EXILE'S STAFF'S LANTERN (v0.1.402, said from the live client: it burns in the game and the Monster Book drew it dark):
+    /// WandererStaffc.mat's MASK_TextureStatic writes its glow texture's red into the emissive ("Channel to Affect" 2, "Override") and
+    /// Channel_LookUpColor maps it through a fire curve times 12. The compile followed EmissiveColor from the first and handed it to no
+    /// drawing, so every material's own light - a lantern's, an eye's, a rune's - was dropped and its texture never read. The engine adds
+    /// it in BeginLighting (<c>emissionData.emission += surfaceData.material.emissive_color</c>) and EndLighting
+    /// (<c>direct_light = emissionData.diffuse + emissionData.emission</c>, the pixel's colour that plus the indirect light) - linear, before
+    /// the exposure and the grade (ground.txt and water.txt hold them whole). DECIDED from the live client: every material's, behind the
+    /// light panel's switch, on by default (SceneLight.Emissive).
+    /// </remarks>
+    public bool HasEmissive => _emissive >= 0;
 
     /// <summary>
     /// Whether a run also leaves a normal of its own for the specular light - the water's waves (see <see cref="Water"/>).
@@ -975,6 +1005,7 @@ public sealed partial class ShadeProgram
             ["Height"] = new(build.Constant(Vector4.Zero), 0),
         };
         int noHeight = state["Height"].Register;
+        int noEmissive = state["EmissiveColor"].Register;
 
         // A FOLLOWED CHANNEL WHOSE WRITE WAS LEFT OUT, by the graph that wrote it - see Channels.
         var lost = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -1160,6 +1191,9 @@ public sealed partial class ShadeProgram
         int specular = state.TryGetValue("SpecularColor", out Held shine) && (shine.Unset & 0b0111) == 0 ? shine.Register : -1;
         int gloss = specular >= 0 && state.TryGetValue("Glossiness", out Held smooth) && (smooth.Unset & 0b0001) == 0 ? smooth.Register : -1;
 
+        // THE EMISSIVE where a graph wrote it - the black it starts as (see the state above) is none - see HasEmissive.
+        int emissive = state.TryGetValue("EmissiveColor", out Held glow) && glow.Register != noEmissive ? glow.Register : -1;
+
         // THE COLOUR'S W IS ITS ALPHA where the graphs set it - a texture's own, or a constant's - and
         // the alpha test cuts on it: see HasAlpha. A colour that fits only without the specular still
         // draws, as it did before the specular was carried.
@@ -1174,9 +1208,13 @@ public sealed partial class ShadeProgram
         {
             skipped.Add($"more than {MostRegisters} registers in the colour");
         }
-        else if (gloss >= 0 && program.HasSpecular)
+        else if ((gloss >= 0 && program.HasSpecular) || emissive >= 0)
         {
-            program.Glossy = Finish(build, albedo.Register, specular, gloss, graphs, cutsOnAlpha, plainable: false);
+            // THE PROGRAM THE GAME'S LIGHT DRAWS: the gloss where there is one, and the emissive, which only that light adds - a material
+            // with an emissive and no gloss gets a twin for it alone, its specular and gloss what the plain program hands that light.
+            program.Glossy = Finish(
+                build, albedo.Register, program.HasSpecular ? specular : -1, program.HasSpecular ? gloss : -1, graphs, cutsOnAlpha, plainable: false,
+                emissive: emissive);
         }
 
         // THE HEIGHT, where a graph wrote one, in a twin of its own and its glossy twin - see Heighted.
@@ -1192,7 +1230,9 @@ public sealed partial class ShadeProgram
                     heighted.BlendsGroundHeights = program.BlendsGroundHeights;
                     if (program.Glossy is not null)
                     {
-                        heighted.Glossy = Finish(build, albedo.Register, specular, gloss, graphs, cutsOnAlpha, plainable: false, height: raised.Register);
+                        heighted.Glossy = Finish(
+                            build, albedo.Register, program.HasSpecular ? specular : -1, program.HasSpecular ? gloss : -1, graphs, cutsOnAlpha,
+                            plainable: false, height: raised.Register, emissive: emissive);
                         if (heighted.Glossy is { } glossy)
                         {
                             glossy.BlendsGroundHeights = program.BlendsGroundHeights;
@@ -1225,6 +1265,84 @@ public sealed partial class ShadeProgram
     /// <summary>The register the gloss is left in, or below nought for none.</summary>
     internal int GlossRegister => _gloss;
 
+    /// <summary>The register the emissive colour is left in, or below nought for none - see <see cref="HasEmissive"/>.</summary>
+    internal int EmissiveRegister => _emissive;
+
+    /// <summary>The curves the program's <see cref="Op.Curve"/> steps read, each <see cref="CurveWidth"/> values - see <see cref="CurveLut"/>.</summary>
+    internal IReadOnlyList<Vector4[]> Curves => _curves;
+
+    /// <summary>
+    /// How many values a curve is baked to - CHOSEN: the engine's LUT_WIDTH is in no source the captures hold (color_spline_data reads it,
+    /// common.ffx declares spline_lut, neither defines it), and a curve of straight pieces read between this many is within a two-hundredth of
+    /// a step of itself wherever it bends.
+    /// </summary>
+    public const int CurveWidth = 128;
+
+    /// <summary>
+    /// A curve of the graph editor baked as the engine reads it: <see cref="CurveWidth"/> values from nought to one, read between the two round
+    /// a time (SplineLUTSample) - the curve's keys joined by straight lines, flat before the first and after the last.
+    /// </summary>
+    /// <remarks>
+    /// THE ENGINE BAKES ITS OWN (the CPU fills spline_lut; no shader says how), and a key's kind - Linear, Flat, Smooth - is not read: CHOSEN
+    /// as straight between keys whatever its kind. The Exile's Staff's lantern (WandererStaffc.mat's Channel_LookUpColor) comes out the same
+    /// under any reading of the kinds: its red runs straight from nought to one at 0.894 and stays, its alpha likewise, green and blue straight
+    /// throughout. A channel the parameter does not name reads nought (a track below nought: <c>track &lt; 0 ? 0.0f</c>).
+    /// </remarks>
+    public static Vector4[] CurveLut(IReadOnlyDictionary<string, CurveKey[]>? curves, string x, string? y = null, string? z = null, string? w = null)
+    {
+        var lut = new Vector4[CurveWidth];
+        for (var at = 0; at < CurveWidth; at++)
+        {
+            float time = at / (float)(CurveWidth - 1);
+            lut[at] = new Vector4(
+                Along(curves, x, time),
+                y is null ? Along(curves, x, time) : Along(curves, y, time),
+                z is null ? Along(curves, x, time) : Along(curves, z, time),
+                w is null ? Along(curves, x, time) : Along(curves, w, time));
+        }
+
+        return lut;
+    }
+
+    /// <summary>A curve's value at a time: straight between its keys, its first before them and its last after - nought where it has none.</summary>
+    private static float Along(IReadOnlyDictionary<string, CurveKey[]>? curves, string channel, float time)
+    {
+        if (curves is null || !curves.TryGetValue(channel, out CurveKey[]? keys) || keys.Length == 0)
+        {
+            return 0f;
+        }
+
+        if (time <= keys[0].Time)
+        {
+            return keys[0].Value;
+        }
+
+        for (var at = 1; at < keys.Length; at++)
+        {
+            if (time <= keys[at].Time)
+            {
+                float span = keys[at].Time - keys[at - 1].Time;
+                return span <= 0f ? keys[at].Value : float.Lerp(keys[at - 1].Value, keys[at].Value, (time - keys[at - 1].Time) / span);
+            }
+        }
+
+        return keys[^1].Value;
+    }
+
+    /// <summary>A curve read at a time as the engine reads its LUT: SplineLUTTime, then the two values round it, lerped by the fraction.</summary>
+    internal static Vector4 CurveAt(Vector4[] lut, float time)
+    {
+        float t = Math.Clamp(time, 0f, 1f) * (lut.Length - 1);
+        if (!float.IsFinite(t))
+        {
+            t = 0f;
+        }
+
+        int first = (int)t;
+        int second = Math.Min(first + 1, lut.Length - 1);
+        return Vector4.Lerp(lut[first], lut[second], t - first);
+    }
+
     /// <summary>The register the waves' normal is left in, or below nought for none - see <see cref="HasWaves"/>.</summary>
     internal int WavesRegister => _waves;
 
@@ -1248,7 +1366,7 @@ public sealed partial class ShadeProgram
         // these very sheets in this very order (the beach's - see Wetness).
         return new ShadeProgram(
             _steps, _constantAt, _constants, Registers, _result, _specular, _gloss,
-            [.. Textures], _sampleTexture, Plain, Graphs, bound, HasAlpha, _waves, _waterFoam, _waterState)
+            [.. Textures], _sampleTexture, Plain, Graphs, bound, HasAlpha, _waves, _waterFoam, _waterState, _emissive, _curves)
         {
             Mix = Mix,
             MixesByCorners = MixesByCorners,
@@ -1432,6 +1550,15 @@ public sealed partial class ShadeProgram
         Span<Vector4> registers, Vector2 coordinates, Vector3 position, Vector3 normal, ReadOnlySpan<float> levels,
         out float alpha, out Vector3 specular, out float gloss, out Vector3 waves, out WaterOut water, Vector4 vertexColour = default,
         float behind = float.MaxValue)
+        => Colour(registers, coordinates, position, normal, levels, out alpha, out specular, out gloss, out waves, out water, out _, vertexColour, behind);
+
+    /// <summary>
+    /// The same, and the emissive colour the graphs left - linear and unbounded, nought where <see cref="HasEmissive"/> says there is none.
+    /// </summary>
+    internal Vector3 Colour(
+        Span<Vector4> registers, Vector2 coordinates, Vector3 position, Vector3 normal, ReadOnlySpan<float> levels,
+        out float alpha, out Vector3 specular, out float gloss, out Vector3 waves, out WaterOut water, out Vector3 emissive,
+        Vector4 vertexColour = default, float behind = float.MaxValue)
     {
         registers[Coordinates] = new Vector4(coordinates, 0f, 0f);
         if (UsesDepth)
@@ -1467,6 +1594,7 @@ public sealed partial class ShadeProgram
         gloss = _gloss >= 0 ? registers[_gloss].X : 0f;
         waves = _waves >= 0 ? new Vector3(registers[_waves].X, registers[_waves].Y, registers[_waves].Z) : default;
         water = LightsWater ? new WaterOut(registers[_waterFoam], registers[_waterState]) : default;
+        emissive = _emissive >= 0 ? new Vector3(registers[_emissive].X, registers[_emissive].Y, registers[_emissive].Z) : default;
         return new Vector3(Srgb(colour.X), Srgb(colour.Y), Srgb(colour.Z));
     }
 
@@ -1930,6 +2058,14 @@ public sealed partial class ShadeProgram
                 case Op.Field:
                     r[step.To] = step.Extra == FieldColour || step.E < 0 ? Vector4.Zero : r[step.E];
                     break;
+
+                case Op.Curve:
+                    r[step.To] = CurveAt(_curves[step.Extra], r[step.A].X);
+                    break;
+
+                case Op.HashStable:
+                    r[step.To] = new Vector4(HashStable(new Vector3(r[step.A].X, r[step.A].Y, r[step.A].Z)), 0f);
+                    break;
             }
 
             if (step.Splat)
@@ -2146,7 +2282,7 @@ public sealed partial class ShadeProgram
     /// </remarks>
     private static ShadeProgram? Finish(
         Builder build, int result, int specular, int gloss, List<string> graphs, bool hasAlpha, bool plainable, int waves = -1,
-        int waterFoam = -1, int waterState = -1, int height = -1)
+        int waterFoam = -1, int waterState = -1, int height = -1, int emissive = -1)
     {
         List<Step> steps = build.Steps;
         var live = new bool[build.Next];
@@ -2157,6 +2293,7 @@ public sealed partial class ShadeProgram
         Live(live, waterFoam);
         Live(live, waterState);
         Live(live, height);
+        Live(live, emissive);
         var keep = new bool[steps.Count];
         for (int at = steps.Count - 1; at >= 0; at--)
         {
@@ -2250,7 +2387,7 @@ public sealed partial class ShadeProgram
             }
         }
 
-        foreach (int handed in (ReadOnlySpan<int>)[result, specular, gloss, waves, waterFoam, waterState, height])
+        foreach (int handed in (ReadOnlySpan<int>)[result, specular, gloss, waves, waterFoam, waterState, height, emissive])
         {
             if (handed >= 0 && map[handed] < 0 && lastUse[handed] >= 0)
             {
@@ -2370,7 +2507,7 @@ public sealed partial class ShadeProgram
         return new ShadeProgram(
             [.. kept], [.. constantAt], [.. constants], next, map[result], Mapped(map, specular), Mapped(map, gloss),
             named, [.. sampleTextures], plain >= 0 ? textureMap[plain] : -1, graphs, new Mipmaps?[named.Length], hasAlpha, Mapped(map, waves),
-            Mapped(map, waterFoam), Mapped(map, waterState))
+            Mapped(map, waterFoam), Mapped(map, waterState), Mapped(map, emissive), [.. build.Curves])
         {
             HeightRegister = Mapped(map, height),
         };
@@ -2943,6 +3080,9 @@ public sealed partial class ShadeProgram
 
         public List<int> SampleTextures { get; } = [];
 
+        /// <summary>The curves the Curve steps read - see ShadeProgram.CurveLut.</summary>
+        public List<Vector4[]> Curves { get; } = [];
+
         public int Next { get; private set; } = Fixed;
 
         public bool Fits => Next <= MostBuilt;
@@ -3377,6 +3517,15 @@ public sealed partial class ShadeProgram
             if (node.Type == "ModelTransformDecompose" && end.Variable != "scale")
             {
                 return Fail($"ModelTransformDecompose's {end.Variable} - only its scale is known, one for a model drawn where it stands");
+            }
+
+            // THE TILE GROUND'S NORMAL MAP (TileGround's tile_ground_normal_texture), an object texture the engine binds where a mesh stands on
+            // ground tiles - not a model's, which has none: CHOSEN a flat ground, its normal's xy nought, its occlusion one, its gloss nought.
+            // MASK_TextureStatic turns its coordinates by it times "how much the Normals of the Ground will affect the Texture", nought
+            // unless a material sets it - the Exile's Staff's does not, so its glow mask is read as the engine reads it.
+            if (node.Type is "SampleTileGroundNormalTexture" or "SampleTileGroundNormalTextureLod")
+            {
+                return build.Constant(end.Variable == "ambient_occlusion" ? Vector4.One : Vector4.Zero);
             }
 
             if (!_open.Add(node))
@@ -3909,6 +4058,13 @@ public sealed partial class ShadeProgram
                 case "EqualsUInt":
                     return Compare(node, Equal);
 
+                // WHOLE NUMBERS AS FLOATS, exact this small; a uint taken below nought is held there (SubtractUInt: a > b ? a - b : 0).
+                case "AddUInt":
+                    return Binary(node, Op.Add, "a", "b", splat: true);
+
+                case "SubtractUInt":
+                    return Binary(node, Op.Subtract, "a", "b", splat: true) is { } less ? build.Emit(Op.Max, less, build.Constant(Vector4.Zero)) : null;
+
                 case "And":
                     return Compare(node, Both);
 
@@ -3944,6 +4100,27 @@ public sealed partial class ShadeProgram
                 case "SampleInputTextureLod":
                     return Handed(node) is { } given && Port(node, "uv") is { } where && Port(node, "lod") is { } lod
                         ? build.Emit(Op.SampleLod, where, lod, extra: given)
+                        : null;
+
+                // THE ENGINE'S hash33Stable of the place's three numbers (noises.ffx's Hash33Stable).
+                case "Hash33Stable":
+                    return Port(node, "pos") is { } hashed ? build.Emit(Op.HashStable, hashed) : null;
+
+                // A SEED THE DRAWING HANDS IN - the compiler's UNIQUE_NODE_ID hashed, the object's RANDOM_SEED, its synced_random_seed -
+                // none of which a model alone has: CHOSEN the middle of its range, which takes a variance's middle and so moves nothing.
+                // MASK_TextureStatic randomises its coordinates' offset, turn and tiling by them; a material leaving their variance at
+                // nought, the Exile's Staff's among them, is drawn as the engine draws it whatever the seed.
+                case "NodeIDHash":
+                case "RandomSeed":
+                case "SyncedRandomSeed":
+                    return build.Constant(new Vector4(0.5f));
+
+                // A CURVE READ AT A TIME (color_spline_data): the curve its track names baked, read at the time's x - a colour's four
+                // channels R, G, B and A, a grey's one in all four (a float node's result spread).
+                case "SampleSplineColour":
+                case "SampleSplineGrayscale":
+                    return Tracked(node) is { } table && Port(node, "time") is { } time
+                        ? build.Emit(Op.Curve, time, extra: table)
                         : null;
 
                 case "SampleInputTriplanar":
@@ -4654,6 +4831,25 @@ public sealed partial class ShadeProgram
             }
 
             return Texture(source, Parameter(source, 0));
+        }
+
+        /// <summary>
+        /// The curve a SampleSpline node's track names, baked into the program's curves - its SplineColour's R, G, B and A, its SplineGrayscale's
+        /// A in every channel - with the material's override laid over the node's own; its index, or null where the track is no such node.
+        /// </summary>
+        private int? Tracked(ShaderNode node)
+        {
+            ShaderLink[] links = [.. lookup.Into(node).Where(one => one.Target.Variable == "track")];
+            string wanted = node.Type == "SampleSplineColour" ? "SplineColour" : "SplineGrayscale";
+            if (links.Length != 1 || lookup.Node(links[0].Source) is not { } source || source.Type != wanted)
+            {
+                return Fail($"{node.Type} without a {wanted}");
+            }
+
+            IReadOnlyDictionary<string, CurveKey[]>? curves = Parameter(source, 0).Curves;
+            Vector4[] lut = wanted == "SplineColour" ? CurveLut(curves, "R", "G", "B", "A") : CurveLut(curves, "A");
+            build.Curves.Add(lut);
+            return build.Curves.Count - 1;
         }
 
         private int? Texture(ShaderNode node, ShaderValue said)

@@ -56,6 +56,7 @@ public static partial class ShadeHlsl
             float3 waves;
             float4 waterFoam;
             float4 waterState;
+            float3 emissive;
         };
 
         // ShadeProgram.Read's: an sRGB sheet's colour linearised by the table, its alpha as it is.
@@ -414,8 +415,10 @@ public static partial class ShadeHlsl
         bool rivers = false;
         bool flows = false;
         bool screened = false;
+        bool hashes = false;
         foreach (ShadeProgram.Step step in program.Steps)
         {
+            hashes |= step.Op == ShadeProgram.Op.HashStable;
             sprays |= step.Op == ShadeProgram.Op.Spray;
             fields |= step.Op == ShadeProgram.Op.Field;
             rivers |= step.Op == ShadeProgram.Op.River;
@@ -438,7 +441,8 @@ public static partial class ShadeHlsl
             }
         }
 
-        if (sprays || program.Beaches || fields || rivers || flows)
+        // hash33Stable LIVES WITH THE FOAM'S HELPERS (the spray reads it), so a program hashing a place takes them too.
+        if (sprays || program.Beaches || fields || rivers || flows || hashes)
         {
             hlsl.AppendLine(FoamLibrary);
         }
@@ -462,6 +466,12 @@ public static partial class ShadeHlsl
         if (fields)
         {
             hlsl.AppendLine(FieldLibrary);
+        }
+
+        // THE PROGRAM'S CURVES, each its baked values and the engine's read of them (SplineLUTSample) - ShadeProgram.CurveAt.
+        for (var curve = 0; curve < program.Curves.Count; curve++)
+        {
+            Curve(hlsl, curve, program.Curves[curve]);
         }
 
         hlsl.AppendLine("ShadeOut ShadeRun(SamplerState wrap, float2 uv, float3 place, float3 turn, float4 tint, float behind, float clock, float4 eye, float3 dust, float4 water, float4 flow, float4 wind, float4 shore, float4 swell, float4 viewer)");
@@ -580,9 +590,35 @@ public static partial class ShadeHlsl
         hlsl.AppendLine(program.LightsWater
             ? string.Create(CultureInfo.InvariantCulture, $"    said.waterState = r{program.WaterStateRegister};")
             : "    said.waterState = float4(0.0, 0.0, 0.0, 0.0);");
+        hlsl.AppendLine(program.EmissiveRegister >= 0
+            ? string.Create(CultureInfo.InvariantCulture, $"    said.emissive = r{program.EmissiveRegister}.xyz;")
+            : "    said.emissive = float3(0.0, 0.0, 0.0);");
         hlsl.AppendLine("    return said;");
         hlsl.AppendLine("}");
         return hlsl.ToString();
+    }
+
+    /// <summary>
+    /// One curve of the program as a function of its time: its baked values a static table, read as ShadeProgram.CurveAt reads them - the time
+    /// held to nought..one and spread over the table, the two values round it lerped by the fraction.
+    /// </summary>
+    private static void Curve(StringBuilder hlsl, int index, Vector4[] lut)
+    {
+        hlsl.Append(CultureInfo.InvariantCulture, $"static const float4 ShadeCurveTable{index}[{lut.Length}] = {{");
+        for (var at = 0; at < lut.Length; at++)
+        {
+            Vector4 one = lut[at];
+            hlsl.Append(at == 0 ? string.Empty : ", ").Append(CultureInfo.InvariantCulture, $"float4({Number(one.X)}, {Number(one.Y)}, {Number(one.Z)}, {Number(one.W)})");
+        }
+
+        hlsl.AppendLine("};");
+        hlsl.Append(CultureInfo.InvariantCulture, $"float4 ShadeCurve{index}(float time)").AppendLine();
+        hlsl.AppendLine("{");
+        hlsl.Append(CultureInfo.InvariantCulture, $"    float t = saturate(time) * {Number(lut.Length - 1)};").AppendLine();
+        hlsl.AppendLine("    int first = (int)t;");
+        hlsl.Append(CultureInfo.InvariantCulture, $"    int second = min(first + 1, {lut.Length - 1});").AppendLine();
+        hlsl.Append(CultureInfo.InvariantCulture, $"    return lerp(ShadeCurveTable{index}[first], ShadeCurveTable{index}[second], t - (float)first);").AppendLine();
+        hlsl.AppendLine("}");
     }
 
     /// <summary><see cref="FoamLibrary"/>: the helpers of the engine's the spray and the beach waves share.</summary>
@@ -1233,6 +1269,8 @@ public static partial class ShadeHlsl
             },
             ShadeProgram.Op.Bayer => $"ShadeBayerNoise({a}.xy).xxxx",
             ShadeProgram.Op.HashInt => $"float4(ShadeHashInt3(int3({a}.xyz)), 0.0)",
+            ShadeProgram.Op.Curve => Invariant($"ShadeCurve{step.Extra}({a}.x)"),
+            ShadeProgram.Op.HashStable => $"float4(ShadeHashStable3({a}.xyz), 0.0)",
 
             // THE INCLUDING SHADER'S: the scene's light between the layer's two points - ModelShaders' ShadeOmni.
             ShadeProgram.Op.Omni => $"float4(ShadeOmni({a}.xyz, {b}.xyz, {c}.x, {d}), 0.0)",

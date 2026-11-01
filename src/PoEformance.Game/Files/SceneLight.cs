@@ -380,7 +380,7 @@ public sealed class SceneLight
     public readonly record struct LightTerms(
         Vector3 Albedo, float Sun, float SunFacing, Vector3 SunDiffuse, Vector3 RoomDiffuse, Vector3 PlayerDiffuse, Vector3 Cube,
         Vector3 GiStandIn, Vector3 Flat, Vector3 Lobes, Vector3 EnvironmentSpecular, Vector3 WavesReflection, Vector3 Unexposed,
-        float Exposure, Vector3 Exposed, Vector3 Graded);
+        float Exposure, Vector3 Exposed, Vector3 Graded, Vector3 Emission = default);
 
     /// <summary>The point lights as <see cref="Shade"/> works with them, the player's included - for a drawing that lights elsewhere, the graphics card's.</summary>
     public ReadOnlySpan<Point> Points => _lights;
@@ -529,6 +529,14 @@ public sealed class SceneLight
     /// for their twins.
     /// </summary>
     public bool SprayOccluded { get; init; }
+
+    /// <summary>
+    /// Whether a material's own light is added - the emissive its graphs write (ShadeProgram.HasEmissive), linear, to the lit colour before
+    /// the exposure and the grade, as the engine's EndLighting adds <c>emissionData.emission</c>. On by default (DECIDED from the live client,
+    /// 2026-11-01: the Exile's Staff's lantern burns in the game); not in a channel view. "Lighting Only" keeps it: the engine's
+    /// debug_lighting_only.fxgraph writes only the albedo (0.25, an additive material's 0.01) and leaves the material's emissive as it was.
+    /// </summary>
+    public bool Emissive { get; init; } = true;
 
     /// <summary>
     /// The screen-space fog the area's .env puts on the player, drawn over the picture where it is ready - its weather attachment's pass, compiled
@@ -713,12 +721,13 @@ public sealed class SceneLight
     /// <param name="gloss">Its gloss.</param>
     /// <param name="waves">The normal its program hands the specular light, unit length, or nought for none - then the light is <see cref="WaterGlints"/>' and <see cref="WaterReflection"/>'s to give.</param>
     /// <param name="environment">The environment's share of the waves' reflection - one, less where the picture itself is reflected (<see cref="ScreenReflection.EnvironmentShare"/>).</param>
+    /// <param name="emission">The material's own light, linear - its program's emissive (ShadeProgram.HasEmissive) - or nought.</param>
     public Vector3 Shade(
         Vector3 albedo, Vector3 place, Vector3 normal, Vector3 toEye, float sunShadow, bool glossy, Vector3 specular, float gloss, Vector3 waves,
-        float environment = 1f)
+        float environment = 1f, Vector3 emission = default)
     {
         var none = default(NoTerms);
-        return Shaded(albedo, place, normal, toEye, sunShadow, glossy, specular, gloss, waves, environment, ref none);
+        return Shaded(albedo, place, normal, toEye, sunShadow, glossy, specular, gloss, waves, environment, emission, ref none);
     }
 
     /// <summary>
@@ -741,12 +750,13 @@ public sealed class SceneLight
     /// split cannot drift from what the picture drew. The terms are differences of the running sums, so they add up to the whole within a
     /// rounding of it, not to the bit.
     /// </remarks>
+    /// <param name="emission">The material's own light, linear, or nought.</param>
     public Vector3 Shade(
         Vector3 albedo, Vector3 place, Vector3 normal, Vector3 toEye, float sunShadow, bool glossy, Vector3 specular, float gloss, Vector3 waves,
-        float environment, out LightTerms terms)
+        float environment, out LightTerms terms, Vector3 emission = default)
     {
         var split = new Split(PlayerIndex);
-        Vector3 shown = Shaded(albedo, place, normal, toEye, sunShadow, glossy, specular, gloss, waves, environment, ref split);
+        Vector3 shown = Shaded(albedo, place, normal, toEye, sunShadow, glossy, specular, gloss, waves, environment, emission, ref split);
 
         // NO SUN REACHES ANYTHING WHERE THERE IS NONE: the drawing hands a full share where it built no shadow map, and the direction is the
         // environment's whether or not its sun shines - read as lit, every face towards it would count as in a sun the picture never drew.
@@ -767,6 +777,8 @@ public sealed class SceneLight
         void Environment(Vector3 shine);
 
         void Waves(Vector3 shine);
+
+        void Emission(Vector3 emission);
 
         void Unexposed(Vector3 colour);
     }
@@ -794,6 +806,10 @@ public sealed class SceneLight
         {
         }
 
+        public readonly void Emission(Vector3 emission)
+        {
+        }
+
         public readonly void Unexposed(Vector3 colour)
         {
         }
@@ -802,7 +818,7 @@ public sealed class SceneLight
     /// <summary>Keeps every term: the lights by source, the surround by part, the specular by kind.</summary>
     private struct Split(int player) : ITermSink
     {
-        private Vector3 _albedo, _sun, _room, _player, _cube, _gi, _flat, _lobes, _environment, _waves, _unexposed;
+        private Vector3 _albedo, _sun, _room, _player, _cube, _gi, _flat, _lobes, _environment, _waves, _emission, _unexposed;
 
         public void Albedo(Vector3 albedo) => _albedo = albedo;
 
@@ -835,18 +851,20 @@ public sealed class SceneLight
 
         public void Waves(Vector3 shine) => _waves += shine;
 
+        public void Emission(Vector3 emission) => _emission = emission;
+
         public void Unexposed(Vector3 colour) => _unexposed = colour;
 
         public readonly LightTerms Terms(Vector3 graded, float sun, float facing, float exposure)
             => new(
                 _albedo, sun, facing, _sun * _albedo, _room * _albedo, _player * _albedo, _cube * _albedo, _gi * _albedo, _flat * _albedo, _lobes,
-                _environment, _waves, _unexposed, exposure, _unexposed * exposure, graded);
+                _environment, _waves, _unexposed, exposure, _unexposed * exposure, graded, _emission);
     }
 
     /// <summary>The light's arithmetic, telling <paramref name="sink"/> each term as it goes - see the Shade overloads.</summary>
     private Vector3 Shaded<TSink>(
         Vector3 albedo, Vector3 place, Vector3 normal, Vector3 toEye, float sunShadow, bool glossy, Vector3 specular, float gloss, Vector3 waves,
-        float environment, ref TSink sink)
+        float environment, Vector3 emission, ref TSink sink)
         where TSink : struct, ITermSink
     {
         // A CHANNEL IN PLACE OF THE LIGHT, neither exposed nor graded: the engine's debug views write it straight to the pixel's colour.
@@ -976,7 +994,14 @@ public sealed class SceneLight
             sink.Waves(reflection);
         }
 
+        // THE MATERIAL'S OWN LIGHT, as EndLighting adds it - in "Lighting Only" too, whose graph replaces the albedo alone.
         Vector3 unexposed = colour + shine;
+        if (Emissive && emission != Vector3.Zero)
+        {
+            unexposed += emission;
+            sink.Emission(emission);
+        }
+
         sink.Unexposed(unexposed);
         Vector3 exposed = unexposed * Exposure;
         return Grade is null ? exposed : Grade.Apply(exposed);
