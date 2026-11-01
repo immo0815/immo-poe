@@ -1779,7 +1779,7 @@ public class MonsterModelTests
     /// coordinates really takes - the slots exist and hold nothing. The layout is unchanged, so
     /// this differs from a coordinated mesh in the one way that matters and in no other.
     /// </param>
-    internal static byte[] Smd(bool coordinated = true)
+    internal static byte[] Smd(bool coordinated = true, bool lamp = false)
     {
         var file = new List<byte>();
         void U8(int v) => file.Add((byte)v);
@@ -1820,11 +1820,32 @@ public class MonsterModelTests
         U32((uint)(Name.Length * 2));
         file.AddRange(Encoding.Unicode.GetBytes(Name));
         U32(4);
-        for (var one = 0; one < 7; one++)
+        if (!lamp)
         {
-            U32(0);
+            for (var one = 0; one < 7; one++)
+            {
+                U32(0);
+            }
+
+            return [.. file];
         }
 
+        // A LAMP'S SIMULATION MESH, the Exile's Staff's shape (its capture of 11:56): a pinned top, two corners hanging a hundred below it,
+        // one triangle - counts: ellipsoids, spheres, capsules, t3s, vertices, triangle corners, pinned; then the records (v4's order).
+        foreach (uint count in (uint[])[0, 0, 0, 0, 3, 3, 1])
+        {
+            U32(count);
+        }
+
+        foreach ((float x, float y, float z) in new[] { (10f, 0f, -100f), (0f, 0f, 0f), (-10f, 0f, -100f) })
+        {
+            F32(x); F32(y); F32(z);
+            U32(0); U32(0); U32(0); U32(0);
+            F32(1f); F32(0f); F32(0f); F32(0f);
+        }
+
+        U32(0); U32(1); U32(2);
+        U32(1);
         return [.. file];
     }
 }

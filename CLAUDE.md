@@ -1196,9 +1196,18 @@ order, depth and parent - the parent is the NEAREST PINNED particle, not the wal
 and the state): distances, contacts, shapes, frames, shape matching and drag match the engine to float precision; bends within 3% of the
 move in 77 of 80 folds (the engine's own length of the way it measures along is not read), all within 30%. CHOSEN where nothing was read:
 the controller's phases' order against the system's step (their vtable's), a kinematic particle moved onto its target each step through the
-integration's own path, no wind, no heightmap or planes, a capsule surface's motion shared between its spheres'. NEXT, DECIDED from the live
-client: the books swing every piece with a simulation mesh through it - rigid pieces first (the staff's lamp under its own .ao's settings,
-the cape), then the skins on his rig (robe, hair, the body's own chest), whose phys_ bones his rig lacks.
+integration's own path, no wind, no heightmap or planes, a capsule surface's motion shared between its spheres'.
+THE BOOKS SWING RIGID PIECES BY IT (v0.1.422, DECIDED from the live client: rigid pieces first, then the skins). The measured pendulum
+(Pendulum, BoneSwing, BoneSwinger of v0.1.416) is gone: every rigid piece (held, a prop, hung at a bone) whose .ao carries a
+ClientAnimationController and whose mesh a simulation mesh is simulated under its own keys (MonsterModel's Swaying, ClothSettings.Of) - the
+staff's lamp, the player's cape, a weapon's chains - every bone of its own rig whose name holds "phys_" a bone appended under the socket
+(AnimationSkeleton.Swinging), a bone below one riding with it, the piece's particles' targets its socket's (the piece hangs rigidly, its rig
+not played); `ClothSwinger` steps the model's cloths once a pose by the time the clock ran on and sets each simulated bone's skin, Bind^-1 ·
+its cloth's matrix (MonsterPortrait, the light panel's "swing"); monster-files.txt writes every cloth, its bones and how each follows, and
+plays them at 99 frames a second. MEASURED against the game: the staff's lamp, its rest turned 32 degrees from down, settles 5.1 degrees from
+straight down towards its rest - the game's resting lamp stood 2 to 7.5 degrees off towards its rest's way, its rest 30 to 34 from down
+(v0.1.414's bone watch): the pull towards the animation against gravity, not a bend stiffness (`THEGAMESRestingLampTiltsAsTheClothSettlesIt`).
+NEXT: the skins on his rig (robe, hair, the body's own chest), whose phys_ bones his rig lacks; the body's spheres and capsules as colliders.
 
 ## Verify against the game, not against yourself
 

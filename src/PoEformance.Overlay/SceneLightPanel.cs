@@ -1330,21 +1330,20 @@ public sealed partial class SceneLightPanel : IMovableSun
             {
                 lines.Add(_carried
                     ? "carried lights: " + carried + " - standing where the pose puts their bones every frame"
-                        + ((model.Actor ?? model).Swings.Count > 0 ? (_swing ? ", a swung lamp's light with its swing" : ", swing off") : ", no bone of them swung")
+                        + ((model.Actor ?? model).Swings.Count > 0 ? (_swing ? ", a simulated bone's light with its cloth" : ", swing off") : ", no bone of them simulated")
                         + (_flicker ? "; a style 1 light flickering as the game's (0.72 to 1 of its colour, 25 keys at ten a second)" : "; flicker off")
                     : "carried lights: off - " + carried);
             }
 
-            // WHAT SWINGS, AND WHAT OF THE SWING IS NOT THE GAME'S - see BoneSwing and Pendulum.
+            // WHAT SIMULATES, AND WHAT OF IT IS NOT THE GAME'S - see ClothWorld.
             if ((model.Actor ?? model).SwingSaid is { Length: > 0 } swung)
             {
                 lines.Add(!_swing
-                    ? "swing: off, every lamp as authored - " + swung
+                    ? "swing: off, every simulated bone as authored - " + swung
                     : (model.Actor ?? model).Swings.Count == 0
                         ? "swing: " + swung
-                        : "swing: " + swung + string.Create(
-                            CultureInfo.InvariantCulture,
-                            $" - stepped every {Pendulum.Tick * 1000:0.#} ms as measured, from hanging straight down (CHOSEN), still while the clock stands; not modelled: his turning, the resting lamp's tilt towards its rest, the twist about the rod"));
+                        : "swing: " + swung
+                            + " - one step a frame of the smoothed frame time as the engine steps it, from standing on the animation's targets (CHOSEN), still while the clock stands; not done: the wind, the heightmap and planes, the skins on his rig");
             }
             lines.Add(model.AreaOrigin is null
                 ? "player light: over the middle of the picture - the room is not laid in the area"

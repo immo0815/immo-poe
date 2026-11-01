@@ -49,6 +49,7 @@ public enum ClothBoneKind
 /// <param name="Members">The particles of a <see cref="ClothBoneKind.Skinned"/> bone.</param>
 /// <param name="InverseRest">Its shape matching's Aqq⁻¹ - the identity plus the members' weighted rest spread, inverted.</param>
 /// <param name="RestCentre">Its members' weighted rest centre.</param>
+/// <param name="Bind">The bone's matrix at the bind in the model's space - its vertices rest there, so its skin is Bind⁻¹ · the bone.</param>
 public sealed record ClothBoneLink(
     int Bone,
     string Name,
@@ -60,7 +61,8 @@ public sealed record ClothBoneLink(
     int Triangle,
     IReadOnlyList<ClothMember> Members,
     Matrix4x4 InverseRest,
-    Vector3 RestCentre);
+    Vector3 RestCentre,
+    Matrix4x4 Bind = default);
 
 /// <summary>
 /// A cloth as the engine builds it from a mesh's simulation mesh (the ClientAnimationController's setup, module+0x2863C00, and the physics
@@ -388,7 +390,7 @@ public sealed class ClothRig
             ClothTriangle near = Triangles[best];
             Matrix4x4 frame = ClothMath.TriangleFrame(Rest[near.A], Rest[near.B], Rest[near.C], near.Area);
             return Matrix4x4.Invert(frame, out Matrix4x4 inverse)
-                ? new ClothBoneLink(bone, name, ClothBoneKind.Triangle, bind * inverse, -1, default, 0f, best, [], Matrix4x4.Identity, Vector3.Zero)
+                ? new ClothBoneLink(bone, name, ClothBoneKind.Triangle, bind * inverse, -1, default, 0f, best, [], Matrix4x4.Identity, Vector3.Zero, bind)
                 : null;
         }
 
@@ -434,7 +436,7 @@ public sealed class ClothRig
             }
 
             return Matrix4x4.Invert(aqq, out Matrix4x4 inverseRest)
-                ? new ClothBoneLink(bone, name, ClothBoneKind.Skinned, bind * Matrix4x4.CreateTranslation(-centre), -1, default, 0f, -1, members, inverseRest, centre)
+                ? new ClothBoneLink(bone, name, ClothBoneKind.Skinned, bind * Matrix4x4.CreateTranslation(-centre), -1, default, 0f, -1, members, inverseRest, centre, bind)
                 : null;
         }
 
@@ -463,7 +465,7 @@ public sealed class ClothRig
             }
 
             Matrix4x4 frame = ClothMath.EdgeFrame(a, b, Rest[edge.C], edge.D >= 0 ? Rest[edge.D] : null, t);
-            return new ClothBoneLink(bone, name, ClothBoneKind.Edge, bind * RigidInverse(frame), -1, edge, t, -1, [], Matrix4x4.Identity, Vector3.Zero);
+            return new ClothBoneLink(bone, name, ClothBoneKind.Edge, bind * RigidInverse(frame), -1, edge, t, -1, [], Matrix4x4.Identity, Vector3.Zero, bind);
         }
 
         if (Count == 0)
@@ -484,7 +486,7 @@ public sealed class ClothRig
         }
 
         Matrix4x4 own = ClothMath.VertexFrame(Rest, this, closest);
-        return new ClothBoneLink(bone, name, ClothBoneKind.Particle, bind * RigidInverse(own), closest, default, 0f, -1, [], Matrix4x4.Identity, Vector3.Zero);
+        return new ClothBoneLink(bone, name, ClothBoneKind.Particle, bind * RigidInverse(own), closest, default, 0f, -1, [], Matrix4x4.Identity, Vector3.Zero, bind);
     }
 
     /// <summary>The inverse of a frame the engine takes as rigid (module+0x13A48E0): its turn transposed.</summary>
