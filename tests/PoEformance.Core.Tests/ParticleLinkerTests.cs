@@ -229,13 +229,49 @@ public class ParticleLinkerTests
         Assert.Contains("uint3 dispatch_index = sv_DispatchThreadID;", hlsl, StringComparison.Ordinal);
         Assert.Contains("#define GROUP_SIZE_X 64", hlsl, StringComparison.Ordinal);
         Assert.StartsWith("// The engine's GPU particle update", hlsl, StringComparison.Ordinal);
-        Assert.True(hlsl.IndexOf("#define DX11", StringComparison.Ordinal) < hlsl.IndexOf("#define COMPUTE_SHADER", StringComparison.Ordinal));
+        // THE MACROS BEFORE THE PRELUDE (CommonDeclarations.inc declares the particle structs under GPU_PARTICLE_DRAW_CALL), the generator's
+        // group size and vertex layout among them.
+        Assert.True(hlsl.IndexOf("#define COMPUTE_SHADER", StringComparison.Ordinal) < hlsl.IndexOf("#define DX11", StringComparison.Ordinal));
+        Assert.Contains("#define GROUP_SIZE (GROUP_SIZE_X*GROUP_SIZE_Y*GROUP_SIZE_Z)", hlsl, StringComparison.Ordinal);
+        Assert.Contains("#define VERTEX_OFFSET_NORMAL(F) ((VERTEX_HAS_POSITION(F) ? 12 : 0) + VERTEX_OFFSET_POSITION(F))", hlsl, StringComparison.Ordinal);
         Assert.True(hlsl.IndexOf("DECLARATIONS basics", StringComparison.Ordinal) < hlsl.IndexOf("DECLARATIONS helpers", StringComparison.Ordinal));
         Assert.True(hlsl.IndexOf("float Twice", StringComparison.Ordinal) < hlsl.IndexOf("void UpdateParticles", StringComparison.Ordinal));
 
         // ONLY THE UNIFORMS THE CODE NAMES: particles_data_write is named nowhere; gpu_particle_emitter neither.
         Assert.DoesNotContain("particles_data_write;", hlsl, StringComparison.Ordinal);
         Assert.Empty(linked.Unresolved);
+    }
+
+    [Fact]
+    public void ACURVEOfTheGraphEditorIsGivenARowOfTheSplineLut()
+    {
+        const string curves = """
+            FRAGMENT SplineGrayscale
+            	cost: expensive
+            	uniform splineGrayscale constant_trackG "value"
+            	out splineGrayscale output
+            {{
+            	output = constant_trackG;
+            }}
+
+            EXTENSIONPOINT ParticlesUpdate::Track
+            	group ParticlesUpdate
+            	compute
+            	type int
+            	generate: {{}}
+            """;
+        ShaderGraph graph = Graph("""
+            { "nodes": [
+                { "type": "SplineGrayscale", "index": 0, "parameters": [ { "A": { "points": [ { "time": 0.0, "value": 1.0, "type": "Linear" }, { "time": 1.0, "value": 0.0, "type": "Linear" } ] } } ] },
+                { "type": "ParticlesUpdate::Track", "index": 0, "stage": "ParticlesUpdate" } ],
+              "links": [
+                { "src": { "type": "SplineGrayscale", "index": 0, "variable": "output" }, "dst": { "type": "ParticlesUpdate::Track", "index": 0, "stage": "ParticlesUpdate", "variable": "input" } } ] }
+            """);
+        LinkedShader linked = ParticleLinker.Update(ShaderSource.Of([("curves.ffx", curves)]), [new LinkedGraph("c.fxgraph", graph, new Dictionary<string, ShaderValue[]>())], "#define DX11");
+
+        CurveKey[] row = Assert.Single(linked.Tracks!);
+        Assert.Equal([new CurveKey(0f, 1f, "Linear"), new CurveKey(1f, 0f, "Linear")], row);
+        Assert.Contains("int constant_trackG = 0;", linked.Hlsl, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -1322,8 +1322,21 @@ and COMPUTE defined; the engine's structs (ParticleData, ParticleEmitterData, Bo
 the tool's order; a Spline5 baked as straight lines between its keys (the engine's bake is its C++'s - the flame has a Smooth key).
 FIRST LINK (v0.1.428's capture of 16:07, the staff in hand): the three updates 1,041 to 1,504 nodes from 108 to 115 fragments; unresolved:
 ActorVisualSizeInformation (defined by no source), a splineGrayscale uniform, ParticleEmitterShapeTransform's mesh_emitter fed by no link in
-two graphs. NEXT: a capture from v0.1.429 (prelude and includes in it), the linked updates compiled until clean - then the emitter's data
-(time, bone, transform) from the swung lamp, the dispatch on the card, the render passes linked the same way, all on the card alone.
+two graphs. THE LINKED UPDATES COMPILE (v0.1.430; v0.1.429's capture of 17:11 carried the prelude, CommonDeclarations.inc and
+SamplerDeclarations.inc): all three clean under DXC (cs_6_0, `-I particles-linked`), once the linker followed what the engine's graph compiler
+writes - READ from its code templates (module+0x3193388 to +0x31946A0, written by module+0x12DFC80 and +0x12E0300): the group size's defaults
+and `#define GROUP_SIZE (GROUP_SIZE_X*GROUP_SIZE_Y*GROUP_SIZE_Z)`; the vertex layout's `VERTEX_HAS_*`, `VERTEX_OFFSET_*` and `VERTEX_SIZE`
+from its eleven-entry table (module+0x3183430 - bit, semantic and number, size: POSITION 0x200 12, NORMAL 0x10 4, TANGENT 0x20 4, TEXCOORD 0x8
+4, TEXCOORD1 0x80 8, TEXCOORD2 0x100 8, BLENDINDICES 4 4, BLENDWEIGHT 4 4, COLOR3 1 4, COLOR 2 4, COLOR4 0x40 4; `ParticleLinker.VertexLayout`);
+the curves' types `int`, `int2` and `int4` (splineGrayscale, splineVariance, splineColour - rows of `spline_lut`, LUT_WIDTH 128 MEASURED, so
+ShadeProgram's CurveWidth stands); `instance_count` and `batch_size` from the instances' cbuffer it writes (globals here, CHOSEN); the macros
+before the prelude (CommonDeclarations.inc declares ParticleData, ParticleEmitterData and BoneData under GPU_PARTICLE_DRAW_CALL - THE ENGINE'S
+STRUCTS ARE ITS OWN, the invented ones of v0.1.429 gone). Also read: node functions named `NodeFN_<type>_<n>` take `in uint UNIQUE_NODE_ID`
+(its value not read), a Spline5 is inlined through `LoadSpline5` of five float4s (its bake not read), a compute pass's macro is COMPUTE or
+COMPUTE_PHYSIC from a table (module+0x459B070; which the update takes not read - COMPUTE, CHOSEN). From v0.1.430 particles.txt compiles each
+linked update through FXC cs_5_0 on the Windows build (`ParticleCompile.Fxc`, includes expanded by `ParticleLinker.Expanded`) - the profile
+the tool draws with; press it with the staff in hand before the dispatch is built. NEXT: the emitter's data (time, bone, transform) from the
+swung lamp, the dispatch on the card, the render passes linked the same way, all on the card alone.
 
 ## Verify against the game, not against yourself
 

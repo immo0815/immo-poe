@@ -1272,9 +1272,9 @@ public sealed partial class ShadeProgram
     internal IReadOnlyList<Vector4[]> Curves => _curves;
 
     /// <summary>
-    /// How many values a curve is baked to - CHOSEN: the engine's LUT_WIDTH is in no source the captures hold (color_spline_data reads it,
-    /// common.ffx declares spline_lut, neither defines it), and a curve of straight pieces read between this many is within a two-hundredth of
-    /// a step of itself wherever it bends.
+    /// How many values a curve is baked to - the engine's LUT_WIDTH, MEASURED (v0.1.430): Shaders/CommonDeclarations.inc, which the engine's
+    /// DX11 prelude includes before every shader, says "#define LUT_WIDTH 128" under "Has to be in-sync with CPP code" (particles.txt of the
+    /// capture 2026-11-01 17-11-45). CHOSEN until then, at the same number. How the processor bakes a key's kind into the row is not read.
     /// </summary>
     public const int CurveWidth = 128;
 

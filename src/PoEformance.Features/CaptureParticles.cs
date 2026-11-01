@@ -58,7 +58,14 @@ public static partial class CaptureParticles
     /// <param name="engineGraphs">Every path under Metadata/EngineGraphs/, as the install's walk found them.</param>
     /// <param name="shaders">Every shader source in the install, as its walk found them.</param>
     /// <param name="programs">The game's program files on disk, where the engine's DX11 prelude is read from (ShaderPrelude); null or empty for none.</param>
-    public static string Write(Func<string, byte[]?> read, IReadOnlyList<CapturePane>? panes, IReadOnlyList<string>? engineGraphs, IReadOnlyList<string>? shaders, IReadOnlyList<string>? programs = null)
+    /// <param name="compile">Compiles a linked shader on this machine - the Windows build's FXC - or null; see Link.</param>
+    public static string Write(
+        Func<string, byte[]?> read,
+        IReadOnlyList<CapturePane>? panes,
+        IReadOnlyList<string>? engineGraphs,
+        IReadOnlyList<string>? shaders,
+        IReadOnlyList<string>? programs = null,
+        Func<string, string, string>? compile = null)
     {
         ArgumentNullException.ThrowIfNull(read);
         var body = new StringBuilder();
@@ -98,7 +105,7 @@ public static partial class CaptureParticles
         var known = walked.Where(one => one.Text is not null).ToDictionary(one => one.Path, one => one.Text!, StringComparer.OrdinalIgnoreCase);
         string? Text(string path)
             => known.TryGetValue(Clean(path), out string? had) ? had : read(Clean(path)) is { Length: > 0 } bytes ? StatDescriptionFiles.Decode(bytes) : null;
-        string link = Link(Text, ShaderSource.Of(texts.Select(one => (one.Key, one.Value))), walked.Where(one => one.Path.EndsWith(".pet", StringComparison.OrdinalIgnoreCase)).Select(one => one.Path), body, prelude?.Text);
+        string link = Link(Text, ShaderSource.Of(texts.Select(one => (one.Key, one.Value))), walked.Where(one => one.Path.EndsWith(".pet", StringComparison.OrdinalIgnoreCase)).Select(one => one.Path), body, prelude?.Text, compile);
 
         // THE FILES WHOLE LAST - the effects, the materials and the graphs - in the form the offline readers read back.
         body.AppendLine().AppendLine("=== the effect files, materials and graphs whole");
