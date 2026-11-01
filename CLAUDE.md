@@ -1471,6 +1471,10 @@ render thread as the key goes down, under each pane in model-panes.txt as `parti
 update globals as last written beside its pool as the update left it - each member by the shader's own reflected layout (the engine's ParticleData,
 a uint also as the two halves it packs), its range over the pool and the first four particles whole - and the order and culling buffers' first
 words. Read it before theorising why a flame does not show: spawned nothing, placed out of view, or drawn transparent are told apart there.
+THE FIRST LIVE LOOK (v0.1.445 through the agent link, 2026-11-01 23:10, the player taken with the staff) LINKED NOTHING: "the install's walk
+found no shader sources" - the Monster Book's pane was never handed the install's shader list (`Shaders`; v0.1.442 wired the particles' switch
+alone), nor the Item and Effect Books'. From v0.1.447 every pane is, and a model taken before the startup walk has listed them waits and is linked
+once they arrive (`MonsterPortrait._particlesWaitingFor`) rather than never.
 
 ## Verify against the game, not against yourself
 

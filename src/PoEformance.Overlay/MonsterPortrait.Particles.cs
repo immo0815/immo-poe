@@ -28,6 +28,9 @@ public sealed partial class MonsterPortrait
 
     private Task<(IReadOnlyList<(CarriedEffect Effect, ParticleProgram Program)> Programs, IReadOnlyList<string> Said)>? _particling;
     private MonsterModel? _particlesOf;
+
+    /// <summary>The model whose effects wait for the install's walk to list its shader sources - asked again each frame (ParticlesLanded).</summary>
+    private MonsterModel? _particlesWaitingFor;
     private IReadOnlyList<(CarriedEffect Effect, ParticleProgram Program)> _particles = [];
     private IReadOnlyList<string> _particlesBuilt = [];
     private Emitted[] _emitted = [];
@@ -62,11 +65,22 @@ public sealed partial class MonsterPortrait
         _particlesBuilt = [];
         _emitted = [];
         _particling = null;
+        _particlesWaitingFor = null;
         IReadOnlyList<CarriedEffect> effects = carrier.Effects;
         Func<string, byte[]?>? install = _install;
-        IReadOnlyList<string> shaders = Shaders?.Invoke() ?? [];
         if (effects.Count == 0 || install is null)
         {
+            return;
+        }
+
+        // THE INSTALL'S WALK MAY NOT HAVE LISTED ITS SHADER SOURCES YET - a model taken in the first minute after a start - so the link
+        // waits for them and is asked again each frame, rather than linking nothing for good.
+        IReadOnlyList<string> shaders = Shaders?.Invoke() ?? [];
+        if (shaders.Count == 0)
+        {
+            _particlesOf = null;
+            _particlesWaitingFor = carrier;
+            _particlesBuilt = [Shaders is null ? "particles: this pane is handed no shader sources" : "particles: waiting for the install's walk to list its shader sources"];
             return;
         }
 
@@ -76,6 +90,18 @@ public sealed partial class MonsterPortrait
     /// <summary>Takes the linked programs once they land, every emitter starting its clock at nought.</summary>
     private void ParticlesLanded()
     {
+        if (_particlesWaitingFor is { } waiting)
+        {
+            if (!ReferenceEquals(waiting, _model.Actor ?? _model))
+            {
+                _particlesWaitingFor = null;
+            }
+            else if ((Shaders?.Invoke() ?? []).Count > 0)
+            {
+                ParticlesBehind();
+            }
+        }
+
         if (_particling is not { IsCompleted: true } done)
         {
             return;
