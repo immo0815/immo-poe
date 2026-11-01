@@ -217,6 +217,9 @@ public static class CaptureParts
     /// <summary>The engine's shader stages measured at the press: its stage table in the program's image, and every link of the install's graphs across stages.</summary>
     public const string ShaderStages = "shader-stages";
 
+    /// <summary>The bones of the pieces the player is drawn with watched over seconds from the press while he moves - see BoneWatch.</summary>
+    public const string BoneWatch = "bone-watch";
+
     /// <summary>Every room of every room set in the install built as a Monster Book stage, and what fails counted by cause - off until ticked.</summary>
     public const string StageSweep = "stage-sweep";
 
@@ -250,7 +253,7 @@ public static class CaptureParts
     /// cannot be asked for on the frame the key goes down as a window's text is.
     /// </remarks>
     public static bool RunsAtPress(string key)
-        => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow or ShaderStages or PlayerLook;
+        => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow or ShaderStages or PlayerLook or BoneWatch;
 
     /// <summary>
     /// A heading as the Keys page writes it. The headings themselves stay as they are: they are what <see cref="FolderOfGroup"/> keys
@@ -564,7 +567,9 @@ public static class CaptureParts
         new(MonsterFiles, "Windows", "monster's files", CaptureReport.MonsterFilesFile,
             "The Monster Book's monster as the tool builds and stands it: where the stage put him and the floor it found at nine points round "
             + "his place, the rest's lowest point, each part with its socket and box, his lowest point and root bone in every animation, each "
-            + "socketed part's bone in every animation, every part with a rig of its own played by that rig, and "
+            + "socketed part's bone in every animation, every part with a rig of its own played by that rig (a held weapon's too, with its "
+            + "bones and how far its physics bones move), every effect he and his parts name - particles, effect packs, trails - followed hop "
+            + "by hop, the text files whole and their textures whole beside it, and "
             + "every .ao and object type file of him whole - beside the game's own entity of him where one is near (its place, the terrain's "
             + "height under it, its bounds, the animation it plays). Stand where the game shows him with him on the Monster Book's stage."),
         new(LightCompare, "Windows", "light against the game", CaptureReport.LightCompareFile,
@@ -656,6 +661,13 @@ public static class CaptureParts
             + "inventory id set beside Inventories.dat's row, his class's Characters row, each item's visual identity with every file it "
             + "names, and the .ao files those and the walk name written whole. Take it three times for the cosmetics - as you stand, after "
             + "changing one MTX, after swapping weapon sets. About a minute at most; the capture's window shows how far it is."),
+        new(BoneWatch, "Memory", "bone watch", CaptureReport.BoneWatchFile,
+            "The bones of the pieces the game draws your character with, watched for twelve seconds from the press - for how the engine "
+            + "swings what hangs on a physics bone (a lantern on a staff, a skirt, feathers): every block of memory round each piece's object, "
+            + "three hops deep, read in the first second, those that change watched thirty times a second for the rest. Every run of turn "
+            + "matrices in them - a skeleton's bones side by side - is written matrix by matrix against the run's first: a weapon's own "
+            + "bones hold still on its root, a simulated one swings, and its angle over time is written as a table. The reads go beside it "
+            + "as bone-watch.bin. PRESS THE KEY, THEN WALK, STOP AND TURN a few times until the window says it is done."),
         new(ShaderStages, "Memory", "shader stages", CaptureReport.ShaderStagesFile,
             "The order the engine runs a material's shader stages in, read off its own table in the running program - an array of "
             + "std::string in its image, of which only the pixel side's ten were ever seen - written whole, beside this build's compile "

@@ -931,6 +931,30 @@ key plus one (15/14, 9/8, 82/81), and the worn ones fit PoE1's order one on too 
 set 2 in hand at 00:23 and is no candidate - neither is read yet, the timeline deciding. THE COSMETIC'S COLUMNS ARE PER ITEM CLASS: the Exile's
 Staff row (6980, AddedEffectExilesStaff) names WandererStaffHeld.ao in column_38 and WandererMaceHeld.ao in column_41, and the game's own
 tooltip says "Changes the appearance of any equipped One Hand Mace or Staff" (from the live client) - the folder rule takes the staff for a staff.
+THE EXILE'S STAFF'S LANTERN BURNS AND DANGLES IN THE GAME (said from the live client with a video, 2026-11-01; the Monster Book drew it dark and
+rigid). WandererStaffHeld.ao says what it is made of, four building blocks the tool had none of:
+- THE GLOW is the material's EMISSIVE: WandererStaffc.mat writes WandererStaff_glow.dds's red into the emissive channel (MASK_TextureStatic,
+  "Override") and Channel_LookUpColor maps it through a fire curve times 12 (HDR Limiter 100); the engine adds the emission to the lit colour
+  (EndLighting: `direct_light = diffuse + emission`, ground.txt and water.txt whole). The compile tracked EmissiveColor and nothing drew it - in
+  no material of any book. IndirectLightMult's 0.05 scales what the surface feeds the GI (`emissionData.direct_light`), not its own colour.
+- THE LIGHT: `Lights { light = "point_light" bone_name = "phys_tri_lamp_jntBnd" ... colour = "2.4671 0.493089 0.0398032" radius = 150 }` -
+  the tool drew doodads' lights alone, fixed in their room.
+- THE FLAME AND SPARKS: `ParticleEffects { continuous_effect = "lamp .../WandererStaff/fx/lamp.pet" }` on the bone group `lamp`
+  (phys_tri_lamp_jntBnd and the socket lamp_01 10 units along it) - the tool draws no particle at all.
+- THE SWING: phys_tri_lamp_jntBnd is simulated; ClientAnimationController names the simulation's parameters (linear_allowed_contraction 0,
+  bend_stiffness 800, bend_allowed_angle 0, the viscosity multipliers 0, enclosure_radius 5, enclosure_angle 5, animation_velocity_factor 2,
+  animation_force_factor 2, use_shock_propagation false) and no file holds the simulation. The same physics swings skirts, shawls and dangles.
+DECIDED from the live client (2026-11-01), each as recommended: the emissive for every material in every book, a light panel switch on by
+default; lights carried by a bone, moving with the animation every frame; the particles' files captured first and the drawing decided from
+them; the swing measured in memory first. So v0.1.401's capture parts: monster-files.txt follows every effect the monster and his parts name
+hop by hop (`CaptureMonsterFiles.Effects`: an object's chain for its effects and what it extends, an effect for everything it names; text whole,
+textures whole beside it as monster-files-effect-N-name, 32 MB) and plays a held weapon's own rig with its bones listed and how far its phys_
+bones travel in its own animations; and `bone-watch.txt` (`BoneWatch`, the Memory group, at the press for 12 s - PRESS, THEN WALK, STOP AND
+TURN) walks every block three hops round each composition piece's object and his Animated and Render components, keeps those changing in the
+first second (48 at most, the most changing turn matrices first) and reads them thirty times a second; `BoneWatchSeries` finds the runs of
+turn matrices (a skeleton's bones side by side) and sets each matrix against the run's first - in whichever order, rows or columns, holds the
+run stillest - its signed swing along the axis it turns about most and its period, the reads kept in `bone-watch.bin`; the replay
+(`bone-watch-replay.txt`) reads them again. Read both before the particles or the swing are built.
 
 ## Verify against the game, not against yourself
 

@@ -1237,8 +1237,15 @@ internal sealed class CaptureKey
                 Vector2? feet = run.Snapshot.Player is { } you ? new Vector2(you.WorldX, you.WorldY) : null;
                 Part(CaptureReport.MonsterFilesFile, () =>
                 {
-                    string text = CaptureMonsterFiles.Write(read, monster, run.Snapshot.Entities, feet);
+                    string text = CaptureMonsterFiles.Write(read, monster, run.Snapshot.Entities, feet, out IReadOnlyList<(string File, byte[] Bytes)> wholes);
                     File.WriteAllText(At(CaptureReport.MonsterFilesFile), text);
+
+                    // THE EFFECTS' TEXTURES WHOLE beside it - a particle's sprite is what it looks like (the lantern's flame, v0.1.401).
+                    foreach ((string file, byte[] bytes) in wholes)
+                    {
+                        File.WriteAllBytes(At(file), bytes);
+                    }
+
                     return text[..text.IndexOf('\n')];
                 });
             }
