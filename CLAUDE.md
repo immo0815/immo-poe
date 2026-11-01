@@ -2337,7 +2337,7 @@ in 100 s, so a call that runs longer than 40 s is answered as pending (`structur
   and unpacks it) and `link` (where the tool is and whether it answers). It lists `tools/agent/tools.json` while the tool cannot be
   reached; `AgentCatalogueTests` keeps that file equal to `AgentCatalogue` (`POEF_WRITE_AGENT_TOOLS=1` writes it). The same script works
   from a shell: `python3 tools/agent/poef.py call status`, `call monster_book '{"monster":"Malgor"}'`, `download <id>`.
-- THE TOOLS (`AgentCatalogue`): status, log, update (check, download, install - install restarts the tool three seconds after its answer;
+- THE TOOLS (`AgentCatalogue`): status, front, log, update (check, download, install - install restarts the tool three seconds after its answer;
   it comes back on a new tunnel name), capture (the parts by key, the rest off for that capture alone - `CaptureKey.Request`; it begins on
   the next frame the game or a tool window is in front, as the key's would), capture_parts, captures (the captures folder, the player's own
   presses of F9 among them, a zip offered), screenshot, monster_book (a monster by name or path, a stage by the list's own label, the player
@@ -2347,8 +2347,14 @@ in 100 s, so a call that runs longer than 40 s is answered as pending (`structur
   (`MonsterPortrait.AgentSettled`, a ticket handed out when asked so the picture before a new choice never passes).
 - THROUGH THE FRAME: every overlay tool runs on the render thread through `AgentFrames`, pumped at the top of each frame BEFORE the
   foreground gate - so setting something works with another application in front, while a picture or a capture waits for a frame that
-  draws and the tool says so when none comes (the overlay draws only while the game or one of its own windows is in front, and nothing
-  here brings the game to the front). Nothing here sends anything to the game.
+  draws and the tool says so when none comes (the overlay draws only while the game or one of its own windows is in front). Nothing here
+  sends anything to the game.
+- EVERY CALL BRINGS THE GAME'S WINDOW TO THE FRONT FIRST where another window is (v0.1.412, asked for from the live client, 2026-11-01:
+  "from now on you bring the PoE2 window to the front yourself, before you do anything"): `AgentLink.Before`, the overlay's `AgentFront`,
+  on the render thread (`GameWindowTracker.BringToFront`: a minimised game restored, the render thread's input joined to the window in
+  front for the moment - AttachThreadInput - then BringWindowToTop and SetForegroundWindow). NO KEY IS SENT: the usual trick presses Alt,
+  and Alt held in the game shows its items' labels. What it did opens the call's answer and goes to overlay.log; the tool `front` does it
+  alone. The game's own other windows count as the game.
 - SET UP ONCE: the About page's "agent link" - "on", then "copy key" into the cloud environment's settings as `POEF_AGENT_KEY` (never into
   a chat), then a new cloud session (environment variables and `.mcp.json` are read at a session's start). "renew key" makes the old one
   useless at once. The tool runs only while the game does (Main ends without a game process), so the link does too.

@@ -12,6 +12,7 @@ namespace PoEformance.Features;
 public static class AgentCatalogue
 {
     public const string Status = "status";
+    public const string Front = "front";
     public const string Log = "log";
     public const string Update = "update";
     public const string Capture = "capture";
@@ -27,6 +28,9 @@ public static class AgentCatalogue
         new(Status,
             "What the tool is doing now: its version and build, the game it is attached to, the area and the player's place, which window is in front (the overlay draws only while the game or one of its own windows is), a capture under way, the update check, the tunnel and the model panes. Call this first.",
             "{\"type\":\"object\",\"properties\":{}}"),
+        new(Front,
+            "Brings the game's window to the front, as every call does first anyway where another window is: the window is only raised - no key is sent to the game. Answers with who is in front after.",
+            "{\"type\":\"object\",\"properties\":{}}"),
         new(Log,
             "The tail of overlay.log, the tool's own log of this session (or of the session before, kept as overlay.previous.log).",
             "{\"type\":\"object\",\"properties\":{\"lines\":{\"type\":\"integer\",\"description\":\"How many of the last lines (default 200, at most 5000).\"},\"previous\":{\"type\":\"boolean\",\"description\":\"Read the session before's log instead.\"}}}"),
@@ -34,7 +38,7 @@ public static class AgentCatalogue
             "The tool's own update from its GitHub release: check whether a newer build is published, download it, or install it. Install downloads first where needed and then RESTARTS THE TOOL; the link comes back on a new tunnel address within a minute or two (the bridge finds it).",
             "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"enum\":[\"check\",\"download\",\"install\"],\"description\":\"Default check.\"}}}"),
         new(Capture,
-            "Takes a capture for diagnosis as the capture key (F9) does: one zip of the pictures, the recording and every part asked for. It begins on the next frame the game or one of the tool's windows is in front, hides the overlay for a moment and may use every core for minutes; a long one is answered as pending and collected by the bridge. Answers with the capture's folder and its zip offered for download (the bridge's download tool fetches and unpacks it).",
+            "Takes a capture for diagnosis as the capture key (F9) does: one zip of the pictures, the recording and every part asked for. The game is brought to the front first; it begins on the next frame the game or one of the tool's windows is in front, hides the overlay for a moment and may use every core for minutes; a long one is answered as pending and collected by the bridge. Answers with the capture's folder and its zip offered for download (the bridge's download tool fetches and unpacks it).",
             "{\"type\":\"object\",\"properties\":{\"parts\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"description\":\"The parts to write, by key (capture_parts lists them); every other part is off for this capture. Default: the parts ticked in the tool's settings.\"},\"wait_minutes\":{\"type\":\"number\",\"description\":\"How long to wait for the capture to end (default 30).\"},\"cancel\":{\"type\":\"boolean\",\"description\":\"Withdraw a capture asked for that has not begun yet.\"}}}"),
         new(CaptureParts,
             "Every part a capture can write, by key, with its group, file, what it is for and whether the settings tick it.",
