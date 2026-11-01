@@ -46,6 +46,9 @@ public sealed partial class ModelGpu
     private readonly Dictionary<int, (ID3D11Buffer Buffer, ID3D11ShaderResourceView View)> _emptyStructured = [];
     private ID3D11Buffer? _particleFinish;
     private string _particlesFailed = string.Empty;
+
+    /// <summary>The step the particles' drawing is at, named where the card refuses one - an HRESULT alone says nothing of which call it was.</summary>
+    private string _particleStep = string.Empty;
     private ID3D11SamplerState?[]? _engineSamplers;
     private ID3D11ShaderResourceView? _white, _blackCube, _zeroUints, _zeroTyped;
     private ID3D11Texture2D? _whiteTexture, _cubeTexture, _uintTexture;
@@ -93,8 +96,11 @@ public sealed partial class ModelGpu
                 continue;
             }
 
+            _particleStep = "the neutral resources and the particles' states";
             Neutrals();
+            _particleStep = emitter.Program.Name + "'s update";
             Stepped(context, card, emitter, frame, view);
+            _particleStep = emitter.Program.Name + "'s passes";
             drawn += Drew(context, target, card, emitter, frame, view, light);
         }
 
@@ -450,7 +456,8 @@ public sealed partial class ModelGpu
             [new SubresourceData(Pinned([1f, 1f, 1f, 1f]), 16)]);
         _white = _device.CreateShaderResourceView(_whiteTexture);
         var black = new SubresourceData(Pinned([0f, 0f, 0f, 0f]), 16);
-        _cubeTexture = _device.CreateTexture2D(new Texture2DDescription(Format.R32G32B32A32_Float, 1, 1, 1, 6, BindFlags.ShaderResource, ResourceUsage.Immutable,
+        // Named: Vortice's order is the array's size, then the levels - six levels of a 1x1 picture, a cube of one face, the card refuses.
+        _cubeTexture = _device.CreateTexture2D(new Texture2DDescription(Format.R32G32B32A32_Float, 1, 1, arraySize: 6, mipLevels: 1, BindFlags.ShaderResource, ResourceUsage.Immutable,
             CpuAccessFlags.None, 1, 0, ResourceOptionFlags.TextureCube), [black, black, black, black, black, black]);
         _blackCube = _device.CreateShaderResourceView(_cubeTexture);
         _uintTexture = _device.CreateTexture2D(new Texture2DDescription(Format.R32G32B32A32_UInt, 1, 1, 1, 1, BindFlags.ShaderResource, ResourceUsage.Immutable),
