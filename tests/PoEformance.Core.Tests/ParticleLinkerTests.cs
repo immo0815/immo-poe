@@ -379,6 +379,7 @@ public class ParticleLinkerTests
         	pixel
         	in float4 color
         	in float4 screen : SV_POSITION
+        	uniform sampler colour_sampler
         	out float4 result : PIXEL_RETURN_SEMANTIC_COLOR
         {{
         	result = color * screen.w;
@@ -450,7 +451,11 @@ public class ParticleLinkerTests
         Assert.Contains("float4 target_PIXEL_RETURN_SEMANTIC_COLOR : SV_Target0;", ps, StringComparison.Ordinal);
         Assert.Contains("pout.target_PIXEL_RETURN_SEMANTIC_COLOR = (float4)(result);", ps, StringComparison.Ordinal);
         Assert.Empty(vertex.Unresolved);
-        Assert.Empty(pixel.Unresolved);
+
+        // A NODE'S SAMPLER IS THE ENGINE'S OWN, not a register of its own: SamplerDeclarations.inc takes s0 to s15 already.
+        Assert.Contains($"#define colour_sampler {ParticleLinker.NodeSampler}", ps, StringComparison.Ordinal);
+        Assert.Equal([$"a node's sampler no graph names: the engine's {ParticleLinker.NodeSampler} (CHOSEN)"], pixel.Unresolved);
+        Assert.DoesNotContain("SamplerState res_", ps, StringComparison.Ordinal);
     }
 
     [Fact]
