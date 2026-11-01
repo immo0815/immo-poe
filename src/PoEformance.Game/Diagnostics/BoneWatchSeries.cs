@@ -35,8 +35,11 @@ public sealed class BoneWatchSeries
     /// <summary>The first bytes of a file of v0.1.401 to v0.1.403 - the blocks alone.</summary>
     private static readonly byte[] MagicOne = "POEFBONES1"u8.ToArray();
 
-    /// <summary>Most candidates in the world written one by one - the rest counted. CHOSEN.</summary>
+    /// <summary>Most candidates in the world written one by one, shared out among the pieces - the rest counted. CHOSEN.</summary>
     private const int MostCandidateLines = 120;
+
+    /// <summary>The fewest candidates written one by one for each piece, however many pieces share <see cref="MostCandidateLines"/>. CHOSEN.</summary>
+    private const int LeastCandidateLines = 24;
 
     /// <summary>A candidate's least swing, in degrees from its least to its most, to count as swinging - CHOSEN.</summary>
     private const float LeastSwing = 1f;
@@ -630,6 +633,7 @@ public sealed class BoneWatchSeries
             }
 
             // IN THE WORLD, taken into the piece's frame by its World read with it at each sweep, and read there by places alone.
+            float tolerance = PoseHunt.Tolerance;
             if (skeleton.Frame == PoseFrame.World)
             {
                 if (skeleton.Place < 0 || skeleton.Place >= Places.Count || InFrame(block, skeleton) is not { } framed)
@@ -640,6 +644,23 @@ public sealed class BoneWatchSeries
 
                 lines.Add("  taken into the piece's frame by its placement's World, read with it at each sweep - and read there by places alone");
                 (block, skeleton) = framed;
+                tolerance = PoseWorld.Tolerance;
+            }
+
+            // ONLY THE READS HOLDING THIS RIG: the 07:26 capture's live array of the staff was a buffer the engine fills for more than one
+            // thing - in 82 of its 252 reads the staff's pose, its fixed bones at their rest to the bit, in the rest another's - and read
+            // whole its lamp seemed to jump between three angles (2026-11-01, v0.1.409).
+            int all = block.Reads.Count;
+            block = Holding(block, skeleton, tolerance);
+            if (block.Reads.Count < all)
+            {
+                lines.Add(block.Reads.Count == 0
+                    ? string.Create(CultureInfo.InvariantCulture, $"  holds this rig in none of its {all} reads - none with {PoseHunt.LeastShare:P0} of its fixed bones at their rest")
+                    : string.Create(CultureInfo.InvariantCulture, $"  holds this rig in {block.Reads.Count} of its {all} reads, {PoseHunt.LeastShare:P0} of its fixed bones or more at their rest - the rest another's: a buffer the engine fills for more than one; only those {block.Reads.Count} read"));
+                if (block.Reads.Count == 0)
+                {
+                    continue;
+                }
             }
 
             TurnRead how = PoseSwing.Turns(block, skeleton);
@@ -666,14 +687,62 @@ public sealed class BoneWatchSeries
         }
     }
 
+    /// <summary>
+    /// The block with only the reads in which the skeleton holds its rig: at least <see cref="PoseHunt.LeastShare"/> of the rig's fixed
+    /// bones within <paramref name="tolerance"/> of their rest in the skeleton's frame, coordinate by coordinate - the block itself where
+    /// every read does.
+    /// </summary>
+    private static Block Holding(Block block, Skeleton skeleton, float tolerance)
+    {
+        PoseRig rig = skeleton.Rig;
+        int[] fixedBones = [.. Enumerable.Range(0, rig.Count).Where(bone => PoseHunt.Holds(rig, skeleton.Frame, bone))];
+        if (fixedBones.Length == 0 || skeleton.Frame == PoseFrame.World)
+        {
+            return block;
+        }
+
+        var rests = new Vector3[fixedBones.Length];
+        for (var at = 0; at < fixedBones.Length; at++)
+        {
+            rests[at] = PoseHunt.Rest(rig, skeleton.Frame, fixedBones[at]);
+        }
+
+        int need = (int)Math.Ceiling(PoseHunt.LeastShare * fixedBones.Length);
+        int span = PoseHunt.Span(skeleton.Layout);
+        var kept = new List<(double At, byte[] Bytes)>(block.Reads.Count);
+        foreach ((double at, byte[] bytes) in block.Reads)
+        {
+            int still = 0;
+            for (var index = 0; index < fixedBones.Length && still < need; index++)
+            {
+                int x = skeleton.Offset + (fixedBones[index] * skeleton.Stride);
+                if (x < 0 || x + span > bytes.Length)
+                {
+                    continue;
+                }
+
+                Vector3 found = PoseHunt.At(bytes, x, skeleton.Layout), rest = rests[index];
+                still += MathF.Abs(found.X - rest.X) <= tolerance && MathF.Abs(found.Y - rest.Y) <= tolerance && MathF.Abs(found.Z - rest.Z) <= tolerance ? 1 : 0;
+            }
+
+            if (still >= need)
+            {
+                kept.Add((at, bytes));
+            }
+        }
+
+        return kept.Count == block.Reads.Count ? block : block with { Reads = kept };
+    }
+
     /// <summary>The player's place at each of its reads, where it was watched.</summary>
     private (double At, Vector3 Place)[] PlayerReads() => Player >= 0
         ? [.. Blocks[Player].Reads.Where(one => one.Bytes.Length >= 12).Select(one => (one.At, Row(one.Bytes, 0)))]
         : [];
 
     /// <summary>
-    /// Each read's World of a piece's place - the read of its block nearest in time, which a sweep reads within the same moment - as a turn
-    /// back into the piece's frame; null where the place was not read.
+    /// Each read's World of a piece's place - the read of its block as it stood then: the last at or before the time, which a sweep reads
+    /// within the same moment, and which a World read only where it changed holds until its next (v0.1.410); the first where none came
+    /// before - as a turn back into the piece's frame; null where the place was not read.
     /// </summary>
     private Matrix4x4?[] Backs(Place place, Block block)
     {
@@ -683,7 +752,7 @@ public sealed class BoneWatchSeries
         for (var read = 0; read < block.Reads.Count && world.Reads.Count > 0; read++)
         {
             double time = block.Reads[read].At;
-            while (at + 1 < world.Reads.Count && Math.Abs(world.Reads[at + 1].At - time) <= Math.Abs(world.Reads[at].At - time))
+            while (at + 1 < world.Reads.Count && world.Reads[at + 1].At <= time)
             {
                 at++;
             }
@@ -890,21 +959,31 @@ public sealed class BoneWatchSeries
         lines.Add(string.Create(
             CultureInfo.InvariantCulture,
             $"{read.Length} places watched: {read.Count(one => one.Candidate.Parent >= 0)} taken for a simulated bone, {swinging} of them swinging; {read.Count(one => one.Candidate.Parent < 0)} at a fixed bone's rest - {following.Count(one => one == Following.Follows)} following their piece, {following.Count(one => one == Following.Still)} left behind, {following.Count(one => one == Following.Otherwise)} moving otherwise, {following.Count(one => one == Following.PieceStill)} beside a piece that held still, {following.Count(one => one == Following.Unread)} not read with their piece's World"));
-        foreach (int at in ranked.Take(MostCandidateLines))
+        // EVERY PIECE ITS OWN SHARE OF THE LINES, piece by piece, so one of few places is not crowded out - the 07:26 capture wrote the
+        // cape's and the wand's 120 and not one of the staff's twelve (2026-11-01, v0.1.409).
+        int[][] byPiece = [.. ranked.GroupBy(at => read[at].Candidate.Place).OrderBy(group => group.Key).Select(group => group.ToArray())];
+        int share = Math.Max(MostCandidateLines / Math.Max(1, byPiece.Length), LeastCandidateLines);
+        foreach (int[] piece in byPiece)
         {
-            lines.Add(string.Create(CultureInfo.InvariantCulture, $"  {Word(following[at])}: {read[at].Line.TrimStart()}"));
-            if (read[at].Swing is { } swing && Swings(read[at]))
-            {
-                SwingLines(swing, lines);
-            }
-        }
-
-        if (ranked.Length > MostCandidateLines)
-        {
-            int unwritten = ranked.Length - MostCandidateLines;
+            Candidate head = read[piece[0]].Candidate;
             lines.Add(string.Create(
                 CultureInfo.InvariantCulture,
-                $"  ({unwritten} more not written - {ranked.Skip(MostCandidateLines).Count(at => Swings(read[at]))} of them swinging, {ranked.Skip(MostCandidateLines).Count(at => following[at] == Following.Follows)} following their piece)"));
+                $"  -- near {Path.GetFileName(Places[head.Place].Rig.Piece)}: {piece.Length} places, {piece.Count(at => following[at] == Following.Follows)} following it, {piece.Count(at => Swings(read[at]))} swinging"));
+            foreach (int at in piece.Take(share))
+            {
+                lines.Add(string.Create(CultureInfo.InvariantCulture, $"  {Word(following[at])}: {read[at].Line.TrimStart()}"));
+                if (read[at].Swing is { } swing && Swings(read[at]))
+                {
+                    SwingLines(swing, lines);
+                }
+            }
+
+            if (piece.Length > share)
+            {
+                lines.Add(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"  ({piece.Length - share} more not written - {piece.Skip(share).Count(at => Swings(read[at]))} of them swinging, {piece.Skip(share).Count(at => following[at] == Following.Follows)} following their piece)"));
+            }
         }
 
         // THE SWINGERS OVER TIME, as a skeleton's table.

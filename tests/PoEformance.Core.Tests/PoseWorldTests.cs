@@ -336,6 +336,112 @@ public sealed partial class PoseWorldTests
         Assert.Equal(["  FOLLOWS ITS PIECE: 0x620000020", "  left behind: 0x620000040", "  its piece still: 0x620000060"], heads);
     }
 
+    /// <summary>
+    /// A buffer the engine fills for more than one thing (v0.1.410, the 07:26 capture's staff array): the staff's pose in its model's frame,
+    /// the lamp swinging as a damped pendulum, in two reads of three, another's pose in the third. Only the reads holding the staff are read,
+    /// and they say so - one bone moved, the lamp, measured back to its damping; read whole, every bone would have moved.
+    /// </summary>
+    [Fact]
+    public void ABUFFERFilledForMoreThanOneIsReadWhereItHoldsTheRig()
+    {
+        const double Zeta = 0.1, Natural = 2 * Math.PI / 1.0, Amplitude = 20;
+        double damped = Natural * Math.Sqrt(1 - (Zeta * Zeta));
+        PoseRig rig = PoseHuntTests.Rig("WandererStaffHeld.ao", PoseHuntTests.Staff);
+        int size = ((rig.Count - 1) * 64) + 12 + (2 * BoneWatch.SkeletonMargin);
+        var buffer = new BoneWatchSeries.Block("skeleton 1", 0x7_0000_0000, size, []);
+        Matrix4x4 another = Matrix4x4.CreateRotationY(1.1f) * Matrix4x4.CreateTranslation(40f, -25f, 60f);
+        for (var read = 0; read < 360; read++)
+        {
+            double at = read / 30.0;
+            float angle = (float)(Amplitude * Math.Exp(-Zeta * Natural * at) * Math.Cos(damped * at) * Math.PI / 180);
+            byte[] bytes = new byte[size];
+            WriteWorld(bytes, BoneWatch.SkeletonMargin - 48, rig, Matrix4x4.CreateRotationX(angle), read % 3 == 2 ? another : Matrix4x4.Identity);
+            buffer.Reads.Add((at, bytes));
+        }
+
+        var series = new BoneWatchSeries([buffer], ["bone watch: a test"], [new BoneWatchSeries.Skeleton(0, rig, PoseFrame.Model, PoseLayout.Packed, 64, BoneWatch.SkeletonMargin, 18, 18, 12)]);
+        IReadOnlyList<string> lines = series.Describe();
+
+        Assert.Contains("  holds this rig in 240 of its 360 reads, 50 % of its fixed bones or more at their rest - the rest another's: a buffer the engine fills for more than one; only those 240 read", lines);
+        Assert.StartsWith("  moved over the watch: 1 of 19 bones: phys_tri_lamp_jntBnd (", lines.Single(line => line.StartsWith("  moved over the watch:", StringComparison.Ordinal)), StringComparison.Ordinal);
+        Assert.InRange(Damping(lines.Single(line => line.StartsWith("  phys_tri_lamp_jntBnd on base_lamp_jntBnd by its place:", StringComparison.Ordinal))), Zeta - 0.015, Zeta + 0.015);
+    }
+
+    /// <summary>
+    /// Every piece its own share of the candidates' lines (v0.1.409): the cape's 130 places crowd nobody out - the staff's two are written,
+    /// the cape's past its share counted. The 07:26 capture wrote the cape's and the wand's 120 and not one of the staff's twelve.
+    /// </summary>
+    [Fact]
+    public void EVERYPieceIsWrittenItsShareOfThePlacesNearIt()
+    {
+        PoseRig cape = PoseHuntTests.Rig("GoblinShamanHeld.ao", PoseHuntTests.Staff);
+        PoseRig staff = PoseHuntTests.Rig("WandererStaffHeld.ao", PoseHuntTests.Staff);
+        var capeWorld = new BoneWatchSeries.Block("GoblinShamanHeld.ao's World", 0x8_0000_0000, 64, []);
+        var staffWorld = new BoneWatchSeries.Block("WandererStaffHeld.ao's World", 0x8_1000_0000, 64, []);
+        var near = new BoneWatchSeries.Block("places in the world", 0x8_2000_0000, 132 * 16, []);
+        for (var read = 0; read < 60; read++)
+        {
+            double at = read / 30.0;
+            Matrix4x4 moving = World * Matrix4x4.CreateTranslation((float)(300 * at), 0f, 0f), held = moving * Matrix4x4.CreateTranslation(0f, 80f, 0f);
+            byte[] one = new byte[64], two = new byte[64], places = new byte[near.Size];
+            PoseHuntTests.WriteMatrix(one, 0, moving);
+            PoseHuntTests.WriteMatrix(two, 0, held);
+            for (var place = 0; place < 132; place++)
+            {
+                Matrix4x4 its = place < 130 ? moving : held;
+                WriteVector(places, place * 16, new Vector3(its.M41, its.M42, its.M43));
+            }
+
+            capeWorld.Reads.Add((at, one));
+            staffWorld.Reads.Add((at, two));
+            near.Reads.Add((at, places));
+        }
+
+        var series = new BoneWatchSeries(
+            [capeWorld, staffWorld, near],
+            ["bone watch: a test"],
+            null,
+            -1,
+            [new BoneWatchSeries.Place(0, 0, cape), new BoneWatchSeries.Place(1, 0, staff)],
+            [.. Enumerable.Range(0, 132).Select(place => new BoneWatchSeries.Candidate(2, place * 16, PoseLayout.Packed, place < 130 ? 0 : 1, 0, -1))]);
+        IReadOnlyList<string> lines = series.Describe();
+
+        Assert.Contains("  -- near GoblinShamanHeld.ao: 130 places, 130 following it, 0 swinging", lines);
+        Assert.Contains("  (70 more not written - 0 of them swinging, 70 following their piece)", lines);
+        Assert.Contains("  -- near WandererStaffHeld.ao: 2 places, 2 following it, 0 swinging", lines);
+        Assert.Equal(2, lines.SkipWhile(line => !line.StartsWith("  -- near WandererStaffHeld.ao", StringComparison.Ordinal)).Count(line => line.Contains(", WandererStaffHeld.ao: at root_jntBnd's rest", StringComparison.Ordinal)));
+    }
+
+    /// <summary>
+    /// A World read only where it changed - as v0.1.410 reads the pieces' Worlds between the sweeps - stands until its next read: a copy of
+    /// the root read just before each change holds still in the piece's frame. Taken back through the nearest World instead, the next one,
+    /// it would wander a step of the walk.
+    /// </summary>
+    [Fact]
+    public void AWORLDReadWhereItChangedStandsUntilItsNextRead()
+    {
+        PoseRig staff = PoseHuntTests.Rig("WandererStaffHeld.ao", PoseHuntTests.Staff);
+        var world = new BoneWatchSeries.Block("WandererStaffHeld.ao's World", 0x9_0000_0000, 64, []);
+        var near = new BoneWatchSeries.Block("places in the world", 0x9_1000_0000, 16, []);
+        for (var step = 0; step < 60; step++)
+        {
+            Matrix4x4 its = World * Matrix4x4.CreateTranslation(100f * step, 0f, 0f);
+            byte[] matrix = new byte[64], place = new byte[16];
+            PoseHuntTests.WriteMatrix(matrix, 0, its);
+            WriteVector(place, 0, new Vector3(its.M41, its.M42, its.M43));
+            world.Reads.Add((step * 0.1, matrix));
+            near.Reads.Add(((step * 0.1) + 0.09, place));
+        }
+
+        var series = new BoneWatchSeries(
+            [world, near], ["bone watch: a test"], null, -1, [new BoneWatchSeries.Place(0, 0, staff)], [new BoneWatchSeries.Candidate(1, 0, PoseLayout.Packed, 0, 0, -1)]);
+        IReadOnlyList<string> lines = series.Describe();
+
+        string line = lines.Single(one => one.Contains(", WandererStaffHeld.ao: at root_jntBnd's rest", StringComparison.Ordinal));
+        Assert.StartsWith("  FOLLOWS ITS PIECE: ", line, StringComparison.Ordinal);
+        Assert.Contains(" from it in the piece's frame, moved 5900 in the world and 0 in the piece's frame over 5.9 s", line, StringComparison.Ordinal);
+    }
+
     /// <summary>Memory one place of which changes at every read covering it - a live pose - over a fake process.</summary>
     private sealed class Ticking(FakeMemoryReader memory, ulong live) : IMemoryReader
     {
