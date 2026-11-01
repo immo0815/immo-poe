@@ -30,7 +30,11 @@ public sealed record PiecePlace(int Rig, ulong WorldAt, Matrix4x4 World);
 /// Its distance from that ancestor over the bone's rest distance from it - for a fixed bone's rest, its distance from that rest in the
 /// model's units.
 /// </param>
-public sealed record WorldCandidate(int Place, ulong At, PoseLayout Layout, int Bone, int Parent, float Ratio);
+public sealed record WorldCandidate(int Place, ulong At, PoseLayout Layout, int Bone, int Parent, float Ratio)
+{
+    /// <summary>Whether it changed between the search's two reads of it (PoseHunt.Changing) - a live place, not one left behind.</summary>
+    public bool Moving { get; init; }
+}
 
 /// <summary>
 /// Looks for the pieces' bones in the game's WORLD: every three floats near a piece, taken into its frame by its placement's World matrix
@@ -78,6 +82,13 @@ public static class PoseWorld
     /// <summary>Most places at a fixed bone's rest kept of one piece outside the arrays found - CHOSEN.</summary>
     public const int MostCopies = 64;
 
+    /// <summary>
+    /// The fewest fixed bones a rig must have for an array of it to be looked for in the world - three agreeing on an address, as PoseHunt's
+    /// arrays: the 06:00 capture's cape, one fixed bone (its root at the identity) and three simulated, made an "array" at every stride from
+    /// one copy of its World's translation (2026-11-01, v0.1.407).
+    /// </summary>
+    public const int LeastFixedBones = 3;
+
     /// <summary>A World matrix's scale: its three rows' lengths, averaged.</summary>
     public static float Scale(Matrix4x4 world)
         => (new Vector3(world.M11, world.M12, world.M13).Length() + new Vector3(world.M21, world.M22, world.M23).Length() + new Vector3(world.M31, world.M32, world.M33).Length()) / 3f;
@@ -87,7 +98,17 @@ public static class PoseWorld
     {
         byte[] bytes = new byte[64];
         Write(bytes, 0, world);
-        return BoneWatchSeries.IsTurn(bytes, 0, 16) && float.IsFinite(world.M41 + world.M42 + world.M43) && MathF.Abs(world.M44 - 1f) < 1e-3f;
+        return IsWorld(bytes, 0);
+    }
+
+    /// <summary>Whether the 4x4 by rows at <paramref name="at"/> is a World (<see cref="IsWorld(Matrix4x4)"/>), read where it lies.</summary>
+    public static bool IsWorld(byte[] bytes, int at)
+    {
+        ArgumentNullException.ThrowIfNull(bytes);
+        return at >= 0 && at + 64 <= bytes.Length
+            && BoneWatchSeries.IsTurn(bytes, at, 16)
+            && float.IsFinite(BitConverter.ToSingle(bytes, at + 48) + BitConverter.ToSingle(bytes, at + 52) + BitConverter.ToSingle(bytes, at + 56))
+            && MathF.Abs(BitConverter.ToSingle(bytes, at + 60) - 1f) < 1e-3f;
     }
 
     /// <summary>A 4x4 read by rows from 64 bytes.</summary>
@@ -220,21 +241,22 @@ public static class PoseWorld
     /// <param name="places">The pieces' places as read before the sweep.</param>
     /// <param name="sightings">Where each piece's box held three floats, and in which layout.</param>
     /// <param name="lines">What it says of itself, for the report.</param>
+    /// <param name="wait">How long it waits between its two reads of what it found, those that changed kept first - none for nothing.</param>
     public static (List<PoseArray> Arrays, List<WorldCandidate> Candidates, List<PiecePlace> Places) Found(
         IMemoryReader reader,
         IReadOnlyList<PoseRig> rigs,
         IReadOnlyList<PiecePlace> places,
         IReadOnlyList<(ulong At, int Place, PoseLayout Layout)> sightings,
-        List<string> lines)
+        List<string> lines,
+        TimeSpan wait = default)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(rigs);
         ArgumentNullException.ThrowIfNull(places);
         ArgumentNullException.ThrowIfNull(sightings);
         ArgumentNullException.ThrowIfNull(lines);
-        var arrays = new List<PoseArray>();
-        var candidates = new List<WorldCandidate>();
         var fresh = new List<PiecePlace>(places);
+        var pieces = new List<(int Place, int Asked, int Unread, List<(ulong At, PoseLayout Layout, int Bone, float Off)> Copies, List<WorldCandidate> Kept, List<PoseArray> Held, int Agreed)>();
         byte[] matrix = new byte[64];
         byte[] triple = new byte[PoseHunt.Span(PoseLayout.Columns)];
         for (var place = 0; place < places.Count; place++)
@@ -290,23 +312,48 @@ public static class PoseWorld
                 }
             }
 
-            List<PoseArray> held = Arrays(reader, rig, one.Rig, place, back, copies, out int agreed);
-            arrays.AddRange(held);
+            pieces.Add((place, asked, unread, copies, kept, Arrays(reader, rig, one.Rig, place, back, copies, out int agreed), agreed));
+        }
+
+        // WHICH ARE LIVE: everything found read again after a short wait (PoseHunt.Changing), those that changed kept first - a place the
+        // person's hand left behind, or a copy of the rest, never moves.
+        var spans = new List<(ulong At, int Bytes)>();
+        foreach ((_, _, _, var copies, var kept, var held, _) in pieces)
+        {
+            spans.AddRange(held.Select(array => (array.First, ((rigs[array.Rig].Count - 1) * array.Stride) + PoseHunt.Span(array.Layout))));
+            spans.AddRange(kept.Select(candidate => (candidate.At, PoseHunt.Span(candidate.Layout))));
+            spans.AddRange(copies.Select(copy => (copy.At, PoseHunt.Span(copy.Layout))));
+        }
+
+        bool[] moving = PoseHunt.Changing(reader, spans, wait);
+        var arrays = new List<PoseArray>();
+        var candidates = new List<WorldCandidate>();
+        int next = 0;
+        foreach ((int place, int asked, int unread, var copies, var kept, var held, int agreed) in pieces)
+        {
+            PoseRig rig = rigs[places[place].Rig];
+            List<PoseArray> live = [.. held.Select(array => array with { Moving = moving[next++] })];
+            List<WorldCandidate> state = [.. kept.Select(candidate => candidate with { Moving = moving[next++] })];
+            List<(ulong At, PoseLayout Layout, int Bone, float Off, bool Moving)> copied = [.. copies.Select(copy => (copy.At, copy.Layout, copy.Bone, copy.Off, moving[next++]))];
+
+            List<PoseArray> best = [.. live.OrderByDescending(one => one.Moving).ThenByDescending(one => one.Matched).ThenByDescending(one => one.Votes).Take(PoseHunt.MostPerRig)];
+            arrays.AddRange(best);
 
             // THE COPIES OUTSIDE THE ARRAYS: a lone world matrix of one bone - the lamp's parent's, kept for its light or its particles - says
             // where the engine keeps that much at least.
-            int Inside(ulong at) => held.FindIndex(array => at >= array.First && at < array.First + (ulong)(rig.Count * array.Stride));
-            List<WorldCandidate> loose = [.. copies
+            int Inside(ulong at) => best.FindIndex(array => at >= array.First && at < array.First + (ulong)(rig.Count * array.Stride));
+            List<WorldCandidate> loose = [.. copied
                 .Where(copy => Inside(copy.At) < 0)
-                .OrderBy(copy => copy.Off)
+                .OrderByDescending(copy => copy.Moving)
+                .ThenBy(copy => copy.Off)
                 .Take(MostCopies)
-                .Select(copy => new WorldCandidate(place, copy.At, copy.Layout, copy.Bone, -1, copy.Off))];
-            List<WorldCandidate> best = [.. kept.OrderBy(candidate => MathF.Abs(candidate.Ratio - 1f)).Take(MostCandidates)];
-            candidates.AddRange(best);
+                .Select(copy => new WorldCandidate(place, copy.At, copy.Layout, copy.Bone, -1, copy.Off) { Moving = copy.Moving })];
+            List<WorldCandidate> chosen = [.. state.OrderByDescending(one => one.Moving).ThenBy(one => MathF.Abs(one.Ratio - 1f)).Take(MostCandidates)];
+            candidates.AddRange(chosen);
             candidates.AddRange(loose);
             lines.Add(string.Create(
                 CultureInfo.InvariantCulture,
-                $"  {Path.GetFileName(rig.Piece)} in the world: {asked} places in its box ({unread} no longer read), {copies.Count} at a fixed bone's rest - {agreed} addresses three of them agreed on, {held.Count} arrays kept - and {kept.Count} at a simulated bone's rest distance from its fixed ancestor ({best.Count} kept), {loose.Count} lone copies kept; its scale {Scale(fresh[place].World):0.####}, its root at ({fresh[place].World.M41:0.#}, {fresh[place].World.M42:0.#}, {fresh[place].World.M43:0.#})"));
+                $"  {Path.GetFileName(rig.Piece)} in the world: {asked} places in its box ({unread} no longer read), {copies.Count} at a fixed bone's rest ({copied.Count(one => one.Moving)} moving) - {agreed} addresses three of them agreed on, {best.Count} arrays kept ({best.Count(one => one.Moving)} moving) - and {kept.Count} at a simulated bone's rest distance from its fixed ancestor ({state.Count(one => one.Moving)} moving; {chosen.Count} kept), {loose.Count} lone copies kept; its scale {Scale(fresh[place].World):0.####}, its root at ({fresh[place].World.M41:0.#}, {fresh[place].World.M42:0.#}, {fresh[place].World.M43:0.#})"));
         }
 
         return (arrays, candidates, fresh);
@@ -372,13 +419,19 @@ public static class PoseWorld
 
     /// <summary>
     /// The arrays of a rig in the world its fixed bones' places agree on - as PoseHunt.Arrays votes, each read whole again and kept where at
-    /// least half the fixed bones stand at their rest through the World.
+    /// least half the fixed bones stand at their rest through the World; none for a rig of fewer than <see cref="LeastFixedBones"/>.
     /// </summary>
     private static List<PoseArray> Arrays(
         IMemoryReader reader, PoseRig rig, int rigIndex, int place, Matrix4x4 back, List<(ulong At, PoseLayout Layout, int Bone, float Off)> copies, out int agreed)
     {
         int fixedBones = Enumerable.Range(0, rig.Count).Count(bone => !rig.Moved(bone));
         int need = PoseHunt.Agreeing(fixedBones);
+        agreed = 0;
+        if (fixedBones < LeastFixedBones)
+        {
+            return [];
+        }
+
         var votes = new Dictionary<(PoseLayout Layout, int Stride, ulong First), int>();
         foreach ((ulong at, PoseLayout layout, int bone, _) in copies)
         {
@@ -395,7 +448,6 @@ public static class PoseWorld
             }
         }
 
-        agreed = 0;
         var arrays = new List<PoseArray>();
         foreach (((PoseLayout layout, int stride, ulong first), int count) in votes)
         {
@@ -435,6 +487,6 @@ public static class PoseWorld
             }
         }
 
-        return [.. arrays.OrderByDescending(one => one.Matched).ThenByDescending(one => one.Votes).Take(PoseHunt.MostPerRig)];
+        return arrays;
     }
 }

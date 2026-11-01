@@ -170,8 +170,9 @@ public sealed partial class PoseWorldTests
         Assert.InRange(Damping(lines.Single(line => line.StartsWith("  phys_tri_lamp_jntBnd on base_lamp_jntBnd by its place:", StringComparison.Ordinal))), Zeta - 0.01, Zeta + 0.01);
 
         // THE LONE PLACE: taken for the lamp on its parent, swinging, its own damping and a table over time.
-        Assert.Contains("1 places watched: 1 taken for a simulated bone, 1 of them swinging; 0 at a fixed bone's rest", lines);
-        Assert.Contains(lines, line => line.StartsWith("  0x420000020 side by side, WandererStaffHeld.ao: taken for phys_tri_lamp_jntBnd on base_lamp_jntBnd - its distance 1..1 of the rest's", StringComparison.Ordinal));
+        Assert.Contains("1 places watched: 1 taken for a simulated bone, 1 of them swinging; 0 at a fixed bone's rest - 1 following their piece, 0 left behind, 0 moving otherwise, 0 beside a piece that held still, 0 not read with their piece's World", lines);
+        Assert.Contains(lines, line => line.StartsWith("  FOLLOWS ITS PIECE: 0x420000020 side by side, WandererStaffHeld.ao: taken for phys_tri_lamp_jntBnd on base_lamp_jntBnd - its distance 1..1 of the rest's", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.StartsWith("--- WandererStaffHeld.ao's World at 0x400000000: 360 reads over 12.0 s - its root went ", StringComparison.Ordinal) && line.EndsWith(": it moved; 1 places near it watched - 1 following it, 0 left behind, 0 moving otherwise", StringComparison.Ordinal));
         Assert.InRange(Damping(lines.Single(line => line.StartsWith("  phys_tri_lamp_jntBnd on base_lamp_jntBnd by its place in the world:", StringComparison.Ordinal))), Zeta - 0.01, Zeta + 0.01);
         Assert.Contains("  the swinging places over time:", lines);
         Assert.Contains("  t\this speed\tphys_tri_lamp_jntBnd place in the world", lines);
@@ -205,6 +206,167 @@ public sealed partial class PoseWorldTests
         Assert.Contains("  moved over the watch: 0 of 19 bones - a copy of the rest, or a pose that held still: its bones are not set out one by one", lines);
         Assert.DoesNotContain(lines, line => line.Contains(" by its place:", StringComparison.Ordinal));
         Assert.Contains("(no piece's place in the world was watched)", lines);
+    }
+
+    /// <summary>
+    /// The search's two reads (PoseHunt.Changing, v0.1.409): a span that changed between them is moving, one that did not is still, one that
+    /// does not read counts as still - and with no wait nothing is read at all.
+    /// </summary>
+    [Fact]
+    public void ALIVESpanIsToldFromAStillOneByReadingItTwice()
+    {
+        var memory = new FakeMemoryReader().Place(Heap, new byte[0x100]);
+        var reader = new Ticking(memory, Heap + 0x10);
+        (ulong At, int Bytes)[] spans = [(Heap, 0x20), (Heap + 0x40, 0x20), (Slow, 0x20)];
+
+        Assert.Equal([true, false, false], PoseHunt.Changing(reader, spans, TimeSpan.FromMilliseconds(1)));
+        long reads = memory.Reads;
+        Assert.Equal([false, false, false], PoseHunt.Changing(reader, spans, TimeSpan.Zero));
+        Assert.Equal(reads, memory.Reads);
+    }
+
+    /// <summary>
+    /// Two arrays of the staff in the world, every fixed bone at its rest in both: a copy of the rest beside the anchor, and farther off one
+    /// whose lamp moves between the search's two reads - the live one is kept first, and both are said to be what they are. The 06:00
+    /// capture of 2026-11-01 kept eight copies of a rest before anything live (v0.1.409).
+    /// </summary>
+    [Fact]
+    public void ALIVEArrayInTheWorldIsKeptBeforeACopyOfTheRest()
+    {
+        PoseRig rig = PoseHuntTests.Rig("WandererStaffHeld.ao", PoseHuntTests.Staff);
+        byte[] heap = PoseHuntTests.Noise(HeapBytes, 11);
+        PoseHuntTests.WriteMatrix(heap, 0x1000, World);
+        WriteWorld(heap, 0x2000, rig, Matrix4x4.Identity, World);
+        WriteWorld(heap, 0x6000, rig, Matrix4x4.CreateRotationX(0.4f), World);
+        var reader = new Ticking(new FakeMemoryReader().Place(Heap, heap), Heap + 0x6000 + (2 * 64) + 48);
+
+        PoseHuntResult found = PoseHunt.Find(
+            reader, new PoseHuntTests.Space(new MemoryRegion(Heap, HeapBytes)), [rig], Heap, null, [new PiecePlace(0, Heap + 0x1000, World)], TimeSpan.FromMilliseconds(1));
+
+        PoseArray[] world = [.. found.Arrays.Where(one => one.Frame == PoseFrame.World)];
+        Assert.Equal([Heap + 0x6000 + 48, Heap + 0x2000 + 48], world.Select(one => one.First));
+        Assert.Equal([true, false], world.Select(one => one.Moving));
+        Assert.Contains(found.Lines, line => line.StartsWith("  WandererStaffHeld.ao in the world: ", StringComparison.Ordinal) && line.Contains(", 2 arrays kept (1 moving)", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// A rig of one fixed bone - the 06:00 capture's cape, its root at the identity and three simulated bones - makes no array in the world: one
+    /// bone agreeing made an "array" at every stride from each copy of its World's place. The copies are still kept, each alone (v0.1.409).
+    /// </summary>
+    [Fact]
+    public void ARIGOfFewerThanThreeFixedBonesMakesNoArrayInTheWorld()
+    {
+        PoseRig cape = PoseHuntTests.Rig(
+            "CapeAttach.ao",
+            [
+                ("root_jntBnd", -1, Vector3.Zero),
+                ("phys_cape_01_jntBnd", 0, new(0f, 12f, -20f)),
+                ("phys_cape_02_jntBnd", 1, new(0f, 14f, -42f)),
+                ("phys_cape_03_jntBnd", 2, new(0f, 15f, -63f)),
+            ]);
+        byte[] heap = PoseHuntTests.Noise(HeapBytes, 13);
+        PoseHuntTests.WriteMatrix(heap, 0x1000, World);
+        var root = new Vector3(World.M41, World.M42, World.M43);
+        for (var copy = 0; copy < 4; copy++)
+        {
+            WriteVector(heap, 0x3000 + (copy * 0x100), root);
+        }
+
+        PoseHuntResult found = PoseHunt.Find(
+            new FakeMemoryReader().Place(Heap, heap), new PoseHuntTests.Space(new MemoryRegion(Heap, HeapBytes)), [cape], Heap, null, [new PiecePlace(0, Heap + 0x1000, World)], TimeSpan.Zero);
+
+        Assert.DoesNotContain(found.Arrays, one => one.Frame == PoseFrame.World);
+        Assert.Equal(4, found.Candidates.Count(one => one.Bone == 0 && one.Parent < 0 && one.At >= Heap + 0x3000 && one.At < Heap + 0x3400));
+        Assert.Contains(found.Lines, line => line.StartsWith("  CapeAttach.ao in the world: ", StringComparison.Ordinal) && line.Contains(" - 0 addresses three of them agreed on, 0 arrays kept (0 moving)", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The reading of the pieces' places (v0.1.409): he walks a thousand units with the staff while the focus's World holds still - said so, as
+    /// the 06:00 capture's focus held its World to the bit - and of the places near them one follows the staff, one is left behind where it
+    /// began and one beside the still focus tells nothing.
+    /// </summary>
+    [Fact]
+    public void APLACEThatHeldStillWhileHeWalkedIsSaidSo()
+    {
+        PoseRig staff = PoseHuntTests.Rig("WandererStaffHeld.ao", PoseHuntTests.Staff);
+        PoseRig focus = PoseHuntTests.Rig("BetaDoryaniFocusHeld.ao", PoseHuntTests.Staff);
+        var moving = new BoneWatchSeries.Block("WandererStaffHeld.ao's World", 0x6_0000_0000, 64, []);
+        var still = new BoneWatchSeries.Block("BetaDoryaniFocusHeld.ao's World", 0x6_1000_0000, 64, []);
+        var near = new BoneWatchSeries.Block("places in the world", 0x6_2000_0000, 128, []);
+        var his = new BoneWatchSeries.Block("his place", 0x6_3000_0000, 12, []);
+        Matrix4x4 held = World * Matrix4x4.CreateTranslation(-300f, 40f, 0f);
+        for (var read = 0; read < 120; read++)
+        {
+            double at = read / 30.0;
+            Matrix4x4 world = World * Matrix4x4.CreateTranslation((float)(250 * at), 0f, 0f);
+            byte[] matrix = new byte[64];
+            PoseHuntTests.WriteMatrix(matrix, 0, world);
+            moving.Reads.Add((at, matrix));
+            byte[] other = new byte[64];
+            PoseHuntTests.WriteMatrix(other, 0, held);
+            still.Reads.Add((at, other));
+            byte[] places = new byte[128];
+            WriteVector(places, 32, new Vector3(world.M41, world.M42, world.M43));
+            WriteVector(places, 64, new Vector3(World.M41, World.M42, World.M43));
+            WriteVector(places, 96, new Vector3(held.M41, held.M42, held.M43));
+            near.Reads.Add((at, places));
+            byte[] where = new byte[12];
+            WriteVector(where, 0, new Vector3(world.M41, world.M42, world.M43));
+            his.Reads.Add((at, where));
+        }
+
+        var series = new BoneWatchSeries(
+            [moving, still, near, his],
+            ["bone watch: a test"],
+            null,
+            3,
+            [new BoneWatchSeries.Place(0, 0, staff), new BoneWatchSeries.Place(1, 0, focus)],
+            [
+                new BoneWatchSeries.Candidate(2, 32, PoseLayout.Packed, 0, 0, -1),
+                new BoneWatchSeries.Candidate(2, 64, PoseLayout.Packed, 0, 0, -1),
+                new BoneWatchSeries.Candidate(2, 96, PoseLayout.Packed, 1, 0, -1),
+            ]);
+        IReadOnlyList<string> lines = series.Describe();
+
+        Assert.Contains(lines, line => line.StartsWith("he walked 991.7 along his path over 4.0 s", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.StartsWith("--- WandererStaffHeld.ao's World at 0x600000000: 120 reads over 4.0 s - its root went 991.7 along its path and 991.7 at most from where it began, turned up to 0 degrees", StringComparison.Ordinal) && line.EndsWith(": it moved; 2 places near it watched - 1 following it, 1 left behind, 0 moving otherwise", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.StartsWith("--- BetaDoryaniFocusHeld.ao's World at 0x610000000: 120 reads over 4.0 s - its root went 0 along its path", StringComparison.Ordinal) && line.Contains(": STILL WHILE HE WALKED - not the piece's live placement", StringComparison.Ordinal) && line.EndsWith("; 1 places near it watched - nothing told of them, their piece held still", StringComparison.Ordinal));
+        Assert.Contains("3 places watched: 0 taken for a simulated bone, 0 of them swinging; 3 at a fixed bone's rest - 1 following their piece, 1 left behind, 0 moving otherwise, 1 beside a piece that held still, 0 not read with their piece's World", lines);
+        string[] heads = [.. lines.Where(line => line.Contains(" side by side, ", StringComparison.Ordinal)).Select(line => line[..line.IndexOf(" side by side", StringComparison.Ordinal)])];
+        Assert.Equal(["  FOLLOWS ITS PIECE: 0x620000020", "  left behind: 0x620000040", "  its piece still: 0x620000060"], heads);
+    }
+
+    /// <summary>Memory one place of which changes at every read covering it - a live pose - over a fake process.</summary>
+    private sealed class Ticking(FakeMemoryReader memory, ulong live) : IMemoryReader
+    {
+        private float _tick = 1000f;
+
+        public bool IsAttached => true;
+
+        public int ProcessId => memory.ProcessId;
+
+        public ulong ModuleBase => memory.ModuleBase;
+
+        public uint ModuleSize => memory.ModuleSize;
+
+        public bool TryRead(ulong address, Span<byte> destination)
+        {
+            if (!memory.TryRead(address, destination))
+            {
+                return false;
+            }
+
+            if (live >= address && live + 4 <= address + (ulong)destination.Length)
+            {
+                BitConverter.TryWriteBytes(destination[(int)(live - address)..], _tick++);
+            }
+
+            return true;
+        }
+
+        public void Dispose()
+        {
+        }
     }
 
     /// <summary>The bytes a place takes in the file - its block, the matrix's offset and its rig whole.</summary>
