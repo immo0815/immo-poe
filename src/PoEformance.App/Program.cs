@@ -81,6 +81,9 @@ internal static class Program
         RecordingMemoryReader? recorder = null;
         IntPtr gameWindow = IntPtr.Zero;
 
+        // What the agent link's status says the tool reads.
+        string attached = options.ReplayPath is { } replayed ? "replaying " + replayed : "not attached";
+
         if (options.ReplayPath is not null)
         {
             reader = ReplayMemoryReader.Load(File.OpenRead(options.ReplayPath));
@@ -104,6 +107,7 @@ internal static class Program
             }
 
             Console.WriteLine($"attach  pid {live.ProcessId}, module 0x{live.ModuleBase:X} ({live.ModuleSize / (1024 * 1024)} MB)");
+            attached = $"{game.ProcessName}, pid {live.ProcessId}, module 0x{live.ModuleBase:X}";
             WarnAboutOtherInstances();
 
             // The overlay sizes itself to this window, so a wrong viewport is impossible. Followed rather
@@ -417,6 +421,25 @@ internal static class Program
         // fills in later rather than by a reference that cannot be taken yet.
         var overlayHandle = new OverlayHandle();
         var overlaySettings = PoEformance.Features.OverlaySettingsStore.Load();
+
+        // THE AGENT LINK (asked for from the live client, 2026-11-01): a Claude session in the cloud using this tool -
+        // its captures, its update, its model panes - through a Cloudflare quick tunnel. Off until switched on (the
+        // About page), the key made once and kept sealed; see AgentLink. Built whether or not it is on, so switching it
+        // on later needs no restart.
+        var agentKey = new PoEformance.Features.AgentKeyHolder(PoEformance.Features.Dpapi.Protect, PoEformance.Features.Dpapi.Unprotect);
+        var agentLink = new PoEformance.Features.AgentLink(() => agentKey.Key, PoEformance.Features.AgentCatalogue.Tools);
+        using var agentHost = new PoEformance.Features.AgentLinkHost(
+            agentLink,
+            static () => PoEformance.Features.GitHubTokenStore.Load(PoEformance.Features.Dpapi.Unprotect),
+            PoEformance.Overlay.OverlayLog.Write,
+            PoEformance.Features.ToolVersion.Number,
+            PoEformance.Features.BuildStamp.Load().Commit);
+        AgentAppTools.Bind(agentLink, agentHost, updates, () => overlayHandle.Overlay, attached);
+        overlayHandle.Agent = new AgentParts(agentLink, agentHost, agentKey);
+        if (PoEformance.Features.AgentKeyStore.IsOn())
+        {
+            agentHost.Start();
+        }
 
         // What dangerous-looking ground this session has met, so a path can be PICKED in the
         // config window instead of typed from memory. Fed from the read loops rather than from
@@ -2140,6 +2163,10 @@ internal static class Program
     /// running" about an overlay that plainly was. Volatile is the whole cost of ruling that
     /// out, and it is the second unsynchronised cross-thread field this feature has produced.
     /// </remarks>
+    /// <summary>The agent link's three parts, handed from Main to the overlay.</summary>
+    private sealed record AgentParts(
+        PoEformance.Features.AgentLink Link, PoEformance.Features.AgentLinkHost Host, PoEformance.Features.AgentKeyHolder Key);
+
     private sealed class OverlayHandle
     {
         private PoEformance.Overlay.EntityOverlay? _overlay;
@@ -2150,6 +2177,9 @@ internal static class Program
             get => Volatile.Read(ref _overlay);
             set => Volatile.Write(ref _overlay, value);
         }
+
+        /// <summary>The agent link's parts, for the overlay to bind its tools to and draw its switch with.</summary>
+        public AgentParts? Agent { get; set; }
 
         /// <summary>
         /// The reader thread, once it exists, so the config window can say whether it is well.
@@ -3143,6 +3173,10 @@ internal static class Program
             download: updates.Download, install: updates.Apply,
             skip: updates.Skip,
             outcome: updates.Outcome, outcomeVersion: updates.OutcomeVersion);
+        if (handle.Agent is { } agent)
+        {
+            overlay.AttachAgent(agent.Link, agent.Host, agent.Key);
+        }
         overlay.AttachRitual(
             ritual,
             () => atlas.RitualWorth,

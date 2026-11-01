@@ -2255,6 +2255,42 @@ went wrong is the one that was killed - and a capture writes both (`overlay-log.
 changing any of this: the line as the game came back says whether the window was shown, on top, and what
 Present said.
 
+## The agent link
+
+A CLAUDE SESSION IN THE CLOUD USES THE TOOL ON THE PLAYER'S OWN PC (asked for from the live client, 2026-11-01: take the captures it
+needs, update the tool, look at what the model panes draw - "in the tool you have a free hand"; merging to main, updates, restarts and
+heavy captures at any time; the tunnel free). The tool serves the Model Context Protocol (`AgentLink`: the Streamable HTTP transport
+answered with JSON alone, every request carrying the key) on its own small HTTP server on the loopback port (`AgentHttpServer`, sockets,
+47815 or any free one), reached through a CLOUDFLARE QUICK TUNNEL that cloudflared beside the tool opens (`AgentTunnel`: version 2026.10.7
+fetched once from Cloudflare's GitHub release into `agent/` and held to its size and SHA-256 before it runs, killed with the tool through a
+job object, started again by itself). A quick tunnel needs no account and no open port, carries no server-sent events, holds 200
+requests in flight, and gets a NEW NAME EVERY START - so the tool publishes the name on this repository's `agent-link` branch
+(`AgentBeacon`, one parentless commit forced onto it, `agent-link.json`: the url, the version and the key's fingerprint, no secret) with
+the saved GitHub token, which must be allowed to write (Contents: read and write). Cloudflare closes a request whose answer has not begun
+in 100 s, so a call that runs longer than 40 s is answered as pending (`structuredContent.pending`) and collected with
+`poeformance/wait`.
+- ON THE CLOUD SIDE `.mcp.json` starts `tools/agent/poef.py mcp` (Python, standard library only): it fetches the branch with git, adds the
+  key from `$POEF_AGENT_KEY` (else `~/.config/poeformance/agent-key`, `poef.py login` writes it), forwards each message, collects pending
+  calls, and adds two tools of its own - `download` (fetches the files a call offered into `/tmp/poeformance/files`, joins a zip's pieces
+  and unpacks it) and `link` (where the tool is and whether it answers). It lists `tools/agent/tools.json` while the tool cannot be
+  reached; `AgentCatalogueTests` keeps that file equal to `AgentCatalogue` (`POEF_WRITE_AGENT_TOOLS=1` writes it). The same script works
+  from a shell: `python3 tools/agent/poef.py call status`, `call monster_book '{"monster":"Malgor"}'`, `download <id>`.
+- THE TOOLS (`AgentCatalogue`): status, log, update (check, download, install - install restarts the tool three seconds after its answer;
+  it comes back on a new tunnel name), capture (the parts by key, the rest off for that capture alone - `CaptureKey.Request`; it begins on
+  the next frame the game or a tool window is in front, as the key's would), capture_parts, captures (the captures folder, the player's own
+  presses of F9 among them, a zip offered), screenshot, monster_book (a monster by name or path, a stage by the list's own label, the player
+  taken), tile_book (a tile or room, the area round you), pane (the view buttons or a pose, the animation, the clock, the light panel's
+  switches by their labels, the probe at a share of the picture). The book and pane tools answer with the pane's lines and the PICTURE it
+  drew after the change - the card's read back, else the processor's - once the model is built and the shaders and textures are in
+  (`MonsterPortrait.AgentSettled`, a ticket handed out when asked so the picture before a new choice never passes).
+- THROUGH THE FRAME: every overlay tool runs on the render thread through `AgentFrames`, pumped at the top of each frame BEFORE the
+  foreground gate - so setting something works with another application in front, while a picture or a capture waits for a frame that
+  draws and the tool says so when none comes (the overlay draws only while the game or one of its own windows is in front, and nothing
+  here brings the game to the front). Nothing here sends anything to the game.
+- SET UP ONCE: the About page's "agent link" - "on", then "copy key" into the cloud environment's settings as `POEF_AGENT_KEY` (never into
+  a chat), then a new cloud session (environment variables and `.mcp.json` are read at a session's start). "renew key" makes the old one
+  useless at once. The tool runs only while the game does (Main ends without a game process), so the link does too.
+
 ## Raise the version on every push
 
 `ToolVersion.Number` goes up by one patch with **every** push — one edit, one file, no

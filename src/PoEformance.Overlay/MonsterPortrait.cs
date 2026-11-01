@@ -66,7 +66,7 @@ namespace PoEformance.Overlay;
 /// its top edge, where a model's head seldom reaches, and the button is drawn AFTER the picture
 /// so that ImGui's overlap rule gives it the pointer.
 /// </remarks>
-public sealed class MonsterPortrait
+public sealed partial class MonsterPortrait
 {
     /// <summary>How far the mouse drags to turn the model once around.</summary>
     public const float Sweep = 360f;
@@ -1392,6 +1392,7 @@ public sealed class MonsterPortrait
         _title = title ?? string.Empty;
         Wanted(one, path);
         Adopted();
+        _agentSeen = _agentTicket;
     }
 
     /// <summary>The path last handed to <see cref="Show"/>, so only a new choice opens the window.</summary>
@@ -1429,6 +1430,13 @@ public sealed class MonsterPortrait
         ImGui.SetNextWindowSizeConstraints(new Vector2(240f, 240f), new Vector2(float.MaxValue, float.MaxValue));
         bool open = true;
         string name = _title.Length > 0 ? _title : "model";
+        if (_agentUnfold)
+        {
+            // THE AGENT LINK ASKED FOR THE PICTURE: a collapsed window draws none.
+            ImGui.SetNextWindowCollapsed(false);
+            _agentUnfold = false;
+        }
+
         bool expanded = ImGui.Begin($"{name} - {Book} model###{Book}-model-window", ref open, ImGuiWindowFlags.NoFocusOnAppearing);
         if (expanded)
         {
@@ -4093,6 +4101,7 @@ public sealed class MonsterPortrait
         try
         {
             Upload(drawn.Picture);
+            _agentCpu = drawn.Picture;
         }
         catch (Exception exception) when (exception is not (OutOfMemoryException or StackOverflowException))
         {
@@ -4223,6 +4232,7 @@ public sealed class MonsterPortrait
         // rung, for as long as the reason stands. Recorded first, a failure holds still until
         // something moves, and the check in Finished then tries again on its own.
         _shown = _wanted;
+        _agentDrawn = _agentTicket;
         _drawnView = _view;
         _drawnSize = size;
         _drawnPosed = posed;
@@ -4327,6 +4337,7 @@ public sealed class MonsterPortrait
             }
 
             Upload(drawn);
+            _agentCpu = drawn;
         }
         catch (Exception exception) when (exception is not (OutOfMemoryException or StackOverflowException))
         {

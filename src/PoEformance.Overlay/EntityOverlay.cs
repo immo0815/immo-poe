@@ -26,7 +26,7 @@ namespace PoEformance.Overlay;
 /// against recordings while this class stays a thin drawing loop.
 /// </remarks>
 [SupportedOSPlatform("windows")]
-public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
+public sealed partial class EntityOverlay : ClickableTransparentOverlay.Overlay
 {
     // Fully qualified: this project's own namespace is PoEformance.Overlay, which would
     // otherwise shadow the library's Overlay type.
@@ -4972,6 +4972,11 @@ public sealed class EntityOverlay : ClickableTransparentOverlay.Overlay
         (GameWindowTracker.Front who, IntPtr front, uint frontProcess) = GameWindowTracker.InFront(_gameWindow);
         long tick = Environment.TickCount64;
         Watched(who, front, frontProcess, tick);
+
+        // THE AGENT LINK'S WORK, before the gate: a step that only sets something runs whatever is in front; what
+        // needs drawing waits for a frame that draws. See AgentFrames.
+        _agentFront = who;
+        _agentFrames.Pump();
         PollRestore(who, tick);
         if (who == GameWindowTracker.Front.Elsewhere)
         {

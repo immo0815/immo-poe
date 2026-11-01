@@ -44,7 +44,7 @@ namespace PoEformance.Overlay;
 /// docs/reading-big-tables.md, stages four and five.
 /// </remarks>
 [SupportedOSPlatform("windows")]
-public sealed class MonsterBookWindow : BookWindow<MonsterBook>
+public sealed partial class MonsterBookWindow : BookWindow<MonsterBook>
 {
     /// <summary>
     /// The fields the rail offers, and what it calls them.
