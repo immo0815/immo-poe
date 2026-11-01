@@ -1079,6 +1079,31 @@ to settle it. So v0.1.411: the swinging places are read as often as they change 
 bone that moved between the search's two reads, `MostFastWindows` 4, `MostFast` 24 - CHOSEN); the reading says how each such place hangs in the
 world - from straight down while he stood and while he moved (`BoneWatchSeries.Hanging`); and the banner asks for A FEW STEPS, THEN STAND STILL
 until the low tone. NOT BUILT: the swing itself, until a capture with the lamp read every frame and a stand after the steps settles the model.
+WHAT v0.1.412'S CAPTURE SAID (2026-11-01 08:31, The Red Vale, through the agent link; the staff in hand, the person standing 2.5 s, then whirling
+him round - his staff's World turned twelve times in 9.5 s, "the lamp flails like that in the game too when he moves wildly", said from the live
+client). MEASURED, read offline from bone-watch.bin:
+- THE LAMP'S PLACE IN THE WORLD IS ITS LIGHT IN THE RENDERER'S LIST (schema `RenderPointLight`): lighting.ffx's three float4s - the position and
+  1, a turning unit direction and 0, the .ao's colour times a flicker - two records at once, THIS TICK'S AND THE LAST'S (0x4000 apart, each again
+  0xC000 on), both rewritten every second tick (20 ms) while the staff's World moved every tick (10 ms, 99 a second): together every tick. Paired
+  by their distance to the pivot - the first with the World read beside it, the second with the one before - the lamp stands 24.148 model units
+  from a point 0.06 off base_lamp_jntBnd's rest (its rest's 24, 0.6% short) at every speed, to 0.005: RIGID.
+- ITS light_position_data.a IS 1 (the sharpest core, `SceneLight.PointShape.One`) where its .ao says penumbra_dist 0.5 - one light; the room
+  lights' reading is still the panel's CHOSEN "soft".
+- IT FLICKERS: style 1 is 25 keys at ten a second joined by straight lines, 0.72 0.80 0.84 and 1 of the colour, coming round every 2.5 s - three
+  periods alike, 0.001 left over (`LightStyle`; `tests/fixtures/light-style/staff-lamp-flicker.tsv`). DRAWN FROM v0.1.414 on every carried light
+  with a style (`CarriedLights.At` over the picture's clock, the light panel's "flicker", on by default), the reach following the colour as the
+  shader's cutoff does; where the loop stands in the game is not read (CHOSEN: its brightest key at the clock's nought). Room lights with
+  style 1 (68 in light-extras' files: braziers, torches) are not flickered yet.
+- HOW IT HANGS: standing, 2 to 7.5 degrees from straight down, tilted towards its rest's way (the rest 30 to 34 from down, the tilt's way within
+  10 degrees of the rest's); whirled round, 70 to 100 degrees out, circling him. NO SIMPLE MODEL FITS ITS MOTION: one tick ahead in the world
+  (its inertia, the pivot's steps, gravity, the constraint's radial pull) R² 0.91 at best, in the staff's own frame 0.71; a Verlet pendulum carried
+  by a share of the pivot's step, run 20 ticks, 8 degrees off at the median (best share 0.55, keep 0.98). At his sudden turns it takes 56% of the
+  pivot's jump across the rod IN THE SAME TICK (tick 624, a jump of 18 units) - a pendulum in the world takes none - and over every jerk across
+  the rod 0.9 to 1.2 of it at the median, 0.55 to 1.5 between the quartiles; gravity in the stand fits 35 to 140 units/s², a weak signal.
+So v0.1.414 READS HIS PLACE AND FACING EVERY TICK (Render from CurrentWorldPosition to RotationCurrent; `BoneWatchSeries.Facing`) - whether the
+engine swings the lamp in the world or in his own frame is told only against his frame - and 0x200 bytes round each window read every tick, once
+a sweep (`BoneWatch.WideMargin`), for the light record's head and its neighbours. Take the bone watch with the staff in hand: stand still, at the
+high tone take ONE short walk (a click a little way off), then stand completely still until the low tone - the swing dying away is the measurement.
 
 ## Verify against the game, not against yourself
 

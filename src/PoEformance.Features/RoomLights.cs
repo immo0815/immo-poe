@@ -210,8 +210,9 @@ public static class RoomLights
 
                 float radius = Number(Value(said, "radius")) ?? Number(Value(entry.Children, "radius")) ?? 0f;
                 float penumbra = Number(Value(said, "penumbra_dist")) ?? 0f;
+                float style = Number(Value(said, "style")) ?? Number(Value(entry.Children, "style")) ?? 0f;
                 string named = state is null ? path : $"{path} ({(state.Value.Length > 0 ? state.Value : "unnamed state")})";
-                lights.Add(new PointLight(position, colour, radius, penumbra, named));
+                lights.Add(new PointLight(position, colour, radius, penumbra, named) { Style = (int)style });
                 bones.Add(on);
                 offsets.Add(on.Length > 0 ? offset : position);
             }

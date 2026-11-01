@@ -223,6 +223,12 @@ public sealed class SceneLight
     /// </summary>
     public bool Carries { get; init; } = true;
 
+    /// <summary>
+    /// Whether a light's style flickers it (<see cref="LightStyle"/>, MEASURED for style 1 off the game's own light list) - the light panel's
+    /// "flicker", on by default; off, every light stands at its colour as written.
+    /// </summary>
+    public bool Flickers { get; init; } = true;
+
     /// <summary>The lights the model carries, where the pose puts them - see <see cref="Carrying"/>; empty on a light no pose was handed.</summary>
     public ReadOnlySpan<Point> Carried => _carried;
 
