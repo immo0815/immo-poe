@@ -231,6 +231,12 @@ public sealed class SkinnedMesh
     /// <summary>What the file's headers said, for a dump. Default where the mesh was assembled.</summary>
     public MeshFacts Facts { get; private init; }
 
+    /// <summary>
+    /// The tail past the geometry and the shape names: a cloth's simulation mesh and the body's collision shapes - see
+    /// <see cref="SimulationMesh"/>. <see cref="SimulationMesh.None"/> where the file carries none or the mesh was assembled.
+    /// </summary>
+    public SimulationMesh Simulation { get; private init; } = SimulationMesh.None;
+
     /// <summary>Why nothing was read, or empty where something was.</summary>
     public string Why { get; private init; } = string.Empty;
 
@@ -1004,6 +1010,7 @@ public sealed class SkinnedMesh
 
         return new SkinnedMesh
         {
+            Simulation = TailAt(file, block.At, shapes) is int tail ? SimulationMesh.Read(file, tail, version) : SimulationMesh.None,
             Positions = block.Positions,
             Normals = block.Normals,
             Coordinates = block.Coordinates,
@@ -1166,6 +1173,8 @@ public sealed class SkinnedMesh
 
         return new SkinnedMesh
         {
+            // THE TAIL FOLLOWS THE VERTEX BUFFER in this layout (poe_data_tools' v2_section, then the tail's dispatch).
+            Simulation = SimulationMesh.Read(file, at + (points * shape.Stride), version),
             Positions = positions,
             Normals = normals,
             Coordinates = coordinates,
@@ -1603,6 +1612,30 @@ public sealed class SkinnedMesh
         // header counts, so a caller can hold the two up against each other.
         spent = read ? at - began - (shapes * 4) : 0;
         return named;
+    }
+
+    /// <summary>
+    /// Where the tail starts in a DOLm <c>.smd</c>: past the shape names' length words and the names themselves (poe_data_tools'
+    /// v3_section) - or null where the lengths run past the file.
+    /// </summary>
+    private static int? TailAt(ReadOnlySpan<byte> file, int at, int shapes)
+    {
+        long end = at + (4L * shapes);
+        if (end > file.Length)
+        {
+            return null;
+        }
+
+        for (var one = 0; one < shapes; one++)
+        {
+            end += BinaryPrimitives.ReadUInt32LittleEndian(file[(at + (one * 4))..]);
+            if (end > file.Length)
+            {
+                return null;
+            }
+        }
+
+        return (int)end;
     }
 
     /// <summary>A normal, out of the four signed bytes the file packs it into.</summary>

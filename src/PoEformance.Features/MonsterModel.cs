@@ -3146,6 +3146,35 @@ public static class MonsterModels
         return (rig.Length > 0 ? Read(read, rig, AnimationSkeleton.Read) : AnimationSkeleton.None, rig, mesh);
     }
 
+    /// <summary>
+    /// A piece's cloth as its files hold it, for the capture: its own rig and mesh (<see cref="Piece"/>), the mesh's simulation tail among
+    /// it, and the ClientAnimationController keys its chain carries, nearest file first, the rig's, a socket's and the attachment's left out.
+    /// </summary>
+    internal static (AnimationSkeleton Rig, string RigPath, SkinnedMesh Mesh, Dictionary<string, string> Keys) Cloth(Func<string, byte[]?> read, string path)
+    {
+        (AnimationSkeleton rig, string rigPath, SkinnedMesh mesh) = Piece(read, path);
+        var keys = new Dictionary<string, string>(StringComparer.Ordinal);
+        AnimatedObject ao = Object(read, path);
+        if (ao.Ready)
+        {
+            foreach (AnimatedObject one in Whole(read, ao))
+            {
+                foreach (AoStruct block in one.Named(RigBlock))
+                {
+                    foreach (AoEntry entry in block.Entries)
+                    {
+                        if (entry.Key is not (RigEntry or "socket" or "parent" or "translation" or "rotation" or "scale" or Attachment))
+                        {
+                            keys.TryAdd(entry.Key, entry.Value.Trim());
+                        }
+                    }
+                }
+            }
+        }
+
+        return (rig, rigPath, mesh, keys);
+    }
+
     /// <summary>The bone a socket names in the monster's own rig, the mounts it spells out in full included - see <see cref="Mounts"/>.</summary>
     internal static int SocketOf(AnimationSkeleton rig, string socket)
     {

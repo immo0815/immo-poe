@@ -1156,6 +1156,24 @@ string naming a ClientAnimationController key or a word of a physics simulation,
 round it, a chained fragment followed to its root) and every pointer to it in the data; `program-code-replay.txt` searches the image again.
 Disassembled offline (capstone over the .bin) - the image stays in the capture and is never committed. The solver built from that code must
 reproduce the lamp measured in v0.1.414 (`tests/fixtures/lamp-swing`) under the lamp's own keys before it swings anything else.
+WHAT THE CODE SAYS (v0.1.420, the build stamped 2026-10-27, read offline from that capture's program-code.bin; addresses that build's, the
+schema's ClientAnimationControllerDef, ClothObject and ClothParticle): THE ENGINE'S CLOTH IS A MESH OF PARTICLES, NOT A CHAIN OF BONES. The
+controller's setup (module+0x2863C00) takes the SkinMesh component's SIMULATION MESHES - the .smd's tail poe_data_tools reads
+(`SimulationMesh`): vertices of 44 bytes (a place, four bones, four weights), triangles (sv_refs1), pinned vertices (sv_refs2), and the
+body's collision spheres, capsules and ellipsoids - makes a particle of each vertex (a body of mass 1 in the engine's own physics world, no
+middleware), its target the vertex skinned by its four bones, the pinned ones kinematic; a distance constraint per edge (linear_stiffness,
+linear_allowed_contraction) and bend constraints (bend_stiffness, bend_allowed_angle) in that world. Each step (module+0x1330160, jobs of
+eight objects): the force (0, 0, gravity) on every particle; DRAG, the velocity relative to the wind decaying as exp(-viscosity * 30 * dt)
+across the particle's surface normal and along it (module+0x13AB700); where either animation factor passes 1e-7 the ANIMATION, velocity
+relaxing to (target - place) * velocity_factor + the target's own velocity * multiplier, held to max_velocity, as exp(-force_factor * dt)
+(module+0x13ABBC0) - which is the lamp's measured keep of 0.98076 a tick, exp(-2 * 0.0097); and the ENCLOSURE each frame, a particle held
+within depth * enclosure_radius + additive + its animated link to its parent * enclosure_angle of its target (module+0x13A8440). The keys'
+defaults are the definition's constructor's (`ClothSettings.Defaults`): gravity 980, max velocity 1000, multiplier 1, bend 10 at 1, linear
+-1 with 0.5 contraction, viscosities 0.2 and 0.02, enclosure angle 0.5, shock propagation and collisions on. NOT YET READ: the world's own
+integrator and constraint solver (its vtable has no RTTI; `cloth-live.txt`, `ClothLive`, the Memory group, finds the physics objects in
+memory by their parameters' tail and writes their particles and the world's containers with their vtables, searched for the bodies' places),
+and how the render mesh's phys_ bones follow the particles - `monster-files.txt` now writes every file's simulation mesh beside its rig's
+phys_ bones (`CaptureMonsterFiles.Cloth`), which of them a vertex rests on.
 WHAT EARLIER CAPTURES HOLD OF THE ROBE (09:29, Hunting Grounds, v0.1.414's bone watch): its rig in the Local frame (64 bytes a bone), where
 only each chain's first bone turned - by up to 65 degrees, in steps with his walking, every deeper bone at its rest on its parent - and two
 still copies (144 and 128 bytes a bone); none of its simulated state was found, its pieces hanging off the body armour (a skin with no
