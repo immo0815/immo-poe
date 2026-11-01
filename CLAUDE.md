@@ -1207,7 +1207,27 @@ its cloth's matrix (MonsterPortrait, the light panel's "swing"); monster-files.t
 plays them at 99 frames a second. MEASURED against the game: the staff's lamp, its rest turned 32 degrees from down, settles 5.1 degrees from
 straight down towards its rest - the game's resting lamp stood 2 to 7.5 degrees off towards its rest's way, its rest 30 to 34 from down
 (v0.1.414's bone watch): the pull towards the animation against gravity, not a bend stiffness (`THEGAMESRestingLampTiltsAsTheClothSettlesIt`).
-NEXT: the skins on his rig (robe, hair, the body's own chest), whose phys_ bones his rig lacks; the body's spheres and capsules as colliders.
+EVERY CLOTH OF HIS, AND THE CAPSULES THEY MEET (v0.1.424, the step decided from the live client; READ from the engine's code). A
+ClientAnimationController's setup (module+0x2863C00, schema `ClientAnimationControllerCloth`) makes the cloth of its OWN SkinMesh's meshes,
+skins their targets from its own skeleton and links every phys_ bone of it; then, of the objects attached to it, one WITH a controller of its
+own is skipped - it sets its own cloth up on its own skeleton - and one with none (a rigless skin: the player's body armour) has its SkinMesh
+handed to the world AFTER the targets and links were made, so a rigless skin's simulation mesh moves no bone (its collision shapes count). And
+the collision shapes are the PHYSICS SYSTEM's (schema `PhysicsSystemColliders`): the world step tests every capsule of the system against each
+container's bounds, so the robe's skirt meets his legs' capsules though they are his body's. So the books (`MonsterModel`'s Swaying,
+`MonsterModel.Colliders`, `ClothColliders`) simulate: his own body's simulation meshes on his own rig's phys_ bones (the player's chest,
+phys_skinned_R/L_chest, 15 particles, 6 pinned); every skin on a rig of its own that the retarget joins to his (the Doryani skirt, 140
+particles and 88 phys_ bones; the shawl; the helmet's dangle; the glove feathers), each phys_ bone a bone appended to his rig under the bone its
+nearest unsimulated ancestor went to - his own bone of the same name where he has one - the vertices it carries put on it, its particles and
+spheres moved out of the piece's bind as the retarget moves its mesh; and the rigid pieces as before. All of a model's cloths step in one world
+with all its capsules (the body's 21 between 22 spheres, a sphere's last word its bone - chest 8 and the armour's chest vertices #8 agree). The
+target skinning sums the four weights as written (module+0x2868EF0, the files' 0.999 kept). NO KEY IS ASKED FOR: a controller with a
+simulation mesh simulates under the engine's defaults where its .ao writes none (the shawl writes none; v0.1.422 required a key). A bone two
+cloths would set is set by the first, his own body's before any piece's (CHOSEN). With "swing" off nothing is overridden: an appended bone follows
+its parent rigidly, his own phys_ bones stand as his animation moves them. NOT READ: the ellipsoids' fifteen floats as a frame (counted, not
+collided - the player has none), the heightmap and the planes. v0.1.422's monster-files part played its cloths against a second swing with the
+switch off, which started them over every frame - it measured cloths that never left their targets; it plays them against the pose alone now.
+The agent link's picture waits for the opening animation's pose (`MonsterPortrait.AgentSettled`: the keyframes taken and the picture drawn in
+their pose) - v0.1.423 handed back the bind pose drawn while they loaded.
 
 ## Verify against the game, not against yourself
 

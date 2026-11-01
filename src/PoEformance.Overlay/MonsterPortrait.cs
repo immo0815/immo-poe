@@ -3840,7 +3840,7 @@ public sealed partial class MonsterPortrait
         // to what a moving frame may cost the processor; the bands on every core are what let the
         // usual cap sit at the pane's own size.
         int size = Wanted(side);
-        bool posed = _tracks is { Ready: true } && _pose is not null;
+        bool posed = PoseReady;
 
         bool moved = !string.Equals(_shown, _wanted, StringComparison.Ordinal)
             || _drawnView != _view
@@ -3889,6 +3889,9 @@ public sealed partial class MonsterPortrait
         }
     }
 
+    /// <summary>Whether the picture is drawn in a pose: the chosen animation's keyframes are in and the skeleton holds together.</summary>
+    private bool PoseReady => _tracks is { Ready: true } && _pose is not null;
+
     /// <summary>Builds the pose for a model that just arrived, and starts its first animation.</summary>
     private void Rigged()
     {
@@ -3902,7 +3905,7 @@ public sealed partial class MonsterPortrait
 
         // HIS CLOTHS STAND ON THEIR TARGETS AT HIS FIRST POSE, a swinger of their own for every model (ClothSwinger).
         IReadOnlyList<ClothSwing> swings = (_model.Actor ?? _model).Swings;
-        _swinger = swings.Count > 0 ? new ClothSwinger(swings) : null;
+        _swinger = swings.Count > 0 ? new ClothSwinger(swings, (_model.Actor ?? _model).Colliders) : null;
         _posedFor = null;
         _cpuPosedKey = -1;
         _cardBonesKey = -1;

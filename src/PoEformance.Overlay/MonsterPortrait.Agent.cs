@@ -53,13 +53,20 @@ public sealed partial class MonsterPortrait
 
     /// <summary>
     /// Whether the pane has answered the ticket: a picture drawn since it with everything asked in - the model built,
-    /// the view drawn, the card's shaders and the processor's textures in, an animation's keyframes landed - or a build
-    /// that ended with no model.
+    /// the view drawn, the card's shaders and the processor's textures in, an animation's keyframes landed and the
+    /// picture drawn in its pose - or a build that ended with no model.
     /// </summary>
+    /// <remarks>
+    /// THE KEYFRAMES TAKEN, NOT MERELY LOADED, AND THE PICTURE DRAWN IN THEIR POSE (v0.1.424): a load that has finished is
+    /// taken by the next frame's Landed, and until the frame after draws the pose the picture standing is the one drawn
+    /// while the keyframes loaded - the bind pose. The agent link read that one back (the player taken on v0.1.423: arms
+    /// spread, his staff nowhere) while the window showed him in his idle with the staff in hand.
+    /// </remarks>
     internal bool AgentSettled(int ticket)
         => (_agentDrawn >= ticket
                 && _loading is not { IsCompleted: false }
-                && _loadingTracks is not { IsCompleted: false }
+                && _loadingTracks is null
+                && _drawnPosed == PoseReady
                 && _drawnView == _view
                 && !_probeAsked
                 && (!_model.Ready || (!_cardWaiting && !_unpackWaiting)))
@@ -71,7 +78,8 @@ public sealed partial class MonsterPortrait
             : !WindowOpen ? "the model window is closed"
             : _loading is { IsCompleted: false } ? _progress?.Said() ?? "building the model"
             : !_model.Ready ? "no model: " + Why
-            : _loadingTracks is { IsCompleted: false } ? "the animation's keyframes are loading"
+            : _loadingTracks is not null ? "the animation's keyframes are loading"
+            : _drawnPosed != PoseReady ? "the animation's pose is not drawn yet"
             : _cardWaiting ? "the card's shaders are still compiling: " + _cardWhy
             : _unpackWaiting ? Why
             : "the pane has not drawn again - its book's tab is not on screen, the tools window is folded or covered, or the game is not in front";

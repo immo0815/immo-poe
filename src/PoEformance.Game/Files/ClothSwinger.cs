@@ -2,11 +2,21 @@ using System.Numerics;
 
 namespace PoEformance.Game.Files;
 
-/// <summary>A piece's cloth as a model swings it: the cloth, its bone links numbered in the model's rig, the bone the piece hangs from.</summary>
+/// <summary>A cloth as a model swings it: the cloth, its bone links numbered in the model's rig, the bone a rigid piece hangs from.</summary>
 /// <param name="Cloth">The cloth.</param>
-/// <param name="Socket">The model's bone the piece hangs from rigidly - its simulated bones' stand-in where nothing swings.</param>
-/// <param name="Source">The piece's .ao, for the lines.</param>
+/// <param name="Socket">The model's bone a rigid piece hangs from, for the lines; -1 for a body's or a skin's cloth.</param>
+/// <param name="Source">The .ao it comes from, for the lines.</param>
 public sealed record ClothSwing(ClothRig Cloth, int Socket, string Source);
+
+/// <summary>The collision shapes a model's cloths meet, in its rig and its space: the spheres capsules end in, the capsules, the ellipsoids.</summary>
+/// <param name="Spheres">The spheres, each on a bone of the model's rig.</param>
+/// <param name="Capsules">The capsules, two of <paramref name="Spheres"/> each.</param>
+/// <param name="Ellipsoids">The ellipsoids.</param>
+public sealed record ClothColliders(IReadOnlyList<ClothSphere> Spheres, IReadOnlyList<(int From, int To)> Capsules, IReadOnlyList<ClothEllipsoid> Ellipsoids)
+{
+    /// <summary>No shape at all.</summary>
+    public static ClothColliders None { get; } = new([], [], []);
+}
 
 /// <summary>
 /// The cloths of one model stepped with its clock: once a frame, as the engine steps them (ClothWorld), each simulated bone's skin matrix
@@ -17,6 +27,8 @@ public sealed record ClothSwing(ClothRig Cloth, int Socket, string Source);
 /// frame's time, smoothed by the world as the system smooths it. The targets are the pose's own - the engine skins them from the pose of
 /// its frame. CHOSEN, as the measured lamp's swinger chose before: another animation, the clock moved by hand or an animation starting over
 /// is no motion of the bones that carry the cloth - every particle stands on its target again.
+/// ALL OF A MODEL'S CLOTHS IN ONE WORLD WITH ALL ITS CAPSULES (v0.1.424): the engine's world step tests every capsule of its physics system
+/// against each container (module+0x139F150), so a piece's cloth meets the body's shapes.
 /// </remarks>
 public sealed class ClothSwinger
 {
@@ -27,17 +39,19 @@ public sealed class ClothSwinger
     private const float JumpFrames = 0.25f;
 
     private readonly Matrix4x4[][] _unbind;
+    private readonly ClothColliders _colliders;
     private ClothWorld _world;
     private Matrix4x4[] _skin = [];
     private AnimationTracks? _tracks;
     private float _frame = float.NaN;
     private double _due;
 
-    /// <summary>A swinger of a model's cloths, every particle on its target at its first pose.</summary>
-    public ClothSwinger(IReadOnlyList<ClothSwing> swings)
+    /// <summary>A swinger of a model's cloths among its collision shapes, every particle on its target at its first pose.</summary>
+    public ClothSwinger(IReadOnlyList<ClothSwing> swings, ClothColliders? colliders = null)
     {
         ArgumentNullException.ThrowIfNull(swings);
         Swings = swings;
+        _colliders = colliders ?? ClothColliders.None;
         _unbind = [.. swings.Select(one => one.Cloth.Links.Select(link => Matrix4x4.Invert(link.Bind, out Matrix4x4 back) ? back : Matrix4x4.Identity).ToArray())];
         _world = Made();
     }
@@ -62,7 +76,8 @@ public sealed class ClothSwinger
 
     /// <summary>
     /// Steps the cloths by the time the clock ran on and sets every simulated bone's skin matrix into the pose taken at <paramref name="frame"/>;
-    /// with <paramref name="swinging"/> off, every simulated bone hangs rigidly from its piece's socket as authored.
+    /// with <paramref name="swinging"/> off, every simulated bone stands as the pose took it - an appended one following its parent rigidly,
+    /// a rig's own as its animation moves it.
     /// </summary>
     public void Swing(SkeletonPose pose, AnimationTracks tracks, float frame, float rate, float frames, bool swinging)
     {
@@ -71,15 +86,6 @@ public sealed class ClothSwinger
         IReadOnlyList<Matrix4x4> skin = pose.Skin;
         if (!swinging)
         {
-            foreach (ClothSwing swing in Swings)
-            {
-                Matrix4x4 socket = swing.Socket >= 0 && swing.Socket < skin.Count ? skin[swing.Socket] : Matrix4x4.Identity;
-                foreach (ClothBoneLink link in swing.Cloth.Links)
-                {
-                    pose.Override(link.Bone, socket);
-                }
-            }
-
             // OFF STARTS OVER: turned on again, every particle stands on its target.
             Restart();
             return;
@@ -123,7 +129,7 @@ public sealed class ClothSwinger
         _due = 0;
     }
 
-    private ClothWorld Made() => new([.. Swings.Select(one => one.Cloth)], [], [], []);
+    private ClothWorld Made() => new([.. Swings.Select(one => one.Cloth)], _colliders.Ellipsoids, _colliders.Spheres, _colliders.Capsules);
 
     /// <summary>A frame wrapped into the animation as the book's clock wraps it - past the end, modulo its length.</summary>
     private static float Wrapped(float frame, float frames) => frames > 0f && frame > frames ? frame % frames : frame;

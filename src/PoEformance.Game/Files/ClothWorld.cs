@@ -52,6 +52,7 @@ public sealed class ClothWorld
     private readonly float[] _sphereRadius;
     private float _smoothed = -1f, _held, _since;
     private bool _started;
+    private long _frames;
 
     /// <summary>A world of <paramref name="cloths"/> among the body's shapes.</summary>
     public ClothWorld(IReadOnlyList<ClothRig> cloths, IReadOnlyList<ClothEllipsoid> ellipsoids, IReadOnlyList<ClothSphere> spheres, IReadOnlyList<(int From, int To)> capsules)
@@ -86,6 +87,7 @@ public sealed class ClothWorld
     /// </summary>
     public void Frame(float seconds, ReadOnlySpan<Matrix4x4> skin)
     {
+        _frames++;
         foreach (Body body in _bodies)
         {
             body.Target(skin, _started);
@@ -134,7 +136,7 @@ public sealed class ClothWorld
     {
         ArgumentNullException.ThrowIfNull(link);
         Body body = _bodies[cloth];
-        ReadOnlySpan<Vector3> at = body.Seen(_since);
+        ReadOnlySpan<Vector3> at = body.Seen(_since, _frames);
         Matrix4x4 frame = link.Kind switch
         {
             ClothBoneKind.Particle => ClothMath.VertexFrame(at, body.Rig, link.Particle),
@@ -252,6 +254,8 @@ public sealed class ClothWorld
         private readonly float[] _shock = new float[rig.Shocks.Length];
         private readonly List<Contact> _contacts = [];
         private float _dt;
+        private long _seenFrame = -1;
+        private float _seenSince = float.NaN;
 
         /// <summary>The targets skinned anew (SetTargets): the last kept, every rest and shock length the targets' own distance.</summary>
         public void Target(ReadOnlySpan<Matrix4x4> skin, bool started)
@@ -507,14 +511,24 @@ public sealed class ClothWorld
             }
         }
 
-        /// <summary>Each particle where its velocity takes it <paramref name="since"/> seconds on (the bones' read of a body, module+0x13AA090).</summary>
-        public ReadOnlySpan<Vector3> Seen(float since)
+        /// <summary>
+        /// Each particle where its velocity takes it <paramref name="since"/> seconds on (the bones' read of a body, module+0x13AA090) - worked
+        /// out once a frame, however many of its bones ask (a skirt's eighty-eight).
+        /// </summary>
+        public ReadOnlySpan<Vector3> Seen(float since, long frame)
         {
             if (since <= 0f || _dt <= 0f)
             {
                 return X;
             }
 
+            if (frame == _seenFrame && since.Equals(_seenSince))
+            {
+                return _seen;
+            }
+
+            _seenFrame = frame;
+            _seenSince = since;
             float share = since / _dt;
             for (var p = 0; p < Rig.Count; p++)
             {

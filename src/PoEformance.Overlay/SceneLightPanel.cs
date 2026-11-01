@@ -119,8 +119,8 @@ public sealed partial class SceneLightPanel : IMovableSun
     // A LIGHT'S STYLE FLICKERS IT, on by default - SceneLight.Flickers (MEASURED for style 1, v0.1.414).
     private bool _flicker = true;
 
-    // A PIECE'S LAMP SWINGS AS THE ENGINE SWINGS IT, on by default - BoneSwing, asked by the panes every pose (MonsterPortrait.SceneSwing;
-    // DECIDED from the live client, 2026-11-01, v0.1.416).
+    // HIS CLOTHS SWING AS THE ENGINE SWINGS THEM, on by default - ClothSwinger, asked by the panes every pose (MonsterPortrait.SceneSwing;
+    // DECIDED from the live client, 2026-11-01, v0.1.416; every cloth of his from v0.1.424).
     private bool _swing = true;
     private bool _glints = true;
     private bool _reflection = true;

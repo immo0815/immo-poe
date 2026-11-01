@@ -17,7 +17,7 @@ namespace PoEformance.Game.Diagnostics;
 /// the simulation of every physics bone in a ClientAnimationController block - linear_allowed_contraction, bend_stiffness,
 /// bend_allowed_angle, the two viscosities, the enclosure, the animation's force and velocity factors, gravity, collisions - and the survey
 /// of v0.1.418 found 8,147 files carrying 2,825 sets of them, most of them cloth and hair. What each number does is written in no file and
-/// no reference: the lamp alone was measured, off the game's light list, as a pendulum (BoneSwing.cs). A set leaves out whatever keeps the
+/// no reference: the lamp alone was measured, off the game's light list, as a pendulum (v0.1.416, replaced by the engine's cloth in v0.1.422). A set leaves out whatever keeps the
 /// engine's default, and the defaults are in no file either. The parser that reads the keys and the solver that steps the bones are the
 /// engine's own code, so the code is read: the image is written whole, and the report says where to start - each key's text, the code that
 /// loads its address (a lea of [rip + disp32]) and the function that does it by the image's own function table (.pdata), and the data
