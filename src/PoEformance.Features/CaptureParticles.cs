@@ -57,7 +57,8 @@ public static partial class CaptureParticles
     /// <param name="panes">The model panes as they stood at the press.</param>
     /// <param name="engineGraphs">Every path under Metadata/EngineGraphs/, as the install's walk found them.</param>
     /// <param name="shaders">Every shader source in the install, as its walk found them.</param>
-    public static string Write(Func<string, byte[]?> read, IReadOnlyList<CapturePane>? panes, IReadOnlyList<string>? engineGraphs, IReadOnlyList<string>? shaders)
+    /// <param name="programs">The game's program files on disk, where the engine's DX11 prelude is read from (ShaderPrelude); null or empty for none.</param>
+    public static string Write(Func<string, byte[]?> read, IReadOnlyList<CapturePane>? panes, IReadOnlyList<string>? engineGraphs, IReadOnlyList<string>? shaders, IReadOnlyList<string>? programs = null)
     {
         ArgumentNullException.ThrowIfNull(read);
         var body = new StringBuilder();
@@ -90,7 +91,14 @@ public static partial class CaptureParticles
             .Where(one => one.Text is not null && one.Path.EndsWith(".fxgraph", StringComparison.OrdinalIgnoreCase))
             .ToDictionary(one => one.Path, one => one.Text!, StringComparer.OrdinalIgnoreCase);
         string compiled = CaptureRenderDebug.Compiled(graphs, body);
-        (int defined, int missing, int sources) = Sources(read, shaders, graphs, body);
+        (string Text, string File)? prelude = programs is { Count: > 0 } ? ShaderPrelude.Read(programs) : null;
+        (int defined, int missing, int sources, IReadOnlyDictionary<string, string> texts) = Sources(read, shaders, graphs, body, prelude);
+
+        // THE LINK: every emitter's shaders composed as the engine composes them, the update linked from the sources.
+        var known = walked.Where(one => one.Text is not null).ToDictionary(one => one.Path, one => one.Text!, StringComparer.OrdinalIgnoreCase);
+        string? Text(string path)
+            => known.TryGetValue(Clean(path), out string? had) ? had : read(Clean(path)) is { Length: > 0 } bytes ? StatDescriptionFiles.Decode(bytes) : null;
+        string link = Link(Text, ShaderSource.Of(texts.Select(one => (one.Key, one.Value))), walked.Where(one => one.Path.EndsWith(".pet", StringComparison.OrdinalIgnoreCase)).Select(one => one.Path), body, prelude?.Text);
 
         // THE FILES WHOLE LAST - the effects, the materials and the graphs - in the form the offline readers read back.
         body.AppendLine().AppendLine("=== the effect files, materials and graphs whole");
@@ -100,7 +108,7 @@ public static partial class CaptureParticles
 
         string head = string.Create(
             CultureInfo.InvariantCulture,
-            $"particles: {walked.Count(one => IsEffect(one.Path))} effect files from {panes?.Count ?? 0} panes, {emitters} emitters; {graphs.Count} graphs ({engine.Length} the engine's particle graphs), {compiled}; {defined} node types and declarations defined in {sources} sources written whole, {missing} defined by none; {whole} files written whole");
+            $"particles: {walked.Count(one => IsEffect(one.Path))} effect files from {panes?.Count ?? 0} panes, {emitters} emitters; {graphs.Count} graphs ({engine.Length} the engine's particle graphs), {compiled}; {defined} node types and declarations defined in {sources} sources written whole, {missing} defined by none; {link}; {whole} files written whole");
         return head + Environment.NewLine + body;
     }
 
@@ -278,13 +286,14 @@ public static partial class CaptureParticles
     /// they include, through every include - and those sources whole, the most definitions first. Returns how many names were defined,
     /// how many none defines, and how many sources were written.
     /// </summary>
-    private static (int Defined, int Missing, int Sources) Sources(Func<string, byte[]?> read, IReadOnlyList<string>? shaders, Dictionary<string, string> graphs, StringBuilder body)
+    private static (int Defined, int Missing, int Sources, IReadOnlyDictionary<string, string> Texts) Sources(
+        Func<string, byte[]?> read, IReadOnlyList<string>? shaders, Dictionary<string, string> graphs, StringBuilder body, (string Text, string File)? prelude)
     {
         body.AppendLine().AppendLine("=== 4. where each node type the graphs use is defined: its FRAGMENT, the EXTENSIONPOINT an Input node reads, or none; then every DECLARATIONS block those include, through every include");
         if (shaders is not { Count: > 0 })
         {
             body.AppendLine("(no shader sources: the install walk found none, or it had not run when the key went down)");
-            return (0, 0, 0);
+            return (0, 0, 0, new Dictionary<string, string>());
         }
 
         // EVERY DEFINITION IN THE INSTALL'S SOURCES, read on every core: its kind, its source, its includes.
@@ -370,10 +379,36 @@ public static partial class CaptureParticles
         // THE SOURCES WHOLE, the most definitions asked for first.
         var bySource = needed.GroupBy(one => one.Value, StringComparer.OrdinalIgnoreCase).OrderByDescending(group => group.Count()).ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase).ToArray();
         body.AppendLine().Append(CultureInfo.InvariantCulture, $"=== 5. the sources defining them whole: {bySource.Length}, each with how many of the names above it defines").AppendLine();
-        int written = CaptureLightExtras.Wholes(
-            [.. bySource.Where(group => texts.ContainsKey(group.Key)).Select(group => (group.Key, texts[group.Key], $"defines {group.Count()}: {string.Join(", ", group.Select(one => one.Key).Take(40))}{(group.Count() > 40 ? ", ..." : string.Empty)}"))],
-            SourceChars, LargestSource, "sources", body);
-        return (needed.Count, missing.Distinct(StringComparer.Ordinal).Count(), written);
+        var wholes = bySource.Where(group => texts.ContainsKey(group.Key)).Select(group => (group.Key, texts[group.Key], $"defines {group.Count()}: {string.Join(", ", group.Select(one => one.Key).Take(40))}{(group.Count() > 40 ? ", ..." : string.Empty)}")).ToList();
+
+        // THE .hlsl FILES THEIR CODE INCLUDES (Shaders/Include/Quaternions.hlsl, HalfUtility.hlsl - asked for by v0.1.429's link, which compiles
+        // nothing without them), through their own includes, read from the install whole.
+        if (prelude is { } engine)
+        {
+            wholes.Add((PreludePath, engine.Text, $"the text the engine puts before every shader for Direct3D 11, read from {Path.GetFileName(engine.File)}"));
+        }
+
+        var included = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var pending = new Queue<string>(wholes.SelectMany(one => HlslIncludes(one.Item2)));
+        while (pending.Count > 0)
+        {
+            string path = Clean(pending.Dequeue());
+            if (!included.Add(path) || read(path) is not { Length: > 0 } bytes)
+            {
+                continue;
+            }
+
+            string text = StatDescriptionFiles.Decode(bytes);
+            texts[path] = text;
+            wholes.Add((path, text, "an .hlsl the sources' code includes"));
+            foreach (string next in HlslIncludes(text))
+            {
+                pending.Enqueue(next);
+            }
+        }
+
+        int written = CaptureLightExtras.Wholes(wholes, SourceChars, LargestSource, "sources", body);
+        return (needed.Count, missing.Distinct(StringComparer.Ordinal).Count(), written, texts);
     }
 
     /// <summary>The includes of a definition's head: its lines from the name to the body's opening <c>{{</c>.</summary>
@@ -392,6 +427,15 @@ public static partial class CaptureParticles
         }
 
         return [.. includes];
+    }
+
+    /// <summary>The files a source's code includes by <c>#include "path"</c>.</summary>
+    private static IEnumerable<string> HlslIncludes(string text)
+    {
+        foreach (Match match in HlslInclude().Matches(text))
+        {
+            yield return match.Groups[1].Value;
+        }
     }
 
     /// <summary>Whether the compile handles a node type: evaluates it, or carries it through as an output.</summary>
@@ -424,6 +468,10 @@ public static partial class CaptureParticles
     /// <summary>A definition's head line in an .ffx: its kind and its name.</summary>
     [GeneratedRegex(@"^(FRAGMENT|EXTENSIONPOINT|DECLARATIONS)\s+(\S+)", RegexOptions.Multiline | RegexOptions.CultureInvariant)]
     private static partial Regex Definition();
+
+    /// <summary>An HLSL include line of a source's code.</summary>
+    [GeneratedRegex(@"#include\s+""([^""]+)""", RegexOptions.CultureInvariant)]
+    private static partial Regex HlslInclude();
 
     /// <summary>An include line of a definition's head.</summary>
     [GeneratedRegex(@"^\s*include\s+(\S+)", RegexOptions.CultureInvariant)]
