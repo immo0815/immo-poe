@@ -102,8 +102,10 @@ public sealed partial class ModelGpu
             Stepped(context, card, emitter, frame, view);
             _particleStep = emitter.Program.Name + "'s passes";
             drawn += Drew(context, target, card, emitter, frame, view, light);
+            card.LastDrawn = emitter;
         }
 
+        _particleLast = (target, frame, view, light);
         ParticlesSaid = string.Create(
             CultureInfo.InvariantCulture,
             $"particles: {drawn} passes of {frame.Emitters.Count} emitters drawn on the card{(compiling > 0 ? $", {compiling} still compiling" : string.Empty)}{(failed.Count > 0 ? "; " + string.Join("; ", failed) : string.Empty)}");
@@ -170,11 +172,17 @@ public sealed partial class ModelGpu
         card.Fresh = false;
     }
 
-    /// <summary>One emitter's render passes drawn over the picture, an instance a particle; how many were drawn.</summary>
-    private int Drew(ID3D11DeviceContext context, ModelTarget target, ParticleCard card, ParticleEmitterNow emitter, ParticleFrame frame, in ParticleView view, SceneLight? light)
+    /// <summary>
+    /// One emitter's render passes drawn over the picture, an instance a particle; how many were drawn. With <paramref name="into"/> they are
+    /// drawn into that target instead, unblended - and against the picture's depth only where <paramref name="tested"/> - for the capture's
+    /// account of what a pass puts on the screen (ParticleState); <paramref name="only"/> draws that pass alone.
+    /// </summary>
+    private int Drew(
+        ID3D11DeviceContext context, ModelTarget target, ParticleCard card, ParticleEmitterNow emitter, ParticleFrame frame, in ParticleView view, SceneLight? light,
+        ID3D11RenderTargetView? into = null, bool tested = true, int only = -1)
     {
         ParticleProgram program = emitter.Program;
-        context.OMSetRenderTargets(target.AccumulatedTarget, target.Depth);
+        context.OMSetRenderTargets(into ?? target.AccumulatedTarget, tested ? target.Depth : null);
         context.RSSetViewport(new Viewport(0f, 0f, target.Size, target.Size, 0f, 1f));
         context.RSSetState(_particleRaster);
         context.OMSetDepthStencilState(_particleTests);
@@ -184,9 +192,14 @@ public sealed partial class ModelGpu
         var drawn = 0;
         for (var p = 0; p < card.Passes.Count; p++)
         {
+            if (only >= 0 && p != only)
+            {
+                continue;
+            }
+
             PassCard pass = card.Passes[p];
             ParticlePassProgram written = program.Passes[p];
-            context.OMSetBlendState(written.Blend == ParticleBlend.Additive ? _particleAdds : _particleMixes);
+            context.OMSetBlendState(into is not null ? null : written.Blend == ParticleBlend.Additive ? _particleAdds : _particleMixes);
             context.IASetInputLayout(pass.Layout);
             card.MeshStreams(context, pass);
             Globals(context, pass.Vertex, program, emitter, frame, view);

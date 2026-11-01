@@ -107,6 +107,12 @@ public sealed class ParticleGpuTests
         Assert.Contains("8 not all nought", state, StringComparison.Ordinal);
         Assert.Contains("pos (float4, +0): -0.7..0.7", state, StringComparison.Ordinal);
         Assert.Contains("; 2..2 mean 2", state, StringComparison.Ordinal);
+
+        // AND WHAT ITS PASS PUTS ON THE SCREEN, drawn again alone into a target of its own: over nothing and against the picture's depth -
+        // the squares stand in front of the box, so both cover pixels.
+        Assert.Contains("pass 0 on the screen over nothing: ", state, StringComparison.Ordinal);
+        Assert.DoesNotContain("pass 0 on the screen over nothing: nothing", state, StringComparison.Ordinal);
+        Assert.DoesNotContain("pass 0 on the screen against the picture's depth: nothing", state, StringComparison.Ordinal);
     }
 
     private static SkinnedMesh Box()
