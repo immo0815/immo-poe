@@ -229,6 +229,9 @@ public static class CaptureParts
     /// <summary>Every .ao in the install by the simulation its ClientAnimationController names, its rigs' simulated bones and how much each is used - off until ticked; see CaptureAoSimulations.</summary>
     public const string AoSimulations = "ao-simulations";
 
+    /// <summary>The game's program image whole, with where the bone simulation's keys and words stand in it and what reads them - off until ticked; see ProgramCode.</summary>
+    public const string ProgramCode = "program-code";
+
     /// <summary>The memory recording itself.</summary>
     public const string Memory = "memory";
 
@@ -260,7 +263,7 @@ public static class CaptureParts
     /// </remarks>
     public static bool RunsAtPress(string key)
         => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow or ShaderStages or PlayerLook or BoneWatch
-            or AoSimulations;
+            or AoSimulations or ProgramCode;
 
     /// <summary>
     /// A heading as the Keys page writes it. The headings themselves stay as they are: they are what <see cref="FolderOfGroup"/> keys
@@ -700,6 +703,16 @@ public static class CaptureParts
             + "the table's order, those from the vertex shader to the pixel shader by the ends' types (InputVertexUV read at VertexInit "
             + "by a pixel stage's texture, which keeps the zone transitions' light white), and every write of the coordinates with what "
             + "feeds it: what compiling the vertex stages waits on. Seconds, past the recording; press it anywhere."),
+        new(ProgramCode, "Memory", "the program's code (100 MB)", CaptureReport.ProgramCodeFile,
+            "The game's program as it runs, for reading the engine's own code offline: its image written whole beside the report "
+            + "(program-code.bin, byte n at module+n), its sections and function table, and every string naming a ClientAnimationController "
+            + "key (linear_allowed_contraction, bend_stiffness, the viscosities, the enclosure, the animation's force and velocity, gravity, "
+            + "collisions) or a word of a bone simulation (physics, cloth, simulation, verlet, constraint) - with every place of code and data "
+            + "reading each one and the function round it: where the engine reads the keys and their defaults, and steps the bones of cloth, "
+            + "chains and hair. A hundred megabytes, so OFF UNTIL TICKED; seconds, past the recording; press it anywhere.")
+        {
+            OffByDefault = true,
+        },
         new(Memory, "Memory", "memory recording", CaptureReport.MemoryFile,
             "The overlay's own reads for three seconds, and inside them one pass reading once more from nothing whatever the "
             + "ticked parts above ask for - memory.txt beside it says what the pass read where. Replays with --replay, game closed."),
