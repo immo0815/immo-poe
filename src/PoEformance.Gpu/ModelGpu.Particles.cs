@@ -113,7 +113,9 @@ public sealed partial class ModelGpu
     private void Stepped(ID3D11DeviceContext context, ParticleCard card, ParticleEmitterNow emitter, ParticleFrame frame, in ParticleView view)
     {
         ParticleProgram program = emitter.Program;
-        context.UpdateSubresource(Record(emitter, card.Fresh), card.Emitter!);
+        card.LastRecord = Record(emitter, card.Fresh);
+        context.UpdateSubresource(card.LastRecord, card.Emitter!);
+        card.Steps++;
         Vector4[] bones = card.BonesHeld;
         int count = Math.Min(emitter.Bones.Length, bones.Length / 2);
         for (var at = 0; at < count; at++)
@@ -691,6 +693,9 @@ public sealed partial class ModelGpu
 
         public ID3D11ShaderResourceView? LutView { get; set; }
 
+        /// <summary>The particle pool's element as this shader's reflection lays it out (the engine's ParticleData) - empty where it reads no pool.</summary>
+        public List<PoolMember> PoolLayout { get; } = [];
+
         /// <summary>Its reflection read: every resource, $Globals' variables, the compute shader's group size; its constants and LUT made.</summary>
         public void Reflect(ID3D11Device device)
         {
@@ -714,6 +719,11 @@ public sealed partial class ModelGpu
                     GlobalsHeld = new byte[(buffer.Size + 15) & ~15];
                     Constants = device.CreateBuffer(GlobalsHeld.Length, BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
                 }
+            }
+
+            if (Bindings.FirstOrDefault(one => one.Name is "particles_data_write" or "particles_data_read") is { } pool)
+            {
+                PoolLayout.AddRange(Members(reflection, pool.Name));
             }
 
             if (Compute is not null)
@@ -740,6 +750,31 @@ public sealed partial class ModelGpu
             int stride = ShadeProgram.CurveWidth * 2;
             Lut = device.CreateBuffer(words, BindFlags.ShaderResource, ResourceUsage.Immutable, CpuAccessFlags.None, ResourceOptionFlags.BufferStructured, sizeInBytes: 0, structureByteStride: stride);
             LutView = device.CreateShaderResourceView(Lut, new ShaderResourceViewDescription(Lut, Format.Unknown, 0, rows, BufferExtendedShaderResourceViewFlags.None));
+        }
+
+        /// <summary>
+        /// A structured buffer's element, member by member, from the reflection's own description of it (its "$Element") - or nothing where the
+        /// reflection describes none.
+        /// </summary>
+        private static List<PoolMember> Members(ID3D11ShaderReflection reflection, string name)
+        {
+            var members = new List<PoolMember>();
+            try
+            {
+                ID3D11ShaderReflectionType element = reflection.GetConstantBufferByName(name).GetVariableByIndex(0).VariableType;
+                for (var m = 0; m < element.Description.MemberCount; m++)
+                {
+                    ShaderTypeDescription one = element.GetMemberTypeByIndex(m).Description;
+                    members.Add(new PoolMember(element.GetMemberTypeName(m), one.Offset, one.Type, Math.Max(1, one.RowCount) * Math.Max(1, one.ColumnCount)));
+                }
+            }
+            catch (Exception exception) when (exception is not (OutOfMemoryException or StackOverflowException))
+            {
+                // A REFLECTION THAT DESCRIBES NO ELEMENT LEAVES THE POOL READ AS WORDS.
+                members.Clear();
+            }
+
+            return members;
         }
 
         public void Dispose()
@@ -774,7 +809,7 @@ public sealed partial class ModelGpu
     }
 
     /// <summary>One emitter's shaders and buffers on the card - compiled behind the frame, made on the render thread once they land.</summary>
-    private sealed class ParticleCard : IDisposable
+    private sealed partial class ParticleCard : IDisposable
     {
         private readonly ParticleProgram _program;
         private readonly Task<Compiled> _compiling;

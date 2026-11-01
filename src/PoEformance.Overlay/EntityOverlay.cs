@@ -4080,6 +4080,10 @@ public sealed partial class EntityOverlay : ClickableTransparentOverlay.Overlay
             Model = Kept(new MonsterPortrait(readFile, Upload, key => RemoveImage(key), modelSize, unpack)
             {
                 Book = "monster",
+
+                // THE INSTALL'S SHADER SOURCES, which a carried particle effect is linked from (ParticlePrograms) - v0.1.442
+                // wired the particles' switch and not these, so no emitter of any monster was ever linked.
+                Shaders = () => ShaderFiles,
                 SceneLit = lighting.For,
                 SceneMeasured = lighting.Measured,
                 SceneDust = lighting.Dust,
@@ -4158,6 +4162,7 @@ public sealed partial class EntityOverlay : ClickableTransparentOverlay.Overlay
             {
                 Book = "item",
                 Shaded = true,
+                Shaders = () => ShaderFiles,
             }),
         };
 
@@ -4199,6 +4204,7 @@ public sealed partial class EntityOverlay : ClickableTransparentOverlay.Overlay
             {
                 Book = "effect",
                 ShowShaders = true,
+                Shaders = () => ShaderFiles,
                 Translucent = true,
                 Shaded = true,
             }),

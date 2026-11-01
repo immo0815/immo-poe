@@ -71,6 +71,12 @@ public sealed record CapturePane(string Book, IReadOnlyList<string> Lines, Monst
 
     /// <summary>Their normals, beside <see cref="Positions"/>.</summary>
     public Vector3[]? Normals { get; init; }
+
+    /// <summary>
+    /// What the card holds of the particles the pane runs, read back as the key went down - each emitter's record and globals as last written,
+    /// its pool member by member (ModelGpu.ParticleState) - or empty where it runs none.
+    /// </summary>
+    public IReadOnlyList<string> Particles { get; init; } = [];
 }
 
 /// <summary>
@@ -161,6 +167,11 @@ public static class CapturePanes
             foreach (string line in pane.Built)
             {
                 body.Append("  time\t").AppendLine(line);
+            }
+
+            foreach (string line in pane.Particles)
+            {
+                body.Append("  particles\t").AppendLine(line);
             }
 
             if (model.StageMove.Length > 0)

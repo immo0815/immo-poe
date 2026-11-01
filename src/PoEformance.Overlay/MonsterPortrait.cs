@@ -1998,6 +1998,7 @@ public sealed partial class MonsterPortrait
             Blends = Unfaded(),
             Positions = positions,
             Normals = normals,
+            Particles = _onCard ? Card?.Gpu?.ParticleState() ?? [] : [],
         };
     }
 
