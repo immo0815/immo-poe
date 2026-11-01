@@ -421,7 +421,7 @@ public static class ShaderStageHunt
     }
 
     /// <summary>The image into <paramref name="image"/>, a chunk at a time and page by page where a chunk will not read; returns the bytes that did not read.</summary>
-    private static long Copy(IMemoryReader reader, byte[] image)
+    internal static long Copy(IMemoryReader reader, byte[] image)
     {
         long unread = 0;
         for (var at = 0; at < image.Length; at += ChunkBytes)

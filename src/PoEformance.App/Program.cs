@@ -3881,6 +3881,23 @@ internal static class Program
                 () => stageHunt?.Fraction ?? 0f,
                 () => stageHunt?.Stop()));
 
+        // THE PROGRAM'S CODE: the image whole beside the report, and where the bone simulation's keys stand in it - see ProgramCode.
+        // Past the tap: the image's hundred megabytes belong in no recording.
+        PoEformance.Game.Diagnostics.ProgramCode.Running? codeCopy = null;
+        overlay.OfferCaptureWork(
+            PoEformance.Features.CaptureParts.ProgramCode,
+            path =>
+            {
+                var running = new PoEformance.Game.Diagnostics.ProgramCode.Running();
+                codeCopy = running;
+                PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
+                return PoEformance.Game.Diagnostics.ProgramCode.Write(untapped, Path.GetDirectoryName(path) ?? string.Empty, running);
+            },
+            new PoEformance.Overlay.CaptureWorkProgress(
+                () => codeCopy?.Line ?? "starting",
+                () => codeCopy?.Fraction ?? 0f,
+                () => codeCopy?.Stop()));
+
         // NEEDS NO INSTALL: it reads memory rather than the game's files. The one thing it needs is
         // the loaded-file table.
         overlay.OfferCaptureWork(PoEformance.Features.CaptureParts.RoomPlacements, _ =>

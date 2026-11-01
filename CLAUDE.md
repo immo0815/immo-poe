@@ -1137,6 +1137,30 @@ string column and list of the vendored layouts), the .ao lines attaching it, and
 the most used first, the measured one marked SWUNG; the 150 files used most; every controller key by how many chains carry it.
 `ao-simulations.tsv` beside it holds a line a simulated file, and `ao-simulations-replay.txt` ranks the sets again from it offline.
 
+## Chains, cloth and hair
+
+ITS FIRST SURVEY (2026-11-01 10:57, Cemetery of the Eternals, v0.1.418, taken through the agent link): 73,549 .ao read, 8,147 carrying a
+simulation in 2,825 sets, 5,855 of them reached by a row of ItemVisualIdentity or MonsterVarieties. By use, chains skinned to a mesh (cloth,
+hair, skirts) 7,766, rods alone 3,885, chains not skinned 1,962. Most sets name a few keys and leave the rest at the engine's defaults, which
+no file holds; the lamp's set (WandererStaffHeld.ao, the Exile's Staff and its mace twin) is in two files. The keys by how many files' chains
+carry them: linear_allowed_contraction 6,914, normal_viscosity_multiplier 6,269, bend_stiffness 6,070, tangent_viscosity_multiplier 5,940,
+bend_allowed_angle 5,679, enclosure_angle 5,198, animation_force_factor 4,334, animation_velocity_factor 4,185, enclosure_radius 1,915,
+use_shock_propagation 1,439, enable_collisions 894, enclosure_radius_additive 526, gravity 377 (from -100 to 1000), linear_stiffness 267,
+animation_max_velocity 204, enable_heightmap_collisions 146.
+DECIDED from the live client (2026-11-01): "we go all in and do chains, cloth and hair directly" - one solver for every phys_ chain, since
+cloth and hair in this engine are chains of phys_ bones skinned to their mesh (the Doryani robe the player wears: 91 bones, 88 simulated
+in 23 chains up to six long). What each key does and its default are in no file and no reference (a web search found nothing), so THEY
+ARE READ FROM THE ENGINE'S OWN CODE: `program-code.txt` (`ProgramCode`, the Memory group, OFF UNTIL TICKED - a hundred megabytes) writes
+the running program's image whole beside it (`program-code.bin`, byte n at module+n), its sections and function table (.pdata), and every
+string naming a ClientAnimationController key or a word of a physics simulation, with every lea of its address in the code (the function
+round it, a chained fragment followed to its root) and every pointer to it in the data; `program-code-replay.txt` searches the image again.
+Disassembled offline (capstone over the .bin) - the image stays in the capture and is never committed. The solver built from that code must
+reproduce the lamp measured in v0.1.414 (`tests/fixtures/lamp-swing`) under the lamp's own keys before it swings anything else.
+WHAT EARLIER CAPTURES HOLD OF THE ROBE (09:29, Hunting Grounds, v0.1.414's bone watch): its rig in the Local frame (64 bytes a bone), where
+only each chain's first bone turned - by up to 65 degrees, in steps with his walking, every deeper bone at its rest on its parent - and two
+still copies (144 and 128 bytes a bone); none of its simulated state was found, its pieces hanging off the body armour (a skin with no
+rig and no placement of its own) where PoseWorld looks round a piece's placement alone.
+
 ## Verify against the game, not against yourself
 
 A check that a wrong value passes is worse than no check. Prefer tests the game itself can
