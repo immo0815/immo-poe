@@ -120,9 +120,15 @@ public sealed partial class ModelGpu
         Shader update = card.Update!;
         Globals(context, update, program, emitter, frame, view);
         context.CSSetShader(update.Compute);
-        context.CSSetConstantBuffer(0, update.Constants);
+        context.CSSetConstantBuffer(update.GlobalsSlot, update.Constants);
         foreach (Binding bind in update.Bindings)
         {
+            if (bind.Kind is ShaderInputType.ConstantBuffer or ShaderInputType.TextureBuffer)
+            {
+                // A cbuffer's register is b, not t: handed a neutral view it would take the place of a real one at the same number.
+                continue;
+            }
+
             if (bind.Unordered)
             {
                 context.CSSetUnorderedAccessView(bind.Slot, card.Unordered(bind.Name)!);
@@ -146,7 +152,7 @@ public sealed partial class ModelGpu
             {
                 context.CSSetUnorderedAccessView(bind.Slot, null!);
             }
-            else if (bind.Kind != ShaderInputType.Sampler)
+            else if (bind.Kind is not (ShaderInputType.Sampler or ShaderInputType.ConstantBuffer or ShaderInputType.TextureBuffer))
             {
                 context.CSSetShaderResource(bind.Slot, null!);
             }
@@ -178,10 +184,10 @@ public sealed partial class ModelGpu
             Globals(context, pass.Vertex, program, emitter, frame, view);
             Globals(context, pass.Pixel, program, emitter, frame, view);
             context.VSSetShader(pass.Vertex.VertexShader);
-            context.VSSetConstantBuffer(0, pass.Vertex.Constants);
+            context.VSSetConstantBuffer(pass.Vertex.GlobalsSlot, pass.Vertex.Constants);
             Bound(context, card, pass.Vertex, written, pixel: false);
             context.PSSetShader(pass.Pixel.PixelShader);
-            context.PSSetConstantBuffer(0, pass.Pixel.Constants);
+            context.PSSetConstantBuffer(pass.Pixel.GlobalsSlot, pass.Pixel.Constants);
             context.PSSetConstantBuffer(FinishBuffer, _particleFinish);
             Bound(context, card, pass.Pixel, written, pixel: true);
             context.DrawIndexedInstanced(program.Mesh.Indices.Length, program.Count, 0, 0, 0);
@@ -231,12 +237,12 @@ public sealed partial class ModelGpu
 
     private void Unbound(ID3D11DeviceContext context, PassCard pass)
     {
-        foreach (Binding bind in pass.Vertex.Bindings.Where(one => one.Kind is not (ShaderInputType.Sampler or ShaderInputType.ConstantBuffer)))
+        foreach (Binding bind in pass.Vertex.Bindings.Where(one => one.Kind is not (ShaderInputType.Sampler or ShaderInputType.ConstantBuffer or ShaderInputType.TextureBuffer)))
         {
             context.VSSetShaderResource(bind.Slot, null!);
         }
 
-        foreach (Binding bind in pass.Pixel.Bindings.Where(one => one.Kind is not (ShaderInputType.Sampler or ShaderInputType.ConstantBuffer)))
+        foreach (Binding bind in pass.Pixel.Bindings.Where(one => one.Kind is not (ShaderInputType.Sampler or ShaderInputType.ConstantBuffer or ShaderInputType.TextureBuffer)))
         {
             context.PSSetShaderResource(bind.Slot, null!);
         }
@@ -665,6 +671,9 @@ public sealed partial class ModelGpu
 
         public ID3D11Buffer? Constants { get; set; }
 
+        /// <summary>The register $Globals took - b0 unless the engine's declarations put a cbuffer of their own before it.</summary>
+        public int GlobalsSlot { get; set; }
+
         public byte[] GlobalsHeld { get; set; } = [];
 
         public int Threads { get; set; } = 64;
@@ -694,6 +703,7 @@ public sealed partial class ModelGpu
                         Globals[variable.Name] = (variable.StartOffset, variable.Size);
                     }
 
+                    GlobalsSlot = bind.BindPoint;
                     GlobalsHeld = new byte[(buffer.Size + 15) & ~15];
                     Constants = device.CreateBuffer(GlobalsHeld.Length, BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
                 }

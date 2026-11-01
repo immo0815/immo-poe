@@ -1462,6 +1462,8 @@ THE PARTICLES ARE DRAWN ON THE CARD (v0.1.442, DECIDED from the live client: upd
 v0.1.442 DREW NOTHING ON WARP (the Windows job's gpu-test: "the card refused its shaders or buffers: E_INVALIDARG"): Vortice's array
 overload of CreateBuffer takes `sizeInBytes` sixth and `structureByteStride` seventh, and the spline LUT and the pool passed their stride
 sixth - structured buffers of stride nought. Named from v0.1.443, and a refusal names the step it came at (`ParticleCard.Made`).
+v0.1.444: the update's resource loop handed its own cbuffers a neutral VIEW at their register number (b's number taken as t's - a real
+buffer at that t overwritten), and $Globals was bound at b0 whatever register it took; it is bound at its own now (`Shader.GlobalsSlot`).
 
 ## Verify against the game, not against yourself
 
