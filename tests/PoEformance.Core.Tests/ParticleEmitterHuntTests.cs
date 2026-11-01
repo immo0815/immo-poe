@@ -88,6 +88,55 @@ public sealed class ParticleEmitterHuntTests
         Assert.Contains(lines, line => line.Contains("group size 8", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void THEBONESArrayIsWhereTheEmittersStartsAgree()
+    {
+        // THREE EMITTERS at one place with their bones at 6, 8 and 16 (two each), as the staff's lamp: a region whose bones array starts at
+        // +0x100, a stray float4 pair near them elsewhere that only one emitter could vote for.
+        var place = new Vector3(11439.5f, 10848.4f, -85.8f);
+        ParticleEmitterHunt.Record[] near =
+        [
+            ParticleEmitterHunt.Decode(Record(0.925f, place, 1f)) with { Bones = (6, 2) },
+            ParticleEmitterHunt.Decode(Record(0.925f, place, 1f)) with { Bones = (8, 2) },
+            ParticleEmitterHunt.Decode(Record(0.925f, place, 1f)) with { Bones = (16, 2) },
+        ];
+        byte[] region = new byte[0x2000];
+        void Bone(int at, Vector3 pos)
+        {
+            for (var half = 0; half < 2; half++)
+            {
+                BinaryPrimitives.WriteSingleLittleEndian(region.AsSpan(at + (half * 16)), pos.X);
+                BinaryPrimitives.WriteSingleLittleEndian(region.AsSpan(at + (half * 16) + 4), pos.Y);
+                BinaryPrimitives.WriteSingleLittleEndian(region.AsSpan(at + (half * 16) + 8), pos.Z);
+            }
+        }
+
+        foreach (int bone in new[] { 6, 7, 8, 9, 16, 17 })
+        {
+            Bone(0x100 + (bone * ParticleEmitterHunt.BoneBytes), place + new Vector3(0, 0, -100 - bone));
+        }
+
+        Bone(0x1800, place + new Vector3(5, 0, 0));
+        var places = new List<(ulong At, int Emitter)>();
+        for (var at = 0; at + 32 <= region.Length; at += 16)
+        {
+            var pos = new Vector3(BinaryPrimitives.ReadSingleLittleEndian(region.AsSpan(at)), BinaryPrimitives.ReadSingleLittleEndian(region.AsSpan(at + 4)), BinaryPrimitives.ReadSingleLittleEndian(region.AsSpan(at + 8)));
+            for (var e = 0; e < near.Length; e++)
+            {
+                if (Vector3.Distance(pos, near[e].Translation) <= ParticleEmitterHunt.BoneReach)
+                {
+                    places.Add((Heap + (ulong)at, e));
+                }
+            }
+        }
+
+        (ulong first, uint agreed) = ParticleEmitterHunt.Votes(places, near)[0];
+
+        Assert.Equal(Heap + 0x100, first);
+        Assert.Equal(0b111u, agreed);
+        Assert.Contains(ParticleEmitterHunt.RegionVotes(region, Heap, near), line => line.Contains("the most agreed 3 of 3, first at 0x20000100", StringComparison.Ordinal));
+    }
+
     /// <summary>A record as the engine lays it out, with the scale <paramref name="scale"/> and a turn about z.</summary>
     private static byte[] Record(float scale, Vector3 translation, float time)
     {

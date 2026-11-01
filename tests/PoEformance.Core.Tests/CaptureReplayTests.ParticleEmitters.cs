@@ -17,7 +17,9 @@ public partial class CaptureReplayTests
             return;
         }
 
-        List<string> lines = ParticleEmitterHunt.Replay(File.ReadLines(CaptureParts.Find(folder, CaptureReport.ParticleEmittersFile)));
+        string region = CaptureParts.Find(folder, ParticleEmitterHunt.RegionFile);
+        List<string> lines = ParticleEmitterHunt.Replay(
+            File.ReadLines(CaptureParts.Find(folder, CaptureReport.ParticleEmittersFile)), File.Exists(region) ? File.ReadAllBytes(region) : null);
         File.WriteAllLines(Path.Combine(folder, "particle-emitters-replay.txt"), lines);
     }
 }
