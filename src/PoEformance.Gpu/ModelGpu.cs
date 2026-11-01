@@ -1,5 +1,7 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using PoEformance.Game.Files;
 using SharpGen.Runtime;
 using Vortice.D3DCompiler;
@@ -181,6 +183,9 @@ public sealed partial class ModelGpu : IDisposable
     private readonly ID3D11DepthStencilState _surfaced;
     private readonly ID3D11RasterizerState _raster;
     private readonly ProgramShaders _programs;
+
+    /// <summary>The folder compiled shaders are kept in, or null - the wetness pass takes its two from the warming by it.</summary>
+    private readonly string? _cache;
     private readonly int _largest;
     private readonly Dictionary<SkinnedMesh, MeshBuffers> _meshes = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<Mipmaps, SkinTexture> _skins = new(ReferenceEqualityComparer.Instance);
@@ -224,6 +229,7 @@ public sealed partial class ModelGpu : IDisposable
         _device = device;
         _context = context;
         _owns = owns;
+        _cache = cache;
         _placed = compiled.Placed;
         _placedWaves = compiled.PlacedWaves;
         _placedBeach = compiled.PlacedBeach;
@@ -356,7 +362,7 @@ public sealed partial class ModelGpu : IDisposable
 
     private static ModelGpu? Made(ID3D11Device device, ID3D11DeviceContext context, bool owns, string? cache, out string why)
     {
-        Compiled? compiled = Compile(device, out why);
+        Compiled? compiled = Compile(device, cache, out why);
         if (compiled is null)
         {
             if (owns)
@@ -1412,64 +1418,117 @@ public sealed partial class ModelGpu : IDisposable
         }
     }
 
-    private static Compiled? Compile(ID3D11Device device, out string why)
+    private static Compiled? Compile(ID3D11Device device, string? cache, out string why)
     {
-        (string Source, string Entry, string Profile)[] wanted =
+        // THE BYTECODE FROM THE WARMING, compiled behind the frame since the tool started - see Warm. Only what is left of it is waited for.
+        // The wetness pass's two are not asked for here: a pass that will not compile leaves that pass out (ModelGpu.Wet), not the card.
+        (byte[]?[] code, string[] whys) = FixedCode(cache).GetAwaiter().GetResult();
+        int failed = Array.FindIndex(code, 0, WetWater, one => one is null);
+        if (failed >= 0)
+        {
+            why = whys[failed];
+            return null;
+        }
+
+        InputElementDescription[] corners =
         [
-            (ModelShaders.Model, "Placed", "vs_4_0"),
-            (ModelShaders.Model, "PlacedWaves", "vs_4_0"),
-            (ModelShaders.Model, "Solid", "ps_4_0"),
-            (ModelShaders.Model, "Mixed", "ps_4_0"),
-            (ModelShaders.Model, "Added", "ps_4_0"),
-            (ModelShaders.Model, "Scened", "ps_4_0"),
-            (ModelShaders.Model, "Casting", "vs_4_0"),
-            (ModelShaders.Model, "Away", "ps_4_0"),
-            (ModelShaders.Resolve, "Whole", "vs_4_0"),
-            (ModelShaders.Resolve, "Straight", "ps_4_0"),
-            (ModelShaders.Model, "PlacedBeach", "vs_4_0"),
+            new InputElementDescription("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
+            new InputElementDescription("NORMAL", 0, Format.R32G32B32_Float, 0, 1, InputClassification.PerVertexData, 0),
+            new InputElementDescription("TEXCOORD", 0, Format.R32G32_Float, 0, 2, InputClassification.PerVertexData, 0),
+            new InputElementDescription("COLOR", 0, Format.R8G8B8A8_UNorm, 0, 3, InputClassification.PerVertexData, 0),
         ];
 
-        var blobs = new Blob?[wanted.Length];
-        try
+        why = string.Empty;
+        return new Compiled(
+            Vertex(device, code[0]!),
+            Vertex(device, code[1]!),
+            Pixel(device, code[2]!),
+            Pixel(device, code[3]!),
+            Pixel(device, code[4]!),
+            Pixel(device, code[5]!),
+            Vertex(device, code[6]!),
+            Pixel(device, code[7]!),
+            Vertex(device, code[8]!),
+            Pixel(device, code[9]!),
+            device.CreateInputLayout(corners, code[0]!),
+            Vertex(device, code[10]!));
+    }
+
+    /// <summary>
+    /// The fixed shaders' entry points, in the order <see cref="Compiled"/> takes them - and the wetness pass's two after them
+    /// (ModelGpu.Wet), compiled with the rest so its first picture does not wait either.
+    /// </summary>
+    private static readonly (string Source, string Entry, string Profile)[] Fixed =
+    [
+        (ModelShaders.Model, "Placed", "vs_4_0"),
+        (ModelShaders.Model, "PlacedWaves", "vs_4_0"),
+        (ModelShaders.Model, "Solid", "ps_4_0"),
+        (ModelShaders.Model, "Mixed", "ps_4_0"),
+        (ModelShaders.Model, "Added", "ps_4_0"),
+        (ModelShaders.Model, "Scened", "ps_4_0"),
+        (ModelShaders.Model, "Casting", "vs_4_0"),
+        (ModelShaders.Model, "Away", "ps_4_0"),
+        (ModelShaders.Resolve, "Whole", "vs_4_0"),
+        (ModelShaders.Resolve, "Straight", "ps_4_0"),
+        (ModelShaders.Model, "PlacedBeach", "vs_4_0"),
+        (ModelShaders.Wetting, "WaterWet", "ps_4_0"),
+        (ModelShaders.Drying, "Dried", "ps_4_0"),
+    ];
+
+    /// <summary>Where the wetness pass's two stand in <see cref="Fixed"/>.</summary>
+    private const int WetWater = 11, WetDried = 12;
+
+    private static readonly Lock Warming = new();
+    private static Task<(byte[]?[] Code, string[] Why)>? _fixed;
+
+    /// <summary>
+    /// Starts compiling the fixed shaders behind the frame - each entry point on a worker of its own, each kept on disk in <paramref name="cache"/>
+    /// - so the first model drawn on the card does not wait for them. Call it as the tool starts; the first drawing waits only for what is left.
+    /// </summary>
+    /// <remarks>
+    /// MEASURED (v0.1.424 through the agent link, 2026-11-01): the player's first picture on the card took 6.1 s on the render thread, the
+    /// overlay drawing no frame for as long (overlay.log's watchdog, "stopped at: building the frame", in v0.1.423 too) - eleven entry points of
+    /// one large source compiled one after another as the card's drawing was made. Kept by what was compiled, as the material shaders are
+    /// (ProgramShaders), a start after the first compiles none of them.
+    /// </remarks>
+    /// <param name="cache">The folder compiled shaders are kept in, or null to keep none.</param>
+    public static void Warm(string? cache) => _ = FixedCode(cache);
+
+    private static Task<(byte[]?[] Code, string[] Why)> FixedCode(string? cache)
+    {
+        lock (Warming)
         {
-            why = string.Empty;
-            for (var at = 0; at < wanted.Length; at++)
+            return _fixed ??= Task.Run(() =>
             {
-                blobs[at] = Compiled.Code(wanted[at].Source, wanted[at].Entry, wanted[at].Profile, out why);
-                if (blobs[at] is null)
-                {
-                    return null;
-                }
-            }
-
-            InputElementDescription[] corners =
-            [
-                new InputElementDescription("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
-                new InputElementDescription("NORMAL", 0, Format.R32G32B32_Float, 0, 1, InputClassification.PerVertexData, 0),
-                new InputElementDescription("TEXCOORD", 0, Format.R32G32_Float, 0, 2, InputClassification.PerVertexData, 0),
-                new InputElementDescription("COLOR", 0, Format.R8G8B8A8_UNorm, 0, 3, InputClassification.PerVertexData, 0),
-            ];
-
-            return new Compiled(
-                device.CreateVertexShader(blobs[0]!),
-                device.CreateVertexShader(blobs[1]!),
-                device.CreatePixelShader(blobs[2]!),
-                device.CreatePixelShader(blobs[3]!),
-                device.CreatePixelShader(blobs[4]!),
-                device.CreatePixelShader(blobs[5]!),
-                device.CreateVertexShader(blobs[6]!),
-                device.CreatePixelShader(blobs[7]!),
-                device.CreateVertexShader(blobs[8]!),
-                device.CreatePixelShader(blobs[9]!),
-                device.CreateInputLayout(corners, blobs[0]!),
-                device.CreateVertexShader(blobs[10]!));
+                var code = new byte[]?[Fixed.Length];
+                var why = new string[Fixed.Length];
+                Parallel.For(0, Fixed.Length, at => code[at] = Compiled.Bytes(Fixed[at].Source, Fixed[at].Entry, Fixed[at].Profile, cache, out why[at]));
+                return (code, why);
+            });
         }
-        finally
+    }
+
+    /// <summary>A fixed shader's bytecode from the warming, waited for where it is not in yet - or null and why not.</summary>
+    private static byte[]? FixedBytes(int at, string? cache, out string why)
+    {
+        (byte[]?[] code, string[] whys) = FixedCode(cache).GetAwaiter().GetResult();
+        why = whys[at];
+        return code[at];
+    }
+
+    private static unsafe ID3D11VertexShader Vertex(ID3D11Device device, byte[] code)
+    {
+        fixed (byte* at = code)
         {
-            foreach (Blob? one in blobs)
-            {
-                one?.Dispose();
-            }
+            return device.CreateVertexShader(at, new PointerSize(code.Length), null);
+        }
+    }
+
+    private static unsafe ID3D11PixelShader Pixel(ID3D11Device device, byte[] code)
+    {
+        fixed (byte* at = code)
+        {
+            return device.CreatePixelShader(at, new PointerSize(code.Length), null);
         }
     }
 
@@ -1520,6 +1579,62 @@ public sealed partial class ModelGpu : IDisposable
         ID3D11InputLayout Layout,
         ID3D11VertexShader PlacedBeach)
     {
+        /// <summary>
+        /// One entry point's bytecode: kept on disk by what was compiled (the source, the entry, the profile - hashed) where a folder is given,
+        /// else compiled and kept there - or null and the compiler's words. Any thread: a blob is never shared, its bytes copied out.
+        /// </summary>
+        public static byte[]? Bytes(string source, string entry, string profile, string? cache, out string why)
+        {
+            string? file = cache is null
+                ? null
+                : Path.Combine(cache, "fixed-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{source}\n{entry}\n{profile}"))) + ".cso");
+            if (file is not null)
+            {
+                try
+                {
+                    if (File.Exists(file))
+                    {
+                        why = string.Empty;
+                        return File.ReadAllBytes(file);
+                    }
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    // A FILE THAT WILL NOT READ IS COMPILED AGAIN - the folder is only a shortcut.
+                }
+            }
+
+            byte[] bytes;
+            using (Blob? blob = Code(source, entry, profile, out why))
+            {
+                if (blob is null)
+                {
+                    return null;
+                }
+
+                bytes = new byte[blob.BufferSize];
+                Marshal.Copy(blob.BufferPointer, bytes, 0, bytes.Length);
+            }
+
+            if (file is not null)
+            {
+                try
+                {
+                    // WHOLE OR NOT AT ALL, as ProgramShaders writes its own: aside, then moved in.
+                    Directory.CreateDirectory(cache!);
+                    string aside = file + "." + Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".part";
+                    File.WriteAllBytes(aside, bytes);
+                    File.Move(aside, file, overwrite: true);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    // NOT KEPT, AND STILL DRAWN - the next start compiles it again.
+                }
+            }
+
+            return bytes;
+        }
+
         /// <summary>One entry point compiled, or null and the compiler's words.</summary>
         public static Blob? Code(string source, string entry, string profile, out string why)
         {
