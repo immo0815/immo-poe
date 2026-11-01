@@ -744,7 +744,7 @@ public sealed partial class MonsterPortrait
         _release = release;
         _unpack = unpack;
         _sizes = new PictureLadder(most);
-        _sideKeys = [_prefix + "card", _prefix + "light", _prefix + "orbit", _prefix + "probe", _prefix + "clock", _prefix + "reset", _prefix + "game", _prefix + "perspective"];
+        _sideKeys = [_prefix + "card", _prefix + "light", _prefix + "orbit", _prefix + "probe", _prefix + "clock", _prefix + "reset", _prefix + "game", _prefix + "perspective", _prefix + "focus"];
     }
 
     /// <summary>
