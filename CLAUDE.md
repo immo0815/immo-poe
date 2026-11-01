@@ -1373,6 +1373,15 @@ frame: w is the distance along the bones (GetParticleEmitterBoneGroupLength, the
 next bone's w is its distance from the first. v0.1.434 looks for those runs in the heap and the driver's heaps (`ParticleEmitterHunt.Chains`),
 every near record of both arrays voting by its own first bone, the best bases read back and their bones placed in the world through the
 emitter; `particle-emitters.bin` holds the region and the bones arrays read, and the replay votes inside them again.
+THE BONES ARE FOUND (v0.1.434's capture, 20:08, Canal Hideout, the staff in hand; schema `ParticleEmitterData.Bones`): an array of BoneData in
+the game's heap, a dense series of the frame's emitters' runs rewritten every frame. A bone is its place in the held piece's MODEL frame,
+unscaled - the lamp's group phys_tri_lamp_jntBnd (-16.37, 2.01, -117.07), swung off its rest (-16.32, 6.51, -118.00), at w 0, and lamp_01, the
+socket 10 units along it, at w 9.99 - prev_pos the last frame's. Its base was not settled (runs of two bones tie two bones apart, and the array
+was read 30 s after the records), which the tool's own dispatch does not need: it packs its own array. The emitter's transform is the piece's
+World again (0.03 units, 0 degrees off); its clock starts at nought when the effect is made (107 s in the hideout, then 4 s after it was made
+anew). SO EVERY FIELD OF A RECORD IS READ: the tool can make the lamp's from its own swung lamp - the staff's World, the clock, the bone group's
+model-frame places and their distances along. NOT YET MEASURED: the dispatch's own globals (gpu_particle_seed, _count, _burst,
+gpu_particles_duration, frame_delta_time, instance_count, batch_size) - in no file and not in the records.
 
 ## Verify against the game, not against yourself
 
