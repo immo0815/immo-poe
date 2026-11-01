@@ -2400,8 +2400,12 @@ in 100 s, so a call that runs longer than 40 s is answered as pending (`structur
   sends anything to the game.
 - EVERY CALL BRINGS THE GAME'S WINDOW TO THE FRONT FIRST where another window is (v0.1.412, asked for from the live client, 2026-11-01:
   "from now on you bring the PoE2 window to the front yourself, before you do anything"): `AgentLink.Before`, the overlay's `AgentFront`,
-  on the render thread (`GameWindowTracker.Raise`: a minimised game restored, the render thread's input joined to the window in
-  front for the moment - AttachThreadInput - then BringWindowToTop and SetForegroundWindow). NO KEY IS SENT: the usual trick presses Alt,
+  on a thread of its own (`GameWindowTracker.RaiseAside`, waited for 2 s: a minimised game restored, that thread's input joined to the
+  window in front for the moment - AttachThreadInput - then the game put on top and SetForegroundWindow; the restore and the top POSTED,
+  ShowWindowAsync and SetWindowPos's SWP_ASYNCWINDOWPOS). Until v0.1.417 it ran on the render thread with ShowWindow and BringWindowToTop,
+  which wait for the game's window thread: with the game in the background v0.1.416's first agent call held every frame for good
+  (MEASURED: overlay.log's watchdog "stopped at: building the frame", the agent's "no frame came"); a raise that hangs now holds only its
+  own thread, the call says so and goes on, and no second raise starts beside it. NO KEY IS SENT: the usual trick presses Alt,
   and Alt held in the game shows its items' labels. Whether it came is looked at OFF the render thread for up to half a second
   (`GameWindowTracker.Settled`, CHOSEN): v0.1.412 looked once, straight after, found no window in front at all while Windows handed the
   activation on, and said the game had not come when it had (MEASURED through the agent link). What it did opens the call's answer on a
