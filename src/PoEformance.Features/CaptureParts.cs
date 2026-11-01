@@ -235,6 +235,9 @@ public static class CaptureParts
     /// <summary>The engine's cloth as it runs: its physics objects found in memory, their particles and the world's containers - see ClothLive.</summary>
     public const string ClothLive = "cloth-live";
 
+    /// <summary>The engine's cloth near the player frame by frame, and the tool's stepped against it - off until ticked; see ClothWatch.</summary>
+    public const string ClothWatch = "cloth-watch";
+
     /// <summary>The memory recording itself.</summary>
     public const string Memory = "memory";
 
@@ -266,7 +269,7 @@ public static class CaptureParts
     /// </remarks>
     public static bool RunsAtPress(string key)
         => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow or ShaderStages or PlayerLook or BoneWatch
-            or AoSimulations or ProgramCode or ClothLive;
+            or AoSimulations or ProgramCode or ClothLive or ClothWatch;
 
     /// <summary>
     /// A heading as the Keys page writes it. The headings themselves stay as they are: they are what <see cref="FolderOfGroup"/> keys
@@ -712,6 +715,18 @@ public static class CaptureParts
             + "particles with their animated targets, depths and parents, triangles with their rest lengths, edges, constraints and pinned "
             + "particles - its particles read twice a moment apart, and the physics world's containers they live in with their vtables, "
             + "searched for where they keep each particle's place. Seconds, past the recording; press it anywhere, best with cloth on you."),
+        new(ClothWatch, "Memory", "cloth frame by frame", CaptureReport.ClothWatchFile,
+            "The engine's cloth on your character frame by frame, to hold the tool's own against: the cloth objects near you found in memory "
+            + "(robe, cape, hair, a lantern's chain), then for ten seconds every particle's animated target and every body's place and motion read "
+            + "as often as they change, with the contacts each step made, the capsules round your body and the physics system's clock - "
+            + "cloth-watch.bin beside it. Its reading takes every step again with the tool's cloth from the game's own state onto the game's own "
+            + "targets, under each order a frame's phases may run in, and holds it against the game's next state; and holds each object's setup "
+            + "against the tool's cloth of the same piece, where the Monster Book shows you (take the player first). Some twenty megabytes, so OFF "
+            + "UNTIL TICKED. PRESS THE KEY AND STAND STILL while the window's banner is amber; at the high tone it turns green - A FEW STEPS, "
+            + "THEN STAND COMPLETELY STILL until the low tone.")
+        {
+            OffByDefault = true,
+        },
         new(ProgramCode, "Memory", "the program's code (100 MB)", CaptureReport.ProgramCodeFile,
             "The game's program as it runs, for reading the engine's own code offline: its image written whole beside the report "
             + "(program-code.bin, byte n at module+n), its sections and function table, and every string naming a ClientAnimationController "

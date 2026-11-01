@@ -2078,6 +2078,10 @@ public sealed partial class EntityOverlay : ClickableTransparentOverlay.Overlay
     public void OfferCaptureWork(string key, Func<string, IReadOnlyList<string>?> work, CaptureWorkProgress? progress = null)
         => _capture.OfferWork(key, work, progress);
 
+    /// <summary>Hands a capture part that runs at the press its work, which reads the model panes as they stood when the key went down.</summary>
+    public void OfferCaptureWork(string key, Func<string, IReadOnlyList<CapturePane>, IReadOnlyList<string>?> work, CaptureWorkProgress? progress = null)
+        => _capture.OfferWork(key, work, progress);
+
     /// <summary>The install's paths naming a wobble, for the capture's wobble files part - see CaptureWobble.</summary>
     /// <remarks>Set by the same walk as <see cref="TileFiles"/>; empty until it runs.</remarks>
     public IReadOnlyList<string> WobblePaths

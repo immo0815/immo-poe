@@ -3917,6 +3917,50 @@ internal static class Program
                 () => clothLive?.Fraction ?? 0f,
                 () => clothLive?.Stop()));
 
+        // THE CLOTH FRAME BY FRAME: the cloth objects near the player read as often as they change while he stands, takes a few steps and
+        // stands again, and the tool's own cloth stepped against them - see ClothWatch. Past the tap; its reads go beside its file. The
+        // Monster Book's model as it stood at the press gives the tool's own cloth of each piece (take the player first).
+        PoEformance.Game.Diagnostics.ClothWatch? clothWatch = null;
+        overlay.OfferCaptureWork(
+            PoEformance.Features.CaptureParts.ClothWatch,
+            (path, panes) =>
+            {
+                PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
+                var watch = new PoEformance.Game.Diagnostics.ClothWatch(untapped, schema);
+                clothWatch = watch;
+                string? folder = Path.GetDirectoryName(path);
+                List<(string Name, PoEformance.Game.Files.ClothRig Rig)> tools = [.. panes
+                    .Where(pane => pane.Book == "monster")
+                    .SelectMany(pane => (pane.Model.Actor ?? pane.Model).Swings)
+                    .Select(swing => (Path.GetFileName(swing.Source), swing.Cloth))];
+                return watch.Run(
+                    gameStatesStatic,
+                    folder is null ? null : Path.Combine(folder, PoEformance.Game.Diagnostics.ClothWatchSeries.File),
+                    untapped as PoEformance.Core.Memory.IMemoryRegions,
+                    tools);
+            },
+            new PoEformance.Overlay.CaptureWorkProgress(
+                () => clothWatch?.Line ?? "starting",
+                () => clothWatch?.Fraction ?? 0f,
+                () => clothWatch?.Stop())
+            {
+                // THE BANNER, as the bone watch's: stand while it searches, then a few steps and a stand - the cloth settling is measured.
+                Ask = () => clothWatch?.Now switch
+                {
+                    PoEformance.Game.Diagnostics.ClothWatch.Stage.Searching => new PoEformance.Overlay.CaptureAsk(
+                        false,
+                        "STAND STILL - the cloth watch is searching memory",
+                        "When this turns green and a high tone sounds: a few steps (a click a little way off), then stand completely still until the low tone.",
+                        double.NaN),
+                    PoEformance.Game.Diagnostics.ClothWatch.Stage.Watching => new PoEformance.Overlay.CaptureAsk(
+                        true,
+                        "NOW: a few steps, then STOP and stand still",
+                        "Stand until the low tone: the cloth settling after the stop is measured as well as its swing while walking.",
+                        clothWatch.Left),
+                    _ => null,
+                },
+            });
+
         // NEEDS NO INSTALL: it reads memory rather than the game's files. The one thing it needs is
         // the loaded-file table.
         overlay.OfferCaptureWork(PoEformance.Features.CaptureParts.RoomPlacements, _ =>

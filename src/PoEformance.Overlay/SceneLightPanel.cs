@@ -1343,7 +1343,9 @@ public sealed partial class SceneLightPanel : IMovableSun
                     : (model.Actor ?? model).Swings.Count == 0
                         ? "swing: " + swung
                         : "swing: " + swung
-                            + " - one step a frame of the smoothed frame time as the engine steps it, from standing on the animation's targets (CHOSEN), still while the clock stands; not done: the wind, the heightmap and planes, the skins on his rig");
+                            + " - one step a frame of the smoothed frame time as the engine steps it, from standing on the animation's targets (CHOSEN), still while the clock stands;"
+                            + " not done: the wind, the heightmap and planes, the ellipsoids (their frame not read), and his own way through the world - the pane plays him in place,"
+                            + " while the game moves him and the air's drag on a running robe is the world's");
             }
             lines.Add(model.AreaOrigin is null
                 ? "player light: over the middle of the picture - the room is not laid in the area"

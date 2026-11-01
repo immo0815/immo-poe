@@ -106,52 +106,8 @@ public static class ClothLive
         ArgumentNullException.ThrowIfNull(extra);
         ArgumentNullException.ThrowIfNull(running);
         var lines = new List<string>();
-        var needles = new List<FloatNeedle>
-        {
-            new("the defaults' tail: animation_max_velocity 1000, the scale, gravity 980", [1000f, float.NaN, 980f], 0f, Most: 4096),
-        };
-        foreach ((string name, ClothSettings settings) in extra)
-        {
-            float[] block = settings.ObjectBlock();
-            block[9] = float.NaN;
-            needles.Add(new FloatNeedle($"{name}'s parameters", block, 1e-4f, Most: 256));
-        }
-
-        var writable = new WritableRegions(regions);
-        FloatHuntResult swept = FloatHunt.Run(reader, writable, needles, 0, running.Hunt, budget: 2 * HeapScan.ByteBudget);
-        lines.Add(string.Create(CultureInfo.InvariantCulture,
-            $"cloth live: {needles.Count} needles, {swept.BytesScanned / 1e9:0.0} GB of {swept.RegionsWalked:N0} regions on {swept.Workers} threads in {swept.Took.TotalSeconds:0.0} s{(swept.Stopped ? " (stopped)" : swept.Truncated ? " (its budget ended it)" : string.Empty)}, leaving out {writable.Unwritable / 1e9:0.0} GB the game cannot write and {writable.Slow / 1e9:0.0} GB of the driver's heaps; {swept.Sightings.Count} places found"));
-        for (var one = 0; one < needles.Count; one++)
-        {
-            lines.Add(string.Create(CultureInfo.InvariantCulture,
-                $"  needle {one}: {needles[one].Name}: {swept.Sightings.Count(sight => sight.Needle == one)} places{(swept.Capped.Contains(one) ? " (capped)" : string.Empty)}"));
-        }
-
+        SortedDictionary<ulong, byte[]> objects = Find(reader, regions, extra, running.Hunt, MostObjects, "cloth live", lines);
         running.Phase(1);
-        var objects = new SortedDictionary<ulong, byte[]>();
-        int refused = 0;
-        foreach (FloatSighting sight in swept.Sightings)
-        {
-            ulong at = sight.At - (ulong)(sight.Needle == 0 ? TailAt : BlockAt);
-            if (objects.ContainsKey(at) || objects.Count >= MostObjects)
-            {
-                continue;
-            }
-
-            byte[] bytes = new byte[ObjectBytes];
-            if (reader.TryRead(at, bytes) && Holds(bytes))
-            {
-                objects[at] = bytes;
-            }
-            else
-            {
-                refused++;
-            }
-        }
-
-        lines.Add(string.Create(CultureInfo.InvariantCulture,
-            $"{objects.Count} physics objects whose vectors hold together (particles of 0x58, constraints of 0x28, triangles of 0x1C, edges of 0x10), {refused} places refused"));
-
         Thread.Sleep(Between);
         var containers = new SortedDictionary<ulong, List<(ulong Object, int Particle, Vector3 Target)>>();
         var managers = new SortedSet<ulong>();
@@ -177,6 +133,74 @@ public static class ClothLive
         }
 
         return lines;
+    }
+
+    /// <summary>
+    /// The physics objects in the whole of memory, found by their parameters' tail - animation_max_velocity, the scale, gravity: 1000,
+    /// anything, 980 where an .ao keeps the defaults - and by every block of <paramref name="extra"/>, kept where their vectors hold together.
+    /// </summary>
+    /// <param name="reader">The game's memory, past the tap.</param>
+    /// <param name="regions">Its regions.</param>
+    /// <param name="extra">More tails to look for: each a name and its settings, whose whole block of parameters is the needle.</param>
+    /// <param name="hunt">The sweep's progress and stop.</param>
+    /// <param name="most">The most objects kept.</param>
+    /// <param name="who">The part's name, for its first line.</param>
+    /// <param name="lines">Where the sweep's lines go.</param>
+    /// <returns>Each object's first <see cref="ObjectBytes"/> bytes by its address.</returns>
+    public static SortedDictionary<ulong, byte[]> Find(
+        IMemoryReader reader, IMemoryRegions regions, IReadOnlyList<(string Name, ClothSettings Settings)> extra, FloatHuntProgress hunt, int most,
+        string who, List<string> lines)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(regions);
+        ArgumentNullException.ThrowIfNull(extra);
+        ArgumentNullException.ThrowIfNull(hunt);
+        ArgumentNullException.ThrowIfNull(lines);
+        var needles = new List<FloatNeedle>
+        {
+            new("the defaults' tail: animation_max_velocity 1000, the scale, gravity 980", [1000f, float.NaN, 980f], 0f, Most: 4096),
+        };
+        foreach ((string name, ClothSettings settings) in extra)
+        {
+            float[] block = settings.ObjectBlock();
+            block[9] = float.NaN;
+            needles.Add(new FloatNeedle($"{name}'s parameters", block, 1e-4f, Most: 256));
+        }
+
+        var writable = new WritableRegions(regions);
+        FloatHuntResult swept = FloatHunt.Run(reader, writable, needles, 0, hunt, budget: 2 * HeapScan.ByteBudget);
+        lines.Add(string.Create(CultureInfo.InvariantCulture,
+            $"{who}: {needles.Count} needles, {swept.BytesScanned / 1e9:0.0} GB of {swept.RegionsWalked:N0} regions on {swept.Workers} threads in {swept.Took.TotalSeconds:0.0} s{(swept.Stopped ? " (stopped)" : swept.Truncated ? " (its budget ended it)" : string.Empty)}, leaving out {writable.Unwritable / 1e9:0.0} GB the game cannot write and {writable.Slow / 1e9:0.0} GB of the driver's heaps; {swept.Sightings.Count} places found"));
+        for (var one = 0; one < needles.Count; one++)
+        {
+            lines.Add(string.Create(CultureInfo.InvariantCulture,
+                $"  needle {one}: {needles[one].Name}: {swept.Sightings.Count(sight => sight.Needle == one)} places{(swept.Capped.Contains(one) ? " (capped)" : string.Empty)}"));
+        }
+
+        var objects = new SortedDictionary<ulong, byte[]>();
+        int refused = 0;
+        foreach (FloatSighting sight in swept.Sightings)
+        {
+            ulong at = sight.At - (ulong)(sight.Needle == 0 ? TailAt : BlockAt);
+            if (objects.ContainsKey(at) || objects.Count >= most)
+            {
+                continue;
+            }
+
+            byte[] bytes = new byte[ObjectBytes];
+            if (reader.TryRead(at, bytes) && Holds(bytes))
+            {
+                objects[at] = bytes;
+            }
+            else
+            {
+                refused++;
+            }
+        }
+
+        lines.Add(string.Create(CultureInfo.InvariantCulture,
+            $"{objects.Count} physics objects whose vectors hold together (particles of 0x58, constraints of 0x28, triangles of 0x1C, edges of 0x10), {refused} places refused"));
+        return objects;
     }
 
     /// <summary>Whether an object's vectors hold together: begin, end and capacity in order, whole records, and a sane number of them.</summary>

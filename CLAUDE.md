@@ -1212,8 +1212,9 @@ ClientAnimationController's setup (module+0x2863C00, schema `ClientAnimationCont
 skins their targets from its own skeleton and links every phys_ bone of it; then, of the objects attached to it, one WITH a controller of its
 own is skipped - it sets its own cloth up on its own skeleton - and one with none (a rigless skin: the player's body armour) has its SkinMesh
 handed to the world AFTER the targets and links were made, so a rigless skin's simulation mesh moves no bone (its collision shapes count). And
-the collision shapes are the PHYSICS SYSTEM's (schema `PhysicsSystemColliders`): the world step tests every capsule of the system against each
-container's bounds, so the robe's skirt meets his legs' capsules though they are his body's. So the books (`MonsterModel`'s Swaying,
+the collision shapes are the PHYSICS WORLD's (schema `PhysicsWorldColliders` - the objects' manager, the system's +0x18; v0.1.424 named them the
+system static's, corrected v0.1.425): the world step tests every capsule of the world against each container's bounds, so the robe's skirt
+meets his legs' capsules though they are his body's. So the books (`MonsterModel`'s Swaying,
 `MonsterModel.Colliders`, `ClothColliders`) simulate: his own body's simulation meshes on his own rig's phys_ bones (the player's chest,
 phys_skinned_R/L_chest, 15 particles, 6 pinned); every skin on a rig of its own that the retarget joins to his (the Doryani skirt, 140
 particles and 88 phys_ bones; the shawl; the helmet's dangle; the glove feathers), each phys_ bone a bone appended to his rig under the bone its
@@ -1228,6 +1229,25 @@ collided - the player has none), the heightmap and the planes. v0.1.422's monste
 switch off, which started them over every frame - it measured cloths that never left their targets; it plays them against the pose alone now.
 The agent link's picture waits for the opening animation's pose (`MonsterPortrait.AgentSettled`: the keyframes taken and the picture drawn in
 their pose) - v0.1.423 handed back the bind pose drawn while they loaded.
+ITS FIRST LIVE CHECK (v0.1.424 through the agent link, 2026-11-01 14:00, Cemetery of the Eternals, the player taken): all eight cloths simulate,
+118 bones against 21 capsules; played 8 s at 99 frames a second through idle_staff_01 nothing ran away - the skirt's top row within 0.4 of its
+animated place, 2 to 5 in its second row, up to 11 in its third and 17.5 at the front panel's hem, the lamp 16, the feathers' tips about 7.
+Not yet held against the game. THE GAME'S CLOTH FRAME BY FRAME (v0.1.425, `cloth-watch.txt`, `ClothWatch`, the Memory group, OFF UNTIL TICKED):
+the cloth objects within 300 of the player found as ClothLive finds them, then for ten seconds every particle's targets (ClothParticle +0x20,
++0x2C) and every body (its container's +0x88 by the slot its +0x40 gives the particle's handle) read as often as they change - an object's
+particles and bodies read twice and dropped where either changed between (a step of the world's jobs) - with the contacts each step made
+(the container's +0x10), the capsules within 500 of him (the world's +0x1D8 through its slots, their spheres through +0x110) and the system's
+clock (its static found as the place in the program's writable data whose +0x18 is the world), each change with when it was read
+(`cloth-watch.bin`, `ClothWatchSeries`). Its reading takes every step again with the tool's cloth built from the game's own setup
+(`ClothRig.Recorded`: the container's distance constraints in their order, its bends and their rest folds, the object's depths, parents and
+shock links) from the game's state onto the game's targets (`ClothWorld.Seed`, `Retarget`, `Spheres`, `StepOnce`, `Settle`) under each order
+of a frame's phases - targets, step, after (the tool's); step, targets, after; targets, after, step - and holds it against the game's next
+state; it says where the step put the pinned particles (on the new targets or the old) and runs the cloth free on the game's targets; and
+holds each object's setup against the tool's own cloth of the same piece where the Monster Book shows the player (the capture's panes are
+taken before the slow parts start, `CaptureKey.OfferWork` with the panes). `cloth-watch-replay.txt` reads it again offline.
+`THEREPLAYFindsTheToolsOwnStepsAgainExactlyAndOnlyInItsOrder` holds the reading against the tool's own world. Take it with the player taken
+in the Monster Book, out of town, robe on: stand while the banner is amber, at the high tone a few steps, then stand until the low tone - the
+order of the phases and how far the port's step is from the engine's are read there before any CHOSEN rule of ClothWorld changes.
 
 ## Verify against the game, not against yourself
 

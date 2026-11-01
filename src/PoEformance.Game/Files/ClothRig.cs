@@ -142,6 +142,78 @@ public sealed class ClothRig
         Unlinked = said;
     }
 
+    private ClothRig(
+        int count, ClothTriangle[] triangles, ClothEdge[] edges, ClothEdge[] bends, float[] restFolds, bool[] pinned, int[] depth, int[] parent,
+        (int Parent, int Child)[] shocks, ClothSettings settings, string source)
+    {
+        Count = count;
+        Rest = new Vector3[count];
+        Bones = new Int4[count];
+        Array.Fill(Bones, new Int4(-1, -1, -1, -1));
+        Weights = new Vector4[count];
+        Pinned = pinned;
+        Triangles = triangles;
+        (IncidentStart, IncidentCount, Incident) = Incidence(count, triangles);
+        Edges = edges;
+        Bends = bends;
+        RestFolds = restFolds;
+        Depth = depth;
+        Parent = parent;
+        Shocks = shocks;
+        Links = [];
+        Unlinked = [];
+        Settings = settings;
+        Source = source;
+    }
+
+    /// <summary>
+    /// A cloth as the game's own physics object holds it (ClothWatch): its triangles with their rest lengths and areas, the distance
+    /// constraints in the order the world solves them, the bends with their rest folds, the pinned particles, every particle's depth and
+    /// parent and the shock links - no rest of its own and no bone linked: it is stepped on targets handed to it (ClothWorld.Seed, Retarget).
+    /// </summary>
+    /// <param name="count">How many particles.</param>
+    /// <param name="triangles">Its triangles.</param>
+    /// <param name="edges">Its distance constraints' ends, in the solver's order (their wings unread: -1).</param>
+    /// <param name="bends">Its bend constraints' four particles.</param>
+    /// <param name="restFolds">Each bend's rest fold.</param>
+    /// <param name="pinned">Which particles follow the animation.</param>
+    /// <param name="depth">Each particle's depth from the pinned ones.</param>
+    /// <param name="parent">Each particle's parent.</param>
+    /// <param name="shocks">The shock links, parent and child.</param>
+    /// <param name="settings">The simulation.</param>
+    /// <param name="source">What it came from, for the lines.</param>
+    public static ClothRig Recorded(
+        int count, IReadOnlyList<ClothTriangle> triangles, IReadOnlyList<ClothEdge> edges, IReadOnlyList<ClothEdge> bends, IReadOnlyList<float> restFolds,
+        IReadOnlyList<bool> pinned, IReadOnlyList<int> depth, IReadOnlyList<int> parent, IReadOnlyList<(int Parent, int Child)> shocks,
+        ClothSettings settings, string source)
+    {
+        ArgumentNullException.ThrowIfNull(triangles);
+        ArgumentNullException.ThrowIfNull(edges);
+        ArgumentNullException.ThrowIfNull(bends);
+        ArgumentNullException.ThrowIfNull(restFolds);
+        ArgumentNullException.ThrowIfNull(pinned);
+        ArgumentNullException.ThrowIfNull(depth);
+        ArgumentNullException.ThrowIfNull(parent);
+        ArgumentNullException.ThrowIfNull(shocks);
+        ArgumentNullException.ThrowIfNull(settings);
+        if (count < 0 || pinned.Count != count || depth.Count != count || parent.Count != count || restFolds.Count != bends.Count)
+        {
+            throw new ArgumentException("a recorded cloth's particles, depths, parents and folds must agree in number");
+        }
+
+        static bool Inside(int particle, int count) => (uint)particle < (uint)count;
+        if (triangles.Any(t => !Inside(t.A, count) || !Inside(t.B, count) || !Inside(t.C, count))
+            || edges.Any(e => !Inside(e.A, count) || !Inside(e.B, count))
+            || bends.Any(e => !Inside(e.A, count) || !Inside(e.B, count) || !Inside(e.C, count) || !Inside(e.D, count))
+            || shocks.Any(s => !Inside(s.Parent, count) || !Inside(s.Child, count)))
+        {
+            throw new ArgumentException("a recorded cloth names a particle it does not have");
+        }
+
+        return new ClothRig(
+            count, [.. triangles], [.. edges], [.. bends], [.. restFolds], [.. pinned], [.. depth], [.. parent], [.. shocks], settings, source ?? string.Empty);
+    }
+
     /// <summary>How many particles.</summary>
     public int Count { get; }
 

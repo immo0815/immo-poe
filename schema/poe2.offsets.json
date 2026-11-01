@@ -1427,7 +1427,7 @@
     },
 
     "PhysicsSystem": {
-      "comment": "The physics system's static (module+0x470B150 in the build of 2026-10-27, made by module+0x132F210, got by module+0x132F0F0) - its clock, READ FROM THE ENGINE'S CODE (v0.1.421, module+0x132F6C0): each frame Smoothed moves a tenth of the way to the frame's time (the frame's own where Smoothed is still -1), Held and Since gain it, Held is held to 0.1; then ONE step a frame of min(Held, 1/15 s) where that is 5 ms or more - Held less it, LastStep it, Since nought - over every object in jobs of eight. So the cloth steps once a frame at the frame's own smoothed time: the 10.1 ms 'ticks' of the lamp measured in v0.1.414 were frames at 99 a second.",
+      "comment": "The physics system's static (module+0x470B150 in the build of 2026-10-27, made by module+0x132F210, got by module+0x132F0F0 - which returns the static's own address: lea rax,[rip+...]; its first word a vtable of the program, its +0x18 the physics world, PhysicsWorldColliders; so ClothWatch finds it as the place in the program's writable data whose +0x18 is an object's manager) - its clock, READ FROM THE ENGINE'S CODE (v0.1.421, module+0x132F6C0): each frame Smoothed moves a tenth of the way to the frame's time (the frame's own where Smoothed is still -1), Held and Since gain it, Held is held to 0.1; then ONE step a frame of min(Held, 1/15 s) where that is 5 ms or more - Held less it, LastStep it, Since nought - over every object in jobs of eight. So the cloth steps once a frame at the frame's own smoothed time: the 10.1 ms 'ticks' of the lamp measured in v0.1.414 were frames at 99 a second.",
       "fields": {
         "Held": { "offset": "0xF0", "type": "f32", "comment": "The time not yet stepped." },
         "LastStep": { "offset": "0xF4", "type": "f32", "comment": "The last step's seconds." },
@@ -1441,7 +1441,7 @@
       "fields": {
         "Dt": { "offset": "0x8", "type": "f32", "comment": "The last step's seconds - the velocity is the displacement over it (vtable +0x70)." },
         "Contacts": { "offset": "0x10", "type": "ptr", "comment": "std::vector of 0x30-byte contacts made this step: the body (ptr), the surface point, its normal, the surface's own motion this step." },
-        "Slots": { "offset": "0x40", "type": "ptr", "comment": "A body's slot by its handle (u64 each)." },
+        "Slots": { "offset": "0x40", "type": "ptr", "comment": "-> a body's slot by its handle (u64 each): a body is [+0x88] + [[+0x40] + handle*8] * 0x38 (module+0x13A1100 reads every place so). ClothWatch reads each particle's body by it." },
         "Bodies": { "offset": "0x88", "type": "ptr", "comment": "std::vector of 0x38-byte bodies - see ClothBody." },
         "Distances": { "offset": "0x108", "type": "ptr", "comment": "std::vector of 0x20-byte distance constraints: the two handles, the rest length (set each frame to the targets' distance by SetTargets through vtable +0xE8), the stiffness (negative corrects whole, else stiffness * C * dt*dt / 10, held to C), a lambda the solver zeroes, the allowed contraction (shorter than rest by up to it times the rest is let be)." },
         "Bends": { "offset": "0x188", "type": "ptr", "comment": "std::vector of 0x30-byte bend constraints: the four handles (the edge's two ends, its two wings), the stiffness, the rest fold, the allowed angle (module+0x13A26F0 makes them; the fold is module+0x139C9E0, a right angle at most)." },
@@ -1465,13 +1465,16 @@
       }
     },
 
-    "PhysicsSystemColliders": {
-      "comment": "The physics system's collision shapes as the world step reads them (module+0x139F150, v0.1.424) - the SYSTEM's, not a container's: every capsule of the system is boxed (its two spheres' centres plus and minus their radii, then the contact margin) and tested against each container's Bounds, so a piece's cloth meets the shapes of the body it hangs on. Offsets from the system's object (the static's +0x0 as the step reads it).",
+    "PhysicsWorldColliders": {
+      "comment": "The physics WORLD's collision shapes as its step reads them - READ FROM THE ENGINE'S CODE (v0.1.424, CORRECTED v0.1.425: v0.1.424 named the offsets the system static's). The world is the objects' manager (ClothObject +0x150), the physics system's +0x18: the system's update calls the world's vtable +0x08 (module+0x139E940 in the build of 2026-10-27, at module+0x132FBF1: mov rcx,[rsi+0x18]; call [rax+8]), which makes the step's context, its first word the world, and module+0x139F150 reads every shape below off it. Every capsule the world tests is boxed (its two spheres' centres plus and minus their radii, then the contact margin) and tested against each container's Bounds, so a piece's cloth meets the shapes of the body it hangs on. Read by ClothWatch.",
       "fields": {
-        "SphereSlots": { "offset": "0x110", "type": "ptr", "comment": "A sphere's slot by its handle (u64 each)." },
-        "Spheres": { "offset": "0x158", "type": "ptr", "comment": "std::vector of 0x64-byte spheres: the centre at +0x24, the radius at +0x30." },
-        "CapsuleSlots": { "offset": "0x190", "type": "ptr", "comment": "A capsule's slot by its handle (u64 each)." },
-        "Active": { "offset": "0x1A8", "type": "ptr", "comment": "The handles of the capsules tested this step (u64 each)." },
+        "Containers": { "offset": "0x58", "type": "ptr", "comment": "The containers by an object's handle (u64 each): the step takes [+0x58][handle] (module+0x139F21E)." },
+        "Ellipsoids": { "offset": "0xD8", "type": "ptr", "comment": "std::vector of 0x78-byte ellipsoids (the step divides by 120)." },
+        "SphereSlots": { "offset": "0x110", "type": "ptr", "comment": "-> a sphere's slot by its handle (u64 each): [[+0x110] + handle*8]." },
+        "SphereHandles": { "offset": "0x128", "type": "ptr", "comment": "The spheres' handles in order (u64 each) - the step walks it for the spheres' boxes." },
+        "Spheres": { "offset": "0x158", "type": "ptr", "comment": "std::vector of 0x64-byte spheres: the centre at +0x24, the radius at +0x30, the last word the bone it rides." },
+        "CapsuleSlots": { "offset": "0x190", "type": "ptr", "comment": "-> a capsule's slot by its handle (u64 each)." },
+        "Active": { "offset": "0x1A8", "type": "ptr", "comment": "std::vector of the handles of the capsules tested this step (u64 each)." },
         "Capsules": { "offset": "0x1D8", "type": "ptr", "comment": "std::vector of 0x70-byte capsules: its two spheres' handles at +0x0 and +0x8." }
       }
     },

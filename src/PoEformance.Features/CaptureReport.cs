@@ -165,6 +165,9 @@ public static class CaptureReport
     /// <summary>The engine's cloth physics objects found in memory, their particles and the world's containers - see ClothLive.</summary>
     public const string ClothLiveFile = "cloth-live.txt";
 
+    /// <summary>The engine's cloth near the player frame by frame and the tool's stepped against it - see ClothWatch; its reads beside it in ClothWatchSeries.File.</summary>
+    public const string ClothWatchFile = "cloth-watch.txt";
+
     /// <summary>The survey of the entity maps for the rooms' doodads, and every sighting.</summary>
     public const string DoodadsFile = "doodads.txt";
 
