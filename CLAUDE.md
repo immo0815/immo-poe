@@ -1434,6 +1434,31 @@ and vs_5_0, every pixel shader stopped at "maximum ps_5_0 sampler register index
 by name and the prelude SamplerDepth s15, and each node's `uniform sampler` took a register of its own. No graph names a node's sampler
 (every such parameter is `{}`), so from v0.1.441 a node's sampler is the engine's SamplerLinearWrap (`ParticleLinker.NodeSampler`, CHOSEN,
 said in the shader's unresolved list) and a node texture keeps its own kind (Texture3D, TextureCube).
+v0.1.441's capture of 23:05 COMPILED ALL ELEVEN under FXC (three updates, four vertex and four pixel shaders).
+THE PARTICLES ARE DRAWN ON THE CARD (v0.1.442, DECIDED from the live client: update and render in one go, the card alone):
+- WHAT A MODEL CARRIES (`CarriedEffects`, gathered beside the carried lights - `CarriedLights.Gathering.Effects`, `CarriedRange`): an .ao's
+  ParticleEffects `continuous_effect = "<group> <.pet>"` on its BoneGroups `bone_group = "<group> <bool> <bones...>"`, a name its own rig's bone
+  or a socket of its chain; a rigid piece's carried by its socket bone in its place's frame, a swung bone taking the group's bone by name and a
+  socket by its parent (the lamp's phys_tri_lamp_jntBnd and lamp_01). Each frame `CarriedEffects.At` gives the emitter's frame (the piece's place
+  through its socket bone's skin, then the stage) and its bones in that frame, w the distance along them - as MEASURED in the game.
+  `MonsterModel.Effects`, `EffectsSaid`. NOT READ: an animation's effect events.
+- LINKED AT THE LOAD (`ParticlePrograms`, behind the frame from the pane - `MonsterPortrait.Particles`): every emitter composed, linked from
+  the install's .ffx (parsed once per install) and the program's prelude, includes expanded, its textures and particle_mesh read
+  (`ParticleProgram`, `ParticlePassProgram`, `ParticleMeshData` in Game). A Shimmer pass is not drawn yet, said.
+- ON THE CARD (`ModelGpu.Particles`, after the translucent shapes, before the fog): each emitter's shaders compiled by FXC behind the frame
+  (`particle-<hash>.cso` in shader-cache), every resource and $Globals variable bound BY NAME off its reflection; its record
+  (CommonDeclarations.inc's ParticleEmitterData) and bones written, its update dispatched over its pool, each pass drawn an instance a particle
+  testing the picture's depth and writing none, its pixel shader a tool entry after the engine's (`ParticleLinker.Wrapped`) exposing, grading
+  and encoding the colour as every mixed layer is. A failure says so under the picture and is not tried again, the picture drawn.
+- CHOSEN, said under the picture: instance_count the pool, batch_size one, frame_delta_time (dt, 0, 1, 0), frame_index the pane's frame; the
+  count, seed and emitter duration by a stable hash in the file's ranges; the quad at plus and minus one (ParticleMeshData.Quad); a mesh's
+  normals as read with tangents made across them; the scene's matrices the picture's own clip; the flags alive, visible, infinite where
+  is_continuous, new on the first step; lock condition 7 (measured); AlphaBlend mixed and Additive added by its alpha; the engine's lights,
+  shadows and environment not handed over (a neutral picture, cube or list in their place), so a lit particle shows its own light; textures read
+  as their bytes; the clock starting at nought as the programs land and standing while the pane's stands.
+- The light panel's "particles", on by default (`SceneLightPanel.Particles`, `MonsterPortrait.SceneParticles`). `ParticleGpuTests` holds a
+  hand-written program under the engine's binding names on WARP: the update places the pool, the pass draws an instance a particle in front of
+  the box. NOT YET: the sort pass, the shimmer, the engine's lights for a lit particle, a capture part writing the card's particle state.
 
 ## Verify against the game, not against yourself
 

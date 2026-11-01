@@ -218,6 +218,45 @@ public static class ParticleLinker
             pixel with { Hlsl = pixel.Hlsl.Replace(InterstagePlace, shared.ToString(), StringComparison.Ordinal) });
     }
 
+    /// <summary>
+    /// A linked pixel shader with an entry of its own after it that calls <see cref="PixelEntry"/> with the same inputs and hands its colour target
+    /// (PIXEL_RETURN_SEMANTIC_COLOR's member, nought where the pass writes none) to <paramref name="body"/> as <c>colour</c> - the tool's own
+    /// finishing of what the engine's pass writes (ModelGpu's particles: the exposure, the grade and the picture's blend).
+    /// </summary>
+    /// <param name="pixel">The pixel shader as <see cref="Render"/> wrote it, includes expanded or not.</param>
+    /// <param name="entry">The new entry point's name.</param>
+    /// <param name="declarations">HLSL put before the new entry - its own constants and functions, on registers of their own.</param>
+    /// <param name="body">The new entry's statements after <c>colour</c> is set, ending in a return of a float4.</param>
+    /// <returns>The shader with the entry added, or null where it holds no <see cref="PixelEntry"/> to call.</returns>
+    public static string? Wrapped(string pixel, string entry, string declarations, string body)
+    {
+        ArgumentNullException.ThrowIfNull(pixel);
+        string head = "PixelOut " + PixelEntry + "(";
+        int at = pixel.IndexOf(head, StringComparison.Ordinal);
+        int close = at < 0 ? -1 : pixel.IndexOf(')', at);
+        if (close < 0)
+        {
+            return null;
+        }
+
+        string parameters = pixel[(at + head.Length)..close];
+        var names = new List<string>();
+        foreach (string one in parameters.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            string declared = one.Split(':')[0].Trim();
+            names.Add(declared[(declared.LastIndexOf(' ') + 1)..]);
+        }
+
+        bool colours = pixel.Contains("target_PIXEL_RETURN_SEMANTIC_COLOR", StringComparison.Ordinal);
+        var wrapped = new StringBuilder(pixel.Length + declarations.Length + body.Length + 512);
+        wrapped.Append(pixel).Append("\n// THE TOOL'S FINISHING of the pass's colour (ParticleLinker.Wrapped).\n").Append(declarations).Append('\n');
+        wrapped.Append(CultureInfo.InvariantCulture, $"float4 {entry}({parameters}) : SV_Target0\n{{\n");
+        wrapped.Append(CultureInfo.InvariantCulture, $"    PixelOut held = {PixelEntry}({string.Join(", ", names)});\n");
+        wrapped.Append(colours ? "    float4 colour = held.target_PIXEL_RETURN_SEMANTIC_COLOR;\n" : "    float4 colour = float4(0.0f, 0.0f, 0.0f, 0.0f);\n");
+        wrapped.Append(body).Append("\n}\n");
+        return wrapped.ToString();
+    }
+
     /// <summary>A value a pixel stage reads of a vertex stage: the node and output it comes from, its type, and the interpolant carrying it.</summary>
     public sealed record Crossing(int Graph, string Key, string Variable, string Type, string Name);
 

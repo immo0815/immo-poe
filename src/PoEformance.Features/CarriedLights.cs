@@ -45,6 +45,13 @@ public readonly record struct CarriedLight(int Bone, Vector3 Rest, Vector3 Colou
 /// A LIGHT'S STYLE FLICKERS IT (v0.1.414, MEASURED off the game's light list - <see cref="LightStyle"/>): its colour times style 1's keys as the
 /// picture's clock runs, the reach following the colour as the shader's cutoff does (GetPointCutoffRadius over the flickered colour).
 /// </remarks>
+/// <summary>Which of the lights and the effects' bones found a rigid piece brought - CarriedLights.Gathering.Rigid's answer, for its Rebone.</summary>
+/// <param name="From">The first light.</param>
+/// <param name="Count">How many lights.</param>
+/// <param name="EffectsFrom">The first effect bone (CarriedEffects.Gathering's count).</param>
+/// <param name="EffectsCount">How many effect bones.</param>
+public readonly record struct CarriedRange(int From, int Count, int EffectsFrom, int EffectsCount);
+
 public static class CarriedLights
 {
     /// <summary>
@@ -99,12 +106,16 @@ public static class CarriedLights
         private readonly List<Found> _found = [];
         private int _spots, _off, _unboned, _rig, _strays;
 
+        /// <summary>The particle effects gathered beside the lights, piece by piece as the lights are (CarriedEffects).</summary>
+        public CarriedEffects.Gathering Effects { get; } = new(read);
+
         /// <summary>
         /// The body's own lights: the first of its files whose chain writes a Lights block - each on its rig's bone of the name it gives, else
         /// where its own file stands it.
         /// </summary>
         public void Body(IReadOnlyList<string> files, AnimationSkeleton rig)
         {
+            Effects.Body(files, rig);
             foreach (string file in files)
             {
                 AnimatedObject ao = AnimatedObject.Read(read(file.Replace('\\', '/').Trim()));
@@ -132,12 +143,13 @@ public static class CarriedLights
         /// the lights found they are, for <see cref="Rebone"/>.
         /// </summary>
         /// <param name="chain">The piece's .ao and what it extends, already read - a piece writing no light costs nothing more.</param>
-        public (int From, int Count) Rigid(IReadOnlyList<AnimatedObject> chain, string path, Matrix4x4 place, int bone)
+        public CarriedRange Rigid(IReadOnlyList<AnimatedObject> chain, string path, Matrix4x4 place, int bone)
         {
             int from = _found.Count;
+            (int effectsFrom, int effectsCount) = Effects.Rigid(chain, path, place, bone);
             if (!Writes(chain))
             {
-                return (from, 0);
+                return new CarriedRange(from, 0, effectsFrom, effectsCount);
             }
 
             RoomLights.Lit lit = Of(path);
@@ -147,16 +159,17 @@ public static class CarriedLights
                 _found.Add(new Found(bone, Vector3.Transform(lit.Lights[one].Position, place), Framed: false, lit.Lights[one], lit.Bones[one]));
             }
 
-            return (from, _found.Count - from);
+            return new CarriedRange(from, _found.Count - from, effectsFrom, effectsCount);
         }
 
         /// <summary>
         /// The lights of a rigid piece (<see cref="Rigid"/>'s range) on any of the bones named moved onto another bone of the rig, their rest
         /// kept - a lamp's light onto the bone that swings it (MonsterModel's Swaying).
         /// </summary>
-        public void Rebone((int From, int Count) range, IReadOnlySet<string> bones, int bone)
+        public void Rebone(CarriedRange range, IReadOnlySet<string> bones, int bone)
         {
             ArgumentNullException.ThrowIfNull(bones);
+            Effects.Rebone((range.EffectsFrom, range.EffectsCount), bones, bone);
             for (int at = range.From; at < range.From + range.Count && at < _found.Count; at++)
             {
                 if (bones.Contains(_found[at].Name))
@@ -169,6 +182,7 @@ public static class CarriedLights
         /// <summary>A piece riding his rig on bones of its own from <paramref name="first"/>: each light on its own bone, numbered after his.</summary>
         public void Riding(IReadOnlyList<AnimatedObject> chain, string path, AnimationSkeleton own, int first)
         {
+            Effects.Riding(chain, path, own, first);
             if (!Writes(chain))
             {
                 return;
@@ -188,6 +202,7 @@ public static class CarriedLights
         /// <summary>A skin on his rig: each light on his bone of its bone's name, its position line in his bone's frame - one his rig has not left out.</summary>
         public void Skin(IReadOnlyList<AnimatedObject> chain, string path, IReadOnlyDictionary<string, int> his)
         {
+            Effects.Skin(chain, path, his);
             if (!Writes(chain))
             {
                 return;

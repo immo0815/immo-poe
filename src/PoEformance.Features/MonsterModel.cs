@@ -227,6 +227,15 @@ public sealed record MonsterModel(
     public string CarriedSaid { get; init; } = string.Empty;
 
     /// <summary>
+    /// The particle effects the monster and his pieces carry for as long as they stand, each on its bone group - see <see cref="CarriedEffects"/>.
+    /// Empty for a model that carries none.
+    /// </summary>
+    public IReadOnlyList<CarriedEffect> Effects { get; init; } = [];
+
+    /// <summary>What reading those came to - CarriedEffects.Gathering.Made; empty where the files name none.</summary>
+    public string EffectsSaid { get; init; } = string.Empty;
+
+    /// <summary>
     /// The cloths the tool simulates as the engine does - his own body's on his own rig's phys_ bones, and every piece's with a rig and a
     /// simulation mesh of its own, each of its simulated bones a bone appended to <see cref="Rig"/>; see <see cref="ClothSwing"/> and
     /// MonsterModel's Swaying. Empty where nothing of him carries a simulation.
@@ -980,6 +989,7 @@ public static class MonsterModels
         // THE SWUNG BONES AFTER EVERY OTHER, their pieces' vertices and lights put on them - before the lights are made and the mesh is joined.
         (rig, IReadOnlyList<ClothSwing> swings, ClothColliders colliders, string swingSaid) = swaying.Made(rig, lamps);
         (IReadOnlyList<CarriedLight> carried, string carriedSaid) = lamps.Made(rig);
+        (IReadOnlyList<CarriedEffect> effects, string effectsSaid) = lamps.Effects.Made(rig);
 
         // THE MONSTER WITHOUT WHAT HE IS WEARING, taken BEFORE the join and kept - see
         // MonsterModel.BodyLeast. Afterwards there is no way back to it: the joined box is the
@@ -1041,6 +1051,8 @@ public static class MonsterModels
             ShapeMaterials = dress.ShapeMaterials,
             Carried = carried,
             CarriedSaid = carriedSaid,
+            Effects = effects,
+            EffectsSaid = effectsSaid,
             Swings = swings,
             Colliders = colliders,
             SwingSaid = swingSaid,
@@ -2357,7 +2369,7 @@ public static class MonsterModels
         // focus at L_Weapon, his cape at Back - none of their own rigs is matched against his.
         if (hung.Held)
         {
-            (int From, int Count) heldLights = lamps.Rigid(chain, hung.Path, place, bone);
+            CarriedRange heldLights = lamps.Rigid(chain, hung.Path, place, bone);
             (byte[] held, byte[] heldWeights) = swaying.Bound(chain, mesh, place, bone, hung.Path, heldLights);
             var kept = new Part(mesh, held, heldWeights, place, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
             return (kept, body, Told(hung, where, PartKind.Rigid, default, kept));
@@ -2412,7 +2424,7 @@ public static class MonsterModels
             return (ridden, body, Told(hung, where, PartKind.Played, counted, ridden));
         }
 
-        (int From, int Count) rigidLights = lamps.Rigid(chain, hung.Path, place, bone);
+        CarriedRange rigidLights = lamps.Rigid(chain, hung.Path, place, bone);
         (byte[] bones, byte[] weights) = swaying.Bound(chain, mesh, place, bone, hung.Path, rigidLights);
         var rigid = new Part(mesh, bones, weights, place, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
         return (rigid, body, Told(hung, where, PartKind.Rigid, counted, rigid));
@@ -2564,7 +2576,7 @@ public static class MonsterModels
         /// simulation, the share its simulated bones carry on bones numbered once the rig is made, the socket standing in until then.
         /// </summary>
         public (byte[] Bones, byte[] Weights) Bound(
-            IReadOnlyList<AnimatedObject> chain, SkinnedMesh mesh, Matrix4x4 place, int socket, string path, (int From, int Count) lights)
+            IReadOnlyList<AnimatedObject> chain, SkinnedMesh mesh, Matrix4x4 place, int socket, string path, CarriedRange lights)
         {
             (byte[] bones, byte[] weights) = MonsterModels.Bound(mesh.Positions.Length, socket);
             if (Own(chain, mesh, path) is not { } own)
@@ -2843,7 +2855,7 @@ public static class MonsterModels
         private const int NoBone = int.MinValue;
 
         /// <summary>A bone asked to be appended under <paramref name="under"/>; the reference a cloth names it by until it is numbered.</summary>
-        private int Asked(int under, string name, byte[] bones, List<int> slots, (int From, int Count) lights, HashSet<string> names)
+        private int Asked(int under, string name, byte[] bones, List<int> slots, CarriedRange lights, HashSet<string> names)
         {
             int ordinal = _asks.Count;
             _asks.Add(new Ask(ordinal, under, name, bones, slots, lights, names));
@@ -3060,7 +3072,7 @@ public static class MonsterModels
             string Name,
             byte[] Bones,
             List<int> Slots,
-            (int From, int Count) Lights,
+            CarriedRange Lights,
             HashSet<string> Names);
 
         /// <summary>A simulated bone a cloth sets: his bone or an appended one (a reference), its name, its bind in his space, the vertices weighted to it.</summary>

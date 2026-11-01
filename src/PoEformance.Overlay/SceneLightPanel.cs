@@ -122,6 +122,7 @@ public sealed partial class SceneLightPanel : IMovableSun
     // HIS CLOTHS SWING AS THE ENGINE SWINGS THEM, on by default - ClothSwinger, asked by the panes every pose (MonsterPortrait.SceneSwing;
     // DECIDED from the live client, 2026-11-01, v0.1.416; every cloth of his from v0.1.424).
     private bool _swing = true;
+    private bool _particles = true;
     private bool _glints = true;
     private bool _reflection = true;
     private bool _mirroring = true;
@@ -301,7 +302,7 @@ public sealed partial class SceneLightPanel : IMovableSun
         {
             string.Create(
                 CultureInfo.InvariantCulture,
-                $"switches: game light {(_on ? "on" : "off - the light below is the one it would draw")}, sun {_sun}, shadows {_shadows}, free sun {_freeSun}, room lights {_points} ({(SceneLight.PointShape)_pointShape}), carried lights {_carried}, flicker {_flicker}, swing {_swing}, player light {_playerLight} (radius {_playerRadius:0}, {_playerHeight:0} up), ambient {(SceneAmbient)_ambient} (flat {_flat:0.#####}), cube reading {_cubeReading + 1}, exposure {_exposure}, grade {_grade}, emissive {_emissive}, view {SceneLight.ViewNames[Math.Clamp(_view, 0, SceneLight.ViewNames.Count - 1)]}"),
+                $"switches: game light {(_on ? "on" : "off - the light below is the one it would draw")}, sun {_sun}, shadows {_shadows}, free sun {_freeSun}, room lights {_points} ({(SceneLight.PointShape)_pointShape}), carried lights {_carried}, flicker {_flicker}, swing {_swing}, particles {_particles}, player light {_playerLight} (radius {_playerRadius:0}, {_playerHeight:0} up), ambient {(SceneAmbient)_ambient} (flat {_flat:0.#####}), cube reading {_cubeReading + 1}, exposure {_exposure}, grade {_grade}, emissive {_emissive}, view {SceneLight.ViewNames[Math.Clamp(_view, 0, SceneLight.ViewNames.Count - 1)]}"),
             "environment: " + (Chosen().Length > 0 ? Chosen() : "none"),
         };
         // THE FRAME AT THE PRESS, not the one the panel last labelled by: that is only set while the panel draws with "game light" ticked, and
@@ -397,7 +398,7 @@ public sealed partial class SceneLightPanel : IMovableSun
         Label("environment", column);
         Picker(path);
 
-        if (Fold(Count("lights", _points, _carried, _flicker, _swing, _sun, _shadows, _playerLight, _exposure, _grade, _emissive) + "###scene-fold-lights", open: true))
+        if (Fold(Count("lights", _points, _carried, _flicker, _swing, _particles, _sun, _shadows, _playerLight, _exposure, _grade, _emissive) + "###scene-fold-lights", open: true))
         {
             try
             {
@@ -546,6 +547,9 @@ public sealed partial class SceneLightPanel : IMovableSun
                 + " on base_lamp_jntBnd stepped every 10.1 ms as measured off the game's light list (keep 0.98076, gravity, the hand's acceleration a"
                 + " tick late times 0.45), its light with it. Pieces whose .ao names another simulation stand as animated. Off, the lamp hangs as"
                 + " authored; on again, it starts hanging straight down.");
+            Switch("particles##scene-particles", ref _particles, "The engine's GPU particles a monster and his pieces carry - the Exile's Staff's embers and flame: each emitter's"
+                + " update and render passes linked from the game's own graphs and shader sources and run on the card, emitted along its bone group as"
+                + " the pose puts it. The card's alone; a shimmer (a distortion of the picture behind it) is not drawn yet.");
             Switch("sun##scene-sun", ref _sun, "directional_light: its colour times its multiplier. Seepage's is nought.");
             Switch("shadows##scene-shadows", ref _shadows,
                 "The sun's shadows: the room drawn once more along the sun's light, and a pixel is shaded where something nearer the sun covers it.");
@@ -706,6 +710,9 @@ public sealed partial class SceneLightPanel : IMovableSun
     /// <summary>Whether a piece's lamp swings - the "swing" switch, asked by the panes every pose (MonsterPortrait.SceneSwing).</summary>
     public bool Swings() => _swing;
 
+    /// <summary>Whether the engine's GPU particles are drawn - the "particles" switch, asked by the panes every frame (MonsterPortrait.SceneParticles).</summary>
+    public bool Particles() => _particles;
+
     /// <summary>The fog the environment in use names, read and compiled once per environment - see ScreenFog.Of.</summary>
     /// <remarks>
     /// ON THE DRAWING THREAD, the first time a light with the fog on is made for an environment: two textures decoded (The Red Vale's
@@ -776,7 +783,7 @@ public sealed partial class SceneLightPanel : IMovableSun
     ];
 
     /// <summary>The lights' switches' visible labels, for their columns.</summary>
-    private static readonly string[] LightLabels = ["room", "carried", "flicker", "swing", "sun", "shadows", "player", "exposure", "colour grade", "emissive"];
+    private static readonly string[] LightLabels = ["room", "carried", "flicker", "swing", "particles", "sun", "shadows", "player", "exposure", "colour grade", "emissive"];
 
     /// <summary>The water's switches' visible labels, for their columns.</summary>
     private static readonly string[] WaterLabels = ["glints", "reflection", "scene", "refraction", "caustics", "crash", "way round", "past walls", "break by ground", "wetness", "spray from occlusion"];

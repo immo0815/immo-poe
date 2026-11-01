@@ -38,6 +38,7 @@ namespace PoEformance.Gpu;
 /// <param name="Swayed">This frame's sway of each group, row vectors in the mesh's frame (RoomSway.At) - applied in the vertex shader, the mesh's own vertices left as they are.</param>
 /// <param name="Pose">Where the picture is looked at from, or null for <paramref name="Turn"/>, <paramref name="Tilt"/>, <paramref name="Zoom"/> and <paramref name="Pan"/> - MeshPicture.Canvas.Pose.</param>
 /// <param name="Skinned">A pose the card skins itself, in the vertex shader, or null - instead of <paramref name="Positions"/> and <paramref name="Normals"/>, which it outranks.</param>
+/// <param name="Particles">The engine's GPU particles the picture's model carries this frame, or null - the card's alone (ModelGpu.Particles).</param>
 public readonly record struct ModelScene(
     SkinnedMesh Mesh,
     float Turn = 0f,
@@ -61,7 +62,8 @@ public readonly record struct ModelScene(
     IReadOnlyList<int>? Sways = null,
     Matrix4x4[]? Swayed = null,
     CameraPose? Pose = null,
-    CardSkin? Skinned = null);
+    CardSkin? Skinned = null,
+    ParticleFrame? Particles = null);
 
 /// <summary>
 /// A pose the graphics card skins itself - each bone's matrix this frame, and the mesh whose bones and weights move the picture's vertices by them.
@@ -831,6 +833,55 @@ public sealed partial class ModelGpu : IDisposable
             }
         }
 
+        // THE ENGINE'S GPU PARTICLES over the picture, after its translucent shapes and before the fog (CHOSEN: the engine's order of its
+        // passes is in no file read) - see ModelGpu.Particles.
+        ParticlesSaid = string.Empty;
+        if (scene.Particles is { Emitters.Count: > 0 } particles)
+        {
+            Matrix4x4.Invert(view, out Matrix4x4 viewInverse);
+            Matrix4x4.Invert(onto, out Matrix4x4 ontoInverse);
+            var right = Vector3.Normalize(new Vector3(viewInverse.M11, viewInverse.M12, viewInverse.M13));
+            var up = -Vector3.Normalize(new Vector3(viewInverse.M21, viewInverse.M22, viewInverse.M23));
+            // THE VIEW'S Z RUNS INTO THE PICTURE (a point in front has w = z above nought, the depth near / z), its y down the screen.
+            var forward = Vector3.Normalize(new Vector3(viewInverse.M31, viewInverse.M32, viewInverse.M33));
+            Vector3 eye = camera.Perspective ? camera.Viewer : viewInverse.Translation - (forward * 100000f);
+            // A PARTICLE PASS THAT FAILS LEAVES THE PICTURE DRAWN, said under it, and is not tried again - the pane switches the whole card off
+            // on any exception that reaches it.
+            if (_particlesFailed.Length == 0)
+            {
+                try
+                {
+                    Particled(context, target, particles, new ParticleView(clip, unclip, view, viewInverse, onto, ontoInverse, eye, right, up, forward, target.Size), light);
+                }
+                catch (Exception exception) when (exception is not (OutOfMemoryException or StackOverflowException))
+                {
+                    _particlesFailed = "particles: the card failed to draw them, not tried again - " + exception.Message;
+                    context.CSSetShader(null);
+                    context.OMSetRenderTargets(target.AccumulatedTarget, target.Depth);
+                    context.VSSetShader(_placed);
+                }
+            }
+
+            if (_particlesFailed.Length > 0)
+            {
+                ParticlesSaid = _particlesFailed;
+            }
+
+            // THE PICTURE'S OWN STREAMS AND STATE BACK for the passes after - the wetness draws the mesh's runs again.
+            context.IASetInputLayout(_layout);
+            context.IASetVertexBuffer(0, posed ? buffers.PosedPositions! : buffers.Positions, 12, 0);
+            context.IASetVertexBuffer(1, posed ? buffers.PosedNormals! : buffers.Normals, 12, 0);
+            context.IASetVertexBuffer(2, buffers.Coordinates, 8, 0);
+            context.IASetVertexBuffer(3, buffers.Colours, 4, 0);
+            context.IASetIndexBuffer(buffers.Indices, Format.R32_UInt, 0);
+            context.RSSetState(_raster);
+            context.VSSetConstantBuffer(0, _frame);
+            context.PSSetConstantBuffer(0, _frame);
+            context.VSSetConstantBuffer(1, _part);
+            context.PSSetConstantBuffer(1, _part);
+            context.PSSetSampler(0, scene.Sharp ? _sharp : _wrap);
+        }
+
         // THE SCREEN-SPACE FOG OVER THE PICTURE, over the air's constants Aired bound - see ModelGpu.Fog.
         if (Fogs(light) is { } fogged)
         {
@@ -1031,6 +1082,7 @@ public sealed partial class ModelGpu : IDisposable
         _programs.Dispose();
         DisposeLight();
         DisposeWet();
+        DisposeParticles();
         _raster.Dispose();
         _surfaced.Dispose();
         _ignores.Dispose();
@@ -1403,6 +1455,7 @@ public sealed partial class ModelGpu : IDisposable
         }
 
         ForgetLight();
+        ForgetParticles();
     }
 
     /// <summary>Every texture a picture may read.</summary>

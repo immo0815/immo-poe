@@ -4087,6 +4087,7 @@ public sealed partial class EntityOverlay : ClickableTransparentOverlay.Overlay
                 SceneFlow = RiverFlowIn,
                 SceneRoofFade = lighting.RoofFade,
                 SceneSwing = lighting.Swings,
+                SceneParticles = lighting.Particles,
                 Sun = lighting,
             }),
 
@@ -4318,6 +4319,7 @@ public sealed partial class EntityOverlay : ClickableTransparentOverlay.Overlay
                 SceneFlow = RiverFlowIn,
                 SceneRoofFade = lighting.RoofFade,
                 SceneSwing = lighting.Swings,
+                SceneParticles = lighting.Particles,
                 Sun = lighting,
             }),
         };
