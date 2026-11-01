@@ -58,41 +58,7 @@ public static partial class CaptureParticles
                 }
 
                 // THE UPDATE'S GRAPHS: an engine graph as it is, a material's instances each with what the material sets on it.
-                var graphs = new List<LinkedGraph>();
-                foreach (string path in shaders.Update)
-                {
-                    if (path.EndsWith(".mat", StringComparison.OrdinalIgnoreCase))
-                    {
-                        string? material = text(path);
-                        IReadOnlyList<ShaderInstance> instances = material is null ? [] : ShaderGraph.Instances(Encoding.UTF8.GetBytes(material));
-                        if (instances.Count == 0)
-                        {
-                            body.Append("  missing\t").Append(path).AppendLine(" (the material, or its graph instances)");
-                        }
-
-                        foreach (ShaderInstance instance in instances)
-                        {
-                            Add(instance.Parent, instance.Custom);
-                        }
-                    }
-                    else
-                    {
-                        Add(path, new Dictionary<string, ShaderValue[]>(StringComparer.Ordinal));
-                    }
-                }
-
-                void Add(string path, IReadOnlyDictionary<string, ShaderValue[]> custom)
-                {
-                    ShaderGraph graph = text(path) is { } json ? ShaderGraph.Read(Encoding.UTF8.GetBytes(json)) : ShaderGraph.None;
-                    if (!graph.Ready)
-                    {
-                        body.Append("  missing\t").AppendLine(path);
-                        return;
-                    }
-
-                    graphs.Add(new LinkedGraph(path, graph, custom));
-                }
-
+                List<LinkedGraph> graphs = Graphs(text, shaders.Update, body);
                 LinkedShader shader = ParticleLinker.Update(source, graphs, prelude);
                 emitters++;
                 unresolved += shader.Unresolved.Count;
@@ -124,12 +90,98 @@ public static partial class CaptureParticles
                 }
 
                 linked.Add(($"linked/{Path.GetFileNameWithoutExtension(effect)}-{e}.update.hlsl", shader.Hlsl, $"{effect} gpu_emitters[{e}]'s update, entry {shader.Entry}"));
+
+                // EVERY RENDER PASS, its vertex and pixel shaders linked from base.fxgraph on, as the colour pass draws it (v0.1.440).
+                for (var p = 0; p < shaders.Passes.Count; p++)
+                {
+                    List<LinkedGraph> passGraphs = Graphs(text, shaders.Passes[p], body);
+                    (LinkedShader vertex, LinkedShader pixel) = ParticleLinker.Render(source, passGraphs, prelude, PassMacros(passGraphs));
+                    foreach ((LinkedShader one, string kind) in new[] { (vertex, "vertex"), (pixel, "pixel") })
+                    {
+                        unresolved += one.Unresolved.Count;
+                        body.Append(CultureInfo.InvariantCulture, $"  pass {p} {kind}\t{one.Nodes} nodes from {one.Fragments} fragments, {one.Declarations} declarations, {one.Hlsl.Length:N0} characters, {one.Unresolved.Count} unresolved, {one.Resources.Count} resources").AppendLine();
+                        foreach (string open in one.Unresolved)
+                        {
+                            body.Append(CultureInfo.InvariantCulture, $"  pass {p} {kind} unresolved\t").AppendLine(open);
+                        }
+
+                        foreach ((string name, string filled) in one.Resources)
+                        {
+                            body.Append(CultureInfo.InvariantCulture, $"  pass {p} {kind} resource\t{name}\t{filled}").AppendLine();
+                        }
+
+                        if (compile is not null)
+                        {
+                            string expanded = ParticleLinker.Expanded(one.Hlsl, text, out _);
+                            body.Append(CultureInfo.InvariantCulture, $"  pass {p} {kind} compile\t").AppendLine(compile(expanded, one.Entry).Replace('\r', ' ').Replace('\n', ' '));
+                        }
+
+                        linked.Add(($"linked/{Path.GetFileNameWithoutExtension(effect)}-{e}.pass{p}.{kind}.hlsl", one.Hlsl, $"{effect} gpu_emitters[{e}]'s pass {p} {kind} shader, entry {one.Entry}"));
+                    }
+                }
             }
         }
 
         body.AppendLine();
         CaptureLightExtras.Wholes(linked, LinkedChars, LinkedChars, "linked shaders", body);
         return string.Create(CultureInfo.InvariantCulture, $"{emitters} emitters' updates linked, {unresolved} unresolved in all");
+    }
+
+    /// <summary>A shader's graph list read: an engine graph as it is, a material's instances each with what the material sets on it.</summary>
+    private static List<LinkedGraph> Graphs(Func<string, string?> text, IReadOnlyList<string> paths, StringBuilder body)
+    {
+        var graphs = new List<LinkedGraph>();
+        void Add(string path, IReadOnlyDictionary<string, ShaderValue[]> custom)
+        {
+            ShaderGraph graph = text(path) is { } json ? ShaderGraph.Read(Encoding.UTF8.GetBytes(json)) : ShaderGraph.None;
+            if (!graph.Parsed)
+            {
+                body.Append("  missing\t").AppendLine(path);
+                return;
+            }
+
+            graphs.Add(new LinkedGraph(path, graph, custom));
+        }
+
+        foreach (string path in paths)
+        {
+            if (path.EndsWith(".mat", StringComparison.OrdinalIgnoreCase))
+            {
+                string? material = text(path);
+                IReadOnlyList<ShaderInstance> instances = material is null ? [] : ShaderGraph.Instances(Encoding.UTF8.GetBytes(material));
+                if (instances.Count == 0)
+                {
+                    body.Append("  missing\t").Append(path).AppendLine(" (the material, or its graph instances)");
+                }
+
+                foreach (ShaderInstance instance in instances)
+                {
+                    Add(instance.Parent, instance.Custom);
+                }
+            }
+            else
+            {
+                Add(path, new Dictionary<string, ShaderValue[]>(StringComparer.Ordinal));
+            }
+        }
+
+        return graphs;
+    }
+
+    /// <summary>
+    /// The colour pass's own macros for a render pass: OUTPUT_COLOR always, HAS_LIGHTING unless a graph of it says "lighting_disabled" -
+    /// the two of the generator's templates (module+0x31939D8, +0x3193A10) a colour pass of an unlit or a lit particle sets; the blend
+    /// modes' own (GBUFFER_BLENDMODE and its kin) are not read yet.
+    /// </summary>
+    private static List<string> PassMacros(IReadOnlyList<LinkedGraph> graphs)
+    {
+        var macros = new List<string> { "OUTPUT_COLOR" };
+        if (!graphs.Any(one => one.Graph.LightingDisabled))
+        {
+            macros.Add("HAS_LIGHTING");
+        }
+
+        return macros;
     }
 
     /// <summary>The name the engine's DX11 prelude is written whole under, as the offline reader finds it.</summary>

@@ -51,6 +51,11 @@ public partial class CaptureReplayTests
             foreach ((string path, string text) in WrittenWhole([.. body.ToString().Split('\n').Select(line => line.TrimEnd('\r'))]).Where(one => one.Key.StartsWith("linked/", StringComparison.Ordinal)))
             {
                 File.WriteAllText(Path.Combine(into, Path.GetFileName(path)), text);
+
+                // AND EXPANDED, every include put in place by any spelling of its path - the sources come in the install's own case or
+                // lower case, and a compiler on a case-sensitive file system finds neither by the other.
+                string expanded = ParticleLinker.Expanded(text, include => whole.GetValueOrDefault(include.Replace('\\', '/').Trim()), out _);
+                File.WriteAllText(Path.Combine(into, Path.ChangeExtension(Path.GetFileName(path), ".expanded.hlsl")), expanded);
             }
 
             // The .hlsl files the sources include, beside them as their paths name them, for a compiler's include path.

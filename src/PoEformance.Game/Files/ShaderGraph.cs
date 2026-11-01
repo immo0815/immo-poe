@@ -152,6 +152,24 @@ public sealed class ShaderGraph
     /// </remarks>
     public float? AlphaThreshold { get; private init; }
 
+    /// <summary>
+    /// Whether the file read as a graph file at all - a JSON object - where <see cref="Ready"/> asks for nodes: a graph may carry nothing but
+    /// what it says of the pass (DisableLighting.fxgraph's <c>lighting_disabled</c>, ForceAlpha.fxgraph's <c>overriden_blend_mode</c>).
+    /// </summary>
+    public bool Parsed { get; private init; }
+
+    /// <summary>Whether the graph turns the material's lighting off (<c>"lighting_disabled": true</c>, DisableLighting.fxgraph).</summary>
+    public bool LightingDisabled { get; private init; }
+
+    /// <summary>The blend mode the graph sets (<c>overriden_blend_mode</c>: ForceAlpha's AlphaBlend, ForceAdditive's), or empty.</summary>
+    public string BlendMode { get; private init; } = string.Empty;
+
+    /// <summary>
+    /// The render states the graph overrides (<c>render_state_overwrite</c>: DisableZWrites's <c>depth_write_enable</c>, render_default's
+    /// <c>cull_mode</c>), each as its JSON writes it.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> RenderStates { get; private init; } = new Dictionary<string, string>(StringComparer.Ordinal);
+
     /// <summary>Reads a graph file's bytes; <see cref="None"/> for anything that is not one.</summary>
     public static ShaderGraph Read(byte[]? content)
     {
@@ -208,7 +226,25 @@ public sealed class ShaderGraph
                 && cut.TryGetSingle(out float at) && float.IsFinite(at)
                 ? at
                 : null;
-            return new ShaderGraph { Nodes = nodes, Links = links, AlphaThreshold = threshold };
+            var states = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (root.TryGetProperty("render_state_overwrite", out JsonElement overwrite) && overwrite.ValueKind == JsonValueKind.Object)
+            {
+                foreach (JsonProperty state in overwrite.EnumerateObject())
+                {
+                    states[state.Name] = state.Value.ValueKind == JsonValueKind.String ? state.Value.GetString() ?? string.Empty : state.Value.GetRawText();
+                }
+            }
+
+            return new ShaderGraph
+            {
+                Nodes = nodes,
+                Links = links,
+                AlphaThreshold = threshold,
+                Parsed = true,
+                LightingDisabled = root.TryGetProperty("lighting_disabled", out JsonElement unlit) && unlit.ValueKind == JsonValueKind.True,
+                BlendMode = Text(root, "overriden_blend_mode"),
+                RenderStates = states,
+            };
         }
         catch (JsonException)
         {

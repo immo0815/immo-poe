@@ -19,6 +19,17 @@ public static class ParticleCompile
     /// <summary>The compute profile the tool's Direct3D 11 card is asked for.</summary>
     public const string Profile = "cs_5_0";
 
+    /// <summary>
+    /// The profile a linked shader's entry point is compiled for - the update's cs_5_0, a render pass's vs_5_0 and ps_5_0 (v0.1.440): the
+    /// shader model the tool's own drawing compiles for.
+    /// </summary>
+    public static string ProfileOf(string entry) => entry switch
+    {
+        "VertexMain" => "vs_5_0",
+        "PixelMain" => "ps_5_0",
+        _ => Profile,
+    };
+
     /// <summary>Compiles a shader with every include already expanded; a line saying the bytecode's size, or why it would not compile.</summary>
     public static string Fxc(string hlsl, string entry)
     {
@@ -31,13 +42,14 @@ public static class ParticleCompile
 
         try
         {
-            Result result = Compiler.Compile(hlsl, null!, null!, entry, "particle.hlsl", Profile, ShaderFlags.IeeeStrictness | ShaderFlags.OptimizationLevel3, out Blob blob, out Blob errors);
+            string profile = ProfileOf(entry);
+            Result result = Compiler.Compile(hlsl, null!, null!, entry, "particle.hlsl", profile, ShaderFlags.IeeeStrictness | ShaderFlags.OptimizationLevel3, out Blob blob, out Blob errors);
             try
             {
                 string said = errors is null ? string.Empty : Marshal.PtrToStringAnsi(errors.BufferPointer) ?? string.Empty;
                 return result.Failure || blob is null
-                    ? $"would not compile ({Profile}): {(said.Length > 0 ? said : result.ToString())}"
-                    : $"compiled ({Profile}): {blob.BufferSize:N0} bytes{(said.Length > 0 ? "; warnings: " + said.Replace('\n', ' ') : string.Empty)}";
+                    ? $"would not compile ({profile}): {(said.Length > 0 ? said : result.ToString())}"
+                    : $"compiled ({profile}): {blob.BufferSize:N0} bytes{(said.Length > 0 ? "; warnings: " + said.Replace('\n', ' ') : string.Empty)}";
             }
             finally
             {
@@ -47,7 +59,7 @@ public static class ParticleCompile
         }
         catch (Exception exception) when (exception is not (OutOfMemoryException or StackOverflowException))
         {
-            return $"would not compile ({Profile}): {exception.Message}";
+            return $"would not compile ({ProfileOf(entry)}): {exception.Message}";
         }
     }
 }
