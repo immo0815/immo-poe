@@ -1128,6 +1128,14 @@ resting lamp's tilt of 2 to 7.5 degrees towards its rest's way (the bend stiffne
 every swing and plays it through his opening animation for 8 s from hanging down, its angle from straight down each second
 (`CaptureMonsterFiles.Swung`); `BoneSwingTests` hold the pendulum against the game's lamp. NEXT, DECIDED from the live client: a survey of the
 install's .ao simulation sets, which are used most, before any other is swung.
+THE SURVEY IS A CAPTURE PART (v0.1.418, `ao-simulations.txt`, `CaptureAoSimulations`, Area files, OFF UNTIL TICKED - it reads the whole
+install on every core): every .ao the startup walk finds under Metadata/, each followed through what it extends; its simulation the
+ClientAnimationController keys its chain carries, nearest file first, but the rig's, a socket's and the attachment's; the files grouped by that
+set (numbers in one spelling, "0.000" as "0"); each simulated file's rig read for its phys_ bones - rods (as the lamp), chains (phys_ on
+phys_, the longest) and skinned ones; and how much the game uses each: the rows of ItemVisualIdentity and MonsterVarieties naming it (every
+string column and list of the vendored layouts), the .ao lines attaching it, and the rows reaching it through up to four attachments. The sets
+the most used first, the measured one marked SWUNG; the 150 files used most; every controller key by how many chains carry it.
+`ao-simulations.tsv` beside it holds a line a simulated file, and `ao-simulations-replay.txt` ranks the sets again from it offline.
 
 ## Verify against the game, not against yourself
 

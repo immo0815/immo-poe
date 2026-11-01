@@ -89,17 +89,17 @@ public class CapturePartsTests
     public void APARTOffByDefaultStaysOffUntilTicked()
     {
         Assert.True(CaptureParts.All.Single(part => part.Key == CaptureParts.StageSweep).OffByDefault);
-        Assert.Equal([CaptureParts.StageSweep], CaptureParts.All.Where(part => part.OffByDefault).Select(part => part.Key));
+        Assert.Equal([CaptureParts.AoSimulations, CaptureParts.StageSweep], CaptureParts.All.Where(part => part.OffByDefault).Select(part => part.Key));
 
-        // UNTOUCHED: the sweep off, nothing else.
+        // UNTOUCHED: the sweep and the .ao survey off, nothing else.
         IReadOnlySet<string> untouched = CaptureParts.OffOf([], []);
-        Assert.Equal([CaptureParts.StageSweep], untouched);
+        Assert.True(untouched.SetEquals([CaptureParts.AoSimulations, CaptureParts.StageSweep]), string.Join(", ", untouched));
         Assert.Empty(CaptureParts.Kept(untouched));
         Assert.Empty(CaptureParts.KeptOn(untouched));
 
         // TICKED, with another part unticked: each list keeps its own.
         IReadOnlySet<string> ticked = CaptureParts.OffOf([CaptureParts.RawSweep], [CaptureParts.StageSweep, "gone-part"]);
-        Assert.Equal([CaptureParts.RawSweep], ticked);
+        Assert.True(ticked.SetEquals([CaptureParts.RawSweep, CaptureParts.AoSimulations]), string.Join(", ", ticked));
         Assert.Equal([CaptureParts.RawSweep], CaptureParts.Kept(ticked));
         Assert.Equal([CaptureParts.StageSweep], CaptureParts.KeptOn(ticked));
 

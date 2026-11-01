@@ -2327,6 +2327,28 @@ internal static class Program
         }
     }
 
+    /// <summary>
+    /// Every row's string values of an install table read with a vendored layout - the .ao simulations part's usage counts - and what
+    /// opening it said; null rows where it did not open.
+    /// </summary>
+    private static (List<IReadOnlyList<string>>? Rows, string Said) AoTable(PoEformance.Game.Files.GameFiles installed, string layoutFile, string table)
+    {
+        PoEformance.Features.QuestTableLayouts? layouts = PoEformance.Features.QuestTableLayouts.Load(FindDataFile(layoutFile));
+        if (layouts is null || !layouts.Tables.TryGetValue(table, out List<PoEformance.Features.DatColumn>? columns))
+        {
+            return (null, $"{table}: {layoutFile} did not load");
+        }
+
+        (PoEformance.Features.LoadedTable? opened, string why) = PoEformance.Features.QuestTables.Open(installed, layouts, table, null, "Id");
+        if (opened is not { Usable: true } usable)
+        {
+            return (null, opened?.Say ?? why);
+        }
+
+        layouts.RowSizeOf(table);
+        return (PoEformance.Features.CaptureAoSimulations.Rows(usable.File, layouts.Tables[table]), usable.Say);
+    }
+
     private static void RunOverlay(
         IMemoryReader reader, OffsetSchema schema, ulong gameStatesStatic, IntPtr gameWindow, int cull,
         PoEformance.Features.AutoFlask autoFlask,
@@ -3393,6 +3415,10 @@ internal static class Program
         // per frame, because that swap happens long after this line runs.
         overlay.StatSentences = () => atlas.StatSentences;
 
+        // EVERY .ao THE STARTUP WALK FINDS, for the capture's .ao simulations part (CaptureAoSimulations) - set by the walk below, read at
+        // the press.
+        IReadOnlyList<string>[] aoWalked = [[]];
+
         // THE INSTALL'S OWN MONSTER TABLES, which replace the export above when they read. Off the
         // thread pool for one measured reason: this parses eight .dat files, and Mods alone is
         // sixteen thousand rows of six hundred and ninety-three bytes - file work, on the thread
@@ -3539,6 +3565,9 @@ internal static class Program
                     // AND THE ENGINE'S OWN GRAPHS WHOLE, the debug views among them, for the capture's render debug part.
                     new PoEformance.Game.Files.BundleIndex.WalkPlace(PoEformance.Features.CaptureRenderDebug.Folder, [string.Empty]),
 
+                    // AND EVERY .ao, for the capture's .ao simulations part: which simulations the install's pieces name, and how often.
+                    new PoEformance.Game.Files.BundleIndex.WalkPlace(PoEformance.Features.CaptureAoSimulations.Folder, PoEformance.Features.CaptureAoSimulations.Extensions),
+
                     // AND EVERY PATH NAMING A WOBBLE, for the capture's wobble files part: what sways Port's ship.
                     .. PoEformance.Features.CaptureWobble.Folders.Select(folder =>
                         new PoEformance.Game.Files.BundleIndex.WalkPlace(folder, [string.Empty], PoEformance.Features.CaptureWobble.Words)),
@@ -3556,7 +3585,8 @@ internal static class Program
                 overlay.DataTables = found[7];
                 overlay.DebugPaths = found[8];
                 overlay.EngineGraphs = found[9];
-                overlay.WobblePaths = [.. found.Skip(10).SelectMany(one => one).Distinct(StringComparer.OrdinalIgnoreCase)];
+                Volatile.Write(ref aoWalked[0], found[10]);
+                overlay.WobblePaths = [.. found.Skip(11).SelectMany(one => one).Distinct(StringComparer.OrdinalIgnoreCase)];
                 overlay.TileFiles = tiles;
             });
         }
@@ -3803,6 +3833,34 @@ internal static class Program
                 () => playerLook?.Line ?? "starting",
                 () => playerLook?.Fraction ?? 0f,
                 () => playerLook?.Stop()));
+
+        // EVERY .ao BY THE SIMULATION IT NAMES, its rigs' simulated bones and how much each is used - see CaptureAoSimulations. The files
+        // are the startup walk's, the tables the install's own read with the vendored layouts; its numbers go beside the part.
+        PoEformance.Features.CaptureAoSimulations.Running? aoSurvey = null;
+        overlay.OfferCaptureWork(
+            PoEformance.Features.CaptureParts.AoSimulations,
+            path =>
+            {
+                var running = new PoEformance.Features.CaptureAoSimulations.Running();
+                aoSurvey = running;
+                if (installed is null)
+                {
+                    return ["no install to read the .ao files from"];
+                }
+
+                IReadOnlyList<string> walked = Volatile.Read(ref aoWalked[0]);
+                (List<IReadOnlyList<string>>? items, string itemsSaid) = AoTable(installed, "item-tables.json", "ItemVisualIdentity");
+                (List<IReadOnlyList<string>>? monsters, string monstersSaid) = AoTable(installed, "monster-tables.json", "MonsterVarieties");
+                List<string> lines = PoEformance.Features.CaptureAoSimulations.Write(
+                    path => PoEformance.Game.Files.GameArt.ReadRaw(installed, path), walked, items, monsters,
+                    $"{itemsSaid}; {monstersSaid}{(walked.Count == 0 ? "; the startup walk had found no .ao yet" : string.Empty)}", running, out string data);
+                File.WriteAllText(Path.Combine(Path.GetDirectoryName(path) ?? string.Empty, PoEformance.Features.CaptureAoSimulations.DataFile), data);
+                return lines;
+            },
+            new PoEformance.Overlay.CaptureWorkProgress(
+                () => aoSurvey?.Line ?? "starting",
+                () => aoSurvey?.Fraction ?? 0f,
+                () => aoSurvey?.Stop()));
 
         // THE ENGINE'S SHADER STAGES: its stage table read off the program's image, and the install's graphs' links across stages - see
         // ShaderStageHunt. Past the tap: the image's megabytes and the heap's names belong in no recording. The graphs are every one the

@@ -226,6 +226,9 @@ public static class CaptureParts
     /// <summary>Every room of every room set in the install built as a Monster Book stage, and what fails counted by cause - off until ticked.</summary>
     public const string StageSweep = "stage-sweep";
 
+    /// <summary>Every .ao in the install by the simulation its ClientAnimationController names, its rigs' simulated bones and how much each is used - off until ticked; see CaptureAoSimulations.</summary>
+    public const string AoSimulations = "ao-simulations";
+
     /// <summary>The memory recording itself.</summary>
     public const string Memory = "memory";
 
@@ -256,7 +259,8 @@ public static class CaptureParts
     /// cannot be asked for on the frame the key goes down as a window's text is.
     /// </remarks>
     public static bool RunsAtPress(string key)
-        => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow or ShaderStages or PlayerLook or BoneWatch;
+        => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow or ShaderStages or PlayerLook or BoneWatch
+            or AoSimulations;
 
     /// <summary>
     /// A heading as the Keys page writes it. The headings themselves stay as they are: they are what <see cref="FolderOfGroup"/> keys
@@ -518,6 +522,15 @@ public static class CaptureParts
             + "no_roof_fade, HideRoof and their kin) with its lines. Each section bounded, saying what it cut. What the four are built from "
             + "next, out of the engine's own code."),
 
+        new(AoSimulations, "Area files", ".ao simulations (minutes)", CaptureReport.AoSimulationsFile,
+            "Every .ao in the install by the simulation its ClientAnimationController names (a held lamp's bend stiffness and viscosities, a "
+            + "cape's contraction and force): which sets there are and how many files carry each, what their rigs simulate - rods like the swung "
+            + "lamp, chains, skinned cloth - and how much the game uses them: the rows of ItemVisualIdentity and MonsterVarieties naming each file "
+            + "or a file attaching it, the most used first. Its numbers beside it as ao-simulations.tsv. Reads the whole install on every core - "
+            + "minutes - so it is OFF UNTIL TICKED; no spot needed.")
+        {
+            OffByDefault = true,
+        },
         new(StageSweep, "Area files", "stage sweep (hours)", CaptureReport.StageSweepFile,
             "Every room of every room set in the install, each under every master naming its set, built as the Monster Book builds a "
             + "stage from its tileset - and what fails counted over all of them, ranked by how many rooms it reaches: surfaces drawn "

@@ -156,6 +156,9 @@ public static class CaptureReport
     /// <summary>Every room of every room set built as a stage, what fails counted by cause - see CaptureStageSweep.</summary>
     public const string StageSweepFile = "stage-sweep.txt";
 
+    /// <summary>Every .ao by the simulation it names, its rigs' simulated bones and how much it is used - see CaptureAoSimulations.</summary>
+    public const string AoSimulationsFile = "ao-simulations.txt";
+
     /// <summary>The survey of the entity maps for the rooms' doodads, and every sighting.</summary>
     public const string DoodadsFile = "doodads.txt";
 
