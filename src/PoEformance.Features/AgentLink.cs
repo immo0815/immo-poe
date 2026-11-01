@@ -428,7 +428,8 @@ public sealed class AgentLink
 
         if (before is { Length: > 0 })
         {
-            result.Content.Insert(0, AgentContent.Of(before));
+            // ITS OWN LINE: a client may join an answer's texts with nothing between them (MEASURED, v0.1.412).
+            result.Content.Insert(0, AgentContent.Of(before.EndsWith('\n') ? before : before + "\n"));
         }
 
         return result;

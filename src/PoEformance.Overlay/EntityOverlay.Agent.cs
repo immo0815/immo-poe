@@ -75,17 +75,21 @@ public sealed partial class EntityOverlay
         return brought.Moved || !brought.InFront ? brought.Said : null;
     }
 
+    /// <summary>The raising on the render thread, the waiting for Windows to hand the front on here, off it.</summary>
     private async Task<GameWindowTracker.Brought> Bring()
     {
+        GameWindowTracker.Raised? raised;
         try
         {
-            return (await _agentFrames.Next(() => new Boxed<GameWindowTracker.Brought>(GameWindowTracker.BringToFront()))
+            raised = (await _agentFrames.Next(() => new Boxed<GameWindowTracker.Raised?>(GameWindowTracker.Raise()))
                 .WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false)).Value;
         }
         catch (TimeoutException)
         {
             return new GameWindowTracker.Brought(false, false, "no frame came to bring the game's window to the front");
         }
+
+        return await GameWindowTracker.Settled(raised).ConfigureAwait(false);
     }
 
     /// <summary>The front tool: the game to the front (the call's own preamble has done it already) and who is in front now.</summary>
