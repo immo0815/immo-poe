@@ -1260,6 +1260,29 @@ ITS FIRST PRESS KEPT NOTHING (v0.1.425, 14:41, Cemetery of the Eternals): it too
 robe's targets 30 units from him, the targets in the same world frame as Render's place). From v0.1.426 his place is read again after the
 search, the objects left out are listed with how far they stood, and his place is kept as a change of its own (`ClothWatchSeries.Kind.Player`)
 - the reading says how far and when he walked.
+THE GAME'S CLOTH HELD STEP BY STEP (v0.1.426's press, 2026-11-01 14:54, Cemetery of the Eternals, the player taken: he walked 1,103 units
+for 3.5 s, then stood; ten objects round him, 675 frames each; read offline with v0.1.427's reading). MEASURED:
+- A FRAME, AS ITS READS SHOW IT: the system's clock ticks; then the targets change - and the read that sees them sees every pinned body
+  flagged (+0x35) to be moved onto its new target (+0x24), nothing moved; then the step's motion over several reads while the world's jobs
+  solve (the robe's contacts growing from a few to all 157); a frame's end is its last read before the next targets. v0.1.426's reading
+  paired a frame's targets with the read that saw them - the frame before's state - and every step looked wrong; from v0.1.427 a frame runs
+  from the frame before's last read, its targets set, to its own last read (`ClothWatchSeries.Frames`).
+- THE ORDER IS THE TOOL'S: targets, step, after - the best of four orders in 608 to 675 of 675 frames for every object. The pinned bodies
+  stand on the new targets at the frame's end to the float: the kinematic move through the integration (+0x24, +0x35), CHOSEN before, is
+  the engine's.
+- THE SETUP IS THE TOOL'S for all eight pieces it matched (the robe, his chest, the helmet's dangle, the shawl, the cape, both feathers, the
+  lamp): particles, pinned, triangles, the distance constraints in the world's order, the bends, depth, parent and shocks alike, the rest folds
+  within 0.0005 - but built at HIS SCALE, 0.925: the game's rest lengths are 0.925 of the tool's (`recreate_on_scale`); the books build at 1.
+- WITHOUT A DRAG THE PORT IS THE ENGINE: his chest, the lamp and two four-particle cloths no tool matched land within 0.01 of the game in 673 to
+  675 of 675 frames; run free on the game's targets for 6.8 s the chest stays 0.003 from the game's on the mean.
+- WITH ONE IT IS BLOWN: the drag relaxes the velocity to the engine's WIND FIELD (module+0x1335690, schema `PhysicsSystem.Wind`) - a sum of
+  sources (spells, effects), the player in a lightning sphere of his own then - which the tool sets to nought. `ClothWorld.Wind` carries one
+  now (nought in the books, CHOSEN: no source is read), and the reading fits one to each frame (`ClothWatchSeries.Blown`): the helmet's
+  dangle (no contact, no bend) from 0.0061 off at the median to 0.0012, 562 of 675 frames within 0.01 (250 before), at 40 units a second; the
+  cape from 0.0055 to 0.0019. The winds fitted to his cloths in one frame are no one field (apart by 26 to 600 units a second).
+- STILL OFF: the glove feathers (0.02 to 0.08 at the median, no wind fixing it) - the stiffest bends (500, allowed 0.2); the bend's measuring
+  step is the one part of the port not read ("the engine's own length of the way it measures along"), read it next. And the robe's tail
+  (0.09 at 90%), its 157 contacts a frame on the CHOSEN capsule surface motion.
 
 ## Verify against the game, not against yourself
 

@@ -62,6 +62,7 @@ public sealed class ClothWatchSeries
         "targets, step, after (the tool's)",
         "step, targets, after",
         "targets, after, step",
+        "targets, step - no after",
     ];
 
     /// <summary>What a change read is of.</summary>
@@ -710,6 +711,7 @@ public sealed class ClothWatchSeries
                 $"=== the reading (ClothWatchSeries): {Setups.Count} objects, {Events.Count} changes read in {Seconds:0.0} s over {Cycles:N0} reads of everything ({(Seconds > 0 ? Cycles / Seconds : 0):0} a second), {Torn:N0} of an object's reads torn by a step between its two halves and dropped{(Note.Length > 0 ? "; " + Note : string.Empty)}"),
         };
         Clock(lines);
+        _winds.Clear();
         for (var o = 0; o < Setups.Count; o++)
         {
             lines.Add(string.Empty);
@@ -727,6 +729,8 @@ public sealed class ClothWatchSeries
             }
         }
 
+        Winds(lines);
+        _winds.Clear();
         return lines;
     }
 
@@ -958,6 +962,78 @@ public sealed class ClothWatchSeries
             $"  how the changes came: {together} reads with new targets and new bodies both, {targetsAlone} with new targets alone, {bodiesAlone} with new bodies alone; targets changes between two bodies changes: {string.Join(", ", between.Select(kv => $"{kv.Key} x{kv.Value}"))}"));
     }
 
+    /// <summary>
+    /// One frame of an object as its reads show it: the read that saw its targets change, the last read of its bodies before it (the frame
+    /// before's end) and the last before the next targets (this frame's end) - indices into <see cref="Events"/>.
+    /// </summary>
+    /// <remarks>
+    /// MEASURED (v0.1.426's capture, 2026-11-01 14:54, Cemetery of the Eternals, the robe): the targets change once a frame, and the read that
+    /// sees them sees every pinned body flagged to be moved (+0x35) onto its new target (+0x24) with nothing moved yet - SetTargets sets both;
+    /// the step's motion comes after, over several reads while the world's jobs solve (its contacts growing from a few to all of them); the
+    /// system's clock ticks before the targets. So a frame runs from the targets to the next targets, and its end is the last read before them.
+    /// </remarks>
+    private readonly record struct Frame(int Targets, int Before, int End, int Previous);
+
+    /// <summary>The object's frames: every change of its targets with a read of its bodies before it and one after it before the next.</summary>
+    private static List<Frame> Frames(List<(Event e, int index)> targets, List<(Event e, int index)> bodies)
+    {
+        var frames = new List<Frame>();
+        int body = 0;
+        for (var k = 1; k < targets.Count; k++)
+        {
+            int at = targets[k].index;
+            int next = k + 1 < targets.Count ? targets[k + 1].index : int.MaxValue;
+
+            // THE FRAME BEFORE'S END: the last bodies read before these targets, after the targets before them.
+            while (body < bodies.Count && bodies[body].index < at)
+            {
+                body++;
+            }
+
+            int before = body - 1;
+            if (before < 0 || bodies[before].index < targets[k - 1].index)
+            {
+                continue;
+            }
+
+            // THIS FRAME'S END: the last bodies read before the next targets - none while the watch ended inside the frame.
+            int end = body;
+            while (end + 1 < bodies.Count && bodies[end + 1].index < next)
+            {
+                end++;
+            }
+
+            if (end >= bodies.Count || bodies[end].index < at || next == int.MaxValue)
+            {
+                continue;
+            }
+
+            frames.Add(new Frame(at, bodies[before].index, bodies[end].index, targets[k - 1].index));
+        }
+
+        return frames;
+    }
+
+    /// <summary>The first of an object's bodies reads after the event at <paramref name="index"/>, by its place in <paramref name="bodies"/>; -1 where none.</summary>
+    private static int BodiesAfter(List<(Event e, int index)> bodies, int index)
+    {
+        int low = 0, high = bodies.Count;
+        while (low < high)
+        {
+            int middle = (low + high) >>> 1;
+            if (bodies[middle].index <= index)
+            {
+                low = middle + 1;
+            }
+            else
+            {
+                high = middle;
+            }
+        }
+
+        return low < bodies.Count ? low : -1;
+    }
+
     private List<OrderFit> Steps(List<string> lines, ClothRig rig, List<(Event e, int index)> targets, List<(Event e, int index)> bodies)
     {
         int n = rig.Count;
@@ -992,31 +1068,24 @@ public sealed class ClothWatchSeries
         var inertia = new List<float>();
         var pinnedNew = new List<float>();
         var pinnedOld = new List<float>();
-        var pinnedMoveTo = new List<float>();
         int movingSet = 0, pinnedSeen = 0;
-        int taken = 0, skipped = 0, mismatched = 0;
+        int mismatched = 0;
         var contacts = new List<int>();
-        int lastSkipReason = 0;
+        var flaggedAtTargets = new List<float>();
+        bool viscous = rig.Settings.NormalViscosity > 0f || rig.Settings.TangentViscosity > 0f;
+        var winds = new List<Vector3>();
+        var windErrors = new List<float>();
+        var windWorst = new List<float>();
+        int objectIndex = Events[targets[0].index].Object;
 
-        for (var j = 1; j < bodies.Count; j++)
+        List<Frame> frames = Frames(targets, bodies);
+        foreach (Frame frame in frames)
         {
-            (Event prev, int prevIndex) = bodies[j - 1];
-            (Event cur, int curIndex) = bodies[j];
-
-            // ONE CHANGE OF THE TARGETS BETWEEN THE TWO STATES: the frame's own; the targets before it are those in force at the first.
-            int between = targets.Count(t => t.index > prevIndex && t.index < curIndex);
-            int fresh = targets.FindLastIndex(t => t.index < curIndex);
-            if (between != 1 || fresh < 1)
-            {
-                skipped++;
-                lastSkipReason = between;
-                continue;
-            }
-
-            Targets(targets[fresh].e, newTarget, newLast);
-            Targets(targets[fresh - 1].e, oldTarget, oldLast);
-            float dtBefore = Bodies(prev, placeBefore, moveBefore, scratch, scratch, scratchTo, out _);
-            float dt = Bodies(cur, place, move, kinematic, moving, moveTo, out int touching);
+            Event targetEvent = Events[frame.Targets];
+            Targets(targetEvent, newTarget, newLast);
+            Targets(Events[frame.Previous], oldTarget, oldLast);
+            float dtBefore = Bodies(Events[frame.Before], placeBefore, moveBefore, scratch, scratch, scratchTo, out _);
+            float dt = Bodies(Events[frame.End], place, move, kinematic, moving, moveTo, out int touching);
             contacts.Add(touching);
             float joined = 0f;
             for (var p = 0; p < n; p++)
@@ -1029,7 +1098,22 @@ public sealed class ClothWatchSeries
                 mismatched++;
             }
 
-            // THE PINNED PARTICLES: where the game's step put them, against the targets new and old and the place they are moved onto.
+            // THE READ THAT SAW THE TARGETS: how many pinned bodies it saw flagged to be moved onto them - the first bodies read after the
+            // targets, where it was read with them.
+            int seen = BodiesAfter(bodies, frame.Targets);
+            if (seen >= 0 && bodies[seen].e.Time.Equals(targetEvent.Time))
+            {
+                Bodies(bodies[seen].e, scratchTo, scratchTo, scratch, moving, moveTo, out _);
+                int pinnedCount = Enumerable.Range(0, n).Count(p => rig.Pinned[p]);
+                if (pinnedCount > 0)
+                {
+                    flaggedAtTargets.Add((float)Enumerable.Range(0, n).Count(p => rig.Pinned[p] && moving[p]) / pinnedCount);
+                }
+
+                Bodies(Events[frame.End], place, move, kinematic, moving, moveTo, out _);
+            }
+
+            // THE PINNED PARTICLES AT THE FRAME'S END: on the new targets or the old.
             for (var p = 0; p < n; p++)
             {
                 if (!rig.Pinned[p])
@@ -1040,16 +1124,15 @@ public sealed class ClothWatchSeries
                 pinnedSeen++;
                 pinnedNew.Add(Vector3.Distance(place[p], newTarget[p]));
                 pinnedOld.Add(Vector3.Distance(place[p], oldTarget[p]));
-                pinnedMoveTo.Add(Vector3.Distance(moveTo[p], newTarget[p]));
                 if (moving[p])
                 {
                     movingSet++;
                 }
             }
 
-            // THE CAPSULES where they stood at each of the two states.
-            Place(shapeEvents, prevIndex, centresBefore, radiiBefore);
-            Place(shapeEvents, curIndex, centresNow, radii);
+            // THE CAPSULES where they stood at the frame before's end and while this frame's step ran.
+            Place(shapeEvents, frame.Before, centresBefore, radiiBefore);
+            Place(shapeEvents, frame.End, centresNow, radii);
 
             float[] stepWorst = new float[Orders.Length];
             for (var order = 0; order < Orders.Length; order++)
@@ -1068,9 +1151,13 @@ public sealed class ClothWatchSeries
                         world.Retarget(0, newTarget);
                         world.Settle();
                         break;
-                    default:
+                    case 2:
                         world.Retarget(0, newTarget);
                         world.Settle();
+                        world.StepOnce(dt);
+                        break;
+                    default:
+                        world.Retarget(0, newTarget);
                         world.StepOnce(dt);
                         break;
                 }
@@ -1112,18 +1199,32 @@ public sealed class ClothWatchSeries
                 }
             }
 
-            taken++;
+            // A WIND FITTED TO THE FRAME, where the cloth has a drag for one to act through - see Blown.
+            if (viscous && Blown(world, rig, placeBefore, moveBefore, oldTarget, oldLast, dtBefore, newTarget, dt, centresBefore, centresNow, radii, place) is { } fitted)
+            {
+                winds.Add(fitted.Wind);
+                windErrors.AddRange(fitted.Off);
+                windWorst.Add(fitted.Worst);
+                _winds.Add((Events[frame.Targets].Time, objectIndex, fitted.Wind));
+            }
         }
 
+        int taken = frames.Count;
         lines.Add(string.Create(CultureInfo.InvariantCulture,
-            $"  one step at a time: {taken} steps taken again from the game's state, {skipped} left out (not one change of the targets between two of the bodies; the last such had {lastSkipReason}), {mismatched} whose new targets' last was not the old targets (a frame read past)"));
+            $"  one frame at a time: {taken} frames taken again - from the frame before's last read, its targets set, against the frame's last read before the next targets - of {Math.Max(targets.Count - 1, 0)} changes of its targets; {mismatched} whose new targets' last was not the old targets (a frame read past)"));
+        if (flaggedAtTargets.Count > 0)
+        {
+            lines.Add(string.Create(CultureInfo.InvariantCulture,
+                $"    the read that saw the targets saw {Quantiles(flaggedAtTargets)} of the pinned bodies flagged to be moved onto them (+0x35)"));
+        }
+
         if (taken == 0)
         {
             return [];
         }
 
         lines.Add(string.Create(CultureInfo.InvariantCulture,
-            $"    its free particles' moves in a step: {Quantiles(still)}; a step on by their own motion alone lands {Quantiles(inertia)} off the game's"));
+            $"    its free particles' moves in a frame: {Quantiles(still)}; a frame on by their own motion alone lands {Quantiles(inertia)} off the game's"));
         var fits = new List<OrderFit>(Orders.Length);
         for (var order = 0; order < Orders.Length; order++)
         {
@@ -1131,17 +1232,174 @@ public sealed class ClothWatchSeries
             float[] sorted = [.. worst[order].Order()];
             fits.Add(new OrderFit(Orders[order], taken, exact, sorted[sorted.Length / 2], sorted[^1]));
             lines.Add(string.Create(CultureInfo.InvariantCulture,
-                $"    {Orders[order]}: places off by {Quantiles(errors[order])}, moves off by {Quantiles(moveErrors[order])}; a step's worst {Quantiles(worst[order])}; {exact} of {taken} steps within {OnTarget} throughout; the best of the three in {best[order]}"));
+                $"    {Orders[order]}: places off by {Quantiles(errors[order])}, moves off by {Quantiles(moveErrors[order])}; a frame's worst {Quantiles(worst[order])}; {exact} of {taken} frames within {OnTarget} throughout; the best of the four in {best[order]}"));
+        }
+
+        if (!viscous)
+        {
+            lines.Add("    no drag (both viscosities nought): no wind acts on it, and none is fitted");
+        }
+        else if (winds.Count > 0)
+        {
+            float[] sorted = [.. windWorst.Order()];
+            Vector3 mean = winds.Aggregate(Vector3.Zero, (sum, one) => sum + one) / winds.Count;
+            lines.Add(string.Create(CultureInfo.InvariantCulture,
+                $"    the tool's order with a wind fitted to each frame (the engine's drag relaxes to its wind field, module+0x1335690 - the books blow none): places off by {Quantiles(windErrors)}; a frame's worst {Quantiles(windWorst)}; {windWorst.Count(one => one < OnTarget)} of {windWorst.Count} frames within {OnTarget} throughout; the wind {Quantiles([.. winds.Select(one => one.Length())])} units a second, on the mean ({mean.X:0.#}, {mean.Y:0.#}, {mean.Z:0.#})"));
         }
 
         lines.Add(pinnedSeen == 0
             ? "    no particle pinned"
             : string.Create(CultureInfo.InvariantCulture,
-                $"    the pinned particles after the step: off the new targets by {Quantiles(pinnedNew)}, off the old by {Quantiles(pinnedOld)}; the place each is moved onto off the new targets by {Quantiles(pinnedMoveTo)}; {movingSet} of {pinnedSeen} still flagged to be moved"));
+                $"    the pinned particles at the frame's end: off the new targets by {Quantiles(pinnedNew)}, off the old by {Quantiles(pinnedOld)}; {movingSet} of {pinnedSeen} still flagged to be moved"));
         lines.Add(string.Create(CultureInfo.InvariantCulture,
-            $"    contacts the game's steps made: {Quantiles(contacts.Select(one => (float)one).ToList())} a step, {contacts.Count(one => one > 0)} of {contacts.Count} steps with any"));
-        Free(lines, rig, world, targets, bodies, shapeEvents, centresBefore, centresNow, radii, radiiBefore);
+            $"    contacts the game's steps made: {Quantiles(contacts.Select(one => (float)one).ToList())} a frame, {contacts.Count(one => one > 0)} of {contacts.Count} frames with any"));
+        Free(lines, rig, world, frames, shapeEvents, centresBefore, centresNow, radii, radiiBefore);
         return fits;
+    }
+
+    /// <summary>Every wind fitted, by the time of its frame's targets and its object - for holding one object's against another's.</summary>
+    private readonly List<(double Time, int Object, Vector3 Wind)> _winds = [];
+
+    /// <summary>How hard a trial wind blows while the fit measures each way's effect, units a second - CHOSEN, well inside the drag's linear reach.</summary>
+    private const float TrialWind = 100f;
+
+    /// <summary>
+    /// The wind that makes the tool's step land nearest the game's: the frame stepped in the tool's order with no wind and with a trial wind
+    /// along each axis, each way's effect on the free particles taken as a column, and the least squares of the game's place against them -
+    /// the drag being linear in the wind and the rest of the step nearly so; then the frame stepped again under that wind. Null where the
+    /// three ways move nothing (no drag reaches the free particles).
+    /// </summary>
+    private static (Vector3 Wind, List<float> Off, float Worst)? Blown(
+        ClothWorld world, ClothRig rig, Vector3[] placeBefore, Vector3[] moveBefore, Vector3[] oldTarget, Vector3[] oldLast, float dtBefore,
+        Vector3[] newTarget, float dt, Vector3[] centresBefore, Vector3[] centresNow, float[] radii, Vector3[] game)
+    {
+        int n = rig.Count;
+        Vector3[] Step(Vector3 wind)
+        {
+            world.Wind = wind;
+            world.Seed(0, placeBefore, moveBefore, oldTarget, oldLast, dtBefore);
+            world.Spheres(centresBefore, centresNow, radii);
+            world.Retarget(0, newTarget);
+            world.StepOnce(dt);
+            world.Settle();
+            world.Wind = Vector3.Zero;
+            return world.Particles(0).ToArray();
+        }
+
+        Vector3[] still = Step(Vector3.Zero);
+        Vector3[][] ways = [Step(new Vector3(TrialWind, 0f, 0f)), Step(new Vector3(0f, TrialWind, 0f)), Step(new Vector3(0f, 0f, TrialWind))];
+
+        // THE NORMAL EQUATIONS, 3 x 3: each column the change a unit of wind along one axis makes to every free particle's place.
+        var a = new double[9];
+        var b = new double[3];
+        for (var p = 0; p < n; p++)
+        {
+            if (rig.Pinned[p])
+            {
+                continue;
+            }
+
+            Vector3 want = game[p] - still[p];
+            Span<Vector3> column = [(ways[0][p] - still[p]) / TrialWind, (ways[1][p] - still[p]) / TrialWind, (ways[2][p] - still[p]) / TrialWind];
+            for (var i = 0; i < 3; i++)
+            {
+                b[i] += Vector3.Dot(column[i], want);
+                for (var j = 0; j < 3; j++)
+                {
+                    a[(i * 3) + j] += Vector3.Dot(column[i], column[j]);
+                }
+            }
+        }
+
+        double trace = a[0] + a[4] + a[8];
+        if (!(trace > 1e-18))
+        {
+            return null;
+        }
+
+        // A WHISPER OF RIDGE, so a cloth whose drag acts along its normals alone still solves - CHOSEN.
+        for (var i = 0; i < 3; i++)
+        {
+            a[(i * 3) + i] += 1e-6 * trace;
+        }
+
+        // CRAMER'S RULE: each axis's wind the determinant with its column replaced by the right side, over the whole's.
+        static double Det(double[] m)
+            => (m[0] * ((m[4] * m[8]) - (m[5] * m[7]))) - (m[1] * ((m[3] * m[8]) - (m[5] * m[6]))) + (m[2] * ((m[3] * m[7]) - (m[4] * m[6])));
+        double det = Det(a);
+        if (Math.Abs(det) < 1e-30)
+        {
+            return null;
+        }
+
+        double Along(int column)
+        {
+            var m = (double[])a.Clone();
+            for (var i = 0; i < 3; i++)
+            {
+                m[(i * 3) + column] = b[i];
+            }
+
+            return Det(m) / det;
+        }
+
+        var wind = new Vector3((float)Along(0), (float)Along(1), (float)Along(2));
+        Vector3[] blown = Step(wind);
+        var off = new List<float>(n);
+        float worst = 0f;
+        for (var p = 0; p < n; p++)
+        {
+            if (!rig.Pinned[p])
+            {
+                float one = Vector3.Distance(blown[p], game[p]);
+                off.Add(one);
+                worst = MathF.Max(worst, one);
+            }
+        }
+
+        return (wind, off, worst);
+    }
+
+    /// <summary>
+    /// The winds fitted to the objects of one frame held against one another: where they are one field near the player, the cloths of one
+    /// frame are blown alike.
+    /// </summary>
+    private void Winds(List<string> lines)
+    {
+        if (_winds.Count == 0)
+        {
+            return;
+        }
+
+        var objects = _winds.Select(one => one.Object).Distinct().Order().ToList();
+        lines.Add(string.Empty);
+        lines.Add("=== the winds fitted, object against object in the same frames: how far apart, against how hard each blew");
+        int first = objects[0];
+        var firsts = new Dictionary<double, Vector3>();
+        foreach ((double time, int owner, Vector3 wind) in _winds)
+        {
+            if (owner == first)
+            {
+                firsts[time] = wind;
+            }
+        }
+
+        foreach (int other in objects.Skip(1))
+        {
+            var apart = new List<float>();
+            var hard = new List<float>();
+            foreach ((double time, int _, Vector3 wind) in _winds.Where(one => one.Object == other))
+            {
+                if (firsts.TryGetValue(time, out Vector3 mine))
+                {
+                    apart.Add(Vector3.Distance(mine, wind));
+                    hard.Add(MathF.Max(mine.Length(), wind.Length()));
+                }
+            }
+
+            lines.Add(string.Create(CultureInfo.InvariantCulture,
+                $"  object 0x{Setups[other].Address:X} against 0x{Setups[first].Address:X}: {apart.Count} frames alike, apart by {Quantiles(apart)} units a second, the harder of the two {Quantiles(hard)}"));
+        }
     }
 
     /// <summary>The capsules' spheres as the last Capsules event read before <paramref name="index"/> holds them; nought where none was read.</summary>
@@ -1159,13 +1417,18 @@ public sealed class ClothWatchSeries
     }
 
     /// <summary>
-    /// The cloth run free from the game's first state on the game's own targets and steps, in the tool's order: how far it drifts from the
-    /// game's over time.
+    /// The cloth run free from the game's state at its first frame on the game's own targets and steps, frame after frame in the tool's order:
+    /// how far it drifts from the game's over time. A frame not read whole is stepped on all the same, its targets the next ones read.
     /// </summary>
     private void Free(
-        List<string> lines, ClothRig rig, ClothWorld world, List<(Event e, int index)> targets, List<(Event e, int index)> bodies,
-        List<(Event e, int index)> shapes, Vector3[] centresBefore, Vector3[] centresNow, float[] radii, float[] radiiBefore)
+        List<string> lines, ClothRig rig, ClothWorld world, List<Frame> frames, List<(Event e, int index)> shapes, Vector3[] centresBefore,
+        Vector3[] centresNow, float[] radii, float[] radiiBefore)
     {
+        if (frames.Count == 0)
+        {
+            return;
+        }
+
         int n = rig.Count;
         var target = new Vector3[n];
         var last = new Vector3[n];
@@ -1173,36 +1436,24 @@ public sealed class ClothWatchSeries
         var move = new Vector3[n];
         var scratch = new bool[n];
         var scratchTo = new Vector3[n];
-        int first = bodies.FindIndex(b => targets.Any(t => t.index < b.index));
-        if (first < 0)
-        {
-            return;
-        }
-
-        int seed = targets.FindLastIndex(t => t.index < bodies[first].index);
-        Targets(targets[seed].e, target, last);
-        float dt0 = Bodies(bodies[first].e, place, move, scratch, scratch, scratchTo, out _);
+        Frame first = frames[0];
+        Targets(Events[first.Previous], target, last);
+        float dt0 = Bodies(Events[first.Before], place, move, scratch, scratch, scratchTo, out _);
         world.Seed(0, place, move, target, last, dt0);
-        Place(shapes, bodies[first].index, centresNow, radii);
-        double start = bodies[first].e.Time;
+        Place(shapes, first.Before, centresNow, radii);
+        double start = Events[first.Before].Time;
         var marks = new SortedDictionary<double, float>();
         double[] at = [0.1, 0.5, 1, 2, 4, 8];
         var all = new List<float>();
         int steps = 0;
-        for (int j = first + 1; j < bodies.Count && steps < MostFreeSteps; j++)
+        foreach (Frame frame in frames.Take(MostFreeSteps))
         {
-            (Event cur, int curIndex) = bodies[j];
-            (Event _, int prevIndex) = bodies[j - 1];
             Array.Copy(centresNow, centresBefore, centresNow.Length);
             Array.Copy(radii, radiiBefore, radii.Length);
-            Place(shapes, curIndex, centresNow, radii);
-            foreach ((Event t, int index) in targets.Where(t => t.index > prevIndex && t.index < curIndex))
-            {
-                Targets(t, target, last);
-                world.Retarget(0, target);
-            }
-
-            float dt = Bodies(cur, place, move, scratch, scratch, scratchTo, out _);
+            Place(shapes, frame.End, centresNow, radii);
+            Targets(Events[frame.Targets], target, last);
+            world.Retarget(0, target);
+            float dt = Bodies(Events[frame.End], place, move, scratch, scratch, scratchTo, out _);
             world.Spheres(centresBefore, centresNow, radii);
             world.StepOnce(dt);
             world.Settle();
@@ -1221,7 +1472,7 @@ public sealed class ClothWatchSeries
 
             float mean = free > 0 ? sum / free : 0f;
             all.Add(mean);
-            double since = cur.Time - start;
+            double since = Events[frame.End].Time - start;
             foreach (double mark in at)
             {
                 if (since >= mark && !marks.ContainsKey(mark))
@@ -1232,7 +1483,7 @@ public sealed class ClothWatchSeries
         }
 
         lines.Add(string.Create(CultureInfo.InvariantCulture,
-            $"  run free from the game's first state on its targets and steps, the tool's order ({steps} steps): its free particles off the game's by {string.Join(", ", marks.Select(kv => $"{kv.Value:0.###} at {kv.Key:0.#} s"))} on the mean; over the run {Quantiles(all)}"));
+            $"  run free from the game's state at its first frame on its targets and steps, the tool's order ({steps} frames): its free particles off the game's by {string.Join(", ", marks.Select(kv => $"{kv.Value:0.###} at {kv.Key:0.#} s"))} on the mean; over the run {Quantiles(all)}"));
     }
 
     /// <summary>Median, ninetieth percentile and most of some values, or "none".</summary>

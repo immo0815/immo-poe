@@ -78,6 +78,13 @@ public sealed class ClothWorld
     /// <summary>The last step's seconds.</summary>
     public float LastStep { get; private set; }
 
+    /// <summary>
+    /// The wind every particle's drag relaxes towards, units a second - the engine's wind field at the particle (module+0x1335690: the sum
+    /// of its sources, several lists of them, each blowing by a function of its own). Nought by default: the books blow none (CHOSEN - no
+    /// source is read), and the cloth watch's reading fits one a frame to the game's own steps.
+    /// </summary>
+    public Vector3 Wind { get; set; }
+
     /// <summary>A cloth's particles where they stand now.</summary>
     public ReadOnlySpan<Vector3> Particles(int cloth) => _bodies[cloth].X;
 
@@ -221,7 +228,7 @@ public sealed class ClothWorld
     {
         foreach (Body body in _bodies)
         {
-            body.Forces(dt);
+            body.Forces(dt, Wind);
         }
 
         foreach (Body body in _bodies)
@@ -382,7 +389,7 @@ public sealed class ClothWorld
         }
 
         /// <summary>The step's forces (module+0x1330160): gravity, drag, and the pull towards the animation.</summary>
-        public void Forces(float dt)
+        public void Forces(float dt, Vector3 wind)
         {
             // A BODY'S FIRST STEP HAS NO STEP BEFORE IT: its time taken as this one's (the engine's container is made with one, not read).
             if (_dt <= 0f)
@@ -396,7 +403,7 @@ public sealed class ClothWorld
                 _force[p] = Rig.Pinned[p] ? Vector3.Zero : new Vector3(0f, 0f, s.Gravity);
             }
 
-            Drag(s.NormalViscosity * ClothSettings.ViscosityScale, s.TangentViscosity * ClothSettings.ViscosityScale, dt);
+            Drag(s.NormalViscosity * ClothSettings.ViscosityScale, s.TangentViscosity * ClothSettings.ViscosityScale, dt, wind);
             if (MathF.Abs(s.AnimationVelocityFactor) > 1e-7f || MathF.Abs(s.AnimationForceFactor) > 1e-7f)
             {
                 Pull(dt);
@@ -404,13 +411,16 @@ public sealed class ClothWorld
         }
 
         /// <summary>
-        /// The drag (module+0x13AB700): the velocity relative to the wind - nought - decayed by exp(-normal · dt) across the particle's own
-        /// normal and exp(-tangent · dt) along it, in its frame's three ways; a particle of no triangle has no frame, and the engine's three
-        /// ways are then nought, so it stops.
+        /// The drag (module+0x13AB700): the velocity relative to the wind decayed by exp(-normal · dt) across the particle's own normal and
+        /// exp(-tangent · dt) along it, in its frame's three ways; a particle of no triangle has no frame, and the engine's three ways are then
+        /// nought, so it stops. The velocity is the displacement over the last step's seconds, as the container's own reads and writes it.
         /// </summary>
-        private void Drag(float normal, float tangent, float dt)
+        private void Drag(float normal, float tangent, float dt, Vector3 wind)
         {
             float across = MathF.Exp(-(normal * dt)), along = MathF.Exp(-(tangent * dt));
+
+            // THE WIND AS A DISPLACEMENT over the last step, the velocity's own measure.
+            Vector3 blown = wind * _dt;
             for (var p = 0; p < Rig.Count; p++)
             {
                 if (Rig.Pinned[p])
@@ -422,7 +432,8 @@ public sealed class ClothWorld
                 Vector3 n = new(frame.M21, frame.M22, frame.M23);
 
                 // THE THREE WAYS ORTHONORMAL, so the tangents' choice (module+0x1330A90) does not matter: along the normal one decay, across it the other.
-                D[p] = n == Vector3.Zero ? Vector3.Zero : (D[p] * along) + (n * (Vector3.Dot(n, D[p]) * (across - along)));
+                Vector3 relative = D[p] - blown;
+                D[p] = n == Vector3.Zero ? Vector3.Zero : blown + (relative * along) + (n * (Vector3.Dot(n, relative) * (across - along)));
             }
         }
 
