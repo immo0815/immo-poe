@@ -152,6 +152,11 @@ public sealed class ToolTabs
     private string? _bringToFront;
     private string? _unfold;
 
+    // How many frames the request has stood without landing, and the most it stands - a page or a
+    // section that never draws (covered, hidden) must not hold a request for ever.
+    private int _tries;
+    private const int MostTries = 8;
+
     /// <summary>The id this window's lock and click-through are filed under.</summary>
     /// <remarks>
     /// The STATUS window's id, because this is now that window: the live readout is its first
@@ -337,6 +342,7 @@ public sealed class ToolTabs
 
         _bringToFront = page?.Id ?? id;
         _unfold = id;
+        _tries = 0;
 
         // A jump wins over a hiding: F8 must surface the interface tree whether or not its
         // tab is on the bar. Hidden-and-unreachable would make every "open this tool"
@@ -565,10 +571,22 @@ public sealed class ToolTabs
         // AFTER the content, unlike before, because the content is what reads _unfold: the
         // jump that names a section has to survive long enough for that section to be drawn.
         // A request the content itself filed is a different one and stays for the next frame.
-        if (_bringToFront == bringing)
+        //
+        // AND ONLY ONCE IT HAS LANDED - its page in front and the section it names drawn - or after
+        // a few frames of trying (said from the live client, v0.1.423: the agent link's Monster Book
+        // came up on the Inspect page showing another of its tabs, and only a click on its own tab
+        // showed it). ImGui takes a tab's SetSelected on the NEXT frame - the page's first, then the
+        // section's on the page now in front - so a request cleared on the frame it was made turned
+        // the page and lost the tab.
+        if (bringing is not null && _bringToFront == bringing)
         {
-            _bringToFront = null;
-            _unfold = null;
+            bool landed = front?.Id == bringing && (_unfold is null || _unfold == bringing || _drawn.Contains(_unfold));
+            if (landed || ++_tries > MostTries)
+            {
+                _bringToFront = null;
+                _unfold = null;
+                _tries = 0;
+            }
         }
 
         _onReadout = OnReadout(front?.Id);
