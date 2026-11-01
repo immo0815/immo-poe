@@ -103,9 +103,21 @@ public static class ClothMath
     /// </remarks>
     public static void Bend(Span<Vector3> x, Span<Vector3> d, ReadOnlySpan<bool> kinematic, float stiffness, float rest, float allowed, float dt, int passes)
     {
-        float before = Fold(x[0], x[1], x[2], x[3], allowed, rest);
+        // THE FOLD IN THE BEND'S OWN FRAME, as the engine measures it: module+0x139CDF0 hands its fold (module+0x139C9E0) the four corners
+        // less the first - the edge's first end at the origin, the frame not turned (MEASURED under the emulator, v0.1.428) - and moves the
+        // world's corners after. In the world's own coordinates a probe a thousandth along the way is lost in a float's rounding: at ten
+        // thousand units an ulp is a thousandth, and the game's cloth steps there - the stiff bends of the glove feathers stood 0.02 to 0.08
+        // off the game's each frame (the cloth watch of 14:54) while every cloth without a bend matched it.
+        Vector3 origin = x[0];
+        Span<Vector3> local = stackalloc Vector3[4];
+        for (var corner = 0; corner < 4; corner++)
+        {
+            local[corner] = x[corner] - origin;
+        }
+
+        float before = Fold(local[0], local[1], local[2], local[3], allowed, rest);
         Span<Vector3> way = stackalloc Vector3[4];
-        Gradient(x[0], x[1], x[2], x[3], way);
+        Gradient(local[0], local[1], local[2], local[3], way);
         for (var corner = 0; corner < 4; corner++)
         {
             if (kinematic[corner])
@@ -117,7 +129,7 @@ public static class ClothMath
         Span<Vector3> trial = stackalloc Vector3[4];
         for (var corner = 0; corner < 4; corner++)
         {
-            trial[corner] = (way[corner] * 0.001f) + x[corner];
+            trial[corner] = (way[corner] * 0.001f) + local[corner];
         }
 
         float change = (Fold(trial[0], trial[1], trial[2], trial[3], allowed, rest) - before) * 1000f;
@@ -139,7 +151,7 @@ public static class ClothMath
             float scale = at * step;
             for (var corner = 0; corner < 4; corner++)
             {
-                trial[corner] = (scale * way[corner]) + x[corner];
+                trial[corner] = (scale * way[corner]) + local[corner];
             }
 
             float after = Fold(trial[0], trial[1], trial[2], trial[3], allowed, rest);
