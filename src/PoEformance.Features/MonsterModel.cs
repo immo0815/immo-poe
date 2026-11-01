@@ -2242,6 +2242,12 @@ public static class MonsterModels
         }
     }
 
+    /// <summary>The .ao of every piece this one hangs off itself, as <see cref="Hung"/> reads its lines.</summary>
+    internal static IEnumerable<string> HungPaths(AnimatedObject ao) => Hung(ao).Select(line => line.Path);
+
+    /// <summary>An .ao read from the install by its path, the suffix added where the path names none - see <see cref="Object"/>.</summary>
+    internal static AnimatedObject ObjectAt(Func<string, byte[]?> read, string path) => Object(read, path);
+
     /// <summary>What an attached_object line names its alias after.</summary>
     private const string AliasWord = " alias ";
 

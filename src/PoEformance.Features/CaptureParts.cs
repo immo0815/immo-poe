@@ -166,6 +166,9 @@ public static class CaptureParts
     /// <summary>The Monster Book's monster: where the stage stands him, his parts as hung, his lowest point in every animation, his files whole, and the game's entity of him.</summary>
     public const string MonsterFiles = "monster-files";
 
+    /// <summary>The GPU particles the panes' monsters name, their graphs and the engine's, and the sources defining their nodes - see CaptureParticles.</summary>
+    public const string Particles = "particles";
+
     /// <summary>The stage drawn through the game's camera and held against the game's picture, light term by term - see CaptureLightCompare.</summary>
     public const string LightCompare = "light-compare";
 
@@ -572,6 +575,12 @@ public static class CaptureParts
             + "by hop, the text files whole and their textures whole beside it, and "
             + "every .ao and object type file of him whole - beside the game's own entity of him where one is near (its place, the terrain's "
             + "height under it, its bounds, the animation it plays). Stand where the game shows him with him on the Monster Book's stage."),
+        new(Particles, "Windows", "particles", CaptureReport.ParticlesFile,
+            "Everything the engine's GPU particles are made of, for drawing them as the game does: every particle effect the model panes' "
+            + "monsters and the parts they wear name (a lantern's flame and sparks), each emitter read out - its pool, each particle's life, "
+            + "how they come, its group, mesh, update material and render passes - the graphs of those materials and the engine's own "
+            + "particle graphs whole with every node they use and whether the compile knows it, and every shader source defining those nodes, "
+            + "through every declaration they include, whole. Nothing of the game's memory; any spot with the Monster Book showing a monster."),
         new(LightCompare, "Windows", "light against the game", CaptureReport.LightCompareFile,
             "The book's stage laid as the area laid it (\"the area round you\") drawn through the game's own camera onto its picture, pixel on pixel, "
             + "under the light panel's light - and every pixel's light held against the game's: by the pane's sun and shade, by material, as a "
@@ -662,12 +671,14 @@ public static class CaptureParts
             + "names, and the .ao files those and the walk name written whole. Take it three times for the cosmetics - as you stand, after "
             + "changing one MTX, after swapping weapon sets. About a minute at most; the capture's window shows how far it is."),
         new(BoneWatch, "Memory", "bone watch", CaptureReport.BoneWatchFile,
-            "The bones of the pieces the game draws your character with, watched for twelve seconds from the press - for how the engine "
-            + "swings what hangs on a physics bone (a lantern on a staff, a skirt, feathers): every block of memory round each piece's object, "
-            + "three hops deep, read in the first second, those that change watched thirty times a second for the rest. Every run of turn "
-            + "matrices in them - a skeleton's bones side by side - is written matrix by matrix against the run's first: a weapon's own "
-            + "bones hold still on its root, a simulated one swings, and its angle over time is written as a table. The reads go beside it "
-            + "as bone-watch.bin. PRESS THE KEY, THEN WALK, STOP AND TURN a few times until the window says it is done."),
+            "The bones of the pieces the game draws your character with, watched for twelve seconds - for how the engine swings what "
+            + "hangs on a physics bone (a lantern on a staff, a skirt, feathers). First each piece's own skeleton - and those of the pieces "
+            + "it hangs off itself - is looked for in the whole of memory by its rest as the files hold it, every core for some seconds; "
+            + "then the skeletons found, his place and every block of memory round each piece's object (three hops deep, those that change "
+            + "in the first second) are read thirty times a second. Each simulated (phys_) bone's swing on its parent is written - how far, "
+            + "about which axis, its period, its turning points and how fast it settles - as a table beside your speed, and every run of "
+            + "turn matrices in the blocks matrix by matrix. The reads go beside it as bone-watch.bin. PRESS THE KEY, and when the window "
+            + "says 'walk, stop and turn', WALK, STOP AND TURN a few times until it says it is done."),
         new(ShaderStages, "Memory", "shader stages", CaptureReport.ShaderStagesFile,
             "The order the engine runs a material's shader stages in, read off its own table in the running program - an array of "
             + "std::string in its image, of which only the pixel side's ten were ever seen - written whole, beside this build's compile "

@@ -23,8 +23,14 @@ public sealed class BoneWatchSeries
     /// <summary>The file the reads are kept in beside the part's text.</summary>
     public const string File = "bone-watch.bin";
 
-    /// <summary>The first bytes of the file, its version in the last.</summary>
-    private static readonly byte[] Magic = "POEFBONES1"u8.ToArray();
+    /// <summary>The first bytes of the file, its version in the last: 2 from v0.1.404, whose skeletons and the player's place follow the blocks.</summary>
+    private static readonly byte[] Magic = "POEFBONES2"u8.ToArray();
+
+    /// <summary>The first bytes of a file of v0.1.401 to v0.1.403 - the blocks alone.</summary>
+    private static readonly byte[] MagicOne = "POEFBONES1"u8.ToArray();
+
+    /// <summary>The most columns of swings a skeleton's table writes.</summary>
+    private const int MostSwingColumns = 8;
 
     /// <summary>How near a row's length must be to the others' and their products to nought, against the scale - CHOSEN.</summary>
     private const float Slack = 2e-3f;
@@ -44,23 +50,48 @@ public sealed class BoneWatchSeries
     /// <summary>One block read again and again: its name (the way to it), address, size and every read with its time.</summary>
     public sealed record Block(string Name, ulong Address, int Size, List<(double At, byte[] Bytes)> Reads);
 
+    /// <summary>A skeleton's pose array found by its rest (PoseHunt) and watched as a block: whose rig, how it lies, where in the block bone nought's x is.</summary>
+    /// <param name="Block">The block it was read as, by its place among the blocks.</param>
+    /// <param name="Rig">The rig.</param>
+    /// <param name="Frame">Whose frame its translations are in.</param>
+    /// <param name="Layout">How a translation lies in its record.</param>
+    /// <param name="Stride">The bytes from one bone's record to the next.</param>
+    /// <param name="Offset">Where bone nought's x lies in the block - the bytes read before it, for a turn kept there.</param>
+    /// <param name="Matched">How many fixed bones stood at their rest when it was found.</param>
+    /// <param name="Fixed">How many bones hold their rest in its frame.</param>
+    /// <param name="Votes">How many bones' places found in the sweep agreed on it.</param>
+    public sealed record Skeleton(int Block, PoseRig Rig, PoseFrame Frame, PoseLayout Layout, int Stride, int Offset, int Matched, int Fixed, int Votes);
+
     /// <summary>The blocks, in the order they were watched.</summary>
     public IReadOnlyList<Block> Blocks { get; }
 
     /// <summary>What the watch said of itself - the player's pieces, what was walked - written at the top of the file's reading.</summary>
     public IReadOnlyList<string> Head { get; }
 
+    /// <summary>The skeletons found by their rest, each read as one of the blocks - none in a file of v0.1.401 to v0.1.403.</summary>
+    public IReadOnlyList<Skeleton> Skeletons { get; }
+
+    /// <summary>The block holding the player's place (Render.CurrentWorldPosition, x, y and z), -1 for none.</summary>
+    public int Player { get; }
+
     /// <param name="blocks">The blocks watched.</param>
     /// <param name="head">What the watch said of itself.</param>
-    public BoneWatchSeries(IReadOnlyList<Block> blocks, IReadOnlyList<string> head)
+    /// <param name="skeletons">The skeletons found by their rest among the blocks.</param>
+    /// <param name="player">The block of the player's place, -1 for none.</param>
+    public BoneWatchSeries(IReadOnlyList<Block> blocks, IReadOnlyList<string> head, IReadOnlyList<Skeleton>? skeletons = null, int player = -1)
     {
         ArgumentNullException.ThrowIfNull(blocks);
         ArgumentNullException.ThrowIfNull(head);
         Blocks = blocks;
         Head = head;
+        Skeletons = skeletons ?? [];
+        Player = player >= 0 && player < blocks.Count ? player : -1;
     }
 
-    /// <summary>The reads as bytes: the magic, the head's lines, then each block's name, address, size and reads.</summary>
+    /// <summary>
+    /// The reads as bytes: the magic, the head's lines, then each block's name, address, size and reads; then the player's block and each
+    /// skeleton - its block, its rig whole (piece, file, each bone's name, parent and both rests) and how it lies.
+    /// </summary>
     public byte[] ToBytes()
     {
         using var stream = new MemoryStream();
@@ -86,16 +117,43 @@ public sealed class BoneWatchSeries
                     write.Write(bytes, 0, block.Size);
                 }
             }
+
+            write.Write(Player);
+            write.Write(Skeletons.Count);
+            foreach (Skeleton skeleton in Skeletons)
+            {
+                write.Write(skeleton.Block);
+                PoseRig rig = skeleton.Rig;
+                write.Write(rig.Piece);
+                write.Write(rig.Path);
+                write.Write(rig.Count);
+                for (var bone = 0; bone < rig.Count; bone++)
+                {
+                    write.Write(rig.Names[bone]);
+                    write.Write(rig.Parents[bone]);
+                    Matrix(write, rig.Local[bone]);
+                    Matrix(write, rig.Model[bone]);
+                }
+
+                write.Write((int)skeleton.Frame);
+                write.Write((int)skeleton.Layout);
+                write.Write(skeleton.Stride);
+                write.Write(skeleton.Offset);
+                write.Write(skeleton.Matched);
+                write.Write(skeleton.Fixed);
+                write.Write(skeleton.Votes);
+            }
         }
 
         return stream.ToArray();
     }
 
-    /// <summary>The reads back from <see cref="ToBytes"/>'s bytes, or null where they are not such a file.</summary>
+    /// <summary>The reads back from <see cref="ToBytes"/>'s bytes - or a file of v0.1.401 to v0.1.403's, its blocks alone - or null where they are not such a file.</summary>
     public static BoneWatchSeries? Read(byte[] bytes)
     {
         ArgumentNullException.ThrowIfNull(bytes);
-        if (bytes.Length < Magic.Length || !bytes.AsSpan(0, Magic.Length).SequenceEqual(Magic))
+        bool two = bytes.Length >= Magic.Length && bytes.AsSpan(0, Magic.Length).SequenceEqual(Magic);
+        if (!two && !(bytes.Length >= MagicOne.Length && bytes.AsSpan(0, MagicOne.Length).SequenceEqual(MagicOne)))
         {
             return null;
         }
@@ -133,12 +191,72 @@ public sealed class BoneWatchSeries
                 blocks.Add(new Block(name, address, size, taken));
             }
 
-            return new BoneWatchSeries(blocks, head);
+            if (!two)
+            {
+                return new BoneWatchSeries(blocks, head);
+            }
+
+            int player = read.ReadInt32();
+            int skeletons = read.ReadInt32();
+            var found = new List<Skeleton>(Math.Clamp(skeletons, 0, 256));
+            for (var one = 0; one < skeletons; one++)
+            {
+                int block = read.ReadInt32();
+                string piece = read.ReadString(), path = read.ReadString();
+                int bones = read.ReadInt32();
+                if (bones is < 0 or > 1024 || block < 0 || block >= blocks.Count)
+                {
+                    return null;
+                }
+
+                var names = new string[bones];
+                var parents = new int[bones];
+                var local = new Matrix4x4[bones];
+                var model = new Matrix4x4[bones];
+                for (var bone = 0; bone < bones; bone++)
+                {
+                    names[bone] = read.ReadString();
+                    parents[bone] = read.ReadInt32();
+                    local[bone] = Matrix(read);
+                    model[bone] = Matrix(read);
+                }
+
+                var rig = new PoseRig(piece, path, names, parents, local, model);
+                found.Add(new Skeleton(
+                    block, rig, (PoseFrame)read.ReadInt32(), (PoseLayout)read.ReadInt32(), read.ReadInt32(), read.ReadInt32(), read.ReadInt32(), read.ReadInt32(), read.ReadInt32()));
+            }
+
+            return new BoneWatchSeries(blocks, head, found, player);
         }
         catch (EndOfStreamException)
         {
             return null;
         }
+    }
+
+    private static void Matrix(BinaryWriter write, Matrix4x4 matrix)
+    {
+        for (var row = 0; row < 4; row++)
+        {
+            for (var column = 0; column < 4; column++)
+            {
+                write.Write(matrix[row, column]);
+            }
+        }
+    }
+
+    private static Matrix4x4 Matrix(BinaryReader read)
+    {
+        var matrix = default(Matrix4x4);
+        for (var row = 0; row < 4; row++)
+        {
+            for (var column = 0; column < 4; column++)
+            {
+                matrix[row, column] = read.ReadSingle();
+            }
+        }
+
+        return matrix;
     }
 
     /// <summary>A run of turn matrices in one block: where it starts, its stride, how many, and how each row of a matrix is laid.</summary>
@@ -271,11 +389,19 @@ public sealed class BoneWatchSeries
     public IReadOnlyList<string> Describe()
     {
         var lines = new List<string>(Head);
+        SkeletonLines(lines);
         lines.Add(string.Empty);
         lines.Add("=== the runs of turn matrices in the watched blocks - a skeleton's bones side by side - each matrix against the run's first: how far it turns on it over the watch and how often; a held weapon's own bones hold still on its root, a simulated bone (phys_) does not");
         int found = 0;
-        foreach (Block block in Blocks)
+        HashSet<int> skeletal = [.. Skeletons.Select(one => one.Block)];
+        for (var index = 0; index < Blocks.Count; index++)
         {
+            Block block = Blocks[index];
+            if (skeletal.Contains(index) || index == Player)
+            {
+                continue;
+            }
+
             IReadOnlyList<Run> runs = Runs(block);
             if (runs.Count == 0)
             {
@@ -299,6 +425,169 @@ public sealed class BoneWatchSeries
 
         return lines;
     }
+
+    /// <summary>
+    /// The skeletons found by their rest: each array's rig and how it lies, where its records keep their turns, which bones moved over the
+    /// watch, and each simulated bone's swing on its parent - its turning points and how fast it settles - with a table of the swings over
+    /// time beside the player's speed.
+    /// </summary>
+    private void SkeletonLines(List<string> lines)
+    {
+        lines.Add(string.Empty);
+        lines.Add("=== the pieces' own skeletons, found in the whole of memory by their rest (PoseHunt) and watched with the rest: each array's rig, frame, layout and stride; where its records keep their turns and how near the fixed bones' turns lie to their rest; which bones moved over the watch; and each simulated (phys_) bone's swing on its parent - by its place on it (a pendulum's way) and by its turn on it - with its period, its turning points and the decrement between them (δ = ln of one swing's height - a turning point to the next - over the height a period on; damping ratio δ / sqrt(4π² + δ²))");
+        if (Skeletons.Count == 0)
+        {
+            lines.Add("(none found, or none looked for)");
+            return;
+        }
+
+        (double At, Vector3 Place)[] player = Player >= 0
+            ? [.. Blocks[Player].Reads.Where(one => one.Bytes.Length >= 12).Select(one => (one.At, Row(one.Bytes, 0)))]
+            : [];
+        for (var index = 0; index < Skeletons.Count; index++)
+        {
+            Skeleton skeleton = Skeletons[index];
+            Block block = Blocks[skeleton.Block];
+            PoseRig rig = skeleton.Rig;
+            double span = block.Reads.Count > 1 ? block.Reads[^1].At - block.Reads[0].At : 0;
+            lines.Add(string.Empty);
+            lines.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"--- skeleton {index + 1}: {Path.GetFileName(rig.Piece)}'s rig ({rig.Path}, {rig.Count} bones, {rig.SimulatedCount} simulated) - {skeleton.Frame} frame, {(skeleton.Layout == PoseLayout.Packed ? "x, y and z side by side" : "x, y and z 16 bytes apart")}, {skeleton.Stride} bytes a bone, bone 0's x at 0x{block.Address + (ulong)skeleton.Offset:X}: {skeleton.Matched} of {skeleton.Fixed} fixed bones at their rest when found, {skeleton.Votes} bones' places agreed on it; {block.Reads.Count} reads over {span:0.0} s"));
+            if (block.Reads.Count == 0)
+            {
+                lines.Add("  (no read held)");
+                continue;
+            }
+
+            TurnRead how = PoseSwing.Turns(block, skeleton);
+            lines.Add(how.Kind == TurnKind.None
+                ? "  turns: none found beside the translations - measured by places alone"
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"  turns: {how.Kind}{(how.Flip ? ", read the other way round (by columns, or conjugated)" : string.Empty)}{(how.WFirst ? ", w first" : string.Empty)} - held in {how.Share:P0} of the bones' reads; the fixed bones' turns {how.Agreement:0.##} degrees from their rest at the first read (median)"));
+            MovedLines(block, skeleton, how, lines);
+
+            IReadOnlyList<BoneSwing> swings = PoseSwing.Swings(block, skeleton, how);
+            foreach (BoneSwing swing in swings)
+            {
+                SwingLines(swing, lines);
+            }
+
+            SwingTable(block, swings, player, lines);
+        }
+    }
+
+    /// <summary>Which bones moved over the watch: each whose translation or turn left its first read's, by how much at most.</summary>
+    private static void MovedLines(Block block, Skeleton skeleton, TurnRead how, List<string> lines)
+    {
+        PoseRig rig = skeleton.Rig;
+        byte[] first = block.Reads[0].Bytes;
+        var moved = new List<string>();
+        for (var bone = 0; bone < rig.Count; bone++)
+        {
+            int x = skeleton.Offset + (bone * skeleton.Stride);
+            Vector3 from = PoseHunt.At(first, x, skeleton.Layout);
+            Quaternion? turned = PoseSwing.Turn(first, x, how);
+            float far = 0, turn = 0;
+            foreach ((_, byte[] bytes) in block.Reads)
+            {
+                far = MathF.Max(far, Vector3.Distance(PoseHunt.At(bytes, x, skeleton.Layout), from));
+                if (turned is { } was && PoseSwing.Turn(bytes, x, how) is { } now)
+                {
+                    turn = MathF.Max(turn, Degrees(was, now));
+                }
+            }
+
+            if (far > 0.01f || turn > 0.1f)
+            {
+                moved.Add(string.Create(CultureInfo.InvariantCulture, $"{rig.Names[bone]} ({far:0.###} units, {turn:0.##} degrees)"));
+            }
+        }
+
+        lines.Add(string.Create(
+            CultureInfo.InvariantCulture,
+            $"  moved over the watch: {moved.Count} of {rig.Count} bones{(moved.Count == 0 ? " - a copy of the rest, or a pose that held still" : ": " + string.Join(", ", moved.Take(40)) + (moved.Count > 40 ? $" and {moved.Count - 40} more" : string.Empty))}"));
+    }
+
+    /// <summary>One simulated bone's swing in words: how far, about which axis, how often, how it settles - and its turning points.</summary>
+    private static void SwingLines(BoneSwing swing, List<string> lines)
+    {
+        float least = swing.Signed.Length > 0 ? swing.Signed.Min() : 0, most = swing.Signed.Length > 0 ? swing.Signed.Max() : 0;
+        string rest = swing.By == "place"
+            ? string.Create(CultureInfo.InvariantCulture, $"rests {swing.RestLength:0.###} from it, its distance {swing.LeastRatio:0.####}..{swing.MostRatio:0.####} of that; ")
+            : string.Empty;
+        lines.Add(string.Create(
+            CultureInfo.InvariantCulture,
+            $"  {swing.Bone} on {swing.Parent} by its {swing.By}: {rest}swings {least:0.##}..{most:0.##} degrees about ({swing.Axis.X:0.###}, {swing.Axis.Y:0.###}, {swing.Axis.Z:0.###}), {swing.Angle.DefaultIfEmpty().Max():0.##} from its rest at most; period {Seconds(swing.Period)} by the autocorrelation, {Seconds(swing.PeriodByPeaks)} by its turning points; {swing.Extrema.Count} turning points; decrement {(swing.Pairs > 0 ? string.Create(CultureInfo.InvariantCulture, $"{swing.Decrement:0.###} (damping ratio {swing.DampingRatio:0.####}) over {swing.Pairs} pairs") : "- (no swing followed a period on by a smaller)")}"));
+        if (swing.Extrema.Count > 0)
+        {
+            lines.Add("    turning points: " + string.Join(", ", swing.Extrema.Take(48).Select(one => string.Create(CultureInfo.InvariantCulture, $"{one.At:0.00} s {one.Value:+0.##;-0.##;0}"))));
+        }
+    }
+
+    /// <summary>The swings over time, a row every thirtieth of a second, beside the player's speed on the ground.</summary>
+    private static void SwingTable(Block block, IReadOnlyList<BoneSwing> swings, (double At, Vector3 Place)[] player, List<string> lines)
+    {
+        if (swings.Count == 0)
+        {
+            lines.Add("  (no simulated bone with a parent in this rig)");
+            return;
+        }
+
+        BoneSwing[] shown = [.. swings.Take(MostSwingColumns)];
+        lines.Add(string.Join('\t', shown.Select(one => $"{one.Bone} {one.By}").Prepend("his speed").Prepend("  t")));
+        double next = block.Reads[0].At;
+        for (var read = 0; read < block.Reads.Count; read++)
+        {
+            double at = block.Reads[read].At;
+            if (at < next)
+            {
+                continue;
+            }
+
+            next = at + SeriesStep;
+            string speed = Speed(player, at) is { } fast ? fast.ToString("0", CultureInfo.InvariantCulture) : "-";
+            lines.Add(string.Join(
+                '\t',
+                shown.Select(one => one.Signed[read].ToString("0.###", CultureInfo.InvariantCulture))
+                    .Prepend(speed)
+                    .Prepend("  " + (at - block.Reads[0].At).ToString("0.000", CultureInfo.InvariantCulture))));
+        }
+    }
+
+    /// <summary>The player's speed on the ground at a time, in units a second over the tenth of a second before it - null where his place was not read then.</summary>
+    public static double? Speed((double At, Vector3 Place)[] player, double at)
+    {
+        ArgumentNullException.ThrowIfNull(player);
+        int now = -1;
+        for (var read = 0; read < player.Length && player[read].At <= at + 1e-6; read++)
+        {
+            now = read;
+        }
+
+        if (now < 0)
+        {
+            return null;
+        }
+
+        int before = now;
+        while (before > 0 && player[now].At - player[before].At < 0.1)
+        {
+            before--;
+        }
+
+        double span = player[now].At - player[before].At;
+        if (span <= 0)
+        {
+            return 0;
+        }
+
+        Vector2 moved = new Vector2(player[now].Place.X, player[now].Place.Y) - new Vector2(player[before].Place.X, player[before].Place.Y);
+        return moved.Length() / span;
+    }
+
+    private static string Seconds(double period) => period > 0 ? period.ToString("0.00", CultureInfo.InvariantCulture) + " s" : "-";
 
     /// <summary>One run's lines: each matrix's turn on the first, and the ones that turn as a table over time.</summary>
     private static void RunLines(Block block, Run run, List<string> lines)
@@ -432,7 +721,6 @@ public sealed class BoneWatchSeries
         }
 
         Quaternion first = Relative(block.Reads[0].Bytes);
-        Vector3 mean = Vector3.Zero;
         for (var read = 0; read < reads; read++)
         {
             Quaternion between = Quaternion.Concatenate(Quaternion.Inverse(first), Relative(block.Reads[read].Bytes));
@@ -445,38 +733,10 @@ public sealed class BoneWatchSeries
             float length = axis.Length();
             float degrees = (float)(2.0 * Math.Atan2(length, between.W) * 180.0 / Math.PI);
             vectors[read] = length > 1e-9f ? axis / length * degrees : Vector3.Zero;
-            mean += vectors[read];
         }
 
-        // THE AXIS IT TURNS ABOUT MOST: the spread's leading direction, by a few steps of the power method from the widest of x, y and z.
-        mean /= reads;
-        float xx = 0, xy = 0, xz = 0, yy = 0, yz = 0, zz = 0;
-        foreach (Vector3 one in vectors)
-        {
-            Vector3 d = one - mean;
-            (xx, xy, xz, yy, yz, zz) = (xx + (d.X * d.X), xy + (d.X * d.Y), xz + (d.X * d.Z), yy + (d.Y * d.Y), yz + (d.Y * d.Z), zz + (d.Z * d.Z));
-        }
-
-        Vector3 lead = xx >= yy && xx >= zz ? Vector3.UnitX : yy >= zz ? Vector3.UnitY : Vector3.UnitZ;
-        for (var step = 0; step < 24; step++)
-        {
-            var next = new Vector3((xx * lead.X) + (xy * lead.Y) + (xz * lead.Z), (xy * lead.X) + (yy * lead.Y) + (yz * lead.Z), (xz * lead.X) + (yz * lead.Y) + (zz * lead.Z));
-            float size = next.Length();
-            if (size <= 1e-12f)
-            {
-                break;
-            }
-
-            lead = next / size;
-        }
-
-        var signed = new float[reads];
-        for (var read = 0; read < reads; read++)
-        {
-            signed[read] = Vector3.Dot(vectors[read], lead);
-        }
-
-        return (signed, lead);
+        // THE AXIS IT TURNS ABOUT MOST: the spread's leading direction.
+        return PoseSwing.Signed(vectors);
     }
 
     private static Vector3 Row(byte[] bytes, int at)

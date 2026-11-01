@@ -177,6 +177,9 @@ public static class CaptureReport
     /// <summary>The Monster Book's monster's files, parts, placing and animations - see CaptureMonsterFiles.</summary>
     public const string MonsterFilesFile = "monster-files.txt";
 
+    /// <summary>The GPU particles the panes' monsters name, their graphs and the sources of their nodes - see CaptureParticles.</summary>
+    public const string ParticlesFile = "particles.txt";
+
     /// <summary>The stage held against the game's picture, light term by term - see CaptureLightCompare.</summary>
     public const string LightCompareFile = "light-against-game.txt";
 
