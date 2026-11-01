@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 using PoEformance.Game.Files;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
+using Vortice.DXGI;
+using Vortice.Mathematics;
 
 namespace PoEformance.Gpu;
 
@@ -39,6 +41,7 @@ public sealed partial class ModelGpu
             try
             {
                 card.State(_device, _context, lines);
+                Screened(card, lines);
             }
             catch (Exception exception) when (exception is not (OutOfMemoryException or StackOverflowException))
             {
@@ -48,6 +51,81 @@ public sealed partial class ModelGpu
 
         return lines;
     }
+
+    /// <summary>The last picture's particles were drawn into, with what - kept so the capture can draw each pass again (Screened).</summary>
+    private (ModelTarget Target, ParticleFrame Frame, ParticleView View, SceneLight? Light)? _particleLast;
+
+    /// <summary>
+    /// What each of a card's passes puts on the screen: drawn again, alone and unblended, into a target of its own the picture's size - once over
+    /// nothing and once against the picture's depth - and read back: the pixels it covered, their box, the largest colour and alpha and the mean
+    /// alpha over them. Placed out of view, hidden behind the model and drawn transparent are told apart here; the simulation is not stepped.
+    /// </summary>
+    private void Screened(ParticleCard card, List<string> lines)
+    {
+        if (_particleLast is not { } last || card.LastDrawn is not { } emitter || card.Passes.Count == 0)
+        {
+            return;
+        }
+
+        (ModelTarget target, ParticleFrame frame, ParticleView view, SceneLight? light) = last;
+        int size = target.Size;
+        using ID3D11Texture2D texture = _device.CreateTexture2D(new Texture2DDescription(Format.R32G32B32A32_Float, size, size, arraySize: 1, mipLevels: 1, BindFlags.RenderTarget));
+        using ID3D11RenderTargetView into = _device.CreateRenderTargetView(texture);
+        using ID3D11Texture2D staging = _device.CreateTexture2D(new Texture2DDescription(
+            Format.R32G32B32A32_Float, size, size, arraySize: 1, mipLevels: 1, BindFlags.None, ResourceUsage.Staging, CpuAccessFlags.Read));
+        var row = new float[size * 4];
+        for (var p = 0; p < card.Passes.Count; p++)
+        {
+            foreach (bool tested in (ReadOnlySpan<bool>)[false, true])
+            {
+                _context.ClearRenderTargetView(into, new Color4(0f, 0f, 0f, 0f));
+                Neutrals();
+                Drew(_context, target, card, emitter, frame, view, light, into, tested, p);
+                _context.CopyResource(staging, texture);
+                MappedSubresource mapped = _context.Map(staging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
+                long covered = 0, opaque = 0, odd = 0;
+                int left = size, top = size, right = -1, bottom = -1;
+                float red = 0f, green = 0f, blue = 0f, alpha = 0f;
+                double alphas = 0;
+                try
+                {
+                    for (var y = 0; y < size; y++)
+                    {
+                        Marshal.Copy(mapped.DataPointer + (y * mapped.RowPitch), row, 0, row.Length);
+                        for (var x = 0; x < size; x++)
+                        {
+                            float r = row[x * 4], g = row[(x * 4) + 1], b = row[(x * 4) + 2], a = row[(x * 4) + 3];
+                            if (!float.IsFinite(r) || !float.IsFinite(g) || !float.IsFinite(b) || !float.IsFinite(a))
+                            {
+                                odd++;
+                                continue;
+                            }
+
+                            if (r == 0f && g == 0f && b == 0f && a == 0f)
+                            {
+                                continue;
+                            }
+
+                            covered++;
+                            opaque += a > 0f ? 1 : 0;
+                            alphas += a;
+                            (left, top, right, bottom) = (Math.Min(left, x), Math.Min(top, y), Math.Max(right, x), Math.Max(bottom, y));
+                            (red, green, blue, alpha) = (Math.Max(red, r), Math.Max(green, g), Math.Max(blue, b), Math.Max(alpha, a));
+                        }
+                    }
+                }
+                finally
+                {
+                    _context.Unmap(staging, 0);
+                }
+
+                string box = covered == 0 ? "nothing" : Say($"{covered} pixels in ({left}, {top})..({right}, {bottom}) of {size}, {opaque} with alpha, mean alpha {alphas / covered:0.###}, most {red:0.###} {green:0.###} {blue:0.###} {alpha:0.###}");
+                lines.Add(Say($"  pass {p} on the screen {(tested ? "against the picture's depth" : "over nothing")}: ") + box + (odd > 0 ? Say($", {odd} not finite") : string.Empty));
+            }
+        }
+    }
+
+    private static string Say(FormattableString text) => text.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>One member of the pool's element: its name, where it starts, its scalar kind and how many of them.</summary>
     private readonly record struct PoolMember(string Name, int Offset, ShaderVariableType Kind, int Components);
@@ -59,6 +137,9 @@ public sealed partial class ModelGpu
 
         /// <summary>How many steps it has run.</summary>
         public long Steps { get; set; }
+
+        /// <summary>The emitter as it was last drawn - what the capture draws its passes again with.</summary>
+        public ParticleEmitterNow? LastDrawn { get; set; }
 
         /// <summary>Its account, read back: see <see cref="ParticleState"/>.</summary>
         public void State(ID3D11Device device, ID3D11DeviceContext context, List<string> lines)

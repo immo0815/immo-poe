@@ -1475,6 +1475,13 @@ THE FIRST LIVE LOOK (v0.1.445 through the agent link, 2026-11-01 23:10, the play
 found no shader sources" - the Monster Book's pane was never handed the install's shader list (`Shaders`; v0.1.442 wired the particles' switch
 alone), nor the Item and Effect Books'. From v0.1.447 every pane is, and a model taken before the startup walk has listed them waits and is linked
 once they arrive (`MonsterPortrait._particlesWaitingFor`) rather than never.
+THE SECOND LIVE LOOK (v0.1.447 through the agent link, 2026-11-01 23:24, the player taken with the staff) LINKED AND RAN THEM: "2 passes of 2
+emitters drawn on the card" - the embers 18 particles (AlphaBlend, the quad), the flame 120 (Additive, mp_pRibbon_LOD4.fmt), the shimmer not drawn
+(a Shimmer pass) - and its capture's pool readback put both alive at the lantern (the embers' phases 0.03 to 0.79, x -75..-32, z -209..-185 in the
+picture's frame, the lantern about (-60, -31, -187) through the camera), the pool's colour white and alpha one, size 10 - yet the picture showed
+nothing there. So from v0.1.448 the capture also draws each pass again, alone and unblended, into a target of its own the picture's size, over
+nothing and against the picture's depth, and reads it back (`ModelGpu.Screened`, a `particles` line a pass and test): the pixels covered, their box,
+the largest colour and alpha and the mean alpha - out of view, hidden behind the model and drawn transparent told apart.
 
 ## Verify against the game, not against yourself
 
