@@ -150,9 +150,10 @@ public sealed class ClothWatchTests
     /// A series of a cloth the tool's own world stepped in the tool's order - targets, step, after - each frame read as the watch reads
     /// one: the targets first, the bodies after them in the same read.
     /// </summary>
-    private static byte[] Stepped(ClothRig rig, int frames)
+    private static byte[] Stepped(ClothRig rig, int frames, Vector3 wind = default)
     {
         var world = ClothWorld.Recorded([rig], 2, [(0, 1)]);
+        world.Wind = wind;
         Vector3[] start = Targets(rig, 0);
         world.Seed(0, start, new Vector3[rig.Count], start, start, Dt);
         Vector3[] centres = [new(-10f, 3f, 25f), new(40f, 3f, 25f)];
@@ -194,13 +195,15 @@ public sealed class ClothWatchTests
         Assert.Equal(1 + (2 * 121), series.Events.Count);
         Assert.Equal("hanging", series.Tools[0]?.Name);
 
+        // A FRAME RUNS FROM ITS TARGETS TO THE NEXT: the last targets' frame has no next to end it and is not taken.
         IReadOnlyList<ClothWatchSeries.OrderFit> fits = series.Fits(0);
-        Assert.Equal(3, fits.Count);
-        Assert.Equal(120, fits[0].Steps);
+        Assert.Equal(4, fits.Count);
+        Assert.Equal(119, fits[0].Steps);
         Assert.Equal(fits[0].Steps, fits[0].Exact);
         Assert.True(fits[0].MostWorst < 1e-4f, $"the tool's order off by {fits[0].MostWorst}");
         Assert.True(fits[1].MedianWorst > 10 * ClothWatchSeries.OnTarget, $"step, targets, after off by only {fits[1].MedianWorst}");
         Assert.True(fits[2].MedianWorst > 10 * ClothWatchSeries.OnTarget, $"targets, after, step off by only {fits[2].MedianWorst}");
+        Assert.True(fits[3].MostWorst > ClothWatchSeries.OnTarget, $"targets, step without the after off by only {fits[3].MostWorst}");
 
         // AND ITS SETUP IS ITS OWN CLOTH'S: the report finds nothing otherwise.
         string said = string.Join("\n", series.Report());
@@ -209,6 +212,61 @@ public sealed class ClothWatchTests
         Assert.Contains("bends: 0 of", said);
         Assert.Contains("depth otherwise at 0, parent at 0", said);
         Assert.Contains("its simulation the game's", said);
+    }
+
+    /// <summary>
+    /// THE ENGINE'S DRAG RELAXES TO ITS WIND (module+0x13AB700: the velocity less the wind's decayed in the particle's frame, the wind added
+    /// back): a cloth with nothing pinned, no gravity and no pull, blown long enough, moves with the wind.
+    /// </summary>
+    [Fact]
+    public void THEDRAGRelaxesTheClothToTheWind()
+    {
+        ClothSettings still = ClothSettings.Defaults with { Gravity = 0f, NormalViscosity = 1f, TangentViscosity = 1f, Collisions = false, ShockPropagation = false };
+        ClothRig rig = new(
+            [new(0f, 0f, 0f), new(10f, 0f, 0f), new(0f, 10f, 0f)], [.. Enumerable.Repeat(new Int4(-1, -1, -1, -1), 3)], new Vector4[3], [0, 1, 2], [], [], still, "blown");
+        var wind = new Vector3(120f, -40f, 30f);
+        var world = ClothWorld.Recorded([rig], 0, []);
+        world.Wind = wind;
+        Vector3[] start = [.. rig.Rest];
+        world.Seed(0, start, new Vector3[3], start, start, Dt);
+        for (var frame = 0; frame < 400; frame++)
+        {
+            world.Retarget(0, start);
+            world.StepOnce(Dt);
+            world.Settle();
+        }
+
+        foreach (Vector3 move in world.Moves(0))
+        {
+            Assert.True(Vector3.Distance(move / Dt, wind) < 0.01f * wind.Length(), $"moving at {move / Dt}, the wind {wind}");
+        }
+    }
+
+    /// <summary>
+    /// THE REPLAY FITS THE WIND A CLOTH WAS BLOWN BY: a cloth stepped under a steady wind and read as the watch reads the game's is taken
+    /// again in the tool's order with a wind fitted to each frame - the wind found is the one that blew, and the steps land exactly again.
+    /// </summary>
+    [Fact]
+    public void THEREPLAYFitsTheWindTheClothWasBlownBy()
+    {
+        ClothRig rig = Hanging(Skirt());
+        var wind = new Vector3(60f, -20f, 10f);
+        ClothWatchSeries series = Assert.IsType<ClothWatchSeries>(ClothWatchSeries.Read(Stepped(rig, 120, wind)));
+        string said = string.Join("\n", series.Report());
+        Assert.Contains("the tool's order with a wind fitted to each frame", said);
+        string line = said.Split('\n').Single(one => one.Contains("a wind fitted to each frame", StringComparison.Ordinal));
+
+        // NEARLY LINEAR, NOT QUITE: the enclosure and the capsule bend the wind's effect, so the fit is held to a unit or two of the wind
+        // and nearly every frame - measured 118 of 119 within 0.01, the mean (59.6, -18.5, 10.6).
+        System.Text.RegularExpressions.Match exact = System.Text.RegularExpressions.Regex.Match(line, @"(\d+) of 119 frames within 0\.01 throughout");
+        Assert.True(exact.Success && int.Parse(exact.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) >= 116, line);
+        System.Text.RegularExpressions.Match mean = System.Text.RegularExpressions.Regex.Match(line, @"on the mean \((-?[\d.]+), (-?[\d.]+), (-?[\d.]+)\)");
+        Assert.True(mean.Success, line);
+        var found = new Vector3(
+            float.Parse(mean.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture),
+            float.Parse(mean.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture),
+            float.Parse(mean.Groups[3].Value, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.True(Vector3.Distance(found, wind) < 3f, $"found {found} for {wind}");
     }
 
     /// <summary>
