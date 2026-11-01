@@ -1482,6 +1482,13 @@ picture's frame, the lantern about (-60, -31, -187) through the camera), the poo
 nothing there. So from v0.1.448 the capture also draws each pass again, alone and unblended, into a target of its own the picture's size, over
 nothing and against the picture's depth, and reads it back (`ModelGpu.Screened`, a `particles` line a pass and test): the pixels covered, their box,
 the largest colour and alpha and the mean alpha - out of view, hidden behind the model and drawn transparent told apart.
+ITS CAPTURE (v0.1.448 through the agent link, 2026-11-02 00:41, Canal Hideout, the player taken with the staff, game light on) SAID "nothing"
+for both passes, over nothing as well as against the depth - so the model in front is not what hides them, and "nothing" cannot tell geometry
+that never lands from a pixel shader writing nought. From v0.1.449 the same lines go on with three readings a pass: the card's pipeline
+statistics over the draw (triangles to the clipper and past it, pixel shader runs), every vertex its vertex shader made streamed out as it left
+the shader (a pass-through geometry shader made from the vertex shader itself, nothing rasterized - counted at render_default's cull value
+(0, 0, -1, 1), behind the eye, not finite, in view or out of it, with the ranges after the divide and the first six whole), and the pass drawn once
+more with a stand-in pixel shader writing one colour.
 
 ## Verify against the game, not against yourself
 

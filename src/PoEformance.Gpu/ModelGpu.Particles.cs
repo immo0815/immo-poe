@@ -179,7 +179,7 @@ public sealed partial class ModelGpu
     /// </summary>
     private int Drew(
         ID3D11DeviceContext context, ModelTarget target, ParticleCard card, ParticleEmitterNow emitter, ParticleFrame frame, in ParticleView view, SceneLight? light,
-        ID3D11RenderTargetView? into = null, bool tested = true, int only = -1)
+        ID3D11RenderTargetView? into = null, bool tested = true, int only = -1, ID3D11PixelShader? standIn = null, ID3D11GeometryShader? streamed = null)
     {
         ParticleProgram program = emitter.Program;
         context.OMSetRenderTargets(into ?? target.AccumulatedTarget, tested ? target.Depth : null);
@@ -207,11 +207,21 @@ public sealed partial class ModelGpu
             context.VSSetShader(pass.Vertex.VertexShader);
             context.VSSetConstantBuffer(pass.Vertex.GlobalsSlot, pass.Vertex.Constants);
             Bound(context, card, pass.Vertex, written, pixel: false);
-            context.PSSetShader(pass.Pixel.PixelShader);
+            context.PSSetShader(standIn ?? pass.Pixel.PixelShader);
             context.PSSetConstantBuffer(pass.Pixel.GlobalsSlot, pass.Pixel.Constants);
             context.PSSetConstantBuffer(FinishBuffer, _particleFinish);
             Bound(context, card, pass.Pixel, written, pixel: true);
+            if (streamed is not null)
+            {
+                context.GSSetShader(streamed);
+            }
+
             context.DrawIndexedInstanced(program.Mesh.Indices.Length, program.Count, 0, 0, 0);
+            if (streamed is not null)
+            {
+                context.GSSetShader(null!);
+            }
+
             Unbound(context, pass);
             drawn++;
         }
@@ -528,6 +538,7 @@ public sealed partial class ModelGpu
         _particleAdds?.Dispose();
         _particleRaster?.Dispose();
         _particleTests?.Dispose();
+        _particleStandIn?.Dispose();
     }
 
     /// <summary>Lets go of the emitters not drawn for <see cref="Kept"/> draws.</summary>
