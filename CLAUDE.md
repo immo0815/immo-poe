@@ -897,10 +897,11 @@ stance switches to the two-handed staff and my focus is hidden - only the wand w
 - THE PACK AND TIMELINE FOLLOW THE STANCE: BaseStaff/OneRig.ast (81 animations, his bones) and base_staff.atl, idle_staff_01 - the chain holds.
 - THE COMPOSITION'S HELD SLOTS ARE NOT TWO HANDS (schema `PieceSlots`, renamed `Weapon1` +0x08, `Weapon2` +0x30, `Offhand2` +0x58): with the
   staff in hand +0x08 held the MTX staff, +0x30 the wand again - a NEW object, which the game does not draw - and +0x58 nothing; v0.1.397 took
-  +0x30 for the main hand and hung the wand in her hand. Whether the game hangs that wand anywhere out of sight (her back, `R_Weapon2`) is not
-  seen - she faced the camera.
+  +0x30 for the main hand and hung the wand in her hand. The game draws that wand NOWHERE: every character has two weapon sets, and the
+  set not in hand is shown to nobody, anywhere - PoE1 and PoE2 alike (said from the live client, 2026-10-31). The wand's and the focus's
+  cosmetics as the Monster Book drew them in hand under v0.1.397 are the game's (said from the live client).
 - HIS EQUIPMENT LOOKS HOLD BOTH SETS (schema `Inventories.Looks` +0x120, `EquipmentLook` 0x88): 13 entries byte for byte the same before and
-  after the swap - a slot byte, the item's class row at +0x08 (PoE1's ItemClasses order: the staff 15, the wand 9, the rings 6, the belt 22...),
+  after the swap - a slot byte, the item's class at +0x08 (its ItemClasses row plus one - see below: the staff 15, the wand 9, the rings 6...),
   an ItemStances row at +0x10 on the three held items alone, the ItemVisualIdentity row it is drawn with at +0x20 (its `IdPtr` the Id - the
   schema's ItemVisualIdentityRow, live-verified in the AHK tool) - the cosmetic's where one is applied: the wand's MTX row 6808 and the focus's
   6812 lie four rows apart in memory as in the file. Slot 0 the staff (inventory 3), 2 the wand (15), 3 the focus (16): set 1's hands slots 0
@@ -921,6 +922,68 @@ stance switches to the two-handed staff and my focus is hidden - only the wand w
   with its own hands, pack and idle, never a piece of either set's hands hung as a skin (`PlayerDress.Held`, `Variety(set)`, `Key(set)`).
 - THE PART writes the composition's three held slots, the looks entry by entry with the set and hand each stands for, the two candidate words,
   and every set as the Monster Book resolves it - each hand's piece and where it came from, the pack and the idle - and each other set's pack.
+THE LOOKS' CLASS IS THE ROW PLUS ONE (the captures of 2026-11-01 00:19, the staff in hand, and 00:23, the wand and focus; v0.1.400). Their
+resolve lines turned every look away - "slot 0's class row 15 is not the item's 14" - so the set NOT in hand fell back to its items' own models:
+at 00:23 set 1 hung ChimingStaffHeld.ao, not the Exile's Staff, and at 00:19 set 2's focus the plain CrystalFocusHeld.ao; the set in hand came
+right only because the composition holds its pieces. MEASURED, six of six held entries: memory's number is the item's BaseItemTypes ItemClasses
+key plus one (15/14, 9/8, 82/81), and the worn ones fit PoE1's order one on too (`EquipmentLook.ClassRow`; the note above counted it from one).
+`Player.Flags1A0`'s BIT 0 IS SET 2 IN HAND in all four captures (0x41 at 16:16 and 00:23, 0x40 at 22:17 and 00:19); `Animated.Word180` was 0 with
+set 2 in hand at 00:23 and is no candidate - neither is read yet, the timeline deciding. THE COSMETIC'S COLUMNS ARE PER ITEM CLASS: the Exile's
+Staff row (6980, AddedEffectExilesStaff) names WandererStaffHeld.ao in column_38 and WandererMaceHeld.ao in column_41, and the game's own
+tooltip says "Changes the appearance of any equipped One Hand Mace or Staff" (from the live client) - the folder rule takes the staff for a staff.
+THE EXILE'S STAFF'S LANTERN BURNS AND DANGLES IN THE GAME (said from the live client with a video, 2026-11-01; the Monster Book drew it dark and
+rigid). WandererStaffHeld.ao says what it is made of, four building blocks the tool had none of:
+- THE GLOW is the material's EMISSIVE: WandererStaffc.mat writes WandererStaff_glow.dds's red into the emissive channel (MASK_TextureStatic,
+  "Override") and Channel_LookUpColor maps it through a fire curve times 12 (HDR Limiter 100); the engine adds the emission to the lit colour
+  (EndLighting: `direct_light = diffuse + emission`, ground.txt and water.txt whole). The compile tracked EmissiveColor and nothing drew it - in
+  no material of any book. IndirectLightMult's 0.05 scales what the surface feeds the GI (`emissionData.direct_light`), not its own colour.
+- THE LIGHT: `Lights { light = "point_light" bone_name = "phys_tri_lamp_jntBnd" ... colour = "2.4671 0.493089 0.0398032" radius = 150 }` -
+  the tool drew doodads' lights alone, fixed in their room.
+- THE FLAME AND SPARKS: `ParticleEffects { continuous_effect = "lamp .../WandererStaff/fx/lamp.pet" }` on the bone group `lamp`
+  (phys_tri_lamp_jntBnd and the socket lamp_01 10 units along it) - the tool draws no particle at all.
+- THE SWING: phys_tri_lamp_jntBnd is simulated; ClientAnimationController names the simulation's parameters (linear_allowed_contraction 0,
+  bend_stiffness 800, bend_allowed_angle 0, the viscosity multipliers 0, enclosure_radius 5, enclosure_angle 5, animation_velocity_factor 2,
+  animation_force_factor 2, use_shock_propagation false) and no file holds the simulation. The same physics swings skirts, shawls and dangles.
+DECIDED from the live client (2026-11-01), each as recommended: the emissive for every material in every book, a light panel switch on by
+default; lights carried by a bone, moving with the animation every frame; the particles' files captured first and the drawing decided from
+them; the swing measured in memory first. So v0.1.401's capture parts: monster-files.txt follows every effect the monster and his parts name
+hop by hop (`CaptureMonsterFiles.Effects`: an object's chain for its effects and what it extends, an effect for everything it names; text whole,
+textures whole beside it as monster-files-effect-N-name, 32 MB) and plays a held weapon's own rig with its bones listed and how far its phys_
+bones travel in its own animations; and `bone-watch.txt` (`BoneWatch`, the Memory group, at the press for 12 s - PRESS, THEN WALK, STOP AND
+TURN) walks every block three hops round each composition piece's object and his Animated and Render components, keeps those changing in the
+first second (48 at most, the most changing turn matrices first) and reads them thirty times a second; `BoneWatchSeries` finds the runs of
+turn matrices (a skeleton's bones side by side) and sets each matrix against the run's first - in whichever order, rows or columns, holds the
+run stillest - its signed swing along the axis it turns about most and its period, the reads kept in `bone-watch.bin`; the replay
+(`bone-watch-replay.txt`) reads them again. Read both before the particles or the swing are built.
+THE GLOW IS DRAWN (v0.1.402), for every material in every book: the emissive a material's graphs write is carried by the program the game's
+light draws (`ShadeProgram.Glossy` - a twin of its own where the material has no gloss; `HasEmissive`) and added to the lit colour before the
+exposure and the grade, as EndLighting adds `emissionData.emission` (`SceneLight.Shaded`, the card's `Lighted`), behind the light panel's
+"emissive", on by default (DECIDED from the live client). READ from the engine's graph: "Lighting Only" keeps it - debug_lighting_only.fxgraph
+writes the albedo alone (0.25, an additive material's 0.01) - and a channel view writes its channel in place of the light. The lantern's chain
+was lost to five nodes the compile did not know, each now as the engine's fragments write it: SampleSplineColour and SampleSplineGrayscale (a
+curve of the graph editor, its keys under the parameter's channels' "points" - `ShaderGraph`'s `CurveKey` - read through a table of
+`ShadeProgram.CurveWidth` values, SplineLUTSample's two round the time lerped; CHOSEN: 128 values, keys joined by straight lines whatever their
+kind - LUT_WIDTH and the processor's bake are in no captured source, and the lantern's curves come out the same under any reading),
+Hash33Stable, AddUInt and SubtractUInt (held at nought below); NodeIDHash, RandomSeed and SyncedRandomSeed CHOSEN 0.5 (the engine's
+UNIQUE_NODE_ID, RANDOM_SEED and synced_random_seed, set at run time); SampleTileGroundNormalTexture, an object texture of the ground tile's
+normals a model has none of, CHOSEN flat (normal nought, occlusion one, gloss nought - MASK_TextureStatic turns its coordinates by it times a
+factor the lantern leaves at nought). The lantern now compiles losing nothing, its glossy twin reading WandererStaff_glow.dds. NOT DRAWN: the
+glow lighting anything else (IndirectLightMult's GI feed; the bone's point light comes next).
+THE LAMP'S LIGHT IS CARRIED BY ITS BONE (v0.1.403, DECIDED from the live client: "moving with the animation every frame"). A monster's and
+his pieces' .ao Lights blocks are read as a room's are (RoomLights.Of, which now keeps each light's bone and its position line in that bone's
+frame - `Lit.Bones`, `Offsets`) and gathered as he is dressed (`CarriedLights.Gathering`, `MonsterModel.Carried`, `CarriedSaid`): his own on his
+rig's bone of that name; a piece hung rigidly (held, a prop, a root-only rig) where its own rig rests the bone, through the piece's place,
+carried by the bone it hangs at - as its vertices are; a rider's on its own bone after his; a skin's on his bone of the same name (a READING,
+the piece's own rig resting it elsewhere; one his rig has not is left out, said). The pane lays them where its pose puts each bone - the
+rest through the bone's skin matrix, then a stage's place (`CarriedLights.At`) - into a copy of the panel's light that shares its room lights
+and grid (`SceneLight.Carrying`, `PointsOwner`, the copy kept while the pose stands), asked again once the frame's pose is taken (`Render`), so
+the lamp does not trail its staff by a frame. Every pixel asks every carried light, no grid (`SceneLight.MostCarried`, 8, CHOSEN), with the
+room's fall-off shared (`Reaching`, the card's `PointReaching`): the processor's Shaded and ShadeWater, the card's Lighted, water and the fog's
+ShadeOmni, the card holding them in its scene constants (`Carried`, `Glow.y` their count). The light panel's "carried", on by default
+(`SceneLight.Carries`); monster-files.txt writes each light's bone, its own file's bone, rest, colour, radius and source. The Exile's Staff:
+`phys_tri_lamp_jntBnd`, no position line, colour 2.4671 0.493 0.0398, radius 150, penumbra_dist 0.5 - read as every room light's a is
+(PointShape). NOT DRAWN: the bone's own physics (the lamp's swing, bone-watch measures it first), the flame's particles, spot lights, the
+rigs' own mesh lights, an animation event switching a light's state.
 
 ## Verify against the game, not against yourself
 

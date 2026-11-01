@@ -848,7 +848,7 @@ public static partial class CaptureLightExtras
     /// The files whole, each under a <c>##### path  (why)</c> heading with its lines marked, in order while the section's characters last
     /// - one past the largest, or past what is left, named as cut and the rest still offered. Returns how many were written.
     /// </summary>
-    private static int Wholes(IReadOnlyList<(string Path, string Text, string Why)> files, int budget, int largest, string kind, StringBuilder said)
+    internal static int Wholes(IReadOnlyList<(string Path, string Text, string Why)> files, int budget, int largest, string kind, StringBuilder said)
     {
         long spent = 0;
         int whole = 0;

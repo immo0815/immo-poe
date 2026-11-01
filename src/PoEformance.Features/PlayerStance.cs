@@ -185,7 +185,7 @@ public static class PlayerStance
         }
 
         said.Add(dress.Looks.Count == 0 ? "his equipment looks (Inventories.Looks) read nothing - the hands as the composition says them, else the items' own models"
-            : $"his equipment looks: {string.Join(", ", dress.Looks.Select(one => $"slot {one.Slot} class {one.ItemClass}{(one.Held ? " held" : string.Empty)} {(one.Visual.Length > 0 ? one.Visual : "(no id)")}"))}");
+            : $"his equipment looks: {string.Join(", ", dress.Looks.Select(one => $"slot {one.Slot} class row {one.ClassRow}{(one.Held ? " held" : string.Empty)} {(one.Visual.Length > 0 ? one.Visual : "(no id)")}"))}");
         var held = new HashSet<string>(dress.Held, StringComparer.OrdinalIgnoreCase);
         foreach (EquipmentLook look in dress.Looks.Where(one => one.Held))
         {
@@ -240,15 +240,16 @@ public static class PlayerStance
             }
         }
 
-        if (look is { } bySlot && kind >= 0 && bySlot.ItemClass >= 0 && bySlot.ItemClass != kind)
+        // MEMORY'S CLASS IS THE ROW PLUS ONE (EquipmentLook.ClassRow, MEASURED): v0.1.398 compared the number itself and turned every look away.
+        if (look is { } bySlot && kind >= 0 && bySlot.ClassRow >= 0 && bySlot.ClassRow != kind)
         {
-            why = $"slot {bySlot.Slot}'s class row {bySlot.ItemClass} is not the item's {kind}";
+            why = $"slot {bySlot.Slot}'s class row {bySlot.ClassRow} is not the item's {kind}";
             look = null;
         }
 
         if (look is null && kind >= 0)
         {
-            List<EquipmentLook> same = [.. dress.Looks.Where(one => one.Held && one.ItemClass == kind && !claimed.Contains(one.Slot))];
+            List<EquipmentLook> same = [.. dress.Looks.Where(one => one.Held && one.ClassRow == kind && !claimed.Contains(one.Slot))];
             look = same.Count == 1 ? same[0] : null;
             why += (why.Length > 0 ? "; " : string.Empty) + (same.Count == 1 ? $"slot {same[0].Slot} is the one held look of class {kind}" : $"{same.Count} held looks of class {kind}");
         }
@@ -258,7 +259,7 @@ public static class PlayerStance
             claimed.Add(found.Slot);
             IReadOnlyList<string> models = visuals.HeldModels(found.Visual);
             string piece = Pick(models, dress.Pieces, own);
-            string from = $"the look of slot {found.Slot} ({(found.Visual.Length > 0 ? found.Visual : "no id read")}, class row {found.ItemClass}; the item's {kind})";
+            string from = $"the look of slot {found.Slot} ({(found.Visual.Length > 0 ? found.Visual : "no id read")}, class row {found.ClassRow}; the item's {kind})";
             if (piece.Length > 0)
             {
                 bool kept = dress.Pieces.Contains(piece, StringComparer.OrdinalIgnoreCase);

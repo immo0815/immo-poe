@@ -45,6 +45,15 @@ public static class RoomLights
     internal sealed record Lit(IReadOnlyList<PointLight> Lights, int Spots, int RigLights, int Off, int Unboned)
     {
         public static Lit None { get; } = new([], 0, 0, 0, 0);
+
+        /// <summary>
+        /// Beside each of <see cref="Lights"/>, the bone of its own rig it stands on - empty for none, one its rig has not, and a fixed_ao
+        /// piece's - for a model whose bones move it (CarriedLights).
+        /// </summary>
+        public IReadOnlyList<string> Bones { get; init; } = [];
+
+        /// <summary>Beside each of <see cref="Lights"/>, its position line in its bone's frame where <see cref="Bones"/> names one, else its place.</summary>
+        public IReadOnlyList<Vector3> Offsets { get; init; } = [];
     }
 
     /// <summary>
@@ -131,6 +140,8 @@ public static class RoomLights
 
         List<AnimatedObject> chain = ModelDump.Whole(read, ao);
         var lights = new List<PointLight>();
+        var bones = new List<string>();
+        var offsets = new List<Vector3>();
         int spots = 0, off = 0, unboned = 0, rigLights = 0;
 
         // THE NEAREST Lights BLOCK THAT SAYS ANYTHING: most doodads extend a base whose block is
@@ -174,7 +185,9 @@ public static class RoomLights
                 }
 
                 Vector3 position = Three(Value(said, "position")) ?? Three(Value(entry.Children, "position")) ?? Vector3.Zero;
+                Vector3 offset = position;
                 string bone = Value(entry.Children, "bone_name");
+                string on = string.Empty;
                 if (bone.Length > 0)
                 {
                     if (rig is null && skeleton.Length > 0)
@@ -187,6 +200,7 @@ public static class RoomLights
                     if (rest is not null && at >= 0 && at < rest.BindModel.Count)
                     {
                         position = Vector3.Transform(position, rest.BindModel[at]);
+                        on = rig!.Bones[at].Name;
                     }
                     else
                     {
@@ -198,6 +212,8 @@ public static class RoomLights
                 float penumbra = Number(Value(said, "penumbra_dist")) ?? 0f;
                 string named = state is null ? path : $"{path} ({(state.Value.Length > 0 ? state.Value : "unnamed state")})";
                 lights.Add(new PointLight(position, colour, radius, penumbra, named));
+                bones.Add(on);
+                offsets.Add(on.Length > 0 ? offset : position);
             }
         }
 
@@ -225,12 +241,15 @@ public static class RoomLights
                 unboned += hung.Unboned;
                 foreach (PointLight one in hung.Lights)
                 {
-                    lights.Add(one with { Position = Vector3.Transform(one.Position, place) });
+                    Vector3 put = Vector3.Transform(one.Position, place);
+                    lights.Add(one with { Position = put });
+                    bones.Add(string.Empty);
+                    offsets.Add(put);
                 }
             }
         }
 
-        var lit = new Lit(lights, spots, rigLights, off, unboned);
+        var lit = new Lit(lights, spots, rigLights, off, unboned) { Bones = bones, Offsets = offsets };
         cache[path] = lit;
         return lit;
     }

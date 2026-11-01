@@ -14,13 +14,29 @@ namespace PoEformance.Game.Entities;
 /// set 2's off hand). That set 1's off hand is slot 1 is the order's reading, an empty hand in both; see <see cref="SetOf"/>.
 /// </remarks>
 /// <param name="Slot">The visual slot - the list's sort key.</param>
-/// <param name="ItemClass">The item's ItemClasses row, by every reading of the captures (the schema's note), or -1.</param>
+/// <param name="ItemClass">The item's class as memory holds it: its ItemClasses row PLUS ONE - see <see cref="ClassRow"/>.</param>
 /// <param name="Held">Whether an item stance names it - the three held items of the captures, nothing worn.</param>
 /// <param name="Visual">The Id of the ItemVisualIdentity row it is drawn with, or empty where it did not read.</param>
 public readonly record struct EquipmentLook(int Slot, int ItemClass, bool Held, string Visual)
 {
     /// <summary>The most entries believed - a guard on a count that comes from memory; the captures held 13.</summary>
     public const int MostLooks = 64;
+
+    /// <summary>
+    /// What memory's class number counts from: an ItemClasses row plus one - MEASURED, see <see cref="ClassRow"/>.
+    /// </summary>
+    public const int ClassBase = 1;
+
+    /// <summary>The item's ItemClasses row - <see cref="ItemClass"/> less <see cref="ClassBase"/> - or -1 where memory held none.</summary>
+    /// <remarks>
+    /// ONE MORE THAN THE ROW, MEASURED (v0.1.399, the two captures of 2026-11-01 00:19 and 00:23 in The Red Vale, each set in hand once):
+    /// every held entry against its item's BaseItemTypes ItemClasses key - the staff 15 against 14, the wand 9 against 8, the focus 82 against
+    /// 81, six of six. The worn ones fit PoE1's ItemClasses order one on too (Amulet 4 held as 5, Ring 5 as 6, Belt 21 as 22, Gloves 22 as 23,
+    /// Boots 23 as 24, Body Armour 24 as 25, Helmet 25 as 26). v0.1.398 took the number for the row and so let no look of the set NOT in hand
+    /// through: 00:23 drew set 1 with the staff's own ChimingStaffHeld.ao, not its WandererStaff cosmetic, and 00:19 set 2's focus as the
+    /// plain CrystalFocusHeld.ao, not the Doryani skin - the set in hand came right only because the composition holds its pieces.
+    /// </remarks>
+    public int ClassRow => ItemClass >= ClassBase ? ItemClass - ClassBase : -1;
 
     /// <summary>The most characters of an Id read.</summary>
     private const int MostIdChars = 128;

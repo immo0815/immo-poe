@@ -3630,6 +3630,24 @@ internal static class Program
                 () => wobble?.Fraction ?? 0f,
                 () => wobble?.Stop()));
 
+        // THE BONE WATCH: how the engine swings what hangs on a physics bone (the Exile's Staff's lantern), read from memory for seconds from
+        // the press while the player moves - see BoneWatch. Past the tap, as the wobble watch reads; its reads go beside its file.
+        PoEformance.Game.Diagnostics.BoneWatch? bones = null;
+        overlay.OfferCaptureWork(
+            PoEformance.Features.CaptureParts.BoneWatch,
+            path =>
+            {
+                var probe = new PoEformance.Game.Diagnostics.BoneWatch(
+                    reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader, schema);
+                bones = probe;
+                string? folder = Path.GetDirectoryName(path);
+                return probe.Run(gameStatesStatic, folder is null ? null : Path.Combine(folder, PoEformance.Game.Diagnostics.BoneWatchSeries.File));
+            },
+            new PoEformance.Overlay.CaptureWorkProgress(
+                () => bones?.Line ?? "starting",
+                () => bones?.Fraction ?? 0f,
+                () => bones?.Stop()));
+
         // THE OCEAN MARKUP HUNT: the grid the engine's sea shore is made from, looked for in the terrain at the press - see
         // OceanMarkupHunt - and then the numbers its shore field is drawn by, in the whole of memory on every core - see
         // ShoreFieldHunt. Past the tap: a few megabytes of reads would crowd the capture's recording. One hunt a press, made at

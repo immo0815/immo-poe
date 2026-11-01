@@ -28,15 +28,40 @@ public static class CaptureMonsterFiles
     /// <summary>The object type files a monster is made of, each followed through what it extends.</summary>
     private static readonly string[] Kinds = [".ot", ".otc"];
 
+    /// <summary>The kinds an object names an effect by: a particle effect, an effect pack, a trail.</summary>
+    private static readonly string[] EffectKinds = [".pet", ".epk", ".trl"];
+
+    /// <summary>The text kinds of the effects' walk: written whole and read for what they name.</summary>
+    private static readonly string[] EffectTexts = [".ao", ".aoc", ".ot", ".otc", ".pet", ".epk", ".trl", ".mat", ".fxgraph", ".atlas", ".amd"];
+
+    /// <summary>Most files the effects' walk reads - well past the lantern's chain, a guard against a pack naming the world.</summary>
+    private const int MostEffectFiles = 600;
+
+    /// <summary>How many files deep the effects' walk follows - from his .ao to an effect to its material to its graph and texture.</summary>
+    private const int MostEffectHops = 6;
+
+    /// <summary>The characters the effects' text files may take whole, and the most one file may.</summary>
+    private const int EffectChars = 6 * 1024 * 1024, LargestEffect = 1024 * 1024;
+
+    /// <summary>The bytes the effects' textures may take whole beside the part, and the most one texture may - CHOSEN.</summary>
+    private const long EffectTextures = 32L * 1024 * 1024;
+
+    private const int LargestEffectTexture = 8 * 1024 * 1024;
+
+    /// <summary>The name a bone the engine simulates starts with - the lantern's phys_tri_lamp_jntBnd, a skirt's phys_skinned_*.</summary>
+    internal const string PhysicsBone = "phys_";
+
     /// <summary>
-    /// The part's text: a line saying what it holds, then the stage's placing, the parts, the animations, the game's entities of him, and
-    /// his files whole. Never throws on a missing file.
+    /// The part's text: a line saying what it holds, then the stage's placing, the parts, the animations, the game's entities of him, the
+    /// effects he and his parts name, and his files whole. Never throws on a missing file.
     /// </summary>
     /// <param name="read">How to get a file out of the install, by path - or null, and nothing is read.</param>
     /// <param name="pane">The Monster Book's pane as it stood.</param>
     /// <param name="entities">The game's entities as the capture read them, or null.</param>
     /// <param name="player">Where the player stood, for each entity's distance - or null.</param>
-    public static string Write(Func<string, byte[]?>? read, CapturePane pane, IReadOnlyList<WorldEntity>? entities, Vector2? player)
+    /// <param name="wholes">The effects' textures, each to be written whole beside the part under its name.</param>
+    public static string Write(
+        Func<string, byte[]?>? read, CapturePane pane, IReadOnlyList<WorldEntity>? entities, Vector2? player, out IReadOnlyList<(string File, byte[] Bytes)> wholes)
     {
         ArgumentNullException.ThrowIfNull(pane);
         MonsterModel model = pane.Model;
@@ -46,11 +71,15 @@ public static class CaptureMonsterFiles
         Func<ReadOnlyMemory<byte>, int, byte[]?> unpacking = pane.Unpack ?? ((_, _) => null);
         Staging(body, model, actor);
         Parts(body, actor);
+        Carried(body, actor);
         List<(PartFit Part, int Bone)> sockets = SocketsOf(actor);
         List<Swept> his = Animations(body, model, actor, unpacking, sockets);
         Sockets(body, actor, sockets, his);
         int played = Pieces(body, read, actor, unpacking, his);
         int seen = Entities(body, pane.Path, entities, player);
+        var textures = new List<(string File, byte[] Bytes)>();
+        int effects = Effects(body, read, pane, actor, textures);
+        wholes = textures;
 
         body.AppendLine().AppendLine("=== his files whole (ModelDump): every .ao he names and hangs off himself, the manifest, the shapes and how each part fitted");
         body.AppendLine(read is null ? "(no install to read them from)" : ModelDump.Of(read, pane.Variety, pane.Path, model).TrimEnd());
@@ -58,8 +87,177 @@ public static class CaptureMonsterFiles
         int types = Types(body, read, pane);
         string head = string.Create(
             CultureInfo.InvariantCulture,
-            $"monster files: {pane.Variety?.Name ?? "?"} [{pane.Path}] - {(model.Standing is null ? "standing alone" : "on a stage")}, {actor.Fitted.Count} parts as hung, {his.Count} of {actor.Rig.Animations.Count} animations swept, {played} parts' own rigs played, {seen} of the game's entities of him read, {types} object type files whole");
+            $"monster files: {pane.Variety?.Name ?? "?"} [{pane.Path}] - {(model.Standing is null ? "standing alone" : "on a stage")}, {actor.Fitted.Count} parts as hung, {his.Count} of {actor.Rig.Animations.Count} animations swept, {played} parts' own rigs played, {seen} of the game's entities of him read, {effects} effect files read ({textures.Count} textures whole beside it), {types} object type files whole");
         return head + Environment.NewLine + body;
+    }
+
+    /// <summary>
+    /// The effects he and his parts name - particles, effect packs, trails - walked hop by hop from his own .ao files and each part's: an
+    /// object's chain for the effects it names and what it extends, an effect for everything it names. Each file is listed with its size,
+    /// hop and what named it; the text ones are written whole and the textures whole beside the part (<paramref name="textures"/>).
+    /// Returns how many files were read.
+    /// </summary>
+    /// <remarks>
+    /// ASKED FOR FROM THE LIVE CLIENT (v0.1.401, the Exile's Staff's lantern, which burns in the game): WandererStaffHeld.ao names
+    /// <c>continuous_effect = "lamp Metadata/Items/Weapons/TwoHandWeapons/Staves/mtx/WandererStaff/fx/lamp.pet"</c> on its bone group
+    /// <c>lamp</c>, and no capture held the file - the tool draws no particle at all. DECIDED from the live client: the files first, the
+    /// particle drawing after, from what they say.
+    /// </remarks>
+    private static int Effects(StringBuilder body, Func<string, byte[]?>? read, CapturePane pane, MonsterModel actor, List<(string File, byte[] Bytes)> textures)
+    {
+        body.AppendLine().Append(Invariant($"=== the effects he and his parts name (particles .pet, effect packs .epk, trails .trl), hop by hop: from his own .ao files and each part's through what each extends, every effect named, and every file an effect names - each with its size, hop, what named it and its kind; the lines of an object naming an effect; the text files whole below, the textures whole beside this file to {EffectTextures >> 20} MB")).AppendLine();
+        if (read is null)
+        {
+            body.AppendLine("(no install to read them from)");
+            return 0;
+        }
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var queue = new Queue<(string Path, int Hop, string By)>();
+        void Offer(string path, int hop, string by)
+        {
+            string clean = path.Replace('\\', '/').Trim();
+            if (clean.Length > 0 && seen.Count < MostEffectFiles * 4 && seen.Add(clean))
+            {
+                queue.Enqueue((clean, hop, by));
+            }
+        }
+
+        foreach (string one in pane.Variety?.AoFiles ?? [])
+        {
+            Offer(one, 0, "his own");
+        }
+
+        foreach (PartFit part in actor.Fitted)
+        {
+            Offer(part.File, 0, Invariant($"a part at {(part.Socket.Length > 0 ? part.Socket : "(none)")}"));
+        }
+
+        var texts = new List<(string Path, string Text, string Why)>();
+        var named = new List<string>();
+        long kept = 0;
+        int taken = 0, effects = 0;
+        body.AppendLine("  file\tpath\tbytes\thop\tnamed by\tkind\twritten");
+        while (queue.Count > 0 && taken < MostEffectFiles)
+        {
+            (string path, int hop, string by) = queue.Dequeue();
+            byte[]? bytes = read(path);
+            taken++;
+            string extension = Path.GetExtension(path);
+            bool model = extension is ".ao" or ".aoc" or ".ot" or ".otc";
+            bool effect = EffectKinds.Contains(extension, StringComparer.OrdinalIgnoreCase);
+            effects += effect ? 1 : 0;
+            if (bytes is not { Length: > 0 })
+            {
+                body.Append(Invariant($"  file\t{path}\tnot in the install\t{hop}\t{by}")).AppendLine();
+                continue;
+            }
+
+            bool text = EffectTexts.Contains(extension, StringComparer.OrdinalIgnoreCase);
+            string kind = text ? "text" : extension.Equals(".dds", StringComparison.OrdinalIgnoreCase) ? ModelDump.Header(bytes) : "binary";
+            string written = "-";
+            if (!text && extension.Equals(".dds", StringComparison.OrdinalIgnoreCase))
+            {
+                // THE TEXTURES WHOLE, for a particle's sprite or flipbook is what it looks like - in order while the budget lasts.
+                if (bytes.Length <= LargestEffectTexture && kept + bytes.Length <= EffectTextures)
+                {
+                    written = Invariant($"monster-files-effect-{textures.Count + 1}-{Path.GetFileName(path).ToLowerInvariant()}");
+                    textures.Add((written, bytes));
+                    kept += bytes.Length;
+                }
+                else
+                {
+                    written = "(past the budget)";
+                }
+            }
+
+            body.Append(Invariant($"  file\t{path}\t{bytes.Length}\t{hop}\t{by}\t{kind}\t{written}")).AppendLine();
+            if (!text)
+            {
+                continue;
+            }
+
+            string decoded = StatDescriptionFiles.Decode(bytes);
+
+            // AN OBJECT'S CHAIN is his files' business (ModelDump writes them whole): here only the lines naming an effect, and onward
+            // only to what it extends and the effects it names. An effect, a material or a graph is written whole and followed wholly.
+            if (model)
+            {
+                foreach (string line in decoded.Split('\n'))
+                {
+                    if (EffectKinds.Any(kind_ => line.Contains(kind_, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        named.Add(Invariant($"  named\t{path}\t{line.Trim()}"));
+                    }
+                }
+            }
+            else
+            {
+                texts.Add((path, decoded, Invariant($"hop {hop}, named by {by}")));
+            }
+
+            if (hop >= MostEffectHops)
+            {
+                continue;
+            }
+
+            foreach (string next in CaptureLightExtras.NamedIn(decoded))
+            {
+                string kindOf = Path.GetExtension(next);
+                bool objectOf = kindOf is ".ao" or ".aoc" or ".ot" or ".otc";
+                if (model && !objectOf && !EffectKinds.Contains(kindOf, StringComparer.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                // FROM AN OBJECT, only what it extends - not every model, rig or sound it names; FROM AN EFFECT, everything it names.
+                if (model && objectOf && !Extended(decoded, next))
+                {
+                    continue;
+                }
+
+                Offer(next, hop + 1, path);
+                if (next.EndsWith(".ao", StringComparison.OrdinalIgnoreCase))
+                {
+                    Offer(next + "c", hop + 1, path);
+                }
+            }
+        }
+
+        if (queue.Count > 0)
+        {
+            body.Append(Invariant($"  (cut: {queue.Count} more files named past the {MostEffectFiles} the walk reads)")).AppendLine();
+        }
+
+        if (effects == 0)
+        {
+            body.AppendLine("  (no effect named by him or any part)");
+        }
+
+        foreach (string line in named)
+        {
+            body.AppendLine(line);
+        }
+
+        _ = CaptureLightExtras.Wholes(texts, EffectChars, LargestEffect, "effect files", body);
+        return taken;
+    }
+
+    /// <summary>Whether an object's text extends <paramref name="path"/> - its <c>extends "path"</c> line, written with or without the .ao.</summary>
+    private static bool Extended(string text, string path)
+    {
+        string bare = path.EndsWith(".ao", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".ot", StringComparison.OrdinalIgnoreCase)
+            ? path[..^3] : path.EndsWith(".aoc", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".otc", StringComparison.OrdinalIgnoreCase) ? path[..^4] : path;
+        foreach (string line in text.Split('\n'))
+        {
+            string trimmed = line.Trim();
+            if (trimmed.StartsWith("extends", StringComparison.OrdinalIgnoreCase) && trimmed.Contains(bare, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Where the stage stood him: his place, the rest's box and lowest point, and the floor asked at nine points.</summary>
@@ -101,6 +299,30 @@ public static class CaptureMonsterFiles
                 .Append('\t').Append(part.Kind).Append('\t').Append(Invariant($"{part.Bones}\t{part.Matched}\t{part.Strays}\t{part.Paired}")).Append('\t').Append(part.Malformed ? "yes" : "no")
                 .Append('\t').Append(At(part.Least)).Append(" .. ").Append(At(part.Most)).Append('\t').AppendLine(part.Why);
         }
+    }
+
+    /// <summary>
+    /// The lights he and his parts carry on their bones (CarriedLights): the bone of his rig that moves each, the bone its own file names, where
+    /// the bind pose puts it in his own frame, its colour, radius and penumbra, and its .ao - then what was left out of them.
+    /// </summary>
+    private static void Carried(StringBuilder body, MonsterModel actor)
+    {
+        body.AppendLine().Append(Invariant($"=== the lights he carries on his bones (CarriedLights, the light panel's \"carried\"): {actor.Carried.Count} - each where the bind pose puts it in his own frame, moved by its bone's skin matrix every pose")).AppendLine();
+        if (actor.Carried.Count == 0)
+        {
+            body.AppendLine(actor.CarriedSaid.Length > 0 ? "  " + actor.CarriedSaid : "  (his files and his parts' name no point light)");
+            return;
+        }
+
+        body.AppendLine("  bone\this bone\tits own file's bone\trest\tcolour\tradius\tpenumbra\tsource");
+        foreach (CarriedLight light in actor.Carried)
+        {
+            string his = light.Bone >= 0 && light.Bone < actor.Rig.Bones.Count ? actor.Rig.Bones[light.Bone].Name : "(none - it stands where he does)";
+            body.Append(Invariant($"  {light.Bone}\t{his}\t{(light.BoneName.Length > 0 ? light.BoneName : "-")}\t{At(light.Rest)}\t{At(light.Colour)}\t{light.Radius:0.###}\t{light.PenumbraDist:0.###}\t"))
+                .AppendLine(light.Source);
+        }
+
+        body.Append("  ").AppendLine(actor.CarriedSaid);
     }
 
     /// <summary>One of his animations as swept: every bone's place at frame nought, and each socketed part's bone at nought and over it.</summary>
@@ -272,14 +494,21 @@ public static class CaptureMonsterFiles
         int played = 0;
         foreach (PartFit part in actor.Fitted)
         {
-            if (part.Bones <= 0 || part.Lost || !done.Add(part.File))
+            if (part.Lost || !done.Add(part.File))
             {
                 continue;
             }
 
+            // A PART HUNG WITH NO BONES OF HIS may still bring a rig of its own - a held weapon hung rigidly in his hand (WornPiece.Held), the
+            // Exile's Staff with its lantern on phys_tri_lamp_jntBnd among them (v0.1.401): its rig is played too, a skin on his rig is not.
             (AnimationSkeleton rig, string rigPath, SkinnedMesh mesh) = MonsterModels.Piece(read, part.File);
-            body.Append("--- ").Append(part.File).Append(Invariant($"  socket {(part.Socket.Length > 0 ? part.Socket : "(none)")} ({part.Place}, depth {part.Depth}), its rig {(rigPath.Length > 0 ? rigPath : "(none named)")}"));
-            if (!rig.Ready || SkeletonPose.Of(rig) is null)
+            if (part.Bones <= 0 && !rig.Ready)
+            {
+                continue;
+            }
+
+            body.Append("--- ").Append(part.File).Append(Invariant($"  socket {(part.Socket.Length > 0 ? part.Socket : "(none)")} ({part.Place}, depth {part.Depth}, {part.Kind}), its rig {(rigPath.Length > 0 ? rigPath : "(none named)")}"));
+            if (!rig.Ready || SkeletonPose.Of(rig) is not { } rest)
             {
                 body.AppendLine(rig.Ready ? " - its bone tree does not hold together" : " - did not read");
                 continue;
@@ -289,6 +518,7 @@ public static class CaptureMonsterFiles
             if (!mesh.Ready)
             {
                 body.AppendLine("; no mesh read");
+                Bones(body, rig, rest);
                 continue;
             }
 
@@ -300,11 +530,12 @@ public static class CaptureMonsterFiles
             }
 
             body.AppendLine();
+            Bones(body, rig, rest);
             var its = new HashSet<string>(rig.Animations.Select(one => one.Name), StringComparer.OrdinalIgnoreCase);
             string[] lacks = [.. his.Select(one => one.Name).Where(one => !its.Contains(one))];
             string[] own = [.. rig.Animations.Select(one => one.Name).Where(one => !named.ContainsKey(one))];
             body.Append(Invariant($"  of his {his.Count} animations it has {his.Count - lacks.Length} by name; his it lacks: {Listed(lacks)}; its own he lacks: {Listed(own)}")).AppendLine();
-            body.AppendLine("  animation\tframes\tbox at 0\tsize at 0\tsize least..most\tat frame\tits root at 0\the plays it\this bone nearest its middle at 0");
+            body.AppendLine($"  animation\tframes\tbox at 0\tsize at 0\tsize least..most\tat frame\tits root at 0\the plays it\this bone nearest its middle at 0\tits {PhysicsBone} bones' most travel from frame 0, in its root's frame");
             Played(body, part, actor.Rig, rig, mesh, unpacking, named);
             played++;
         }
@@ -344,6 +575,9 @@ public static class CaptureMonsterFiles
 
         // HIS OWN BONES ALONE, not the riders' after them: a piece riding his rig is nearest its own bones by construction.
         int own = his.Bones.Count - his.Riders.Sum(rider => rider.Rig.Bones.Count);
+
+        // THE BONES THE ENGINE SIMULATES, for whether the piece's own animations already move them (the lantern's swing - v0.1.401).
+        int[] simulated = [.. Enumerable.Range(0, rig.Bones.Count).Where(bone => rig.Bones[bone].Name.StartsWith(PhysicsBone, StringComparison.OrdinalIgnoreCase))];
         var rows = new string[count];
         Parallel.For(
             0,
@@ -364,6 +598,9 @@ public static class CaptureMonsterFiles
                 (Vector3 Least, Vector3 Most) first = default;
                 Vector3 rootFirst = default;
                 float sizeLeast = float.MaxValue, sizeMost = float.MinValue, leastAt = 0f;
+                var physicsFirst = new Vector3[simulated.Length];
+                float travel = 0f;
+                int travelled = -1;
                 for (var at = 0; at < frames; at++)
                 {
                     float frame = keys.Frames * at / (frames - 1);
@@ -371,6 +608,24 @@ public static class CaptureMonsterFiles
                     pose.Move(mesh, local.Positions.AsSpan(), local.Normals.AsSpan());
                     (Vector3 least, Vector3 most) = Box(local.Positions);
                     float size = MathF.Max(most.X - least.X, MathF.Max(most.Y - least.Y, most.Z - least.Z));
+
+                    // EACH SIMULATED BONE IN THE ROOT'S FRAME, so a piece carried about by its root still says whether its bone moves on it.
+                    if (simulated.Length > 0 && Matrix4x4.Invert(pose.World[root], out Matrix4x4 toRoot))
+                    {
+                        for (var one_ = 0; one_ < simulated.Length; one_++)
+                        {
+                            Vector3 place = Vector3.Transform(pose.World[simulated[one_]].Translation, toRoot);
+                            if (at == 0)
+                            {
+                                physicsFirst[one_] = place;
+                            }
+                            else if (Vector3.Distance(place, physicsFirst[one_]) is var moved && moved > travel)
+                            {
+                                (travel, travelled) = (moved, simulated[one_]);
+                            }
+                        }
+                    }
+
                     if (at == 0)
                     {
                         (first, rootFirst) = ((least, most), pose.World[root].Translation);
@@ -404,7 +659,10 @@ public static class CaptureMonsterFiles
                     nearest = best >= 0 && best < his.Bones.Count ? Invariant($"{his.Bones[best].Name} at {At(his_.Bones[best])}, {distance:0.#} away") : "-";
                 }
 
-                rows[one] = "  " + move.Name + Invariant($"\t{keys.Frames:0.#}\t{At(first.Least)} .. {At(first.Most)}\t{sizeFirst:0.#}\t{sizeLeast:0.#}..{sizeMost:0.#}\t{leastAt:0.#}\t{At(rootFirst)}\t{(plays ? "yes" : "no")}\t{nearest}");
+                string physics = simulated.Length == 0 ? "-"
+                    : travelled < 0 ? Invariant($"none of {simulated.Length} moves")
+                    : Invariant($"{rig.Bones[travelled].Name} {travel:0.###} (of {simulated.Length})");
+                rows[one] = "  " + move.Name + Invariant($"\t{keys.Frames:0.#}\t{At(first.Least)} .. {At(first.Most)}\t{sizeFirst:0.#}\t{sizeLeast:0.#}..{sizeMost:0.#}\t{leastAt:0.#}\t{At(rootFirst)}\t{(plays ? "yes" : "no")}\t{nearest}\t{physics}");
                 return local;
             },
             _ => { });
@@ -412,6 +670,21 @@ public static class CaptureMonsterFiles
         foreach (string row in rows)
         {
             body.AppendLine(row);
+        }
+    }
+
+    /// <summary>
+    /// A piece's own bones: each one's index, name, parent and place at rest in the piece's frame - what a bone watch in memory is held
+    /// against (the bones' count and order) and what a light on a bone is put at.
+    /// </summary>
+    private static void Bones(StringBuilder body, AnimationSkeleton rig, SkeletonPose rest)
+    {
+        body.AppendLine("  bone\tindex\tname\tparent\tat rest");
+        for (var bone = 0; bone < rig.Bones.Count; bone++)
+        {
+            int parent = bone < rest.Parents.Count ? rest.Parents[bone] : -1;
+            Vector3 place = bone < rest.BindModel.Count ? rest.BindModel[bone].Translation : default;
+            body.Append(Invariant($"  bone\t{bone}\t{rig.Bones[bone].Name}\t{(parent >= 0 && parent < rig.Bones.Count ? rig.Bones[parent].Name : "-")}\t{At(place)}")).AppendLine();
         }
     }
 

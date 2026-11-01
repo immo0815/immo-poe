@@ -2822,6 +2822,7 @@ public static class MeshPicture
                                 out float mixedGloss,
                                 out Vector3 mixedWaves,
                                 out ShadeProgram.WaterOut mixedWater,
+                                out Vector3 mixedEmissive,
                                 tinted ? (first * v0) + (second * v1) + (third * v2) : default,
                                 held);
                             if (here)
@@ -2868,7 +2869,7 @@ public static class MeshPicture
                             Vector3 lit = watered
                                 ? waterLit
                                 : scened
-                                ? Scened(program, mixed, mixedSpecular, mixedGloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), mixedWaves, x, y, away, here ? one : -1)
+                                ? Scened(program, mixed, mixedSpecular, mixedGloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), mixedWaves, x, y, away, here ? one : -1, emission: mixedEmissive)
                                 : Lit(program, mixed, mixedSpecular, mixedGloss, (first * f0) + (second * f1) + (third * f2));
                             Over(at, blend, new Vector4(lit, cover));
                             if (laid)
@@ -2904,6 +2905,7 @@ public static class MeshPicture
                     float gloss = 0f;
                     Vector3 waves = default;
                     ShadeProgram.WaterOut water = default;
+                    Vector3 emissive = default;
                     if (program is not null)
                     {
                         // A CUT-OUT SHAPE IS CUT ON THE ALPHA ITS GRAPHS LEAVE where they set one - the
@@ -2938,6 +2940,7 @@ public static class MeshPicture
                             out gloss,
                             out waves,
                             out water,
+                            out emissive,
                             tinted ? (first * v0) + (second * v1) + (third * v2) : default);
                         if (here)
                         {
@@ -3015,7 +3018,7 @@ public static class MeshPicture
                             program!, water, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves,
                             x, y, away, held, here ? one : -1, out _)
                         : scened
-                        ? Scened(program, colour, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves, away: away, fragment: here ? one : -1, gatherAt: gatherAt, triangle: one)
+                        ? Scened(program, colour, specular, gloss, (first * p0) + (second * p1) + (third * p2), (first * n0) + (second * n1) + (third * n2), waves, away: away, fragment: here ? one : -1, gatherAt: gatherAt, triangle: one, emission: emissive)
                         : Lit(program, colour, specular, gloss, (first * f0) + (second * f1) + (third * f2));
                     if (wet && gatherAt >= 0)
                     {
@@ -3095,7 +3098,7 @@ public static class MeshPicture
         /// </remarks>
         private Vector3 Scened(
             ShadeProgram? program, Vector3 colour, Vector3 specular, float gloss, Vector3 place, Vector3 turn, Vector3 waves = default,
-            int x = 0, int y = 0, float away = 0f, int fragment = -1, int gatherAt = -1, int triangle = -1)
+            int x = 0, int y = 0, float away = 0f, int fragment = -1, int gatherAt = -1, int triangle = -1, Vector3 emission = default)
         {
             // THE BEACH'S OWN SURFACE FOR ALL ITS LIGHT, the normal its program hands over (ShadeProgram.Beaches) - not the water's waves.
             if (program is { Beaches: true })
@@ -3146,12 +3149,12 @@ public static class MeshPicture
             if (gatherAt >= 0)
             {
                 // THE SAME COLOUR TO THE BIT, its terms beside it - see SceneLight.Shade's split.
-                lit = _scene!.Shade(albedo, place, normal, toEye, sun, glossy, specular, gloss, waves, environment, out SceneLight.LightTerms terms) + mirrored;
+                lit = _scene!.Shade(albedo, place, normal, toEye, sun, glossy, specular, gloss, waves, environment, out SceneLight.LightTerms terms, emission) + mirrored;
                 _gather!.Write(gatherAt, triangle, away, place, normal, terms);
             }
             else
             {
-                lit = _scene!.Shade(albedo, place, normal, toEye, sun, glossy, specular, gloss, waves, environment) + mirrored;
+                lit = _scene!.Shade(albedo, place, normal, toEye, sun, glossy, specular, gloss, waves, environment, emission) + mirrored;
             }
 
             return new Vector3(ShadeProgram.Srgb(lit.X), ShadeProgram.Srgb(lit.Y), ShadeProgram.Srgb(lit.Z));

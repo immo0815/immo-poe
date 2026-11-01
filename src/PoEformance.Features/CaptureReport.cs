@@ -150,6 +150,9 @@ public static class CaptureReport
     /// <summary>The engine's stage table and the graphs' links across stages, measured at the press - see ShaderStageHunt.</summary>
     public const string ShaderStagesFile = "shader-stages.txt";
 
+    /// <summary>The bones of the player's pieces watched over seconds from the press - see BoneWatch; its reads beside it in BoneWatchSeries.File.</summary>
+    public const string BoneWatchFile = "bone-watch.txt";
+
     /// <summary>Every room of every room set built as a stage, what fails counted by cause - see CaptureStageSweep.</summary>
     public const string StageSweepFile = "stage-sweep.txt";
 

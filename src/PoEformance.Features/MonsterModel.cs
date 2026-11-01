@@ -216,6 +216,15 @@ public sealed record MonsterModel(
     /// <summary>What reading those lights came to, for the line under a lit picture - see RoomLights.Gathered.</summary>
     public string LightsSaid { get; init; } = string.Empty;
 
+    /// <summary>
+    /// The point lights the monster and his pieces carry on their bones, each where the bind pose puts it and the bone that moves it - see
+    /// <see cref="CarriedLights"/>. Empty for a model that carries none, and for anything but a monster read from its files.
+    /// </summary>
+    public IReadOnlyList<CarriedLight> Carried { get; init; } = [];
+
+    /// <summary>What reading those came to, for the line under a lit picture - see CarriedLights.Gathering.Made; empty where the files name none.</summary>
+    public string CarriedSaid { get; init; } = string.Empty;
+
     /// <summary>Where a stage stood its monster and the floor it found there - see <see cref="StageStanding"/>; null for anything but a staged monster.</summary>
     public StageStanding? Standing { get; init; }
 
@@ -916,9 +925,13 @@ public static class MonsterModels
         var told = new List<PartFit>();
         var riding = new Riding(rig);
         var covering = new Covering();
+
+        // THE LIGHTS HE CARRIES ON HIS BONES, his own first and each piece's as it is hung - see CarriedLights.
+        var lamps = new CarriedLights.Gathering(counted);
+        lamps.Body(found.Files, rig);
         if (wearing)
         {
-            parts.AddRange(Dressing(counted, found.Files, rig, paints, skin, told, riding, pieces ?? [], covering));
+            parts.AddRange(Dressing(counted, found.Files, rig, paints, skin, told, riding, pieces ?? [], covering, lamps));
         }
 
         // HIS OWN SHAPES HIS PIECES HIDE - a body armour's Body_Seg, the gloves' fingers - off the body and its sections alike (PieceHiding).
@@ -941,6 +954,8 @@ public static class MonsterModels
         {
             rig = carrying;
         }
+
+        (IReadOnlyList<CarriedLight> carried, string carriedSaid) = lamps.Made(rig);
 
         // THE MONSTER WITHOUT WHAT HE IS WEARING, taken BEFORE the join and kept - see
         // MonsterModel.BodyLeast. Afterwards there is no way back to it: the joined box is the
@@ -1000,6 +1015,8 @@ public static class MonsterModels
             Files = tally.Files,
             Shaders = paints.Shaders,
             ShapeMaterials = dress.ShapeMaterials,
+            Carried = carried,
+            CarriedSaid = carriedSaid,
         };
     }
 
@@ -1229,7 +1246,8 @@ public static class MonsterModels
         List<PartFit> told,
         Riding riding,
         IReadOnlyList<WornPiece> worn,
-        Covering covering)
+        Covering covering,
+        CarriedLights.Gathering lamps)
     {
         var parts = new List<Part>();
         if (SkeletonPose.Of(parent) is not { } rest)
@@ -1338,7 +1356,7 @@ public static class MonsterModels
             // THE PIECE IS READ BEFORE ITS CHILDREN ARE QUEUED, because what it turns into IS the
             // rig they are authored against - see Fit. The order parts come out in is the order
             // they are dequeued, which this does not change.
-            (Part? part, Fit inner_, PartFit fit) = Worn(read, ao, one_, paints, fallback, body, riding);
+            (Part? part, Fit inner_, PartFit fit) = Worn(read, ao, one_, paints, fallback, body, riding, lamps);
             told.Add(fit);
 
             // EVERY PIECE THE GAME WEARS HIDES WHAT IT HIDES, drawn here or not - a held piece left out still covers what it covers there.
@@ -2247,7 +2265,8 @@ public static class MonsterModels
         Paints paints,
         Mipmaps? fallback,
         Fit body,
-        Riding riding)
+        Riding riding,
+        CarriedLights.Gathering lamps)
     {
         (_, Matrix4x4 place, int bone, Matrix4x4 put, int socket, _, _, bool rooted, Fit fit) = hung;
 
@@ -2269,6 +2288,11 @@ public static class MonsterModels
             }
 
             Part? prop = Propped(read, chain, place, bone, paints, fallback);
+            if (prop is not null)
+            {
+                lamps.Rigid(chain, hung.Path, place, bone);
+            }
+
             return (
                 prop,
                 body,
@@ -2300,6 +2324,7 @@ public static class MonsterModels
         {
             (byte[] held, byte[] heldWeights) = Bound(mesh.Positions.Length, bone);
             var kept = new Part(mesh, held, heldWeights, place, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
+            lamps.Rigid(chain, hung.Path, place, bone);
             return (kept, body, Told(hung, where, PartKind.Rigid, default, kept));
         }
 
@@ -2313,6 +2338,7 @@ public static class MonsterModels
             // NO PLACE: the correction already carries wherever the piece belongs, because a
             // socketed piece's own bind cancels down to exactly its socket's transform.
             var worn = new Part(Corrected(mesh, map.Into), map.Bones, mesh.Weights, null, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
+            lamps.Skin(chain, hung.Path, body.Where);
             return (worn, map.Under, Told(hung, where, PartKind.Skin, counted, worn));
         }
 
@@ -2327,7 +2353,8 @@ public static class MonsterModels
         // ship's wheel, which every other answer here left at his origin while the game hangs it round his neck.
         if (rooted && hung.Depth == 1
             && Entryed(chain, RigBlock, RigEntry) is { Length: > 0 } own
-            && riding.Take(Read(read, own, AnimationSkeleton.Read), mesh) is >= 0 and int first)
+            && Read(read, own, AnimationSkeleton.Read) is var ownRig
+            && riding.Take(ownRig, mesh) is >= 0 and int first)
         {
             var moved = new byte[mesh.Bones.Length];
             for (var one = 0; one < moved.Length; one++)
@@ -2336,11 +2363,13 @@ public static class MonsterModels
             }
 
             var ridden = new Part(mesh, moved, mesh.Weights, null, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
+            lamps.Riding(chain, hung.Path, ownRig, first);
             return (ridden, body, Told(hung, where, PartKind.Played, counted, ridden));
         }
 
         (byte[] bones, byte[] weights) = Bound(mesh.Positions.Length, bone);
         var rigid = new Part(mesh, bones, weights, place, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
+        lamps.Rigid(chain, hung.Path, place, bone);
         return (rigid, body, Told(hung, where, PartKind.Rigid, counted, rigid));
     }
 

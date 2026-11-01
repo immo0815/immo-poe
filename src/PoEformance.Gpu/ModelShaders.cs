@@ -152,6 +152,8 @@ internal static class ModelShaders
             int4 Ambient;       // x: nought none, one flat, two the cube; y: one where graded; z: the cube's side; w: point lights
             int4 Cells;         // xyz: the light grid's cells each way; w: where the cells' entries start in Reach
             int4 Graded;        // xyz: the grade's texels each way; w: the picture's view - SceneLight.View
+            float4 Glow;        // x: one where a material's own light is added - SceneLight.Emissive; y: how many lights the model carries
+            float4 Carried[{{3 * SceneLight.MostCarried}}];  // three rows a carried light, as Points holds the room's - SceneLight.Carried
         };
 
         // THE BONES THE CARD SKINS BY - ModelGpu.Skinned: x one where it skins; y the first vertex it moves; z the rig's bones, a bone at
@@ -651,6 +653,34 @@ internal static class ModelShaders
             return GradeRead(Encoded(colour.r * share), Encoded(colour.g * share), Encoded(colour.b * share)) * most;
         }
 
+        // SceneLight.Reaching: a point light's light at a place and the way to it - its cutoff and fall-off, the grid's and the carried
+        // lights' alike (where: position and cutoff; tint: colour and core) - or false where it adds nothing there.
+        bool PointReaching(float4 where, float4 tint, float zero, float3 place, float3 normal, out float3 light, out float3 towards)
+        {
+            light = float3(0.0, 0.0, 0.0);
+            towards = normal;
+            float3 offset = where.xyz - place;
+            float squared = dot(offset, offset);
+            if (squared >= where.w * where.w)
+            {
+                return false;
+            }
+
+            float distance = sqrt(squared);
+            float ratio = distance / where.w;
+            float fade = max(0.0, 1.0 - (ratio * ratio * ratio * ratio));
+            float divisor = (distance / tint.w) + 1.0;
+            float attenuation = min(10.0, zero * fade * fade / (divisor * divisor));
+            if (!(attenuation > 0.0))
+            {
+                return false;
+            }
+
+            light = tint.rgb * attenuation;
+            towards = distance > 1e-4 ? offset / distance : normal;
+            return true;
+        }
+
         // SceneLight.Lit: one light's diffuse share, and its GGX lobe where the material is glossy.
         void Light(float3 light, float3 towards, float3 normal, float facing, bool glossy, float3 specular, float gloss, inout float3 diffuse, inout float3 shine)
         {
@@ -718,7 +748,7 @@ internal static class ModelShaders
         }
 
         // SceneLight.Shade: every light, the surround, a glossy material's environment, the waves' own specular, the exposure, the grade.
-        float3 Lighted(float3 albedo, float3 place, float3 normal, float sun, bool glossy, float3 specular, float gloss, float3 waves, float environment)
+        float3 Lighted(float3 albedo, float3 place, float3 normal, float sun, bool glossy, float3 specular, float gloss, float3 waves, float environment, float3 emission)
         {
             if (Channelled())
             {
@@ -763,37 +793,37 @@ internal static class ModelShaders
                         for (int entry = (int)Reach.Load(index); entry < upto; entry++)
                         {
                             int one = (int)Reach.Load(Cells.w + entry) * 3;
-                            float4 where = Points.Load(one);
-                            float4 tint = Points.Load(one + 1);
-                            float zero = Points.Load(one + 2).x;
-                            float3 offset = where.xyz - place;
-                            float squared = dot(offset, offset);
-                            if (squared >= where.w * where.w)
+                            float3 light;
+                            float3 towards;
+                            if (PointReaching(Points.Load(one), Points.Load(one + 1), Points.Load(one + 2).x, place, normal, light, towards))
                             {
-                                continue;
-                            }
+                                Light(light, towards, normal, facing, lobes, specular, gloss, diffuse, shine);
+                                if (glints)
+                                {
+                                    Glinted(light, towards, waves, wavesFacing, specular, gloss, shine);
+                                }
 
-                            float distance = sqrt(squared);
-                            float ratio = distance / where.w;
-                            float fade = max(0.0, 1.0 - (ratio * ratio * ratio * ratio));
-                            float divisor = (distance / tint.w) + 1.0;
-                            float attenuation = min(10.0, zero * fade * fade / (divisor * divisor));
-                            if (!(attenuation > 0.0))
-                            {
-                                continue;
+                                total += light;
                             }
-
-                            float3 light = tint.rgb * attenuation;
-                            float3 towards = distance > 1e-4 ? offset / distance : normal;
-                            Light(light, towards, normal, facing, lobes, specular, gloss, diffuse, shine);
-                            if (glints)
-                            {
-                                Glinted(light, towards, waves, wavesFacing, specular, gloss, shine);
-                            }
-
-                            total += light;
                         }
                     }
+                }
+            }
+
+            // THE LIGHTS THE MODEL CARRIES ON ITS BONES, every one asked - SceneLight.Shaded's.
+            for (int carried = 0; carried < (int)Glow.y; carried++)
+            {
+                float3 light;
+                float3 towards;
+                if (PointReaching(Carried[carried * 3], Carried[(carried * 3) + 1], Carried[(carried * 3) + 2].x, place, normal, light, towards))
+                {
+                    Light(light, towards, normal, facing, lobes, specular, gloss, diffuse, shine);
+                    if (glints)
+                    {
+                        Glinted(light, towards, waves, wavesFacing, specular, gloss, shine);
+                    }
+
+                    total += light;
                 }
             }
 
@@ -829,7 +859,9 @@ internal static class ModelShaders
                 shine += (seen * bias) + (seen * scale * specular);
             }
 
-            float3 exposed = (colour + shine) * Finish.x;
+            // THE MATERIAL'S OWN LIGHT, as EndLighting adds it - SceneLight.Shaded; in "Lighting Only" too, whose graph replaces the albedo alone.
+            float3 glowing = Glow.x > 0.5 ? emission : float3(0.0, 0.0, 0.0);
+            float3 exposed = (colour + shine + glowing) * Finish.x;
             return Ambient.y != 0 ? Graded3(exposed) : exposed;
         }
 
@@ -901,7 +933,7 @@ internal static class ModelShaders
 
             float3 normal = Toward(pixel.turn);
             float sun = SunLit(pixel.place, normal);
-            return float4(Srgb(Lighted(Linear(colour), pixel.place, normal, sun, false, float3(0.0, 0.0, 0.0), 0.0, float3(0.0, 0.0, 0.0), 1.0)), 1.0);
+            return float4(Srgb(Lighted(Linear(colour), pixel.place, normal, sun, false, float3(0.0, 0.0, 0.0), 0.0, float3(0.0, 0.0, 0.0), 1.0, float3(0.0, 0.0, 0.0))), 1.0);
         }
 
         // THE SUN'S SHADOW MAP - ShadowMap.Build: the mesh drawn along the light onto the map's texels,
@@ -1307,28 +1339,13 @@ internal static class ModelShaders
                         for (int entry = (int)Reach.Load(index); entry < upto; entry++)
                         {
                             int one = (int)Reach.Load(Cells.w + entry) * 3;
-                            float4 where = Points.Load(one);
-                            float4 tint = Points.Load(one + 1);
-                            float zero = Points.Load(one + 2).x;
-                            float3 offset = where.xyz - place;
-                            float squared = dot(offset, offset);
-                            if (squared >= where.w * where.w)
+                            float3 light;
+                            float3 towards;
+                            if (!PointReaching(Points.Load(one), Points.Load(one + 1), Points.Load(one + 2).x, place, normal, light, towards))
                             {
                                 continue;
                             }
 
-                            float distance = sqrt(squared);
-                            float ratio = distance / where.w;
-                            float fade = max(0.0, 1.0 - (ratio * ratio * ratio * ratio));
-                            float divisor = (distance / tint.w) + 1.0;
-                            float attenuation = min(10.0, zero * fade * fade / (divisor * divisor));
-                            if (!(attenuation > 0.0))
-                            {
-                                continue;
-                            }
-
-                            float3 light = tint.rgb * attenuation;
-                            float3 towards = distance > 1e-4 ? offset / distance : normal;
                             WaterLight(light, towards, normal, diffuse, through);
                             if (glints)
                             {
@@ -1338,6 +1355,23 @@ internal static class ModelShaders
                             total += light;
                         }
                     }
+                }
+            }
+
+            // AND THE LIGHTS THE MODEL CARRIES - SceneLight.ShadeWater's.
+            for (int carried = 0; carried < (int)Glow.y; carried++)
+            {
+                float3 light;
+                float3 towards;
+                if (PointReaching(Carried[carried * 3], Carried[(carried * 3) + 1], Carried[(carried * 3) + 2].x, place, normal, light, towards))
+                {
+                    WaterLight(light, towards, normal, diffuse, through);
+                    if (glints)
+                    {
+                        Glinted(light, towards, normal, facing, specular, gloss, shine);
+                    }
+
+                    total += light;
                 }
             }
 
@@ -1422,7 +1456,7 @@ internal static class ModelShaders
         }
 
         // MeshPicture.Drawing.Scened with a program.
-        float3 SceneLit(float3 colour, float3 specular, float gloss, float3 place, float3 turn, float3 waves, float4 position)
+        float3 SceneLit(float3 colour, float3 specular, float gloss, float3 place, float3 turn, float3 waves, float4 position, float3 emission)
         {
             // THE BEACH'S OWN SURFACE FOR ALL ITS LIGHT - MeshPicture.Drawing.Scened's.
             float3 normal = Toward(ShadeBeach ? waves : turn);
@@ -1443,7 +1477,7 @@ internal static class ModelShaders
             }
 
             // THE PICTURE'S OWN LIGHT IS ADDED AS IT WAS DRAWN, exposed and graded already.
-            return Srgb(Lighted(albedo, place, normal, sun, glossy, specular, gloss, wavy, environment) + mirrored);
+            return Srgb(Lighted(albedo, place, normal, sun, glossy, specular, gloss, wavy, environment, emission) + mirrored);
         }
 
         float4 Solidly(Pixel pixel, bool scened)
@@ -1469,7 +1503,7 @@ internal static class ModelShaders
             }
 
             float3 shown = scened
-                ? SceneLit(said.colour, said.specular, said.gloss, pixel.place, pixel.turn, said.waves, pixel.position)
+                ? SceneLit(said.colour, said.specular, said.gloss, pixel.place, pixel.turn, said.waves, pixel.position, said.emissive)
                 : LampLit(said.colour, said.specular, said.gloss, pixel.facing);
             return float4(shown, 1.0);
         }
@@ -1500,7 +1534,7 @@ internal static class ModelShaders
             }
 
             float3 shown = scened
-                ? SceneLit(said.colour, said.specular, said.gloss, pixel.place, pixel.turn, said.waves, pixel.position)
+                ? SceneLit(said.colour, said.specular, said.gloss, pixel.place, pixel.turn, said.waves, pixel.position, said.emissive)
                 : LampLit(said.colour, said.specular, said.gloss, pixel.facing);
             float alpha = saturate(cover);
             return float4(shown * alpha, alpha);
@@ -1694,27 +1728,25 @@ internal static class ModelShaders
                         for (int entry = (int)Reach.Load(index); entry < upto; entry++)
                         {
                             int one = (int)Reach.Load(Cells.w + entry) * 3;
-                            float4 where = Points.Load(one);
-                            float4 tint = Points.Load(one + 1);
-                            float zero = Points.Load(one + 2).x;
-                            float3 offset = where.xyz - near;
-                            float squared = dot(offset, offset);
-                            if (squared >= where.w * where.w)
+                            float3 light;
+                            float3 towards;
+                            if (PointReaching(Points.Load(one), Points.Load(one + 1), Points.Load(one + 2).x, near, float3(0.0, 0.0, -1.0), light, towards))
                             {
-                                continue;
-                            }
-
-                            float distance = sqrt(squared);
-                            float ratio = distance / where.w;
-                            float fade = max(0.0, 1.0 - (ratio * ratio * ratio * ratio));
-                            float divisor = (distance / tint.w) + 1.0;
-                            float attenuation = min(10.0, zero * fade * fade / (divisor * divisor));
-                            if (attenuation > 0.0)
-                            {
-                                total += tint.rgb * attenuation;
+                                total += light;
                             }
                         }
                     }
+                }
+            }
+
+            // AND THE LIGHTS THE MODEL CARRIES, as the room's are.
+            for (int carried = 0; carried < (int)Glow.y; carried++)
+            {
+                float3 light;
+                float3 towards;
+                if (PointReaching(Carried[carried * 3], Carried[(carried * 3) + 1], Carried[(carried * 3) + 2].x, near, float3(0.0, 0.0, -1.0), light, towards))
+                {
+                    total += light;
                 }
             }
 
