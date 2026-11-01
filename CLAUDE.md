@@ -1389,6 +1389,22 @@ place's window (256 bytes either side) read again AT ONE MOMENT with the frame's
 index in an array read that moment, its first particle, its clock, its frame's step or an anchor's number - the windows holding an index or a
 step first; the block the card's constant buffer is copied from is to be read off them. Press it with the player taken in the Monster Book
 and the staff in hand, standing still.
+ITS FIRST PRESS TOOK NO PANES (20:40, the wand in hand in the game): the capture snapshots the model panes only for the parts named beside
+CaptureKey's snapshot, and this part was not among them, so it had no anchors and wrote no globals section, saying nothing - named there from
+v0.1.437, and a part with no anchors says why. Pressed again with `particles` ticked (which takes the panes) and the staff in hand (20:42,
+Canal Hideout), THE DISPATCH'S VALUES WERE READ (schema `GpuParticleObjectUniforms`): beside each lamp emitter's World in the game's heap,
+twice or more (copies of several moments), a block of its object uniforms by gpuparticles.ffx's names (DECLARATIONS gpu_particles_emitter_data,
+gpu_particles_emitter_new) - gpu_particles_duration the file's; gpu_particle_burst emit_burst OVER A HUNDRED (the embers' 0.458); gpu_particle_seed
+a fraction per emitter, the same in every copy; gpu_particle_emitter the record's index in the frame's array (the shimmer's 992, matched in an
+array read the same moment); gpu_particle_count the pool drawn between the file's min and max TIMES THE GROUP SIZE (23 of 16..24, 7 of 5..7,
+16 x 8 = 128); gpu_particle_culling_priority Gameplay 0, Cosmetic 1, Important 100; gpu_particle_pass_count the render passes (the flame's 2);
+gpu_particle_emitter_id a running number, one effect's emitters in the .pet's order; and the effect's start on the game's clock, a reading.
+`ParticleEmitterHunt.Uniforms` finds a block by its count standing twice and writes each one in the part's globals section; the replay reads the
+report's windows back and finds them again (the lamp's three and two of another effect in that capture). STILL NOT MEASURED: frame_delta_time, a
+pass uniform whose meaning is the source's own comment (the frame's delta, its start and end fractions, the subframe index as a uint);
+instance_count and batch_size, the instances' (the update's DefineParticleUpdate runs instance_count * batch_size threads, each particle
+`local % instance_count + particles_start`); frame_index; how the seed and the count are drawn (random each emitter, not read); and the engine's
+own constant buffer layout, which the tool's dispatch does not need - it compiles and fills its own.
 
 ## Verify against the game, not against yourself
 

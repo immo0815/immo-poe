@@ -416,6 +416,14 @@ public static class ParticleEmitterHunt
             running.Phase(5);
             Globals(reader, regions, writable, all, runs, near, anchors, running, lines);
         }
+        else if (!running.Stopping)
+        {
+            // SAID, NOT LEFT OUT (v0.1.437): v0.1.436's first press took no panes and wrote no globals section, and nothing said why.
+            lines.Add(string.Empty);
+            lines.Add(anchors is null
+                ? "=== the dispatch's globals: not looked for - the install is not open, so no emitter's numbers could be read"
+                : "=== the dispatch's globals: not looked for - no model pane at the press shows a monster naming a particle effect with numbers to look for (take the player with the effect's weapon in the Monster Book)");
+        }
 
         if (runs.Count > 0 && runs.MaxBy(one => one.Length) is var longest && Array.Find(all, region => longest.At >= region.Address && longest.At < region.Address + region.Size) is { Size: > 0 } holding)
         {
@@ -504,6 +512,7 @@ public static class ParticleEmitterHunt
 
         lines.Insert(1, string.Create(CultureInfo.InvariantCulture,
             $"{records} records, {fitting} read as one by today's test; by group size: {string.Join(", ", groups.Select(one => $"{one.Key}: {one.Value}"))}"));
+        Windowed(report, lines);
         if (region is { Length: > 16 } && decoded.Count > 0)
         {
             // THE NEAR ONES as the capture took them: the records are written nearest first, so the first record's translation stands for
@@ -541,6 +550,69 @@ public static class ParticleEmitterHunt
         }
 
         return lines;
+    }
+
+    /// <summary>
+    /// The globals section's windows read back from the report's rows (each row its offset from the needle and four words as hex), and every
+    /// emitter's object uniforms decoded in them by this build's <see cref="Uniforms"/>, with the duration needles the report names.
+    /// </summary>
+    private static void Windowed(IEnumerable<string> report, List<string> lines)
+    {
+        var durations = new List<Vector2>();
+        var windows = new List<(ulong From, byte[] Bytes)>();
+        (ulong At, SortedDictionary<long, byte[]> Rows)? current = null;
+        void Close()
+        {
+            if (current is { Rows.Count: > 0 } done)
+            {
+                long first = done.Rows.Keys.First();
+                windows.Add(((ulong)((long)done.At + first), [.. done.Rows.Values.SelectMany(row => row)]));
+            }
+        }
+
+        foreach (string line in report.Select(one => one.TrimEnd('\r')))
+        {
+            if (line.StartsWith("  needle ", StringComparison.Ordinal) && line.IndexOf("particle_duration_min, _max (", StringComparison.Ordinal) is var open and >= 0
+                && line.IndexOf(')', open) is var close and > 0)
+            {
+                string[] values = line[(open + "particle_duration_min, _max (".Length)..close].Split(", ");
+                if (values.Length == 2 && float.TryParse(values[0], CultureInfo.InvariantCulture, out float min) && float.TryParse(values[1], CultureInfo.InvariantCulture, out float max))
+                {
+                    durations.Add(new Vector2(min, max));
+                }
+            }
+            else if (line.StartsWith("--- needle ", StringComparison.Ordinal) && line.IndexOf(" at 0x", StringComparison.Ordinal) is var at and > 0)
+            {
+                Close();
+                string hex = line[(at + " at 0x".Length)..].Split(' ')[0];
+                current = ulong.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong place) ? (place, new SortedDictionary<long, byte[]>()) : null;
+            }
+            else if (line.StartsWith("===", StringComparison.Ordinal))
+            {
+                Close();
+                current = null;
+            }
+            else if (current is { } open2 && line.Split('\t') is { Length: >= 2 } parts && long.TryParse(parts[0].Trim(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long offset))
+            {
+                string[] words = parts[1].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (words.Length == 4)
+                {
+                    open2.Rows[offset] = Convert.FromHexString(string.Concat(words.Select(word => string.Concat(Enumerable.Range(0, 4).Select(b => word.Substring(6 - (2 * b), 2))))));
+                }
+            }
+        }
+
+        Close();
+        if (windows.Count == 0)
+        {
+            return;
+        }
+
+        List<ObjectUniforms> blocks = [.. windows.SelectMany(one => Uniforms(one.Bytes, one.From, durations)).DistinctBy(one => one.At)];
+        lines.Add(string.Empty);
+        lines.Add(string.Create(CultureInfo.InvariantCulture,
+            $"=== the globals section's {windows.Count} windows read back: {blocks.Count} blocks of an emitter's object uniforms (schema GpuParticleObjectUniforms) by the {durations.Count} duration needles"));
+        lines.AddRange(blocks.Select(one => "  " + Said(one)));
     }
 
     /// <summary>
@@ -814,6 +886,81 @@ public static class ParticleEmitterHunt
     /// emitter's index in an array read that moment, its first particle, its time or its frame's step, or an anchor's number - the windows
     /// holding an index or a step first. The block the card's constant buffer is copied from is to be read off them.
     /// </summary>
+    /// <summary>
+    /// One emitter's dispatch values as the processor keeps them beside its World (schema <c>GpuParticleObjectUniforms</c>): the update's
+    /// object uniforms by their names - found where an emitter file's particle_duration_min and _max stand.
+    /// </summary>
+    /// <param name="At">Where the duration stands.</param>
+    /// <param name="Duration">gpu_particles_duration: particle_duration_min and _max.</param>
+    /// <param name="Burst">gpu_particle_burst: the file's emit_burst over a hundred.</param>
+    /// <param name="Seed">gpu_particle_seed, a fraction.</param>
+    /// <param name="Emitter">gpu_particle_emitter: the record's index in the frame's ParticleEmitterData array.</param>
+    /// <param name="Count">gpu_particle_count: the pool, times the group size.</param>
+    /// <param name="Culling">gpu_particle_culling_priority.</param>
+    /// <param name="Passes">gpu_particle_pass_count: the render passes.</param>
+    /// <param name="Start">The float after them, the same for every emitter of one effect (the effect's start on the game's clock, a reading).</param>
+    /// <param name="Id">gpu_particle_emitter_id: a running number, an effect's emitters one after another.</param>
+    /// <param name="Translation">The World's translation standing before them, or null where none does.</param>
+    public readonly record struct ObjectUniforms(
+        ulong At, Vector2 Duration, float Burst, float Seed, uint Emitter, uint Count, uint Culling, uint Passes, float Start, uint Id, Vector3? Translation);
+
+    /// <summary>How far the World stands before the duration in a <see cref="ObjectUniforms"/> block, and how long the block is from the duration on.</summary>
+    private const int UniformsWorld = 0x50, UniformsLength = 0x38;
+
+    /// <summary>
+    /// Every <see cref="ObjectUniforms"/> block in <paramref name="bytes"/> (read from <paramref name="from"/>) whose duration is one of
+    /// <paramref name="durations"/> - the layout v0.1.436's capture read off the lamp's three emitters, each block once by its content.
+    /// </summary>
+    /// <remarks>
+    /// THE FINGERPRINT (MEASURED, 2026-11-01 20:42, Canal Hideout, the staff in hand): the duration pair, a burst and a seed between nought
+    /// and one, the emitter's index, the count, the culling priority, the pass count, the start, the id, two ones, a nought, and THE COUNT
+    /// AGAIN - which a duration pair standing anywhere else does not carry.
+    /// </remarks>
+    public static List<ObjectUniforms> Uniforms(ReadOnlySpan<byte> bytes, ulong from, IReadOnlyList<Vector2> durations)
+    {
+        ArgumentNullException.ThrowIfNull(durations);
+        var found = new List<ObjectUniforms>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (var at = 0; at + UniformsLength <= bytes.Length; at += 4)
+        {
+            float min = BinaryPrimitives.ReadSingleLittleEndian(bytes[at..]), max = BinaryPrimitives.ReadSingleLittleEndian(bytes[(at + 4)..]);
+            if (!durations.Any(one => MathF.Abs(one.X - min) <= 1e-5f && MathF.Abs(one.Y - max) <= 1e-5f))
+            {
+                continue;
+            }
+
+            float burst = BinaryPrimitives.ReadSingleLittleEndian(bytes[(at + 0x08)..]), seed = BinaryPrimitives.ReadSingleLittleEndian(bytes[(at + 0x0C)..]);
+            uint emitter = BinaryPrimitives.ReadUInt32LittleEndian(bytes[(at + 0x10)..]), count = BinaryPrimitives.ReadUInt32LittleEndian(bytes[(at + 0x14)..]);
+            uint culling = BinaryPrimitives.ReadUInt32LittleEndian(bytes[(at + 0x18)..]), passes = BinaryPrimitives.ReadUInt32LittleEndian(bytes[(at + 0x1C)..]);
+            if (!(burst is >= 0f and <= 1f) || !(seed is >= 0f and < 1f) || count is 0 or > 1u << 20 || passes is 0 or > 16
+                || BinaryPrimitives.ReadUInt32LittleEndian(bytes[(at + 0x34)..]) != count
+                || !seen.Add(Convert.ToHexString(bytes.Slice(at, UniformsLength))))
+            {
+                continue;
+            }
+
+            Vector3? translation = null;
+            if (at >= UniformsWorld && BinaryPrimitives.ReadSingleLittleEndian(bytes[(at - 0x14)..]) == 1f)
+            {
+                translation = new Vector3(
+                    BinaryPrimitives.ReadSingleLittleEndian(bytes[(at - 0x20)..]),
+                    BinaryPrimitives.ReadSingleLittleEndian(bytes[(at - 0x1C)..]),
+                    BinaryPrimitives.ReadSingleLittleEndian(bytes[(at - 0x18)..]));
+            }
+
+            found.Add(new ObjectUniforms(
+                from + (ulong)at, new Vector2(min, max), burst, seed, emitter, count, culling, passes,
+                BinaryPrimitives.ReadSingleLittleEndian(bytes[(at + 0x20)..]), BinaryPrimitives.ReadUInt32LittleEndian(bytes[(at + 0x24)..]), translation));
+        }
+
+        return found;
+    }
+
+    /// <summary>One <see cref="ObjectUniforms"/> block as a line.</summary>
+    public static string Said(ObjectUniforms one)
+        => string.Create(CultureInfo.InvariantCulture,
+            $"0x{one.At:X}: gpu_particles_duration ({one.Duration.X:G6}, {one.Duration.Y:G6}), gpu_particle_burst {one.Burst:G6}, gpu_particle_seed {one.Seed:G6}, gpu_particle_emitter {one.Emitter}, gpu_particle_count {one.Count}, gpu_particle_culling_priority {one.Culling}, gpu_particle_pass_count {one.Passes}, start {one.Start:G8}, gpu_particle_emitter_id 0x{one.Id:X}{(one.Translation is { } t ? $"; its World at ({t.X:G7}, {t.Y:G7}, {t.Z:G7})" : "; no World before it")}");
+
     private static void Globals(
         IMemoryReader reader, IMemoryRegions regions, IMemoryRegions writable, MemoryRegion[] all, IReadOnlyList<(ulong At, int Length)> runs,
         IReadOnlyList<Record> near, IReadOnlyList<FloatNeedle> anchors, Running running, List<string> lines)
@@ -913,6 +1060,17 @@ public static class ParticleEmitterHunt
             }
 
             return string.Join(",", marks.Distinct());
+        }
+
+        // THE EMITTERS' OBJECT UNIFORMS as v0.1.436's capture read them off the windows, decoded wherever a duration needle's place carries them.
+        List<Vector2> durations = [.. anchors.Where(one => one.Values.Length == 2).Select(one => new Vector2(one.Values[0], one.Values[1]))];
+        List<ObjectUniforms> blocks = [.. windows.SelectMany(one => Uniforms(one.Now, one.Dump.From, durations)).DistinctBy(one => one.At)];
+        lines.Add(string.Create(CultureInfo.InvariantCulture,
+            $"  {blocks.Count} blocks of an emitter's object uniforms in the windows (schema GpuParticleObjectUniforms: the duration, the burst, the seed, the emitter's index, the count, the culling priority, the pass count, the start, the id, then the count again), the near emitters' indices beside them"));
+        foreach (ObjectUniforms block in blocks)
+        {
+            string marks = string.Join(", ", index.Where(one => one.Value.Exists(seen => seen.Index == block.Emitter)).Select(one => $"the index of the emitter of particles {one.Key}"));
+            lines.Add("  uniforms " + Said(block) + (marks.Length > 0 ? " - " + marks : string.Empty));
         }
 
         var said = windows
